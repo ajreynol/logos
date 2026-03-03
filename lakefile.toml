@@ -1,0 +1,10 @@
+name = "Cpc"
+version = "0.1.0"
+defaultTargets = ["cpc"]
+
+[[lean_lib]]
+name = "Cpc"
+
+[[lean_exe]]
+name = "logos"
+root = "Main"
