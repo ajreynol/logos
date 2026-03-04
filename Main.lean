@@ -32,8 +32,9 @@ def evalLogoExpr (path : String) : Lean.Meta.MetaM Nat := do
     -- IO.println stx
     let ⟨.node _ _ #[_, .node _ _ args]⟩ := stx
       | throwError "Expected a proof of the following form:\nimport Cpc.Logos\n\n#eval! <proof>\n\ngot:\n{stx}"
-    for arg in args do
-      Lean.liftCommandElabM (Lean.Elab.Command.elabCommand arg)
+    Lean.liftCommandElabM do
+      for arg in args do
+        Lean.Elab.Command.elabCommand arg
   catch e =>
     Lean.logError m!"{e.toMessageData}"
   Lean.printTraces
