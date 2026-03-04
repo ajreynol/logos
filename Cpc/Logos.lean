@@ -309,7 +309,7 @@ def eo_lit_tcmp (a b : Term) : eo_lit_Bool :=
   | _ => false
 
 /- Used for defining hash -/
-def __smtx_hash : Term -> eo_lit_Int
+def eo_lit_thash : Term -> eo_lit_Int
   | _ => 0 -- FIXME
 
 /- Proofs -/
