@@ -1,7 +1,7 @@
 import Cpc.SmtEval
 
 set_option linter.unusedVariables false
-set_option maxHeartbeats 1000000
+set_option maxHeartbeats 10000000
 
 namespace Eo
 
@@ -58,13 +58,15 @@ abbrev __smtx_binary_uts := SmtEval.__smtx_binary_uts
 abbrev __smtx_binary_concat := SmtEval.__smtx_binary_concat
 abbrev __smtx_binary_extract := SmtEval.__smtx_binary_extract
 
-
-/- Term definition -/
+instance : Ord Rat where
+  compare a b :=
+    -- compare a.num / a.den vs b.num / b.den by cross-multiplication
+    compare (a.num * Int.ofNat b.den) (b.num * Int.ofNat a.den)
 
 mutual
 
+/- Term definition -/
 inductive Term : Type where
-  | __eo_Proof : Term
   | __eo_pf : Term -> Term
   | Int : Term
   | Real : Term
@@ -276,7 +278,7 @@ inductive Term : Type where
   | _at__at_aci_sorted : Term
   | _at_const : Term -> Term -> Term
 
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 Eunoia datatypes.
@@ -299,7 +301,13 @@ end
 /- Term equality -/
 def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
-  
+
+/- Term less than, based on arbitrary ordering -/
+def eo_lit_tlt (a b : Term) : eo_lit_Bool :=
+  match compare a b with
+  | Ordering.lt => true
+  | _ => false
+
 /- Used for defining hash -/
 def __smtx_hash : Term -> eo_lit_Int
   | _ => 0 -- FIXME
@@ -8134,10 +8142,18 @@ deriving Repr, Inhabited
 
 /-
 -/
+inductive CArgList : Type where
+  | nil : CArgList
+  | cons : Term -> CArgList -> CArgList
+deriving Repr, Inhabited
+
+/-
+-/
 inductive CStateObj : Type where
   | assume : Term -> CStateObj
   | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
+  | Stuck : CStateObj
 deriving Repr, Inhabited
 
 /-
@@ -8150,604 +8166,611 @@ deriving Repr, Inhabited
 
 /-
 -/
+inductive CRule : Type where
+  | scope : CRule
+  | process_scope : CRule
+  | ite_eq : CRule
+  | split : CRule
+  | resolution : CRule
+  | chain_resolution : CRule
+  | chain_m_resolution : CRule
+  | factoring : CRule
+  | reordering : CRule
+  | eq_resolve : CRule
+  | modus_ponens : CRule
+  | not_not_elim : CRule
+  | contra : CRule
+  | and_elim : CRule
+  | and_intro : CRule
+  | not_or_elim : CRule
+  | implies_elim : CRule
+  | not_implies_elim1 : CRule
+  | not_implies_elim2 : CRule
+  | equiv_elim1 : CRule
+  | equiv_elim2 : CRule
+  | not_equiv_elim1 : CRule
+  | not_equiv_elim2 : CRule
+  | xor_elim1 : CRule
+  | xor_elim2 : CRule
+  | not_xor_elim1 : CRule
+  | not_xor_elim2 : CRule
+  | ite_elim1 : CRule
+  | ite_elim2 : CRule
+  | not_ite_elim1 : CRule
+  | not_ite_elim2 : CRule
+  | not_and : CRule
+  | cnf_and_pos : CRule
+  | cnf_and_neg : CRule
+  | cnf_or_pos : CRule
+  | cnf_or_neg : CRule
+  | cnf_implies_pos : CRule
+  | cnf_implies_neg1 : CRule
+  | cnf_implies_neg2 : CRule
+  | cnf_equiv_pos1 : CRule
+  | cnf_equiv_pos2 : CRule
+  | cnf_equiv_neg1 : CRule
+  | cnf_equiv_neg2 : CRule
+  | cnf_xor_pos1 : CRule
+  | cnf_xor_pos2 : CRule
+  | cnf_xor_neg1 : CRule
+  | cnf_xor_neg2 : CRule
+  | cnf_ite_pos1 : CRule
+  | cnf_ite_pos2 : CRule
+  | cnf_ite_pos3 : CRule
+  | cnf_ite_neg1 : CRule
+  | cnf_ite_neg2 : CRule
+  | cnf_ite_neg3 : CRule
+  | arrays_read_over_write : CRule
+  | arrays_read_over_write_contra : CRule
+  | arrays_read_over_write_1 : CRule
+  | arrays_ext : CRule
+  | refl : CRule
+  | symm : CRule
+  | trans : CRule
+  | cong : CRule
+  | nary_cong : CRule
+  | pairwise_cong : CRule
+  | true_intro : CRule
+  | true_elim : CRule
+  | false_intro : CRule
+  | false_elim : CRule
+  | ho_cong : CRule
+  | distinct_elim : CRule
+  | distinct_true : CRule
+  | distinct_false : CRule
+  | lambda_elim : CRule
+  | arith_sum_ub : CRule
+  | arith_mult_pos : CRule
+  | arith_mult_neg : CRule
+  | arith_trichotomy : CRule
+  | int_tight_ub : CRule
+  | int_tight_lb : CRule
+  | arith_mult_tangent : CRule
+  | arith_mult_sign : CRule
+  | arith_mult_abs_comparison : CRule
+  | arith_reduction : CRule
+  | arith_poly_norm : CRule
+  | arith_poly_norm_rel : CRule
+  | bv_repeat_elim : CRule
+  | bv_smulo_elim : CRule
+  | bv_umulo_elim : CRule
+  | bv_bitwise_slicing : CRule
+  | bv_bitblast_step : CRule
+  | bv_poly_norm : CRule
+  | bv_poly_norm_eq : CRule
+  | string_length_pos : CRule
+  | string_length_non_empty : CRule
+  | concat_eq : CRule
+  | concat_unify : CRule
+  | concat_csplit : CRule
+  | concat_split : CRule
+  | concat_lprop : CRule
+  | concat_cprop : CRule
+  | string_decompose : CRule
+  | exists_string_length : CRule
+  | string_code_inj : CRule
+  | string_seq_unit_inj : CRule
+  | re_inter : CRule
+  | re_concat : CRule
+  | re_unfold_pos : CRule
+  | re_unfold_neg_concat_fixed : CRule
+  | re_unfold_neg : CRule
+  | string_ext : CRule
+  | string_reduction : CRule
+  | string_eager_reduction : CRule
+  | arith_string_pred_entail : CRule
+  | arith_string_pred_safe_approx : CRule
+  | str_in_re_eval : CRule
+  | str_in_re_consume : CRule
+  | re_loop_elim : CRule
+  | re_eq_elim : CRule
+  | re_inter_inclusion : CRule
+  | re_union_inclusion : CRule
+  | str_in_re_concat_star_char : CRule
+  | str_in_re_sigma : CRule
+  | str_in_re_sigma_star : CRule
+  | str_ctn_multiset_subset : CRule
+  | str_overlap_split_ctn : CRule
+  | str_overlap_endpoints_ctn : CRule
+  | str_overlap_endpoints_indexof : CRule
+  | str_overlap_endpoints_replace : CRule
+  | str_indexof_re_eval : CRule
+  | str_replace_re_eval : CRule
+  | str_replace_re_all_eval : CRule
+  | seq_eval_op : CRule
+  | sets_singleton_inj : CRule
+  | sets_ext : CRule
+  | sets_eval_op : CRule
+  | sets_insert_elim : CRule
+  | ubv_to_int_elim : CRule
+  | int_to_bv_elim : CRule
+  | instantiate : CRule
+  | skolemize : CRule
+  | skolem_intro : CRule
+  | alpha_equiv : CRule
+  | beta_reduce : CRule
+  | quant_var_reordering : CRule
+  | exists_elim : CRule
+  | quant_unused_vars : CRule
+  | quant_merge_prenex : CRule
+  | quant_miniscope_and : CRule
+  | quant_miniscope_or : CRule
+  | quant_miniscope_ite : CRule
+  | quant_var_elim_eq : CRule
+  | quant_dt_split : CRule
+  | dt_split : CRule
+  | dt_inst : CRule
+  | dt_collapse_selector : CRule
+  | dt_collapse_tester : CRule
+  | dt_collapse_tester_singleton : CRule
+  | dt_cons_eq : CRule
+  | dt_cons_eq_clash : CRule
+  | dt_cycle : CRule
+  | dt_collapse_updater : CRule
+  | dt_updater_elim : CRule
+  | arith_div_total_zero_real : CRule
+  | arith_div_total_zero_int : CRule
+  | arith_int_div_total : CRule
+  | arith_int_div_total_one : CRule
+  | arith_int_div_total_zero : CRule
+  | arith_int_div_total_neg : CRule
+  | arith_int_mod_total : CRule
+  | arith_int_mod_total_one : CRule
+  | arith_int_mod_total_zero : CRule
+  | arith_int_mod_total_neg : CRule
+  | arith_elim_gt : CRule
+  | arith_elim_lt : CRule
+  | arith_elim_int_gt : CRule
+  | arith_elim_int_lt : CRule
+  | arith_elim_leq : CRule
+  | arith_leq_norm : CRule
+  | arith_geq_tighten : CRule
+  | arith_geq_norm1_int : CRule
+  | arith_geq_norm1_real : CRule
+  | arith_eq_elim_real : CRule
+  | arith_eq_elim_int : CRule
+  | arith_to_int_elim : CRule
+  | arith_to_int_elim_to_real : CRule
+  | arith_div_elim_to_real1 : CRule
+  | arith_div_elim_to_real2 : CRule
+  | arith_mod_over_mod_1 : CRule
+  | arith_mod_over_mod : CRule
+  | arith_mod_over_mod_mult : CRule
+  | arith_int_eq_conflict : CRule
+  | arith_int_geq_tighten : CRule
+  | arith_divisible_elim : CRule
+  | arith_abs_eq : CRule
+  | arith_abs_int_gt : CRule
+  | arith_abs_real_gt : CRule
+  | arith_geq_ite_lift : CRule
+  | arith_leq_ite_lift : CRule
+  | arith_min_lt1 : CRule
+  | arith_min_lt2 : CRule
+  | arith_max_geq1 : CRule
+  | arith_max_geq2 : CRule
+  | array_read_over_write : CRule
+  | array_read_over_write2 : CRule
+  | array_store_overwrite : CRule
+  | array_store_self : CRule
+  | array_read_over_write_split : CRule
+  | array_store_swap : CRule
+  | bool_double_not_elim : CRule
+  | bool_not_true : CRule
+  | bool_not_false : CRule
+  | bool_eq_true : CRule
+  | bool_eq_false : CRule
+  | bool_eq_nrefl : CRule
+  | bool_impl_false1 : CRule
+  | bool_impl_false2 : CRule
+  | bool_impl_true1 : CRule
+  | bool_impl_true2 : CRule
+  | bool_impl_elim : CRule
+  | bool_dual_impl_eq : CRule
+  | bool_and_conf : CRule
+  | bool_and_conf2 : CRule
+  | bool_or_taut : CRule
+  | bool_or_taut2 : CRule
+  | bool_or_de_morgan : CRule
+  | bool_implies_de_morgan : CRule
+  | bool_and_de_morgan : CRule
+  | bool_or_and_distrib : CRule
+  | bool_implies_or_distrib : CRule
+  | bool_xor_refl : CRule
+  | bool_xor_nrefl : CRule
+  | bool_xor_false : CRule
+  | bool_xor_true : CRule
+  | bool_xor_comm : CRule
+  | bool_xor_elim : CRule
+  | bool_not_xor_elim : CRule
+  | bool_not_eq_elim1 : CRule
+  | bool_not_eq_elim2 : CRule
+  | ite_neg_branch : CRule
+  | ite_then_true : CRule
+  | ite_else_false : CRule
+  | ite_then_false : CRule
+  | ite_else_true : CRule
+  | ite_then_lookahead_self : CRule
+  | ite_else_lookahead_self : CRule
+  | ite_then_lookahead_not_self : CRule
+  | ite_else_lookahead_not_self : CRule
+  | ite_expand : CRule
+  | bool_not_ite_elim : CRule
+  | ite_true_cond : CRule
+  | ite_false_cond : CRule
+  | ite_not_cond : CRule
+  | ite_eq_branch : CRule
+  | ite_then_lookahead : CRule
+  | ite_else_lookahead : CRule
+  | ite_then_neg_lookahead : CRule
+  | ite_else_neg_lookahead : CRule
+  | bv_concat_extract_merge : CRule
+  | bv_extract_extract : CRule
+  | bv_extract_whole : CRule
+  | bv_extract_concat_1 : CRule
+  | bv_extract_concat_2 : CRule
+  | bv_extract_concat_3 : CRule
+  | bv_extract_concat_4 : CRule
+  | bv_eq_extract_elim1 : CRule
+  | bv_eq_extract_elim2 : CRule
+  | bv_eq_extract_elim3 : CRule
+  | bv_extract_not : CRule
+  | bv_extract_sign_extend_1 : CRule
+  | bv_extract_sign_extend_2 : CRule
+  | bv_extract_sign_extend_3 : CRule
+  | bv_not_xor : CRule
+  | bv_and_simplify_1 : CRule
+  | bv_and_simplify_2 : CRule
+  | bv_or_simplify_1 : CRule
+  | bv_or_simplify_2 : CRule
+  | bv_xor_simplify_1 : CRule
+  | bv_xor_simplify_2 : CRule
+  | bv_xor_simplify_3 : CRule
+  | bv_ult_add_one : CRule
+  | bv_mult_slt_mult_1 : CRule
+  | bv_mult_slt_mult_2 : CRule
+  | bv_commutative_xor : CRule
+  | bv_commutative_comp : CRule
+  | bv_zero_extend_eliminate_0 : CRule
+  | bv_sign_extend_eliminate_0 : CRule
+  | bv_not_neq : CRule
+  | bv_ult_ones : CRule
+  | bv_concat_merge_const : CRule
+  | bv_commutative_add : CRule
+  | bv_sub_eliminate : CRule
+  | bv_ite_width_one : CRule
+  | bv_ite_width_one_not : CRule
+  | bv_eq_xor_solve : CRule
+  | bv_eq_not_solve : CRule
+  | bv_ugt_eliminate : CRule
+  | bv_uge_eliminate : CRule
+  | bv_sgt_eliminate : CRule
+  | bv_sge_eliminate : CRule
+  | bv_sle_eliminate : CRule
+  | bv_redor_eliminate : CRule
+  | bv_redand_eliminate : CRule
+  | bv_ule_eliminate : CRule
+  | bv_comp_eliminate : CRule
+  | bv_rotate_left_eliminate_1 : CRule
+  | bv_rotate_left_eliminate_2 : CRule
+  | bv_rotate_right_eliminate_1 : CRule
+  | bv_rotate_right_eliminate_2 : CRule
+  | bv_nand_eliminate : CRule
+  | bv_nor_eliminate : CRule
+  | bv_xnor_eliminate : CRule
+  | bv_sdiv_eliminate : CRule
+  | bv_zero_extend_eliminate : CRule
+  | bv_uaddo_eliminate : CRule
+  | bv_saddo_eliminate : CRule
+  | bv_sdivo_eliminate : CRule
+  | bv_smod_eliminate : CRule
+  | bv_srem_eliminate : CRule
+  | bv_usubo_eliminate : CRule
+  | bv_ssubo_eliminate : CRule
+  | bv_nego_eliminate : CRule
+  | bv_ite_equal_children : CRule
+  | bv_ite_const_children_1 : CRule
+  | bv_ite_const_children_2 : CRule
+  | bv_ite_equal_cond_1 : CRule
+  | bv_ite_equal_cond_2 : CRule
+  | bv_ite_equal_cond_3 : CRule
+  | bv_ite_merge_then_if : CRule
+  | bv_ite_merge_else_if : CRule
+  | bv_ite_merge_then_else : CRule
+  | bv_ite_merge_else_else : CRule
+  | bv_shl_by_const_0 : CRule
+  | bv_shl_by_const_1 : CRule
+  | bv_shl_by_const_2 : CRule
+  | bv_lshr_by_const_0 : CRule
+  | bv_lshr_by_const_1 : CRule
+  | bv_lshr_by_const_2 : CRule
+  | bv_ashr_by_const_0 : CRule
+  | bv_ashr_by_const_1 : CRule
+  | bv_ashr_by_const_2 : CRule
+  | bv_and_concat_pullup : CRule
+  | bv_or_concat_pullup : CRule
+  | bv_xor_concat_pullup : CRule
+  | bv_and_concat_pullup2 : CRule
+  | bv_or_concat_pullup2 : CRule
+  | bv_xor_concat_pullup2 : CRule
+  | bv_and_concat_pullup3 : CRule
+  | bv_or_concat_pullup3 : CRule
+  | bv_xor_concat_pullup3 : CRule
+  | bv_xor_duplicate : CRule
+  | bv_xor_ones : CRule
+  | bv_xor_not : CRule
+  | bv_not_idemp : CRule
+  | bv_ult_zero_1 : CRule
+  | bv_ult_zero_2 : CRule
+  | bv_ult_self : CRule
+  | bv_lt_self : CRule
+  | bv_ule_self : CRule
+  | bv_ule_zero : CRule
+  | bv_zero_ule : CRule
+  | bv_sle_self : CRule
+  | bv_ule_max : CRule
+  | bv_not_ult : CRule
+  | bv_mult_pow2_1 : CRule
+  | bv_mult_pow2_2 : CRule
+  | bv_mult_pow2_2b : CRule
+  | bv_extract_mult_leading_bit : CRule
+  | bv_udiv_pow2_not_one : CRule
+  | bv_udiv_zero : CRule
+  | bv_udiv_one : CRule
+  | bv_urem_pow2_not_one : CRule
+  | bv_urem_one : CRule
+  | bv_urem_self : CRule
+  | bv_shl_zero : CRule
+  | bv_lshr_zero : CRule
+  | bv_ashr_zero : CRule
+  | bv_ugt_urem : CRule
+  | bv_ult_one : CRule
+  | bv_merge_sign_extend_1 : CRule
+  | bv_merge_sign_extend_2 : CRule
+  | bv_sign_extend_eq_const_1 : CRule
+  | bv_sign_extend_eq_const_2 : CRule
+  | bv_zero_extend_eq_const_1 : CRule
+  | bv_zero_extend_eq_const_2 : CRule
+  | bv_zero_extend_ult_const_1 : CRule
+  | bv_zero_extend_ult_const_2 : CRule
+  | bv_sign_extend_ult_const_1 : CRule
+  | bv_sign_extend_ult_const_2 : CRule
+  | bv_sign_extend_ult_const_3 : CRule
+  | bv_sign_extend_ult_const_4 : CRule
+  | sets_eq_singleton_emp : CRule
+  | sets_member_singleton : CRule
+  | sets_member_emp : CRule
+  | sets_subset_elim : CRule
+  | sets_union_comm : CRule
+  | sets_inter_comm : CRule
+  | sets_inter_emp1 : CRule
+  | sets_inter_emp2 : CRule
+  | sets_minus_emp1 : CRule
+  | sets_minus_emp2 : CRule
+  | sets_union_emp1 : CRule
+  | sets_union_emp2 : CRule
+  | sets_inter_member : CRule
+  | sets_minus_member : CRule
+  | sets_union_member : CRule
+  | sets_choose_singleton : CRule
+  | sets_minus_self : CRule
+  | sets_is_empty_elim : CRule
+  | sets_is_singleton_elim : CRule
+  | str_eq_ctn_false : CRule
+  | str_eq_ctn_full_false1 : CRule
+  | str_eq_ctn_full_false2 : CRule
+  | str_eq_len_false : CRule
+  | str_substr_empty_str : CRule
+  | str_substr_empty_range : CRule
+  | str_substr_empty_start : CRule
+  | str_substr_empty_start_neg : CRule
+  | str_substr_substr_start_geq_len : CRule
+  | str_substr_eq_empty : CRule
+  | str_substr_z_eq_empty_leq : CRule
+  | str_substr_eq_empty_leq_len : CRule
+  | str_len_replace_inv : CRule
+  | str_len_replace_all_inv : CRule
+  | str_len_update_inv : CRule
+  | str_update_in_first_concat : CRule
+  | str_len_substr_in_range : CRule
+  | str_concat_clash : CRule
+  | str_concat_clash_rev : CRule
+  | str_concat_clash2 : CRule
+  | str_concat_clash2_rev : CRule
+  | str_concat_unify : CRule
+  | str_concat_unify_rev : CRule
+  | str_concat_unify_base : CRule
+  | str_concat_unify_base_rev : CRule
+  | str_prefixof_elim : CRule
+  | str_suffixof_elim : CRule
+  | str_prefixof_eq : CRule
+  | str_suffixof_eq : CRule
+  | str_prefixof_one : CRule
+  | str_suffixof_one : CRule
+  | str_substr_combine1 : CRule
+  | str_substr_combine2 : CRule
+  | str_substr_combine3 : CRule
+  | str_substr_combine4 : CRule
+  | str_substr_concat1 : CRule
+  | str_substr_concat2 : CRule
+  | str_substr_replace : CRule
+  | str_substr_full : CRule
+  | str_substr_full_eq : CRule
+  | str_contains_refl : CRule
+  | str_contains_concat_find : CRule
+  | str_contains_concat_find_contra : CRule
+  | str_contains_split_char : CRule
+  | str_contains_leq_len_eq : CRule
+  | str_contains_emp : CRule
+  | str_contains_char : CRule
+  | str_at_elim : CRule
+  | str_replace_self : CRule
+  | str_replace_id : CRule
+  | str_replace_prefix : CRule
+  | str_replace_no_contains : CRule
+  | str_replace_find_base : CRule
+  | str_replace_find_first_concat : CRule
+  | str_replace_empty : CRule
+  | str_replace_one_pre : CRule
+  | str_replace_find_pre : CRule
+  | str_replace_all_no_contains : CRule
+  | str_replace_all_empty : CRule
+  | str_replace_all_id : CRule
+  | str_replace_all_self : CRule
+  | str_replace_re_none : CRule
+  | str_replace_re_all_none : CRule
+  | str_len_concat_rec : CRule
+  | str_len_eq_zero_concat_rec : CRule
+  | str_len_eq_zero_base : CRule
+  | str_indexof_self : CRule
+  | str_indexof_no_contains : CRule
+  | str_indexof_oob : CRule
+  | str_indexof_oob2 : CRule
+  | str_indexof_contains_pre : CRule
+  | str_indexof_contains_concat_pre : CRule
+  | str_indexof_find_emp : CRule
+  | str_indexof_eq_irr : CRule
+  | str_indexof_re_none : CRule
+  | str_indexof_re_emp_re : CRule
+  | str_to_lower_concat : CRule
+  | str_to_upper_concat : CRule
+  | str_to_lower_upper : CRule
+  | str_to_upper_lower : CRule
+  | str_to_lower_len : CRule
+  | str_to_upper_len : CRule
+  | str_to_lower_from_int : CRule
+  | str_to_upper_from_int : CRule
+  | str_to_int_concat_neg_one : CRule
+  | str_is_digit_elim : CRule
+  | str_leq_empty : CRule
+  | str_leq_empty_eq : CRule
+  | str_leq_concat_false : CRule
+  | str_leq_concat_true : CRule
+  | str_leq_concat_base_1 : CRule
+  | str_leq_concat_base_2 : CRule
+  | str_lt_elim : CRule
+  | str_from_int_no_ctn_nondigit : CRule
+  | str_substr_ctn_contra : CRule
+  | str_substr_ctn : CRule
+  | str_replace_dual_ctn : CRule
+  | str_replace_dual_ctn_false : CRule
+  | str_replace_self_ctn_simp : CRule
+  | str_replace_emp_ctn_src : CRule
+  | str_substr_char_start_eq_len : CRule
+  | str_contains_repl_char : CRule
+  | str_contains_repl_self_tgt_char : CRule
+  | str_contains_repl_self : CRule
+  | str_contains_repl_tgt : CRule
+  | str_repl_repl_len_id : CRule
+  | str_repl_repl_src_tgt_no_ctn : CRule
+  | str_repl_repl_tgt_self : CRule
+  | str_repl_repl_tgt_no_ctn : CRule
+  | str_repl_repl_src_self : CRule
+  | str_repl_repl_src_inv_no_ctn1 : CRule
+  | str_repl_repl_src_inv_no_ctn2 : CRule
+  | str_repl_repl_src_inv_no_ctn3 : CRule
+  | str_repl_repl_dual_self : CRule
+  | str_repl_repl_dual_ite1 : CRule
+  | str_repl_repl_dual_ite2 : CRule
+  | str_repl_repl_lookahead_id_simp : CRule
+  | re_all_elim : CRule
+  | re_opt_elim : CRule
+  | re_diff_elim : CRule
+  | re_plus_elim : CRule
+  | re_repeat_elim : CRule
+  | re_concat_star_swap : CRule
+  | re_concat_star_repeat : CRule
+  | re_concat_star_subsume1 : CRule
+  | re_concat_star_subsume2 : CRule
+  | re_concat_merge : CRule
+  | re_union_all : CRule
+  | re_union_const_elim : CRule
+  | re_inter_all : CRule
+  | re_star_none : CRule
+  | re_star_emp : CRule
+  | re_star_star : CRule
+  | re_range_refl : CRule
+  | re_range_emp : CRule
+  | re_range_non_singleton_1 : CRule
+  | re_range_non_singleton_2 : CRule
+  | re_star_union_char : CRule
+  | re_star_union_drop_emp : CRule
+  | re_loop_neg : CRule
+  | re_inter_cstring : CRule
+  | re_inter_cstring_neg : CRule
+  | str_substr_len_include : CRule
+  | str_substr_len_include_pre : CRule
+  | str_substr_len_norm : CRule
+  | seq_len_rev : CRule
+  | seq_rev_rev : CRule
+  | seq_rev_concat : CRule
+  | str_eq_repl_self_emp : CRule
+  | str_eq_repl_no_change : CRule
+  | str_eq_repl_tgt_eq_len : CRule
+  | str_eq_repl_len_one_emp_prefix : CRule
+  | str_eq_repl_emp_tgt_nemp : CRule
+  | str_eq_repl_nemp_src_emp : CRule
+  | str_eq_repl_self_src : CRule
+  | seq_len_unit : CRule
+  | seq_nth_unit : CRule
+  | seq_rev_unit : CRule
+  | re_in_empty : CRule
+  | re_in_sigma : CRule
+  | re_in_sigma_star : CRule
+  | re_in_cstring : CRule
+  | re_in_comp : CRule
+  | str_in_re_union_elim : CRule
+  | str_in_re_inter_elim : CRule
+  | str_in_re_range_elim : CRule
+  | str_in_re_contains : CRule
+  | str_in_re_from_int_nemp_dig_range : CRule
+  | str_in_re_from_int_dig_range : CRule
+  | eq_refl : CRule
+  | eq_symm : CRule
+  | eq_cond_deq : CRule
+  | eq_ite_lift : CRule
+  | distinct_binary_elim : CRule
+  | uf_bv2nat_int2bv : CRule
+  | uf_bv2nat_int2bv_extend : CRule
+  | uf_bv2nat_int2bv_extract : CRule
+  | uf_int2bv_bv2nat : CRule
+  | uf_bv2nat_geq_elim : CRule
+  | uf_int2bv_bvult_equiv : CRule
+  | uf_int2bv_bvule_equiv : CRule
+  | uf_sbv_to_int_elim : CRule
+  | evaluate : CRule
+  | distinct_values : CRule
+  | aci_norm : CRule
+  | absorb : CRule
+  | distinct_card_conflict : CRule
+
+deriving Repr, Inhabited
+
+/-
+-/
 inductive CCmd : Type where
   | assume_push : Term -> CCmd
   | check_proven : Term -> CCmd
-  | scope : eo_lit_Int -> CCmd
-  | process_scope : Term -> eo_lit_Int -> CCmd
-  | ite_eq : Term -> CCmd
-  | split : Term -> CCmd
-  | resolution : Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | chain_resolution : Term -> Term -> CIndexList -> CCmd
-  | chain_m_resolution : Term -> Term -> Term -> CIndexList -> CCmd
-  | factoring : eo_lit_Int -> CCmd
-  | reordering : Term -> eo_lit_Int -> CCmd
-  | eq_resolve : eo_lit_Int -> eo_lit_Int -> CCmd
-  | modus_ponens : eo_lit_Int -> eo_lit_Int -> CCmd
-  | not_not_elim : eo_lit_Int -> CCmd
-  | contra : eo_lit_Int -> eo_lit_Int -> CCmd
-  | and_elim : Term -> eo_lit_Int -> CCmd
-  | and_intro : CIndexList -> CCmd
-  | not_or_elim : Term -> eo_lit_Int -> CCmd
-  | implies_elim : eo_lit_Int -> CCmd
-  | not_implies_elim1 : eo_lit_Int -> CCmd
-  | not_implies_elim2 : eo_lit_Int -> CCmd
-  | equiv_elim1 : eo_lit_Int -> CCmd
-  | equiv_elim2 : eo_lit_Int -> CCmd
-  | not_equiv_elim1 : eo_lit_Int -> CCmd
-  | not_equiv_elim2 : eo_lit_Int -> CCmd
-  | xor_elim1 : eo_lit_Int -> CCmd
-  | xor_elim2 : eo_lit_Int -> CCmd
-  | not_xor_elim1 : eo_lit_Int -> CCmd
-  | not_xor_elim2 : eo_lit_Int -> CCmd
-  | ite_elim1 : eo_lit_Int -> CCmd
-  | ite_elim2 : eo_lit_Int -> CCmd
-  | not_ite_elim1 : eo_lit_Int -> CCmd
-  | not_ite_elim2 : eo_lit_Int -> CCmd
-  | not_and : eo_lit_Int -> CCmd
-  | cnf_and_pos : Term -> Term -> CCmd
-  | cnf_and_neg : Term -> CCmd
-  | cnf_or_pos : Term -> CCmd
-  | cnf_or_neg : Term -> Term -> CCmd
-  | cnf_implies_pos : Term -> CCmd
-  | cnf_implies_neg1 : Term -> CCmd
-  | cnf_implies_neg2 : Term -> CCmd
-  | cnf_equiv_pos1 : Term -> CCmd
-  | cnf_equiv_pos2 : Term -> CCmd
-  | cnf_equiv_neg1 : Term -> CCmd
-  | cnf_equiv_neg2 : Term -> CCmd
-  | cnf_xor_pos1 : Term -> CCmd
-  | cnf_xor_pos2 : Term -> CCmd
-  | cnf_xor_neg1 : Term -> CCmd
-  | cnf_xor_neg2 : Term -> CCmd
-  | cnf_ite_pos1 : Term -> CCmd
-  | cnf_ite_pos2 : Term -> CCmd
-  | cnf_ite_pos3 : Term -> CCmd
-  | cnf_ite_neg1 : Term -> CCmd
-  | cnf_ite_neg2 : Term -> CCmd
-  | cnf_ite_neg3 : Term -> CCmd
-  | arrays_read_over_write : Term -> eo_lit_Int -> CCmd
-  | arrays_read_over_write_contra : eo_lit_Int -> CCmd
-  | arrays_read_over_write_1 : Term -> CCmd
-  | arrays_ext : eo_lit_Int -> CCmd
-  | refl : Term -> CCmd
-  | symm : eo_lit_Int -> CCmd
-  | trans : CIndexList -> CCmd
-  | cong : Term -> CIndexList -> CCmd
-  | nary_cong : Term -> CIndexList -> CCmd
-  | pairwise_cong : Term -> CIndexList -> CCmd
-  | true_intro : eo_lit_Int -> CCmd
-  | true_elim : eo_lit_Int -> CCmd
-  | false_intro : eo_lit_Int -> CCmd
-  | false_elim : eo_lit_Int -> CCmd
-  | ho_cong : CIndexList -> CCmd
-  | distinct_elim : Term -> CCmd
-  | distinct_true : Term -> CCmd
-  | distinct_false : Term -> CCmd
-  | lambda_elim : Term -> CCmd
-  | arith_sum_ub : CIndexList -> CCmd
-  | arith_mult_pos : Term -> Term -> CCmd
-  | arith_mult_neg : Term -> Term -> CCmd
-  | arith_trichotomy : eo_lit_Int -> eo_lit_Int -> CCmd
-  | int_tight_ub : eo_lit_Int -> CCmd
-  | int_tight_lb : eo_lit_Int -> CCmd
-  | arith_mult_tangent : Term -> Term -> Term -> Term -> Term -> CCmd
-  | arith_mult_sign : Term -> Term -> CCmd
-  | arith_mult_abs_comparison : CIndexList -> CCmd
-  | arith_reduction : Term -> CCmd
-  | arith_poly_norm : Term -> CCmd
-  | arith_poly_norm_rel : Term -> eo_lit_Int -> CCmd
-  | bv_repeat_elim : Term -> CCmd
-  | bv_smulo_elim : Term -> CCmd
-  | bv_umulo_elim : Term -> CCmd
-  | bv_bitwise_slicing : Term -> CCmd
-  | bv_bitblast_step : Term -> CCmd
-  | bv_poly_norm : Term -> CCmd
-  | bv_poly_norm_eq : Term -> eo_lit_Int -> CCmd
-  | string_length_pos : Term -> CCmd
-  | string_length_non_empty : eo_lit_Int -> CCmd
-  | concat_eq : Term -> eo_lit_Int -> CCmd
-  | concat_unify : Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | concat_csplit : Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | concat_split : Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | concat_lprop : Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | concat_cprop : Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | string_decompose : Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | exists_string_length : Term -> Term -> Term -> CCmd
-  | string_code_inj : Term -> Term -> CCmd
-  | string_seq_unit_inj : eo_lit_Int -> CCmd
-  | re_inter : eo_lit_Int -> eo_lit_Int -> CCmd
-  | re_concat : CIndexList -> CCmd
-  | re_unfold_pos : eo_lit_Int -> CCmd
-  | re_unfold_neg_concat_fixed : Term -> eo_lit_Int -> CCmd
-  | re_unfold_neg : eo_lit_Int -> CCmd
-  | string_ext : eo_lit_Int -> CCmd
-  | string_reduction : Term -> CCmd
-  | string_eager_reduction : Term -> CCmd
-  | arith_string_pred_entail : Term -> CCmd
-  | arith_string_pred_safe_approx : Term -> CCmd
-  | str_in_re_eval : Term -> CCmd
-  | str_in_re_consume : Term -> CCmd
-  | re_loop_elim : Term -> CCmd
-  | re_eq_elim : Term -> CCmd
-  | re_inter_inclusion : Term -> CCmd
-  | re_union_inclusion : Term -> CCmd
-  | str_in_re_concat_star_char : Term -> CCmd
-  | str_in_re_sigma : Term -> CCmd
-  | str_in_re_sigma_star : Term -> CCmd
-  | str_ctn_multiset_subset : Term -> CCmd
-  | str_overlap_split_ctn : Term -> CCmd
-  | str_overlap_endpoints_ctn : Term -> CCmd
-  | str_overlap_endpoints_indexof : Term -> CCmd
-  | str_overlap_endpoints_replace : Term -> CCmd
-  | str_indexof_re_eval : Term -> CCmd
-  | str_replace_re_eval : Term -> CCmd
-  | str_replace_re_all_eval : Term -> CCmd
-  | seq_eval_op : Term -> CCmd
-  | sets_singleton_inj : eo_lit_Int -> CCmd
-  | sets_ext : eo_lit_Int -> CCmd
-  | sets_eval_op : Term -> CCmd
-  | sets_insert_elim : Term -> CCmd
-  | ubv_to_int_elim : Term -> CCmd
-  | int_to_bv_elim : Term -> CCmd
-  | instantiate : Term -> eo_lit_Int -> CCmd
-  | skolemize : eo_lit_Int -> CCmd
-  | skolem_intro : Term -> CCmd
-  | alpha_equiv : Term -> Term -> Term -> CCmd
-  | beta_reduce : Term -> CCmd
-  | quant_var_reordering : Term -> CCmd
-  | exists_elim : Term -> CCmd
-  | quant_unused_vars : Term -> CCmd
-  | quant_merge_prenex : Term -> CCmd
-  | quant_miniscope_and : Term -> CCmd
-  | quant_miniscope_or : Term -> CCmd
-  | quant_miniscope_ite : Term -> CCmd
-  | quant_var_elim_eq : Term -> CCmd
-  | quant_dt_split : Term -> CCmd
-  | dt_split : Term -> CCmd
-  | dt_inst : Term -> CCmd
-  | dt_collapse_selector : Term -> CCmd
-  | dt_collapse_tester : Term -> CCmd
-  | dt_collapse_tester_singleton : Term -> CCmd
-  | dt_cons_eq : Term -> CCmd
-  | dt_cons_eq_clash : Term -> CCmd
-  | dt_cycle : Term -> CCmd
-  | dt_collapse_updater : Term -> CCmd
-  | dt_updater_elim : Term -> CCmd
-  | arith_div_total_zero_real : Term -> CCmd
-  | arith_div_total_zero_int : Term -> CCmd
-  | arith_int_div_total : Term -> Term -> eo_lit_Int -> CCmd
-  | arith_int_div_total_one : Term -> CCmd
-  | arith_int_div_total_zero : Term -> CCmd
-  | arith_int_div_total_neg : Term -> Term -> eo_lit_Int -> CCmd
-  | arith_int_mod_total : Term -> Term -> eo_lit_Int -> CCmd
-  | arith_int_mod_total_one : Term -> CCmd
-  | arith_int_mod_total_zero : Term -> CCmd
-  | arith_int_mod_total_neg : Term -> Term -> eo_lit_Int -> CCmd
-  | arith_elim_gt : Term -> Term -> CCmd
-  | arith_elim_lt : Term -> Term -> CCmd
-  | arith_elim_int_gt : Term -> Term -> CCmd
-  | arith_elim_int_lt : Term -> Term -> CCmd
-  | arith_elim_leq : Term -> Term -> CCmd
-  | arith_leq_norm : Term -> Term -> CCmd
-  | arith_geq_tighten : Term -> Term -> CCmd
-  | arith_geq_norm1_int : Term -> Term -> CCmd
-  | arith_geq_norm1_real : Term -> Term -> CCmd
-  | arith_eq_elim_real : Term -> Term -> CCmd
-  | arith_eq_elim_int : Term -> Term -> CCmd
-  | arith_to_int_elim : Term -> CCmd
-  | arith_to_int_elim_to_real : Term -> CCmd
-  | arith_div_elim_to_real1 : Term -> Term -> CCmd
-  | arith_div_elim_to_real2 : Term -> Term -> CCmd
-  | arith_mod_over_mod_1 : Term -> Term -> eo_lit_Int -> CCmd
-  | arith_mod_over_mod : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | arith_mod_over_mod_mult : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | arith_int_eq_conflict : Term -> Term -> eo_lit_Int -> CCmd
-  | arith_int_geq_tighten : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | arith_divisible_elim : Term -> Term -> eo_lit_Int -> CCmd
-  | arith_abs_eq : Term -> Term -> CCmd
-  | arith_abs_int_gt : Term -> Term -> CCmd
-  | arith_abs_real_gt : Term -> Term -> CCmd
-  | arith_geq_ite_lift : Term -> Term -> Term -> Term -> CCmd
-  | arith_leq_ite_lift : Term -> Term -> Term -> Term -> CCmd
-  | arith_min_lt1 : Term -> Term -> CCmd
-  | arith_min_lt2 : Term -> Term -> CCmd
-  | arith_max_geq1 : Term -> Term -> CCmd
-  | arith_max_geq2 : Term -> Term -> CCmd
-  | array_read_over_write : Term -> Term -> Term -> CCmd
-  | array_read_over_write2 : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | array_store_overwrite : Term -> Term -> Term -> Term -> CCmd
-  | array_store_self : Term -> Term -> CCmd
-  | array_read_over_write_split : Term -> Term -> Term -> Term -> CCmd
-  | array_store_swap : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bool_double_not_elim : Term -> CCmd
-  | bool_not_true : Term -> eo_lit_Int -> CCmd
-  | bool_not_false : Term -> eo_lit_Int -> CCmd
-  | bool_eq_true : Term -> CCmd
-  | bool_eq_false : Term -> CCmd
-  | bool_eq_nrefl : Term -> CCmd
-  | bool_impl_false1 : Term -> CCmd
-  | bool_impl_false2 : Term -> CCmd
-  | bool_impl_true1 : Term -> CCmd
-  | bool_impl_true2 : Term -> CCmd
-  | bool_impl_elim : Term -> Term -> CCmd
-  | bool_dual_impl_eq : Term -> Term -> CCmd
-  | bool_and_conf : Term -> Term -> Term -> Term -> CCmd
-  | bool_and_conf2 : Term -> Term -> Term -> Term -> CCmd
-  | bool_or_taut : Term -> Term -> Term -> Term -> CCmd
-  | bool_or_taut2 : Term -> Term -> Term -> Term -> CCmd
-  | bool_or_de_morgan : Term -> Term -> Term -> CCmd
-  | bool_implies_de_morgan : Term -> Term -> CCmd
-  | bool_and_de_morgan : Term -> Term -> Term -> CCmd
-  | bool_or_and_distrib : Term -> Term -> Term -> Term -> Term -> CCmd
-  | bool_implies_or_distrib : Term -> Term -> Term -> Term -> CCmd
-  | bool_xor_refl : Term -> CCmd
-  | bool_xor_nrefl : Term -> CCmd
-  | bool_xor_false : Term -> CCmd
-  | bool_xor_true : Term -> CCmd
-  | bool_xor_comm : Term -> Term -> CCmd
-  | bool_xor_elim : Term -> Term -> CCmd
-  | bool_not_xor_elim : Term -> Term -> CCmd
-  | bool_not_eq_elim1 : Term -> Term -> CCmd
-  | bool_not_eq_elim2 : Term -> Term -> CCmd
-  | ite_neg_branch : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | ite_then_true : Term -> Term -> CCmd
-  | ite_else_false : Term -> Term -> CCmd
-  | ite_then_false : Term -> Term -> CCmd
-  | ite_else_true : Term -> Term -> CCmd
-  | ite_then_lookahead_self : Term -> Term -> CCmd
-  | ite_else_lookahead_self : Term -> Term -> CCmd
-  | ite_then_lookahead_not_self : Term -> Term -> CCmd
-  | ite_else_lookahead_not_self : Term -> Term -> CCmd
-  | ite_expand : Term -> Term -> Term -> CCmd
-  | bool_not_ite_elim : Term -> Term -> Term -> CCmd
-  | ite_true_cond : Term -> Term -> CCmd
-  | ite_false_cond : Term -> Term -> CCmd
-  | ite_not_cond : Term -> Term -> Term -> CCmd
-  | ite_eq_branch : Term -> Term -> CCmd
-  | ite_then_lookahead : Term -> Term -> Term -> Term -> CCmd
-  | ite_else_lookahead : Term -> Term -> Term -> Term -> CCmd
-  | ite_then_neg_lookahead : Term -> Term -> Term -> Term -> CCmd
-  | ite_else_neg_lookahead : Term -> Term -> Term -> Term -> CCmd
-  | bv_concat_extract_merge : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_extract_extract : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_extract_whole : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_extract_concat_1 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_extract_concat_2 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_extract_concat_3 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_extract_concat_4 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_eq_extract_elim1 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_eq_extract_elim2 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_eq_extract_elim3 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_extract_not : Term -> Term -> Term -> CCmd
-  | bv_extract_sign_extend_1 : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_extract_sign_extend_2 : Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_extract_sign_extend_3 : Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_not_xor : Term -> Term -> Term -> CCmd
-  | bv_and_simplify_1 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_and_simplify_2 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_or_simplify_1 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_or_simplify_2 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_xor_simplify_1 : Term -> Term -> Term -> Term -> CCmd
-  | bv_xor_simplify_2 : Term -> Term -> Term -> Term -> CCmd
-  | bv_xor_simplify_3 : Term -> Term -> Term -> Term -> CCmd
-  | bv_ult_add_one : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_mult_slt_mult_1 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_mult_slt_mult_2 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_commutative_xor : Term -> Term -> CCmd
-  | bv_commutative_comp : Term -> Term -> CCmd
-  | bv_zero_extend_eliminate_0 : Term -> CCmd
-  | bv_sign_extend_eliminate_0 : Term -> CCmd
-  | bv_not_neq : Term -> eo_lit_Int -> CCmd
-  | bv_ult_ones : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_concat_merge_const : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_commutative_add : Term -> Term -> CCmd
-  | bv_sub_eliminate : Term -> Term -> CCmd
-  | bv_ite_width_one : Term -> CCmd
-  | bv_ite_width_one_not : Term -> CCmd
-  | bv_eq_xor_solve : Term -> Term -> Term -> CCmd
-  | bv_eq_not_solve : Term -> Term -> CCmd
-  | bv_ugt_eliminate : Term -> Term -> CCmd
-  | bv_uge_eliminate : Term -> Term -> CCmd
-  | bv_sgt_eliminate : Term -> Term -> CCmd
-  | bv_sge_eliminate : Term -> Term -> CCmd
-  | bv_sle_eliminate : Term -> Term -> CCmd
-  | bv_redor_eliminate : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_redand_eliminate : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_ule_eliminate : Term -> Term -> CCmd
-  | bv_comp_eliminate : Term -> Term -> CCmd
-  | bv_rotate_left_eliminate_1 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_rotate_left_eliminate_2 : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_rotate_right_eliminate_1 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_rotate_right_eliminate_2 : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_nand_eliminate : Term -> Term -> CCmd
-  | bv_nor_eliminate : Term -> Term -> CCmd
-  | bv_xnor_eliminate : Term -> Term -> CCmd
-  | bv_sdiv_eliminate : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_zero_extend_eliminate : Term -> Term -> CCmd
-  | bv_uaddo_eliminate : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_saddo_eliminate : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_sdivo_eliminate : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_smod_eliminate : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_srem_eliminate : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_usubo_eliminate : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_ssubo_eliminate : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_nego_eliminate : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_ite_equal_children : Term -> Term -> CCmd
-  | bv_ite_const_children_1 : Term -> CCmd
-  | bv_ite_const_children_2 : Term -> CCmd
-  | bv_ite_equal_cond_1 : Term -> Term -> Term -> Term -> CCmd
-  | bv_ite_equal_cond_2 : Term -> Term -> Term -> Term -> CCmd
-  | bv_ite_equal_cond_3 : Term -> Term -> Term -> Term -> Term -> CCmd
-  | bv_ite_merge_then_if : Term -> Term -> Term -> Term -> CCmd
-  | bv_ite_merge_else_if : Term -> Term -> Term -> Term -> CCmd
-  | bv_ite_merge_then_else : Term -> Term -> Term -> Term -> CCmd
-  | bv_ite_merge_else_else : Term -> Term -> Term -> Term -> CCmd
-  | bv_shl_by_const_0 : Term -> Term -> CCmd
-  | bv_shl_by_const_1 : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_shl_by_const_2 : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_lshr_by_const_0 : Term -> Term -> CCmd
-  | bv_lshr_by_const_1 : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_lshr_by_const_2 : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_ashr_by_const_0 : Term -> Term -> CCmd
-  | bv_ashr_by_const_1 : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_ashr_by_const_2 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_and_concat_pullup : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_or_concat_pullup : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_xor_concat_pullup : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_and_concat_pullup2 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_or_concat_pullup2 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_xor_concat_pullup2 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_and_concat_pullup3 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_or_concat_pullup3 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_xor_concat_pullup3 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_xor_duplicate : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_xor_ones : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_xor_not : Term -> Term -> CCmd
-  | bv_not_idemp : Term -> CCmd
-  | bv_ult_zero_1 : Term -> Term -> CCmd
-  | bv_ult_zero_2 : Term -> Term -> CCmd
-  | bv_ult_self : Term -> CCmd
-  | bv_lt_self : Term -> CCmd
-  | bv_ule_self : Term -> CCmd
-  | bv_ule_zero : Term -> Term -> CCmd
-  | bv_zero_ule : Term -> Term -> CCmd
-  | bv_sle_self : Term -> CCmd
-  | bv_ule_max : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_not_ult : Term -> Term -> CCmd
-  | bv_mult_pow2_1 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_mult_pow2_2 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_mult_pow2_2b : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_extract_mult_leading_bit : Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_udiv_pow2_not_one : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_udiv_zero : Term -> Term -> CCmd
-  | bv_udiv_one : Term -> Term -> CCmd
-  | bv_urem_pow2_not_one : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_urem_one : Term -> Term -> CCmd
-  | bv_urem_self : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_shl_zero : Term -> Term -> CCmd
-  | bv_lshr_zero : Term -> Term -> CCmd
-  | bv_ashr_zero : Term -> Term -> CCmd
-  | bv_ugt_urem : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_ult_one : Term -> Term -> eo_lit_Int -> CCmd
-  | bv_merge_sign_extend_1 : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | bv_merge_sign_extend_2 : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_sign_extend_eq_const_1 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_sign_extend_eq_const_2 : Term -> Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_zero_extend_eq_const_1 : Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_zero_extend_eq_const_2 : Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_zero_extend_ult_const_1 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_zero_extend_ult_const_2 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_sign_extend_ult_const_1 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_sign_extend_ult_const_2 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_sign_extend_ult_const_3 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | bv_sign_extend_ult_const_4 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | sets_eq_singleton_emp : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | sets_member_singleton : Term -> Term -> CCmd
-  | sets_member_emp : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | sets_subset_elim : Term -> Term -> CCmd
-  | sets_union_comm : Term -> Term -> CCmd
-  | sets_inter_comm : Term -> Term -> CCmd
-  | sets_inter_emp1 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | sets_inter_emp2 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | sets_minus_emp1 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | sets_minus_emp2 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | sets_union_emp1 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | sets_union_emp2 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | sets_inter_member : Term -> Term -> Term -> CCmd
-  | sets_minus_member : Term -> Term -> Term -> CCmd
-  | sets_union_member : Term -> Term -> Term -> CCmd
-  | sets_choose_singleton : Term -> CCmd
-  | sets_minus_self : Term -> Term -> CCmd
-  | sets_is_empty_elim : Term -> Term -> CCmd
-  | sets_is_singleton_elim : Term -> CCmd
-  | str_eq_ctn_false : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_eq_ctn_full_false1 : Term -> Term -> eo_lit_Int -> CCmd
-  | str_eq_ctn_full_false2 : Term -> Term -> eo_lit_Int -> CCmd
-  | str_eq_len_false : Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_empty_str : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_empty_range : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_empty_start : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_empty_start_neg : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_substr_start_geq_len : Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_eq_empty : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_z_eq_empty_leq : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_eq_empty_leq_len : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_len_replace_inv : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_len_replace_all_inv : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_len_update_inv : Term -> Term -> Term -> CCmd
-  | str_update_in_first_concat : Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_len_substr_in_range : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_concat_clash : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_concat_clash_rev : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_concat_clash2 : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_concat_clash2_rev : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_concat_unify : Term -> Term -> Term -> Term -> Term -> CCmd
-  | str_concat_unify_rev : Term -> Term -> Term -> Term -> Term -> CCmd
-  | str_concat_unify_base : Term -> Term -> Term -> Term -> CCmd
-  | str_concat_unify_base_rev : Term -> Term -> Term -> Term -> CCmd
-  | str_prefixof_elim : Term -> Term -> CCmd
-  | str_suffixof_elim : Term -> Term -> CCmd
-  | str_prefixof_eq : Term -> Term -> eo_lit_Int -> CCmd
-  | str_suffixof_eq : Term -> Term -> eo_lit_Int -> CCmd
-  | str_prefixof_one : Term -> Term -> eo_lit_Int -> CCmd
-  | str_suffixof_one : Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_combine1 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_combine2 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_combine3 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_combine4 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_concat1 : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_concat2 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_replace : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_full : Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_full_eq : Term -> Term -> eo_lit_Int -> CCmd
-  | str_contains_refl : Term -> CCmd
-  | str_contains_concat_find : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_contains_concat_find_contra : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_contains_split_char : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_contains_leq_len_eq : Term -> Term -> eo_lit_Int -> CCmd
-  | str_contains_emp : Term -> Term -> eo_lit_Int -> CCmd
-  | str_contains_char : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_at_elim : Term -> Term -> CCmd
-  | str_replace_self : Term -> Term -> CCmd
-  | str_replace_id : Term -> Term -> CCmd
-  | str_replace_prefix : Term -> Term -> Term -> Term -> CCmd
-  | str_replace_no_contains : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_replace_find_base : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_replace_find_first_concat : Term -> Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_replace_empty : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_replace_one_pre : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_replace_find_pre : Term -> Term -> Term -> Term -> CCmd
-  | str_replace_all_no_contains : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_replace_all_empty : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_replace_all_id : Term -> Term -> CCmd
-  | str_replace_all_self : Term -> Term -> eo_lit_Int -> CCmd
-  | str_replace_re_none : Term -> Term -> CCmd
-  | str_replace_re_all_none : Term -> Term -> CCmd
-  | str_len_concat_rec : Term -> Term -> Term -> CCmd
-  | str_len_eq_zero_concat_rec : Term -> Term -> Term -> Term -> CCmd
-  | str_len_eq_zero_base : Term -> Term -> CCmd
-  | str_indexof_self : Term -> Term -> Term -> CCmd
-  | str_indexof_no_contains : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_indexof_oob : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_indexof_oob2 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_indexof_contains_pre : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_indexof_contains_concat_pre : Term -> Term -> Term -> Term -> CCmd
-  | str_indexof_find_emp : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_indexof_eq_irr : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_indexof_re_none : Term -> Term -> CCmd
-  | str_indexof_re_emp_re : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_to_lower_concat : Term -> Term -> Term -> CCmd
-  | str_to_upper_concat : Term -> Term -> Term -> CCmd
-  | str_to_lower_upper : Term -> CCmd
-  | str_to_upper_lower : Term -> CCmd
-  | str_to_lower_len : Term -> CCmd
-  | str_to_upper_len : Term -> CCmd
-  | str_to_lower_from_int : Term -> CCmd
-  | str_to_upper_from_int : Term -> CCmd
-  | str_to_int_concat_neg_one : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_is_digit_elim : Term -> CCmd
-  | str_leq_empty : Term -> CCmd
-  | str_leq_empty_eq : Term -> CCmd
-  | str_leq_concat_false : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_leq_concat_true : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_leq_concat_base_1 : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_leq_concat_base_2 : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_lt_elim : Term -> Term -> CCmd
-  | str_from_int_no_ctn_nondigit : Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_substr_ctn_contra : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_ctn : Term -> Term -> Term -> CCmd
-  | str_replace_dual_ctn : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_replace_dual_ctn_false : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_replace_self_ctn_simp : Term -> Term -> CCmd
-  | str_replace_emp_ctn_src : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_char_start_eq_len : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_contains_repl_char : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_contains_repl_self_tgt_char : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_contains_repl_self : Term -> Term -> CCmd
-  | str_contains_repl_tgt : Term -> Term -> Term -> CCmd
-  | str_repl_repl_len_id : Term -> Term -> eo_lit_Int -> CCmd
-  | str_repl_repl_src_tgt_no_ctn : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_repl_repl_tgt_self : Term -> Term -> CCmd
-  | str_repl_repl_tgt_no_ctn : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_repl_repl_src_self : Term -> Term -> Term -> CCmd
-  | str_repl_repl_src_inv_no_ctn1 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_repl_repl_src_inv_no_ctn2 : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_repl_repl_src_inv_no_ctn3 : Term -> Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_repl_repl_dual_self : Term -> Term -> CCmd
-  | str_repl_repl_dual_ite1 : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_repl_repl_dual_ite2 : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_repl_repl_lookahead_id_simp : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | re_all_elim : CCmd
-  | re_opt_elim : Term -> CCmd
-  | re_diff_elim : Term -> Term -> CCmd
-  | re_plus_elim : Term -> CCmd
-  | re_repeat_elim : Term -> Term -> CCmd
-  | re_concat_star_swap : Term -> Term -> Term -> CCmd
-  | re_concat_star_repeat : Term -> Term -> Term -> CCmd
-  | re_concat_star_subsume1 : Term -> Term -> Term -> CCmd
-  | re_concat_star_subsume2 : Term -> Term -> Term -> CCmd
-  | re_concat_merge : Term -> Term -> Term -> Term -> CCmd
-  | re_union_all : Term -> Term -> CCmd
-  | re_union_const_elim : Term -> Term -> eo_lit_Int -> CCmd
-  | re_inter_all : Term -> Term -> CCmd
-  | re_star_none : CCmd
-  | re_star_emp : CCmd
-  | re_star_star : Term -> CCmd
-  | re_range_refl : Term -> eo_lit_Int -> CCmd
-  | re_range_emp : Term -> Term -> eo_lit_Int -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | re_range_non_singleton_1 : Term -> Term -> eo_lit_Int -> CCmd
-  | re_range_non_singleton_2 : Term -> Term -> eo_lit_Int -> CCmd
-  | re_star_union_char : Term -> Term -> CCmd
-  | re_star_union_drop_emp : Term -> Term -> CCmd
-  | re_loop_neg : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | re_inter_cstring : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | re_inter_cstring_neg : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_len_include : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_len_include_pre : Term -> Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_substr_len_norm : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | seq_len_rev : Term -> CCmd
-  | seq_rev_rev : Term -> CCmd
-  | seq_rev_concat : Term -> Term -> Term -> CCmd
-  | str_eq_repl_self_emp : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_eq_repl_no_change : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_eq_repl_tgt_eq_len : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | str_eq_repl_len_one_emp_prefix : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_eq_repl_emp_tgt_nemp : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_eq_repl_nemp_src_emp : Term -> Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_eq_repl_self_src : Term -> Term -> CCmd
-  | seq_len_unit : Term -> CCmd
-  | seq_nth_unit : Term -> CCmd
-  | seq_rev_unit : Term -> CCmd
-  | re_in_empty : Term -> CCmd
-  | re_in_sigma : Term -> CCmd
-  | re_in_sigma_star : Term -> CCmd
-  | re_in_cstring : Term -> Term -> CCmd
-  | re_in_comp : Term -> Term -> CCmd
-  | str_in_re_union_elim : Term -> Term -> Term -> Term -> CCmd
-  | str_in_re_inter_elim : Term -> Term -> Term -> Term -> CCmd
-  | str_in_re_range_elim : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | str_in_re_contains : Term -> Term -> CCmd
-  | str_in_re_from_int_nemp_dig_range : Term -> eo_lit_Int -> CCmd
-  | str_in_re_from_int_dig_range : Term -> CCmd
-  | eq_refl : Term -> CCmd
-  | eq_symm : Term -> Term -> CCmd
-  | eq_cond_deq : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | eq_ite_lift : Term -> Term -> Term -> Term -> CCmd
-  | distinct_binary_elim : Term -> Term -> CCmd
-  | uf_bv2nat_int2bv : Term -> Term -> eo_lit_Int -> CCmd
-  | uf_bv2nat_int2bv_extend : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | uf_bv2nat_int2bv_extract : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | uf_int2bv_bv2nat : Term -> Term -> CCmd
-  | uf_bv2nat_geq_elim : Term -> Term -> Term -> eo_lit_Int -> CCmd
-  | uf_int2bv_bvult_equiv : Term -> Term -> CCmd
-  | uf_int2bv_bvule_equiv : Term -> Term -> CCmd
-  | uf_sbv_to_int_elim : Term -> Term -> Term -> eo_lit_Int -> eo_lit_Int -> CCmd
-  | evaluate : Term -> CCmd
-  | distinct_values : Term -> Term -> CCmd
-  | aci_norm : Term -> CCmd
-  | absorb : Term -> CCmd
-  | distinct_card_conflict : Term -> CCmd
+  | step : CRule -> CIndexList -> CArgList -> CCmd
 
 deriving Repr, Inhabited
 
@@ -8762,12 +8785,25 @@ def __eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.assume F) => F
   | (CStateObj.assume_push F) => F
   | (CStateObj.proven F) => F
+  | CStateObj.Stuck => Term.Stuck
 
 
 def __eo_state_proven_nth : CState -> eo_lit_Int -> Term
   | (CState.cons so s), 0 => (__eo_StateObj_proven so)
   | (CState.cons so s), n => (__eo_state_proven_nth s (eo_lit_zplus n (eo_lit_zneg 1)))
   | s, n => (Term.Boolean true)
+
+
+def __eo_premise_nth : CIndexList -> eo_lit_Int -> eo_lit_Int
+  | (CIndexList.cons i il), 0 => i
+  | (CIndexList.cons i il), n => (__eo_premise_nth il (eo_lit_zplus n (eo_lit_zneg 1)))
+  | CIndexList.nil, n => (eo_lit_zneg 1)
+
+
+def __eo_arg_nth : CArgList -> eo_lit_Int -> Term
+  | (CArgList.cons t ts), 0 => t
+  | (CArgList.cons t ts), n => (__eo_arg_nth ts (eo_lit_zplus n (eo_lit_zneg 1)))
+  | CArgList.nil, n => Term.Stuck
 
 
 def __eo_state_is_closed : CState -> eo_lit_Bool
@@ -8810,601 +8846,601 @@ def __eo_invoke_cmd_pop_scope : CState -> Proof -> CState
 def __eo_invoke_cmd (S : CState) : CCmd -> CState
   | (CCmd.assume_push proven) => (__eo_push_assume proven S)
   | (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
-  | (CCmd.scope n1) => (__eo_invoke_cmd_pop_scope S (Proof.pf (__eo_state_proven_nth S n1)))
-  | (CCmd.process_scope a1 n1) => (__eo_push_proven (__eo_prog_process_scope a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.ite_eq a1) => (__eo_push_proven (__eo_prog_ite_eq a1) S)
-  | (CCmd.split a1) => (__eo_push_proven (__eo_prog_split a1) S)
-  | (CCmd.resolution a1 a2 n1 n2) => (__eo_push_proven (__eo_prog_resolution a1 a2 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.chain_resolution a1 a2 premises) => (__eo_push_proven (__eo_prog_chain_resolution a1 a2 (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.chain_m_resolution a1 a2 a3 premises) => (__eo_push_proven (__eo_prog_chain_m_resolution a1 a2 a3 (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.factoring n1) => (__eo_push_proven (__eo_prog_factoring (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.reordering a1 n1) => (__eo_push_proven (__eo_prog_reordering a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.eq_resolve n1 n2) => (__eo_push_proven (__eo_prog_eq_resolve (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.modus_ponens n1 n2) => (__eo_push_proven (__eo_prog_modus_ponens (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.not_not_elim n1) => (__eo_push_proven (__eo_prog_not_not_elim (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.contra n1 n2) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.and_elim a1 n1) => (__eo_push_proven (__eo_prog_and_elim a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.and_intro premises) => (__eo_push_proven (__eo_prog_and_intro (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.not_or_elim a1 n1) => (__eo_push_proven (__eo_prog_not_or_elim a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.implies_elim n1) => (__eo_push_proven (__eo_prog_implies_elim (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_implies_elim1 n1) => (__eo_push_proven (__eo_prog_not_implies_elim1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_implies_elim2 n1) => (__eo_push_proven (__eo_prog_not_implies_elim2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.equiv_elim1 n1) => (__eo_push_proven (__eo_prog_equiv_elim1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.equiv_elim2 n1) => (__eo_push_proven (__eo_prog_equiv_elim2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_equiv_elim1 n1) => (__eo_push_proven (__eo_prog_not_equiv_elim1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_equiv_elim2 n1) => (__eo_push_proven (__eo_prog_not_equiv_elim2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.xor_elim1 n1) => (__eo_push_proven (__eo_prog_xor_elim1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.xor_elim2 n1) => (__eo_push_proven (__eo_prog_xor_elim2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_xor_elim1 n1) => (__eo_push_proven (__eo_prog_not_xor_elim1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_xor_elim2 n1) => (__eo_push_proven (__eo_prog_not_xor_elim2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.ite_elim1 n1) => (__eo_push_proven (__eo_prog_ite_elim1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.ite_elim2 n1) => (__eo_push_proven (__eo_prog_ite_elim2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_ite_elim1 n1) => (__eo_push_proven (__eo_prog_not_ite_elim1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_ite_elim2 n1) => (__eo_push_proven (__eo_prog_not_ite_elim2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.not_and n1) => (__eo_push_proven (__eo_prog_not_and (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.cnf_and_pos a1 a2) => (__eo_push_proven (__eo_prog_cnf_and_pos a1 a2) S)
-  | (CCmd.cnf_and_neg a1) => (__eo_push_proven (__eo_prog_cnf_and_neg a1) S)
-  | (CCmd.cnf_or_pos a1) => (__eo_push_proven (__eo_prog_cnf_or_pos a1) S)
-  | (CCmd.cnf_or_neg a1 a2) => (__eo_push_proven (__eo_prog_cnf_or_neg a1 a2) S)
-  | (CCmd.cnf_implies_pos a1) => (__eo_push_proven (__eo_prog_cnf_implies_pos a1) S)
-  | (CCmd.cnf_implies_neg1 a1) => (__eo_push_proven (__eo_prog_cnf_implies_neg1 a1) S)
-  | (CCmd.cnf_implies_neg2 a1) => (__eo_push_proven (__eo_prog_cnf_implies_neg2 a1) S)
-  | (CCmd.cnf_equiv_pos1 a1) => (__eo_push_proven (__eo_prog_cnf_equiv_pos1 a1) S)
-  | (CCmd.cnf_equiv_pos2 a1) => (__eo_push_proven (__eo_prog_cnf_equiv_pos2 a1) S)
-  | (CCmd.cnf_equiv_neg1 a1) => (__eo_push_proven (__eo_prog_cnf_equiv_neg1 a1) S)
-  | (CCmd.cnf_equiv_neg2 a1) => (__eo_push_proven (__eo_prog_cnf_equiv_neg2 a1) S)
-  | (CCmd.cnf_xor_pos1 a1) => (__eo_push_proven (__eo_prog_cnf_xor_pos1 a1) S)
-  | (CCmd.cnf_xor_pos2 a1) => (__eo_push_proven (__eo_prog_cnf_xor_pos2 a1) S)
-  | (CCmd.cnf_xor_neg1 a1) => (__eo_push_proven (__eo_prog_cnf_xor_neg1 a1) S)
-  | (CCmd.cnf_xor_neg2 a1) => (__eo_push_proven (__eo_prog_cnf_xor_neg2 a1) S)
-  | (CCmd.cnf_ite_pos1 a1) => (__eo_push_proven (__eo_prog_cnf_ite_pos1 a1) S)
-  | (CCmd.cnf_ite_pos2 a1) => (__eo_push_proven (__eo_prog_cnf_ite_pos2 a1) S)
-  | (CCmd.cnf_ite_pos3 a1) => (__eo_push_proven (__eo_prog_cnf_ite_pos3 a1) S)
-  | (CCmd.cnf_ite_neg1 a1) => (__eo_push_proven (__eo_prog_cnf_ite_neg1 a1) S)
-  | (CCmd.cnf_ite_neg2 a1) => (__eo_push_proven (__eo_prog_cnf_ite_neg2 a1) S)
-  | (CCmd.cnf_ite_neg3 a1) => (__eo_push_proven (__eo_prog_cnf_ite_neg3 a1) S)
-  | (CCmd.arrays_read_over_write a1 n1) => (__eo_push_proven (__eo_prog_arrays_read_over_write a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arrays_read_over_write_contra n1) => (__eo_push_proven (__eo_prog_arrays_read_over_write_contra (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arrays_read_over_write_1 a1) => (__eo_push_proven (__eo_prog_arrays_read_over_write_1 a1) S)
-  | (CCmd.arrays_ext n1) => (__eo_push_proven (__eo_prog_arrays_ext (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.refl a1) => (__eo_push_proven (__eo_prog_refl a1) S)
-  | (CCmd.symm n1) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.trans premises) => (__eo_push_proven (__eo_prog_trans (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.cong a1 premises) => (__eo_push_proven (__eo_prog_cong a1 (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.nary_cong a1 premises) => (__eo_push_proven (__eo_prog_nary_cong a1 (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.pairwise_cong a1 premises) => (__eo_push_proven (__eo_prog_pairwise_cong a1 (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.true_intro n1) => (__eo_push_proven (__eo_prog_true_intro (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.true_elim n1) => (__eo_push_proven (__eo_prog_true_elim (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.false_intro n1) => (__eo_push_proven (__eo_prog_false_intro (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.false_elim n1) => (__eo_push_proven (__eo_prog_false_elim (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.ho_cong premises) => (__eo_push_proven (__eo_prog_ho_cong (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.distinct_elim a1) => (__eo_push_proven (__eo_prog_distinct_elim a1) S)
-  | (CCmd.distinct_true a1) => (__eo_push_proven (__eo_prog_distinct_true a1) S)
-  | (CCmd.distinct_false a1) => (__eo_push_proven (__eo_prog_distinct_false a1) S)
-  | (CCmd.lambda_elim a1) => (__eo_push_proven (__eo_prog_lambda_elim a1) S)
-  | (CCmd.arith_sum_ub premises) => (__eo_push_proven (__eo_prog_arith_sum_ub (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.arith_mult_pos a1 a2) => (__eo_push_proven (__eo_prog_arith_mult_pos a1 a2) S)
-  | (CCmd.arith_mult_neg a1 a2) => (__eo_push_proven (__eo_prog_arith_mult_neg a1 a2) S)
-  | (CCmd.arith_trichotomy n1 n2) => (__eo_push_proven (__eo_prog_arith_trichotomy (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.int_tight_ub n1) => (__eo_push_proven (__eo_prog_int_tight_ub (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.int_tight_lb n1) => (__eo_push_proven (__eo_prog_int_tight_lb (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_mult_tangent a1 a2 a3 a4 a5) => (__eo_push_proven (__eo_prog_arith_mult_tangent a1 a2 a3 a4 a5) S)
-  | (CCmd.arith_mult_sign a1 a2) => (__eo_push_proven (__eo_prog_arith_mult_sign a1 a2) S)
-  | (CCmd.arith_mult_abs_comparison premises) => (__eo_push_proven (__eo_prog_arith_mult_abs_comparison (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.arith_reduction a1) => (__eo_push_proven (__eo_prog_arith_reduction a1) S)
-  | (CCmd.arith_poly_norm a1) => (__eo_push_proven (__eo_prog_arith_poly_norm a1) S)
-  | (CCmd.arith_poly_norm_rel a1 n1) => (__eo_push_proven (__eo_prog_arith_poly_norm_rel a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_repeat_elim a1) => (__eo_push_proven (__eo_prog_bv_repeat_elim a1) S)
-  | (CCmd.bv_smulo_elim a1) => (__eo_push_proven (__eo_prog_bv_smulo_elim a1) S)
-  | (CCmd.bv_umulo_elim a1) => (__eo_push_proven (__eo_prog_bv_umulo_elim a1) S)
-  | (CCmd.bv_bitwise_slicing a1) => (__eo_push_proven (__eo_prog_bv_bitwise_slicing a1) S)
-  | (CCmd.bv_bitblast_step a1) => (__eo_push_proven (__eo_prog_bv_bitblast_step a1) S)
-  | (CCmd.bv_poly_norm a1) => (__eo_push_proven (__eo_prog_bv_poly_norm a1) S)
-  | (CCmd.bv_poly_norm_eq a1 n1) => (__eo_push_proven (__eo_prog_bv_poly_norm_eq a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.string_length_pos a1) => (__eo_push_proven (__eo_prog_string_length_pos a1) S)
-  | (CCmd.string_length_non_empty n1) => (__eo_push_proven (__eo_prog_string_length_non_empty (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.concat_eq a1 n1) => (__eo_push_proven (__eo_prog_concat_eq a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.concat_unify a1 n1 n2) => (__eo_push_proven (__eo_prog_concat_unify a1 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.concat_csplit a1 n1 n2) => (__eo_push_proven (__eo_prog_concat_csplit a1 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.concat_split a1 n1 n2) => (__eo_push_proven (__eo_prog_concat_split a1 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.concat_lprop a1 n1 n2) => (__eo_push_proven (__eo_prog_concat_lprop a1 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.concat_cprop a1 n1 n2) => (__eo_push_proven (__eo_prog_concat_cprop a1 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.string_decompose a1 n1 n2) => (__eo_push_proven (__eo_prog_string_decompose a1 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.exists_string_length a1 a2 a3) => (__eo_push_proven (__eo_prog_exists_string_length a1 a2 a3) S)
-  | (CCmd.string_code_inj a1 a2) => (__eo_push_proven (__eo_prog_string_code_inj a1 a2) S)
-  | (CCmd.string_seq_unit_inj n1) => (__eo_push_proven (__eo_prog_string_seq_unit_inj (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_inter n1 n2) => (__eo_push_proven (__eo_prog_re_inter (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.re_concat premises) => (__eo_push_proven (__eo_prog_re_concat (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
-  | (CCmd.re_unfold_pos n1) => (__eo_push_proven (__eo_prog_re_unfold_pos (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_unfold_neg_concat_fixed a1 n1) => (__eo_push_proven (__eo_prog_re_unfold_neg_concat_fixed a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_unfold_neg n1) => (__eo_push_proven (__eo_prog_re_unfold_neg (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.string_ext n1) => (__eo_push_proven (__eo_prog_string_ext (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.string_reduction a1) => (__eo_push_proven (__eo_prog_string_reduction a1) S)
-  | (CCmd.string_eager_reduction a1) => (__eo_push_proven (__eo_prog_string_eager_reduction a1) S)
-  | (CCmd.arith_string_pred_entail a1) => (__eo_push_proven (__eo_prog_arith_string_pred_entail a1) S)
-  | (CCmd.arith_string_pred_safe_approx a1) => (__eo_push_proven (__eo_prog_arith_string_pred_safe_approx a1) S)
-  | (CCmd.str_in_re_eval a1) => (__eo_push_proven (__eo_prog_str_in_re_eval a1) S)
-  | (CCmd.str_in_re_consume a1) => (__eo_push_proven (__eo_prog_str_in_re_consume a1) S)
-  | (CCmd.re_loop_elim a1) => (__eo_push_proven (__eo_prog_re_loop_elim a1) S)
-  | (CCmd.re_eq_elim a1) => (__eo_push_proven (__eo_prog_re_eq_elim a1) S)
-  | (CCmd.re_inter_inclusion a1) => (__eo_push_proven (__eo_prog_re_inter_inclusion a1) S)
-  | (CCmd.re_union_inclusion a1) => (__eo_push_proven (__eo_prog_re_union_inclusion a1) S)
-  | (CCmd.str_in_re_concat_star_char a1) => (__eo_push_proven (__eo_prog_str_in_re_concat_star_char a1) S)
-  | (CCmd.str_in_re_sigma a1) => (__eo_push_proven (__eo_prog_str_in_re_sigma a1) S)
-  | (CCmd.str_in_re_sigma_star a1) => (__eo_push_proven (__eo_prog_str_in_re_sigma_star a1) S)
-  | (CCmd.str_ctn_multiset_subset a1) => (__eo_push_proven (__eo_prog_str_ctn_multiset_subset a1) S)
-  | (CCmd.str_overlap_split_ctn a1) => (__eo_push_proven (__eo_prog_str_overlap_split_ctn a1) S)
-  | (CCmd.str_overlap_endpoints_ctn a1) => (__eo_push_proven (__eo_prog_str_overlap_endpoints_ctn a1) S)
-  | (CCmd.str_overlap_endpoints_indexof a1) => (__eo_push_proven (__eo_prog_str_overlap_endpoints_indexof a1) S)
-  | (CCmd.str_overlap_endpoints_replace a1) => (__eo_push_proven (__eo_prog_str_overlap_endpoints_replace a1) S)
-  | (CCmd.str_indexof_re_eval a1) => (__eo_push_proven (__eo_prog_str_indexof_re_eval a1) S)
-  | (CCmd.str_replace_re_eval a1) => (__eo_push_proven (__eo_prog_str_replace_re_eval a1) S)
-  | (CCmd.str_replace_re_all_eval a1) => (__eo_push_proven (__eo_prog_str_replace_re_all_eval a1) S)
-  | (CCmd.seq_eval_op a1) => (__eo_push_proven (__eo_prog_seq_eval_op a1) S)
-  | (CCmd.sets_singleton_inj n1) => (__eo_push_proven (__eo_prog_sets_singleton_inj (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_ext n1) => (__eo_push_proven (__eo_prog_sets_ext (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_eval_op a1) => (__eo_push_proven (__eo_prog_sets_eval_op a1) S)
-  | (CCmd.sets_insert_elim a1) => (__eo_push_proven (__eo_prog_sets_insert_elim a1) S)
-  | (CCmd.ubv_to_int_elim a1) => (__eo_push_proven (__eo_prog_ubv_to_int_elim a1) S)
-  | (CCmd.int_to_bv_elim a1) => (__eo_push_proven (__eo_prog_int_to_bv_elim a1) S)
-  | (CCmd.instantiate a1 n1) => (__eo_push_proven (__eo_prog_instantiate a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.skolemize n1) => (__eo_push_proven (__eo_prog_skolemize (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.skolem_intro a1) => (__eo_push_proven (__eo_prog_skolem_intro a1) S)
-  | (CCmd.alpha_equiv a1 a2 a3) => (__eo_push_proven (__eo_prog_alpha_equiv a1 a2 a3) S)
-  | (CCmd.beta_reduce a1) => (__eo_push_proven (__eo_prog_beta_reduce a1) S)
-  | (CCmd.quant_var_reordering a1) => (__eo_push_proven (__eo_prog_quant_var_reordering a1) S)
-  | (CCmd.exists_elim a1) => (__eo_push_proven (__eo_prog_exists_elim a1) S)
-  | (CCmd.quant_unused_vars a1) => (__eo_push_proven (__eo_prog_quant_unused_vars a1) S)
-  | (CCmd.quant_merge_prenex a1) => (__eo_push_proven (__eo_prog_quant_merge_prenex a1) S)
-  | (CCmd.quant_miniscope_and a1) => (__eo_push_proven (__eo_prog_quant_miniscope_and a1) S)
-  | (CCmd.quant_miniscope_or a1) => (__eo_push_proven (__eo_prog_quant_miniscope_or a1) S)
-  | (CCmd.quant_miniscope_ite a1) => (__eo_push_proven (__eo_prog_quant_miniscope_ite a1) S)
-  | (CCmd.quant_var_elim_eq a1) => (__eo_push_proven (__eo_prog_quant_var_elim_eq a1) S)
-  | (CCmd.quant_dt_split a1) => (__eo_push_proven (__eo_prog_quant_dt_split a1) S)
-  | (CCmd.dt_split a1) => (__eo_push_proven (__eo_prog_dt_split a1) S)
-  | (CCmd.dt_inst a1) => (__eo_push_proven (__eo_prog_dt_inst a1) S)
-  | (CCmd.dt_collapse_selector a1) => (__eo_push_proven (__eo_prog_dt_collapse_selector a1) S)
-  | (CCmd.dt_collapse_tester a1) => (__eo_push_proven (__eo_prog_dt_collapse_tester a1) S)
-  | (CCmd.dt_collapse_tester_singleton a1) => (__eo_push_proven (__eo_prog_dt_collapse_tester_singleton a1) S)
-  | (CCmd.dt_cons_eq a1) => (__eo_push_proven (__eo_prog_dt_cons_eq a1) S)
-  | (CCmd.dt_cons_eq_clash a1) => (__eo_push_proven (__eo_prog_dt_cons_eq_clash a1) S)
-  | (CCmd.dt_cycle a1) => (__eo_push_proven (__eo_prog_dt_cycle a1) S)
-  | (CCmd.dt_collapse_updater a1) => (__eo_push_proven (__eo_prog_dt_collapse_updater a1) S)
-  | (CCmd.dt_updater_elim a1) => (__eo_push_proven (__eo_prog_dt_updater_elim a1) S)
-  | (CCmd.arith_div_total_zero_real a1) => (__eo_push_proven (__eo_prog_arith_div_total_zero_real a1) S)
-  | (CCmd.arith_div_total_zero_int a1) => (__eo_push_proven (__eo_prog_arith_div_total_zero_int a1) S)
-  | (CCmd.arith_int_div_total a1 a2 n1) => (__eo_push_proven (__eo_prog_arith_int_div_total a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_int_div_total_one a1) => (__eo_push_proven (__eo_prog_arith_int_div_total_one a1) S)
-  | (CCmd.arith_int_div_total_zero a1) => (__eo_push_proven (__eo_prog_arith_int_div_total_zero a1) S)
-  | (CCmd.arith_int_div_total_neg a1 a2 n1) => (__eo_push_proven (__eo_prog_arith_int_div_total_neg a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_int_mod_total a1 a2 n1) => (__eo_push_proven (__eo_prog_arith_int_mod_total a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_int_mod_total_one a1) => (__eo_push_proven (__eo_prog_arith_int_mod_total_one a1) S)
-  | (CCmd.arith_int_mod_total_zero a1) => (__eo_push_proven (__eo_prog_arith_int_mod_total_zero a1) S)
-  | (CCmd.arith_int_mod_total_neg a1 a2 n1) => (__eo_push_proven (__eo_prog_arith_int_mod_total_neg a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_elim_gt a1 a2) => (__eo_push_proven (__eo_prog_arith_elim_gt a1 a2) S)
-  | (CCmd.arith_elim_lt a1 a2) => (__eo_push_proven (__eo_prog_arith_elim_lt a1 a2) S)
-  | (CCmd.arith_elim_int_gt a1 a2) => (__eo_push_proven (__eo_prog_arith_elim_int_gt a1 a2) S)
-  | (CCmd.arith_elim_int_lt a1 a2) => (__eo_push_proven (__eo_prog_arith_elim_int_lt a1 a2) S)
-  | (CCmd.arith_elim_leq a1 a2) => (__eo_push_proven (__eo_prog_arith_elim_leq a1 a2) S)
-  | (CCmd.arith_leq_norm a1 a2) => (__eo_push_proven (__eo_prog_arith_leq_norm a1 a2) S)
-  | (CCmd.arith_geq_tighten a1 a2) => (__eo_push_proven (__eo_prog_arith_geq_tighten a1 a2) S)
-  | (CCmd.arith_geq_norm1_int a1 a2) => (__eo_push_proven (__eo_prog_arith_geq_norm1_int a1 a2) S)
-  | (CCmd.arith_geq_norm1_real a1 a2) => (__eo_push_proven (__eo_prog_arith_geq_norm1_real a1 a2) S)
-  | (CCmd.arith_eq_elim_real a1 a2) => (__eo_push_proven (__eo_prog_arith_eq_elim_real a1 a2) S)
-  | (CCmd.arith_eq_elim_int a1 a2) => (__eo_push_proven (__eo_prog_arith_eq_elim_int a1 a2) S)
-  | (CCmd.arith_to_int_elim a1) => (__eo_push_proven (__eo_prog_arith_to_int_elim a1) S)
-  | (CCmd.arith_to_int_elim_to_real a1) => (__eo_push_proven (__eo_prog_arith_to_int_elim_to_real a1) S)
-  | (CCmd.arith_div_elim_to_real1 a1 a2) => (__eo_push_proven (__eo_prog_arith_div_elim_to_real1 a1 a2) S)
-  | (CCmd.arith_div_elim_to_real2 a1 a2) => (__eo_push_proven (__eo_prog_arith_div_elim_to_real2 a1 a2) S)
-  | (CCmd.arith_mod_over_mod_1 a1 a2 n1) => (__eo_push_proven (__eo_prog_arith_mod_over_mod_1 a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_mod_over_mod a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_arith_mod_over_mod a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_mod_over_mod_mult a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_arith_mod_over_mod_mult a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_int_eq_conflict a1 a2 n1) => (__eo_push_proven (__eo_prog_arith_int_eq_conflict a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_int_geq_tighten a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_arith_int_geq_tighten a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.arith_divisible_elim a1 a2 n1) => (__eo_push_proven (__eo_prog_arith_divisible_elim a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.arith_abs_eq a1 a2) => (__eo_push_proven (__eo_prog_arith_abs_eq a1 a2) S)
-  | (CCmd.arith_abs_int_gt a1 a2) => (__eo_push_proven (__eo_prog_arith_abs_int_gt a1 a2) S)
-  | (CCmd.arith_abs_real_gt a1 a2) => (__eo_push_proven (__eo_prog_arith_abs_real_gt a1 a2) S)
-  | (CCmd.arith_geq_ite_lift a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_arith_geq_ite_lift a1 a2 a3 a4) S)
-  | (CCmd.arith_leq_ite_lift a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_arith_leq_ite_lift a1 a2 a3 a4) S)
-  | (CCmd.arith_min_lt1 a1 a2) => (__eo_push_proven (__eo_prog_arith_min_lt1 a1 a2) S)
-  | (CCmd.arith_min_lt2 a1 a2) => (__eo_push_proven (__eo_prog_arith_min_lt2 a1 a2) S)
-  | (CCmd.arith_max_geq1 a1 a2) => (__eo_push_proven (__eo_prog_arith_max_geq1 a1 a2) S)
-  | (CCmd.arith_max_geq2 a1 a2) => (__eo_push_proven (__eo_prog_arith_max_geq2 a1 a2) S)
-  | (CCmd.array_read_over_write a1 a2 a3) => (__eo_push_proven (__eo_prog_array_read_over_write a1 a2 a3) S)
-  | (CCmd.array_read_over_write2 a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_array_read_over_write2 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.array_store_overwrite a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_array_store_overwrite a1 a2 a3 a4) S)
-  | (CCmd.array_store_self a1 a2) => (__eo_push_proven (__eo_prog_array_store_self a1 a2) S)
-  | (CCmd.array_read_over_write_split a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_array_read_over_write_split a1 a2 a3 a4) S)
-  | (CCmd.array_store_swap a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_array_store_swap a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bool_double_not_elim a1) => (__eo_push_proven (__eo_prog_bool_double_not_elim a1) S)
-  | (CCmd.bool_not_true a1 n1) => (__eo_push_proven (__eo_prog_bool_not_true a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bool_not_false a1 n1) => (__eo_push_proven (__eo_prog_bool_not_false a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bool_eq_true a1) => (__eo_push_proven (__eo_prog_bool_eq_true a1) S)
-  | (CCmd.bool_eq_false a1) => (__eo_push_proven (__eo_prog_bool_eq_false a1) S)
-  | (CCmd.bool_eq_nrefl a1) => (__eo_push_proven (__eo_prog_bool_eq_nrefl a1) S)
-  | (CCmd.bool_impl_false1 a1) => (__eo_push_proven (__eo_prog_bool_impl_false1 a1) S)
-  | (CCmd.bool_impl_false2 a1) => (__eo_push_proven (__eo_prog_bool_impl_false2 a1) S)
-  | (CCmd.bool_impl_true1 a1) => (__eo_push_proven (__eo_prog_bool_impl_true1 a1) S)
-  | (CCmd.bool_impl_true2 a1) => (__eo_push_proven (__eo_prog_bool_impl_true2 a1) S)
-  | (CCmd.bool_impl_elim a1 a2) => (__eo_push_proven (__eo_prog_bool_impl_elim a1 a2) S)
-  | (CCmd.bool_dual_impl_eq a1 a2) => (__eo_push_proven (__eo_prog_bool_dual_impl_eq a1 a2) S)
-  | (CCmd.bool_and_conf a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bool_and_conf a1 a2 a3 a4) S)
-  | (CCmd.bool_and_conf2 a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bool_and_conf2 a1 a2 a3 a4) S)
-  | (CCmd.bool_or_taut a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bool_or_taut a1 a2 a3 a4) S)
-  | (CCmd.bool_or_taut2 a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bool_or_taut2 a1 a2 a3 a4) S)
-  | (CCmd.bool_or_de_morgan a1 a2 a3) => (__eo_push_proven (__eo_prog_bool_or_de_morgan a1 a2 a3) S)
-  | (CCmd.bool_implies_de_morgan a1 a2) => (__eo_push_proven (__eo_prog_bool_implies_de_morgan a1 a2) S)
-  | (CCmd.bool_and_de_morgan a1 a2 a3) => (__eo_push_proven (__eo_prog_bool_and_de_morgan a1 a2 a3) S)
-  | (CCmd.bool_or_and_distrib a1 a2 a3 a4 a5) => (__eo_push_proven (__eo_prog_bool_or_and_distrib a1 a2 a3 a4 a5) S)
-  | (CCmd.bool_implies_or_distrib a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bool_implies_or_distrib a1 a2 a3 a4) S)
-  | (CCmd.bool_xor_refl a1) => (__eo_push_proven (__eo_prog_bool_xor_refl a1) S)
-  | (CCmd.bool_xor_nrefl a1) => (__eo_push_proven (__eo_prog_bool_xor_nrefl a1) S)
-  | (CCmd.bool_xor_false a1) => (__eo_push_proven (__eo_prog_bool_xor_false a1) S)
-  | (CCmd.bool_xor_true a1) => (__eo_push_proven (__eo_prog_bool_xor_true a1) S)
-  | (CCmd.bool_xor_comm a1 a2) => (__eo_push_proven (__eo_prog_bool_xor_comm a1 a2) S)
-  | (CCmd.bool_xor_elim a1 a2) => (__eo_push_proven (__eo_prog_bool_xor_elim a1 a2) S)
-  | (CCmd.bool_not_xor_elim a1 a2) => (__eo_push_proven (__eo_prog_bool_not_xor_elim a1 a2) S)
-  | (CCmd.bool_not_eq_elim1 a1 a2) => (__eo_push_proven (__eo_prog_bool_not_eq_elim1 a1 a2) S)
-  | (CCmd.bool_not_eq_elim2 a1 a2) => (__eo_push_proven (__eo_prog_bool_not_eq_elim2 a1 a2) S)
-  | (CCmd.ite_neg_branch a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_ite_neg_branch a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.ite_then_true a1 a2) => (__eo_push_proven (__eo_prog_ite_then_true a1 a2) S)
-  | (CCmd.ite_else_false a1 a2) => (__eo_push_proven (__eo_prog_ite_else_false a1 a2) S)
-  | (CCmd.ite_then_false a1 a2) => (__eo_push_proven (__eo_prog_ite_then_false a1 a2) S)
-  | (CCmd.ite_else_true a1 a2) => (__eo_push_proven (__eo_prog_ite_else_true a1 a2) S)
-  | (CCmd.ite_then_lookahead_self a1 a2) => (__eo_push_proven (__eo_prog_ite_then_lookahead_self a1 a2) S)
-  | (CCmd.ite_else_lookahead_self a1 a2) => (__eo_push_proven (__eo_prog_ite_else_lookahead_self a1 a2) S)
-  | (CCmd.ite_then_lookahead_not_self a1 a2) => (__eo_push_proven (__eo_prog_ite_then_lookahead_not_self a1 a2) S)
-  | (CCmd.ite_else_lookahead_not_self a1 a2) => (__eo_push_proven (__eo_prog_ite_else_lookahead_not_self a1 a2) S)
-  | (CCmd.ite_expand a1 a2 a3) => (__eo_push_proven (__eo_prog_ite_expand a1 a2 a3) S)
-  | (CCmd.bool_not_ite_elim a1 a2 a3) => (__eo_push_proven (__eo_prog_bool_not_ite_elim a1 a2 a3) S)
-  | (CCmd.ite_true_cond a1 a2) => (__eo_push_proven (__eo_prog_ite_true_cond a1 a2) S)
-  | (CCmd.ite_false_cond a1 a2) => (__eo_push_proven (__eo_prog_ite_false_cond a1 a2) S)
-  | (CCmd.ite_not_cond a1 a2 a3) => (__eo_push_proven (__eo_prog_ite_not_cond a1 a2 a3) S)
-  | (CCmd.ite_eq_branch a1 a2) => (__eo_push_proven (__eo_prog_ite_eq_branch a1 a2) S)
-  | (CCmd.ite_then_lookahead a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_ite_then_lookahead a1 a2 a3 a4) S)
-  | (CCmd.ite_else_lookahead a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_ite_else_lookahead a1 a2 a3 a4) S)
-  | (CCmd.ite_then_neg_lookahead a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_ite_then_neg_lookahead a1 a2 a3 a4) S)
-  | (CCmd.ite_else_neg_lookahead a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_ite_else_neg_lookahead a1 a2 a3 a4) S)
-  | (CCmd.bv_concat_extract_merge a1 a2 a3 a4 a5 a6 a7 n1) => (__eo_push_proven (__eo_prog_bv_concat_extract_merge a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_extract_extract a1 a2 a3 a4 a5 a6 a7 n1 n2) => (__eo_push_proven (__eo_prog_bv_extract_extract a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_extract_whole a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_extract_whole a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_extract_concat_1 a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_bv_extract_concat_1 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_extract_concat_2 a1 a2 a3 a4 a5 a6 a7 n1 n2 n3 n4) => (__eo_push_proven (__eo_prog_bv_extract_concat_2 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4))) S)
-  | (CCmd.bv_extract_concat_3 a1 a2 a3 a4 a5 a6 a7 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_extract_concat_3 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_extract_concat_4 a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_bv_extract_concat_4 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_eq_extract_elim1 a1 a2 a3 a4 a5 a6 a7 n1 n2 n3 n4 n5) => (__eo_push_proven (__eo_prog_bv_eq_extract_elim1 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4)) (Proof.pf (__eo_state_proven_nth S n5))) S)
-  | (CCmd.bv_eq_extract_elim2 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_eq_extract_elim2 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_eq_extract_elim3 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_eq_extract_elim3 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_extract_not a1 a2 a3) => (__eo_push_proven (__eo_prog_bv_extract_not a1 a2 a3) S)
-  | (CCmd.bv_extract_sign_extend_1 a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_bv_extract_sign_extend_1 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_extract_sign_extend_2 a1 a2 a3 a4 a5 a6 n1 n2 n3 n4) => (__eo_push_proven (__eo_prog_bv_extract_sign_extend_2 a1 a2 a3 a4 a5 a6 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4))) S)
-  | (CCmd.bv_extract_sign_extend_3 a1 a2 a3 a4 a5 a6 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_extract_sign_extend_3 a1 a2 a3 a4 a5 a6 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_not_xor a1 a2 a3) => (__eo_push_proven (__eo_prog_bv_not_xor a1 a2 a3) S)
-  | (CCmd.bv_and_simplify_1 a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_bv_and_simplify_1 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_and_simplify_2 a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_bv_and_simplify_2 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_or_simplify_1 a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_bv_or_simplify_1 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_or_simplify_2 a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_bv_or_simplify_2 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_xor_simplify_1 a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_xor_simplify_1 a1 a2 a3 a4) S)
-  | (CCmd.bv_xor_simplify_2 a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_xor_simplify_2 a1 a2 a3 a4) S)
-  | (CCmd.bv_xor_simplify_3 a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_xor_simplify_3 a1 a2 a3 a4) S)
-  | (CCmd.bv_ult_add_one a1 a2 a3 a4 a5 n1 n2) => (__eo_push_proven (__eo_prog_bv_ult_add_one a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_mult_slt_mult_1 a1 a2 a3 a4 a5 a6 a7 n1 n2) => (__eo_push_proven (__eo_prog_bv_mult_slt_mult_1 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_mult_slt_mult_2 a1 a2 a3 a4 a5 a6 a7 n1 n2) => (__eo_push_proven (__eo_prog_bv_mult_slt_mult_2 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_commutative_xor a1 a2) => (__eo_push_proven (__eo_prog_bv_commutative_xor a1 a2) S)
-  | (CCmd.bv_commutative_comp a1 a2) => (__eo_push_proven (__eo_prog_bv_commutative_comp a1 a2) S)
-  | (CCmd.bv_zero_extend_eliminate_0 a1) => (__eo_push_proven (__eo_prog_bv_zero_extend_eliminate_0 a1) S)
-  | (CCmd.bv_sign_extend_eliminate_0 a1) => (__eo_push_proven (__eo_prog_bv_sign_extend_eliminate_0 a1) S)
-  | (CCmd.bv_not_neq a1 n1) => (__eo_push_proven (__eo_prog_bv_not_neq a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_ult_ones a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_bv_ult_ones a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_concat_merge_const a1 a2 a3 a4 a5 a6 a7 n1) => (__eo_push_proven (__eo_prog_bv_concat_merge_const a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_commutative_add a1 a2) => (__eo_push_proven (__eo_prog_bv_commutative_add a1 a2) S)
-  | (CCmd.bv_sub_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_sub_eliminate a1 a2) S)
-  | (CCmd.bv_ite_width_one a1) => (__eo_push_proven (__eo_prog_bv_ite_width_one a1) S)
-  | (CCmd.bv_ite_width_one_not a1) => (__eo_push_proven (__eo_prog_bv_ite_width_one_not a1) S)
-  | (CCmd.bv_eq_xor_solve a1 a2 a3) => (__eo_push_proven (__eo_prog_bv_eq_xor_solve a1 a2 a3) S)
-  | (CCmd.bv_eq_not_solve a1 a2) => (__eo_push_proven (__eo_prog_bv_eq_not_solve a1 a2) S)
-  | (CCmd.bv_ugt_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_ugt_eliminate a1 a2) S)
-  | (CCmd.bv_uge_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_uge_eliminate a1 a2) S)
-  | (CCmd.bv_sgt_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_sgt_eliminate a1 a2) S)
-  | (CCmd.bv_sge_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_sge_eliminate a1 a2) S)
-  | (CCmd.bv_sle_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_sle_eliminate a1 a2) S)
-  | (CCmd.bv_redor_eliminate a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_redor_eliminate a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_redand_eliminate a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_redand_eliminate a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_ule_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_ule_eliminate a1 a2) S)
-  | (CCmd.bv_comp_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_comp_eliminate a1 a2) S)
-  | (CCmd.bv_rotate_left_eliminate_1 a1 a2 a3 a4 a5 n1 n2 n3 n4) => (__eo_push_proven (__eo_prog_bv_rotate_left_eliminate_1 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4))) S)
-  | (CCmd.bv_rotate_left_eliminate_2 a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_rotate_left_eliminate_2 a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_rotate_right_eliminate_1 a1 a2 a3 a4 a5 n1 n2 n3 n4) => (__eo_push_proven (__eo_prog_bv_rotate_right_eliminate_1 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4))) S)
-  | (CCmd.bv_rotate_right_eliminate_2 a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_rotate_right_eliminate_2 a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_nand_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_nand_eliminate a1 a2) S)
-  | (CCmd.bv_nor_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_nor_eliminate a1 a2) S)
-  | (CCmd.bv_xnor_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_xnor_eliminate a1 a2) S)
-  | (CCmd.bv_sdiv_eliminate a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_bv_sdiv_eliminate a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_zero_extend_eliminate a1 a2) => (__eo_push_proven (__eo_prog_bv_zero_extend_eliminate a1 a2) S)
-  | (CCmd.bv_uaddo_eliminate a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_bv_uaddo_eliminate a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_saddo_eliminate a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_bv_saddo_eliminate a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_sdivo_eliminate a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_bv_sdivo_eliminate a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_smod_eliminate a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_bv_smod_eliminate a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_srem_eliminate a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_bv_srem_eliminate a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_usubo_eliminate a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_bv_usubo_eliminate a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_ssubo_eliminate a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_bv_ssubo_eliminate a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_nego_eliminate a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_nego_eliminate a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_ite_equal_children a1 a2) => (__eo_push_proven (__eo_prog_bv_ite_equal_children a1 a2) S)
-  | (CCmd.bv_ite_const_children_1 a1) => (__eo_push_proven (__eo_prog_bv_ite_const_children_1 a1) S)
-  | (CCmd.bv_ite_const_children_2 a1) => (__eo_push_proven (__eo_prog_bv_ite_const_children_2 a1) S)
-  | (CCmd.bv_ite_equal_cond_1 a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_ite_equal_cond_1 a1 a2 a3 a4) S)
-  | (CCmd.bv_ite_equal_cond_2 a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_ite_equal_cond_2 a1 a2 a3 a4) S)
-  | (CCmd.bv_ite_equal_cond_3 a1 a2 a3 a4 a5) => (__eo_push_proven (__eo_prog_bv_ite_equal_cond_3 a1 a2 a3 a4 a5) S)
-  | (CCmd.bv_ite_merge_then_if a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_ite_merge_then_if a1 a2 a3 a4) S)
-  | (CCmd.bv_ite_merge_else_if a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_ite_merge_else_if a1 a2 a3 a4) S)
-  | (CCmd.bv_ite_merge_then_else a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_ite_merge_then_else a1 a2 a3 a4) S)
-  | (CCmd.bv_ite_merge_else_else a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_bv_ite_merge_else_else a1 a2 a3 a4) S)
-  | (CCmd.bv_shl_by_const_0 a1 a2) => (__eo_push_proven (__eo_prog_bv_shl_by_const_0 a1 a2) S)
-  | (CCmd.bv_shl_by_const_1 a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_bv_shl_by_const_1 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_shl_by_const_2 a1 a2 a3 a4 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_shl_by_const_2 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_lshr_by_const_0 a1 a2) => (__eo_push_proven (__eo_prog_bv_lshr_by_const_0 a1 a2) S)
-  | (CCmd.bv_lshr_by_const_1 a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_bv_lshr_by_const_1 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_lshr_by_const_2 a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_bv_lshr_by_const_2 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_ashr_by_const_0 a1 a2) => (__eo_push_proven (__eo_prog_bv_ashr_by_const_0 a1 a2) S)
-  | (CCmd.bv_ashr_by_const_1 a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_bv_ashr_by_const_1 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_ashr_by_const_2 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_ashr_by_const_2 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_and_concat_pullup a1 a2 a3 a4 a5 a6 a7 a8 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_and_concat_pullup a1 a2 a3 a4 a5 a6 a7 a8 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_or_concat_pullup a1 a2 a3 a4 a5 a6 a7 a8 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_or_concat_pullup a1 a2 a3 a4 a5 a6 a7 a8 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_xor_concat_pullup a1 a2 a3 a4 a5 a6 a7 a8 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_xor_concat_pullup a1 a2 a3 a4 a5 a6 a7 a8 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_and_concat_pullup2 a1 a2 a3 a4 a5 a6 a7 a8 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_and_concat_pullup2 a1 a2 a3 a4 a5 a6 a7 a8 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_or_concat_pullup2 a1 a2 a3 a4 a5 a6 a7 a8 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_or_concat_pullup2 a1 a2 a3 a4 a5 a6 a7 a8 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_xor_concat_pullup2 a1 a2 a3 a4 a5 a6 a7 a8 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_xor_concat_pullup2 a1 a2 a3 a4 a5 a6 a7 a8 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_and_concat_pullup3 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 n1 n2 n3 n4 n5) => (__eo_push_proven (__eo_prog_bv_and_concat_pullup3 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4)) (Proof.pf (__eo_state_proven_nth S n5))) S)
-  | (CCmd.bv_or_concat_pullup3 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 n1 n2 n3 n4 n5) => (__eo_push_proven (__eo_prog_bv_or_concat_pullup3 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4)) (Proof.pf (__eo_state_proven_nth S n5))) S)
-  | (CCmd.bv_xor_concat_pullup3 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 n1 n2 n3 n4 n5) => (__eo_push_proven (__eo_prog_bv_xor_concat_pullup3 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4)) (Proof.pf (__eo_state_proven_nth S n5))) S)
-  | (CCmd.bv_xor_duplicate a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_xor_duplicate a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_xor_ones a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_bv_xor_ones a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_xor_not a1 a2) => (__eo_push_proven (__eo_prog_bv_xor_not a1 a2) S)
-  | (CCmd.bv_not_idemp a1) => (__eo_push_proven (__eo_prog_bv_not_idemp a1) S)
-  | (CCmd.bv_ult_zero_1 a1 a2) => (__eo_push_proven (__eo_prog_bv_ult_zero_1 a1 a2) S)
-  | (CCmd.bv_ult_zero_2 a1 a2) => (__eo_push_proven (__eo_prog_bv_ult_zero_2 a1 a2) S)
-  | (CCmd.bv_ult_self a1) => (__eo_push_proven (__eo_prog_bv_ult_self a1) S)
-  | (CCmd.bv_lt_self a1) => (__eo_push_proven (__eo_prog_bv_lt_self a1) S)
-  | (CCmd.bv_ule_self a1) => (__eo_push_proven (__eo_prog_bv_ule_self a1) S)
-  | (CCmd.bv_ule_zero a1 a2) => (__eo_push_proven (__eo_prog_bv_ule_zero a1 a2) S)
-  | (CCmd.bv_zero_ule a1 a2) => (__eo_push_proven (__eo_prog_bv_zero_ule a1 a2) S)
-  | (CCmd.bv_sle_self a1) => (__eo_push_proven (__eo_prog_bv_sle_self a1) S)
-  | (CCmd.bv_ule_max a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_bv_ule_max a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_not_ult a1 a2) => (__eo_push_proven (__eo_prog_bv_not_ult a1 a2) S)
-  | (CCmd.bv_mult_pow2_1 a1 a2 a3 a4 a5 a6 a7 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_mult_pow2_1 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_mult_pow2_2 a1 a2 a3 a4 a5 a6 a7 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_mult_pow2_2 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_mult_pow2_2b a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_mult_pow2_2b a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_extract_mult_leading_bit a1 a2 a3 a4 a5 a6 a7 a8 a9 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_extract_mult_leading_bit a1 a2 a3 a4 a5 a6 a7 a8 a9 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_udiv_pow2_not_one a1 a2 a3 a4 a5 n1 n2 n3 n4) => (__eo_push_proven (__eo_prog_bv_udiv_pow2_not_one a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4))) S)
-  | (CCmd.bv_udiv_zero a1 a2) => (__eo_push_proven (__eo_prog_bv_udiv_zero a1 a2) S)
-  | (CCmd.bv_udiv_one a1 a2) => (__eo_push_proven (__eo_prog_bv_udiv_one a1 a2) S)
-  | (CCmd.bv_urem_pow2_not_one a1 a2 a3 a4 a5 n1 n2 n3 n4) => (__eo_push_proven (__eo_prog_bv_urem_pow2_not_one a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4))) S)
-  | (CCmd.bv_urem_one a1 a2) => (__eo_push_proven (__eo_prog_bv_urem_one a1 a2) S)
-  | (CCmd.bv_urem_self a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_urem_self a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_shl_zero a1 a2) => (__eo_push_proven (__eo_prog_bv_shl_zero a1 a2) S)
-  | (CCmd.bv_lshr_zero a1 a2) => (__eo_push_proven (__eo_prog_bv_lshr_zero a1 a2) S)
-  | (CCmd.bv_ashr_zero a1 a2) => (__eo_push_proven (__eo_prog_bv_ashr_zero a1 a2) S)
-  | (CCmd.bv_ugt_urem a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_bv_ugt_urem a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_ult_one a1 a2 n1) => (__eo_push_proven (__eo_prog_bv_ult_one a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_merge_sign_extend_1 a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_bv_merge_sign_extend_1 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.bv_merge_sign_extend_2 a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_bv_merge_sign_extend_2 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_sign_extend_eq_const_1 a1 a2 a3 a4 a5 a6 a7 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_sign_extend_eq_const_1 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_sign_extend_eq_const_2 a1 a2 a3 a4 a5 a6 a7 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_sign_extend_eq_const_2 a1 a2 a3 a4 a5 a6 a7 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_zero_extend_eq_const_1 a1 a2 a3 a4 a5 a6 n1 n2) => (__eo_push_proven (__eo_prog_bv_zero_extend_eq_const_1 a1 a2 a3 a4 a5 a6 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_zero_extend_eq_const_2 a1 a2 a3 a4 a5 a6 n1 n2) => (__eo_push_proven (__eo_prog_bv_zero_extend_eq_const_2 a1 a2 a3 a4 a5 a6 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_zero_extend_ult_const_1 a1 a2 a3 a4 a5 n1 n2) => (__eo_push_proven (__eo_prog_bv_zero_extend_ult_const_1 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_zero_extend_ult_const_2 a1 a2 a3 a4 a5 n1 n2) => (__eo_push_proven (__eo_prog_bv_zero_extend_ult_const_2 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_sign_extend_ult_const_1 a1 a2 a3 a4 a5 n1 n2) => (__eo_push_proven (__eo_prog_bv_sign_extend_ult_const_1 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_sign_extend_ult_const_2 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_sign_extend_ult_const_2 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.bv_sign_extend_ult_const_3 a1 a2 a3 a4 a5 n1 n2) => (__eo_push_proven (__eo_prog_bv_sign_extend_ult_const_3 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.bv_sign_extend_ult_const_4 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_bv_sign_extend_ult_const_4 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.sets_eq_singleton_emp a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_sets_eq_singleton_emp a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_member_singleton a1 a2) => (__eo_push_proven (__eo_prog_sets_member_singleton a1 a2) S)
-  | (CCmd.sets_member_emp a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_sets_member_emp a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_subset_elim a1 a2) => (__eo_push_proven (__eo_prog_sets_subset_elim a1 a2) S)
-  | (CCmd.sets_union_comm a1 a2) => (__eo_push_proven (__eo_prog_sets_union_comm a1 a2) S)
-  | (CCmd.sets_inter_comm a1 a2) => (__eo_push_proven (__eo_prog_sets_inter_comm a1 a2) S)
-  | (CCmd.sets_inter_emp1 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_sets_inter_emp1 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_inter_emp2 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_sets_inter_emp2 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_minus_emp1 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_sets_minus_emp1 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_minus_emp2 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_sets_minus_emp2 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_union_emp1 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_sets_union_emp1 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_union_emp2 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_sets_union_emp2 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.sets_inter_member a1 a2 a3) => (__eo_push_proven (__eo_prog_sets_inter_member a1 a2 a3) S)
-  | (CCmd.sets_minus_member a1 a2 a3) => (__eo_push_proven (__eo_prog_sets_minus_member a1 a2 a3) S)
-  | (CCmd.sets_union_member a1 a2 a3) => (__eo_push_proven (__eo_prog_sets_union_member a1 a2 a3) S)
-  | (CCmd.sets_choose_singleton a1) => (__eo_push_proven (__eo_prog_sets_choose_singleton a1) S)
-  | (CCmd.sets_minus_self a1 a2) => (__eo_push_proven (__eo_prog_sets_minus_self a1 a2) S)
-  | (CCmd.sets_is_empty_elim a1 a2) => (__eo_push_proven (__eo_prog_sets_is_empty_elim a1 a2) S)
-  | (CCmd.sets_is_singleton_elim a1) => (__eo_push_proven (__eo_prog_sets_is_singleton_elim a1) S)
-  | (CCmd.str_eq_ctn_false a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_eq_ctn_false a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_eq_ctn_full_false1 a1 a2 n1) => (__eo_push_proven (__eo_prog_str_eq_ctn_full_false1 a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_eq_ctn_full_false2 a1 a2 n1) => (__eo_push_proven (__eo_prog_str_eq_ctn_full_false2 a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_eq_len_false a1 a2 n1) => (__eo_push_proven (__eo_prog_str_eq_len_false a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_empty_str a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_substr_empty_str a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_empty_range a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_substr_empty_range a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_empty_start a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_substr_empty_start a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_empty_start_neg a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_substr_empty_start_neg a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_substr_start_geq_len a1 a2 a3 a4 a5 a6 n1) => (__eo_push_proven (__eo_prog_str_substr_substr_start_geq_len a1 a2 a3 a4 a5 a6 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_eq_empty a1 a2 a3 a4 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_substr_eq_empty a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_substr_z_eq_empty_leq a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_substr_z_eq_empty_leq a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_substr_eq_empty_leq_len a1 a2 a3 a4 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_substr_eq_empty_leq_len a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_len_replace_inv a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_len_replace_inv a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_len_replace_all_inv a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_len_replace_all_inv a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_len_update_inv a1 a2 a3) => (__eo_push_proven (__eo_prog_str_len_update_inv a1 a2 a3) S)
-  | (CCmd.str_update_in_first_concat a1 a2 a3 a4 a5 a6 n1 n2 n3 n4) => (__eo_push_proven (__eo_prog_str_update_in_first_concat a1 a2 a3 a4 a5 a6 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3)) (Proof.pf (__eo_state_proven_nth S n4))) S)
-  | (CCmd.str_len_substr_in_range a1 a2 a3 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_len_substr_in_range a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_concat_clash a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_concat_clash a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_concat_clash_rev a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_concat_clash_rev a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_concat_clash2 a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_concat_clash2 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_concat_clash2_rev a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_concat_clash2_rev a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_concat_unify a1 a2 a3 a4 a5) => (__eo_push_proven (__eo_prog_str_concat_unify a1 a2 a3 a4 a5) S)
-  | (CCmd.str_concat_unify_rev a1 a2 a3 a4 a5) => (__eo_push_proven (__eo_prog_str_concat_unify_rev a1 a2 a3 a4 a5) S)
-  | (CCmd.str_concat_unify_base a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_str_concat_unify_base a1 a2 a3 a4) S)
-  | (CCmd.str_concat_unify_base_rev a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_str_concat_unify_base_rev a1 a2 a3 a4) S)
-  | (CCmd.str_prefixof_elim a1 a2) => (__eo_push_proven (__eo_prog_str_prefixof_elim a1 a2) S)
-  | (CCmd.str_suffixof_elim a1 a2) => (__eo_push_proven (__eo_prog_str_suffixof_elim a1 a2) S)
-  | (CCmd.str_prefixof_eq a1 a2 n1) => (__eo_push_proven (__eo_prog_str_prefixof_eq a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_suffixof_eq a1 a2 n1) => (__eo_push_proven (__eo_prog_str_suffixof_eq a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_prefixof_one a1 a2 n1) => (__eo_push_proven (__eo_prog_str_prefixof_one a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_suffixof_one a1 a2 n1) => (__eo_push_proven (__eo_prog_str_suffixof_one a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_combine1 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_substr_combine1 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_substr_combine2 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_substr_combine2 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_substr_combine3 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_substr_combine3 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_substr_combine4 a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_substr_combine4 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_substr_concat1 a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_substr_concat1 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_substr_concat2 a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_str_substr_concat2 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_replace a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_substr_replace a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_substr_full a1 a2 n1) => (__eo_push_proven (__eo_prog_str_substr_full a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_full_eq a1 a2 n1) => (__eo_push_proven (__eo_prog_str_substr_full_eq a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_contains_refl a1) => (__eo_push_proven (__eo_prog_str_contains_refl a1) S)
-  | (CCmd.str_contains_concat_find a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_contains_concat_find a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_contains_concat_find_contra a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_contains_concat_find_contra a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_contains_split_char a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_contains_split_char a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_contains_leq_len_eq a1 a2 n1) => (__eo_push_proven (__eo_prog_str_contains_leq_len_eq a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_contains_emp a1 a2 n1) => (__eo_push_proven (__eo_prog_str_contains_emp a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_contains_char a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_contains_char a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_at_elim a1 a2) => (__eo_push_proven (__eo_prog_str_at_elim a1 a2) S)
-  | (CCmd.str_replace_self a1 a2) => (__eo_push_proven (__eo_prog_str_replace_self a1 a2) S)
-  | (CCmd.str_replace_id a1 a2) => (__eo_push_proven (__eo_prog_str_replace_id a1 a2) S)
-  | (CCmd.str_replace_prefix a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_str_replace_prefix a1 a2 a3 a4) S)
-  | (CCmd.str_replace_no_contains a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_replace_no_contains a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_replace_find_base a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_replace_find_base a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_replace_find_first_concat a1 a2 a3 a4 a5 a6 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_replace_find_first_concat a1 a2 a3 a4 a5 a6 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_replace_empty a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_replace_empty a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_replace_one_pre a1 a2 a3 a4 a5 n1) => (__eo_push_proven (__eo_prog_str_replace_one_pre a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_replace_find_pre a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_str_replace_find_pre a1 a2 a3 a4) S)
-  | (CCmd.str_replace_all_no_contains a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_replace_all_no_contains a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_replace_all_empty a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_replace_all_empty a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_replace_all_id a1 a2) => (__eo_push_proven (__eo_prog_str_replace_all_id a1 a2) S)
-  | (CCmd.str_replace_all_self a1 a2 n1) => (__eo_push_proven (__eo_prog_str_replace_all_self a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_replace_re_none a1 a2) => (__eo_push_proven (__eo_prog_str_replace_re_none a1 a2) S)
-  | (CCmd.str_replace_re_all_none a1 a2) => (__eo_push_proven (__eo_prog_str_replace_re_all_none a1 a2) S)
-  | (CCmd.str_len_concat_rec a1 a2 a3) => (__eo_push_proven (__eo_prog_str_len_concat_rec a1 a2 a3) S)
-  | (CCmd.str_len_eq_zero_concat_rec a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_str_len_eq_zero_concat_rec a1 a2 a3 a4) S)
-  | (CCmd.str_len_eq_zero_base a1 a2) => (__eo_push_proven (__eo_prog_str_len_eq_zero_base a1 a2) S)
-  | (CCmd.str_indexof_self a1 a2 a3) => (__eo_push_proven (__eo_prog_str_indexof_self a1 a2 a3) S)
-  | (CCmd.str_indexof_no_contains a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_indexof_no_contains a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_indexof_oob a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_indexof_oob a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_indexof_oob2 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_indexof_oob2 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_indexof_contains_pre a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_indexof_contains_pre a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_indexof_contains_concat_pre a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_str_indexof_contains_concat_pre a1 a2 a3 a4) S)
-  | (CCmd.str_indexof_find_emp a1 a2 a3 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_indexof_find_emp a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_indexof_eq_irr a1 a2 a3 a4 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_indexof_eq_irr a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_indexof_re_none a1 a2) => (__eo_push_proven (__eo_prog_str_indexof_re_none a1 a2) S)
-  | (CCmd.str_indexof_re_emp_re a1 a2 a3 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_indexof_re_emp_re a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_to_lower_concat a1 a2 a3) => (__eo_push_proven (__eo_prog_str_to_lower_concat a1 a2 a3) S)
-  | (CCmd.str_to_upper_concat a1 a2 a3) => (__eo_push_proven (__eo_prog_str_to_upper_concat a1 a2 a3) S)
-  | (CCmd.str_to_lower_upper a1) => (__eo_push_proven (__eo_prog_str_to_lower_upper a1) S)
-  | (CCmd.str_to_upper_lower a1) => (__eo_push_proven (__eo_prog_str_to_upper_lower a1) S)
-  | (CCmd.str_to_lower_len a1) => (__eo_push_proven (__eo_prog_str_to_lower_len a1) S)
-  | (CCmd.str_to_upper_len a1) => (__eo_push_proven (__eo_prog_str_to_upper_len a1) S)
-  | (CCmd.str_to_lower_from_int a1) => (__eo_push_proven (__eo_prog_str_to_lower_from_int a1) S)
-  | (CCmd.str_to_upper_from_int a1) => (__eo_push_proven (__eo_prog_str_to_upper_from_int a1) S)
-  | (CCmd.str_to_int_concat_neg_one a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_to_int_concat_neg_one a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_is_digit_elim a1) => (__eo_push_proven (__eo_prog_str_is_digit_elim a1) S)
-  | (CCmd.str_leq_empty a1) => (__eo_push_proven (__eo_prog_str_leq_empty a1) S)
-  | (CCmd.str_leq_empty_eq a1) => (__eo_push_proven (__eo_prog_str_leq_empty_eq a1) S)
-  | (CCmd.str_leq_concat_false a1 a2 a3 a4 a5 n1 n2) => (__eo_push_proven (__eo_prog_str_leq_concat_false a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_leq_concat_true a1 a2 a3 a4 a5 n1 n2 n3) => (__eo_push_proven (__eo_prog_str_leq_concat_true a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.str_leq_concat_base_1 a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_leq_concat_base_1 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_leq_concat_base_2 a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_leq_concat_base_2 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_lt_elim a1 a2) => (__eo_push_proven (__eo_prog_str_lt_elim a1 a2) S)
-  | (CCmd.str_from_int_no_ctn_nondigit a1 a2 n1 n2) => (__eo_push_proven (__eo_prog_str_from_int_no_ctn_nondigit a1 a2 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_substr_ctn_contra a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_substr_ctn_contra a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_ctn a1 a2 a3) => (__eo_push_proven (__eo_prog_str_substr_ctn a1 a2 a3) S)
-  | (CCmd.str_replace_dual_ctn a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_replace_dual_ctn a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_replace_dual_ctn_false a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_replace_dual_ctn_false a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_replace_self_ctn_simp a1 a2) => (__eo_push_proven (__eo_prog_str_replace_self_ctn_simp a1 a2) S)
-  | (CCmd.str_replace_emp_ctn_src a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_replace_emp_ctn_src a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_char_start_eq_len a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_substr_char_start_eq_len a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_contains_repl_char a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_contains_repl_char a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_contains_repl_self_tgt_char a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_contains_repl_self_tgt_char a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_contains_repl_self a1 a2) => (__eo_push_proven (__eo_prog_str_contains_repl_self a1 a2) S)
-  | (CCmd.str_contains_repl_tgt a1 a2 a3) => (__eo_push_proven (__eo_prog_str_contains_repl_tgt a1 a2 a3) S)
-  | (CCmd.str_repl_repl_len_id a1 a2 n1) => (__eo_push_proven (__eo_prog_str_repl_repl_len_id a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_repl_repl_src_tgt_no_ctn a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_repl_repl_src_tgt_no_ctn a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_repl_repl_tgt_self a1 a2) => (__eo_push_proven (__eo_prog_str_repl_repl_tgt_self a1 a2) S)
-  | (CCmd.str_repl_repl_tgt_no_ctn a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_repl_repl_tgt_no_ctn a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_repl_repl_src_self a1 a2 a3) => (__eo_push_proven (__eo_prog_str_repl_repl_src_self a1 a2 a3) S)
-  | (CCmd.str_repl_repl_src_inv_no_ctn1 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_repl_repl_src_inv_no_ctn1 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_repl_repl_src_inv_no_ctn2 a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_repl_repl_src_inv_no_ctn2 a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_repl_repl_src_inv_no_ctn3 a1 a2 a3 a4 a5 n1 n2) => (__eo_push_proven (__eo_prog_str_repl_repl_src_inv_no_ctn3 a1 a2 a3 a4 a5 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_repl_repl_dual_self a1 a2) => (__eo_push_proven (__eo_prog_str_repl_repl_dual_self a1 a2) S)
-  | (CCmd.str_repl_repl_dual_ite1 a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_repl_repl_dual_ite1 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_repl_repl_dual_ite2 a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_repl_repl_dual_ite2 a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_repl_repl_lookahead_id_simp a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_repl_repl_lookahead_id_simp a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | CCmd.re_all_elim => (__eo_push_proven (Term.Apply (Term.Apply Term.eq Term.re_all) (Term.Apply Term.re_mult Term.re_allchar)) S)
-  | (CCmd.re_opt_elim a1) => (__eo_push_proven (__eo_prog_re_opt_elim a1) S)
-  | (CCmd.re_diff_elim a1 a2) => (__eo_push_proven (__eo_prog_re_diff_elim a1 a2) S)
-  | (CCmd.re_plus_elim a1) => (__eo_push_proven (__eo_prog_re_plus_elim a1) S)
-  | (CCmd.re_repeat_elim a1 a2) => (__eo_push_proven (__eo_prog_re_repeat_elim a1 a2) S)
-  | (CCmd.re_concat_star_swap a1 a2 a3) => (__eo_push_proven (__eo_prog_re_concat_star_swap a1 a2 a3) S)
-  | (CCmd.re_concat_star_repeat a1 a2 a3) => (__eo_push_proven (__eo_prog_re_concat_star_repeat a1 a2 a3) S)
-  | (CCmd.re_concat_star_subsume1 a1 a2 a3) => (__eo_push_proven (__eo_prog_re_concat_star_subsume1 a1 a2 a3) S)
-  | (CCmd.re_concat_star_subsume2 a1 a2 a3) => (__eo_push_proven (__eo_prog_re_concat_star_subsume2 a1 a2 a3) S)
-  | (CCmd.re_concat_merge a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_re_concat_merge a1 a2 a3 a4) S)
-  | (CCmd.re_union_all a1 a2) => (__eo_push_proven (__eo_prog_re_union_all a1 a2) S)
-  | (CCmd.re_union_const_elim a1 a2 n1) => (__eo_push_proven (__eo_prog_re_union_const_elim a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_inter_all a1 a2) => (__eo_push_proven (__eo_prog_re_inter_all a1 a2) S)
-  | CCmd.re_star_none => (__eo_push_proven (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult Term.re_none)) (Term.Apply Term.str_to_re (Term.String ""))) S)
-  | CCmd.re_star_emp => (__eo_push_proven (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult (Term.Apply Term.str_to_re (Term.String "")))) (Term.Apply Term.str_to_re (Term.String ""))) S)
-  | (CCmd.re_star_star a1) => (__eo_push_proven (__eo_prog_re_star_star a1) S)
-  | (CCmd.re_range_refl a1 n1) => (__eo_push_proven (__eo_prog_re_range_refl a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_range_emp a1 a2 n1 n2 n3) => (__eo_push_proven (__eo_prog_re_range_emp a1 a2 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)) (Proof.pf (__eo_state_proven_nth S n3))) S)
-  | (CCmd.re_range_non_singleton_1 a1 a2 n1) => (__eo_push_proven (__eo_prog_re_range_non_singleton_1 a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_range_non_singleton_2 a1 a2 n1) => (__eo_push_proven (__eo_prog_re_range_non_singleton_2 a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_star_union_char a1 a2) => (__eo_push_proven (__eo_prog_re_star_union_char a1 a2) S)
-  | (CCmd.re_star_union_drop_emp a1 a2) => (__eo_push_proven (__eo_prog_re_star_union_drop_emp a1 a2) S)
-  | (CCmd.re_loop_neg a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_re_loop_neg a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_inter_cstring a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_re_inter_cstring a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.re_inter_cstring_neg a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_re_inter_cstring_neg a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_len_include a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_substr_len_include a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_len_include_pre a1 a2 a3 a4 n1) => (__eo_push_proven (__eo_prog_str_substr_len_include_pre a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_substr_len_norm a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_substr_len_norm a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.seq_len_rev a1) => (__eo_push_proven (__eo_prog_seq_len_rev a1) S)
-  | (CCmd.seq_rev_rev a1) => (__eo_push_proven (__eo_prog_seq_rev_rev a1) S)
-  | (CCmd.seq_rev_concat a1 a2 a3) => (__eo_push_proven (__eo_prog_seq_rev_concat a1 a2 a3) S)
-  | (CCmd.str_eq_repl_self_emp a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_eq_repl_self_emp a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_eq_repl_no_change a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_eq_repl_no_change a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_eq_repl_tgt_eq_len a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_str_eq_repl_tgt_eq_len a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_eq_repl_len_one_emp_prefix a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_eq_repl_len_one_emp_prefix a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_eq_repl_emp_tgt_nemp a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_eq_repl_emp_tgt_nemp a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_eq_repl_nemp_src_emp a1 a2 a3 a4 n1 n2) => (__eo_push_proven (__eo_prog_str_eq_repl_nemp_src_emp a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_eq_repl_self_src a1 a2) => (__eo_push_proven (__eo_prog_str_eq_repl_self_src a1 a2) S)
-  | (CCmd.seq_len_unit a1) => (__eo_push_proven (__eo_prog_seq_len_unit a1) S)
-  | (CCmd.seq_nth_unit a1) => (__eo_push_proven (__eo_prog_seq_nth_unit a1) S)
-  | (CCmd.seq_rev_unit a1) => (__eo_push_proven (__eo_prog_seq_rev_unit a1) S)
-  | (CCmd.re_in_empty a1) => (__eo_push_proven (__eo_prog_re_in_empty a1) S)
-  | (CCmd.re_in_sigma a1) => (__eo_push_proven (__eo_prog_re_in_sigma a1) S)
-  | (CCmd.re_in_sigma_star a1) => (__eo_push_proven (__eo_prog_re_in_sigma_star a1) S)
-  | (CCmd.re_in_cstring a1 a2) => (__eo_push_proven (__eo_prog_re_in_cstring a1 a2) S)
-  | (CCmd.re_in_comp a1 a2) => (__eo_push_proven (__eo_prog_re_in_comp a1 a2) S)
-  | (CCmd.str_in_re_union_elim a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_str_in_re_union_elim a1 a2 a3 a4) S)
-  | (CCmd.str_in_re_inter_elim a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_str_in_re_inter_elim a1 a2 a3 a4) S)
-  | (CCmd.str_in_re_range_elim a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_str_in_re_range_elim a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.str_in_re_contains a1 a2) => (__eo_push_proven (__eo_prog_str_in_re_contains a1 a2) S)
-  | (CCmd.str_in_re_from_int_nemp_dig_range a1 n1) => (__eo_push_proven (__eo_prog_str_in_re_from_int_nemp_dig_range a1 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.str_in_re_from_int_dig_range a1) => (__eo_push_proven (__eo_prog_str_in_re_from_int_dig_range a1) S)
-  | (CCmd.eq_refl a1) => (__eo_push_proven (__eo_prog_eq_refl a1) S)
-  | (CCmd.eq_symm a1 a2) => (__eo_push_proven (__eo_prog_eq_symm a1 a2) S)
-  | (CCmd.eq_cond_deq a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_eq_cond_deq a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.eq_ite_lift a1 a2 a3 a4) => (__eo_push_proven (__eo_prog_eq_ite_lift a1 a2 a3 a4) S)
-  | (CCmd.distinct_binary_elim a1 a2) => (__eo_push_proven (__eo_prog_distinct_binary_elim a1 a2) S)
-  | (CCmd.uf_bv2nat_int2bv a1 a2 n1) => (__eo_push_proven (__eo_prog_uf_bv2nat_int2bv a1 a2 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.uf_bv2nat_int2bv_extend a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_uf_bv2nat_int2bv_extend a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.uf_bv2nat_int2bv_extract a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_uf_bv2nat_int2bv_extract a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.uf_int2bv_bv2nat a1 a2) => (__eo_push_proven (__eo_prog_uf_int2bv_bv2nat a1 a2) S)
-  | (CCmd.uf_bv2nat_geq_elim a1 a2 a3 n1) => (__eo_push_proven (__eo_prog_uf_bv2nat_geq_elim a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1))) S)
-  | (CCmd.uf_int2bv_bvult_equiv a1 a2) => (__eo_push_proven (__eo_prog_uf_int2bv_bvult_equiv a1 a2) S)
-  | (CCmd.uf_int2bv_bvule_equiv a1 a2) => (__eo_push_proven (__eo_prog_uf_int2bv_bvule_equiv a1 a2) S)
-  | (CCmd.uf_sbv_to_int_elim a1 a2 a3 n1 n2) => (__eo_push_proven (__eo_prog_uf_sbv_to_int_elim a1 a2 a3 (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2))) S)
-  | (CCmd.evaluate a1) => (__eo_push_proven (__eo_prog_evaluate a1) S)
-  | (CCmd.distinct_values a1 a2) => (__eo_push_proven (__eo_prog_distinct_values a1 a2) S)
-  | (CCmd.aci_norm a1) => (__eo_push_proven (__eo_prog_aci_norm a1) S)
-  | (CCmd.absorb a1) => (__eo_push_proven (__eo_prog_absorb a1) S)
-  | (CCmd.distinct_card_conflict a1) => (__eo_push_proven (__eo_prog_distinct_card_conflict a1) S)
+  | (CCmd.step CRule.scope premises args) => (__eo_invoke_cmd_pop_scope S (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))))
+  | (CCmd.step CRule.process_scope premises args) => (__eo_push_proven (__eo_prog_process_scope (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.ite_eq premises args) => (__eo_push_proven (__eo_prog_ite_eq (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.split premises args) => (__eo_push_proven (__eo_prog_split (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.resolution premises args) => (__eo_push_proven (__eo_prog_resolution (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.chain_resolution premises args) => (__eo_push_proven (__eo_prog_chain_resolution (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.chain_m_resolution premises args) => (__eo_push_proven (__eo_prog_chain_m_resolution (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.factoring premises args) => (__eo_push_proven (__eo_prog_factoring (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.reordering premises args) => (__eo_push_proven (__eo_prog_reordering (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.eq_resolve premises args) => (__eo_push_proven (__eo_prog_eq_resolve (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.modus_ponens premises args) => (__eo_push_proven (__eo_prog_modus_ponens (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.not_not_elim premises args) => (__eo_push_proven (__eo_prog_not_not_elim (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.contra premises args) => (__eo_push_proven (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.and_elim premises args) => (__eo_push_proven (__eo_prog_and_elim (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.and_intro premises args) => (__eo_push_proven (__eo_prog_and_intro (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.not_or_elim premises args) => (__eo_push_proven (__eo_prog_not_or_elim (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.implies_elim premises args) => (__eo_push_proven (__eo_prog_implies_elim (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_implies_elim1 premises args) => (__eo_push_proven (__eo_prog_not_implies_elim1 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_implies_elim2 premises args) => (__eo_push_proven (__eo_prog_not_implies_elim2 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.equiv_elim1 premises args) => (__eo_push_proven (__eo_prog_equiv_elim1 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.equiv_elim2 premises args) => (__eo_push_proven (__eo_prog_equiv_elim2 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_equiv_elim1 premises args) => (__eo_push_proven (__eo_prog_not_equiv_elim1 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_equiv_elim2 premises args) => (__eo_push_proven (__eo_prog_not_equiv_elim2 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.xor_elim1 premises args) => (__eo_push_proven (__eo_prog_xor_elim1 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.xor_elim2 premises args) => (__eo_push_proven (__eo_prog_xor_elim2 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_xor_elim1 premises args) => (__eo_push_proven (__eo_prog_not_xor_elim1 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_xor_elim2 premises args) => (__eo_push_proven (__eo_prog_not_xor_elim2 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.ite_elim1 premises args) => (__eo_push_proven (__eo_prog_ite_elim1 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.ite_elim2 premises args) => (__eo_push_proven (__eo_prog_ite_elim2 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_ite_elim1 premises args) => (__eo_push_proven (__eo_prog_not_ite_elim1 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_ite_elim2 premises args) => (__eo_push_proven (__eo_prog_not_ite_elim2 (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.not_and premises args) => (__eo_push_proven (__eo_prog_not_and (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.cnf_and_pos premises args) => (__eo_push_proven (__eo_prog_cnf_and_pos (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.cnf_and_neg premises args) => (__eo_push_proven (__eo_prog_cnf_and_neg (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_or_pos premises args) => (__eo_push_proven (__eo_prog_cnf_or_pos (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_or_neg premises args) => (__eo_push_proven (__eo_prog_cnf_or_neg (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.cnf_implies_pos premises args) => (__eo_push_proven (__eo_prog_cnf_implies_pos (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_implies_neg1 premises args) => (__eo_push_proven (__eo_prog_cnf_implies_neg1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_implies_neg2 premises args) => (__eo_push_proven (__eo_prog_cnf_implies_neg2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_equiv_pos1 premises args) => (__eo_push_proven (__eo_prog_cnf_equiv_pos1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_equiv_pos2 premises args) => (__eo_push_proven (__eo_prog_cnf_equiv_pos2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_equiv_neg1 premises args) => (__eo_push_proven (__eo_prog_cnf_equiv_neg1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_equiv_neg2 premises args) => (__eo_push_proven (__eo_prog_cnf_equiv_neg2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_xor_pos1 premises args) => (__eo_push_proven (__eo_prog_cnf_xor_pos1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_xor_pos2 premises args) => (__eo_push_proven (__eo_prog_cnf_xor_pos2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_xor_neg1 premises args) => (__eo_push_proven (__eo_prog_cnf_xor_neg1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_xor_neg2 premises args) => (__eo_push_proven (__eo_prog_cnf_xor_neg2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_ite_pos1 premises args) => (__eo_push_proven (__eo_prog_cnf_ite_pos1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_ite_pos2 premises args) => (__eo_push_proven (__eo_prog_cnf_ite_pos2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_ite_pos3 premises args) => (__eo_push_proven (__eo_prog_cnf_ite_pos3 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_ite_neg1 premises args) => (__eo_push_proven (__eo_prog_cnf_ite_neg1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_ite_neg2 premises args) => (__eo_push_proven (__eo_prog_cnf_ite_neg2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.cnf_ite_neg3 premises args) => (__eo_push_proven (__eo_prog_cnf_ite_neg3 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arrays_read_over_write premises args) => (__eo_push_proven (__eo_prog_arrays_read_over_write (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arrays_read_over_write_contra premises args) => (__eo_push_proven (__eo_prog_arrays_read_over_write_contra (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arrays_read_over_write_1 premises args) => (__eo_push_proven (__eo_prog_arrays_read_over_write_1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arrays_ext premises args) => (__eo_push_proven (__eo_prog_arrays_ext (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.refl premises args) => (__eo_push_proven (__eo_prog_refl (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.symm premises args) => (__eo_push_proven (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.trans premises args) => (__eo_push_proven (__eo_prog_trans (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.cong premises args) => (__eo_push_proven (__eo_prog_cong (__eo_arg_nth args 0) (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.nary_cong premises args) => (__eo_push_proven (__eo_prog_nary_cong (__eo_arg_nth args 0) (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.pairwise_cong premises args) => (__eo_push_proven (__eo_prog_pairwise_cong (__eo_arg_nth args 0) (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.true_intro premises args) => (__eo_push_proven (__eo_prog_true_intro (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.true_elim premises args) => (__eo_push_proven (__eo_prog_true_elim (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.false_intro premises args) => (__eo_push_proven (__eo_prog_false_intro (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.false_elim premises args) => (__eo_push_proven (__eo_prog_false_elim (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.ho_cong premises args) => (__eo_push_proven (__eo_prog_ho_cong (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.distinct_elim premises args) => (__eo_push_proven (__eo_prog_distinct_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.distinct_true premises args) => (__eo_push_proven (__eo_prog_distinct_true (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.distinct_false premises args) => (__eo_push_proven (__eo_prog_distinct_false (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.lambda_elim premises args) => (__eo_push_proven (__eo_prog_lambda_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_sum_ub premises args) => (__eo_push_proven (__eo_prog_arith_sum_ub (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.arith_mult_pos premises args) => (__eo_push_proven (__eo_prog_arith_mult_pos (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_mult_neg premises args) => (__eo_push_proven (__eo_prog_arith_mult_neg (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_trichotomy premises args) => (__eo_push_proven (__eo_prog_arith_trichotomy (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.int_tight_ub premises args) => (__eo_push_proven (__eo_prog_int_tight_ub (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.int_tight_lb premises args) => (__eo_push_proven (__eo_prog_int_tight_lb (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_mult_tangent premises args) => (__eo_push_proven (__eo_prog_arith_mult_tangent (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4)) S)
+  | (CCmd.step CRule.arith_mult_sign premises args) => (__eo_push_proven (__eo_prog_arith_mult_sign (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_mult_abs_comparison premises args) => (__eo_push_proven (__eo_prog_arith_mult_abs_comparison (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.arith_reduction premises args) => (__eo_push_proven (__eo_prog_arith_reduction (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_poly_norm premises args) => (__eo_push_proven (__eo_prog_arith_poly_norm (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_poly_norm_rel premises args) => (__eo_push_proven (__eo_prog_arith_poly_norm_rel (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_repeat_elim premises args) => (__eo_push_proven (__eo_prog_bv_repeat_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_smulo_elim premises args) => (__eo_push_proven (__eo_prog_bv_smulo_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_umulo_elim premises args) => (__eo_push_proven (__eo_prog_bv_umulo_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_bitwise_slicing premises args) => (__eo_push_proven (__eo_prog_bv_bitwise_slicing (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_bitblast_step premises args) => (__eo_push_proven (__eo_prog_bv_bitblast_step (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_poly_norm premises args) => (__eo_push_proven (__eo_prog_bv_poly_norm (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_poly_norm_eq premises args) => (__eo_push_proven (__eo_prog_bv_poly_norm_eq (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.string_length_pos premises args) => (__eo_push_proven (__eo_prog_string_length_pos (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.string_length_non_empty premises args) => (__eo_push_proven (__eo_prog_string_length_non_empty (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.concat_eq premises args) => (__eo_push_proven (__eo_prog_concat_eq (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.concat_unify premises args) => (__eo_push_proven (__eo_prog_concat_unify (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.concat_csplit premises args) => (__eo_push_proven (__eo_prog_concat_csplit (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.concat_split premises args) => (__eo_push_proven (__eo_prog_concat_split (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.concat_lprop premises args) => (__eo_push_proven (__eo_prog_concat_lprop (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.concat_cprop premises args) => (__eo_push_proven (__eo_prog_concat_cprop (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.string_decompose premises args) => (__eo_push_proven (__eo_prog_string_decompose (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.exists_string_length premises args) => (__eo_push_proven (__eo_prog_exists_string_length (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.string_code_inj premises args) => (__eo_push_proven (__eo_prog_string_code_inj (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.string_seq_unit_inj premises args) => (__eo_push_proven (__eo_prog_string_seq_unit_inj (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_inter premises args) => (__eo_push_proven (__eo_prog_re_inter (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.re_concat premises args) => (__eo_push_proven (__eo_prog_re_concat (Proof.pf (__eo_mk_premise_list Term.and premises S))) S)
+  | (CCmd.step CRule.re_unfold_pos premises args) => (__eo_push_proven (__eo_prog_re_unfold_pos (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_unfold_neg_concat_fixed premises args) => (__eo_push_proven (__eo_prog_re_unfold_neg_concat_fixed (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_unfold_neg premises args) => (__eo_push_proven (__eo_prog_re_unfold_neg (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.string_ext premises args) => (__eo_push_proven (__eo_prog_string_ext (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.string_reduction premises args) => (__eo_push_proven (__eo_prog_string_reduction (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.string_eager_reduction premises args) => (__eo_push_proven (__eo_prog_string_eager_reduction (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_string_pred_entail premises args) => (__eo_push_proven (__eo_prog_arith_string_pred_entail (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_string_pred_safe_approx premises args) => (__eo_push_proven (__eo_prog_arith_string_pred_safe_approx (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_in_re_eval premises args) => (__eo_push_proven (__eo_prog_str_in_re_eval (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_in_re_consume premises args) => (__eo_push_proven (__eo_prog_str_in_re_consume (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_loop_elim premises args) => (__eo_push_proven (__eo_prog_re_loop_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_eq_elim premises args) => (__eo_push_proven (__eo_prog_re_eq_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_inter_inclusion premises args) => (__eo_push_proven (__eo_prog_re_inter_inclusion (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_union_inclusion premises args) => (__eo_push_proven (__eo_prog_re_union_inclusion (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_in_re_concat_star_char premises args) => (__eo_push_proven (__eo_prog_str_in_re_concat_star_char (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_in_re_sigma premises args) => (__eo_push_proven (__eo_prog_str_in_re_sigma (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_in_re_sigma_star premises args) => (__eo_push_proven (__eo_prog_str_in_re_sigma_star (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_ctn_multiset_subset premises args) => (__eo_push_proven (__eo_prog_str_ctn_multiset_subset (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_overlap_split_ctn premises args) => (__eo_push_proven (__eo_prog_str_overlap_split_ctn (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_overlap_endpoints_ctn premises args) => (__eo_push_proven (__eo_prog_str_overlap_endpoints_ctn (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_overlap_endpoints_indexof premises args) => (__eo_push_proven (__eo_prog_str_overlap_endpoints_indexof (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_overlap_endpoints_replace premises args) => (__eo_push_proven (__eo_prog_str_overlap_endpoints_replace (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_indexof_re_eval premises args) => (__eo_push_proven (__eo_prog_str_indexof_re_eval (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_replace_re_eval premises args) => (__eo_push_proven (__eo_prog_str_replace_re_eval (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_replace_re_all_eval premises args) => (__eo_push_proven (__eo_prog_str_replace_re_all_eval (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.seq_eval_op premises args) => (__eo_push_proven (__eo_prog_seq_eval_op (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.sets_singleton_inj premises args) => (__eo_push_proven (__eo_prog_sets_singleton_inj (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_ext premises args) => (__eo_push_proven (__eo_prog_sets_ext (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_eval_op premises args) => (__eo_push_proven (__eo_prog_sets_eval_op (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.sets_insert_elim premises args) => (__eo_push_proven (__eo_prog_sets_insert_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.ubv_to_int_elim premises args) => (__eo_push_proven (__eo_prog_ubv_to_int_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.int_to_bv_elim premises args) => (__eo_push_proven (__eo_prog_int_to_bv_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.instantiate premises args) => (__eo_push_proven (__eo_prog_instantiate (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.skolemize premises args) => (__eo_push_proven (__eo_prog_skolemize (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.skolem_intro premises args) => (__eo_push_proven (__eo_prog_skolem_intro (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.alpha_equiv premises args) => (__eo_push_proven (__eo_prog_alpha_equiv (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.beta_reduce premises args) => (__eo_push_proven (__eo_prog_beta_reduce (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.quant_var_reordering premises args) => (__eo_push_proven (__eo_prog_quant_var_reordering (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.exists_elim premises args) => (__eo_push_proven (__eo_prog_exists_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.quant_unused_vars premises args) => (__eo_push_proven (__eo_prog_quant_unused_vars (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.quant_merge_prenex premises args) => (__eo_push_proven (__eo_prog_quant_merge_prenex (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.quant_miniscope_and premises args) => (__eo_push_proven (__eo_prog_quant_miniscope_and (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.quant_miniscope_or premises args) => (__eo_push_proven (__eo_prog_quant_miniscope_or (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.quant_miniscope_ite premises args) => (__eo_push_proven (__eo_prog_quant_miniscope_ite (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.quant_var_elim_eq premises args) => (__eo_push_proven (__eo_prog_quant_var_elim_eq (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.quant_dt_split premises args) => (__eo_push_proven (__eo_prog_quant_dt_split (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_split premises args) => (__eo_push_proven (__eo_prog_dt_split (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_inst premises args) => (__eo_push_proven (__eo_prog_dt_inst (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_collapse_selector premises args) => (__eo_push_proven (__eo_prog_dt_collapse_selector (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_collapse_tester premises args) => (__eo_push_proven (__eo_prog_dt_collapse_tester (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_collapse_tester_singleton premises args) => (__eo_push_proven (__eo_prog_dt_collapse_tester_singleton (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_cons_eq premises args) => (__eo_push_proven (__eo_prog_dt_cons_eq (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_cons_eq_clash premises args) => (__eo_push_proven (__eo_prog_dt_cons_eq_clash (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_cycle premises args) => (__eo_push_proven (__eo_prog_dt_cycle (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_collapse_updater premises args) => (__eo_push_proven (__eo_prog_dt_collapse_updater (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.dt_updater_elim premises args) => (__eo_push_proven (__eo_prog_dt_updater_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_div_total_zero_real premises args) => (__eo_push_proven (__eo_prog_arith_div_total_zero_real (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_div_total_zero_int premises args) => (__eo_push_proven (__eo_prog_arith_div_total_zero_int (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_int_div_total premises args) => (__eo_push_proven (__eo_prog_arith_int_div_total (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_int_div_total_one premises args) => (__eo_push_proven (__eo_prog_arith_int_div_total_one (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_int_div_total_zero premises args) => (__eo_push_proven (__eo_prog_arith_int_div_total_zero (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_int_div_total_neg premises args) => (__eo_push_proven (__eo_prog_arith_int_div_total_neg (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_int_mod_total premises args) => (__eo_push_proven (__eo_prog_arith_int_mod_total (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_int_mod_total_one premises args) => (__eo_push_proven (__eo_prog_arith_int_mod_total_one (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_int_mod_total_zero premises args) => (__eo_push_proven (__eo_prog_arith_int_mod_total_zero (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_int_mod_total_neg premises args) => (__eo_push_proven (__eo_prog_arith_int_mod_total_neg (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_elim_gt premises args) => (__eo_push_proven (__eo_prog_arith_elim_gt (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_elim_lt premises args) => (__eo_push_proven (__eo_prog_arith_elim_lt (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_elim_int_gt premises args) => (__eo_push_proven (__eo_prog_arith_elim_int_gt (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_elim_int_lt premises args) => (__eo_push_proven (__eo_prog_arith_elim_int_lt (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_elim_leq premises args) => (__eo_push_proven (__eo_prog_arith_elim_leq (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_leq_norm premises args) => (__eo_push_proven (__eo_prog_arith_leq_norm (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_geq_tighten premises args) => (__eo_push_proven (__eo_prog_arith_geq_tighten (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_geq_norm1_int premises args) => (__eo_push_proven (__eo_prog_arith_geq_norm1_int (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_geq_norm1_real premises args) => (__eo_push_proven (__eo_prog_arith_geq_norm1_real (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_eq_elim_real premises args) => (__eo_push_proven (__eo_prog_arith_eq_elim_real (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_eq_elim_int premises args) => (__eo_push_proven (__eo_prog_arith_eq_elim_int (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_to_int_elim premises args) => (__eo_push_proven (__eo_prog_arith_to_int_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_to_int_elim_to_real premises args) => (__eo_push_proven (__eo_prog_arith_to_int_elim_to_real (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.arith_div_elim_to_real1 premises args) => (__eo_push_proven (__eo_prog_arith_div_elim_to_real1 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_div_elim_to_real2 premises args) => (__eo_push_proven (__eo_prog_arith_div_elim_to_real2 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_mod_over_mod_1 premises args) => (__eo_push_proven (__eo_prog_arith_mod_over_mod_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_mod_over_mod premises args) => (__eo_push_proven (__eo_prog_arith_mod_over_mod (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_mod_over_mod_mult premises args) => (__eo_push_proven (__eo_prog_arith_mod_over_mod_mult (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_int_eq_conflict premises args) => (__eo_push_proven (__eo_prog_arith_int_eq_conflict (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_int_geq_tighten premises args) => (__eo_push_proven (__eo_prog_arith_int_geq_tighten (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.arith_divisible_elim premises args) => (__eo_push_proven (__eo_prog_arith_divisible_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.arith_abs_eq premises args) => (__eo_push_proven (__eo_prog_arith_abs_eq (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_abs_int_gt premises args) => (__eo_push_proven (__eo_prog_arith_abs_int_gt (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_abs_real_gt premises args) => (__eo_push_proven (__eo_prog_arith_abs_real_gt (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_geq_ite_lift premises args) => (__eo_push_proven (__eo_prog_arith_geq_ite_lift (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.arith_leq_ite_lift premises args) => (__eo_push_proven (__eo_prog_arith_leq_ite_lift (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.arith_min_lt1 premises args) => (__eo_push_proven (__eo_prog_arith_min_lt1 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_min_lt2 premises args) => (__eo_push_proven (__eo_prog_arith_min_lt2 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_max_geq1 premises args) => (__eo_push_proven (__eo_prog_arith_max_geq1 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.arith_max_geq2 premises args) => (__eo_push_proven (__eo_prog_arith_max_geq2 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.array_read_over_write premises args) => (__eo_push_proven (__eo_prog_array_read_over_write (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.array_read_over_write2 premises args) => (__eo_push_proven (__eo_prog_array_read_over_write2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.array_store_overwrite premises args) => (__eo_push_proven (__eo_prog_array_store_overwrite (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.array_store_self premises args) => (__eo_push_proven (__eo_prog_array_store_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.array_read_over_write_split premises args) => (__eo_push_proven (__eo_prog_array_read_over_write_split (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.array_store_swap premises args) => (__eo_push_proven (__eo_prog_array_store_swap (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bool_double_not_elim premises args) => (__eo_push_proven (__eo_prog_bool_double_not_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_not_true premises args) => (__eo_push_proven (__eo_prog_bool_not_true (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bool_not_false premises args) => (__eo_push_proven (__eo_prog_bool_not_false (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bool_eq_true premises args) => (__eo_push_proven (__eo_prog_bool_eq_true (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_eq_false premises args) => (__eo_push_proven (__eo_prog_bool_eq_false (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_eq_nrefl premises args) => (__eo_push_proven (__eo_prog_bool_eq_nrefl (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_impl_false1 premises args) => (__eo_push_proven (__eo_prog_bool_impl_false1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_impl_false2 premises args) => (__eo_push_proven (__eo_prog_bool_impl_false2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_impl_true1 premises args) => (__eo_push_proven (__eo_prog_bool_impl_true1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_impl_true2 premises args) => (__eo_push_proven (__eo_prog_bool_impl_true2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_impl_elim premises args) => (__eo_push_proven (__eo_prog_bool_impl_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bool_dual_impl_eq premises args) => (__eo_push_proven (__eo_prog_bool_dual_impl_eq (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bool_and_conf premises args) => (__eo_push_proven (__eo_prog_bool_and_conf (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bool_and_conf2 premises args) => (__eo_push_proven (__eo_prog_bool_and_conf2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bool_or_taut premises args) => (__eo_push_proven (__eo_prog_bool_or_taut (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bool_or_taut2 premises args) => (__eo_push_proven (__eo_prog_bool_or_taut2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bool_or_de_morgan premises args) => (__eo_push_proven (__eo_prog_bool_or_de_morgan (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.bool_implies_de_morgan premises args) => (__eo_push_proven (__eo_prog_bool_implies_de_morgan (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bool_and_de_morgan premises args) => (__eo_push_proven (__eo_prog_bool_and_de_morgan (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.bool_or_and_distrib premises args) => (__eo_push_proven (__eo_prog_bool_or_and_distrib (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4)) S)
+  | (CCmd.step CRule.bool_implies_or_distrib premises args) => (__eo_push_proven (__eo_prog_bool_implies_or_distrib (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bool_xor_refl premises args) => (__eo_push_proven (__eo_prog_bool_xor_refl (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_xor_nrefl premises args) => (__eo_push_proven (__eo_prog_bool_xor_nrefl (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_xor_false premises args) => (__eo_push_proven (__eo_prog_bool_xor_false (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_xor_true premises args) => (__eo_push_proven (__eo_prog_bool_xor_true (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bool_xor_comm premises args) => (__eo_push_proven (__eo_prog_bool_xor_comm (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bool_xor_elim premises args) => (__eo_push_proven (__eo_prog_bool_xor_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bool_not_xor_elim premises args) => (__eo_push_proven (__eo_prog_bool_not_xor_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bool_not_eq_elim1 premises args) => (__eo_push_proven (__eo_prog_bool_not_eq_elim1 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bool_not_eq_elim2 premises args) => (__eo_push_proven (__eo_prog_bool_not_eq_elim2 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_neg_branch premises args) => (__eo_push_proven (__eo_prog_ite_neg_branch (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.ite_then_true premises args) => (__eo_push_proven (__eo_prog_ite_then_true (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_else_false premises args) => (__eo_push_proven (__eo_prog_ite_else_false (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_then_false premises args) => (__eo_push_proven (__eo_prog_ite_then_false (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_else_true premises args) => (__eo_push_proven (__eo_prog_ite_else_true (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_then_lookahead_self premises args) => (__eo_push_proven (__eo_prog_ite_then_lookahead_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_else_lookahead_self premises args) => (__eo_push_proven (__eo_prog_ite_else_lookahead_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_then_lookahead_not_self premises args) => (__eo_push_proven (__eo_prog_ite_then_lookahead_not_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_else_lookahead_not_self premises args) => (__eo_push_proven (__eo_prog_ite_else_lookahead_not_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_expand premises args) => (__eo_push_proven (__eo_prog_ite_expand (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.bool_not_ite_elim premises args) => (__eo_push_proven (__eo_prog_bool_not_ite_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.ite_true_cond premises args) => (__eo_push_proven (__eo_prog_ite_true_cond (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_false_cond premises args) => (__eo_push_proven (__eo_prog_ite_false_cond (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_not_cond premises args) => (__eo_push_proven (__eo_prog_ite_not_cond (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.ite_eq_branch premises args) => (__eo_push_proven (__eo_prog_ite_eq_branch (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.ite_then_lookahead premises args) => (__eo_push_proven (__eo_prog_ite_then_lookahead (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.ite_else_lookahead premises args) => (__eo_push_proven (__eo_prog_ite_else_lookahead (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.ite_then_neg_lookahead premises args) => (__eo_push_proven (__eo_prog_ite_then_neg_lookahead (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.ite_else_neg_lookahead premises args) => (__eo_push_proven (__eo_prog_ite_else_neg_lookahead (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_concat_extract_merge premises args) => (__eo_push_proven (__eo_prog_bv_concat_extract_merge (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_extract_extract premises args) => (__eo_push_proven (__eo_prog_bv_extract_extract (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_extract_whole premises args) => (__eo_push_proven (__eo_prog_bv_extract_whole (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_extract_concat_1 premises args) => (__eo_push_proven (__eo_prog_bv_extract_concat_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_extract_concat_2 premises args) => (__eo_push_proven (__eo_prog_bv_extract_concat_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3)))) S)
+  | (CCmd.step CRule.bv_extract_concat_3 premises args) => (__eo_push_proven (__eo_prog_bv_extract_concat_3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_extract_concat_4 premises args) => (__eo_push_proven (__eo_prog_bv_extract_concat_4 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_eq_extract_elim1 premises args) => (__eo_push_proven (__eo_prog_bv_eq_extract_elim1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 4)))) S)
+  | (CCmd.step CRule.bv_eq_extract_elim2 premises args) => (__eo_push_proven (__eo_prog_bv_eq_extract_elim2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_eq_extract_elim3 premises args) => (__eo_push_proven (__eo_prog_bv_eq_extract_elim3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_extract_not premises args) => (__eo_push_proven (__eo_prog_bv_extract_not (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.bv_extract_sign_extend_1 premises args) => (__eo_push_proven (__eo_prog_bv_extract_sign_extend_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_extract_sign_extend_2 premises args) => (__eo_push_proven (__eo_prog_bv_extract_sign_extend_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3)))) S)
+  | (CCmd.step CRule.bv_extract_sign_extend_3 premises args) => (__eo_push_proven (__eo_prog_bv_extract_sign_extend_3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_not_xor premises args) => (__eo_push_proven (__eo_prog_bv_not_xor (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.bv_and_simplify_1 premises args) => (__eo_push_proven (__eo_prog_bv_and_simplify_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_and_simplify_2 premises args) => (__eo_push_proven (__eo_prog_bv_and_simplify_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_or_simplify_1 premises args) => (__eo_push_proven (__eo_prog_bv_or_simplify_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_or_simplify_2 premises args) => (__eo_push_proven (__eo_prog_bv_or_simplify_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_xor_simplify_1 premises args) => (__eo_push_proven (__eo_prog_bv_xor_simplify_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_xor_simplify_2 premises args) => (__eo_push_proven (__eo_prog_bv_xor_simplify_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_xor_simplify_3 premises args) => (__eo_push_proven (__eo_prog_bv_xor_simplify_3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_ult_add_one premises args) => (__eo_push_proven (__eo_prog_bv_ult_add_one (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_mult_slt_mult_1 premises args) => (__eo_push_proven (__eo_prog_bv_mult_slt_mult_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_mult_slt_mult_2 premises args) => (__eo_push_proven (__eo_prog_bv_mult_slt_mult_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_commutative_xor premises args) => (__eo_push_proven (__eo_prog_bv_commutative_xor (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_commutative_comp premises args) => (__eo_push_proven (__eo_prog_bv_commutative_comp (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_zero_extend_eliminate_0 premises args) => (__eo_push_proven (__eo_prog_bv_zero_extend_eliminate_0 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_sign_extend_eliminate_0 premises args) => (__eo_push_proven (__eo_prog_bv_sign_extend_eliminate_0 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_not_neq premises args) => (__eo_push_proven (__eo_prog_bv_not_neq (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_ult_ones premises args) => (__eo_push_proven (__eo_prog_bv_ult_ones (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_concat_merge_const premises args) => (__eo_push_proven (__eo_prog_bv_concat_merge_const (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_commutative_add premises args) => (__eo_push_proven (__eo_prog_bv_commutative_add (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_sub_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_sub_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_ite_width_one premises args) => (__eo_push_proven (__eo_prog_bv_ite_width_one (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_ite_width_one_not premises args) => (__eo_push_proven (__eo_prog_bv_ite_width_one_not (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_eq_xor_solve premises args) => (__eo_push_proven (__eo_prog_bv_eq_xor_solve (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.bv_eq_not_solve premises args) => (__eo_push_proven (__eo_prog_bv_eq_not_solve (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_ugt_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_ugt_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_uge_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_uge_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_sgt_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_sgt_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_sge_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_sge_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_sle_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_sle_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_redor_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_redor_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_redand_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_redand_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_ule_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_ule_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_comp_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_comp_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_rotate_left_eliminate_1 premises args) => (__eo_push_proven (__eo_prog_bv_rotate_left_eliminate_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3)))) S)
+  | (CCmd.step CRule.bv_rotate_left_eliminate_2 premises args) => (__eo_push_proven (__eo_prog_bv_rotate_left_eliminate_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_rotate_right_eliminate_1 premises args) => (__eo_push_proven (__eo_prog_bv_rotate_right_eliminate_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3)))) S)
+  | (CCmd.step CRule.bv_rotate_right_eliminate_2 premises args) => (__eo_push_proven (__eo_prog_bv_rotate_right_eliminate_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_nand_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_nand_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_nor_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_nor_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_xnor_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_xnor_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_sdiv_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_sdiv_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_zero_extend_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_zero_extend_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_uaddo_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_uaddo_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_saddo_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_saddo_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_sdivo_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_sdivo_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_smod_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_smod_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_srem_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_srem_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_usubo_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_usubo_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_ssubo_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_ssubo_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_nego_eliminate premises args) => (__eo_push_proven (__eo_prog_bv_nego_eliminate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_ite_equal_children premises args) => (__eo_push_proven (__eo_prog_bv_ite_equal_children (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_ite_const_children_1 premises args) => (__eo_push_proven (__eo_prog_bv_ite_const_children_1 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_ite_const_children_2 premises args) => (__eo_push_proven (__eo_prog_bv_ite_const_children_2 (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_ite_equal_cond_1 premises args) => (__eo_push_proven (__eo_prog_bv_ite_equal_cond_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_ite_equal_cond_2 premises args) => (__eo_push_proven (__eo_prog_bv_ite_equal_cond_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_ite_equal_cond_3 premises args) => (__eo_push_proven (__eo_prog_bv_ite_equal_cond_3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4)) S)
+  | (CCmd.step CRule.bv_ite_merge_then_if premises args) => (__eo_push_proven (__eo_prog_bv_ite_merge_then_if (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_ite_merge_else_if premises args) => (__eo_push_proven (__eo_prog_bv_ite_merge_else_if (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_ite_merge_then_else premises args) => (__eo_push_proven (__eo_prog_bv_ite_merge_then_else (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_ite_merge_else_else premises args) => (__eo_push_proven (__eo_prog_bv_ite_merge_else_else (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.bv_shl_by_const_0 premises args) => (__eo_push_proven (__eo_prog_bv_shl_by_const_0 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_shl_by_const_1 premises args) => (__eo_push_proven (__eo_prog_bv_shl_by_const_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_shl_by_const_2 premises args) => (__eo_push_proven (__eo_prog_bv_shl_by_const_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_lshr_by_const_0 premises args) => (__eo_push_proven (__eo_prog_bv_lshr_by_const_0 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_lshr_by_const_1 premises args) => (__eo_push_proven (__eo_prog_bv_lshr_by_const_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_lshr_by_const_2 premises args) => (__eo_push_proven (__eo_prog_bv_lshr_by_const_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_ashr_by_const_0 premises args) => (__eo_push_proven (__eo_prog_bv_ashr_by_const_0 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_ashr_by_const_1 premises args) => (__eo_push_proven (__eo_prog_bv_ashr_by_const_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_ashr_by_const_2 premises args) => (__eo_push_proven (__eo_prog_bv_ashr_by_const_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_and_concat_pullup premises args) => (__eo_push_proven (__eo_prog_bv_and_concat_pullup (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_or_concat_pullup premises args) => (__eo_push_proven (__eo_prog_bv_or_concat_pullup (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_xor_concat_pullup premises args) => (__eo_push_proven (__eo_prog_bv_xor_concat_pullup (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_and_concat_pullup2 premises args) => (__eo_push_proven (__eo_prog_bv_and_concat_pullup2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_or_concat_pullup2 premises args) => (__eo_push_proven (__eo_prog_bv_or_concat_pullup2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_xor_concat_pullup2 premises args) => (__eo_push_proven (__eo_prog_bv_xor_concat_pullup2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_and_concat_pullup3 premises args) => (__eo_push_proven (__eo_prog_bv_and_concat_pullup3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (__eo_arg_nth args 8) (__eo_arg_nth args 9) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 4)))) S)
+  | (CCmd.step CRule.bv_or_concat_pullup3 premises args) => (__eo_push_proven (__eo_prog_bv_or_concat_pullup3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (__eo_arg_nth args 8) (__eo_arg_nth args 9) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 4)))) S)
+  | (CCmd.step CRule.bv_xor_concat_pullup3 premises args) => (__eo_push_proven (__eo_prog_bv_xor_concat_pullup3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (__eo_arg_nth args 8) (__eo_arg_nth args 9) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 4)))) S)
+  | (CCmd.step CRule.bv_xor_duplicate premises args) => (__eo_push_proven (__eo_prog_bv_xor_duplicate (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_xor_ones premises args) => (__eo_push_proven (__eo_prog_bv_xor_ones (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_xor_not premises args) => (__eo_push_proven (__eo_prog_bv_xor_not (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_not_idemp premises args) => (__eo_push_proven (__eo_prog_bv_not_idemp (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_ult_zero_1 premises args) => (__eo_push_proven (__eo_prog_bv_ult_zero_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_ult_zero_2 premises args) => (__eo_push_proven (__eo_prog_bv_ult_zero_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_ult_self premises args) => (__eo_push_proven (__eo_prog_bv_ult_self (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_lt_self premises args) => (__eo_push_proven (__eo_prog_bv_lt_self (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_ule_self premises args) => (__eo_push_proven (__eo_prog_bv_ule_self (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_ule_zero premises args) => (__eo_push_proven (__eo_prog_bv_ule_zero (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_zero_ule premises args) => (__eo_push_proven (__eo_prog_bv_zero_ule (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_sle_self premises args) => (__eo_push_proven (__eo_prog_bv_sle_self (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.bv_ule_max premises args) => (__eo_push_proven (__eo_prog_bv_ule_max (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_not_ult premises args) => (__eo_push_proven (__eo_prog_bv_not_ult (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_mult_pow2_1 premises args) => (__eo_push_proven (__eo_prog_bv_mult_pow2_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_mult_pow2_2 premises args) => (__eo_push_proven (__eo_prog_bv_mult_pow2_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_mult_pow2_2b premises args) => (__eo_push_proven (__eo_prog_bv_mult_pow2_2b (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_extract_mult_leading_bit premises args) => (__eo_push_proven (__eo_prog_bv_extract_mult_leading_bit (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (__eo_arg_nth args 7) (__eo_arg_nth args 8) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_udiv_pow2_not_one premises args) => (__eo_push_proven (__eo_prog_bv_udiv_pow2_not_one (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3)))) S)
+  | (CCmd.step CRule.bv_udiv_zero premises args) => (__eo_push_proven (__eo_prog_bv_udiv_zero (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_udiv_one premises args) => (__eo_push_proven (__eo_prog_bv_udiv_one (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_urem_pow2_not_one premises args) => (__eo_push_proven (__eo_prog_bv_urem_pow2_not_one (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3)))) S)
+  | (CCmd.step CRule.bv_urem_one premises args) => (__eo_push_proven (__eo_prog_bv_urem_one (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_urem_self premises args) => (__eo_push_proven (__eo_prog_bv_urem_self (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_shl_zero premises args) => (__eo_push_proven (__eo_prog_bv_shl_zero (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_lshr_zero premises args) => (__eo_push_proven (__eo_prog_bv_lshr_zero (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_ashr_zero premises args) => (__eo_push_proven (__eo_prog_bv_ashr_zero (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.bv_ugt_urem premises args) => (__eo_push_proven (__eo_prog_bv_ugt_urem (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_ult_one premises args) => (__eo_push_proven (__eo_prog_bv_ult_one (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_merge_sign_extend_1 premises args) => (__eo_push_proven (__eo_prog_bv_merge_sign_extend_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.bv_merge_sign_extend_2 premises args) => (__eo_push_proven (__eo_prog_bv_merge_sign_extend_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_sign_extend_eq_const_1 premises args) => (__eo_push_proven (__eo_prog_bv_sign_extend_eq_const_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_sign_extend_eq_const_2 premises args) => (__eo_push_proven (__eo_prog_bv_sign_extend_eq_const_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (__eo_arg_nth args 6) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_zero_extend_eq_const_1 premises args) => (__eo_push_proven (__eo_prog_bv_zero_extend_eq_const_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_zero_extend_eq_const_2 premises args) => (__eo_push_proven (__eo_prog_bv_zero_extend_eq_const_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_zero_extend_ult_const_1 premises args) => (__eo_push_proven (__eo_prog_bv_zero_extend_ult_const_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_zero_extend_ult_const_2 premises args) => (__eo_push_proven (__eo_prog_bv_zero_extend_ult_const_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_sign_extend_ult_const_1 premises args) => (__eo_push_proven (__eo_prog_bv_sign_extend_ult_const_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_sign_extend_ult_const_2 premises args) => (__eo_push_proven (__eo_prog_bv_sign_extend_ult_const_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.bv_sign_extend_ult_const_3 premises args) => (__eo_push_proven (__eo_prog_bv_sign_extend_ult_const_3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.bv_sign_extend_ult_const_4 premises args) => (__eo_push_proven (__eo_prog_bv_sign_extend_ult_const_4 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.sets_eq_singleton_emp premises args) => (__eo_push_proven (__eo_prog_sets_eq_singleton_emp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_member_singleton premises args) => (__eo_push_proven (__eo_prog_sets_member_singleton (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.sets_member_emp premises args) => (__eo_push_proven (__eo_prog_sets_member_emp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_subset_elim premises args) => (__eo_push_proven (__eo_prog_sets_subset_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.sets_union_comm premises args) => (__eo_push_proven (__eo_prog_sets_union_comm (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.sets_inter_comm premises args) => (__eo_push_proven (__eo_prog_sets_inter_comm (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.sets_inter_emp1 premises args) => (__eo_push_proven (__eo_prog_sets_inter_emp1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_inter_emp2 premises args) => (__eo_push_proven (__eo_prog_sets_inter_emp2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_minus_emp1 premises args) => (__eo_push_proven (__eo_prog_sets_minus_emp1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_minus_emp2 premises args) => (__eo_push_proven (__eo_prog_sets_minus_emp2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_union_emp1 premises args) => (__eo_push_proven (__eo_prog_sets_union_emp1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_union_emp2 premises args) => (__eo_push_proven (__eo_prog_sets_union_emp2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.sets_inter_member premises args) => (__eo_push_proven (__eo_prog_sets_inter_member (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.sets_minus_member premises args) => (__eo_push_proven (__eo_prog_sets_minus_member (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.sets_union_member premises args) => (__eo_push_proven (__eo_prog_sets_union_member (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.sets_choose_singleton premises args) => (__eo_push_proven (__eo_prog_sets_choose_singleton (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.sets_minus_self premises args) => (__eo_push_proven (__eo_prog_sets_minus_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.sets_is_empty_elim premises args) => (__eo_push_proven (__eo_prog_sets_is_empty_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.sets_is_singleton_elim premises args) => (__eo_push_proven (__eo_prog_sets_is_singleton_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_eq_ctn_false premises args) => (__eo_push_proven (__eo_prog_str_eq_ctn_false (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_eq_ctn_full_false1 premises args) => (__eo_push_proven (__eo_prog_str_eq_ctn_full_false1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_eq_ctn_full_false2 premises args) => (__eo_push_proven (__eo_prog_str_eq_ctn_full_false2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_eq_len_false premises args) => (__eo_push_proven (__eo_prog_str_eq_len_false (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_empty_str premises args) => (__eo_push_proven (__eo_prog_str_substr_empty_str (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_empty_range premises args) => (__eo_push_proven (__eo_prog_str_substr_empty_range (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_empty_start premises args) => (__eo_push_proven (__eo_prog_str_substr_empty_start (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_empty_start_neg premises args) => (__eo_push_proven (__eo_prog_str_substr_empty_start_neg (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_substr_start_geq_len premises args) => (__eo_push_proven (__eo_prog_str_substr_substr_start_geq_len (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_eq_empty premises args) => (__eo_push_proven (__eo_prog_str_substr_eq_empty (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_substr_z_eq_empty_leq premises args) => (__eo_push_proven (__eo_prog_str_substr_z_eq_empty_leq (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_substr_eq_empty_leq_len premises args) => (__eo_push_proven (__eo_prog_str_substr_eq_empty_leq_len (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_len_replace_inv premises args) => (__eo_push_proven (__eo_prog_str_len_replace_inv (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_len_replace_all_inv premises args) => (__eo_push_proven (__eo_prog_str_len_replace_all_inv (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_len_update_inv premises args) => (__eo_push_proven (__eo_prog_str_len_update_inv (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_update_in_first_concat premises args) => (__eo_push_proven (__eo_prog_str_update_in_first_concat (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 3)))) S)
+  | (CCmd.step CRule.str_len_substr_in_range premises args) => (__eo_push_proven (__eo_prog_str_len_substr_in_range (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_concat_clash premises args) => (__eo_push_proven (__eo_prog_str_concat_clash (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_concat_clash_rev premises args) => (__eo_push_proven (__eo_prog_str_concat_clash_rev (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_concat_clash2 premises args) => (__eo_push_proven (__eo_prog_str_concat_clash2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_concat_clash2_rev premises args) => (__eo_push_proven (__eo_prog_str_concat_clash2_rev (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_concat_unify premises args) => (__eo_push_proven (__eo_prog_str_concat_unify (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4)) S)
+  | (CCmd.step CRule.str_concat_unify_rev premises args) => (__eo_push_proven (__eo_prog_str_concat_unify_rev (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4)) S)
+  | (CCmd.step CRule.str_concat_unify_base premises args) => (__eo_push_proven (__eo_prog_str_concat_unify_base (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.str_concat_unify_base_rev premises args) => (__eo_push_proven (__eo_prog_str_concat_unify_base_rev (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.str_prefixof_elim premises args) => (__eo_push_proven (__eo_prog_str_prefixof_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_suffixof_elim premises args) => (__eo_push_proven (__eo_prog_str_suffixof_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_prefixof_eq premises args) => (__eo_push_proven (__eo_prog_str_prefixof_eq (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_suffixof_eq premises args) => (__eo_push_proven (__eo_prog_str_suffixof_eq (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_prefixof_one premises args) => (__eo_push_proven (__eo_prog_str_prefixof_one (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_suffixof_one premises args) => (__eo_push_proven (__eo_prog_str_suffixof_one (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_combine1 premises args) => (__eo_push_proven (__eo_prog_str_substr_combine1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_substr_combine2 premises args) => (__eo_push_proven (__eo_prog_str_substr_combine2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_substr_combine3 premises args) => (__eo_push_proven (__eo_prog_str_substr_combine3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_substr_combine4 premises args) => (__eo_push_proven (__eo_prog_str_substr_combine4 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_substr_concat1 premises args) => (__eo_push_proven (__eo_prog_str_substr_concat1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_substr_concat2 premises args) => (__eo_push_proven (__eo_prog_str_substr_concat2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_replace premises args) => (__eo_push_proven (__eo_prog_str_substr_replace (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_substr_full premises args) => (__eo_push_proven (__eo_prog_str_substr_full (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_full_eq premises args) => (__eo_push_proven (__eo_prog_str_substr_full_eq (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_contains_refl premises args) => (__eo_push_proven (__eo_prog_str_contains_refl (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_contains_concat_find premises args) => (__eo_push_proven (__eo_prog_str_contains_concat_find (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_contains_concat_find_contra premises args) => (__eo_push_proven (__eo_prog_str_contains_concat_find_contra (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_contains_split_char premises args) => (__eo_push_proven (__eo_prog_str_contains_split_char (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_contains_leq_len_eq premises args) => (__eo_push_proven (__eo_prog_str_contains_leq_len_eq (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_contains_emp premises args) => (__eo_push_proven (__eo_prog_str_contains_emp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_contains_char premises args) => (__eo_push_proven (__eo_prog_str_contains_char (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_at_elim premises args) => (__eo_push_proven (__eo_prog_str_at_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_replace_self premises args) => (__eo_push_proven (__eo_prog_str_replace_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_replace_id premises args) => (__eo_push_proven (__eo_prog_str_replace_id (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_replace_prefix premises args) => (__eo_push_proven (__eo_prog_str_replace_prefix (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.str_replace_no_contains premises args) => (__eo_push_proven (__eo_prog_str_replace_no_contains (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_replace_find_base premises args) => (__eo_push_proven (__eo_prog_str_replace_find_base (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_replace_find_first_concat premises args) => (__eo_push_proven (__eo_prog_str_replace_find_first_concat (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (__eo_arg_nth args 5) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_replace_empty premises args) => (__eo_push_proven (__eo_prog_str_replace_empty (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_replace_one_pre premises args) => (__eo_push_proven (__eo_prog_str_replace_one_pre (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_replace_find_pre premises args) => (__eo_push_proven (__eo_prog_str_replace_find_pre (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.str_replace_all_no_contains premises args) => (__eo_push_proven (__eo_prog_str_replace_all_no_contains (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_replace_all_empty premises args) => (__eo_push_proven (__eo_prog_str_replace_all_empty (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_replace_all_id premises args) => (__eo_push_proven (__eo_prog_str_replace_all_id (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_replace_all_self premises args) => (__eo_push_proven (__eo_prog_str_replace_all_self (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_replace_re_none premises args) => (__eo_push_proven (__eo_prog_str_replace_re_none (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_replace_re_all_none premises args) => (__eo_push_proven (__eo_prog_str_replace_re_all_none (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_len_concat_rec premises args) => (__eo_push_proven (__eo_prog_str_len_concat_rec (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_len_eq_zero_concat_rec premises args) => (__eo_push_proven (__eo_prog_str_len_eq_zero_concat_rec (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.str_len_eq_zero_base premises args) => (__eo_push_proven (__eo_prog_str_len_eq_zero_base (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_indexof_self premises args) => (__eo_push_proven (__eo_prog_str_indexof_self (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_indexof_no_contains premises args) => (__eo_push_proven (__eo_prog_str_indexof_no_contains (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_indexof_oob premises args) => (__eo_push_proven (__eo_prog_str_indexof_oob (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_indexof_oob2 premises args) => (__eo_push_proven (__eo_prog_str_indexof_oob2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_indexof_contains_pre premises args) => (__eo_push_proven (__eo_prog_str_indexof_contains_pre (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_indexof_contains_concat_pre premises args) => (__eo_push_proven (__eo_prog_str_indexof_contains_concat_pre (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.str_indexof_find_emp premises args) => (__eo_push_proven (__eo_prog_str_indexof_find_emp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_indexof_eq_irr premises args) => (__eo_push_proven (__eo_prog_str_indexof_eq_irr (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_indexof_re_none premises args) => (__eo_push_proven (__eo_prog_str_indexof_re_none (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_indexof_re_emp_re premises args) => (__eo_push_proven (__eo_prog_str_indexof_re_emp_re (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_to_lower_concat premises args) => (__eo_push_proven (__eo_prog_str_to_lower_concat (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_to_upper_concat premises args) => (__eo_push_proven (__eo_prog_str_to_upper_concat (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_to_lower_upper premises args) => (__eo_push_proven (__eo_prog_str_to_lower_upper (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_to_upper_lower premises args) => (__eo_push_proven (__eo_prog_str_to_upper_lower (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_to_lower_len premises args) => (__eo_push_proven (__eo_prog_str_to_lower_len (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_to_upper_len premises args) => (__eo_push_proven (__eo_prog_str_to_upper_len (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_to_lower_from_int premises args) => (__eo_push_proven (__eo_prog_str_to_lower_from_int (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_to_upper_from_int premises args) => (__eo_push_proven (__eo_prog_str_to_upper_from_int (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_to_int_concat_neg_one premises args) => (__eo_push_proven (__eo_prog_str_to_int_concat_neg_one (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_is_digit_elim premises args) => (__eo_push_proven (__eo_prog_str_is_digit_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_leq_empty premises args) => (__eo_push_proven (__eo_prog_str_leq_empty (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_leq_empty_eq premises args) => (__eo_push_proven (__eo_prog_str_leq_empty_eq (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.str_leq_concat_false premises args) => (__eo_push_proven (__eo_prog_str_leq_concat_false (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_leq_concat_true premises args) => (__eo_push_proven (__eo_prog_str_leq_concat_true (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.str_leq_concat_base_1 premises args) => (__eo_push_proven (__eo_prog_str_leq_concat_base_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_leq_concat_base_2 premises args) => (__eo_push_proven (__eo_prog_str_leq_concat_base_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_lt_elim premises args) => (__eo_push_proven (__eo_prog_str_lt_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_from_int_no_ctn_nondigit premises args) => (__eo_push_proven (__eo_prog_str_from_int_no_ctn_nondigit (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_substr_ctn_contra premises args) => (__eo_push_proven (__eo_prog_str_substr_ctn_contra (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_ctn premises args) => (__eo_push_proven (__eo_prog_str_substr_ctn (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_replace_dual_ctn premises args) => (__eo_push_proven (__eo_prog_str_replace_dual_ctn (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_replace_dual_ctn_false premises args) => (__eo_push_proven (__eo_prog_str_replace_dual_ctn_false (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_replace_self_ctn_simp premises args) => (__eo_push_proven (__eo_prog_str_replace_self_ctn_simp (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_replace_emp_ctn_src premises args) => (__eo_push_proven (__eo_prog_str_replace_emp_ctn_src (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_char_start_eq_len premises args) => (__eo_push_proven (__eo_prog_str_substr_char_start_eq_len (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_contains_repl_char premises args) => (__eo_push_proven (__eo_prog_str_contains_repl_char (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_contains_repl_self_tgt_char premises args) => (__eo_push_proven (__eo_prog_str_contains_repl_self_tgt_char (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_contains_repl_self premises args) => (__eo_push_proven (__eo_prog_str_contains_repl_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_contains_repl_tgt premises args) => (__eo_push_proven (__eo_prog_str_contains_repl_tgt (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_repl_repl_len_id premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_len_id (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_repl_repl_src_tgt_no_ctn premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_src_tgt_no_ctn (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_repl_repl_tgt_self premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_tgt_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_repl_repl_tgt_no_ctn premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_tgt_no_ctn (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_repl_repl_src_self premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_src_self (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_repl_repl_src_inv_no_ctn1 premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_src_inv_no_ctn1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_repl_repl_src_inv_no_ctn2 premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_src_inv_no_ctn2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_repl_repl_src_inv_no_ctn3 premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_src_inv_no_ctn3 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (__eo_arg_nth args 4) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_repl_repl_dual_self premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_dual_self (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_repl_repl_dual_ite1 premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_dual_ite1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_repl_repl_dual_ite2 premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_dual_ite2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_repl_repl_lookahead_id_simp premises args) => (__eo_push_proven (__eo_prog_str_repl_repl_lookahead_id_simp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.re_all_elim premises args) => (__eo_push_proven (Term.Apply (Term.Apply Term.eq Term.re_all) (Term.Apply Term.re_mult Term.re_allchar)) S)
+  | (CCmd.step CRule.re_opt_elim premises args) => (__eo_push_proven (__eo_prog_re_opt_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_diff_elim premises args) => (__eo_push_proven (__eo_prog_re_diff_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.re_plus_elim premises args) => (__eo_push_proven (__eo_prog_re_plus_elim (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_repeat_elim premises args) => (__eo_push_proven (__eo_prog_re_repeat_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.re_concat_star_swap premises args) => (__eo_push_proven (__eo_prog_re_concat_star_swap (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.re_concat_star_repeat premises args) => (__eo_push_proven (__eo_prog_re_concat_star_repeat (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.re_concat_star_subsume1 premises args) => (__eo_push_proven (__eo_prog_re_concat_star_subsume1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.re_concat_star_subsume2 premises args) => (__eo_push_proven (__eo_prog_re_concat_star_subsume2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.re_concat_merge premises args) => (__eo_push_proven (__eo_prog_re_concat_merge (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.re_union_all premises args) => (__eo_push_proven (__eo_prog_re_union_all (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.re_union_const_elim premises args) => (__eo_push_proven (__eo_prog_re_union_const_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_inter_all premises args) => (__eo_push_proven (__eo_prog_re_inter_all (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.re_star_none premises args) => (__eo_push_proven (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult Term.re_none)) (Term.Apply Term.str_to_re (Term.String ""))) S)
+  | (CCmd.step CRule.re_star_emp premises args) => (__eo_push_proven (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult (Term.Apply Term.str_to_re (Term.String "")))) (Term.Apply Term.str_to_re (Term.String ""))) S)
+  | (CCmd.step CRule.re_star_star premises args) => (__eo_push_proven (__eo_prog_re_star_star (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_range_refl premises args) => (__eo_push_proven (__eo_prog_re_range_refl (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_range_emp premises args) => (__eo_push_proven (__eo_prog_re_range_emp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 2)))) S)
+  | (CCmd.step CRule.re_range_non_singleton_1 premises args) => (__eo_push_proven (__eo_prog_re_range_non_singleton_1 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_range_non_singleton_2 premises args) => (__eo_push_proven (__eo_prog_re_range_non_singleton_2 (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_star_union_char premises args) => (__eo_push_proven (__eo_prog_re_star_union_char (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.re_star_union_drop_emp premises args) => (__eo_push_proven (__eo_prog_re_star_union_drop_emp (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.re_loop_neg premises args) => (__eo_push_proven (__eo_prog_re_loop_neg (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_inter_cstring premises args) => (__eo_push_proven (__eo_prog_re_inter_cstring (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.re_inter_cstring_neg premises args) => (__eo_push_proven (__eo_prog_re_inter_cstring_neg (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_len_include premises args) => (__eo_push_proven (__eo_prog_str_substr_len_include (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_len_include_pre premises args) => (__eo_push_proven (__eo_prog_str_substr_len_include_pre (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_substr_len_norm premises args) => (__eo_push_proven (__eo_prog_str_substr_len_norm (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.seq_len_rev premises args) => (__eo_push_proven (__eo_prog_seq_len_rev (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.seq_rev_rev premises args) => (__eo_push_proven (__eo_prog_seq_rev_rev (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.seq_rev_concat premises args) => (__eo_push_proven (__eo_prog_seq_rev_concat (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2)) S)
+  | (CCmd.step CRule.str_eq_repl_self_emp premises args) => (__eo_push_proven (__eo_prog_str_eq_repl_self_emp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_eq_repl_no_change premises args) => (__eo_push_proven (__eo_prog_str_eq_repl_no_change (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_eq_repl_tgt_eq_len premises args) => (__eo_push_proven (__eo_prog_str_eq_repl_tgt_eq_len (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_eq_repl_len_one_emp_prefix premises args) => (__eo_push_proven (__eo_prog_str_eq_repl_len_one_emp_prefix (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_eq_repl_emp_tgt_nemp premises args) => (__eo_push_proven (__eo_prog_str_eq_repl_emp_tgt_nemp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_eq_repl_nemp_src_emp premises args) => (__eo_push_proven (__eo_prog_str_eq_repl_nemp_src_emp (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_eq_repl_self_src premises args) => (__eo_push_proven (__eo_prog_str_eq_repl_self_src (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.seq_len_unit premises args) => (__eo_push_proven (__eo_prog_seq_len_unit (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.seq_nth_unit premises args) => (__eo_push_proven (__eo_prog_seq_nth_unit (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.seq_rev_unit premises args) => (__eo_push_proven (__eo_prog_seq_rev_unit (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_in_empty premises args) => (__eo_push_proven (__eo_prog_re_in_empty (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_in_sigma premises args) => (__eo_push_proven (__eo_prog_re_in_sigma (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_in_sigma_star premises args) => (__eo_push_proven (__eo_prog_re_in_sigma_star (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.re_in_cstring premises args) => (__eo_push_proven (__eo_prog_re_in_cstring (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.re_in_comp premises args) => (__eo_push_proven (__eo_prog_re_in_comp (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_in_re_union_elim premises args) => (__eo_push_proven (__eo_prog_str_in_re_union_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.str_in_re_inter_elim premises args) => (__eo_push_proven (__eo_prog_str_in_re_inter_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.str_in_re_range_elim premises args) => (__eo_push_proven (__eo_prog_str_in_re_range_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.str_in_re_contains premises args) => (__eo_push_proven (__eo_prog_str_in_re_contains (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.str_in_re_from_int_nemp_dig_range premises args) => (__eo_push_proven (__eo_prog_str_in_re_from_int_nemp_dig_range (__eo_arg_nth args 0) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.str_in_re_from_int_dig_range premises args) => (__eo_push_proven (__eo_prog_str_in_re_from_int_dig_range (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.eq_refl premises args) => (__eo_push_proven (__eo_prog_eq_refl (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.eq_symm premises args) => (__eo_push_proven (__eo_prog_eq_symm (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.eq_cond_deq premises args) => (__eo_push_proven (__eo_prog_eq_cond_deq (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.eq_ite_lift premises args) => (__eo_push_proven (__eo_prog_eq_ite_lift (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (__eo_arg_nth args 3)) S)
+  | (CCmd.step CRule.distinct_binary_elim premises args) => (__eo_push_proven (__eo_prog_distinct_binary_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.uf_bv2nat_int2bv premises args) => (__eo_push_proven (__eo_prog_uf_bv2nat_int2bv (__eo_arg_nth args 0) (__eo_arg_nth args 1) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.uf_bv2nat_int2bv_extend premises args) => (__eo_push_proven (__eo_prog_uf_bv2nat_int2bv_extend (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.uf_bv2nat_int2bv_extract premises args) => (__eo_push_proven (__eo_prog_uf_bv2nat_int2bv_extract (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.uf_int2bv_bv2nat premises args) => (__eo_push_proven (__eo_prog_uf_int2bv_bv2nat (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.uf_bv2nat_geq_elim premises args) => (__eo_push_proven (__eo_prog_uf_bv2nat_geq_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0)))) S)
+  | (CCmd.step CRule.uf_int2bv_bvult_equiv premises args) => (__eo_push_proven (__eo_prog_uf_int2bv_bvult_equiv (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.uf_int2bv_bvule_equiv premises args) => (__eo_push_proven (__eo_prog_uf_int2bv_bvule_equiv (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.uf_sbv_to_int_elim premises args) => (__eo_push_proven (__eo_prog_uf_sbv_to_int_elim (__eo_arg_nth args 0) (__eo_arg_nth args 1) (__eo_arg_nth args 2) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 0))) (Proof.pf (__eo_state_proven_nth S (__eo_premise_nth premises 1)))) S)
+  | (CCmd.step CRule.evaluate premises args) => (__eo_push_proven (__eo_prog_evaluate (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.distinct_values premises args) => (__eo_push_proven (__eo_prog_distinct_values (__eo_arg_nth args 0) (__eo_arg_nth args 1)) S)
+  | (CCmd.step CRule.aci_norm premises args) => (__eo_push_proven (__eo_prog_aci_norm (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.absorb premises args) => (__eo_push_proven (__eo_prog_absorb (__eo_arg_nth args 0)) S)
+  | (CCmd.step CRule.distinct_card_conflict premises args) => (__eo_push_proven (__eo_prog_distinct_card_conflict (__eo_arg_nth args 0)) S)
 
 
 def __eo_invoke_cmd_list : CState -> CCmdList -> CState
