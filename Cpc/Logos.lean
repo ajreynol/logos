@@ -9419,8 +9419,11 @@ def __eo_invoke_cmd_list_assuming (S : CState) : Term -> CCmdList -> CState
   | as, cs => CState.Stuck
 
 
+def __eo_state_is_refutation (s : CState) : eo_lit_Bool :=
+  (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
+
 def __eo_checker_is_refutation : Term -> CCmdList -> eo_lit_Bool
-  | as, cs => (__eo_state_is_closed (__eo_invoke_cmd_check_proven (__eo_invoke_cmd_list_assuming CState.nil as cs) (Term.Boolean false)))
+  | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list_assuming CState.nil as cs))
 
 
 
