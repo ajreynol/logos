@@ -8,3 +8,4 @@ name = "Cpc"
 [[lean_exe]]
 name = "logos"
 root = "Main"
+supportInterpreter = true

@@ -26,28 +26,29 @@ private def reportMessages (msgLog : Lean.MessageLog) (opts : Lean.Options)
       IO.Process.exit 1
     return numErrors
 
-def evalLogoExpr (path s : String) : Lean.Meta.MetaM Bool := do
-  let inputCtx := Lean.Parser.InputContext.mk s path
-  let pmctx  := { env := ← Lean.getEnv, options := .empty }
-  let (stx, _, _) := Lean.Parser.parseCommand inputCtx pmctx {} {}
-  -- IO.println stx
-  Lean.liftCommandElabM (Lean.Elab.Command.elabEvalBang stx)
+def evalLogoExpr (path : String) : Lean.Meta.MetaM Nat := do
+  try
+    let stx ← Lean.Parser.testParseFile (← Lean.getEnv) path
+    -- IO.println stx
+    let ⟨.node _ _ #[_, .node _ _ args]⟩ := stx
+      | throwError "Expected a proof of the following form:\nimport Cpc.Logos\n\n#eval! <proof>\n\ngot:\n{stx}"
+    for arg in args do
+      Lean.liftCommandElabM (Lean.Elab.Command.elabCommand arg)
+  catch e =>
+    Lean.logError m!"{e.toMessageData}"
   Lean.printTraces
-  _ ← reportMessages (← Lean.Core.getMessageLog) (← Lean.getOptions) false {} 0
-  return true
+  reportMessages (← Lean.Core.getMessageLog) (← Lean.getOptions) false {} 0
 
 -- unsafe due to IO operations?
-unsafe def main (args : List String) : IO Unit := do
+unsafe def main (args : List String) : IO UInt32 := do
   Lean.initSearchPath (← Lean.findSysroot)
   Lean.enableInitializersExecution
   let env ← Lean.importModules #[`Cpc.Logos] {} 0 (loadExts := true)
   let path := args[0]!
-  let query ← IO.FS.readFile path
   let coreContext := { fileName := path, fileMap := default }
   let coreState := { env }
-  let (res, _, _) ← Lean.Meta.MetaM.toIO (evalLogoExpr path query) coreContext coreState
-  IO.println res
-  return ()
+  let (res, _, _) ← Lean.Meta.MetaM.toIO (evalLogoExpr path) coreContext coreState
+  return res.toUInt32
 
 -- To build, run "lake build logos" in this directory.
 -- To run "lake exe logos <path-to-query-file>"
