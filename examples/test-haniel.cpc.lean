@@ -1,3 +1,5 @@
+import Cpc.Logos
+
 #eval!
 let t1 := (Eo.Term.USort 1);
 let t2 := (Eo.Term.UConst 1 t1);

@@ -1,3 +1,5 @@
+import Cpc.Logos
+
 #eval!
 let x := (Eo.Term.UConst 1 Eo.Term.Int);
 let y := (Eo.Term.UConst 2 Eo.Term.Int);
