@@ -303,7 +303,7 @@ def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
 
 /- Term less than, based on arbitrary ordering -/
-def eo_lit_tlt (a b : Term) : eo_lit_Bool :=
+def eo_lit_tcmp (a b : Term) : eo_lit_Bool :=
   match compare a b with
   | Ordering.lt => true
   | _ => false
@@ -548,7 +548,7 @@ partial def __eo_is_str : Term -> Term
 
 partial def __eo_hash : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | t => (Term.Numeral (__smtx_hash t))
+  | t => (Term.Numeral (eo_lit_thash t))
 
 
 partial def __eo_gt : Term -> Term -> Term
@@ -556,7 +556,9 @@ partial def __eo_gt : Term -> Term -> Term
 
 
 partial def __eo_cmp : Term -> Term -> Term
-  | a, b => (__eo_is_neg (__eo_add (__eo_hash b) (__eo_neg (__eo_hash a))))
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | a, b => (Term.Boolean (eo_lit_tcmp a b))
 
 
 partial def __eo_var : Term -> Term -> Term

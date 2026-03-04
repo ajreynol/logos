@@ -5,6 +5,20 @@ set_option linter.unusedVariables false
 
 namespace EoCorrect
 
+abbrev Term := Eo.Term
+abbrev CCmdList := Eo.CCmdList
+abbrev SmtType := SmtModel.SmtType
+abbrev SmtTerm := SmtModel.SmtTerm
+
+/- Definitions for theorems -/
+
+/- Definition of refutation -/
+
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+  | intro (F : Term) (c : CCmdList) : 
+    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)
+
+
 /-
 A definition of terms in the object language.
 This is to be defined externally.
@@ -24,10 +38,10 @@ Definitions for eo_is_obj
 -/
 mutual
 
-def __eo_to_smt_re_unfold_pos_component : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | s, (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), (SmtTerm.Numeral 0) => (SmtTerm.Apply (SmtTerm.choice "_at_x" SmtType.String) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq s) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat (SmtTerm.Var "_at_x" SmtType.String)) (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))))))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re (SmtTerm.Var "_at_x" SmtType.String)) r1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))))) r2))))
-  | s, (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), (SmtTerm.Numeral n) => (__eo_to_smt_re_unfold_pos_component (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt_re_unfold_pos_component s (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2) (SmtTerm.Numeral 0)))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt_re_unfold_pos_component s (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2) (SmtTerm.Numeral 0))))) r2 (SmtTerm.Numeral (smt_lit_zplus n (smt_lit_zneg 1))))
-  | s, r1, t => SmtTerm.None
+def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> SmtTerm -> SmtTerm
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), (SmtTerm.Numeral 0) => (SmtTerm.Apply (SmtTerm.choice "_at_x" SmtType.String) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq s) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat (SmtTerm.Var "_at_x" SmtType.String)) (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))))))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re (SmtTerm.Var "_at_x" SmtType.String)) r1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))))) r2))))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), (SmtTerm.Numeral n) => (__eo_to_smt_re_unfold_pos_component (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt_re_unfold_pos_component s (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2) (SmtTerm.Numeral 0)))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt_re_unfold_pos_component s (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2) (SmtTerm.Numeral 0))))) r2 (SmtTerm.Numeral (smt_lit_zplus n (smt_lit_zneg 1))))
+  | r1, t => SmtTerm.None
 
 
 def __eo_to_smt_quantifiers_skolemize : SmtTerm -> SmtTerm -> SmtTerm
@@ -36,9 +50,9 @@ def __eo_to_smt_quantifiers_skolemize : SmtTerm -> SmtTerm -> SmtTerm
   | F, t => SmtTerm.None
 
 
-def __eo_to_smt_type_tuple : SmtType -> SmtType -> SmtType
-  | U, (SmtType.Datatype "_at_Tuple" (SmtDatatype.sum c SmtDatatype.null)) => (SmtType.Datatype "_at_Tuple" (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null))
-  | U, T => SmtType.None
+def __eo_to_smt_type_tuple (U : SmtType) : SmtType -> SmtType
+  | (SmtType.Datatype "_at_Tuple" (SmtDatatype.sum c SmtDatatype.null)) => (SmtType.Datatype "_at_Tuple" (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null))
+  | T => SmtType.None
 
 
 def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
@@ -236,7 +250,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.Apply Term._at_re_unfold_pos_component x1) x2) x3) => (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply (Term.Apply Term._at_strings_deq_diff x1) x2) => (SmtTerm.Apply (SmtTerm.choice "_at_x" SmtType.Int) (SmtTerm.Apply SmtTerm.not (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt x1)) (SmtTerm.Var "_at_x" SmtType.Int)) (SmtTerm.Numeral 1))) (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt x2)) (SmtTerm.Var "_at_x" SmtType.Int)) (SmtTerm.Numeral 1)))))
   | (Term.Apply (Term.Apply Term._at_strings_stoi_result x1) x2) => (__eo_to_smt (Term.Apply Term.str_to_int (Term.Apply (Term.Apply (Term.Apply Term.str_substr x1) (Term.Numeral 0)) x2)))
-  | (Term.Apply Term._at_strings_stoi_non_digit x1) => (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.str_indexof_re x1) (Term.Apply Term.re_comp (Term.Apply (Term.Apply Term.re_range (SmtTerm.String "0")) (SmtTerm.String "9")))) (Term.Numeral 0)))
+  | (Term.Apply Term._at_strings_stoi_non_digit x1) => (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.str_indexof_re x1) (Term.Apply Term.re_comp (Term.Apply (Term.Apply Term.re_range (Term.String "0")) (Term.String "9")))) (Term.Numeral 0)))
   | (Term.Apply (Term.Apply (Term.Apply Term._at_witness_string_length x1) x2) x3) => (SmtTerm.Apply (SmtTerm.choice "_at_x" (__eo_to_smt_type x1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" (__eo_to_smt_type x1)))) (__eo_to_smt x2)))
   | (Term.Apply Term.is x1) => (__eo_to_smt_tester (__eo_to_smt x1))
   | (Term.Apply Term.update x1) => (__eo_to_smt_updater (__eo_to_smt x1))
@@ -271,9 +285,19 @@ def __eo_to_smt : Term -> SmtTerm
   | y => SmtTerm.None
 
 
+partial def __eo_model_sat : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | F => (eo_lit_ite (eo_lit_veq (__smtx_model_eval (__eo_to_smt F)) (SmtValue.Boolean true)) (Term.Boolean true) (Term.Boolean false))
 
 
-end
+partial def __eo_model_unsat : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | F => (eo_lit_ite (eo_lit_veq (__smtx_model_eval (__eo_to_smt F)) (SmtValue.Boolean false)) (Term.Boolean true) (Term.Boolean false))
+
+
+
+
+end 
 
 /-
 An inductive predicate defining the correspondence between Eunoia terms
@@ -1498,10 +1522,24 @@ theorem correct___eo_prog_arith_div_elim_to_real2 (x1 x2 : Term) :
 by
   sorry
 
+/- correctness theorem for __eo_prog_arith_mod_over_mod_1 -/
+theorem correct___eo_prog_arith_mod_over_mod_1 (x1 x2 x3 : Term) :
+  (eo_interprets x3 true) ->
+  (Not (eo_interprets (__eo_prog_arith_mod_over_mod_1 x1 x2 (Proof.pf x3)) false)) :=
+by
+  sorry
+
 /- correctness theorem for __eo_prog_arith_mod_over_mod -/
 theorem correct___eo_prog_arith_mod_over_mod (x1 x2 x3 x4 x5 : Term) :
   (eo_interprets x5 true) ->
   (Not (eo_interprets (__eo_prog_arith_mod_over_mod x1 x2 x3 x4 (Proof.pf x5)) false)) :=
+by
+  sorry
+
+/- correctness theorem for __eo_prog_arith_mod_over_mod_mult -/
+theorem correct___eo_prog_arith_mod_over_mod_mult (x1 x2 x3 x4 x5 : Term) :
+  (eo_interprets x5 true) ->
+  (Not (eo_interprets (__eo_prog_arith_mod_over_mod_mult x1 x2 x3 x4 (Proof.pf x5)) false)) :=
 by
   sorry
 
@@ -4290,9 +4328,6 @@ theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   (Not (eo_interprets F true)) :=
 by
   sorry
-
-/- ---------------------------------------------- -/
-
 
 /- ---------------------------------------------- -/
 

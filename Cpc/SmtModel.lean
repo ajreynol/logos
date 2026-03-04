@@ -127,7 +127,7 @@ def smt_lit_mod_by_zero : smt_lit_Int -> smt_lit_Int
 
 mutual
 
-/-
+/- 
 SMT-LIB types.
 -/
 inductive SmtType : Type where
@@ -149,7 +149,7 @@ inductive SmtType : Type where
 
 deriving Repr, DecidableEq, Inhabited
 
-/-
+/- 
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
@@ -308,7 +308,7 @@ inductive SmtTerm : Type where
 
 deriving Repr, DecidableEq, Inhabited
 
-/-
+/- 
 SMT-LIB values.
 -/
 inductive SmtValue : Type where
@@ -335,7 +335,7 @@ inductive SmtMap : Type where
   | default : SmtType -> SmtValue -> SmtMap
 deriving Repr, DecidableEq, Inhabited
 
-/-
+/- 
 SMT-LIB sequence values.
 -/
 inductive SmtSeq : Type where
@@ -370,7 +370,7 @@ def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
 /- Used for ordering values -/
 def __smtx_value_hash : SmtValue -> smt_lit_Int
   | _ => 0 -- FIXME
-
+  
 /- exists -/
 def smt_lit_tforall : smt_lit_String -> SmtType -> SmtTerm -> SmtValue
   | _, _, _ => (SmtValue.Boolean true) -- FIXME
@@ -650,7 +650,7 @@ def __smtx_model_eval_extract : SmtValue -> SmtValue -> SmtValue -> SmtValue
 def __smtx_model_eval_repeat : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) => (smt_lit_ite (smt_lit_zleq 1 x1) (smt_lit_ite (smt_lit_zeq x1 1) (SmtValue.Binary x2 x3) (__smtx_model_eval (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Numeral x1)) (SmtTerm.Numeral 1))) (SmtTerm.Binary x2 x3))) (SmtTerm.Binary x2 x3)))) SmtValue.NotValue)
   | t1, t2 => SmtValue.NotValue
-decreasing_by sorry
+
 
 def __smtx_model_eval_bvnot : SmtValue -> SmtValue
   | (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 (smt_lit_mod (__smtx_binary_not x1 x2) (__smtx_pow2 x1)))
