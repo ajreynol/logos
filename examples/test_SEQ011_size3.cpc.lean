@@ -1,5 +1,3 @@
-unsat
-(
 import Cpc.Logos
 open Eo
 #eval!
@@ -2912,4 +2910,3 @@ let s2242 := (__eo_invoke_cmd s2241 (CCmd.eq_resolve 0 3));
 let s2243 := (__eo_invoke_cmd s2242 (CCmd.reordering (Term.Apply (Term.Apply Term.or t380) (Term.Apply (Term.Apply Term.or t636) (Term.Apply (Term.Apply Term.or t643) (Term.Boolean false)))) 0));
 let s2244 := (__eo_invoke_cmd s2243 (CCmd.chain_m_resolution (Term.Boolean false) (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Boolean true)) (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Boolean false)) (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Boolean false)) Term.__eo_List_nil))) (Term.Apply (Term.Apply Term.__eo_List_cons t380) (Term.Apply (Term.Apply Term.__eo_List_cons t642) (Term.Apply (Term.Apply Term.__eo_List_cons t445) Term.__eo_List_nil))) (CIndexList.cons 0 (CIndexList.cons 6 (CIndexList.cons 12 (CIndexList.cons 16 CIndexList.nil))))));
 (__eo_state_is_refutation s2244)
-)
