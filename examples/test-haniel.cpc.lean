@@ -124,8 +124,8 @@ def s18 : CState := (__eo_invoke_cmd s17 (CCmd.assume_push t5))
 def s19 : CState := (__eo_invoke_cmd s18 (CCmd.assume_push t9))
 def s20 : CState := (__eo_invoke_cmd s19 (CCmd.step CRule.cong (CArgList.cons t34 CArgList.nil) (CIndexList.cons 12 (CIndexList.cons 11 CIndexList.nil))))
 def s21: CState := (__eo_invoke_cmd s20 (CCmd.check_proven t36))
-def s22 : CState := (__eo_invoke_cmd s21 (CCmd.step CRule.scope CArgList.nil (CIndexList.cons 0 CIndexList.nil)))
-def s23 : CState := (__eo_invoke_cmd s22 (CCmd.step CRule.scope CArgList.nil (CIndexList.cons 0 CIndexList.nil)))
+def s22 : CState := (__eo_invoke_cmd s21 (CCmd.step_pop CRule.scope CArgList.nil (CIndexList.cons 0 CIndexList.nil)))
+def s23 : CState := (__eo_invoke_cmd s22 (CCmd.step_pop CRule.scope CArgList.nil (CIndexList.cons 0 CIndexList.nil)))
 def s24 : CState := (__eo_invoke_cmd s23 (CCmd.step CRule.process_scope (CArgList.cons t36 CArgList.nil) (CIndexList.cons 0 CIndexList.nil)))
 def s25: CState := (__eo_invoke_cmd s24 (CCmd.check_proven t65))
 def s26 : CState := (__eo_invoke_cmd s25 (CCmd.step CRule.implies_elim CArgList.nil (CIndexList.cons 0 CIndexList.nil)))
@@ -140,6 +140,3 @@ def s34 : CState := (__eo_invoke_cmd s33 (CCmd.step CRule.chain_m_resolution (CA
 def s35: CState := (__eo_invoke_cmd s34 (CCmd.check_proven (Term.Boolean false)))
 #eval!
 (__eo_state_is_refutation s35)
-
-
-
