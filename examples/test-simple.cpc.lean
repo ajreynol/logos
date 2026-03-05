@@ -10,7 +10,7 @@ def t7 : Term := (Term.Apply Term.not t6)
 def s0 : CState := CState.nil
 def s1 : CState := (CState.cons (CStateObj.assume t4) s0)
 def s2 : CState := (CState.cons (CStateObj.assume t7) s1)
-def s3 : CState := (__eo_invoke_cmd s2 (CCmd.step CRule.symm (CIndexList.cons 0 CIndexList.nil) CArgList.nil))
-def s4 : CState := (__eo_invoke_cmd s3 (CCmd.step CRule.contra (CIndexList.cons 2 (CIndexList.cons 0 CIndexList.nil)) CArgList.nil))
+def s3 : CState := (__eo_invoke_cmd s2 (CCmd.step CRule.symm CArgList.nil (CIndexList.cons 0 CIndexList.nil)))
+def s4 : CState := (__eo_invoke_cmd s3 (CCmd.step CRule.contra CArgList.nil (CIndexList.cons 2 (CIndexList.cons 0 CIndexList.nil))))
 #eval!
 (__eo_state_is_refutation s4)

@@ -39,7 +39,7 @@ Definitions for eo_is_obj
 mutual
 
 def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), (SmtTerm.Numeral 0) => (SmtTerm.Apply (SmtTerm.choice "_at_x" SmtType.String) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq s) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat (SmtTerm.Var "_at_x" SmtType.String)) (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))))))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re (SmtTerm.Var "_at_x" SmtType.String)) r1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" SmtType.String))))) r2))))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), (SmtTerm.Numeral 0) => (SmtTerm.Apply (SmtTerm.choice "_at_x" (SmtType.Seq SmtType.Char)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq s) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat (SmtTerm.Var "_at_x" (SmtType.Seq SmtType.Char))) (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" (SmtType.Seq SmtType.Char)))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" (SmtType.Seq SmtType.Char)))))))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re (SmtTerm.Var "_at_x" (SmtType.Seq SmtType.Char))) r1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" (SmtType.Seq SmtType.Char)))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" (SmtType.Seq SmtType.Char)))))) r2))))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), (SmtTerm.Numeral n) => (__eo_to_smt_re_unfold_pos_component (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr s) (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt_re_unfold_pos_component s (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2) (SmtTerm.Numeral 0)))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len s)) (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt_re_unfold_pos_component s (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2) (SmtTerm.Numeral 0))))) r2 (SmtTerm.Numeral (smt_lit_zplus n (smt_lit_zneg 1))))
   | r1, t => SmtTerm.None
 
@@ -4325,7 +4325,7 @@ by
 /- correctness theorem for the checker -/
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   (eo_is_refutation F pf) ->
-  (Not (eo_interprets F true)) :=
+  (eo_interprets F false) :=
 by
   sorry
 
