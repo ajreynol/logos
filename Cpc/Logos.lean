@@ -641,20 +641,21 @@ partial def __eo_dt_selectors : Term -> Term
   | t => (__eo_dt_selectors_main t)
 
 
-partial def __eo_is_list_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | f, nil, (Term.Apply (Term.Apply g x) y) => (__eo_ite (__eo_eq f g) (__eo_is_list_rec f nil y) (Term.Boolean false))
-  | f, nil, z => (__eo_eq nil z)
+partial def __eo_get_nil_rec : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | f, (Term.Apply (Term.Apply g x) y) => (__eo_requires f g (__eo_get_nil_rec f y))
+  | f, nil => (__eo_requires (__eo_is_list_nil f nil) (Term.Boolean true) nil)
 
 
 partial def __eo_is_list : Term -> Term -> Term
-  | f, x => (__eo_is_list_rec f (__eo_nil f (__eo_typeof x)) x)
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | f, x => (__eo_is_ok (__eo_get_nil_rec f x))
 
 
 partial def __eo_cons : Term -> Term -> Term -> Term
-  | f, e, a => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (Term.Apply (Term.Apply f e) a))
+  | f, e, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (Term.Apply (Term.Apply f e) a))
 
 
 partial def __eo_get_elements_rec : Term -> Term
@@ -664,7 +665,7 @@ partial def __eo_get_elements_rec : Term -> Term
 
 
 partial def __eo_get_elements : Term -> Term -> Term
-  | f, a => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_get_elements_rec a))
+  | f, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_get_elements_rec a))
 
 
 partial def __eo_list_len_rec : Term -> Term
@@ -674,7 +675,7 @@ partial def __eo_list_len_rec : Term -> Term
 
 
 partial def __eo_list_len : Term -> Term -> Term
-  | f, a => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_len_rec a))
+  | f, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_len_rec a))
 
 
 partial def __eo_list_concat_rec : Term -> Term -> Term
@@ -685,7 +686,7 @@ partial def __eo_list_concat_rec : Term -> Term -> Term
 
 
 partial def __eo_list_concat : Term -> Term -> Term -> Term
-  | f, a, b => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_list_concat_rec a b)))
+  | f, a, b => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_list_concat_rec a b)))
 
 
 partial def __eo_list_nth_rec : Term -> Term -> Term
@@ -696,7 +697,7 @@ partial def __eo_list_nth_rec : Term -> Term -> Term
 
 
 partial def __eo_list_nth : Term -> Term -> Term -> Term
-  | f, a, n => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_nth_rec a n))
+  | f, a, n => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_nth_rec a n))
 
 
 partial def __eo_list_find_rec : Term -> Term -> Term -> Term
@@ -708,7 +709,7 @@ partial def __eo_list_find_rec : Term -> Term -> Term -> Term
 
 
 partial def __eo_list_find : Term -> Term -> Term -> Term
-  | f, a, e => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_find_rec a e (Term.Numeral 0)))
+  | f, a, e => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_find_rec a e (Term.Numeral 0)))
 
 
 partial def __eo_list_rev_rec : Term -> Term -> Term
@@ -719,7 +720,7 @@ partial def __eo_list_rev_rec : Term -> Term -> Term
 
 
 partial def __eo_list_rev : Term -> Term -> Term
-  | f, a => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_rev_rec a (__eo_nil f (__eo_typeof a))))
+  | f, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_rev_rec a (__eo_get_nil_rec f a)))
 
 
 partial def __eo_list_erase_rec : Term -> Term -> Term
@@ -730,7 +731,7 @@ partial def __eo_list_erase_rec : Term -> Term -> Term
 
 
 partial def __eo_list_erase : Term -> Term -> Term -> Term
-  | f, a, e => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_erase_rec a e))
+  | f, a, e => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_erase_rec a e))
 
 
 partial def __eo_list_erase_all_rec : Term -> Term -> Term
@@ -741,67 +742,66 @@ partial def __eo_list_erase_all_rec : Term -> Term -> Term
 
 
 partial def __eo_list_erase_all : Term -> Term -> Term -> Term
-  | f, a, e => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_erase_all_rec a e))
+  | f, a, e => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_erase_all_rec a e))
 
 
 partial def __eo_list_setof_rec : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply f x) y) => (__eo_mk_apply (Term.Apply f x) (__eo_list_setof_rec (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof y)) y) (Term.Boolean true) (__eo_list_erase_all_rec y x))))
+  | (Term.Apply (Term.Apply f x) y) => (__eo_mk_apply (Term.Apply f x) (__eo_list_setof_rec (__eo_requires (__eo_is_list f y) (Term.Boolean true) (__eo_list_erase_all_rec y x))))
   | nil => nil
 
 
 partial def __eo_list_setof : Term -> Term -> Term
-  | f, a => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_setof_rec a))
+  | f, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_setof_rec a))
 
 
 partial def __eo_list_minclude_rec : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | y, z, (Term.Boolean false) => (Term.Boolean false)
-  | (Term.Apply (Term.Apply Term.__eo_List_cons x) y), z, (Term.Boolean true) => (__eo_list_minclude_rec y (__eo_requires (__eo_is_list_rec Term.__eo_List_cons (__eo_nil Term.__eo_List_cons (__eo_typeof z)) z) (Term.Boolean true) (__eo_list_erase_rec z x)) (__eo_not (__eo_eq (__eo_requires (__eo_is_list_rec Term.__eo_List_cons (__eo_nil Term.__eo_List_cons (__eo_typeof z)) z) (Term.Boolean true) (__eo_list_erase_rec z x)) z)))
+  | (Term.Apply (Term.Apply Term.__eo_List_cons x) y), z, (Term.Boolean true) => (__eo_list_minclude_rec y (__eo_requires (__eo_is_list Term.__eo_List_cons z) (Term.Boolean true) (__eo_list_erase_rec z x)) (__eo_not (__eo_eq (__eo_requires (__eo_is_list Term.__eo_List_cons z) (Term.Boolean true) (__eo_list_erase_rec z x)) z)))
   | Term.__eo_List_nil, z, (Term.Boolean true) => (Term.Boolean true)
   | _, _, _ => Term.Stuck
 
 
 partial def __eo_list_minclude : Term -> Term -> Term -> Term
-  | f, a, b => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_list_minclude_rec (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_get_elements_rec a)) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_get_elements_rec b)) (Term.Boolean true))))
+  | f, a, b => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_list_minclude_rec (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_get_elements_rec a)) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_get_elements_rec b)) (Term.Boolean true))))
 
 
 partial def __eo_list_meq : Term -> Term -> Term -> Term
-  | f, a, b => (__eo_and (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_list_minclude_rec (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_get_elements_rec a)) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_get_elements_rec b)) (Term.Boolean true)))) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_minclude_rec (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_get_elements_rec b)) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_get_elements_rec a)) (Term.Boolean true)))))
+  | f, a, b => (__eo_and (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_list_minclude_rec (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_get_elements_rec a)) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_get_elements_rec b)) (Term.Boolean true)))) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_minclude_rec (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_get_elements_rec b)) (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_get_elements_rec a)) (Term.Boolean true)))))
 
 
 partial def __eo_list_diff_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply f x) y), z => (__eo_prepend_if (__eo_eq (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof z)) z) (Term.Boolean true) (__eo_list_erase_rec z x)) z) f x (__eo_list_diff_rec y (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof z)) z) (Term.Boolean true) (__eo_list_erase_rec z x))))
+  | (Term.Apply (Term.Apply f x) y), z => (__eo_prepend_if (__eo_eq (__eo_requires (__eo_is_list f z) (Term.Boolean true) (__eo_list_erase_rec z x)) z) f x (__eo_list_diff_rec y (__eo_requires (__eo_is_list f z) (Term.Boolean true) (__eo_list_erase_rec z x))))
   | nil, z => nil
 
 
 partial def __eo_list_diff : Term -> Term -> Term -> Term
-  | f, a, b => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_list_diff_rec a b)))
+  | f, a, b => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_list_diff_rec a b)))
 
 
 partial def __eo_list_inter_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply f x) y), z => (__eo_prepend_if (__eo_not (__eo_eq (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof z)) z) (Term.Boolean true) (__eo_list_erase_rec z x)) z)) f x (__eo_list_inter_rec y (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof z)) z) (Term.Boolean true) (__eo_list_erase_rec z x))))
+  | (Term.Apply (Term.Apply f x) y), z => (__eo_prepend_if (__eo_not (__eo_eq (__eo_requires (__eo_is_list f z) (Term.Boolean true) (__eo_list_erase_rec z x)) z)) f x (__eo_list_inter_rec y (__eo_requires (__eo_is_list f z) (Term.Boolean true) (__eo_list_erase_rec z x))))
   | nil, z => nil
 
 
 partial def __eo_list_inter : Term -> Term -> Term -> Term
-  | f, a, b => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof b)) b) (Term.Boolean true) (__eo_list_inter_rec a b)))
+  | f, a, b => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_list_inter_rec a b)))
 
 
-partial def __eo_list_singleton_elim_2 : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | nil, (Term.Apply (Term.Apply f x) y) => (__eo_ite (__eo_eq y nil) x (Term.Apply (Term.Apply f x) y))
-  | nil, z => z
+partial def __eo_list_singleton_elim_2 : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply f x) y) => (__eo_ite (__eo_is_list_nil f y) x (Term.Apply (Term.Apply f x) y))
+  | y => y
 
 
 partial def __eo_list_singleton_elim : Term -> Term -> Term
-  | f, a => (__eo_requires (__eo_is_list_rec f (__eo_nil f (__eo_typeof a)) a) (Term.Boolean true) (__eo_list_singleton_elim_2 (__eo_nil f (__eo_typeof a)) a))
+  | f, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_singleton_elim_2 a))
 
 
 partial def __pair_first : Term -> Term
