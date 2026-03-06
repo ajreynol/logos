@@ -26,8 +26,9 @@ abbrev eo_lit_zneg := SmtEval.smt_lit_zneg
 abbrev eo_lit_zeq := SmtEval.smt_lit_zeq
 abbrev eo_lit_zleq := SmtEval.smt_lit_zleq
 abbrev eo_lit_zlt := SmtEval.smt_lit_zlt
-abbrev eo_lit_div := SmtEval.smt_lit_div
-abbrev eo_lit_mod := SmtEval.smt_lit_mod
+abbrev eo_lit_div_total := SmtEval.smt_lit_div_total
+abbrev eo_lit_mod_total := SmtEval.smt_lit_mod_total
+abbrev eo_lit_zexp_total := SmtEval.smt_lit_zexp_total
 abbrev eo_lit_int_pow2 := SmtEval.smt_lit_int_pow2
 abbrev eo_lit_piand := SmtEval.smt_lit_piand
 abbrev eo_lit_mk_rational := SmtEval.smt_lit_mk_rational
@@ -37,7 +38,7 @@ abbrev eo_lit_qneg := SmtEval.smt_lit_qneg
 abbrev eo_lit_qeq := SmtEval.smt_lit_qeq
 abbrev eo_lit_qleq := SmtEval.smt_lit_qleq
 abbrev eo_lit_qlt := SmtEval.smt_lit_qlt
-abbrev eo_lit_qdiv := SmtEval.smt_lit_qdiv
+abbrev eo_lit_qdiv_total := SmtEval.smt_lit_qdiv_total
 abbrev eo_lit_to_int := SmtEval.smt_lit_to_int
 abbrev eo_lit_to_real := SmtEval.smt_lit_to_real
 abbrev eo_lit_str_len := SmtEval.smt_lit_str_len
@@ -353,10 +354,10 @@ partial def __eo_mk_apply : Term -> Term -> Term
 
 partial def __eo_empty_binary : Term := (Term.Binary 0 0)
 partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
-  (Term.Binary w (eo_lit_mod n (eo_lit_int_pow2 w)))
+  (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
 
 partial def __eo_mk_binary (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
-  (eo_lit_ite (eo_lit_zleq 0 w) (Term.Binary w (eo_lit_mod n (eo_lit_int_pow2 w))) Term.Stuck)
+  (eo_lit_ite (eo_lit_zleq 0 w) (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w))) Term.Stuck)
 
 partial def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
@@ -372,57 +373,57 @@ partial def __eo_requires : Term -> Term -> Term -> Term
 
 partial def __eo_not : Term -> Term
   | (Term.Boolean b) => (Term.Boolean (eo_lit_not b))
-  | (Term.Binary w n) => (Term.Binary w (eo_lit_mod (eo_lit_binary_not w n) (eo_lit_int_pow2 w)))
+  | (Term.Binary w n) => (Term.Binary w (eo_lit_mod_total (eo_lit_binary_not w n) (eo_lit_int_pow2 w)))
   | _ => Term.Stuck
 
 
 partial def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_binary_and w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_binary_and w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
 partial def __eo_or : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_or b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_binary_or w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_binary_or w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
 partial def __eo_xor : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_xor b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_binary_or w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_binary_or w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
 partial def __eo_add : Term -> Term -> Term
   | (Term.Numeral n1), (Term.Numeral n2) => (Term.Numeral (eo_lit_zplus n1 n2))
   | (Term.Rational r1), (Term.Rational r2) => (Term.Rational (eo_lit_qplus r1 r2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_zplus n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_zplus n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
 partial def __eo_mul : Term -> Term -> Term
   | (Term.Numeral n1), (Term.Numeral n2) => (Term.Numeral (eo_lit_zmult n1 n2))
   | (Term.Rational r1), (Term.Rational r2) => (Term.Rational (eo_lit_qmult r1 r2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod (eo_lit_zmult n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_zmult n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
 partial def __eo_qdiv : Term -> Term -> Term
-  | (Term.Numeral n1), (Term.Numeral n2) => (eo_lit_ite (eo_lit_zeq 0 n2) Term.Stuck (Term.Rational (eo_lit_qdiv (eo_lit_to_real n1) (eo_lit_to_real n2))))
-  | (Term.Rational r1), (Term.Rational r2) => (eo_lit_ite (eo_lit_qeq (eo_lit_mk_rational 0 1) r2) Term.Stuck (Term.Rational (eo_lit_qdiv r1 r2)))
+  | (Term.Numeral n1), (Term.Numeral n2) => (eo_lit_ite (eo_lit_zeq 0 n2) Term.Stuck (Term.Rational (eo_lit_qdiv_total (eo_lit_to_real n1) (eo_lit_to_real n2))))
+  | (Term.Rational r1), (Term.Rational r2) => (eo_lit_ite (eo_lit_qeq (eo_lit_mk_rational 0 1) r2) Term.Stuck (Term.Rational (eo_lit_qdiv_total r1 r2)))
   | _, _ => Term.Stuck
 
 
 partial def __eo_zdiv : Term -> Term -> Term
-  | (Term.Numeral n1), (Term.Numeral n2) => (eo_lit_ite (eo_lit_zeq 0 n2) Term.Stuck (Term.Numeral (eo_lit_div n1 n2)))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (eo_lit_ite (eo_lit_zeq 0 n2) (Term.Binary w1 (eo_lit_binary_max w1)) (Term.Binary w1 (eo_lit_mod (eo_lit_div n1 n2) (eo_lit_int_pow2 w1)))) Term.Stuck) Term.Stuck)
+  | (Term.Numeral n1), (Term.Numeral n2) => (eo_lit_ite (eo_lit_zeq 0 n2) Term.Stuck (Term.Numeral (eo_lit_div_total n1 n2)))
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (eo_lit_ite (eo_lit_zeq 0 n2) (Term.Binary w1 (eo_lit_binary_max w1)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_div_total n1 n2) (eo_lit_int_pow2 w1)))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
 partial def __eo_zmod : Term -> Term -> Term
-  | (Term.Numeral n1), (Term.Numeral n2) => (eo_lit_ite (eo_lit_zeq 0 n2) Term.Stuck (Term.Numeral (eo_lit_mod n1 n2)))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (eo_lit_ite (eo_lit_zeq 0 n2) (Term.Binary w1 n1) (Term.Binary w1 (eo_lit_mod (eo_lit_mod n1 n2) (eo_lit_int_pow2 w1)))) Term.Stuck) Term.Stuck)
+  | (Term.Numeral n1), (Term.Numeral n2) => (eo_lit_ite (eo_lit_zeq 0 n2) Term.Stuck (Term.Numeral (eo_lit_mod_total n1 n2)))
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (eo_lit_ite (eo_lit_teq (Term.Numeral w1) (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq (Term.Numeral w1) Term.Stuck)) (eo_lit_ite (eo_lit_zeq 0 n2) (Term.Binary w1 n1) (Term.Binary w1 (eo_lit_mod_total (eo_lit_mod_total n1 n2) (eo_lit_int_pow2 w1)))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
@@ -435,7 +436,7 @@ partial def __eo_is_neg : Term -> Term
 partial def __eo_neg : Term -> Term
   | (Term.Numeral n1) => (Term.Numeral (eo_lit_zneg n1))
   | (Term.Rational r1) => (Term.Rational (eo_lit_qneg r1))
-  | (Term.Binary w n1) => (Term.Binary w (eo_lit_mod (eo_lit_zneg n1) (eo_lit_int_pow2 w)))
+  | (Term.Binary w n1) => (Term.Binary w (eo_lit_mod_total (eo_lit_zneg n1) (eo_lit_int_pow2 w)))
   | _ => Term.Stuck
 
 
