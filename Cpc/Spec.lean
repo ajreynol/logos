@@ -1,15 +1,11 @@
-import Cpc.Smtm
+import Cpc.SmtModel
 import Cpc.Logos
+
+open Eo
+open Smtm
 
 set_option linter.unusedVariables false
 
-namespace EoCorrect
-
-abbrev Term := Eo.Term
-abbrev CCmdList := Eo.CCmdList
-abbrev SmtModel := Smtm.SmtModel
-abbrev SmtType := Smtm.SmtType
-abbrev SmtTerm := Smtm.SmtTerm
 
 /- Definitions for theorems -/
 
@@ -17,7 +13,7 @@ abbrev SmtTerm := Smtm.SmtTerm
 
 inductive eo_is_refutation : Term -> CCmdList -> Prop
   | intro (F : Term) (c : CCmdList) : 
-    (__eo_checker_is_refutation F c) = (Term.Boolean true) -> (eo_is_refutation F c)
+    (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 
 
 /-
@@ -287,16 +283,6 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply Term.sbv_to_int x1) => (SmtTerm.Apply SmtTerm.sbv_to_int (__eo_to_smt x1))
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
   | y => SmtTerm.None
-
-
-partial def __eo_model_sat (M : SmtModel) : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | F => (eo_lit_ite (eo_lit_veq (__smtx_model_eval M (__eo_to_smt F)) (SmtValue.Boolean true)) (Term.Boolean true) (Term.Boolean false))
-
-
-partial def __eo_model_unsat (M : SmtModel) : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | F => (eo_lit_ite (eo_lit_veq (__smtx_model_eval M (__eo_to_smt F)) (SmtValue.Boolean false)) (Term.Boolean true) (Term.Boolean false))
 
 
 
@@ -4317,4 +4303,3 @@ by
 
 /- ---------------------------------------------- -/
 
-end EoCorrect
