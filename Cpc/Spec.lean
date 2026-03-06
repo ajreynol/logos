@@ -1502,27 +1502,9 @@ theorem correct___eo_prog_arith_eq_elim_int (x1 x2 : Term) :
 by
   sorry
 
-/- correctness theorem for __eo_prog_arith_to_int_elim -/
-theorem correct___eo_prog_arith_to_int_elim (x1 : Term) :
-  (Not (eo_interprets (__eo_prog_arith_to_int_elim x1) false)) :=
-by
-  sorry
-
 /- correctness theorem for __eo_prog_arith_to_int_elim_to_real -/
 theorem correct___eo_prog_arith_to_int_elim_to_real (x1 : Term) :
   (Not (eo_interprets (__eo_prog_arith_to_int_elim_to_real x1) false)) :=
-by
-  sorry
-
-/- correctness theorem for __eo_prog_arith_div_elim_to_real1 -/
-theorem correct___eo_prog_arith_div_elim_to_real1 (x1 x2 : Term) :
-  (Not (eo_interprets (__eo_prog_arith_div_elim_to_real1 x1 x2) false)) :=
-by
-  sorry
-
-/- correctness theorem for __eo_prog_arith_div_elim_to_real2 -/
-theorem correct___eo_prog_arith_div_elim_to_real2 (x1 x2 : Term) :
-  (Not (eo_interprets (__eo_prog_arith_div_elim_to_real2 x1 x2) false)) :=
 by
   sorry
 

@@ -3888,26 +3888,9 @@ partial def __eo_prog_arith_eq_elim_int : Term -> Term -> Term
   | t1, s1 => (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.eq t1) s1)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.geq t1) s1)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq t1) s1)) (Term.Boolean true))))
 
 
-partial def __eo_prog_arith_to_int_elim : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | x1 => (Term.Apply (Term.Apply Term.eq (Term.Apply Term.to_int x1)) x1)
-
-
 partial def __eo_prog_arith_to_int_elim_to_real : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | x1 => (Term.Apply (Term.Apply Term.eq (Term.Apply Term.to_int (Term.Apply Term.to_real x1))) (Term.Apply Term.to_int x1))
-
-
-partial def __eo_prog_arith_div_elim_to_real1 : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | x1, y1 => (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.qdiv (Term.Apply Term.to_real x1)) y1)) (Term.Apply (Term.Apply Term.qdiv x1) y1))
-
-
-partial def __eo_prog_arith_div_elim_to_real2 : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | x1, y1 => (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.qdiv x1) (Term.Apply Term.to_real y1))) (Term.Apply (Term.Apply Term.qdiv x1) y1))
+  | x1 => (Term.Apply (Term.Apply Term.eq (Term.Apply Term.to_int (Term.Apply Term.to_real x1))) x1)
 
 
 partial def __eo_prog_arith_mod_over_mod_1 : Term -> Term -> Proof -> Term
@@ -8381,10 +8364,7 @@ inductive CRule : Type where
   | arith_geq_norm1_real : CRule
   | arith_eq_elim_real : CRule
   | arith_eq_elim_int : CRule
-  | arith_to_int_elim : CRule
   | arith_to_int_elim_to_real : CRule
-  | arith_div_elim_to_real1 : CRule
-  | arith_div_elim_to_real2 : CRule
   | arith_mod_over_mod_1 : CRule
   | arith_mod_over_mod : CRule
   | arith_mod_over_mod_mult : CRule
@@ -9040,10 +9020,7 @@ def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
   | CRule.arith_geq_norm1_real, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_arith_geq_norm1_real a1 a2)
   | CRule.arith_eq_elim_real, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_arith_eq_elim_real a1 a2)
   | CRule.arith_eq_elim_int, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_arith_eq_elim_int a1 a2)
-  | CRule.arith_to_int_elim, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_arith_to_int_elim a1)
   | CRule.arith_to_int_elim_to_real, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_arith_to_int_elim_to_real a1)
-  | CRule.arith_div_elim_to_real1, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_arith_div_elim_to_real1 a1 a2)
-  | CRule.arith_div_elim_to_real2, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_arith_div_elim_to_real2 a1 a2)
   | CRule.arith_mod_over_mod_1, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_arith_mod_over_mod_1 a1 a2 (Proof.pf (__eo_state_proven_nth S n1)))
   | CRule.arith_mod_over_mod, (CArgList.cons a1 (CArgList.cons a2 (CArgList.cons a3 (CArgList.cons a4 CArgList.nil)))), (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_arith_mod_over_mod a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)))
   | CRule.arith_mod_over_mod_mult, (CArgList.cons a1 (CArgList.cons a2 (CArgList.cons a3 (CArgList.cons a4 CArgList.nil)))), (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_arith_mod_over_mod_mult a1 a2 a3 a4 (Proof.pf (__eo_state_proven_nth S n1)))
