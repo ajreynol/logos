@@ -700,12 +700,12 @@ def __smtx_model_eval_bvmul : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_bvudiv : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (smt_lit_ite (smt_lit_zeq x1 x3) (SmtValue.Binary x1 (smt_lit_mod_total (smt_lit_ite (smt_lit_zeq x3 0) (smt_lit_binary_max x1) (smt_lit_div_total x2 x4)) (smt_lit_int_pow2 x1))) SmtValue.NotValue)
+  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (smt_lit_ite (smt_lit_zeq x1 x3) (SmtValue.Binary x1 (smt_lit_mod_total (smt_lit_ite (smt_lit_zeq x4 0) (smt_lit_binary_max x1) (smt_lit_div_total x2 x4)) (smt_lit_int_pow2 x1))) SmtValue.NotValue)
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_bvurem : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (smt_lit_ite (smt_lit_zeq x1 x3) (SmtValue.Binary x1 (smt_lit_mod_total (smt_lit_ite (smt_lit_zeq x3 0) x2 (smt_lit_mod_total x2 x4)) (smt_lit_int_pow2 x1))) SmtValue.NotValue)
+  | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => (smt_lit_ite (smt_lit_zeq x1 x3) (SmtValue.Binary x1 (smt_lit_mod_total (smt_lit_ite (smt_lit_zeq x4 0) x2 (smt_lit_mod_total x2 x4)) (smt_lit_int_pow2 x1))) SmtValue.NotValue)
   | t1, t2 => SmtValue.NotValue
 
 
