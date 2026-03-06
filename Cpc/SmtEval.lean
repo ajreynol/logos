@@ -39,8 +39,10 @@ def smt_lit_div : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x/y
 def smt_lit_mod : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x%y
+def smt_lit_zexp (x : smt_lit_Int) (y : smt_lit_Int) : smt_lit_Int :=
+  if y < 0 then 0 else (x ^ (Int.toNat y))
 def smt_lit_int_pow2 (n : smt_lit_Int) : smt_lit_Int :=
-  if n < 0 then 0 else (2 ^ (Int.toNat n))
+  (smt_lit_zexp 2 n)
 def smt_lit_piand : smt_lit_Int -> smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | w, x, y => ((BitVec.ofInt (Int.toNat w) x) &&& (BitVec.ofInt (Int.toNat w) y)).toInt
 

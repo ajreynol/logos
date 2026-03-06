@@ -1,4 +1,4 @@
-import Cpc.SmtModel
+import Cpc.Smtm
 import Cpc.Logos
 
 set_option linter.unusedVariables false
@@ -7,8 +7,9 @@ namespace EoCorrect
 
 abbrev Term := Eo.Term
 abbrev CCmdList := Eo.CCmdList
-abbrev SmtType := SmtModel.SmtType
-abbrev SmtTerm := SmtModel.SmtTerm
+abbrev SmtModel := Smtm.SmtModel
+abbrev SmtType := Smtm.SmtType
+abbrev SmtTerm := Smtm.SmtTerm
 
 /- Definitions for theorems -/
 
@@ -140,12 +141,14 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply Term.abs x1) => (SmtTerm.Apply SmtTerm.abs (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.div x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.mod x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mod (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.multmult x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.divisible x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.divisible (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply Term.int_pow2 x1) => (SmtTerm.Apply SmtTerm.int_pow2 (__eo_to_smt x1))
   | (Term.Apply Term.int_log2 x1) => (SmtTerm.Apply SmtTerm.int_log2 (__eo_to_smt x1))
   | (Term.Apply Term.int_ispow2 x1) => (SmtTerm.Apply SmtTerm.int_ispow2 (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.div_total x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div_total (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.mod_total x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mod_total (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.multmult_total x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult_total (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply Term._at_int_div_by_zero x1) => (__eo_to_smt (Term.Apply (Term.Apply Term.div x1) (Term.Numeral 0)))
   | (Term.Apply Term._at_mod_by_zero x1) => (__eo_to_smt (Term.Apply (Term.Apply Term.mod x1) (Term.Numeral 0)))
   | (Term.Apply (Term.Apply Term.select x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt x1)) (__eo_to_smt x2))
@@ -198,8 +201,8 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term.bvsdivo x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply Term.bvultbv x1) x2) x3) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvultbv (__eo_to_smt x1)) (__eo_to_smt x2)) (__eo_to_smt x3))
   | (Term.Apply (Term.Apply (Term.Apply Term.bvsltbv x1) x2) x3) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsltbv (__eo_to_smt x1)) (__eo_to_smt x2)) (__eo_to_smt x3))
-  | (Term.Apply Term.bvredand x1) => (SmtTerm.Apply SmtTerm.bvredand (__eo_to_smt x1))
-  | (Term.Apply Term.bvredor x1) => (SmtTerm.Apply SmtTerm.bvredor (__eo_to_smt x1))
+  | (Term.Apply Term.bvredand x1) => (__eo_to_smt (Term.Apply (Term.Apply Term.bvcomp x1) (Term.Apply Term.bvnot (Term.Apply (Term.Apply Term._at_bv (Term.Numeral 0)) (Term.Apply Term._at_bvsize x1)))))
+  | (Term.Apply Term.bvredor x1) => (__eo_to_smt (Term.Apply Term.bvnot (Term.Apply (Term.Apply Term.bvcomp x1) (Term.Apply (Term.Apply Term._at_bv (Term.Numeral 0)) (Term.Apply Term._at_bvsize x1)))))
   | (Term.Apply (Term.Apply Term._at_bit x1) x2) => (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.extract x1) x1) x2))
   | (Term.Apply (Term.Apply Term._at_from_bools x1) x2) => (__eo_to_smt (Term.Apply (Term.Apply Term.concat (Term.Apply (Term.Apply (Term.Apply Term.ite x1) (Term.Binary 1 1)) (Term.Binary 1 0))) x2))
   | (Term.Apply (Term.Apply Term._at_bv x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (__eo_to_smt x1)) (__eo_to_smt x2))
@@ -251,6 +254,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term._at_strings_deq_diff x1) x2) => (SmtTerm.Apply (SmtTerm.choice "_at_x" SmtType.Int) (SmtTerm.Apply SmtTerm.not (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt x1)) (SmtTerm.Var "_at_x" SmtType.Int)) (SmtTerm.Numeral 1))) (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt x2)) (SmtTerm.Var "_at_x" SmtType.Int)) (SmtTerm.Numeral 1)))))
   | (Term.Apply (Term.Apply Term._at_strings_stoi_result x1) x2) => (__eo_to_smt (Term.Apply Term.str_to_int (Term.Apply (Term.Apply (Term.Apply Term.str_substr x1) (Term.Numeral 0)) x2)))
   | (Term.Apply Term._at_strings_stoi_non_digit x1) => (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.str_indexof_re x1) (Term.Apply Term.re_comp (Term.Apply (Term.Apply Term.re_range (Term.String "0")) (Term.String "9")))) (Term.Numeral 0)))
+  | (Term.Apply (Term.Apply Term._at_strings_itos_result x1) x2) => (__eo_to_smt (Term.Apply Term.str_from_int (Term.Apply (Term.Apply Term.mod x1) (Term.Apply (Term.Apply Term.multmult (Term.Numeral 10)) x2))))
   | (Term.Apply (Term.Apply (Term.Apply Term._at_witness_string_length x1) x2) x3) => (SmtTerm.Apply (SmtTerm.choice "_at_x" (__eo_to_smt_type x1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" (__eo_to_smt_type x1)))) (__eo_to_smt x2)))
   | (Term.Apply Term.is x1) => (__eo_to_smt_tester (__eo_to_smt x1))
   | (Term.Apply Term.update x1) => (__eo_to_smt_updater (__eo_to_smt x1))
@@ -285,14 +289,14 @@ def __eo_to_smt : Term -> SmtTerm
   | y => SmtTerm.None
 
 
-partial def __eo_model_sat : Term -> Term
+partial def __eo_model_sat (M : SmtModel) : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | F => (eo_lit_ite (eo_lit_veq (__smtx_model_eval (__eo_to_smt F)) (SmtValue.Boolean true)) (Term.Boolean true) (Term.Boolean false))
+  | F => (eo_lit_ite (eo_lit_veq (__smtx_model_eval M (__eo_to_smt F)) (SmtValue.Boolean true)) (Term.Boolean true) (Term.Boolean false))
 
 
-partial def __eo_model_unsat : Term -> Term
+partial def __eo_model_unsat (M : SmtModel) : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | F => (eo_lit_ite (eo_lit_veq (__smtx_model_eval (__eo_to_smt F)) (SmtValue.Boolean false)) (Term.Boolean true) (Term.Boolean false))
+  | F => (eo_lit_ite (eo_lit_veq (__smtx_model_eval M (__eo_to_smt F)) (SmtValue.Boolean false)) (Term.Boolean true) (Term.Boolean false))
 
 
 

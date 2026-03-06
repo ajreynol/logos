@@ -121,12 +121,14 @@ inductive Term : Type where
   | __eoo_neg_2 : Term
   | div : Term
   | mod : Term
+  | multmult : Term
   | divisible : Term
   | int_pow2 : Term
   | int_log2 : Term
   | int_ispow2 : Term
   | div_total : Term
   | mod_total : Term
+  | multmult_total : Term
   | _at_int_div_by_zero : Term
   | _at_mod_by_zero : Term
   | Array : Term
@@ -7882,12 +7884,14 @@ partial def __eo_typeof_main : Term -> Term
   | (Term.Apply Term.__eoo_neg_2 __eo_x1) => (__eo_typeof___eoo___2 (__eo_typeof __eo_x1))
   | Term.div => (Term.Apply (Term.Apply Term.FunType Term.Int) (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int))
   | Term.mod => (Term.Apply (Term.Apply Term.FunType Term.Int) (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int))
+  | Term.multmult => (Term.Apply (Term.Apply Term.FunType Term.Int) (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int))
   | Term.divisible => (Term.Apply (Term.Apply Term.FunType Term.Int) (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Bool))
   | Term.int_pow2 => (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int)
   | Term.int_log2 => (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int)
   | Term.int_ispow2 => (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Bool)
   | Term.div_total => (Term.Apply (Term.Apply Term.FunType Term.Int) (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int))
   | Term.mod_total => (Term.Apply (Term.Apply Term.FunType Term.Int) (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int))
+  | Term.multmult_total => (Term.Apply (Term.Apply Term.FunType Term.Int) (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int))
   | Term._at_int_div_by_zero => (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int)
   | Term._at_mod_by_zero => (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int)
   | Term.Array => (Term.Apply (Term.Apply Term.FunType Term.Type) (Term.Apply (Term.Apply Term.FunType Term.Type) Term.Type))
