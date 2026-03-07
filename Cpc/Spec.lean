@@ -90,29 +90,24 @@ partial def __eo_to_smt_tuple_select : SmtType -> SmtTerm -> SmtTerm -> SmtTerm
   | T, n, t => SmtTerm.None
 
 
-partial def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype "_at_Tuple" d), (SmtTerm.Numeral n), t => (SmtTerm.Apply (SmtTerm.DtUpdater "_at_Tuple" d 0 n) t)
-  | T, n, t => SmtTerm.None
-
-
 partial def __eo_to_smt_tester : SmtTerm -> SmtTerm
   | (SmtTerm.DtCons s d n) => (SmtTerm.DtTester s d n)
   | t => SmtTerm.None
 
 
-partial def __eo_to_smt_updater : SmtTerm -> SmtTerm
-  | (SmtTerm.DtSel s d n m) => (SmtTerm.DtUpdater s d n m)
-  | t => SmtTerm.None
-
-
 partial def __eo_to_smt_updater_rec : SmtTerm -> smt_lit_Int -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | (SmtTerm.DtSel s d n m), 0, t, u, acc => acc
-  | (SmtTerm.DtSel s d n m), k, t, u, acc => (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) (smt_lit_zplus k (smt_lit_zneg 1)) t d (SmtTerm.Apply acc (smt_lit_ite (smt_lit_zeq m k) t (SmtTerm.Apply (SmtTerm.DtSel s d n k) u))))
+  | (SmtTerm.DtSel s d n m), k, t, u, acc => (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) (smt_lit_zplus k (smt_lit_zneg 1)) t u (SmtTerm.Apply acc (smt_lit_ite (smt_lit_zeq m k) t (SmtTerm.Apply (SmtTerm.DtSel s d n k) u))))
 
 
-partial def __eo_to_smt_updater2 : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.DtSel s d n m), t, u => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) u)) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) 0 t u (SmtTerm.DtCons s d n))) d)
+partial def __eo_to_smt_updater : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | (SmtTerm.DtSel s d n m), t, u => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) u)) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) (__smtx_dt_num_sels d n) t u (SmtTerm.DtCons s d n))) u)
   | sel, t, d => SmtTerm.None
+
+
+partial def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | (SmtType.Datatype "_at_Tuple" d), (SmtTerm.Numeral n), t, u => (__eo_to_smt_updater (SmtTerm.DtSel "_at_Tuple" d 0 n) t u)
+  | T, n, t, u => SmtTerm.None
 
 
 partial def __eo_to_smt : Term -> SmtTerm
@@ -265,11 +260,11 @@ partial def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term._at_strings_itos_result x1) x2) => (__eo_to_smt (Term.Apply Term.str_from_int (Term.Apply (Term.Apply Term.mod x1) (Term.Apply (Term.Apply Term.multmult (Term.Numeral 10)) x2))))
   | (Term.Apply (Term.Apply (Term.Apply Term._at_witness_string_length x1) x2) x3) => (SmtTerm.Apply (SmtTerm.choice "_at_x" (__eo_to_smt_type x1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" (__eo_to_smt_type x1)))) (__eo_to_smt x2)))
   | (Term.Apply Term.is x1) => (__eo_to_smt_tester (__eo_to_smt x1))
-  | (Term.Apply Term.update x1) => (__eo_to_smt_updater (__eo_to_smt x1))
+  | (Term.Apply (Term.Apply (Term.Apply Term.update x1) x2) x3) => (__eo_to_smt_updater (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | Term.tuple_unit => (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0)
   | (Term.Apply (Term.Apply Term.tuple x1) x2) => (SmtTerm.Apply (__eo_to_smt_tuple_app_extend (__eo_to_smt x1) (__eo_to_smt_type (__eo_typeof x2))) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.tuple_select x1) x2) => (__eo_to_smt_tuple_select (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply Term.tuple_update x1) x2) => (__eo_to_smt_tuple_update (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply (Term.Apply Term.tuple_update x1) x2) x3) => (__eo_to_smt_tuple_update (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.set_empty x1) => (SmtTerm.set_empty (__eo_to_smt_type x1))
   | (Term.Apply Term.set_singleton x1) => (SmtTerm.Apply SmtTerm.set_singleton (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.set_union x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_union (__eo_to_smt x1)) (__eo_to_smt x2))
