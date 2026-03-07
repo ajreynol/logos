@@ -65,6 +65,7 @@ partial def __eo_to_smt_datatype : Datatype -> SmtDatatype
 partial def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
+  | (Term.USort n1) => (SmtType.USort n1)
   | Term.Int => SmtType.Int
   | Term.Real => SmtType.Real
   | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
@@ -104,6 +105,16 @@ partial def __eo_to_smt_updater : SmtTerm -> SmtTerm
   | t => SmtTerm.None
 
 
+partial def __eo_to_smt_updater_rec : SmtTerm -> smt_lit_Int -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | (SmtTerm.DtSel s d n m), 0, t, u, acc => acc
+  | (SmtTerm.DtSel s d n m), k, t, u, acc => (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) (smt_lit_zplus k (smt_lit_zneg 1)) t d (SmtTerm.Apply acc (smt_lit_ite (smt_lit_zeq m k) t (SmtTerm.Apply (SmtTerm.DtSel s d n k) u))))
+
+
+partial def __eo_to_smt_updater2 : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | (SmtTerm.DtSel s d n m), t, u => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) u)) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) 0 t u (SmtTerm.DtCons s d n))) d)
+  | sel, t, d => SmtTerm.None
+
+
 partial def __eo_to_smt : Term -> SmtTerm
   | (Term.Boolean b) => (SmtTerm.Boolean b)
   | (Term.Numeral n) => (SmtTerm.Numeral n)
@@ -113,6 +124,7 @@ partial def __eo_to_smt : Term -> SmtTerm
   | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
   | (Term.DtCons s d n) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) n)
   | (Term.DtSel s d n m) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) n m)
+  | (Term.UConst n T) => (SmtTerm.UConst n (__eo_to_smt_type T))
   | (Term.Apply (Term.Apply (Term.Apply Term.ite x1) x2) x3) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (__eo_to_smt x1)) (__eo_to_smt x2)) (__eo_to_smt x3))
   | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or (__eo_to_smt x1)) (__eo_to_smt x2))

@@ -410,7 +410,7 @@ partial def __eo_mul : Term -> Term -> Term
 
 
 partial def __eo_qdiv : Term -> Term -> Term
-  | (Term.Numeral n1), (Term.Numeral n2) => (eo_lit_ite (eo_lit_zeq 0 n2) Term.Stuck (Term.Rational (eo_lit_qdiv_total (eo_lit_to_real n1) (eo_lit_to_real n2))))
+  | (Term.Numeral n1), (Term.Numeral n2) => (eo_lit_ite (eo_lit_zeq 0 n2) Term.Stuck (Term.Rational (eo_lit_mk_rational n1 n2)))
   | (Term.Rational r1), (Term.Rational r2) => (eo_lit_ite (eo_lit_qeq (eo_lit_mk_rational 0 1) r2) Term.Stuck (Term.Rational (eo_lit_qdiv_total r1 r2)))
   | _, _ => Term.Stuck
 

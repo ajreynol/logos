@@ -141,6 +141,7 @@ inductive SmtType : Type where
   | Char : SmtType
   | Datatype : smt_lit_String -> SmtDatatype -> SmtType
   | TypeRef : smt_lit_String -> SmtType
+  | USort : smt_lit_Int -> SmtType
   | Array : SmtType -> SmtType -> SmtType
   | Set : SmtType -> SmtType
 
@@ -158,6 +159,8 @@ inductive SmtTerm : Type where
   | Binary : smt_lit_Int -> smt_lit_Int -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | Var : smt_lit_String -> SmtType -> SmtTerm
+  | ite : SmtTerm
+  | eq : SmtTerm
   | exists : smt_lit_String -> SmtType -> SmtTerm
   | forall : smt_lit_String -> SmtType -> SmtTerm
   | lambda : smt_lit_String -> SmtType -> SmtTerm
@@ -167,15 +170,12 @@ inductive SmtTerm : Type where
   | DtTester : smt_lit_String -> SmtDatatype -> smt_lit_Int -> SmtTerm
   | DtUpdater : smt_lit_String -> SmtDatatype -> smt_lit_Int -> smt_lit_Int -> SmtTerm
   | Const : SmtValue -> SmtType -> SmtTerm
-  | USort : smt_lit_Int -> SmtTerm
   | UConst : smt_lit_Int -> SmtType -> SmtTerm
-  | ite : SmtTerm
   | not : SmtTerm
   | or : SmtTerm
   | and : SmtTerm
   | imp : SmtTerm
   | xor : SmtTerm
-  | eq : SmtTerm
   | distinct : SmtTerm
   | plus : SmtTerm
   | neg : SmtTerm
@@ -615,6 +615,7 @@ partial def __smtx_model_eval_leq : SmtValue -> SmtValue -> SmtValue
 
 partial def __smtx_model_eval_to_real : SmtValue -> SmtValue
   | (SmtValue.Numeral x1) => (SmtValue.Rational (smt_lit_to_real x1))
+  | (SmtValue.Rational x2) => (SmtValue.Rational x2)
   | t1 => SmtValue.NotValue
 
 
@@ -914,7 +915,8 @@ partial def __smtx_model_eval_str_in_re : SmtValue -> SmtValue -> SmtValue
 
 
 partial def __smtx_model_eval_qdiv_total : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Rational x1), (SmtValue.Rational x2) => (SmtValue.Rational (smt_lit_qdiv_total x1 x2))
+  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Rational (smt_lit_mk_rational x1 x2))
+  | (SmtValue.Rational x3), (SmtValue.Rational x4) => (SmtValue.Rational (smt_lit_qdiv_total x3 x4))
   | t1, t2 => SmtValue.NotValue
 
 
@@ -939,13 +941,11 @@ partial def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
   | (SmtTerm.String s) => (SmtValue.String s)
   | (SmtTerm.Binary w n) => (smt_lit_ite (smt_lit_and (smt_lit_zleq 0 w) (smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)))) (SmtValue.Binary w n) SmtValue.NotValue)
-  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite x1) x2) x3) => (__smtx_model_eval_ite (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or x1) x2) => (__smtx_model_eval_or (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp x1) x2) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or (SmtTerm.Apply SmtTerm.not x1)) x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.xor x1) x2) => (__smtx_model_eval M (SmtTerm.Apply SmtTerm.not (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2)))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.distinct x1) x2) => (__smtx_model_eval M (SmtTerm.Apply SmtTerm.not (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2)))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.plus x1) x2) => (__smtx_model_eval_plus (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg x1) x2) => (__smtx_model_eval__ (__smtx_model_eval M x1) (__smtx_model_eval M x2))
@@ -1070,6 +1070,8 @@ partial def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv x1) x2) => (__smtx_model_eval_int_to_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply SmtTerm.ubv_to_int x1) => (__smtx_model_eval_ubv_to_int (__smtx_model_eval M x1))
   | (SmtTerm.Apply SmtTerm.sbv_to_int x1) => (__smtx_model_eval_sbv_to_int (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite x1) x2) x3) => (__smtx_model_eval_ite (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_tforall M s T x1)
   | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_texists M s T x1)
   | (SmtTerm.Apply (SmtTerm.lambda s T) x1) => (SmtValue.Lambda s T x1)
