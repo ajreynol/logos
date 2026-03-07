@@ -194,7 +194,6 @@ inductive SmtTerm : Type where
   | divisible : SmtTerm
   | int_pow2 : SmtTerm
   | int_log2 : SmtTerm
-  | int_ispow2 : SmtTerm
   | div_total : SmtTerm
   | mod_total : SmtTerm
   | multmult_total : SmtTerm
@@ -236,7 +235,6 @@ inductive SmtTerm : Type where
   | sign_extend : SmtTerm
   | rotate_left : SmtTerm
   | rotate_right : SmtTerm
-  | bvite : SmtTerm
   | bvuaddo : SmtTerm
   | bvnego : SmtTerm
   | bvsaddo : SmtTerm
@@ -245,8 +243,6 @@ inductive SmtTerm : Type where
   | bvusubo : SmtTerm
   | bvssubo : SmtTerm
   | bvsdivo : SmtTerm
-  | bvultbv : SmtTerm
-  | bvsltbv : SmtTerm
   | _at_bv : SmtTerm
   | seq_empty : SmtType -> SmtTerm
   | str_len : SmtTerm
@@ -968,7 +964,6 @@ partial def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.divisible x1) x2) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mod x2) x1)) (SmtTerm.Numeral 0)))
   | (SmtTerm.Apply SmtTerm.int_pow2 x1) => (__smtx_model_eval_int_pow2 (__smtx_model_eval M x1))
   | (SmtTerm.Apply SmtTerm.int_log2 x1) => (__smtx_model_eval_int_log2 (__smtx_model_eval M x1))
-  | (SmtTerm.Apply SmtTerm.int_ispow2 x1) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.geq x1) (SmtTerm.Numeral 0))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) (SmtTerm.Apply SmtTerm.int_pow2 (SmtTerm.Apply SmtTerm.int_log2 x1)))))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div_total x1) x2) => (__smtx_model_eval_div_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mod_total x1) x2) => (__smtx_model_eval_mod_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult_total x1) x2) => (__smtx_model_eval_multmult_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
@@ -1010,7 +1005,6 @@ partial def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend x1) x2) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) (SmtTerm.Numeral 1))) x2) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat x1) (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm._at_bvsize x2)) (SmtTerm.Numeral 1))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm._at_bvsize x2)) (SmtTerm.Numeral 1))) x2))) x2)))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left x1) x2) => (__smtx_model_eval_rotate_left (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right x1) x2) => (__smtx_model_eval_rotate_right (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvite x1) x2) x3) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 1)) (SmtTerm.Numeral 1)))) x2) x3))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvuaddo x1) x2) => (__smtx_model_eval_bvuaddo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply SmtTerm.bvnego x1) => (__smtx_model_eval_bvnego (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsaddo x1) x2) => (__smtx_model_eval_bvsaddo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
@@ -1019,8 +1013,6 @@ partial def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo x1) x2) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvult x1) x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo x1) x2) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply SmtTerm.bvnego x2)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsge x1) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (SmtTerm.Apply SmtTerm._at_bvsize x1)))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsaddo x1) (SmtTerm.Apply SmtTerm.bvneg x2))))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo x1) x2) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (SmtTerm.Apply SmtTerm.bvnego x1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x2) (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (SmtTerm.Apply SmtTerm._at_bvsize x1))))))
-  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvultbv x1) x2) x3) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvult x1) x2)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 1)) (SmtTerm.Numeral 1))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (SmtTerm.Numeral 1))))
-  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsltbv x1) x2) x3) => (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvslt x1) x2)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 1)) (SmtTerm.Numeral 1))) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (SmtTerm.Numeral 1))))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv x1) x2) => (__smtx_model_eval__at_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.seq_empty x1) => (SmtValue.Seq (SmtSeq.empty x1))
   | (SmtTerm.Apply SmtTerm.str_len x1) => (__smtx_model_eval_str_len (__smtx_model_eval M x1))

@@ -50,3 +50,14 @@ A state is a refutation if the last proven formula was `false` and if all assump
 
 The definition of Logos is automatically generated from the current definition of the Cooperating Proof Calculus (CPC).
 This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos).
+
+Logos additionally has a correctness specification.
+This is in two parts. First, the file `./cpc/SmtModel.lean` formalizes a model semantics of SMT-LIB.
+Second, the file `./cpc/Spec.lean` defines a correspondence between Eunoia terms and SMT-LIB terms
+and a theorem (to prove) for each of the proof rules.
+It also contains a final theorem stating the correctness of the overall checker.
+
+The SMT-LIB formalization `./cpc/SmtModel.lean`
+includes several non-standard extensions of SMT-LIB (e.g. the theory of sets and the theory of sequences).
+It additionally contains operators that are helpful in defining the semantics of existing operators.
+This includes total versions of partial arithmetic operators.
