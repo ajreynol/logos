@@ -1,12 +1,12 @@
 import Cpc.Logos
 open Eo
-def t1 : Term := (Term.UConst 1 Term.Int)
-def t2 : Term := (Term.UConst 2 Term.Int)
-def t3 : Term := (Term.Apply Term.eq t2)
-def t4 : Term := (Term.Apply t3 t1)
-def t5 : Term := (Term.Apply Term.eq t1)
-def t6 : Term := (Term.Apply t5 t2)
-def t7 : Term := (Term.Apply Term.not t6)
+def t1 := (Term.UConst 1 Term.Int)
+def t2 := (Term.UConst 2 Term.Int)
+def t3 := (Term.Apply Term.eq t2)
+def t4 := (Term.Apply t3 t1)
+def t5 := (Term.Apply Term.eq t1)
+def t6 := (Term.Apply t5 t2)
+def t7 := (Term.Apply Term.not t6)
 def s0 : CState := logos_init_state
 def s1 : CState := (logos_invoke_assume s0 t4)
 def s2 : CState := (logos_invoke_assume s1 t7)
