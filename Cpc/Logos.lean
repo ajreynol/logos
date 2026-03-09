@@ -59,6 +59,17 @@ abbrev eo_lit_binary_uts := SmtEval.smt_lit_binary_uts
 abbrev eo_lit_binary_concat := SmtEval.smt_lit_binary_concat
 abbrev eo_lit_binary_extract := SmtEval.smt_lit_binary_extract
 
+abbrev eo_lit_Nat := SmtEval.smt_lit_Nat
+abbrev eo_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
+abbrev eo_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
+abbrev eo_lit_nateq := SmtEval.smt_lit_nateq
+syntax "eo_lit_nat_zero" : term
+macro_rules
+  | `(eo_lit_nat_zero) => `(Nat.zero)
+syntax "eo_lit_nat_succ " term : term
+macro_rules
+  | `(eo_lit_nat_succ $x) => `(Nat.succ $x)
+
 instance : Ord Rat where
   compare a b :=
     -- compare a.num / a.den vs b.num / b.den by cross-multiplication
@@ -90,10 +101,10 @@ inductive Term : Type where
   | Var : eo_lit_String -> Term -> Term
   | DatatypeType : eo_lit_String -> Datatype -> Term
   | DatatypeTypeRef : eo_lit_String -> Term
-  | DtCons : eo_lit_String -> Datatype -> eo_lit_Int -> Term
-  | DtSel : eo_lit_String -> Datatype -> eo_lit_Int -> eo_lit_Int -> Term
-  | USort : eo_lit_Int -> Term
-  | UConst : eo_lit_Int -> Term -> Term
+  | DtCons : eo_lit_String -> Datatype -> eo_lit_Nat -> Term
+  | DtSel : eo_lit_String -> Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
+  | USort : eo_lit_Nat -> Term
+  | UConst : eo_lit_Nat -> Term -> Term
   | _at__at_Pair : Term
   | _at__at_pair : Term
   | _at__at_result_null : Term
@@ -589,18 +600,18 @@ partial def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> 
   | Datatype.null => Datatype.null
 
 
-partial def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Int -> Term
+partial def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
   | Term.Stuck , _ , _  => Term.Stuck
-  | T, (Datatype.sum DatatypeCons.unit d), 0 => T
-  | T, (Datatype.sum (DatatypeCons.cons U c) d), 0 => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) 0))
-  | T, (Datatype.sum c d), n => (__eo_typeof_dt_cons_rec T d (eo_lit_zplus n (eo_lit_zneg 1)))
+  | T, (Datatype.sum DatatypeCons.unit d), eo_lit_nat_zero => T
+  | T, (Datatype.sum (DatatypeCons.cons U c) d), eo_lit_nat_zero => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) eo_lit_nat_zero))
+  | T, (Datatype.sum c d), (eo_lit_nat_succ n) => (__eo_typeof_dt_cons_rec T d n)
   | _, _, _ => Term.Stuck
 
 
-partial def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Int -> eo_lit_Int -> Term
-  | (Datatype.sum (DatatypeCons.cons T c) d), 0, 0 => T
-  | (Datatype.sum (DatatypeCons.cons T c) d), 0, m => (__eo_typeof_dt_sel_return (Datatype.sum c d) 0 (eo_lit_zplus m (eo_lit_zneg 1)))
-  | (Datatype.sum c d), n, m => (__eo_typeof_dt_sel_return d (eo_lit_zplus n (eo_lit_zneg 1)) m)
+partial def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
+  | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, eo_lit_nat_zero => T
+  | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, (eo_lit_nat_succ m) => (__eo_typeof_dt_sel_return (Datatype.sum c d) eo_lit_nat_zero m)
+  | (Datatype.sum c d), (eo_lit_nat_succ n), m => (__eo_typeof_dt_sel_return d n m)
   | _, _, _ => Term.Stuck
 
 
@@ -613,34 +624,34 @@ partial def __eo_typeof : Term -> Term
   | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
   | (Term.Var s T) => T
   | (Term.DatatypeType s d) => Term.Type
-  | (Term.DtCons s d n) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) n)
-  | (Term.DtSel s d n m) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d)) (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) n m))
-  | (Term.USort n) => Term.Type
-  | (Term.UConst n T) => T
+  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
+  | (Term.DtSel s d i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d)) (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j))
+  | (Term.USort i) => Term.Type
+  | (Term.UConst i T) => T
   | t => (__eo_typeof_main t)
 
 
-partial def __eo_datatype_constructors_rec (s : eo_lit_String) (d : Datatype) : Datatype -> eo_lit_Int -> Term
-  | (Datatype.sum c d2), ci => (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s d ci)) (__eo_datatype_constructors_rec s d d2 (eo_lit_zplus ci 1)))
-  | d2, ci => Term.__eo_List_nil
+partial def __eo_datatype_constructors_rec (s : eo_lit_String) (d : Datatype) : Datatype -> eo_lit_Nat -> Term
+  | (Datatype.sum c d2), i => (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s d i)) (__eo_datatype_constructors_rec s d d2 (eo_lit_nat_succ i)))
+  | d2, i => Term.__eo_List_nil
 
 
 partial def __eo_dt_constructors : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.DatatypeType s d) => (__eo_datatype_constructors_rec s d d 0)
+  | (Term.DatatypeType s d) => (__eo_datatype_constructors_rec s d d eo_lit_nat_zero)
   | T => (__eo_dt_constructors_main T)
 
 
-partial def __eo_datatype_cons_selectors_rec (s : eo_lit_String) (d : Datatype) (n : eo_lit_Int) : Datatype -> eo_lit_Int -> eo_lit_Int -> Term
-  | (Datatype.sum DatatypeCons.unit d2), 0, ai => Term.__eo_List_nil
-  | (Datatype.sum (DatatypeCons.cons U c) d2), 0, ai => (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtSel s d n ai)) (__eo_datatype_cons_selectors_rec s d n d2 0 (eo_lit_zplus ai 1)))
-  | (Datatype.sum c d2), ci, ai => (__eo_datatype_cons_selectors_rec s d n d2 (eo_lit_zplus ci (eo_lit_zneg 1)) ai)
+partial def __eo_datatype_cons_selectors_rec (s : eo_lit_String) (d : Datatype) (n : eo_lit_Nat) : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
+  | (Datatype.sum DatatypeCons.unit d2), eo_lit_nat_zero, ai => Term.__eo_List_nil
+  | (Datatype.sum (DatatypeCons.cons U c) d2), eo_lit_nat_zero, ai => (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtSel s d n ai)) (__eo_datatype_cons_selectors_rec s d n d2 eo_lit_nat_zero (eo_lit_nat_succ ai)))
+  | (Datatype.sum c d2), (eo_lit_nat_succ ci), ai => (__eo_datatype_cons_selectors_rec s d n d2 ci ai)
   | _, _, _ => Term.Stuck
 
 
 partial def __eo_dt_selectors : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.DtCons s d n) => (__eo_datatype_cons_selectors_rec s d n d n 0)
+  | (Term.DtCons s d n) => (__eo_datatype_cons_selectors_rec s d n d n eo_lit_nat_zero)
   | t => (__eo_dt_selectors_main t)
 
 
