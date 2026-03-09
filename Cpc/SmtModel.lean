@@ -70,6 +70,8 @@ macro_rules
   | `(smt_lit_nat_succ $x) => `(Nat.succ $x)
 def smt_lit_int_to_nat (x : smt_lit_Int) : smt_lit_Nat :=
   (Int.toNat x)
+def smt_lit_nateq : smt_lit_Nat -> smt_lit_Nat -> smt_lit_Bool
+  | x, y => decide (x = y)
 
 -- SMT Beyond Eunoia
 
@@ -720,7 +722,7 @@ def __smtx_model_eval_repeat_rec : smt_lit_Nat -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_repeat : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) => (smt_lit_ite (smt_lit_zleq 1 x1) (smt_lit_ite (smt_lit_zeq x1 1) (SmtValue.Binary x2 x3) (__smtx_model_eval_repeat_rec (smt_lit_int_to_nat x1) (SmtValue.Binary x2 x3))) SmtValue.NotValue)
+  | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) => (smt_lit_ite (smt_lit_zleq 1 x1) (__smtx_model_eval_repeat_rec (smt_lit_int_to_nat x1) (SmtValue.Binary x2 x3)) SmtValue.NotValue)
   | t1, t2 => SmtValue.NotValue
 
 
@@ -842,7 +844,7 @@ def __smtx_model_eval_sign_extend (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
 
 def __smtx_model_eval_rotate_left_rec : smt_lit_Nat -> SmtValue -> SmtValue
   | smt_lit_nat_zero, (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 x2)
-  | (smt_lit_nat_succ n), (SmtValue.Binary x1 x2) => (__smtx_model_eval_rotate_left_rec n (__smtx_model_eval_concat (__smtx_model_eval_extract (SmtValue.Numeral (smt_lit_zplus (smt_lit_zplus x2 (smt_lit_zneg 1)) (smt_lit_zneg 1))) (SmtValue.Numeral 0) (SmtValue.Binary x1 x2)) (__smtx_model_eval_extract (SmtValue.Numeral (smt_lit_zplus x2 (smt_lit_zneg 1))) (SmtValue.Numeral (smt_lit_zplus x2 (smt_lit_zneg 1))) (SmtValue.Binary x1 x2))))
+  | (smt_lit_nat_succ n), (SmtValue.Binary x1 x2) => (__smtx_model_eval_rotate_left_rec n (__smtx_model_eval_concat (__smtx_model_eval_extract (SmtValue.Numeral (smt_lit_zplus (smt_lit_zplus x1 (smt_lit_zneg 1)) (smt_lit_zneg 1))) (SmtValue.Numeral 0) (SmtValue.Binary x1 x2)) (__smtx_model_eval_extract (SmtValue.Numeral (smt_lit_zplus x1 (smt_lit_zneg 1))) (SmtValue.Numeral (smt_lit_zplus x1 (smt_lit_zneg 1))) (SmtValue.Binary x1 x2))))
   | n, t1 => SmtValue.NotValue
 
 
@@ -853,7 +855,7 @@ def __smtx_model_eval_rotate_left : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_rotate_right_rec : smt_lit_Nat -> SmtValue -> SmtValue
   | smt_lit_nat_zero, (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 x2)
-  | (smt_lit_nat_succ n), (SmtValue.Binary x1 x2) => (__smtx_model_eval_rotate_right_rec n (__smtx_model_eval_concat (__smtx_model_eval_extract (SmtValue.Numeral 0) (SmtValue.Numeral 0) (SmtValue.Binary x1 x2)) (__smtx_model_eval_extract (SmtValue.Numeral (smt_lit_zplus x2 (smt_lit_zneg 1))) (SmtValue.Numeral 1) (SmtValue.Binary x1 x2))))
+  | (smt_lit_nat_succ n), (SmtValue.Binary x1 x2) => (__smtx_model_eval_rotate_right_rec n (__smtx_model_eval_concat (__smtx_model_eval_extract (SmtValue.Numeral 0) (SmtValue.Numeral 0) (SmtValue.Binary x1 x2)) (__smtx_model_eval_extract (SmtValue.Numeral (smt_lit_zplus x1 (smt_lit_zneg 1))) (SmtValue.Numeral 1) (SmtValue.Binary x1 x2))))
   | n, t1 => SmtValue.NotValue
 
 
