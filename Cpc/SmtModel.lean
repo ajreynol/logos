@@ -736,7 +736,7 @@ partial def __smtx_model_eval_bvxnor (x1 : SmtValue) (x2 : SmtValue) : SmtValue 
   (__smtx_model_eval_bvnot (__smtx_model_eval_bvxor x1 x2))
 
 partial def __smtx_model_eval_bvcomp (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_ite (__smtx_model_eval_eq x1 x2) (__smtx_model_eval__at_bv (SmtValue.Numeral 1) (SmtValue.Numeral 1)) (__smtx_model_eval__at_bv (SmtValue.Numeral 0) (SmtValue.Numeral 1)))
+  (__smtx_model_eval_ite (__smtx_model_eval_eq x1 x2) (SmtValue.Binary 1 1) (SmtValue.Binary 1 0))
 
 partial def __smtx_model_eval_bvneg : SmtValue -> SmtValue
   | (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 (smt_lit_mod_total (smt_lit_zneg x2) (smt_lit_int_pow2 x1)))
