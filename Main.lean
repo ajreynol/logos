@@ -30,7 +30,7 @@ def evalLogoExpr (path : String) : Lean.Meta.MetaM Nat := do
   try
     let stx ← Lean.Parser.testParseFile (← Lean.getEnv) path
     -- IO.println stx
-    let ⟨.node _ _ #[_, .node _ _ args]⟩ := stx
+    let .node _ _ #[_, .node _ _ args] := stx
       | throwError "Expected a proof of the following form:\nimport Cpc.Logos\n\n#eval! <proof>\n\ngot:\n{stx}"
     Lean.liftCommandElabM do
       for arg in args do
