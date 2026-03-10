@@ -47,6 +47,7 @@ abbrev eo_lit_str_substr := SmtEval.smt_lit_str_substr
 abbrev eo_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev eo_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev eo_lit_str_from_code := SmtEval.smt_lit_str_from_code
+abbrev eo_lit_streq := SmtEval.smt_lit_streq
 
 abbrev eo_lit_bit := SmtEval.smt_lit_bit
 abbrev eo_lit_msb := SmtEval.smt_lit_msb
@@ -591,6 +592,7 @@ partial def __eo_is_var : Term -> Term
 
 
 partial def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
+  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (eo_lit_ite (eo_lit_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
   | (DatatypeCons.cons T c) => (DatatypeCons.cons (eo_lit_ite (eo_lit_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
   | DatatypeCons.unit => DatatypeCons.unit
 
@@ -9469,17 +9471,17 @@ def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState
   | (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
 
 
-def __eo_invoke_cmd_list_assuming (S : CState) : Term -> CCmdList -> CState
-  | (Term.Apply (Term.Apply Term.and F) as), cs => (__eo_invoke_cmd_list_assuming (CState.cons (CStateObj.assume F) S) as cs)
-  | (Term.Boolean true), cs => (__eo_invoke_cmd_list S cs)
-  | as, cs => CState.Stuck
-
-
 def __eo_state_is_refutation (s : CState) : eo_lit_Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
+def __eo_invoke_assume_list (S : CState) : Term -> CState
+  | (Term.Apply (Term.Apply Term.and F) as) => (CState.cons (CStateObj.assume F) (__eo_invoke_assume_list S as))
+  | (Term.Boolean true) => S
+  | as => CState.Stuck
+
+
 def __eo_checker_is_refutation : Term -> CCmdList -> eo_lit_Bool
-  | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list_assuming CState.nil as cs))
+  | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
 
 
 

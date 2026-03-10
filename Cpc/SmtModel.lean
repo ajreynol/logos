@@ -46,6 +46,7 @@ abbrev smt_lit_str_substr := SmtEval.smt_lit_str_substr
 abbrev smt_lit_str_indexof := SmtEval.smt_lit_str_indexof
 abbrev smt_lit_str_to_code := SmtEval.smt_lit_str_to_code
 abbrev smt_lit_str_from_code := SmtEval.smt_lit_str_from_code
+abbrev smt_lit_streq := SmtEval.smt_lit_streq
 
 abbrev smt_lit_bit := SmtEval.smt_lit_bit
 abbrev smt_lit_msb := SmtEval.smt_lit_msb
@@ -62,11 +63,8 @@ abbrev smt_lit_Nat := SmtEval.smt_lit_Nat
 abbrev smt_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
 abbrev smt_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
 abbrev smt_lit_nateq := SmtEval.smt_lit_nateq
-
+  
 -- SMT Beyond Eunoia
-
-def smt_lit_streq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
-  | x, y => decide (x = y)
 
 def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
   | _ => 0 -- FIXME
@@ -467,6 +465,7 @@ def __smtx_dt_num_sels : SmtDatatype -> smt_lit_Nat -> smt_lit_Nat
 
 
 def __smtx_dtc_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
+  | (SmtDatatypeCons.cons (SmtType.Datatype s2 d2) c) => (SmtDatatypeCons.cons (SmtType.Datatype s2 (smt_lit_ite (smt_lit_streq s s2) d2 (__smtx_dt_substitute s d d2))) (__smtx_dtc_substitute s d c))
   | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (smt_lit_ite (smt_lit_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T) (__smtx_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
 
