@@ -85,9 +85,12 @@ def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
 def smt_lit_str_lt : smt_lit_String -> smt_lit_String -> smt_lit_Bool
   | s₁, s₂ => decide (s₁ < s₂)
 def smt_lit_str_from_int : smt_lit_Int -> smt_lit_String
-  | i => toString i
+  | i => if i < 0 then "" else (toString i)
 def smt_lit_str_to_int : smt_lit_String -> smt_lit_Int
-  | s => s.toInt?.getD (-1)
+  | s => match s.toList with
+          | [] => -1
+          | '0' :: _ :: _ => -1
+          | cs => s.toInt?.getD (-1)
 def smt_lit_str_to_upper : smt_lit_String -> smt_lit_String
   | s => s.toUpper
 def smt_lit_str_to_lower : smt_lit_String -> smt_lit_String
@@ -978,8 +981,10 @@ def __smtx_model_eval_zero_extend : SmtValue -> SmtValue -> SmtValue
   | t1, t2 => SmtValue.NotValue
 
 
-def __smtx_model_eval_sign_extend (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_ite (__smtx_model_eval_eq x1 (SmtValue.Numeral 1)) x2 (__smtx_model_eval_concat (__smtx_model_eval_repeat x1 (__smtx_model_eval_extract (__smtx_model_eval__ (__smtx_model_eval__at_bvsize x2) (SmtValue.Numeral 1)) (__smtx_model_eval__ (__smtx_model_eval__at_bvsize x2) (SmtValue.Numeral 1)) x2)) x2))
+def __smtx_model_eval_sign_extend : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) => (smt_lit_ite (smt_lit_zleq 0 x1) (smt_lit_ite (smt_lit_zleq 0 (smt_lit_zplus x1 x2)) (SmtValue.Binary (smt_lit_zplus x1 x2) (smt_lit_mod_total (smt_lit_binary_uts x2 x3) (smt_lit_int_pow2 (smt_lit_zplus x1 x2)))) SmtValue.NotValue) SmtValue.NotValue)
+  | t1, t2 => SmtValue.NotValue
+
 
 def __smtx_model_eval_rotate_left_rec : smt_lit_Nat -> SmtValue -> SmtValue
   | smt_lit_nat_zero, (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 x2)
