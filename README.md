@@ -2,13 +2,19 @@
 
 ## A Verifiable Proof Checker for SMT Solvers
 
+Logos is a proof checker for SMT that has a correctness specification in Lean.
+The definition of Logos is automatically generated from the current definition of the Cooperating Proof Calculus (CPC)
+(https://github.com/cvc5/cvc5/blob/main/proofs/eo/cpc/Cpc.eo).
+This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos),
+available on a development branch.
+
 ## Building the Logos checker
 
 ```bash
 lake build logos
 ```
 
-Note that logos takes roughly 7 minutes to build currently.
+Note that logos takes roughly 3.5 minutes to build currently.
 
 ## Using the Logos checker
 
@@ -44,14 +50,14 @@ Proof checking succeeds if executing logos on this files returns `true`.
 Note that logos assumes that scripts define a state that is constructed iteratively starting from
 `logos_init_state`, followed by a sequence of `logos_invoke_assume` commands (the assumptions of the proof),
 followed by a sequence of `logos_invoke_cmd` commands.
-A state is a refutation if the last proven formula was `false` and if all assumptions introduced via `assume_push` commands are closed.
+A state is a refutation if the last proven formula was `false` and if
+all assumptions introduced via `assume_push` commands are closed by corresponding `step_pop` commands.
+The semantics of these commands mimics the Eunoia logical framework;
+for details see https://github.com/cvc5/ethos/blob/main/user_manual.md.
 
-## About
+## Correctness
 
-The definition of Logos is automatically generated from the current definition of the Cooperating Proof Calculus (CPC).
-This compilation depends on plugins of the proof checker Ethos (https://github.com/cvc5/ethos).
-
-Logos additionally has a correctness specification.
+Logos additionally has an (unproven) correctness specification.
 This is in two parts. First, the file `./cpc/SmtModel.lean` formalizes a model semantics of SMT-LIB.
 Second, the file `./cpc/Spec.lean` defines a correspondence between Eunoia terms and SMT-LIB terms
 and a theorem (to prove) for each of the proof rules.
