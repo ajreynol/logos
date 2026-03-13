@@ -302,7 +302,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term._at_strings_num_occur x1) x2) => 
     let _v0 := (__eo_to_smt x2)
     let _v1 := (__eo_to_smt x1)
-    (__eo_mk_apply (__eo_mk_apply Term.div (__eo_mk_apply (__eo_mk_apply Term.neg (__eo_mk_apply Term.str_len _v1)) (__eo_mk_apply Term.str_len (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.str_replace_all _v1) _v0) (SmtTerm.String ""))))) (__eo_mk_apply Term.str_len _v0))
+    (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len _v1)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_all _v1) _v0) (SmtTerm.String ""))))) (SmtTerm.Apply SmtTerm.str_len _v0))
   | (Term.Apply (Term.Apply (Term.Apply Term._at_witness_string_length x1) x2) x3) => 
     let _v0 := (__eo_to_smt_type x1)
     (SmtTerm.Apply (SmtTerm.choice "_at_x" _v0) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" _v0))) (__eo_to_smt x2)))
@@ -322,7 +322,9 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term.set_choose x1) x2) => 
     let _v0 := (__eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose x1)))
     (SmtTerm.Apply (SmtTerm.choice "_at_x" _v0) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_member (SmtTerm.Var "_at_x" _v0)) (__eo_to_smt x1)))
-  | (Term.Apply Term.set_is_empty x1) => (SmtTerm.Apply SmtTerm.set_is_empty (__eo_to_smt x1))
+  | (Term.Apply Term.set_is_empty x1) => 
+    let _v0 := (__eo_to_smt x1)
+    (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq _v0) (SmtTerm.set_empty (__smtx_typeof _v0)))
   | (Term.Apply Term.set_is_singleton x1) => 
     let _v0 := (__eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose x1)))
     (SmtTerm.Apply (SmtTerm.exists "_at_x" _v0) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (SmtTerm.Apply SmtTerm.set_singleton (SmtTerm.Var "_at_x" _v0))))
