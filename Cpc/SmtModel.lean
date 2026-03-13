@@ -291,14 +291,14 @@ inductive SmtType : Type where
   | RegLan : SmtType
   | BitVec : smt_lit_Int -> SmtType
   | Map : SmtType -> SmtType -> SmtType
+  | Array : SmtType -> SmtType -> SmtType
+  | Set : SmtType -> SmtType
   | DtConsType : SmtType -> SmtType -> SmtType
   | Seq : SmtType -> SmtType
   | Char : SmtType
   | Datatype : smt_lit_String -> SmtDatatype -> SmtType
   | TypeRef : smt_lit_String -> SmtType
   | USort : smt_lit_Nat -> SmtType
-  | Array : SmtType -> SmtType -> SmtType
-  | Set : SmtType -> SmtType
 
 deriving Repr, DecidableEq, Inhabited
 
@@ -1521,9 +1521,14 @@ def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | x1 => SmtValue.NotValue
 
 
+def __smtx_typeof_select : SmtType -> SmtType -> SmtType
+  | (SmtType.Array x1 x2), x3 => (smt_lit_ite (smt_lit_Teq x1 x3) x2 SmtType.None)
+  | x4, x5 => SmtType.None
+
+
 def __smtx_typeof_concat : SmtType -> SmtType -> SmtType
-  | (SmtType.BitVec n1), (SmtType.BitVec n2) => (SmtType.BitVec (smt_lit_zplus n1 n2))
-  | T, U => SmtType.None
+  | (SmtType.BitVec x1), (SmtType.BitVec x2) => (SmtType.BitVec (smt_lit_zplus x1 x2))
+  | x3, x4 => SmtType.None
 
 
 def __smtx_typeof_ite : SmtType -> SmtType -> SmtType -> SmtType
@@ -1597,7 +1602,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div_total x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mod_total x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult_total x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select x1) x2) => (__smtx_typeof_select (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store x1) x2) x3) => SmtType.None
   | (SmtTerm.Apply SmtTerm._at_bvsize x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat x1) x2) => (__smtx_typeof_concat (__smtx_typeof x1) (__smtx_typeof x2))
