@@ -1585,8 +1585,23 @@ def __smtx_typeof_concat : SmtType -> SmtType -> SmtType
   | x3, x4 => SmtType.None
 
 
+def __smtx_typeof_extract : SmtTerm -> SmtTerm -> SmtType -> SmtType
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2), (SmtType.BitVec x3) => (smt_lit_ite (smt_lit_zleq 0 x2) (smt_lit_ite (smt_lit_zleq x2 x1) (smt_lit_ite (smt_lit_zlt x1 x3) (SmtType.BitVec (smt_lit_zplus (smt_lit_zplus x2 (smt_lit_zneg x1)) 1)) SmtType.None) SmtType.None) SmtType.None)
+  | x4, x5, x6 => SmtType.None
+
+
 def __smtx_typeof_repeat : SmtTerm -> SmtType -> SmtType
   | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 1 x1) (SmtType.BitVec (smt_lit_zmult x1 x2)) SmtType.None)
+  | x3, x4 => SmtType.None
+
+
+def __smtx_typeof_zero_extend : SmtTerm -> SmtType -> SmtType
+  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_zplus x1 x2)) SmtType.None)
+  | x3, x4 => SmtType.None
+
+
+def __smtx_typeof_sign_extend : SmtTerm -> SmtType -> SmtType
+  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_zplus x1 x2)) SmtType.None)
   | x3, x4 => SmtType.None
 
 
@@ -1600,9 +1615,24 @@ def __smtx_typeof_rotate_right : SmtTerm -> SmtType -> SmtType
   | x3, x4 => SmtType.None
 
 
+def __smtx_typeof__at_bv : SmtTerm -> SmtTerm -> SmtType
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (smt_lit_ite (smt_lit_zleq 0 x2) (SmtType.BitVec x1) SmtType.None)
+  | x3, x4 => SmtType.None
+
+
+def __smtx_typeof_seq_nth : SmtType -> SmtType -> SmtType
+  | (SmtType.Seq x1), SmtType.Int => x1
+  | x2, x3 => SmtType.None
+
+
 def __smtx_typeof_set_member : SmtType -> SmtType -> SmtType
   | x1, (SmtType.Set x2) => (smt_lit_ite (smt_lit_Teq x1 x2) SmtType.Bool SmtType.None)
   | x3, x4 => SmtType.None
+
+
+def __smtx_typeof_int_to_bv : SmtTerm -> SmtType -> SmtType
+  | (SmtTerm.Numeral x1), SmtType.Int => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec x1) SmtType.None)
+  | x2, x3 => SmtType.None
 
 
 def __smtx_typeof : SmtTerm -> SmtType
@@ -1616,7 +1646,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.xor x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.distinct x1) x2) => SmtType.None
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.distinct x1) x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.plus x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mult x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
@@ -1624,7 +1654,9 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.leq x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.gt x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.geq x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.Apply SmtTerm.to_real x1) => SmtType.None
+  | (SmtTerm.Apply SmtTerm.to_real x1) => 
+    let _v0 := (__smtx_typeof x1)
+    (smt_lit_ite (smt_lit_Teq _v0 SmtType.Int) SmtType.Real (smt_lit_ite (smt_lit_Teq _v0 SmtType.Real) SmtType.Real SmtType.None))
   | (SmtTerm.Apply SmtTerm.to_int x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Int SmtType.None)
   | (SmtTerm.Apply SmtTerm.is_int x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Int SmtType.None)
   | (SmtTerm.Apply SmtTerm.abs x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
@@ -1641,7 +1673,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store x1) x2) x3) => (__smtx_typeof_store (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
   | (SmtTerm.Apply SmtTerm._at_bvsize x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat x1) x2) => (__smtx_typeof_concat (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract x1) x2) x3) => SmtType.None
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract x1) x2) x3) => (__smtx_typeof_extract x1 x2 (__smtx_typeof x3))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat x1) x2) => (__smtx_typeof_repeat x1 (__smtx_typeof x2))
   | (SmtTerm.Apply SmtTerm.bvnot x1) => (__smtx_typeof_bv_op_1 (__smtx_typeof x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvand x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
@@ -1671,8 +1703,8 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvshl x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvlshr x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvashr x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend x1) x2) => SmtType.None
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend x1) x2) => SmtType.None
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend x1) x2) => (__smtx_typeof_zero_extend x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend x1) x2) => (__smtx_typeof_sign_extend (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left x1) x2) => (__smtx_typeof_rotate_left x1 (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right x1) x2) => (__smtx_typeof_rotate_right x1 (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvuaddo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
@@ -1683,7 +1715,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv x1) x2) => SmtType.None
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv x1) x2) => (__smtx_typeof__at_bv x1 x2)
   | (SmtTerm.seq_empty x1) => (SmtType.Set x1)
   | (SmtTerm.Apply SmtTerm.str_len x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.Int SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat x1) x2) => 
@@ -1764,7 +1796,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply SmtTerm.seq_unit x1) => 
     let _v0 := (__smtx_typeof x1)
     (smt_lit_ite (smt_lit_Teq _v0 SmtType.None) SmtType.None (SmtType.Set _v0))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.seq_nth x1) x2) => SmtType.None
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.seq_nth x1) x2) => (__smtx_typeof_seq_nth (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.set_empty x1) => (SmtType.Set x1)
   | (SmtTerm.Apply SmtTerm.set_singleton x1) => 
     let _v0 := (__smtx_typeof x1)
@@ -1777,7 +1809,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply SmtTerm.set_is_empty x1) => SmtType.None
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.qdiv x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.qdiv_total x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv x1) x2) => SmtType.None
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv x1) x2) => (__smtx_typeof_int_to_bv x1 (__smtx_typeof x2))
   | (SmtTerm.Apply SmtTerm.ubv_to_int x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
   | (SmtTerm.Apply SmtTerm.sbv_to_int x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite x1) x2) x3) => (__smtx_typeof_ite (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
