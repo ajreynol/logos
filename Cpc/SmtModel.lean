@@ -1256,7 +1256,7 @@ def __smtx_model_eval_re_exp : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_re_opt (x1 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_re_union x1 SmtValue.NotValue)
+  (__smtx_model_eval_re_union x1 (SmtValue.RegLan (smt_lit_str_to_re "")))
 
 def __smtx_model_eval_re_comp : SmtValue -> SmtValue
   | (SmtValue.RegLan x1) => (SmtValue.RegLan (smt_lit_re_comp x1))
