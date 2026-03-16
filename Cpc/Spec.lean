@@ -238,10 +238,10 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.Apply Term.bvsltbv x1) x2) x3) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvslt (__eo_to_smt x1)) (__eo_to_smt x2))) (SmtTerm.Binary 1 1)) (SmtTerm.Binary 1 0))
   | (Term.Apply Term.bvredand x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvcomp _v0) (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (__smtx_bv_sizeof_type (__smtx_typeof _v0)))))
+    (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvcomp _v0) (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)))
   | (Term.Apply Term.bvredor x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvcomp _v0) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (__smtx_bv_sizeof_type (__smtx_typeof _v0)))))
+    (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvcomp _v0) (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)))
   | (Term.Apply (Term.Apply Term._at_bit x1) x2) => 
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract _v0) _v0) (__eo_to_smt x2))
