@@ -84,11 +84,11 @@ def __eo_to_smt_type : Term -> SmtType
   | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
   | Term.Char => SmtType.Char
   | (Term.Apply Term.Seq x1) => (SmtType.Seq (__eo_to_smt_type x1))
-  | (Term.Apply (Term.Apply Term.Array x1) x2) => (SmtType.Array (__eo_to_smt_type x1) (__eo_to_smt_type x2))
+  | (Term.Apply (Term.Apply Term.Array x1) x2) => (SmtType.Map (__eo_to_smt_type x1) (__eo_to_smt_type x2))
   | Term.RegLan => SmtType.RegLan
   | Term.UnitTuple => (SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
   | (Term.Apply (Term.Apply Term.Tuple x1) x2) => (__eo_to_smt_type_tuple (__eo_to_smt_type x1) (__eo_to_smt_type x2))
-  | (Term.Apply Term.Set x1) => (SmtType.Set (__eo_to_smt_type x1))
+  | (Term.Apply Term.Set x1) => (SmtType.Map (__eo_to_smt_type x1) SmtType.Bool)
   | T => SmtType.None
 
 
