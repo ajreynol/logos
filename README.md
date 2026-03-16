@@ -16,6 +16,12 @@ lake build logos
 
 Note that logos takes roughly 3.5 minutes to build currently.
 
+To run the same checks as CI locally, use:
+
+```bash
+bash scripts/run-ci.sh
+```
+
 ## Using the Logos checker
 
 ```bash
