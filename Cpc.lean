@@ -3,4 +3,5 @@
 import Cpc.Logos
 import Cpc.SmtEval
 import Cpc.SmtModel
+import Cpc.SmtModelTypePreservation
 import Cpc.Spec
