@@ -353,7 +353,6 @@ inductive SmtTerm : Type where
   | multmult_total : SmtTerm
   | select : SmtTerm
   | store : SmtTerm
-  | _at_bvsize : SmtTerm
   | concat : SmtTerm
   | extract : SmtTerm
   | repeat : SmtTerm
@@ -711,6 +710,16 @@ def __smtx_seq_nth : SmtValue -> SmtValue -> SmtValue
   | v1, v2 => SmtValue.NotValue
 
 
+def __smtx_bv_sizeof_type : SmtType -> smt_lit_Int
+  | (SmtType.BitVec x1) => x1
+  | t1 => (smt_lit_zneg 1)
+
+
+def __smtx_bv_sizeof_value : SmtValue -> smt_lit_Int
+  | (SmtValue.Binary x1 x2) => x1
+  | t1 => (smt_lit_zneg 1)
+
+
 def __smtx_is_var (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
   | (SmtTerm.Var s2 T2) => (smt_lit_and (smt_lit_streq s1 s2) (smt_lit_Teq T1 T2))
   | x => false
@@ -857,11 +866,6 @@ def __smtx_model_eval_select (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
 def __smtx_model_eval_store (x1 : SmtValue) (x2 : SmtValue) (x3 : SmtValue) : SmtValue :=
   (__smtx_map_store x1 x2 x3)
 
-def __smtx_model_eval__at_bvsize : SmtValue -> SmtValue
-  | (SmtValue.Binary x1 x2) => (SmtValue.Numeral x1)
-  | t1 => SmtValue.NotValue
-
-
 def __smtx_model_eval_concat : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => 
     let _v0 := (smt_lit_zplus x1 x3)
@@ -951,7 +955,7 @@ def __smtx_model_eval_bvsdiv (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
     let _v0 := (__smtx_model_eval_bvneg x2)
     let _v1 := (__smtx_model_eval_bvneg x1)
     let _v3 := (SmtValue.Binary 1 1)
-    let _v4 := (__smtx_model_eval__ (__smtx_model_eval__at_bvsize x1) (SmtValue.Numeral 1))
+    let _v4 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
     let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x2) _v3)
     let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x1) _v3)
     let _v7 := (__smtx_model_eval_not _v6)
@@ -963,7 +967,7 @@ def __smtx_model_eval_bvsrem (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
     let _v0 := (__smtx_model_eval_bvneg x2)
     let _v1 := (__smtx_model_eval_bvneg x1)
     let _v3 := (SmtValue.Binary 1 1)
-    let _v4 := (__smtx_model_eval__ (__smtx_model_eval__at_bvsize x1) (SmtValue.Numeral 1))
+    let _v4 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
     let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x2) _v3)
     let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x1) _v3)
     let _v7 := (__smtx_model_eval_not _v6)
@@ -973,7 +977,7 @@ def __smtx_model_eval_bvsrem (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
 def __smtx_model_eval_bvsmod (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   
     let _v1 := (SmtValue.Binary 1 1)
-    let _v2 := (__smtx_model_eval__at_bvsize x1)
+    let _v2 := (SmtValue.Numeral (__smtx_bv_sizeof_value x1))
     let _v3 := (__smtx_model_eval__ _v2 (SmtValue.Numeral 1))
     let _v4 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x2) _v1)
     let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x1) _v1)
@@ -1007,9 +1011,9 @@ def __smtx_model_eval_bvsgt (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   
     let _v1 := (SmtValue.Binary 1 1)
     let _v2 := (SmtValue.Numeral 1)
-    let _v3 := (__smtx_model_eval__ (__smtx_model_eval__at_bvsize x2) _v2)
+    let _v3 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x2)) _v2)
     let _v4 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x2) _v1)
-    let _v5 := (__smtx_model_eval__ (__smtx_model_eval__at_bvsize x1) _v2)
+    let _v5 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) _v2)
     let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v5 _v5 x1) _v1)
     (__smtx_model_eval_or (__smtx_model_eval_and (__smtx_model_eval_not _v6) _v4) (__smtx_model_eval_and (__smtx_model_eval_eq _v6 _v4) (__smtx_model_eval_bvugt x1 x2)))
 
@@ -1028,7 +1032,7 @@ def __smtx_model_eval_bvlshr : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_bvashr (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   
-    let _v1 := (__smtx_model_eval__ (__smtx_model_eval__at_bvsize x1) (SmtValue.Numeral 1))
+    let _v1 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
     (__smtx_model_eval_ite (__smtx_model_eval_eq (__smtx_model_eval_extract _v1 _v1 x1) (SmtValue.Binary 1 0)) (__smtx_model_eval_bvlshr x1 x2) (__smtx_model_eval_bvnot (__smtx_model_eval_bvlshr (__smtx_model_eval_bvnot x1) x2)))
 
 def __smtx_model_eval_zero_extend : SmtValue -> SmtValue -> SmtValue
@@ -1108,10 +1112,10 @@ def __smtx_model_eval_bvusubo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_model_eval_bvult x1 x2)
 
 def __smtx_model_eval_bvssubo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_ite (__smtx_model_eval_bvnego x2) (__smtx_model_eval_bvsge x1 (__smtx_model_eval__at_bv (SmtValue.Numeral 0) (__smtx_model_eval__at_bvsize x1))) (__smtx_model_eval_bvsaddo x1 (__smtx_model_eval_bvneg x2)))
+  (__smtx_model_eval_ite (__smtx_model_eval_bvnego x2) (__smtx_model_eval_bvsge x1 (__smtx_model_eval__at_bv (SmtValue.Numeral 0) (SmtValue.Numeral (__smtx_bv_sizeof_value x1)))) (__smtx_model_eval_bvsaddo x1 (__smtx_model_eval_bvneg x2)))
 
 def __smtx_model_eval_bvsdivo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_and (__smtx_model_eval_bvnego x1) (__smtx_model_eval_eq x2 (__smtx_model_eval_bvnot (__smtx_model_eval__at_bv (SmtValue.Numeral 0) (__smtx_model_eval__at_bvsize x1)))))
+  (__smtx_model_eval_and (__smtx_model_eval_bvnego x1) (__smtx_model_eval_eq x2 (__smtx_model_eval_bvnot (__smtx_model_eval__at_bv (SmtValue.Numeral 0) (SmtValue.Numeral (__smtx_bv_sizeof_value x1))))))
 
 def __smtx_model_eval__at_bv : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Binary x2 (smt_lit_mod_total x1 (smt_lit_int_pow2 x2)))
@@ -1391,7 +1395,6 @@ def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult_total x1) x2) => (__smtx_model_eval_multmult_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select x1) x2) => (__smtx_model_eval_select (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store x1) x2) x3) => (__smtx_model_eval_store (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.Apply SmtTerm._at_bvsize x1) => (__smtx_model_eval__at_bvsize (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat x1) x2) => (__smtx_model_eval_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract x1) x2) x3) => (__smtx_model_eval_extract (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat x1) x2) => (__smtx_model_eval_repeat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
@@ -1680,7 +1683,6 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult_total x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select x1) x2) => (__smtx_typeof_select (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store x1) x2) x3) => (__smtx_typeof_store (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
-  | (SmtTerm.Apply SmtTerm._at_bvsize x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat x1) x2) => (__smtx_typeof_concat (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract x1) x2) x3) => (__smtx_typeof_extract x1 x2 (__smtx_typeof x3))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat x1) x2) => (__smtx_typeof_repeat x1 (__smtx_typeof x2))

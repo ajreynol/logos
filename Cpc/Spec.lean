@@ -189,7 +189,7 @@ def __eo_to_smt : Term -> SmtTerm
     let _v0 := (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))
     let _v2 := (SmtTerm.Var "_at_x" _v0)
     (SmtTerm.Apply (SmtTerm.choice "_at_x" _v0) (SmtTerm.Apply SmtTerm.not (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt x1)) _v2)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt x2)) _v2))))
-  | (Term.Apply Term._at_bvsize x1) => (SmtTerm.Apply SmtTerm._at_bvsize (__eo_to_smt x1))
+  | (Term.Apply Term._at_bvsize x1) => (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x1))))
   | (Term.Apply (Term.Apply Term.concat x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply Term.extract x1) x2) x3) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract (__eo_to_smt x1)) (__eo_to_smt x2)) (__eo_to_smt x3))
   | (Term.Apply (Term.Apply Term.repeat x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat (__eo_to_smt x1)) (__eo_to_smt x2))
@@ -238,10 +238,10 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.Apply Term.bvsltbv x1) x2) x3) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvslt (__eo_to_smt x1)) (__eo_to_smt x2))) (SmtTerm.Binary 1 1)) (SmtTerm.Binary 1 0))
   | (Term.Apply Term.bvredand x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvcomp _v0) (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (SmtTerm.Apply SmtTerm._at_bvsize _v0))))
+    (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvcomp _v0) (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (__smtx_bv_sizeof_type (__smtx_typeof _v0)))))
   | (Term.Apply Term.bvredor x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvcomp _v0) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (SmtTerm.Apply SmtTerm._at_bvsize _v0))))
+    (SmtTerm.Apply SmtTerm.bvnot (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvcomp _v0) (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (SmtTerm.Numeral 0)) (__smtx_bv_sizeof_type (__smtx_typeof _v0)))))
   | (Term.Apply (Term.Apply Term._at_bit x1) x2) => 
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract _v0) _v0) (__eo_to_smt x2))
