@@ -953,7 +953,7 @@ def __smtx_model_eval_bvsdiv (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
     let _v0 := (__smtx_model_eval_bvneg x2)
     let _v1 := (__smtx_model_eval_bvneg x1)
     let _v3 := (SmtValue.Binary 1 1)
-    let _v4 := (__smtx_model_eval__ (__smtx_bv_sizeof_value x1) (SmtValue.Numeral 1))
+    let _v4 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
     let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x2) _v3)
     let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x1) _v3)
     let _v7 := (__smtx_model_eval_not _v6)
@@ -965,7 +965,7 @@ def __smtx_model_eval_bvsrem (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
     let _v0 := (__smtx_model_eval_bvneg x2)
     let _v1 := (__smtx_model_eval_bvneg x1)
     let _v3 := (SmtValue.Binary 1 1)
-    let _v4 := (__smtx_model_eval__ (__smtx_bv_sizeof_value x1) (SmtValue.Numeral 1))
+    let _v4 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
     let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x2) _v3)
     let _v6 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v4 _v4 x1) _v3)
     let _v7 := (__smtx_model_eval_not _v6)
@@ -976,7 +976,7 @@ def __smtx_model_eval_bvsmod (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   
     let _v1 := (SmtValue.Binary 1 1)
     let _v2 := (__smtx_bv_sizeof_value x1)
-    let _v3 := (__smtx_model_eval__ _v2 (SmtValue.Numeral 1))
+    let _v3 := (__smtx_model_eval__ (SmtValue.Numeral _v2) (SmtValue.Numeral 1))
     let _v4 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x2) _v1)
     let _v5 := (__smtx_model_eval_eq (__smtx_model_eval_extract _v3 _v3 x1) _v1)
     let _v6 := (__smtx_model_eval_bvurem (__smtx_model_eval_ite _v5 x1 (__smtx_model_eval_bvneg x1)) (__smtx_model_eval_ite _v4 x2 (__smtx_model_eval_bvneg x2)))
@@ -1030,7 +1030,7 @@ def __smtx_model_eval_bvlshr : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_bvashr (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   
-    let _v1 := (__smtx_model_eval__ (__smtx_bv_sizeof_value x1) (SmtValue.Numeral 1))
+    let _v1 := (__smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value x1)) (SmtValue.Numeral 1))
     (__smtx_model_eval_ite (__smtx_model_eval_eq (__smtx_model_eval_extract _v1 _v1 x1) (SmtValue.Binary 1 0)) (__smtx_model_eval_bvlshr x1 x2) (__smtx_model_eval_bvnot (__smtx_model_eval_bvlshr (__smtx_model_eval_bvnot x1) x2)))
 
 def __smtx_model_eval_zero_extend : SmtValue -> SmtValue -> SmtValue
