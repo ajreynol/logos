@@ -3904,7 +3904,8 @@ by
   sorry
 
 /- correctness theorem for __eo_prog_re_all_elim -/
-theorem correct___eo_prog_re_all_elim   (Not (eo_interprets __eo_prog_re_all_elim false)) :=
+theorem correct___eo_prog_re_all_elim :
+  (Not (eo_interprets __eo_prog_re_all_elim false)) :=
 by
   sorry
 
@@ -3982,12 +3983,14 @@ by
   sorry
 
 /- correctness theorem for __eo_prog_re_star_none -/
-theorem correct___eo_prog_re_star_none   (Not (eo_interprets __eo_prog_re_star_none false)) :=
+theorem correct___eo_prog_re_star_none :
+  (Not (eo_interprets __eo_prog_re_star_none false)) :=
 by
   sorry
 
 /- correctness theorem for __eo_prog_re_star_emp -/
-theorem correct___eo_prog_re_star_emp   (Not (eo_interprets __eo_prog_re_star_emp false)) :=
+theorem correct___eo_prog_re_star_emp :
+  (Not (eo_interprets __eo_prog_re_star_emp false)) :=
 by
   sorry
 
