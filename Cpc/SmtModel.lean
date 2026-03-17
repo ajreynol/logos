@@ -1383,7 +1383,7 @@ def __smtx_model_eval_sbv_to_int : SmtValue -> SmtValue
   | t1 => SmtValue.NotValue
 
 
-def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
+noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
@@ -1862,7 +1862,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.lambda s T) x1) => 
     let _v0 := (__smtx_typeof x1)
     (__smtx_typeof_guard _v0 (SmtType.Map T _v0))
-  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (__smtx_typeof_guard (__smtx_typeof x1) T)
+  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) T SmtType.None)
   | (SmtTerm.DtCons s d i) => (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
   | (SmtTerm.DtSel s d i j) => (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel (__smtx_dt_substitute s d d) i j))
   | (SmtTerm.DtTester s d i) => (SmtType.Map (SmtType.Datatype s d) SmtType.Bool)
