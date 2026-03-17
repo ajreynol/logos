@@ -9,3 +9,7 @@ name = "Cpc"
 name = "logos"
 root = "Main"
 supportInterpreter = true
+
+[[lean_exe]]
+name = "logos2"
+root = "Main2"
