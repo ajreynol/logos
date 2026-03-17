@@ -1832,6 +1832,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.DtSel s d i j) => (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel (__smtx_dt_substitute s d d) i j))
   | (SmtTerm.DtTester s d i) => (SmtType.Map (SmtType.Datatype s d) SmtType.Bool)
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
+  | (SmtTerm.Var s T) => T
   | (SmtTerm.Const v T) => T
   | (SmtTerm.UConst i T) => T
   | x1 => SmtType.None
