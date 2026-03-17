@@ -506,10 +506,12 @@ deriving Repr, DecidableEq, Inhabited
 
 end
 
+
 /-
 SMT-LIB model
 -/
-abbrev SmtModel := Int
+abbrev SmtModel := Int -- FIXME
+
 
 -- FIXME:
 -- (__smtx_model_lookup M n T) should return an arbitrary SMT value whose type
@@ -517,6 +519,8 @@ abbrev SmtModel := Int
 def __smtx_model_lookup : SmtModel -> smt_lit_Int -> SmtType -> SmtValue
   | _, _, _ => (SmtValue.Boolean true)
 
+def __smtx_model_push (M : SmtModel) (s : smt_lit_String) (T : SmtType) (v : SmtValue) : SmtModel :=
+  M -- FIXME
 
 /- Type equality -/
 def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
@@ -524,16 +528,7 @@ def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
 /- Value equality -/
 def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
-  
-/- exists -/
-def smt_lit_tforall : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
-  | _, _, _, _ => (SmtValue.Boolean true) -- FIXME
-/- forall -/
-def smt_lit_texists : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
-  | _, _, _, _ => (SmtValue.Boolean true) -- FIXME
-/- choice -/
-def smt_lit_tchoice : SmtModel -> smt_lit_String -> SmtType -> SmtTerm -> SmtValue
-  | _, _, _, _ => (SmtValue.Boolean true) -- FIXME
+
 /- extentional equality for values -/
 def smt_lit_veq_ext : SmtValue -> SmtValue -> SmtValue
   | _, _ => (SmtValue.Boolean true) -- FIXME
@@ -541,6 +536,46 @@ def smt_lit_veq_ext : SmtValue -> SmtValue -> SmtValue
 /- Definition of SMT-LIB model semantics -/
 
 mutual
+
+macro_rules
+  | `(smt_lit_eval_texists $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      `(by
+          classical
+          exact
+            if h :
+                ∃ v : SmtValue,
+                  __smtx_typeof_value v = $T ∧
+                    $evalId (__smtx_model_push $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+  | `(smt_lit_eval_tforall $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      `(by
+          classical
+          exact
+            if h :
+                ∀ v : SmtValue,
+                  __smtx_typeof_value v = $T ->
+                    $evalId (__smtx_model_push $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+  | `(smt_lit_eval_tchoice $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      `(by
+          classical
+          exact
+            if hSat :
+                ∃ v : SmtValue,
+                  __smtx_typeof_value v = $T ∧
+                    $evalId (__smtx_model_push $M $s $T v) $body = (SmtValue.Boolean true) then
+              Classical.choose hSat
+            else if hTy : ∃ v : SmtValue, __smtx_typeof_value v = $T then
+              Classical.choose hTy
+            else
+              SmtValue.NotValue)
 
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
