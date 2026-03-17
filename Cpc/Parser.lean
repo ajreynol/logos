@@ -246,8 +246,8 @@ where
              assums := query.assums.reverse
              cmds := query.cmds.reverse }
 
-def parseProof (s : Sexp) : ParserM (List Term × CCmdList) := do
-  let .expr ss := s | throw s!"Error: expected a list of commands, got {s}"
+def parseProof (ss : List Sexp) : ParserM (List Term × CCmdList) := do
+  let [.expr ss] := ss | throw s!"Error: expected a list of commands, got {ss}"
   let query ← partitionSexps ss
   withDecls query.decls do
   withDefs query.defs do
@@ -258,7 +258,7 @@ def parseProof (s : Sexp) : ParserM (List Term × CCmdList) := do
 end Parser
 
 def parseProof (p : String) : Except String (List Term × CCmdList) := do
-  let s ← Sexp.Parser.sexp!.run p
-  (Parser.parseProof s).run' {}
+  let ss ← Sexp.Parser.manySexps!.run p
+  (Parser.parseProof ss).run' {}
 
 end Eo
