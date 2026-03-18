@@ -323,7 +323,6 @@ inductive SmtTerm : Type where
   | DtCons : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> SmtTerm
   | DtSel : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> smt_lit_Nat -> SmtTerm
   | DtTester : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> SmtTerm
-  | Const : SmtValue -> SmtType -> SmtTerm
   | UConst : smt_lit_String -> SmtType -> SmtTerm
   | not : SmtTerm
   | or : SmtTerm
@@ -1736,7 +1735,6 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.DtTester s d i) => (SmtType.Map (SmtType.Datatype s d) SmtType.Bool)
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
   | (SmtTerm.Var s T) => T
-  | (SmtTerm.Const v T) => T
   | (SmtTerm.UConst s T) => T
   | x1 => SmtType.None
 
@@ -1906,7 +1904,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x1))
-  | (SmtTerm.Const v T) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof_value v) T) v SmtValue.NotValue)
+  | (SmtTerm.Var s T) => (__smtx_model_lookup M s T)
   | (SmtTerm.UConst s T) => (__smtx_model_lookup M s T)
   | x1 => SmtValue.NotValue
 
