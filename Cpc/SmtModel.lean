@@ -508,21 +508,19 @@ deriving Repr, DecidableEq, Inhabited
 
 end
 
+/- SMT-LIB model -/
+structure SmtModelKey where
+  name : smt_lit_String
+  ty : SmtType
+deriving Repr, DecidableEq, Inhabited
 
-/-
-SMT-LIB model
--/
-abbrev SmtModel := Int -- FIXME
+abbrev SmtModel := SmtModelKey -> Option SmtValue
 
+def SmtModel.empty : SmtModel :=
+  fun _ => none
 
--- FIXME:
--- (__smtx_model_lookup M n T) should return an arbitrary SMT value whose type
--- is T.
-def __smtx_model_lookup : SmtModel -> smt_lit_String -> SmtType -> SmtValue
-  | _, _, _ => (SmtValue.Boolean true)
-
-def __smtx_model_push (M : SmtModel) (s : smt_lit_String) (T : SmtType) (v : SmtValue) : SmtModel :=
-  M -- FIXME
+def __smtx_model_key (s : smt_lit_String) (T : SmtType) : SmtModelKey :=
+  { name := s, ty := T }
 
 /- Type equality -/
 def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
@@ -662,6 +660,26 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.DtCons s d i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
   | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
   | v => SmtType.None
+
+
+def __smtx_model_lookup (M : SmtModel) (s : smt_lit_String) (T : SmtType) : SmtValue :=
+  match M (__smtx_model_key s T) with
+  | some v =>
+      if __smtx_typeof_value v = T then
+        v
+      else
+        SmtValue.NotValue
+  | none => SmtValue.NotValue
+
+def __smtx_model_push (M : SmtModel) (s : smt_lit_String) (T : SmtType) (v : SmtValue) : SmtModel :=
+  if __smtx_typeof_value v = T then
+    fun k =>
+      if k = (__smtx_model_key s T) then
+        some v
+      else
+        M k
+  else
+    M
 
 
 def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
