@@ -36,6 +36,24 @@ Definitions for eo_is_obj
 -/
 mutual
 
+def __eo_to_smt_is_var (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
+  | (SmtTerm.Var s2 T2) => (smt_lit_and (smt_lit_streq s1 s2) (smt_lit_Teq T1 T2))
+  | x => false
+
+
+def __eo_to_smt_is_binder_x (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
+  | (SmtTerm.exists s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
+  | (SmtTerm.forall s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
+  | (SmtTerm.lambda s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
+  | (SmtTerm.choice s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
+  | x => false
+
+
+def __eo_to_smt_substitute (s : smt_lit_String) (T : SmtType) (u : SmtTerm) : SmtTerm -> SmtTerm
+  | (SmtTerm.Apply f a) => (smt_lit_ite (__eo_to_smt_is_binder_x s T f) (SmtTerm.Apply f a) (SmtTerm.Apply (__eo_to_smt_substitute s T u f) (__eo_to_smt_substitute s T u a)))
+  | z => (smt_lit_ite (__eo_to_smt_is_var s T z) u z)
+
+
 def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> smt_lit_Nat -> SmtTerm
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), smt_lit_nat_zero => 
     let _v0 := (SmtType.Seq SmtType.Char)
@@ -51,7 +69,7 @@ def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> smt_lit_Nat -
 
 def __eo_to_smt_quantifiers_skolemize : SmtTerm -> smt_lit_Nat -> SmtTerm
   | (SmtTerm.Apply (SmtTerm.exists s T) F), smt_lit_nat_zero => (SmtTerm.Apply (SmtTerm.choice s T) F)
-  | (SmtTerm.Apply (SmtTerm.exists s T) F), (smt_lit_nat_succ n) => (__eo_to_smt_quantifiers_skolemize (__smtx_substitute s T (__eo_to_smt_quantifiers_skolemize (SmtTerm.Apply (SmtTerm.exists s T) F) smt_lit_nat_zero) F) n)
+  | (SmtTerm.Apply (SmtTerm.exists s T) F), (smt_lit_nat_succ n) => (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_substitute s T (__eo_to_smt_quantifiers_skolemize (SmtTerm.Apply (SmtTerm.exists s T) F) smt_lit_nat_zero) F) n)
   | F, t => SmtTerm.None
 
 

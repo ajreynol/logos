@@ -784,24 +784,6 @@ def __smtx_bv_sizeof_value : SmtValue -> smt_lit_Int
   | t1 => (smt_lit_zneg 1)
 
 
-def __smtx_is_var (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
-  | (SmtTerm.Var s2 T2) => (smt_lit_and (smt_lit_streq s1 s2) (smt_lit_Teq T1 T2))
-  | x => false
-
-
-def __smtx_is_binder_x (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
-  | (SmtTerm.exists s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | (SmtTerm.forall s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | (SmtTerm.lambda s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | (SmtTerm.choice s2 T2) => (__smtx_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | x => false
-
-
-def __smtx_substitute (s : smt_lit_String) (T : SmtType) (u : SmtTerm) : SmtTerm -> SmtTerm
-  | (SmtTerm.Apply f a) => (smt_lit_ite (__smtx_is_binder_x s T f) (SmtTerm.Apply f a) (SmtTerm.Apply (__smtx_substitute s T u f) (__smtx_substitute s T u a)))
-  | z => (smt_lit_ite (__smtx_is_var s T z) u z)
-
-
 def __smtx_model_eval_dt_cons (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Nat) : SmtValue :=
   (smt_lit_ite (smt_lit_Teq (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n) SmtType.None) SmtValue.NotValue (SmtValue.DtCons s d n))
 
