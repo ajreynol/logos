@@ -730,6 +730,9 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
+  | (SmtValue.Lambda s T t) => 
+    let _v0 := (__smtx_typeof t)
+    (smt_lit_ite (smt_lit_Teq T SmtType.None) SmtType.None (smt_lit_ite (smt_lit_Teq _v0 SmtType.None) SmtType.None (SmtType.Map T _v0)))
   | (SmtValue.DtCons s d i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
   | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
   | v => SmtType.None
@@ -1881,6 +1884,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_eval_texists M s T x1)
   | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_eval_tforall M s T x1)
   | (SmtTerm.Apply (SmtTerm.lambda s T) x1) => (SmtValue.Lambda s T x1)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.lambda s T) x1) x2) => (__smtx_model_eval (__smtx_model_update M s T (__smtx_model_eval M x2)) x1)
   | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_eval_tchoice M s T x1)
   | (SmtTerm.DtCons s d i) => (__smtx_model_eval_dt_cons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))

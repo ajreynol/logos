@@ -152,7 +152,7 @@ def __eo_to_smt_exists : Term -> SmtTerm -> SmtTerm
 
 def __eo_to_smt_lambda : Term -> SmtTerm -> SmtTerm
   | Term.__eo_List_nil, F => F
-  | (Term.Apply (Term.Apply Term.__eo_List (Term.Var s T)) vs), F => (SmtTerm.Apply (SmtTerm.lambda s (__eo_to_smt_type T)) (__eo_to_smt_exists vs F))
+  | (Term.Apply (Term.Apply Term.__eo_List (Term.Var s T)) vs), F => (SmtTerm.Apply (SmtTerm.lambda s (__eo_to_smt_type T)) (__eo_to_smt_lambda vs F))
   | vs, F => SmtTerm.None
 
 
