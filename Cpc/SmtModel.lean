@@ -613,11 +613,7 @@ macro_rules
           exact
             let fv := $f
             let xv := $x
-            match fv with
-            | (SmtValue.Lambda s T body) =>
-                $evalId ($pushId $M s T xv) body
-            | _ =>
-                $applyId fv xv)
+            $applyId fv xv) -- FIXME
 
 /- Definition of SMT-LIB model semantics -/
 

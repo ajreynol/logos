@@ -8,6 +8,9 @@ lake build logos
 echo "Compiling Cpc.Spec..."
 lake build Cpc.Spec
 
+echo "Compiling Cpc.Lemmas..."
+lake build Cpc.Lemmas
+
 shopt -s nullglob
 examples=(examples/*.cpc.lean)
 
