@@ -603,6 +603,21 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
+  | `(smt_lit_eval_tapply $M $f $x) => do
+      let applyId := Lean.mkIdent `__smtx_model_eval_apply
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `__smtx_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      `(by
+          classical
+          exact
+            let fv := $f
+            let xv := $x
+            match fv with
+            | (SmtValue.Lambda s T body) =>
+                $evalId ($pushId $M s T xv) body
+            | _ =>
+                $applyId fv xv)
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -1884,12 +1899,11 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_eval_texists M s T x1)
   | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_eval_tforall M s T x1)
   | (SmtTerm.Apply (SmtTerm.lambda s T) x1) => (SmtValue.Lambda s T x1)
-  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.lambda s T) x1) x2) => (__smtx_model_eval (__smtx_model_update M s T (__smtx_model_eval M x2)) x1)
   | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_eval_tchoice M s T x1)
   | (SmtTerm.DtCons s d i) => (__smtx_model_eval_dt_cons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
-  | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x1))
+  | (SmtTerm.Apply f x1) => (smt_lit_eval_tapply M (__smtx_model_eval M f) (__smtx_model_eval M x1))
   | (SmtTerm.Var s T) => (__smtx_model_lookup M s T)
   | (SmtTerm.UConst s T) => (__smtx_model_lookup M s T)
   | x1 => SmtValue.NotValue
