@@ -336,11 +336,6 @@ inductive Proof : Type where
 
 mutual
 
-partial def __eo_proven : Proof -> Term
-  | (Proof.pf F) => F
-  | _ => Term.Stuck
-
-
 partial def __eo_Numeral : Term := Term.Int
 partial def __eo_Rational : Term := Term.Real
 partial def __eo_Binary : Term := (Term.Apply Term.BitVec (Term.Numeral 1))
