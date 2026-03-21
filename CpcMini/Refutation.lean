@@ -20,9 +20,6 @@ def stateFormulaOk : CState -> Prop
   | CState.cons _ s => stateFormulaOk s
   | CState.Stuck => False
 
-def checkerInvariant (M : SmtModel) (s : CState) : Prop :=
-  ¬ eo_interprets M (__eo_lem_state_to_formula s) false
-
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
   eo_interprets M t b ↔ smt_interprets M (__eo_to_smt t) b :=
 by
@@ -226,72 +223,6 @@ by
           · simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_imp, __smtx_model_eval_or,
               __smtx_model_eval_not, hEvalA, hEvalB, SmtEval.smt_lit_or, SmtEval.smt_lit_not]
 
-theorem state_to_formula_cons (so : CStateObj) (s : CState) :
-  __eo_lem_state_to_formula (CState.cons so s) =
-    __eo_lem_state_to_formula_step so (__eo_lem_state_to_formula s) :=
-by
-  simp [__eo_lem_state_to_formula, __eo_lem_state_to_formula_rec]
-
-theorem assume_push_state_to_formula_false_backward (M : SmtModel) (A t : Term) :
-  eo_interprets M (__eo_lem_state_to_formula_step (CStateObj.assume_push A) t) false ->
-  eo_interprets M t false :=
-by
-  intro h
-  cases t with
-  | Apply f rhs =>
-      cases f with
-      | Apply g lhs =>
-          cases g with
-          | imp =>
-              cases rhs with
-              | Apply f2 rhs2 =>
-                  cases f2 with
-                  | Apply g2 lhs2 =>
-                      cases g2 with
-                      | imp =>
-                          have hOuterTrue :
-                              eo_interprets M lhs true :=
-                            eo_interprets_imp_false_left M lhs
-                              (Term.Apply (Term.Apply Term.imp
-                                (Term.Apply (Term.Apply Term.and A) lhs2)) rhs2) h
-                          have hInnerFalse :
-                              eo_interprets M
-                                (Term.Apply (Term.Apply Term.imp
-                                  (Term.Apply (Term.Apply Term.and A) lhs2)) rhs2) false :=
-                            eo_interprets_imp_false_right M lhs
-                              (Term.Apply (Term.Apply Term.imp
-                                (Term.Apply (Term.Apply Term.and A) lhs2)) rhs2) h
-                          have hPushTrue :
-                              eo_interprets M lhs2 true :=
-                            eo_interprets_and_right M A lhs2
-                              (eo_interprets_imp_false_left M
-                                (Term.Apply (Term.Apply Term.and A) lhs2) rhs2 hInnerFalse)
-                          have hProvFalse :
-                              eo_interprets M rhs2 false :=
-                            eo_interprets_imp_false_right M
-                              (Term.Apply (Term.Apply Term.and A) lhs2) rhs2 hInnerFalse
-                          exact eo_interprets_imp_false_intro M lhs
-                            (Term.Apply (Term.Apply Term.imp lhs2) rhs2) hOuterTrue
-                            (eo_interprets_imp_false_intro M lhs2 rhs2 hPushTrue hProvFalse)
-                      | _ =>
-                          simpa [__eo_lem_state_to_formula_step] using
-                            (eo_interprets_stuck_false_absurd M h)
-                  | _ =>
-                      simpa [__eo_lem_state_to_formula_step] using
-                        (eo_interprets_stuck_false_absurd M h)
-              | _ =>
-                  simpa [__eo_lem_state_to_formula_step] using
-                    (eo_interprets_stuck_false_absurd M h)
-          | _ =>
-              simpa [__eo_lem_state_to_formula_step] using
-                (eo_interprets_stuck_false_absurd M h)
-      | _ =>
-          simpa [__eo_lem_state_to_formula_step] using
-            (eo_interprets_stuck_false_absurd M h)
-  | _ =>
-      simpa [__eo_lem_state_to_formula_step] using
-        (eo_interprets_stuck_false_absurd M h)
-
 def stateAssumes : CState -> Term
   | CState.nil => Term.Boolean true
   | CState.cons (CStateObj.assume F) s => Term.Apply (Term.Apply Term.and F) (stateAssumes s)
@@ -310,54 +241,123 @@ def stateProvens : CState -> Term
   | CState.cons _ s => stateProvens s
   | CState.Stuck => Term.Stuck
 
+def eo_state_to_formula : CState -> Term
+  | CState.Stuck => Term.Stuck
+  | s =>
+      Term.Apply (Term.Apply Term.imp (stateAssumes s))
+        (Term.Apply (Term.Apply Term.imp (statePushes s)) (stateProvens s))
+
+def checkerInvariant (M : SmtModel) (s : CState) : Prop :=
+  ¬ eo_interprets M (eo_state_to_formula s) false
+
+theorem eo_state_to_formula_assume_push (A : Term) (s : CState) :
+  eo_state_to_formula (CState.cons (CStateObj.assume_push A) s) =
+    Term.Apply (Term.Apply Term.imp (stateAssumes s))
+      (Term.Apply (Term.Apply Term.imp
+        (Term.Apply (Term.Apply Term.and A) (statePushes s))) (stateProvens s)) :=
+by
+  cases s <;> simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
+
+theorem assume_push_state_to_formula_false_backward (M : SmtModel) (A : Term) (s : CState) :
+  eo_interprets M (eo_state_to_formula (CState.cons (CStateObj.assume_push A) s)) false ->
+  eo_interprets M (eo_state_to_formula s) false :=
+by
+  intro h
+  cases s with
+  | nil =>
+      have hOuterTrue :
+          eo_interprets M (Term.Boolean true) true :=
+        eo_interprets_imp_false_left M (Term.Boolean true)
+          (Term.Apply (Term.Apply Term.imp
+            (Term.Apply (Term.Apply Term.and A) (Term.Boolean true))) (Term.Boolean true))
+          (by simpa [eo_state_to_formula_assume_push, eo_state_to_formula] using h)
+      have hInnerFalse :
+          eo_interprets M
+            (Term.Apply (Term.Apply Term.imp
+              (Term.Apply (Term.Apply Term.and A) (Term.Boolean true))) (Term.Boolean true)) false :=
+        eo_interprets_imp_false_right M (Term.Boolean true)
+          (Term.Apply (Term.Apply Term.imp
+            (Term.Apply (Term.Apply Term.and A) (Term.Boolean true))) (Term.Boolean true))
+          (by simpa [eo_state_to_formula_assume_push, eo_state_to_formula] using h)
+      have hPushTrue :
+          eo_interprets M (Term.Boolean true) true :=
+        eo_interprets_and_right M A (Term.Boolean true)
+          (eo_interprets_imp_false_left M
+            (Term.Apply (Term.Apply Term.and A) (Term.Boolean true)) (Term.Boolean true) hInnerFalse)
+      have hProvFalse :
+          eo_interprets M (Term.Boolean true) false :=
+        eo_interprets_imp_false_right M
+          (Term.Apply (Term.Apply Term.and A) (Term.Boolean true)) (Term.Boolean true) hInnerFalse
+      exact eo_interprets_imp_false_intro M (Term.Boolean true)
+        (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true))
+        hOuterTrue
+        (eo_interprets_imp_false_intro M (Term.Boolean true) (Term.Boolean true) hPushTrue hProvFalse)
+  | cons so s =>
+      have hOuterTrue :
+          eo_interprets M (stateAssumes (CState.cons so s)) true :=
+        eo_interprets_imp_false_left M (stateAssumes (CState.cons so s))
+          (Term.Apply (Term.Apply Term.imp
+            (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s))))
+            (stateProvens (CState.cons so s)))
+          (by simpa [eo_state_to_formula_assume_push, eo_state_to_formula] using h)
+      have hInnerFalse :
+          eo_interprets M
+            (Term.Apply (Term.Apply Term.imp
+              (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s))))
+              (stateProvens (CState.cons so s))) false :=
+        eo_interprets_imp_false_right M (stateAssumes (CState.cons so s))
+          (Term.Apply (Term.Apply Term.imp
+            (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s))))
+            (stateProvens (CState.cons so s)))
+          (by simpa [eo_state_to_formula_assume_push, eo_state_to_formula] using h)
+      have hPushTrue :
+          eo_interprets M (statePushes (CState.cons so s)) true :=
+        eo_interprets_and_right M A (statePushes (CState.cons so s))
+          (eo_interprets_imp_false_left M
+            (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s)))
+            (stateProvens (CState.cons so s)) hInnerFalse)
+      have hProvFalse :
+          eo_interprets M (stateProvens (CState.cons so s)) false :=
+        eo_interprets_imp_false_right M
+          (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s)))
+          (stateProvens (CState.cons so s)) hInnerFalse
+      exact eo_interprets_imp_false_intro M (stateAssumes (CState.cons so s))
+        (Term.Apply (Term.Apply Term.imp (statePushes (CState.cons so s)))
+          (stateProvens (CState.cons so s))) hOuterTrue
+        (eo_interprets_imp_false_intro M (statePushes (CState.cons so s))
+          (stateProvens (CState.cons so s)) hPushTrue hProvFalse)
+  | Stuck =>
+      have : False := by
+        rw [eo_interprets_iff_smt_interprets] at h
+        cases h with
+        | intro_false hty _ =>
+            simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens,
+              __eo_to_smt, __smtx_typeof, smt_lit_Teq, smt_lit_ite] at hty
+      exact False.elim this
+
 theorem state_to_formula_decompose :
   forall {s : CState}, stateFormulaOk s ->
-    __eo_lem_state_to_formula s =
+    eo_state_to_formula s =
       Term.Apply (Term.Apply Term.imp (stateAssumes s))
         (Term.Apply (Term.Apply Term.imp (statePushes s)) (stateProvens s))
 :=
 by
   intro s hOk
-  induction s with
+  cases s with
   | nil =>
-      simp [__eo_lem_state_to_formula, __eo_lem_state_to_formula_rec, stateAssumes, statePushes, stateProvens]
-  | Stuck =>
-      cases hOk
-  | cons so s ih =>
+      simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
+  | cons so s =>
       cases so with
       | assume F =>
-          unfold __eo_lem_state_to_formula at ih ⊢
-          simpa [__eo_lem_state_to_formula_rec, __eo_lem_state_to_formula_step,
-            stateAssumes, statePushes, stateProvens] using
-            congrArg (__eo_lem_state_to_formula_step (CStateObj.assume F)) (ih hOk)
+          simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
       | assume_push F =>
-          unfold __eo_lem_state_to_formula at ih ⊢
-          simpa [__eo_lem_state_to_formula_rec, __eo_lem_state_to_formula_step,
-            stateAssumes, statePushes, stateProvens] using
-            congrArg (__eo_lem_state_to_formula_step (CStateObj.assume_push F)) (ih hOk)
+          simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
       | proven F =>
-          unfold __eo_lem_state_to_formula at ih ⊢
-          simpa [__eo_lem_state_to_formula_rec, __eo_lem_state_to_formula_step,
-            stateAssumes, statePushes, stateProvens] using
-            congrArg (__eo_lem_state_to_formula_step (CStateObj.proven F)) (ih hOk)
+          simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
       | Stuck =>
           cases hOk
-
-theorem state_to_formula_invoke_assume_list :
-  forall {F : Term}, ValidAssumptionList F ->
-    __eo_lem_state_to_formula (__eo_invoke_assume_list CState.nil F) =
-      Term.Apply (Term.Apply Term.imp F)
-        (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true))
-:=
-by
-  intro F hValid
-  induction hValid with
-  | base =>
-      simp [__eo_lem_state_to_formula, __eo_lem_state_to_formula_rec, __eo_invoke_assume_list]
-  | step A rest hRest ih =>
-      unfold __eo_lem_state_to_formula at ih ⊢
-      simpa [__eo_invoke_assume_list, __eo_lem_state_to_formula_rec, __eo_lem_state_to_formula_step] using
-        congrArg (__eo_lem_state_to_formula_step (CStateObj.assume A)) ih
+  | Stuck =>
+      cases hOk
 
 theorem stateAssumes_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
@@ -370,6 +370,58 @@ by
       simp [__eo_invoke_assume_list, stateAssumes]
   | step A rest hRest ih =>
       simpa [__eo_invoke_assume_list, stateAssumes] using ih
+
+theorem statePushes_invoke_assume_list :
+  forall {F : Term}, ValidAssumptionList F ->
+    statePushes (__eo_invoke_assume_list CState.nil F) = Term.Boolean true
+:=
+by
+  intro F hValid
+  induction hValid with
+  | base =>
+      simp [__eo_invoke_assume_list, statePushes]
+  | step A rest hRest ih =>
+      simpa [__eo_invoke_assume_list, statePushes] using ih
+
+theorem stateProvens_invoke_assume_list :
+  forall {F : Term}, ValidAssumptionList F ->
+    stateProvens (__eo_invoke_assume_list CState.nil F) = Term.Boolean true
+:=
+by
+  intro F hValid
+  induction hValid with
+  | base =>
+      simp [__eo_invoke_assume_list, stateProvens]
+  | step A rest hRest ih =>
+      simpa [__eo_invoke_assume_list, stateProvens] using ih
+
+theorem state_to_formula_invoke_assume_list :
+  forall {F : Term}, ValidAssumptionList F ->
+    eo_state_to_formula (__eo_invoke_assume_list CState.nil F) =
+      Term.Apply (Term.Apply Term.imp F)
+        (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true))
+:=
+by
+  intro F hValid
+  have hAssumes : stateAssumes (__eo_invoke_assume_list CState.nil F) = F :=
+    stateAssumes_invoke_assume_list hValid
+  have hPushes : statePushes (__eo_invoke_assume_list CState.nil F) = Term.Boolean true :=
+    statePushes_invoke_assume_list hValid
+  have hProvens : stateProvens (__eo_invoke_assume_list CState.nil F) = Term.Boolean true :=
+    stateProvens_invoke_assume_list hValid
+  cases hS : __eo_invoke_assume_list CState.nil F with
+  | nil =>
+      simp [hS, stateAssumes, statePushes, stateProvens] at hAssumes hPushes hProvens
+      simpa [hS, eo_state_to_formula, stateAssumes, statePushes, stateProvens, hAssumes, hPushes, hProvens]
+  | cons so s =>
+      simp [hS, stateAssumes, statePushes, stateProvens] at hAssumes hPushes hProvens
+      simpa [hS, eo_state_to_formula, stateAssumes, statePushes, stateProvens, hAssumes, hPushes, hProvens]
+  | Stuck =>
+      cases hValid with
+      | base =>
+          simp [__eo_invoke_assume_list] at hS
+      | step A rest hRest =>
+          simp [__eo_invoke_assume_list] at hS
 
 /- After loading a well-formed assumption list, `state_to_formula` is
    `F => true => true`, so any model of `F` satisfies the invariant. -/
@@ -602,52 +654,51 @@ by
       | nil =>
           intro hFalse
           have hOldFalse :
-              eo_interprets M (__eo_lem_state_to_formula CState.nil) false :=
-            assume_push_state_to_formula_false_backward M A (__eo_lem_state_to_formula CState.nil)
-              (by simpa [__eo_invoke_cmd, __eo_push_assume, state_to_formula_cons] using hFalse)
+              eo_interprets M (eo_state_to_formula CState.nil) false :=
+            assume_push_state_to_formula_false_backward M A CState.nil
+              (by simpa [__eo_invoke_cmd, __eo_push_assume, eo_state_to_formula_assume_push] using hFalse)
           exact hs hOldFalse
       | cons so s =>
           intro hFalse
           have hOldFalse :
-              eo_interprets M (__eo_lem_state_to_formula (CState.cons so s)) false :=
-            assume_push_state_to_formula_false_backward M A
-              (__eo_lem_state_to_formula (CState.cons so s))
-              (by simpa [__eo_invoke_cmd, __eo_push_assume, state_to_formula_cons] using hFalse)
+              eo_interprets M (eo_state_to_formula (CState.cons so s)) false :=
+            assume_push_state_to_formula_false_backward M A (CState.cons so s)
+              (by simpa [__eo_invoke_cmd, __eo_push_assume, eo_state_to_formula_assume_push] using hFalse)
           exact hs hOldFalse
       | Stuck =>
-          simpa [__eo_invoke_cmd, checkerInvariant, __eo_lem_state_to_formula, __eo_lem_state_to_formula_rec] using
+          simpa [__eo_invoke_cmd, checkerInvariant, eo_state_to_formula] using
             eo_interprets_stuck_false_absurd M
   | check_proven proven =>
       unfold checkerInvariant at hs ⊢
       cases s with
       | nil =>
-          simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_lem_state_to_formula,
-            __eo_lem_state_to_formula_rec] using eo_interprets_stuck_false_absurd M
+          simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, eo_state_to_formula] using
+            eo_interprets_stuck_false_absurd M
       | Stuck =>
-          simpa [__eo_invoke_cmd, __eo_lem_state_to_formula, __eo_lem_state_to_formula_rec] using
+          simpa [__eo_invoke_cmd, eo_state_to_formula] using
             eo_interprets_stuck_false_absurd M
       | cons so s =>
           cases so with
           | assume A =>
-              simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_lem_state_to_formula,
-                __eo_lem_state_to_formula_rec] using eo_interprets_stuck_false_absurd M
+              simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, eo_state_to_formula] using
+                eo_interprets_stuck_false_absurd M
           | assume_push A =>
-              simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_lem_state_to_formula,
-                __eo_lem_state_to_formula_rec] using eo_interprets_stuck_false_absurd M
+              simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, eo_state_to_formula] using
+                eo_interprets_stuck_false_absurd M
           | Stuck =>
-              simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_lem_state_to_formula,
-                __eo_lem_state_to_formula_rec] using eo_interprets_stuck_false_absurd M
+              simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, eo_state_to_formula] using
+                eo_interprets_stuck_false_absurd M
           | proven F =>
               cases hEq : __eo_eq F proven <;>
                 try
                   (simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                    hEq, checkerInvariant, __eo_lem_state_to_formula, __eo_lem_state_to_formula_rec] using
+                    hEq, checkerInvariant, eo_state_to_formula] using
                     eo_interprets_stuck_false_absurd M)
               case Boolean b =>
                 cases b with
                 | false =>
                     simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                      hEq, checkerInvariant, __eo_lem_state_to_formula, __eo_lem_state_to_formula_rec] using
+                      hEq, checkerInvariant, eo_state_to_formula] using
                       eo_interprets_stuck_false_absurd M
                 | true =>
                     simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
