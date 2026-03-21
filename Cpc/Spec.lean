@@ -44,7 +44,6 @@ def __eo_to_smt_is_var (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit
 def __eo_to_smt_is_binder_x (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
   | (SmtTerm.exists s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
   | (SmtTerm.forall s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
-  | (SmtTerm.lambda s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
   | (SmtTerm.choice s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
   | x => false
 
