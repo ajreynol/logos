@@ -30,12 +30,68 @@ theorem not_smt_model_interprets_none_false (M : SmtModel) :
   | intro_false hty _ =>
       simp [__smtx_typeof] at hty
 
+theorem not_smt_model_interprets_true_of_typeof_ne_bool
+    (M : SmtModel) (t : SmtTerm)
+    (ht : __smtx_typeof t ≠ SmtType.Bool) :
+    ¬ smt_model_interprets M t true := by
+  intro h
+  cases h with
+  | intro_true hty _ =>
+      exact ht hty
+
+theorem not_smt_model_interprets_false_of_typeof_ne_bool
+    (M : SmtModel) (t : SmtTerm)
+    (ht : __smtx_typeof t ≠ SmtType.Bool) :
+    ¬ smt_model_interprets M t false := by
+  intro h
+  cases h with
+  | intro_false hty _ =>
+      exact ht hty
+
 theorem not_smt_interprets_none_false :
   ¬ smt_interprets SmtTerm.None false := by
   intro h
   cases h with
   | intro_false hnone =>
       exact not_smt_model_interprets_none_false SmtModel.empty (hnone SmtModel.empty)
+
+theorem not_smt_interprets_true_of_typeof_ne_bool
+    (t : SmtTerm)
+    (ht : __smtx_typeof t ≠ SmtType.Bool) :
+    ¬ smt_interprets t true := by
+  intro h
+  cases h with
+  | intro_true hsat =>
+      rcases hsat with ⟨M, hM⟩
+      exact not_smt_model_interprets_true_of_typeof_ne_bool M t ht hM
+
+theorem not_smt_interprets_false_of_typeof_ne_bool
+    (t : SmtTerm)
+    (ht : __smtx_typeof t ≠ SmtType.Bool) :
+    ¬ smt_interprets t false := by
+  intro h
+  cases h with
+  | intro_false hsat =>
+      exact not_smt_model_interprets_false_of_typeof_ne_bool
+        SmtModel.empty t ht (hsat SmtModel.empty)
+
+theorem not_eo_interprets_true_of_to_smt_typeof_ne_bool
+    (t : Term)
+    (ht : __smtx_typeof (__eo_to_smt t) ≠ SmtType.Bool) :
+    ¬ eo_interprets t true := by
+  intro h
+  rcases h with ⟨s, hs, hi⟩
+  cases hs
+  exact not_smt_interprets_true_of_typeof_ne_bool (__eo_to_smt t) ht hi
+
+theorem not_eo_interprets_false_of_to_smt_typeof_ne_bool
+    (t : Term)
+    (ht : __smtx_typeof (__eo_to_smt t) ≠ SmtType.Bool) :
+    ¬ eo_interprets t false := by
+  intro h
+  rcases h with ⟨s, hs, hi⟩
+  cases hs
+  exact not_smt_interprets_false_of_typeof_ne_bool (__eo_to_smt t) ht hi
 
 theorem not_eo_interprets_stuck_false :
   ¬ eo_interprets Term.Stuck false := by
@@ -182,6 +238,12 @@ theorem checker_refutes_not_true (F : Term) (pf : CCmdList) :
 `__eo_invoke_assume_list` only accepts conjunction-chains ending in
 `Term.Boolean true`, so the final bridge from `¬ true` to `false` can be
 proved separately from the command-list induction.
+
+Note: non-`Stuck` assumption-list shape alone is not enough to prove this.
+For example, `(and (Numeral 0) true)` is accepted by `__eo_invoke_assume_list`
+but is not even Bool-typed after translation. A complete proof therefore needs
+an additional well-formedness hypothesis, or a stronger theorem derived from
+successful refutation certificates.
 -/
 theorem assume_list_not_true_implies_false (F : Term) :
   __eo_invoke_assume_list CState.nil F ≠ CState.Stuck ->
