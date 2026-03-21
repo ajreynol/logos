@@ -497,6 +497,33 @@ def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
   | (SmtMap.cons j e m), i => (smt_lit_ite (smt_lit_veq j i) e (__smtx_msm_lookup m i))
   | (SmtMap.default T e), i => e
 
+def __smtx_typeof_map_value : SmtMap -> SmtType
+  | (SmtMap.cons i e m) =>
+      let T := __smtx_typeof_map_value m
+      smt_lit_ite (smt_lit_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e)) T) T SmtType.None
+  | (SmtMap.default T e) => SmtType.Map T (__smtx_typeof_value e)
+
+def __smtx_typeof_seq_value : SmtSeq -> SmtType
+  | (SmtSeq.cons v vs) =>
+      let T := __smtx_typeof_seq_value vs
+      smt_lit_ite (smt_lit_Teq (SmtType.Seq (__smtx_typeof_value v)) T) T SmtType.None
+  | (SmtSeq.empty T) => SmtType.Seq T
+
+def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
+  | SmtType.DtConsType T U, V => smt_lit_ite (smt_lit_Teq T V) U SmtType.None
+  | T, U => SmtType.None
+
+def __smtx_typeof_value : SmtValue -> SmtType
+  | (SmtValue.Boolean b) => SmtType.Bool
+  | (SmtValue.Numeral n) => SmtType.Int
+  | (SmtValue.Rational q) => SmtType.Real
+  | (SmtValue.String s) => SmtType.Seq SmtType.Char
+  | (SmtValue.Binary w n) => smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None
+  | (SmtValue.Map m) => __smtx_typeof_map_value m
+  | (SmtValue.DtCons s d i) => __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i
+  | (SmtValue.Apply f v) => __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v)
+  | v => SmtType.None
+
 
 def __smtx_dtc_substitute (s : smt_lit_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
   | (SmtDatatypeCons.cons (SmtType.Datatype s2 d2) c) => (SmtDatatypeCons.cons (SmtType.Datatype s2 (smt_lit_ite (smt_lit_streq s s2) d2 (__smtx_dt_substitute s d d2))) (__smtx_dtc_substitute s d c))
@@ -668,7 +695,7 @@ inductive smt_interprets : SmtTerm -> Bool -> Prop
       (exists M : SmtModel, (smt_model_interprets M t true)) ->
       smt_interprets t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, (smt_model_interprets M t false))->
+      (forall M : SmtModel, ¬ (smt_model_interprets M t true)) ->
       smt_interprets t false
 
 /- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/

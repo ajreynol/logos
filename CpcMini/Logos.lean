@@ -188,6 +188,7 @@ partial def __eo_eq : Term -> Term -> Term
 
 partial def __eo_prog_scope : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
+  | F, (Proof.pf Term.Stuck) => Term.Stuck
   | F, (Proof.pf G) => (Term.Apply (Term.Apply Term.imp F) G)
   | _, _ => Term.Stuck
 
@@ -275,7 +276,7 @@ deriving Repr, Inhabited
 
 def __eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.assume F) => F
-  | (CStateObj.assume_push F) => F
+  | (CStateObj.assume_push F) => Term.Stuck
   | (CStateObj.proven F) => F
   | CStateObj.Stuck => Term.Stuck
 
