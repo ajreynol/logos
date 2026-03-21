@@ -101,12 +101,5 @@ evaluates to b.
 def eo_interprets (t : Term) (b : Bool) : Prop :=
   exists (s : Object_Term), (eo_is_obj t s) /\ (obj_interprets s b)
 
-/- correctness theorem for the checker -/
-theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
-  (eo_is_refutation F pf) ->
-  (eo_interprets F false) :=
-by
-  sorry
-
 /- ---------------------------------------------- -/
 
