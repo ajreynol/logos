@@ -11,6 +11,13 @@ set_option maxHeartbeats 10000000
 
 /- The theorem statements -/
 
+/- correctness theorem for __eo_prog_scope -/
+theorem correct___eo_prog_scope (M : SmtModel) (x1 x2 : Term) :
+  (eo_interprets M x2 true) ->
+  (Not (eo_interprets M (__eo_prog_scope x1 (Proof.pf x2)) false)) :=
+by
+  sorry
+
 /- correctness theorem for __eo_prog_contra -/
 theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
   (eo_interprets M x1 true) ->
@@ -32,5 +39,9 @@ theorem correct___eo_prog_symm (M : SmtModel) (x1 : Term) :
 by
   sorry
 
+
+
+
+/- Helper definitions -/
 
 

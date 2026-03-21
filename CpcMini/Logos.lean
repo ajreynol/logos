@@ -103,7 +103,9 @@ inductive Term : Type where
   | USort : eo_lit_Nat -> Term
   | UConst : eo_lit_Nat -> Term -> Term
   | not : Term
+  | or : Term
   | and : Term
+  | imp : Term
   | eq : Term
 
 deriving Repr, DecidableEq, Inhabited, Ord
@@ -184,6 +186,12 @@ partial def __eo_eq : Term -> Term -> Term
   | t, s => (Term.Boolean (eo_lit_teq s t))
 
 
+partial def __eo_prog_scope : Term -> Proof -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | F, (Proof.pf G) => (Term.Apply (Term.Apply Term.imp F) G)
+  | _, _ => Term.Stuck
+
+
 partial def __eo_prog_contra : Proof -> Proof -> Term
   | (Proof.pf F), (Proof.pf (Term.Apply Term.not __eo_lv_F_2)) => (__eo_requires (__eo_eq F __eo_lv_F_2) (Term.Boolean true) (Term.Boolean false))
   | _, _ => Term.Stuck
@@ -247,6 +255,7 @@ deriving Repr, Inhabited
 /-
 -/
 inductive CRule : Type where
+  | scope : CRule
   | contra : CRule
   | refl : CRule
   | symm : CRule
@@ -315,9 +324,10 @@ def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
   | r, args, premises => Term.Stuck
 
 
-def __eo_cmd_step_pop_proven (S : CState) (r : CRule) (args : CArgList) : Term -> CIndexList -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | A, premises => Term.Stuck
+def __eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
+  | _ , _ , Term.Stuck , _  => Term.Stuck
+  | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
+  | r, args, A, premises => Term.Stuck
 
 
 def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexList -> CState
