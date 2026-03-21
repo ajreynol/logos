@@ -44,4 +44,18 @@ by
 
 /- Helper definitions -/
 
+def __eo_lem_state_to_formula_rec : CState -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | CState.nil, F => F
+  | (CState.cons (CStateObj.assume F) s), (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp F2) F3)) => (Term.Apply (Term.Apply Term.imp (Term.Apply (Term.Apply Term.and F) F1)) (Term.Apply (Term.Apply Term.imp F2) F3))
+  | (CState.cons (CStateObj.assume_push F) s), (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp F2) F3)) => (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp (Term.Apply (Term.Apply Term.and F) F2)) F3))
+  | (CState.cons (CStateObj.proven F) s), (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp F2) F3)) => (Term.Apply (Term.Apply Term.imp F1) (Term.Apply (Term.Apply Term.imp F2) (Term.Apply (Term.Apply Term.and F) F3)))
+  | s, F => Term.Stuck
+
+
+def __eo_lem_state_to_formula (s : CState) : Term :=
+  
+    let _v0 := (Term.Apply Term.imp (Term.Boolean true))
+    (__eo_lem_state_to_formula_rec s (Term.Apply _v0 (Term.Apply _v0 (Term.Boolean true))))
+
 
