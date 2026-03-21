@@ -1,9 +1,12 @@
 name = "Cpc"
 version = "0.1.0"
-defaultTargets = ["cpc"]
+defaultTargets = ["Cpc", "CpcMini"]
 
 [[lean_lib]]
 name = "Cpc"
+
+[[lean_lib]]
+name = "CpcMini"
 
 [[lean_exe]]
 name = "logos"
