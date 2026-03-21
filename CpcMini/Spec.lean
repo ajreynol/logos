@@ -28,7 +28,6 @@ A predicate defining a relation on terms in the object language and Booleans
 such that (s,b) is true if s evaluates to b.
 This is to be defined externally.
 -/
--/
 abbrev obj_interprets := smt_interprets
 
 abbrev ObjectModel := SmtModel
