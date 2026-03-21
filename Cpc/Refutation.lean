@@ -1,5 +1,5 @@
-import CpcMini.Spec
-import CpcMini.Lemmas
+import Cpc.Spec
+import Cpc.Lemmas
 
 open Eo
 open Smtm

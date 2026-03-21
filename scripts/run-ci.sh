@@ -11,6 +11,9 @@ lake build Cpc.Spec
 echo "Compiling Cpc.Lemmas..."
 lake build Cpc.Lemmas
 
+echo "Compiling Cpc.Refutation..."
+lake build Cpc.Refutation
+
 shopt -s nullglob
 examples=(examples/*.cpc.lean)
 
