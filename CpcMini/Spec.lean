@@ -1,5 +1,5 @@
-import Cpc.SmtModel
-import Cpc.Logos
+import CpcMini.SmtModel
+import CpcMini.Logos
 
 open Eo
 open Smtm
