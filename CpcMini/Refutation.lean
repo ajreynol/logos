@@ -14,6 +14,12 @@ def stateOk : CState -> Prop
   | CState.cons _ s => stateOk s
   | CState.Stuck => False
 
+def stateFormulaOk : CState -> Prop
+  | CState.nil => True
+  | CState.cons CStateObj.Stuck _ => False
+  | CState.cons _ s => stateFormulaOk s
+  | CState.Stuck => False
+
 def checkerInvariant (M : SmtModel) (s : CState) : Prop :=
   eo_interprets M (__eo_lem_state_to_formula s) true
 
@@ -34,6 +40,61 @@ by
   rw [eo_interprets_iff_smt_interprets]
   exact smt_interprets.intro_true M (__eo_to_smt (Term.Boolean true)) rfl rfl
 
+theorem eo_interprets_false_true_absurd (M : SmtModel) :
+  ¬ eo_interprets M (Term.Boolean false) true :=
+by
+  rw [eo_interprets_iff_smt_interprets]
+  intro h
+  cases h with
+  | intro_true _ hEval =>
+      cases hEval
+
+theorem eo_interprets_and_left (M : SmtModel) (A B : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true ->
+  eo_interprets M A true :=
+by
+  intro h
+  rw [eo_interprets_iff_smt_interprets] at h ⊢
+  cases h with
+  | intro_true hty hEval =>
+      have htyA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
+        by_cases hA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool
+        · exact hA
+        · have : False := by
+            simp [__eo_to_smt, __smtx_typeof, smt_lit_Teq, smt_lit_ite, hA] at hty
+          exact False.elim this
+      have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean true := by
+        cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
+          cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
+          simp [hAeval, hBeval, __eo_to_smt, __smtx_model_eval, __smtx_model_eval_and] at hEval
+        case Boolean.Boolean a b =>
+          cases a <;> cases b <;> simp [SmtEval.smt_lit_and] at hEval
+          simp [hAeval, hEval]
+      exact smt_interprets.intro_true M (__eo_to_smt A) htyA hEvalA
+
+theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) true ->
+  eo_interprets M A true ->
+  eo_interprets M B true :=
+by
+  intro hImp hA
+  rw [eo_interprets_iff_smt_interprets] at hImp hA ⊢
+  cases hImp with
+  | intro_true htyImp hEvalImp =>
+      cases hA with
+      | intro_true htyA hEvalA =>
+          have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
+            simp [__eo_to_smt, __smtx_typeof, htyA, smt_lit_Teq, smt_lit_ite] at htyImp
+            exact htyImp
+          have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
+            cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
+              simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_imp, __smtx_model_eval_or,
+                __smtx_model_eval_not, hEvalA, hBeval, SmtEval.smt_lit_or, SmtEval.smt_lit_not] at hEvalImp
+            case Boolean a =>
+              cases a <;> simp at hEvalImp
+              simp [hBeval, hEvalImp]
+          exact smt_interprets.intro_true M (__eo_to_smt B) htyB hEvalB
+
 theorem eo_interprets_imp_intro (M : SmtModel) (A B : Term) :
   eo_interprets M A true ->
   eo_interprets M B true ->
@@ -50,6 +111,57 @@ by
           · simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_imp, __smtx_model_eval_or,
               __smtx_model_eval_not, hEvalA, hEvalB, SmtEval.smt_lit_or, SmtEval.smt_lit_not]
 
+def stateAssumes : CState -> Term
+  | CState.nil => Term.Boolean true
+  | CState.cons (CStateObj.assume F) s => Term.Apply (Term.Apply Term.and F) (stateAssumes s)
+  | CState.cons _ s => stateAssumes s
+  | CState.Stuck => Term.Stuck
+
+def statePushes : CState -> Term
+  | CState.nil => Term.Boolean true
+  | CState.cons (CStateObj.assume_push F) s => Term.Apply (Term.Apply Term.and F) (statePushes s)
+  | CState.cons _ s => statePushes s
+  | CState.Stuck => Term.Stuck
+
+def stateProvens : CState -> Term
+  | CState.nil => Term.Boolean true
+  | CState.cons (CStateObj.proven F) s => Term.Apply (Term.Apply Term.and F) (stateProvens s)
+  | CState.cons _ s => stateProvens s
+  | CState.Stuck => Term.Stuck
+
+theorem state_to_formula_decompose :
+  forall {s : CState}, stateFormulaOk s ->
+    __eo_lem_state_to_formula s =
+      Term.Apply (Term.Apply Term.imp (stateAssumes s))
+        (Term.Apply (Term.Apply Term.imp (statePushes s)) (stateProvens s))
+:=
+by
+  intro s hOk
+  induction s with
+  | nil =>
+      simp [__eo_lem_state_to_formula, __eo_lem_state_to_formula_rec, stateAssumes, statePushes, stateProvens]
+  | Stuck =>
+      cases hOk
+  | cons so s ih =>
+      cases so with
+      | assume F =>
+          unfold __eo_lem_state_to_formula at ih ⊢
+          simpa [__eo_lem_state_to_formula_rec, __eo_lem_state_to_formula_step,
+            stateAssumes, statePushes, stateProvens] using
+            congrArg (__eo_lem_state_to_formula_step (CStateObj.assume F)) (ih hOk)
+      | assume_push F =>
+          unfold __eo_lem_state_to_formula at ih ⊢
+          simpa [__eo_lem_state_to_formula_rec, __eo_lem_state_to_formula_step,
+            stateAssumes, statePushes, stateProvens] using
+            congrArg (__eo_lem_state_to_formula_step (CStateObj.assume_push F)) (ih hOk)
+      | proven F =>
+          unfold __eo_lem_state_to_formula at ih ⊢
+          simpa [__eo_lem_state_to_formula_rec, __eo_lem_state_to_formula_step,
+            stateAssumes, statePushes, stateProvens] using
+            congrArg (__eo_lem_state_to_formula_step (CStateObj.proven F)) (ih hOk)
+      | Stuck =>
+          cases hOk
+
 theorem state_to_formula_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
     __eo_lem_state_to_formula (__eo_invoke_assume_list CState.nil F) =
@@ -65,6 +177,18 @@ by
       unfold __eo_lem_state_to_formula at ih ⊢
       simpa [__eo_invoke_assume_list, __eo_lem_state_to_formula_rec, __eo_lem_state_to_formula_step] using
         congrArg (__eo_lem_state_to_formula_step (CStateObj.assume A)) ih
+
+theorem stateAssumes_invoke_assume_list :
+  forall {F : Term}, ValidAssumptionList F ->
+    stateAssumes (__eo_invoke_assume_list CState.nil F) = F
+:=
+by
+  intro F hValid
+  induction hValid with
+  | base =>
+      simp [__eo_invoke_assume_list, stateAssumes]
+  | step A rest hRest ih =>
+      simpa [__eo_invoke_assume_list, stateAssumes] using ih
 
 /- After loading a well-formed assumption list, `state_to_formula` is
    `F => true => true`, so any model of `F` satisfies the invariant. -/
@@ -106,6 +230,27 @@ by
           exact ih hClosed
       | Stuck =>
           exact ih hClosed
+
+theorem statePushes_of_state_closed_true :
+  forall {s : CState}, __eo_state_is_closed s = true -> statePushes s = Term.Boolean true
+:=
+by
+  intro s hClosed
+  induction s with
+  | nil =>
+      simp [statePushes]
+  | Stuck =>
+      cases hClosed
+  | cons so s ih =>
+      cases so with
+      | assume A =>
+          simpa [__eo_state_is_closed, statePushes] using ih hClosed
+      | assume_push A =>
+          cases hClosed
+      | proven A =>
+          simpa [__eo_state_is_closed, statePushes] using ih hClosed
+      | Stuck =>
+          simpa [__eo_state_is_closed, statePushes] using ih hClosed
 
 theorem validAssumptionList_of_stateOk_assume_list :
   forall {F : Term}, stateOk (__eo_invoke_assume_list CState.nil F) -> ValidAssumptionList F
