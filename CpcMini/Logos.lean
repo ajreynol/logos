@@ -241,7 +241,6 @@ inductive CStateObj : Type where
   | assume : Term -> CStateObj
   | assume_push : Term -> CStateObj
   | proven : Term -> CStateObj
-  | Stuck : CStateObj
 deriving Repr, Inhabited
 
 /-
@@ -283,7 +282,6 @@ def __eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.assume F) => F
   | (CStateObj.assume_push F) => F
   | (CStateObj.proven F) => F
-  | CStateObj.Stuck => Term.Stuck
 
 
 def __eo_state_proven_nth : CState -> eo_lit_Int -> Term
