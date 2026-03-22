@@ -858,97 +858,6 @@ by
             simpa [__eo_state_proven_nth, hZero, checkerConjunctInvariant] using
               ih (eo_lit_zplus n (eo_lit_zneg 1)) hInv hNthTail hAss hPush
 
-theorem invoke_step_preserves_invariant_symm
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 : eo_lit_Int) :
-  checkerInvariant M s ->
-  checkerInvariant M (__eo_invoke_cmd s (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil))) :=
-by
-  intro hs
-  unfold checkerInvariant
-  intro hPostFalse
-  let X := __eo_state_proven_nth s n1
-  let P := __eo_prog_symm (Proof.pf X)
-  by_cases hPStuck : P = Term.Stuck
-  · have hStepStuck :
-        __eo_invoke_cmd s (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil)) =
-          CState.Stuck :=
-        invoke_step_eq_stuck_of_nonstuck s hNotStuck CRule.symm CArgList.nil
-          (CIndexList.cons n1 CIndexList.nil) (by simpa [P, X, __eo_cmd_step_proven] using hPStuck)
-    exact eo_interprets_stuck_false_absurd M (by simpa [hStepStuck, eo_state_to_formula] using hPostFalse)
-  · have hStepEq :
-        __eo_invoke_cmd s (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil)) =
-          CState.cons (CStateObj.proven P) s :=
-      invoke_step_eq_cons_of_nonstuck s hNotStuck CRule.symm CArgList.nil
-        (CIndexList.cons n1 CIndexList.nil) P
-        (by simp [P, X, __eo_cmd_step_proven]) hPStuck
-    rcases post_proven_context_true_of_false M s P hs
-        (by simpa [hStepEq] using hPostFalse) with
-      ⟨hPFalse, hAssumesTrue, hPushesTrue, hProvensTrue⟩
-    have hXNotStuck : X ≠ Term.Stuck := by
-      intro hX
-      apply hPStuck
-      simp [P, X, __eo_prog_symm, __mk_symm, hX]
-    have hXTrue : eo_interprets M X true :=
-      state_proven_nth_true_of_context M s n1 hXNotStuck hAssumesTrue hPushesTrue hProvensTrue
-    have hPTrue : eo_interprets M P true := by
-      simpa [P, X] using correct___eo_prog_symm M X hXTrue hPStuck
-    exact (eo_interprets_true_not_false M P hPTrue) hPFalse
-
-theorem invoke_step_preserves_invariant_contra
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (n1 n2 : eo_lit_Int) :
-  checkerInvariant M s ->
-  checkerInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)))) :=
-by
-  intro hs
-  unfold checkerInvariant
-  intro hPostFalse
-  let X1 := __eo_state_proven_nth s n1
-  let X2 := __eo_state_proven_nth s n2
-  let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
-  by_cases hPStuck : P = Term.Stuck
-  · have hStepStuck :
-        __eo_invoke_cmd s
-          (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))) =
-            CState.Stuck :=
-        invoke_step_eq_stuck_of_nonstuck s hNotStuck CRule.contra CArgList.nil
-          (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))
-          (by simpa [P, X1, X2, __eo_cmd_step_proven] using hPStuck)
-    exact eo_interprets_stuck_false_absurd M (by simpa [hStepStuck, eo_state_to_formula] using hPostFalse)
-  · have hStepEq :
-        __eo_invoke_cmd s
-          (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))) =
-            CState.cons (CStateObj.proven P) s :=
-      invoke_step_eq_cons_of_nonstuck s hNotStuck CRule.contra CArgList.nil
-        (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) P
-        (by simp [P, X1, X2, __eo_cmd_step_proven]) hPStuck
-    rcases post_proven_context_true_of_false M s P hs
-        (by simpa [hStepEq] using hPostFalse) with
-      ⟨hPFalse, hAssumesTrue, hPushesTrue, hProvensTrue⟩
-    have hX1NotStuck : X1 ≠ Term.Stuck := by
-      intro hX1
-      apply hPStuck
-      cases hX2 : X2 with
-      | Apply f a =>
-          cases f <;>
-            simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, eo_lit_teq, eo_lit_ite,
-              hX1, hX2]
-      | _ =>
-          simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, eo_lit_teq, eo_lit_ite,
-            hX1, hX2]
-    have hX2NotStuck : X2 ≠ Term.Stuck := by
-      intro hX2
-      apply hPStuck
-      simp [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, hX2]
-    have hX1True : eo_interprets M X1 true :=
-      state_proven_nth_true_of_context M s n1 hX1NotStuck hAssumesTrue hPushesTrue hProvensTrue
-    have hX2True : eo_interprets M X2 true :=
-      state_proven_nth_true_of_context M s n2 hX2NotStuck hAssumesTrue hPushesTrue hProvensTrue
-    have hPTrue : eo_interprets M P true := by
-      simpa [P, X1, X2] using correct___eo_prog_contra M X1 X2 hX1True hX2True hPStuck
-    exact (eo_interprets_true_not_false M P hPTrue) hPFalse
-
 theorem eo_state_to_formula_assume_push (A : Term) (s : CState) :
   eo_state_to_formula (CState.cons (CStateObj.assume_push A) s) =
     Term.Apply (Term.Apply Term.imp (stateAssumes s))
@@ -1909,8 +1818,10 @@ by
 
    To add a new rule handled by `__eo_cmd_step_proven`, add its matching
    pattern here and invoke the corresponding correctness lemma from
-   `Lemmas.lean`. The preservation theorems below then pick it up
-   automatically. -/
+   `Lemmas.lean`. Any tiny rule-specific "successful invocation means the
+   referenced premises were usable" facts should live in `Lemmas.lean` too,
+   so this checker proof does not unfold rule internals. The preservation
+   theorems below then pick the new rule up automatically. -/
 theorem cmd_step_proven_true_of_truthInvariant
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
@@ -1943,27 +1854,15 @@ by
                       let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
                       have hPNotStuck : P ≠ Term.Stuck := by
                         simpa [P, X1, X2, __eo_cmd_step_proven] using hProg
-                      have hX1NotStuck : X1 ≠ Term.Stuck := by
-                        intro hX1
-                        apply hPNotStuck
-                        cases hX2 : X2 with
-                        | Apply f a =>
-                            cases f <;>
-                              simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq,
-                                eo_lit_teq, eo_lit_ite, hX1, hX2]
-                        | _ =>
-                            simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq,
-                              eo_lit_teq, eo_lit_ite, hX1, hX2]
-                      have hX2NotStuck : X2 ≠ Term.Stuck := by
-                        intro hX2
-                        apply hPNotStuck
-                        simp [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, hX2]
+                      have hPremisesNotStuck :
+                          X1 ≠ Term.Stuck ∧ X2 ≠ Term.Stuck :=
+                        eo_prog_contra_premises_not_stuck X1 X2 hPNotStuck
                       have hX1True :
                           eo_interprets M X1 true :=
-                        checkerTruthInvariant_at M hs hNotStuck n1 hX1NotStuck hAss hPush
+                        checkerTruthInvariant_at M hs hNotStuck n1 hPremisesNotStuck.1 hAss hPush
                       have hX2True :
                           eo_interprets M X2 true :=
-                        checkerTruthInvariant_at M hs hNotStuck n2 hX2NotStuck hAss hPush
+                        checkerTruthInvariant_at M hs hNotStuck n2 hPremisesNotStuck.2 hAss hPush
                       simpa [P, X1, X2, __eo_cmd_step_proven] using
                         correct___eo_prog_contra M X1 X2 hX1True hX2True hPNotStuck
                   | cons n3 premises =>
@@ -1999,10 +1898,8 @@ by
                   let P := __eo_prog_symm (Proof.pf X)
                   have hPNotStuck : P ≠ Term.Stuck := by
                     simpa [P, X, __eo_cmd_step_proven] using hProg
-                  have hXNotStuck : X ≠ Term.Stuck := by
-                    intro hX
-                    apply hPNotStuck
-                    simp [P, X, __eo_prog_symm, __mk_symm, hX]
+                  have hXNotStuck : X ≠ Term.Stuck :=
+                    eo_prog_symm_premises_not_stuck X hPNotStuck
                   have hXTrue :
                       eo_interprets M X true :=
                     checkerTruthInvariant_at M hs hNotStuck n1 hXNotStuck hAss hPush
@@ -2053,204 +1950,6 @@ by
       __eo_invoke_cmd s (CCmd.step r args premises) = CState.cons (CStateObj.proven P) s :=
     invoke_step_eq_cons_of_nonstuck s hNotStuck r args premises P hStep hNe
   simpa [hPost] using push_proven_preserves_conjunctInvariant_of_not_false M s P hs hP
-
-theorem invoke_step_preserves_conjunctInvariant_symm_of_true_premise
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 : eo_lit_Int) :
-  checkerConjunctInvariant M s ->
-  eo_interprets M (__eo_state_proven_nth s n1) true ->
-  checkerConjunctInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil))) :=
-by
-  intro hs hXTrue
-  let X := __eo_state_proven_nth s n1
-  let P := __eo_prog_symm (Proof.pf X)
-  by_cases hPStuck : P = Term.Stuck
-  · exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-      CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil)
-      (by simpa [P, X, __eo_cmd_step_proven] using hPStuck)
-  · exact invoke_step_preserves_conjunctInvariant_of_contextual_not_false M s hNotStuck
-      CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil) P hs
-      (by simp [P, X, __eo_cmd_step_proven]) hPStuck
-      (fun _ _ => by
-        have hPTrue : eo_interprets M P true := by
-          simpa [P, X] using correct___eo_prog_symm M X hXTrue hPStuck
-        exact eo_interprets_true_not_false M P hPTrue)
-
-theorem invoke_step_preserves_conjunctInvariant_symm_of_truthInvariant
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 : eo_lit_Int) :
-  checkerConjunctInvariant M s ->
-  checkerTruthInvariant M s ->
-  checkerConjunctInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil))) :=
-by
-  intro hs hTruth
-  let X := __eo_state_proven_nth s n1
-  let P := __eo_prog_symm (Proof.pf X)
-  by_cases hPStuck : P = Term.Stuck
-  · exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-      CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil)
-      (by simpa [P, X, __eo_cmd_step_proven] using hPStuck)
-  · have hXNotStuck : X ≠ Term.Stuck := by
-      intro hX
-      apply hPStuck
-      simp [P, X, __eo_prog_symm, __mk_symm, hX]
-    exact invoke_step_preserves_conjunctInvariant_of_contextual_not_false M s hNotStuck
-      CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil) P hs
-      (by simp [P, X, __eo_cmd_step_proven]) hPStuck
-      (fun hAss hPush => by
-        have hXTrue :
-            eo_interprets M X true :=
-          checkerTruthInvariant_at M hTruth hNotStuck n1 hXNotStuck hAss hPush
-        have hPTrue : eo_interprets M P true := by
-          simpa [P, X] using correct___eo_prog_symm M X hXTrue hPStuck
-        exact eo_interprets_true_not_false M P hPTrue)
-
-theorem invoke_step_preserves_conjunctInvariant_symm
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 : eo_lit_Int) :
-  checkerConjunctInvariant M s ->
-  checkerTruthInvariant M s ->
-  checkerConjunctInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil))) :=
-by
-  exact invoke_step_preserves_conjunctInvariant_symm_of_truthInvariant M s hNotStuck n1
-
-theorem invoke_step_preserves_conjunctInvariant_contra_of_truthInvariant
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (n1 n2 : eo_lit_Int) :
-  checkerConjunctInvariant M s ->
-  checkerTruthInvariant M s ->
-  checkerConjunctInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)))) :=
-by
-  intro hs hTruth
-  let X1 := __eo_state_proven_nth s n1
-  let X2 := __eo_state_proven_nth s n2
-  let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
-  by_cases hPStuck : P = Term.Stuck
-  · exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-      CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))
-      (by simpa [P, X1, X2, __eo_cmd_step_proven] using hPStuck)
-  · have hX1NotStuck : X1 ≠ Term.Stuck := by
-      intro hX1
-      apply hPStuck
-      cases hX2 : X2 with
-      | Apply f a =>
-          cases f <;>
-            simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, eo_lit_teq, eo_lit_ite,
-              hX1, hX2]
-      | _ =>
-          simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, eo_lit_teq, eo_lit_ite,
-            hX1, hX2]
-    have hX2NotStuck : X2 ≠ Term.Stuck := by
-      intro hX2
-      apply hPStuck
-      simp [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, hX2]
-    exact invoke_step_preserves_conjunctInvariant_of_contextual_not_false M s hNotStuck
-      CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) P hs
-      (by simp [P, X1, X2, __eo_cmd_step_proven]) hPStuck
-      (fun hAss hPush => by
-        have hX1True :
-            eo_interprets M X1 true :=
-          checkerTruthInvariant_at M hTruth hNotStuck n1 hX1NotStuck hAss hPush
-        have hX2True :
-            eo_interprets M X2 true :=
-          checkerTruthInvariant_at M hTruth hNotStuck n2 hX2NotStuck hAss hPush
-        have hPTrue : eo_interprets M P true := by
-          simpa [P, X1, X2] using correct___eo_prog_contra M X1 X2 hX1True hX2True hPStuck
-        exact eo_interprets_true_not_false M P hPTrue)
-
-theorem invoke_step_preserves_conjunctInvariant_contra
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 n2 : eo_lit_Int) :
-  checkerConjunctInvariant M s ->
-  checkerTruthInvariant M s ->
-  checkerConjunctInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)))) :=
-by
-  exact invoke_step_preserves_conjunctInvariant_contra_of_truthInvariant M s hNotStuck n1 n2
-
-theorem invoke_step_preserves_truthInvariant_refl
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (a1 : Term) :
-  checkerTruthInvariant M s ->
-  checkerTruthInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil)) :=
-by
-  intro hs
-  by_cases hPStuck : __eo_prog_refl a1 = Term.Stuck
-  · exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-      CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil
-      (by simp [__eo_cmd_step_proven, hPStuck])
-  · exact invoke_step_preserves_truthInvariant_of_contextual_true M s hNotStuck
-      CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil (__eo_prog_refl a1)
-      hs (by simp [__eo_cmd_step_proven]) hPStuck
-      (fun _ _ => correct___eo_prog_refl M a1 hPStuck)
-
-theorem invoke_step_preserves_truthInvariant_symm
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 : eo_lit_Int) :
-  checkerTruthInvariant M s ->
-  checkerTruthInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil))) :=
-by
-  intro hs
-  let X := __eo_state_proven_nth s n1
-  let P := __eo_prog_symm (Proof.pf X)
-  by_cases hPStuck : P = Term.Stuck
-  · exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-      CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil)
-      (by simpa [P, X, __eo_cmd_step_proven] using hPStuck)
-  · have hXNotStuck : X ≠ Term.Stuck := by
-      intro hX
-      apply hPStuck
-      simp [P, X, __eo_prog_symm, __mk_symm, hX]
-    exact invoke_step_preserves_truthInvariant_of_contextual_true M s hNotStuck
-      CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil) P hs
-      (by simp [P, X, __eo_cmd_step_proven]) hPStuck
-      (fun hAss hPush => by
-        have hXTrue :
-            eo_interprets M X true :=
-          checkerTruthInvariant_at M hs hNotStuck n1 hXNotStuck hAss hPush
-        simpa [P, X] using correct___eo_prog_symm M X hXTrue hPStuck)
-
-theorem invoke_step_preserves_truthInvariant_contra
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (n1 n2 : eo_lit_Int) :
-  checkerTruthInvariant M s ->
-  checkerTruthInvariant M (__eo_invoke_cmd s
-    (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)))) :=
-by
-  intro hs
-  let X1 := __eo_state_proven_nth s n1
-  let X2 := __eo_state_proven_nth s n2
-  let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
-  by_cases hPStuck : P = Term.Stuck
-  · exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-      CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil))
-      (by simpa [P, X1, X2, __eo_cmd_step_proven] using hPStuck)
-  · have hX1NotStuck : X1 ≠ Term.Stuck := by
-      intro hX1
-      apply hPStuck
-      cases hX2 : X2 with
-      | Apply f a =>
-          cases f <;>
-            simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, eo_lit_teq, eo_lit_ite,
-              hX1, hX2]
-      | _ =>
-          simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, eo_lit_teq, eo_lit_ite,
-            hX1, hX2]
-    have hX2NotStuck : X2 ≠ Term.Stuck := by
-      intro hX2
-      apply hPStuck
-      simp [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, hX2]
-    exact invoke_step_preserves_truthInvariant_of_contextual_true M s hNotStuck
-      CRule.contra CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) P hs
-      (by simp [P, X1, X2, __eo_cmd_step_proven]) hPStuck
-      (fun hAss hPush => by
-        have hX1True :
-            eo_interprets M X1 true :=
-          checkerTruthInvariant_at M hs hNotStuck n1 hX1NotStuck hAss hPush
-        have hX2True :
-            eo_interprets M X2 true :=
-          checkerTruthInvariant_at M hs hNotStuck n2 hX2NotStuck hAss hPush
-        simpa [P, X1, X2] using correct___eo_prog_contra M X1 X2 hX1True hX2True hPStuck)
 
 theorem invoke_step_preserves_conjunctInvariant
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
