@@ -434,6 +434,77 @@ by
     invoke_step_eq_cons_of_nonstuck s hNotStuck r args premises P hStep hNe
   simpa [hPost] using push_proven_preserves_invariant_of_not_false M s P hs hPFalse
 
+theorem invoke_step_preserves_invariant_of_cmd_step_proven
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerInvariant M s ->
+  ¬ eo_interprets M (__eo_cmd_step_proven s r args premises) false ->
+  checkerInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hs hStepNotFalse
+  by_cases hStep : __eo_cmd_step_proven s r args premises = Term.Stuck
+  · exact invoke_step_preserves_invariant_of_stuck M s hNotStuck r args premises hStep
+  · exact invoke_step_preserves_invariant_of_not_false M s hNotStuck r args premises
+      (__eo_cmd_step_proven s r args premises) hs rfl hStep hStepNotFalse
+
+theorem cmd_step_proven_not_false_of_invariant (M : SmtModel) :
+  forall s : CState, forall r : CRule, forall args : CArgList, forall premises : CIndexList,
+    checkerInvariant M s ->
+    s ≠ CState.Stuck ->
+    ¬ eo_interprets M (__eo_cmd_step_proven s r args premises) false
+:=
+by
+  intro s r args premises hs hNotStuck
+  cases r with
+  | scope =>
+      simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+  | contra =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+          | cons n1 premises =>
+              cases premises with
+              | nil =>
+                  simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+              | cons n2 premises =>
+                  cases premises with
+                  | nil =>
+                      sorry
+                  | cons n3 premises =>
+                      simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+      | cons a args =>
+          simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+  | refl =>
+      cases args with
+      | nil =>
+          simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+      | cons a1 args =>
+          cases args with
+          | nil =>
+              cases premises with
+              | nil =>
+                  simpa [__eo_cmd_step_proven] using correct___eo_prog_refl M a1
+              | cons n ns =>
+                  simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+          | cons a2 args =>
+              simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+  | symm =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+          | cons n1 premises =>
+              cases premises with
+              | nil =>
+                  sorry
+              | cons n2 premises =>
+                  simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+      | cons a args =>
+          simpa [__eo_cmd_step_proven] using eo_interprets_stuck_false_absurd M
+
 theorem eo_state_to_formula_assume_push (A : Term) (s : CState) :
   eo_state_to_formula (CState.cons (CStateObj.assume_push A) s) =
     Term.Apply (Term.Apply Term.imp (stateAssumes s))
@@ -888,90 +959,8 @@ by
                     simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
                       hEq, checkerInvariant] using hs
   | step r args premises =>
-      cases r with
-      | scope =>
-          exact invoke_step_preserves_invariant_of_stuck M s hNotStuck CRule.scope args premises
-            (by simp [__eo_cmd_step_proven])
-      | contra =>
-          cases args with
-          | nil =>
-              cases premises with
-              | nil =>
-                  exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                    CRule.contra CArgList.nil CIndexList.nil
-                    (by simp [__eo_cmd_step_proven])
-              | cons n1 premises =>
-                  cases premises with
-                  | nil =>
-                      exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                        CRule.contra CArgList.nil (CIndexList.cons n1 CIndexList.nil)
-                        (by simp [__eo_cmd_step_proven])
-                  | cons n2 premises =>
-                      cases premises with
-                      | nil =>
-                          sorry
-                      | cons n3 premises =>
-                          exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                            CRule.contra CArgList.nil
-                            (CIndexList.cons n1 (CIndexList.cons n2 (CIndexList.cons n3 premises)))
-                            (by simp [__eo_cmd_step_proven])
-          | cons a args =>
-              exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                CRule.contra (CArgList.cons a args) premises
-                (by simp [__eo_cmd_step_proven])
-      | refl =>
-          cases args with
-          | nil =>
-              exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                CRule.refl CArgList.nil premises
-                (by simp [__eo_cmd_step_proven])
-          | cons a1 args =>
-              cases args with
-              | nil =>
-                  cases premises with
-                  | nil =>
-                      cases hStep : eo_lit_teq (__eo_prog_refl a1) Term.Stuck with
-                      | true =>
-                          have hEq : __eo_prog_refl a1 = Term.Stuck := by
-                            simpa [eo_lit_teq] using hStep
-                          exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                            CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil
-                            (by simp [__eo_cmd_step_proven, hEq])
-                      | false =>
-                          have hNe : __eo_prog_refl a1 ≠ Term.Stuck := by
-                            simpa [eo_lit_teq] using hStep
-                          exact invoke_step_preserves_invariant_of_not_false M s hNotStuck
-                            CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil
-                            (__eo_prog_refl a1) hs
-                            (by simp [__eo_cmd_step_proven]) hNe (correct___eo_prog_refl M a1)
-                  | cons n ns =>
-                      exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                        CRule.refl (CArgList.cons a1 CArgList.nil) (CIndexList.cons n ns)
-                        (by simp [__eo_cmd_step_proven])
-              | cons a2 args =>
-                  exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                    CRule.refl (CArgList.cons a1 (CArgList.cons a2 args)) premises
-                    (by simp [__eo_cmd_step_proven])
-      | symm =>
-          cases args with
-          | nil =>
-              cases premises with
-              | nil =>
-                  exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                    CRule.symm CArgList.nil CIndexList.nil
-                    (by simp [__eo_cmd_step_proven])
-              | cons n1 premises =>
-                  cases premises with
-                  | nil =>
-                      sorry
-                  | cons n2 premises =>
-                      exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                        CRule.symm CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 premises))
-                        (by simp [__eo_cmd_step_proven])
-          | cons a args =>
-              exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
-                CRule.symm (CArgList.cons a args) premises
-                (by simp [__eo_cmd_step_proven])
+      exact invoke_step_preserves_invariant_of_cmd_step_proven M s hNotStuck r args premises hs
+        (cmd_step_proven_not_false_of_invariant M s r args premises hs hNotStuck)
   | step_pop r args premises =>
       sorry
 
