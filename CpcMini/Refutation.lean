@@ -37,6 +37,12 @@ by
   rw [eo_interprets_iff_smt_interprets]
   exact smt_interprets.intro_true M (__eo_to_smt (Term.Boolean true)) rfl rfl
 
+theorem eo_interprets_false (M : SmtModel) :
+  eo_interprets M (Term.Boolean false) false :=
+by
+  rw [eo_interprets_iff_smt_interprets]
+  exact smt_interprets.intro_false M (__eo_to_smt (Term.Boolean false)) rfl rfl
+
 theorem eo_interprets_false_true_absurd (M : SmtModel) :
   ¬ eo_interprets M (Term.Boolean false) true :=
 by
@@ -309,6 +315,44 @@ def stateProvens : CState -> Term
   | CState.cons (CStateObj.proven F) s => Term.Apply (Term.Apply Term.and F) (stateProvens s)
   | CState.cons _ s => stateProvens s
   | CState.Stuck => Term.Stuck
+
+/-
+Because the checker pushes new entries at the head of the state, the initial
+assumptions from `__eo_invoke_assume_list` live in a tail block of reachable
+states. This is the structural fact that lets `step_pop` discard a prefix
+without changing the assumption component.
+-/
+def stateAssumptionTail : CState -> Prop
+  | CState.nil => True
+  | CState.cons (CStateObj.assume _) s => stateAssumptionTail s
+  | _ => False
+
+def stateAssumptionSuffix : CState -> Prop
+  | CState.nil => True
+  | CState.cons (CStateObj.assume _) s => stateAssumptionTail s
+  | CState.cons _ s => stateAssumptionSuffix s
+  | CState.Stuck => False
+
+theorem stateAssumptionSuffix_of_tail :
+  forall {s : CState}, stateAssumptionTail s -> stateAssumptionSuffix s
+:=
+by
+  intro s hTail
+  cases s with
+  | nil =>
+      trivial
+  | Stuck =>
+      cases hTail
+  | cons so s =>
+      cases so <;> simp [stateAssumptionTail, stateAssumptionSuffix] at hTail ⊢
+      exact hTail
+
+theorem stateOk_not_stuck {s : CState} :
+  stateOk s -> s ≠ CState.Stuck :=
+by
+  intro hOk hStuck
+  subst hStuck
+  simpa [stateOk] using hOk
 
 def eo_state_to_formula : CState -> Term
   | CState.Stuck => Term.Stuck
@@ -767,6 +811,26 @@ by
   | Stuck =>
       cases hOk
 
+theorem stateAssumptionTail_invoke_assume_list :
+  forall {F : Term}, ValidAssumptionList F ->
+    stateAssumptionTail (__eo_invoke_assume_list CState.nil F)
+:=
+by
+  intro F hValid
+  induction hValid with
+  | base =>
+      simp [__eo_invoke_assume_list, stateAssumptionTail]
+  | step A rest hRest ih =>
+      simpa [__eo_invoke_assume_list, stateAssumptionTail] using ih
+
+theorem stateAssumptionSuffix_invoke_assume_list :
+  forall {F : Term}, ValidAssumptionList F ->
+    stateAssumptionSuffix (__eo_invoke_assume_list CState.nil F)
+:=
+by
+  intro F hValid
+  exact stateAssumptionSuffix_of_tail (stateAssumptionTail_invoke_assume_list hValid)
+
 theorem stateAssumes_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
     stateAssumes (__eo_invoke_assume_list CState.nil F) = F
@@ -925,6 +989,121 @@ by
   | _ =>
       simp [__eo_invoke_assume_list, stateOk] at hOk
 
+theorem invoke_cmd_step_pop_of_assumptionTail :
+  forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
+    stateAssumptionTail cur ->
+    __eo_invoke_cmd_step_pop s cur r args premises = CState.Stuck
+:=
+by
+  intro s cur
+  induction cur with
+  | nil =>
+      intro r args premises hTail
+      simp [__eo_invoke_cmd_step_pop]
+  | Stuck =>
+      intro r args premises hTail
+      cases hTail
+  | cons so cur ih =>
+      intro r args premises hTail
+      cases so with
+      | assume A =>
+          simpa [__eo_invoke_cmd_step_pop, stateAssumptionTail] using
+            ih r args premises (by simpa [stateAssumptionTail] using hTail)
+      | assume_push A =>
+          cases hTail
+      | proven A =>
+          cases hTail
+      | Stuck =>
+          cases hTail
+
+theorem stateAssumptionSuffix_invoke_cmd_step_pop :
+  forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
+    stateAssumptionSuffix cur ->
+    stateOk (__eo_invoke_cmd_step_pop s cur r args premises) ->
+    stateAssumptionSuffix (__eo_invoke_cmd_step_pop s cur r args premises)
+:=
+by
+  intro s cur
+  induction cur with
+  | nil =>
+      intro r args premises hSuffix hOk
+      simp [__eo_invoke_cmd_step_pop, stateOk] at hOk
+  | Stuck =>
+      intro r args premises hSuffix hOk
+      cases hSuffix
+  | cons so cur ih =>
+      intro r args premises hSuffix hOk
+      cases so with
+      | assume_push A =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven s r args A premises) Term.Stuck with
+          | false =>
+              have hTailSuffix : stateAssumptionSuffix cur := by
+                simpa [stateAssumptionSuffix] using hSuffix
+              simpa [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not, stateAssumptionSuffix] using hTailSuffix
+          | true =>
+              simp [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not, stateOk] at hOk
+      | assume A =>
+          have hTail : stateAssumptionTail cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          have hStuck : __eo_invoke_cmd_step_pop s cur r args premises = CState.Stuck :=
+            invoke_cmd_step_pop_of_assumptionTail s cur r args premises hTail
+          simp [__eo_invoke_cmd_step_pop, hStuck, stateOk] at hOk
+      | proven A =>
+          have hTailSuffix : stateAssumptionSuffix cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          exact ih r args premises hTailSuffix
+            (by simpa [__eo_invoke_cmd_step_pop, stateOk] using hOk)
+      | Stuck =>
+          have hTailSuffix : stateAssumptionSuffix cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          exact ih r args premises hTailSuffix
+            (by simpa [__eo_invoke_cmd_step_pop, stateOk] using hOk)
+
+theorem stateAssumes_invoke_cmd_step_pop :
+  forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
+    stateAssumptionSuffix cur ->
+    stateOk (__eo_invoke_cmd_step_pop s cur r args premises) ->
+    stateAssumes (__eo_invoke_cmd_step_pop s cur r args premises) = stateAssumes cur
+:=
+by
+  intro s cur
+  induction cur with
+  | nil =>
+      intro r args premises hSuffix hOk
+      simp [__eo_invoke_cmd_step_pop, stateOk] at hOk
+  | Stuck =>
+      intro r args premises hSuffix hOk
+      cases hSuffix
+  | cons so cur ih =>
+      intro r args premises hSuffix hOk
+      cases so with
+      | assume_push A =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven s r args A premises) Term.Stuck with
+          | false =>
+              simpa [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not, stateAssumes]
+          | true =>
+              simp [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not, stateOk] at hOk
+      | assume A =>
+          have hTail : stateAssumptionTail cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          have hStuck : __eo_invoke_cmd_step_pop s cur r args premises = CState.Stuck :=
+            invoke_cmd_step_pop_of_assumptionTail s cur r args premises hTail
+          simp [__eo_invoke_cmd_step_pop, hStuck, stateOk] at hOk
+      | proven A =>
+          have hTailSuffix : stateAssumptionSuffix cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          simpa [__eo_invoke_cmd_step_pop, stateAssumes] using
+            ih r args premises hTailSuffix (by simpa [__eo_invoke_cmd_step_pop, stateOk] using hOk)
+      | Stuck =>
+          have hTailSuffix : stateAssumptionSuffix cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          simpa [__eo_invoke_cmd_step_pop, stateAssumes] using
+            ih r args premises hTailSuffix (by simpa [__eo_invoke_cmd_step_pop, stateOk] using hOk)
+
 theorem invoke_cmd_step_pop_reflects_stateOk :
   forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     stateOk (__eo_invoke_cmd_step_pop s cur r args premises) -> stateOk cur
@@ -1011,6 +1190,162 @@ by
           exact invoke_cmd_step_pop_reflects_stateOk (CState.cons so s) (CState.cons so s)
             r args premises (by simpa [__eo_invoke_cmd] using hOk)
 
+theorem stateAssumptionSuffix_invoke_cmd :
+  forall (s : CState) (c : CCmd),
+    stateAssumptionSuffix s ->
+    stateOk (__eo_invoke_cmd s c) ->
+    stateAssumptionSuffix (__eo_invoke_cmd s c)
+:=
+by
+  intro s c
+  cases c with
+  | assume_push A =>
+      intro hSuffix hOk
+      cases s with
+      | nil =>
+          simpa [__eo_invoke_cmd, __eo_push_assume, stateAssumptionSuffix] using hSuffix
+      | cons so s =>
+          simpa [__eo_invoke_cmd, __eo_push_assume, stateAssumptionSuffix] using hSuffix
+      | Stuck =>
+          cases hSuffix
+  | check_proven proven =>
+      intro hSuffix hOk
+      cases s with
+      | nil =>
+          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
+      | Stuck =>
+          cases hSuffix
+      | cons so s =>
+          cases so with
+          | assume A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
+          | assume_push A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
+          | Stuck =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
+          | proven F =>
+              cases hEq : __eo_eq F proven <;>
+                simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                  hEq, stateOk] at hOk
+              case Boolean b =>
+                cases b with
+                | false =>
+                    contradiction
+                | true =>
+                    have hTailSuffix : stateAssumptionSuffix s := by
+                      simpa [stateAssumptionSuffix] using hSuffix
+                    simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                      hEq] using hTailSuffix
+  | step r args premises =>
+      intro hSuffix hOk
+      cases s with
+      | nil =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_proven CState.nil r args premises) Term.Stuck with
+          | false =>
+              simpa [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, stateAssumptionSuffix] using hSuffix
+          | true =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, stateOk] at hOk
+      | Stuck =>
+          cases hSuffix
+      | cons so s =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_proven (CState.cons so s) r args premises) Term.Stuck with
+          | false =>
+              simpa [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, stateAssumptionSuffix] using hSuffix
+          | true =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, stateOk] at hOk
+  | step_pop r args premises =>
+      intro hSuffix hOk
+      cases s with
+      | nil =>
+          simpa [__eo_invoke_cmd] using
+            stateAssumptionSuffix_invoke_cmd_step_pop CState.nil CState.nil r args premises hSuffix hOk
+      | cons so s =>
+          simpa [__eo_invoke_cmd] using
+            stateAssumptionSuffix_invoke_cmd_step_pop (CState.cons so s) (CState.cons so s) r args premises hSuffix hOk
+      | Stuck =>
+          cases hSuffix
+
+theorem stateAssumes_invoke_cmd :
+  forall (s : CState) (c : CCmd),
+    stateAssumptionSuffix s ->
+    stateOk (__eo_invoke_cmd s c) ->
+    stateAssumes (__eo_invoke_cmd s c) = stateAssumes s
+:=
+by
+  intro s c
+  cases c with
+  | assume_push A =>
+      intro hSuffix hOk
+      cases s with
+      | nil =>
+          simp [__eo_invoke_cmd, __eo_push_assume, stateAssumes]
+      | cons so s =>
+          simp [__eo_invoke_cmd, __eo_push_assume, stateAssumes]
+      | Stuck =>
+          cases hSuffix
+  | check_proven proven =>
+      intro hSuffix hOk
+      cases s with
+      | nil =>
+          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
+      | Stuck =>
+          cases hSuffix
+      | cons so s =>
+          cases so with
+          | assume A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
+          | assume_push A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
+          | Stuck =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
+          | proven F =>
+              cases hEq : __eo_eq F proven <;>
+                simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                  hEq, stateOk] at hOk
+              case Boolean b =>
+                cases b with
+                | false =>
+                    contradiction
+                | true =>
+                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                      hEq, stateAssumes]
+  | step r args premises =>
+      intro hSuffix hOk
+      cases s with
+      | nil =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_proven CState.nil r args premises) Term.Stuck with
+          | false =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, stateAssumes]
+          | true =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, stateOk] at hOk
+      | Stuck =>
+          cases hSuffix
+      | cons so s =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_proven (CState.cons so s) r args premises) Term.Stuck with
+          | false =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, stateAssumes]
+          | true =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, stateOk] at hOk
+  | step_pop r args premises =>
+      intro hSuffix hOk
+      cases s with
+      | nil =>
+          simpa [__eo_invoke_cmd] using
+            stateAssumes_invoke_cmd_step_pop CState.nil CState.nil r args premises hSuffix hOk
+      | cons so s =>
+          simpa [__eo_invoke_cmd] using
+            stateAssumes_invoke_cmd_step_pop (CState.cons so s) (CState.cons so s) r args premises hSuffix hOk
+      | Stuck =>
+          cases hSuffix
+
 theorem invoke_cmd_list_reflects_stateOk :
   forall (s : CState) (cs : CCmdList), stateOk (__eo_invoke_cmd_list s cs) -> stateOk s
 :=
@@ -1024,6 +1359,58 @@ by
       have hTail : stateOk (__eo_invoke_cmd s c) := by
         exact ih (__eo_invoke_cmd s c) (by simpa [__eo_invoke_cmd_list] using hOk)
       exact invoke_cmd_reflects_stateOk s c hTail
+
+theorem stateAssumptionSuffix_invoke_cmd_list :
+  forall (s : CState) (cs : CCmdList),
+    stateAssumptionSuffix s ->
+    stateOk (__eo_invoke_cmd_list s cs) ->
+    stateAssumptionSuffix (__eo_invoke_cmd_list s cs)
+:=
+by
+  intro s cs
+  induction cs generalizing s with
+  | nil =>
+      intro hSuffix hOk
+      simpa [__eo_invoke_cmd_list] using hSuffix
+  | cons c cs ih =>
+      intro hSuffix hOk
+      have hStepOk : stateOk (__eo_invoke_cmd s c) := by
+        exact invoke_cmd_list_reflects_stateOk (__eo_invoke_cmd s c) cs
+          (by simpa [__eo_invoke_cmd_list] using hOk)
+      have hStepSuffix : stateAssumptionSuffix (__eo_invoke_cmd s c) :=
+        stateAssumptionSuffix_invoke_cmd s c hSuffix hStepOk
+      exact ih (__eo_invoke_cmd s c) hStepSuffix
+        (by simpa [__eo_invoke_cmd_list] using hOk)
+
+theorem stateAssumes_invoke_cmd_list :
+  forall (s : CState) (cs : CCmdList),
+    stateAssumptionSuffix s ->
+    stateOk (__eo_invoke_cmd_list s cs) ->
+    stateAssumes (__eo_invoke_cmd_list s cs) = stateAssumes s
+:=
+by
+  intro s cs
+  induction cs generalizing s with
+  | nil =>
+      intro hSuffix hOk
+      simp [__eo_invoke_cmd_list]
+  | cons c cs ih =>
+      intro hSuffix hOk
+      have hStepOk : stateOk (__eo_invoke_cmd s c) := by
+        exact invoke_cmd_list_reflects_stateOk (__eo_invoke_cmd s c) cs
+          (by simpa [__eo_invoke_cmd_list] using hOk)
+      have hStepSuffix : stateAssumptionSuffix (__eo_invoke_cmd s c) :=
+        stateAssumptionSuffix_invoke_cmd s c hSuffix hStepOk
+      have hStepAssumes :
+          stateAssumes (__eo_invoke_cmd s c) = stateAssumes s :=
+        stateAssumes_invoke_cmd s c hSuffix hStepOk
+      calc
+        stateAssumes (__eo_invoke_cmd_list s (CCmdList.cons c cs))
+            = stateAssumes (__eo_invoke_cmd s c) := by
+                simpa [__eo_invoke_cmd_list] using
+                  ih (__eo_invoke_cmd s c) hStepSuffix
+                    (by simpa [__eo_invoke_cmd_list] using hOk)
+        _ = stateAssumes s := hStepAssumes
 
 theorem validAssumptionList_of_checker_true (F : Term) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
@@ -1044,6 +1431,84 @@ by
   have hInitOk : stateOk S0 := by
     simpa [S1] using invoke_cmd_list_reflects_stateOk S0 pf hFinalOk
   simpa [S0] using validAssumptionList_of_stateOk_assume_list hInitOk
+
+theorem final_stateOk_of_checker_true (F : Term) (pf : CCmdList) :
+  (__eo_checker_is_refutation F pf) = true ->
+  stateOk (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) :=
+by
+  intro hChecker
+  let S1 := __eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf
+  have hClosed : __eo_state_is_closed (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) = true := by
+    simpa [__eo_checker_is_refutation, __eo_state_is_refutation, S1] using hChecker
+  have hCheckedOk : stateOk (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) :=
+    stateOk_of_state_closed_true hClosed
+  have hCheckedOk' : stateOk (__eo_invoke_cmd S1 (CCmd.check_proven (Term.Boolean false))) := by
+    cases hS1 : S1 <;> simpa [__eo_invoke_cmd, hS1] using hCheckedOk
+  simpa using invoke_cmd_reflects_stateOk S1 (CCmd.check_proven (Term.Boolean false)) hCheckedOk'
+
+theorem eo_eq_false_true_implies_eq_false (t : Term) :
+  __eo_eq t (Term.Boolean false) = Term.Boolean true ->
+  t = Term.Boolean false :=
+by
+  intro hEq
+  cases t <;> simp [__eo_eq, eo_lit_teq] at hEq ⊢ <;> assumption
+
+theorem final_state_shape_of_checker_true (F : Term) (pf : CCmdList) :
+  (__eo_checker_is_refutation F pf) = true ->
+  ∃ s : CState,
+    __eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf =
+      CState.cons (CStateObj.proven (Term.Boolean false)) s ∧
+    __eo_state_is_closed s = true :=
+by
+  intro hChecker
+  let S1 := __eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf
+  have hClosed : __eo_state_is_closed (__eo_invoke_cmd_check_proven S1 (Term.Boolean false)) = true := by
+    simpa [__eo_checker_is_refutation, __eo_state_is_refutation, S1] using hChecker
+  cases hS1 : S1 with
+  | nil =>
+      simp [S1, hS1, __eo_invoke_cmd_check_proven, __eo_state_is_closed] at hClosed
+  | Stuck =>
+      simp [S1, hS1, __eo_invoke_cmd_check_proven, __eo_state_is_closed] at hClosed
+  | cons so s =>
+      cases so with
+      | assume A =>
+          simp [S1, hS1, __eo_invoke_cmd_check_proven, __eo_state_is_closed] at hClosed
+      | assume_push A =>
+          simp [S1, hS1, __eo_invoke_cmd_check_proven, __eo_state_is_closed] at hClosed
+      | Stuck =>
+          simp [S1, hS1, __eo_invoke_cmd_check_proven, __eo_state_is_closed] at hClosed
+      | proven P =>
+          cases hEq : __eo_eq P (Term.Boolean false) <;>
+            simp [S1, hS1, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+              __eo_state_is_closed, hEq] at hClosed
+          case Boolean b =>
+            cases b with
+            | false =>
+                contradiction
+            | true =>
+                have hP : P = Term.Boolean false :=
+                  eo_eq_false_true_implies_eq_false P hEq
+                subst hP
+                exact ⟨s, by simpa [S1, hS1], hClosed⟩
+
+theorem stateAssumes_of_checker_true (F : Term) (pf : CCmdList) :
+  (__eo_checker_is_refutation F pf) = true ->
+  stateAssumes (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) = F :=
+by
+  intro hChecker
+  let S0 := __eo_invoke_assume_list CState.nil F
+  let S1 := __eo_invoke_cmd_list S0 pf
+  have hValid : ValidAssumptionList F :=
+    validAssumptionList_of_checker_true F pf hChecker
+  have hShape0 : stateAssumptionSuffix S0 := by
+    simpa [S0] using stateAssumptionSuffix_invoke_assume_list hValid
+  have hS1Ok : stateOk S1 := by
+    simpa [S1, S0] using final_stateOk_of_checker_true F pf hChecker
+  calc
+    stateAssumes S1 = stateAssumes S0 := by
+      simpa [S1] using stateAssumes_invoke_cmd_list S0 pf hShape0 hS1Ok
+    _ = F := by
+      simpa [S0] using stateAssumes_invoke_assume_list hValid
 
 /- One checker step preserves the state-to-formula invariant.
    The structural commands are straightforward; the `step` and `step_pop`
@@ -1237,7 +1702,36 @@ theorem refutation_contradiction (M : SmtModel) (F : Term) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
   False :=
 by
-  sorry
+  intro hF hSteps hChecker
+  let S1 := __eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf
+  rcases final_state_shape_of_checker_true F pf hChecker with ⟨s, hShape, hClosed⟩
+  have hAssumes : stateAssumes S1 = F := by
+    simpa [S1] using stateAssumes_of_checker_true F pf hChecker
+  have hPushes : statePushes S1 = Term.Boolean true := by
+    simpa [S1, hShape, statePushes] using statePushes_of_state_closed_true hClosed
+  have hStateFalse : eo_interprets M (eo_state_to_formula S1) false := by
+    have hProvensFalse : eo_interprets M (stateProvens S1) false := by
+      have :
+          eo_interprets M
+            (Term.Apply (Term.Apply Term.and (Term.Boolean false)) (stateProvens s)) false := by
+        /-
+        Remaining blocker: this is the point where we need the tail proven
+        conjunction to be Boolean/well-formed. Without that extra invariant,
+        `(false ^ G)` need not interpret as `false`.
+        -/
+        sorry
+      simpa [S1, hShape, stateProvens] using this
+    have hInnerFalse :
+        eo_interprets M (Term.Apply (Term.Apply Term.imp (statePushes S1)) (stateProvens S1)) false :=
+      eo_interprets_imp_false_intro M (statePushes S1) (stateProvens S1)
+        (by simpa [hPushes] using eo_interprets_true M)
+        hProvensFalse
+    simpa [S1, hShape, eo_state_to_formula] using
+      (eo_interprets_imp_false_intro M (stateAssumes S1)
+        (Term.Apply (Term.Apply Term.imp (statePushes S1)) (stateProvens S1))
+        (by simpa [hAssumes] using hF)
+        hInnerFalse)
+  exact hSteps hStateFalse
 
 /- correctness theorem for the checker -/
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
