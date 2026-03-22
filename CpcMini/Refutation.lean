@@ -890,7 +890,9 @@ by
       simp [P, X, __eo_prog_symm, __mk_symm, hX]
     have hXTrue : eo_interprets M X true :=
       state_proven_nth_true_of_context M s n1 hXNotStuck hAssumesTrue hPushesTrue hProvensTrue
-    exact correct___eo_prog_symm M X hXTrue hPFalse
+    have hPTrue : eo_interprets M P true := by
+      simpa [P, X] using correct___eo_prog_symm M X hXTrue hPStuck
+    exact (eo_interprets_true_not_false M P hPTrue) hPFalse
 
 theorem invoke_step_preserves_invariant_contra
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
@@ -943,7 +945,9 @@ by
       state_proven_nth_true_of_context M s n1 hX1NotStuck hAssumesTrue hPushesTrue hProvensTrue
     have hX2True : eo_interprets M X2 true :=
       state_proven_nth_true_of_context M s n2 hX2NotStuck hAssumesTrue hPushesTrue hProvensTrue
-    exact correct___eo_prog_contra M X1 X2 hX1True hX2True hPFalse
+    have hPTrue : eo_interprets M P true := by
+      simpa [P, X1, X2] using correct___eo_prog_contra M X1 X2 hX1True hX2True hPStuck
+    exact (eo_interprets_true_not_false M P hPTrue) hPFalse
 
 theorem eo_state_to_formula_assume_push (A : Term) (s : CState) :
   eo_state_to_formula (CState.cons (CStateObj.assume_push A) s) =
@@ -1946,7 +1950,9 @@ by
       CRule.symm CArgList.nil (CIndexList.cons n1 CIndexList.nil) P hs
       (by simp [P, X, __eo_cmd_step_proven]) hPStuck
       (fun _ _ => by
-        simpa [P, X] using correct___eo_prog_symm M X hXTrue)
+        have hPTrue : eo_interprets M P true := by
+          simpa [P, X] using correct___eo_prog_symm M X hXTrue hPStuck
+        exact eo_interprets_true_not_false M P hPTrue)
 
 theorem invoke_step_preserves_conjunctInvariant_symm_of_truthInvariant
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 : eo_lit_Int) :
@@ -1973,7 +1979,9 @@ by
         have hXTrue :
             eo_interprets M X true :=
           checkerTruthInvariant_at M hTruth hNotStuck n1 hXNotStuck hAss hPush
-        simpa [P, X] using correct___eo_prog_symm M X hXTrue)
+        have hPTrue : eo_interprets M P true := by
+          simpa [P, X] using correct___eo_prog_symm M X hXTrue hPStuck
+        exact eo_interprets_true_not_false M P hPTrue)
 
 theorem invoke_step_preserves_conjunctInvariant_symm
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 : eo_lit_Int) :
@@ -2024,7 +2032,9 @@ by
         have hX2True :
             eo_interprets M X2 true :=
           checkerTruthInvariant_at M hTruth hNotStuck n2 hX2NotStuck hAss hPush
-        simpa [P, X1, X2] using correct___eo_prog_contra M X1 X2 hX1True hX2True)
+        have hPTrue : eo_interprets M P true := by
+          simpa [P, X1, X2] using correct___eo_prog_contra M X1 X2 hX1True hX2True hPStuck
+        exact eo_interprets_true_not_false M P hPTrue)
 
 theorem invoke_step_preserves_conjunctInvariant_contra
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck) (n1 n2 : eo_lit_Int) :
@@ -2139,7 +2149,10 @@ by
                             CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil
                             (__eo_prog_refl a1) hs
                             (by simp [__eo_cmd_step_proven]) hNe
-                            (fun _ _ => correct___eo_prog_refl M a1)
+                            (fun _ _ => by
+                              have hPTrue : eo_interprets M (__eo_prog_refl a1) true :=
+                                correct___eo_prog_refl M a1 hNe
+                              exact eo_interprets_true_not_false M (__eo_prog_refl a1) hPTrue)
                   | cons n ns =>
                       exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
                         CRule.refl (CArgList.cons a1 CArgList.nil) (CIndexList.cons n ns)
