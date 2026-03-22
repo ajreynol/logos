@@ -365,6 +365,75 @@ by
   intro hPostFalse
   exact hPFalse (pushed_proven_false_of_post_false M s P hs hPostFalse)
 
+theorem checkerInvariant_of_eq_stuck (M : SmtModel) {s : CState} :
+  s = CState.Stuck -> checkerInvariant M s :=
+by
+  intro hStuck
+  subst hStuck
+  exact checkerInvariant_stuck M
+
+theorem invoke_step_eq_of_nonstuck
+    (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  __eo_invoke_cmd s (CCmd.step r args premises) =
+    __eo_push_proven (__eo_cmd_step_proven s r args premises) s :=
+by
+  cases s with
+  | nil =>
+      simp [__eo_invoke_cmd]
+  | cons so s =>
+      simp [__eo_invoke_cmd]
+  | Stuck =>
+      exact False.elim (hNotStuck rfl)
+
+theorem invoke_step_eq_stuck_of_nonstuck
+    (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  __eo_cmd_step_proven s r args premises = Term.Stuck ->
+  __eo_invoke_cmd s (CCmd.step r args premises) = CState.Stuck :=
+by
+  intro hStep
+  rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises, hStep]
+  simp [__eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, eo_lit_not,
+    SmtEval.smt_lit_not]
+
+theorem invoke_step_eq_cons_of_nonstuck
+    (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) (P : Term) :
+  __eo_cmd_step_proven s r args premises = P ->
+  P ≠ Term.Stuck ->
+  __eo_invoke_cmd s (CCmd.step r args premises) = CState.cons (CStateObj.proven P) s :=
+by
+  intro hStep hNe
+  rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises, hStep]
+  simp [__eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, eo_lit_not,
+    SmtEval.smt_lit_not, hNe]
+
+theorem invoke_step_preserves_invariant_of_stuck
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  __eo_cmd_step_proven s r args premises = Term.Stuck ->
+  checkerInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hStep
+  exact checkerInvariant_of_eq_stuck M
+    (invoke_step_eq_stuck_of_nonstuck s hNotStuck r args premises hStep)
+
+theorem invoke_step_preserves_invariant_of_not_false
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) (P : Term) :
+  checkerInvariant M s ->
+  __eo_cmd_step_proven s r args premises = P ->
+  P ≠ Term.Stuck ->
+  ¬ eo_interprets M P false ->
+  checkerInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hs hStep hNe hPFalse
+  have hPost :
+      __eo_invoke_cmd s (CCmd.step r args premises) = CState.cons (CStateObj.proven P) s :=
+    invoke_step_eq_cons_of_nonstuck s hNotStuck r args premises P hStep hNe
+  simpa [hPost] using push_proven_preserves_invariant_of_not_false M s P hs hPFalse
+
 theorem eo_state_to_formula_assume_push (A : Term) (s : CState) :
   eo_state_to_formula (CState.cons (CStateObj.assume_push A) s) =
     Term.Apply (Term.Apply Term.imp (stateAssumes s))
@@ -756,12 +825,12 @@ by
    The structural commands are straightforward; the `step` and `step_pop`
    cases should appeal to the rule-correctness theorems from `Lemmas.lean`
    after extracting the relevant premises from the old invariant. -/
-theorem invoke_cmd_preserves_invariant (M : SmtModel) :
+theorem invoke_cmd_preserves_invariant_nonstuck (M : SmtModel) :
   forall s : CState, forall c : CCmd,
-    checkerInvariant M s -> checkerInvariant M (__eo_invoke_cmd s c)
+    checkerInvariant M s -> s ≠ CState.Stuck -> checkerInvariant M (__eo_invoke_cmd s c)
 :=
 by
-  intro s c hs
+  intro s c hs hNotStuck
   cases c with
   | assume_push A =>
       unfold checkerInvariant at hs ⊢
@@ -819,51 +888,43 @@ by
                     simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
                       hEq, checkerInvariant] using hs
   | step r args premises =>
-      unfold checkerInvariant at hs ⊢
       cases r with
       | scope =>
-          have hStuck : __eo_invoke_cmd s (CCmd.step CRule.scope args premises) = CState.Stuck := by
-            cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-          simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+          exact invoke_step_preserves_invariant_of_stuck M s hNotStuck CRule.scope args premises
+            (by simp [__eo_cmd_step_proven])
       | contra =>
           cases args with
           | nil =>
               cases premises with
               | nil =>
-                  have hStuck : __eo_invoke_cmd s (CCmd.step CRule.contra CArgList.nil CIndexList.nil) = CState.Stuck := by
-                    cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-                  simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+                  exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                    CRule.contra CArgList.nil CIndexList.nil
+                    (by simp [__eo_cmd_step_proven])
               | cons n1 premises =>
                   cases premises with
                   | nil =>
-                      have hStuck :
-                          __eo_invoke_cmd s (CCmd.step CRule.contra CArgList.nil (CIndexList.cons n1 CIndexList.nil)) =
-                            CState.Stuck := by
-                        cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-                      simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+                      exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                        CRule.contra CArgList.nil (CIndexList.cons n1 CIndexList.nil)
+                        (by simp [__eo_cmd_step_proven])
                   | cons n2 premises =>
                       cases premises with
                       | nil =>
                           sorry
                       | cons n3 premises =>
-                          have hStuck :
-                              __eo_invoke_cmd s
-                                (CCmd.step CRule.contra CArgList.nil
-                                  (CIndexList.cons n1 (CIndexList.cons n2 (CIndexList.cons n3 premises)))) =
-                                CState.Stuck := by
-                            cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check,
-                              __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-                          simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+                          exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                            CRule.contra CArgList.nil
+                            (CIndexList.cons n1 (CIndexList.cons n2 (CIndexList.cons n3 premises)))
+                            (by simp [__eo_cmd_step_proven])
           | cons a args =>
-              have hStuck : __eo_invoke_cmd s (CCmd.step CRule.contra (CArgList.cons a args) premises) = CState.Stuck := by
-                cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-              simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+              exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                CRule.contra (CArgList.cons a args) premises
+                (by simp [__eo_cmd_step_proven])
       | refl =>
           cases args with
           | nil =>
-              have hStuck : __eo_invoke_cmd s (CCmd.step CRule.refl CArgList.nil premises) = CState.Stuck := by
-                cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-              simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+              exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                CRule.refl CArgList.nil premises
+                (by simp [__eo_cmd_step_proven])
           | cons a1 args =>
               cases args with
               | nil =>
@@ -873,76 +934,58 @@ by
                       | true =>
                           have hEq : __eo_prog_refl a1 = Term.Stuck := by
                             simpa [eo_lit_teq] using hStep
-                          have hStuck :
-                              __eo_invoke_cmd s (CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil) =
-                                CState.Stuck := by
-                            cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven,
-                              __eo_push_proven_check, __eo_is_ok, eo_lit_teq, eo_lit_not,
-                              SmtEval.smt_lit_not, hEq]
-                          simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+                          exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                            CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil
+                            (by simp [__eo_cmd_step_proven, hEq])
                       | false =>
                           have hNe : __eo_prog_refl a1 ≠ Term.Stuck := by
                             simpa [eo_lit_teq] using hStep
-                          cases s with
-                          | Stuck =>
-                              simpa [__eo_invoke_cmd, checkerInvariant, eo_state_to_formula] using
-                                checkerInvariant_stuck M
-                          | nil =>
-                              have hPost :
-                                  __eo_invoke_cmd CState.nil (CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil) =
-                                    CState.cons (CStateObj.proven (__eo_prog_refl a1)) CState.nil := by
-                                simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven,
-                                  __eo_push_proven_check, __eo_is_ok, eo_lit_teq, eo_lit_not,
-                                  SmtEval.smt_lit_not, hNe]
-                              simpa [hPost] using
-                                push_proven_preserves_invariant_of_not_false M CState.nil
-                                  (__eo_prog_refl a1) hs (correct___eo_prog_refl M a1)
-                          | cons so s =>
-                              have hPost :
-                                  __eo_invoke_cmd (CState.cons so s) (CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil) =
-                                    CState.cons (CStateObj.proven (__eo_prog_refl a1)) (CState.cons so s) := by
-                                simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven,
-                                  __eo_push_proven_check, __eo_is_ok, eo_lit_teq, eo_lit_not,
-                                  SmtEval.smt_lit_not, hNe]
-                              simpa [hPost] using
-                                push_proven_preserves_invariant_of_not_false M (CState.cons so s)
-                                  (__eo_prog_refl a1) hs (correct___eo_prog_refl M a1)
+                          exact invoke_step_preserves_invariant_of_not_false M s hNotStuck
+                            CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil
+                            (__eo_prog_refl a1) hs
+                            (by simp [__eo_cmd_step_proven]) hNe (correct___eo_prog_refl M a1)
                   | cons n ns =>
-                      have hStuck :
-                          __eo_invoke_cmd s (CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) (CIndexList.cons n ns)) =
-                            CState.Stuck := by
-                        cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-                      simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+                      exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                        CRule.refl (CArgList.cons a1 CArgList.nil) (CIndexList.cons n ns)
+                        (by simp [__eo_cmd_step_proven])
               | cons a2 args =>
-                  have hStuck :
-                      __eo_invoke_cmd s (CCmd.step CRule.refl (CArgList.cons a1 (CArgList.cons a2 args)) premises) =
-                        CState.Stuck := by
-                    cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-                  simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+                  exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                    CRule.refl (CArgList.cons a1 (CArgList.cons a2 args)) premises
+                    (by simp [__eo_cmd_step_proven])
       | symm =>
           cases args with
           | nil =>
               cases premises with
               | nil =>
-                  have hStuck : __eo_invoke_cmd s (CCmd.step CRule.symm CArgList.nil CIndexList.nil) = CState.Stuck := by
-                    cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-                  simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+                  exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                    CRule.symm CArgList.nil CIndexList.nil
+                    (by simp [__eo_cmd_step_proven])
               | cons n1 premises =>
                   cases premises with
                   | nil =>
                       sorry
                   | cons n2 premises =>
-                      have hStuck :
-                          __eo_invoke_cmd s (CCmd.step CRule.symm CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 premises))) =
-                            CState.Stuck := by
-                        cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-                      simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+                      exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                        CRule.symm CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 premises))
+                        (by simp [__eo_cmd_step_proven])
           | cons a args =>
-              have hStuck : __eo_invoke_cmd s (CCmd.step CRule.symm (CArgList.cons a args) premises) = CState.Stuck := by
-                cases s <;> simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, SmtEval.smt_lit_not]
-              simpa [hStuck, eo_state_to_formula] using eo_interprets_stuck_false_absurd M
+              exact invoke_step_preserves_invariant_of_stuck M s hNotStuck
+                CRule.symm (CArgList.cons a args) premises
+                (by simp [__eo_cmd_step_proven])
   | step_pop r args premises =>
       sorry
+
+theorem invoke_cmd_preserves_invariant (M : SmtModel) :
+  forall s : CState, forall c : CCmd,
+    checkerInvariant M s -> checkerInvariant M (__eo_invoke_cmd s c)
+:=
+by
+  intro s c hs
+  by_cases hStuck : s = CState.Stuck
+  · subst hStuck
+    cases c <;> simpa [__eo_invoke_cmd, checkerInvariant, eo_state_to_formula] using
+      checkerInvariant_stuck M
+  · exact invoke_cmd_preserves_invariant_nonstuck M s c hs hStuck
 
 theorem invoke_cmd_list_preserves_invariant (M : SmtModel) :
   forall s : CState, forall cs : CCmdList,
