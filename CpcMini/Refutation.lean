@@ -1905,6 +1905,128 @@ by
   simpa [hPost] using
     push_proven_preserves_truthInvariant_of_contextual_true M s P hs hP
 
+/- Central expansion point for plain `step` rules.
+
+   To add a new rule handled by `__eo_cmd_step_proven`, add its matching
+   pattern here and invoke the corresponding correctness lemma from
+   `Lemmas.lean`. The preservation theorems below then pick it up
+   automatically. -/
+theorem cmd_step_proven_true_of_truthInvariant
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTruthInvariant M s ->
+  __eo_cmd_step_proven s r args premises ≠ Term.Stuck ->
+  eo_interprets M (stateAssumes s) true ->
+  eo_interprets M (statePushes s) true ->
+  eo_interprets M (__eo_cmd_step_proven s r args premises) true
+:=
+by
+  intro hs hProg hAss hPush
+  cases r with
+  | scope =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | contra =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons n1 premises =>
+              cases premises with
+              | nil =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+              | cons n2 premises =>
+                  cases premises with
+                  | nil =>
+                      let X1 := __eo_state_proven_nth s n1
+                      let X2 := __eo_state_proven_nth s n2
+                      let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
+                      have hPNotStuck : P ≠ Term.Stuck := by
+                        simpa [P, X1, X2, __eo_cmd_step_proven] using hProg
+                      have hX1NotStuck : X1 ≠ Term.Stuck := by
+                        intro hX1
+                        apply hPNotStuck
+                        cases hX2 : X2 with
+                        | Apply f a =>
+                            cases f <;>
+                              simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq,
+                                eo_lit_teq, eo_lit_ite, hX1, hX2]
+                        | _ =>
+                            simpa [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq,
+                              eo_lit_teq, eo_lit_ite, hX1, hX2]
+                      have hX2NotStuck : X2 ≠ Term.Stuck := by
+                        intro hX2
+                        apply hPNotStuck
+                        simp [P, X1, X2, __eo_prog_contra, __eo_requires, __eo_eq, hX2]
+                      have hX1True :
+                          eo_interprets M X1 true :=
+                        checkerTruthInvariant_at M hs hNotStuck n1 hX1NotStuck hAss hPush
+                      have hX2True :
+                          eo_interprets M X2 true :=
+                        checkerTruthInvariant_at M hs hNotStuck n2 hX2NotStuck hAss hPush
+                      simpa [P, X1, X2, __eo_cmd_step_proven] using
+                        correct___eo_prog_contra M X1 X2 hX1True hX2True hPNotStuck
+                  | cons n3 premises =>
+                      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | refl =>
+      cases args with
+      | nil =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a1 args =>
+          cases args with
+          | nil =>
+              cases premises with
+              | nil =>
+                  have hPNotStuck : __eo_prog_refl a1 ≠ Term.Stuck := by
+                    simpa [__eo_cmd_step_proven] using hProg
+                  simpa [__eo_cmd_step_proven] using correct___eo_prog_refl M a1 hPNotStuck
+              | cons n ns =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons a2 args =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | symm =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons n1 premises =>
+              cases premises with
+              | nil =>
+                  let X := __eo_state_proven_nth s n1
+                  let P := __eo_prog_symm (Proof.pf X)
+                  have hPNotStuck : P ≠ Term.Stuck := by
+                    simpa [P, X, __eo_cmd_step_proven] using hProg
+                  have hXNotStuck : X ≠ Term.Stuck := by
+                    intro hX
+                    apply hPNotStuck
+                    simp [P, X, __eo_prog_symm, __mk_symm, hX]
+                  have hXTrue :
+                      eo_interprets M X true :=
+                    checkerTruthInvariant_at M hs hNotStuck n1 hXNotStuck hAss hPush
+                  simpa [P, X, __eo_cmd_step_proven] using
+                    correct___eo_prog_symm M X hXTrue hPNotStuck
+              | cons n2 premises =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
+theorem cmd_step_proven_not_false_of_truthInvariant
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTruthInvariant M s ->
+  __eo_cmd_step_proven s r args premises ≠ Term.Stuck ->
+  eo_interprets M (stateAssumes s) true ->
+  eo_interprets M (statePushes s) true ->
+  ¬ eo_interprets M (__eo_cmd_step_proven s r args premises) false
+:=
+by
+  intro hs hProg hAss hPush
+  exact eo_interprets_true_not_false M _ <|
+    cmd_step_proven_true_of_truthInvariant M s hNotStuck r args premises hs hProg hAss hPush
+
 theorem invoke_step_preserves_conjunctInvariant_of_stuck
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
@@ -2130,6 +2252,37 @@ by
           checkerTruthInvariant_at M hs hNotStuck n2 hX2NotStuck hAss hPush
         simpa [P, X1, X2] using correct___eo_prog_contra M X1 X2 hX1True hX2True hPStuck)
 
+theorem invoke_step_preserves_conjunctInvariant
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerConjunctInvariant M s ->
+  checkerTruthInvariant M s ->
+  checkerConjunctInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hConj hTruth
+  by_cases hProg : __eo_cmd_step_proven s r args premises = Term.Stuck
+  · exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck r args premises hProg
+  · exact invoke_step_preserves_conjunctInvariant_of_contextual_not_false M s hNotStuck
+      r args premises (__eo_cmd_step_proven s r args premises) hConj rfl hProg
+      (fun hAss hPush =>
+        cmd_step_proven_not_false_of_truthInvariant M s hNotStuck r args premises
+          hTruth hProg hAss hPush)
+
+theorem invoke_step_preserves_truthInvariant
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTruthInvariant M s ->
+  checkerTruthInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hTruth
+  by_cases hProg : __eo_cmd_step_proven s r args premises = Term.Stuck
+  · exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck r args premises hProg
+  · exact invoke_step_preserves_truthInvariant_of_contextual_true M s hNotStuck
+      r args premises (__eo_cmd_step_proven s r args premises) hTruth rfl hProg
+      (fun hAss hPush =>
+        cmd_step_proven_true_of_truthInvariant M s hNotStuck r args premises
+          hTruth hProg hAss hPush)
+
 theorem invoke_cmd_preserves_conjunctInvariant_nonstuck (M : SmtModel) :
   forall s : CState, forall c : CCmd,
     checkerConjunctInvariant M s ->
@@ -2180,94 +2333,7 @@ by
                     simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
                       hEq, checkerConjunctInvariant] using hConj
   | step r args premises =>
-      cases r with
-      | scope =>
-          exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck CRule.scope args premises
-            (by simp [__eo_cmd_step_proven])
-      | contra =>
-          cases args with
-          | nil =>
-              cases premises with
-              | nil =>
-                  exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                    CRule.contra CArgList.nil CIndexList.nil
-                    (by simp [__eo_cmd_step_proven])
-              | cons n1 premises =>
-                  cases premises with
-                  | nil =>
-                      exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                        CRule.contra CArgList.nil (CIndexList.cons n1 CIndexList.nil)
-                        (by simp [__eo_cmd_step_proven])
-                  | cons n2 premises =>
-                      cases premises with
-                      | nil =>
-                          exact invoke_step_preserves_conjunctInvariant_contra M s hNotStuck n1 n2 hConj hTruth
-                      | cons n3 premises =>
-                          exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                            CRule.contra CArgList.nil
-                            (CIndexList.cons n1 (CIndexList.cons n2 (CIndexList.cons n3 premises)))
-                            (by simp [__eo_cmd_step_proven])
-          | cons a args =>
-              exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                CRule.contra (CArgList.cons a args) premises
-                (by simp [__eo_cmd_step_proven])
-      | refl =>
-          cases args with
-          | nil =>
-              exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                CRule.refl CArgList.nil premises
-                (by simp [__eo_cmd_step_proven])
-          | cons a1 args =>
-              cases args with
-              | nil =>
-                  cases premises with
-                  | nil =>
-                      cases hStep : eo_lit_teq (__eo_prog_refl a1) Term.Stuck with
-                      | true =>
-                          have hEq : __eo_prog_refl a1 = Term.Stuck := by
-                            simpa [eo_lit_teq] using hStep
-                          exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                            CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil
-                            (by simp [__eo_cmd_step_proven, hEq])
-                      | false =>
-                          have hNe : __eo_prog_refl a1 ≠ Term.Stuck := by
-                            simpa [eo_lit_teq] using hStep
-                          exact invoke_step_preserves_conjunctInvariant_of_contextual_not_false M s hNotStuck
-                            CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil
-                            (__eo_prog_refl a1) hConj
-                            (by simp [__eo_cmd_step_proven]) hNe
-                            (fun _ _ => by
-                              have hPTrue : eo_interprets M (__eo_prog_refl a1) true :=
-                                correct___eo_prog_refl M a1 hNe
-                              exact eo_interprets_true_not_false M (__eo_prog_refl a1) hPTrue)
-                  | cons n ns =>
-                      exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                        CRule.refl (CArgList.cons a1 CArgList.nil) (CIndexList.cons n ns)
-                        (by simp [__eo_cmd_step_proven])
-              | cons a2 args =>
-                  exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                    CRule.refl (CArgList.cons a1 (CArgList.cons a2 args)) premises
-                    (by simp [__eo_cmd_step_proven])
-      | symm =>
-          cases args with
-          | nil =>
-              cases premises with
-              | nil =>
-                  exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                    CRule.symm CArgList.nil CIndexList.nil
-                    (by simp [__eo_cmd_step_proven])
-              | cons n1 premises =>
-                  cases premises with
-                  | nil =>
-                      exact invoke_step_preserves_conjunctInvariant_symm M s hNotStuck n1 hConj hTruth
-                  | cons n2 premises =>
-                      exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                        CRule.symm CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 premises))
-                        (by simp [__eo_cmd_step_proven])
-          | cons a args =>
-              exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck
-                CRule.symm (CArgList.cons a args) premises
-                (by simp [__eo_cmd_step_proven])
+      exact invoke_step_preserves_conjunctInvariant M s hNotStuck r args premises hConj hTruth
   | step_pop r args premises =>
       sorry
 
@@ -2322,77 +2388,7 @@ by
                     simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
                       hEq, checkerTruthInvariant] using hs
   | step r args premises =>
-      cases r with
-      | scope =>
-          exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck CRule.scope args premises
-            (by simp [__eo_cmd_step_proven])
-      | contra =>
-          cases args with
-          | nil =>
-              cases premises with
-              | nil =>
-                  exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                    CRule.contra CArgList.nil CIndexList.nil
-                    (by simp [__eo_cmd_step_proven])
-              | cons n1 premises =>
-                  cases premises with
-                  | nil =>
-                      exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                        CRule.contra CArgList.nil (CIndexList.cons n1 CIndexList.nil)
-                        (by simp [__eo_cmd_step_proven])
-                  | cons n2 premises =>
-                      cases premises with
-                      | nil =>
-                          exact invoke_step_preserves_truthInvariant_contra M s hNotStuck n1 n2 hs
-                      | cons n3 premises =>
-                          exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                            CRule.contra CArgList.nil
-                            (CIndexList.cons n1 (CIndexList.cons n2 (CIndexList.cons n3 premises)))
-                            (by simp [__eo_cmd_step_proven])
-          | cons a args =>
-              exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                CRule.contra (CArgList.cons a args) premises
-                (by simp [__eo_cmd_step_proven])
-      | refl =>
-          cases args with
-          | nil =>
-              exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                CRule.refl CArgList.nil premises
-                (by simp [__eo_cmd_step_proven])
-          | cons a1 args =>
-              cases args with
-              | nil =>
-                  cases premises with
-                  | nil =>
-                      exact invoke_step_preserves_truthInvariant_refl M s hNotStuck a1 hs
-                  | cons n ns =>
-                      exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                        CRule.refl (CArgList.cons a1 CArgList.nil) (CIndexList.cons n ns)
-                        (by simp [__eo_cmd_step_proven])
-              | cons a2 args =>
-                  exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                    CRule.refl (CArgList.cons a1 (CArgList.cons a2 args)) premises
-                    (by simp [__eo_cmd_step_proven])
-      | symm =>
-          cases args with
-          | nil =>
-              cases premises with
-              | nil =>
-                  exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                    CRule.symm CArgList.nil CIndexList.nil
-                    (by simp [__eo_cmd_step_proven])
-              | cons n1 premises =>
-                  cases premises with
-                  | nil =>
-                      exact invoke_step_preserves_truthInvariant_symm M s hNotStuck n1 hs
-                  | cons n2 premises =>
-                      exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                        CRule.symm CArgList.nil (CIndexList.cons n1 (CIndexList.cons n2 premises))
-                        (by simp [__eo_cmd_step_proven])
-          | cons a args =>
-              exact invoke_step_preserves_truthInvariant_of_stuck M s hNotStuck
-                CRule.symm (CArgList.cons a args) premises
-                (by simp [__eo_cmd_step_proven])
+      exact invoke_step_preserves_truthInvariant M s hNotStuck r args premises hs
   | step_pop r args premises =>
       sorry
 
