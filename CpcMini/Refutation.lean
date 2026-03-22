@@ -322,6 +322,49 @@ by
   | Stuck =>
       cases (eo_interprets_stuck_false_absurd M hProvFalse)
 
+theorem pushed_proven_false_of_post_false (M : SmtModel) (s : CState) (P : Term) :
+  checkerInvariant M s ->
+  eo_interprets M (eo_state_to_formula (CState.cons (CStateObj.proven P) s)) false ->
+  eo_interprets M P false :=
+by
+  intro hs hPostFalse
+  have hAssumesTrue : eo_interprets M (stateAssumes s) true :=
+    eo_interprets_imp_false_left M (stateAssumes s)
+      (Term.Apply (Term.Apply Term.imp (statePushes s))
+        (Term.Apply (Term.Apply Term.and P) (stateProvens s)))
+      (by simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using hPostFalse)
+  have hInnerFalse :
+      eo_interprets M
+        (Term.Apply (Term.Apply Term.imp (statePushes s))
+          (Term.Apply (Term.Apply Term.and P) (stateProvens s))) false :=
+    eo_interprets_imp_false_right M (stateAssumes s)
+      (Term.Apply (Term.Apply Term.imp (statePushes s))
+        (Term.Apply (Term.Apply Term.and P) (stateProvens s)))
+      (by simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using hPostFalse)
+  have hPushesTrue : eo_interprets M (statePushes s) true :=
+    eo_interprets_imp_false_left M (statePushes s)
+      (Term.Apply (Term.Apply Term.and P) (stateProvens s))
+      hInnerFalse
+  have hAndFalse :
+      eo_interprets M (Term.Apply (Term.Apply Term.and P) (stateProvens s)) false :=
+    eo_interprets_imp_false_right M (statePushes s)
+      (Term.Apply (Term.Apply Term.and P) (stateProvens s))
+      hInnerFalse
+  have hOldProvensNotFalse : ¬ eo_interprets M (stateProvens s) false :=
+    provens_not_false_of_invariant M s hs hAssumesTrue hPushesTrue
+  exact eo_interprets_and_false_left_of_right_not_false M P (stateProvens s)
+    hAndFalse hOldProvensNotFalse
+
+theorem push_proven_preserves_invariant_of_not_false (M : SmtModel) (s : CState) (P : Term) :
+  checkerInvariant M s ->
+  ¬ eo_interprets M P false ->
+  checkerInvariant M (CState.cons (CStateObj.proven P) s) :=
+by
+  intro hs hPFalse
+  unfold checkerInvariant
+  intro hPostFalse
+  exact hPFalse (pushed_proven_false_of_post_false M s P hs hPostFalse)
+
 theorem eo_state_to_formula_assume_push (A : Term) (s : CState) :
   eo_state_to_formula (CState.cons (CStateObj.assume_push A) s) =
     Term.Apply (Term.Apply Term.imp (stateAssumes s))
@@ -840,47 +883,10 @@ by
                       | false =>
                           have hNe : __eo_prog_refl a1 ≠ Term.Stuck := by
                             simpa [eo_lit_teq] using hStep
-                          intro hFalse
-                          have hReflCase :
-                              forall s' : CState,
-                                checkerInvariant M s' ->
-                                eo_interprets M
-                                  (eo_state_to_formula
-                                    (CState.cons (CStateObj.proven (__eo_prog_refl a1)) s')) false ->
-                                False := by
-                            intro s' hs' hPostFalse
-                            have hAssumesTrue : eo_interprets M (stateAssumes s') true :=
-                              eo_interprets_imp_false_left M (stateAssumes s')
-                                (Term.Apply (Term.Apply Term.imp (statePushes s'))
-                                  (Term.Apply (Term.Apply Term.and (__eo_prog_refl a1)) (stateProvens s')))
-                                (by simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using hPostFalse)
-                            have hInnerFalse :
-                                eo_interprets M
-                                  (Term.Apply (Term.Apply Term.imp (statePushes s'))
-                                    (Term.Apply (Term.Apply Term.and (__eo_prog_refl a1)) (stateProvens s'))) false :=
-                              eo_interprets_imp_false_right M (stateAssumes s')
-                                (Term.Apply (Term.Apply Term.imp (statePushes s'))
-                                  (Term.Apply (Term.Apply Term.and (__eo_prog_refl a1)) (stateProvens s')))
-                                (by simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using hPostFalse)
-                            have hPushesTrue : eo_interprets M (statePushes s') true :=
-                              eo_interprets_imp_false_left M (statePushes s')
-                                (Term.Apply (Term.Apply Term.and (__eo_prog_refl a1)) (stateProvens s'))
-                                hInnerFalse
-                            have hAndFalse :
-                                eo_interprets M
-                                  (Term.Apply (Term.Apply Term.and (__eo_prog_refl a1)) (stateProvens s')) false :=
-                              eo_interprets_imp_false_right M (statePushes s')
-                                (Term.Apply (Term.Apply Term.and (__eo_prog_refl a1)) (stateProvens s'))
-                                hInnerFalse
-                            have hOldProvensNotFalse : ¬ eo_interprets M (stateProvens s') false :=
-                              provens_not_false_of_invariant M s' hs' hAssumesTrue hPushesTrue
-                            have hReflFalse : eo_interprets M (__eo_prog_refl a1) false :=
-                              eo_interprets_and_false_left_of_right_not_false M (__eo_prog_refl a1)
-                                (stateProvens s') hAndFalse hOldProvensNotFalse
-                            exact correct___eo_prog_refl M a1 hReflFalse
                           cases s with
                           | Stuck =>
-                              exact hs (by simpa [__eo_invoke_cmd, eo_state_to_formula] using hFalse)
+                              simpa [__eo_invoke_cmd, checkerInvariant, eo_state_to_formula] using
+                                checkerInvariant_stuck M
                           | nil =>
                               have hPost :
                                   __eo_invoke_cmd CState.nil (CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil) =
@@ -888,7 +894,9 @@ by
                                 simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven,
                                   __eo_push_proven_check, __eo_is_ok, eo_lit_teq, eo_lit_not,
                                   SmtEval.smt_lit_not, hNe]
-                              exact hReflCase CState.nil hs (by simpa [hPost] using hFalse)
+                              simpa [hPost] using
+                                push_proven_preserves_invariant_of_not_false M CState.nil
+                                  (__eo_prog_refl a1) hs (correct___eo_prog_refl M a1)
                           | cons so s =>
                               have hPost :
                                   __eo_invoke_cmd (CState.cons so s) (CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil) =
@@ -896,7 +904,9 @@ by
                                 simp [__eo_invoke_cmd, __eo_cmd_step_proven, __eo_push_proven,
                                   __eo_push_proven_check, __eo_is_ok, eo_lit_teq, eo_lit_not,
                                   SmtEval.smt_lit_not, hNe]
-                              exact hReflCase (CState.cons so s) hs (by simpa [hPost] using hFalse)
+                              simpa [hPost] using
+                                push_proven_preserves_invariant_of_not_false M (CState.cons so s)
+                                  (__eo_prog_refl a1) hs (correct___eo_prog_refl M a1)
                   | cons n ns =>
                       have hStuck :
                           __eo_invoke_cmd s (CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) (CIndexList.cons n ns)) =
