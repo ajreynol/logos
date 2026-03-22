@@ -86,6 +86,9 @@ inductive Term : Type where
   | BitVec : Term
   | Char : Term
   | Seq : Term
+  | __eo_List : Term
+  | __eo_List_nil : Term
+  | __eo_List_cons : Term
   | Bool : Term
   | Boolean : eo_lit_Bool -> Term
   | Numeral : eo_lit_Int -> Term
@@ -186,6 +189,23 @@ partial def __eo_eq : Term -> Term -> Term
   | t, s => (Term.Boolean (eo_lit_teq s t))
 
 
+partial def __eo_get_nil_rec : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | f, (Term.Apply (Term.Apply g x) y) => (__eo_requires f g (__eo_get_nil_rec f y))
+  | f, nil => (__eo_requires (__eo_is_list_nil f nil) (Term.Boolean true) nil)
+
+
+partial def __eo_is_list : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | f, x => (__eo_is_ok (__eo_get_nil_rec f x))
+
+
+partial def __eo_cons : Term -> Term -> Term -> Term
+  | f, e, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (Term.Apply (Term.Apply f e) a))
+
+
 partial def __eo_prog_scope : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
   | F, (Proof.pf G) => (Term.Apply (Term.Apply Term.imp F) G)
@@ -211,6 +231,36 @@ partial def __mk_symm : Term -> Term
 partial def __eo_prog_symm : Proof -> Term
   | (Proof.pf F) => (__mk_symm F)
   | _ => Term.Stuck
+
+
+partial def __mk_trans : Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | _ , Term.Stuck , _  => Term.Stuck
+  | t1, t2, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail) => (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
+  | t1, t2, (Term.Boolean true) => (Term.Apply (Term.Apply Term.eq t1) t2)
+  | _, _, _ => Term.Stuck
+
+
+partial def __eo_prog_trans : Proof -> Term
+  | (Proof.pf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2)) tail)) => (__mk_trans t1 t2 tail)
+  | _ => Term.Stuck
+
+
+partial def __eo_nil : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, T => (Term.Boolean false)
+  | Term.and, T => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
+  | _, _ => Term.Stuck
+
+
+partial def __eo_is_list_nil : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, (Term.Boolean false) => (Term.Boolean true)
+  | Term.and, (Term.Boolean true) => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
+  | f, nil => (Term.Boolean false)
 
 
 
@@ -258,6 +308,7 @@ inductive CRule : Type where
   | contra : CRule
   | refl : CRule
   | symm : CRule
+  | trans : CRule
 
 deriving Repr, Inhabited
 
@@ -310,6 +361,12 @@ def __eo_push_proven : Term -> CState -> CState
   | F, s => (__eo_push_proven_check (__eo_is_ok F) F s)
 
 
+def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | f, CIndexList.nil, S => (__eo_nil f Term.Bool)
+  | f, (CIndexList.cons n pl), S => (__eo_cons f (__eo_state_proven_nth S n) (__eo_mk_premise_list f pl S))
+
+
 def __eo_invoke_cmd_check_proven : CState -> Term -> CState
   | (CState.cons (CStateObj.proven F) S), proven => (__eo_push_proven_check (__eo_eq F proven) F S)
   | S, proven => CState.Stuck
@@ -319,6 +376,7 @@ def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
   | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) => (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)))
   | CRule.refl, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_refl a1)
   | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1)))
+  | CRule.trans, CArgList.nil, premises => (__eo_prog_trans (Proof.pf (__eo_mk_premise_list Term.and premises S)))
   | r, args, premises => Term.Stuck
 
 
