@@ -368,6 +368,62 @@ by
   unfold checkerInvariant
   simpa [eo_state_to_formula] using eo_interprets_stuck_false_absurd M
 
+/-
+Second invariant layer: under globally true assumptions and local pushes,
+no individual proven conjunct in the state may interpret as false.
+
+This is stronger in exactly the way needed for the final contradiction:
+if the checker finishes with a top proved `false`, then that conjunct
+itself violates the invariant.
+-/
+def checkerConjunctInvariant (M : SmtModel) : CState -> Prop
+  | CState.nil => True
+  | CState.cons (CStateObj.proven P) s =>
+      (eo_interprets M (stateAssumes s) true ->
+       eo_interprets M (statePushes s) true ->
+       ¬ eo_interprets M P false) ∧
+      checkerConjunctInvariant M s
+  | CState.cons _ s => checkerConjunctInvariant M s
+  | CState.Stuck => True
+
+theorem checkerConjunctInvariant_stuck (M : SmtModel) :
+  checkerConjunctInvariant M CState.Stuck :=
+by
+  trivial
+
+theorem checkerConjunctInvariant_after_assume_list (M : SmtModel) (F : Term) :
+  ValidAssumptionList F ->
+  checkerConjunctInvariant M (__eo_invoke_assume_list CState.nil F)
+:=
+by
+  intro hValid
+  induction hValid with
+  | base =>
+      simp [__eo_invoke_assume_list, checkerConjunctInvariant]
+  | step A rest hRest ih =>
+      simpa [__eo_invoke_assume_list, checkerConjunctInvariant] using ih
+
+theorem push_proven_preserves_conjunctInvariant_of_not_false
+    (M : SmtModel) (s : CState) (P : Term) :
+  checkerConjunctInvariant M s ->
+  (eo_interprets M (stateAssumes s) true ->
+   eo_interprets M (statePushes s) true ->
+   ¬ eo_interprets M P false) ->
+  checkerConjunctInvariant M (CState.cons (CStateObj.proven P) s) :=
+by
+  intro hInv hP
+  exact ⟨hP, hInv⟩
+
+theorem top_proven_not_false_of_conjunctInvariant
+    (M : SmtModel) (s : CState) (P : Term) :
+  checkerConjunctInvariant M (CState.cons (CStateObj.proven P) s) ->
+  eo_interprets M (stateAssumes s) true ->
+  eo_interprets M (statePushes s) true ->
+  ¬ eo_interprets M P false :=
+by
+  intro hInv hAss hPush
+  exact hInv.1 hAss hPush
+
 theorem provens_not_false_of_invariant (M : SmtModel) (s : CState) :
   checkerInvariant M s ->
   eo_interprets M (stateAssumes s) true ->
@@ -1509,6 +1565,33 @@ by
       simpa [S1] using stateAssumes_invoke_cmd_list S0 pf hShape0 hS1Ok
     _ = F := by
       simpa [S0] using stateAssumes_invoke_assume_list hValid
+
+theorem refutation_contradiction_of_conjunctInvariant
+    (M : SmtModel) (F : Term) (pf : CCmdList) :
+  eo_interprets M F true ->
+  checkerConjunctInvariant M (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) ->
+  (__eo_checker_is_refutation F pf) = true ->
+  False :=
+by
+  intro hF hConj hChecker
+  let S1 := __eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf
+  rcases final_state_shape_of_checker_true F pf hChecker with ⟨s, hShape, hClosed⟩
+  have hAssumes : eo_interprets M (stateAssumes s) true := by
+    have hAssumesEq : stateAssumes S1 = F := by
+      simpa [S1] using stateAssumes_of_checker_true F pf hChecker
+    have hAssumesEqS : stateAssumes s = F := by
+      simpa [S1, hShape, stateAssumes] using hAssumesEq
+    simpa [hAssumesEqS] using hF
+  have hPushes : eo_interprets M (statePushes s) true := by
+    have hPushesEq : statePushes s = Term.Boolean true :=
+      statePushes_of_state_closed_true hClosed
+    simpa [hPushesEq] using eo_interprets_true M
+  have hTopNotFalse : ¬ eo_interprets M (Term.Boolean false) false := by
+    have hConjHead :
+        checkerConjunctInvariant M (CState.cons (CStateObj.proven (Term.Boolean false)) s) := by
+      simpa [S1, hShape] using hConj
+    exact top_proven_not_false_of_conjunctInvariant M s (Term.Boolean false) hConjHead hAssumes hPushes
+  exact hTopNotFalse (eo_interprets_false M)
 
 /- One checker step preserves the state-to-formula invariant.
    The structural commands are straightforward; the `step` and `step_pop`
