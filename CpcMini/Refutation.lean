@@ -123,6 +123,22 @@ by
           simp [hBeval, hEval]
       exact smt_interprets.intro_true M (__eo_to_smt B) htyB hEvalB
 
+theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
+  eo_interprets M A true ->
+  eo_interprets M B true ->
+  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true :=
+by
+  intro hA hB
+  rw [eo_interprets_iff_smt_interprets] at hA hB ⊢
+  cases hA with
+  | intro_true htyA hEvalA =>
+      cases hB with
+      | intro_true htyB hEvalB =>
+          apply smt_interprets.intro_true
+          · simp [__eo_to_smt, __smtx_typeof, htyA, htyB, smt_lit_Teq, smt_lit_ite]
+          · simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_and, hEvalA, hEvalB,
+              SmtEval.smt_lit_and]
+
 theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) true ->
   eo_interprets M A true ->
@@ -1759,6 +1775,75 @@ by
   simpa [hPost] using
     push_proven_preserves_truthInvariant_of_contextual_true M s P hs hP
 
+def premiseAndFormula (s : CState) : CIndexList -> Term
+  | CIndexList.nil => Term.Boolean true
+  | CIndexList.cons n premises =>
+      Term.Apply (Term.Apply Term.and (__eo_state_proven_nth s n))
+        (premiseAndFormula s premises)
+
+theorem premiseAndFormula_ne_stuck :
+  forall (s : CState) (premises : CIndexList),
+    premiseAndFormula s premises ≠ Term.Stuck
+:=
+by
+  intro s premises
+  induction premises with
+  | nil =>
+      simp [premiseAndFormula]
+  | cons n premises ih =>
+      simp [premiseAndFormula]
+
+theorem premiseAndFormula_is_and_list :
+  forall (s : CState) (premises : CIndexList),
+    __eo_is_list Term.and (premiseAndFormula s premises) = Term.Boolean true
+:=
+by
+  sorry
+
+theorem mk_premise_list_and_eq_premiseAndFormula :
+  forall (s : CState) (premises : CIndexList),
+    __eo_mk_premise_list Term.and premises s = premiseAndFormula s premises
+:=
+by
+  intro s premises
+  induction premises with
+  | nil =>
+      simp [__eo_mk_premise_list, premiseAndFormula, __eo_nil]
+  | cons n premises ih =>
+      simp [__eo_mk_premise_list, premiseAndFormula, __eo_cons, __eo_requires, eo_lit_ite,
+        eo_lit_teq, eo_lit_not, ih, premiseAndFormula_is_and_list, SmtEval.smt_lit_not]
+
+theorem premiseAndFormula_true_of_truthInvariant (M : SmtModel) (s : CState) :
+  forall (premises : CIndexList),
+    checkerTruthInvariant M s ->
+    eo_interprets M (stateAssumes s) true ->
+    eo_interprets M (statePushes s) true ->
+    eo_interprets M (premiseAndFormula s premises) true
+:=
+by
+  intro premises
+  induction premises with
+  | nil =>
+      intro hs hAss hPush
+      simpa [premiseAndFormula] using eo_interprets_true M
+  | cons n premises ih =>
+      intro hs hAss hPush
+      apply eo_interprets_and_intro
+      · exact checkerTruthInvariant_at M hs n hAss hPush
+      · exact ih hs hAss hPush
+
+theorem mk_premise_list_and_true_of_truthInvariant (M : SmtModel) (s : CState)
+    (premises : CIndexList) :
+  checkerTruthInvariant M s ->
+  eo_interprets M (stateAssumes s) true ->
+  eo_interprets M (statePushes s) true ->
+  eo_interprets M (__eo_mk_premise_list Term.and premises s) true
+:=
+by
+  intro hs hAss hPush
+  rw [mk_premise_list_and_eq_premiseAndFormula]
+  exact premiseAndFormula_true_of_truthInvariant M s premises hs hAss hPush
+
 /- Central expansion point for plain `step` rules.
 
    To add a new rule handled by `__eo_cmd_step_proven`, add its matching
@@ -1846,6 +1931,19 @@ by
                     correct___eo_prog_symm M X hXTrue hPNotStuck
               | cons n2 premises =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | trans =>
+      cases args with
+      | nil =>
+          let X := __eo_mk_premise_list Term.and premises s
+          let P := __eo_prog_trans (Proof.pf X)
+          have hPNotStuck : P ≠ Term.Stuck := by
+            simpa [P, X, __eo_cmd_step_proven] using hProg
+          have hXTrue : eo_interprets M X true :=
+            mk_premise_list_and_true_of_truthInvariant M s premises hs hAss hPush
+          simpa [P, X, __eo_cmd_step_proven] using
+            correct___eo_prog_trans M X hXTrue hPNotStuck
       | cons a args =>
           exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
 
