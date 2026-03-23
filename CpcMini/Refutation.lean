@@ -433,6 +433,153 @@ theorem checkerTruthInvariant_stuck (M : SmtModel) :
 by
   trivial
 
+/- Local recursive truth invariant.
+
+   A proved formula is stored together with the tail state whose assumptions
+   and local pushes form the context in which that proof is valid. This is the
+   invariant shape that matches `step_pop`, since popping a local assumption
+   keeps the tail unchanged and only replaces the scoped prefix by one new
+   proved implication. -/
+def checkerLocalTruthInvariant (M : SmtModel) : CState -> Prop
+  | CState.nil => True
+  | CState.cons (CStateObj.proven P) s =>
+      (eo_interprets M (stateAssumes s) true ->
+       eo_interprets M (statePushes s) true ->
+       eo_interprets M P true) ∧
+      checkerLocalTruthInvariant M s
+  | CState.cons _ s => checkerLocalTruthInvariant M s
+  | CState.Stuck => True
+
+theorem checkerLocalTruthInvariant_stuck (M : SmtModel) :
+  checkerLocalTruthInvariant M CState.Stuck :=
+by
+  trivial
+
+theorem checkerLocalTruthInvariant_tail (M : SmtModel) :
+  forall {so : CStateObj} {s : CState},
+    checkerLocalTruthInvariant M (CState.cons so s) ->
+    checkerLocalTruthInvariant M s
+:=
+by
+  intro so s hs
+  cases so with
+  | assume A =>
+      simpa [checkerLocalTruthInvariant] using hs
+  | assume_push A =>
+      simpa [checkerLocalTruthInvariant] using hs
+  | proven P =>
+      exact hs.2
+
+theorem checkerLocalTruthInvariant_head_proven
+    (M : SmtModel) (s : CState) (P : Term) :
+  checkerLocalTruthInvariant M (CState.cons (CStateObj.proven P) s) ->
+  eo_interprets M (stateAssumes s) true ->
+  eo_interprets M (statePushes s) true ->
+  eo_interprets M P true :=
+by
+  intro hs hAss hPush
+  exact hs.1 hAss hPush
+
+theorem checkerLocalTruthInvariant_at (M : SmtModel) :
+  forall {s : CState},
+    checkerLocalTruthInvariant M s ->
+    forall n : eo_lit_Int,
+      eo_interprets M (stateAssumes s) true ->
+      eo_interprets M (statePushes s) true ->
+      eo_interprets M (__eo_state_proven_nth s n) true
+:=
+by
+  intro s hs
+  induction s with
+  | nil =>
+      intro n hAss hPush
+      simpa [__eo_state_proven_nth] using eo_interprets_true M
+  | Stuck =>
+      intro n hAss hPush
+      exact False.elim (eo_interprets_stuck_true_absurd M (by simpa [stateAssumes] using hAss))
+  | cons so s ih =>
+      intro n hAss hPush
+      by_cases hZero : n = 0
+      · subst hZero
+        cases so with
+        | assume A =>
+            simpa [__eo_state_proven_nth] using
+              eo_interprets_and_left M A (stateAssumes s) hAss
+        | assume_push A =>
+            simpa [__eo_state_proven_nth] using
+              eo_interprets_and_left M A (statePushes s) hPush
+        | proven P =>
+            have hAss' : eo_interprets M (stateAssumes s) true := by
+              simpa [stateAssumes] using hAss
+            have hPush' : eo_interprets M (statePushes s) true := by
+              simpa [statePushes] using hPush
+            simpa [__eo_state_proven_nth] using hs.1 hAss' hPush'
+      · cases so with
+        | assume A =>
+            have hAssTail : eo_interprets M (stateAssumes s) true :=
+              eo_interprets_and_right M A (stateAssumes s) hAss
+            simpa [__eo_state_proven_nth, hZero] using
+              ih (by simpa [checkerLocalTruthInvariant] using hs)
+                (eo_lit_zplus n (eo_lit_zneg 1)) hAssTail hPush
+        | assume_push A =>
+            have hPushTail : eo_interprets M (statePushes s) true :=
+              eo_interprets_and_right M A (statePushes s) hPush
+            simpa [__eo_state_proven_nth, hZero] using
+              ih (by simpa [checkerLocalTruthInvariant] using hs)
+                (eo_lit_zplus n (eo_lit_zneg 1)) hAss hPushTail
+        | proven P =>
+            simpa [__eo_state_proven_nth, hZero] using
+              ih hs.2 (eo_lit_zplus n (eo_lit_zneg 1))
+                (by simpa [stateAssumes] using hAss)
+                (by simpa [statePushes] using hPush)
+
+theorem checkerLocalTruthInvariant_implies_truthInvariant (M : SmtModel) :
+  forall {s : CState},
+    checkerLocalTruthInvariant M s ->
+    checkerTruthInvariant M s
+:=
+by
+  intro s hs
+  cases s with
+  | Stuck =>
+      exact checkerTruthInvariant_stuck M
+  | nil =>
+      intro n hAss hPush
+      exact checkerLocalTruthInvariant_at M hs n hAss hPush
+  | cons so s =>
+      intro n hAss hPush
+      exact checkerLocalTruthInvariant_at M hs n hAss hPush
+
+theorem checkerLocalTruthInvariant_after_assume_list (M : SmtModel) (F : Term) :
+  ValidAssumptionList F ->
+  checkerLocalTruthInvariant M (__eo_invoke_assume_list CState.nil F)
+:=
+by
+  intro hValid
+  induction hValid with
+  | base =>
+      simp [__eo_invoke_assume_list, checkerLocalTruthInvariant]
+  | step A rest hRest ih =>
+      simpa [__eo_invoke_assume_list, checkerLocalTruthInvariant] using ih
+
+theorem push_assume_preserves_localTruthInvariant
+    (M : SmtModel) (s : CState) (A : Term) :
+  checkerLocalTruthInvariant M s ->
+  checkerLocalTruthInvariant M (__eo_push_assume A s) :=
+by
+  simpa [__eo_push_assume, checkerLocalTruthInvariant]
+
+theorem push_proven_preserves_localTruthInvariant_of_contextual_true
+    (M : SmtModel) (s : CState) (P : Term) :
+  checkerLocalTruthInvariant M s ->
+  (eo_interprets M (stateAssumes s) true ->
+   eo_interprets M (statePushes s) true ->
+   eo_interprets M P true) ->
+  checkerLocalTruthInvariant M (CState.cons (CStateObj.proven P) s) :=
+by
+  intro hs hP
+  exact ⟨hP, hs⟩
+
 def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
   checkerConjunctInvariant M s ∧ checkerTruthInvariant M s
 
