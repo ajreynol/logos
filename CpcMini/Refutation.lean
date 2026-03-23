@@ -550,6 +550,35 @@ by
       intro n hAss hPush
       exact checkerLocalTruthInvariant_at M hs n hAss hPush
 
+theorem checkerLocalTruthInvariant_implies_conjunctInvariant (M : SmtModel) :
+  forall {s : CState},
+    checkerLocalTruthInvariant M s ->
+    checkerConjunctInvariant M s
+:=
+by
+  intro s hs
+  induction s with
+  | nil =>
+      trivial
+  | Stuck =>
+      trivial
+  | cons so s ih =>
+      cases so with
+      | assume A =>
+          simpa [checkerLocalTruthInvariant, checkerConjunctInvariant] using
+            ih (by simpa [checkerLocalTruthInvariant] using hs)
+      | assume_push A =>
+          simpa [checkerLocalTruthInvariant, checkerConjunctInvariant] using
+            ih (by simpa [checkerLocalTruthInvariant] using hs)
+      | proven P =>
+          refine ⟨?_, ih hs.2⟩
+          intro hAss hPush
+          have hAss' : eo_interprets M (stateAssumes s) true := by
+            simpa [stateAssumes] using hAss
+          have hPush' : eo_interprets M (statePushes s) true := by
+            simpa [statePushes] using hPush
+          exact eo_interprets_true_not_false M P (hs.1 hAss' hPush')
+
 theorem checkerLocalTruthInvariant_after_assume_list (M : SmtModel) (F : Term) :
   ValidAssumptionList F ->
   checkerLocalTruthInvariant M (__eo_invoke_assume_list CState.nil F)
@@ -580,8 +609,36 @@ by
   intro hs hP
   exact ⟨hP, hs⟩
 
+def checkerShapeInvariant : CState -> Prop
+  | CState.Stuck => True
+  | s => stateAssumptionSuffix s
+
+theorem checkerShapeInvariant_stuck : checkerShapeInvariant CState.Stuck :=
+by
+  trivial
+
+theorem checkerShapeInvariant_of_suffix {s : CState} :
+  stateAssumptionSuffix s ->
+  checkerShapeInvariant s :=
+by
+  cases s <;> simp [checkerShapeInvariant, stateAssumptionSuffix]
+
+theorem suffix_of_checkerShapeInvariant_nonstuck {s : CState} :
+  checkerShapeInvariant s ->
+  s ≠ CState.Stuck ->
+  stateAssumptionSuffix s :=
+by
+  intro hShape hNotStuck
+  cases s with
+  | Stuck =>
+      exact False.elim (hNotStuck rfl)
+  | nil =>
+      simpa [checkerShapeInvariant]
+  | cons so s =>
+      simpa [checkerShapeInvariant] using hShape
+
 def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
-  checkerConjunctInvariant M s ∧ checkerTruthInvariant M s
+  checkerShapeInvariant s ∧ checkerLocalTruthInvariant M s
 
 theorem checkerConjunctInvariant_after_assume_list (M : SmtModel) (F : Term) :
   ValidAssumptionList F ->
@@ -1205,8 +1262,8 @@ theorem checkerStateInvariant_after_assume_list (M : SmtModel) (F : Term) :
 by
   intro hValid
   exact ⟨
-    checkerConjunctInvariant_after_assume_list M F hValid,
-    checkerTruthInvariant_after_assume_list M F hValid
+    checkerShapeInvariant_of_suffix (stateAssumptionSuffix_invoke_assume_list hValid),
+    checkerLocalTruthInvariant_after_assume_list M F hValid
   ⟩
 
 theorem state_to_formula_invoke_assume_list :
@@ -2167,109 +2224,401 @@ by
         cmd_step_proven_true_of_truthInvariant M s hNotStuck r args premises
           hTruth hProg hAss hPush)
 
+theorem invoke_step_preserves_localTruthInvariant_of_stuck
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  __eo_cmd_step_proven s r args premises = Term.Stuck ->
+  checkerLocalTruthInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hStep
+  have hStuck :
+      __eo_invoke_cmd s (CCmd.step r args premises) = CState.Stuck :=
+    invoke_step_eq_stuck_of_nonstuck s hNotStuck r args premises hStep
+  simpa [hStuck] using checkerLocalTruthInvariant_stuck M
+
+theorem invoke_step_preserves_localTruthInvariant_of_contextual_true
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) (P : Term) :
+  checkerLocalTruthInvariant M s ->
+  __eo_cmd_step_proven s r args premises = P ->
+  P ≠ Term.Stuck ->
+  (eo_interprets M (stateAssumes s) true ->
+   eo_interprets M (statePushes s) true ->
+   eo_interprets M P true) ->
+  checkerLocalTruthInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hs hStep hNe hP
+  have hPost :
+      __eo_invoke_cmd s (CCmd.step r args premises) = CState.cons (CStateObj.proven P) s :=
+    invoke_step_eq_cons_of_nonstuck s hNotStuck r args premises P hStep hNe
+  simpa [hPost] using
+    push_proven_preserves_localTruthInvariant_of_contextual_true M s P hs hP
+
+theorem invoke_step_preserves_localTruthInvariant
+    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerLocalTruthInvariant M s ->
+  checkerLocalTruthInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  intro hs
+  have hTruth : checkerTruthInvariant M s :=
+    checkerLocalTruthInvariant_implies_truthInvariant M hs
+  by_cases hProg : __eo_cmd_step_proven s r args premises = Term.Stuck
+  · exact invoke_step_preserves_localTruthInvariant_of_stuck M s hNotStuck r args premises hProg
+  · exact invoke_step_preserves_localTruthInvariant_of_contextual_true M s hNotStuck
+      r args premises (__eo_cmd_step_proven s r args premises) hs rfl hProg
+      (fun hAss hPush =>
+        cmd_step_proven_true_of_truthInvariant M s hNotStuck r args premises
+          hTruth hProg hAss hPush)
+
+theorem cmd_step_pop_proven_true_of_localTruthInvariant
+    (M : SmtModel) (root tail : CState) (A : Term)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerLocalTruthInvariant M root ->
+  __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck ->
+  stateAssumes root = stateAssumes tail ->
+  statePushes root = Term.Apply (Term.Apply Term.and A) (statePushes tail) ->
+  eo_interprets M (stateAssumes tail) true ->
+  eo_interprets M (statePushes tail) true ->
+  eo_interprets M (__eo_cmd_step_pop_proven root r args A premises) true
+:=
+by
+  intro hsRoot hProg hAssEq hPushEq hAss hPush
+  by_cases hA : A = Term.Stuck
+  · exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven, hA]))
+  · cases r with
+    | scope =>
+        cases args with
+        | nil =>
+            cases premises with
+            | nil =>
+                exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+            | cons n1 premises =>
+                cases premises with
+                | nil =>
+                    let X := __eo_state_proven_nth root n1
+                    let P := __eo_prog_scope A (Proof.pf X)
+                    have hPNotStuck : P ≠ Term.Stuck := by
+                      simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg
+                    have hScoped :
+                        eo_interprets M A true -> eo_interprets M X true := by
+                      intro hATrue
+                      have hAssRoot : eo_interprets M (stateAssumes root) true := by
+                        rw [hAssEq]
+                        exact hAss
+                      have hPushRoot : eo_interprets M (statePushes root) true := by
+                        rw [hPushEq]
+                        exact eo_interprets_and_intro M A (statePushes tail) hATrue hPush
+                      exact checkerLocalTruthInvariant_at M hsRoot n1 hAssRoot hPushRoot
+                    simpa [P, X, __eo_cmd_step_pop_proven, hA] using
+                      correct___eo_prog_scope M A X hScoped hPNotStuck
+                | cons n2 premises =>
+                    exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+        | cons a args =>
+            exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+    | contra =>
+        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+    | refl =>
+        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+    | symm =>
+        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+    | trans =>
+        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+
+theorem invoke_cmd_step_pop_preserves_localTruthInvariant_aux
+    (M : SmtModel) :
+  forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
+    checkerLocalTruthInvariant M root ->
+    checkerLocalTruthInvariant M cur ->
+    stateAssumptionSuffix cur ->
+    stateAssumes root = stateAssumes cur ->
+    statePushes root = statePushes cur ->
+    checkerLocalTruthInvariant M (__eo_invoke_cmd_step_pop root cur r args premises)
+:=
+by
+  intro root cur
+  induction cur with
+  | nil =>
+      intro r args premises hsRoot hCur hSuffix hAssEq hPushEq
+      simpa [__eo_invoke_cmd_step_pop] using checkerLocalTruthInvariant_stuck M
+  | Stuck =>
+      intro r args premises hsRoot hCur hSuffix hAssEq hPushEq
+      cases hSuffix
+  | cons so cur ih =>
+      intro r args premises hsRoot hCur hSuffix hAssEq hPushEq
+      cases so with
+      | assume_push A =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
+          | false =>
+              have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck := by
+                intro hEq
+                simp [eo_lit_teq, hEq] at hStep
+              have hTail : checkerLocalTruthInvariant M cur := by
+                simpa [checkerLocalTruthInvariant] using hCur
+              have hAssEqTail : stateAssumes root = stateAssumes cur := by
+                simpa [stateAssumes] using hAssEq
+              have hPushEqTail :
+                  statePushes root = Term.Apply (Term.Apply Term.and A) (statePushes cur) := by
+                simpa [statePushes] using hPushEq
+              have hContext :
+                  eo_interprets M (stateAssumes cur) true ->
+                  eo_interprets M (statePushes cur) true ->
+                  eo_interprets M (__eo_cmd_step_pop_proven root r args A premises) true := by
+                intro hAss hPush
+                exact cmd_step_pop_proven_true_of_localTruthInvariant M root cur A r args premises
+                  hsRoot hProg hAssEqTail hPushEqTail hAss hPush
+              have hPost :
+                  __eo_invoke_cmd_step_pop root (CState.cons (CStateObj.assume_push A) cur) r args premises =
+                    CState.cons (CStateObj.proven (__eo_cmd_step_pop_proven root r args A premises)) cur := by
+                simp [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                  __eo_is_ok, hStep, SmtEval.smt_lit_not]
+              simpa [hPost] using
+                push_proven_preserves_localTruthInvariant_of_contextual_true M cur
+                  (__eo_cmd_step_pop_proven root r args A premises) hTail hContext
+          | true =>
+              simpa [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not] using
+                checkerLocalTruthInvariant_stuck M
+      | assume A =>
+          have hTail : stateAssumptionTail cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          have hStuck : __eo_invoke_cmd_step_pop root cur r args premises = CState.Stuck :=
+            invoke_cmd_step_pop_of_assumptionTail root cur r args premises hTail
+          simpa [__eo_invoke_cmd_step_pop, hStuck] using checkerLocalTruthInvariant_stuck M
+      | proven P =>
+          have hCurTail : checkerLocalTruthInvariant M cur :=
+            checkerLocalTruthInvariant_tail M hCur
+          have hSuffixTail : stateAssumptionSuffix cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          have hAssEqTail : stateAssumes root = stateAssumes cur := by
+            simpa [stateAssumes] using hAssEq
+          have hPushEqTail : statePushes root = statePushes cur := by
+            simpa [statePushes] using hPushEq
+          exact ih r args premises hsRoot hCurTail hSuffixTail hAssEqTail hPushEqTail
+
+theorem invoke_cmd_step_pop_preserves_localTruthInvariant
+    (M : SmtModel) (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerLocalTruthInvariant M s ->
+  stateAssumptionSuffix s ->
+  checkerLocalTruthInvariant M (__eo_invoke_cmd_step_pop s s r args premises) :=
+by
+  intro hs hSuffix
+  exact invoke_cmd_step_pop_preserves_localTruthInvariant_aux M s s r args premises
+    hs hs hSuffix rfl rfl
+
+theorem invoke_cmd_step_pop_preserves_shapeInvariant_aux :
+  forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
+    stateAssumptionSuffix cur ->
+    checkerShapeInvariant (__eo_invoke_cmd_step_pop root cur r args premises)
+:=
+by
+  intro root cur
+  induction cur with
+  | nil =>
+      intro r args premises hSuffix
+      simpa [__eo_invoke_cmd_step_pop, checkerShapeInvariant] using checkerShapeInvariant_stuck
+  | Stuck =>
+      intro r args premises hSuffix
+      cases hSuffix
+  | cons so cur ih =>
+      intro r args premises hSuffix
+      cases so with
+      | assume_push A =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
+          | false =>
+              have hTailSuffix : stateAssumptionSuffix cur := by
+                simpa [stateAssumptionSuffix] using hSuffix
+              simpa [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not, checkerShapeInvariant, stateAssumptionSuffix] using
+                hTailSuffix
+          | true =>
+              simpa [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not, checkerShapeInvariant] using
+                checkerShapeInvariant_stuck
+      | assume A =>
+          have hTail : stateAssumptionTail cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          have hStuck : __eo_invoke_cmd_step_pop root cur r args premises = CState.Stuck :=
+            invoke_cmd_step_pop_of_assumptionTail root cur r args premises hTail
+          simpa [__eo_invoke_cmd_step_pop, hStuck, checkerShapeInvariant] using
+            checkerShapeInvariant_stuck
+      | proven P =>
+          have hTailSuffix : stateAssumptionSuffix cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          simpa [__eo_invoke_cmd_step_pop] using ih r args premises hTailSuffix
+
+theorem invoke_cmd_step_pop_preserves_shapeInvariant
+    (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
+  stateAssumptionSuffix s ->
+  checkerShapeInvariant (__eo_invoke_cmd_step_pop s s r args premises) :=
+by
+  intro hSuffix
+  exact invoke_cmd_step_pop_preserves_shapeInvariant_aux s s r args premises hSuffix
+
+set_option linter.unusedSimpArgs false in
+theorem invoke_cmd_preserves_localTruthInvariant_nonstuck (M : SmtModel) :
+  forall s : CState, forall c : CCmd,
+    checkerLocalTruthInvariant M s ->
+    stateAssumptionSuffix s ->
+    s ≠ CState.Stuck ->
+    checkerLocalTruthInvariant M (__eo_invoke_cmd s c)
+:=
+by
+  intro s c hs hSuffix hNotStuck
+  cases c with
+  | assume_push A =>
+      cases s with
+      | nil =>
+          change checkerLocalTruthInvariant M (__eo_push_assume A CState.nil)
+          exact push_assume_preserves_localTruthInvariant M CState.nil A hs
+      | cons so s =>
+          change checkerLocalTruthInvariant M (__eo_push_assume A (CState.cons so s))
+          exact push_assume_preserves_localTruthInvariant M (CState.cons so s) A hs
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+  | check_proven proven =>
+      cases s with
+      | nil =>
+          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerLocalTruthInvariant]
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+      | cons so s =>
+          cases so with
+          | assume A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerLocalTruthInvariant]
+          | assume_push A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerLocalTruthInvariant]
+          | proven F =>
+              change checkerLocalTruthInvariant M (__eo_push_proven_check (__eo_eq F proven) F s)
+              cases hEq : __eo_eq F proven <;>
+                try
+                  (simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    hEq, checkerLocalTruthInvariant])
+              case Boolean b =>
+                cases b with
+                | false =>
+                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                      hEq, checkerLocalTruthInvariant]
+                | true =>
+                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                      hEq, checkerLocalTruthInvariant] at hs ⊢
+                    exact hs
+  | step r args premises =>
+      exact invoke_step_preserves_localTruthInvariant M s hNotStuck r args premises hs
+  | step_pop r args premises =>
+      cases s with
+      | nil =>
+          simpa [__eo_invoke_cmd] using
+            invoke_cmd_step_pop_preserves_localTruthInvariant M CState.nil r args premises hs hSuffix
+      | cons so s =>
+          simpa [__eo_invoke_cmd] using
+            invoke_cmd_step_pop_preserves_localTruthInvariant M (CState.cons so s) r args premises hs hSuffix
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+
+set_option linter.unusedSimpArgs false in
+theorem invoke_cmd_preserves_shapeInvariant_nonstuck :
+  forall s : CState, forall c : CCmd,
+    checkerShapeInvariant s ->
+    s ≠ CState.Stuck ->
+    checkerShapeInvariant (__eo_invoke_cmd s c)
+:=
+by
+  intro s c hShape hNotStuck
+  have hSuffix : stateAssumptionSuffix s :=
+    suffix_of_checkerShapeInvariant_nonstuck hShape hNotStuck
+  cases c with
+  | assume_push A =>
+      cases s with
+      | nil =>
+          simp [__eo_invoke_cmd, __eo_push_assume, checkerShapeInvariant, stateAssumptionSuffix]
+      | cons so s =>
+          simpa [__eo_invoke_cmd, __eo_push_assume, checkerShapeInvariant] using hSuffix
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+  | check_proven proven =>
+      cases s with
+      | nil =>
+          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerShapeInvariant]
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+      | cons so s =>
+          cases so with
+          | assume A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerShapeInvariant]
+          | assume_push A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerShapeInvariant]
+          | proven F =>
+              have hSuffixTail : stateAssumptionSuffix s := by
+                simpa [stateAssumptionSuffix] using hSuffix
+              cases hEq : __eo_eq F proven <;>
+                try
+                  (simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    hEq, checkerShapeInvariant])
+              case Boolean b =>
+                cases b with
+                | false =>
+                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                      hEq, checkerShapeInvariant]
+                | true =>
+                    simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                      hEq, checkerShapeInvariant, stateAssumptionSuffix] using
+                      hSuffixTail
+  | step r args premises =>
+      cases s with
+      | nil =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_proven CState.nil r args premises) Term.Stuck with
+          | false =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, checkerShapeInvariant, stateAssumptionSuffix]
+          | true =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, checkerShapeInvariant]
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+      | cons so s =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_proven (CState.cons so s) r args premises) Term.Stuck with
+          | false =>
+              simpa [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, checkerShapeInvariant] using hSuffix
+          | true =>
+              simp [__eo_invoke_cmd, __eo_push_proven, __eo_push_proven_check, __eo_is_ok,
+                hStep, SmtEval.smt_lit_not, checkerShapeInvariant]
+  | step_pop r args premises =>
+      cases s with
+      | nil =>
+          simpa [__eo_invoke_cmd] using invoke_cmd_step_pop_preserves_shapeInvariant CState.nil r args premises hSuffix
+      | cons so s =>
+          simpa [__eo_invoke_cmd] using
+            invoke_cmd_step_pop_preserves_shapeInvariant (CState.cons so s) r args premises hSuffix
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+
 set_option linter.unusedSimpArgs false in
 theorem invoke_cmd_preserves_conjunctInvariant_nonstuck (M : SmtModel) :
   forall s : CState, forall c : CCmd,
-    checkerConjunctInvariant M s ->
-    checkerTruthInvariant M s ->
+    checkerLocalTruthInvariant M s ->
+    stateAssumptionSuffix s ->
     s ≠ CState.Stuck ->
     checkerConjunctInvariant M (__eo_invoke_cmd s c)
 :=
 by
-  intro s c hConj hTruth hNotStuck
-  cases c with
-  | assume_push A =>
-      cases s with
-      | nil =>
-          simp [__eo_invoke_cmd, __eo_push_assume, checkerConjunctInvariant]
-      | cons so s =>
-          simp [__eo_invoke_cmd, __eo_push_assume, checkerConjunctInvariant] at hConj ⊢
-          exact hConj
-      | Stuck =>
-          exact False.elim (hNotStuck rfl)
-  | check_proven proven =>
-      cases s with
-      | nil =>
-          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerConjunctInvariant]
-      | Stuck =>
-          exact False.elim (hNotStuck rfl)
-      | cons so s =>
-          cases so with
-          | assume A =>
-              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerConjunctInvariant]
-          | assume_push A =>
-              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerConjunctInvariant]
-          | proven F =>
-              change checkerConjunctInvariant M (__eo_push_proven_check (__eo_eq F proven) F s)
-              cases hEq : __eo_eq F proven <;>
-                try
-                  (simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                    hEq, checkerConjunctInvariant])
-              case Boolean b =>
-                cases b with
-                | false =>
-                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                      hEq, checkerConjunctInvariant]
-                | true =>
-                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                      hEq, checkerConjunctInvariant] at hConj ⊢
-                    exact hConj
-  | step r args premises =>
-      exact invoke_step_preserves_conjunctInvariant M s hNotStuck r args premises hConj hTruth
-  | step_pop r args premises =>
-      sorry
+  intro s c hs hSuffix hNotStuck
+  exact checkerLocalTruthInvariant_implies_conjunctInvariant M <|
+    invoke_cmd_preserves_localTruthInvariant_nonstuck M s c hs hSuffix hNotStuck
 
 set_option linter.unusedSimpArgs false in
 theorem invoke_cmd_preserves_truthInvariant_nonstuck (M : SmtModel) :
   forall s : CState, forall c : CCmd,
-    checkerTruthInvariant M s ->
+    checkerLocalTruthInvariant M s ->
+    stateAssumptionSuffix s ->
     s ≠ CState.Stuck ->
     checkerTruthInvariant M (__eo_invoke_cmd s c)
 :=
 by
-  intro s c hs hNotStuck
-  cases c with
-  | assume_push A =>
-      cases s with
-      | nil =>
-          change checkerTruthInvariant M (__eo_push_assume A CState.nil)
-          exact push_assume_preserves_truthInvariant M CState.nil A hs
-      | cons so s =>
-          change checkerTruthInvariant M (__eo_push_assume A (CState.cons so s))
-          exact push_assume_preserves_truthInvariant M (CState.cons so s) A hs
-      | Stuck =>
-          exact False.elim (hNotStuck rfl)
-  | check_proven proven =>
-      cases s with
-      | nil =>
-          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerTruthInvariant]
-      | Stuck =>
-          exact False.elim (hNotStuck rfl)
-      | cons so s =>
-          cases so with
-          | assume A =>
-              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerTruthInvariant]
-          | assume_push A =>
-              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerTruthInvariant]
-          | proven F =>
-              change checkerTruthInvariant M (__eo_push_proven_check (__eo_eq F proven) F s)
-              cases hEq : __eo_eq F proven <;>
-                try
-                  (simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                    hEq, checkerTruthInvariant])
-              case Boolean b =>
-                cases b with
-                | false =>
-                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                      hEq, checkerTruthInvariant]
-                | true =>
-                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                      hEq, checkerTruthInvariant] at hs ⊢
-                    exact hs
-  | step r args premises =>
-      exact invoke_step_preserves_truthInvariant M s hNotStuck r args premises hs
-  | step_pop r args premises =>
-      sorry
+  intro s c hs hSuffix hNotStuck
+  exact checkerLocalTruthInvariant_implies_truthInvariant M <|
+    invoke_cmd_preserves_localTruthInvariant_nonstuck M s c hs hSuffix hNotStuck
 
 theorem invoke_cmd_preserves_stateInvariant_nonstuck (M : SmtModel) :
   forall s : CState, forall c : CCmd,
@@ -2279,10 +2628,14 @@ theorem invoke_cmd_preserves_stateInvariant_nonstuck (M : SmtModel) :
 :=
 by
   intro s c hs hNotStuck
-  exact ⟨
-    invoke_cmd_preserves_conjunctInvariant_nonstuck M s c hs.1 hs.2 hNotStuck,
-    invoke_cmd_preserves_truthInvariant_nonstuck M s c hs.2 hNotStuck
-  ⟩
+  have hLocal :
+      checkerLocalTruthInvariant M (__eo_invoke_cmd s c) :=
+    invoke_cmd_preserves_localTruthInvariant_nonstuck M s c hs.2
+      (suffix_of_checkerShapeInvariant_nonstuck hs.1 hNotStuck) hNotStuck
+  have hShape :
+      checkerShapeInvariant (__eo_invoke_cmd s c) :=
+    invoke_cmd_preserves_shapeInvariant_nonstuck s c hs.1 hNotStuck
+  exact ⟨hShape, hLocal⟩
 
 theorem invoke_cmd_preserves_stateInvariant (M : SmtModel) :
   forall s : CState, forall c : CCmd,
@@ -2294,7 +2647,7 @@ by
   by_cases hStuck : s = CState.Stuck
   · subst hStuck
     have hInvStuck : checkerStateInvariant M CState.Stuck := by
-      exact ⟨checkerConjunctInvariant_stuck M, checkerTruthInvariant_stuck M⟩
+      exact ⟨checkerShapeInvariant_stuck, checkerLocalTruthInvariant_stuck M⟩
     cases c <;> simpa [__eo_invoke_cmd, checkerStateInvariant] using hInvStuck
   · exact invoke_cmd_preserves_stateInvariant_nonstuck M s c hs hStuck
 
@@ -2342,4 +2695,5 @@ by
         simpa [S0] using checkerStateInvariant_after_assume_list M F hValid
       have hSteps : checkerStateInvariant M S1 := by
         simpa [S0, S1] using invoke_cmd_list_preserves_stateInvariant M S0 pf hInit
-      exact refutation_contradiction M F pf hF hSteps.1 hChecker
+      exact refutation_contradiction_of_truthInvariant M F pf hF
+        (checkerLocalTruthInvariant_implies_truthInvariant M hSteps.2) hChecker
