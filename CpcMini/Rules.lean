@@ -23,6 +23,12 @@ theorem eo_interprets_true (M : SmtModel) :
   rw [eo_interprets_iff_smt_interprets]
   exact smt_interprets.intro_true M (__eo_to_smt (Term.Boolean true)) rfl rfl
 
+def eo_has_smt_translation (t : Term) : Prop :=
+  __smtx_typeof (__eo_to_smt t) ≠ SmtType.None
+
+def eo_has_bool_type (t : Term) : Prop :=
+  __smtx_typeof (__eo_to_smt t) = SmtType.Bool
+
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
   eo_interprets M t true -> ¬ eo_interprets M t false := by
   intro hTrue hFalse
@@ -49,6 +55,33 @@ theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
       case Boolean b =>
         cases b <;> simp [SmtEval.smt_lit_not] at hEval
         exact smt_interprets.intro_false M (__eo_to_smt t) htyt ht
+
+theorem smtx_typeof_eq_refl (T : SmtType) :
+  T ≠ SmtType.None -> __smtx_typeof_eq T T = SmtType.Bool := by
+  intro hT
+  unfold __smtx_typeof_eq __smtx_typeof_guard
+  simp [smt_lit_ite, smt_lit_Teq, hT]
+
+theorem smtx_model_eval_eq_refl (v : SmtValue) :
+  __smtx_model_eval_eq v v = SmtValue.Boolean true := by
+  unfold __smtx_model_eval_eq
+  cases v <;> simp [smt_lit_veq]
+
+theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
+  eo_has_smt_translation x1 ->
+  eo_has_bool_type (__eo_prog_refl x1) ->
+  eo_interprets M (__eo_prog_refl x1) true := by
+  intro hTy _
+  have hNotEqStuck : x1 ≠ Term.Stuck := by
+    intro hStuck
+    subst hStuck
+    simp [eo_has_smt_translation, __eo_to_smt, __smtx_typeof] at hTy
+  rw [eo_interprets_iff_smt_interprets]
+  refine smt_interprets.intro_true M (__eo_to_smt (__eo_prog_refl x1)) ?_ ?_
+  · simp [__eo_prog_refl, __eo_to_smt, __smtx_typeof]
+    exact smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTy
+  · simpa [__eo_prog_refl, hNotEqStuck, __eo_to_smt, __smtx_model_eval] using
+      smtx_model_eval_eq_refl (__smtx_model_eval M (__eo_to_smt x1))
 
 theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
   ¬ eo_interprets M (__eo_prog_refl Term.or) true := by

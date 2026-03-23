@@ -42,6 +42,16 @@ theorem correct___eo_prog_refl (M : SmtModel) (x1 : Term) :
 by
   sorry
 
+/- A typed version of `refl` that is actually provable.
+   This is the candidate replacement template if we decide to strengthen the
+   rule assumptions in the checker proof. -/
+theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
+  RuleProofs.eo_has_smt_translation x1 ->
+  RuleProofs.eo_has_bool_type (__eo_prog_refl x1) ->
+  (eo_interprets M (__eo_prog_refl x1) true) :=
+by
+  exact RuleProofs.correct___eo_prog_refl_of_smt_translation M x1
+
 /- correctness theorem for __eo_prog_symm -/
 theorem correct___eo_prog_symm (M : SmtModel) (x1 : Term) :
   (eo_interprets M x1 true) ->
