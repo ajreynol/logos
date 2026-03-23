@@ -2003,7 +2003,33 @@ theorem premiseAndFormula_is_and_list :
     __eo_is_list Term.and (premiseAndFormula s premises) = Term.Boolean true
 :=
 by
-  sorry
+  have hGetNil :
+      forall (s : CState) (premises : CIndexList),
+        __eo_get_nil_rec Term.and (premiseAndFormula s premises) ≠ Term.Stuck
+  :=
+  by
+    intro s premises
+    induction premises with
+    | nil =>
+        unfold premiseAndFormula
+        unfold __eo_get_nil_rec
+        unfold __eo_requires
+        unfold __eo_is_list_nil
+        simp [eo_lit_ite, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
+    | cons n premises ih =>
+        unfold premiseAndFormula
+        unfold __eo_get_nil_rec
+        unfold __eo_requires
+        simpa [eo_lit_ite, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using ih
+  intro s premises
+  have hNotStuck :
+      __eo_get_nil_rec Term.and (premiseAndFormula s premises) ≠ Term.Stuck :=
+    hGetNil s premises
+  have hPremNotStuck : premiseAndFormula s premises ≠ Term.Stuck :=
+    premiseAndFormula_ne_stuck s premises
+  unfold __eo_is_list
+  unfold __eo_is_ok
+  simpa [eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using hNotStuck
 
 theorem mk_premise_list_and_eq_premiseAndFormula :
   forall (s : CState) (premises : CIndexList),

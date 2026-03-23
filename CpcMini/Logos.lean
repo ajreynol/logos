@@ -152,8 +152,6 @@ inductive Proof : Type where
 
 /- Definition of Eunoia signature -/
 
-mutual
-
 partial def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -189,11 +187,32 @@ partial def __eo_eq : Term -> Term -> Term
   | t, s => (Term.Boolean (eo_lit_teq s t))
 
 
-partial def __eo_get_nil_rec : Term -> Term -> Term
+partial def __eo_nil : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, T => (Term.Boolean false)
+  | Term.and, T => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
+  | _, _ => Term.Stuck
+
+
+partial def __eo_is_list_nil : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, (Term.Boolean false) => (Term.Boolean true)
+  | Term.and, (Term.Boolean true) => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
+  | f, nil => (Term.Boolean false)
+
+
+def __eo_get_nil_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | f, (Term.Apply (Term.Apply g x) y) => (__eo_requires f g (__eo_get_nil_rec f y))
   | f, nil => (__eo_requires (__eo_is_list_nil f nil) (Term.Boolean true) nil)
+termination_by _ x => sizeOf x
+decreasing_by
+  simp_wf
+  omega
 
 
 partial def __eo_is_list : Term -> Term -> Term
@@ -244,28 +263,6 @@ partial def __mk_trans : Term -> Term -> Term -> Term
 partial def __eo_prog_trans : Proof -> Term
   | (Proof.pf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2)) tail)) => (__mk_trans t1 t2 tail)
   | _ => Term.Stuck
-
-
-partial def __eo_nil : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, T => (Term.Boolean false)
-  | Term.and, T => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
-  | _, _ => Term.Stuck
-
-
-partial def __eo_is_list_nil : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, (Term.Boolean false) => (Term.Boolean true)
-  | Term.and, (Term.Boolean true) => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
-  | f, nil => (Term.Boolean false)
-
-
-
-
-end
 
 /- Definition of the checker -/
 
