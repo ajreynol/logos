@@ -43,9 +43,18 @@ theorem correct___eo_prog_symm (M : SmtModel) (x1 : Term) :
 by
   sorry
 
+/- correctness theorem for __eo_prog_trans -/
+theorem correct___eo_prog_trans (M : SmtModel) (x1 : Term) :
+  (eo_interprets M x1 true) ->
+  (Not ((__eo_prog_trans (Proof.pf x1)) = Term.Stuck)) ->
+  (eo_interprets M (__eo_prog_trans (Proof.pf x1)) true) :=
+by
+  sorry
+
 
 
 
 /- Helper definitions -/
+
 
 
