@@ -1,6 +1,7 @@
 import CpcMini.SmtModel
 import CpcMini.Logos
 import CpcMini.Spec
+import CpcMini.Rules
 
 open Eo
 open Smtm
@@ -12,6 +13,9 @@ set_option maxHeartbeats 10000000
 /- The theorem statements -/
 
 /- correctness theorem for __eo_prog_scope -/
+/- `RuleProofs.not_eo_interprets_prog_scope_num_true` shows this statement is
+   false as written: non-stuckness alone does not force the antecedent of the
+   implication to be Boolean. -/
 theorem correct___eo_prog_scope (M : SmtModel) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
   (Not ((__eo_prog_scope x1 (Proof.pf x2)) = Term.Stuck)) ->
@@ -29,6 +33,9 @@ by
   sorry
 
 /- correctness theorem for __eo_prog_refl -/
+/- `RuleProofs.not_eo_interprets_prog_refl_or_true` shows this statement is
+   false as written: non-stuckness alone does not force the argument to have a
+   semantic type on which equality is Boolean. -/
 theorem correct___eo_prog_refl (M : SmtModel) (x1 : Term) :
   (Not ((__eo_prog_refl x1) = Term.Stuck)) ->
   (eo_interprets M (__eo_prog_refl x1) true) :=
@@ -55,4 +62,3 @@ by
 
 
 /- Helper definitions -/
-
