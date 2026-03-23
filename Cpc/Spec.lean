@@ -264,7 +264,7 @@ def __eo_to_smt : Term -> SmtTerm
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract _v0) _v0) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term._at_from_bools x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (__eo_to_smt x1)) (SmtTerm.Binary 1 1)) (SmtTerm.Binary 1 0))) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply Term._at_bv x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term._at_bv x1) x2) => (smt_lit_ite (smt_lit_zleq 0 x2) (SmtTerm.Binary x2 (smt_lit_mod_total x1 (smt_lit_int_pow2 x2))) SmtTerm.None)
   | (Term.seq_empty (Term.Apply Term.Seq Term.Char)) => (SmtTerm.String "")
   | (Term.seq_empty x1) => (SmtTerm.seq_empty (__eo_to_smt_type x1))
   | (Term.Apply Term.str_len x1) => (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt x1))
