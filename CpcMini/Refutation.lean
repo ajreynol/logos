@@ -596,7 +596,8 @@ theorem push_assume_preserves_localTruthInvariant
   checkerLocalTruthInvariant M s ->
   checkerLocalTruthInvariant M (__eo_push_assume A s) :=
 by
-  simpa [__eo_push_assume, checkerLocalTruthInvariant]
+  intro hs
+  simp [__eo_push_assume, checkerLocalTruthInvariant, hs]
 
 theorem push_proven_preserves_localTruthInvariant_of_contextual_true
     (M : SmtModel) (s : CState) (P : Term) :
@@ -2442,7 +2443,7 @@ by
   induction cur with
   | nil =>
       intro r args premises hSuffix
-      simpa [__eo_invoke_cmd_step_pop, checkerShapeInvariant] using checkerShapeInvariant_stuck
+      simp [__eo_invoke_cmd_step_pop, checkerShapeInvariant]
   | Stuck =>
       intro r args premises hSuffix
       cases hSuffix
@@ -2458,16 +2459,14 @@ by
                 __eo_is_ok, hStep, SmtEval.smt_lit_not, checkerShapeInvariant, stateAssumptionSuffix] using
                 hTailSuffix
           | true =>
-              simpa [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
-                __eo_is_ok, hStep, SmtEval.smt_lit_not, checkerShapeInvariant] using
-                checkerShapeInvariant_stuck
+              simp [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not, checkerShapeInvariant]
       | assume A =>
           have hTail : stateAssumptionTail cur := by
             simpa [stateAssumptionSuffix] using hSuffix
           have hStuck : __eo_invoke_cmd_step_pop root cur r args premises = CState.Stuck :=
             invoke_cmd_step_pop_of_assumptionTail root cur r args premises hTail
-          simpa [__eo_invoke_cmd_step_pop, hStuck, checkerShapeInvariant] using
-            checkerShapeInvariant_stuck
+          simp [__eo_invoke_cmd_step_pop, hStuck, checkerShapeInvariant]
       | proven P =>
           have hTailSuffix : stateAssumptionSuffix cur := by
             simpa [stateAssumptionSuffix] using hSuffix
