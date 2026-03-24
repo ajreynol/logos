@@ -395,6 +395,7 @@ inductive SmtTerm : Type where
   | bvusubo : SmtTerm
   | bvssubo : SmtTerm
   | bvsdivo : SmtTerm
+  | _at_bv : SmtTerm
   | seq_empty : SmtType -> SmtTerm
   | str_len : SmtTerm
   | str_concat : SmtTerm
@@ -1161,6 +1162,11 @@ def __smtx_model_eval_bvssubo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
 def __smtx_model_eval_bvsdivo (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_model_eval_and (__smtx_model_eval_bvnego x1) (__smtx_model_eval_eq x2 (__smtx_model_eval_bvnot (SmtValue.Binary (__smtx_bv_sizeof_value x1) 0))))
 
+def __smtx_model_eval__at_bv : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Binary x2 (smt_lit_mod_total x1 (smt_lit_int_pow2 x2)))
+  | t1, t2 => SmtValue.NotValue
+
+
 def __smtx_model_eval_str_len : SmtValue -> SmtValue
   | (SmtValue.String x1) => (SmtValue.Numeral (smt_lit_str_len x1))
   | t1 => SmtValue.NotValue
@@ -1492,6 +1498,11 @@ def __smtx_typeof_rotate_right : SmtTerm -> SmtType -> SmtType
   | x3, x4 => SmtType.None
 
 
+def __smtx_typeof__at_bv : SmtTerm -> SmtTerm -> SmtType
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (smt_lit_ite (smt_lit_zleq 0 x2) (SmtType.BitVec x1) SmtType.None)
+  | x3, x4 => SmtType.None
+
+
 def __smtx_typeof_re_exp : SmtTerm -> SmtType -> SmtType
   | (SmtTerm.Numeral x1), SmtType.RegLan => (smt_lit_ite (smt_lit_zleq 0 x1) SmtType.RegLan SmtType.None)
   | x2, x3 => SmtType.None
@@ -1596,6 +1607,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv x1) x2) => (__smtx_typeof__at_bv x1 x2)
   | (SmtTerm.seq_empty x1) => (SmtType.Seq x1)
   | (SmtTerm.Apply SmtTerm.str_len x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.Int SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat x1) x2) => 
@@ -1799,6 +1811,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo x1) x2) => (__smtx_model_eval_bvusubo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo x1) x2) => (__smtx_model_eval_bvssubo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo x1) x2) => (__smtx_model_eval_bvsdivo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv x1) x2) => (__smtx_model_eval__at_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.seq_empty x1) => (SmtValue.Seq (SmtSeq.empty x1))
   | (SmtTerm.Apply SmtTerm.str_len x1) => (__smtx_model_eval_str_len (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat x1) x2) => (__smtx_model_eval_str_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
