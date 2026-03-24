@@ -3,6 +3,7 @@
 import Cpc.Logos
 import Cpc.SmtEval
 import Cpc.SmtModel
+import Cpc.TypePreservation
 import Cpc.Spec
 import Cpc.Lemmas
 import Cpc.Refutation
