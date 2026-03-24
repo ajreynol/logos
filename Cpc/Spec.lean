@@ -54,6 +54,11 @@ def __eo_to_smt_substitute (s : smt_lit_String) (T : SmtType) (u : SmtTerm) : Sm
   | z => (smt_lit_ite (__eo_to_smt_is_var s T z) u z)
 
 
+def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (Term.Apply (Term.Apply (Term.Apply Term.ite (smt_lit_zleq 0 x2)) (SmtTerm.Binary x2 (smt_lit_mod_total x1 (smt_lit_int_pow2 x2)))) SmtTerm.None)
+  | t1, t2 => SmtTerm.None
+
+
 def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> smt_lit_Nat -> SmtTerm
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat r1) r2), smt_lit_nat_zero => 
     let _v0 := (SmtType.Seq SmtType.Char)
@@ -264,7 +269,7 @@ def __eo_to_smt : Term -> SmtTerm
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract _v0) _v0) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term._at_from_bools x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (__eo_to_smt x1)) (SmtTerm.Binary 1 1)) (SmtTerm.Binary 1 0))) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply Term._at_bv x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term._at_bv x1) x2) => (__eo_to_smt__at_bv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.seq_empty (Term.Apply Term.Seq Term.Char)) => (SmtTerm.String "")
   | (Term.seq_empty x1) => (SmtTerm.seq_empty (__eo_to_smt_type x1))
   | (Term.Apply Term.str_len x1) => (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt x1))
