@@ -1,4 +1,5 @@
 import CpcMini.Spec
+import CpcMini.SmtModelLemmas
 
 open Eo
 open Smtm
@@ -58,6 +59,26 @@ theorem eo_typeof_bool_implies_has_bool_type
     simp [hNone, __smtx_typeof]
   exact eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
     t (__eo_to_smt t) rfl hNotNone hTy
+
+theorem eo_interprets_of_bool_eval
+    (M : SmtModel) (t : Term) (b : Bool) :
+  eo_has_bool_type t ->
+  __smtx_model_eval M (__eo_to_smt t) = SmtValue.Boolean b ->
+  eo_interprets M t b := by
+  intro hTy hEval
+  rw [eo_interprets_iff_smt_interprets]
+  cases b with
+  | false =>
+      exact smt_interprets.intro_false M (__eo_to_smt t) hTy hEval
+  | true =>
+      exact smt_interprets.intro_true M (__eo_to_smt t) hTy hEval
+
+theorem eo_eval_is_boolean_of_has_bool_type
+    (M : SmtModel) (hM : smt_model_well_typed M) (t : Term) :
+  eo_has_bool_type t ->
+  ∃ b : Bool, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Boolean b := by
+  intro hTy
+  exact smt_model_eval_bool_is_boolean M hM (__eo_to_smt t) hTy
 
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
   eo_interprets M t true -> ¬ eo_interprets M t false := by
@@ -177,6 +198,49 @@ theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
           exact False.elim (hProgNotStuck (by simp [__eo_prog_contra]))
   | _ =>
       exact False.elim (hProgNotStuck (by simp [__eo_prog_contra]))
+
+theorem correct___eo_prog_scope
+    (M : SmtModel) (hM : smt_model_well_typed M) (x1 x2 : Term) :
+  (eo_interprets M x1 true -> eo_interprets M x2 true) ->
+  eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) ->
+  eo_interprets M (__eo_prog_scope x1 (Proof.pf x2)) true := by
+  intro hImp hTy
+  by_cases hStuck : x1 = Term.Stuck
+  · subst hStuck
+    simp [eo_has_bool_type, __eo_prog_scope, __eo_to_smt, __smtx_typeof] at hTy
+  · have hTy1 : __smtx_typeof (__eo_to_smt x1) = SmtType.Bool := by
+      by_cases hx1 : __smtx_typeof (__eo_to_smt x1) = SmtType.Bool
+      · exact hx1
+      · simp [eo_has_bool_type, __eo_prog_scope, __eo_to_smt, __smtx_typeof,
+          smt_lit_ite, smt_lit_Teq, hx1] at hTy
+    have hTy2 : __smtx_typeof (__eo_to_smt x2) = SmtType.Bool := by
+      by_cases hx2 : __smtx_typeof (__eo_to_smt x2) = SmtType.Bool
+      · exact hx2
+      · simp [eo_has_bool_type, __eo_prog_scope, __eo_to_smt, __smtx_typeof,
+          smt_lit_ite, smt_lit_Teq, hTy1, hx2] at hTy
+    have hTy1' : eo_has_bool_type x1 := hTy1
+    have hTy2' : eo_has_bool_type x2 := hTy2
+    rcases eo_eval_is_boolean_of_has_bool_type M hM x1 hTy1' with ⟨b1, hEval1⟩
+    rw [eo_interprets_iff_smt_interprets]
+    refine smt_interprets.intro_true M (__eo_to_smt (__eo_prog_scope x1 (Proof.pf x2))) ?_ ?_
+    · simpa [eo_has_bool_type, __eo_prog_scope, hStuck, __eo_to_smt] using hTy
+    · cases b1 with
+      | false =>
+          rcases eo_eval_is_boolean_of_has_bool_type M hM x2 hTy2' with ⟨b2, hEval2⟩
+          cases b2 <;>
+            simp [__eo_prog_scope, __eo_to_smt, __smtx_model_eval, hEval1, hEval2,
+              __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not,
+              SmtEval.smt_lit_not, SmtEval.smt_lit_or]
+      | true =>
+          have hX1True : eo_interprets M x1 true :=
+            eo_interprets_of_bool_eval M x1 true hTy1' hEval1
+          have hX2True : eo_interprets M x2 true := hImp hX1True
+          rw [eo_interprets_iff_smt_interprets] at hX2True
+          cases hX2True with
+          | intro_true _ hEval2 =>
+              simp [__eo_prog_scope, __eo_to_smt, __smtx_model_eval, hEval1, hEval2,
+                __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not,
+                SmtEval.smt_lit_not, SmtEval.smt_lit_or]
 
 theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
   ¬ eo_interprets M (__eo_prog_refl Term.or) true := by
