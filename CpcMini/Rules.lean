@@ -221,6 +221,17 @@ theorem eo_has_bool_type_eq_of_true_chain (M : SmtModel) (x y z : Term) :
       (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt z))).mpr ⟨hTyXZ, hNonNone⟩
   simpa [__eo_to_smt, __smtx_typeof] using hEqTy
 
+theorem eo_has_bool_type_eq_of_true (M : SmtModel) (x y : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq x) y) := by
+  intro hXY
+  rcases eo_eq_operands_same_smt_type M x y hXY with ⟨hTyXY, hNonNone⟩
+  have hEqTy :
+      __smtx_typeof_eq (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt y)) = SmtType.Bool := by
+    exact (smtx_typeof_eq_bool_iff
+      (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt y))).mpr ⟨hTyXY, hNonNone⟩
+  simpa [eo_has_bool_type, __eo_to_smt, __smtx_typeof] using hEqTy
+
 theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->
   smt_value_rel (__smtx_model_eval M (__eo_to_smt x))

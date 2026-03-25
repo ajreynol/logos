@@ -192,6 +192,24 @@ theorem correct___eo_prog_symm
 by
   sorry
 
+theorem eo_requires_not_stuck (x1 x2 x3 : Term) :
+  __eo_requires x1 x2 x3 ≠ Term.Stuck ->
+  x1 = x2 ∧ x1 ≠ Term.Stuck ∧ x3 ≠ Term.Stuck := by
+  intro hReq
+  by_cases hEq : x1 = x2
+  · by_cases hStuck : x1 = Term.Stuck
+    · have hX2Stuck : x2 = Term.Stuck := by simpa [hEq] using hStuck
+      exact False.elim <| hReq (by
+        simp [__eo_requires, eo_lit_teq, hEq, hStuck, hX2Stuck, eo_lit_ite, eo_lit_not,
+          SmtEval.smt_lit_not])
+    · refine ⟨hEq, hStuck, ?_⟩
+      intro hX3
+      exact hReq (by
+        simp [__eo_requires, eo_lit_teq, hEq, hStuck, hX3, eo_lit_ite, eo_lit_not,
+          SmtEval.smt_lit_not])
+  · exact False.elim <| hReq (by
+      simp [__eo_requires, eo_lit_teq, hEq, eo_lit_ite])
+
 /- correctness theorem for __eo_prog_trans -/
 theorem typed___eo_prog_trans (M : SmtModel) (x1 : Term) :
   (eo_interprets M x1 true) ->
