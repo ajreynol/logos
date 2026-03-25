@@ -91,6 +91,167 @@ theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
           rw [hEvalTrue] at hEvalFalse
           cases hEvalFalse
 
+theorem eo_interprets_and_left (M : SmtModel) (A B : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true ->
+  eo_interprets M A true := by
+  intro h
+  rw [eo_interprets_iff_smt_interprets] at h ⊢
+  cases h with
+  | intro_true hty hEval =>
+      have htyA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
+        by_cases hA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool
+        · exact hA
+        · have : False := by
+            simp [__eo_to_smt, __smtx_typeof, smt_lit_Teq, smt_lit_ite, hA] at hty
+          exact False.elim this
+      have hEvalA : __smtx_model_eval M (__eo_to_smt A) = SmtValue.Boolean true := by
+        cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
+          cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
+          simp [hAeval, hBeval, __eo_to_smt, __smtx_model_eval, __smtx_model_eval_and] at hEval
+        case Boolean.Boolean a b =>
+          cases a <;> cases b <;> simp [SmtEval.smt_lit_and] at hEval
+          simp
+      exact smt_interprets.intro_true M (__eo_to_smt A) htyA hEvalA
+
+theorem eo_interprets_and_right (M : SmtModel) (A B : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true ->
+  eo_interprets M B true := by
+  intro h
+  rw [eo_interprets_iff_smt_interprets] at h ⊢
+  cases h with
+  | intro_true hty hEval =>
+      have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
+        by_cases hB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool
+        · exact hB
+        · have : False := by
+            simp [__eo_to_smt, __smtx_typeof, smt_lit_Teq, smt_lit_ite, hB] at hty
+          exact False.elim this
+      have hEvalB : __smtx_model_eval M (__eo_to_smt B) = SmtValue.Boolean true := by
+        cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
+          cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
+          simp [hAeval, hBeval, __eo_to_smt, __smtx_model_eval, __smtx_model_eval_and] at hEval
+        case Boolean.Boolean a b =>
+          cases a <;> cases b <;> simp [SmtEval.smt_lit_and] at hEval
+          simp
+      exact smt_interprets.intro_true M (__eo_to_smt B) htyB hEvalB
+
+theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
+  eo_interprets M A true ->
+  eo_interprets M B true ->
+  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true := by
+  intro hA hB
+  rw [eo_interprets_iff_smt_interprets] at hA hB ⊢
+  cases hA with
+  | intro_true htyA hEvalA =>
+      cases hB with
+      | intro_true htyB hEvalB =>
+          apply smt_interprets.intro_true
+          · simp [__eo_to_smt, __smtx_typeof, htyA, htyB, smt_lit_Teq, smt_lit_ite]
+          · simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_and, hEvalA, hEvalB,
+              SmtEval.smt_lit_and]
+
+def smt_value_rel : SmtValue -> SmtValue -> Prop
+  | SmtValue.Map m1, SmtValue.Map m2 => ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v
+  | v1, v2 => v1 = v2
+
+theorem smt_value_rel_trans (v1 v2 v3 : SmtValue) :
+  smt_value_rel v1 v2 ->
+  smt_value_rel v2 v3 ->
+  smt_value_rel v1 v3 := by
+  cases v1 <;> cases v2 <;> cases v3 <;> simp [smt_value_rel]
+  case Map.Map.Map m1 m2 m3 =>
+    intro h12 h23 v
+    rw [h12 v, h23 v]
+  all_goals
+    intros
+    subst_vars
+    simp [smt_value_rel]
+
+theorem smt_value_rel_iff_model_eval_eq_true (v1 v2 : SmtValue) :
+  smt_value_rel v1 v2 ↔ __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true := by
+  cases v1 <;> cases v2 <;>
+    simp [smt_value_rel, __smtx_model_eval_eq, smt_lit_veq]
+
+theorem smtx_typeof_eq_bool_iff (T U : SmtType) :
+  __smtx_typeof_eq T U = SmtType.Bool ↔ T = U ∧ T ≠ SmtType.None := by
+  unfold __smtx_typeof_eq __smtx_typeof_guard
+  by_cases hT : T = SmtType.None
+  · subst hT
+    simp [smt_lit_ite, smt_lit_Teq]
+  · by_cases hEq : T = U
+    · subst hEq
+      simp [smt_lit_ite, smt_lit_Teq, hT]
+    · simp [smt_lit_ite, smt_lit_Teq, hEq, hT]
+
+theorem eo_eq_operands_same_smt_type (M : SmtModel) (x y : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->
+  __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) ∧
+    __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+  intro hEq
+  rw [eo_interprets_iff_smt_interprets] at hEq
+  cases hEq with
+  | intro_true hTy _ =>
+      simpa [__eo_to_smt, __smtx_typeof] using
+        (smtx_typeof_eq_bool_iff (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt y))).mp hTy
+
+theorem eo_has_bool_type_eq_of_true_chain (M : SmtModel) (x y z : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->
+  eo_interprets M (Term.Apply (Term.Apply Term.eq y) z) true ->
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq x) z) := by
+  intro hXY hYZ
+  rcases eo_eq_operands_same_smt_type M x y hXY with ⟨hTyXY, hNonNone⟩
+  rcases eo_eq_operands_same_smt_type M y z hYZ with ⟨hTyYZ, _⟩
+  have hTyXZ : __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt z) := by
+    rw [hTyXY, hTyYZ]
+  unfold eo_has_bool_type
+  have hEqTy :
+      __smtx_typeof_eq (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt z)) = SmtType.Bool := by
+    exact (smtx_typeof_eq_bool_iff
+      (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt z))).mpr ⟨hTyXZ, hNonNone⟩
+  simpa [__eo_to_smt, __smtx_typeof] using hEqTy
+
+theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->
+  smt_value_rel (__smtx_model_eval M (__eo_to_smt x))
+    (__smtx_model_eval M (__eo_to_smt y)) := by
+  intro hEq
+  rw [smt_value_rel_iff_model_eval_eq_true]
+  rw [eo_interprets_iff_smt_interprets] at hEq
+  cases hEq with
+  | intro_true _ hEval =>
+      simpa [__eo_to_smt, __smtx_model_eval] using hEval
+
+theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq x) y) ->
+  smt_value_rel (__smtx_model_eval M (__eo_to_smt x))
+    (__smtx_model_eval M (__eo_to_smt y)) ->
+  eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true := by
+  intro hTy hRel
+  rw [eo_interprets_iff_smt_interprets]
+  refine smt_interprets.intro_true M (__eo_to_smt (Term.Apply (Term.Apply Term.eq x) y)) ?_ ?_
+  · simpa [eo_has_bool_type] using hTy
+  · have hEvalEq :
+        __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt y)) = SmtValue.Boolean true :=
+      (smt_value_rel_iff_model_eval_eq_true
+        (__smtx_model_eval M (__eo_to_smt x))
+        (__smtx_model_eval M (__eo_to_smt y))).mp hRel
+    simpa [__eo_to_smt, __smtx_model_eval] using hEvalEq
+
+theorem eo_interprets_eq_trans (M : SmtModel) (x y z : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->
+  eo_interprets M (Term.Apply (Term.Apply Term.eq y) z) true ->
+  eo_interprets M (Term.Apply (Term.Apply Term.eq x) z) true := by
+  intro hXY hYZ
+  apply eo_interprets_eq_of_rel M x z
+  · exact eo_has_bool_type_eq_of_true_chain M x y z hXY hYZ
+  · exact smt_value_rel_trans
+      (__smtx_model_eval M (__eo_to_smt x))
+      (__smtx_model_eval M (__eo_to_smt y))
+      (__smtx_model_eval M (__eo_to_smt z))
+      (eo_interprets_eq_rel M x y hXY)
+      (eo_interprets_eq_rel M y z hYZ)
+
 theorem eo_interprets_not_of_false (M : SmtModel) (t : Term) :
   eo_interprets M t false -> eo_interprets M (Term.Apply Term.not t) true := by
   intro hFalse
@@ -119,6 +280,12 @@ theorem term_ne_stuck_of_interprets_false (M : SmtModel) (t : Term) :
   cases h with
   | intro_false hTy _ =>
       simp [__eo_to_smt, __smtx_typeof] at hTy
+
+theorem term_ne_stuck_of_has_bool_type (t : Term) :
+  eo_has_bool_type t -> t ≠ Term.Stuck := by
+  intro hTy hStuck
+  subst hStuck
+  simp [eo_has_bool_type, __eo_to_smt, __smtx_typeof] at hTy
 
 set_option linter.unusedSimpArgs false in
 theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
