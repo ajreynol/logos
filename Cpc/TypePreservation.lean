@@ -15,6 +15,9 @@ def term_has_non_none_type (t : SmtTerm) : Prop :=
 def model_total_typed (M : SmtModel) : Prop :=
   ∀ s T, __smtx_typeof_value (__smtx_model_lookup M s T) = T
 
+def model_typed_at (M : SmtModel) (s : smt_lit_String) (T : SmtType) : Prop :=
+  __smtx_typeof_value (__smtx_model_lookup M s T) = T
+
 inductive supported_preservation_term : SmtTerm -> Prop
   | boolean (b : smt_lit_Bool) : supported_preservation_term (SmtTerm.Boolean b)
   | numeral (n : smt_lit_Int) : supported_preservation_term (SmtTerm.Numeral n)
@@ -29,6 +32,16 @@ theorem model_total_typed_lookup
     (T : SmtType) :
     __smtx_typeof_value (__smtx_model_lookup M s T) = T :=
   hM s T
+
+theorem model_typed_at_push
+    {M : SmtModel}
+    {s : smt_lit_String}
+    {T : SmtType}
+    {v : SmtValue}
+    (hv : __smtx_typeof_value v = T) :
+    model_typed_at (__smtx_model_push M s T v) s T := by
+  unfold model_typed_at __smtx_model_lookup __smtx_model_push
+  simp [__smtx_model_key, hv]
 
 theorem model_total_typed_push
     {M : SmtModel}
@@ -338,6 +351,136 @@ theorem typeof_value_model_eval_choice
   · simpa [hSat] using (Classical.choose_spec hSat).1
   · simpa [hSat, hTy] using Classical.choose_spec hTy
 
+def fake_bool_value : SmtValue :=
+  SmtValue.Apply
+    (SmtValue.Map (SmtMap.default SmtType.Int (SmtValue.Boolean false)))
+    (SmtValue.Numeral 0)
+
+theorem fake_bool_value_typeof :
+    __smtx_typeof_value fake_bool_value = SmtType.Bool := by
+  native_decide
+
+def fake_int_value : SmtValue :=
+  SmtValue.Apply
+    (SmtValue.Map (SmtMap.default SmtType.Int (SmtValue.Numeral 0)))
+    (SmtValue.Numeral 0)
+
+theorem fake_int_value_typeof :
+    __smtx_typeof_value fake_int_value = SmtType.Int := by
+  native_decide
+
+def fake_real_value : SmtValue :=
+  SmtValue.Apply
+    (SmtValue.Map (SmtMap.default SmtType.Int (SmtValue.Rational 0)))
+    (SmtValue.Numeral 0)
+
+theorem fake_real_value_typeof :
+    __smtx_typeof_value fake_real_value = SmtType.Real := by
+  native_decide
+
+def local_typed_bool_model : SmtModel :=
+  __smtx_model_push SmtModel.empty "b" SmtType.Bool fake_bool_value
+
+theorem local_typed_bool_model_typed :
+    model_typed_at local_typed_bool_model "b" SmtType.Bool := by
+  simpa [local_typed_bool_model] using
+    (model_typed_at_push (M := SmtModel.empty) (s := "b") (T := SmtType.Bool)
+      (v := fake_bool_value) fake_bool_value_typeof)
+
+def preservation_counterexample_not_var : SmtTerm :=
+  SmtTerm.Apply SmtTerm.not (SmtTerm.Var "b" SmtType.Bool)
+
+theorem preservation_counterexample_not_var_typeof :
+    __smtx_typeof preservation_counterexample_not_var = SmtType.Bool := by
+  rfl
+
+theorem preservation_counterexample_not_var_eval_value :
+    __smtx_model_eval local_typed_bool_model preservation_counterexample_not_var =
+      SmtValue.NotValue := by
+  change __smtx_model_eval_not (__smtx_model_lookup local_typed_bool_model "b" SmtType.Bool) =
+    SmtValue.NotValue
+  have hLookup :
+      __smtx_model_lookup local_typed_bool_model "b" SmtType.Bool = fake_bool_value := by
+    unfold local_typed_bool_model __smtx_model_lookup __smtx_model_push
+    simp [__smtx_model_key]
+  rw [hLookup]
+  rfl
+
+theorem preservation_counterexample_not_var_eval :
+    __smtx_typeof_value (__smtx_model_eval local_typed_bool_model preservation_counterexample_not_var) =
+      SmtType.None := by
+  rw [preservation_counterexample_not_var_eval_value]
+  rfl
+
+def local_typed_int_model : SmtModel :=
+  __smtx_model_push SmtModel.empty "i" SmtType.Int fake_int_value
+
+theorem local_typed_int_model_typed :
+    model_typed_at local_typed_int_model "i" SmtType.Int := by
+  simpa [local_typed_int_model] using
+    (model_typed_at_push (M := SmtModel.empty) (s := "i") (T := SmtType.Int)
+      (v := fake_int_value) fake_int_value_typeof)
+
+def preservation_counterexample_plus_var : SmtTerm :=
+  SmtTerm.Apply (SmtTerm.Apply SmtTerm.plus (SmtTerm.Var "i" SmtType.Int)) (SmtTerm.Numeral 1)
+
+theorem preservation_counterexample_plus_var_typeof :
+    __smtx_typeof preservation_counterexample_plus_var = SmtType.Int := by
+  rfl
+
+theorem preservation_counterexample_plus_var_eval_value :
+    __smtx_model_eval local_typed_int_model preservation_counterexample_plus_var =
+      SmtValue.NotValue := by
+  change
+    __smtx_model_eval_plus (__smtx_model_lookup local_typed_int_model "i" SmtType.Int)
+      (SmtValue.Numeral 1) = SmtValue.NotValue
+  have hLookup :
+      __smtx_model_lookup local_typed_int_model "i" SmtType.Int = fake_int_value := by
+    unfold local_typed_int_model __smtx_model_lookup __smtx_model_push
+    simp [__smtx_model_key]
+  rw [hLookup]
+  rfl
+
+theorem preservation_counterexample_plus_var_eval :
+    __smtx_typeof_value (__smtx_model_eval local_typed_int_model preservation_counterexample_plus_var) =
+      SmtType.None := by
+  rw [preservation_counterexample_plus_var_eval_value]
+  rfl
+
+def local_typed_real_model : SmtModel :=
+  __smtx_model_push SmtModel.empty "r" SmtType.Real fake_real_value
+
+theorem local_typed_real_model_typed :
+    model_typed_at local_typed_real_model "r" SmtType.Real := by
+  simpa [local_typed_real_model] using
+    (model_typed_at_push (M := SmtModel.empty) (s := "r") (T := SmtType.Real)
+      (v := fake_real_value) fake_real_value_typeof)
+
+def preservation_counterexample_to_int_var : SmtTerm :=
+  SmtTerm.Apply SmtTerm.to_int (SmtTerm.Var "r" SmtType.Real)
+
+theorem preservation_counterexample_to_int_var_typeof :
+    __smtx_typeof preservation_counterexample_to_int_var = SmtType.Int := by
+  rfl
+
+theorem preservation_counterexample_to_int_var_eval_value :
+    __smtx_model_eval local_typed_real_model preservation_counterexample_to_int_var =
+      SmtValue.NotValue := by
+  change __smtx_model_eval_to_int (__smtx_model_lookup local_typed_real_model "r" SmtType.Real) =
+    SmtValue.NotValue
+  have hLookup :
+      __smtx_model_lookup local_typed_real_model "r" SmtType.Real = fake_real_value := by
+    unfold local_typed_real_model __smtx_model_lookup __smtx_model_push
+    simp [__smtx_model_key]
+  rw [hLookup]
+  rfl
+
+theorem preservation_counterexample_to_int_var_eval :
+    __smtx_typeof_value (__smtx_model_eval local_typed_real_model preservation_counterexample_to_int_var) =
+      SmtType.None := by
+  rw [preservation_counterexample_to_int_var_eval_value]
+  rfl
+
 def preservation_counterexample_exists : SmtTerm :=
   SmtTerm.Apply (SmtTerm.exists "x" SmtType.Bool) (SmtTerm.Numeral 0)
 
@@ -483,6 +626,16 @@ theorem no_value_of_type_ref
   rcases h with ⟨v, hv⟩
   apply typeof_value_not_returns_type_ref s v
   simp [hv, returns_type_ref]
+
+theorem no_total_typed_model :
+    ¬ ∃ M : SmtModel, model_total_typed M := by
+  intro h
+  rcases h with ⟨M, hM⟩
+  have hTy :
+      __smtx_typeof_value (__smtx_model_lookup M "x" (SmtType.TypeRef "A")) =
+        SmtType.TypeRef "A" :=
+    hM "x" (SmtType.TypeRef "A")
+  exact no_value_of_type_ref "A" ⟨__smtx_model_lookup M "x" (SmtType.TypeRef "A"), hTy⟩
 
 def preservation_counterexample_choice_type_ref : SmtTerm :=
   SmtTerm.Apply (SmtTerm.choice "x" (SmtType.TypeRef "A")) (SmtTerm.Boolean true)
