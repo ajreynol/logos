@@ -769,9 +769,6 @@ def __smtx_bv_sizeof_value : SmtValue -> smt_lit_Int
   | t1 => (smt_lit_zneg 1)
 
 
-def __smtx_model_eval_dt_cons (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Nat) : SmtValue :=
-  (smt_lit_ite (smt_lit_Teq (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) n) SmtType.None) SmtValue.NotValue (SmtValue.DtCons s d n))
-
 def __smtx_model_eval_dt_sel (M : SmtModel) (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Nat) (m : smt_lit_Nat) (v : SmtValue) : SmtValue :=
   (smt_lit_ite (smt_lit_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m) (__smtx_map_select (__smtx_map_select (__smtx_map_select (__smtx_model_lookup M smt_lit_wrong_apply_sel_id (SmtType.Map SmtType.Int (SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel d n m))))) (SmtValue.Numeral (smt_lit_nat_to_int n))) (SmtValue.Numeral (smt_lit_nat_to_int m))) v))
 
@@ -779,6 +776,7 @@ def __smtx_model_eval_dt_tester (s : smt_lit_String) (d : SmtDatatype) (n : smt_
   (SmtValue.Boolean (smt_lit_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
 
 def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Map m), i => (__smtx_map_select (SmtValue.Map m) i)
   | v, i => SmtValue.NotValue
@@ -2003,7 +2001,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_eval_texists M s T x1)
   | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_eval_tforall M s T x1)
   | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_eval_tchoice M s T x1)
-  | (SmtTerm.DtCons s d i) => (__smtx_model_eval_dt_cons s d i)
+  | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x1))
