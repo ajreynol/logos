@@ -70,6 +70,35 @@ theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
           rw [hEvalTrue] at hEvalFalse
           cases hEvalFalse
 
+theorem eo_interprets_not_of_false (M : SmtModel) (t : Term) :
+  eo_interprets M t false -> eo_interprets M (Term.Apply Term.not t) true := by
+  intro hFalse
+  rw [eo_interprets_iff_smt_interprets] at hFalse ⊢
+  cases hFalse with
+  | intro_false hTy hEval =>
+      refine smt_interprets.intro_true M (__eo_to_smt (Term.Apply Term.not t)) ?_ ?_
+      · simp [__eo_to_smt, __smtx_typeof, hTy, smt_lit_Teq, smt_lit_ite]
+      · simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_not, hEval,
+          SmtEval.smt_lit_not]
+
+theorem term_ne_stuck_of_interprets_true (M : SmtModel) (t : Term) :
+  eo_interprets M t true -> t ≠ Term.Stuck := by
+  intro h hStuck
+  subst hStuck
+  rw [eo_interprets_iff_smt_interprets] at h
+  cases h with
+  | intro_true hTy _ =>
+      simp [__eo_to_smt, __smtx_typeof] at hTy
+
+theorem term_ne_stuck_of_interprets_false (M : SmtModel) (t : Term) :
+  eo_interprets M t false -> t ≠ Term.Stuck := by
+  intro h hStuck
+  subst hStuck
+  rw [eo_interprets_iff_smt_interprets] at h
+  cases h with
+  | intro_false hTy _ =>
+      simp [__eo_to_smt, __smtx_typeof] at hTy
+
 set_option linter.unusedSimpArgs false in
 theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
   eo_interprets M (Term.Apply Term.not t) true -> eo_interprets M t false := by
@@ -112,6 +141,42 @@ theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
     exact smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTy
   · simpa [__eo_prog_refl, hNotEqStuck, __eo_to_smt, __smtx_model_eval] using
       smtx_model_eval_eq_refl (__smtx_model_eval M (__eo_to_smt x1))
+
+theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
+  eo_interprets M x1 true ->
+  eo_interprets M x2 true ->
+  eo_has_bool_type (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) ->
+  eo_interprets M (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) true := by
+  intro hX1True hX2True hTy
+  have hProgNotStuck : __eo_prog_contra (Proof.pf x1) (Proof.pf x2) ≠ Term.Stuck := by
+    intro hStuck
+    simp [eo_has_bool_type, hStuck, __eo_to_smt, __smtx_typeof] at hTy
+  cases x2 with
+  | Apply f a =>
+      cases f with
+      | not =>
+          by_cases hEq : x1 = a
+          · subst hEq
+            have hX1False : eo_interprets M x1 false :=
+              eo_interprets_not_true_implies_false M x1 hX2True
+            exact False.elim ((eo_interprets_true_not_false M x1 hX1True) hX1False)
+          · exfalso
+            have hEq' : a ≠ x1 := by
+              simpa [eq_comm] using hEq
+            have hx1NotStuck : x1 ≠ Term.Stuck :=
+              term_ne_stuck_of_interprets_true M x1 hX1True
+            have hAFalse : eo_interprets M a false :=
+              eo_interprets_not_true_implies_false M a hX2True
+            have hANotStuck : a ≠ Term.Stuck :=
+              term_ne_stuck_of_interprets_false M a hAFalse
+            have hContraStuck :
+                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
+              simp [__eo_prog_contra, __eo_requires, __eo_eq, eo_lit_teq, hEq', eo_lit_ite]
+            exact hProgNotStuck hContraStuck
+      | _ =>
+          exact False.elim (hProgNotStuck (by simp [__eo_prog_contra]))
+  | _ =>
+      exact False.elim (hProgNotStuck (by simp [__eo_prog_contra]))
 
 theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
   ¬ eo_interprets M (__eo_prog_refl Term.or) true := by

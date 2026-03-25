@@ -40,7 +40,7 @@ theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
   RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) ->
   (eo_interprets M (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) true) :=
 by
-  sorry
+  exact RuleProofs.correct___eo_prog_contra M x1 x2
 
 /- correctness theorem for __eo_prog_refl -/
 theorem typed___eo_prog_refl (x1 : Term) :
@@ -98,4 +98,3 @@ by
 
 
 /- Helper definitions -/
-
