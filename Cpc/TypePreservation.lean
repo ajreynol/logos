@@ -2174,23 +2174,22 @@ theorem preservation_counterexample_str_concat_non_none :
 theorem preservation_counterexample_str_concat_eval_value :
     __smtx_model_eval SmtModel.empty preservation_counterexample_str_concat =
       SmtValue.Seq
-        (smt_lit_pack_seq (__smtx_typeof_seq_value (smt_lit_pack_string "a"))
+        (smt_lit_pack_seq (__smtx_elem_typeof_seq_value (smt_lit_pack_string "a"))
           (smt_lit_seq_concat (smt_lit_unpack_seq (smt_lit_pack_string "a"))
             (smt_lit_unpack_seq (smt_lit_pack_string "b")))) := by
   rfl
 
 theorem preservation_counterexample_str_concat_eval_typeof :
     __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_concat) =
-      SmtType.None := by
+      SmtType.Seq SmtType.Char := by
   rw [preservation_counterexample_str_concat_eval_value]
   native_decide
 
-theorem preservation_counterexample_str_concat_mismatch :
-    __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_concat) ≠
+theorem typeof_value_model_eval_str_concat_example :
+    __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_concat) =
       __smtx_typeof preservation_counterexample_str_concat := by
   rw [preservation_counterexample_str_concat_eval_typeof,
     preservation_counterexample_str_concat_typeof]
-  decide
 
 def preservation_counterexample_str_substr : SmtTerm :=
   SmtTerm.Apply
@@ -2212,22 +2211,21 @@ theorem preservation_counterexample_str_substr_non_none :
 theorem preservation_counterexample_str_substr_eval_value :
     __smtx_model_eval SmtModel.empty preservation_counterexample_str_substr =
       SmtValue.Seq
-        (smt_lit_pack_seq (__smtx_typeof_seq_value (smt_lit_pack_string "ab"))
+        (smt_lit_pack_seq (__smtx_elem_typeof_seq_value (smt_lit_pack_string "ab"))
           (smt_lit_seq_extract (smt_lit_unpack_seq (smt_lit_pack_string "ab")) 0 1)) := by
   rfl
 
 theorem preservation_counterexample_str_substr_eval_typeof :
     __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_substr) =
-      SmtType.None := by
+      SmtType.Seq SmtType.Char := by
   rw [preservation_counterexample_str_substr_eval_value]
   native_decide
 
-theorem preservation_counterexample_str_substr_mismatch :
-    __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_substr) ≠
+theorem typeof_value_model_eval_str_substr_example :
+    __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_substr) =
       __smtx_typeof preservation_counterexample_str_substr := by
   rw [preservation_counterexample_str_substr_eval_typeof,
     preservation_counterexample_str_substr_typeof]
-  decide
 
 def preservation_counterexample_str_rev : SmtTerm :=
   SmtTerm.Apply SmtTerm.str_rev (SmtTerm.String "ab")
@@ -2244,21 +2242,20 @@ theorem preservation_counterexample_str_rev_non_none :
 theorem preservation_counterexample_str_rev_eval_value :
     __smtx_model_eval SmtModel.empty preservation_counterexample_str_rev =
       SmtValue.Seq
-        (smt_lit_pack_seq (__smtx_typeof_seq_value (smt_lit_pack_string "ab"))
+        (smt_lit_pack_seq (__smtx_elem_typeof_seq_value (smt_lit_pack_string "ab"))
           (smt_lit_seq_rev (smt_lit_unpack_seq (smt_lit_pack_string "ab")))) := by
   rfl
 
 theorem preservation_counterexample_str_rev_eval_typeof :
     __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_rev) =
-      SmtType.None := by
+      SmtType.Seq SmtType.Char := by
   rw [preservation_counterexample_str_rev_eval_value]
   native_decide
 
-theorem preservation_counterexample_str_rev_mismatch :
-    __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_rev) ≠
+theorem typeof_value_model_eval_str_rev_example :
+    __smtx_typeof_value (__smtx_model_eval SmtModel.empty preservation_counterexample_str_rev) =
       __smtx_typeof preservation_counterexample_str_rev := by
   rw [preservation_counterexample_str_rev_eval_typeof,
     preservation_counterexample_str_rev_typeof]
-  decide
 
 end Smtm
