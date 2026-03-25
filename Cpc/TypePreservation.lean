@@ -1,5 +1,6 @@
 import Cpc.TypePreservation.BitVec
 import Cpc.TypePreservation.CoreArith
+import Cpc.TypePreservation.Sets
 import Cpc.TypePreservation.SeqStringRegex
 
 open Smtm
