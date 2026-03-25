@@ -47,7 +47,7 @@ by
    rule assumptions in the checker proof. -/
 theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
-  RuleProofs.eo_has_bool_type (__eo_prog_refl x1) ->
+  __eo_typeof (__eo_prog_refl x1) = Term.Bool ->
   (eo_interprets M (__eo_prog_refl x1) true) :=
 by
   exact RuleProofs.correct___eo_prog_refl_of_smt_translation M x1
@@ -72,6 +72,5 @@ by
 
 
 /- Helper definitions -/
-
 
 
