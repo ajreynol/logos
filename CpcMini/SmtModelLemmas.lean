@@ -33,18 +33,3 @@ theorem smt_model_well_typed_push
         simp [__smtx_model_key, __smtx_model_lookup, hTy]
   · simp [hKey, __smtx_model_lookup]
     exact hM s' T' hInh
-
-theorem smt_model_eval_preserves_type
-    (M : SmtModel) (hM : smt_model_well_typed M)
-    (t : SmtTerm) (T : SmtType) :
-  __smtx_typeof t = T ->
-  smt_type_inhabited T ->
-  __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  sorry
-
-theorem smt_model_eval_bool_is_boolean
-    (M : SmtModel) (hM : smt_model_well_typed M)
-    (t : SmtTerm) :
-  __smtx_typeof t = SmtType.Bool ->
-  ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
-  sorry

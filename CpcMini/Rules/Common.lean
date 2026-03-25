@@ -1,5 +1,4 @@
-import CpcMini.Spec
-import CpcMini.SmtModelLemmas
+import CpcMini.Unproven
 
 open Eo
 open Smtm
@@ -29,14 +28,6 @@ def eo_has_smt_translation (t : Term) : Prop :=
 
 def eo_has_bool_type (t : Term) : Prop :=
   __smtx_typeof (__eo_to_smt t) = SmtType.Bool
-
-theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
-    (t : Term) (s : SmtTerm) :
-  __eo_to_smt t = s ->
-  s ≠ SmtTerm.None ->
-  __eo_typeof t = Term.Bool ->
-  __smtx_typeof s = SmtType.Bool := by
-  sorry
 
 theorem eo_typeof_bool_implies_has_bool_type
     (t : Term) :

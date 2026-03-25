@@ -3,6 +3,7 @@
 import CpcMini.Logos
 import CpcMini.SmtModel
 import CpcMini.SmtModelLemmas
+import CpcMini.Unproven
 import CpcMini.Spec
 import CpcMini.Lemmas
 import CpcMini.Refutation
