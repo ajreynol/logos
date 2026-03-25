@@ -268,12 +268,16 @@ partial def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
-partial def __mk_trans : Term -> Term -> Term -> Term
+def __mk_trans : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | t1, t2, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail) => (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
   | t1, t2, (Term.Boolean true) => (Term.Apply (Term.Apply Term.eq t1) t2)
   | _, _, _ => Term.Stuck
+termination_by _ _ tail => sizeOf tail
+decreasing_by
+  simp_wf
+  omega
 
 
 partial def __eo_prog_trans : Proof -> Term
