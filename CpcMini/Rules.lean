@@ -29,6 +29,32 @@ def eo_has_smt_translation (t : Term) : Prop :=
 def eo_has_bool_type (t : Term) : Prop :=
   __smtx_typeof (__eo_to_smt t) = SmtType.Bool
 
+/-
+Bridge from the checker-facing `__eo_typeof` guard to trusted SMT typing.
+
+The intended use is: if a Eunoia term translates to some non-`None` SMT term
+and the checker says its type is `Bool`, then the SMT translation should also
+have SMT type `Bool`.
+
+For now this is an assumed property of the future real `__eo_typeof`.
+-/
+theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
+    (t : Term) (s : SmtTerm) :
+  __eo_to_smt t = s ->
+  s ≠ SmtTerm.None ->
+  __eo_typeof t = Term.Bool ->
+  __smtx_typeof s = SmtType.Bool := by
+  sorry
+
+theorem eo_typeof_bool_implies_has_bool_type
+    (t : Term) :
+  __eo_to_smt t ≠ SmtTerm.None ->
+  __eo_typeof t = Term.Bool ->
+  eo_has_bool_type t := by
+  intro hNotNone hTy
+  exact eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
+    t (__eo_to_smt t) rfl hNotNone hTy
+
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
   eo_interprets M t true -> ¬ eo_interprets M t false := by
   intro hTrue hFalse

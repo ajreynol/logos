@@ -281,29 +281,6 @@ partial def __eo_prog_trans : Proof -> Term
   | _ => Term.Stuck
 
 
-partial def __eo_nil : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, T => (Term.Boolean false)
-  | Term.and, T => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
-  | _, _ => Term.Stuck
-
-
-partial def __eo_is_list_nil : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, (Term.Boolean false) => (Term.Boolean true)
-  | Term.and, (Term.Boolean true) => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
-  | f, nil => (Term.Boolean false)
-
-
-
-
-partial def __eo_prog_trans : Proof -> Term
-  | (Proof.pf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2)) tail)) => (__mk_trans t1 t2 tail)
-  | _ => Term.Stuck
-
 /- Definition of the checker -/
 
 abbrev CIndex := eo_lit_Int
