@@ -60,11 +60,3 @@ theorem correct___eo_prog_refl_impl
   (eo_interprets M (__eo_prog_refl x1) true) :=
 by
   exact RuleProofs.correct___eo_prog_refl_of_smt_translation M x1
-
-theorem correct___eo_prog_refl_of_smt_translation_impl
-    (M : SmtModel) (_hM : smt_model_well_typed M) (x1 : Term) :
-  RuleProofs.eo_has_smt_translation x1 ->
-  RuleProofs.eo_has_bool_type (__eo_prog_refl x1) ->
-  (eo_interprets M (__eo_prog_refl x1) true) :=
-by
-  exact RuleProofs.correct___eo_prog_refl_of_smt_translation M x1

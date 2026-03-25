@@ -1,4 +1,9 @@
-import CpcMini.Rules
+import CpcMini.Rules.Common
+import CpcMini.Rules.Scope
+import CpcMini.Rules.Contra
+import CpcMini.Rules.Refl
+import CpcMini.Rules.Symm
+import CpcMini.Rules.Trans
 
 open Eo
 open Smtm
@@ -54,14 +59,6 @@ theorem correct___eo_prog_refl
   (eo_interprets M (__eo_prog_refl x1) true) :=
 by
   exact correct___eo_prog_refl_impl M _hM x1
-
-theorem correct___eo_prog_refl_of_smt_translation
-    (M : SmtModel) (_hM : smt_model_well_typed M) (x1 : Term) :
-  RuleProofs.eo_has_smt_translation x1 ->
-  RuleProofs.eo_has_bool_type (__eo_prog_refl x1) ->
-  (eo_interprets M (__eo_prog_refl x1) true) :=
-by
-  exact correct___eo_prog_refl_of_smt_translation_impl M _hM x1
 
 theorem typed___eo_prog_symm (M : SmtModel) (x1 : Term) :
   (eo_interprets M x1 true) ->
