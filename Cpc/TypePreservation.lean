@@ -39,6 +39,21 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
       supported_preservation_term (SmtTerm.Apply SmtTerm.set_singleton t)
+  | select {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select t1) t2)
+  | store {t1 t2 t3 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (ht3 : term_has_non_none_type t3)
+      (hs3 : supported_preservation_term t3) :
+      supported_preservation_term
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store t1) t2) t3)
   | ite {c t1 t2 : SmtTerm}
       (htc : term_has_non_none_type c)
       (hsc : supported_preservation_term c)
@@ -1049,6 +1064,58 @@ theorem no_value_of_dt_cons_type_reglan
   exact no_value_of_dt_cons_type_of_non_chain T SmtType.RegLan (by
     simp [dt_cons_chain_result])
 
+theorem no_value_of_dt_cons_type_map
+    (T A B : SmtType) :
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T (SmtType.Map A B) := by
+  exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Map A B) (by
+    simp [dt_cons_chain_result])
+
+theorem map_value_canonical
+    {v : SmtValue}
+    {A B : SmtType}
+    (h : __smtx_typeof_value v = SmtType.Map A B) :
+    ∃ m : SmtMap, v = SmtValue.Map m := by
+  cases v with
+  | Map m =>
+      exact ⟨m, rfl⟩
+  | NotValue =>
+      simp [__smtx_typeof_value] at h
+  | Boolean _ =>
+      simp [__smtx_typeof_value] at h
+  | Numeral _ =>
+      simp [__smtx_typeof_value] at h
+  | Rational _ =>
+      simp [__smtx_typeof_value] at h
+  | Binary w _ =>
+      cases hWidth : smt_lit_zleq 0 w <;>
+        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+  | Seq ss =>
+      cases typeof_seq_value_shape ss with
+      | inl hSeq =>
+          rcases hSeq with ⟨T, hSeq⟩
+          simp [__smtx_typeof_value, hSeq] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at h
+  | Char _ =>
+      simp [__smtx_typeof_value] at h
+  | RegLan _ =>
+      simp [__smtx_typeof_value] at h
+  | DtCons s d i =>
+      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      rw [__smtx_typeof_value] at h
+      rw [h] at hShape
+      simp [dt_cons_chain_result] at hShape
+  | Apply f x =>
+      exfalso
+      cases hf : __smtx_typeof_value f <;>
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
+      case DtConsType T U =>
+        cases hNone : smt_lit_Teq T SmtType.None <;>
+        cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
+            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        exact no_value_of_dt_cons_type_map T A B ⟨f, by simpa [h] using hf⟩
+
 theorem seq_value_canonical
     {v : SmtValue}
     {T : SmtType}
@@ -1314,7 +1381,49 @@ theorem typeof_value_model_eval_string
       __smtx_typeof (SmtTerm.String s) := by
   change __smtx_typeof_seq_value (smt_lit_pack_string s) = SmtType.Seq SmtType.Char
   exact typeof_pack_string s
-      
+
+theorem map_lookup_typed :
+    ∀ {m : SmtMap} {A B : SmtType} {i : SmtValue},
+      __smtx_typeof_map_value m = SmtType.Map A B ->
+        __smtx_typeof_value i = A ->
+        __smtx_typeof_value (__smtx_msm_lookup m i) = B
+  | SmtMap.default T e, A, B, i, hMap, hi => by
+      cases hMap
+      simp [__smtx_msm_lookup]
+  | SmtMap.cons j e m, A, B, i, hMap, hi => by
+      by_cases hEq :
+          smt_lit_Teq (SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e))
+            (__smtx_typeof_map_value m)
+      · have hm : __smtx_typeof_map_value m = SmtType.Map A B := by
+          simpa [__smtx_typeof_map_value, smt_lit_ite, hEq] using hMap
+        have hEq' :
+            SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e) =
+              __smtx_typeof_map_value m := by
+          simpa [smt_lit_Teq] using hEq
+        have hHead : SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e) =
+            SmtType.Map A B := hEq'.trans hm
+        have hj : __smtx_typeof_value j = A := by
+          cases hHead
+          rfl
+        have he : __smtx_typeof_value e = B := by
+          cases hHead
+          rfl
+        have hRec : __smtx_typeof_value (__smtx_msm_lookup m i) = B :=
+          map_lookup_typed hm hi
+        by_cases hVeq : smt_lit_veq j i
+        · simpa [__smtx_msm_lookup, smt_lit_ite, hVeq] using he
+        · simpa [__smtx_msm_lookup, smt_lit_ite, hVeq] using hRec
+      · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at hMap
+
+theorem map_store_typed
+    {m : SmtMap}
+    {A B : SmtType}
+    {i e : SmtValue}
+    (hMap : __smtx_typeof_map_value m = SmtType.Map A B)
+    (hi : __smtx_typeof_value i = A)
+    (he : __smtx_typeof_value e = B) :
+    __smtx_typeof_value (SmtValue.Map (SmtMap.cons i e m)) = SmtType.Map A B := by
+  simp [__smtx_typeof_value, __smtx_typeof_map_value, hMap, hi, he, smt_lit_ite, smt_lit_Teq]
 
 theorem reglan_value_canonical
     {v : SmtValue}
@@ -1526,6 +1635,103 @@ theorem typeof_value_model_eval_ite
   cases b
   · simpa [__smtx_model_eval_ite, h1, h2] using hpres2
   · simpa [__smtx_model_eval_ite, h1, h2] using hpres1
+
+theorem select_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select t1) t2)) :
+    ∃ A B : SmtType,
+      __smtx_typeof t1 = SmtType.Map A B ∧
+        __smtx_typeof t2 = A := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Map A B =>
+      by_cases hEq : smt_lit_Teq A (__smtx_typeof t2)
+      · have h2' : A = __smtx_typeof t2 := by
+          simpa [smt_lit_Teq] using hEq
+        exact ⟨A, B, rfl, h2'.symm⟩
+      · exfalso
+        exact ht (by simp [__smtx_typeof, __smtx_typeof_select, smt_lit_ite, h1, hEq])
+  | _ =>
+      exfalso
+      exact ht (by simp [__smtx_typeof, __smtx_typeof_select, smt_lit_ite, h1])
+
+theorem store_args_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store t1) t2) t3)) :
+    ∃ A B : SmtType,
+      __smtx_typeof t1 = SmtType.Map A B ∧
+        __smtx_typeof t2 = A ∧
+        __smtx_typeof t3 = B := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Map A B =>
+      by_cases hEq1 : smt_lit_Teq A (__smtx_typeof t2)
+      · by_cases hEq2 : smt_lit_Teq B (__smtx_typeof t3)
+        · have h2' : A = __smtx_typeof t2 := by
+            simpa [smt_lit_Teq] using hEq1
+          have h3' : B = __smtx_typeof t3 := by
+            simpa [smt_lit_Teq] using hEq2
+          exact ⟨A, B, rfl, h2'.symm, h3'.symm⟩
+        · exfalso
+          exact ht (by
+            simp [__smtx_typeof, __smtx_typeof_store, smt_lit_ite, h1, hEq1, hEq2])
+      · exfalso
+        exact ht (by
+          simp [__smtx_typeof, __smtx_typeof_store, smt_lit_ite, h1, hEq1])
+  | _ =>
+      exfalso
+      exact ht (by simp [__smtx_typeof, __smtx_typeof_store, smt_lit_ite, h1])
+
+theorem typeof_value_model_eval_select
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select t1) t2) := by
+  rcases select_args_of_non_none ht with ⟨A, B, h1, h2⟩
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select t1) t2) = B by
+    simp [__smtx_typeof, __smtx_typeof_select, smt_lit_ite, smt_lit_Teq, h1, h2]]
+  change
+    __smtx_typeof_value
+      (__smtx_model_eval_select (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = B
+  rcases map_value_canonical (A := A) (B := B) (by simpa [h1] using hpres1) with ⟨m, hm⟩
+  rw [hm]
+  simpa [__smtx_model_eval_select, __smtx_map_select] using
+    map_lookup_typed (m := m) (A := A) (B := B) (i := __smtx_model_eval M t2)
+      (by simpa [hm, h1] using hpres1)
+      (by simpa [h2] using hpres2)
+
+theorem typeof_value_model_eval_store
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht : term_has_non_none_type
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store t1) t2) t3)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store t1) t2) t3) := by
+  rcases store_args_of_non_none ht with ⟨A, B, h1, h2, h3⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store t1) t2) t3) =
+        SmtType.Map A B by
+    simp [__smtx_typeof, __smtx_typeof_store, smt_lit_ite, smt_lit_Teq, h1, h2, h3]]
+  change
+    __smtx_typeof_value
+      (__smtx_model_eval_store (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Map A B
+  rcases map_value_canonical (A := A) (B := B) (by simpa [h1] using hpres1) with ⟨m, hm⟩
+  rw [hm]
+  simpa [__smtx_model_eval_store, __smtx_map_store] using
+    map_store_typed (m := m) (A := A) (B := B)
+      (i := __smtx_model_eval M t2) (e := __smtx_model_eval M t3)
+      (by simpa [hm, h1] using hpres1)
+      (by simpa [h2] using hpres2)
+      (by simpa [h3] using hpres3)
 
 theorem eq_term_typeof_of_non_none
     {t1 t2 : SmtTerm}
@@ -3124,6 +3330,15 @@ theorem supported_type_preservation
   | set_singleton ht1 hs1 =>
       exact typeof_value_model_eval_set_singleton M _ ht1
         (supported_type_preservation M hM _ ht1 hs1)
+  | select ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_select M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | store ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_store M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
   | ite htc hsc ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_ite M _ _ _ ht
         (supported_type_preservation M hM _ htc hsc)
