@@ -319,7 +319,7 @@ def __eo_to_smt : Term -> SmtTerm
     let _v2 := (SmtTerm.Var "_at_x" SmtType.Int)
     (SmtTerm.Apply (SmtTerm.choice "_at_x" SmtType.Int) (SmtTerm.Apply SmtTerm.not (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt x1)) _v2) _v0)) (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt x2)) _v2) _v0))))
   | (Term.Apply (Term.Apply Term._at_strings_stoi_result x1) x2) => (SmtTerm.Apply SmtTerm.str_to_int (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt x1)) (SmtTerm.Numeral 0)) (__eo_to_smt x2)))
-  | (Term.Apply Term._at_strings_stoi_non_digit x1) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof_re (__eo_to_smt x1)) (SmtTerm.Apply SmtTerm.re_comp (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_range (SmtTerm.Apply SmtTerm.seq_unit (SmtTerm.Numeral 48))) (SmtTerm.Apply SmtTerm.seq_unit (SmtTerm.Numeral 57))))) (SmtTerm.Numeral 0))
+  | (Term.Apply Term._at_strings_stoi_non_digit x1) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof_re (__eo_to_smt x1)) (SmtTerm.Apply SmtTerm.re_comp (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_range (SmtTerm.String "0")) (SmtTerm.String "9")))) (SmtTerm.Numeral 0))
   | (Term.Apply (Term.Apply Term._at_strings_itos_result x1) x2) => (SmtTerm.Apply SmtTerm.str_from_int (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mod (__eo_to_smt x1)) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult (SmtTerm.Numeral 10)) (__eo_to_smt x2))))
   | (Term.Apply (Term.Apply Term._at_strings_num_occur x1) x2) => 
     let _v0 := (__eo_to_smt x2)
