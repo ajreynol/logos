@@ -2165,6 +2165,7 @@ by
                       have hPBool :
                           RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf X1) (Proof.pf X2)) :=
                         typed___eo_prog_contra M X1 X2 hX1True hX2True
+                          (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
                       simpa [P, X1, X2, __eo_cmd_step_proven] using
                         correct___eo_prog_contra M hM X1 X2 hX1True hX2True hPBool
                   | cons n3 premises =>
@@ -2186,6 +2187,7 @@ by
                   have hPBool :
                       RuleProofs.eo_has_bool_type (__eo_prog_refl a1) :=
                     typed___eo_prog_refl a1 hATrans
+                      (by simpa [__eo_cmd_step_proven] using hProg)
                   simpa [__eo_cmd_step_proven] using
                     correct___eo_prog_refl M hM a1 hATrans hPBool
               | cons n ns =>
@@ -2209,6 +2211,7 @@ by
                   have hPBool :
                       RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf X)) :=
                     typed___eo_prog_symm M X hXTrue
+                      (by simpa [P, X, __eo_cmd_step_proven] using hProg)
                   simpa [P, X, __eo_cmd_step_proven] using
                     correct___eo_prog_symm M hM X hXTrue hPBool
               | cons n2 premises =>
@@ -2225,6 +2228,7 @@ by
           have hPBool :
               RuleProofs.eo_has_bool_type (__eo_prog_trans (Proof.pf X)) :=
             typed___eo_prog_trans M X hXTrue
+              (by simpa [P, X, __eo_cmd_step_proven] using hProg)
           simpa [P, X, __eo_cmd_step_proven] using
             correct___eo_prog_trans M hM X hXTrue hPBool
       | cons a args =>
@@ -2394,6 +2398,7 @@ by
                     have hPBool :
                         RuleProofs.eo_has_bool_type (__eo_prog_scope A (Proof.pf X)) :=
                       typed___eo_prog_scope M A X hScoped
+                        (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
                     simpa [P, X, __eo_cmd_step_pop_proven, hA] using
                       correct___eo_prog_scope M hM A X hScoped
                         hPBool
