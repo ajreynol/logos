@@ -589,6 +589,9 @@ def __vsm_apply_arg_nth : SmtValue -> smt_lit_Nat -> SmtValue
   | a, n => SmtValue.NotValue
 
 
+def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
+  (smt_lit_ite (smt_lit_Teq T SmtType.None) SmtType.None U)
+
 def __smtx_msm_get_default : SmtMap -> SmtValue
   | (SmtMap.cons j e m) => (__smtx_msm_get_default m)
   | (SmtMap.default T e) => e
@@ -685,7 +688,7 @@ def __smtx_ret_typeof_sel : SmtDatatype -> smt_lit_Nat -> smt_lit_Nat -> SmtType
 
 
 def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T U), V => (smt_lit_ite (smt_lit_Teq T V) U SmtType.None)
+  | (SmtType.Map T U), V => (__smtx_typeof_guard T (smt_lit_ite (smt_lit_Teq T V) U SmtType.None))
   | T, U => SmtType.None
 
 
@@ -1372,9 +1375,6 @@ def __smtx_model_eval_sbv_to_int : SmtValue -> SmtValue
   | (SmtValue.Binary x1 x2) => (SmtValue.Numeral (smt_lit_binary_uts x1 x2))
   | t1 => SmtValue.NotValue
 
-
-def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
-  (smt_lit_ite (smt_lit_Teq T SmtType.None) SmtType.None U)
 
 def __smtx_typeof_ite : SmtType -> SmtType -> SmtType -> SmtType
   | SmtType.Bool, U, V => (smt_lit_ite (smt_lit_Teq U V) U SmtType.None)
