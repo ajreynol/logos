@@ -652,9 +652,6 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.UConst s T) => T
   | x1 => SmtType.None
 
-
-
-
 end
 
 end
@@ -706,8 +703,6 @@ inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_false (t : SmtTerm) :
       (forall M : SmtModel, ¬ (smt_interprets M t true))->
       smt_satisfiability t false
-
-/- FIXME inductive smt_model_well_typed : SmtModel -> Prop, based on smt axiom -/
 
 /- ---------------------------------------------- -/
 
