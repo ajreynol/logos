@@ -649,6 +649,11 @@ def __smtx_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.empty T) => (SmtType.Seq T)
 
 
+def __smtx_elem_typeof_seq_value : SmtSeq -> SmtType
+  | (SmtSeq.cons v vs) => (__smtx_elem_typeof_seq_value vs)
+  | (SmtSeq.empty T) => T
+
+
 def __smtx_dtc_concat : SmtDatatypeCons -> SmtDatatypeCons -> SmtDatatypeCons
   | (SmtDatatypeCons.cons U c1), c2 => (SmtDatatypeCons.cons U (__smtx_dtc_concat c1 c2))
   | SmtDatatypeCons.unit, c2 => c2
@@ -1162,12 +1167,12 @@ def __smtx_model_eval_str_len : SmtValue -> SmtValue
 
 
 def __smtx_model_eval_str_concat : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_typeof_seq_value x1) (smt_lit_seq_concat (smt_lit_unpack_seq x1) (smt_lit_unpack_seq x2))))
+  | (SmtValue.Seq x1), (SmtValue.Seq x2) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_elem_typeof_seq_value x1) (smt_lit_seq_concat (smt_lit_unpack_seq x1) (smt_lit_unpack_seq x2))))
   | t1, t2 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_substr : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Numeral x2), (SmtValue.Numeral x3) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_typeof_seq_value x1) (smt_lit_seq_extract (smt_lit_unpack_seq x1) x2 x3)))
+  | (SmtValue.Seq x1), (SmtValue.Numeral x2), (SmtValue.Numeral x3) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_elem_typeof_seq_value x1) (smt_lit_seq_extract (smt_lit_unpack_seq x1) x2 x3)))
   | t1, t2, t3 => SmtValue.NotValue
 
 
@@ -1177,7 +1182,7 @@ def __smtx_model_eval_str_contains : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_str_replace : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Seq x3) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_typeof_seq_value x1) (smt_lit_seq_replace (smt_lit_unpack_seq x1) (smt_lit_unpack_seq x2) (smt_lit_unpack_seq x3))))
+  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Seq x3) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_elem_typeof_seq_value x1) (smt_lit_seq_replace (smt_lit_unpack_seq x1) (smt_lit_unpack_seq x2) (smt_lit_unpack_seq x3))))
   | t1, t2, t3 => SmtValue.NotValue
 
 
@@ -1198,12 +1203,12 @@ def __smtx_model_eval_str_suffixof (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
     (__smtx_model_eval_eq x1 (__smtx_model_eval_str_substr x2 (__smtx_model_eval__ (__smtx_model_eval_str_len x2) _v0) _v0))
 
 def __smtx_model_eval_str_rev : SmtValue -> SmtValue
-  | (SmtValue.Seq x1) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_typeof_seq_value x1) (smt_lit_seq_rev (smt_lit_unpack_seq x1))))
+  | (SmtValue.Seq x1) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_elem_typeof_seq_value x1) (smt_lit_seq_rev (smt_lit_unpack_seq x1))))
   | t1 => SmtValue.NotValue
 
 
 def __smtx_model_eval_str_update : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Numeral x2), (SmtValue.Seq x3) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_typeof_seq_value x1) (smt_lit_seq_update (smt_lit_unpack_seq x1) x2 (smt_lit_unpack_seq x3))))
+  | (SmtValue.Seq x1), (SmtValue.Numeral x2), (SmtValue.Seq x3) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_elem_typeof_seq_value x1) (smt_lit_seq_update (smt_lit_unpack_seq x1) x2 (smt_lit_unpack_seq x3))))
   | t1, t2, t3 => SmtValue.NotValue
 
 
@@ -1251,7 +1256,7 @@ def __smtx_model_eval_str_leq (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_model_eval_or (__smtx_model_eval_eq x1 x2) (__smtx_model_eval_str_lt x1 x2))
 
 def __smtx_model_eval_str_replace_all : SmtValue -> SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Seq x3) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_typeof_seq_value x1) (smt_lit_seq_replace_all (smt_lit_unpack_seq x1) (smt_lit_unpack_seq x2) (smt_lit_unpack_seq x3))))
+  | (SmtValue.Seq x1), (SmtValue.Seq x2), (SmtValue.Seq x3) => (SmtValue.Seq (smt_lit_pack_seq (__smtx_elem_typeof_seq_value x1) (smt_lit_seq_replace_all (smt_lit_unpack_seq x1) (smt_lit_unpack_seq x2) (smt_lit_unpack_seq x3))))
   | t1, t2, t3 => SmtValue.NotValue
 
 
