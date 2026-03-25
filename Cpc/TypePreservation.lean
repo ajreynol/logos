@@ -22,8 +22,303 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | boolean (b : smt_lit_Bool) : supported_preservation_term (SmtTerm.Boolean b)
   | numeral (n : smt_lit_Int) : supported_preservation_term (SmtTerm.Numeral n)
   | rational (q : smt_lit_Rat) : supported_preservation_term (SmtTerm.Rational q)
+  | string (s : smt_lit_String) : supported_preservation_term (SmtTerm.String s)
+  | binary (w n : smt_lit_Int) : supported_preservation_term (SmtTerm.Binary w n)
   | var (s : smt_lit_String) (T : SmtType) : supported_preservation_term (SmtTerm.Var s T)
   | uconst (s : smt_lit_String) (T : SmtType) : supported_preservation_term (SmtTerm.UConst s T)
+  | re_allchar : supported_preservation_term SmtTerm.re_allchar
+  | re_none : supported_preservation_term SmtTerm.re_none
+  | re_all : supported_preservation_term SmtTerm.re_all
+  | seq_empty (T : SmtType) : supported_preservation_term (SmtTerm.seq_empty T)
+  | set_empty (T : SmtType) : supported_preservation_term (SmtTerm.set_empty T)
+  | seq_unit {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.seq_unit t)
+  | set_singleton {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.set_singleton t)
+  | ite {c t1 t2 : SmtTerm}
+      (htc : term_has_non_none_type c)
+      (hsc : supported_preservation_term c)
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)
+  | exists (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.exists s T) body)
+  | forall (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.forall s T) body)
+  | choice (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.choice s T) body)
+  | not {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.not t)
+  | or {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or t1) t2)
+  | and {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and t1) t2)
+  | imp {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp t1) t2)
+  | eq (t1 t2 : SmtTerm) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)
+  | xor (t1 t2 : SmtTerm) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.xor t1) t2)
+  | distinct (t1 t2 : SmtTerm) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.distinct t1) t2)
+  | plus {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.plus t1) t2)
+  | arith_neg {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg t1) t2)
+  | mult {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mult t1) t2)
+  | lt {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.lt t1) t2)
+  | leq {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.leq t1) t2)
+  | gt {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.gt t1) t2)
+  | geq {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.geq t1) t2)
+  | to_real {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.to_real t)
+  | to_int {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.to_int t)
+  | is_int {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.is_int t)
+  | abs {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.abs t)
+  | str_len {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_len t)
+  | str_to_lower {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_to_lower t)
+  | str_to_upper {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_to_upper t)
+  | str_concat {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat t1) t2)
+  | str_substr {t1 t2 t3 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (ht3 : term_has_non_none_type t3)
+      (hs3 : supported_preservation_term t3) :
+      supported_preservation_term
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr t1) t2) t3)
+  | str_contains {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_contains t1) t2)
+  | str_indexof {t1 t2 t3 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (ht3 : term_has_non_none_type t3)
+      (hs3 : supported_preservation_term t3) :
+      supported_preservation_term
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof t1) t2) t3)
+  | str_at {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_at t1) t2)
+  | str_replace {t1 t2 t3 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (ht3 : term_has_non_none_type t3)
+      (hs3 : supported_preservation_term t3) :
+      supported_preservation_term
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace t1) t2) t3)
+  | str_rev {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_rev t)
+  | str_update {t1 t2 t3 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (ht3 : term_has_non_none_type t3)
+      (hs3 : supported_preservation_term t3) :
+      supported_preservation_term
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_update t1) t2) t3)
+  | str_replace_all {t1 t2 t3 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (ht3 : term_has_non_none_type t3)
+      (hs3 : supported_preservation_term t3) :
+      supported_preservation_term
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_all t1) t2) t3)
+  | str_to_code {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_to_code t)
+  | str_to_int {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_to_int t)
+  | str_from_code {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_from_code t)
+  | str_from_int {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_from_int t)
+  | str_to_re {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_to_re t)
+  | re_mult {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.re_mult t)
+  | re_plus {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.re_plus t)
+  | re_opt {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.re_opt t)
+  | re_comp {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.re_comp t)
+  | re_range {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_range t1) t2)
+  | re_concat {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat t1) t2)
+  | re_inter {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_inter t1) t2)
+  | re_union {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_union t1) t2)
+  | re_diff {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_diff t1) t2)
+  | str_in_re {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re t1) t2)
+  | str_lt {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_lt t1) t2)
+  | str_leq {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_leq t1) t2)
+  | str_prefixof {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_prefixof t1) t2)
+  | str_suffixof {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_suffixof t1) t2)
+  | str_is_digit {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply SmtTerm.str_is_digit t)
 
 theorem model_total_typed_lookup
     {M : SmtModel}
@@ -77,6 +372,39 @@ theorem typeof_value_model_eval_rational
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Rational q)) =
       __smtx_typeof (SmtTerm.Rational q) := rfl
 
+theorem typeof_value_model_eval_binary
+    (M : SmtModel)
+    (w n : smt_lit_Int)
+    (ht : term_has_non_none_type (SmtTerm.Binary w n)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Binary w n)) =
+      __smtx_typeof (SmtTerm.Binary w n) := by
+  unfold term_has_non_none_type at ht
+  let g :=
+    smt_lit_and (smt_lit_zleq 0 w)
+      (smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)))
+  have hg : g = true := by
+    by_cases h : g = true
+    · exact h
+    · exfalso
+      apply ht
+      change smt_lit_ite g (SmtType.BitVec w) SmtType.None = SmtType.None
+      simp [smt_lit_ite, h]
+  have hWidth : smt_lit_zleq 0 w = true := by
+    cases h1 : smt_lit_zleq 0 w
+    · simp [g, SmtEval.smt_lit_and, h1] at hg
+    · rfl
+  have hMod :
+      smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)) = true := by
+    cases h2 : smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w))
+    · simp [g, SmtEval.smt_lit_and, hWidth, h2] at hg
+    · rfl
+  change smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None =
+    __smtx_typeof (SmtTerm.Binary w n)
+  rw [show smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None = SmtType.BitVec w by
+    simp [smt_lit_ite, hWidth]]
+  rw [show __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec w by
+    simp [__smtx_typeof, smt_lit_ite, SmtEval.smt_lit_and, hWidth, hMod]]
+
 theorem typeof_value_model_eval_var
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -96,25 +424,6 @@ theorem typeof_value_model_eval_uconst
       __smtx_typeof (SmtTerm.UConst s T) := by
   change __smtx_typeof_value (__smtx_model_lookup M s T) = T
   exact hM s T
-
-theorem supported_type_preservation
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (t : SmtTerm)
-    (_ht : term_has_non_none_type t)
-    (hs : supported_preservation_term t) :
-    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
-  cases hs with
-  | boolean b =>
-      exact typeof_value_model_eval_boolean M b
-  | numeral n =>
-      exact typeof_value_model_eval_numeral M n
-  | rational q =>
-      exact typeof_value_model_eval_rational M q
-  | var s T =>
-      exact typeof_value_model_eval_var M hM s T
-  | uconst s T =>
-      exact typeof_value_model_eval_uconst M hM s T
 
 theorem typeof_value_model_eval_re_allchar
     (M : SmtModel) :
@@ -950,6 +1259,34 @@ theorem typeof_seq_value_pack_seq_of_typed
       rcases hxs with ⟨hv, hxs⟩
       have ih := typeof_seq_value_pack_seq_of_typed hxs
       simp [smt_lit_pack_seq, __smtx_typeof_seq_value, hv, ih, smt_lit_ite, smt_lit_Teq]
+
+theorem char_value_list_typed :
+    ∀ cs : List Char, list_typed SmtType.Char (cs.map SmtValue.Char)
+  | [] => by
+      simp [list_typed]
+  | _ :: cs => by
+      simp [list_typed, char_value_list_typed cs, __smtx_typeof_value]
+
+theorem char_values_of_string_typed
+    (s : smt_lit_String) :
+    list_typed SmtType.Char (__smtx_ssm_char_values_of_string s) := by
+  simpa [__smtx_ssm_char_values_of_string] using char_value_list_typed s.toList
+
+theorem typeof_pack_string
+    (s : smt_lit_String) :
+    __smtx_typeof_seq_value (smt_lit_pack_string s) = SmtType.Seq SmtType.Char := by
+  change __smtx_typeof_seq_value
+      (smt_lit_pack_seq SmtType.Char (__smtx_ssm_char_values_of_string s)) =
+    SmtType.Seq SmtType.Char
+  exact typeof_seq_value_pack_seq_of_typed (char_values_of_string_typed s)
+
+theorem typeof_value_model_eval_string
+    (M : SmtModel)
+    (s : smt_lit_String) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.String s)) =
+      __smtx_typeof (SmtTerm.String s) := by
+  change __smtx_typeof_seq_value (smt_lit_pack_string s) = SmtType.Seq SmtType.Char
+  exact typeof_pack_string s
       
 
 theorem reglan_value_canonical
@@ -1115,6 +1452,53 @@ theorem typeof_value_model_eval_distinct_value
   rcases bool_value_canonical (typeof_value_model_eval_eq_value v1 v2) with ⟨b, hb⟩
   rw [hb]
   rfl
+
+theorem ite_args_of_non_none
+    {c t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)) :
+    ∃ T : SmtType,
+      __smtx_typeof c = SmtType.Bool ∧
+        __smtx_typeof t1 = T ∧
+        __smtx_typeof t2 = T ∧
+        T ≠ SmtType.None := by
+  unfold term_has_non_none_type at ht
+  let T1 := __smtx_typeof t1
+  let T2 := __smtx_typeof t2
+  have hBool : __smtx_typeof c = SmtType.Bool := by
+    cases hc : __smtx_typeof c <;>
+      simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, hc] at ht
+    simpa [hc] using (show SmtType.Bool = SmtType.Bool from rfl)
+  by_cases hEq : smt_lit_Teq T1 T2 = true
+  · have hT : T1 = T2 := by
+      simpa [smt_lit_Teq] using hEq
+    have hNN : T1 ≠ SmtType.None := by
+      simpa [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, hBool, T1, T2, hEq] using ht
+    exact ⟨T1, hBool, rfl, by simpa [T1, T2] using hT.symm, hNN⟩
+  · exfalso
+    apply ht
+    simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, hBool, T1, T2, hEq]
+
+theorem typeof_value_model_eval_ite
+    (M : SmtModel)
+    (c t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2))
+    (hpresc : __smtx_typeof_value (__smtx_model_eval M c) = __smtx_typeof c)
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2) := by
+  rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, hT⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2) = T by
+    simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, smt_lit_Teq, hc, h1, h2, hT]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_ite (__smtx_model_eval M c) (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = T
+  rcases bool_value_canonical (by simpa [hc] using hpresc) with ⟨b, hb⟩
+  rw [hb]
+  cases b
+  · simpa [__smtx_model_eval_ite, h1, h2] using hpres2
+  · simpa [__smtx_model_eval_ite, h1, h2] using hpres1
 
 theorem eq_term_typeof_of_non_none
     {t1 t2 : SmtTerm}
@@ -1786,6 +2170,46 @@ theorem typeof_value_model_eval_str_len
   rw [hss]
   rfl
 
+theorem typeof_value_model_eval_str_to_lower
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_to_lower t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_to_lower t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_lower t) := by
+  have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_lower) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_lower t) = SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_to_lower (__smtx_model_eval M t)) =
+    SmtType.Seq SmtType.Char
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  change __smtx_typeof_seq_value
+      (smt_lit_pack_string (smt_lit_str_to_lower (smt_lit_unpack_string ss))) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
+theorem typeof_value_model_eval_str_to_upper
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_to_upper t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_to_upper t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_upper t) := by
+  have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_upper) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_upper t) = SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_to_upper (__smtx_model_eval M t)) =
+    SmtType.Seq SmtType.Char
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  change __smtx_typeof_seq_value
+      (smt_lit_pack_string (smt_lit_str_to_upper (smt_lit_unpack_string ss))) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
 theorem typeof_value_model_eval_str_concat
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -2127,6 +2551,46 @@ theorem typeof_value_model_eval_str_to_int
   rw [hss]
   rfl
 
+theorem typeof_value_model_eval_str_from_code
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_from_code t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_from_code t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_from_code t) := by
+  unfold term_has_non_none_type at ht
+  cases hArg : __smtx_typeof t <;>
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg] at ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_from_code t) = SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_from_code (__smtx_model_eval M t)) =
+    SmtType.Seq SmtType.Char
+  rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
+  rw [hn]
+  change __smtx_typeof_seq_value (smt_lit_pack_string (smt_lit_str_from_code n)) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
+theorem typeof_value_model_eval_str_from_int
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_from_int t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_from_int t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_from_int t) := by
+  unfold term_has_non_none_type at ht
+  cases hArg : __smtx_typeof t <;>
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg] at ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_from_int t) = SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_from_int (__smtx_model_eval M t)) =
+    SmtType.Seq SmtType.Char
+  rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
+  rw [hn]
+  change __smtx_typeof_seq_value (smt_lit_pack_string (smt_lit_str_from_int n)) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
 theorem typeof_value_model_eval_str_to_re
     (M : SmtModel)
     (t : SmtTerm)
@@ -2438,6 +2902,236 @@ theorem typeof_value_model_eval_str_is_digit
   rw [hss]
   simp [__smtx_model_eval_str_is_digit, __smtx_model_eval_str_to_code, __smtx_model_eval_leq,
     __smtx_model_eval_and, __smtx_typeof_value]
+
+theorem supported_type_preservation
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type t)
+    (hs : supported_preservation_term t) :
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
+  cases hs with
+  | boolean b =>
+      exact typeof_value_model_eval_boolean M b
+  | numeral n =>
+      exact typeof_value_model_eval_numeral M n
+  | rational q =>
+      exact typeof_value_model_eval_rational M q
+  | string s =>
+      exact typeof_value_model_eval_string M s
+  | binary w n =>
+      exact typeof_value_model_eval_binary M w n ht
+  | var s T =>
+      exact typeof_value_model_eval_var M hM s T
+  | uconst s T =>
+      exact typeof_value_model_eval_uconst M hM s T
+  | re_allchar =>
+      exact typeof_value_model_eval_re_allchar M
+  | re_none =>
+      exact typeof_value_model_eval_re_none M
+  | re_all =>
+      exact typeof_value_model_eval_re_all M
+  | seq_empty T =>
+      exact typeof_value_model_eval_seq_empty M T
+  | set_empty T =>
+      exact typeof_value_model_eval_set_empty M T
+  | seq_unit ht1 hs1 =>
+      exact typeof_value_model_eval_seq_unit M _ ht1
+        (supported_type_preservation M hM _ ht1 hs1)
+  | set_singleton ht1 hs1 =>
+      exact typeof_value_model_eval_set_singleton M _ ht1
+        (supported_type_preservation M hM _ ht1 hs1)
+  | ite htc hsc ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_ite M _ _ _ ht
+        (supported_type_preservation M hM _ htc hsc)
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | «exists» s T body =>
+      exact typeof_value_model_eval_exists M s T body ht
+  | «forall» s T body =>
+      exact typeof_value_model_eval_forall M s T body ht
+  | choice s T body =>
+      exact typeof_value_model_eval_choice M s T body ht
+  | «not» ht1 hs1 =>
+      exact typeof_value_model_eval_not M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | «or» ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_or M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | «and» ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_and M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | «imp» ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_imp M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | eq t1 t2 =>
+      exact typeof_value_model_eval_eq M t1 t2 ht
+  | xor t1 t2 =>
+      exact typeof_value_model_eval_xor M t1 t2 ht
+  | distinct t1 t2 =>
+      exact typeof_value_model_eval_distinct M t1 t2 ht
+  | plus ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_plus M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | arith_neg ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_neg M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | mult ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_mult M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | lt ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_lt M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | leq ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_leq M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | gt ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_gt M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | geq ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_geq M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | to_real ht1 hs1 =>
+      exact typeof_value_model_eval_to_real M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | to_int ht1 hs1 =>
+      exact typeof_value_model_eval_to_int M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | is_int ht1 hs1 =>
+      exact typeof_value_model_eval_is_int M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | abs ht1 hs1 =>
+      exact typeof_value_model_eval_abs M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_len ht1 hs1 =>
+      exact typeof_value_model_eval_str_len M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_to_lower ht1 hs1 =>
+      exact typeof_value_model_eval_str_to_lower M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_to_upper ht1 hs1 =>
+      exact typeof_value_model_eval_str_to_upper M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_concat ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_str_concat M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_substr ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_str_substr M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
+  | str_contains ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_str_contains M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_indexof ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_str_indexof M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
+  | str_at ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_str_at M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_replace ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_str_replace M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
+  | str_rev ht1 hs1 =>
+      exact typeof_value_model_eval_str_rev M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_update ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_str_update M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
+  | str_replace_all ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_str_replace_all M _ _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+        (supported_type_preservation M hM _ ht3 hs3)
+  | str_to_code ht1 hs1 =>
+      exact typeof_value_model_eval_str_to_code M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_to_int ht1 hs1 =>
+      exact typeof_value_model_eval_str_to_int M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_from_code ht1 hs1 =>
+      exact typeof_value_model_eval_str_from_code M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_from_int ht1 hs1 =>
+      exact typeof_value_model_eval_str_from_int M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | str_to_re ht1 hs1 =>
+      exact typeof_value_model_eval_str_to_re M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | re_mult ht1 hs1 =>
+      exact typeof_value_model_eval_re_mult M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | re_plus ht1 hs1 =>
+      exact typeof_value_model_eval_re_plus M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | re_opt ht1 hs1 =>
+      exact typeof_value_model_eval_re_opt M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | re_comp ht1 hs1 =>
+      exact typeof_value_model_eval_re_comp M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | re_range ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_re_range M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | re_concat ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_re_concat M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | re_inter ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_re_inter M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | re_union ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_re_union M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | re_diff ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_re_diff M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_in_re ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_str_in_re M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_lt ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_str_lt M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_leq ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_str_leq M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_prefixof ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_str_prefixof M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_suffixof ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_str_suffixof M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | str_is_digit ht1 hs1 =>
+      exact typeof_value_model_eval_str_is_digit M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
 
 def preservation_counterexample_exists : SmtTerm :=
   SmtTerm.Apply (SmtTerm.exists "x" SmtType.Bool) (SmtTerm.Numeral 0)
