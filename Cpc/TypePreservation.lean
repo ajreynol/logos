@@ -49,6 +49,30 @@ theorem supported_type_preservation
   | set_singleton ht1 hs1 =>
       exact typeof_value_model_eval_set_singleton M _ ht1
         (supported_type_preservation M hM _ ht1 hs1)
+  | seq_nth ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_seq_nth M hM _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | set_union ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_set_union M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | set_inter ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_set_inter M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | set_minus ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_set_minus M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | set_member ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_set_member M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | set_subset ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_set_subset M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
   | select ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_select M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
