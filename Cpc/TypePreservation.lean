@@ -367,6 +367,15 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat t1) t2)
+  | extract {t1 t2 t3 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (ht3 : term_has_non_none_type t3)
+      (hs3 : supported_preservation_term t3) :
+      supported_preservation_term
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3)
   | bvnot {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
@@ -541,6 +550,24 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo t1) t2)
+  | zero_extend {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2)
+  | sign_extend {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2)
+  | int_to_bv {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2)
   | ubv_to_int {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
@@ -2013,6 +2040,89 @@ theorem bv_concat_args_of_non_none
       cases h2 : __smtx_typeof t2 <;>
         simp [__smtx_typeof, __smtx_typeof_concat, h1, h2] at ht
 
+theorem extract_args_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3)) :
+    ∃ i j w : smt_lit_Int,
+      t1 = SmtTerm.Numeral i ∧
+        t2 = SmtTerm.Numeral j ∧
+        __smtx_typeof t3 = SmtType.BitVec w ∧
+        smt_lit_zleq 0 j = true ∧
+        smt_lit_zleq j i = true ∧
+        smt_lit_zlt i w = true := by
+  unfold term_has_non_none_type at ht
+  cases t1 <;> cases t2 <;> cases h3 : __smtx_typeof t3 <;>
+    simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h3] at ht
+  case Numeral.Numeral i j =>
+    rename_i i j w
+    by_cases hj0 : smt_lit_zleq 0 j = true
+    · by_cases hji : smt_lit_zleq j i = true
+      · by_cases hiw : smt_lit_zlt i w = true
+        · exact ⟨i, j, w, rfl, rfl, h3, hj0, hji, hiw⟩
+        · exfalso
+          exact ht (by
+            simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h3, hj0, hji, hiw])
+      · exfalso
+        exact ht (by
+          simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h3, hj0, hji])
+    · exfalso
+      exact ht (by
+        simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h3, hj0])
+
+theorem zero_extend_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2)) :
+    ∃ i w : smt_lit_Int,
+      t1 = SmtTerm.Numeral i ∧
+        __smtx_typeof t2 = SmtType.BitVec w ∧
+        smt_lit_zleq 0 i = true := by
+  unfold term_has_non_none_type at ht
+  cases t1 <;> cases h2 : __smtx_typeof t2 <;>
+    simp [__smtx_typeof, __smtx_typeof_zero_extend, smt_lit_ite, h2] at ht
+  case Numeral.Numeral i =>
+    rename_i i w
+    by_cases hi0 : smt_lit_zleq 0 i = true
+    · exact ⟨i, w, rfl, h2, hi0⟩
+    · exfalso
+      exact ht (by
+        simp [__smtx_typeof, __smtx_typeof_zero_extend, smt_lit_ite, h2, hi0])
+
+theorem sign_extend_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2)) :
+    ∃ i w : smt_lit_Int,
+      t1 = SmtTerm.Numeral i ∧
+        __smtx_typeof t2 = SmtType.BitVec w ∧
+        smt_lit_zleq 0 i = true := by
+  unfold term_has_non_none_type at ht
+  cases t1 <;> cases h2 : __smtx_typeof t2 <;>
+    simp [__smtx_typeof, __smtx_typeof_sign_extend, smt_lit_ite, h2] at ht
+  case Numeral.Numeral i =>
+    rename_i i w
+    by_cases hi0 : smt_lit_zleq 0 i = true
+    · exact ⟨i, w, rfl, h2, hi0⟩
+    · exfalso
+      exact ht (by
+        simp [__smtx_typeof, __smtx_typeof_sign_extend, smt_lit_ite, h2, hi0])
+
+theorem int_to_bv_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2)) :
+    ∃ i : smt_lit_Int,
+      t1 = SmtTerm.Numeral i ∧
+        __smtx_typeof t2 = SmtType.Int ∧
+        smt_lit_zleq 0 i = true := by
+  unfold term_has_non_none_type at ht
+  cases t1 <;> cases h2 : __smtx_typeof t2 <;>
+    simp [__smtx_typeof, __smtx_typeof_int_to_bv, smt_lit_ite, h2] at ht
+  case Numeral.Numeral i =>
+    by_cases hi0 : smt_lit_zleq 0 i = true
+    · exact ⟨i, rfl, h2, hi0⟩
+    · exfalso
+      exact ht (by
+        simp [__smtx_typeof, __smtx_typeof_int_to_bv, smt_lit_ite, h2, hi0])
+
 theorem bv_unop_arg_of_non_none
     {op t : SmtTerm}
     (hTy :
@@ -2132,6 +2242,46 @@ theorem typeof_value_model_eval_concat
     typeof_value_binary_of_nonneg (smt_lit_zplus w1 w2)
       (smt_lit_mod_total (smt_lit_binary_concat w1 n1 w2 n2)
         (smt_lit_int_pow2 (smt_lit_zplus w1 w2))) hWidth
+
+theorem typeof_value_model_eval_extract
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht : term_has_non_none_type
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3))
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3) := by
+  rcases extract_args_of_non_none ht with ⟨i, j, w, h1, h2, h3, hj0, hji, hiw⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3) =
+        SmtType.BitVec (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j)) by
+    simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h1, h2, h3, hj0, hji, hiw,
+      SmtEval.smt_lit_zplus, SmtEval.smt_lit_zneg, add_assoc, add_comm, add_left_comm]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_extract (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) =
+    SmtType.BitVec (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j))
+  rw [h1, h2]
+  change __smtx_typeof_value
+      (__smtx_model_eval_extract (SmtValue.Numeral i) (SmtValue.Numeral j)
+        (__smtx_model_eval M t3)) =
+    SmtType.BitVec (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j))
+  rcases bitvec_value_canonical (by simpa [h3] using hpres3) with ⟨n, hv⟩
+  rw [hv]
+  have hji' : j <= i := by
+    simpa [SmtEval.smt_lit_zleq] using hji
+  have hWidthInt : 0 <= (i + 1) + -j := by
+    have hsub : 0 <= i - j := sub_nonneg.mpr hji'
+    have hWidth' : 0 <= (i - j) + 1 := Int.add_nonneg hsub (by decide)
+    simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hWidth'
+  have hWidth : smt_lit_zleq 0 (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j)) = true := by
+    simpa [SmtEval.smt_lit_zleq, SmtEval.smt_lit_zplus, SmtEval.smt_lit_zneg,
+      add_assoc, add_comm, add_left_comm] using hWidthInt
+  simpa [__smtx_model_eval_extract] using
+    typeof_value_binary_of_nonneg (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j))
+      (smt_lit_mod_total (smt_lit_binary_extract w n i j)
+        (smt_lit_int_pow2 (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j)))) hWidth
 
 theorem typeof_value_model_eval_bv_unop
     (M : SmtModel)
@@ -2746,6 +2896,94 @@ theorem typeof_value_model_eval_bvusubo
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvusubo, __smtx_model_eval_bvult] using
         typeof_value_model_eval_bvugt_value w n2 n1 hWidth)
+
+theorem typeof_value_model_eval_zero_extend
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2))
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2) := by
+  rcases zero_extend_args_of_non_none ht with ⟨i, w, h1, h2, hi0⟩
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2) =
+      SmtType.BitVec (smt_lit_zplus i w) by
+    simp [__smtx_typeof, __smtx_typeof_zero_extend, smt_lit_ite, h1, h2, hi0]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_zero_extend (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+    SmtType.BitVec (smt_lit_zplus i w)
+  rw [h1]
+  change __smtx_typeof_value
+      (__smtx_model_eval_zero_extend (SmtValue.Numeral i) (__smtx_model_eval M t2)) =
+    SmtType.BitVec (smt_lit_zplus i w)
+  rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
+  rw [hv]
+  have hi : 0 <= i := by
+    simpa [SmtEval.smt_lit_zleq] using hi0
+  have hw0 : smt_lit_zleq 0 w = true := by
+    exact bitvec_width_nonneg (by simpa [h2, hv] using hpres2)
+  have hw : 0 <= w := by
+    simpa [SmtEval.smt_lit_zleq] using hw0
+  have hWidth : smt_lit_zleq 0 (smt_lit_zplus i w) = true := by
+    have hAdd : 0 <= i + w := Int.add_nonneg hi hw
+    simpa [SmtEval.smt_lit_zleq, SmtEval.smt_lit_zplus] using hAdd
+  simpa [__smtx_model_eval_zero_extend] using
+    typeof_value_binary_of_nonneg (smt_lit_zplus i w) n hWidth
+
+theorem typeof_value_model_eval_sign_extend
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2))
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2) := by
+  rcases sign_extend_args_of_non_none ht with ⟨i, w, h1, h2, hi0⟩
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2) =
+      SmtType.BitVec (smt_lit_zplus i w) by
+    simp [__smtx_typeof, __smtx_typeof_sign_extend, smt_lit_ite, h1, h2, hi0]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_sign_extend (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+    SmtType.BitVec (smt_lit_zplus i w)
+  rw [h1]
+  change __smtx_typeof_value
+      (__smtx_model_eval_sign_extend (SmtValue.Numeral i) (__smtx_model_eval M t2)) =
+    SmtType.BitVec (smt_lit_zplus i w)
+  rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
+  rw [hv]
+  have hi : 0 <= i := by
+    simpa [SmtEval.smt_lit_zleq] using hi0
+  have hw0 : smt_lit_zleq 0 w = true := by
+    exact bitvec_width_nonneg (by simpa [h2, hv] using hpres2)
+  have hw : 0 <= w := by
+    simpa [SmtEval.smt_lit_zleq] using hw0
+  have hWidth : smt_lit_zleq 0 (smt_lit_zplus i w) = true := by
+    have hAdd : 0 <= i + w := Int.add_nonneg hi hw
+    simpa [SmtEval.smt_lit_zleq, SmtEval.smt_lit_zplus] using hAdd
+  simpa [__smtx_model_eval_sign_extend] using
+    typeof_value_binary_of_nonneg (smt_lit_zplus i w)
+      (smt_lit_mod_total (smt_lit_binary_uts w n) (smt_lit_int_pow2 (smt_lit_zplus i w))) hWidth
+
+theorem typeof_value_model_eval_int_to_bv
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2))
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2) := by
+  rcases int_to_bv_args_of_non_none ht with ⟨i, h1, h2, hi0⟩
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2) =
+      SmtType.BitVec i by
+    simp [__smtx_typeof, __smtx_typeof_int_to_bv, smt_lit_ite, h1, h2, hi0]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_int_to_bv (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+    SmtType.BitVec i
+  rw [h1]
+  change __smtx_typeof_value
+      (__smtx_model_eval_int_to_bv (SmtValue.Numeral i) (__smtx_model_eval M t2)) =
+    SmtType.BitVec i
+  rcases int_value_canonical (by simpa [h2] using hpres2) with ⟨n, hn⟩
+  rw [hn]
+  simpa [__smtx_model_eval_int_to_bv] using
+    typeof_value_binary_of_nonneg i (smt_lit_mod_total n (smt_lit_int_pow2 i)) hi0
 
 theorem eq_term_typeof_of_non_none
     {t1 t2 : SmtTerm}
@@ -4563,6 +4801,9 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_concat M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
+  | extract ht1 hs1 ht2 hs2 ht3 hs3 =>
+      exact typeof_value_model_eval_extract M _ _ _ ht
+        (supported_type_preservation M hM _ ht3 hs3)
   | bvnot ht1 hs1 =>
       exact typeof_value_model_eval_bvnot M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -4679,6 +4920,15 @@ theorem supported_type_preservation
   | bvusubo ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_bvusubo M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | zero_extend ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_zero_extend M _ _ ht
+        (supported_type_preservation M hM _ ht2 hs2)
+  | sign_extend ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_sign_extend M _ _ ht
+        (supported_type_preservation M hM _ ht2 hs2)
+  | int_to_bv ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_int_to_bv M _ _ ht
         (supported_type_preservation M hM _ ht2 hs2)
   | ubv_to_int ht1 hs1 =>
       exact typeof_value_model_eval_ubv_to_int M _ ht
