@@ -1004,8 +1004,7 @@ theorem typeof_value_dt_cons_type_chain_result :
       case DtConsType A B =>
         cases hNone : smt_lit_Teq A SmtType.None <;>
         cases hEq : smt_lit_Teq A (__smtx_typeof_value v) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         have hShape := typeof_value_dt_cons_type_chain_result f A B hf
         simpa [h, dt_cons_chain_result] using hShape
 
@@ -1089,8 +1088,7 @@ theorem typeof_value_ne_type_ref
       case DtConsType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value v) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_type_ref T s ⟨f, by simpa [h] using hf⟩
 
 theorem no_value_of_type_ref
@@ -1149,8 +1147,7 @@ theorem bool_value_canonical
       case DtConsType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_bool T ⟨f, by simpa [h] using hf⟩
 
 theorem int_value_canonical
@@ -1202,8 +1199,7 @@ theorem int_value_canonical
       case DtConsType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_int T ⟨f, by simpa [h] using hf⟩
 
 theorem real_value_canonical
@@ -1255,8 +1251,7 @@ theorem real_value_canonical
       case DtConsType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_real T ⟨f, by simpa [h] using hf⟩
 
 theorem no_value_of_dt_cons_type_of_non_chain
@@ -1341,8 +1336,7 @@ theorem bitvec_value_canonical
       case DtConsType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_bitvec T w ⟨f, by simpa [h] using hf⟩
 
 theorem bitvec_width_nonneg
@@ -1351,7 +1345,7 @@ theorem bitvec_width_nonneg
     smt_lit_zleq 0 w = true := by
   cases hWidth : smt_lit_zleq 0 w <;>
     simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
-  simpa [hWidth]
+  simp
 
 theorem typeof_value_binary_of_nonneg
     (w n : smt_lit_Int)
@@ -1401,8 +1395,7 @@ theorem map_value_canonical
       case DtConsType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_map T A B ⟨f, by simpa [h] using hf⟩
 
 theorem seq_value_canonical
@@ -1447,8 +1440,7 @@ theorem seq_value_canonical
       case DtConsType A B =>
         cases hNone : smt_lit_Teq A SmtType.None <;>
         cases hEq : smt_lit_Teq A (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_seq A T ⟨f, by simpa [h] using hf⟩
 
 def list_typed (T : SmtType) : List SmtValue -> Prop
@@ -1760,8 +1752,7 @@ theorem reglan_value_canonical
       case DtConsType A B =>
         cases hNone : smt_lit_Teq A SmtType.None <;>
         cases hEq : smt_lit_Teq A (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf,
-            __smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_reglan A ⟨f, by simpa [h] using hf⟩
 
 theorem bool_binop_args_bool_of_non_none
@@ -1776,8 +1767,7 @@ theorem bool_binop_args_bool_of_non_none
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
     simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
-  simpa [h1, h2] using
-    (show SmtType.Bool = SmtType.Bool ∧ SmtType.Bool = SmtType.Bool from ⟨rfl, rfl⟩)
+  simp
 
 theorem arith_binop_args_of_non_none
     {op t1 t2 : SmtTerm}
@@ -1790,14 +1780,8 @@ theorem arith_binop_args_of_non_none
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
     simp [hTy, __smtx_typeof_arith_overload_op_2, h1, h2] at ht
-  · simpa [h1, h2] using
-      (show (SmtType.Int = SmtType.Int ∧ SmtType.Int = SmtType.Int) ∨
-          (SmtType.Int = SmtType.Real ∧ SmtType.Int = SmtType.Real) from
-        Or.inl ⟨rfl, rfl⟩)
-  · simpa [h1, h2] using
-      (show (SmtType.Real = SmtType.Int ∧ SmtType.Real = SmtType.Int) ∨
-          (SmtType.Real = SmtType.Real ∧ SmtType.Real = SmtType.Real) from
-        Or.inr ⟨rfl, rfl⟩)
+  · simp
+  · simp
 
 theorem arith_binop_ret_bool_args_of_non_none
     {op t1 t2 : SmtTerm}
@@ -1810,14 +1794,8 @@ theorem arith_binop_ret_bool_args_of_non_none
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
     simp [hTy, __smtx_typeof_arith_overload_op_2_ret, h1, h2] at ht
-  · simpa [h1, h2] using
-      (show (SmtType.Int = SmtType.Int ∧ SmtType.Int = SmtType.Int) ∨
-          (SmtType.Int = SmtType.Real ∧ SmtType.Int = SmtType.Real) from
-        Or.inl ⟨rfl, rfl⟩)
-  · simpa [h1, h2] using
-      (show (SmtType.Real = SmtType.Int ∧ SmtType.Real = SmtType.Int) ∨
-          (SmtType.Real = SmtType.Real ∧ SmtType.Real = SmtType.Real) from
-        Or.inr ⟨rfl, rfl⟩)
+  · simp
+  · simp
 
 theorem to_real_arg_of_non_none
     {t : SmtTerm}
@@ -1826,8 +1804,8 @@ theorem to_real_arg_of_non_none
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
-  · simpa [h] using (show SmtType.Int = SmtType.Int ∨ SmtType.Int = SmtType.Real from Or.inl rfl)
-  · simpa [h] using (show SmtType.Real = SmtType.Int ∨ SmtType.Real = SmtType.Real from Or.inr rfl)
+  · simp
+  · simp
 
 theorem real_arg_of_non_none
     {op t : SmtTerm}
