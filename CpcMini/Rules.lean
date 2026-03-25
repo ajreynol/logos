@@ -99,7 +99,7 @@ theorem smtx_model_eval_eq_refl (v : SmtValue) :
 
 theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
   eo_has_smt_translation x1 ->
-  __eo_typeof (__eo_prog_refl x1) = Term.Bool ->
+  eo_has_bool_type (__eo_prog_refl x1) ->
   eo_interprets M (__eo_prog_refl x1) true := by
   intro hTy _
   have hNotEqStuck : x1 ≠ Term.Stuck := by
