@@ -194,6 +194,17 @@ theorem eo_eq_operands_same_smt_type (M : SmtModel) (x y : Term) :
       simpa [__eo_to_smt, __smtx_typeof] using
         (smtx_typeof_eq_bool_iff (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt y))).mp hTy
 
+theorem eo_eq_operands_same_smt_type_of_false (M : SmtModel) (x y : Term) :
+  eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) false ->
+  __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) ∧
+    __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+  intro hEq
+  rw [eo_interprets_iff_smt_interprets] at hEq
+  cases hEq with
+  | intro_false hTy _ =>
+      simpa [__eo_to_smt, __smtx_typeof] using
+        (smtx_typeof_eq_bool_iff (__smtx_typeof (__eo_to_smt x)) (__smtx_typeof (__eo_to_smt y))).mp hTy
+
 theorem eo_has_bool_type_eq_of_true_chain (M : SmtModel) (x y z : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->
   eo_interprets M (Term.Apply (Term.Apply Term.eq y) z) true ->

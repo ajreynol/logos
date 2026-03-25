@@ -36,7 +36,44 @@ theorem typed___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
   __eo_prog_contra (Proof.pf x1) (Proof.pf x2) ≠ Term.Stuck ->
   RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) :=
 by
-  sorry
+  intro hX1True _hX2True hProg
+  have hX1NotStuck : x1 ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_interprets_true M x1 hX1True
+  cases x2 with
+  | Apply f a =>
+      cases f with
+      | not =>
+          by_cases hEq : x1 = a
+          · subst hEq
+            have hEqTerm : __eo_eq x1 x1 = Term.Boolean true := by
+              by_cases hStuck : x1 = Term.Stuck
+              · exact False.elim (hX1NotStuck hStuck)
+              · simp [__eo_eq, hStuck, eo_lit_teq]
+            have hContraFalse :
+                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not x1)) =
+                  Term.Boolean false := by
+              rw [__eo_prog_contra, hEqTerm]
+              simp [__eo_requires, eo_lit_teq, eo_lit_ite, eo_lit_not, SmtEval.smt_lit_not]
+            simpa [RuleProofs.eo_has_bool_type, hContraFalse, __eo_to_smt, __smtx_typeof]
+          · have hEqNe : __eo_eq x1 a ≠ Term.Boolean true := by
+              intro hEqTerm
+              by_cases hXStuck : x1 = Term.Stuck
+              · subst hXStuck
+                simp [__eo_eq] at hEqTerm
+              · by_cases hAStuck : a = Term.Stuck
+                · subst hAStuck
+                  simp [__eo_eq] at hEqTerm
+                · simp [__eo_eq, hXStuck, hAStuck, eo_lit_teq] at hEqTerm
+                  exact hEq hEqTerm.symm
+            have hContraStuck :
+                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
+              rw [__eo_prog_contra]
+              simp [__eo_requires, eo_lit_teq, eo_lit_ite, hEqNe]
+            exact False.elim (hProg hContraStuck)
+      | _ =>
+          exact False.elim (hProg (by simp [__eo_prog_contra]))
+  | _ =>
+      exact False.elim (hProg (by simp [__eo_prog_contra]))
 
 theorem correct___eo_prog_contra
     (M : SmtModel) (_hM : smt_model_well_typed M) (x1 x2 : Term) :
@@ -53,7 +90,18 @@ theorem typed___eo_prog_refl (x1 : Term) :
   __eo_prog_refl x1 ≠ Term.Stuck ->
   RuleProofs.eo_has_bool_type (__eo_prog_refl x1) :=
 by
-  sorry
+  intro hTrans _hProg
+  by_cases hStuck : x1 = Term.Stuck
+  · exfalso
+    apply hTrans
+    simp [RuleProofs.eo_has_smt_translation, hStuck, __eo_to_smt, __smtx_typeof]
+  · have hRefl :
+        __eo_prog_refl x1 = Term.Apply (Term.Apply Term.eq x1) x1 := by
+      simp [__eo_prog_refl, hStuck]
+    rw [hRefl]
+    unfold RuleProofs.eo_has_bool_type
+    simpa [__eo_to_smt, __smtx_typeof] using
+      RuleProofs.smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTrans
 
 theorem correct___eo_prog_refl
     (M : SmtModel) (_hM : smt_model_well_typed M) (x1 : Term) :
@@ -80,7 +128,61 @@ theorem typed___eo_prog_symm (M : SmtModel) (x1 : Term) :
   __eo_prog_symm (Proof.pf x1) ≠ Term.Stuck ->
   RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf x1)) :=
 by
-  sorry
+  intro hXTrue hProg
+  cases x1 with
+  | Apply f a =>
+      cases f with
+      | Apply g b =>
+          cases g with
+          | eq =>
+              rcases RuleProofs.eo_eq_operands_same_smt_type M b a hXTrue with
+                ⟨hTy, hNonNone⟩
+              have hNonNone' : __smtx_typeof (__eo_to_smt a) ≠ SmtType.None := by
+                simpa [hTy] using hNonNone
+              have hEqTy :
+                  __smtx_typeof_eq (__smtx_typeof (__eo_to_smt a))
+                    (__smtx_typeof (__eo_to_smt b)) = SmtType.Bool := by
+                exact (RuleProofs.smtx_typeof_eq_bool_iff
+                  (__smtx_typeof (__eo_to_smt a))
+                  (__smtx_typeof (__eo_to_smt b))).mpr ⟨hTy.symm, hNonNone'⟩
+              exact by
+                simp [RuleProofs.eo_has_bool_type, __eo_prog_symm, __mk_symm, __eo_to_smt,
+                  __smtx_typeof, hEqTy]
+          | _ =>
+              exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+      | not =>
+          cases a with
+          | Apply f2 a2 =>
+              cases f2 with
+              | Apply g2 b2 =>
+                  cases g2 with
+                  | eq =>
+                      have hEqFalse :
+                          eo_interprets M (Term.Apply (Term.Apply Term.eq b2) a2) false :=
+                        RuleProofs.eo_interprets_not_true_implies_false M _ hXTrue
+                      rcases RuleProofs.eo_eq_operands_same_smt_type_of_false M b2 a2 hEqFalse with
+                        ⟨hTy, hNonNone⟩
+                      have hNonNone' : __smtx_typeof (__eo_to_smt a2) ≠ SmtType.None := by
+                        simpa [hTy] using hNonNone
+                      have hEqTy :
+                          __smtx_typeof_eq (__smtx_typeof (__eo_to_smt a2))
+                            (__smtx_typeof (__eo_to_smt b2)) = SmtType.Bool := by
+                        exact (RuleProofs.smtx_typeof_eq_bool_iff
+                          (__smtx_typeof (__eo_to_smt a2))
+                          (__smtx_typeof (__eo_to_smt b2))).mpr ⟨hTy.symm, hNonNone'⟩
+                      exact by
+                        simp [RuleProofs.eo_has_bool_type, __eo_prog_symm, __mk_symm, __eo_to_smt,
+                          __smtx_typeof, hEqTy, smt_lit_ite, smt_lit_Teq]
+                  | _ =>
+                      exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+              | _ =>
+                  exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+          | _ =>
+              exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+      | _ =>
+          exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+  | _ =>
+      exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
 
 theorem correct___eo_prog_symm
     (M : SmtModel) (_hM : smt_model_well_typed M) (x1 : Term) :
