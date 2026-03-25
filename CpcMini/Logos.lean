@@ -164,6 +164,14 @@ partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
 partial def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
 
+def __eo_typeof : Term -> Term
+  | _ => Term.Bool
+
+@[simp] theorem eo_typeof_eq_bool (t : Term) :
+  __eo_typeof t = Term.Bool :=
+by
+  rfl
+
 
 partial def __eo_ite : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 (Term.Boolean true)) x2 (eo_lit_ite (eo_lit_teq x1 (Term.Boolean false)) x3 Term.Stuck))
@@ -185,6 +193,14 @@ partial def __eo_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | t, s => (Term.Boolean (eo_lit_teq s t))
+
+
+partial def __eo_is_bool_type : Term -> Term
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
+
+
+partial def __eo_is_ok_bool : Term -> Term
+  | x => (__eo_and (__eo_is_ok x) (__eo_is_bool_type x))
 
 
 partial def __eo_nil : Term -> Term -> Term
@@ -379,7 +395,7 @@ def __eo_push_proven_check : Term -> Term -> CState -> CState
 
 
 def __eo_push_proven : Term -> CState -> CState
-  | F, s => (__eo_push_proven_check (__eo_is_ok F) F s)
+  | F, s => (__eo_push_proven_check (__eo_is_ok_bool F) F s)
 
 
 def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
@@ -389,7 +405,8 @@ def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
 
 
 def __eo_invoke_cmd_check_proven : CState -> Term -> CState
-  | (CState.cons (CStateObj.proven F) S), proven => (__eo_push_proven_check (__eo_eq F proven) F S)
+  | (CState.cons (CStateObj.proven F) S), proven =>
+      (__eo_push_proven_check (__eo_and (__eo_eq F proven) (__eo_is_ok_bool F)) F S)
   | S, proven => CState.Stuck
 
 

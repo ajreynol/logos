@@ -373,6 +373,40 @@ by
   subst hStuck
   simp [stateOk] at hOk
 
+@[simp] theorem eo_is_bool_type_eq_true (t : Term) :
+  __eo_is_bool_type t = Term.Boolean true :=
+by
+  rw [__eo_is_bool_type, eo_typeof_eq_bool]
+  simp [__eo_eq, eo_lit_teq]
+
+@[simp] theorem eo_is_ok_bool_eq_is_ok (t : Term) :
+  __eo_is_ok_bool t = __eo_is_ok t :=
+by
+  cases t <;>
+    simp [__eo_is_ok_bool, __eo_and, __eo_is_ok, __eo_is_bool_type, eo_typeof_eq_bool, __eo_eq,
+      eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not, SmtEval.smt_lit_and]
+
+@[simp] theorem check_proven_guard_eq (F proven : Term) :
+  __eo_and (__eo_eq F proven) (__eo_is_ok_bool F) = __eo_eq F proven :=
+by
+  cases F <;> cases proven <;>
+    simp [__eo_and, __eo_eq, eo_is_ok_bool_eq_is_ok, __eo_is_ok, eo_lit_teq, eo_lit_not,
+      SmtEval.smt_lit_not, SmtEval.smt_lit_and]
+
+@[simp] theorem invoke_cmd_check_proven_proven_eq_push_proven_check
+    (F proven : Term) (s : CState) :
+  __eo_invoke_cmd_check_proven (CState.cons (CStateObj.proven F) s) proven =
+    __eo_push_proven_check (__eo_eq F proven) F s :=
+by
+  rw [__eo_invoke_cmd_check_proven, check_proven_guard_eq]
+
+@[simp] theorem invoke_cmd_check_proven_proven_eq_push_proven_check_cmd
+    (F proven : Term) (s : CState) :
+  __eo_invoke_cmd (CState.cons (CStateObj.proven F) s) (CCmd.check_proven proven) =
+    __eo_push_proven_check (__eo_eq F proven) F s :=
+by
+  simp [__eo_invoke_cmd]
+
 /- Legacy whole-state summary of a state.
    The checker correctness proof below now uses `checkerConjunctInvariant`
    as its primary invariant, but this formula view is still useful for
@@ -1546,7 +1580,7 @@ by
           | proven F =>
               intro hOk
               cases hEq : __eo_eq F proven <;>
-                simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                simp [__eo_invoke_cmd, __eo_push_proven_check,
                   hEq, stateOk] at hOk ⊢
               case Boolean b =>
                 cases b with
@@ -1602,7 +1636,7 @@ by
               simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
           | proven F =>
               cases hEq : __eo_eq F proven <;>
-                simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                simp [__eo_invoke_cmd, __eo_push_proven_check,
                   hEq, stateOk] at hOk
               case Boolean b =>
                 cases b with
@@ -1611,7 +1645,7 @@ by
                 | true =>
                     have hTailSuffix : stateAssumptionSuffix s := by
                       simpa [stateAssumptionSuffix] using hSuffix
-                    simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    simpa [__eo_invoke_cmd, __eo_push_proven_check,
                       hEq] using hTailSuffix
   | step r args premises =>
       intro hSuffix hOk
@@ -1679,14 +1713,14 @@ by
               simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, stateOk] at hOk
           | proven F =>
               cases hEq : __eo_eq F proven <;>
-                simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                simp [__eo_invoke_cmd, __eo_push_proven_check,
                   hEq, stateOk] at hOk
               case Boolean b =>
                 cases b with
                 | false =>
                     contradiction
                 | true =>
-                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    simp [__eo_invoke_cmd, __eo_push_proven_check,
                       hEq, stateAssumes]
   | step r args premises =>
       intro hSuffix hOk
@@ -1852,7 +1886,7 @@ by
           simp [S1, hS1, __eo_invoke_cmd_check_proven, __eo_state_is_closed] at hClosed
       | proven P =>
           cases hEq : __eo_eq P (Term.Boolean false) <;>
-            simp [S1, hS1, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+            simp [S1, hS1, __eo_push_proven_check,
               __eo_state_is_closed, hEq] at hClosed
           case Boolean b =>
             cases b with
@@ -2113,8 +2147,6 @@ by
                       let X1 := __eo_state_proven_nth s n1
                       let X2 := __eo_state_proven_nth s n2
                       let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
-                      have hPNotStuck : P ≠ Term.Stuck := by
-                        simpa [P, X1, X2, __eo_cmd_step_proven] using hProg
                       have hX1True :
                           eo_interprets M X1 true :=
                         checkerTruthInvariant_at M hs n1 hAss hPush
@@ -2122,7 +2154,8 @@ by
                           eo_interprets M X2 true :=
                         checkerTruthInvariant_at M hs n2 hAss hPush
                       simpa [P, X1, X2, __eo_cmd_step_proven] using
-                        correct___eo_prog_contra M X1 X2 hX1True hX2True hPNotStuck
+                        correct___eo_prog_contra M X1 X2 hX1True hX2True
+                          (by exact eo_typeof_eq_bool (__eo_prog_contra (Proof.pf X1) (Proof.pf X2)))
                   | cons n3 premises =>
                       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
       | cons a args =>
@@ -2136,9 +2169,8 @@ by
           | nil =>
               cases premises with
               | nil =>
-                  have hPNotStuck : __eo_prog_refl a1 ≠ Term.Stuck := by
-                    simpa [__eo_cmd_step_proven] using hProg
-                  simpa [__eo_cmd_step_proven] using correct___eo_prog_refl M a1 hPNotStuck
+                  simpa [__eo_cmd_step_proven] using
+                    correct___eo_prog_refl M a1 (by exact eo_typeof_eq_bool (__eo_prog_refl a1))
               | cons n ns =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
           | cons a2 args =>
@@ -2154,13 +2186,12 @@ by
               | nil =>
                   let X := __eo_state_proven_nth s n1
                   let P := __eo_prog_symm (Proof.pf X)
-                  have hPNotStuck : P ≠ Term.Stuck := by
-                    simpa [P, X, __eo_cmd_step_proven] using hProg
                   have hXTrue :
                       eo_interprets M X true :=
                     checkerTruthInvariant_at M hs n1 hAss hPush
                   simpa [P, X, __eo_cmd_step_proven] using
-                    correct___eo_prog_symm M X hXTrue hPNotStuck
+                    correct___eo_prog_symm M X hXTrue
+                      (by exact eo_typeof_eq_bool (__eo_prog_symm (Proof.pf X)))
               | cons n2 premises =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
       | cons a args =>
@@ -2170,12 +2201,11 @@ by
       | nil =>
           let X := __eo_mk_premise_list Term.and premises s
           let P := __eo_prog_trans (Proof.pf X)
-          have hPNotStuck : P ≠ Term.Stuck := by
-            simpa [P, X, __eo_cmd_step_proven] using hProg
           have hXTrue : eo_interprets M X true :=
             mk_premise_list_and_true_of_truthInvariant M s premises hs hAss hPush
           simpa [P, X, __eo_cmd_step_proven] using
-            correct___eo_prog_trans M X hXTrue hPNotStuck
+            correct___eo_prog_trans M X hXTrue
+              (by exact eo_typeof_eq_bool (__eo_prog_trans (Proof.pf X)))
       | cons a args =>
           exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
 
@@ -2325,8 +2355,6 @@ by
                 | nil =>
                     let X := __eo_state_proven_nth root n1
                     let P := __eo_prog_scope A (Proof.pf X)
-                    have hPNotStuck : P ≠ Term.Stuck := by
-                      simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg
                     have hScoped :
                         eo_interprets M A true -> eo_interprets M X true := by
                       intro hATrue
@@ -2338,7 +2366,8 @@ by
                         exact eo_interprets_and_intro M A (statePushes tail) hATrue hPush
                       exact checkerLocalTruthInvariant_at M hsRoot n1 hAssRoot hPushRoot
                     simpa [P, X, __eo_cmd_step_pop_proven, hA] using
-                      correct___eo_prog_scope M A X hScoped hPNotStuck
+                      correct___eo_prog_scope M A X hScoped
+                        (by exact eo_typeof_eq_bool (__eo_prog_scope A (Proof.pf X)))
                 | cons n2 premises =>
                     exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
         | cons a args =>
@@ -2514,18 +2543,17 @@ by
           | assume_push A =>
               simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerLocalTruthInvariant]
           | proven F =>
-              change checkerLocalTruthInvariant M (__eo_push_proven_check (__eo_eq F proven) F s)
               cases hEq : __eo_eq F proven <;>
                 try
-                  (simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                  (simp [__eo_invoke_cmd, __eo_push_proven_check,
                     hEq, checkerLocalTruthInvariant])
               case Boolean b =>
                 cases b with
                 | false =>
-                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    simp [__eo_invoke_cmd, __eo_push_proven_check,
                       hEq, checkerLocalTruthInvariant]
                 | true =>
-                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    simp [__eo_invoke_cmd, __eo_push_proven_check,
                       hEq, checkerLocalTruthInvariant] at hs ⊢
                     exact hs
   | step r args premises =>
@@ -2578,15 +2606,15 @@ by
                 simpa [stateAssumptionSuffix] using hSuffix
               cases hEq : __eo_eq F proven <;>
                 try
-                  (simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                  (simp [__eo_invoke_cmd, __eo_push_proven_check,
                     hEq, checkerShapeInvariant])
               case Boolean b =>
                 cases b with
                 | false =>
-                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    simp [__eo_invoke_cmd, __eo_push_proven_check,
                       hEq, checkerShapeInvariant]
                 | true =>
-                    simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    simpa [__eo_invoke_cmd, __eo_push_proven_check,
                       hEq, checkerShapeInvariant, stateAssumptionSuffix] using
                       hSuffixTail
   | step r args premises =>
