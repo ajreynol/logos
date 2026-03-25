@@ -1,0 +1,1192 @@
+import Cpc.TypePreservation.Helpers
+
+open Smtm
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+set_option allowUnsafeReducibility true
+attribute [local reducible] __smtx_typeof
+
+namespace Smtm
+
+theorem seq_arg_of_non_none
+    {op t : SmtTerm}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply op t) =
+        __smtx_typeof_seq_op_1 (__smtx_typeof t))
+    (ht : term_has_non_none_type (SmtTerm.Apply op t)) :
+    ∃ T : SmtType, __smtx_typeof t = SmtType.Seq T := by
+  unfold term_has_non_none_type at ht
+  cases h : __smtx_typeof t with
+  | Seq T =>
+      exact ⟨T, rfl⟩
+  | _ =>
+      simp [hTy, __smtx_typeof_seq_op_1, h] at ht
+
+theorem seq_binop_args_of_non_none
+    {op t1 t2 : SmtTerm}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply op t1) t2) =
+        __smtx_typeof_seq_op_2 (__smtx_typeof t1) (__smtx_typeof t2))
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
+    ∃ T : SmtType,
+      __smtx_typeof t1 = SmtType.Seq T ∧ __smtx_typeof t2 = SmtType.Seq T := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq T =>
+      cases h2 : __smtx_typeof t2 with
+      | Seq U =>
+          have hEq : T = U := by
+            simpa [hTy, __smtx_typeof_seq_op_2, smt_lit_ite, smt_lit_Teq, h1, h2] using ht
+          subst hEq
+          exact ⟨T, rfl, rfl⟩
+      | _ =>
+          simp [hTy, __smtx_typeof_seq_op_2, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [hTy, __smtx_typeof_seq_op_2, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+
+theorem seq_triop_args_of_non_none
+    {op t1 t2 t3 : SmtTerm}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply op t1) t2) t3) =
+        __smtx_typeof_seq_op_3 (__smtx_typeof t1) (__smtx_typeof t2) (__smtx_typeof t3))
+    (ht :
+      term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply op t1) t2) t3)) :
+    ∃ T : SmtType,
+      __smtx_typeof t1 = SmtType.Seq T ∧
+        __smtx_typeof t2 = SmtType.Seq T ∧
+        __smtx_typeof t3 = SmtType.Seq T := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq T =>
+      cases h2 : __smtx_typeof t2 with
+      | Seq U =>
+          cases h3 : __smtx_typeof t3 with
+          | Seq V =>
+              have hEq :
+                  T = U ∧ U = V := by
+                simpa [hTy, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3] using
+                  ht
+              rcases hEq with ⟨hTU, hUV⟩
+              subst hTU
+              subst hUV
+              exact ⟨T, rfl, rfl, rfl⟩
+          | _ =>
+              simp [hTy, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+      | _ =>
+          cases h3 : __smtx_typeof t3 <;>
+            simp [hTy, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
+        simp [hTy, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+
+theorem str_substr_args_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr t1) t2) t3)) :
+    ∃ T : SmtType,
+      __smtx_typeof t1 = SmtType.Seq T ∧
+        __smtx_typeof t2 = SmtType.Int ∧
+        __smtx_typeof t3 = SmtType.Int := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq T =>
+      cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
+        simp [__smtx_typeof, __smtx_typeof_str_substr, h1, h2, h3] at ht
+      exact ⟨T, rfl, rfl, rfl⟩
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
+        simp [__smtx_typeof, __smtx_typeof_str_substr, h1, h2, h3] at ht
+
+theorem str_indexof_args_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof t1) t2) t3)) :
+    ∃ T : SmtType,
+      __smtx_typeof t1 = SmtType.Seq T ∧
+        __smtx_typeof t2 = SmtType.Seq T ∧
+        __smtx_typeof t3 = SmtType.Int := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq T =>
+      cases h2 : __smtx_typeof t2 with
+      | Seq U =>
+          cases h3 : __smtx_typeof t3 with
+          | Int =>
+              have hEq : T = U := by
+                simpa [__smtx_typeof, __smtx_typeof_str_indexof, smt_lit_ite, smt_lit_Teq, h1, h2,
+                  h3] using ht
+              subst hEq
+              exact ⟨T, rfl, rfl, rfl⟩
+          | _ =>
+              simp [__smtx_typeof, __smtx_typeof_str_indexof, smt_lit_ite, smt_lit_Teq, h1, h2,
+                h3] at ht
+      | _ =>
+          cases h3 : __smtx_typeof t3 <;>
+            simp [__smtx_typeof, __smtx_typeof_str_indexof, smt_lit_ite, smt_lit_Teq, h1, h2,
+              h3] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
+        simp [__smtx_typeof, __smtx_typeof_str_indexof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+
+theorem str_at_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_at t1) t2)) :
+    ∃ T : SmtType, __smtx_typeof t1 = SmtType.Seq T ∧ __smtx_typeof t2 = SmtType.Int := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq T =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof, __smtx_typeof_str_at, h1, h2] at ht
+      exact ⟨T, rfl, rfl⟩
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof, __smtx_typeof_str_at, h1, h2] at ht
+
+theorem str_update_args_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_update t1) t2) t3)) :
+    ∃ T : SmtType,
+      __smtx_typeof t1 = SmtType.Seq T ∧
+        __smtx_typeof t2 = SmtType.Int ∧
+        __smtx_typeof t3 = SmtType.Seq T := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq T =>
+      cases h2 : __smtx_typeof t2 with
+      | Int =>
+          cases h3 : __smtx_typeof t3 with
+          | Seq U =>
+              have hEq : T = U := by
+                simpa [__smtx_typeof, __smtx_typeof_str_update, smt_lit_ite, smt_lit_Teq, h1, h2,
+                  h3] using ht
+              subst hEq
+              exact ⟨T, rfl, rfl, rfl⟩
+          | _ =>
+              simp [__smtx_typeof, __smtx_typeof_str_update, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+      | _ =>
+          cases h3 : __smtx_typeof t3 <;>
+            simp [__smtx_typeof, __smtx_typeof_str_update, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
+        simp [__smtx_typeof, __smtx_typeof_str_update, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+
+theorem reglan_arg_of_non_none
+    {op t : SmtTerm}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply op t) =
+        smt_lit_ite (smt_lit_Teq (__smtx_typeof t) SmtType.RegLan) SmtType.RegLan
+          SmtType.None)
+    (ht : term_has_non_none_type (SmtTerm.Apply op t)) :
+    __smtx_typeof t = SmtType.RegLan := by
+  unfold term_has_non_none_type at ht
+  cases h : __smtx_typeof t <;>
+    simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
+  simpa [h] using (show SmtType.RegLan = SmtType.RegLan from rfl)
+
+theorem reglan_binop_args_of_non_none
+    {op t1 t2 : SmtTerm}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply op t1) t2) =
+        smt_lit_ite (smt_lit_Teq (__smtx_typeof t1) SmtType.RegLan)
+          (smt_lit_ite (smt_lit_Teq (__smtx_typeof t2) SmtType.RegLan)
+            SmtType.RegLan SmtType.None)
+          SmtType.None)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
+    __smtx_typeof t1 = SmtType.RegLan ∧ __smtx_typeof t2 = SmtType.RegLan := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
+    simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+  simpa [h1, h2] using
+    (show SmtType.RegLan = SmtType.RegLan ∧ SmtType.RegLan = SmtType.RegLan from
+      ⟨rfl, rfl⟩)
+
+theorem seq_char_arg_of_non_none
+    {op t : SmtTerm}
+    {ret : SmtType}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply op t) =
+        smt_lit_ite (smt_lit_Teq (__smtx_typeof t) (SmtType.Seq SmtType.Char)) ret
+          SmtType.None)
+    (ht : term_has_non_none_type (SmtTerm.Apply op t)) :
+    __smtx_typeof t = SmtType.Seq SmtType.Char := by
+  unfold term_has_non_none_type at ht
+  cases h : __smtx_typeof t with
+  | Seq A =>
+      have hSeq : A = SmtType.Char ∧ ¬ ret = SmtType.None := by
+        simpa [hTy, smt_lit_ite, smt_lit_Teq, h] using ht
+      have hA : A = SmtType.Char := hSeq.1
+      subst hA
+      rfl
+  | _ =>
+      simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
+
+theorem seq_char_binop_args_of_non_none
+    {op t1 t2 : SmtTerm}
+    {ret : SmtType}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply op t1) t2) =
+        smt_lit_ite (smt_lit_Teq (__smtx_typeof t1) (SmtType.Seq SmtType.Char))
+          (smt_lit_ite (smt_lit_Teq (__smtx_typeof t2) (SmtType.Seq SmtType.Char)) ret
+            SmtType.None)
+          SmtType.None)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
+    __smtx_typeof t1 = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof t2 = SmtType.Seq SmtType.Char := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq A =>
+      cases h2 : __smtx_typeof t2 with
+      | Seq B =>
+          have hSeqs : A = SmtType.Char ∧ B = SmtType.Char ∧ ¬ ret = SmtType.None := by
+            simpa [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] using ht
+          have hAB : A = SmtType.Char ∧ B = SmtType.Char := ⟨hSeqs.1, hSeqs.2.1⟩
+          rcases hAB with ⟨hA, hB⟩
+          subst hA
+          subst hB
+          exact ⟨rfl, rfl⟩
+      | _ =>
+          simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+
+theorem seq_char_reglan_args_of_non_none
+    {op t1 t2 : SmtTerm}
+    {ret : SmtType}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply op t1) t2) =
+        smt_lit_ite (smt_lit_Teq (__smtx_typeof t1) (SmtType.Seq SmtType.Char))
+          (smt_lit_ite (smt_lit_Teq (__smtx_typeof t2) SmtType.RegLan) ret
+            SmtType.None)
+          SmtType.None)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
+    __smtx_typeof t1 = SmtType.Seq SmtType.Char ∧ __smtx_typeof t2 = SmtType.RegLan := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq A =>
+      cases h2 : __smtx_typeof t2 with
+      | RegLan =>
+          have hSeq : A = SmtType.Char ∧ ¬ ret = SmtType.None := by
+            simpa [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] using ht
+          have hA : A = SmtType.Char := hSeq.1
+          subst hA
+          exact ⟨rfl, rfl⟩
+      | _ =>
+          simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+
+theorem str_replace_re_args_of_non_none
+    {op t1 t2 t3 : SmtTerm}
+    (hTy :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply op t1) t2) t3) =
+        smt_lit_ite (smt_lit_Teq (__smtx_typeof t1) (SmtType.Seq SmtType.Char))
+          (smt_lit_ite (smt_lit_Teq (__smtx_typeof t2) SmtType.RegLan)
+            (smt_lit_ite (smt_lit_Teq (__smtx_typeof t3) (SmtType.Seq SmtType.Char))
+              (SmtType.Seq SmtType.Char) SmtType.None)
+            SmtType.None)
+          SmtType.None)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply op t1) t2) t3)) :
+    __smtx_typeof t1 = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof t2 = SmtType.RegLan ∧
+      __smtx_typeof t3 = SmtType.Seq SmtType.Char := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq A =>
+      cases h2 : __smtx_typeof t2 with
+      | RegLan =>
+          cases h3 : __smtx_typeof t3 with
+          | Seq B =>
+              have hArgs : A = SmtType.Char ∧ B = SmtType.Char := by
+                simpa [hTy, smt_lit_ite, smt_lit_Teq, h1, h2, h3] using ht
+              rcases hArgs with ⟨hA, hB⟩
+              subst hA
+              subst hB
+              exact ⟨rfl, rfl, rfl⟩
+          | _ =>
+              simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+      | _ =>
+          cases h3 : __smtx_typeof t3 <;>
+            simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
+        simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+
+theorem str_indexof_re_args_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof_re t1) t2) t3)) :
+    __smtx_typeof t1 = SmtType.Seq SmtType.Char ∧
+      __smtx_typeof t2 = SmtType.RegLan ∧
+      __smtx_typeof t3 = SmtType.Int := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq A =>
+      cases h2 : __smtx_typeof t2 with
+      | RegLan =>
+          cases h3 : __smtx_typeof t3 with
+          | Int =>
+              have hA : A = SmtType.Char := by
+                simpa [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] using ht
+              subst hA
+              exact ⟨rfl, rfl, rfl⟩
+          | _ =>
+              simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+      | _ =>
+          cases h3 : __smtx_typeof t3 <;>
+            simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
+        simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+
+theorem typeof_value_model_eval_str_len
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_len t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_len t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_len t) := by
+  unfold term_has_non_none_type at ht
+  cases hArg : __smtx_typeof t <;>
+    simp [__smtx_typeof, __smtx_typeof_seq_op_1_ret, smt_lit_ite, smt_lit_Teq, hArg] at ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_len t) = SmtType.Int by
+    simp [__smtx_typeof, __smtx_typeof_seq_op_1_ret, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_len (__smtx_model_eval M t)) = SmtType.Int
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  rfl
+
+theorem typeof_value_model_eval_str_to_lower
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_to_lower t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_to_lower t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_lower t) := by
+  have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_lower) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_lower t) = SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_to_lower (__smtx_model_eval M t)) =
+    SmtType.Seq SmtType.Char
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  change __smtx_typeof_seq_value
+      (smt_lit_pack_string (smt_lit_str_to_lower (smt_lit_unpack_string ss))) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
+theorem typeof_value_model_eval_str_to_upper
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_to_upper t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_to_upper t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_upper t) := by
+  have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_upper) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_upper t) = SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_to_upper (__smtx_model_eval M t)) =
+    SmtType.Seq SmtType.Char
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  change __smtx_typeof_seq_value
+      (smt_lit_pack_string (smt_lit_str_to_upper (smt_lit_unpack_string ss))) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
+theorem typeof_value_model_eval_str_concat
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat t1) t2) := by
+  rcases seq_binop_args_of_non_none (op := SmtTerm.str_concat) rfl ht with ⟨T, h1, h2⟩
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat t1) t2) = SmtType.Seq T by
+    simp [__smtx_typeof, __smtx_typeof_seq_op_2, smt_lit_ite, smt_lit_Teq, h1, h2]]
+  change __smtx_typeof_value (__smtx_model_eval_str_concat (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.Seq T
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
+  have hty1 : __smtx_typeof_seq_value ss1 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss1, h1] using hpres1
+  have hty2 : __smtx_typeof_seq_value ss2 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss2, h2] using hpres2
+  have hElem1 : __smtx_elem_typeof_seq_value ss1 = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hty1
+  have hxs1 : list_typed T (smt_lit_unpack_seq ss1) :=
+    typed_unpack_seq_of_typeof_seq_value hty1
+  have hxs2 : list_typed T (smt_lit_unpack_seq ss2) :=
+    typed_unpack_seq_of_typeof_seq_value hty2
+  rw [hss1, hss2]
+  simpa [__smtx_model_eval_str_concat, hElem1, __smtx_typeof_value, smt_lit_seq_concat] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := T)
+      (xs := smt_lit_unpack_seq ss1 ++ smt_lit_unpack_seq ss2)
+      (list_typed_append hxs1 hxs2))
+
+theorem typeof_value_model_eval_str_substr
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr t1) t2) t3)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr t1) t2) t3) := by
+  rcases str_substr_args_of_non_none ht with ⟨T, h1, h2, h3⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr t1) t2) t3) =
+        SmtType.Seq T by
+    simp [__smtx_typeof, __smtx_typeof_str_substr, h1, h2, h3]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_str_substr (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Seq T
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases int_value_canonical (by simpa [h2] using hpres2) with ⟨n2, hn2⟩
+  rcases int_value_canonical (by simpa [h3] using hpres3) with ⟨n3, hn3⟩
+  have hty1 : __smtx_typeof_seq_value ss1 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss1, h1] using hpres1
+  have hElem1 : __smtx_elem_typeof_seq_value ss1 = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hty1
+  have hxs1 : list_typed T (smt_lit_unpack_seq ss1) :=
+    typed_unpack_seq_of_typeof_seq_value hty1
+  rw [hss1, hn2, hn3]
+  simpa [__smtx_model_eval_str_substr, hElem1, __smtx_typeof_value] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := T)
+      (xs := smt_lit_seq_extract (smt_lit_unpack_seq ss1) n2 n3)
+      (list_typed_extract hxs1 n2 n3))
+
+theorem typeof_value_model_eval_str_contains
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_contains t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_contains t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_contains t1) t2) := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 with
+  | Seq T =>
+      cases h2 : __smtx_typeof t2 with
+      | Seq U =>
+          have hEq : T = U := by
+            simpa [__smtx_typeof, __smtx_typeof_seq_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2] using
+              ht
+          subst hEq
+          rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_contains t1) t2) =
+              SmtType.Bool by
+            simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2]]
+          change __smtx_typeof_value (__smtx_model_eval_str_contains (__smtx_model_eval M t1)
+              (__smtx_model_eval M t2)) = SmtType.Bool
+          rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+          rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
+          rw [hss1, hss2]
+          rfl
+      | _ =>
+          simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+
+theorem typeof_value_model_eval_str_indexof
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof t1) t2) t3)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof t1) t2) t3) := by
+  rcases str_indexof_args_of_non_none ht with ⟨T, h1, h2, h3⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof t1) t2) t3) =
+        SmtType.Int by
+    simp [__smtx_typeof, __smtx_typeof_str_indexof, smt_lit_ite, smt_lit_Teq, h1, h2, h3]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_str_indexof (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Int
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
+  rcases int_value_canonical (by simpa [h3] using hpres3) with ⟨n, hn⟩
+  rw [hss1, hss2, hn]
+  rfl
+
+theorem typeof_value_model_eval_str_at
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_at t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_at t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_at t1) t2) := by
+  rcases str_at_args_of_non_none ht with ⟨T, h1, h2⟩
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_at t1) t2) = SmtType.Seq T by
+    simp [__smtx_typeof, __smtx_typeof_str_at, h1, h2]]
+  change __smtx_typeof_value (__smtx_model_eval_str_at (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.Seq T
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases int_value_canonical (by simpa [h2] using hpres2) with ⟨n2, hn2⟩
+  have hty1 : __smtx_typeof_seq_value ss1 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss1, h1] using hpres1
+  have hElem1 : __smtx_elem_typeof_seq_value ss1 = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hty1
+  have hxs1 : list_typed T (smt_lit_unpack_seq ss1) :=
+    typed_unpack_seq_of_typeof_seq_value hty1
+  rw [hss1, hn2]
+  simpa [__smtx_model_eval_str_at, __smtx_model_eval_str_substr, hElem1, __smtx_typeof_value] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := T)
+      (xs := smt_lit_seq_extract (smt_lit_unpack_seq ss1) n2 1)
+      (list_typed_extract hxs1 n2 1))
+
+theorem typeof_value_model_eval_str_replace
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace t1) t2) t3)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace t1) t2) t3) := by
+  rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace) rfl ht with ⟨T, h1, h2, h3⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace t1) t2) t3) =
+        SmtType.Seq T by
+    simp [__smtx_typeof, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_str_replace (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Seq T
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
+  rcases seq_value_canonical (by simpa [h3] using hpres3) with ⟨ss3, hss3⟩
+  have hty1 : __smtx_typeof_seq_value ss1 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss1, h1] using hpres1
+  have hty3 : __smtx_typeof_seq_value ss3 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss3, h3] using hpres3
+  have hElem1 : __smtx_elem_typeof_seq_value ss1 = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hty1
+  have hxs1 : list_typed T (smt_lit_unpack_seq ss1) :=
+    typed_unpack_seq_of_typeof_seq_value hty1
+  have hxs3 : list_typed T (smt_lit_unpack_seq ss3) :=
+    typed_unpack_seq_of_typeof_seq_value hty3
+  rw [hss1, hss2, hss3]
+  simpa [__smtx_model_eval_str_replace, hElem1, __smtx_typeof_value] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := T)
+      (xs := smt_lit_seq_replace (smt_lit_unpack_seq ss1) (smt_lit_unpack_seq ss2)
+        (smt_lit_unpack_seq ss3))
+      (list_typed_replace hxs1 hxs3))
+
+theorem typeof_value_model_eval_str_rev
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_rev t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_rev t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_rev t) := by
+  rcases seq_arg_of_non_none (op := SmtTerm.str_rev) rfl ht with ⟨T, hArg⟩
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_rev t) = SmtType.Seq T by
+    simp [__smtx_typeof, __smtx_typeof_seq_op_1, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_rev (__smtx_model_eval M t)) = SmtType.Seq T
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  have hty : __smtx_typeof_seq_value ss = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss, hArg] using hpres
+  have hElem : __smtx_elem_typeof_seq_value ss = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hty
+  have hxs : list_typed T (smt_lit_unpack_seq ss) :=
+    typed_unpack_seq_of_typeof_seq_value hty
+  rw [hss]
+  simpa [__smtx_model_eval_str_rev, hElem, __smtx_typeof_value] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := T)
+      (xs := (smt_lit_unpack_seq ss).reverse)
+      (list_typed_reverse hxs))
+
+theorem typeof_value_model_eval_str_update
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_update t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_update t1) t2) t3)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_update t1) t2) t3) := by
+  rcases str_update_args_of_non_none ht with ⟨T, h1, h2, h3⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_update t1) t2) t3) =
+        SmtType.Seq T by
+    simp [__smtx_typeof, __smtx_typeof_str_update, smt_lit_ite, smt_lit_Teq, h1, h2, h3]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_str_update (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Seq T
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases int_value_canonical (by simpa [h2] using hpres2) with ⟨n2, hn2⟩
+  rcases seq_value_canonical (by simpa [h3] using hpres3) with ⟨ss3, hss3⟩
+  have hty1 : __smtx_typeof_seq_value ss1 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss1, h1] using hpres1
+  have hty3 : __smtx_typeof_seq_value ss3 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss3, h3] using hpres3
+  have hElem1 : __smtx_elem_typeof_seq_value ss1 = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hty1
+  have hxs1 : list_typed T (smt_lit_unpack_seq ss1) :=
+    typed_unpack_seq_of_typeof_seq_value hty1
+  have hxs3 : list_typed T (smt_lit_unpack_seq ss3) :=
+    typed_unpack_seq_of_typeof_seq_value hty3
+  rw [hss1, hn2, hss3]
+  simpa [__smtx_model_eval_str_update, hElem1, __smtx_typeof_value] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := T)
+      (xs := smt_lit_seq_update (smt_lit_unpack_seq ss1) n2 (smt_lit_unpack_seq ss3))
+      (list_typed_update hxs1 hxs3 n2))
+
+theorem typeof_value_model_eval_str_replace_all
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_all t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_all t1) t2) t3)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_all t1) t2) t3) := by
+  rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace_all) rfl ht with ⟨T, h1, h2, h3⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_all t1) t2) t3) =
+        SmtType.Seq T by
+    simp [__smtx_typeof, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_str_replace_all (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Seq T
+  rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [h2] using hpres2) with ⟨ss2, hss2⟩
+  rcases seq_value_canonical (by simpa [h3] using hpres3) with ⟨ss3, hss3⟩
+  have hty1 : __smtx_typeof_seq_value ss1 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss1, h1] using hpres1
+  have hty3 : __smtx_typeof_seq_value ss3 = SmtType.Seq T := by
+    simpa [__smtx_typeof_value, hss3, h3] using hpres3
+  have hElem1 : __smtx_elem_typeof_seq_value ss1 = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hty1
+  have hxs1 : list_typed T (smt_lit_unpack_seq ss1) :=
+    typed_unpack_seq_of_typeof_seq_value hty1
+  have hxs3 : list_typed T (smt_lit_unpack_seq ss3) :=
+    typed_unpack_seq_of_typeof_seq_value hty3
+  rw [hss1, hss2, hss3]
+  simpa [__smtx_model_eval_str_replace_all, hElem1, __smtx_typeof_value] using
+    (typeof_seq_value_pack_seq_of_typed
+      (T := T)
+      (xs := smt_lit_seq_replace_all (smt_lit_unpack_seq ss1) (smt_lit_unpack_seq ss2)
+        (smt_lit_unpack_seq ss3))
+      (list_typed_replace_all hxs1 hxs3))
+
+theorem typeof_value_model_eval_str_replace_re
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_re t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_re t1) t2) t3)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_re t1) t2) t3) := by
+  have hArgs := str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re) rfl ht
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_re t1) t2) t3) =
+        SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_str_replace_re (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Seq SmtType.Char
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2.1] using hpres2) with ⟨r, hr⟩
+  rcases seq_value_canonical (by simpa [hArgs.2.2] using hpres3) with ⟨ss3, hss3⟩
+  rw [hss1, hr, hss3]
+  change __smtx_typeof_seq_value
+      (smt_lit_pack_string
+        (smt_lit_str_replace_re (smt_lit_unpack_string ss1) r (smt_lit_unpack_string ss3))) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
+theorem typeof_value_model_eval_str_replace_re_all
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_re_all t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_re_all t1) t2) t3)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_re_all t1) t2) t3) := by
+  have hArgs := str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re_all) rfl ht
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_re_all t1) t2) t3) =
+        SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_str_replace_re_all (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Seq SmtType.Char
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2.1] using hpres2) with ⟨r, hr⟩
+  rcases seq_value_canonical (by simpa [hArgs.2.2] using hpres3) with ⟨ss3, hss3⟩
+  rw [hss1, hr, hss3]
+  change __smtx_typeof_seq_value
+      (smt_lit_pack_string
+        (smt_lit_str_replace_re_all (smt_lit_unpack_string ss1) r (smt_lit_unpack_string ss3))) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
+theorem typeof_value_model_eval_str_indexof_re
+    (M : SmtModel)
+    (t1 t2 t3 : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof_re t1) t2) t3))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
+    (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof_re t1) t2) t3)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof_re t1) t2) t3) := by
+  have hArgs := str_indexof_re_args_of_non_none ht
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_indexof_re t1) t2) t3) =
+        SmtType.Int by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_str_indexof_re (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Int
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2.1] using hpres2) with ⟨r, hr⟩
+  rcases int_value_canonical (by simpa [hArgs.2.2] using hpres3) with ⟨n, hn⟩
+  rw [hss1, hr, hn]
+  rfl
+
+theorem typeof_value_model_eval_str_to_code
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_to_code t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_to_code t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_code t) := by
+  have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_code) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_code t) = SmtType.Int by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_to_code (__smtx_model_eval M t)) =
+    SmtType.Int
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  rfl
+
+theorem typeof_value_model_eval_str_to_int
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_to_int t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_to_int t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_int t) := by
+  have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_int) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_int t) = SmtType.Int by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_to_int (__smtx_model_eval M t)) =
+    SmtType.Int
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  rfl
+
+theorem typeof_value_model_eval_str_from_code
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_from_code t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_from_code t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_from_code t) := by
+  unfold term_has_non_none_type at ht
+  cases hArg : __smtx_typeof t <;>
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg] at ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_from_code t) = SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_from_code (__smtx_model_eval M t)) =
+    SmtType.Seq SmtType.Char
+  rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
+  rw [hn]
+  change __smtx_typeof_seq_value (smt_lit_pack_string (smt_lit_str_from_code n)) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
+theorem typeof_value_model_eval_str_from_int
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_from_int t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_from_int t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_from_int t) := by
+  unfold term_has_non_none_type at ht
+  cases hArg : __smtx_typeof t <;>
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg] at ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_from_int t) = SmtType.Seq SmtType.Char by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_from_int (__smtx_model_eval M t)) =
+    SmtType.Seq SmtType.Char
+  rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
+  rw [hn]
+  change __smtx_typeof_seq_value (smt_lit_pack_string (smt_lit_str_from_int n)) =
+    SmtType.Seq SmtType.Char
+  exact typeof_pack_string _
+
+theorem typeof_value_model_eval_str_to_re
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_to_re t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_to_re t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_re t) := by
+  have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_to_re) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_to_re t) = SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_to_re (__smtx_model_eval M t)) =
+    SmtType.RegLan
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  rfl
+
+theorem typeof_value_model_eval_re_mult
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.re_mult t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.re_mult t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.re_mult t) := by
+  have hArg : __smtx_typeof t = SmtType.RegLan :=
+    reglan_arg_of_non_none (op := SmtTerm.re_mult) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.re_mult t) = SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_re_mult (__smtx_model_eval M t)) =
+    SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
+  rw [hr]
+  rfl
+
+theorem typeof_value_model_eval_re_plus
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.re_plus t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.re_plus t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.re_plus t) := by
+  have hArg : __smtx_typeof t = SmtType.RegLan :=
+    reglan_arg_of_non_none (op := SmtTerm.re_plus) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.re_plus t) = SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_re_plus (__smtx_model_eval M t)) =
+    SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
+  rw [hr]
+  rfl
+
+theorem typeof_value_model_eval_re_opt
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.re_opt t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.re_opt t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.re_opt t) := by
+  have hArg : __smtx_typeof t = SmtType.RegLan :=
+    reglan_arg_of_non_none (op := SmtTerm.re_opt) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.re_opt t) = SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_re_opt (__smtx_model_eval M t)) =
+    SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
+  rw [hr]
+  rfl
+
+theorem typeof_value_model_eval_re_comp
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.re_comp t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.re_comp t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.re_comp t) := by
+  have hArg : __smtx_typeof t = SmtType.RegLan :=
+    reglan_arg_of_non_none (op := SmtTerm.re_comp) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.re_comp t) = SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_re_comp (__smtx_model_eval M t)) =
+    SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
+  rw [hr]
+  rfl
+
+theorem typeof_value_model_eval_re_range
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_range t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_range t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_range t1) t2) := by
+  have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.re_range) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_range t1) t2) =
+      SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_re_range (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.RegLan
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨ss2, hss2⟩
+  rw [hss1, hss2]
+  rfl
+
+theorem typeof_value_model_eval_re_concat
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat t1) t2) := by
+  have hArgs := reglan_binop_args_of_non_none (op := SmtTerm.re_concat) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_concat t1) t2) =
+      SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_re_concat (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨r1, hr1⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨r2, hr2⟩
+  rw [hr1, hr2]
+  rfl
+
+theorem typeof_value_model_eval_re_inter
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_inter t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_inter t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_inter t1) t2) := by
+  have hArgs := reglan_binop_args_of_non_none (op := SmtTerm.re_inter) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_inter t1) t2) =
+      SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_re_inter (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨r1, hr1⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨r2, hr2⟩
+  rw [hr1, hr2]
+  rfl
+
+theorem typeof_value_model_eval_re_union
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_union t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_union t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_union t1) t2) := by
+  have hArgs := reglan_binop_args_of_non_none (op := SmtTerm.re_union) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_union t1) t2) =
+      SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_re_union (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨r1, hr1⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨r2, hr2⟩
+  rw [hr1, hr2]
+  rfl
+
+theorem typeof_value_model_eval_re_diff
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_diff t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_diff t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_diff t1) t2) := by
+  have hArgs := reglan_binop_args_of_non_none (op := SmtTerm.re_diff) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_diff t1) t2) =
+      SmtType.RegLan by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_re_diff (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨r1, hr1⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨r2, hr2⟩
+  rw [hr1, hr2]
+  rfl
+
+theorem typeof_value_model_eval_str_in_re
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re t1) t2) := by
+  have hArgs := seq_char_reglan_args_of_non_none (op := SmtTerm.str_in_re) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_in_re t1) t2) =
+      SmtType.Bool by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_str_in_re (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.Bool
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss, hss⟩
+  rcases reglan_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨r, hr⟩
+  rw [hss, hr]
+  rfl
+
+theorem typeof_value_model_eval_str_lt
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_lt t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_lt t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_lt t1) t2) := by
+  have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.str_lt) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_lt t1) t2) =
+      SmtType.Bool by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_str_lt (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.Bool
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨ss2, hss2⟩
+  rw [hss1, hss2]
+  rfl
+
+theorem typeof_value_model_eval_str_leq
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_leq t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_leq t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_leq t1) t2) := by
+  have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.str_leq) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_leq t1) t2) =
+      SmtType.Bool by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_str_leq (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.Bool
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨ss2, hss2⟩
+  rw [hss1, hss2]
+  unfold __smtx_model_eval_str_leq
+  rcases bool_value_canonical
+      (typeof_value_model_eval_eq_value (SmtValue.Seq ss1) (SmtValue.Seq ss2)) with
+    ⟨bEq, hbEq⟩
+  rw [hbEq]
+  rfl
+
+theorem typeof_value_model_eval_str_prefixof
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_prefixof t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_prefixof t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_prefixof t1) t2) := by
+  have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.str_prefixof) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_prefixof t1) t2) =
+      SmtType.Bool by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_str_prefixof (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.Bool
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨ss2, hss2⟩
+  rw [hss1, hss2]
+  unfold __smtx_model_eval_str_prefixof
+  simpa using
+    typeof_value_model_eval_eq_value
+      (SmtValue.Seq ss1)
+      (__smtx_model_eval_str_substr (SmtValue.Seq ss2) (SmtValue.Numeral 0)
+        (__smtx_model_eval_str_len (SmtValue.Seq ss1)))
+
+theorem typeof_value_model_eval_str_suffixof
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_suffixof t1) t2))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_suffixof t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_suffixof t1) t2) := by
+  have hArgs := seq_char_binop_args_of_non_none (op := SmtTerm.str_suffixof) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_suffixof t1) t2) =
+      SmtType.Bool by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
+  change __smtx_typeof_value (__smtx_model_eval_str_suffixof (__smtx_model_eval M t1)
+      (__smtx_model_eval M t2)) = SmtType.Bool
+  rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
+  rcases seq_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨ss2, hss2⟩
+  rw [hss1, hss2]
+  unfold __smtx_model_eval_str_suffixof
+  simpa using
+    typeof_value_model_eval_eq_value
+      (SmtValue.Seq ss1)
+      (__smtx_model_eval_str_substr (SmtValue.Seq ss2)
+        (__smtx_model_eval__ (__smtx_model_eval_str_len (SmtValue.Seq ss2))
+          (__smtx_model_eval_str_len (SmtValue.Seq ss1)))
+        (__smtx_model_eval_str_len (SmtValue.Seq ss1)))
+
+theorem typeof_value_model_eval_str_is_digit
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_is_digit t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.str_is_digit t)) =
+      __smtx_typeof (SmtTerm.Apply SmtTerm.str_is_digit t) := by
+  have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+    seq_char_arg_of_non_none (op := SmtTerm.str_is_digit) rfl ht
+  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_is_digit t) = SmtType.Bool by
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
+  change __smtx_typeof_value (__smtx_model_eval_str_is_digit (__smtx_model_eval M t)) =
+    SmtType.Bool
+  rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  rw [hss]
+  simp [__smtx_model_eval_str_is_digit, __smtx_model_eval_str_to_code, __smtx_model_eval_leq,
+    __smtx_model_eval_and, __smtx_typeof_value]
+
+end Smtm
