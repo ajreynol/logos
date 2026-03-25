@@ -35,6 +35,8 @@ abbrev obj_interprets := smt_interprets
 /-
 Definitions for eo_is_obj
 -/
+noncomputable section
+
 mutual
 
 def __eo_to_smt_is_var (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
@@ -371,7 +373,9 @@ def __eo_to_smt : Term -> SmtTerm
 
 
 
-end 
+end
+
+end
 
 /-
 An inductive predicate defining the correspondence between Eunoia terms
