@@ -21,7 +21,7 @@ theorem model_typed_at_push
     (hv : __smtx_typeof_value v = T) :
     model_typed_at (__smtx_model_push M s T v) s T := by
   intro hT
-  simp [model_typed_at, __smtx_model_lookup, __smtx_model_push, __smtx_model_key, hv]
+  simp [__smtx_model_lookup, __smtx_model_push, __smtx_model_key, hv]
 
 theorem model_total_typed_push
     {M : SmtModel}
@@ -43,7 +43,7 @@ theorem default_typed_model_total_typed :
     model_total_typed default_typed_model := by
   classical
   intro s T hT
-  simp [model_total_typed, default_typed_model, __smtx_model_lookup, __smtx_model_key, hT,
+  simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT,
     Classical.choose_spec hT]
 
 theorem exists_total_typed_model :
