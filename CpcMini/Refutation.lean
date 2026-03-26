@@ -2754,6 +2754,75 @@ by
   · exact invoke_step_preserves_typeInvariant_of_nonstuck s hNotStuck
       r args premises (__eo_cmd_step_proven s r args premises) hs rfl hProg
 
+theorem invoke_step_preserves_translationInvariant
+    (M : SmtModel) (_hM : smt_model_well_typed M)
+    (s : CState) (hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerLocalTruthInvariant M s ->
+  checkerTypeInvariant s ->
+  checkerTranslationInvariant s ->
+  cmdTranslationOk (CCmd.step r args premises) ->
+  checkerTranslationInvariant (__eo_invoke_cmd s (CCmd.step r args premises)) :=
+by
+  sorry
+
+theorem cmd_step_pop_proven_has_smt_translation
+    (root tail : CState) (A : Term)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTypeInvariant root ->
+  checkerTranslationInvariant root ->
+  checkerTypeInvariant (CState.cons (CStateObj.assume_push A) tail) ->
+  checkerTranslationInvariant (CState.cons (CStateObj.assume_push A) tail) ->
+  __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck ->
+  RuleProofs.eo_has_smt_translation (__eo_cmd_step_pop_proven root r args A premises)
+:=
+by
+  intro hsRootTy hsRootTrans hsCurTy hsCurTrans hProg
+  by_cases hA : A = Term.Stuck
+  · exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven, hA]))
+  · cases r with
+    | scope =>
+        cases args with
+        | nil =>
+            cases premises with
+            | nil =>
+                exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+            | cons n1 premises =>
+                cases premises with
+                | nil =>
+                    let X := __eo_state_proven_nth root n1
+                    let P := __eo_prog_scope A (Proof.pf X)
+                    have hATy : __eo_typeof A = Term.Bool :=
+                      (checkerTypeInvariant_head_assume_push A tail hsCurTy).2
+                    have hATrans : RuleProofs.eo_has_smt_translation A :=
+                      checkerTranslationInvariant_head_assume_push A tail hsCurTrans
+                    have hXTy : __eo_typeof X = Term.Bool :=
+                      (checkerTypeInvariant_at hsRootTy n1).2
+                    have hXTrans : RuleProofs.eo_has_smt_translation X :=
+                      checkerTranslationInvariant_at hsRootTrans n1
+                    have hABool : RuleProofs.eo_has_bool_type A :=
+                      RuleProofs.eo_typeof_bool_implies_has_bool_type A hATrans hATy
+                    have hXBool : RuleProofs.eo_has_bool_type X :=
+                      RuleProofs.eo_typeof_bool_implies_has_bool_type X hXTrans hXTy
+                    have hPBool :
+                        RuleProofs.eo_has_bool_type (__eo_prog_scope A (Proof.pf X)) :=
+                      typed___eo_prog_scope_of_bool_args A X hABool hXBool
+                        (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
+                    simpa [P, X, __eo_cmd_step_pop_proven, hA] using
+                      RuleProofs.eo_has_smt_translation_of_has_bool_type (__eo_prog_scope A (Proof.pf X)) hPBool
+                | cons n2 premises =>
+                    exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+        | cons a args =>
+            exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+    | contra =>
+        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+    | refl =>
+        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+    | symm =>
+        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+    | trans =>
+        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+
 theorem cmd_step_pop_proven_true_of_localTruthInvariant
     (M : SmtModel) (hM : smt_model_well_typed M)
     (root tail : CState) (A : Term)
@@ -2957,6 +3026,80 @@ theorem invoke_cmd_step_pop_preserves_typeInvariant
 by
   intro hs hSuffix
   exact invoke_cmd_step_pop_preserves_typeInvariant_aux s s r args premises hs hSuffix
+
+theorem invoke_cmd_step_pop_preserves_translationInvariant_aux :
+  forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
+    checkerTypeInvariant root ->
+    checkerTypeInvariant cur ->
+    checkerTranslationInvariant root ->
+    checkerTranslationInvariant cur ->
+    stateAssumptionSuffix cur ->
+    checkerTranslationInvariant (__eo_invoke_cmd_step_pop root cur r args premises)
+:=
+by
+  intro root cur
+  induction cur with
+  | nil =>
+      intro r args premises hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix
+      simpa [__eo_invoke_cmd_step_pop] using checkerTranslationInvariant_stuck
+  | Stuck =>
+      intro r args premises hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix
+      cases hSuffix
+  | cons so cur ih =>
+      intro r args premises hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix
+      cases so with
+      | assume_push A =>
+          cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
+          | false =>
+              have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck := by
+                intro hEq
+                simp [eo_lit_teq, hEq] at hStep
+              have hTail : checkerTranslationInvariant cur :=
+                checkerTranslationInvariant_tail hsCurTrans
+              have hPTrans :
+                  RuleProofs.eo_has_smt_translation (__eo_cmd_step_pop_proven root r args A premises) :=
+                cmd_step_pop_proven_has_smt_translation root cur A r args premises
+                  hsRootTy hsRootTrans hsCurTy hsCurTrans hProg
+              have hPost :
+                  __eo_invoke_cmd_step_pop root (CState.cons (CStateObj.assume_push A) cur) r args premises =
+                    CState.cons (CStateObj.proven (__eo_cmd_step_pop_proven root r args A premises)) cur := by
+                simp [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                  __eo_is_ok, hStep, SmtEval.smt_lit_not]
+              have hPush :
+                  checkerTranslationInvariant
+                    (__eo_push_proven (__eo_cmd_step_pop_proven root r args A premises) cur) :=
+                push_proven_preserves_translationInvariant cur
+                  (__eo_cmd_step_pop_proven root r args A premises) hTail hPTrans
+              rw [push_proven_eq_cons_of_ne_stuck (__eo_cmd_step_pop_proven root r args A premises) cur hProg] at hPush
+              simpa [hPost] using hPush
+          | true =>
+              simpa [__eo_invoke_cmd_step_pop, __eo_push_proven, __eo_push_proven_check,
+                __eo_is_ok, hStep, SmtEval.smt_lit_not] using
+                checkerTranslationInvariant_stuck
+      | assume A =>
+          have hTail : stateAssumptionTail cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          have hTailSuffix : stateAssumptionSuffix cur := stateAssumptionSuffix_of_tail hTail
+          simpa [__eo_invoke_cmd_step_pop] using
+            ih r args premises hsRootTy (checkerTypeInvariant_tail hsCurTy)
+              hsRootTrans (checkerTranslationInvariant_tail hsCurTrans) hTailSuffix
+      | proven P =>
+          have hTailSuffix : stateAssumptionSuffix cur := by
+            simpa [stateAssumptionSuffix] using hSuffix
+          simpa [__eo_invoke_cmd_step_pop] using
+            ih r args premises hsRootTy (checkerTypeInvariant_tail hsCurTy)
+              hsRootTrans (checkerTranslationInvariant_tail hsCurTrans) hTailSuffix
+
+theorem invoke_cmd_step_pop_preserves_translationInvariant
+    (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTypeInvariant s ->
+  checkerTranslationInvariant s ->
+  stateAssumptionSuffix s ->
+  checkerTranslationInvariant (__eo_invoke_cmd_step_pop s s r args premises) :=
+by
+  intro hsTy hsTrans hSuffix
+  exact invoke_cmd_step_pop_preserves_translationInvariant_aux s s r args premises
+    hsTy hsTy hsTrans hsTrans hSuffix
 
 theorem invoke_cmd_step_pop_preserves_shapeInvariant_aux :
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
@@ -3259,7 +3402,59 @@ theorem invoke_cmd_preserves_translationInvariant_nonstuck (M : SmtModel) :
 :=
 by
   intro hM s c hs hsTy hsTrans hCmdTrans hSuffix hNotStuck
-  sorry
+  cases c with
+  | assume_push A =>
+      cases s with
+      | nil =>
+          change checkerTranslationInvariant (__eo_push_assume A CState.nil)
+          exact push_assume_preserves_translationInvariant CState.nil A hsTrans
+            (by simpa [cmdTranslationOk] using hCmdTrans)
+      | cons so s =>
+          change checkerTranslationInvariant (__eo_push_assume A (CState.cons so s))
+          exact push_assume_preserves_translationInvariant (CState.cons so s) A hsTrans
+            (by simpa [cmdTranslationOk] using hCmdTrans)
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+  | check_proven proven =>
+      cases s with
+      | nil =>
+          simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerTranslationInvariant]
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
+      | cons so s =>
+          cases so with
+          | assume A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerTranslationInvariant]
+          | assume_push A =>
+              simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerTranslationInvariant]
+          | proven F =>
+              have hHead := checkerTranslationInvariant_head_proven F s hsTrans
+              have hTail : checkerTranslationInvariant s := checkerTranslationInvariant_tail hsTrans
+              cases hEq : __eo_eq F proven with
+              | Boolean b =>
+                  cases b with
+                  | false =>
+                      simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant] using
+                        checkerTranslationInvariant_stuck
+                  | true =>
+                      simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant] using
+                        (show RuleProofs.eo_has_smt_translation F ∧ checkerTranslationInvariant s from ⟨hHead, hTail⟩)
+              | _ =>
+                  simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant] using
+                    checkerTranslationInvariant_stuck
+  | step r args premises =>
+      exact invoke_step_preserves_translationInvariant M hM s hNotStuck r args premises
+        hs hsTy hsTrans hCmdTrans
+  | step_pop r args premises =>
+      cases s with
+      | nil =>
+          simpa [__eo_invoke_cmd] using
+            invoke_cmd_step_pop_preserves_translationInvariant CState.nil r args premises hsTy hsTrans hSuffix
+      | cons so s =>
+          simpa [__eo_invoke_cmd] using
+            invoke_cmd_step_pop_preserves_translationInvariant (CState.cons so s) r args premises hsTy hsTrans hSuffix
+      | Stuck =>
+          exact False.elim (hNotStuck rfl)
 
 theorem invoke_cmd_preserves_stateInvariant_nonstuck (M : SmtModel) :
   forall _hM : smt_model_well_typed M,
