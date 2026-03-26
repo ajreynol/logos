@@ -479,6 +479,9 @@ theorem supported_type_preservation
         (supported_type_preservation M hM _ ht1 hs1)
   | dt_cons s d i =>
       exact typeof_value_model_eval_dt_cons M s d i
+  | dt_sel htSel hT htx hsx =>
+      exact typeof_value_model_eval_dt_sel M hM _ _ _ _ _ htSel hT
+        (supported_type_preservation M hM _ htx hsx)
   | dt_tester s d i x =>
       exact typeof_value_model_eval_dt_tester M s d i x ht
   | apply (f := f) (x := x) hTy htf hsf htx hsx =>
