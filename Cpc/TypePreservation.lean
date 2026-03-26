@@ -1,5 +1,6 @@
 import Cpc.TypePreservation.BitVec
 import Cpc.TypePreservation.CoreArith
+import Cpc.TypePreservation.Datatypes
 import Cpc.TypePreservation.Sets
 import Cpc.TypePreservation.SeqStringRegex
 
@@ -476,6 +477,10 @@ theorem supported_type_preservation
   | sbv_to_int ht1 hs1 =>
       exact typeof_value_model_eval_sbv_to_int M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
+  | dt_cons s d i =>
+      exact typeof_value_model_eval_dt_cons M s d i
+  | dt_tester s d i x =>
+      exact typeof_value_model_eval_dt_tester M s d i x ht
 
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)

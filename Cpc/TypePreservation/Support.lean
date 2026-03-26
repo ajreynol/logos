@@ -678,5 +678,9 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
       supported_preservation_term (SmtTerm.Apply SmtTerm.sbv_to_int t)
+  | dt_cons (s : smt_lit_String) (d : SmtDatatype) (i : smt_lit_Nat) :
+      supported_preservation_term (SmtTerm.DtCons s d i)
+  | dt_tester (s : smt_lit_String) (d : SmtDatatype) (i : smt_lit_Nat) (x : SmtTerm) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.DtTester s d i) x)
 
 end Smtm
