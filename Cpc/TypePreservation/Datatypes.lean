@@ -87,23 +87,19 @@ theorem typeof_value_model_eval_dt_tester
 
 def dt_sel_counterexample_datatype : SmtDatatype :=
   SmtDatatype.sum
-    (SmtDatatypeCons.cons SmtType.Int
-      (SmtDatatypeCons.cons SmtType.Bool SmtDatatypeCons.unit))
-    SmtDatatype.null
+    (SmtDatatypeCons.cons (SmtType.TypeRef "R") SmtDatatypeCons.unit)
+    (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
 
 def dt_sel_counterexample_arg : SmtTerm :=
-  SmtTerm.Apply
-    (SmtTerm.Apply (SmtTerm.DtCons "D" dt_sel_counterexample_datatype smt_lit_nat_zero)
-      (SmtTerm.Numeral 7))
-    (SmtTerm.Boolean true)
+  SmtTerm.DtCons "R" dt_sel_counterexample_datatype (smt_lit_nat_succ smt_lit_nat_zero)
 
 def dt_sel_counterexample : SmtTerm :=
   SmtTerm.Apply
-    (SmtTerm.DtSel "D" dt_sel_counterexample_datatype smt_lit_nat_zero smt_lit_nat_zero)
+    (SmtTerm.DtSel "R" dt_sel_counterexample_datatype smt_lit_nat_zero smt_lit_nat_zero)
     dt_sel_counterexample_arg
 
 theorem dt_sel_counterexample_typeof :
-    __smtx_typeof dt_sel_counterexample = SmtType.Int := by
+    __smtx_typeof dt_sel_counterexample = SmtType.Datatype "R" dt_sel_counterexample_datatype := by
   simp [dt_sel_counterexample, dt_sel_counterexample_arg, dt_sel_counterexample_datatype,
     __smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, __smtx_typeof_dt_cons_rec,
     __smtx_ret_typeof_sel, __smtx_dt_substitute, __smtx_dtc_substitute, smt_lit_ite,
@@ -115,26 +111,22 @@ theorem dt_sel_counterexample_has_non_none_type :
 
 theorem dt_sel_counterexample_arg_eval :
     __smtx_model_eval SmtModel.empty dt_sel_counterexample_arg =
-      SmtValue.Apply
-        (SmtValue.Apply
-          (SmtValue.DtCons "D" dt_sel_counterexample_datatype smt_lit_nat_zero)
-          (SmtValue.Numeral 7))
-        (SmtValue.Boolean true) := by
+      SmtValue.DtCons "R" dt_sel_counterexample_datatype (smt_lit_nat_succ smt_lit_nat_zero) := by
   rfl
 
 theorem dt_sel_counterexample_eval :
-    __smtx_model_eval SmtModel.empty dt_sel_counterexample = SmtValue.Boolean true := by
+    __smtx_model_eval SmtModel.empty dt_sel_counterexample = SmtValue.NotValue := by
   change
-    __smtx_model_eval_dt_sel SmtModel.empty "D" dt_sel_counterexample_datatype
+    __smtx_model_eval_dt_sel SmtModel.empty "R" dt_sel_counterexample_datatype
       smt_lit_nat_zero smt_lit_nat_zero
       (__smtx_model_eval SmtModel.empty dt_sel_counterexample_arg) =
-        SmtValue.Boolean true
+        SmtValue.NotValue
   rw [dt_sel_counterexample_arg_eval]
-  simp [__smtx_model_eval_dt_sel, __vsm_apply_head, __vsm_apply_arg_nth, smt_lit_ite,
-    smt_lit_veq]
+  simp [SmtModel.empty, __smtx_model_eval_dt_sel, __smtx_map_select, __smtx_model_lookup,
+    __vsm_apply_head, smt_lit_ite, smt_lit_veq]
 
 theorem dt_sel_counterexample_value_typeof :
-    __smtx_typeof_value (__smtx_model_eval SmtModel.empty dt_sel_counterexample) = SmtType.Bool := by
+    __smtx_typeof_value (__smtx_model_eval SmtModel.empty dt_sel_counterexample) = SmtType.None := by
   rw [dt_sel_counterexample_eval]
   rfl
 
