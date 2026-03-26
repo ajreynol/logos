@@ -59,12 +59,6 @@ by
   rw [eo_interprets_iff_smt_interprets]
   exact smt_interprets.intro_true M (__eo_to_smt (Term.Boolean true)) rfl rfl
 
-theorem eo_interprets_false (M : SmtModel) :
-  eo_interprets M (Term.Boolean false) false :=
-by
-  rw [eo_interprets_iff_smt_interprets]
-  exact smt_interprets.intro_false M (__eo_to_smt (Term.Boolean false)) rfl rfl
-
 theorem eo_interprets_false_true_absurd (M : SmtModel) :
   ¬ eo_interprets M (Term.Boolean false) true :=
 by
@@ -433,7 +427,7 @@ theorem assume_push_arg_ne_stuck_of_stateOk (A : Term) (s : CState) :
 by
   intro hOk hA
   subst hA
-  simpa [push_assume_eq_stuck_of_eq_stuck, stateOk] using hOk
+  simp [push_assume_eq_stuck_of_eq_stuck, stateOk] at hOk
 
 theorem push_assume_reflects_stateOk (A : Term) (s : CState) :
   stateOk (__eo_push_assume A s) -> stateOk s :=
@@ -477,53 +471,10 @@ by
 by
   simp [__eo_invoke_cmd]
 
-/- Legacy whole-state summary of a state.
-   The checker correctness proof below now uses `checkerConjunctInvariant`
-   as its primary invariant, but this formula view is still useful for
-   isolated semantic experiments. -/
-def eo_state_to_formula : CState -> Term
-  | CState.Stuck => Term.Stuck
-  | s =>
-      Term.Apply (Term.Apply Term.imp (stateAssumes s))
-        (Term.Apply (Term.Apply Term.imp (statePushes s)) (stateProvens s))
-
-def checkerInvariant (M : SmtModel) (s : CState) : Prop :=
-  ¬ eo_interprets M (eo_state_to_formula s) false
-
-theorem checkerInvariant_stuck (M : SmtModel) : checkerInvariant M CState.Stuck :=
-by
-  unfold checkerInvariant
-  simpa [eo_state_to_formula] using eo_interprets_stuck_false_absurd M
-
-/-
-Primary checker invariant: under globally true assumptions and local pushes,
-no individual proven conjunct in the state may interpret as false.
-
-This is stronger in exactly the way needed for the final contradiction:
-if the checker finishes with a top proved `false`, then that conjunct
-itself violates the invariant.
--/
-def checkerConjunctInvariant (M : SmtModel) : CState -> Prop
-  | CState.nil => True
-  | CState.cons (CStateObj.proven P) s =>
-      (eo_interprets M (stateAssumes s) true ->
-       eo_interprets M (statePushes s) true ->
-       ¬ eo_interprets M P false) ∧
-      checkerConjunctInvariant M s
-  | CState.cons _ s => checkerConjunctInvariant M s
-  | CState.Stuck => True
-
-theorem checkerConjunctInvariant_stuck (M : SmtModel) :
-  checkerConjunctInvariant M CState.Stuck :=
-by
-  trivial
-
-/- Supplementary indexed-truth invariant: under globally true assumptions and
-   local pushes, every indexed state entry is true. Since `CStateObj.Stuck`
-   has been removed, indexed lookup can be handled directly from the semantic
-   context, without extra per-rule premise side lemmas. We keep the conjunct
-   invariant as the contradiction-friendly summary used at the end of the
-   checker proof. -/
+/- Indexed truth invariant: under globally true assumptions and local pushes,
+   every indexed state entry is true. Since `CStateObj.Stuck` has been
+   removed, indexed lookup can be handled directly from the semantic context,
+   without extra per-rule premise side lemmas. -/
 def checkerTruthInvariant (M : SmtModel) : CState -> Prop
   | CState.Stuck => True
   | s =>
@@ -856,35 +807,6 @@ by
       intro n hAss hPush
       exact checkerLocalTruthInvariant_at M hs n hAss hPush
 
-theorem checkerLocalTruthInvariant_implies_conjunctInvariant (M : SmtModel) :
-  forall {s : CState},
-    checkerLocalTruthInvariant M s ->
-    checkerConjunctInvariant M s
-:=
-by
-  intro s hs
-  induction s with
-  | nil =>
-      trivial
-  | Stuck =>
-      trivial
-  | cons so s ih =>
-      cases so with
-      | assume A =>
-          simpa [checkerLocalTruthInvariant, checkerConjunctInvariant] using
-            ih (by simpa [checkerLocalTruthInvariant] using hs)
-      | assume_push A =>
-          simpa [checkerLocalTruthInvariant, checkerConjunctInvariant] using
-            ih (by simpa [checkerLocalTruthInvariant] using hs)
-      | proven P =>
-          refine ⟨?_, ih hs.2⟩
-          intro hAss hPush
-          have hAss' : eo_interprets M (stateAssumes s) true := by
-            simpa [stateAssumes] using hAss
-          have hPush' : eo_interprets M (statePushes s) true := by
-            simpa [statePushes] using hPush
-          exact eo_interprets_true_not_false M P (hs.1 hAss' hPush')
-
 theorem checkerLocalTruthInvariant_after_assume_list (M : SmtModel) (F : Term) :
   ValidAssumptionList F ->
   checkerLocalTruthInvariant M (__eo_invoke_assume_list CState.nil F)
@@ -999,10 +921,6 @@ def checkerShapeInvariant : CState -> Prop
   | CState.Stuck => True
   | s => stateAssumptionSuffix s
 
-theorem checkerShapeInvariant_stuck : checkerShapeInvariant CState.Stuck :=
-by
-  trivial
-
 theorem checkerShapeInvariant_of_suffix {s : CState} :
   stateAssumptionSuffix s ->
   checkerShapeInvariant s :=
@@ -1028,116 +946,6 @@ def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
   checkerLocalTruthInvariant M s ∧
   checkerTypeInvariant s ∧
   checkerTranslationInvariant s
-
-theorem checkerConjunctInvariant_after_assume_list (M : SmtModel) (F : Term) :
-  ValidAssumptionList F ->
-  checkerConjunctInvariant M (__eo_invoke_assume_list CState.nil F)
-:=
-by
-  intro hValid
-  induction hValid with
-  | base =>
-      simp [__eo_invoke_assume_list, checkerConjunctInvariant]
-  | step A rest hRest ih =>
-      simpa [__eo_invoke_assume_list, checkerConjunctInvariant] using ih
-
-theorem push_proven_preserves_conjunctInvariant_of_not_false
-    (M : SmtModel) (s : CState) (P : Term) :
-  checkerConjunctInvariant M s ->
-  (eo_interprets M (stateAssumes s) true ->
-   eo_interprets M (statePushes s) true ->
-   ¬ eo_interprets M P false) ->
-  checkerConjunctInvariant M (CState.cons (CStateObj.proven P) s) :=
-by
-  intro hInv hP
-  exact ⟨hP, hInv⟩
-
-theorem top_proven_not_false_of_conjunctInvariant
-    (M : SmtModel) (s : CState) (P : Term) :
-  checkerConjunctInvariant M (CState.cons (CStateObj.proven P) s) ->
-  eo_interprets M (stateAssumes s) true ->
-  eo_interprets M (statePushes s) true ->
-  ¬ eo_interprets M P false :=
-by
-  intro hInv hAss hPush
-  exact hInv.1 hAss hPush
-
-theorem provens_not_false_of_invariant (M : SmtModel) (s : CState) :
-  checkerInvariant M s ->
-  eo_interprets M (stateAssumes s) true ->
-  eo_interprets M (statePushes s) true ->
-  ¬ eo_interprets M (stateProvens s) false :=
-by
-  intro hInv hAss hPush hProvFalse
-  cases s with
-  | nil =>
-      unfold checkerInvariant at hInv
-      have hStateFalse : eo_interprets M (eo_state_to_formula CState.nil) false := by
-        simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using
-          (eo_interprets_imp_false_intro M (stateAssumes CState.nil)
-            (Term.Apply (Term.Apply Term.imp (statePushes CState.nil)) (stateProvens CState.nil)) hAss
-            (eo_interprets_imp_false_intro M (statePushes CState.nil) (stateProvens CState.nil) hPush hProvFalse))
-      exact hInv hStateFalse
-  | cons so s =>
-      unfold checkerInvariant at hInv
-      have hStateFalse : eo_interprets M (eo_state_to_formula (CState.cons so s)) false := by
-        simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using
-          (eo_interprets_imp_false_intro M (stateAssumes (CState.cons so s))
-            (Term.Apply (Term.Apply Term.imp (statePushes (CState.cons so s))) (stateProvens (CState.cons so s))) hAss
-            (eo_interprets_imp_false_intro M (statePushes (CState.cons so s)) (stateProvens (CState.cons so s)) hPush hProvFalse))
-      exact hInv hStateFalse
-  | Stuck =>
-      cases (eo_interprets_stuck_false_absurd M hProvFalse)
-
-theorem pushed_proven_false_of_post_false (M : SmtModel) (s : CState) (P : Term) :
-  checkerInvariant M s ->
-  eo_interprets M (eo_state_to_formula (CState.cons (CStateObj.proven P) s)) false ->
-  eo_interprets M P false :=
-by
-  intro hs hPostFalse
-  have hAssumesTrue : eo_interprets M (stateAssumes s) true :=
-    eo_interprets_imp_false_left M (stateAssumes s)
-      (Term.Apply (Term.Apply Term.imp (statePushes s))
-        (Term.Apply (Term.Apply Term.and P) (stateProvens s)))
-      (by simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using hPostFalse)
-  have hInnerFalse :
-      eo_interprets M
-        (Term.Apply (Term.Apply Term.imp (statePushes s))
-          (Term.Apply (Term.Apply Term.and P) (stateProvens s))) false :=
-    eo_interprets_imp_false_right M (stateAssumes s)
-      (Term.Apply (Term.Apply Term.imp (statePushes s))
-        (Term.Apply (Term.Apply Term.and P) (stateProvens s)))
-      (by simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using hPostFalse)
-  have hPushesTrue : eo_interprets M (statePushes s) true :=
-    eo_interprets_imp_false_left M (statePushes s)
-      (Term.Apply (Term.Apply Term.and P) (stateProvens s))
-      hInnerFalse
-  have hAndFalse :
-      eo_interprets M (Term.Apply (Term.Apply Term.and P) (stateProvens s)) false :=
-    eo_interprets_imp_false_right M (statePushes s)
-      (Term.Apply (Term.Apply Term.and P) (stateProvens s))
-      hInnerFalse
-  have hOldProvensNotFalse : ¬ eo_interprets M (stateProvens s) false :=
-    provens_not_false_of_invariant M s hs hAssumesTrue hPushesTrue
-  exact eo_interprets_and_false_left_of_right_not_false M P (stateProvens s)
-    hAndFalse hOldProvensNotFalse
-
-theorem push_proven_preserves_invariant_of_not_false (M : SmtModel) (s : CState) (P : Term) :
-  checkerInvariant M s ->
-  ¬ eo_interprets M P false ->
-  checkerInvariant M (CState.cons (CStateObj.proven P) s) :=
-by
-  intro hs hPFalse
-  unfold checkerInvariant
-  intro hPostFalse
-  exact hPFalse (pushed_proven_false_of_post_false M s P hs hPostFalse)
-
-theorem checkerInvariant_of_eq_stuck (M : SmtModel) {s : CState} :
-  s = CState.Stuck -> checkerInvariant M s :=
-by
-  intro hStuck
-  subst hStuck
-  exact checkerInvariant_stuck M
 
 theorem invoke_step_eq_of_nonstuck
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
@@ -1175,84 +983,6 @@ by
   rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises, hStep]
   simp [__eo_push_proven, __eo_push_proven_check, __eo_is_ok, eo_lit_teq, eo_lit_not,
     SmtEval.smt_lit_not, hNe]
-
-theorem invoke_step_preserves_invariant_of_stuck
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (r : CRule) (args : CArgList) (premises : CIndexList) :
-  __eo_cmd_step_proven s r args premises = Term.Stuck ->
-  checkerInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
-by
-  intro hStep
-  exact checkerInvariant_of_eq_stuck M
-    (invoke_step_eq_stuck_of_nonstuck s hNotStuck r args premises hStep)
-
-theorem invoke_step_preserves_invariant_of_not_false
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (r : CRule) (args : CArgList) (premises : CIndexList) (P : Term) :
-  checkerInvariant M s ->
-  __eo_cmd_step_proven s r args premises = P ->
-  P ≠ Term.Stuck ->
-  ¬ eo_interprets M P false ->
-  checkerInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
-by
-  intro hs hStep hNe hPFalse
-  have hPost :
-      __eo_invoke_cmd s (CCmd.step r args premises) = CState.cons (CStateObj.proven P) s :=
-    invoke_step_eq_cons_of_nonstuck s hNotStuck r args premises P hStep hNe
-  simpa [hPost] using push_proven_preserves_invariant_of_not_false M s P hs hPFalse
-
-theorem invoke_step_preserves_invariant_of_cmd_step_proven
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerInvariant M s ->
-  ¬ eo_interprets M (__eo_cmd_step_proven s r args premises) false ->
-  checkerInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
-by
-  intro hs hStepNotFalse
-  by_cases hStep : __eo_cmd_step_proven s r args premises = Term.Stuck
-  · exact invoke_step_preserves_invariant_of_stuck M s hNotStuck r args premises hStep
-  · exact invoke_step_preserves_invariant_of_not_false M s hNotStuck r args premises
-      (__eo_cmd_step_proven s r args premises) hs rfl hStep hStepNotFalse
-
-theorem post_proven_context_true_of_false (M : SmtModel) (s : CState) (P : Term) :
-  checkerInvariant M s ->
-  eo_interprets M (eo_state_to_formula (CState.cons (CStateObj.proven P) s)) false ->
-  eo_interprets M P false ∧
-  eo_interprets M (stateAssumes s) true ∧
-  eo_interprets M (statePushes s) true ∧
-  eo_interprets M (stateProvens s) true :=
-by
-  intro hs hPostFalse
-  have hPFalse : eo_interprets M P false :=
-    pushed_proven_false_of_post_false M s P hs hPostFalse
-  have hAssumesTrue : eo_interprets M (stateAssumes s) true :=
-    eo_interprets_imp_false_left M (stateAssumes s)
-      (Term.Apply (Term.Apply Term.imp (statePushes s))
-        (Term.Apply (Term.Apply Term.and P) (stateProvens s)))
-      (by simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using hPostFalse)
-  have hInnerFalse :
-      eo_interprets M
-        (Term.Apply (Term.Apply Term.imp (statePushes s))
-          (Term.Apply (Term.Apply Term.and P) (stateProvens s))) false :=
-    eo_interprets_imp_false_right M (stateAssumes s)
-      (Term.Apply (Term.Apply Term.imp (statePushes s))
-        (Term.Apply (Term.Apply Term.and P) (stateProvens s)))
-      (by simpa [eo_state_to_formula, stateAssumes, statePushes, stateProvens] using hPostFalse)
-  have hPushesTrue : eo_interprets M (statePushes s) true :=
-    eo_interprets_imp_false_left M (statePushes s)
-      (Term.Apply (Term.Apply Term.and P) (stateProvens s))
-      hInnerFalse
-  have hAndFalse :
-      eo_interprets M (Term.Apply (Term.Apply Term.and P) (stateProvens s)) false :=
-    eo_interprets_imp_false_right M (statePushes s)
-      (Term.Apply (Term.Apply Term.and P) (stateProvens s))
-      hInnerFalse
-  have hOldProvensNotFalse : ¬ eo_interprets M (stateProvens s) false :=
-    provens_not_false_of_invariant M s hs hAssumesTrue hPushesTrue
-  have hProvensTrue : eo_interprets M (stateProvens s) true :=
-    eo_interprets_and_false_right_true_of_left_false_and_right_not_false M P (stateProvens s)
-      hAndFalse hPFalse hOldProvensNotFalse
-  exact ⟨hPFalse, hAssumesTrue, hPushesTrue, hProvensTrue⟩
 
 theorem state_proven_nth_true_of_context (M : SmtModel) :
   forall (s : CState) (n : eo_lit_Int),
@@ -1334,8 +1064,7 @@ by
   intro hs
   by_cases hA : A = Term.Stuck
   · subst hA
-    simpa [push_assume_eq_stuck_of_eq_stuck, checkerTruthInvariant]
-      using checkerTruthInvariant_stuck M
+    simp [push_assume_eq_stuck_of_eq_stuck, checkerTruthInvariant]
   · rw [push_assume_eq_cons_of_ne_stuck A s hA]
     intro n hAss hPush
     by_cases hZero : n = 0
@@ -1381,172 +1110,6 @@ by
     simpa [__eo_state_proven_nth, hZero] using
       checkerTruthInvariant_at M hs
         (eo_lit_zplus n (eo_lit_zneg 1)) hAss' hPush'
-
-theorem state_proven_nth_not_false_of_conjunctInvariant (M : SmtModel) :
-  forall (s : CState) (n : eo_lit_Int),
-    checkerConjunctInvariant M s ->
-    __eo_state_proven_nth s n ≠ Term.Stuck ->
-    eo_interprets M (stateAssumes s) true ->
-    eo_interprets M (statePushes s) true ->
-    ¬ eo_interprets M (__eo_state_proven_nth s n) false
-:=
-by
-  intro s
-  induction s with
-  | nil =>
-      intro n hInv hNth hAss hPush
-      simpa [__eo_state_proven_nth] using
-        (eo_interprets_true_not_false M (Term.Boolean true) (eo_interprets_true M))
-  | Stuck =>
-      intro n hInv hNth hAss hPush
-      simpa [__eo_state_proven_nth] using
-        (eo_interprets_true_not_false M (Term.Boolean true) (eo_interprets_true M))
-  | cons so s ih =>
-      intro n hInv hNth hAss hPush
-      by_cases hZero : n = 0
-      · subst hZero
-        cases so with
-        | assume A =>
-            have hATrue : eo_interprets M A true := by
-              simpa [__eo_state_proven_nth] using
-                eo_interprets_and_left M A (stateAssumes s) hAss
-            simpa [__eo_state_proven_nth] using
-              (eo_interprets_true_not_false M A hATrue)
-        | assume_push A =>
-            have hATrue : eo_interprets M A true := by
-              simpa [__eo_state_proven_nth] using
-                eo_interprets_and_left M A (statePushes s) hPush
-            simpa [__eo_state_proven_nth] using
-              (eo_interprets_true_not_false M A hATrue)
-        | proven A =>
-            simpa [__eo_state_proven_nth, stateAssumes, statePushes] using
-              (hInv.1 hAss hPush)
-      · have hNthTail :
-            __eo_state_proven_nth s (eo_lit_zplus n (eo_lit_zneg 1)) ≠ Term.Stuck := by
-          intro hTail
-          apply hNth
-          simpa [__eo_state_proven_nth, hZero] using hTail
-        cases so with
-        | assume A =>
-            have hAssTail : eo_interprets M (stateAssumes s) true :=
-              eo_interprets_and_right M A (stateAssumes s) hAss
-            simpa [__eo_state_proven_nth, hZero, checkerConjunctInvariant] using
-              ih (eo_lit_zplus n (eo_lit_zneg 1)) hInv hNthTail hAssTail hPush
-        | assume_push A =>
-            have hPushTail : eo_interprets M (statePushes s) true :=
-              eo_interprets_and_right M A (statePushes s) hPush
-            simpa [__eo_state_proven_nth, hZero, checkerConjunctInvariant] using
-              ih (eo_lit_zplus n (eo_lit_zneg 1)) hInv hNthTail hAss hPushTail
-        | proven A =>
-            simpa [__eo_state_proven_nth, hZero, checkerConjunctInvariant] using
-              ih (eo_lit_zplus n (eo_lit_zneg 1)) hInv.2 hNthTail hAss hPush
-
-theorem eo_state_to_formula_assume_push (A : Term) (s : CState) :
-  eo_state_to_formula (CState.cons (CStateObj.assume_push A) s) =
-    Term.Apply (Term.Apply Term.imp (stateAssumes s))
-      (Term.Apply (Term.Apply Term.imp
-        (Term.Apply (Term.Apply Term.and A) (statePushes s))) (stateProvens s)) :=
-by
-  cases s <;> simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
-
-theorem assume_push_state_to_formula_false_backward (M : SmtModel) (A : Term) (s : CState) :
-  eo_interprets M (eo_state_to_formula (CState.cons (CStateObj.assume_push A) s)) false ->
-  eo_interprets M (eo_state_to_formula s) false :=
-by
-  intro h
-  cases s with
-  | nil =>
-      have hOuterTrue :
-          eo_interprets M (Term.Boolean true) true :=
-        eo_interprets_imp_false_left M (Term.Boolean true)
-          (Term.Apply (Term.Apply Term.imp
-            (Term.Apply (Term.Apply Term.and A) (Term.Boolean true))) (Term.Boolean true))
-          (by simpa [eo_state_to_formula_assume_push, eo_state_to_formula] using h)
-      have hInnerFalse :
-          eo_interprets M
-            (Term.Apply (Term.Apply Term.imp
-              (Term.Apply (Term.Apply Term.and A) (Term.Boolean true))) (Term.Boolean true)) false :=
-        eo_interprets_imp_false_right M (Term.Boolean true)
-          (Term.Apply (Term.Apply Term.imp
-            (Term.Apply (Term.Apply Term.and A) (Term.Boolean true))) (Term.Boolean true))
-          (by simpa [eo_state_to_formula_assume_push, eo_state_to_formula] using h)
-      have hPushTrue :
-          eo_interprets M (Term.Boolean true) true :=
-        eo_interprets_and_right M A (Term.Boolean true)
-          (eo_interprets_imp_false_left M
-            (Term.Apply (Term.Apply Term.and A) (Term.Boolean true)) (Term.Boolean true) hInnerFalse)
-      have hProvFalse :
-          eo_interprets M (Term.Boolean true) false :=
-        eo_interprets_imp_false_right M
-          (Term.Apply (Term.Apply Term.and A) (Term.Boolean true)) (Term.Boolean true) hInnerFalse
-      exact eo_interprets_imp_false_intro M (Term.Boolean true)
-        (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true))
-        hOuterTrue
-        (eo_interprets_imp_false_intro M (Term.Boolean true) (Term.Boolean true) hPushTrue hProvFalse)
-  | cons so s =>
-      have hOuterTrue :
-          eo_interprets M (stateAssumes (CState.cons so s)) true :=
-        eo_interprets_imp_false_left M (stateAssumes (CState.cons so s))
-          (Term.Apply (Term.Apply Term.imp
-            (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s))))
-            (stateProvens (CState.cons so s)))
-          (by simpa [eo_state_to_formula_assume_push, eo_state_to_formula] using h)
-      have hInnerFalse :
-          eo_interprets M
-            (Term.Apply (Term.Apply Term.imp
-              (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s))))
-              (stateProvens (CState.cons so s))) false :=
-        eo_interprets_imp_false_right M (stateAssumes (CState.cons so s))
-          (Term.Apply (Term.Apply Term.imp
-            (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s))))
-            (stateProvens (CState.cons so s)))
-          (by simpa [eo_state_to_formula_assume_push, eo_state_to_formula] using h)
-      have hPushTrue :
-          eo_interprets M (statePushes (CState.cons so s)) true :=
-        eo_interprets_and_right M A (statePushes (CState.cons so s))
-          (eo_interprets_imp_false_left M
-            (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s)))
-            (stateProvens (CState.cons so s)) hInnerFalse)
-      have hProvFalse :
-          eo_interprets M (stateProvens (CState.cons so s)) false :=
-        eo_interprets_imp_false_right M
-          (Term.Apply (Term.Apply Term.and A) (statePushes (CState.cons so s)))
-          (stateProvens (CState.cons so s)) hInnerFalse
-      exact eo_interprets_imp_false_intro M (stateAssumes (CState.cons so s))
-        (Term.Apply (Term.Apply Term.imp (statePushes (CState.cons so s)))
-          (stateProvens (CState.cons so s))) hOuterTrue
-        (eo_interprets_imp_false_intro M (statePushes (CState.cons so s))
-          (stateProvens (CState.cons so s)) hPushTrue hProvFalse)
-  | Stuck =>
-      have : False := by
-        rw [eo_interprets_iff_smt_interprets] at h
-        cases h with
-        | intro_false hty _ =>
-            simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens,
-              __eo_to_smt, __smtx_typeof, smt_lit_Teq, smt_lit_ite] at hty
-      exact False.elim this
-
-theorem state_to_formula_decompose :
-  forall {s : CState}, stateOk s ->
-    eo_state_to_formula s =
-      Term.Apply (Term.Apply Term.imp (stateAssumes s))
-        (Term.Apply (Term.Apply Term.imp (statePushes s)) (stateProvens s))
-:=
-by
-  intro s hOk
-  cases s with
-  | nil =>
-      simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
-  | cons so s =>
-      cases so with
-      | assume F =>
-          simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
-      | assume_push F =>
-          simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
-      | proven F =>
-          simp [eo_state_to_formula, stateAssumes, statePushes, stateProvens]
-  | Stuck =>
-      cases hOk
 
 theorem stateAssumptionTail_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
@@ -1664,59 +1227,6 @@ by
     checkerTypeInvariant_after_assume_list F hTyped,
     checkerTranslationInvariant_after_assume_list F hTrans
   ⟩
-
-theorem state_to_formula_invoke_assume_list :
-  forall {F : Term}, ValidAssumptionList F ->
-    eo_state_to_formula (__eo_invoke_assume_list CState.nil F) =
-      Term.Apply (Term.Apply Term.imp F)
-        (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true))
-:=
-by
-  intro F hValid
-  have hAssumes : stateAssumes (__eo_invoke_assume_list CState.nil F) = F :=
-    stateAssumes_invoke_assume_list hValid
-  have hPushes : statePushes (__eo_invoke_assume_list CState.nil F) = Term.Boolean true :=
-    statePushes_invoke_assume_list hValid
-  have hProvens : stateProvens (__eo_invoke_assume_list CState.nil F) = Term.Boolean true :=
-    stateProvens_invoke_assume_list hValid
-  cases hS : __eo_invoke_assume_list CState.nil F with
-  | nil =>
-      simp [hS] at hAssumes hPushes hProvens
-      simp [eo_state_to_formula, hAssumes, hPushes, hProvens]
-  | cons so s =>
-      simp [hS] at hAssumes hPushes hProvens
-      simp [eo_state_to_formula, hAssumes, hPushes, hProvens]
-  | Stuck =>
-      cases hValid with
-      | base =>
-          simp [__eo_invoke_assume_list] at hS
-      | step A rest hRest =>
-          simp [__eo_invoke_assume_list] at hS
-
-/- After loading a well-formed assumption list, `state_to_formula` is
-   `F => true => true`, so any model of `F` satisfies the invariant. -/
-theorem invariant_after_assume_list (M : SmtModel) (F : Term) :
-  ValidAssumptionList F ->
-  eo_interprets M F true ->
-  checkerInvariant M (__eo_invoke_assume_list CState.nil F) :=
-by
-  intro hValid hF
-  have hTT : eo_interprets M
-      (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true)) true :=
-    eo_interprets_imp_intro M (Term.Boolean true) (Term.Boolean true)
-      (eo_interprets_true M) (eo_interprets_true M)
-  have hInit : eo_interprets M
-      (Term.Apply (Term.Apply Term.imp F)
-        (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true))) true :=
-    eo_interprets_imp_intro M F
-      (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true))
-      hF hTT
-  unfold checkerInvariant
-  simpa [state_to_formula_invoke_assume_list hValid] using
-    (eo_interprets_true_not_false M
-      (Term.Apply (Term.Apply Term.imp F)
-        (Term.Apply (Term.Apply Term.imp (Term.Boolean true)) (Term.Boolean true)))
-      hInit)
 
 theorem stateOk_of_state_closed_true :
   forall {s : CState}, __eo_state_is_closed s = true -> stateOk s
@@ -2291,33 +1801,6 @@ by
     _ = F := by
       simpa [S0] using stateAssumes_invoke_assume_list hValid
 
-theorem refutation_contradiction_of_conjunctInvariant
-    (M : SmtModel) (F : Term) (pf : CCmdList) :
-  eo_interprets M F true ->
-  checkerConjunctInvariant M (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) ->
-  (__eo_checker_is_refutation F pf) = true ->
-  False :=
-by
-  intro hF hConj hChecker
-  let S1 := __eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf
-  rcases final_state_shape_of_checker_true F pf hChecker with ⟨s, hShape, hClosed⟩
-  have hAssumes : eo_interprets M (stateAssumes s) true := by
-    have hAssumesEq : stateAssumes S1 = F := by
-      simpa [S1] using stateAssumes_of_checker_true F pf hChecker
-    have hAssumesEqS : stateAssumes s = F := by
-      simpa [S1, hShape, stateAssumes] using hAssumesEq
-    simpa [hAssumesEqS] using hF
-  have hPushes : eo_interprets M (statePushes s) true := by
-    have hPushesEq : statePushes s = Term.Boolean true :=
-      statePushes_of_state_closed_true hClosed
-    simpa [hPushesEq] using eo_interprets_true M
-  have hTopNotFalse : ¬ eo_interprets M (Term.Boolean false) false := by
-    have hConjHead :
-        checkerConjunctInvariant M (CState.cons (CStateObj.proven (Term.Boolean false)) s) := by
-      simpa [S1, hShape] using hConj
-    exact top_proven_not_false_of_conjunctInvariant M s (Term.Boolean false) hConjHead hAssumes hPushes
-  exact hTopNotFalse (eo_interprets_false M)
-
 theorem refutation_contradiction_of_truthInvariant
     (M : SmtModel) (F : Term) (pf : CCmdList) :
   eo_interprets M F true ->
@@ -2346,20 +1829,6 @@ by
     simpa [__eo_state_proven_nth] using hAt
   exact eo_interprets_false_true_absurd M hFalseTrue
 
-theorem checkerConjunctInvariant_of_eq_stuck (M : SmtModel) {s : CState} :
-  s = CState.Stuck -> checkerConjunctInvariant M s :=
-by
-  intro hStuck
-  subst hStuck
-  exact checkerConjunctInvariant_stuck M
-
-theorem checkerTruthInvariant_of_eq_stuck (M : SmtModel) {s : CState} :
-  s = CState.Stuck -> checkerTruthInvariant M s :=
-by
-  intro hStuck
-  subst hStuck
-  exact checkerTruthInvariant_stuck M
-
 theorem invoke_step_preserves_truthInvariant_of_stuck
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
@@ -2367,8 +1836,8 @@ theorem invoke_step_preserves_truthInvariant_of_stuck
   checkerTruthInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
 by
   intro hStep
-  exact checkerTruthInvariant_of_eq_stuck M
-    (invoke_step_eq_stuck_of_nonstuck s hNotStuck r args premises hStep)
+  rw [invoke_step_eq_stuck_of_nonstuck s hNotStuck r args premises hStep]
+  exact checkerTruthInvariant_stuck M
 
 theorem invoke_step_preserves_truthInvariant_of_contextual_true
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
@@ -2393,18 +1862,6 @@ def premiseAndFormula (s : CState) : CIndexList -> Term
   | CIndexList.cons n premises =>
       Term.Apply (Term.Apply Term.and (__eo_state_proven_nth s n))
         (premiseAndFormula s premises)
-
-theorem premiseAndFormula_ne_stuck :
-  forall (s : CState) (premises : CIndexList),
-    premiseAndFormula s premises ≠ Term.Stuck
-:=
-by
-  intro s premises
-  induction premises with
-  | nil =>
-      simp [premiseAndFormula]
-  | cons n premises ih =>
-      simp [premiseAndFormula]
 
 theorem premiseAndFormula_is_and_list :
   forall (s : CState) (premises : CIndexList),
@@ -2434,7 +1891,12 @@ by
       __eo_get_nil_rec Term.and (premiseAndFormula s premises) ≠ Term.Stuck :=
     hGetNil s premises
   have hPremNotStuck : premiseAndFormula s premises ≠ Term.Stuck :=
-    premiseAndFormula_ne_stuck s premises
+    by
+      induction premises with
+      | nil =>
+          simp [premiseAndFormula]
+      | cons n premises ih =>
+          simp [premiseAndFormula]
   unfold __eo_is_list
   unfold __eo_is_ok
   simpa [eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using hNotStuck
@@ -2626,67 +2088,6 @@ by
             correct___eo_prog_trans M hM X hXTrue hPBool
       | cons a args =>
           exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-
-theorem cmd_step_proven_not_false_of_truthInvariant
-    (M : SmtModel) (hM : smt_model_well_typed M)
-    (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerTruthInvariant M s ->
-  cmdTranslationOk (CCmd.step r args premises) ->
-  __eo_cmd_step_proven s r args premises ≠ Term.Stuck ->
-  eo_interprets M (stateAssumes s) true ->
-  eo_interprets M (statePushes s) true ->
-  ¬ eo_interprets M (__eo_cmd_step_proven s r args premises) false
-:=
-by
-  intro hs hCmdTrans hProg hAss hPush
-  exact eo_interprets_true_not_false M _ <|
-    cmd_step_proven_true_of_truthInvariant M hM s hNotStuck r args premises hs hCmdTrans hProg hAss hPush
-
-theorem invoke_step_preserves_conjunctInvariant_of_stuck
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (r : CRule) (args : CArgList) (premises : CIndexList) :
-  __eo_cmd_step_proven s r args premises = Term.Stuck ->
-  checkerConjunctInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
-by
-  intro hStep
-  exact checkerConjunctInvariant_of_eq_stuck M
-    (invoke_step_eq_stuck_of_nonstuck s hNotStuck r args premises hStep)
-
-theorem invoke_step_preserves_conjunctInvariant_of_contextual_not_false
-    (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (r : CRule) (args : CArgList) (premises : CIndexList) (P : Term) :
-  checkerConjunctInvariant M s ->
-  __eo_cmd_step_proven s r args premises = P ->
-  P ≠ Term.Stuck ->
-  (eo_interprets M (stateAssumes s) true ->
-   eo_interprets M (statePushes s) true ->
-   ¬ eo_interprets M P false) ->
-  checkerConjunctInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
-by
-  intro hs hStep hNe hP
-  have hPost :
-      __eo_invoke_cmd s (CCmd.step r args premises) = CState.cons (CStateObj.proven P) s :=
-    invoke_step_eq_cons_of_nonstuck s hNotStuck r args premises P hStep hNe
-  simpa [hPost] using push_proven_preserves_conjunctInvariant_of_not_false M s P hs hP
-
-theorem invoke_step_preserves_conjunctInvariant
-    (M : SmtModel) (hM : smt_model_well_typed M)
-    (s : CState) (hNotStuck : s ≠ CState.Stuck)
-    (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerConjunctInvariant M s ->
-  checkerTruthInvariant M s ->
-  cmdTranslationOk (CCmd.step r args premises) ->
-  checkerConjunctInvariant M (__eo_invoke_cmd s (CCmd.step r args premises)) :=
-by
-  intro hConj hTruth hCmdTrans
-  by_cases hProg : __eo_cmd_step_proven s r args premises = Term.Stuck
-  · exact invoke_step_preserves_conjunctInvariant_of_stuck M s hNotStuck r args premises hProg
-  · exact invoke_step_preserves_conjunctInvariant_of_contextual_not_false M s hNotStuck
-      r args premises (__eo_cmd_step_proven s r args premises) hConj rfl hProg
-      (fun hAss hPush =>
-        cmd_step_proven_not_false_of_truthInvariant M hM s hNotStuck r args premises
-          hTruth hCmdTrans hProg hAss hPush)
 
 theorem invoke_step_preserves_truthInvariant
     (M : SmtModel) (hM : smt_model_well_typed M)
@@ -3449,23 +2850,6 @@ by
           exact False.elim (hNotStuck rfl)
 
 set_option linter.unusedSimpArgs false in
-theorem invoke_cmd_preserves_conjunctInvariant_nonstuck (M : SmtModel) :
-  forall _hM : smt_model_well_typed M,
-  forall s : CState, forall c : CCmd,
-    checkerLocalTruthInvariant M s ->
-    checkerTypeInvariant s ->
-    checkerTranslationInvariant s ->
-    cmdTranslationOk c ->
-    stateAssumptionSuffix s ->
-    s ≠ CState.Stuck ->
-    checkerConjunctInvariant M (__eo_invoke_cmd s c)
-:=
-by
-  intro hM s c hs hsTy hsTrans hCmdTrans hSuffix hNotStuck
-  exact checkerLocalTruthInvariant_implies_conjunctInvariant M <|
-    invoke_cmd_preserves_localTruthInvariant_nonstuck M hM s c hs hsTy hsTrans hCmdTrans hSuffix hNotStuck
-
-set_option linter.unusedSimpArgs false in
 theorem invoke_cmd_preserves_truthInvariant_nonstuck (M : SmtModel) :
   forall _hM : smt_model_well_typed M,
   forall s : CState, forall c : CCmd,
@@ -3648,7 +3032,7 @@ by
   by_cases hStuck : s = CState.Stuck
   · subst hStuck
     have hInvStuck : checkerStateInvariant M CState.Stuck := by
-      exact ⟨checkerShapeInvariant_stuck, checkerLocalTruthInvariant_stuck M, checkerTypeInvariant_stuck,
+      exact ⟨trivial, checkerLocalTruthInvariant_stuck M, checkerTypeInvariant_stuck,
         checkerTranslationInvariant_stuck⟩
     cases c <;> simpa [__eo_invoke_cmd, checkerStateInvariant] using hInvStuck
   · exact invoke_cmd_preserves_stateInvariant_nonstuck M hM s c hs hCmdTrans hStuck
@@ -3673,17 +3057,6 @@ by
       have hstep : checkerStateInvariant M (__eo_invoke_cmd s c) :=
         invoke_cmd_preserves_stateInvariant M hM s c hs hCmd
       simpa [__eo_invoke_cmd_list] using ih (__eo_invoke_cmd s c) hstep hTail
-
-/- If the checker reports refutation, the final checked state has top
-   proved conjunct `false`. The conjunct invariant rules that out under
-   any model of the original assumptions. -/
-theorem refutation_contradiction (M : SmtModel) (F : Term) (pf : CCmdList) :
-  eo_interprets M F true ->
-  checkerConjunctInvariant M (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) ->
-  (__eo_checker_is_refutation F pf) = true ->
-  False :=
-by
-  exact refutation_contradiction_of_conjunctInvariant M F pf
 
 /- correctness theorem for the checker -/
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
