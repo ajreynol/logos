@@ -559,7 +559,7 @@ theorem typeof_value_model_eval_apply_lookup_map
         (__smtx_model_eval_apply (__smtx_model_lookup M s (SmtType.Map A B)) i) = B := by
   have hLookup :
       __smtx_typeof_value (__smtx_model_lookup M s (SmtType.Map A B)) = SmtType.Map A B :=
-    hM s (SmtType.Map A B) (type_inhabited_map hB)
+    model_total_typed_lookup hM s (SmtType.Map A B) (type_inhabited_map hB)
   rcases map_value_canonical (A := A) (B := B) hLookup with ⟨m, hm⟩
   rw [hm]
   simpa [__smtx_model_eval_apply, __smtx_map_select] using

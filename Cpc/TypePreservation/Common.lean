@@ -23,10 +23,12 @@ def generic_apply_eval (f x : SmtTerm) : Prop :=
       __smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x)
 
 def model_total_typed (M : SmtModel) : Prop :=
-  ∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T
+  (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
+  (∀ s T, ¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
 
 def model_typed_at (M : SmtModel) (s : smt_lit_String) (T : SmtType) : Prop :=
-  type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T
+  (type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
+  (¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
 
 theorem type_inhabited_bool : type_inhabited SmtType.Bool :=
   ⟨SmtValue.Boolean true, rfl⟩

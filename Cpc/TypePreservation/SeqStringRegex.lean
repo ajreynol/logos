@@ -153,7 +153,7 @@ theorem typeof_value_seq_nth_wrong
         (__smtx_model_lookup M smt_lit_oob_seq_nth_id
           (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))) =
         SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T) :=
-    hM smt_lit_oob_seq_nth_id
+    model_total_typed_lookup hM smt_lit_oob_seq_nth_id
       (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))
       (type_inhabited_map (type_inhabited_map hT))
   rcases map_value_canonical

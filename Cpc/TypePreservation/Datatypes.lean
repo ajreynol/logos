@@ -509,7 +509,7 @@ theorem typeof_value_model_eval_dt_sel_wrong
         SmtType.Map SmtType.Int
           (SmtType.Map SmtType.Int
             (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))) :=
-    hM smt_lit_wrong_apply_sel_id
+    model_total_typed_lookup hM smt_lit_wrong_apply_sel_id
       (SmtType.Map SmtType.Int
         (SmtType.Map SmtType.Int
           (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))))
