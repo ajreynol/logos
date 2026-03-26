@@ -164,11 +164,6 @@ partial def __eo_mk_apply : Term -> Term -> Term
 partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
 
-partial def __eo_is_bool_type : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | x => (__eo_eq (__eo_typeof x) Term.Bool)
-
-
 partial def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
 
@@ -211,12 +206,34 @@ partial def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> 
   | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
   | Datatype.null => Datatype.null
 
+end
 
-partial def __eo_get_nil_rec : Term -> Term -> Term
+partial def __eo_nil : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, T => (Term.Boolean false)
+  | Term.and, T => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
+  | _, _ => Term.Stuck
+
+
+partial def __eo_is_list_nil : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, (Term.Boolean false) => (Term.Boolean true)
+  | Term.and, (Term.Boolean true) => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
+  | f, nil => (Term.Boolean false)
+
+
+def __eo_get_nil_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | f, (Term.Apply (Term.Apply g x) y) => (__eo_requires f g (__eo_get_nil_rec f y))
   | f, nil => (__eo_requires (__eo_is_list_nil f nil) (Term.Boolean true) nil)
+termination_by _f t => sizeOf t
+decreasing_by
+  simp_wf
+  omega
 
 
 partial def __eo_is_list : Term -> Term -> Term
@@ -256,34 +273,21 @@ partial def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
-partial def __mk_trans : Term -> Term -> Term -> Term
+def __mk_trans : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | t1, t2, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail) => (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
   | t1, t2, (Term.Boolean true) => (Term.Apply (Term.Apply Term.eq t1) t2)
   | _, _, _ => Term.Stuck
+termination_by _t1 _t2 tail => sizeOf tail
+decreasing_by
+  simp_wf
+  omega
 
 
 partial def __eo_prog_trans : Proof -> Term
   | (Proof.pf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2)) tail)) => (__mk_trans t1 t2 tail)
   | _ => Term.Stuck
-
-
-partial def __eo_nil : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, T => (Term.Boolean false)
-  | Term.and, T => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
-  | _, _ => Term.Stuck
-
-
-partial def __eo_is_list_nil : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, (Term.Boolean false) => (Term.Boolean true)
-  | Term.and, (Term.Boolean true) => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
-  | f, nil => (Term.Boolean false)
 
 
 partial def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
@@ -369,9 +373,9 @@ partial def __eo_typeof : Term -> Term
   | _ => Term.Stuck
 
 
-
-
-end
+partial def __eo_is_bool_type : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
 
 /- Definition of the checker -/
 

@@ -123,17 +123,6 @@ by
   | _ =>
       exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
 
-private theorem smt_value_rel_symm (v1 v2 : SmtValue) :
-  RuleProofs.smt_value_rel v1 v2 -> RuleProofs.smt_value_rel v2 v1 := by
-  cases v1 <;> cases v2 <;> simp [RuleProofs.smt_value_rel]
-  case Map.Map m1 m2 =>
-    intro h v
-    symm
-    exact h v
-  all_goals
-    intros
-    simp_all
-
 private theorem eo_interprets_not_false_implies_true (M : SmtModel) (t : Term) :
   eo_interprets M (Term.Apply Term.not t) false -> eo_interprets M t true := by
   intro h
@@ -167,7 +156,7 @@ private theorem eo_interprets_eq_symm_true (M : SmtModel) (a b : Term) :
     simpa [RuleProofs.eo_has_bool_type, __eo_to_smt, __smtx_typeof] using hEqTy
   apply RuleProofs.eo_interprets_eq_of_rel M a b
   · exact hTySymm
-  · exact smt_value_rel_symm _ _ (RuleProofs.eo_interprets_eq_rel M b a hEqTrue)
+  · exact RuleProofs.smt_value_rel_symm _ _ (RuleProofs.eo_interprets_eq_rel M b a hEqTrue)
 
 theorem correct___eo_prog_symm_impl
     (M : SmtModel) (_hM : smt_model_well_typed M) (x1 : Term) :
