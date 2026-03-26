@@ -25,12 +25,19 @@ theorem typed___eo_prog_scope_of_bool_args (x1 x2 : Term) :
 
 theorem typed___eo_prog_scope_impl (M : SmtModel) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
+  RuleProofs.eo_has_smt_translation x1 ->
+  RuleProofs.eo_has_smt_translation x2 ->
   __eo_typeof x1 = Term.Bool ->
   __eo_typeof x2 = Term.Bool ->
   __eo_prog_scope x1 (Proof.pf x2) ≠ Term.Stuck ->
   RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) :=
 by
-  sorry
+  intro _ hTrans1 hTrans2 hTy1 hTy2 hProg
+  have hBool1 : RuleProofs.eo_has_bool_type x1 :=
+    RuleProofs.eo_typeof_bool_implies_has_bool_type x1 hTrans1 hTy1
+  have hBool2 : RuleProofs.eo_has_bool_type x2 :=
+    RuleProofs.eo_typeof_bool_implies_has_bool_type x2 hTrans2 hTy2
+  exact typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2 hProg
 
 namespace RuleProofs
 

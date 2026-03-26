@@ -60,6 +60,15 @@ theorem eo_typeof_bool_implies_has_bool_type
   exact eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
     t (__eo_to_smt t) rfl hNotNone hTy
 
+theorem eo_has_smt_translation_of_has_bool_type (t : Term) :
+  eo_has_bool_type t ->
+  eo_has_smt_translation t := by
+  intro hTy
+  intro hNone
+  rw [eo_has_bool_type] at hTy
+  rw [hNone] at hTy
+  cases hTy
+
 theorem eo_interprets_of_bool_eval
     (M : SmtModel) (t : Term) (b : Bool) :
   eo_has_bool_type t ->
