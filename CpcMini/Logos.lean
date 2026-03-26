@@ -389,7 +389,7 @@ def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
 
 def __eo_invoke_cmd_check_proven : CState -> Term -> CState
   | (CState.cons (CStateObj.proven F) S), proven =>
-      (__eo_push_proven_check (__eo_and (__eo_eq F proven) (__eo_is_bool_type F)) F S)
+      (__eo_push_proven_check (__eo_eq F proven) F S)
   | S, proven => CState.Stuck
 
 

@@ -451,19 +451,12 @@ by
   simp [__eo_push_proven, __eo_push_proven_check, eo_is_bool_type_eq_is_ok, __eo_is_ok,
     eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
 
-@[simp] theorem check_proven_guard_eq (F proven : Term) :
-  __eo_and (__eo_eq F proven) (__eo_is_bool_type F) = __eo_eq F proven :=
-by
-  cases F <;> cases proven <;>
-    simp [__eo_and, __eo_eq, eo_is_bool_type_eq_is_ok, __eo_is_ok, eo_lit_teq, eo_lit_not,
-      SmtEval.smt_lit_not, SmtEval.smt_lit_and]
-
 @[simp] theorem invoke_cmd_check_proven_proven_eq_push_proven_check
     (F proven : Term) (s : CState) :
   __eo_invoke_cmd_check_proven (CState.cons (CStateObj.proven F) s) proven =
     __eo_push_proven_check (__eo_eq F proven) F s :=
 by
-  rw [__eo_invoke_cmd_check_proven, check_proven_guard_eq]
+  rw [__eo_invoke_cmd_check_proven]
 
 @[simp] theorem invoke_cmd_check_proven_proven_eq_push_proven_check_cmd
     (F proven : Term) (s : CState) :
