@@ -373,6 +373,10 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
       supported_preservation_term (SmtTerm.Apply SmtTerm.re_plus t)
+  | re_exp (n : smt_lit_Int) {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_exp (SmtTerm.Numeral n)) t)
   | re_opt {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
@@ -411,6 +415,14 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_diff t1) t2)
+  | re_loop (n1 n2 : smt_lit_Int) {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term
+        (SmtTerm.Apply
+          (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_loop (SmtTerm.Numeral n1))
+            (SmtTerm.Numeral n2))
+          t)
   | str_in_re {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)

@@ -300,6 +300,45 @@ theorem reglan_binop_args_of_non_none
     (show SmtType.RegLan = SmtType.RegLan ∧ SmtType.RegLan = SmtType.RegLan from
       ⟨rfl, rfl⟩)
 
+theorem re_exp_arg_of_non_none
+    {n : smt_lit_Int} {t : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_exp (SmtTerm.Numeral n)) t)) :
+    smt_lit_zleq 0 n ∧ __smtx_typeof t = SmtType.RegLan := by
+  unfold term_has_non_none_type at ht
+  cases h : __smtx_typeof t with
+  | RegLan =>
+      by_cases hn : smt_lit_zleq 0 n
+      · exact ⟨hn, rfl⟩
+      · exfalso
+        apply ht
+        simp [__smtx_typeof, __smtx_typeof_re_exp, h, hn, smt_lit_ite]
+  | _ =>
+      simp [__smtx_typeof, __smtx_typeof_re_exp, h] at ht
+
+theorem re_loop_arg_of_non_none
+    {n1 n2 : smt_lit_Int} {t : SmtTerm}
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_loop (SmtTerm.Numeral n1))
+            (SmtTerm.Numeral n2))
+          t)) :
+    smt_lit_zleq 0 n1 ∧ smt_lit_zleq 0 n2 ∧ __smtx_typeof t = SmtType.RegLan := by
+  unfold term_has_non_none_type at ht
+  cases h : __smtx_typeof t with
+  | RegLan =>
+      by_cases hn1 : smt_lit_zleq 0 n1
+      · by_cases hn2 : smt_lit_zleq 0 n2
+        · exact ⟨hn1, hn2, rfl⟩
+        · exfalso
+          apply ht
+          simp [__smtx_typeof, __smtx_typeof_re_loop, h, hn1, hn2, smt_lit_ite]
+      · exfalso
+        apply ht
+        simp [__smtx_typeof, __smtx_typeof_re_loop, h, hn1, smt_lit_ite]
+  | _ =>
+      simp [__smtx_typeof, __smtx_typeof_re_loop, h] at ht
+
 theorem seq_char_arg_of_non_none
     {op t : SmtTerm}
     {ret : SmtType}
@@ -1022,6 +1061,46 @@ theorem typeof_value_model_eval_re_plus
   rw [hr]
   rfl
 
+theorem model_eval_re_exp_rec_reglan :
+    ∀ (n : smt_lit_Nat) (r : smt_lit_RegLan),
+      ∃ r' : smt_lit_RegLan,
+        __smtx_model_eval_re_exp_rec n (SmtValue.RegLan r) = SmtValue.RegLan r'
+  | smt_lit_nat_zero, r =>
+      ⟨smt_lit_str_to_re (smt_lit_unpack_string (SmtSeq.empty SmtType.Char)), rfl⟩
+  | smt_lit_nat_succ n, r => by
+      rcases model_eval_re_exp_rec_reglan n r with ⟨r', hr'⟩
+      refine ⟨smt_lit_re_concat r' r, ?_⟩
+      simp [__smtx_model_eval_re_exp_rec, hr', __smtx_model_eval_re_concat]
+
+theorem model_eval_re_exp_reglan
+    (n : smt_lit_Int)
+    (r : smt_lit_RegLan) :
+    ∃ r' : smt_lit_RegLan,
+      __smtx_model_eval_re_exp (SmtValue.Numeral n) (SmtValue.RegLan r) = SmtValue.RegLan r' := by
+  rcases model_eval_re_exp_rec_reglan (smt_lit_int_to_nat n) r with ⟨r', hr'⟩
+  exact ⟨r', by simpa [__smtx_model_eval_re_exp] using hr'⟩
+
+theorem typeof_value_model_eval_re_exp
+    (M : SmtModel)
+    (n : smt_lit_Int)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_exp (SmtTerm.Numeral n)) t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_exp (SmtTerm.Numeral n)) t)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_exp (SmtTerm.Numeral n)) t) := by
+  rcases re_exp_arg_of_non_none ht with ⟨hn, hArg⟩
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_exp (SmtTerm.Numeral n)) t) =
+      SmtType.RegLan by
+    simp [__smtx_typeof, __smtx_typeof_re_exp, hArg, hn, smt_lit_ite]]
+  change __smtx_typeof_value (__smtx_model_eval_re_exp (SmtValue.Numeral n) (__smtx_model_eval M t)) =
+    SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
+  rw [hr]
+  rcases model_eval_re_exp_reglan n r with ⟨r', hr'⟩
+  rw [hr']
+  rfl
+
 theorem typeof_value_model_eval_re_opt
     (M : SmtModel)
     (t : SmtTerm)
@@ -1150,6 +1229,63 @@ theorem typeof_value_model_eval_re_diff
   rcases reglan_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨r2, hr2⟩
   rw [hr1, hr2]
   rfl
+
+theorem model_eval_re_loop_rec_reglan :
+    ∀ (n : smt_lit_Nat) (n1 n2 : smt_lit_Int) (r : smt_lit_RegLan),
+      ∃ r' : smt_lit_RegLan,
+        __smtx_model_eval_re_loop_rec n (SmtValue.Numeral n1) (SmtValue.Numeral n2)
+          (SmtValue.RegLan r) = SmtValue.RegLan r'
+  | smt_lit_nat_zero, n1, n2, r => by
+      rcases model_eval_re_exp_reglan n1 r with ⟨r', hr'⟩
+      exact ⟨r', by simpa [__smtx_model_eval_re_loop_rec] using hr'⟩
+  | smt_lit_nat_succ n, n1, n2, r => by
+      rcases model_eval_re_loop_rec_reglan n n1 (smt_lit_zplus n2 (smt_lit_zneg 1)) r with
+        ⟨r1, hr1⟩
+      rcases model_eval_re_exp_reglan n2 r with ⟨r2, hr2⟩
+      refine ⟨smt_lit_re_union r1 r2, ?_⟩
+      simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union]
+
+theorem typeof_value_model_eval_re_loop
+    (M : SmtModel)
+    (n1 n2 : smt_lit_Int)
+    (t : SmtTerm)
+    (ht :
+      term_has_non_none_type
+        (SmtTerm.Apply
+          (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_loop (SmtTerm.Numeral n1))
+            (SmtTerm.Numeral n2))
+          t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm.Apply
+            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_loop (SmtTerm.Numeral n1))
+              (SmtTerm.Numeral n2))
+            t)) =
+      __smtx_typeof
+        (SmtTerm.Apply
+          (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_loop (SmtTerm.Numeral n1))
+            (SmtTerm.Numeral n2))
+          t) := by
+  rcases re_loop_arg_of_non_none ht with ⟨hn1, hn2, hArg⟩
+  rw [show __smtx_typeof
+      (SmtTerm.Apply
+        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_loop (SmtTerm.Numeral n1))
+          (SmtTerm.Numeral n2))
+        t) = SmtType.RegLan by
+    simp [__smtx_typeof, __smtx_typeof_re_loop, hArg, hn1, hn2, smt_lit_ite]]
+  change __smtx_typeof_value
+      (__smtx_model_eval_re_loop (SmtValue.Numeral n1) (SmtValue.Numeral n2)
+        (__smtx_model_eval M t)) = SmtType.RegLan
+  rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
+  rw [hr]
+  by_cases hlt : smt_lit_zlt n2 n1
+  · simp [__smtx_model_eval_re_loop, __smtx_model_eval_gt, __smtx_model_eval_lt,
+      __smtx_model_eval_ite, hlt, __smtx_typeof_value]
+  · rcases model_eval_re_loop_rec_reglan (smt_lit_int_to_nat (smt_lit_zplus n2 (smt_lit_zneg n1)))
+        n1 n2 r with ⟨r', hr'⟩
+    simp [__smtx_model_eval_re_loop, __smtx_model_eval_gt, __smtx_model_eval_lt,
+      __smtx_model_eval_ite, hlt, hr', __smtx_typeof_value]
 
 theorem typeof_value_model_eval_str_in_re
     (M : SmtModel)

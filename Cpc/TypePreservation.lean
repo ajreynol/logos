@@ -282,6 +282,9 @@ theorem supported_type_preservation
   | re_plus ht1 hs1 =>
       exact typeof_value_model_eval_re_plus M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
+  | re_exp n ht1 hs1 =>
+      exact typeof_value_model_eval_re_exp M n _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
   | re_opt ht1 hs1 =>
       exact typeof_value_model_eval_re_opt M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -308,6 +311,9 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_re_diff M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
+  | re_loop n1 n2 ht1 hs1 =>
+      exact typeof_value_model_eval_re_loop M n1 n2 _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
   | str_in_re ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_str_in_re M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
