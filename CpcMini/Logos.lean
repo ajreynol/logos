@@ -196,11 +196,8 @@ partial def __eo_eq : Term -> Term -> Term
 
 
 partial def __eo_is_bool_type : Term -> Term
+  | Term.Stuck => Term.Boolean false
   | x => (__eo_eq (__eo_typeof x) Term.Bool)
-
-
-partial def __eo_is_ok_bool : Term -> Term
-  | x => (__eo_and (__eo_is_ok x) (__eo_is_bool_type x))
 
 
 partial def __eo_nil : Term -> Term -> Term
@@ -372,7 +369,7 @@ def __eo_push_assume_check : Term -> Term -> CState -> CState
 
 
 def __eo_push_assume : Term -> CState -> CState
-  | F, s => (__eo_push_assume_check (__eo_is_ok_bool F) F s)
+  | F, s => (__eo_push_assume_check (__eo_is_bool_type F) F s)
 
 
 def __eo_push_proven_check : Term -> Term -> CState -> CState
@@ -381,7 +378,7 @@ def __eo_push_proven_check : Term -> Term -> CState -> CState
 
 
 def __eo_push_proven : Term -> CState -> CState
-  | F, s => (__eo_push_proven_check (__eo_is_ok_bool F) F s)
+  | F, s => (__eo_push_proven_check (__eo_is_bool_type F) F s)
 
 
 def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
@@ -392,7 +389,7 @@ def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
 
 def __eo_invoke_cmd_check_proven : CState -> Term -> CState
   | (CState.cons (CStateObj.proven F) S), proven =>
-      (__eo_push_proven_check (__eo_and (__eo_eq F proven) (__eo_is_ok_bool F)) F S)
+      (__eo_push_proven_check (__eo_and (__eo_eq F proven) (__eo_is_bool_type F)) F S)
   | S, proven => CState.Stuck
 
 

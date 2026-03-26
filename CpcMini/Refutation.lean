@@ -395,31 +395,32 @@ by
   subst hStuck
   simp [stateOk] at hOk
 
-@[simp] theorem eo_is_bool_type_eq_true (t : Term) :
+@[simp] theorem eo_is_bool_type_eq_true_of_ne_stuck (t : Term) :
+  t ≠ Term.Stuck ->
   __eo_is_bool_type t = Term.Boolean true :=
 by
-  rw [__eo_is_bool_type, eo_typeof_eq_bool]
-  simp [__eo_eq, eo_lit_teq]
+  intro h
+  cases t <;> simp [__eo_is_bool_type, eo_typeof_eq_bool, __eo_eq, eo_lit_teq] at h ⊢
 
-@[simp] theorem eo_is_ok_bool_eq_is_ok (t : Term) :
-  __eo_is_ok_bool t = __eo_is_ok t :=
+@[simp] theorem eo_is_bool_type_eq_is_ok (t : Term) :
+  __eo_is_bool_type t = __eo_is_ok t :=
 by
   cases t <;>
-    simp [__eo_is_ok_bool, __eo_and, __eo_is_ok, __eo_is_bool_type, eo_typeof_eq_bool, __eo_eq,
-      eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not, SmtEval.smt_lit_and]
+    simp [__eo_is_ok, __eo_is_bool_type, eo_typeof_eq_bool, __eo_eq, eo_lit_teq,
+      eo_lit_not, SmtEval.smt_lit_not]
 
 @[simp] theorem push_assume_eq_cons_of_ne_stuck (A : Term) (s : CState) :
   A ≠ Term.Stuck ->
   __eo_push_assume A s = CState.cons (CStateObj.assume_push A) s :=
 by
   intro hA
-  simp [__eo_push_assume, __eo_push_assume_check, eo_is_ok_bool_eq_is_ok, __eo_is_ok,
+  simp [__eo_push_assume, __eo_push_assume_check, eo_is_bool_type_eq_is_ok, __eo_is_ok,
     hA, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
 
 @[simp] theorem push_assume_eq_stuck_of_eq_stuck (s : CState) :
   __eo_push_assume Term.Stuck s = CState.Stuck :=
 by
-  simp [__eo_push_assume, __eo_push_assume_check, eo_is_ok_bool_eq_is_ok, __eo_is_ok,
+  simp [__eo_push_assume, __eo_push_assume_check, eo_is_bool_type_eq_is_ok, __eo_is_ok,
     eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
 
 theorem assume_push_arg_ne_stuck_of_stateOk (A : Term) (s : CState) :
@@ -441,20 +442,20 @@ by
   __eo_push_proven P s = CState.cons (CStateObj.proven P) s :=
 by
   intro hP
-  simp [__eo_push_proven, __eo_push_proven_check, eo_is_ok_bool_eq_is_ok, __eo_is_ok,
+  simp [__eo_push_proven, __eo_push_proven_check, eo_is_bool_type_eq_is_ok, __eo_is_ok,
     hP, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
 
 @[simp] theorem push_proven_eq_stuck_of_eq_stuck (s : CState) :
   __eo_push_proven Term.Stuck s = CState.Stuck :=
 by
-  simp [__eo_push_proven, __eo_push_proven_check, eo_is_ok_bool_eq_is_ok, __eo_is_ok,
+  simp [__eo_push_proven, __eo_push_proven_check, eo_is_bool_type_eq_is_ok, __eo_is_ok,
     eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
 
 @[simp] theorem check_proven_guard_eq (F proven : Term) :
-  __eo_and (__eo_eq F proven) (__eo_is_ok_bool F) = __eo_eq F proven :=
+  __eo_and (__eo_eq F proven) (__eo_is_bool_type F) = __eo_eq F proven :=
 by
   cases F <;> cases proven <;>
-    simp [__eo_and, __eo_eq, eo_is_ok_bool_eq_is_ok, __eo_is_ok, eo_lit_teq, eo_lit_not,
+    simp [__eo_and, __eo_eq, eo_is_bool_type_eq_is_ok, __eo_is_ok, eo_lit_teq, eo_lit_not,
       SmtEval.smt_lit_not, SmtEval.smt_lit_and]
 
 @[simp] theorem invoke_cmd_check_proven_proven_eq_push_proven_check
