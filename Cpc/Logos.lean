@@ -366,6 +366,11 @@ partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
 partial def __eo_mk_binary (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (eo_lit_ite (eo_lit_zleq 0 w) (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w))) Term.Stuck)
 
+partial def __eo_is_bool_type : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
+
+
 partial def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
 
@@ -10062,8 +10067,13 @@ def __eo_state_is_closed : CState -> eo_lit_Bool
   | s => false
 
 
+def __eo_push_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume_push F) s)
+  | b, F, s => CState.Stuck
+
+
 def __eo_push_assume : Term -> CState -> CState
-  | F, s => (CState.cons (CStateObj.assume_push F) s)
+  | F, s => (__eo_push_assume_check (__eo_is_bool_type F) F s)
 
 
 def __eo_push_proven_check : Term -> Term -> CState -> CState
@@ -10072,7 +10082,7 @@ def __eo_push_proven_check : Term -> Term -> CState -> CState
 
 
 def __eo_push_proven : Term -> CState -> CState
-  | F, s => (__eo_push_proven_check (__eo_is_ok F) F s)
+  | F, s => (__eo_push_proven_check (__eo_is_bool_type F) F s)
 
 
 def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
