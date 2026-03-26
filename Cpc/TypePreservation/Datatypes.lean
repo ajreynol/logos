@@ -102,8 +102,8 @@ theorem dt_sel_counterexample_typeof :
     __smtx_typeof dt_sel_counterexample = SmtType.Datatype "R" dt_sel_counterexample_datatype := by
   simp [dt_sel_counterexample, dt_sel_counterexample_arg, dt_sel_counterexample_datatype,
     __smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, __smtx_typeof_dt_cons_rec,
-    __smtx_ret_typeof_sel, __smtx_dt_substitute, __smtx_dtc_substitute, smt_lit_ite,
-    smt_lit_Teq]
+    __smtx_ret_typeof_sel, __smtx_ret_typeof_sel_rec, __smtx_dt_substitute,
+    __smtx_dtc_substitute, smt_lit_ite, smt_lit_Teq]
 
 theorem dt_sel_counterexample_has_non_none_type :
     term_has_non_none_type dt_sel_counterexample := by
