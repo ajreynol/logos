@@ -366,8 +366,13 @@ def __eo_state_is_closed : CState -> eo_lit_Bool
   | s => false
 
 
+def __eo_push_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume_push F) s)
+  | b, F, s => CState.Stuck
+
+
 def __eo_push_assume : Term -> CState -> CState
-  | F, s => (CState.cons (CStateObj.assume_push F) s)
+  | F, s => (__eo_push_assume_check (__eo_is_ok_bool F) F s)
 
 
 def __eo_push_proven_check : Term -> Term -> CState -> CState
