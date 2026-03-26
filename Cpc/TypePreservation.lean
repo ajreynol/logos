@@ -30,10 +30,10 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_string M s
   | binary w n =>
       exact typeof_value_model_eval_binary M w n ht
-  | var s T =>
-      exact typeof_value_model_eval_var M hM s T
-  | uconst s T =>
-      exact typeof_value_model_eval_uconst M hM s T
+  | var s T hT =>
+      exact typeof_value_model_eval_var M hM s T hT
+  | uconst s T hT =>
+      exact typeof_value_model_eval_uconst M hM s T hT
   | re_allchar =>
       exact typeof_value_model_eval_re_allchar M
   | re_none =>
@@ -50,8 +50,8 @@ theorem supported_type_preservation
   | set_singleton ht1 hs1 =>
       exact typeof_value_model_eval_set_singleton M _ ht1
         (supported_type_preservation M hM _ ht1 hs1)
-  | seq_nth ht1 hs1 ht2 hs2 =>
-      exact typeof_value_model_eval_seq_nth M hM _ _ ht
+  | seq_nth ht1 hs1 ht2 hs2 hT =>
+      exact typeof_value_model_eval_seq_nth M hM _ _ ht hT
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
   | set_union ht1 hs1 ht2 hs2 =>
@@ -477,6 +477,16 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_sbv_to_int M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
 
+theorem supported_type_preservation_of_inhabited_type
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type t)
+    (hti : term_has_inhabited_type t)
+    (hs : supported_preservation_term t) :
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t :=
+  supported_type_preservation M hM t ht hs
+
 def preservation_counterexample_exists : SmtTerm :=
   SmtTerm.Apply (SmtTerm.exists "x" SmtType.Bool) (SmtTerm.Numeral 0)
 
@@ -513,18 +523,9 @@ theorem preservation_counterexample_exists_eval :
         SmtValue.Boolean false) = SmtType.Bool
   simp [hnot, __smtx_typeof_value]
 
-theorem no_total_typed_model :
-    ¬ ∃ M : SmtModel, model_total_typed M := by
-  intro h
-  rcases h with ⟨M, hM⟩
-  have hTy :
-      __smtx_typeof_value
-          (__smtx_model_lookup M "x" (SmtType.TypeRef "A")) =
-        SmtType.TypeRef "A" :=
-    hM "x" (SmtType.TypeRef "A")
-  exact
-    no_value_of_type_ref "A"
-      ⟨__smtx_model_lookup M "x" (SmtType.TypeRef "A"), hTy⟩
+theorem total_typed_model_nonvacuous :
+    ∃ M : SmtModel, model_total_typed M :=
+  exists_total_typed_model
 
 def preservation_counterexample_choice_type_ref : SmtTerm :=
   SmtTerm.Apply (SmtTerm.choice "x" (SmtType.TypeRef "A")) (SmtTerm.Boolean true)

@@ -10,8 +10,12 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | rational (q : smt_lit_Rat) : supported_preservation_term (SmtTerm.Rational q)
   | string (s : smt_lit_String) : supported_preservation_term (SmtTerm.String s)
   | binary (w n : smt_lit_Int) : supported_preservation_term (SmtTerm.Binary w n)
-  | var (s : smt_lit_String) (T : SmtType) : supported_preservation_term (SmtTerm.Var s T)
-  | uconst (s : smt_lit_String) (T : SmtType) : supported_preservation_term (SmtTerm.UConst s T)
+  | var (s : smt_lit_String) (T : SmtType)
+      (hT : type_inhabited T) :
+      supported_preservation_term (SmtTerm.Var s T)
+  | uconst (s : smt_lit_String) (T : SmtType)
+      (hT : type_inhabited T) :
+      supported_preservation_term (SmtTerm.UConst s T)
   | re_allchar : supported_preservation_term SmtTerm.re_allchar
   | re_none : supported_preservation_term SmtTerm.re_none
   | re_all : supported_preservation_term SmtTerm.re_all
@@ -29,7 +33,9 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
       (ht2 : term_has_non_none_type t2)
-      (hs2 : supported_preservation_term t2) :
+      (hs2 : supported_preservation_term t2)
+      (hT :
+        type_inhabited (__smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.seq_nth t1) t2))) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.seq_nth t1) t2)
   | set_union {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)

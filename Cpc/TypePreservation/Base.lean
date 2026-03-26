@@ -64,21 +64,23 @@ theorem typeof_value_model_eval_var
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : smt_lit_String)
-    (T : SmtType) :
+    (T : SmtType)
+    (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Var s T)) =
       __smtx_typeof (SmtTerm.Var s T) := by
   change __smtx_typeof_value (__smtx_model_lookup M s T) = T
-  exact hM s T
+  exact hM s T hT
 
 theorem typeof_value_model_eval_uconst
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : smt_lit_String)
-    (T : SmtType) :
+    (T : SmtType)
+    (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.UConst s T)) =
       __smtx_typeof (SmtTerm.UConst s T) := by
   change __smtx_typeof_value (__smtx_model_lookup M s T) = T
-  exact hM s T
+  exact hM s T hT
 
 theorem typeof_value_model_eval_re_allchar
     (M : SmtModel) :
