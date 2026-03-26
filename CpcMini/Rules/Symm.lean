@@ -67,6 +67,62 @@ by
   | _ =>
       exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
 
+theorem translatable___eo_prog_symm_impl (x1 : Term) :
+  RuleProofs.eo_has_bool_type x1 ->
+  __eo_prog_symm (Proof.pf x1) ≠ Term.Stuck ->
+  RuleProofs.eo_has_smt_translation (__eo_prog_symm (Proof.pf x1)) :=
+by
+  intro hXBool hProg
+  cases x1 with
+  | Apply f a =>
+      cases f with
+      | Apply g b =>
+          cases g with
+          | eq =>
+              have hEqBool :
+                  RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq b) a) := by
+                simpa using hXBool
+              have hSymmBool :
+                  RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq a) b) :=
+                RuleProofs.eo_has_bool_type_eq_symm b a hEqBool
+              simpa [__eo_prog_symm, __mk_symm] using
+                RuleProofs.eo_has_smt_translation_of_has_bool_type
+                  (Term.Apply (Term.Apply Term.eq a) b) hSymmBool
+          | _ =>
+              exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+      | not =>
+          cases a with
+          | Apply f2 a2 =>
+              cases f2 with
+              | Apply g2 b2 =>
+                  cases g2 with
+                  | eq =>
+                      have hInnerBool :
+                          RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq b2) a2) :=
+                        RuleProofs.eo_has_bool_type_not_arg
+                          (Term.Apply (Term.Apply Term.eq b2) a2) hXBool
+                      have hSymmEqBool :
+                          RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq a2) b2) :=
+                        RuleProofs.eo_has_bool_type_eq_symm b2 a2 hInnerBool
+                      have hSymmNotBool :
+                          RuleProofs.eo_has_bool_type
+                            (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq a2) b2)) :=
+                        RuleProofs.eo_has_bool_type_not_of_bool_arg
+                          (Term.Apply (Term.Apply Term.eq a2) b2) hSymmEqBool
+                      simpa [__eo_prog_symm, __mk_symm] using
+                        RuleProofs.eo_has_smt_translation_of_has_bool_type
+                          (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq a2) b2)) hSymmNotBool
+                  | _ =>
+                      exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+              | _ =>
+                  exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+          | _ =>
+              exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+      | _ =>
+          exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+  | _ =>
+      exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
+
 private theorem smt_value_rel_symm (v1 v2 : SmtValue) :
   RuleProofs.smt_value_rel v1 v2 -> RuleProofs.smt_value_rel v2 v1 := by
   cases v1 <;> cases v2 <;> simp [RuleProofs.smt_value_rel]

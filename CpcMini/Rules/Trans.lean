@@ -165,6 +165,72 @@ termination_by sizeOf tail
 decreasing_by
   simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
 
+private theorem typed_mk_trans_of_bool_chain (t1 t2 tail : Term) :
+    RuleProofs.eo_has_bool_type
+      (Term.Apply
+        (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2))
+        tail) ->
+    __mk_trans t1 t2 tail ≠ Term.Stuck ->
+    RuleProofs.eo_has_bool_type (__mk_trans t1 t2 tail) := by
+  intro hChainBool hProg
+  let eq12 := Term.Apply (Term.Apply Term.eq t1) t2
+  have hEq12Bool : RuleProofs.eo_has_bool_type eq12 := by
+    simpa [eq12] using RuleProofs.eo_has_bool_type_and_left eq12 tail hChainBool
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type t1 t2 hEq12Bool with
+    ⟨hTy12, hT1Ty⟩
+  have hT1NotStuck : t1 ≠ Term.Stuck :=
+    term_ne_stuck_of_smt_type_not_none t1 hT1Ty
+  have hT2Ty : __smtx_typeof (__eo_to_smt t2) ≠ SmtType.None := by
+    rwa [← hTy12]
+  have hT2NotStuck : t2 ≠ Term.Stuck :=
+    term_ne_stuck_of_smt_type_not_none t2 hT2Ty
+  rcases mk_trans_shape_of_not_stuck t1 t2 tail hT1NotStuck hT2NotStuck hProg with hTail
+  cases hTail with
+  | inl hBase =>
+      subst hBase
+      rw [mk_trans_base_eq t1 t2 hT1NotStuck hT2NotStuck]
+      exact hEq12Bool
+  | inr hStep =>
+      rcases hStep with ⟨t3, t4, tail', hTail⟩
+      subst hTail
+      let eq34 := Term.Apply (Term.Apply Term.eq t3) t4
+      have hTailBool :
+          RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.and eq34) tail') := by
+        simpa [eq12, eq34] using
+          RuleProofs.eo_has_bool_type_and_right eq12
+            (Term.Apply (Term.Apply Term.and eq34) tail') hChainBool
+      have hEq34Bool : RuleProofs.eo_has_bool_type eq34 := by
+        simpa [eq34] using
+          RuleProofs.eo_has_bool_type_and_left eq34 tail' hTailBool
+      have hRestBool : RuleProofs.eo_has_bool_type tail' := by
+        simpa [eq34] using
+          RuleProofs.eo_has_bool_type_and_right eq34 tail' hTailBool
+      have hReqNotStuck :
+          __eo_requires t2 t3 (__mk_trans t1 t4 tail') ≠ Term.Stuck := by
+        rw [← mk_trans_step_eq t1 t2 t3 t4 tail' hT1NotStuck hT2NotStuck]
+        exact hProg
+      rcases eo_requires_not_stuck t2 t3 (__mk_trans t1 t4 tail') hReqNotStuck with
+        ⟨h23, _hT2NotStuck, hRecNotStuck⟩
+      have hEq24Bool :
+          RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq t2) t4) := by
+        simpa [eq34, h23] using hEq34Bool
+      have hEq14Bool :
+          RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq t1) t4) :=
+        RuleProofs.eo_has_bool_type_eq_of_bool_chain t1 t2 t4 hEq12Bool hEq24Bool
+      have hCompressedBool :
+          RuleProofs.eo_has_bool_type
+            (Term.Apply
+              (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t4))
+              tail') :=
+        RuleProofs.eo_has_bool_type_and_of_bool_args
+          (Term.Apply (Term.Apply Term.eq t1) t4) tail' hEq14Bool hRestBool
+      rw [mk_trans_step_eq t1 t2 t3 t4 tail' hT1NotStuck hT2NotStuck]
+      rw [eo_requires_eq_of_eq_not_stuck t2 t3 (__mk_trans t1 t4 tail') h23 hT2NotStuck]
+      exact typed_mk_trans_of_bool_chain t1 t4 tail' hCompressedBool hRecNotStuck
+termination_by sizeOf tail
+decreasing_by
+  simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
+
 private theorem correct_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
     eo_interprets M
       (Term.Apply
@@ -251,6 +317,47 @@ by
                       | eq =>
                           simpa [__eo_prog_trans] using
                             typed_mk_trans M t1 t2 tail hX1True hProg
+                      | _ =>
+                          exact False.elim (hProg (by simp [__eo_prog_trans]))
+                  | _ =>
+                      exact False.elim (hProg (by simp [__eo_prog_trans]))
+              | _ =>
+                  exact False.elim (hProg (by simp [__eo_prog_trans]))
+          | _ =>
+              exact False.elim (hProg (by simp [__eo_prog_trans]))
+      | _ =>
+          exact False.elim (hProg (by simp [__eo_prog_trans]))
+  | _ =>
+      exact False.elim (hProg (by simp [__eo_prog_trans]))
+
+theorem translatable___eo_prog_trans_impl (x1 : Term) :
+  RuleProofs.eo_has_bool_type x1 ->
+  __eo_prog_trans (Proof.pf x1) ≠ Term.Stuck ->
+  RuleProofs.eo_has_smt_translation (__eo_prog_trans (Proof.pf x1)) := by
+  intro hX1Bool hProg
+  cases x1 with
+  | Apply f tail =>
+      cases f with
+      | Apply g eq12 =>
+          cases g with
+          | and =>
+              cases eq12 with
+              | Apply g2 t2 =>
+                  cases g2 with
+                  | Apply g3 t1 =>
+                      cases g3 with
+                      | eq =>
+                          have hPBool :
+                              RuleProofs.eo_has_bool_type
+                                (__eo_prog_trans
+                                  (Proof.pf
+                                    (Term.Apply
+                                      (Term.Apply Term.and
+                                        (Term.Apply (Term.Apply Term.eq t1) t2))
+                                      tail))) := by
+                            simpa [__eo_prog_trans] using
+                              typed_mk_trans_of_bool_chain t1 t2 tail hX1Bool hProg
+                          exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hPBool
                       | _ =>
                           exact False.elim (hProg (by simp [__eo_prog_trans]))
                   | _ =>

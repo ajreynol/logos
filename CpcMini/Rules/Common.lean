@@ -29,6 +29,14 @@ def eo_has_smt_translation (t : Term) : Prop :=
 def eo_has_bool_type (t : Term) : Prop :=
   __smtx_typeof (__eo_to_smt t) = SmtType.Bool
 
+theorem eo_has_smt_translation_true :
+  eo_has_smt_translation (Term.Boolean true) := by
+  simp [eo_has_smt_translation, __eo_to_smt, __smtx_typeof]
+
+theorem eo_has_bool_type_true :
+  eo_has_bool_type (Term.Boolean true) := by
+  simp [eo_has_bool_type, __eo_to_smt, __smtx_typeof]
+
 theorem eo_has_bool_type_of_interprets_true (M : SmtModel) (t : Term) :
   eo_interprets M t true ->
   eo_has_bool_type t := by
@@ -68,6 +76,62 @@ theorem eo_has_smt_translation_of_has_bool_type (t : Term) :
   rw [eo_has_bool_type] at hTy
   rw [hNone] at hTy
   cases hTy
+
+theorem term_ne_stuck_of_has_smt_translation (t : Term) :
+  eo_has_smt_translation t -> t ≠ Term.Stuck := by
+  intro hTy hStuck
+  subst hStuck
+  simp [eo_has_smt_translation, __eo_to_smt, __smtx_typeof] at hTy
+
+theorem eo_has_bool_type_and_of_bool_args (A B : Term) :
+  eo_has_bool_type A ->
+  eo_has_bool_type B ->
+  eo_has_bool_type (Term.Apply (Term.Apply Term.and A) B) := by
+  intro hA hB
+  unfold eo_has_bool_type at hA hB ⊢
+  simp [__eo_to_smt, __smtx_typeof, hA, hB, smt_lit_ite, smt_lit_Teq]
+
+theorem eo_has_bool_type_and_left (A B : Term) :
+  eo_has_bool_type (Term.Apply (Term.Apply Term.and A) B) ->
+  eo_has_bool_type A := by
+  intro hTy
+  by_cases hA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool
+  · simpa [eo_has_bool_type] using hA
+  · have : False := by
+      simp [eo_has_bool_type, __eo_to_smt, __smtx_typeof, hA,
+        smt_lit_ite, smt_lit_Teq] at hTy
+    exact False.elim this
+
+theorem eo_has_bool_type_and_right (A B : Term) :
+  eo_has_bool_type (Term.Apply (Term.Apply Term.and A) B) ->
+  eo_has_bool_type B := by
+  intro hTy
+  have hA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
+    exact eo_has_bool_type_and_left A B hTy
+  by_cases hB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool
+  · simpa [eo_has_bool_type] using hB
+  · have : False := by
+      simp [eo_has_bool_type, __eo_to_smt, __smtx_typeof, hA, hB,
+        smt_lit_ite, smt_lit_Teq] at hTy
+    exact False.elim this
+
+theorem eo_has_bool_type_not_of_bool_arg (t : Term) :
+  eo_has_bool_type t ->
+  eo_has_bool_type (Term.Apply Term.not t) := by
+  intro hTy
+  simpa [eo_has_bool_type, __eo_to_smt, __smtx_typeof, hTy,
+    smt_lit_ite, smt_lit_Teq]
+
+theorem eo_has_bool_type_not_arg (t : Term) :
+  eo_has_bool_type (Term.Apply Term.not t) ->
+  eo_has_bool_type t := by
+  intro hTy
+  by_cases hT : __smtx_typeof (__eo_to_smt t) = SmtType.Bool
+  · simpa [eo_has_bool_type] using hT
+  · have : False := by
+      simp [eo_has_bool_type, __eo_to_smt, __smtx_typeof, hT,
+        smt_lit_ite, smt_lit_Teq] at hTy
+    exact False.elim this
 
 theorem eo_interprets_of_bool_eval
     (M : SmtModel) (t : Term) (b : Bool) :
@@ -191,6 +255,50 @@ theorem smtx_typeof_eq_bool_iff (T U : SmtType) :
     · subst hEq
       simp [smt_lit_ite, smt_lit_Teq, hT]
     · simp [smt_lit_ite, smt_lit_Teq, hEq, hT]
+
+theorem eo_eq_operands_same_smt_type_of_has_bool_type (x y : Term) :
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq x) y) ->
+  __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) ∧
+    __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+  intro hTy
+  unfold eo_has_bool_type at hTy
+  simpa [__eo_to_smt, __smtx_typeof] using
+    (smtx_typeof_eq_bool_iff (__smtx_typeof (__eo_to_smt x))
+      (__smtx_typeof (__eo_to_smt y))).mp hTy
+
+theorem eo_has_bool_type_eq_of_same_smt_type (x y : Term) :
+  __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) ->
+  __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq x) y) := by
+  intro hTy hNonNone
+  unfold eo_has_bool_type
+  have hEqTy :
+      __smtx_typeof_eq (__smtx_typeof (__eo_to_smt x))
+        (__smtx_typeof (__eo_to_smt y)) = SmtType.Bool := by
+    exact (smtx_typeof_eq_bool_iff
+      (__smtx_typeof (__eo_to_smt x))
+      (__smtx_typeof (__eo_to_smt y))).mpr ⟨hTy, hNonNone⟩
+  simpa [__eo_to_smt, __smtx_typeof] using hEqTy
+
+theorem eo_has_bool_type_eq_symm (x y : Term) :
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq x) y) ->
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq y) x) := by
+  intro hTy
+  rcases eo_eq_operands_same_smt_type_of_has_bool_type x y hTy with ⟨hEq, hNonNone⟩
+  have hNonNone' : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
+    simpa [hEq] using hNonNone
+  exact eo_has_bool_type_eq_of_same_smt_type y x hEq.symm hNonNone'
+
+theorem eo_has_bool_type_eq_of_bool_chain (x y z : Term) :
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq x) y) ->
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq y) z) ->
+  eo_has_bool_type (Term.Apply (Term.Apply Term.eq x) z) := by
+  intro hXY hYZ
+  rcases eo_eq_operands_same_smt_type_of_has_bool_type x y hXY with ⟨hTyXY, hNonNone⟩
+  rcases eo_eq_operands_same_smt_type_of_has_bool_type y z hYZ with ⟨hTyYZ, _⟩
+  have hTyXZ : __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt z) := by
+    rw [hTyXY, hTyYZ]
+  exact eo_has_bool_type_eq_of_same_smt_type x z hTyXZ hNonNone
 
 theorem eo_eq_operands_same_smt_type (M : SmtModel) (x y : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->

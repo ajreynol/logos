@@ -746,6 +746,21 @@ by
             simpa [__eo_state_proven_nth, hZero] using
               ih (checkerTranslationInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
 
+theorem checkerEntry_has_bool_type_at :
+  forall {s : CState},
+    checkerTypeInvariant s ->
+    checkerTranslationInvariant s ->
+    forall n : eo_lit_Int,
+      RuleProofs.eo_has_bool_type (__eo_state_proven_nth s n)
+:=
+by
+  intro s hsTy hsTrans n
+  rcases checkerTypeInvariant_at hsTy n with ⟨_hNe, hTy⟩
+  have hTrans : RuleProofs.eo_has_smt_translation (__eo_state_proven_nth s n) :=
+    checkerTranslationInvariant_at hsTrans n
+  exact RuleProofs.eo_typeof_bool_implies_has_bool_type
+    (__eo_state_proven_nth s n) hTrans hTy
+
 theorem checkerLocalTruthInvariant_tail (M : SmtModel) :
   forall {so : CStateObj} {s : CState},
     checkerLocalTruthInvariant M (CState.cons so s) ->
@@ -2437,6 +2452,33 @@ by
       simp [__eo_mk_premise_list, premiseAndFormula, __eo_cons, __eo_requires, eo_lit_ite,
         eo_lit_teq, eo_lit_not, ih, premiseAndFormula_is_and_list, SmtEval.smt_lit_not]
 
+theorem premiseAndFormula_has_bool_type :
+  forall (s : CState) (premises : CIndexList),
+    checkerTypeInvariant s ->
+    checkerTranslationInvariant s ->
+    RuleProofs.eo_has_bool_type (premiseAndFormula s premises)
+:=
+by
+  intro s premises
+  induction premises with
+  | nil =>
+      intro hsTy hsTrans
+      simpa [premiseAndFormula] using RuleProofs.eo_has_bool_type_true
+  | cons n premises ih =>
+      intro hsTy hsTrans
+      apply RuleProofs.eo_has_bool_type_and_of_bool_args
+      · exact checkerEntry_has_bool_type_at hsTy hsTrans n
+      · exact ih hsTy hsTrans
+
+theorem mk_premise_list_and_has_bool_type (s : CState) (premises : CIndexList) :
+  checkerTypeInvariant s ->
+  checkerTranslationInvariant s ->
+  RuleProofs.eo_has_bool_type (__eo_mk_premise_list Term.and premises s) :=
+by
+  intro hsTy hsTrans
+  rw [mk_premise_list_and_eq_premiseAndFormula]
+  exact premiseAndFormula_has_bool_type s premises hsTy hsTrans
+
 theorem premiseAndFormula_true_of_truthInvariant (M : SmtModel) (s : CState) :
   forall (premises : CIndexList),
     checkerTruthInvariant M s ->
@@ -2754,6 +2796,97 @@ by
   · exact invoke_step_preserves_typeInvariant_of_nonstuck s hNotStuck
       r args premises (__eo_cmd_step_proven s r args premises) hs rfl hProg
 
+theorem cmd_step_proven_has_smt_translation
+    (s : CState)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTypeInvariant s ->
+  checkerTranslationInvariant s ->
+  cmdTranslationOk (CCmd.step r args premises) ->
+  __eo_cmd_step_proven s r args premises ≠ Term.Stuck ->
+  RuleProofs.eo_has_smt_translation (__eo_cmd_step_proven s r args premises) :=
+by
+  intro hsTy hsTrans hCmdTrans hProg
+  cases r with
+  | scope =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | contra =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons n1 premises =>
+              cases premises with
+              | nil =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+              | cons n2 premises =>
+                  cases premises with
+                  | nil =>
+                      let X1 := __eo_state_proven_nth s n1
+                      let X2 := __eo_state_proven_nth s n2
+                      let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
+                      have hX1Bool : RuleProofs.eo_has_bool_type X1 :=
+                        checkerEntry_has_bool_type_at hsTy hsTrans n1
+                      have hX2Bool : RuleProofs.eo_has_bool_type X2 :=
+                        checkerEntry_has_bool_type_at hsTy hsTrans n2
+                      simpa [P, X1, X2, __eo_cmd_step_proven] using
+                        translatable___eo_prog_contra_impl X1 X2 hX1Bool hX2Bool
+                          (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
+                  | cons n3 premises =>
+                      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | refl =>
+      cases args with
+      | nil =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a1 args =>
+          cases args with
+          | nil =>
+              cases premises with
+              | nil =>
+                  have hATrans : RuleProofs.eo_has_smt_translation a1 := by
+                    simpa [cmdTranslationOk] using hCmdTrans
+                  simpa [__eo_cmd_step_proven] using
+                    translatable___eo_prog_refl_impl a1 hATrans
+                      (by simpa [__eo_cmd_step_proven] using hProg)
+              | cons n ns =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons a2 args =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | symm =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons n1 premises =>
+              cases premises with
+              | nil =>
+                  let X := __eo_state_proven_nth s n1
+                  let P := __eo_prog_symm (Proof.pf X)
+                  have hXBool : RuleProofs.eo_has_bool_type X :=
+                    checkerEntry_has_bool_type_at hsTy hsTrans n1
+                  simpa [P, X, __eo_cmd_step_proven] using
+                    translatable___eo_prog_symm_impl X hXBool
+                      (by simpa [P, X, __eo_cmd_step_proven] using hProg)
+              | cons n2 premises =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | trans =>
+      cases args with
+      | nil =>
+          let X := __eo_mk_premise_list Term.and premises s
+          let P := __eo_prog_trans (Proof.pf X)
+          have hXBool : RuleProofs.eo_has_bool_type X :=
+            mk_premise_list_and_has_bool_type s premises hsTy hsTrans
+          simpa [P, X, __eo_cmd_step_proven] using
+            translatable___eo_prog_trans_impl X hXBool
+              (by simpa [P, X, __eo_cmd_step_proven] using hProg)
+      | cons a args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
 theorem invoke_step_preserves_translationInvariant
     (M : SmtModel) (_hM : smt_model_well_typed M)
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
@@ -2764,7 +2897,27 @@ theorem invoke_step_preserves_translationInvariant
   cmdTranslationOk (CCmd.step r args premises) ->
   checkerTranslationInvariant (__eo_invoke_cmd s (CCmd.step r args premises)) :=
 by
-  sorry
+  intro _hs hsTy hsTrans hCmdTrans
+  by_cases hProg : __eo_cmd_step_proven s r args premises = Term.Stuck
+  · have hStuck :
+        __eo_invoke_cmd s (CCmd.step r args premises) = CState.Stuck :=
+      invoke_step_eq_stuck_of_nonstuck s hNotStuck r args premises hProg
+    simpa [hStuck] using checkerTranslationInvariant_stuck
+  · have hPTrans :
+        RuleProofs.eo_has_smt_translation (__eo_cmd_step_proven s r args premises) :=
+      cmd_step_proven_has_smt_translation s r args premises hsTy hsTrans hCmdTrans hProg
+    have hPost :
+        __eo_invoke_cmd s (CCmd.step r args premises) =
+          CState.cons (CStateObj.proven (__eo_cmd_step_proven s r args premises)) s :=
+      invoke_step_eq_cons_of_nonstuck s hNotStuck r args premises
+        (__eo_cmd_step_proven s r args premises) rfl hProg
+    have hPush :
+        checkerTranslationInvariant
+          (__eo_push_proven (__eo_cmd_step_proven s r args premises) s) :=
+      push_proven_preserves_translationInvariant s
+        (__eo_cmd_step_proven s r args premises) hsTrans hPTrans
+    rw [push_proven_eq_cons_of_ne_stuck (__eo_cmd_step_proven s r args premises) s hProg] at hPush
+    simpa [hPost] using hPush
 
 theorem cmd_step_pop_proven_has_smt_translation
     (root tail : CState) (A : Term)
