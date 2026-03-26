@@ -18,6 +18,11 @@ theorem typeof_extract_eq
     __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3) =
       __smtx_typeof_extract t1 t2 (__smtx_typeof t3) := rfl
 
+theorem typeof_repeat_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2) =
+      __smtx_typeof_repeat t1 (__smtx_typeof t2) := rfl
+
 theorem typeof_zero_extend_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2) =
@@ -27,6 +32,16 @@ theorem typeof_sign_extend_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2) =
       __smtx_typeof_sign_extend t1 (__smtx_typeof t2) := rfl
+
+theorem typeof_rotate_left_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left t1) t2) =
+      __smtx_typeof_rotate_left t1 (__smtx_typeof t2) := rfl
+
+theorem typeof_rotate_right_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right t1) t2) =
+      __smtx_typeof_rotate_right t1 (__smtx_typeof t2) := rfl
 
 theorem typeof_int_to_bv_eq
     (t1 t2 : SmtTerm) :
@@ -93,6 +108,31 @@ theorem extract_args_of_non_none
   | _ =>
       simp [__smtx_typeof_extract] at ht'
 
+theorem repeat_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2)) :
+    ∃ i w : smt_lit_Int,
+      t1 = SmtTerm.Numeral i ∧
+        __smtx_typeof t2 = SmtType.BitVec w ∧
+        smt_lit_zleq 1 i = true := by
+  have ht' : __smtx_typeof_repeat t1 (__smtx_typeof t2) ≠ SmtType.None := by
+    rw [← typeof_repeat_eq t1 t2]
+    exact ht
+  cases t1 with
+  | Numeral i =>
+      cases h2 : __smtx_typeof t2 with
+      | BitVec w =>
+          by_cases hi1 : smt_lit_zleq 1 i = true
+          · exact ⟨i, w, rfl, rfl, hi1⟩
+          · exfalso
+            exact ht' (by
+              simp [__smtx_typeof_repeat, smt_lit_ite, h2, hi1])
+      | _ =>
+          simp [__smtx_typeof_repeat, h2] at ht'
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof_repeat, h2] at ht'
+
 theorem zero_extend_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2)) :
@@ -142,6 +182,56 @@ theorem sign_extend_args_of_non_none
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
         simp [__smtx_typeof_sign_extend, h2] at ht'
+
+theorem rotate_left_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left t1) t2)) :
+    ∃ i w : smt_lit_Int,
+      t1 = SmtTerm.Numeral i ∧
+        __smtx_typeof t2 = SmtType.BitVec w ∧
+        smt_lit_zleq 0 i = true := by
+  have ht' : __smtx_typeof_rotate_left t1 (__smtx_typeof t2) ≠ SmtType.None := by
+    rw [← typeof_rotate_left_eq t1 t2]
+    exact ht
+  cases t1 with
+  | Numeral i =>
+      cases h2 : __smtx_typeof t2 with
+      | BitVec w =>
+          by_cases hi0 : smt_lit_zleq 0 i = true
+          · exact ⟨i, w, rfl, rfl, hi0⟩
+          · exfalso
+            exact ht' (by
+              simp [__smtx_typeof_rotate_left, smt_lit_ite, h2, hi0])
+      | _ =>
+          simp [__smtx_typeof_rotate_left, h2] at ht'
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof_rotate_left, h2] at ht'
+
+theorem rotate_right_args_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right t1) t2)) :
+    ∃ i w : smt_lit_Int,
+      t1 = SmtTerm.Numeral i ∧
+        __smtx_typeof t2 = SmtType.BitVec w ∧
+        smt_lit_zleq 0 i = true := by
+  have ht' : __smtx_typeof_rotate_right t1 (__smtx_typeof t2) ≠ SmtType.None := by
+    rw [← typeof_rotate_right_eq t1 t2]
+    exact ht
+  cases t1 with
+  | Numeral i =>
+      cases h2 : __smtx_typeof t2 with
+      | BitVec w =>
+          by_cases hi0 : smt_lit_zleq 0 i = true
+          · exact ⟨i, w, rfl, rfl, hi0⟩
+          · exfalso
+            exact ht' (by
+              simp [__smtx_typeof_rotate_right, smt_lit_ite, h2, hi0])
+      | _ =>
+          simp [__smtx_typeof_rotate_right, h2] at ht'
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof_rotate_right, h2] at ht'
 
 theorem int_to_bv_args_of_non_none
     {t1 t2 : SmtTerm}

@@ -618,6 +618,48 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvlshr t1) t2)
+  | repeat {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2)
+  | bvsdiv {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdiv t1) t2)
+  | bvsrem {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsrem t1) t2)
+  | bvsmod {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsmod t1) t2)
+  | bvashr {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvashr t1) t2)
+  | rotate_left {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left t1) t2)
+  | rotate_right {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right t1) t2)
   | bvuaddo {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
@@ -652,6 +694,18 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo t1) t2)
+  | bvssubo {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo t1) t2)
+  | bvsdivo {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2) :
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo t1) t2)
   | zero_extend {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)

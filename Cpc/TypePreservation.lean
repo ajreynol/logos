@@ -437,6 +437,32 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_bvlshr M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
+  | repeat ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_repeat M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | bvsdiv ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_bvsdiv M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | bvsrem ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_bvsrem M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | bvsmod ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_bvsmod M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | bvashr ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_bvashr M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | rotate_left ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_rotate_left M _ _ ht
+        (supported_type_preservation M hM _ ht2 hs2)
+  | rotate_right ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_rotate_right M _ _ ht
+        (supported_type_preservation M hM _ ht2 hs2)
   | bvuaddo ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_bvuaddo M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -458,6 +484,14 @@ theorem supported_type_preservation
         (supported_type_preservation M hM _ ht2 hs2)
   | bvusubo ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_bvusubo M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | bvssubo ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_bvssubo M _ _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
+  | bvsdivo ht1 hs1 ht2 hs2 =>
+      exact typeof_value_model_eval_bvsdivo M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
   | zero_extend ht1 hs1 ht2 hs2 =>
