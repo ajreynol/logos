@@ -8,8 +8,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-set_option allowUnsafeReducibility true
-attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
@@ -484,7 +482,8 @@ theorem supported_type_preservation
         (supported_type_preservation M hM _ htx hsx)
   | dt_tester s d i x =>
       exact typeof_value_model_eval_dt_tester M s d i x ht
-  | apply (f := f) (x := x) hTy htf hsf htx hsx =>
+  | apply hTy htf hsf htx hsx =>
+      rename_i f x
       have hNN : __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
         intro hNone
         apply ht
@@ -550,8 +549,18 @@ def preservation_counterexample_choice_type_ref : SmtTerm :=
 
 theorem preservation_counterexample_choice_type_ref_typeof :
     __smtx_typeof preservation_counterexample_choice_type_ref = SmtType.None := by
-  simp [preservation_counterexample_choice_type_ref, __smtx_typeof, smt_lit_ite, smt_lit_Teq,
-    no_value_of_type_ref]
+  unfold preservation_counterexample_choice_type_ref
+  by_cases hEq :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.choice "x" (SmtType.TypeRef "A")) (SmtTerm.Boolean true)) =
+        SmtType.None
+  · simpa using hEq
+  · exfalso
+    have ht :
+        term_has_non_none_type
+          (SmtTerm.Apply (SmtTerm.choice "x" (SmtType.TypeRef "A")) (SmtTerm.Boolean true)) := by
+      simpa [term_has_non_none_type] using hEq
+    have hWitness := choice_term_has_witness ht
+    exact no_value_of_type_ref "A" hWitness
 
 theorem preservation_counterexample_choice_type_ref_excluded :
     ¬ term_has_non_none_type preservation_counterexample_choice_type_ref := by

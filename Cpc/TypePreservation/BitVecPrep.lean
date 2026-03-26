@@ -5,9 +5,33 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 set_option allowUnsafeReducibility true
-attribute [local reducible] __smtx_typeof
 
 namespace Smtm
+
+theorem typeof_concat_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat t1) t2) =
+      __smtx_typeof_concat (__smtx_typeof t1) (__smtx_typeof t2) := rfl
+
+theorem typeof_extract_eq
+    (t1 t2 t3 : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3) =
+      __smtx_typeof_extract t1 t2 (__smtx_typeof t3) := rfl
+
+theorem typeof_zero_extend_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2) =
+      __smtx_typeof_zero_extend t1 (__smtx_typeof t2) := rfl
+
+theorem typeof_sign_extend_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2) =
+      __smtx_typeof_sign_extend t1 (__smtx_typeof t2) := rfl
+
+theorem typeof_int_to_bv_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2) =
+      __smtx_typeof_int_to_bv t1 (__smtx_typeof t2) := rfl
 
 theorem bv_concat_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -15,17 +39,19 @@ theorem bv_concat_args_of_non_none
     ∃ w1 w2 : smt_lit_Int,
       __smtx_typeof t1 = SmtType.BitVec w1 ∧
         __smtx_typeof t2 = SmtType.BitVec w2 := by
-  unfold term_has_non_none_type at ht
+  have ht' : __smtx_typeof_concat (__smtx_typeof t1) (__smtx_typeof t2) ≠ SmtType.None := by
+    rw [← typeof_concat_eq t1 t2]
+    exact ht
   cases h1 : __smtx_typeof t1 with
   | BitVec w1 =>
       cases h2 : __smtx_typeof t2 with
       | BitVec w2 =>
           exact ⟨w1, w2, rfl, rfl⟩
       | _ =>
-          simp [__smtx_typeof, __smtx_typeof_concat, h1, h2] at ht
+          simp [__smtx_typeof_concat, h1, h2] at ht'
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof, __smtx_typeof_concat, h1, h2] at ht
+        simp [__smtx_typeof_concat, h1, h2] at ht'
 
 theorem extract_args_of_non_none
     {t1 t2 t3 : SmtTerm}
@@ -38,24 +64,34 @@ theorem extract_args_of_non_none
         smt_lit_zleq 0 j = true ∧
         smt_lit_zleq j i = true ∧
         smt_lit_zlt i w = true := by
-  unfold term_has_non_none_type at ht
-  cases t1 <;> cases t2 <;> cases h3 : __smtx_typeof t3 <;>
-    simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h3] at ht
-  case Numeral.Numeral i j =>
-    rename_i i j w
-    by_cases hj0 : smt_lit_zleq 0 j = true
-    · by_cases hji : smt_lit_zleq j i = true
-      · by_cases hiw : smt_lit_zlt i w = true
-        · exact ⟨i, j, w, rfl, rfl, h3, hj0, hji, hiw⟩
-        · exfalso
-          exact ht (by
-            simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h3, hj0, hji, hiw])
-      · exfalso
-        exact ht (by
-          simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h3, hj0, hji])
-    · exfalso
-      exact ht (by
-        simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h3, hj0])
+  have ht' : __smtx_typeof_extract t1 t2 (__smtx_typeof t3) ≠ SmtType.None := by
+    rw [← typeof_extract_eq t1 t2 t3]
+    exact ht
+  cases t1 with
+  | Numeral i =>
+      cases t2 with
+      | Numeral j =>
+          cases h3 : __smtx_typeof t3 with
+          | BitVec w =>
+              by_cases hj0 : smt_lit_zleq 0 j = true
+              · by_cases hji : smt_lit_zleq j i = true
+                · by_cases hiw : smt_lit_zlt i w = true
+                  · exact ⟨i, j, w, rfl, rfl, rfl, hj0, hji, hiw⟩
+                  · exfalso
+                    exact ht' (by
+                      simp [__smtx_typeof_extract, smt_lit_ite, h3, hj0, hji, hiw])
+                · exfalso
+                  exact ht' (by
+                    simp [__smtx_typeof_extract, smt_lit_ite, h3, hj0, hji])
+              · exfalso
+                exact ht' (by
+                  simp [__smtx_typeof_extract, smt_lit_ite, h3, hj0])
+          | _ =>
+              simp [__smtx_typeof_extract, smt_lit_ite, h3] at ht'
+      | _ =>
+          simp [__smtx_typeof_extract] at ht'
+  | _ =>
+      simp [__smtx_typeof_extract] at ht'
 
 theorem zero_extend_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -64,16 +100,23 @@ theorem zero_extend_args_of_non_none
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
         smt_lit_zleq 0 i = true := by
-  unfold term_has_non_none_type at ht
-  cases t1 <;> cases h2 : __smtx_typeof t2 <;>
-    simp [__smtx_typeof, __smtx_typeof_zero_extend, smt_lit_ite, h2] at ht
-  case Numeral.Numeral i =>
-    rename_i i w
-    by_cases hi0 : smt_lit_zleq 0 i = true
-    · exact ⟨i, w, rfl, h2, hi0⟩
-    · exfalso
-      exact ht (by
-        simp [__smtx_typeof, __smtx_typeof_zero_extend, smt_lit_ite, h2, hi0])
+  have ht' : __smtx_typeof_zero_extend t1 (__smtx_typeof t2) ≠ SmtType.None := by
+    rw [← typeof_zero_extend_eq t1 t2]
+    exact ht
+  cases t1 with
+  | Numeral i =>
+      cases h2 : __smtx_typeof t2 with
+      | BitVec w =>
+          by_cases hi0 : smt_lit_zleq 0 i = true
+          · exact ⟨i, w, rfl, rfl, hi0⟩
+          · exfalso
+            exact ht' (by
+              simp [__smtx_typeof_zero_extend, smt_lit_ite, h2, hi0])
+      | _ =>
+          simp [__smtx_typeof_zero_extend, h2] at ht'
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof_zero_extend, h2] at ht'
 
 theorem sign_extend_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -82,16 +125,23 @@ theorem sign_extend_args_of_non_none
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
         smt_lit_zleq 0 i = true := by
-  unfold term_has_non_none_type at ht
-  cases t1 <;> cases h2 : __smtx_typeof t2 <;>
-    simp [__smtx_typeof, __smtx_typeof_sign_extend, smt_lit_ite, h2] at ht
-  case Numeral.Numeral i =>
-    rename_i i w
-    by_cases hi0 : smt_lit_zleq 0 i = true
-    · exact ⟨i, w, rfl, h2, hi0⟩
-    · exfalso
-      exact ht (by
-        simp [__smtx_typeof, __smtx_typeof_sign_extend, smt_lit_ite, h2, hi0])
+  have ht' : __smtx_typeof_sign_extend t1 (__smtx_typeof t2) ≠ SmtType.None := by
+    rw [← typeof_sign_extend_eq t1 t2]
+    exact ht
+  cases t1 with
+  | Numeral i =>
+      cases h2 : __smtx_typeof t2 with
+      | BitVec w =>
+          by_cases hi0 : smt_lit_zleq 0 i = true
+          · exact ⟨i, w, rfl, rfl, hi0⟩
+          · exfalso
+            exact ht' (by
+              simp [__smtx_typeof_sign_extend, smt_lit_ite, h2, hi0])
+      | _ =>
+          simp [__smtx_typeof_sign_extend, h2] at ht'
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof_sign_extend, h2] at ht'
 
 theorem int_to_bv_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -100,15 +150,23 @@ theorem int_to_bv_args_of_non_none
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.Int ∧
         smt_lit_zleq 0 i = true := by
-  unfold term_has_non_none_type at ht
-  cases t1 <;> cases h2 : __smtx_typeof t2 <;>
-    simp [__smtx_typeof, __smtx_typeof_int_to_bv, smt_lit_ite, h2] at ht
-  case Numeral.Numeral i =>
-    by_cases hi0 : smt_lit_zleq 0 i = true
-    · exact ⟨i, rfl, h2, hi0⟩
-    · exfalso
-      exact ht (by
-        simp [__smtx_typeof, __smtx_typeof_int_to_bv, smt_lit_ite, h2, hi0])
+  have ht' : __smtx_typeof_int_to_bv t1 (__smtx_typeof t2) ≠ SmtType.None := by
+    rw [← typeof_int_to_bv_eq t1 t2]
+    exact ht
+  cases t1 with
+  | Numeral i =>
+      cases h2 : __smtx_typeof t2 with
+      | Int =>
+          by_cases hi0 : smt_lit_zleq 0 i = true
+          · exact ⟨i, rfl, rfl, hi0⟩
+          · exfalso
+            exact ht' (by
+              simp [__smtx_typeof_int_to_bv, smt_lit_ite, h2, hi0])
+      | _ =>
+          simp [__smtx_typeof_int_to_bv, h2] at ht'
+  | _ =>
+      cases h2 : __smtx_typeof t2 <;>
+        simp [__smtx_typeof_int_to_bv, h2] at ht'
 
 theorem bv_unop_arg_of_non_none
     {op t : SmtTerm}

@@ -53,11 +53,15 @@ theorem typeof_value_model_eval_extract
         (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3)) =
       __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3) := by
   rcases extract_args_of_non_none ht with ⟨i, j, w, h1, h2, h3, hj0, hji, hiw⟩
+  have hWidthEq :
+      smt_lit_zplus (smt_lit_zplus i (smt_lit_zneg j)) 1 =
+        smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j) := by
+    simp [SmtEval.smt_lit_zplus, SmtEval.smt_lit_zneg, Int.add_assoc, Int.add_comm, Int.add_left_comm]
   rw [show __smtx_typeof
       (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract t1) t2) t3) =
         SmtType.BitVec (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j)) by
-    simp [__smtx_typeof, __smtx_typeof_extract, smt_lit_ite, h1, h2, h3, hj0, hji, hiw,
-      SmtEval.smt_lit_zplus, SmtEval.smt_lit_zneg, add_assoc, add_comm, add_left_comm]]
+    rw [typeof_extract_eq, h1, h2, h3]
+    simp [__smtx_typeof_extract, smt_lit_ite, hj0, hji, hiw, hWidthEq]]
   change __smtx_typeof_value
       (__smtx_model_eval_extract (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) =
@@ -72,12 +76,13 @@ theorem typeof_value_model_eval_extract
   have hji' : j <= i := by
     simpa [SmtEval.smt_lit_zleq] using hji
   have hWidthInt : 0 <= (i + 1) + -j := by
-    have hsub : 0 <= i - j := sub_nonneg.mpr hji'
+    have hsub : 0 <= i - j := (Int.sub_nonneg).2 hji'
     have hWidth' : 0 <= (i - j) + 1 := Int.add_nonneg hsub (by decide)
-    simpa [sub_eq_add_neg, add_assoc, add_comm, add_left_comm] using hWidth'
+    simpa [Int.sub_eq_add_neg, Int.add_assoc, Int.add_comm, Int.add_left_comm] using hWidth'
   have hWidth : smt_lit_zleq 0 (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j)) = true := by
-    simpa [SmtEval.smt_lit_zleq, SmtEval.smt_lit_zplus, SmtEval.smt_lit_zneg,
-      add_assoc, add_comm, add_left_comm] using hWidthInt
+    have hWidthInt' : 0 <= smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j) := by
+      simpa [SmtEval.smt_lit_zplus, SmtEval.smt_lit_zneg] using hWidthInt
+    simpa [SmtEval.smt_lit_zleq] using hWidthInt'
   simpa [__smtx_model_eval_extract] using
     typeof_value_binary_of_nonneg (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j))
       (smt_lit_mod_total (smt_lit_binary_extract w n i j)
