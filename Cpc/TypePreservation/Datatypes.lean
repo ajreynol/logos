@@ -46,6 +46,167 @@ theorem typeof_value_model_eval_dt_cons
   exact typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec (SmtType.Datatype s d)
     (__smtx_dt_substitute s d d) i
 
+def dt_cons_type_num_args : SmtType -> Nat
+  | SmtType.DtConsType _ U => Nat.succ (dt_cons_type_num_args U)
+  | _ => 0
+
+def dt_cons_applied_type_rec
+    (s : smt_lit_String)
+    (d0 : SmtDatatype) :
+    SmtDatatype -> Nat -> Nat -> SmtType
+  | d, i, 0 => __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d i
+  | SmtDatatype.sum (SmtDatatypeCons.cons _ c) d, 0, Nat.succ n =>
+      dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d) 0 n
+  | SmtDatatype.sum c d, Nat.succ i, n =>
+      dt_cons_applied_type_rec s d0 d i n
+  | _, _, _ => SmtType.None
+
+theorem dt_cons_type_num_args_typeof_dt_cons_value_rec
+    (s : smt_lit_String)
+    (d0 : SmtDatatype) :
+    ∀ d i,
+      dt_cons_type_num_args (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d i) =
+        __smtx_dt_num_sels d i
+  | SmtDatatype.null, i => by
+      cases i <;>
+        simp [dt_cons_type_num_args, __smtx_typeof_dt_cons_value_rec, __smtx_dt_num_sels]
+  | SmtDatatype.sum SmtDatatypeCons.unit d, 0 => by
+      simp [dt_cons_type_num_args, __smtx_typeof_dt_cons_value_rec, __smtx_dt_num_sels,
+        __smtx_dtc_num_sels]
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, 0 => by
+      simp [dt_cons_type_num_args, __smtx_typeof_dt_cons_value_rec, __smtx_dt_num_sels,
+        __smtx_dtc_num_sels,
+        dt_cons_type_num_args_typeof_dt_cons_value_rec s d0 (SmtDatatype.sum c d) 0]
+  | SmtDatatype.sum c d, Nat.succ i => by
+      simp [__smtx_typeof_dt_cons_value_rec, __smtx_dt_num_sels,
+        dt_cons_type_num_args_typeof_dt_cons_value_rec s d0 d i]
+
+theorem dt_cons_type_num_args_dt_cons_applied_type_rec
+    (s : smt_lit_String)
+    (d0 : SmtDatatype) :
+    ∀ d i n,
+      dt_cons_type_num_args (dt_cons_applied_type_rec s d0 d i n) = __smtx_dt_num_sels d i - n
+  | d, i, 0 => by
+      simp [dt_cons_applied_type_rec, dt_cons_type_num_args_typeof_dt_cons_value_rec]
+  | SmtDatatype.null, i, Nat.succ n => by
+      cases i <;>
+        simp [dt_cons_applied_type_rec, dt_cons_type_num_args, __smtx_dt_num_sels]
+  | SmtDatatype.sum SmtDatatypeCons.unit d, 0, Nat.succ n => by
+      simp [dt_cons_applied_type_rec, dt_cons_type_num_args, __smtx_dt_num_sels,
+        __smtx_dtc_num_sels]
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, 0, Nat.succ n => by
+      have ih := dt_cons_type_num_args_dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d) 0 n
+      simpa [dt_cons_applied_type_rec, __smtx_dt_num_sels, __smtx_dtc_num_sels] using ih
+  | SmtDatatype.sum c d, Nat.succ i, n => by
+      cases n with
+      | zero =>
+          simp [dt_cons_applied_type_rec, dt_cons_type_num_args_typeof_dt_cons_value_rec,
+            __smtx_dt_num_sels]
+      | succ n =>
+          have ih := dt_cons_type_num_args_dt_cons_applied_type_rec s d0 d i (Nat.succ n)
+          simpa [dt_cons_applied_type_rec, __smtx_dt_num_sels] using ih
+
+theorem dt_cons_applied_type_rec_step
+    (s : smt_lit_String)
+    (d0 : SmtDatatype) :
+    ∀ d i n,
+      n < __smtx_dt_num_sels d i ->
+      dt_cons_applied_type_rec s d0 d i n =
+        SmtType.DtConsType (__smtx_ret_typeof_sel_rec d i n) (dt_cons_applied_type_rec s d0 d i (Nat.succ n))
+  | SmtDatatype.null, i, n, hlt => by
+      cases i <;> simp [__smtx_dt_num_sels] at hlt
+  | SmtDatatype.sum SmtDatatypeCons.unit d, 0, n, hlt => by
+      simp [__smtx_dt_num_sels, __smtx_dtc_num_sels] at hlt
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, 0, 0, hlt => by
+      simp [dt_cons_applied_type_rec, __smtx_ret_typeof_sel_rec, __smtx_typeof_dt_cons_value_rec]
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, 0, Nat.succ n, hlt => by
+      have hlt' : n < __smtx_dt_num_sels (SmtDatatype.sum c d) 0 := by
+        simpa [__smtx_dt_num_sels, __smtx_dtc_num_sels] using hlt
+      simpa [dt_cons_applied_type_rec, __smtx_ret_typeof_sel_rec] using
+        dt_cons_applied_type_rec_step s d0 (SmtDatatype.sum c d) 0 n hlt'
+  | SmtDatatype.sum c d, Nat.succ i, n, hlt => by
+      have hlt' : n < __smtx_dt_num_sels d i := by
+        simpa [__smtx_dt_num_sels] using hlt
+      cases n with
+      | zero =>
+          simpa [dt_cons_applied_type_rec, __smtx_typeof_dt_cons_value_rec,
+            __smtx_ret_typeof_sel_rec] using
+            dt_cons_applied_type_rec_step s d0 d i 0 hlt'
+      | succ n =>
+          simpa [dt_cons_applied_type_rec, __smtx_ret_typeof_sel_rec] using
+            dt_cons_applied_type_rec_step s d0 d i (Nat.succ n) hlt'
+
+theorem dt_cons_applied_type_rec_non_none_implies_le
+    (s : smt_lit_String)
+    (d0 : SmtDatatype) :
+    ∀ d i n,
+      dt_cons_applied_type_rec s d0 d i n ≠ SmtType.None ->
+      n ≤ __smtx_dt_num_sels d i
+  | d, i, 0, h => by
+      simp
+  | SmtDatatype.null, i, Nat.succ n, h => by
+      cases i <;> simp [dt_cons_applied_type_rec] at h
+  | SmtDatatype.sum SmtDatatypeCons.unit d, 0, Nat.succ n, h => by
+      simp [dt_cons_applied_type_rec] at h
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, 0, Nat.succ n, h => by
+      have ih := dt_cons_applied_type_rec_non_none_implies_le s d0 (SmtDatatype.sum c d) 0 n
+      have h' : dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d) 0 n ≠ SmtType.None := by
+        simpa [dt_cons_applied_type_rec] using h
+      have hle : n ≤ __smtx_dt_num_sels (SmtDatatype.sum c d) 0 := ih h'
+      simpa [__smtx_dt_num_sels, __smtx_dtc_num_sels] using Nat.succ_le_succ hle
+  | SmtDatatype.sum c d, Nat.succ i, n, h => by
+      cases n with
+      | zero =>
+          simp [__smtx_dt_num_sels]
+      | succ n =>
+          have ih := dt_cons_applied_type_rec_non_none_implies_le s d0 d i (Nat.succ n)
+          have h' : dt_cons_applied_type_rec s d0 d i (Nat.succ n) ≠ SmtType.None := by
+            simpa [dt_cons_applied_type_rec] using h
+          have hle : Nat.succ n ≤ __smtx_dt_num_sels d i := ih h'
+          simpa [__smtx_dt_num_sels] using hle
+
+theorem dt_cons_applied_type_rec_eq_bare_type_implies_zero
+    {s : smt_lit_String}
+    {d0 : SmtDatatype}
+    {i n : Nat}
+    (hEq :
+      __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) (__smtx_dt_substitute s d0 d0) i =
+        dt_cons_applied_type_rec s d0 (__smtx_dt_substitute s d0 d0) i n)
+    (hNN : dt_cons_applied_type_rec s d0 (__smtx_dt_substitute s d0 d0) i n ≠ SmtType.None) :
+    n = 0 := by
+  have hArgs := congrArg dt_cons_type_num_args hEq
+  rw [dt_cons_type_num_args_typeof_dt_cons_value_rec,
+    dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+  have hle :
+      n ≤ __smtx_dt_num_sels (__smtx_dt_substitute s d0 d0) i :=
+    dt_cons_applied_type_rec_non_none_implies_le s d0 (__smtx_dt_substitute s d0 d0) i n hNN
+  omega
+
+theorem dt_sel_arg_datatype_of_non_none
+    {s : smt_lit_String}
+    {d : SmtDatatype}
+    {i j : smt_lit_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :
+    __smtx_typeof x = SmtType.Datatype s d := by
+  unfold term_has_non_none_type at ht
+  cases h : __smtx_typeof x <;>
+    simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite,
+      smt_lit_Teq, h] at ht ⊢
+  constructor
+  · simpa using ht.1.symm
+  · simpa using ht.2.1.symm
+
+theorem dt_sel_term_typeof_of_non_none
+    {s : smt_lit_String}
+    {d : SmtDatatype}
+    {i j : smt_lit_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) = __smtx_ret_typeof_sel s d i j := by
+  have hx : __smtx_typeof x = SmtType.Datatype s d := dt_sel_arg_datatype_of_non_none ht
+  simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx]
+
 theorem dt_tester_arg_datatype_of_non_none
     {s : smt_lit_String}
     {d : SmtDatatype}
