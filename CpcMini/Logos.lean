@@ -164,13 +164,8 @@ partial def __eo_mk_apply : Term -> Term -> Term
 partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
 
-partial def __eo_is_bool_type : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | x => (__eo_eq (__eo_typeof x) Term.Bool)
-
-
-partial def __eo_is_ok : Term -> Term
-  | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
+ partial def __eo_is_ok : Term -> Term
+   | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
 
 
 partial def __eo_ite : Term -> Term -> Term -> Term
