@@ -15,6 +15,8 @@ set_option maxHeartbeats 10000000
 
 theorem typed___eo_prog_scope (M : SmtModel) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
+  __eo_typeof x1 = Term.Bool ->
+  __eo_typeof x2 = Term.Bool ->
   __eo_prog_scope x1 (Proof.pf x2) ≠ Term.Stuck ->
   RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) :=
 by
