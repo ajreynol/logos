@@ -35,6 +35,8 @@ abbrev obj_interprets := smt_interprets
 /-
 Definitions for eo_is_obj
 -/
+noncomputable section
+
 mutual
 
 def __eo_to_smt_is_var (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
@@ -52,6 +54,11 @@ def __eo_to_smt_is_binder_x (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> sm
 def __eo_to_smt_substitute (s : smt_lit_String) (T : SmtType) (u : SmtTerm) : SmtTerm -> SmtTerm
   | (SmtTerm.Apply f a) => (smt_lit_ite (__eo_to_smt_is_binder_x s T f) (SmtTerm.Apply f a) (SmtTerm.Apply (__eo_to_smt_substitute s T u f) (__eo_to_smt_substitute s T u a)))
   | z => (smt_lit_ite (__eo_to_smt_is_var s T z) u z)
+
+
+def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (smt_lit_ite (smt_lit_zleq 0 x2) (SmtTerm.Binary x2 (smt_lit_mod_total x1 (smt_lit_int_pow2 x2))) SmtTerm.None)
+  | t1, t2 => SmtTerm.None
 
 
 def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> smt_lit_Nat -> SmtTerm
@@ -264,8 +271,7 @@ def __eo_to_smt : Term -> SmtTerm
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract _v0) _v0) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term._at_from_bools x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (__eo_to_smt x1)) (SmtTerm.Binary 1 1)) (SmtTerm.Binary 1 0))) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply Term._at_bv x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm._at_bv (__eo_to_smt x1)) (__eo_to_smt x2))
-  | (Term.seq_empty (Term.Apply Term.Seq Term.Char)) => (SmtTerm.String "")
+  | (Term.Apply (Term.Apply Term._at_bv x1) x2) => (__eo_to_smt__at_bv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.seq_empty x1) => (SmtTerm.seq_empty (__eo_to_smt_type x1))
   | (Term.Apply Term.str_len x1) => (SmtTerm.Apply SmtTerm.str_len (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.str_concat x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat (__eo_to_smt x1)) (__eo_to_smt x2))
@@ -320,7 +326,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term._at_strings_num_occur x1) x2) => 
     let _v0 := (__eo_to_smt x2)
     let _v1 := (__eo_to_smt x1)
-    (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len _v1)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_all _v1) _v0) (SmtTerm.String ""))))) (SmtTerm.Apply SmtTerm.str_len _v0))
+    (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div (SmtTerm.Apply (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len _v1)) (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_replace_all _v1) _v0) (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))) (SmtTerm.Apply SmtTerm.str_len _v0))
   | (Term.Apply (Term.Apply (Term.Apply Term._at_witness_string_length x1) x2) x3) => 
     let _v0 := (__eo_to_smt_type x1)
     (SmtTerm.Apply (SmtTerm.choice "_at_x" _v0) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply SmtTerm.str_len (SmtTerm.Var "_at_x" _v0))) (__eo_to_smt x2)))
@@ -367,7 +373,9 @@ def __eo_to_smt : Term -> SmtTerm
 
 
 
-end 
+end
+
+end
 
 /-
 An inductive predicate defining the correspondence between Eunoia terms

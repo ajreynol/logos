@@ -555,13 +555,6 @@ theorem correct___eo_prog_distinct_false (M : SmtModel) (x1 : Term) :
 by
   sorry
 
-/- correctness theorem for __eo_prog_lambda_elim -/
-theorem correct___eo_prog_lambda_elim (M : SmtModel) (x1 : Term) :
-  (Not ((__eo_prog_lambda_elim x1) = Term.Stuck)) ->
-  (eo_interprets M (__eo_prog_lambda_elim x1) true) :=
-by
-  sorry
-
 /- correctness theorem for __eo_prog_arith_sum_ub -/
 theorem correct___eo_prog_arith_sum_ub (M : SmtModel) (x1 : Term) :
   (eo_interprets M x1 true) ->

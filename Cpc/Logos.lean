@@ -366,6 +366,11 @@ partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
 partial def __eo_mk_binary (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (eo_lit_ite (eo_lit_zleq 0 w) (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w))) Term.Stuck)
 
+partial def __eo_is_bool_type : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
+
+
 partial def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
 
@@ -947,12 +952,16 @@ partial def __eo_prog_ite_eq : Term -> Term
   | _ => Term.Stuck
 
 
-partial def __arith_typeunion : Term -> Term -> Term
-  | Term.Int, Term.Int => Term.Int
-  | Term.Real, Term.Real => Term.Real
-  | Term.Real, Term.Int => Term.Real
-  | Term.Int, Term.Real => Term.Real
-  | _, _ => Term.Stuck
+partial def __arith_mk_zero : Term -> Term
+  | Term.Int => (Term.Numeral 0)
+  | Term.Real => (Term.Rational (eo_lit_mk_rational 0 1))
+  | _ => Term.Stuck
+
+
+partial def __arith_mk_one : Term -> Term
+  | Term.Int => (Term.Numeral 1)
+  | Term.Real => (Term.Rational (eo_lit_mk_rational 1 1))
+  | _ => Term.Stuck
 
 
 partial def __is_arith_type : Term -> Term
@@ -1632,11 +1641,6 @@ partial def __eo_prog_distinct_false : Term -> Term
   | _ => Term.Stuck
 
 
-partial def __eo_prog_lambda_elim : Term -> Term
-  | (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.lambda x) t)) f) => (__eo_requires (__get_arg_list_rec t Term.__eo_List_nil) x (__eo_requires (__is_app f t) (Term.Boolean true) (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.lambda x) t)) f)))
-  | _ => Term.Stuck
-
-
 partial def __poly_neg : Term -> Term
   | Term._at__at_Polynomial => Term._at__at_Polynomial
   | (Term.Apply (Term.Apply Term._at__at_poly (Term.Apply (Term.Apply Term._at__at_mon a) c)) p) => (__eo_cons Term._at__at_poly (__eo_mk_apply (Term.Apply Term._at__at_mon a) (__eo_neg c)) (__poly_neg p))
@@ -1742,32 +1746,38 @@ partial def __arith_rel_sum : Term -> Term -> Term -> Term -> Term
   | _, _, _, _ => Term.Stuck
 
 
-partial def __mk_arith_sum_ub : Term -> Term -> Term
+partial def __mk_arith_sum_ub_rec : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Boolean true), acc => acc
-  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply r1 a1) b1)) tail), (Term.Apply (Term.Apply r2 a2) b2) => (__mk_arith_sum_ub tail (__arith_rel_sum r1 r2 (Term.Apply (Term.Apply Term.plus a1) a2) (Term.Apply (Term.Apply Term.plus b1) b2)))
+  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply r1 a1) b1)) tail), (Term.Apply (Term.Apply r2 a2) b2) => (__mk_arith_sum_ub_rec tail (__arith_rel_sum r1 r2 (Term.Apply (Term.Apply Term.plus a1) a2) (Term.Apply (Term.Apply Term.plus b1) b2)))
   | _, _ => Term.Stuck
 
 
+partial def __mk_arith_sum_ub : Term -> Term
+  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply r a) b)) tail) => 
+    let _v0 := (__arith_mk_zero (__eo_typeof a))
+    (__mk_arith_sum_ub_rec (__eo_list_rev Term.and (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply r a) b)) tail)) (__eo_mk_apply (__eo_mk_apply Term.eq _v0) _v0))
+  | _ => Term.Stuck
+
+
 partial def __eo_prog_arith_sum_ub : Proof -> Term
-  | (Proof.pf F) => (__mk_arith_sum_ub (__eo_list_rev Term.and F) (Term.Apply (Term.Apply Term.eq (Term.Numeral 0)) (Term.Numeral 0)))
+  | (Proof.pf F) => (__mk_arith_sum_ub F)
   | _ => Term.Stuck
 
 
 partial def __mk_arith_mult_pos : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | m, (Term.Apply (Term.Apply r a) b) => 
-    let _v0 := (Term.Apply Term.mult m)
-    (Term.Apply (Term.Apply r (Term.Apply _v0 (Term.Apply (Term.Apply Term.mult a) (Term.Numeral 1)))) (Term.Apply _v0 (Term.Apply (Term.Apply Term.mult b) (Term.Numeral 1))))
+    let _v0 := (__eo_nil Term.mult (__eo_typeof m))
+    let _v1 := (Term.Apply Term.mult m)
+    (__eo_mk_apply (__eo_mk_apply r (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply Term.mult a) _v0))) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply Term.mult b) _v0)))
   | _, _ => Term.Stuck
 
 
 partial def __eo_prog_arith_mult_pos : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | m, F => 
-    let _v0 := (__eo_typeof m)
-    (__eo_mk_apply (__eo_mk_apply Term.imp (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (Term.Apply Term.gt m) (__eo_ite (__eo_is_eq _v0 Term.Int) (Term.Numeral 0) (__eo_requires _v0 Term.Real (Term.Rational (eo_lit_mk_rational 0 1)))))) (Term.Apply (Term.Apply Term.and F) (Term.Boolean true)))) (__mk_arith_mult_pos m F))
+  | m, F => (__eo_mk_apply (__eo_mk_apply Term.imp (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (Term.Apply Term.gt m) (__arith_mk_zero (__eo_typeof m)))) (Term.Apply (Term.Apply Term.and F) (Term.Boolean true)))) (__mk_arith_mult_pos m F))
 
 
 partial def __arith_rel_inv : Term -> Term -> Term -> Term
@@ -1784,17 +1794,16 @@ partial def __arith_rel_inv : Term -> Term -> Term -> Term
 partial def __mk_arith_mult_neg : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | m, (Term.Apply (Term.Apply r a) b) => 
-    let _v0 := (Term.Apply Term.mult m)
-    (__arith_rel_inv r (Term.Apply _v0 (Term.Apply (Term.Apply Term.mult a) (Term.Numeral 1))) (Term.Apply _v0 (Term.Apply (Term.Apply Term.mult b) (Term.Numeral 1))))
+    let _v0 := (__eo_nil Term.mult (__eo_typeof m))
+    let _v1 := (Term.Apply Term.mult m)
+    (__arith_rel_inv r (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply Term.mult a) _v0)) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply Term.mult b) _v0)))
   | _, _ => Term.Stuck
 
 
 partial def __eo_prog_arith_mult_neg : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | m, F => 
-    let _v0 := (__eo_typeof m)
-    (__eo_mk_apply (__eo_mk_apply Term.imp (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (Term.Apply Term.lt m) (__eo_ite (__eo_is_eq _v0 Term.Int) (Term.Numeral 0) (__eo_requires _v0 Term.Real (Term.Rational (eo_lit_mk_rational 0 1)))))) (Term.Apply (Term.Apply Term.and F) (Term.Boolean true)))) (__mk_arith_mult_neg m F))
+  | m, F => (__eo_mk_apply (__eo_mk_apply Term.imp (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (Term.Apply Term.lt m) (__arith_mk_zero (__eo_typeof m)))) (Term.Apply (Term.Apply Term.and F) (Term.Boolean true)))) (__mk_arith_mult_neg m F))
 
 
 partial def __arith_rel_trichotomy : Term -> Term -> Term -> Term -> Term
@@ -1866,11 +1875,13 @@ partial def __eo_prog_arith_mult_tangent : Term -> Term -> Term -> Term -> Term 
   | _ , _ , _ , _ , Term.Stuck  => Term.Stuck
   | x, y, a, b, s => 
     let _v0 := (__eo_ite s Term.geq Term.leq)
-    let _v1 := (Term.Apply Term.mult b)
-    let _v2 := (Term.Apply Term.mult a)
-    let _v3 := (Term.Apply (Term.Apply Term.mult y) (Term.Numeral 1))
+    let _v1 := (__eo_nil Term.mult (__eo_typeof a))
+    let _v2 := (Term.Apply Term.mult b)
+    let _v3 := (Term.Apply Term.mult a)
     let _v4 := (Term.Apply Term.mult x)
-    (__eo_mk_apply (__eo_mk_apply Term.eq (__eo_mk_apply (__eo_mk_apply _v0 (Term.Apply _v4 _v3)) (Term.Apply (Term.Apply Term.neg (Term.Apply (Term.Apply Term.plus (Term.Apply _v1 (Term.Apply _v4 (Term.Numeral 1)))) (Term.Apply (Term.Apply Term.plus (Term.Apply _v2 _v3)) (Term.Numeral 0)))) (Term.Apply _v2 (Term.Apply _v1 (Term.Numeral 1)))))) (__eo_mk_apply (__eo_mk_apply Term.or (__eo_mk_apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq x) a)) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (__eo_mk_apply (__eo_ite s Term.leq Term.geq) y) b)) (Term.Boolean true)))) (__eo_mk_apply (__eo_mk_apply Term.or (__eo_mk_apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.geq x) a)) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (__eo_mk_apply _v0 y) b)) (Term.Boolean true)))) (Term.Boolean false))))
+    let _v5 := (__eo_mk_apply _v2 (__eo_mk_apply _v4 (__eo_nil Term.mult (__eo_typeof b))))
+    let _v6 := (Term.Apply Term.mult y)
+    (__eo_mk_apply (__eo_mk_apply Term.eq (__eo_mk_apply (__eo_mk_apply _v0 (__eo_mk_apply _v4 (__eo_mk_apply _v6 (__eo_nil Term.mult (__eo_typeof x))))) (__eo_mk_apply (__eo_mk_apply Term.neg (__eo_mk_apply (__eo_mk_apply Term.plus _v5) (__eo_mk_apply (__eo_mk_apply Term.plus (__eo_mk_apply _v3 (__eo_mk_apply _v6 _v1))) (__eo_nil Term.plus (__eo_typeof _v5))))) (__eo_mk_apply _v3 (__eo_mk_apply _v2 _v1))))) (__eo_mk_apply (__eo_mk_apply Term.or (__eo_mk_apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq x) a)) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (__eo_mk_apply (__eo_ite s Term.leq Term.geq) y) b)) (Term.Boolean true)))) (__eo_mk_apply (__eo_mk_apply Term.or (__eo_mk_apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.geq x) a)) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (__eo_mk_apply _v0 y) b)) (Term.Boolean true)))) (Term.Boolean false))))
 
 
 partial def __eo_l_1___strip_even_exponent : Term -> Term -> Term
@@ -1890,7 +1901,7 @@ partial def __eo_l_3___mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | sgn, (Term.Boolean true), (Term.Numeral 1) => sgn
+  | sgn, (Term.Boolean true), one => (__eo_requires (__eo_to_q one) (Term.Rational (eo_lit_mk_rational 1 1)) sgn)
   | sgn, l, m => (__mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply Term.and l) (Term.Boolean true)) m)
 
 
@@ -1921,9 +1932,7 @@ partial def __mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
 partial def __eo_prog_arith_mult_sign : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | F, m => 
-    let _v0 := (__eo_typeof m)
-    (__eo_mk_apply (Term.Apply Term.imp F) (__eo_mk_apply (__eo_mk_apply (__eo_ite (__mk_arith_mult_sign_sgn (Term.Boolean true) F m) Term.gt Term.lt) m) (__eo_ite (__eo_is_eq _v0 Term.Int) (Term.Numeral 0) (__eo_requires _v0 Term.Real (Term.Rational (eo_lit_mk_rational 0 1))))))
+  | F, m => (__eo_mk_apply (Term.Apply Term.imp F) (__eo_mk_apply (__eo_mk_apply (__eo_ite (__mk_arith_mult_sign_sgn (Term.Boolean true) F m) Term.gt Term.lt) m) (__arith_mk_zero (__eo_typeof m))))
 
 
 partial def __eo_l_2___mk_arith_mult_abs_comparison_rec : Term -> Term -> Term
@@ -1934,20 +1943,20 @@ partial def __eo_l_2___mk_arith_mult_abs_comparison_rec : Term -> Term -> Term
 partial def __eo_l_1___mk_arith_mult_abs_comparison_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq __eo_lv_t_2) z))) (Term.Boolean true)))) B), (Term.Apply (Term.Apply Term.gt a) b) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_abs_comparison_rec B (__eo_mk_apply (__eo_mk_apply Term.gt (__eo_list_concat Term.mult a (Term.Apply (Term.Apply Term.mult t) (Term.Numeral 1)))) (__eo_list_concat Term.mult b (Term.Apply (Term.Apply Term.mult u) (Term.Numeral 1)))))) (__eo_l_2___mk_arith_mult_abs_comparison_rec (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq __eo_lv_t_2) z))) (Term.Boolean true)))) B) (Term.Apply (Term.Apply Term.gt a) b)))
+  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq __eo_lv_t_2) z))) (Term.Boolean true)))) B), (Term.Apply (Term.Apply Term.gt a) b) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_abs_comparison_rec B (__eo_mk_apply (__eo_mk_apply Term.gt (__eo_list_concat Term.mult a (__eo_mk_apply (Term.Apply Term.mult t) (__eo_nil Term.mult (__eo_typeof t))))) (__eo_list_concat Term.mult b (__eo_mk_apply (Term.Apply Term.mult u) (__eo_nil Term.mult (__eo_typeof u))))))) (__eo_l_2___mk_arith_mult_abs_comparison_rec (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq __eo_lv_t_2) z))) (Term.Boolean true)))) B) (Term.Apply (Term.Apply Term.gt a) b)))
   | __eo_dv_1, __eo_dv_2 => (__eo_l_2___mk_arith_mult_abs_comparison_rec __eo_dv_1 __eo_dv_2)
 
 
 partial def __mk_arith_mult_abs_comparison_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply r (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) B), (Term.Apply (Term.Apply __eo_lv_r_2 a) b) => (__eo_ite (__eo_eq r __eo_lv_r_2) (__mk_arith_mult_abs_comparison_rec B (__eo_mk_apply (__eo_mk_apply r (__eo_list_concat Term.mult a (Term.Apply (Term.Apply Term.mult t) (Term.Numeral 1)))) (__eo_list_concat Term.mult b (Term.Apply (Term.Apply Term.mult u) (Term.Numeral 1))))) (__eo_l_1___mk_arith_mult_abs_comparison_rec (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply r (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) B) (Term.Apply (Term.Apply __eo_lv_r_2 a) b)))
+  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply r (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) B), (Term.Apply (Term.Apply __eo_lv_r_2 a) b) => (__eo_ite (__eo_eq r __eo_lv_r_2) (__mk_arith_mult_abs_comparison_rec B (__eo_mk_apply (__eo_mk_apply r (__eo_list_concat Term.mult a (__eo_mk_apply (Term.Apply Term.mult t) (__eo_nil Term.mult (__eo_typeof t))))) (__eo_list_concat Term.mult b (__eo_mk_apply (Term.Apply Term.mult u) (__eo_nil Term.mult (__eo_typeof u)))))) (__eo_l_1___mk_arith_mult_abs_comparison_rec (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply r (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) B) (Term.Apply (Term.Apply __eo_lv_r_2 a) b)))
   | __eo_dv_1, __eo_dv_2 => (__eo_l_1___mk_arith_mult_abs_comparison_rec __eo_dv_1 __eo_dv_2)
 
 
 partial def __mk_arith_mult_abs_comparison : Term -> Term
-  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) B) => (__mk_arith_mult_abs_comparison_rec B (Term.Apply (Term.Apply Term.gt (Term.Apply (Term.Apply Term.mult t) (Term.Numeral 1))) (Term.Apply (Term.Apply Term.mult u) (Term.Numeral 1))))
-  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) B) => (__mk_arith_mult_abs_comparison_rec B (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mult t) (Term.Numeral 1))) (Term.Apply (Term.Apply Term.mult u) (Term.Numeral 1))))
+  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) B) => (__mk_arith_mult_abs_comparison_rec B (__eo_mk_apply (__eo_mk_apply Term.gt (__eo_mk_apply (Term.Apply Term.mult t) (__eo_nil Term.mult (__eo_typeof t)))) (__eo_mk_apply (Term.Apply Term.mult u) (__eo_nil Term.mult (__eo_typeof u)))))
+  | (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.abs t)) (Term.Apply Term.abs u))) B) => (__mk_arith_mult_abs_comparison_rec B (__eo_mk_apply (__eo_mk_apply Term.eq (__eo_mk_apply (Term.Apply Term.mult t) (__eo_nil Term.mult (__eo_typeof t)))) (__eo_mk_apply (Term.Apply Term.mult u) (__eo_nil Term.mult (__eo_typeof u)))))
   | _ => Term.Stuck
 
 
@@ -1966,16 +1975,14 @@ partial def __arith_reduction_pred : Term -> Term
     let _v1 := (Term._at_purify _v0)
     let _v2 := (Term.Apply (Term.Apply Term.neg u) (Term.Apply Term.to_real _v1))
     (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq _v0) _v1)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq (Term.Rational (eo_lit_mk_rational 0 1))) _v2)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.lt _v2) (Term.Rational (eo_lit_mk_rational 1 1)))) (Term.Boolean true)))) (Term.Boolean true)))
-  | (Term.Apply (Term.Apply Term.qdiv u) v) => 
-    let _v0 := (__eo_typeof v)
-    (__eo_mk_apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.qdiv u) v)) (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.ite (__eo_mk_apply (Term.Apply Term.eq v) (__eo_ite (__eo_is_eq _v0 Term.Int) (Term.Numeral 0) (__eo_requires _v0 Term.Real (Term.Rational (eo_lit_mk_rational 0 1)))))) (__eo_mk_apply Term._at_div_by_zero (__eo_ite (__eo_eq (__eo_typeof u) Term.Int) (Term.Apply Term.to_real u) u))) (Term.Apply (Term.Apply Term.qdiv_total u) v)))
+  | (Term.Apply (Term.Apply Term.qdiv u) v) => (__eo_mk_apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.qdiv u) v)) (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.ite (__eo_mk_apply (Term.Apply Term.eq v) (__arith_mk_zero (__eo_typeof v)))) (__eo_mk_apply Term._at_div_by_zero (__eo_ite (__eo_eq (__eo_typeof u) Term.Int) (Term.Apply Term.to_real u) u))) (Term.Apply (Term.Apply Term.qdiv_total u) v)))
   | (Term.Apply (Term.Apply Term.div a) b) => (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.div a) b)) (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.eq b) (Term.Numeral 0))) (Term.Apply Term._at_int_div_by_zero a)) (Term.Apply (Term.Apply Term.div_total a) b)))
   | (Term.Apply (Term.Apply Term.mod a) b) => (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mod a) b)) (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.eq b) (Term.Numeral 0))) (Term.Apply Term._at_mod_by_zero a)) (Term.Apply (Term.Apply Term.mod_total a) b)))
   | (Term.Apply (Term.Apply Term.qdiv_total u) v) => 
-    let _v0 := (Term.Apply (Term.Apply Term.qdiv_total u) v)
-    let _v1 := (Term._at_purify _v0)
-    let _v2 := (__eo_ite (__eo_eq (__eo_typeof v) Term.Int) (Term.Apply Term.to_real v) v)
-    (__eo_mk_apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq _v0) _v1)) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (__eo_mk_apply Term.imp (__eo_mk_apply Term.not (__eo_mk_apply (__eo_mk_apply Term.eq _v2) (Term.Rational (eo_lit_mk_rational 0 1))))) (__eo_mk_apply (__eo_mk_apply Term.eq (__eo_mk_apply (__eo_mk_apply Term.mult _v2) (Term.Apply (Term.Apply Term.mult _v1) (Term.Numeral 1)))) (__eo_ite (__eo_eq (__eo_typeof u) Term.Int) (Term.Apply Term.to_real u) u)))) (Term.Boolean true)))
+    let _v0 := (__eo_ite (__eo_eq (__eo_typeof v) Term.Int) (Term.Apply Term.to_real v) v)
+    let _v1 := (Term.Apply (Term.Apply Term.qdiv_total u) v)
+    let _v2 := (Term._at_purify _v1)
+    (__eo_mk_apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq _v1) _v2)) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (__eo_mk_apply Term.imp (__eo_mk_apply Term.not (__eo_mk_apply (__eo_mk_apply Term.eq _v0) (Term.Rational (eo_lit_mk_rational 0 1))))) (__eo_mk_apply (__eo_mk_apply Term.eq (__eo_mk_apply (__eo_mk_apply Term.mult _v0) (__eo_mk_apply (Term.Apply Term.mult _v2) (__eo_nil Term.mult (__eo_typeof _v0))))) (__eo_ite (__eo_eq (__eo_typeof u) Term.Int) (Term.Apply Term.to_real u) u)))) (Term.Boolean true)))
   | (Term.Apply (Term.Apply Term.div_total a) b) => 
     let _v0 := (Term.Apply (Term.Apply Term.div_total a) b)
     let _v1 := (Term._at_purify _v0)
@@ -1992,9 +1999,7 @@ partial def __arith_reduction_pred : Term -> Term
     let _v4 := (Term.Apply _v2 (Term.Apply (Term.Apply Term.mult _v0) (Term.Numeral 1)))
     let _v5 := (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq _v4) a))
     (__eo_mk_apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mod_total a) b)) (Term.Apply (Term.Apply Term.neg a) _v4))) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_ite (__eo_is_z b) (__eo_requires (__eo_eq b (Term.Numeral 0)) (Term.Boolean false) (__eo_mk_apply _v5 (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply _v3 (__eo_mk_apply _v2 (__eo_mk_apply (__eo_mk_apply Term.mult (__eo_mk_apply _v1 (__eo_mk_apply (__eo_mk_apply Term.plus (__eo_ite (__eo_is_neg b) (Term.Numeral (-1 : eo_lit_Int)) (Term.Numeral 1))) (Term.Numeral 0)))) (Term.Numeral 1))))) (Term.Boolean true)))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.imp (Term.Apply (Term.Apply Term.gt b) (Term.Numeral 0))) (Term.Apply _v5 (Term.Apply (Term.Apply Term.and (Term.Apply _v3 (Term.Apply _v2 (Term.Apply (Term.Apply Term.mult (Term.Apply _v1 (Term.Apply (Term.Apply Term.plus (Term.Numeral 1)) (Term.Numeral 0)))) (Term.Numeral 1))))) (Term.Boolean true))))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.imp (Term.Apply (Term.Apply Term.lt b) (Term.Numeral 0))) (Term.Apply _v5 (Term.Apply (Term.Apply Term.and (Term.Apply _v3 (Term.Apply _v2 (Term.Apply (Term.Apply Term.mult (Term.Apply _v1 (Term.Apply (Term.Apply Term.plus (Term.Numeral (-1 : eo_lit_Int))) (Term.Numeral 0)))) (Term.Numeral 1))))) (Term.Boolean true))))) (Term.Boolean true))))) (Term.Boolean true)))
-  | (Term.Apply Term.abs u) => 
-    let _v0 := (__eo_typeof u)
-    (__eo_mk_apply (Term.Apply Term.eq (Term.Apply Term.abs u)) (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.ite (__eo_mk_apply (Term.Apply Term.lt u) (__eo_ite (__eo_is_eq _v0 Term.Int) (Term.Numeral 0) (__eo_requires _v0 Term.Real (Term.Rational (eo_lit_mk_rational 0 1)))))) (Term.Apply Term.__eoo_neg_2 u)) u))
+  | (Term.Apply Term.abs u) => (__eo_mk_apply (Term.Apply Term.eq (Term.Apply Term.abs u)) (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.ite (__eo_mk_apply (Term.Apply Term.lt u) (__arith_mk_zero (__eo_typeof u)))) (Term.Apply Term.__eoo_neg_2 u)) u))
   | (Term.Apply Term.int_log2 u) => 
     let _v0 := (Term.Apply Term.int_log2 u)
     let _v1 := (Term._at_purify _v0)
@@ -2041,7 +2046,7 @@ partial def __is_eq_maybe_to_real : Term -> Term -> Term
 
 
 partial def __eo_prog_arith_poly_norm_rel : Term -> Proof -> Term
-  | (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply r x1) x2)) (Term.Apply (Term.Apply __eo_lv_r_2 y1) y2)), (Proof.pf (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mult cx) (Term.Apply (Term.Apply Term.mult x) (Term.Numeral 1)))) (Term.Apply (Term.Apply Term.mult cy) (Term.Apply (Term.Apply Term.mult y) (Term.Numeral 1))))) => (__eo_requires (__eo_eq r __eo_lv_r_2) (Term.Boolean true) (__eo_requires (__is_poly_norm_rel_consts (Term.Apply (Term.Apply r cx) cy)) (Term.Boolean true) (__eo_requires (__is_eq_maybe_to_real x (Term.Apply (Term.Apply Term.neg x1) x2)) (Term.Boolean true) (__eo_requires (__is_eq_maybe_to_real y (Term.Apply (Term.Apply Term.neg y1) y2)) (Term.Boolean true) (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply r x1) x2)) (Term.Apply (Term.Apply r y1) y2))))))
+  | (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply r x1) x2)) (Term.Apply (Term.Apply __eo_lv_r_2 y1) y2)), (Proof.pf (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mult cx) (Term.Apply (Term.Apply Term.mult x) one))) (Term.Apply (Term.Apply Term.mult cy) (Term.Apply (Term.Apply Term.mult y) __eo_lv_one_2)))) => (__eo_requires (__eo_and (__eo_eq r __eo_lv_r_2) (__eo_eq one __eo_lv_one_2)) (Term.Boolean true) (__eo_requires (__eo_to_q one) (Term.Rational (eo_lit_mk_rational 1 1)) (__eo_requires (__is_poly_norm_rel_consts (Term.Apply (Term.Apply r cx) cy)) (Term.Boolean true) (__eo_requires (__is_eq_maybe_to_real x (Term.Apply (Term.Apply Term.neg x1) x2)) (Term.Boolean true) (__eo_requires (__is_eq_maybe_to_real y (Term.Apply (Term.Apply Term.neg y1) y2)) (Term.Boolean true) (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply r x1) x2)) (Term.Apply (Term.Apply r y1) y2)))))))
   | _, _ => Term.Stuck
 
 
@@ -8039,35 +8044,17 @@ partial def __run_evaluate : Term -> Term
   | (Term.Apply (Term.Apply Term.imp b) b2) => (__eo_or (__eo_not (__run_evaluate b)) (__run_evaluate b2))
   | (Term.Apply (Term.Apply Term.and b) bs) => (__eo_and (__run_evaluate b) (__run_evaluate bs))
   | (Term.Apply (Term.Apply Term.xor b) b2) => (__eo_xor (__run_evaluate b) (__run_evaluate b2))
-  | (Term.Apply (Term.Apply Term.lt x) z) => (__eo_is_neg (__eo_add (__eo_to_q (__run_evaluate x)) (__eo_neg (__eo_to_q (__run_evaluate z)))))
+  | (Term.Apply (Term.Apply Term.lt x) z) => (__eo_is_neg (__eo_add (__run_evaluate x) (__eo_neg (__run_evaluate z))))
   | (Term.Apply (Term.Apply Term.leq x) z) => 
-    let _v0 := (__eo_add (__eo_to_q (__run_evaluate x)) (__eo_neg (__eo_to_q (__run_evaluate z))))
-    (__eo_or (__eo_is_neg _v0) (__eo_eq _v0 (Term.Rational (eo_lit_mk_rational 0 1))))
-  | (Term.Apply (Term.Apply Term.gt x) z) => (__eo_is_neg (__eo_add (__eo_to_q (__run_evaluate z)) (__eo_neg (__eo_to_q (__run_evaluate x)))))
+    let _v0 := (__eo_add (__run_evaluate x) (__eo_neg (__run_evaluate z)))
+    (__eo_or (__eo_is_neg _v0) (__eo_eq (__eo_to_q _v0) (Term.Rational (eo_lit_mk_rational 0 1))))
+  | (Term.Apply (Term.Apply Term.gt x) z) => (__eo_is_neg (__eo_add (__run_evaluate z) (__eo_neg (__run_evaluate x))))
   | (Term.Apply (Term.Apply Term.geq x) z) => 
-    let _v0 := (__eo_add (__eo_to_q (__run_evaluate z)) (__eo_neg (__eo_to_q (__run_evaluate x))))
-    (__eo_or (__eo_is_neg _v0) (__eo_eq _v0 (Term.Rational (eo_lit_mk_rational 0 1))))
-  | (Term.Apply (Term.Apply Term.plus x) ys) => 
-    let _v0 := (__run_evaluate ys)
-    let _v1 := (__run_evaluate x)
-    let _v2 := (__eo_to_q _v0)
-    let _v3 := (__eo_to_q _v1)
-    let _v4 := (__eo_add _v3 _v2)
-    (__eo_ite (__eo_eq _v1 _v3) _v4 (__eo_ite (__eo_eq _v0 _v2) _v4 (__eo_add _v1 _v0)))
-  | (Term.Apply (Term.Apply Term.neg x) z) => 
-    let _v0 := (__eo_neg (__run_evaluate z))
-    let _v1 := (__run_evaluate x)
-    let _v2 := (__eo_to_q _v0)
-    let _v3 := (__eo_to_q _v1)
-    let _v4 := (__eo_add _v3 _v2)
-    (__eo_ite (__eo_eq _v1 _v3) _v4 (__eo_ite (__eo_eq _v0 _v2) _v4 (__eo_add _v1 _v0)))
-  | (Term.Apply (Term.Apply Term.mult x) ys) => 
-    let _v0 := (__run_evaluate ys)
-    let _v1 := (__run_evaluate x)
-    let _v2 := (__eo_to_q _v0)
-    let _v3 := (__eo_to_q _v1)
-    let _v4 := (__eo_mul _v3 _v2)
-    (__eo_ite (__eo_eq _v1 _v3) _v4 (__eo_ite (__eo_eq _v0 _v2) _v4 (__eo_mul _v1 _v0)))
+    let _v0 := (__eo_add (__run_evaluate z) (__eo_neg (__run_evaluate x)))
+    (__eo_or (__eo_is_neg _v0) (__eo_eq (__eo_to_q _v0) (Term.Rational (eo_lit_mk_rational 0 1))))
+  | (Term.Apply (Term.Apply Term.plus x) ys) => (__eo_add (__run_evaluate x) (__run_evaluate ys))
+  | (Term.Apply (Term.Apply Term.neg x) z) => (__eo_add (__run_evaluate x) (__eo_neg (__run_evaluate z)))
+  | (Term.Apply (Term.Apply Term.mult x) ys) => (__eo_mul (__run_evaluate x) (__run_evaluate ys))
   | (Term.Apply Term.__eoo_neg_2 x) => (__eo_neg (__run_evaluate x))
   | (Term.Apply (Term.Apply Term.qdiv x) y) => (__eo_qdiv (__eo_to_q (__run_evaluate x)) (__eo_to_q (__run_evaluate y)))
   | (Term.Apply (Term.Apply Term.qdiv_total x) y) => 
@@ -8383,6 +8370,16 @@ partial def __eo_dt_selectors_main : Term -> Term
   | _ => Term.Stuck
 
 
+partial def __eo_nil_plus : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (__arith_mk_zero T)
+
+
+partial def __eo_nil_mult : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (__arith_mk_one T)
+
+
 partial def __eo_nil_bvand : Term -> Term
   | (Term.Apply Term.BitVec m) => (__eo_not (__eo_to_bin m (Term.Numeral 0)))
   | _ => Term.Stuck
@@ -8417,8 +8414,8 @@ partial def __eo_nil : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | Term.or, T => (Term.Boolean false)
   | Term.and, T => (Term.Boolean true)
-  | Term.plus, T => (Term.Numeral 0)
-  | Term.mult, T => (Term.Numeral 1)
+  | Term.plus, T => (__eo_nil_plus T)
+  | Term.mult, T => (__eo_nil_mult T)
   | Term.concat, T => (Term.Binary 0 0)
   | Term.bvand, T => (__eo_nil_bvand T)
   | Term.bvor, T => (__eo_nil_bvor T)
@@ -8442,8 +8439,8 @@ partial def __eo_is_list_nil : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | Term.or, (Term.Boolean false) => (Term.Boolean true)
   | Term.and, (Term.Boolean true) => (Term.Boolean true)
-  | Term.plus, (Term.Numeral 0) => (Term.Boolean true)
-  | Term.mult, (Term.Numeral 1) => (Term.Boolean true)
+  | Term.plus, nil => (__eo_eq nil (__eo_nil Term.plus (__eo_typeof nil)))
+  | Term.mult, nil => (__eo_eq nil (__eo_nil Term.mult (__eo_typeof nil)))
   | Term.concat, (Term.Binary 0 0) => (Term.Boolean true)
   | Term.bvand, nil => (__eo_eq nil (__eo_nil Term.bvand (__eo_typeof nil)))
   | Term.bvor, nil => (__eo_eq nil (__eo_nil Term.bvor (__eo_typeof nil)))
@@ -8543,61 +8540,44 @@ partial def __eo_typeof__at_purify : Term -> Term
   | A => A
 
 
-partial def __eo_typeof_plus : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__arith_typeunion T U)
+partial def __eo_typeof_plus : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) T))
 
 
-partial def __eo_typeof__ : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__arith_typeunion T U)
+partial def __eo_typeof__ : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) T))
 
 
-partial def __eo_typeof_mult : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__arith_typeunion T U)
+partial def __eo_typeof_mult : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) T))
 
 
-partial def __eo_typeof_lt : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__eo_requires (__is_arith_type T) (Term.Boolean true) (__eo_requires (__is_arith_type U) (Term.Boolean true) Term.Bool))
+partial def __eo_typeof_lt : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Bool))
 
 
-partial def __eo_typeof_leq : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__eo_requires (__is_arith_type T) (Term.Boolean true) (__eo_requires (__is_arith_type U) (Term.Boolean true) Term.Bool))
+partial def __eo_typeof_leq : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Bool))
 
 
-partial def __eo_typeof_gt : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__eo_requires (__is_arith_type T) (Term.Boolean true) (__eo_requires (__is_arith_type U) (Term.Boolean true) Term.Bool))
+partial def __eo_typeof_gt : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Bool))
 
 
-partial def __eo_typeof_geq : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__eo_requires (__is_arith_type T) (Term.Boolean true) (__eo_requires (__is_arith_type U) (Term.Boolean true) Term.Bool))
+partial def __eo_typeof_geq : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Bool))
 
 
 partial def __eo_typeof_to_real : Term -> Term
   | Term.Stuck  => Term.Stuck
   | T => (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Real)
-
-
-partial def __eo_typeof_to_int : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | T => (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Int)
-
-
-partial def __eo_typeof_is_int : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | T => (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Bool)
 
 
 partial def __eo_typeof_abs : Term -> Term
@@ -9137,16 +9117,14 @@ partial def __eo_typeof__at_sets_deq_diff : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-partial def __eo_typeof_qdiv : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__eo_requires (__is_arith_type T) (Term.Boolean true) (__eo_requires (__is_arith_type U) (Term.Boolean true) Term.Real))
+partial def __eo_typeof_qdiv : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Real))
 
 
-partial def __eo_typeof_qdiv_total : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | T, U => (__eo_requires (__is_arith_type T) (Term.Boolean true) (__eo_requires (__is_arith_type U) (Term.Boolean true) Term.Real))
+partial def __eo_typeof_qdiv_total : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply (Term.Apply Term.FunType T) (__eo_requires (__is_arith_type T) (Term.Boolean true) Term.Real))
 
 
 partial def __eo_typeof__at_quantifiers_skolemize : Term -> Term -> Term -> Term -> Term
@@ -9221,16 +9199,16 @@ partial def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply Term.lambda __eo_x1) __eo_x2) => (__eo_typeof_lambda (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2))
   | (Term.Apply Term.distinct __eo_x1) => (__eo_typeof_distinct (__eo_typeof __eo_x1) __eo_x1)
   | (Term._at_purify __eo_x1) => (__eo_typeof__at_purify (__eo_typeof __eo_x1))
-  | (Term.Apply (Term.Apply Term.plus __eo_x1) __eo_x2) => (__eo_typeof_plus (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.neg __eo_x1) __eo_x2) => (__eo_typeof__ (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.mult __eo_x1) __eo_x2) => (__eo_typeof_mult (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.lt __eo_x1) __eo_x2) => (__eo_typeof_lt (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.leq __eo_x1) __eo_x2) => (__eo_typeof_leq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.gt __eo_x1) __eo_x2) => (__eo_typeof_gt (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.geq __eo_x1) __eo_x2) => (__eo_typeof_geq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply Term.plus __eo_x1) => (__eo_typeof_plus (__eo_typeof __eo_x1))
+  | (Term.Apply Term.neg __eo_x1) => (__eo_typeof__ (__eo_typeof __eo_x1))
+  | (Term.Apply Term.mult __eo_x1) => (__eo_typeof_mult (__eo_typeof __eo_x1))
+  | (Term.Apply Term.lt __eo_x1) => (__eo_typeof_lt (__eo_typeof __eo_x1))
+  | (Term.Apply Term.leq __eo_x1) => (__eo_typeof_leq (__eo_typeof __eo_x1))
+  | (Term.Apply Term.gt __eo_x1) => (__eo_typeof_gt (__eo_typeof __eo_x1))
+  | (Term.Apply Term.geq __eo_x1) => (__eo_typeof_geq (__eo_typeof __eo_x1))
   | (Term.Apply Term.to_real __eo_x1) => (__eo_typeof_to_real (__eo_typeof __eo_x1))
-  | (Term.Apply Term.to_int __eo_x1) => (__eo_typeof_to_int (__eo_typeof __eo_x1))
-  | (Term.Apply Term.is_int __eo_x1) => (__eo_typeof_is_int (__eo_typeof __eo_x1))
+  | Term.to_int => (Term.Apply (Term.Apply Term.FunType Term.Real) Term.Int)
+  | Term.is_int => (Term.Apply (Term.Apply Term.FunType Term.Real) Term.Bool)
   | (Term.Apply Term.abs __eo_x1) => (__eo_typeof_abs (__eo_typeof __eo_x1))
   | (Term.Apply Term.__eoo_neg_2 __eo_x1) => (__eo_typeof___eoo___2 (__eo_typeof __eo_x1))
   | Term.div => (Term.Apply (Term.Apply Term.FunType Term.Int) (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Int))
@@ -9393,8 +9371,8 @@ partial def __eo_typeof : Term -> Term
   | (Term.Apply Term.set_is_singleton __eo_x1) => (__eo_typeof_set_is_singleton (__eo_typeof __eo_x1))
   | (Term.Apply (Term.Apply Term.set_insert __eo_x1) __eo_x2) => (__eo_typeof_set_insert (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term._at_sets_deq_diff __eo_x1 __eo_x2) => (__eo_typeof__at_sets_deq_diff (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.qdiv __eo_x1) __eo_x2) => (__eo_typeof_qdiv (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply Term.qdiv_total __eo_x1) __eo_x2) => (__eo_typeof_qdiv_total (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply Term.qdiv __eo_x1) => (__eo_typeof_qdiv (__eo_typeof __eo_x1))
+  | (Term.Apply Term.qdiv_total __eo_x1) => (__eo_typeof_qdiv_total (__eo_typeof __eo_x1))
   | Term._at_div_by_zero => (Term.Apply (Term.Apply Term.FunType Term.Real) Term.Real)
   | Term._at__at_Monomial => Term.Type
   | Term._at__at_mon => (Term.Apply (Term.Apply Term.FunType Term.__eo_List) (Term.Apply (Term.Apply Term.FunType Term.Real) Term._at__at_Monomial))
@@ -9530,7 +9508,6 @@ inductive CRule : Type where
   | distinct_elim : CRule
   | distinct_true : CRule
   | distinct_false : CRule
-  | lambda_elim : CRule
   | arith_sum_ub : CRule
   | arith_mult_pos : CRule
   | arith_mult_neg : CRule
@@ -10090,8 +10067,13 @@ def __eo_state_is_closed : CState -> eo_lit_Bool
   | s => false
 
 
+def __eo_push_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume_push F) s)
+  | b, F, s => CState.Stuck
+
+
 def __eo_push_assume : Term -> CState -> CState
-  | F, s => (CState.cons (CStateObj.assume_push F) s)
+  | F, s => (__eo_push_assume_check (__eo_is_bool_type F) F s)
 
 
 def __eo_push_proven_check : Term -> Term -> CState -> CState
@@ -10100,7 +10082,7 @@ def __eo_push_proven_check : Term -> Term -> CState -> CState
 
 
 def __eo_push_proven : Term -> CState -> CState
-  | F, s => (__eo_push_proven_check (__eo_is_ok F) F s)
+  | F, s => (__eo_push_proven_check (__eo_is_bool_type F) F s)
 
 
 def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
@@ -10185,7 +10167,6 @@ def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
   | CRule.distinct_elim, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_distinct_elim a1)
   | CRule.distinct_true, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_distinct_true a1)
   | CRule.distinct_false, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_distinct_false a1)
-  | CRule.lambda_elim, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_lambda_elim a1)
   | CRule.arith_sum_ub, CArgList.nil, premises => (__eo_prog_arith_sum_ub (Proof.pf (__eo_mk_premise_list Term.and premises S)))
   | CRule.arith_mult_pos, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_arith_mult_pos a1 a2)
   | CRule.arith_mult_neg, (CArgList.cons a1 (CArgList.cons a2 CArgList.nil)), CIndexList.nil => (__eo_prog_arith_mult_neg a1 a2)
