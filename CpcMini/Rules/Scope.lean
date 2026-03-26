@@ -6,6 +6,24 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-
+The current public statement `typed___eo_prog_scope_impl` is intentionally
+weaker because it mirrors the checker-facing interface, but the actual
+semantic typing fact for `scope` needs Bool-typed antecedent and consequent.
+This stronger lemma is the rule-local fact the checker proof will eventually
+need to recover from its state invariants.
+-/
+theorem typed___eo_prog_scope_of_bool_args (x1 x2 : Term) :
+  RuleProofs.eo_has_bool_type x1 ->
+  RuleProofs.eo_has_bool_type x2 ->
+  __eo_prog_scope x1 (Proof.pf x2) ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) := by
+  intro hTy1 hTy2 hProg
+  cases x1 <;> cases x2 <;>
+    simp [RuleProofs.eo_has_bool_type, __eo_prog_scope, __eo_to_smt, __smtx_typeof,
+      smt_lit_ite, smt_lit_Teq] at hTy1 hTy2 ⊢ <;>
+    simp [hTy1, hTy2]
+
 theorem typed___eo_prog_scope_impl (M : SmtModel) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
   __eo_prog_scope x1 (Proof.pf x2) ≠ Term.Stuck ->
@@ -65,6 +83,12 @@ theorem not_eo_interprets_prog_scope_num_true (M : SmtModel) :
   cases h with
   | intro_true hTy hEval =>
       simp [__eo_prog_scope, __eo_to_smt, __smtx_typeof, smt_lit_ite, smt_lit_Teq] at hTy
+
+theorem not_eo_has_bool_type_prog_scope_num_true :
+  ¬ RuleProofs.eo_has_bool_type
+      (__eo_prog_scope (Term.Numeral 0) (Proof.pf (Term.Boolean true))) := by
+  simp [RuleProofs.eo_has_bool_type, __eo_prog_scope, __eo_to_smt, __smtx_typeof,
+    smt_lit_ite, smt_lit_Teq]
 
 end RuleProofs
 

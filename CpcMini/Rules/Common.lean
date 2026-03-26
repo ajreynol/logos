@@ -29,6 +29,24 @@ def eo_has_smt_translation (t : Term) : Prop :=
 def eo_has_bool_type (t : Term) : Prop :=
   __smtx_typeof (__eo_to_smt t) = SmtType.Bool
 
+theorem eo_has_bool_type_of_interprets_true (M : SmtModel) (t : Term) :
+  eo_interprets M t true ->
+  eo_has_bool_type t := by
+  rw [eo_interprets_iff_smt_interprets]
+  intro h
+  cases h with
+  | intro_true hTy _ =>
+      simpa [eo_has_bool_type] using hTy
+
+theorem eo_has_bool_type_of_interprets_false (M : SmtModel) (t : Term) :
+  eo_interprets M t false ->
+  eo_has_bool_type t := by
+  rw [eo_interprets_iff_smt_interprets]
+  intro h
+  cases h with
+  | intro_false hTy _ =>
+      simpa [eo_has_bool_type] using hTy
+
 theorem eo_typeof_bool_implies_has_bool_type
     (t : Term) :
   eo_has_smt_translation t ->
