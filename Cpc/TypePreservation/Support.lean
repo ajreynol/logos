@@ -689,9 +689,8 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | dt_tester (s : smt_lit_String) (d : SmtDatatype) (i : smt_lit_Nat) (x : SmtTerm) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.DtTester s d i) x)
   | apply {f x : SmtTerm}
-      (hTy :
-        __smtx_typeof (SmtTerm.Apply f x) =
-          __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x))
+      (hTy : generic_apply_type f x)
+      (hEval : generic_apply_eval f x)
       (htf : term_has_non_none_type f)
       (hsf : supported_preservation_term f)
       (htx : term_has_non_none_type x)

@@ -13,6 +13,15 @@ def term_has_non_none_type (t : SmtTerm) : Prop :=
 def term_has_inhabited_type (t : SmtTerm) : Prop :=
   type_inhabited (__smtx_typeof t)
 
+def generic_apply_type (f x : SmtTerm) : Prop :=
+  __smtx_typeof (SmtTerm.Apply f x) =
+    __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x)
+
+def generic_apply_eval (f x : SmtTerm) : Prop :=
+  ∀ M,
+    __smtx_model_eval M (SmtTerm.Apply f x) =
+      __smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x)
+
 def model_total_typed (M : SmtModel) : Prop :=
   ∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T
 
