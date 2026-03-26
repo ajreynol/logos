@@ -481,6 +481,16 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_dt_cons M s d i
   | dt_tester s d i x =>
       exact typeof_value_model_eval_dt_tester M s d i x ht
+  | apply (f := f) (x := x) hTy htf hsf htx hsx =>
+      have hNN : __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+        intro hNone
+        apply ht
+        rw [hTy]
+        exact hNone
+      rw [__smtx_model_eval, hTy]
+      exact typeof_value_model_eval_apply_generic M f x hNN
+        (supported_type_preservation M hM f htf hsf)
+        (supported_type_preservation M hM x htx hsx)
 
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)
