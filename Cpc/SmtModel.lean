@@ -613,7 +613,7 @@ def __smtx_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.cons i e m) => 
     let _v0 := (__smtx_typeof_map_value m)
     (smt_lit_ite (smt_lit_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e)) _v0) _v0 SmtType.None)
-  | (SmtMap.default T e) => (SmtType.Map T (__smtx_typeof_value e))
+  | (SmtMap.default T e) => (__smtx_typeof_guard_inhabited T (SmtType.Map T (__smtx_typeof_value e)))
 
 
 def __smtx_index_typeof_map : SmtType -> SmtType
@@ -643,7 +643,7 @@ def __smtx_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.cons v vs) => 
     let _v0 := (__smtx_typeof_seq_value vs)
     (smt_lit_ite (smt_lit_Teq (SmtType.Seq (__smtx_typeof_value v)) _v0) _v0 SmtType.None)
-  | (SmtSeq.empty T) => (SmtType.Seq T)
+  | (SmtSeq.empty T) => (__smtx_typeof_guard_inhabited T (SmtType.Seq T))
 
 
 def __smtx_elem_typeof_seq_value : SmtSeq -> SmtType
