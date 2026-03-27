@@ -102,7 +102,7 @@ theorem extract_args_of_non_none
                 exact ht' (by
                   simp [__smtx_typeof_extract, smt_lit_ite, h3, hj0])
           | _ =>
-              simp [__smtx_typeof_extract, smt_lit_ite, h3] at ht'
+              simp [__smtx_typeof_extract, h3] at ht'
       | _ =>
           simp [__smtx_typeof_extract] at ht'
   | _ =>
@@ -131,7 +131,7 @@ theorem repeat_args_of_non_none
           simp [__smtx_typeof_repeat, h2] at ht'
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof_repeat, h2] at ht'
+        simp [__smtx_typeof_repeat] at ht'
 
 theorem zero_extend_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -156,7 +156,7 @@ theorem zero_extend_args_of_non_none
           simp [__smtx_typeof_zero_extend, h2] at ht'
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof_zero_extend, h2] at ht'
+        simp [__smtx_typeof_zero_extend] at ht'
 
 theorem sign_extend_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -181,7 +181,7 @@ theorem sign_extend_args_of_non_none
           simp [__smtx_typeof_sign_extend, h2] at ht'
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof_sign_extend, h2] at ht'
+        simp [__smtx_typeof_sign_extend] at ht'
 
 theorem rotate_left_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -206,7 +206,7 @@ theorem rotate_left_args_of_non_none
           simp [__smtx_typeof_rotate_left, h2] at ht'
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof_rotate_left, h2] at ht'
+        simp [__smtx_typeof_rotate_left] at ht'
 
 theorem rotate_right_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -231,7 +231,7 @@ theorem rotate_right_args_of_non_none
           simp [__smtx_typeof_rotate_right, h2] at ht'
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof_rotate_right, h2] at ht'
+        simp [__smtx_typeof_rotate_right] at ht'
 
 theorem int_to_bv_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -256,7 +256,7 @@ theorem int_to_bv_args_of_non_none
           simp [__smtx_typeof_int_to_bv, h2] at ht'
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof_int_to_bv, h2] at ht'
+        simp [__smtx_typeof_int_to_bv] at ht'
 
 theorem bv_unop_arg_of_non_none
     {op t : SmtTerm}
@@ -310,10 +310,10 @@ theorem bv_binop_args_of_non_none
             exact ht (by
               simp [hTy, __smtx_typeof_bv_op_2, smt_lit_ite, h1, h2, hEq])
       | _ =>
-          simp [hTy, __smtx_typeof_bv_op_2, smt_lit_ite, h1, h2] at ht
+          simp [hTy, __smtx_typeof_bv_op_2, h1, h2] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [hTy, __smtx_typeof_bv_op_2, smt_lit_ite, h1, h2] at ht
+        simp [hTy, __smtx_typeof_bv_op_2, h1, h2] at ht
 
 theorem bv_binop_ret_args_of_non_none
     {op t1 t2 : SmtTerm}
@@ -339,10 +339,10 @@ theorem bv_binop_ret_args_of_non_none
             exact ht (by
               simp [hTy, __smtx_typeof_bv_op_2_ret, smt_lit_ite, h1, h2, hEq])
       | _ =>
-          simp [hTy, __smtx_typeof_bv_op_2_ret, smt_lit_ite, h1, h2] at ht
+          simp [hTy, __smtx_typeof_bv_op_2_ret, h1, h2] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [hTy, __smtx_typeof_bv_op_2_ret, smt_lit_ite, h1, h2] at ht
+        simp [hTy, __smtx_typeof_bv_op_2_ret, h1, h2] at ht
 
 
 end Smtm

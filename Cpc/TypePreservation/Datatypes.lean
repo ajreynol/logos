@@ -215,9 +215,9 @@ theorem ret_typeof_sel_rec_non_none_implies_lt :
   | SmtDatatype.null, i, j, h => by
       cases i <;> cases j <;> simp [__smtx_ret_typeof_sel_rec] at h
   | SmtDatatype.sum SmtDatatypeCons.unit d, 0, j, h => by
-      cases j <;> simp [__smtx_ret_typeof_sel_rec, __smtx_dt_num_sels, __smtx_dtc_num_sels] at h
+      cases j <;> simp [__smtx_ret_typeof_sel_rec] at h
   | SmtDatatype.sum (SmtDatatypeCons.cons T c) d, 0, 0, h => by
-      simp [__smtx_ret_typeof_sel_rec, __smtx_dt_num_sels, __smtx_dtc_num_sels]
+      simp [__smtx_dt_num_sels, __smtx_dtc_num_sels]
   | SmtDatatype.sum (SmtDatatypeCons.cons T c) d, 0, Nat.succ j, h => by
       have h' : __smtx_ret_typeof_sel_rec (SmtDatatype.sum c d) 0 j ≠ SmtType.None := by
         simpa [__smtx_ret_typeof_sel_rec] using h
@@ -318,8 +318,8 @@ theorem dt_cons_chain_type_of_non_none :
                   (dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i (Nat.succ (vsm_num_apply_args f))) := hStep
         injection hCmp with _ hB''
       rw [__smtx_typeof_value, hF, hX]
-      simpa [__smtx_typeof_apply_value, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq,
-        hA, hB, vsm_num_apply_args, hB']
+      simp [__smtx_typeof_apply_value, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq,
+        hA, vsm_num_apply_args, hB']
 
 theorem vsm_num_apply_args_eq_dt_num_sels_of_datatype
     {v : SmtValue}
@@ -329,7 +329,7 @@ theorem vsm_num_apply_args_eq_dt_num_sels_of_datatype
     (hHead : __vsm_apply_head v = SmtValue.DtCons s d i)
     (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
     vsm_num_apply_args v = __smtx_dt_num_sels (__smtx_dt_substitute s d d) i := by
-  have hChain := dt_cons_chain_type_of_non_none hHead (by simpa [hTy])
+  have hChain := dt_cons_chain_type_of_non_none hHead (by simp [hTy])
   have hEq :
       dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i (vsm_num_apply_args v) =
         SmtType.Datatype s d := by
@@ -613,7 +613,7 @@ theorem typeof_value_model_eval_dt_sel
     have hArgTy :
         __smtx_typeof_value (__vsm_apply_arg_nth v j (vsm_num_apply_args v)) =
           __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) i j :=
-      apply_arg_nth_type_of_non_none hHeadEq (by simpa [hv]) hj
+      apply_arg_nth_type_of_non_none hHeadEq (by simp [hv]) hj
     have hArgTy' :
         __smtx_typeof_value (__vsm_apply_arg_nth v j (__smtx_dt_num_sels d i)) =
           __smtx_ret_typeof_sel s d i j := by

@@ -227,8 +227,8 @@ theorem typeof_value_model_eval_bvult
       __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvult t1) t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvult __smtx_model_eval_bvult
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
-      simpa [__smtx_model_eval_bvult, __smtx_model_eval_bvugt, __smtx_typeof_value] using
-        typeof_value_model_eval_bvugt_value w n2 n1 hWidth)
+      rw [__smtx_model_eval_bvult]
+      exact typeof_value_model_eval_bvugt_value w n2 n1 hWidth)
 
 theorem typeof_value_model_eval_bvule
     (M : SmtModel)

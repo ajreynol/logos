@@ -41,10 +41,10 @@ theorem seq_binop_args_of_non_none
           subst hEq
           exact ⟨T, rfl, rfl⟩
       | _ =>
-          simp [hTy, __smtx_typeof_seq_op_2, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+          simp [hTy, __smtx_typeof_seq_op_2, h1, h2] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [hTy, __smtx_typeof_seq_op_2, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+        simp [hTy, __smtx_typeof_seq_op_2, h1, h2] at ht
 
 theorem seq_triop_args_of_non_none
     {op t1 t2 t3 : SmtTerm}
@@ -73,13 +73,13 @@ theorem seq_triop_args_of_non_none
               subst hUV
               exact ⟨T, rfl, rfl, rfl⟩
           | _ =>
-              simp [hTy, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+              simp [hTy, __smtx_typeof_seq_op_3, h1, h2, h3] at ht
       | _ =>
           cases h3 : __smtx_typeof t3 <;>
-            simp [hTy, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+            simp [hTy, __smtx_typeof_seq_op_3, h1, h2, h3] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
-        simp [hTy, __smtx_typeof_seq_op_3, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+        simp [hTy, __smtx_typeof_seq_op_3, h1, h2, h3] at ht
 
 theorem seq_nth_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -218,15 +218,15 @@ theorem str_indexof_args_of_non_none
               subst hEq
               exact ⟨T, rfl, rfl, rfl⟩
           | _ =>
-              simp [__smtx_typeof, __smtx_typeof_str_indexof, smt_lit_ite, smt_lit_Teq, h1, h2,
+              simp [__smtx_typeof, __smtx_typeof_str_indexof, h1, h2,
                 h3] at ht
       | _ =>
           cases h3 : __smtx_typeof t3 <;>
-            simp [__smtx_typeof, __smtx_typeof_str_indexof, smt_lit_ite, smt_lit_Teq, h1, h2,
+            simp [__smtx_typeof, __smtx_typeof_str_indexof, h1, h2,
               h3] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
-        simp [__smtx_typeof, __smtx_typeof_str_indexof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+        simp [__smtx_typeof, __smtx_typeof_str_indexof, h1, h2, h3] at ht
 
 theorem str_at_args_of_non_none
     {t1 t2 : SmtTerm}
@@ -264,13 +264,13 @@ theorem str_update_args_of_non_none
               subst hEq
               exact ⟨T, rfl, rfl, rfl⟩
           | _ =>
-              simp [__smtx_typeof, __smtx_typeof_str_update, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+              simp [__smtx_typeof, __smtx_typeof_str_update, h1, h2, h3] at ht
       | _ =>
           cases h3 : __smtx_typeof t3 <;>
-            simp [__smtx_typeof, __smtx_typeof_str_update, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+            simp [__smtx_typeof, __smtx_typeof_str_update, h1, h2, h3] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
-        simp [__smtx_typeof, __smtx_typeof_str_update, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+        simp [__smtx_typeof, __smtx_typeof_str_update, h1, h2, h3] at ht
 
 theorem reglan_arg_of_non_none
     {op t : SmtTerm}
@@ -283,7 +283,7 @@ theorem reglan_arg_of_non_none
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
     simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
-  simpa [h] using (show SmtType.RegLan = SmtType.RegLan from rfl)
+  simp
 
 theorem reglan_binop_args_of_non_none
     {op t1 t2 : SmtTerm}
@@ -298,9 +298,7 @@ theorem reglan_binop_args_of_non_none
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
     simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
-  simpa [h1, h2] using
-    (show SmtType.RegLan = SmtType.RegLan ∧ SmtType.RegLan = SmtType.RegLan from
-      ⟨rfl, rfl⟩)
+  exact ⟨rfl, rfl⟩
 
 theorem re_exp_arg_of_non_none
     {n : smt_lit_Int} {t : SmtTerm}
@@ -389,7 +387,7 @@ theorem seq_char_binop_args_of_non_none
           simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+        simp [hTy, smt_lit_ite, smt_lit_Teq, h1] at ht
 
 theorem seq_char_reglan_args_of_non_none
     {op t1 t2 : SmtTerm}
@@ -416,7 +414,7 @@ theorem seq_char_reglan_args_of_non_none
           simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+        simp [hTy, smt_lit_ite, smt_lit_Teq, h1] at ht
 
 theorem str_replace_re_args_of_non_none
     {op t1 t2 t3 : SmtTerm}
@@ -449,10 +447,10 @@ theorem str_replace_re_args_of_non_none
               simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
       | _ =>
           cases h3 : __smtx_typeof t3 <;>
-            simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+            simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
-        simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+        simp [hTy, smt_lit_ite, smt_lit_Teq, h1] at ht
 
 theorem str_indexof_re_args_of_non_none
     {t1 t2 t3 : SmtTerm}
@@ -477,10 +475,10 @@ theorem str_indexof_re_args_of_non_none
               simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
       | _ =>
           cases h3 : __smtx_typeof t3 <;>
-            simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+            simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
-        simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1, h2, h3] at ht
+        simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1] at ht
 
 theorem typeof_value_model_eval_str_len
     (M : SmtModel)
@@ -491,9 +489,9 @@ theorem typeof_value_model_eval_str_len
       __smtx_typeof (SmtTerm.Apply SmtTerm.str_len t) := by
   unfold term_has_non_none_type at ht
   cases hArg : __smtx_typeof t <;>
-    simp [__smtx_typeof, __smtx_typeof_seq_op_1_ret, smt_lit_ite, smt_lit_Teq, hArg] at ht
+    simp [__smtx_typeof, __smtx_typeof_seq_op_1_ret, hArg] at ht
   rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.str_len t) = SmtType.Int by
-    simp [__smtx_typeof, __smtx_typeof_seq_op_1_ret, smt_lit_ite, smt_lit_Teq, hArg]]
+    simp [__smtx_typeof, __smtx_typeof_seq_op_1_ret, hArg]]
   change __smtx_typeof_value (__smtx_model_eval_str_len (__smtx_model_eval M t)) = SmtType.Int
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
   rw [hss]
@@ -635,10 +633,10 @@ theorem typeof_value_model_eval_str_contains
           rw [hss1, hss2]
           rfl
       | _ =>
-          simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+          simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, h1, h2] at ht
   | _ =>
       cases h2 : __smtx_typeof t2 <;>
-        simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+        simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, h1, h2] at ht
 
 theorem typeof_value_model_eval_str_indexof
     (M : SmtModel)

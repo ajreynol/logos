@@ -23,7 +23,7 @@ theorem ite_args_of_non_none
   have hBool : __smtx_typeof c = SmtType.Bool := by
     cases hc : __smtx_typeof c <;>
       simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, hc] at ht
-    simpa [hc] using (show SmtType.Bool = SmtType.Bool from rfl)
+    simp
   by_cases hEq : smt_lit_Teq T1 T2 = true
   · have hT : T1 = T2 := by
       simpa [smt_lit_Teq] using hEq
@@ -47,7 +47,7 @@ theorem typeof_value_model_eval_ite
   rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, hT⟩
   rw [show __smtx_typeof
       (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2) = T by
-    simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, smt_lit_Teq, hc, h1, h2, hT]]
+    simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, smt_lit_Teq, hc, h1, h2]]
   change __smtx_typeof_value
       (__smtx_model_eval_ite (__smtx_model_eval M c) (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = T
   rcases bool_value_canonical (by simpa [hc] using hpresc) with ⟨b, hb⟩
@@ -73,7 +73,7 @@ theorem select_args_of_non_none
         exact ht (by simp [__smtx_typeof, __smtx_typeof_select, smt_lit_ite, h1, hEq])
   | _ =>
       exfalso
-      exact ht (by simp [__smtx_typeof, __smtx_typeof_select, smt_lit_ite, h1])
+      exact ht (by simp [__smtx_typeof, __smtx_typeof_select, h1])
 
 theorem store_args_of_non_none
     {t1 t2 t3 : SmtTerm}
@@ -101,7 +101,7 @@ theorem store_args_of_non_none
           simp [__smtx_typeof, __smtx_typeof_store, smt_lit_ite, h1, hEq1])
   | _ =>
       exfalso
-      exact ht (by simp [__smtx_typeof, __smtx_typeof_store, smt_lit_ite, h1])
+      exact ht (by simp [__smtx_typeof, __smtx_typeof_store, h1])
 
 theorem typeof_value_model_eval_select
     (M : SmtModel)
@@ -174,7 +174,7 @@ theorem typeof_value_model_eval_not
     unfold term_has_non_none_type at ht
     cases h : __smtx_typeof t <;>
       simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
-    simpa [h] using (show SmtType.Bool = SmtType.Bool from rfl)
+    simp
   rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.not t) = SmtType.Bool by
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]]
   change __smtx_typeof_value (__smtx_model_eval_not (__smtx_model_eval M t)) = SmtType.Bool
@@ -530,7 +530,7 @@ theorem int_ret_arg_of_non_none
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
     simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
-  simpa [h] using (show SmtType.Int = SmtType.Int from rfl)
+  simp
 
 theorem int_binop_args_of_non_none
     {op t1 t2 : SmtTerm}

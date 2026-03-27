@@ -956,7 +956,7 @@ theorem real_arg_of_non_none
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
     simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
-  simpa [h] using (show SmtType.Real = SmtType.Real from rfl)
+  simp
 
 theorem int_arg_of_non_none
     {t : SmtTerm}
@@ -965,7 +965,7 @@ theorem int_arg_of_non_none
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
-  simpa [h] using (show SmtType.Int = SmtType.Int from rfl)
+  simp
 
 theorem typeof_value_model_eval_eq_value
     (v1 v2 : SmtValue) :
