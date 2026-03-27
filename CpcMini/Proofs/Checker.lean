@@ -1,5 +1,5 @@
 import CpcMini.Spec
-import CpcMini.Proofs.Lemmas
+import CpcMini.Proofs.RuleLemmas
 
 open Eo
 open Smtm

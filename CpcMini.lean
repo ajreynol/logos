@@ -5,5 +5,5 @@ import CpcMini.SmtModel
 import CpcMini.Spec
 import CpcMini.Proofs.SmtModelLemmas
 import CpcMini.Proofs.Unproven
-import CpcMini.Proofs.Lemmas
-import CpcMini.Proofs.Refutation
+import CpcMini.Proofs.RuleLemmas
+import CpcMini.Proofs.Checker
