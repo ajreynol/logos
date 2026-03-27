@@ -19,8 +19,12 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | re_allchar : supported_preservation_term SmtTerm.re_allchar
   | re_none : supported_preservation_term SmtTerm.re_none
   | re_all : supported_preservation_term SmtTerm.re_all
-  | seq_empty (T : SmtType) : supported_preservation_term (SmtTerm.seq_empty T)
-  | set_empty (T : SmtType) : supported_preservation_term (SmtTerm.set_empty T)
+  | seq_empty (T : SmtType)
+      (hT : type_inhabited T) :
+      supported_preservation_term (SmtTerm.seq_empty T)
+  | set_empty (T : SmtType)
+      (hT : type_inhabited T) :
+      supported_preservation_term (SmtTerm.set_empty T)
   | seq_unit {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :

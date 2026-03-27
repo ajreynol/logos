@@ -39,10 +39,10 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_re_none M
   | re_all =>
       exact typeof_value_model_eval_re_all M
-  | seq_empty T =>
-      exact typeof_value_model_eval_seq_empty M T
-  | set_empty T =>
-      exact typeof_value_model_eval_set_empty M T
+  | seq_empty T hT =>
+      exact typeof_value_model_eval_seq_empty M T hT
+  | set_empty T hT =>
+      exact typeof_value_model_eval_set_empty M T hT
   | seq_unit ht1 hs1 =>
       exact typeof_value_model_eval_seq_unit M _ ht1
         (supported_type_preservation M hM _ ht1 hs1)

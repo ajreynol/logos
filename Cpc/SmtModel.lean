@@ -723,6 +723,27 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | v => SmtType.None
 
 
+def __smtx_inhabited_type (T : SmtType) : smt_lit_Bool := by
+  classical
+  exact decide (∃ v : SmtValue, __smtx_typeof_value v = T)
+
+
+def __smtx_typeof_guard_inhabited (T : SmtType) (U : SmtType) : SmtType :=
+  (smt_lit_ite (__smtx_inhabited_type T) U SmtType.None)
+
+
+def __smtx_typeof_var_guarded (T : SmtType) : SmtType :=
+  (__smtx_typeof_guard_inhabited T T)
+
+
+def __smtx_typeof_seq_empty_guarded (T : SmtType) : SmtType :=
+  (__smtx_typeof_guard_inhabited T (SmtType.Seq T))
+
+
+def __smtx_typeof_set_empty_guarded (T : SmtType) : SmtType :=
+  (__smtx_typeof_guard_inhabited T (SmtType.Map T SmtType.Bool))
+
+
 def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Boolean true), t2, t3 => t2
   | (SmtValue.Boolean false), t2, t3 => t3
@@ -1641,7 +1662,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.seq_empty x1) => (SmtType.Seq x1)
+  | (SmtTerm.seq_empty x1) => (__smtx_typeof_seq_empty_guarded x1)
   | (SmtTerm.Apply SmtTerm.str_len x1) => (__smtx_typeof_seq_op_1_ret (__smtx_typeof x1) SmtType.Int)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_concat x1) x2) => (__smtx_typeof_seq_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr x1) x2) x3) => (__smtx_typeof_str_substr (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
@@ -1704,7 +1725,7 @@ def __smtx_typeof : SmtTerm -> SmtType
     let _v0 := (__smtx_typeof x1)
     (smt_lit_ite (smt_lit_Teq _v0 SmtType.None) SmtType.None (SmtType.Seq _v0))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.seq_nth x1) x2) => (__smtx_typeof_seq_nth (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.set_empty x1) => (SmtType.Map x1 SmtType.Bool)
+  | (SmtTerm.set_empty x1) => (__smtx_typeof_set_empty_guarded x1)
   | (SmtTerm.Apply SmtTerm.set_singleton x1) => 
     let _v0 := (__smtx_typeof x1)
     (smt_lit_ite (smt_lit_Teq _v0 SmtType.None) SmtType.None (SmtType.Map _v0 SmtType.Bool))
@@ -1722,13 +1743,13 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
-  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) (smt_lit_typeof_tchoice T) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_var_guarded T) SmtType.None)
   | (SmtTerm.DtCons s d i) => (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_typeof_apply (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)) (__smtx_typeof x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_typeof_apply (SmtType.Map (SmtType.Datatype s d) SmtType.Bool) (__smtx_typeof x1))
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
-  | (SmtTerm.Var s T) => T
-  | (SmtTerm.UConst s T) => T
+  | (SmtTerm.Var s T) => (__smtx_typeof_var_guarded T)
+  | (SmtTerm.UConst s T) => (__smtx_typeof_var_guarded T)
   | x1 => SmtType.None
 
 
