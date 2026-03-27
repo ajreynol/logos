@@ -15,10 +15,10 @@ by
   by_cases hStuck : x1 = Term.Stuck
   · exfalso
     apply hTrans
-    simp [RuleProofs.eo_has_smt_translation, hStuck, __eo_to_smt, __smtx_typeof]
+    simp [hStuck, __eo_to_smt, __smtx_typeof]
   · have hRefl :
         __eo_prog_refl x1 = Term.Apply (Term.Apply Term.eq x1) x1 := by
-      simp [__eo_prog_refl, hStuck]
+      simp [__eo_prog_refl]
     rw [hRefl]
     unfold RuleProofs.eo_has_bool_type
     simpa [__eo_to_smt, __smtx_typeof] using

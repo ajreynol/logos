@@ -24,13 +24,13 @@ by
             have hEqTerm : __eo_eq x1 x1 = Term.Boolean true := by
               by_cases hStuck : x1 = Term.Stuck
               · exact False.elim (hX1NotStuck hStuck)
-              · simp [__eo_eq, hStuck, eo_lit_teq]
+              · simp [__eo_eq, eo_lit_teq]
             have hContraFalse :
                 __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not x1)) =
                   Term.Boolean false := by
               rw [__eo_prog_contra, hEqTerm]
               simp [__eo_requires, eo_lit_teq, eo_lit_ite, eo_lit_not, SmtEval.smt_lit_not]
-            simpa [RuleProofs.eo_has_bool_type, hContraFalse, __eo_to_smt, __smtx_typeof]
+            simp [RuleProofs.eo_has_bool_type, hContraFalse, __eo_to_smt, __smtx_typeof]
           · have hEqNe : __eo_eq x1 a ≠ Term.Boolean true := by
               intro hEqTerm
               by_cases hXStuck : x1 = Term.Stuck
@@ -39,7 +39,7 @@ by
               · by_cases hAStuck : a = Term.Stuck
                 · subst hAStuck
                   simp [__eo_eq] at hEqTerm
-                · simp [__eo_eq, hXStuck, hAStuck, eo_lit_teq] at hEqTerm
+                · simp [__eo_eq, eo_lit_teq] at hEqTerm
                   exact hEq hEqTerm.symm
             have hContraStuck :
                 __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by

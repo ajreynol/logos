@@ -413,7 +413,7 @@ by
     constructor
     · simp [__eo_is_bool_type]
     · exact False.elim ∘ typeof_stuck_ne_bool
-  · simpa [__eo_is_bool_type, hStuck] using eo_eq_bool_true_iff (__eo_typeof t)
+  · simp [__eo_is_bool_type, eo_eq_bool_true_iff]
 
 @[simp] theorem eo_is_bool_type_eq_true_of_typeof_bool (t : Term) :
   __eo_typeof t = Term.Bool ->
@@ -453,7 +453,7 @@ by
     exact hTy ((eo_is_bool_type_eq_true_iff A).1 h)
   cases hCheck : __eo_is_bool_type A <;> simp [__eo_push_assume, __eo_push_assume_check, hCheck]
   case Boolean b =>
-    cases b <;> simp [__eo_push_assume, __eo_push_assume_check, hCheck] at hBool ⊢
+    cases b <;> simp [hCheck] at hBool ⊢
 
 theorem assume_push_arg_ne_stuck_of_stateOk (A : Term) (s : CState) :
   stateOk (__eo_push_assume A s) -> A ≠ Term.Stuck :=
@@ -470,8 +470,8 @@ by
     have hBool : __eo_is_bool_type A = Term.Boolean true := by
       cases hCheck : __eo_is_bool_type A <;> simp [__eo_push_assume, __eo_push_assume_check, hCheck, stateOk] at hOk
       case Boolean b =>
-        cases b <;> simp [__eo_push_assume, __eo_push_assume_check, hCheck, stateOk] at hOk
-        simpa [hCheck]
+        cases b <;> simp [stateOk] at hOk
+        simp
     exact (eo_is_bool_type_eq_true_iff A).1 hBool
   simpa [push_assume_eq_cons_of_typeof_bool, hTy, stateOk] using hOk
 
@@ -483,8 +483,8 @@ by
     cases hCheck : __eo_is_bool_type A <;>
       simp [__eo_push_assume, __eo_push_assume_check, hCheck, stateOk] at hOk
     case Boolean b =>
-      cases b <;> simp [__eo_push_assume, __eo_push_assume_check, hCheck, stateOk] at hOk
-      simpa [hCheck]
+      cases b <;> simp [stateOk] at hOk
+      simp
   exact (eo_is_bool_type_eq_true_iff A).1 hBool
 
 theorem push_assume_eq_cons_of_stateOk (A : Term) (s : CState) :
@@ -517,7 +517,7 @@ by
     exact hTy ((eo_is_bool_type_eq_true_iff P).1 h)
   cases hCheck : __eo_is_bool_type P <;> simp [__eo_push_proven, __eo_push_proven_check, hCheck]
   case Boolean b =>
-    cases b <;> simp [__eo_push_proven, __eo_push_proven_check, hCheck] at hBool ⊢
+    cases b <;> simp [hCheck] at hBool ⊢
 
 theorem push_proven_typeof_bool_of_stateOk (P : Term) (s : CState) :
   stateOk (__eo_push_proven P s) -> __eo_typeof P = Term.Bool :=
@@ -527,8 +527,8 @@ by
     cases hCheck : __eo_is_bool_type P <;>
       simp [__eo_push_proven, __eo_push_proven_check, hCheck, stateOk] at hOk
     case Boolean b =>
-      cases b <;> simp [__eo_push_proven, __eo_push_proven_check, hCheck, stateOk] at hOk
-      simpa [hCheck]
+      cases b <;> simp [stateOk] at hOk
+      simp
   exact (eo_is_bool_type_eq_true_iff P).1 hBool
 
 theorem push_proven_eq_cons_of_stateOk (P : Term) (s : CState) :
@@ -1063,7 +1063,7 @@ theorem invoke_step_eq_cons_of_nonstuck
 by
   intro hStep hTy
   rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises, hStep]
-  simpa [push_proven_eq_cons_of_typeof_bool, hTy]
+  simp [push_proven_eq_cons_of_typeof_bool, hTy]
 
 theorem invoke_step_eq_stuck_of_typeof_ne_bool
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
@@ -1074,7 +1074,7 @@ theorem invoke_step_eq_stuck_of_typeof_ne_bool
 by
   intro hStep hTy
   rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises, hStep]
-  simpa [push_proven_eq_stuck_of_typeof_ne_bool, hTy]
+  simp [push_proven_eq_stuck_of_typeof_ne_bool, hTy]
 
 theorem state_proven_nth_true_of_context (M : SmtModel) :
   forall (s : CState) (n : eo_lit_Int),
@@ -2718,12 +2718,12 @@ by
                     __eo_invoke_cmd_step_pop root (CState.cons (CStateObj.assume_push A) cur) r args premises =
                       CState.Stuck := by
                   simp [__eo_invoke_cmd_step_pop, push_proven_eq_stuck_of_typeof_ne_bool, hTy]
-                simpa [hPost, checkerShapeInvariant] using (show checkerShapeInvariant CState.Stuck from trivial)
+                simp [hPost, checkerShapeInvariant]
           | true =>
               have hEq : __eo_cmd_step_pop_proven root r args A premises = Term.Stuck := by
-                simpa [eo_lit_teq] using hStep
-              simpa [__eo_invoke_cmd_step_pop, hEq, push_proven_eq_stuck_of_eq_stuck, checkerShapeInvariant] using
-                (show checkerShapeInvariant CState.Stuck from trivial)
+                simp [eo_lit_teq] at hStep
+                exact hStep
+              simp [__eo_invoke_cmd_step_pop, hEq, push_proven_eq_stuck_of_eq_stuck, checkerShapeInvariant]
       | assume A =>
           have hTail : stateAssumptionTail cur := by
             simpa [stateAssumptionSuffix] using hSuffix
@@ -2940,14 +2940,12 @@ by
               | Boolean b =>
                   cases b with
                   | false =>
-                      simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTypeInvariant] using
-                        checkerTypeInvariant_stuck
+                      simp [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTypeInvariant]
                   | true =>
                       simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTypeInvariant,
                         hHead.1, hHead.2] using hTail
               | _ =>
-                  simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTypeInvariant] using
-                    checkerTypeInvariant_stuck
+                  simp [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTypeInvariant]
   | step r args premises =>
       exact invoke_step_preserves_typeInvariant s hNotStuck r args premises hs
   | step_pop r args premises =>
@@ -3006,14 +3004,12 @@ by
               | Boolean b =>
                   cases b with
                   | false =>
-                      simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant] using
-                        checkerTranslationInvariant_stuck
+                      simp [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant]
                   | true =>
                       simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant] using
                         (show RuleProofs.eo_has_smt_translation F ∧ checkerTranslationInvariant s from ⟨hHead, hTail⟩)
               | _ =>
-                  simpa [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant] using
-                    checkerTranslationInvariant_stuck
+                  simp [__eo_invoke_cmd, __eo_push_proven_check, hEq, checkerTranslationInvariant]
   | step r args premises =>
       exact invoke_step_preserves_translationInvariant M hM s hNotStuck r args premises
         hs hsTy hsTrans hCmdTrans

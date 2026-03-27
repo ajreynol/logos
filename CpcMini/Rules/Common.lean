@@ -436,10 +436,39 @@ theorem smt_value_rel_iff_model_eval_eq_true :
           exact smt_value_rel.apply
             ((smt_value_rel_iff_model_eval_eq_true _ _).mpr h.1)
             ((smt_value_rel_iff_model_eval_eq_true _ _).mpr h.2)
+        case NotValue.NotValue =>
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          exact smt_value_rel.base rfl
+        case Boolean.Boolean b1 b2 =>
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          subst h
+          exact smt_value_rel.base rfl
+        case Numeral.Numeral n1 n2 =>
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          subst h
+          exact smt_value_rel.base rfl
+        case Rational.Rational q1 q2 =>
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          subst h
+          exact smt_value_rel.base rfl
+        case Binary.Binary hi1 lo1 hi2 lo2 =>
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          rcases h with ⟨rfl, rfl⟩
+          exact smt_value_rel.base rfl
+        case Char.Char c1 c2 =>
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          subst h
+          exact smt_value_rel.base rfl
+        case RegLan.RegLan r1 r2 =>
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          subst h
+          exact smt_value_rel.base rfl
+        case DtCons.DtCons n1 dt1 ar1 n2 dt2 ar2 =>
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          rcases h with ⟨rfl, rfl, rfl⟩
+          exact smt_value_rel.base rfl
         all_goals
-          first
-          | exact smt_value_rel.base (by simpa [__smtx_model_eval_eq, smt_lit_veq] using h)
-          | simp [__smtx_model_eval_eq, smt_lit_veq] at h
+          simp [__smtx_model_eval_eq, smt_lit_veq] at h
 
 theorem smt_seq_rel_iff_model_eval_eq_true :
     (s1 : SmtSeq) -> (s2 : SmtSeq) ->
