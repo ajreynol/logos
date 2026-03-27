@@ -2196,7 +2196,7 @@ by
                         (fun X1 X2 hX1True hX2True hProgContra =>
                           correct___eo_prog_contra M hM X1 X2 hX1True hX2True hProgContra)
                         (fun X1 X2 hX1Bool hX2Bool hProgContra =>
-                          typed___eo_prog_contra_impl X1 X2 hX1Bool hX2Bool hProgContra)
+                          typed___eo_prog_contra X1 X2 hX1Bool hX2Bool hProgContra)
                         (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
                   | cons n3 premises =>
                       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
@@ -2219,7 +2219,7 @@ by
                     (fun a1 hATrans hProgRefl =>
                       correct___eo_prog_refl M hM a1 hATrans hProgRefl)
                     (fun a1 hATrans hProgRefl =>
-                      typed___eo_prog_refl_impl a1 hATrans hProgRefl)
+                      typed___eo_prog_refl a1 hATrans hProgRefl)
                     (by simpa [__eo_cmd_step_proven] using hProg)
               | cons n ns =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
@@ -2242,7 +2242,7 @@ by
                     (fun X hXTrue hProgSymm =>
                       correct___eo_prog_symm M hM X hXTrue hProgSymm)
                     (fun X hXBool hProgSymm =>
-                      typed___eo_prog_symm_impl X hXBool hProgSymm)
+                      typed___eo_prog_symm X hXBool hProgSymm)
                     (by simpa [P, X, __eo_cmd_step_proven] using hProg)
               | cons n2 premises =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
@@ -2259,7 +2259,7 @@ by
             (fun X hXTrue hProgTrans =>
               correct___eo_prog_trans M hM X hXTrue hProgTrans)
             (fun X hXBool hProgTrans =>
-              typed___eo_prog_trans_impl X hXBool hProgTrans)
+              typed___eo_prog_trans X hXBool hProgTrans)
             (by simpa [P, X, __eo_cmd_step_proven] using hProg)
       | cons a args =>
           exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
@@ -2453,7 +2453,7 @@ by
                       RuleProofs.eo_typeof_bool_implies_has_bool_type X hXTrans hXTy
                     have hPBool :
                         RuleProofs.eo_has_bool_type (__eo_prog_scope A (Proof.pf X)) :=
-                      typed___eo_prog_scope_of_bool_args A X hABool hXBool
+                      typed___eo_prog_scope A X hABool hXBool
                         (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
                     simpa [P, X, __eo_cmd_step_pop_proven, hA] using
                       RuleProofs.eo_has_smt_translation_of_has_bool_type (__eo_prog_scope A (Proof.pf X)) hPBool
