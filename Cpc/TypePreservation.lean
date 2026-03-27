@@ -437,9 +437,8 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_bvlshr M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
-  | repeat ht1 hs1 ht2 hs2 =>
+  | «repeat» ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_repeat M _ _ ht
-        (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
   | bvsdiv ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_bvsdiv M _ _ ht

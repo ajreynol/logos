@@ -8,15 +8,15 @@ def type_inhabited (T : SmtType) : Prop :=
   ∃ v : SmtValue, __smtx_typeof_value v = T
 
 theorem smtx_inhabited_type_eq_true_iff (T : SmtType) :
-    __smtx_inhabited_type T = true ↔ type_inhabited T := by
+    smt_lit_inhabited_type T = true ↔ type_inhabited T := by
   classical
-  unfold __smtx_inhabited_type type_inhabited
+  unfold smt_lit_inhabited_type type_inhabited
   simp
 
 theorem smtx_inhabited_type_eq_false_iff (T : SmtType) :
-    __smtx_inhabited_type T = false ↔ ¬ type_inhabited T := by
+    smt_lit_inhabited_type T = false ↔ ¬ type_inhabited T := by
   classical
-  unfold __smtx_inhabited_type type_inhabited
+  unfold smt_lit_inhabited_type type_inhabited
   by_cases h : ∃ v : SmtValue, __smtx_typeof_value v = T
   · simp [h]
   · simp [h]

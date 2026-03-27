@@ -68,11 +68,12 @@ theorem typeof_value_model_eval_var
     (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Var s T)) =
       __smtx_typeof (SmtTerm.Var s T) := by
-  have hInh : __smtx_inhabited_type T = true :=
+  have hInh : smt_lit_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hT
-  change __smtx_typeof_value (__smtx_model_lookup M s T) = __smtx_typeof_var_guarded T
+  change __smtx_typeof_value (__smtx_model_lookup M s T) =
+    __smtx_typeof_guard_inhabited T T
   rw [model_total_typed_lookup hM s T hT]
-  simp [__smtx_typeof_var_guarded, __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+  simp [__smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
 theorem typeof_value_model_eval_uconst
     (M : SmtModel)
@@ -82,11 +83,12 @@ theorem typeof_value_model_eval_uconst
     (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.UConst s T)) =
       __smtx_typeof (SmtTerm.UConst s T) := by
-  have hInh : __smtx_inhabited_type T = true :=
+  have hInh : smt_lit_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hT
-  change __smtx_typeof_value (__smtx_model_lookup M s T) = __smtx_typeof_var_guarded T
+  change __smtx_typeof_value (__smtx_model_lookup M s T) =
+    __smtx_typeof_guard_inhabited T T
   rw [model_total_typed_lookup hM s T hT]
-  simp [__smtx_typeof_var_guarded, __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+  simp [__smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
 theorem model_eval_var_of_uninhabited
     (M : SmtModel)
@@ -129,10 +131,11 @@ theorem typeof_value_model_eval_seq_empty
     (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.seq_empty T)) =
       __smtx_typeof (SmtTerm.seq_empty T) := by
-  have hInh : __smtx_inhabited_type T = true :=
+  have hInh : smt_lit_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hT
-  change __smtx_typeof_seq_value (SmtSeq.empty T) = __smtx_typeof_seq_empty_guarded T
-  simp [__smtx_typeof_seq_value, __smtx_typeof_seq_empty_guarded,
+  change __smtx_typeof_seq_value (SmtSeq.empty T) =
+    __smtx_typeof_guard_inhabited T (SmtType.Seq T)
+  simp [__smtx_typeof_seq_value,
     __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
 theorem typeof_value_model_eval_set_empty
@@ -141,11 +144,11 @@ theorem typeof_value_model_eval_set_empty
     (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.set_empty T)) =
       __smtx_typeof (SmtTerm.set_empty T) := by
-  have hInh : __smtx_inhabited_type T = true :=
+  have hInh : smt_lit_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hT
   change __smtx_typeof_map_value (SmtMap.default T (SmtValue.Boolean false)) =
-    __smtx_typeof_set_empty_guarded T
-  simp [__smtx_typeof_map_value, __smtx_typeof_value, __smtx_typeof_set_empty_guarded,
+    __smtx_typeof_guard_inhabited T (SmtType.Map T SmtType.Bool)
+  simp [__smtx_typeof_map_value, __smtx_typeof_value,
     __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
 theorem typeof_value_model_eval_seq_unit
@@ -311,7 +314,7 @@ theorem choice_term_has_witness
     ∃ v : SmtValue, __smtx_typeof_value v = T := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, __smtx_typeof_var_guarded,
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq,
       __smtx_typeof_guard_inhabited, h, smtx_inhabited_type_eq_true_iff] at ht
   exact ht.1
 
@@ -322,11 +325,11 @@ theorem choice_term_typeof_of_non_none
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.choice s T) body)) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.choice s T) body) = T := by
   have hTy := choice_term_has_witness ht
-  have hInh : __smtx_inhabited_type T = true :=
+  have hInh : smt_lit_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hTy
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, __smtx_typeof_var_guarded,
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq,
       __smtx_typeof_guard_inhabited, h, hInh] at ht ⊢
 
 theorem typeof_value_model_eval_choice
