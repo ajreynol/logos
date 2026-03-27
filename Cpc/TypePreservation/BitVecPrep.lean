@@ -20,7 +20,7 @@ theorem typeof_extract_eq
 
 theorem typeof_repeat_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2) =
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat t1) t2) =
       __smtx_typeof_repeat t1 (__smtx_typeof t2) := rfl
 
 theorem typeof_zero_extend_eq
@@ -110,7 +110,7 @@ theorem extract_args_of_non_none
 
 theorem repeat_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2)) :
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat t1) t2)) :
     ∃ i w : smt_lit_Int,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧

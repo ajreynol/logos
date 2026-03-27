@@ -623,7 +623,7 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (hs1 : supported_preservation_term t1)
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2)
+      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat t1) t2)
   | bvsdiv {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
