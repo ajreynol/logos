@@ -2056,102 +2056,81 @@ by
 theorem step_rule_facts_1arg_0prem
     (M : SmtModel) (s : CState) (a1 : Term) (mk : Term -> Term) :
   RuleProofs.eo_has_smt_translation a1 ->
-  (∀ a1 : Term,
-      RuleProofs.eo_has_smt_translation a1 ->
-      mk a1 ≠ Term.Stuck ->
-      eo_interprets M (mk a1) true) ->
-  (∀ a1 : Term,
-      RuleProofs.eo_has_smt_translation a1 ->
-      mk a1 ≠ Term.Stuck ->
-      RuleProofs.eo_has_bool_type (mk a1)) ->
+  StepRuleSpec1Arg0Prem M mk ->
   mk a1 ≠ Term.Stuck ->
   CmdStepFacts M s (mk a1) :=
 by
-  intro hATrans hCorrect hTyped hProg
-  apply cmdStepFacts_of_contextual_true_and_bool
-  · intro _hAss _hPush
-    exact hCorrect a1 hATrans hProg
-  · exact hTyped a1 hATrans hProg
+  intro hATrans hSpec hProg
+  rcases hSpec with ⟨hTrue, hBool⟩
+  have hTrans : RuleProofs.eo_has_smt_translation (mk a1) :=
+    RuleProofs.eo_has_smt_translation_of_has_bool_type (mk a1) (hBool a1 hATrans hProg)
+  exact ⟨fun _hAss _hPush => hTrue a1 hATrans hProg, hTrans⟩
 
 theorem step_rule_facts_0arg_1prem
     (M : SmtModel) (s : CState) (n1 : eo_lit_Int) (mk : Term -> Term) :
   checkerTruthInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
-  (∀ X : Term,
-      eo_interprets M X true ->
-      mk X ≠ Term.Stuck ->
-      eo_interprets M (mk X) true) ->
-  (∀ X : Term,
-      RuleProofs.eo_has_bool_type X ->
-      mk X ≠ Term.Stuck ->
-      RuleProofs.eo_has_bool_type (mk X)) ->
+  StepRuleSpec0Arg1Prem M mk ->
   mk (__eo_state_proven_nth s n1) ≠ Term.Stuck ->
   CmdStepFacts M s (mk (__eo_state_proven_nth s n1)) :=
 by
-  intro hs hsTy hsTrans hCorrect hTyped hProg
-  apply cmdStepFacts_of_contextual_true_and_bool
+  intro hs hsTy hsTrans hSpec hProg
+  rcases hSpec with ⟨hTrue, hBool⟩
+  refine ⟨?_, ?_⟩
   · intro hAss hPush
-    exact hCorrect (__eo_state_proven_nth s n1)
+    exact hTrue (__eo_state_proven_nth s n1)
       (checkerTruthInvariant_at M hs n1 hAss hPush) hProg
-  · exact hTyped (__eo_state_proven_nth s n1)
-      (checkerEntry_has_bool_type_at hsTy hsTrans n1) hProg
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type
+      (mk (__eo_state_proven_nth s n1))
+      (hBool (__eo_state_proven_nth s n1)
+        (checkerEntry_has_bool_type_at hsTy hsTrans n1) hProg)
 
 theorem step_rule_facts_0arg_2prem
     (M : SmtModel) (s : CState) (n1 n2 : eo_lit_Int) (mk : Term -> Term -> Term) :
   checkerTruthInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
-  (∀ X1 X2 : Term,
-      eo_interprets M X1 true ->
-      eo_interprets M X2 true ->
-      mk X1 X2 ≠ Term.Stuck ->
-      eo_interprets M (mk X1 X2) true) ->
-  (∀ X1 X2 : Term,
-      RuleProofs.eo_has_bool_type X1 ->
-      RuleProofs.eo_has_bool_type X2 ->
-      mk X1 X2 ≠ Term.Stuck ->
-      RuleProofs.eo_has_bool_type (mk X1 X2)) ->
+  StepRuleSpec0Arg2Prem M mk ->
   mk (__eo_state_proven_nth s n1) (__eo_state_proven_nth s n2) ≠ Term.Stuck ->
   CmdStepFacts M s (mk (__eo_state_proven_nth s n1) (__eo_state_proven_nth s n2)) :=
 by
-  intro hs hsTy hsTrans hCorrect hTyped hProg
-  apply cmdStepFacts_of_contextual_true_and_bool
+  intro hs hsTy hsTrans hSpec hProg
+  rcases hSpec with ⟨hTrue, hBool⟩
+  refine ⟨?_, ?_⟩
   · intro hAss hPush
-    exact hCorrect (__eo_state_proven_nth s n1) (__eo_state_proven_nth s n2)
+    exact hTrue (__eo_state_proven_nth s n1) (__eo_state_proven_nth s n2)
       (checkerTruthInvariant_at M hs n1 hAss hPush)
       (checkerTruthInvariant_at M hs n2 hAss hPush)
       hProg
-  · exact hTyped (__eo_state_proven_nth s n1) (__eo_state_proven_nth s n2)
-      (checkerEntry_has_bool_type_at hsTy hsTrans n1)
-      (checkerEntry_has_bool_type_at hsTy hsTrans n2)
-      hProg
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type
+      (mk (__eo_state_proven_nth s n1) (__eo_state_proven_nth s n2))
+      (hBool (__eo_state_proven_nth s n1) (__eo_state_proven_nth s n2)
+        (checkerEntry_has_bool_type_at hsTy hsTrans n1)
+        (checkerEntry_has_bool_type_at hsTy hsTrans n2)
+        hProg)
 
 theorem step_rule_facts_0arg_nprem_and
     (M : SmtModel) (s : CState) (premises : CIndexList) (mk : Term -> Term) :
   checkerTruthInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
-  (∀ X : Term,
-      eo_interprets M X true ->
-      mk X ≠ Term.Stuck ->
-      eo_interprets M (mk X) true) ->
-  (∀ X : Term,
-      RuleProofs.eo_has_bool_type X ->
-      mk X ≠ Term.Stuck ->
-      RuleProofs.eo_has_bool_type (mk X)) ->
+  StepRuleSpec0ArgNPremAnd M mk ->
   mk (__eo_mk_premise_list Term.and premises s) ≠ Term.Stuck ->
   CmdStepFacts M s (mk (__eo_mk_premise_list Term.and premises s)) :=
 by
-  intro hs hsTy hsTrans hCorrect hTyped hProg
-  apply cmdStepFacts_of_contextual_true_and_bool
+  intro hs hsTy hsTrans hSpec hProg
+  rcases hSpec with ⟨hTrue, hBool⟩
+  refine ⟨?_, ?_⟩
   · intro hAss hPush
-    exact hCorrect (__eo_mk_premise_list Term.and premises s)
+    exact hTrue (__eo_mk_premise_list Term.and premises s)
       (mk_premise_list_and_true_of_truthInvariant M s premises hs hAss hPush)
       hProg
-  · exact hTyped (__eo_mk_premise_list Term.and premises s)
-      (mk_premise_list_and_has_bool_type s premises hsTy hsTrans)
-      hProg
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type
+      (mk (__eo_mk_premise_list Term.and premises s))
+      (hBool (__eo_mk_premise_list Term.and premises s)
+        (mk_premise_list_and_has_bool_type s premises hsTy hsTrans)
+        hProg)
 
 /- Central expansion point for plain `step` rules.
 
@@ -2192,11 +2171,7 @@ by
                       let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
                       exact step_rule_facts_0arg_2prem M s n1 n2
                         (fun X1 X2 => __eo_prog_contra (Proof.pf X1) (Proof.pf X2))
-                        hs hsTy hsTrans
-                        (fun X1 X2 hX1True hX2True hProgContra =>
-                          correct___eo_prog_contra M hM X1 X2 hX1True hX2True hProgContra)
-                        (fun X1 X2 hX1Bool hX2Bool hProgContra =>
-                          typed___eo_prog_contra X1 X2 hX1Bool hX2Bool hProgContra)
+                        hs hsTy hsTrans (spec___eo_prog_contra M hM)
                         (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
                   | cons n3 premises =>
                       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
@@ -2215,11 +2190,7 @@ by
                       RuleProofs.eo_has_smt_translation a1 :=
                     by simpa [cmdTranslationOk] using hCmdTrans
                   exact step_rule_facts_1arg_0prem M s a1 __eo_prog_refl
-                    hATrans
-                    (fun a1 hATrans hProgRefl =>
-                      correct___eo_prog_refl M hM a1 hATrans hProgRefl)
-                    (fun a1 hATrans hProgRefl =>
-                      typed___eo_prog_refl a1 hATrans hProgRefl)
+                    hATrans (spec___eo_prog_refl M hM)
                     (by simpa [__eo_cmd_step_proven] using hProg)
               | cons n ns =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
@@ -2238,11 +2209,7 @@ by
                   let P := __eo_prog_symm (Proof.pf X)
                   exact step_rule_facts_0arg_1prem M s n1
                     (fun X => __eo_prog_symm (Proof.pf X))
-                    hs hsTy hsTrans
-                    (fun X hXTrue hProgSymm =>
-                      correct___eo_prog_symm M hM X hXTrue hProgSymm)
-                    (fun X hXBool hProgSymm =>
-                      typed___eo_prog_symm X hXBool hProgSymm)
+                    hs hsTy hsTrans (spec___eo_prog_symm M hM)
                     (by simpa [P, X, __eo_cmd_step_proven] using hProg)
               | cons n2 premises =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
@@ -2255,11 +2222,7 @@ by
           let P := __eo_prog_trans (Proof.pf X)
           exact step_rule_facts_0arg_nprem_and M s premises
             (fun X => __eo_prog_trans (Proof.pf X))
-            hs hsTy hsTrans
-            (fun X hXTrue hProgTrans =>
-              correct___eo_prog_trans M hM X hXTrue hProgTrans)
-            (fun X hXBool hProgTrans =>
-              typed___eo_prog_trans X hXBool hProgTrans)
+            hs hsTy hsTrans (spec___eo_prog_trans M hM)
             (by simpa [P, X, __eo_cmd_step_proven] using hProg)
       | cons a args =>
           exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
@@ -2521,9 +2484,9 @@ by
                     have hXTrans : RuleProofs.eo_has_smt_translation X :=
                       checkerTranslationInvariant_at hsRootTrans n1
                     simpa [P, X, __eo_cmd_step_pop_proven, hA] using
-                      correct___eo_prog_scope M hM A X hScoped
+                      (facts___eo_prog_scope M hM A X hScoped
                         hATrans hXTrans hATy hXTy
-                        (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
+                        (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)).true_in_model
                 | cons n2 premises =>
                     exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
         | cons a args =>
