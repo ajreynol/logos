@@ -24,15 +24,6 @@ by
     simpa [__eo_to_smt, __smtx_typeof] using
       RuleProofs.smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTrans
 
-theorem translatable___eo_prog_refl_impl (x1 : Term) :
-  RuleProofs.eo_has_smt_translation x1 ->
-  __eo_prog_refl x1 ≠ Term.Stuck ->
-  RuleProofs.eo_has_smt_translation (__eo_prog_refl x1) :=
-by
-  intro hTrans hProg
-  exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
-    (typed___eo_prog_refl_impl x1 hTrans hProg)
-
 namespace RuleProofs
 
 theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
@@ -69,3 +60,16 @@ theorem correct___eo_prog_refl_impl
   (eo_interprets M (__eo_prog_refl x1) true) :=
 by
   exact RuleProofs.correct___eo_prog_refl_of_smt_translation M x1
+
+theorem facts___eo_prog_refl_impl
+    (M : SmtModel) (hM : smt_model_well_typed M) (x1 : Term) :
+  RuleProofs.eo_has_smt_translation x1 ->
+  __eo_prog_refl x1 ≠ Term.Stuck ->
+  RuleProofs.RuleResultFacts M (__eo_prog_refl x1) :=
+by
+  intro hTrans hProg
+  let hBool : RuleProofs.eo_has_bool_type (__eo_prog_refl x1) :=
+    typed___eo_prog_refl_impl x1 hTrans hProg
+  refine ⟨?_, ?_⟩
+  · exact correct___eo_prog_refl_impl M hM x1 hTrans hBool
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool

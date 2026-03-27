@@ -297,43 +297,11 @@ termination_by sizeOf tail
 decreasing_by
   simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
 
-theorem typed___eo_prog_trans_impl (M : SmtModel) (x1 : Term) :
-  (eo_interprets M x1 true) ->
+theorem typed___eo_prog_trans_impl (x1 : Term) :
+  RuleProofs.eo_has_bool_type x1 ->
   __eo_prog_trans (Proof.pf x1) ≠ Term.Stuck ->
   RuleProofs.eo_has_bool_type (__eo_prog_trans (Proof.pf x1)) :=
 by
-  intro hX1True hProg
-  cases x1 with
-  | Apply f tail =>
-      cases f with
-      | Apply g eq12 =>
-          cases g with
-          | and =>
-              cases eq12 with
-              | Apply g2 t2 =>
-                  cases g2 with
-                  | Apply g3 t1 =>
-                      cases g3 with
-                      | eq =>
-                          simpa [__eo_prog_trans] using
-                            typed_mk_trans M t1 t2 tail hX1True hProg
-                      | _ =>
-                          exact False.elim (hProg (by simp [__eo_prog_trans]))
-                  | _ =>
-                      exact False.elim (hProg (by simp [__eo_prog_trans]))
-              | _ =>
-                  exact False.elim (hProg (by simp [__eo_prog_trans]))
-          | _ =>
-              exact False.elim (hProg (by simp [__eo_prog_trans]))
-      | _ =>
-          exact False.elim (hProg (by simp [__eo_prog_trans]))
-  | _ =>
-      exact False.elim (hProg (by simp [__eo_prog_trans]))
-
-theorem translatable___eo_prog_trans_impl (x1 : Term) :
-  RuleProofs.eo_has_bool_type x1 ->
-  __eo_prog_trans (Proof.pf x1) ≠ Term.Stuck ->
-  RuleProofs.eo_has_smt_translation (__eo_prog_trans (Proof.pf x1)) := by
   intro hX1Bool hProg
   cases x1 with
   | Apply f tail =>
@@ -347,17 +315,8 @@ theorem translatable___eo_prog_trans_impl (x1 : Term) :
                   | Apply g3 t1 =>
                       cases g3 with
                       | eq =>
-                          have hPBool :
-                              RuleProofs.eo_has_bool_type
-                                (__eo_prog_trans
-                                  (Proof.pf
-                                    (Term.Apply
-                                      (Term.Apply Term.and
-                                        (Term.Apply (Term.Apply Term.eq t1) t2))
-                                      tail))) := by
-                            simpa [__eo_prog_trans] using
-                              typed_mk_trans_of_bool_chain t1 t2 tail hX1Bool hProg
-                          exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hPBool
+                          simpa [__eo_prog_trans] using
+                            typed_mk_trans_of_bool_chain t1 t2 tail hX1Bool hProg
                       | _ =>
                           exact False.elim (hProg (by simp [__eo_prog_trans]))
                   | _ =>
@@ -406,3 +365,18 @@ by
           exact False.elim (hProg (by simp [__eo_prog_trans]))
   | _ =>
       exact False.elim (hProg (by simp [__eo_prog_trans]))
+
+theorem facts___eo_prog_trans_impl
+    (M : SmtModel) (hM : smt_model_well_typed M) (x1 : Term) :
+  eo_interprets M x1 true ->
+  __eo_prog_trans (Proof.pf x1) ≠ Term.Stuck ->
+  RuleProofs.RuleResultFacts M (__eo_prog_trans (Proof.pf x1)) :=
+by
+  intro hXTrue hProg
+  let hXBool : RuleProofs.eo_has_bool_type x1 :=
+    RuleProofs.eo_has_bool_type_of_interprets_true M x1 hXTrue
+  let hBool : RuleProofs.eo_has_bool_type (__eo_prog_trans (Proof.pf x1)) :=
+    typed___eo_prog_trans_impl x1 hXBool hProg
+  refine ⟨?_, ?_⟩
+  · exact correct___eo_prog_trans_impl M hM x1 hXTrue hBool
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool

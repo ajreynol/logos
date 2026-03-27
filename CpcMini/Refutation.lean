@@ -2087,16 +2087,24 @@ by
                         have hX2True :
                             eo_interprets M X2 true :=
                           checkerTruthInvariant_at M hs n2 hAss hPush
-                        simpa [P, X1, X2, __eo_cmd_step_proven] using
-                          correct___eo_prog_contra M hM X1 X2 hX1True hX2True
+                        have hFacts :
+                            RuleProofs.RuleResultFacts M
+                              (__eo_prog_contra (Proof.pf X1) (Proof.pf X2)) :=
+                          facts___eo_prog_contra_impl M hM X1 X2 hX1True hX2True
                             (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
+                        simpa [P, X1, X2, __eo_cmd_step_proven] using hFacts.true_in_model
                       · have hX1Bool : RuleProofs.eo_has_bool_type X1 :=
                           checkerEntry_has_bool_type_at hsTy hsTrans n1
                         have hX2Bool : RuleProofs.eo_has_bool_type X2 :=
                           checkerEntry_has_bool_type_at hsTy hsTrans n2
-                        simpa [P, X1, X2, __eo_cmd_step_proven] using
-                          translatable___eo_prog_contra_impl X1 X2 hX1Bool hX2Bool
+                        have hPBool :
+                            RuleProofs.eo_has_bool_type
+                              (__eo_prog_contra (Proof.pf X1) (Proof.pf X2)) :=
+                          typed___eo_prog_contra_impl X1 X2 hX1Bool hX2Bool
                             (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
+                        simpa [P, X1, X2, __eo_cmd_step_proven] using
+                          RuleProofs.eo_has_smt_translation_of_has_bool_type
+                            (__eo_prog_contra (Proof.pf X1) (Proof.pf X2)) hPBool
                   | cons n3 premises =>
                       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
       | cons a args =>
@@ -2113,14 +2121,14 @@ by
                   have hATrans :
                       RuleProofs.eo_has_smt_translation a1 :=
                     by simpa [cmdTranslationOk] using hCmdTrans
+                  have hFacts :
+                      RuleProofs.RuleResultFacts M (__eo_prog_refl a1) :=
+                    facts___eo_prog_refl_impl M hM a1 hATrans
+                      (by simpa [__eo_cmd_step_proven] using hProg)
                   refine ⟨?_, ?_⟩
                   · intro _hAss _hPush
-                    simpa [__eo_cmd_step_proven] using
-                      correct___eo_prog_refl M hM a1 hATrans
-                        (by simpa [__eo_cmd_step_proven] using hProg)
-                  · simpa [__eo_cmd_step_proven] using
-                      translatable___eo_prog_refl_impl a1 hATrans
-                        (by simpa [__eo_cmd_step_proven] using hProg)
+                    simpa [__eo_cmd_step_proven] using hFacts.true_in_model
+                  · simpa [__eo_cmd_step_proven] using hFacts.has_smt_translation
               | cons n ns =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
           | cons a2 args =>
@@ -2141,14 +2149,20 @@ by
                     have hXTrue :
                         eo_interprets M X true :=
                       checkerTruthInvariant_at M hs n1 hAss hPush
-                    simpa [P, X, __eo_cmd_step_proven] using
-                      correct___eo_prog_symm M hM X hXTrue
+                    have hFacts :
+                        RuleProofs.RuleResultFacts M (__eo_prog_symm (Proof.pf X)) :=
+                      facts___eo_prog_symm_impl M hM X hXTrue
                         (by simpa [P, X, __eo_cmd_step_proven] using hProg)
+                    simpa [P, X, __eo_cmd_step_proven] using hFacts.true_in_model
                   · have hXBool : RuleProofs.eo_has_bool_type X :=
                       checkerEntry_has_bool_type_at hsTy hsTrans n1
-                    simpa [P, X, __eo_cmd_step_proven] using
-                      translatable___eo_prog_symm_impl X hXBool
+                    have hPBool :
+                        RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf X)) :=
+                      typed___eo_prog_symm_impl X hXBool
                         (by simpa [P, X, __eo_cmd_step_proven] using hProg)
+                    simpa [P, X, __eo_cmd_step_proven] using
+                      RuleProofs.eo_has_smt_translation_of_has_bool_type
+                        (__eo_prog_symm (Proof.pf X)) hPBool
               | cons n2 premises =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
       | cons a args =>
@@ -2162,14 +2176,20 @@ by
           · intro hAss hPush
             have hXTrue : eo_interprets M X true :=
               mk_premise_list_and_true_of_truthInvariant M s premises hs hAss hPush
-            simpa [P, X, __eo_cmd_step_proven] using
-              correct___eo_prog_trans M hM X hXTrue
+            have hFacts :
+                RuleProofs.RuleResultFacts M (__eo_prog_trans (Proof.pf X)) :=
+              facts___eo_prog_trans_impl M hM X hXTrue
                 (by simpa [P, X, __eo_cmd_step_proven] using hProg)
+            simpa [P, X, __eo_cmd_step_proven] using hFacts.true_in_model
           · have hXBool : RuleProofs.eo_has_bool_type X :=
               mk_premise_list_and_has_bool_type s premises hsTy hsTrans
-            simpa [P, X, __eo_cmd_step_proven] using
-              translatable___eo_prog_trans_impl X hXBool
+            have hPBool :
+                RuleProofs.eo_has_bool_type (__eo_prog_trans (Proof.pf X)) :=
+              typed___eo_prog_trans_impl X hXBool
                 (by simpa [P, X, __eo_cmd_step_proven] using hProg)
+            simpa [P, X, __eo_cmd_step_proven] using
+              RuleProofs.eo_has_smt_translation_of_has_bool_type
+                (__eo_prog_trans (Proof.pf X)) hPBool
       | cons a args =>
           exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
 

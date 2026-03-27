@@ -37,9 +37,13 @@ theorem correct___eo_prog_contra
   (eo_interprets M (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) true) :=
 by
   intro hX1True hX2True hProg
+  have hX1Bool : RuleProofs.eo_has_bool_type x1 :=
+    RuleProofs.eo_has_bool_type_of_interprets_true M x1 hX1True
+  have hX2Bool : RuleProofs.eo_has_bool_type x2 :=
+    RuleProofs.eo_has_bool_type_of_interprets_true M x2 hX2True
   have hBool :
       RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) :=
-    typed___eo_prog_contra_impl M x1 x2 hX1True hX2True hProg
+    typed___eo_prog_contra_impl x1 x2 hX1Bool hX2Bool hProg
   exact correct___eo_prog_contra_impl M _hM x1 x2 hX1True hX2True hBool
 
 theorem correct___eo_prog_refl
@@ -61,9 +65,11 @@ theorem correct___eo_prog_symm
   (eo_interprets M (__eo_prog_symm (Proof.pf x1)) true) :=
 by
   intro hXTrue hProg
+  have hXBool : RuleProofs.eo_has_bool_type x1 :=
+    RuleProofs.eo_has_bool_type_of_interprets_true M x1 hXTrue
   have hBool :
       RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf x1)) :=
-    typed___eo_prog_symm_impl M x1 hXTrue hProg
+    typed___eo_prog_symm_impl x1 hXBool hProg
   exact correct___eo_prog_symm_impl M _hM x1 hXTrue hBool
 
 theorem correct___eo_prog_trans
@@ -73,7 +79,9 @@ theorem correct___eo_prog_trans
   (eo_interprets M (__eo_prog_trans (Proof.pf x1)) true) :=
 by
   intro hXTrue hProg
+  have hXBool : RuleProofs.eo_has_bool_type x1 :=
+    RuleProofs.eo_has_bool_type_of_interprets_true M x1 hXTrue
   have hBool :
       RuleProofs.eo_has_bool_type (__eo_prog_trans (Proof.pf x1)) :=
-    typed___eo_prog_trans_impl M x1 hXTrue hProg
+    typed___eo_prog_trans_impl x1 hXBool hProg
   exact correct___eo_prog_trans_impl M _hM x1 hXTrue hBool

@@ -6,15 +6,15 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-theorem typed___eo_prog_contra_impl (M : SmtModel) (x1 x2 : Term) :
-  (eo_interprets M x1 true) ->
-  (eo_interprets M x2 true) ->
+theorem typed___eo_prog_contra_impl (x1 x2 : Term) :
+  RuleProofs.eo_has_bool_type x1 ->
+  RuleProofs.eo_has_bool_type x2 ->
   __eo_prog_contra (Proof.pf x1) (Proof.pf x2) ≠ Term.Stuck ->
   RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) :=
 by
-  intro hX1True _hX2True hProg
+  intro hX1Bool _hX2Bool hProg
   have hX1NotStuck : x1 ≠ Term.Stuck :=
-    RuleProofs.term_ne_stuck_of_interprets_true M x1 hX1True
+    RuleProofs.term_ne_stuck_of_has_bool_type x1 hX1Bool
   cases x2 with
   | Apply f a =>
       cases f with
@@ -41,46 +41,6 @@ by
                   simp [__eo_eq] at hEqTerm
                 · simp [__eo_eq, hXStuck, hAStuck, eo_lit_teq] at hEqTerm
                   exact hEq hEqTerm.symm
-            have hContraStuck :
-                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
-              rw [__eo_prog_contra]
-              simp [__eo_requires, eo_lit_teq, eo_lit_ite, hEqNe]
-            exact False.elim (hProg hContraStuck)
-      | _ =>
-          exact False.elim (hProg (by simp [__eo_prog_contra]))
-  | _ =>
-      exact False.elim (hProg (by simp [__eo_prog_contra]))
-
-theorem translatable___eo_prog_contra_impl (x1 x2 : Term) :
-  RuleProofs.eo_has_bool_type x1 ->
-  RuleProofs.eo_has_bool_type x2 ->
-  __eo_prog_contra (Proof.pf x1) (Proof.pf x2) ≠ Term.Stuck ->
-  RuleProofs.eo_has_smt_translation (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) :=
-by
-  intro hX1Bool _hX2Bool hProg
-  have hX1NotStuck : x1 ≠ Term.Stuck :=
-    RuleProofs.term_ne_stuck_of_has_bool_type x1 hX1Bool
-  cases x2 with
-  | Apply f a =>
-      cases f with
-      | not =>
-          by_cases hEq : x1 = a
-          · subst hEq
-            have hEqTerm : __eo_eq x1 x1 = Term.Boolean true := by
-              simp [__eo_eq, hX1NotStuck, eo_lit_teq]
-            have hContraFalse :
-                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not x1)) =
-                  Term.Boolean false := by
-              rw [__eo_prog_contra, hEqTerm]
-              simp [__eo_requires, eo_lit_teq, eo_lit_ite, eo_lit_not, SmtEval.smt_lit_not]
-            simpa [RuleProofs.eo_has_smt_translation, hContraFalse, __eo_to_smt, __smtx_typeof]
-          · have hEqNe : __eo_eq x1 a ≠ Term.Boolean true := by
-              intro hEqTerm
-              by_cases hAStuck : a = Term.Stuck
-              · subst hAStuck
-                simp [__eo_eq] at hEqTerm
-              · simp [__eo_eq, hX1NotStuck, hAStuck, eo_lit_teq] at hEqTerm
-                exact hEq hEqTerm.symm
             have hContraStuck :
                 __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
               rw [__eo_prog_contra]
@@ -139,3 +99,21 @@ theorem correct___eo_prog_contra_impl
   (eo_interprets M (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) true) :=
 by
   exact RuleProofs.correct___eo_prog_contra M x1 x2
+
+theorem facts___eo_prog_contra_impl
+    (M : SmtModel) (hM : smt_model_well_typed M) (x1 x2 : Term) :
+  eo_interprets M x1 true ->
+  eo_interprets M x2 true ->
+  __eo_prog_contra (Proof.pf x1) (Proof.pf x2) ≠ Term.Stuck ->
+  RuleProofs.RuleResultFacts M (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) :=
+by
+  intro hX1True hX2True hProg
+  let hX1Bool : RuleProofs.eo_has_bool_type x1 :=
+    RuleProofs.eo_has_bool_type_of_interprets_true M x1 hX1True
+  let hX2Bool : RuleProofs.eo_has_bool_type x2 :=
+    RuleProofs.eo_has_bool_type_of_interprets_true M x2 hX2True
+  let hBool : RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) :=
+    typed___eo_prog_contra_impl x1 x2 hX1Bool hX2Bool hProg
+  refine ⟨?_, ?_⟩
+  · exact correct___eo_prog_contra_impl M hM x1 x2 hX1True hX2True hBool
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool
