@@ -490,6 +490,37 @@ theorem map_value_canonical
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_map T A B ⟨f, by simpa [h] using hf⟩
 
+theorem map_codomain_inhabited_of_map_value :
+    ∀ {m : SmtMap} {A B : SmtType},
+      __smtx_typeof_map_value m = SmtType.Map A B -> type_inhabited B
+  | SmtMap.default T e, A, B, h => by
+      cases h
+      exact ⟨e, rfl⟩
+  | SmtMap.cons i e m, A, B, h => by
+      by_cases hEq :
+          smt_lit_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+            (__smtx_typeof_map_value m)
+      · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at h
+        exact map_codomain_inhabited_of_map_value h
+      · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at h
+
+theorem map_codomain_inhabited
+    {A B : SmtType}
+    (h : type_inhabited (SmtType.Map A B)) :
+    type_inhabited B := by
+  rcases h with ⟨v, hv⟩
+  rcases map_value_canonical (A := A) (B := B) hv with ⟨m, hm⟩
+  cases hm
+  simpa [__smtx_typeof_value] using
+    map_codomain_inhabited_of_map_value (A := A) (B := B) hv
+
+theorem not_type_inhabited_map
+    {A B : SmtType}
+    (hB : ¬ type_inhabited B) :
+    ¬ type_inhabited (SmtType.Map A B) := by
+  intro hMap
+  exact hB (map_codomain_inhabited hMap)
+
 theorem seq_value_canonical
     {v : SmtValue}
     {T : SmtType}
