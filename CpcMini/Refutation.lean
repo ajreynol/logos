@@ -2111,12 +2111,9 @@ by
                       have hX2True :
                           eo_interprets M X2 true :=
                         checkerTruthInvariant_at M hs n2 hAss hPush
-                      have hPBool :
-                          RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf X1) (Proof.pf X2)) :=
-                        typed___eo_prog_contra M X1 X2 hX1True hX2True
-                          (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
                       simpa [P, X1, X2, __eo_cmd_step_proven] using
-                        correct___eo_prog_contra M hM X1 X2 hX1True hX2True hPBool
+                        correct___eo_prog_contra M hM X1 X2 hX1True hX2True
+                          (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
                   | cons n3 premises =>
                       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
       | cons a args =>
@@ -2133,12 +2130,9 @@ by
                   have hATrans :
                       RuleProofs.eo_has_smt_translation a1 :=
                     by simpa [cmdTranslationOk] using hCmdTrans
-                  have hPBool :
-                      RuleProofs.eo_has_bool_type (__eo_prog_refl a1) :=
-                    typed___eo_prog_refl a1 hATrans
-                      (by simpa [__eo_cmd_step_proven] using hProg)
                   simpa [__eo_cmd_step_proven] using
-                    correct___eo_prog_refl M hM a1 hATrans hPBool
+                    correct___eo_prog_refl M hM a1 hATrans
+                      (by simpa [__eo_cmd_step_proven] using hProg)
               | cons n ns =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
           | cons a2 args =>
@@ -2157,12 +2151,9 @@ by
                   have hXTrue :
                       eo_interprets M X true :=
                     checkerTruthInvariant_at M hs n1 hAss hPush
-                  have hPBool :
-                      RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf X)) :=
-                    typed___eo_prog_symm M X hXTrue
-                      (by simpa [P, X, __eo_cmd_step_proven] using hProg)
                   simpa [P, X, __eo_cmd_step_proven] using
-                    correct___eo_prog_symm M hM X hXTrue hPBool
+                    correct___eo_prog_symm M hM X hXTrue
+                      (by simpa [P, X, __eo_cmd_step_proven] using hProg)
               | cons n2 premises =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
       | cons a args =>
@@ -2174,12 +2165,9 @@ by
           let P := __eo_prog_trans (Proof.pf X)
           have hXTrue : eo_interprets M X true :=
             mk_premise_list_and_true_of_truthInvariant M s premises hs hAss hPush
-          have hPBool :
-              RuleProofs.eo_has_bool_type (__eo_prog_trans (Proof.pf X)) :=
-            typed___eo_prog_trans M X hXTrue
-              (by simpa [P, X, __eo_cmd_step_proven] using hProg)
           simpa [P, X, __eo_cmd_step_proven] using
-            correct___eo_prog_trans M hM X hXTrue hPBool
+            correct___eo_prog_trans M hM X hXTrue
+              (by simpa [P, X, __eo_cmd_step_proven] using hProg)
       | cons a args =>
           exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
 
@@ -2537,13 +2525,10 @@ by
                       (checkerTypeInvariant_at hsRootTy n1).2
                     have hXTrans : RuleProofs.eo_has_smt_translation X :=
                       checkerTranslationInvariant_at hsRootTrans n1
-                    have hPBool :
-                        RuleProofs.eo_has_bool_type (__eo_prog_scope A (Proof.pf X)) :=
-                      typed___eo_prog_scope M A X hScoped hATrans hXTrans hATy hXTy
-                        (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
                     simpa [P, X, __eo_cmd_step_pop_proven, hA] using
                       correct___eo_prog_scope M hM A X hScoped
-                        hPBool
+                        hATrans hXTrans hATy hXTy
+                        (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
                 | cons n2 premises =>
                     exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
         | cons a args =>
