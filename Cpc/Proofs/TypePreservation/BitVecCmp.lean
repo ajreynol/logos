@@ -1,4 +1,4 @@
-import Cpc.TypePreservation.BitVecCore
+import Cpc.Proofs.TypePreservation.BitVecCore
 
 open Smtm
 

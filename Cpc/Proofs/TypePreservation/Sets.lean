@@ -1,4 +1,4 @@
-import Cpc.TypePreservation.Helpers
+import Cpc.Proofs.TypePreservation.Helpers
 
 open Smtm
 
