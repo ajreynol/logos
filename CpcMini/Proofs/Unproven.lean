@@ -1,5 +1,5 @@
 import CpcMini.Spec
-import CpcMini.SmtModelLemmas
+import CpcMini.Proofs.SmtModelLemmas
 
 open Eo
 open Smtm

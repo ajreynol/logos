@@ -2,8 +2,8 @@
 -- Import modules here that should be built as part of the library.
 import CpcMini.Logos
 import CpcMini.SmtModel
-import CpcMini.SmtModelLemmas
-import CpcMini.Unproven
 import CpcMini.Spec
-import CpcMini.Lemmas
-import CpcMini.Refutation
+import CpcMini.Proofs.SmtModelLemmas
+import CpcMini.Proofs.Unproven
+import CpcMini.Proofs.Lemmas
+import CpcMini.Proofs.Refutation

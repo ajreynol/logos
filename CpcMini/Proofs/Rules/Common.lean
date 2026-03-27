@@ -1,4 +1,4 @@
-import CpcMini.Unproven
+import CpcMini.Proofs.Unproven
 
 open Eo
 open Smtm
