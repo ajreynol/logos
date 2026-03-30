@@ -1,5 +1,7 @@
 import Cpc.Proofs.Translation.Quantifiers
 import Cpc.Proofs.Translation.Special
+import Cpc.Proofs.Translation.Inversions
+import Cpc.Proofs.Translation.Heads
 
 open Eo
 open Smtm
