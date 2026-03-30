@@ -19,6 +19,16 @@ namespace TranslationProofs
       SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := by
   simp [__eo_to_smt.eq_def]
 
+@[simp] theorem eo_to_smt_term_dt_cons
+    (s : eo_lit_String) (d : Datatype) (i : eo_lit_Nat) :
+    __eo_to_smt (Term.DtCons s d i) = SmtTerm.DtCons s (__eo_to_smt_datatype d) i := by
+  simp [__eo_to_smt.eq_def]
+
+@[simp] theorem eo_to_smt_term_dt_sel
+    (s : eo_lit_String) (d : Datatype) (i j : eo_lit_Nat) :
+    __eo_to_smt (Term.DtSel s d i j) = SmtTerm.DtSel s (__eo_to_smt_datatype d) i j := by
+  simp [__eo_to_smt.eq_def]
+
 @[simp] theorem eo_to_smt_datatype_cons_unit :
     __eo_to_smt_datatype_cons DatatypeCons.unit = SmtDatatypeCons.unit := rfl
 
@@ -43,6 +53,10 @@ namespace TranslationProofs
 @[simp] theorem eo_to_smt_tester_of_dtcons
     (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Nat) :
     __eo_to_smt_tester (SmtTerm.DtCons s d n) = SmtTerm.DtTester s d n := rfl
+
+@[simp] theorem smtx_typeof_dt_sel_head_none
+    (s : smt_lit_String) (d : SmtDatatype) (i j : smt_lit_Nat) :
+    __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := rfl
 
 theorem smtx_typeof_tuple_unit_translation :
     __smtx_typeof

@@ -48,6 +48,12 @@ theorem eo_to_smt_type_typeof_uconst
     __eo_to_smt_type (__eo_typeof (Term.UConst i T)) = __eo_to_smt_type T := by
   sorry
 
+theorem eo_to_smt_type_typeof_dt_cons
+    (s : eo_lit_String) (d : Datatype) (i : eo_lit_Nat) :
+    __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =
+      __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := by
+  sorry
+
 theorem eo_to_smt_type_typeof_seq_empty
     (x : Term)
     (h : __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
