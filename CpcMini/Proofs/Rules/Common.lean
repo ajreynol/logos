@@ -62,7 +62,7 @@ theorem eo_has_bool_type_of_interprets_false (M : SmtModel) (t : Term) :
 theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
     (t : Term) (s : SmtTerm) :
   __eo_to_smt t = s ->
-  s ≠ SmtTerm.None ->
+  __smtx_typeof s ≠ SmtType.None ->
   __eo_typeof t = Term.Bool ->
   __smtx_typeof s = SmtType.Bool := by
   intro hs hS hTy
@@ -75,12 +75,8 @@ theorem eo_typeof_bool_implies_has_bool_type
   __eo_typeof t = Term.Bool ->
   eo_has_bool_type t := by
   intro hTrans hTy
-  have hNotNone : __eo_to_smt t ≠ SmtTerm.None := by
-    intro hNone
-    apply hTrans
-    simp [hNone, __smtx_typeof]
   exact eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
-    t (__eo_to_smt t) rfl hNotNone hTy
+    t (__eo_to_smt t) rfl hTrans hTy
 
 theorem eo_has_smt_translation_of_has_bool_type (t : Term) :
   eo_has_bool_type t ->
