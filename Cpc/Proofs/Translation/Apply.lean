@@ -1160,6 +1160,24 @@ theorem eo_to_smt_typeof_matches_translation_apply
         exact hSmt.trans
           (eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
             x y SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
+    case select =>
+      have hTranslate :
+          __eo_to_smt (Term.Apply (Term.Apply Term.select y) x) =
+            SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt y)) (__eo_to_smt x) := by
+        rw [__eo_to_smt.eq_def]
+      have hApplyNN :
+          term_has_non_none_type
+            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt y)) (__eo_to_smt x)) := by
+        unfold term_has_non_none_type
+        rw [← hTranslate]
+        exact hNonNone
+      rcases select_args_of_non_none hApplyNN with ⟨A, B, hY, hX⟩
+      have hSmt :
+          __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.select y) x)) = B := by
+        rw [hTranslate]
+        simp [__smtx_typeof, __smtx_typeof_select, smt_lit_ite, smt_lit_Teq, hY, hX]
+      exact hSmt.trans
+        (eo_to_smt_type_typeof_apply_apply_select_of_smt_map x y A B hY hX).symm
     case concat =>
       exact eo_to_smt_typeof_matches_translation_apply_concat x y
         (by rw [__eo_to_smt.eq_def])
@@ -1771,6 +1789,29 @@ theorem eo_to_smt_typeof_matches_translation_apply
         exact hSmt.trans
           (eo_to_smt_type_typeof_apply_apply_apply_str_indexof_re_of_smt_seq_char_reglan
             x y z hArgs.1 hArgs.2.1 hArgs.2.2).symm
+      case store =>
+        have hTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.store z) y) x) =
+              SmtTerm.Apply
+                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store (__eo_to_smt z)) (__eo_to_smt y))
+                (__eo_to_smt x) := by
+          rw [__eo_to_smt.eq_def]
+        have hApplyNN :
+            term_has_non_none_type
+              (SmtTerm.Apply
+                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store (__eo_to_smt z)) (__eo_to_smt y))
+                (__eo_to_smt x)) := by
+          unfold term_has_non_none_type
+          rw [← hTranslate]
+          exact hNonNone
+        rcases store_args_of_non_none hApplyNN with ⟨A, B, hZ, hY, hX⟩
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.store z) y) x)) =
+              SmtType.Map A B := by
+          rw [hTranslate]
+          simp [__smtx_typeof, __smtx_typeof_store, smt_lit_ite, smt_lit_Teq, hZ, hY, hX]
+        exact hSmt.trans
+          (eo_to_smt_type_typeof_apply_apply_apply_store_of_smt_map x y z A B hZ hY hX).symm
       all_goals sorry
     all_goals sorry
   case not =>

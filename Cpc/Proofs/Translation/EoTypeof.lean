@@ -88,6 +88,22 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype
       __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_apply_select_of_smt_map
+    (x y : Term) (A B : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Map A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.select y) x)) = B := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_smt_map
+    (x y z : Term) (A B : SmtType)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Map A B)
+    (hy : __smtx_typeof (__eo_to_smt y) = A)
+    (hx : __smtx_typeof (__eo_to_smt x) = B) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store z) y) x)) =
+      SmtType.Map A B := by
+  sorry
+
 theorem eo_to_smt_type_typeof_seq_empty
     (x : Term)
     (h : __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
