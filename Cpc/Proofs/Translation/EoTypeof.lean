@@ -290,4 +290,99 @@ theorem eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.sbv_to_int x)) = SmtType.Int := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_apply_str_contains_of_smt_seq
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.str_contains y) x)) =
+      SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_str_prefixof_of_smt_seq
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.str_prefixof y) x)) =
+      SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_str_suffixof_of_smt_seq
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.str_suffixof y) x)) =
+      SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_str_lt_of_smt_seq_char
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.str_lt y) x)) =
+      SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_str_leq_of_smt_seq_char
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.str_leq y) x)) =
+      SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_re_range_of_smt_seq_char
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.re_range y) x)) =
+      SmtType.RegLan := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_re_concat_of_smt_reglan
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.RegLan)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.re_concat y) x)) =
+      SmtType.RegLan := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_re_inter_of_smt_reglan
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.RegLan)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.re_inter y) x)) =
+      SmtType.RegLan := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_re_union_of_smt_reglan
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.RegLan)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.re_union y) x)) =
+      SmtType.RegLan := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_re_diff_of_smt_reglan
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.RegLan)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.re_diff y) x)) =
+      SmtType.RegLan := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_str_in_re_of_smt_seq_char_reglan
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.str_in_re y) x)) =
+      SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_seq_nth_of_smt_seq_int
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.seq_nth y) x)) = T := by
+  sorry
+
 end TranslationProofs
