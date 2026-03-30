@@ -124,6 +124,24 @@ theorem eo_to_smt_type_typeof_purify
       __eo_to_smt_type (__eo_typeof x) := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_purify_of_smt_apply
+    (x y : Term) (A B : SmtType)
+    (hHead :
+      __eo_to_smt_type (__eo_typeof y) = SmtType.Map A B ∨
+        __eo_to_smt_type (__eo_typeof y) = SmtType.DtConsType A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) = B := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
+    (x x1 x2 : Term) (A B : SmtType)
+    (hHead :
+      __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.Map A B ∨
+        __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.DtConsType A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_array_deq_diff x1 x2) x)) = B := by
+  sorry
+
 theorem eo_to_smt_type_typeof_apply_at_bvsize
     (x : Term) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_bvsize x)) = SmtType.Int := by
@@ -1049,6 +1067,26 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_str_indexof_re_of_smt_seq_char_r
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_indexof_re z) y) x)) =
       SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_smt_numeral_numeral_reglan
+    (x y z : Term) (n1 n2 : smt_lit_Int)
+    (hz : __eo_to_smt z = SmtTerm.Numeral n1)
+    (hy : __eo_to_smt y = SmtTerm.Numeral n2)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan)
+    (hn1 : smt_lit_zleq 0 n1)
+    (hn2 : smt_lit_zleq 0 n2) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.re_loop z) y) x)) =
+      SmtType.RegLan := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_ite_of_smt_bool_same_non_none
+    (x y z : Term) (T : SmtType)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Bool)
+    (hy : __smtx_typeof (__eo_to_smt y) = T)
+    (hx : __smtx_typeof (__eo_to_smt x) = T)
+    (hT : T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.ite z) y) x)) = T := by
   sorry
 
 end TranslationProofs

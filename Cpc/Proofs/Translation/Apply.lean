@@ -1606,6 +1606,30 @@ theorem eo_to_smt_typeof_matches_translation_apply
           hYChar hX).symm
     case Apply f z =>
       cases f
+      case ite =>
+        have hTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.ite z) y) x) =
+              SmtTerm.Apply
+                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (__eo_to_smt z)) (__eo_to_smt y))
+                (__eo_to_smt x) := by
+          rw [__eo_to_smt.eq_def]
+        have hApplyNN :
+            term_has_non_none_type
+              (SmtTerm.Apply
+                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (__eo_to_smt z)) (__eo_to_smt y))
+                (__eo_to_smt x)) := by
+          unfold term_has_non_none_type
+          rw [← hTranslate]
+          exact hNonNone
+        rcases ite_args_of_non_none hApplyNN with ⟨T, hZ, hY, hX, hT⟩
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.ite z) y) x)) =
+              T := by
+          rw [hTranslate]
+          simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, smt_lit_Teq, hZ, hY, hX]
+        exact hSmt.trans
+          (eo_to_smt_type_typeof_apply_apply_apply_ite_of_smt_bool_same_non_none
+            x y z T hZ hY hX hT).symm
       case extract =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.extract z) y) x) =
@@ -1848,6 +1872,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
           simp [__smtx_typeof, __smtx_typeof_store, smt_lit_ite, smt_lit_Teq, hZ, hY, hX]
         exact hSmt.trans
           (eo_to_smt_type_typeof_apply_apply_apply_store_of_smt_map x y z A B hZ hY hX).symm
+      case re_loop =>
+        sorry
       all_goals sorry
     all_goals sorry
   case not =>

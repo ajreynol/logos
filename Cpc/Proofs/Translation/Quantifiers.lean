@@ -57,14 +57,6 @@ theorem eo_to_smt_substitute_var_miss
     __eo_to_smt_exists (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s T)) vs) F =
       SmtTerm.Apply (SmtTerm.exists s (__eo_to_smt_type T)) (__eo_to_smt_exists vs F) := rfl
 
-@[simp] theorem eo_to_smt_lambda_nil (F : SmtTerm) :
-    __eo_to_smt_lambda Term.__eo_List_nil F = F := rfl
-
-@[simp] theorem eo_to_smt_lambda_cons
-    (s : eo_lit_String) (T vs : Term) (F : SmtTerm) :
-    __eo_to_smt_lambda (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s T)) vs) F =
-      SmtTerm.Apply (SmtTerm.lambda s (__eo_to_smt_type T)) (__eo_to_smt_lambda vs F) := rfl
-
 @[simp] theorem eo_to_smt_quantifiers_skolemize_zero
     (s : smt_lit_String) (T : SmtType) (F : SmtTerm) :
     __eo_to_smt_quantifiers_skolemize (SmtTerm.Apply (SmtTerm.exists s T) F) 0 =
