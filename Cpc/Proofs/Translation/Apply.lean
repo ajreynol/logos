@@ -1568,6 +1568,42 @@ theorem eo_to_smt_typeof_matches_translation_apply
         simp [__smtx_typeof, __smtx_typeof_str_at, smt_lit_ite, smt_lit_Teq, hY, hX]
       exact hSmt.trans
         (eo_to_smt_type_typeof_apply_apply_str_at_of_smt_seq_int x y T hY hX).symm
+    case _at_strings_stoi_result =>
+      let subTerm :=
+        SmtTerm.Apply
+          (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt y)) (SmtTerm.Numeral 0))
+          (__eo_to_smt x)
+      have hTranslate :
+          __eo_to_smt (Term.Apply (Term.Apply Term._at_strings_stoi_result y) x) =
+            SmtTerm.Apply SmtTerm.str_to_int subTerm := by
+        rw [__eo_to_smt.eq_def]
+      have hApplyNN : term_has_non_none_type (SmtTerm.Apply SmtTerm.str_to_int subTerm) := by
+        unfold term_has_non_none_type
+        rw [← hTranslate]
+        exact hNonNone
+      have hSubTy : __smtx_typeof subTerm = SmtType.Seq SmtType.Char :=
+        seq_char_arg_of_non_none (op := SmtTerm.str_to_int) rfl hApplyNN
+      have hSubNN : term_has_non_none_type subTerm := by
+        unfold term_has_non_none_type
+        rw [hSubTy]
+        simp
+      rcases str_substr_args_of_non_none hSubNN with ⟨T, hY, hZero, hX⟩
+      have hSubTy' : __smtx_typeof subTerm = SmtType.Seq T := by
+        simp [subTerm, __smtx_typeof, __smtx_typeof_str_substr, smt_lit_ite, smt_lit_Teq, hY, hZero, hX]
+      have hTChar : T = SmtType.Char := by
+        have hEq : SmtType.Seq SmtType.Char = SmtType.Seq T := hSubTy.symm.trans hSubTy'
+        injection hEq with hT
+        exact hT.symm
+      have hYChar : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char := by
+        simpa [hTChar] using hY
+      have hSmt :
+          __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term._at_strings_stoi_result y) x)) =
+            SmtType.Int := by
+        rw [hTranslate]
+        simp [__smtx_typeof, __smtx_typeof_seq_op_1_ret, hSubTy, smt_lit_ite, smt_lit_Teq]
+      exact hSmt.trans
+        (eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_smt_seq_char_int x y
+          hYChar hX).symm
     case Apply f z =>
       cases f
       case extract =>

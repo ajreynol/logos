@@ -281,6 +281,14 @@ theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
       SmtType.Int := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_smt_seq_char_int
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term._at_strings_stoi_result y) x)) =
+      SmtType.Int := by
+  sorry
+
 theorem eo_to_smt_type_typeof_apply_str_to_re_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
