@@ -295,7 +295,6 @@ inductive SmtTerm : Type where
   | eq : SmtTerm
   | exists : smt_lit_String -> SmtType -> SmtTerm
   | forall : smt_lit_String -> SmtType -> SmtTerm
-  | lambda : smt_lit_String -> SmtType -> SmtTerm
   | choice : smt_lit_String -> SmtType -> SmtTerm
   | DtCons : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> SmtTerm
   | DtSel : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> smt_lit_Nat -> SmtTerm
@@ -791,6 +790,7 @@ def __smtx_model_eval_dt_tester (s : smt_lit_String) (d : SmtDatatype) (n : smt_
   (SmtValue.Boolean (smt_lit_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
 
 def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
+  | v, SmtValue.NotValue => SmtValue.NotValue
   | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Map m), i => (__smtx_map_select (SmtValue.Map m) i)

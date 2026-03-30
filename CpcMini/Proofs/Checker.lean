@@ -2138,7 +2138,7 @@ by
    pattern here and dispatch to the arity helper matching the rule shape.
    The preservation theorems below then pick the new rule up automatically. -/
 theorem cmd_step_proven_facts_of_invariants
-    (M : SmtModel) (hM : smt_model_well_typed M)
+    (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerTruthInvariant M s ->
@@ -2263,7 +2263,7 @@ by
     simpa [hPost] using checkerLocalTruthInvariant_stuck M
 
 theorem invoke_step_preserves_localTruthInvariant
-    (M : SmtModel) (hM : smt_model_well_typed M)
+    (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
@@ -2333,7 +2333,7 @@ by
       r args premises (__eo_cmd_step_proven s r args premises) hs rfl hProg
 
 theorem invoke_step_preserves_translationInvariant
-    (M : SmtModel) (_hM : smt_model_well_typed M)
+    (M : SmtModel) (_hM : model_total_typed M)
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
@@ -2434,7 +2434,7 @@ by
         exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
 
 theorem cmd_step_pop_proven_true_of_localTruthInvariant
-    (M : SmtModel) (hM : smt_model_well_typed M)
+    (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M root ->
@@ -2501,7 +2501,7 @@ by
         exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
 
 theorem invoke_cmd_step_pop_preserves_localTruthInvariant_aux
-    (M : SmtModel) (hM : smt_model_well_typed M) :
+    (M : SmtModel) (hM : model_total_typed M) :
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     checkerLocalTruthInvariant M root ->
     checkerLocalTruthInvariant M cur ->
@@ -2584,7 +2584,7 @@ by
             hSuffixTail hAssEqTail hPushEqTail
 
 theorem invoke_cmd_step_pop_preserves_localTruthInvariant
-    (M : SmtModel) (hM : smt_model_well_typed M)
+    (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
   checkerTypeInvariant s ->
@@ -2779,7 +2779,7 @@ by
 
 set_option linter.unusedSimpArgs false in
 theorem invoke_cmd_preserves_localTruthInvariant_nonstuck (M : SmtModel) :
-  forall _hM : smt_model_well_typed M,
+  forall _hM : model_total_typed M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
     checkerTypeInvariant s ->
@@ -2920,7 +2920,7 @@ by
 
 set_option linter.unusedSimpArgs false in
 theorem invoke_cmd_preserves_truthInvariant_nonstuck (M : SmtModel) :
-  forall _hM : smt_model_well_typed M,
+  forall _hM : model_total_typed M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
     checkerTypeInvariant s ->
@@ -2994,7 +2994,7 @@ by
           exact False.elim (hNotStuck rfl)
 
 theorem invoke_cmd_preserves_translationInvariant_nonstuck (M : SmtModel) :
-  forall _hM : smt_model_well_typed M,
+  forall _hM : model_total_typed M,
   forall s : CState, forall c : CCmd,
     checkerLocalTruthInvariant M s ->
     checkerTypeInvariant s ->
@@ -3059,7 +3059,7 @@ by
           exact False.elim (hNotStuck rfl)
 
 theorem invoke_cmd_preserves_stateInvariant_nonstuck (M : SmtModel) :
-  forall _hM : smt_model_well_typed M,
+  forall _hM : model_total_typed M,
   forall s : CState, forall c : CCmd,
     checkerStateInvariant M s ->
     cmdTranslationOk c ->
@@ -3086,7 +3086,7 @@ by
   exact ⟨hShape, hLocal, hType, hTrans⟩
 
 theorem invoke_cmd_preserves_stateInvariant (M : SmtModel) :
-  forall _hM : smt_model_well_typed M,
+  forall _hM : model_total_typed M,
   forall s : CState, forall c : CCmd,
     checkerStateInvariant M s ->
     cmdTranslationOk c ->
@@ -3103,7 +3103,7 @@ by
   · exact invoke_cmd_preserves_stateInvariant_nonstuck M hM s c hs hCmdTrans hStuck
 
 theorem invoke_cmd_list_preserves_stateInvariant (M : SmtModel) :
-  forall _hM : smt_model_well_typed M,
+  forall _hM : model_total_typed M,
   forall s : CState, forall cs : CCmdList,
     checkerStateInvariant M s ->
     CmdListTranslationOk cs ->
@@ -3129,7 +3129,7 @@ theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   TranslatableAssumptionList F ->
   CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
-  (forall M : SmtModel, smt_model_well_typed M -> ¬ (eo_interprets M F true)) :=
+  (forall M : SmtModel, model_total_typed M -> ¬ (eo_interprets M F true)) :=
 by
   intro hTyped hFTrans hPfTrans hRef M hM hF
   cases hRef with

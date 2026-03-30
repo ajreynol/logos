@@ -42,7 +42,7 @@ by
 namespace RuleProofs
 
 theorem correct___eo_prog_scope
-    (M : SmtModel) (hM : smt_model_well_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   (eo_interprets M x1 true -> eo_interprets M x2 true) ->
   eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) ->
   eo_interprets M (__eo_prog_scope x1 (Proof.pf x2)) true := by
@@ -101,7 +101,7 @@ theorem not_eo_has_bool_type_prog_scope_num_true :
 end RuleProofs
 
 theorem correct___eo_prog_scope_impl
-    (M : SmtModel) (hM : smt_model_well_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
   RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) ->
   (eo_interprets M (__eo_prog_scope x1 (Proof.pf x2)) true) :=
@@ -109,7 +109,7 @@ by
   exact RuleProofs.correct___eo_prog_scope M hM x1 x2
 
 theorem facts___eo_prog_scope_impl
-    (M : SmtModel) (hM : smt_model_well_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   (eo_interprets M x1 true -> eo_interprets M x2 true) ->
   RuleProofs.eo_has_smt_translation x1 ->
   RuleProofs.eo_has_smt_translation x2 ->

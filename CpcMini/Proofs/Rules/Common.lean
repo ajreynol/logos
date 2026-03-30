@@ -157,7 +157,7 @@ theorem eo_interprets_of_bool_eval
       exact smt_interprets.intro_true M (__eo_to_smt t) hTy hEval
 
 theorem eo_eval_is_boolean_of_has_bool_type
-    (M : SmtModel) (hM : smt_model_well_typed M) (t : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
   eo_has_bool_type t ->
   ∃ b : Bool, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Boolean b := by
   intro hTy
