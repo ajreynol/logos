@@ -26,7 +26,18 @@ theorem eo_to_smt_typeof_matches_translation
     (t : Term) :
     __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
-  sorry
+  cases t <;> intro hNonNone
+  case Boolean b =>
+    simp [__eo_to_smt.eq_def]
+  case re_allchar =>
+    simp [__eo_to_smt.eq_def]
+  case re_none =>
+    simp [__eo_to_smt.eq_def]
+  case re_all =>
+    simp [__eo_to_smt.eq_def]
+  case tuple_unit =>
+    simpa [__eo_to_smt.eq_def] using smtx_typeof_tuple_unit_translation
+  all_goals sorry
 
 /--
 Compatibility wrapper matching the more explicit theorem shape we used in the
