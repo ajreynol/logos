@@ -48,28 +48,69 @@ theorem eo_to_smt_type_typeof_uconst
     __eo_to_smt_type (__eo_typeof (Term.UConst i T)) = __eo_to_smt_type T := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_var_of_smt_apply
+    (x T : Term) (s : eo_lit_String) (A B : SmtType)
+    (hT :
+      __eo_to_smt_type T = SmtType.Map A B ∨
+        __eo_to_smt_type T = SmtType.DtConsType A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Var s T) x)) = B := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_uconst_of_smt_apply
+    (x T : Term) (i : eo_lit_Nat) (A B : SmtType)
+    (hT :
+      __eo_to_smt_type T = SmtType.Map A B ∨
+        __eo_to_smt_type T = SmtType.DtConsType A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UConst i T) x)) = B := by
+  sorry
+
 theorem eo_to_smt_type_typeof_dt_cons
     (s : eo_lit_String) (d : Datatype) (i : eo_lit_Nat) :
     __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =
       __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply
+    (x : Term) (s : eo_lit_String) (d : Datatype) (i : eo_lit_Nat) (A B : SmtType)
+    (hHead :
+      __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.Map A B ∨
+        __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.DtConsType A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtCons s d i) x)) = B := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype
+    (x : Term) (s : eo_lit_String) (d : Datatype) (i j : eo_lit_Nat)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s (__eo_to_smt_datatype d)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) =
+      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
+  sorry
+
 theorem eo_to_smt_type_typeof_seq_empty
     (x : Term)
-    (h : __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.seq_empty x)) = SmtType.Seq (__eo_to_smt_type x) := by
+    (h : __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.seq_empty x)) =
+      __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) := by
   sorry
 
 theorem eo_to_smt_type_typeof_set_empty
     (x : Term)
-    (h : __smtx_typeof (SmtTerm.set_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.set_empty x)) = SmtType.Map (__eo_to_smt_type x) SmtType.Bool := by
+    (h : __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.set_empty x)) =
+      __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type x)) := by
   sorry
 
 theorem eo_to_smt_type_typeof_purify
     (x : Term) :
     __eo_to_smt_type (__eo_typeof (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof x) := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_at_bvsize
+    (x : Term) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_bvsize x)) = SmtType.Int := by
   sorry
 
 theorem eo_to_smt_type_typeof_apply_not_of_bool
@@ -413,6 +454,23 @@ theorem eo_to_smt_type_typeof_apply_apply_xor_of_smt_bool
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.xor y) x)) = SmtType.Bool := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_apply_eq_of_smt_same_non_none
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = T)
+    (hx : __smtx_typeof (__eo_to_smt x) = T)
+    (hT : T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.eq y) x)) = SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_distinct_of_smt_same_non_none
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = T)
+    (hx : __smtx_typeof (__eo_to_smt x) = T)
+    (hT : T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.distinct y) x)) =
+      SmtType.Bool := by
+  sorry
+
 theorem eo_to_smt_type_typeof_apply_apply_plus_of_smt_arith
     (x y : Term) (T : SmtType)
     (hy : __smtx_typeof (__eo_to_smt y) = T)
@@ -517,6 +575,24 @@ theorem eo_to_smt_type_typeof_apply_apply_multmult_total_of_smt_int
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.multmult_total y) x)) =
       SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_qdiv_of_smt_arith
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = T)
+    (hx : __smtx_typeof (__eo_to_smt x) = T)
+    (hT : T = SmtType.Int ∨ T = SmtType.Real) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.qdiv y) x)) =
+      SmtType.Real := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = T)
+    (hx : __smtx_typeof (__eo_to_smt x) = T)
+    (hT : T = SmtType.Int ∨ T = SmtType.Real) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.qdiv_total y) x)) =
+      SmtType.Real := by
   sorry
 
 theorem eo_to_smt_type_typeof_apply_apply_concat_of_smt_bitvec
@@ -789,6 +865,166 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsdivo_of_smt_bitvec
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsdivo y) x)) =
       SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_smt_repeat_of_smt_numeral_bitvec
+    (x y : Term) (i w : smt_lit_Int)
+    (hy : __eo_to_smt y = SmtTerm.Numeral i)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
+    (hi : smt_lit_zleq 1 i = true) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.__smt_repeat y) x)) =
+      SmtType.BitVec (smt_lit_zmult i w) := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_zero_extend_of_smt_numeral_bitvec
+    (x y : Term) (i w : smt_lit_Int)
+    (hy : __eo_to_smt y = SmtTerm.Numeral i)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
+    (hi : smt_lit_zleq 0 i = true) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.zero_extend y) x)) =
+      SmtType.BitVec (smt_lit_zplus i w) := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_sign_extend_of_smt_numeral_bitvec
+    (x y : Term) (i w : smt_lit_Int)
+    (hy : __eo_to_smt y = SmtTerm.Numeral i)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
+    (hi : smt_lit_zleq 0 i = true) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.sign_extend y) x)) =
+      SmtType.BitVec (smt_lit_zplus i w) := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_rotate_left_of_smt_numeral_bitvec
+    (x y : Term) (i w : smt_lit_Int)
+    (hy : __eo_to_smt y = SmtTerm.Numeral i)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
+    (hi : smt_lit_zleq 0 i = true) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.rotate_left y) x)) =
+      SmtType.BitVec w := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_rotate_right_of_smt_numeral_bitvec
+    (x y : Term) (i w : smt_lit_Int)
+    (hy : __eo_to_smt y = SmtTerm.Numeral i)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
+    (hi : smt_lit_zleq 0 i = true) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.rotate_right y) x)) =
+      SmtType.BitVec w := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_int_to_bv_of_smt_numeral_int
+    (x y : Term) (i : smt_lit_Int)
+    (hy : __eo_to_smt y = SmtTerm.Numeral i)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
+    (hi : smt_lit_zleq 0 i = true) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.int_to_bv y) x)) =
+      SmtType.BitVec i := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_bvnego_of_bitvec
+    (x : Term) (w : smt_lit_Int)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvnego x)) = SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_str_concat_of_smt_seq
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.str_concat y) x)) =
+      SmtType.Seq T := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_str_at_of_smt_seq_int
+    (x y : Term) (T : SmtType)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.str_at y) x)) =
+      SmtType.Seq T := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_smt_numeral_numeral_bitvec
+    (x y z : Term) (i j w : smt_lit_Int)
+    (hz : __eo_to_smt z = SmtTerm.Numeral i)
+    (hy : __eo_to_smt y = SmtTerm.Numeral j)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
+    (hj0 : smt_lit_zleq 0 j = true)
+    (hji : smt_lit_zleq j i = true)
+    (hiw : smt_lit_zlt i w = true) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.extract z) y) x)) =
+      SmtType.BitVec (smt_lit_zplus (smt_lit_zplus i (smt_lit_zneg j)) 1) := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_str_substr_of_smt_seq_int_int
+    (x y z : Term) (T : SmtType)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_substr z) y) x)) =
+      SmtType.Seq T := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_str_indexof_of_smt_seq_seq_int
+    (x y z : Term) (T : SmtType)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_indexof z) y) x)) =
+      SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_str_update_of_smt_seq_int_seq
+    (x y z : Term) (T : SmtType)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_update z) y) x)) =
+      SmtType.Seq T := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_of_smt_seq
+    (x y z : Term) (T : SmtType)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_replace z) y) x)) =
+      SmtType.Seq T := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_all_of_smt_seq
+    (x y z : Term) (T : SmtType)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_replace_all z) y) x)) =
+      SmtType.Seq T := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_re_of_smt_seq_char_reglan
+    (x y z : Term)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq SmtType.Char)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.RegLan)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_replace_re z) y) x)) =
+      SmtType.Seq SmtType.Char := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_re_all_of_smt_seq_char_reglan
+    (x y z : Term)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq SmtType.Char)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.RegLan)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_replace_re_all z) y) x)) =
+      SmtType.Seq SmtType.Char := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_str_indexof_re_of_smt_seq_char_reglan
+    (x y z : Term)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq SmtType.Char)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.RegLan)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.str_indexof_re z) y) x)) =
+      SmtType.Int := by
   sorry
 
 end TranslationProofs

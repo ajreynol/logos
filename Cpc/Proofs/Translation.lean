@@ -185,20 +185,13 @@ theorem eo_to_smt_typeof_matches_translation
                     (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))))))
           hApplyNN
     case seq_empty x =>
-      have hTy : __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
-        simpa [__eo_to_smt.eq_def] using hNonNone
-      rw [show __smtx_typeof (__eo_to_smt (Term.seq_empty x)) = SmtType.Seq (__eo_to_smt_type x) by
-        simpa [__eo_to_smt.eq_def] using smtx_typeof_seq_empty_of_non_none (__eo_to_smt_type x) hTy]
       symm
-      simpa using eo_to_smt_type_typeof_seq_empty x hTy
+      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_seq_empty x
+        (by simpa [__eo_to_smt.eq_def] using hNonNone)
     case set_empty x =>
-      have hTy : __smtx_typeof (SmtTerm.set_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
-        simpa [__eo_to_smt.eq_def] using hNonNone
-      rw [show __smtx_typeof (__eo_to_smt (Term.set_empty x)) =
-          SmtType.Map (__eo_to_smt_type x) SmtType.Bool by
-        simpa [__eo_to_smt.eq_def] using smtx_typeof_set_empty_of_non_none (__eo_to_smt_type x) hTy]
       symm
-      simpa using eo_to_smt_type_typeof_set_empty x hTy
+      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_set_empty x
+        (by simpa [__eo_to_smt.eq_def] using hNonNone)
     case _at_sets_deq_diff x1 x2 =>
       have hTranslate :
           __eo_to_smt (Term._at_sets_deq_diff x1 x2) =

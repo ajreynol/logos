@@ -42,6 +42,14 @@ namespace TranslationProofs
     __eo_to_smt Term.re_all = SmtTerm.re_all := by
   simp [__eo_to_smt.eq_def]
 
+@[simp] theorem eo_to_smt_var (s : eo_lit_String) (T : Term) :
+    __eo_to_smt (Term.Var s T) = SmtTerm.Var s (__eo_to_smt_type T) := by
+  simp [__eo_to_smt.eq_def]
+
+@[simp] theorem eo_to_smt_uconst (i : eo_lit_Nat) (T : Term) :
+    __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T) := by
+  simp [__eo_to_smt.eq_def]
+
 @[simp] theorem eo_to_smt_type_bool :
     __eo_to_smt_type Term.Bool = SmtType.Bool := rfl
 
