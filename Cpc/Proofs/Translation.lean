@@ -85,7 +85,38 @@ theorem eo_to_smt_typeof_matches_translation
     simpa [__eo_to_smt.eq_def] using smtx_typeof_tuple_unit_translation
   case Set =>
     simp [__eo_to_smt.eq_def] at hNonNone
-  all_goals sorry
+  case Numeral n =>
+    sorry
+  case Rational r =>
+    sorry
+  case String s =>
+    sorry
+  case Binary w n =>
+    sorry
+  case Var s T =>
+    sorry
+  case DtCons s d i =>
+    sorry
+  case DtSel s d i j =>
+    sorry
+  case UConst i T =>
+    sorry
+  case Apply f x =>
+    sorry
+  case _at_purify x =>
+    sorry
+  case _at_array_deq_diff x1 x2 =>
+    sorry
+  case seq_empty x =>
+    sorry
+  case set_empty x =>
+    sorry
+  case _at_sets_deq_diff x1 x2 =>
+    sorry
+  case _at_quantifiers_skolemize x1 x2 =>
+    sorry
+  all_goals
+    simp [__eo_to_smt.eq_def] at hNonNone
 
 /--
 Compatibility wrapper matching the more explicit theorem shape we used in the
