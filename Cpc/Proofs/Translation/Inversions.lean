@@ -82,6 +82,24 @@ theorem eo_to_smt_type_tuple_ne_reglan
         | sum c' d'' =>
             simp
 
+theorem eo_to_smt_type_tuple_ne_bitvec
+    (U V : SmtType) (w : smt_lit_Int) :
+    __eo_to_smt_type_tuple U V ≠ SmtType.BitVec w := by
+  cases V <;> try simp [__eo_to_smt_type_tuple]
+  case Datatype s d =>
+    cases d with
+    | null =>
+        simp
+    | sum c d' =>
+        cases d' with
+        | null =>
+            by_cases hs : s = "_at_Tuple"
+            · subst hs
+              simp
+            · simp [hs]
+        | sum c' d'' =>
+            simp
+
 theorem eo_to_smt_type_tuple_ne_char
     (U V : SmtType) :
     __eo_to_smt_type_tuple U V ≠ SmtType.Char := by
@@ -197,6 +215,22 @@ theorem eo_to_smt_type_eq_char
       cases f <;> try simp [__eo_to_smt_type] at h
       case Tuple =>
         exact (eo_to_smt_type_tuple_ne_char (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+
+theorem eo_to_smt_type_eq_bitvec
+    {T : Term} {w : smt_lit_Int}
+    (h : __eo_to_smt_type T = SmtType.BitVec w) :
+    T = Term.Apply Term.BitVec (Term.Numeral w) := by
+  cases T <;> try simp [__eo_to_smt_type] at h
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type] at h
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type] at h
+      case Numeral n =>
+        simpa [h] using rfl
+    case Apply f y =>
+      cases f <;> try simp [__eo_to_smt_type] at h
+      case Tuple =>
+        exact (eo_to_smt_type_tuple_ne_bitvec (__eo_to_smt_type y) (__eo_to_smt_type x) w h).elim
 
 theorem eo_to_smt_type_eq_seq
     {T : Term} {U : SmtType}

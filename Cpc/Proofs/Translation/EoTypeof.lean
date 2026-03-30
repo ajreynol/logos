@@ -91,10 +91,46 @@ theorem eo_to_smt_type_typeof_apply_str_rev_of_seq
       SmtType.Seq (__eo_to_smt_type V) := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_to_real_of_int
+    (x : Term)
+    (hx : __eo_typeof x = Term.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.to_real x)) = SmtType.Real := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_to_real_of_real
+    (x : Term)
+    (hx : __eo_typeof x = Term.Real) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.to_real x)) = SmtType.Real := by
+  sorry
+
 theorem eo_to_smt_type_typeof_apply_to_int_of_real
     (x : Term)
     (hx : __eo_typeof x = Term.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.to_int x)) = SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_int_pow2_of_int
+    (x : Term)
+    (hx : __eo_typeof x = Term.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.int_pow2 x)) = SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_int_log2_of_int
+    (x : Term)
+    (hx : __eo_typeof x = Term.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.int_log2 x)) = SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_at_int_div_by_zero_of_int
+    (x : Term)
+    (hx : __eo_typeof x = Term.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_int_div_by_zero x)) = SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_at_mod_by_zero_of_int
+    (x : Term)
+    (hx : __eo_typeof x = Term.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_mod_by_zero x)) = SmtType.Int := by
   sorry
 
 theorem eo_to_smt_type_typeof_apply_is_int_of_real
@@ -177,6 +213,30 @@ theorem eo_to_smt_type_typeof_apply_re_comp_of_reglan
     (x : Term)
     (hx : __eo_typeof x = Term.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.re_comp x)) = SmtType.RegLan := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_bvnot_of_bitvec
+    (x : Term) (w : eo_lit_Int)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvnot x)) = SmtType.BitVec w := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_bvneg_of_bitvec
+    (x : Term) (w : eo_lit_Int)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvneg x)) = SmtType.BitVec w := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec
+    (x : Term) (w : eo_lit_Int)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.ubv_to_int x)) = SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec
+    (x : Term) (w : eo_lit_Int)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.sbv_to_int x)) = SmtType.Int := by
   sorry
 
 end TranslationProofs
