@@ -295,7 +295,6 @@ inductive SmtTerm : Type where
   | eq : SmtTerm
   | exists : smt_lit_String -> SmtType -> SmtTerm
   | forall : smt_lit_String -> SmtType -> SmtTerm
-  | lambda : smt_lit_String -> SmtType -> SmtTerm
   | choice : smt_lit_String -> SmtType -> SmtTerm
   | DtCons : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> SmtTerm
   | DtSel : smt_lit_String -> SmtDatatype -> smt_lit_Nat -> smt_lit_Nat -> SmtTerm
