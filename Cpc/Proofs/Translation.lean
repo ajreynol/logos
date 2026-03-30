@@ -27,16 +27,64 @@ theorem eo_to_smt_typeof_matches_translation
     __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
   cases t <;> intro hNonNone
+  case __eo_pf t =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case Int =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case Real =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case BitVec =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case Char =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case Seq =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case __eo_List =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case __eo_List_nil =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case __eo_List_cons =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case Bool =>
+    simp [__eo_to_smt.eq_def] at hNonNone
   case Boolean b =>
     simp [__eo_to_smt.eq_def]
+  case «Type» =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case Stuck =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case FunType =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case DatatypeType s d =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case DatatypeTypeRef s =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case USort i =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case _at__at_Pair =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case _at__at_pair =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case _at__at_result_null =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case _at__at_result_invalid =>
+    simp [__eo_to_smt.eq_def] at hNonNone
   case re_allchar =>
     simp [__eo_to_smt.eq_def]
   case re_none =>
     simp [__eo_to_smt.eq_def]
   case re_all =>
     simp [__eo_to_smt.eq_def]
+  case RegLan =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case UnitTuple =>
+    simp [__eo_to_smt.eq_def] at hNonNone
+  case Tuple =>
+    simp [__eo_to_smt.eq_def] at hNonNone
   case tuple_unit =>
     simpa [__eo_to_smt.eq_def] using smtx_typeof_tuple_unit_translation
+  case Set =>
+    simp [__eo_to_smt.eq_def] at hNonNone
   all_goals sorry
 
 /--
