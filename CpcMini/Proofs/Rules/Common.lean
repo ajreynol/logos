@@ -59,6 +59,16 @@ theorem eo_has_bool_type_of_interprets_false (M : SmtModel) (t : Term) :
   | intro_false hTy _ =>
       simpa [eo_has_bool_type] using hTy
 
+theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
+    (t : Term) (s : SmtTerm) :
+  __eo_to_smt t = s ->
+  s ≠ SmtTerm.None ->
+  __eo_typeof t = Term.Bool ->
+  __smtx_typeof s = SmtType.Bool := by
+  intro hs hS hTy
+  exact eo_to_smt_well_typed_and_typeof_implies_smt_type
+    t Term.Bool s hs hS hTy
+
 theorem eo_typeof_bool_implies_has_bool_type
     (t : Term) :
   eo_has_smt_translation t ->

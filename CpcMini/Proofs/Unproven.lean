@@ -24,12 +24,12 @@ theorem smt_model_eval_bool_is_boolean
 
 namespace RuleProofs
 
-theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
-    (t : Term) (s : SmtTerm) :
+theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
+    (t T : Term) (s : SmtTerm) :
   __eo_to_smt t = s ->
   s ≠ SmtTerm.None ->
-  __eo_typeof t = Term.Bool ->
-  __smtx_typeof s = SmtType.Bool := by
+  __eo_typeof t = T ->
+  __smtx_typeof s = __eo_to_smt_type T := by
   sorry
 
 end RuleProofs
