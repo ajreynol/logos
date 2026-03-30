@@ -26,132 +26,136 @@ theorem eo_to_smt_typeof_matches_translation
     (t : Term) :
     __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
-  cases t <;> intro hNonNone
-  case __eo_pf t =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Int =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Real =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case BitVec =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Char =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Seq =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case __eo_List =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case __eo_List_nil =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case __eo_List_cons =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Bool =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Boolean b =>
-    simp [__eo_to_smt.eq_def]
-  case «Type» =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Stuck =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case FunType =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case DatatypeType s d =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case DatatypeTypeRef s =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case USort i =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case _at__at_Pair =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case _at__at_pair =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case _at__at_result_null =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case _at__at_result_invalid =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case re_allchar =>
-    simp [__eo_to_smt.eq_def]
-  case re_none =>
-    simp [__eo_to_smt.eq_def]
-  case re_all =>
-    simp [__eo_to_smt.eq_def]
-  case RegLan =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case UnitTuple =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Tuple =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case tuple_unit =>
-    simpa [__eo_to_smt.eq_def] using smtx_typeof_tuple_unit_translation
-  case Set =>
-    simp [__eo_to_smt.eq_def] at hNonNone
-  case Numeral n =>
-    symm
-    simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_numeral n
-  case Rational r =>
-    symm
-    simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_rational r
-  case String s =>
-    symm
-    simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_string s
-  case Binary w n =>
-    have hTy : __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None := by
-      simpa [__eo_to_smt.eq_def] using hNonNone
-    rw [show __smtx_typeof (__eo_to_smt (Term.Binary w n)) = SmtType.BitVec w by
-      simpa [__eo_to_smt.eq_def] using smtx_typeof_binary_of_non_none w n hTy]
-    symm
-    simpa using eo_to_smt_type_typeof_binary w n
-  case Var s T =>
-    have hTy : __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠ SmtType.None := by
-      simpa [__eo_to_smt.eq_def] using hNonNone
-    rw [show __smtx_typeof (__eo_to_smt (Term.Var s T)) = __eo_to_smt_type T by
-      simpa [__eo_to_smt.eq_def] using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hTy]
-    symm
-    simpa using eo_to_smt_type_typeof_var s T
-  case DtCons s d i =>
-    symm
-    simpa [eo_to_smt_term_dt_cons] using eo_to_smt_type_typeof_dt_cons s d i
-  case DtSel s d i j =>
-    have hNone : __smtx_typeof (__eo_to_smt (Term.DtSel s d i j)) = SmtType.None := by
-      simpa using smtx_typeof_dt_sel_head_none s (__eo_to_smt_datatype d) i j
-    exact (hNonNone hNone).elim
-  case UConst i T =>
-    have hTy :
-        __smtx_typeof (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T)) ≠
-          SmtType.None := by
-      simpa [__eo_to_smt.eq_def] using hNonNone
-    rw [show __smtx_typeof (__eo_to_smt (Term.UConst i T)) = __eo_to_smt_type T by
-      simpa [__eo_to_smt.eq_def] using
-        smtx_typeof_uconst_of_non_none (smt_lit_uconst_id i) (__eo_to_smt_type T) hTy]
-    symm
-    simpa using eo_to_smt_type_typeof_uconst i T
-  case Apply f x =>
-    simpa using eo_to_smt_typeof_matches_translation_apply f x hNonNone
-  case _at_purify x =>
-    simpa using eo_to_smt_typeof_matches_translation_purify x hNonNone
-  case _at_array_deq_diff x1 x2 =>
-    simpa using eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2 hNonNone
-  case seq_empty x =>
-    have hTy : __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
-      simpa [__eo_to_smt.eq_def] using hNonNone
-    rw [show __smtx_typeof (__eo_to_smt (Term.seq_empty x)) = SmtType.Seq (__eo_to_smt_type x) by
-      simpa [__eo_to_smt.eq_def] using smtx_typeof_seq_empty_of_non_none (__eo_to_smt_type x) hTy]
-    symm
-    simpa using eo_to_smt_type_typeof_seq_empty x hTy
-  case set_empty x =>
-    have hTy : __smtx_typeof (SmtTerm.set_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
-      simpa [__eo_to_smt.eq_def] using hNonNone
-    rw [show __smtx_typeof (__eo_to_smt (Term.set_empty x)) =
-        SmtType.Map (__eo_to_smt_type x) SmtType.Bool by
-      simpa [__eo_to_smt.eq_def] using smtx_typeof_set_empty_of_non_none (__eo_to_smt_type x) hTy]
-    symm
-    simpa using eo_to_smt_type_typeof_set_empty x hTy
-  case _at_sets_deq_diff x1 x2 =>
-    simpa using eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2 hNonNone
-  case _at_quantifiers_skolemize x1 x2 =>
-    simpa using eo_to_smt_typeof_matches_translation_quantifiers_skolemize x1 x2 hNonNone
-  all_goals
-    simp [__eo_to_smt.eq_def] at hNonNone
+  let rec go (t : Term) :
+      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
+    cases t <;> intro hNonNone
+    case __eo_pf t =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Int =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Real =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case BitVec =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Char =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Seq =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case __eo_List =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case __eo_List_nil =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case __eo_List_cons =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Bool =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Boolean b =>
+      simp [__eo_to_smt.eq_def]
+    case «Type» =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Stuck =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case FunType =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case DatatypeType s d =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case DatatypeTypeRef s =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case USort i =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case _at__at_Pair =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case _at__at_pair =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case _at__at_result_null =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case _at__at_result_invalid =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case re_allchar =>
+      simp [__eo_to_smt.eq_def]
+    case re_none =>
+      simp [__eo_to_smt.eq_def]
+    case re_all =>
+      simp [__eo_to_smt.eq_def]
+    case RegLan =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case UnitTuple =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Tuple =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case tuple_unit =>
+      simpa [__eo_to_smt.eq_def] using smtx_typeof_tuple_unit_translation
+    case Set =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Numeral n =>
+      symm
+      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_numeral n
+    case Rational r =>
+      symm
+      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_rational r
+    case String s =>
+      symm
+      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_string s
+    case Binary w n =>
+      have hTy : __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None := by
+        simpa [__eo_to_smt.eq_def] using hNonNone
+      rw [show __smtx_typeof (__eo_to_smt (Term.Binary w n)) = SmtType.BitVec w by
+        simpa [__eo_to_smt.eq_def] using smtx_typeof_binary_of_non_none w n hTy]
+      symm
+      simpa using eo_to_smt_type_typeof_binary w n
+    case Var s T =>
+      have hTy : __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠ SmtType.None := by
+        simpa [__eo_to_smt.eq_def] using hNonNone
+      rw [show __smtx_typeof (__eo_to_smt (Term.Var s T)) = __eo_to_smt_type T by
+        simpa [__eo_to_smt.eq_def] using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hTy]
+      symm
+      simpa using eo_to_smt_type_typeof_var s T
+    case DtCons s d i =>
+      symm
+      simpa [eo_to_smt_term_dt_cons] using eo_to_smt_type_typeof_dt_cons s d i
+    case DtSel s d i j =>
+      have hNone : __smtx_typeof (__eo_to_smt (Term.DtSel s d i j)) = SmtType.None := by
+        simpa using smtx_typeof_dt_sel_head_none s (__eo_to_smt_datatype d) i j
+      exact (hNonNone hNone).elim
+    case UConst i T =>
+      have hTy :
+          __smtx_typeof (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T)) ≠
+            SmtType.None := by
+        simpa [__eo_to_smt.eq_def] using hNonNone
+      rw [show __smtx_typeof (__eo_to_smt (Term.UConst i T)) = __eo_to_smt_type T by
+        simpa [__eo_to_smt.eq_def] using
+          smtx_typeof_uconst_of_non_none (smt_lit_uconst_id i) (__eo_to_smt_type T) hTy]
+      symm
+      simpa using eo_to_smt_type_typeof_uconst i T
+    case Apply f x =>
+      simpa using eo_to_smt_typeof_matches_translation_apply f x (go f) (go x) hNonNone
+    case _at_purify x =>
+      simpa using eo_to_smt_typeof_matches_translation_purify x hNonNone
+    case _at_array_deq_diff x1 x2 =>
+      simpa using eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2 hNonNone
+    case seq_empty x =>
+      have hTy : __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
+        simpa [__eo_to_smt.eq_def] using hNonNone
+      rw [show __smtx_typeof (__eo_to_smt (Term.seq_empty x)) = SmtType.Seq (__eo_to_smt_type x) by
+        simpa [__eo_to_smt.eq_def] using smtx_typeof_seq_empty_of_non_none (__eo_to_smt_type x) hTy]
+      symm
+      simpa using eo_to_smt_type_typeof_seq_empty x hTy
+    case set_empty x =>
+      have hTy : __smtx_typeof (SmtTerm.set_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
+        simpa [__eo_to_smt.eq_def] using hNonNone
+      rw [show __smtx_typeof (__eo_to_smt (Term.set_empty x)) =
+          SmtType.Map (__eo_to_smt_type x) SmtType.Bool by
+        simpa [__eo_to_smt.eq_def] using smtx_typeof_set_empty_of_non_none (__eo_to_smt_type x) hTy]
+      symm
+      simpa using eo_to_smt_type_typeof_set_empty x hTy
+    case _at_sets_deq_diff x1 x2 =>
+      simpa using eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2 hNonNone
+    case _at_quantifiers_skolemize x1 x2 =>
+      simpa using eo_to_smt_typeof_matches_translation_quantifiers_skolemize x1 x2 hNonNone
+    all_goals
+      simp [__eo_to_smt.eq_def] at hNonNone
+  exact go t
 
 /--
 Compatibility wrapper matching the more explicit theorem shape we used in the
