@@ -750,13 +750,50 @@ theorem eo_to_smt_typeof_matches_translation_apply
       simp [hArg, smt_lit_ite, smt_lit_Teq]
     exact hSmt.trans (eo_to_smt_type_typeof_apply_re_comp_of_reglan x hxEo).symm
   case seq_unit =>
-    sorry
+    have hTranslate :
+        __eo_to_smt (Term.Apply Term.seq_unit x) =
+          SmtTerm.Apply SmtTerm.seq_unit (__eo_to_smt x) := by
+      rw [__eo_to_smt.eq_def]
+    have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+      intro hXNone
+      apply hNonNone
+      rw [hTranslate]
+      simp [__smtx_typeof, hXNone, smt_lit_ite, smt_lit_Teq]
+    have hXTyped := ihX hXNonNone
+    have hxEoNonNone : __eo_to_smt_type (__eo_typeof x) ≠ SmtType.None := by
+      rw [← hXTyped]
+      exact hXNonNone
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply Term.seq_unit x)) =
+          SmtType.Seq (__eo_to_smt_type (__eo_typeof x)) := by
+      rw [hTranslate]
+      simp [__smtx_typeof, hXTyped, smt_lit_ite, smt_lit_Teq, hxEoNonNone]
+    exact hSmt.trans (eo_to_smt_type_typeof_apply_seq_unit_of_non_none x hxEoNonNone).symm
   case is =>
     sorry
   case set_empty T =>
     sorry
   case set_singleton =>
-    sorry
+    have hTranslate :
+        __eo_to_smt (Term.Apply Term.set_singleton x) =
+          SmtTerm.Apply SmtTerm.set_singleton (__eo_to_smt x) := by
+      rw [__eo_to_smt.eq_def]
+    have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+      intro hXNone
+      apply hNonNone
+      rw [hTranslate]
+      simp [__smtx_typeof, hXNone, smt_lit_ite, smt_lit_Teq]
+    have hXTyped := ihX hXNonNone
+    have hxEoNonNone : __eo_to_smt_type (__eo_typeof x) ≠ SmtType.None := by
+      rw [← hXTyped]
+      exact hXNonNone
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton x)) =
+          SmtType.Map (__eo_to_smt_type (__eo_typeof x)) SmtType.Bool := by
+      rw [hTranslate]
+      simp [__smtx_typeof, hXTyped, smt_lit_ite, smt_lit_Teq, hxEoNonNone]
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_set_singleton_of_non_none x hxEoNonNone).symm
   case set_is_empty =>
     sorry
   case set_is_singleton =>
@@ -764,7 +801,47 @@ theorem eo_to_smt_typeof_matches_translation_apply
   case _at_sets_deq_diff x1 x2 =>
     sorry
   case _at_div_by_zero =>
-    sorry
+    have hTranslate :
+        __eo_to_smt (Term.Apply Term._at_div_by_zero x) =
+          SmtTerm.Apply (SmtTerm.Apply SmtTerm.qdiv (__eo_to_smt x))
+            (SmtTerm.Rational (smt_lit_mk_rational 0 1)) := by
+      rw [__eo_to_smt.eq_def]
+    have hApplyNN :
+        term_has_non_none_type
+          (SmtTerm.Apply (SmtTerm.Apply SmtTerm.qdiv (__eo_to_smt x))
+            (SmtTerm.Rational (smt_lit_mk_rational 0 1))) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hNonNone
+    have hArgs :
+        (__smtx_typeof (__eo_to_smt x) = SmtType.Int ∧
+            __smtx_typeof (SmtTerm.Rational (smt_lit_mk_rational 0 1)) = SmtType.Int) ∨
+          (__smtx_typeof (__eo_to_smt x) = SmtType.Real ∧
+            __smtx_typeof (SmtTerm.Rational (smt_lit_mk_rational 0 1)) = SmtType.Real) :=
+      arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv) (R := SmtType.Real) rfl hApplyNN
+    have hArg : __smtx_typeof (__eo_to_smt x) = SmtType.Real := by
+      rcases hArgs with hInt | hReal
+      · have hZeroInt := hInt.2
+        simp [__smtx_typeof] at hZeroInt
+      · exact hReal.1
+    have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+      rw [hArg]
+      simp
+    have hXTyped := ihX hXNonNone
+    have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
+      rw [← hXTyped]
+      exact hArg
+    have hxEo : __eo_typeof x = Term.Real := eo_to_smt_type_eq_real hxSmt
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply Term._at_div_by_zero x)) = SmtType.Real := by
+      rw [hTranslate]
+      change
+        (__smtx_typeof_arith_overload_op_2_ret
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (SmtTerm.Rational (smt_lit_mk_rational 0 1)))
+          SmtType.Real) = SmtType.Real
+      simp [__smtx_typeof_arith_overload_op_2_ret, __smtx_typeof, hArg]
+    exact hSmt.trans (eo_to_smt_type_typeof_apply_at_div_by_zero_of_real x hxEo).symm
   case _at_quantifiers_skolemize x1 x2 =>
     sorry
   case ubv_to_int =>

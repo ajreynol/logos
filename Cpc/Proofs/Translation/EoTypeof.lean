@@ -91,6 +91,20 @@ theorem eo_to_smt_type_typeof_apply_str_rev_of_seq
       SmtType.Seq (__eo_to_smt_type V) := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_seq_unit_of_non_none
+    (x : Term)
+    (hx : __eo_to_smt_type (__eo_typeof x) ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.seq_unit x)) =
+      SmtType.Seq (__eo_to_smt_type (__eo_typeof x)) := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
+    (x : Term)
+    (hx : __eo_to_smt_type (__eo_typeof x) ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.set_singleton x)) =
+      SmtType.Map (__eo_to_smt_type (__eo_typeof x)) SmtType.Bool := by
+  sorry
+
 theorem eo_to_smt_type_typeof_apply_to_real_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
@@ -131,6 +145,12 @@ theorem eo_to_smt_type_typeof_apply_at_mod_by_zero_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_mod_by_zero x)) = SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_at_div_by_zero_of_real
+    (x : Term)
+    (hx : __eo_typeof x = Term.Real) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_div_by_zero x)) = SmtType.Real := by
   sorry
 
 theorem eo_to_smt_type_typeof_apply_is_int_of_real
