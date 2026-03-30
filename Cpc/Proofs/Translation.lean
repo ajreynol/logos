@@ -1,6 +1,5 @@
 import Cpc.Proofs.Translation.Datatypes
-import Cpc.Proofs.Translation.EoTypeof
-import Cpc.Proofs.Translation.Quantifiers
+import Cpc.Proofs.Translation.Apply
 
 open Eo
 open Smtm
@@ -111,7 +110,7 @@ theorem eo_to_smt_typeof_matches_translation
     simpa using eo_to_smt_type_typeof_var s T
   case DtCons s d i =>
     symm
-    simpa using eo_to_smt_type_typeof_dt_cons s d i
+    simpa [eo_to_smt_term_dt_cons] using eo_to_smt_type_typeof_dt_cons s d i
   case DtSel s d i j =>
     have hNone : __smtx_typeof (__eo_to_smt (Term.DtSel s d i j)) = SmtType.None := by
       simpa using smtx_typeof_dt_sel_head_none s (__eo_to_smt_datatype d) i j
@@ -127,11 +126,11 @@ theorem eo_to_smt_typeof_matches_translation
     symm
     simpa using eo_to_smt_type_typeof_uconst i T
   case Apply f x =>
-    sorry
+    simpa using eo_to_smt_typeof_matches_translation_apply f x hNonNone
   case _at_purify x =>
-    sorry
+    simpa using eo_to_smt_typeof_matches_translation_purify x hNonNone
   case _at_array_deq_diff x1 x2 =>
-    sorry
+    simpa using eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2 hNonNone
   case seq_empty x =>
     have hTy : __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
       simpa [__eo_to_smt.eq_def] using hNonNone
@@ -148,9 +147,9 @@ theorem eo_to_smt_typeof_matches_translation
     symm
     simpa using eo_to_smt_type_typeof_set_empty x hTy
   case _at_sets_deq_diff x1 x2 =>
-    sorry
+    simpa using eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2 hNonNone
   case _at_quantifiers_skolemize x1 x2 =>
-    sorry
+    simpa using eo_to_smt_typeof_matches_translation_quantifiers_skolemize x1 x2 hNonNone
   all_goals
     simp [__eo_to_smt.eq_def] at hNonNone
 
