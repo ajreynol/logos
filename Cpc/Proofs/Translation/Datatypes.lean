@@ -58,6 +58,11 @@ namespace TranslationProofs
     (s : smt_lit_String) (d : SmtDatatype) (i j : smt_lit_Nat) :
     __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := rfl
 
+@[simp] theorem smtx_typeof_eo_to_smt_tester_none
+    (t : SmtTerm) :
+    __smtx_typeof (__eo_to_smt_tester t) = SmtType.None := by
+  cases t <;> simp [__eo_to_smt_tester, __smtx_typeof]
+
 theorem smtx_typeof_tuple_unit_translation :
     __smtx_typeof
         (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) =

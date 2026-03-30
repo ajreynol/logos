@@ -1,3 +1,4 @@
+import Cpc.Proofs.Translation.Datatypes
 import Cpc.Proofs.Translation.Quantifiers
 import Cpc.Proofs.Translation.Special
 import Cpc.Proofs.Translation.Inversions
@@ -248,7 +249,57 @@ theorem eo_to_smt_typeof_matches_translation_apply
       simp [hArg, smt_lit_ite, smt_lit_Teq]
     exact hSmt.trans (eo_to_smt_type_typeof_apply_int_log2_of_int x hxEo).symm
   case int_ispow2 =>
-    sorry
+    let geqTerm :=
+      SmtTerm.Apply (SmtTerm.Apply SmtTerm.geq (__eo_to_smt x)) (SmtTerm.Numeral 0)
+    let eqTerm :=
+      SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x))
+        (SmtTerm.Apply SmtTerm.int_pow2 (SmtTerm.Apply SmtTerm.int_log2 (__eo_to_smt x)))
+    have hTranslate :
+        __eo_to_smt (Term.Apply Term.int_ispow2 x) =
+          SmtTerm.Apply (SmtTerm.Apply SmtTerm.and geqTerm) eqTerm := by
+      rw [__eo_to_smt.eq_def]
+    have hApplyNN :
+        term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and geqTerm) eqTerm) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hNonNone
+    have hArgs :
+        __smtx_typeof geqTerm = SmtType.Bool ∧
+          __smtx_typeof eqTerm = SmtType.Bool :=
+      bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hApplyNN
+    have hGeqNN : term_has_non_none_type geqTerm := by
+      unfold term_has_non_none_type
+      rw [hArgs.1]
+      simp
+    have hGeqArgs :
+        (__smtx_typeof (__eo_to_smt x) = SmtType.Int ∧
+            __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int) ∨
+          (__smtx_typeof (__eo_to_smt x) = SmtType.Real ∧
+            __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Real) :=
+      arith_binop_ret_bool_args_of_non_none (op := SmtTerm.geq) rfl hGeqNN
+    have hArg : __smtx_typeof (__eo_to_smt x) = SmtType.Int := by
+      rcases hGeqArgs with hInt | hReal
+      · exact hInt.1
+      · have hZeroReal := hReal.2
+        simp [__smtx_typeof] at hZeroReal
+    have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+      rw [hArg]
+      simp
+    have hXTyped := ihX hXNonNone
+    have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
+      rw [← hXTyped]
+      exact hArg
+    have hxEo : __eo_typeof x = Term.Int := eo_to_smt_type_eq_int hxSmt
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply Term.int_ispow2 x)) = SmtType.Bool := by
+      rw [hTranslate]
+      change
+        (smt_lit_ite (smt_lit_Teq (__smtx_typeof geqTerm) SmtType.Bool)
+          (smt_lit_ite (smt_lit_Teq (__smtx_typeof eqTerm) SmtType.Bool)
+            SmtType.Bool SmtType.None)
+          SmtType.None) = SmtType.Bool
+      simp [hArgs.1, hArgs.2, smt_lit_ite, smt_lit_Teq]
+    exact hSmt.trans (eo_to_smt_type_typeof_apply_int_ispow2_of_int x hxEo).symm
   case _at_int_div_by_zero =>
     have hTranslate :
         __eo_to_smt (Term.Apply Term._at_int_div_by_zero x) =
@@ -918,7 +969,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
       simp [__smtx_typeof, hXTyped, smt_lit_ite, smt_lit_Teq, hxEoNonNone]
     exact hSmt.trans (eo_to_smt_type_typeof_apply_seq_unit_of_non_none x hxEoNonNone).symm
   case is =>
-    sorry
+    exfalso
+    apply hNonNone
+    rw [__eo_to_smt.eq_def]
+    simpa using smtx_typeof_eo_to_smt_tester_none (__eo_to_smt x)
   case set_empty T =>
     sorry
   case set_singleton =>

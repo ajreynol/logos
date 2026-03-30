@@ -66,6 +66,12 @@ theorem eo_to_smt_type_typeof_set_empty
     __eo_to_smt_type (__eo_typeof (Term.set_empty x)) = SmtType.Map (__eo_to_smt_type x) SmtType.Bool := by
   sorry
 
+theorem eo_to_smt_type_typeof_purify
+    (x : Term) :
+    __eo_to_smt_type (__eo_typeof (Term._at_purify x)) =
+      __eo_to_smt_type (__eo_typeof x) := by
+  sorry
+
 theorem eo_to_smt_type_typeof_apply_not_of_bool
     (x : Term)
     (hx : __eo_typeof x = Term.Bool) :
@@ -133,6 +139,12 @@ theorem eo_to_smt_type_typeof_apply_int_log2_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.int_log2 x)) = SmtType.Int := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_int_ispow2_of_int
+    (x : Term)
+    (hx : __eo_typeof x = Term.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.int_ispow2 x)) = SmtType.Bool := by
   sorry
 
 theorem eo_to_smt_type_typeof_apply_at_int_div_by_zero_of_int
