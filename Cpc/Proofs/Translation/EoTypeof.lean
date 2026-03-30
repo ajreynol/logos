@@ -205,6 +205,13 @@ theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
       SmtType.Seq SmtType.Char := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
+    (x : Term)
+    (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_strings_stoi_non_digit x)) =
+      SmtType.Int := by
+  sorry
+
 theorem eo_to_smt_type_typeof_apply_str_to_re_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
@@ -245,6 +252,18 @@ theorem eo_to_smt_type_typeof_apply_bvneg_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvneg x)) = SmtType.BitVec w := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_bvredand_of_bitvec
+    (x : Term) (w : eo_lit_Int)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvredand x)) = SmtType.BitVec 1 := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_bvredor_of_bitvec
+    (x : Term) (w : eo_lit_Int)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvredor x)) = SmtType.BitVec 1 := by
   sorry
 
 theorem eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec
