@@ -54,7 +54,7 @@ theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
 end RuleProofs
 
 theorem correct___eo_prog_refl_impl
-    (M : SmtModel) (_hM : smt_model_well_typed M) (x1 : Term) :
+    (M : SmtModel) (_hM : model_total_typed M) (x1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
   RuleProofs.eo_has_bool_type (__eo_prog_refl x1) ->
   (eo_interprets M (__eo_prog_refl x1) true) :=
@@ -62,7 +62,7 @@ by
   exact RuleProofs.correct___eo_prog_refl_of_smt_translation M x1
 
 theorem facts___eo_prog_refl_impl
-    (M : SmtModel) (hM : smt_model_well_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
   __eo_prog_refl x1 ≠ Term.Stuck ->
   RuleProofs.RuleResultFacts M (__eo_prog_refl x1) :=

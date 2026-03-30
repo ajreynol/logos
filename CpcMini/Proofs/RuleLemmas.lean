@@ -74,7 +74,7 @@ by
   exact typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2 hProg
 
 theorem facts___eo_prog_scope
-    (M : SmtModel) (hM : smt_model_well_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
   RuleProofs.eo_has_smt_translation x1 ->
   RuleProofs.eo_has_smt_translation x2 ->
@@ -87,7 +87,7 @@ by
   exact facts___eo_prog_scope_impl M hM x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2 hProg
 
 theorem spec___eo_prog_contra
-    (M : SmtModel) (hM : smt_model_well_typed M) :
+    (M : SmtModel) (hM : model_total_typed M) :
   StepRuleSpec0Arg2Prem M (fun X1 X2 => __eo_prog_contra (Proof.pf X1) (Proof.pf X2)) :=
 by
   refine ⟨?_, ?_⟩
@@ -104,7 +104,7 @@ by
     exact typed___eo_prog_contra_impl X1 X2 hX1Bool hX2Bool hProg
 
 theorem spec___eo_prog_refl
-    (M : SmtModel) (hM : smt_model_well_typed M) :
+    (M : SmtModel) (hM : model_total_typed M) :
   StepRuleSpec1Arg0Prem M __eo_prog_refl :=
 by
   refine ⟨?_, ?_⟩
@@ -116,7 +116,7 @@ by
     exact typed___eo_prog_refl_impl a1 hTrans hProg
 
 theorem spec___eo_prog_symm
-    (M : SmtModel) (hM : smt_model_well_typed M) :
+    (M : SmtModel) (hM : model_total_typed M) :
   StepRuleSpec0Arg1Prem M (fun X => __eo_prog_symm (Proof.pf X)) :=
 by
   refine ⟨?_, ?_⟩
@@ -131,7 +131,7 @@ by
     exact typed___eo_prog_symm_impl X hXBool hProg
 
 theorem spec___eo_prog_trans
-    (M : SmtModel) (hM : smt_model_well_typed M) :
+    (M : SmtModel) (hM : model_total_typed M) :
   StepRuleSpec0ArgNPremAnd M (fun X => __eo_prog_trans (Proof.pf X)) :=
 by
   refine ⟨?_, ?_⟩

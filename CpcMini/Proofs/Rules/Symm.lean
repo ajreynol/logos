@@ -104,7 +104,7 @@ private theorem eo_interprets_eq_symm_true (M : SmtModel) (a b : Term) :
   · exact RuleProofs.smt_value_rel_symm _ _ (RuleProofs.eo_interprets_eq_rel M b a hEqTrue)
 
 theorem correct___eo_prog_symm_impl
-    (M : SmtModel) (_hM : smt_model_well_typed M) (x1 : Term) :
+    (M : SmtModel) (_hM : model_total_typed M) (x1 : Term) :
   (eo_interprets M x1 true) ->
   RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf x1)) ->
   (eo_interprets M (__eo_prog_symm (Proof.pf x1)) true) :=
@@ -167,7 +167,7 @@ by
       exact hProgNotStuck (by simp [__eo_prog_symm, __mk_symm])
 
 theorem facts___eo_prog_symm_impl
-    (M : SmtModel) (hM : smt_model_well_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   eo_interprets M x1 true ->
   __eo_prog_symm (Proof.pf x1) ≠ Term.Stuck ->
   RuleProofs.RuleResultFacts M (__eo_prog_symm (Proof.pf x1)) :=

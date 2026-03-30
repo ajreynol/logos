@@ -92,7 +92,7 @@ theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
 end RuleProofs
 
 theorem correct___eo_prog_contra_impl
-    (M : SmtModel) (_hM : smt_model_well_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (_hM : model_total_typed M) (x1 x2 : Term) :
   (eo_interprets M x1 true) ->
   (eo_interprets M x2 true) ->
   RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) ->
@@ -101,7 +101,7 @@ by
   exact RuleProofs.correct___eo_prog_contra M x1 x2
 
 theorem facts___eo_prog_contra_impl
-    (M : SmtModel) (hM : smt_model_well_typed M) (x1 x2 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   eo_interprets M x1 true ->
   eo_interprets M x2 true ->
   __eo_prog_contra (Proof.pf x1) (Proof.pf x2) ≠ Term.Stuck ->
