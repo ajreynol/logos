@@ -1,4 +1,5 @@
 import Cpc.Proofs.Translation.Datatypes
+import Cpc.Proofs.Translation.EoTypeof
 import Cpc.Proofs.Translation.Quantifiers
 
 open Eo
@@ -86,21 +87,42 @@ theorem eo_to_smt_typeof_matches_translation
   case Set =>
     simp [__eo_to_smt.eq_def] at hNonNone
   case Numeral n =>
-    sorry
+    symm
+    simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_numeral n
   case Rational r =>
-    sorry
+    symm
+    simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_rational r
   case String s =>
-    sorry
+    symm
+    simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_string s
   case Binary w n =>
-    sorry
+    have hTy : __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None := by
+      simpa [__eo_to_smt.eq_def] using hNonNone
+    rw [show __smtx_typeof (__eo_to_smt (Term.Binary w n)) = SmtType.BitVec w by
+      simpa [__eo_to_smt.eq_def] using smtx_typeof_binary_of_non_none w n hTy]
+    symm
+    simpa using eo_to_smt_type_typeof_binary w n
   case Var s T =>
-    sorry
+    have hTy : __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠ SmtType.None := by
+      simpa [__eo_to_smt.eq_def] using hNonNone
+    rw [show __smtx_typeof (__eo_to_smt (Term.Var s T)) = __eo_to_smt_type T by
+      simpa [__eo_to_smt.eq_def] using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hTy]
+    symm
+    simpa using eo_to_smt_type_typeof_var s T
   case DtCons s d i =>
     sorry
   case DtSel s d i j =>
     sorry
   case UConst i T =>
-    sorry
+    have hTy :
+        __smtx_typeof (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T)) ≠
+          SmtType.None := by
+      simpa [__eo_to_smt.eq_def] using hNonNone
+    rw [show __smtx_typeof (__eo_to_smt (Term.UConst i T)) = __eo_to_smt_type T by
+      simpa [__eo_to_smt.eq_def] using
+        smtx_typeof_uconst_of_non_none (smt_lit_uconst_id i) (__eo_to_smt_type T) hTy]
+    symm
+    simpa using eo_to_smt_type_typeof_uconst i T
   case Apply f x =>
     sorry
   case _at_purify x =>
@@ -108,9 +130,20 @@ theorem eo_to_smt_typeof_matches_translation
   case _at_array_deq_diff x1 x2 =>
     sorry
   case seq_empty x =>
-    sorry
+    have hTy : __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
+      simpa [__eo_to_smt.eq_def] using hNonNone
+    rw [show __smtx_typeof (__eo_to_smt (Term.seq_empty x)) = SmtType.Seq (__eo_to_smt_type x) by
+      simpa [__eo_to_smt.eq_def] using smtx_typeof_seq_empty_of_non_none (__eo_to_smt_type x) hTy]
+    symm
+    simpa using eo_to_smt_type_typeof_seq_empty x hTy
   case set_empty x =>
-    sorry
+    have hTy : __smtx_typeof (SmtTerm.set_empty (__eo_to_smt_type x)) ≠ SmtType.None := by
+      simpa [__eo_to_smt.eq_def] using hNonNone
+    rw [show __smtx_typeof (__eo_to_smt (Term.set_empty x)) =
+        SmtType.Map (__eo_to_smt_type x) SmtType.Bool by
+      simpa [__eo_to_smt.eq_def] using smtx_typeof_set_empty_of_non_none (__eo_to_smt_type x) hTy]
+    symm
+    simpa using eo_to_smt_type_typeof_set_empty x hTy
   case _at_sets_deq_diff x1 x2 =>
     sorry
   case _at_quantifiers_skolemize x1 x2 =>
