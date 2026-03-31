@@ -226,7 +226,8 @@ theorem eo_to_smt_type_eq_bitvec
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
       case Numeral n =>
-        simpa [h] using rfl
+        cases h
+        rfl
     case Apply f y =>
       cases f <;> try simp [__eo_to_smt_type] at h
       case Tuple =>
