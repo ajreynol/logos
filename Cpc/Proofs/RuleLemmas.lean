@@ -1,5 +1,4 @@
-import Cpc.Lemmas
-import Cpc.Proofs.TypePreservation.Common
+import Cpc.Proofs.Rules.Support
 
 open Eo
 open Smtm
@@ -7,50 +6,18 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-namespace RuleProofs
-
-def eo_has_smt_translation (t : Term) : Prop :=
-  Not (__smtx_typeof (__eo_to_smt t) = SmtType.None)
-
-def eo_has_bool_type (t : Term) : Prop :=
-  __smtx_typeof (__eo_to_smt t) = SmtType.Bool
-
-structure RuleResultFacts (M : SmtModel) (P : Term) : Prop where
-  true_in_model : eo_interprets M P true
-  has_smt_translation : eo_has_smt_translation P
-
-def premiseAndFormula : List Term -> Term
-  | [] => Term.Boolean true
-  | p :: ps => Term.Apply (Term.Apply Term.and p) (premiseAndFormula ps)
-
-def AllInterpretedTrue (M : SmtModel) (ts : List Term) : Prop :=
-  ∀ t ∈ ts, eo_interprets M t true
-
-def AllHaveSmtTranslation (ts : List Term) : Prop :=
-  ∀ t ∈ ts, eo_has_smt_translation t
-
-def AllHaveBoolType (ts : List Term) : Prop :=
-  ∀ t ∈ ts, eo_has_bool_type t
-
-structure StepRuleSpecNArgMPrem (M : SmtModel) (mk : List Term -> List Term -> Term) : Prop where
-  facts_of_true :
-    ∀ args premises,
-      AllInterpretedTrue M premises ->
-      mk args premises ≠ Term.Stuck ->
-      RuleResultFacts M (mk args premises)
-  bool_of_translation :
-    ∀ args premises,
-      AllHaveSmtTranslation args ->
-      AllHaveBoolType premises ->
-      mk args premises ≠ Term.Stuck ->
-      eo_has_bool_type (mk args premises)
-
-end RuleProofs
-
 open RuleProofs
 
-/- The theorem statements.
-   CRule.scope is intentionally omitted for now, matching the requested scaffold. -/
+theorem cmd_step_pop_scope_properties
+    (x1 : Term) (s : CState) (args : CArgList) (premises : CIndexList) :
+  RuleProofs.eo_has_smt_translation x1 ->
+  __eo_typeof x1 = Term.Bool ->
+  AllHaveSmtTranslation (premiseTermList s premises) ->
+  AllTypeofBool (premiseTermList s premises) ->
+  __eo_cmd_step_pop_proven s CRule.scope args x1 premises ≠ Term.Stuck ->
+  StepPopRuleProperties x1 (premiseTermList s premises)
+    (__eo_cmd_step_pop_proven s CRule.scope args x1 premises) := by
+  sorry
 
 theorem spec___eo_prog_process_scope (M : SmtModel) (hM : model_total_typed M) :
   StepRuleSpecNArgMPrem M (fun | [a1], [p1] => __eo_prog_process_scope a1 (Proof.pf (p1)) | _, _ => Term.Stuck) := by
@@ -96,8 +63,14 @@ theorem spec___eo_prog_not_not_elim (M : SmtModel) (hM : model_total_typed M) :
   StepRuleSpecNArgMPrem M (fun | [], [p1] => __eo_prog_not_not_elim (Proof.pf (p1)) | _, _ => Term.Stuck) := by
   sorry
 
-theorem spec___eo_prog_contra (M : SmtModel) (hM : model_total_typed M) :
-  StepRuleSpecNArgMPrem M (fun | [], [p1, p2] => __eo_prog_contra (Proof.pf (p1)) (Proof.pf (p2)) | _, _ => Term.Stuck) := by
+theorem cmd_step_contra_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.contra args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.contra args premises ≠ Term.Stuck ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.contra args premises) := by
   sorry
 
 theorem spec___eo_prog_and_elim (M : SmtModel) (hM : model_total_typed M) :
@@ -276,16 +249,34 @@ theorem spec___eo_prog_arrays_ext (M : SmtModel) (hM : model_total_typed M) :
   StepRuleSpecNArgMPrem M (fun | [], [p1] => __eo_prog_arrays_ext (Proof.pf (p1)) | _, _ => Term.Stuck) := by
   sorry
 
-theorem spec___eo_prog_refl (M : SmtModel) (hM : model_total_typed M) :
-  StepRuleSpecNArgMPrem M (fun | [a1], [] => __eo_prog_refl a1 | _, _ => Term.Stuck) := by
+theorem cmd_step_refl_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.refl args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.refl args premises ≠ Term.Stuck ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.refl args premises) := by
   sorry
 
-theorem spec___eo_prog_symm (M : SmtModel) (hM : model_total_typed M) :
-  StepRuleSpecNArgMPrem M (fun | [], [p1] => __eo_prog_symm (Proof.pf (p1)) | _, _ => Term.Stuck) := by
+theorem cmd_step_symm_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.symm args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.symm args premises ≠ Term.Stuck ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.symm args premises) := by
   sorry
 
-theorem spec___eo_prog_trans (M : SmtModel) (hM : model_total_typed M) :
-  StepRuleSpecNArgMPrem M (fun | [], premises => __eo_prog_trans (Proof.pf (premiseAndFormula premises)) | _, _ => Term.Stuck) := by
+theorem cmd_step_trans_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.trans args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.trans args premises ≠ Term.Stuck ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.trans args premises) := by
   sorry
 
 theorem spec___eo_prog_cong (M : SmtModel) (hM : model_total_typed M) :
