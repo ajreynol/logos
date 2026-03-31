@@ -115,6 +115,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) =
         __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)))
+    (hGeneric :
+      generic_apply_type (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x))
     (hTranslate :
       __eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x) =
         SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x))
@@ -123,7 +125,45 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
         SmtType.None) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply g z) y) x)) := by
-  sorry
+  have hApplyNN :
+      __smtx_typeof_apply
+          (__smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)))
+          (__smtx_typeof (__eo_to_smt x)) ≠
+        SmtType.None := by
+    have hApplyNN' :
+        __smtx_typeof
+            (SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x)) ≠
+          SmtType.None := by
+      simpa [hTranslate] using hNonNone
+    rw [hGeneric] at hApplyNN'
+    exact hApplyNN'
+  rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
+  have hHeadNN :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) ≠ SmtType.None := by
+    cases hHead with
+    | inl hMap =>
+        rw [hMap]
+        simp
+    | inr hDt =>
+        rw [hDt]
+        simp
+  have hHeadEo :
+      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.Map A B ∨
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.DtConsType A B := by
+    rw [← ihF hHeadNN]
+    exact hHead
+  have hSmt :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) = B := by
+    rw [hTranslate]
+    rw [hGeneric]
+    cases hHead with
+    | inl hMap =>
+        simpa [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hMap, hX, hA]
+    | inr hDt =>
+        simpa [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hDt, hX, hA]
+  exact hSmt.trans
+    (eo_to_smt_type_typeof_apply_of_smt_apply
+      x (Term.Apply (Term.Apply g z) y) A B hHeadEo hX).symm
 
 private theorem smtx_typeof_eq_non_none
     {T U : SmtType}
@@ -1999,6 +2039,83 @@ theorem eo_to_smt_typeof_matches_translation_apply
             have hBad := hApplyNN
             unfold term_has_non_none_type at hBad
             simp [hz, __smtx_typeof, __smtx_typeof_re_loop, smt_lit_ite] at hBad
+      case re_exp =>
+        have hHeadTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply Term.re_exp z) y) =
+              SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_exp (__eo_to_smt z)) (__eo_to_smt y) := by
+          rw [__eo_to_smt.eq_def]
+        have hGeneric :
+            generic_apply_type (__eo_to_smt (Term.Apply (Term.Apply Term.re_exp z) y))
+              (__eo_to_smt x) := by
+          unfold generic_apply_type
+          rw [hHeadTranslate]
+        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
+          Term.re_exp z y x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
+      case _at_strings_deq_diff =>
+        have hHeadTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply Term._at_strings_deq_diff z) y) =
+              let _v0 := SmtTerm.Numeral 1
+              let _v2 := SmtTerm.Var "_at_x" SmtType.Int
+              SmtTerm.Apply (SmtTerm.choice "_at_x" SmtType.Int)
+                (SmtTerm.Apply SmtTerm.not
+                  (SmtTerm.Apply
+                    (SmtTerm.Apply SmtTerm.eq
+                      (SmtTerm.Apply
+                        (SmtTerm.Apply
+                          (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt z)) _v2) _v0))
+                    (SmtTerm.Apply
+                      (SmtTerm.Apply
+                        (SmtTerm.Apply SmtTerm.str_substr (__eo_to_smt y)) _v2) _v0))) := by
+          rw [__eo_to_smt.eq_def]
+        have hGeneric :
+            generic_apply_type (__eo_to_smt (Term.Apply (Term.Apply Term._at_strings_deq_diff z) y))
+              (__eo_to_smt x) := by
+          unfold generic_apply_type
+          rw [hHeadTranslate]
+        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
+          Term._at_strings_deq_diff z y x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
+      case _at_strings_itos_result =>
+        have hHeadTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply Term._at_strings_itos_result z) y) =
+              SmtTerm.Apply SmtTerm.str_from_int
+                (SmtTerm.Apply
+                  (SmtTerm.Apply SmtTerm.mod (__eo_to_smt z))
+                  (SmtTerm.Apply
+                    (SmtTerm.Apply SmtTerm.multmult (SmtTerm.Numeral 10))
+                    (__eo_to_smt y))) := by
+          rw [__eo_to_smt.eq_def]
+        have hGeneric :
+            generic_apply_type
+              (__eo_to_smt (Term.Apply (Term.Apply Term._at_strings_itos_result z) y))
+              (__eo_to_smt x) := by
+          unfold generic_apply_type
+          rw [hHeadTranslate]
+        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
+          Term._at_strings_itos_result z y x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
+      case _at_strings_num_occur =>
+        have hHeadTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply Term._at_strings_num_occur z) y) =
+              let _v0 := __eo_to_smt y
+              let _v1 := __eo_to_smt z
+              SmtTerm.Apply
+                (SmtTerm.Apply SmtTerm.div
+                  (SmtTerm.Apply
+                    (SmtTerm.Apply SmtTerm.neg (SmtTerm.Apply SmtTerm.str_len _v1))
+                    (SmtTerm.Apply SmtTerm.str_len
+                      (SmtTerm.Apply
+                        (SmtTerm.Apply
+                          (SmtTerm.Apply SmtTerm.str_replace_all _v1) _v0)
+                        (SmtTerm.seq_empty (SmtType.Seq SmtType.Char))))))
+                (SmtTerm.Apply SmtTerm.str_len _v0) := by
+          rw [__eo_to_smt.eq_def]
+        have hGeneric :
+            generic_apply_type
+              (__eo_to_smt (Term.Apply (Term.Apply Term._at_strings_num_occur z) y))
+              (__eo_to_smt x) := by
+          unfold generic_apply_type
+          rw [hHeadTranslate]
+        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
+          Term._at_strings_num_occur z y x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
       case bvultbv =>
         let head :=
           SmtTerm.Apply
@@ -2292,9 +2409,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             rw [__eo_to_smt.eq_def] at hBad
             simp [hy] at hBad
             simp [__eo_to_smt_tuple_update] at hBad
-      all_goals
-        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
-          _ z y x ihF (by rw [__eo_to_smt.eq_def]) hNonNone
+      all_goals sorry
     all_goals sorry
   case not =>
     have hTranslate :
