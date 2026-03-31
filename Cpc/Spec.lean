@@ -149,12 +149,12 @@ def __eo_to_smt_updater_rec : SmtTerm -> smt_lit_Nat -> SmtTerm -> SmtTerm -> Sm
   | (SmtTerm.DtSel s d n m), smt_lit_nat_zero, t, u, acc => acc
   | (SmtTerm.DtSel s d n m), (smt_lit_nat_succ k), t, u, acc => 
     let _v0 := (SmtTerm.DtSel s d n m)
-    (__eo_to_smt_updater_rec _v0 k t u (SmtTerm.Apply acc (smt_lit_ite (smt_lit_nateq m k) t (SmtTerm.Apply _v0 u))))
+    (__eo_to_smt_updater_rec _v0 k t u (SmtTerm.Apply acc (smt_lit_ite (smt_lit_nateq m k) u (SmtTerm.Apply _v0 t))))
   | v, k, t, u, acc => SmtTerm.None
 
 
 def __eo_to_smt_updater : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.DtSel s d n m), t, u => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) u)) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) (__smtx_dt_num_sels d n) t u (SmtTerm.DtCons s d n))) u)
+  | (SmtTerm.DtSel s d n m), t, u => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) t)) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) (__smtx_dt_num_sels d n) t u (SmtTerm.DtCons s d n))) t)
   | sel, t, d => SmtTerm.None
 
 
