@@ -2000,9 +2000,127 @@ theorem eo_to_smt_typeof_matches_translation_apply
             unfold term_has_non_none_type at hBad
             simp [hz, __smtx_typeof, __smtx_typeof_re_loop, smt_lit_ite] at hBad
       case bvultbv =>
-        sorry
+        let head :=
+          SmtTerm.Apply
+            (SmtTerm.Apply
+              (SmtTerm.Apply SmtTerm.ite
+                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvult (__eo_to_smt z)) (__eo_to_smt y)))
+              (SmtTerm.Binary 1 1))
+            (SmtTerm.Binary 1 0)
+        have hHeadTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply Term.bvultbv z) y) = head := by
+          rw [__eo_to_smt.eq_def]
+        have hTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.bvultbv z) y) x) =
+              SmtTerm.Apply head (__eo_to_smt x) := by
+          rw [__eo_to_smt.eq_def]
+          simp [hHeadTranslate]
+        have hApplyNN :
+            __smtx_typeof_apply (__smtx_typeof head) (__smtx_typeof (__eo_to_smt x)) ≠
+              SmtType.None := by
+          simpa [hTranslate, head, __smtx_typeof] using hNonNone
+        rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
+        have hHeadNN : __smtx_typeof head ≠ SmtType.None := by
+          cases hHead with
+          | inl hMap =>
+              rw [hMap]
+              simp
+          | inr hDt =>
+              rw [hDt]
+              simp
+        have hIteNN : term_has_non_none_type head := by
+          unfold term_has_non_none_type
+          exact hHeadNN
+        rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, hT⟩
+        have hThenNN : __smtx_typeof (SmtTerm.Binary 1 1) ≠ SmtType.None := by
+          rw [hThen]
+          exact hT
+        have hElseNN : __smtx_typeof (SmtTerm.Binary 1 0) ≠ SmtType.None := by
+          rw [hElse]
+          exact hT
+        have hBitVec1 : T = SmtType.BitVec 1 := by
+          exact hThen.symm.trans (smtx_typeof_binary_of_non_none 1 1 hThenNN)
+        have hBranchEq :
+            __smtx_typeof (SmtTerm.Binary 1 1) = __smtx_typeof (SmtTerm.Binary 1 0) := by
+          exact hThen.trans hElse.symm
+        have hTeq :
+            smt_lit_Teq (__smtx_typeof (SmtTerm.Binary 1 1))
+              (__smtx_typeof (SmtTerm.Binary 1 0)) = true := by
+          simpa [smt_lit_Teq] using hBranchEq
+        have hHeadTy : __smtx_typeof head = T := by
+          change
+            __smtx_typeof_ite
+              (__smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvult (__eo_to_smt z)) (__eo_to_smt y)))
+              (__smtx_typeof (SmtTerm.Binary 1 1))
+              (__smtx_typeof (SmtTerm.Binary 1 0)) = T
+          rw [hCond, hThen, hElse]
+          simp [__smtx_typeof_ite, smt_lit_ite, smt_lit_Teq]
+        cases hHead with
+        | inl hMap =>
+            cases (hBitVec1.symm.trans (hHeadTy.symm.trans hMap))
+        | inr hDt =>
+            cases (hBitVec1.symm.trans (hHeadTy.symm.trans hDt))
       case bvsltbv =>
-        sorry
+        let head :=
+          SmtTerm.Apply
+            (SmtTerm.Apply
+              (SmtTerm.Apply SmtTerm.ite
+                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvslt (__eo_to_smt z)) (__eo_to_smt y)))
+              (SmtTerm.Binary 1 1))
+            (SmtTerm.Binary 1 0)
+        have hHeadTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply Term.bvsltbv z) y) = head := by
+          rw [__eo_to_smt.eq_def]
+        have hTranslate :
+            __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.bvsltbv z) y) x) =
+              SmtTerm.Apply head (__eo_to_smt x) := by
+          rw [__eo_to_smt.eq_def]
+          simp [hHeadTranslate]
+        have hApplyNN :
+            __smtx_typeof_apply (__smtx_typeof head) (__smtx_typeof (__eo_to_smt x)) ≠
+              SmtType.None := by
+          simpa [hTranslate, head, __smtx_typeof] using hNonNone
+        rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
+        have hHeadNN : __smtx_typeof head ≠ SmtType.None := by
+          cases hHead with
+          | inl hMap =>
+              rw [hMap]
+              simp
+          | inr hDt =>
+              rw [hDt]
+              simp
+        have hIteNN : term_has_non_none_type head := by
+          unfold term_has_non_none_type
+          exact hHeadNN
+        rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, hT⟩
+        have hThenNN : __smtx_typeof (SmtTerm.Binary 1 1) ≠ SmtType.None := by
+          rw [hThen]
+          exact hT
+        have hElseNN : __smtx_typeof (SmtTerm.Binary 1 0) ≠ SmtType.None := by
+          rw [hElse]
+          exact hT
+        have hBitVec1 : T = SmtType.BitVec 1 := by
+          exact hThen.symm.trans (smtx_typeof_binary_of_non_none 1 1 hThenNN)
+        have hBranchEq :
+            __smtx_typeof (SmtTerm.Binary 1 1) = __smtx_typeof (SmtTerm.Binary 1 0) := by
+          exact hThen.trans hElse.symm
+        have hTeq :
+            smt_lit_Teq (__smtx_typeof (SmtTerm.Binary 1 1))
+              (__smtx_typeof (SmtTerm.Binary 1 0)) = true := by
+          simpa [smt_lit_Teq] using hBranchEq
+        have hHeadTy : __smtx_typeof head = T := by
+          change
+            __smtx_typeof_ite
+              (__smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvslt (__eo_to_smt z)) (__eo_to_smt y)))
+              (__smtx_typeof (SmtTerm.Binary 1 1))
+              (__smtx_typeof (SmtTerm.Binary 1 0)) = T
+          rw [hCond, hThen, hElse]
+          simp [__smtx_typeof_ite, smt_lit_ite, smt_lit_Teq]
+        cases hHead with
+        | inl hMap =>
+            cases (hBitVec1.symm.trans (hHeadTy.symm.trans hMap))
+        | inr hDt =>
+            cases (hBitVec1.symm.trans (hHeadTy.symm.trans hDt))
       case _at_re_unfold_pos_component =>
         sorry
       case _at_witness_string_length =>
