@@ -138,28 +138,33 @@ structure StepRuleProperties
   has_bool_type :
     RuleProofs.eo_has_bool_type P
 
-theorem typed___eo_prog_scope
-    (x1 x2 : Term) :
-  RuleProofs.eo_has_bool_type x1 ->
-  RuleProofs.eo_has_bool_type x2 ->
-  __eo_prog_scope x1 (Proof.pf x2) ≠ Term.Stuck ->
-  RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) :=
-by
-  intro hBool1 hBool2 hProg
-  exact typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2 hProg
+structure ScopeRuleProperties
+    (x1 x2 P : Term) : Prop where
+  facts_of_imp :
+    forall (M : SmtModel), model_total_typed M ->
+      ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
+      RuleProofs.RuleResultFacts M P
+  has_bool_type :
+    RuleProofs.eo_has_bool_type P
 
-theorem facts___eo_prog_scope
-    (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
-  ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
+theorem cmd_step_pop_proven_scope_properties
+    (x1 x2 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
   RuleProofs.eo_has_smt_translation x2 ->
   __eo_typeof x1 = Term.Bool ->
   __eo_typeof x2 = Term.Bool ->
   __eo_prog_scope x1 (Proof.pf x2) ≠ Term.Stuck ->
-  RuleProofs.RuleResultFacts M (__eo_prog_scope x1 (Proof.pf x2)) :=
+  ScopeRuleProperties x1 x2 (__eo_prog_scope x1 (Proof.pf x2)) :=
 by
-  intro hImp hTrans1 hTrans2 hTy1 hTy2 hProg
-  exact facts___eo_prog_scope_impl M hM x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2 hProg
+  intro hTrans1 hTrans2 hTy1 hTy2 hProg
+  have hBool1 : RuleProofs.eo_has_bool_type x1 :=
+    RuleProofs.eo_typeof_bool_implies_has_bool_type x1 hTrans1 hTy1
+  have hBool2 : RuleProofs.eo_has_bool_type x2 :=
+    RuleProofs.eo_typeof_bool_implies_has_bool_type x2 hTrans2 hTy2
+  constructor
+  · intro M hM hImp
+    exact facts___eo_prog_scope_impl M hM x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2 hProg
+  · exact typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2 hProg
 
 theorem cmd_step_proven_contra_properties
     (M : SmtModel) (hM : model_total_typed M)

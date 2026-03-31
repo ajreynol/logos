@@ -2203,10 +2203,10 @@ by
                       (checkerTypeInvariant_at hsRootTy n1).2
                     have hXTrans : RuleProofs.eo_has_smt_translation X :=
                       checkerTranslationInvariant_at hsRootTrans n1
-                    have hABool : RuleProofs.eo_has_bool_type A :=
-                      RuleProofs.eo_typeof_bool_implies_has_bool_type A hATrans hATy
-                    have hXBool : RuleProofs.eo_has_bool_type X :=
-                      RuleProofs.eo_typeof_bool_implies_has_bool_type X hXTrans hXTy
+                    have hScopeProps :
+                        ScopeRuleProperties A X (__eo_prog_scope A (Proof.pf X)) :=
+                      eo_prog_scope_properties A X hATrans hXTrans hATy hXTy
+                        (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
                     constructor
                     · intro M hM hsRoot hAssEq hPushEq hAss hPush
                       have hScoped :
@@ -2220,16 +2220,10 @@ by
                           exact eo_interprets_and_intro M A (statePushes tail) hATrue hPush
                         exact checkerLocalTruthInvariant_at M hsRoot n1 hAssRoot hPushRoot
                       simpa [P, X, __eo_cmd_step_pop_proven, hA] using
-                        (facts___eo_prog_scope M hM A X hScoped
-                          hATrans hXTrans hATy hXTy
-                          (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)).true_in_model
-                    · have hPBool :
-                          RuleProofs.eo_has_bool_type (__eo_prog_scope A (Proof.pf X)) :=
-                        typed___eo_prog_scope A X hABool hXBool
-                          (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
-                      simpa [P, X, __eo_cmd_step_pop_proven, hA] using
+                        (hScopeProps.facts_of_imp M hM hScoped).true_in_model
+                    · simpa [P, X, __eo_cmd_step_pop_proven, hA] using
                         RuleProofs.eo_has_smt_translation_of_has_bool_type
-                          (__eo_prog_scope A (Proof.pf X)) hPBool
+                          (__eo_prog_scope A (Proof.pf X)) hScopeProps.has_bool_type
                 | cons n2 premises =>
                     exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
         | cons a args =>
