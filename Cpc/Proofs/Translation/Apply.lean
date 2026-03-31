@@ -2126,9 +2126,172 @@ theorem eo_to_smt_typeof_matches_translation_apply
       case _at_witness_string_length =>
         sorry
       case update =>
-        sorry
+        cases hz : __eo_to_smt z with
+        | DtSel s d n m =>
+            have hTranslate :
+                __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.update z) y) x) =
+                  __eo_to_smt_updater (SmtTerm.DtSel s d n m) (__eo_to_smt y) (__eo_to_smt x) := by
+              rw [__eo_to_smt.eq_def]
+              simp [hz]
+            have hUpdaterNN :
+                __smtx_typeof
+                    (__eo_to_smt_updater (SmtTerm.DtSel s d n m) (__eo_to_smt y) (__eo_to_smt x)) ≠
+                  SmtType.None := by
+              rw [← hTranslate]
+              exact hNonNone
+            have hIteNN :
+                term_has_non_none_type
+                  (SmtTerm.Apply
+                    (SmtTerm.Apply
+                      (SmtTerm.Apply SmtTerm.ite
+                        (SmtTerm.Apply (SmtTerm.DtTester s d n) (__eo_to_smt y)))
+                      (__eo_to_smt_updater_rec
+                        (SmtTerm.DtSel s d n m) (__smtx_dt_num_sels d n) (__eo_to_smt y)
+                        (__eo_to_smt x) (SmtTerm.DtCons s d n)))
+                    (__eo_to_smt y)) := by
+              unfold term_has_non_none_type
+              simpa [__eo_to_smt_updater] using hUpdaterNN
+            rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, hT⟩
+            have hCondNN :
+                term_has_non_none_type
+                  (SmtTerm.Apply (SmtTerm.DtTester s d n) (__eo_to_smt y)) := by
+              unfold term_has_non_none_type
+              rw [hCond]
+              simp
+            have hYTy : __smtx_typeof (__eo_to_smt y) = SmtType.Datatype s d := by
+              exact dt_tester_arg_datatype_of_non_none hCondNN
+            have hTTy : T = SmtType.Datatype s d := by
+              exact hElse.symm.trans hYTy
+            have hSmt :
+                __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.update z) y) x)) =
+                  SmtType.Datatype s d := by
+              rw [hTranslate, __eo_to_smt_updater]
+              change
+                __smtx_typeof_ite
+                    (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d n) (__eo_to_smt y)))
+                    (__smtx_typeof
+                      (__eo_to_smt_updater_rec
+                        (SmtTerm.DtSel s d n m) (__smtx_dt_num_sels d n) (__eo_to_smt y)
+                        (__eo_to_smt x) (SmtTerm.DtCons s d n)))
+                    (__smtx_typeof (__eo_to_smt y)) =
+                  SmtType.Datatype s d
+              rw [hCond, hThen, hElse, hTTy]
+              simp [__smtx_typeof_ite, smt_lit_ite, smt_lit_Teq]
+            exact hSmt.trans
+              (eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
+                x y z s d n m hz hNonNone).symm
+        | _ =>
+            have hBad := hNonNone
+            rw [__eo_to_smt.eq_def] at hBad
+            simp [hz] at hBad
+            simp [__eo_to_smt_updater] at hBad
       case tuple_update =>
-        sorry
+        cases hy : __eo_to_smt_type (__eo_typeof y) with
+        | Datatype s d =>
+            by_cases hTuple : s = "_at_Tuple"
+            · subst hTuple
+              cases hz : __eo_to_smt z with
+              | Numeral n =>
+                  have hTranslate :
+                      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.tuple_update z) y) x) =
+                        __eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
+                          (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x) := by
+                    rw [__eo_to_smt.eq_def]
+                    simp [hy, hz]
+                  have hTupleNN :
+                      __smtx_typeof
+                          (__eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
+                            (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x)) ≠
+                        SmtType.None := by
+                    rw [← hTranslate]
+                    exact hNonNone
+                  have hGe : smt_lit_zleq 0 n = true := by
+                    cases hTest : smt_lit_zleq 0 n <;>
+                      simp [__eo_to_smt_tuple_update, hTest, smt_lit_ite] at hTupleNN
+                    simpa using hTest
+                  have hUpdaterNN :
+                      __smtx_typeof
+                          (__eo_to_smt_updater
+                            (SmtTerm.DtSel "_at_Tuple" d smt_lit_nat_zero
+                              (smt_lit_int_to_nat n))
+                            (__eo_to_smt y) (__eo_to_smt x)) ≠
+                        SmtType.None := by
+                    simpa [__eo_to_smt_tuple_update, hGe, smt_lit_ite] using hTupleNN
+                  have hIteNN :
+                      term_has_non_none_type
+                        (SmtTerm.Apply
+                          (SmtTerm.Apply
+                            (SmtTerm.Apply SmtTerm.ite
+                              (SmtTerm.Apply (SmtTerm.DtTester "_at_Tuple" d smt_lit_nat_zero)
+                                (__eo_to_smt y)))
+                            (__eo_to_smt_updater_rec
+                              (SmtTerm.DtSel "_at_Tuple" d smt_lit_nat_zero
+                                (smt_lit_int_to_nat n))
+                              (__smtx_dt_num_sels d smt_lit_nat_zero) (__eo_to_smt y)
+                              (__eo_to_smt x)
+                              (SmtTerm.DtCons "_at_Tuple" d smt_lit_nat_zero)))
+                          (__eo_to_smt y)) := by
+                    unfold term_has_non_none_type
+                    simpa [__eo_to_smt_updater] using hUpdaterNN
+                  rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, hT⟩
+                  have hCondNN :
+                      term_has_non_none_type
+                        (SmtTerm.Apply (SmtTerm.DtTester "_at_Tuple" d smt_lit_nat_zero)
+                          (__eo_to_smt y)) := by
+                    unfold term_has_non_none_type
+                    rw [hCond]
+                    simp
+                  have hYTy : __smtx_typeof (__eo_to_smt y) = SmtType.Datatype "_at_Tuple" d := by
+                    exact dt_tester_arg_datatype_of_non_none hCondNN
+                  have hTTy : T = SmtType.Datatype "_at_Tuple" d := by
+                    exact hElse.symm.trans hYTy
+                  have hInnerTy :
+                      __smtx_typeof
+                          (__eo_to_smt_updater
+                            (SmtTerm.DtSel "_at_Tuple" d smt_lit_nat_zero
+                              (smt_lit_int_to_nat n))
+                            (__eo_to_smt y) (__eo_to_smt x)) =
+                        SmtType.Datatype "_at_Tuple" d := by
+                    rw [__eo_to_smt_updater]
+                    change
+                      __smtx_typeof_ite
+                          (__smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.DtTester "_at_Tuple" d smt_lit_nat_zero)
+                              (__eo_to_smt y)))
+                          (__smtx_typeof
+                            (__eo_to_smt_updater_rec
+                              (SmtTerm.DtSel "_at_Tuple" d smt_lit_nat_zero
+                                (smt_lit_int_to_nat n))
+                              (__smtx_dt_num_sels d smt_lit_nat_zero) (__eo_to_smt y)
+                              (__eo_to_smt x)
+                              (SmtTerm.DtCons "_at_Tuple" d smt_lit_nat_zero)))
+                          (__smtx_typeof (__eo_to_smt y)) =
+                        SmtType.Datatype "_at_Tuple" d
+                    rw [hCond, hThen, hElse, hTTy]
+                    simp [__smtx_typeof_ite, smt_lit_ite, smt_lit_Teq]
+                  have hSmt :
+                      __smtx_typeof
+                          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.tuple_update z) y) x)) =
+                        SmtType.Datatype "_at_Tuple" d := by
+                    rw [hTranslate]
+                    simpa [__eo_to_smt_tuple_update, hGe, smt_lit_ite] using hInnerTy
+                  exact hSmt.trans
+                    (eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tuple
+                      x y z d n hy hz hNonNone).symm
+              | _ =>
+                  have hBad := hNonNone
+                  rw [__eo_to_smt.eq_def] at hBad
+                  simp [hy, hz] at hBad
+                  simp [__eo_to_smt_tuple_update] at hBad
+            · have hBad := hNonNone
+              rw [__eo_to_smt.eq_def] at hBad
+              simp [hy] at hBad
+              simp [__eo_to_smt_tuple_update, hTuple] at hBad
+        | _ =>
+            have hBad := hNonNone
+            rw [__eo_to_smt.eq_def] at hBad
+            simp [hy] at hBad
+            simp [__eo_to_smt_tuple_update] at hBad
       all_goals
         exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
           _ z y x ihF (by rw [__eo_to_smt.eq_def]) hNonNone

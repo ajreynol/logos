@@ -154,7 +154,7 @@ def __eo_to_smt_updater_rec : SmtTerm -> smt_lit_Nat -> SmtTerm -> SmtTerm -> Sm
 
 
 def __eo_to_smt_updater : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.DtSel s d n m), t, u => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) u)) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) (__smtx_dt_num_sels d n) t u (SmtTerm.DtCons s d n))) u)
+  | (SmtTerm.DtSel s d n m), t, u => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) t)) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) (__smtx_dt_num_sels d n) t u (SmtTerm.DtCons s d n))) t)
   | sel, t, d => SmtTerm.None
 
 
@@ -404,4 +404,3 @@ def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
   exists (s : ObjectTerm), (eo_is_obj t s) /\ (obj_interprets M s b)
 
 /- ---------------------------------------------- -/
-

@@ -113,6 +113,27 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_smt_map
       SmtType.Map A B := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
+    (x y z : Term) (s : smt_lit_String) (d : SmtDatatype) (i j : smt_lit_Nat)
+    (hz : __eo_to_smt z = SmtTerm.DtSel s d i j)
+    (h :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.update z) y) x)) ≠
+        SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.update z) y) x)) =
+      SmtType.Datatype s d := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tuple
+    (x y z : Term) (d : SmtDatatype) (n : eo_lit_Int)
+    (hy : __eo_to_smt_type (__eo_typeof y) = SmtType.Datatype "_at_Tuple" d)
+    (hz : __eo_to_smt z = SmtTerm.Numeral n)
+    (h :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.tuple_update z) y) x)) ≠
+        SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.tuple_update z) y) x)) =
+      SmtType.Datatype "_at_Tuple" d := by
+  sorry
+
 theorem eo_to_smt_type_typeof_seq_empty
     (x : Term)
     (h : __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
