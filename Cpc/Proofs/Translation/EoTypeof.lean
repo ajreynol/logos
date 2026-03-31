@@ -186,6 +186,23 @@ theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
       SmtType.Map (__eo_to_smt_type (__eo_typeof x)) SmtType.Bool := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_smt_map
+    (x : Term)
+    (hx :
+      __smtx_typeof (__eo_to_smt x) =
+        SmtType.Map (__eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose x))) SmtType.Bool) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply Term.set_is_singleton x)) = SmtType.Bool := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply
+    (x x1 x2 : Term) (A B : SmtType)
+    (hHead :
+      __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.Map A B ∨
+        __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.DtConsType A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_sets_deq_diff x1 x2) x)) = B := by
+  sorry
+
 theorem eo_to_smt_type_typeof_apply_to_real_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
@@ -1078,6 +1095,15 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_smt_numeral_numeral_r
     (hn2 : smt_lit_zleq 0 n2) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.re_loop z) y) x)) =
       SmtType.RegLan := by
+  sorry
+
+theorem eo_to_smt_type_typeof_apply_apply_apply_bvite_of_smt_bitvec1_same_non_none
+    (x y z : Term) (T : SmtType)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.BitVec 1)
+    (hy : __smtx_typeof (__eo_to_smt y) = T)
+    (hx : __smtx_typeof (__eo_to_smt x) = T)
+    (hT : T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.bvite z) y) x)) = T := by
   sorry
 
 theorem eo_to_smt_type_typeof_apply_apply_apply_ite_of_smt_bool_same_non_none
