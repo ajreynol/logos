@@ -13,9 +13,27 @@ set_option maxHeartbeats 10000000
 
 /- The theorem statements -/
 
+def cmdTranslationOk : CCmd -> Prop
+  | CCmd.assume_push A => RuleProofs.eo_has_smt_translation A
+  | CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil =>
+      RuleProofs.eo_has_smt_translation a1
+  | _ => True
+
+inductive CmdListTranslationOk : CCmdList -> Prop
+  | nil : CmdListTranslationOk CCmdList.nil
+  | cons (c : CCmd) (cs : CCmdList) :
+      cmdTranslationOk c ->
+      CmdListTranslationOk cs ->
+      CmdListTranslationOk (CCmdList.cons c cs)
+
 def premiseAndFormulaList : List Term -> Term
   | [] => Term.Boolean true
   | p :: ps => Term.Apply (Term.Apply Term.and p) (premiseAndFormulaList ps)
+
+def premiseTermList (s : CState) : CIndexList -> List Term
+  | CIndexList.nil => []
+  | CIndexList.cons n premises =>
+      __eo_state_proven_nth s n :: premiseTermList s premises
 
 def AllInterpretedTrue (M : SmtModel) (ts : List Term) : Prop :=
   ∀ t ∈ ts, eo_interprets M t true
@@ -58,6 +76,59 @@ by
       · apply ih
         intro t ht
         exact hPremises t (by simp [ht])
+
+theorem premiseAndFormulaList_is_and_list :
+  ∀ premises : List Term,
+    __eo_is_list Term.and (premiseAndFormulaList premises) = Term.Boolean true
+:=
+by
+  have hGetNil :
+      ∀ premises : List Term,
+        __eo_get_nil_rec Term.and (premiseAndFormulaList premises) ≠ Term.Stuck
+  :=
+  by
+    intro premises
+    induction premises with
+    | nil =>
+        unfold premiseAndFormulaList
+        unfold __eo_get_nil_rec
+        unfold __eo_requires
+        unfold __eo_is_list_nil
+        simp [eo_lit_ite, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
+    | cons p premises ih =>
+        unfold premiseAndFormulaList
+        unfold __eo_get_nil_rec
+        unfold __eo_requires
+        simpa [eo_lit_ite, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using ih
+  intro premises
+  have hNotStuck :
+      __eo_get_nil_rec Term.and (premiseAndFormulaList premises) ≠ Term.Stuck :=
+    hGetNil premises
+  have hPremNotStuck : premiseAndFormulaList premises ≠ Term.Stuck :=
+    by
+      induction premises with
+      | nil =>
+          simp [premiseAndFormulaList]
+      | cons p premises ih =>
+          simp [premiseAndFormulaList]
+  unfold __eo_is_list
+  unfold __eo_is_ok
+  simpa [eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using hNotStuck
+
+theorem mk_premise_list_and_eq_premiseAndFormulaList :
+  ∀ (s : CState) (premises : CIndexList),
+    __eo_mk_premise_list Term.and premises s =
+      premiseAndFormulaList (premiseTermList s premises)
+:=
+by
+  intro s premises
+  induction premises with
+  | nil =>
+      simp [__eo_mk_premise_list, premiseAndFormulaList, premiseTermList, __eo_nil]
+  | cons n premises ih =>
+      simp [__eo_mk_premise_list, premiseAndFormulaList, premiseTermList, __eo_cons,
+        __eo_requires, eo_lit_ite, eo_lit_teq, eo_lit_not, ih,
+        premiseAndFormulaList_is_and_list, SmtEval.smt_lit_not]
 
 structure StepRuleSpecNArgMPrem
     (M : SmtModel) (mk : List Term -> List Term -> Term) : Prop where
@@ -254,3 +325,283 @@ by
           (by simpa using hProg)
     | cons a args =>
         exact False.elim (hProg (by simp))
+
+theorem step_rule_facts_narg_mprem
+    (M : SmtModel)
+    (args premises : List Term) (mk : List Term -> List Term -> Term) :
+  AllHaveSmtTranslation args ->
+  AllInterpretedTrue M premises ->
+  StepRuleSpecNArgMPrem M mk ->
+  mk args premises ≠ Term.Stuck ->
+  RuleProofs.RuleResultFacts M (mk args premises) :=
+by
+  intro hArgs hPremTrue hSpec hProg
+  exact hSpec.facts_of_true args premises hArgs hPremTrue hProg
+
+theorem step_rule_bool_narg_mprem
+    (M : SmtModel)
+    (args premises : List Term) (mk : List Term -> List Term -> Term) :
+  AllHaveSmtTranslation args ->
+  AllHaveBoolType premises ->
+  StepRuleSpecNArgMPrem M mk ->
+  mk args premises ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type (mk args premises) :=
+by
+  intro hArgs hPremBool hSpec hProg
+  exact hSpec.bool_of_translation args premises hArgs hPremBool hProg
+
+theorem cmd_step_proven_contra_facts
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  AllInterpretedTrue M (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.contra args premises ≠ Term.Stuck ->
+  RuleProofs.RuleResultFacts M (__eo_cmd_step_proven s CRule.contra args premises) :=
+by
+  intro hTrue hProg
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons n1 premises =>
+          cases premises with
+          | nil =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons n2 premises =>
+              cases premises with
+              | nil =>
+                  have hArgsTrans : AllHaveSmtTranslation [] := by
+                    intro t ht
+                    cases ht
+                  simpa [premiseTermList, __eo_cmd_step_proven] using
+                    (step_rule_facts_narg_mprem M [] (premiseTermList s
+                        (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)))
+                      (fun
+                        | [], [X1, X2] => __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
+                        | _, _ => Term.Stuck)
+                      hArgsTrans hTrue (spec___eo_prog_contra M hM)
+                      (by simpa [premiseTermList, __eo_cmd_step_proven] using hProg))
+              | cons n3 premises =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | cons a args =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
+theorem cmd_step_proven_contra_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.contra args premises ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type (__eo_cmd_step_proven s CRule.contra args premises) :=
+by
+  intro hPremises hProg
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons n1 premises =>
+          cases premises with
+          | nil =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons n2 premises =>
+              cases premises with
+              | nil =>
+                  have hArgsTrans : AllHaveSmtTranslation [] := by
+                    intro t ht
+                    cases ht
+                  simpa [premiseTermList, __eo_cmd_step_proven] using
+                    (step_rule_bool_narg_mprem M [] (premiseTermList s
+                        (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)))
+                      (fun
+                        | [], [X1, X2] => __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
+                        | _, _ => Term.Stuck)
+                      hArgsTrans hPremises (spec___eo_prog_contra M hM)
+                      (by simpa [premiseTermList, __eo_cmd_step_proven] using hProg))
+              | cons n3 premises =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | cons a args =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
+theorem cmd_step_proven_refl_facts
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.refl args premises) ->
+  __eo_cmd_step_proven s CRule.refl args premises ≠ Term.Stuck ->
+  RuleProofs.RuleResultFacts M (__eo_cmd_step_proven s CRule.refl args premises) :=
+by
+  intro hCmdTrans hProg
+  cases args with
+  | nil =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              have hArgsTrans : AllHaveSmtTranslation [a1] := by
+                intro t ht
+                simp at ht
+                rcases ht with rfl
+                simpa [cmdTranslationOk] using hCmdTrans
+              simpa [__eo_cmd_step_proven] using
+                (step_rule_facts_narg_mprem M [a1] []
+                  (fun
+                    | [a1], [] => __eo_prog_refl a1
+                    | _, _ => Term.Stuck)
+                  hArgsTrans
+                  (by intro t ht; cases ht)
+                  (spec___eo_prog_refl M hM)
+                  (by simpa [__eo_cmd_step_proven] using hProg))
+          | cons n premises =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a2 args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
+theorem cmd_step_proven_refl_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.refl args premises) ->
+  __eo_cmd_step_proven s CRule.refl args premises ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type (__eo_cmd_step_proven s CRule.refl args premises) :=
+by
+  intro hCmdTrans hProg
+  cases args with
+  | nil =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              have hArgsTrans : AllHaveSmtTranslation [a1] := by
+                intro t ht
+                simp at ht
+                rcases ht with rfl
+                simpa [cmdTranslationOk] using hCmdTrans
+              simpa [__eo_cmd_step_proven] using
+                (step_rule_bool_narg_mprem M [a1] []
+                  (fun
+                    | [a1], [] => __eo_prog_refl a1
+                    | _, _ => Term.Stuck)
+                  hArgsTrans
+                  (by intro t ht; cases ht)
+                  (spec___eo_prog_refl M hM)
+                  (by simpa [__eo_cmd_step_proven] using hProg))
+          | cons n premises =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a2 args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
+theorem cmd_step_proven_symm_facts
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  AllInterpretedTrue M (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.symm args premises ≠ Term.Stuck ->
+  RuleProofs.RuleResultFacts M (__eo_cmd_step_proven s CRule.symm args premises) :=
+by
+  intro hTrue hProg
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons n1 premises =>
+          cases premises with
+          | nil =>
+              have hArgsTrans : AllHaveSmtTranslation [] := by
+                intro t ht
+                cases ht
+              simpa [premiseTermList, __eo_cmd_step_proven] using
+                (step_rule_facts_narg_mprem M [] (premiseTermList s
+                    (CIndexList.cons n1 CIndexList.nil))
+                  (fun
+                    | [], [X] => __eo_prog_symm (Proof.pf X)
+                    | _, _ => Term.Stuck)
+                  hArgsTrans hTrue (spec___eo_prog_symm M hM)
+                  (by simpa [premiseTermList, __eo_cmd_step_proven] using hProg))
+          | cons n2 premises =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | cons a args =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
+theorem cmd_step_proven_symm_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.symm args premises ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type (__eo_cmd_step_proven s CRule.symm args premises) :=
+by
+  intro hPremises hProg
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons n1 premises =>
+          cases premises with
+          | nil =>
+              have hArgsTrans : AllHaveSmtTranslation [] := by
+                intro t ht
+                cases ht
+              simpa [premiseTermList, __eo_cmd_step_proven] using
+                (step_rule_bool_narg_mprem M [] (premiseTermList s
+                    (CIndexList.cons n1 CIndexList.nil))
+                  (fun
+                    | [], [X] => __eo_prog_symm (Proof.pf X)
+                    | _, _ => Term.Stuck)
+                  hArgsTrans hPremises (spec___eo_prog_symm M hM)
+                  (by simpa [premiseTermList, __eo_cmd_step_proven] using hProg))
+          | cons n2 premises =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | cons a args =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
+theorem cmd_step_proven_trans_facts
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  AllInterpretedTrue M (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.trans args premises ≠ Term.Stuck ->
+  RuleProofs.RuleResultFacts M (__eo_cmd_step_proven s CRule.trans args premises) :=
+by
+  intro hTrue hProg
+  cases args with
+  | nil =>
+      have hArgsTrans : AllHaveSmtTranslation [] := by
+        intro t ht
+        cases ht
+      simpa [__eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList] using
+        (step_rule_facts_narg_mprem M [] (premiseTermList s premises)
+          (fun
+            | [], premises => __eo_prog_trans (Proof.pf (premiseAndFormulaList premises))
+            | _, _ => Term.Stuck)
+          hArgsTrans hTrue (spec___eo_prog_trans M hM)
+          (by
+            simpa [__eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList]
+              using hProg))
+  | cons a args =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+
+theorem cmd_step_proven_trans_bool
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.trans args premises ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type (__eo_cmd_step_proven s CRule.trans args premises) :=
+by
+  intro hPremises hProg
+  cases args with
+  | nil =>
+      have hArgsTrans : AllHaveSmtTranslation [] := by
+        intro t ht
+        cases ht
+      simpa [__eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList] using
+        (step_rule_bool_narg_mprem M [] (premiseTermList s premises)
+          (fun
+            | [], premises => __eo_prog_trans (Proof.pf (premiseAndFormulaList premises))
+            | _, _ => Term.Stuck)
+          hArgsTrans hPremises (spec___eo_prog_trans M hM)
+          (by
+            simpa [__eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList]
+              using hProg))
+  | cons a args =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))

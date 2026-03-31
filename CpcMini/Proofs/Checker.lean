@@ -24,19 +24,6 @@ inductive TranslatableAssumptionList : Term -> Prop
       TranslatableAssumptionList rest ->
       TranslatableAssumptionList (Term.Apply (Term.Apply Term.and A) rest)
 
-def cmdTranslationOk : CCmd -> Prop
-  | CCmd.assume_push A => RuleProofs.eo_has_smt_translation A
-  | CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil =>
-      RuleProofs.eo_has_smt_translation a1
-  | _ => True
-
-inductive CmdListTranslationOk : CCmdList -> Prop
-  | nil : CmdListTranslationOk CCmdList.nil
-  | cons (c : CCmd) (cs : CCmdList) :
-      cmdTranslationOk c ->
-      CmdListTranslationOk cs ->
-      CmdListTranslationOk (CCmdList.cons c cs)
-
 def stateOk : CState -> Prop
   | CState.nil => True
   | CState.cons _ s => stateOk s
@@ -1918,80 +1905,6 @@ by
     simpa [__eo_state_proven_nth] using hAt
   exact eo_interprets_false_true_absurd M hFalseTrue
 
-def premiseAndFormula (s : CState) : CIndexList -> Term
-  | CIndexList.nil => Term.Boolean true
-  | CIndexList.cons n premises =>
-      Term.Apply (Term.Apply Term.and (__eo_state_proven_nth s n))
-        (premiseAndFormula s premises)
-
-def premiseTermList (s : CState) : CIndexList -> List Term
-  | CIndexList.nil => []
-  | CIndexList.cons n premises =>
-      __eo_state_proven_nth s n :: premiseTermList s premises
-
-theorem premiseAndFormula_is_and_list :
-  forall (s : CState) (premises : CIndexList),
-    __eo_is_list Term.and (premiseAndFormula s premises) = Term.Boolean true
-:=
-by
-  have hGetNil :
-      forall (s : CState) (premises : CIndexList),
-        __eo_get_nil_rec Term.and (premiseAndFormula s premises) ≠ Term.Stuck
-  :=
-  by
-    intro s premises
-    induction premises with
-    | nil =>
-        unfold premiseAndFormula
-        unfold __eo_get_nil_rec
-        unfold __eo_requires
-        unfold __eo_is_list_nil
-        simp [eo_lit_ite, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
-    | cons n premises ih =>
-        unfold premiseAndFormula
-        unfold __eo_get_nil_rec
-        unfold __eo_requires
-        simpa [eo_lit_ite, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using ih
-  intro s premises
-  have hNotStuck :
-      __eo_get_nil_rec Term.and (premiseAndFormula s premises) ≠ Term.Stuck :=
-    hGetNil s premises
-  have hPremNotStuck : premiseAndFormula s premises ≠ Term.Stuck :=
-    by
-      induction premises with
-      | nil =>
-          simp [premiseAndFormula]
-      | cons n premises ih =>
-          simp [premiseAndFormula]
-  unfold __eo_is_list
-  unfold __eo_is_ok
-  simpa [eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using hNotStuck
-
-theorem mk_premise_list_and_eq_premiseAndFormula :
-  forall (s : CState) (premises : CIndexList),
-    __eo_mk_premise_list Term.and premises s = premiseAndFormula s premises
-:=
-by
-  intro s premises
-  induction premises with
-  | nil =>
-      simp [__eo_mk_premise_list, premiseAndFormula, __eo_nil]
-  | cons n premises ih =>
-      simp [__eo_mk_premise_list, premiseAndFormula, __eo_cons, __eo_requires, eo_lit_ite,
-        eo_lit_teq, eo_lit_not, ih, premiseAndFormula_is_and_list, SmtEval.smt_lit_not]
-
-theorem premiseAndFormulaList_eq_premiseAndFormula :
-  forall (s : CState) (premises : CIndexList),
-    premiseAndFormulaList (premiseTermList s premises) = premiseAndFormula s premises
-:=
-by
-  intro s premises
-  induction premises with
-  | nil =>
-      simp [premiseTermList, premiseAndFormulaList, premiseAndFormula]
-  | cons n premises ih =>
-      simp [premiseTermList, premiseAndFormulaList, premiseAndFormula, ih]
-
 theorem premiseTermList_has_bool_type (s : CState) :
   forall (premises : CIndexList),
     checkerTypeInvariant s ->
@@ -2010,64 +1923,6 @@ by
       rcases ht with rfl | ht
       · exact checkerEntry_has_bool_type_at hsTy hsTrans n
       · exact ih hsTy hsTrans t ht
-
-theorem premiseAndFormula_has_bool_type :
-  forall (s : CState) (premises : CIndexList),
-    checkerTypeInvariant s ->
-    checkerTranslationInvariant s ->
-    RuleProofs.eo_has_bool_type (premiseAndFormula s premises)
-:=
-by
-  intro s premises
-  induction premises with
-  | nil =>
-      intro hsTy hsTrans
-      simpa [premiseAndFormula] using RuleProofs.eo_has_bool_type_true
-  | cons n premises ih =>
-      intro hsTy hsTrans
-      apply RuleProofs.eo_has_bool_type_and_of_bool_args
-      · exact checkerEntry_has_bool_type_at hsTy hsTrans n
-      · exact ih hsTy hsTrans
-
-theorem mk_premise_list_and_has_bool_type (s : CState) (premises : CIndexList) :
-  checkerTypeInvariant s ->
-  checkerTranslationInvariant s ->
-  RuleProofs.eo_has_bool_type (__eo_mk_premise_list Term.and premises s) :=
-by
-  intro hsTy hsTrans
-  rw [mk_premise_list_and_eq_premiseAndFormula]
-  exact premiseAndFormula_has_bool_type s premises hsTy hsTrans
-
-theorem premiseAndFormula_true_of_truthInvariant (M : SmtModel) (s : CState) :
-  forall (premises : CIndexList),
-    checkerTruthInvariant M s ->
-    eo_interprets M (stateAssumes s) true ->
-    eo_interprets M (statePushes s) true ->
-    eo_interprets M (premiseAndFormula s premises) true
-:=
-by
-  intro premises
-  induction premises with
-  | nil =>
-      intro hs hAss hPush
-      simpa [premiseAndFormula] using eo_interprets_true M
-  | cons n premises ih =>
-      intro hs hAss hPush
-      apply eo_interprets_and_intro
-      · exact checkerTruthInvariant_at M hs n hAss hPush
-      · exact ih hs hAss hPush
-
-theorem mk_premise_list_and_true_of_truthInvariant (M : SmtModel) (s : CState)
-    (premises : CIndexList) :
-  checkerTruthInvariant M s ->
-  eo_interprets M (stateAssumes s) true ->
-  eo_interprets M (statePushes s) true ->
-  eo_interprets M (__eo_mk_premise_list Term.and premises s) true
-:=
-by
-  intro hs hAss hPush
-  rw [mk_premise_list_and_eq_premiseAndFormula]
-  exact premiseAndFormula_true_of_truthInvariant M s premises hs hAss hPush
 
 theorem premiseTermList_true_of_truthInvariant
     (M : SmtModel) (s : CState) :
@@ -2098,37 +1953,6 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P
 
-theorem cmdStepFacts_of_contextual_true_and_bool
-    (M : SmtModel) (s : CState) (P : Term) :
-  (eo_interprets M (stateAssumes s) true ->
-   eo_interprets M (statePushes s) true ->
-   eo_interprets M P true) ->
-  RuleProofs.eo_has_bool_type P ->
-  CmdStepFacts M s P :=
-by
-  intro hTrue hBool
-  refine ⟨hTrue, ?_⟩
-  exact RuleProofs.eo_has_smt_translation_of_has_bool_type P hBool
-
-theorem step_rule_facts_narg_mprem
-    (M : SmtModel) (s : CState)
-    (args premises : List Term) (mk : List Term -> List Term -> Term) :
-  (eo_interprets M (stateAssumes s) true ->
-   eo_interprets M (statePushes s) true ->
-   AllInterpretedTrue M premises) ->
-  AllHaveSmtTranslation args ->
-  AllHaveBoolType premises ->
-  StepRuleSpecNArgMPrem M mk ->
-  mk args premises ≠ Term.Stuck ->
-  CmdStepFacts M s (mk args premises) :=
-by
-  intro hPremTrue hArgs hPremBool hSpec hProg
-  refine ⟨?_, ?_⟩
-  · intro hAss hPush
-    exact (hSpec.facts_of_true args premises hArgs (hPremTrue hAss hPush) hProg).true_in_model
-  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
-      (hSpec.bool_of_translation args premises hArgs hPremBool hProg)
-
 /- Central expansion point for plain `step` rules.
 
    To add a new rule handled by `__eo_cmd_step_proven`, add its matching
@@ -2151,139 +1975,38 @@ by
   | scope =>
       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
   | contra =>
-      cases args with
-      | nil =>
-          cases premises with
-          | nil =>
-              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-          | cons n1 premises =>
-              cases premises with
-              | nil =>
-                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-              | cons n2 premises =>
-                  cases premises with
-                  | nil =>
-                      let X1 := __eo_state_proven_nth s n1
-                      let X2 := __eo_state_proven_nth s n2
-                      let P := __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
-                      have hArgsTrans : AllHaveSmtTranslation [] := by
-                        intro t ht
-                        cases ht
-                      have hPremisesBool : AllHaveBoolType [X1, X2] := by
-                        intro t ht
-                        simp [X1, X2] at ht
-                        rcases ht with rfl | rfl
-                        · exact checkerEntry_has_bool_type_at hsTy hsTrans n1
-                        · exact checkerEntry_has_bool_type_at hsTy hsTrans n2
-                      exact step_rule_facts_narg_mprem M s [] [X1, X2]
-                        (fun
-                          | [], [X1, X2] => __eo_prog_contra (Proof.pf X1) (Proof.pf X2)
-                          | _, _ => Term.Stuck)
-                        (fun hAss hPush => by
-                          intro t ht
-                          simp [X1, X2] at ht
-                          rcases ht with rfl | rfl
-                          · exact checkerTruthInvariant_at M hs n1 hAss hPush
-                          · exact checkerTruthInvariant_at M hs n2 hAss hPush)
-                        hArgsTrans hPremisesBool (spec___eo_prog_contra M hM)
-                        (by simpa [P, X1, X2, __eo_cmd_step_proven] using hProg)
-                  | cons n3 premises =>
-                      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-      | cons a args =>
-          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      refine ⟨?_, ?_⟩
+      · intro hAss hPush
+        exact (cmd_step_proven_contra_facts M hM s args premises
+          (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
+          hProg).true_in_model
+      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+          (cmd_step_proven_contra_bool M hM s args premises
+            (premiseTermList_has_bool_type s premises hsTy hsTrans) hProg)
   | refl =>
-      cases args with
-      | nil =>
-          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-      | cons a1 args =>
-          cases args with
-          | nil =>
-              cases premises with
-              | nil =>
-                  have hATrans : RuleProofs.eo_has_smt_translation a1 := by
-                    simpa [cmdTranslationOk] using hCmdTrans
-                  have hArgsTrans : AllHaveSmtTranslation [a1] := by
-                    intro t ht
-                    simp at ht
-                    rcases ht with rfl
-                    exact hATrans
-                  have hPremisesBool : AllHaveBoolType [] := by
-                    intro t ht
-                    cases ht
-                  exact step_rule_facts_narg_mprem M s [a1] []
-                    (fun
-                      | [a1], [] => __eo_prog_refl a1
-                      | _, _ => Term.Stuck)
-                    (fun _hAss _hPush => by
-                      intro t ht
-                      cases ht)
-                    hArgsTrans hPremisesBool (spec___eo_prog_refl M hM)
-                    (by simpa [__eo_cmd_step_proven] using hProg)
-              | cons n ns =>
-                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-          | cons a2 args =>
-              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      refine ⟨?_, ?_⟩
+      · intro _hAss _hPush
+        exact (cmd_step_proven_refl_facts M hM s args premises hCmdTrans hProg).true_in_model
+      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+          (cmd_step_proven_refl_bool M hM s args premises hCmdTrans hProg)
   | symm =>
-      cases args with
-      | nil =>
-          cases premises with
-          | nil =>
-              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-          | cons n1 premises =>
-              cases premises with
-              | nil =>
-                  let X := __eo_state_proven_nth s n1
-                  let P := __eo_prog_symm (Proof.pf X)
-                  have hArgsTrans : AllHaveSmtTranslation [] := by
-                    intro t ht
-                    cases ht
-                  have hPremisesBool : AllHaveBoolType [X] := by
-                    intro t ht
-                    simp [X] at ht
-                    rcases ht with rfl
-                    exact checkerEntry_has_bool_type_at hsTy hsTrans n1
-                  exact step_rule_facts_narg_mprem M s [] [X]
-                    (fun
-                      | [], [X] => __eo_prog_symm (Proof.pf X)
-                      | _, _ => Term.Stuck)
-                    (fun hAss hPush => by
-                      intro t ht
-                      simp [X] at ht
-                      rcases ht with rfl
-                      exact checkerTruthInvariant_at M hs n1 hAss hPush)
-                    hArgsTrans hPremisesBool (spec___eo_prog_symm M hM)
-                    (by simpa [P, X, __eo_cmd_step_proven] using hProg)
-              | cons n2 premises =>
-                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
-      | cons a args =>
-          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      refine ⟨?_, ?_⟩
+      · intro hAss hPush
+        exact (cmd_step_proven_symm_facts M hM s args premises
+          (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
+          hProg).true_in_model
+      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+          (cmd_step_proven_symm_bool M hM s args premises
+            (premiseTermList_has_bool_type s premises hsTy hsTrans) hProg)
   | trans =>
-      cases args with
-      | nil =>
-          let X := __eo_mk_premise_list Term.and premises s
-          let premisesL := premiseTermList s premises
-          let P := __eo_prog_trans (Proof.pf X)
-          have hArgsTrans : AllHaveSmtTranslation [] := by
-            intro t ht
-            cases ht
-          have hPremisesBool : AllHaveBoolType premisesL :=
-            premiseTermList_has_bool_type s premises hsTy hsTrans
-          simpa [P, X, premisesL, __eo_cmd_step_proven,
-              mk_premise_list_and_eq_premiseAndFormula,
-              premiseAndFormulaList_eq_premiseAndFormula] using
-            (step_rule_facts_narg_mprem M s [] premisesL
-              (fun
-                | [], premises => __eo_prog_trans (Proof.pf (premiseAndFormulaList premises))
-                | _, _ => Term.Stuck)
-              (fun hAss hPush =>
-                premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
-              hArgsTrans hPremisesBool (spec___eo_prog_trans M hM)
-              (by
-                simpa [P, X, premisesL, __eo_cmd_step_proven,
-                  mk_premise_list_and_eq_premiseAndFormula,
-                  premiseAndFormulaList_eq_premiseAndFormula] using hProg))
-      | cons a args =>
-          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      refine ⟨?_, ?_⟩
+      · intro hAss hPush
+        exact (cmd_step_proven_trans_facts M hM s args premises
+          (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
+          hProg).true_in_model
+      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+          (cmd_step_proven_trans_bool M hM s args premises
+            (premiseTermList_has_bool_type s premises hsTy hsTrans) hProg)
 
 theorem invoke_step_preserves_localTruthInvariant_of_stuck
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
