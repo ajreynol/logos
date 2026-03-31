@@ -1992,19 +1992,19 @@ by
       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
   | contra =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_proven_contra_properties M hM s args premises
+        cmd_step_contra_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
   | refl =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_proven_refl_properties M hM s args premises
+        cmd_step_refl_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
   | symm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_proven_symm_properties M hM s args premises
+        cmd_step_symm_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
   | trans =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_proven_trans_properties M hM s args premises
+        cmd_step_trans_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
 
 theorem invoke_step_preserves_localTruthInvariant_of_stuck
@@ -2205,7 +2205,7 @@ by
                       checkerTranslationInvariant_at hsRootTrans n1
                     have hScopeProps :
                         ScopeRuleProperties A X (__eo_prog_scope A (Proof.pf X)) :=
-                      eo_prog_scope_properties A X hATrans hXTrans hATy hXTy
+                      cmd_step_pop_scope_properties A X hATrans hXTrans hATy hXTy
                         (by simpa [P, X, __eo_cmd_step_pop_proven, hA] using hProg)
                     constructor
                     · intro M hM hsRoot hAssEq hPushEq hAss hPush

@@ -147,7 +147,7 @@ structure ScopeRuleProperties
   has_bool_type :
     RuleProofs.eo_has_bool_type P
 
-theorem cmd_step_pop_proven_scope_properties
+theorem cmd_step_pop_scope_properties
     (x1 x2 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
   RuleProofs.eo_has_smt_translation x2 ->
@@ -166,7 +166,7 @@ by
     exact facts___eo_prog_scope_impl M hM x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2 hProg
   · exact typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2 hProg
 
-theorem cmd_step_proven_contra_properties
+theorem cmd_step_contra_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.contra args premises) ->
@@ -205,7 +205,7 @@ by
   | cons a args =>
       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
 
-theorem cmd_step_proven_refl_properties
+theorem cmd_step_refl_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.refl args premises) ->
@@ -236,7 +236,7 @@ by
       | cons a2 args =>
           exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
 
-theorem cmd_step_proven_symm_properties
+theorem cmd_step_symm_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.symm args premises) ->
@@ -268,7 +268,7 @@ by
   | cons a args =>
       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
 
-theorem cmd_step_proven_trans_properties
+theorem cmd_step_trans_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.trans args premises) ->
