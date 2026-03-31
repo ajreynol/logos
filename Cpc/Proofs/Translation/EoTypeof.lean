@@ -140,7 +140,13 @@ theorem eo_to_smt_type_typeof_apply_purify_of_smt_apply
         __eo_to_smt_type (__eo_typeof y) = SmtType.DtConsType A B)
     (hx : __smtx_typeof (__eo_to_smt x) = A) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) = B := by
-  sorry
+  have hHead' :
+      __eo_to_smt_type (__eo_typeof (Term._at_purify y)) = SmtType.Map A B ∨
+        __eo_to_smt_type (__eo_typeof (Term._at_purify y)) = SmtType.DtConsType A B := by
+    rw [eo_to_smt_type_typeof_purify]
+    exact hHead
+  simpa using
+    eo_to_smt_type_typeof_apply_of_smt_apply x (Term._at_purify y) A B hHead' hx
 
 theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
     (x x1 x2 : Term) (A B : SmtType)
@@ -149,7 +155,8 @@ theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
         __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.DtConsType A B)
     (hx : __smtx_typeof (__eo_to_smt x) = A) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_array_deq_diff x1 x2) x)) = B := by
-  sorry
+  simpa using
+    eo_to_smt_type_typeof_apply_of_smt_apply x (Term._at_array_deq_diff x1 x2) A B hHead hx
 
 theorem eo_to_smt_type_typeof_apply_at_bvsize
     (x : Term) :
@@ -210,7 +217,8 @@ theorem eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply
         __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.DtConsType A B)
     (hx : __smtx_typeof (__eo_to_smt x) = A) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_sets_deq_diff x1 x2) x)) = B := by
-  sorry
+  simpa using
+    eo_to_smt_type_typeof_apply_of_smt_apply x (Term._at_sets_deq_diff x1 x2) A B hHead hx
 
 theorem eo_to_smt_type_typeof_apply_to_real_of_int
     (x : Term)

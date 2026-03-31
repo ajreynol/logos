@@ -142,7 +142,7 @@ private theorem smtx_typeof_eq_non_none
 private theorem smt_type_ne_map_self_bool
     (T : SmtType) :
     T ≠ SmtType.Map T SmtType.Bool := by
-  sorry
+  cases T <;> intro h <;> cases h
 
 private theorem smt_type_ne_guard_inhabited_map_self_bool
     {T : SmtType}
