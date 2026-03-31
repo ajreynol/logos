@@ -66,6 +66,15 @@ theorem eo_to_smt_type_typeof_apply_uconst_of_smt_apply
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UConst i T) x)) = B := by
   sorry
 
+theorem eo_to_smt_type_typeof_apply_of_smt_apply
+    (x f : Term) (A B : SmtType)
+    (hF :
+      __eo_to_smt_type (__eo_typeof f) = SmtType.Map A B ∨
+        __eo_to_smt_type (__eo_typeof f) = SmtType.DtConsType A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply f x)) = B := by
+  sorry
+
 theorem eo_to_smt_type_typeof_dt_cons
     (s : eo_lit_String) (d : Datatype) (i : eo_lit_Nat) :
     __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =

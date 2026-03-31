@@ -109,6 +109,22 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
     simp [__smtx_typeof_bv_op_2_ret, smt_lit_ite, SmtEval.smt_lit_zeq]
   exact hSmt.trans (hEo w hy hx).symm
 
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
+    (g z y x : Term)
+    (ihF :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) =
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)))
+    (hTranslate :
+      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x) =
+        SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) =
+      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply g z) y) x)) := by
+  sorry
+
 private theorem smtx_typeof_eq_non_none
     {T U : SmtType}
     (h : __smtx_typeof_eq T U ≠ SmtType.None) :
@@ -1983,7 +1999,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
             have hBad := hApplyNN
             unfold term_has_non_none_type at hBad
             simp [hz, __smtx_typeof, __smtx_typeof_re_loop, smt_lit_ite] at hBad
-      all_goals sorry
+      case bvultbv =>
+        sorry
+      case bvsltbv =>
+        sorry
+      case _at_re_unfold_pos_component =>
+        sorry
+      case _at_witness_string_length =>
+        sorry
+      case update =>
+        sorry
+      case tuple_update =>
+        sorry
+      all_goals
+        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
+          _ z y x ihF (by rw [__eo_to_smt.eq_def]) hNonNone
     all_goals sorry
   case not =>
     have hTranslate :
