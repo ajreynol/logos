@@ -37,6 +37,9 @@ def AllHaveSmtTranslation (ts : List Term) : Prop :=
 def AllHaveBoolType (ts : List Term) : Prop :=
   ∀ t ∈ ts, RuleProofs.eo_has_bool_type t
 
+def AllTypeofBool (ts : List Term) : Prop :=
+  ∀ t ∈ ts, __eo_typeof t = Term.Bool
+
 theorem premiseAndFormulaList_true_of_all_true
     (M : SmtModel) :
   ∀ premises : List Term,
@@ -131,11 +134,11 @@ structure StepRuleProperties
   has_bool_type :
     RuleProofs.eo_has_bool_type P
 
-structure ScopeRuleProperties
-    (x1 x2 P : Term) : Prop where
-  facts_of_imp :
-    forall (M : SmtModel), model_total_typed M ->
+def StepPopRuleProperties
+    (x1 : Term) (premises : List Term) (P : Term) : Prop :=
+  ∃ x2,
+    x2 ∈ premises ∧
+    (forall (M : SmtModel), model_total_typed M ->
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
-      RuleProofs.RuleResultFacts M P
-  has_bool_type :
+      RuleProofs.RuleResultFacts M P) ∧
     RuleProofs.eo_has_bool_type P
