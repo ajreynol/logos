@@ -1953,6 +1953,20 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P
 
+theorem cmd_step_facts_of_rule_properties
+    (M : SmtModel) (s : CState) (premises : CIndexList) {P : Term} :
+  checkerTruthInvariant M s ->
+  StepRuleProperties M (premiseTermList s premises) P ->
+  CmdStepFacts M s P :=
+by
+  intro hs hProps
+  refine ⟨?_, ?_⟩
+  · intro hAss hPush
+    exact
+      (hProps.facts_of_true
+        (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)).true_in_model
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type P hProps.has_bool_type
+
 /- Central expansion point for plain `step` rules.
 
    To add a new rule handled by `__eo_cmd_step_proven`, add its matching
@@ -1977,41 +1991,21 @@ by
   | scope =>
       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
   | contra =>
-      have hProps :=
+      exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_proven_contra_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
-      refine ⟨?_, ?_⟩
-      · intro hAss hPush
-        exact (hProps.facts_of_true
-          (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)).true_in_model
-      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hProps.has_bool_type
   | refl =>
-      have hProps :=
+      exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_proven_refl_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
-      refine ⟨?_, ?_⟩
-      · intro hAss hPush
-        exact (hProps.facts_of_true
-          (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)).true_in_model
-      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hProps.has_bool_type
   | symm =>
-      have hProps :=
+      exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_proven_symm_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
-      refine ⟨?_, ?_⟩
-      · intro hAss hPush
-        exact (hProps.facts_of_true
-          (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)).true_in_model
-      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hProps.has_bool_type
   | trans =>
-      have hProps :=
+      exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_proven_trans_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
-      refine ⟨?_, ?_⟩
-      · intro hAss hPush
-        exact (hProps.facts_of_true
-          (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)).true_in_model
-      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hProps.has_bool_type
 
 theorem invoke_step_preserves_localTruthInvariant_of_stuck
     (M : SmtModel) (s : CState) (hNotStuck : s ≠ CState.Stuck)
