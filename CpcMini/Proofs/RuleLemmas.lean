@@ -52,6 +52,12 @@ by
         cmd_step_trans_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
 
+/-
+Central expansion point for `step_pop` rules.
+
+If `__eo_cmd_step_pop_proven` grows more supported rules, add a matching
+branch below and route it to the rule-specific helper.
+-/
 theorem cmd_step_pop_proven_facts_of_invariants
     (root tail : CState) (A : Term)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
@@ -68,16 +74,32 @@ by
     (checkerTypeInvariant_head_assume_push A tail hsCurTy).2
   have hATrans : RuleProofs.eo_has_smt_translation A :=
     checkerTranslationInvariant_head_assume_push A tail hsCurTrans
-  have hANe : A ≠ Term.Stuck :=
-    term_ne_stuck_of_typeof_bool A hATy
   have hPremisesTrans : AllHaveSmtTranslation (premiseTermList root premises) :=
     premiseTermList_has_smt_translation root premises hsRootTrans
   have hPremisesTy : AllTypeofBool (premiseTermList root premises) :=
     premiseTermList_has_typeof_bool root premises hsRootTy
-  by_cases hr : r = CRule.scope
-  · subst r
-    exact cmd_step_pop_facts_of_rule_properties root tail A premises <|
-      cmd_step_pop_scope_properties A root args premises
-        hATrans hATy hPremisesTrans hPremisesTy hProg
-  · exact False.elim (hProg (by
-        cases r <;> simp [__eo_cmd_step_pop_proven] at hr ⊢))
+  cases r with
+  | scope =>
+      exact cmd_step_pop_facts_of_rule_properties root tail A premises <|
+        cmd_step_pop_scope_properties A root args premises
+          hATrans hATy hPremisesTrans hPremisesTy hProg
+  | contra =>
+      have hEq : __eo_cmd_step_pop_proven root CRule.contra args A premises = Term.Stuck := by
+        cases hA : A <;> cases args <;> cases premises <;>
+          simp [__eo_cmd_step_pop_proven, hA] at hATy ⊢
+      exact False.elim (hProg hEq)
+  | refl =>
+      have hEq : __eo_cmd_step_pop_proven root CRule.refl args A premises = Term.Stuck := by
+        cases hA : A <;> cases args <;> cases premises <;>
+          simp [__eo_cmd_step_pop_proven, hA] at hATy ⊢
+      exact False.elim (hProg hEq)
+  | symm =>
+      have hEq : __eo_cmd_step_pop_proven root CRule.symm args A premises = Term.Stuck := by
+        cases hA : A <;> cases args <;> cases premises <;>
+          simp [__eo_cmd_step_pop_proven, hA] at hATy ⊢
+      exact False.elim (hProg hEq)
+  | trans =>
+      have hEq : __eo_cmd_step_pop_proven root CRule.trans args A premises = Term.Stuck := by
+        cases hA : A <;> cases args <;> cases premises <;>
+          simp [__eo_cmd_step_pop_proven, hA] at hATy ⊢
+      exact False.elim (hProg hEq)
