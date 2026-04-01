@@ -577,6 +577,7 @@ theorem typeof_value_model_eval_apply_lookup_map
     | Binary _ b
     | RegLan b
     | Map b
+    | Set b
     | Seq b
     | Char b
     | DtCons _ _ b

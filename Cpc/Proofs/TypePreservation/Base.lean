@@ -146,9 +146,11 @@ theorem typeof_value_model_eval_set_empty
       __smtx_typeof (SmtTerm.set_empty T) := by
   have hInh : smt_lit_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hT
-  change __smtx_typeof_map_value (SmtMap.default T (SmtValue.Boolean false)) =
-    __smtx_typeof_guard_inhabited T (SmtType.Map T SmtType.Bool)
-  simp [__smtx_typeof_map_value, __smtx_typeof_value,
+  rw [show __smtx_model_eval M (SmtTerm.set_empty T) =
+      SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)) by rfl]
+  rw [show __smtx_typeof (SmtTerm.set_empty T) =
+      __smtx_typeof_guard_inhabited T (SmtType.Set T) by rfl]
+  simp [__smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_set_type,
     __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
 theorem typeof_value_model_eval_seq_unit
@@ -177,14 +179,12 @@ theorem typeof_value_model_eval_set_singleton
       __smtx_typeof (SmtTerm.Apply SmtTerm.set_singleton t) := by
   unfold term_has_non_none_type at ht
   rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.set_singleton t) =
-      SmtType.Map (__smtx_typeof t) SmtType.Bool by
+      SmtType.Set (__smtx_typeof t) by
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, ht]]
   rw [show __smtx_model_eval M (SmtTerm.Apply SmtTerm.set_singleton t) =
-      SmtValue.Map
-        (SmtMap.cons (__smtx_model_eval M t) (SmtValue.Boolean true)
-          (SmtMap.default (__smtx_typeof_value (__smtx_model_eval M t)) (SmtValue.Boolean false))) by
-    rfl]
-  simp [__smtx_typeof_value, __smtx_typeof_map_value, smt_lit_ite, smt_lit_Teq, hpres]
+      __smtx_model_eval_set_singleton (__smtx_model_eval M t) by rfl]
+  simp [__smtx_model_eval_set_singleton, __smtx_typeof_value, __smtx_typeof_map_value,
+    __smtx_map_to_set_type, smt_lit_ite, smt_lit_Teq, hpres]
 
 theorem exists_body_bool_of_non_none
     {s : smt_lit_String}

@@ -74,6 +74,13 @@ theorem typeof_value_dt_cons_type_chain_result :
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | SmtValue.Set m, T, U, h => by
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
   | SmtValue.Seq ss, T, U, h => by
       cases typeof_seq_value_shape ss with
       | inl hSeq =>
@@ -159,6 +166,13 @@ theorem no_value_of_type_ref
           simp [__smtx_typeof_value, hMap] at hv
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at hv
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at hv
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at hv
   | Seq ss =>
       cases typeof_seq_value_shape ss with
       | inl hSeq =>
@@ -207,6 +221,13 @@ theorem bool_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
   | Seq ss =>
       cases typeof_seq_value_shape ss with
       | inl hSeq =>
@@ -259,6 +280,13 @@ theorem map_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A', B', hMap⟩
+          cases B' <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -304,6 +332,13 @@ theorem seq_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>

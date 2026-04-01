@@ -8,11 +8,11 @@ lake build logos
 echo "Compiling Cpc.Spec..."
 lake build Cpc.Spec
 
-echo "Compiling Cpc.Lemmas..."
-lake build Cpc.Lemmas
+echo "Compiling CpcMini.Proofs.Checker..."
+lake build CpcMini.Proofs.Checker
 
-echo "Compiling Cpc.Refutation..."
-lake build Cpc.Refutation
+echo "Compiling CpcMini.Proofs.TypePreservation..."
+lake build CpcMini.Proofs.TypePreservation
 
 shopt -s nullglob
 examples=(examples/*.cpc.lean)

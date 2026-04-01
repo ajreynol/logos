@@ -676,6 +676,7 @@ theorem typeof_apply_non_none_cases
   | Real => simp [__smtx_typeof_apply] at h
   | RegLan => simp [__smtx_typeof_apply] at h
   | BitVec w => simp [__smtx_typeof_apply] at h
+  | Set T => simp [__smtx_typeof_apply] at h
   | Seq T => simp [__smtx_typeof_apply] at h
   | Char => simp [__smtx_typeof_apply] at h
   | Datatype s d => simp [__smtx_typeof_apply] at h
@@ -714,6 +715,7 @@ theorem typeof_value_model_eval_apply_map
     | Binary _ b
     | RegLan b
     | Map b
+    | Set b
     | Seq b
     | Char b
     | DtCons _ _ b
@@ -751,6 +753,7 @@ theorem typeof_value_model_eval_apply_dt
     | Binary _ b
     | RegLan b
     | Map b
+    | Set b
     | Seq b
     | Char b
     | DtCons _ _ b
@@ -770,6 +773,7 @@ theorem typeof_value_model_eval_apply_dt
     | Binary _ b
     | RegLan b
     | Map b
+    | Set b
     | Seq b
     | Char b
     | DtCons _ _ b
@@ -790,6 +794,13 @@ theorem typeof_value_model_eval_apply_dt
           simp [__smtx_typeof_value, hMap] at hf
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at hf
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨T, U, hMap⟩
+          cases U <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at hf
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at hf
   | Seq ss =>
       cases typeof_seq_value_shape ss with
       | inl hSeq =>
