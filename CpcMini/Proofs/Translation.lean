@@ -168,10 +168,177 @@ private theorem eo_fun_ends_in_bool_of_typeof_apply
     | _ =>
         simp [__eo_typeof_apply, hX, eo_fun_ends_in_bool] at h
 
+theorem eo_typeof_apply_eq_fun
+    {F X A U : Term} :
+    __eo_typeof_apply F X = Term.Apply (Term.Apply Term.FunType A) U ->
+      F = Term.Apply (Term.Apply Term.FunType X) (Term.Apply (Term.Apply Term.FunType A) U) := by
+  intro h
+  by_cases hX : X = Term.Stuck
+  · subst X
+    simp [__eo_typeof_apply] at h
+  · cases F with
+    | Apply F1 V =>
+        cases F1 with
+        | Apply F11 T =>
+            cases F11 with
+            | FunType =>
+                by_cases hEq : T = X
+                · by_cases hStuck : T = Term.Stuck
+                  · have : False := hX (hEq.symm.trans hStuck)
+                    exact False.elim this
+                  · have hV : V = Term.Apply (Term.Apply Term.FunType A) U := by
+                      simpa [__eo_typeof_apply, __eo_requires, hX, hEq, hStuck,
+                        eo_lit_ite, eo_lit_teq, eo_lit_not] using h
+                    subst T
+                    subst V
+                    rfl
+                · simp [__eo_typeof_apply, __eo_requires, hEq,
+                    eo_lit_ite, eo_lit_teq] at h
+            | _ =>
+                simp [__eo_typeof_apply] at h
+        | _ =>
+            simp [__eo_typeof_apply] at h
+    | _ =>
+        simp [__eo_typeof_apply] at h
+
+theorem eo_typeof_apply_fun_ends_in_bool_inv
+    {F X : Term} :
+    eo_fun_ends_in_bool (__eo_typeof_apply F X) ->
+      ∃ A U,
+        F = Term.Apply (Term.Apply Term.FunType X) (Term.Apply (Term.Apply Term.FunType A) U) ∧
+          (U = Term.Bool ∨ eo_fun_ends_in_bool U) := by
+  intro h
+  cases hTy : __eo_typeof_apply F X with
+  | Apply T1 U =>
+      rw [hTy] at h
+      cases T1 with
+      | Apply T11 A =>
+          cases T11 with
+          | FunType =>
+              simp [eo_fun_ends_in_bool] at h
+              refine ⟨A, U, ?_, h⟩
+              exact eo_typeof_apply_eq_fun (F := F) (X := X) (A := A) (U := U) hTy
+          | _ =>
+              simp [eo_fun_ends_in_bool] at h
+      | _ =>
+          simp [eo_fun_ends_in_bool] at h
+  | _ =>
+      rw [hTy] at h
+      simp [eo_fun_ends_in_bool] at h
+
+private theorem not_typeof_not_fun_ends_in_bool
+    (x : Term) :
+    ¬ eo_fun_ends_in_bool (__eo_typeof (Term.Apply Term.not x)) := by
+  intro h
+  rcases eo_typeof_apply_fun_ends_in_bool_inv
+      (F := __eo_typeof Term.not) (X := __eo_typeof x)
+      (by simpa [__eo_typeof] using h) with
+    ⟨A, U, hF, _hU⟩
+  simp [__eo_typeof] at hF
+
+private theorem not_typeof_full_or_fun_ends_in_bool
+    (x y : Term) :
+    ¬ eo_fun_ends_in_bool (__eo_typeof (Term.Apply (Term.Apply Term.or y) x)) := by
+  intro h
+  rcases eo_typeof_apply_fun_ends_in_bool_inv
+      (F := __eo_typeof (Term.Apply Term.or y)) (X := __eo_typeof x)
+      (by simpa [__eo_typeof] using h) with
+    ⟨A, U, hF, _hU⟩
+  have hHead :
+      __eo_typeof_apply (__eo_typeof Term.or) (__eo_typeof y) =
+        Term.Apply (Term.Apply Term.FunType (__eo_typeof x))
+          (Term.Apply (Term.Apply Term.FunType A) U) := by
+    simpa [__eo_typeof] using hF
+  have hInv :=
+    eo_typeof_apply_eq_fun
+      (F := __eo_typeof Term.or) (X := __eo_typeof y)
+      (A := __eo_typeof x) (U := Term.Apply (Term.Apply Term.FunType A) U) hHead
+  simp [__eo_typeof] at hInv
+
+private theorem not_typeof_full_and_fun_ends_in_bool
+    (x y : Term) :
+    ¬ eo_fun_ends_in_bool (__eo_typeof (Term.Apply (Term.Apply Term.and y) x)) := by
+  intro h
+  rcases eo_typeof_apply_fun_ends_in_bool_inv
+      (F := __eo_typeof (Term.Apply Term.and y)) (X := __eo_typeof x)
+      (by simpa [__eo_typeof] using h) with
+    ⟨A, U, hF, _hU⟩
+  have hHead :
+      __eo_typeof_apply (__eo_typeof Term.and) (__eo_typeof y) =
+        Term.Apply (Term.Apply Term.FunType (__eo_typeof x))
+          (Term.Apply (Term.Apply Term.FunType A) U) := by
+    simpa [__eo_typeof] using hF
+  have hInv :=
+    eo_typeof_apply_eq_fun
+      (F := __eo_typeof Term.and) (X := __eo_typeof y)
+      (A := __eo_typeof x) (U := Term.Apply (Term.Apply Term.FunType A) U) hHead
+  simp [__eo_typeof] at hInv
+
+private theorem not_typeof_full_imp_fun_ends_in_bool
+    (x y : Term) :
+    ¬ eo_fun_ends_in_bool (__eo_typeof (Term.Apply (Term.Apply Term.imp y) x)) := by
+  intro h
+  rcases eo_typeof_apply_fun_ends_in_bool_inv
+      (F := __eo_typeof (Term.Apply Term.imp y)) (X := __eo_typeof x)
+      (by simpa [__eo_typeof] using h) with
+    ⟨A, U, hF, _hU⟩
+  have hHead :
+      __eo_typeof_apply (__eo_typeof Term.imp) (__eo_typeof y) =
+        Term.Apply (Term.Apply Term.FunType (__eo_typeof x))
+          (Term.Apply (Term.Apply Term.FunType A) U) := by
+    simpa [__eo_typeof] using hF
+  have hInv :=
+    eo_typeof_apply_eq_fun
+      (F := __eo_typeof Term.imp) (X := __eo_typeof y)
+      (A := __eo_typeof x) (U := Term.Apply (Term.Apply Term.FunType A) U) hHead
+  simp [__eo_typeof] at hInv
+
+private theorem not_typeof_full_eq_fun_ends_in_bool
+    (x y : Term) :
+    ¬ eo_fun_ends_in_bool (__eo_typeof (Term.Apply (Term.Apply Term.eq y) x)) := by
+  intro h
+  rcases eo_typeof_apply_fun_ends_in_bool_inv
+      (F := __eo_typeof (Term.Apply Term.eq y)) (X := __eo_typeof x)
+      (by simpa [__eo_typeof] using h) with
+    ⟨A, U, hF, _hU⟩
+  cases hy : __eo_typeof y <;>
+    simp [__eo_typeof, __eo_typeof_eq, hy] at hF
+
 private theorem smtx_typeof_guard_inhabited_none :
     __smtx_typeof_guard_inhabited SmtType.None SmtType.None = SmtType.None := by
   unfold __smtx_typeof_guard_inhabited
   cases h : smt_lit_inhabited_type SmtType.None <;> simp [smt_lit_ite, h]
+
+private theorem smtx_typeof_translation_var_none_of_fun_ends_in_bool
+    (s : eo_lit_String) (T : Term) :
+    eo_fun_ends_in_bool T ->
+      __smtx_typeof (__eo_to_smt (Term.Var s T)) = SmtType.None := by
+  intro hT
+  have hTyNone : __eo_to_smt_type T = SmtType.None :=
+    eo_to_smt_type_none_of_fun_ends_in_bool hT
+  simpa [eo_to_smt_var, __smtx_typeof, hTyNone] using smtx_typeof_guard_inhabited_none
+
+private theorem smtx_typeof_translation_uconst_none_of_fun_ends_in_bool
+    (i : eo_lit_Nat) (T : Term) :
+    eo_fun_ends_in_bool T ->
+      __smtx_typeof (__eo_to_smt (Term.UConst i T)) = SmtType.None := by
+  intro hT
+  have hTyNone : __eo_to_smt_type T = SmtType.None :=
+    eo_to_smt_type_none_of_fun_ends_in_bool hT
+  simpa [eo_to_smt_uconst, __smtx_typeof, hTyNone] using smtx_typeof_guard_inhabited_none
+
+private theorem smtx_typeof_translation_dt_sel_apply_none_of_fun_ends_in_bool
+    (s : eo_lit_String) (d : Datatype) (i j : eo_lit_Nat) (x : Term) :
+    eo_fun_ends_in_bool (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) ->
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) = SmtType.None := by
+  intro hRet
+  have hRetNone :
+      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j = SmtType.None :=
+    smtx_ret_typeof_sel_none_of_eo_dt_sel_return_fun_ends_in_bool s d i j hRet
+  rw [__eo_to_smt.eq_def]
+  cases hX : __smtx_typeof (__eo_to_smt x) <;>
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite,
+      smt_lit_Teq, hRetNone, hX]
 
 @[simp] private theorem smtx_typeof_translation_partial_or_none
     (x : Term) :
