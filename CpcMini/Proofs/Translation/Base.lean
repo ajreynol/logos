@@ -1,4 +1,4 @@
-import Cpc.Spec
+import CpcMini.Spec
 
 open Eo
 open Smtm
@@ -10,36 +10,8 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
-@[simp] theorem eo_typeof_boolean (b : eo_lit_Bool) :
-    __eo_typeof (Term.Boolean b) = Term.Bool := by
-  cases b <;> native_decide
-
-@[simp] theorem eo_typeof_re_allchar :
-    __eo_typeof Term.re_allchar = Term.RegLan := by
-  native_decide
-
-@[simp] theorem eo_typeof_re_none :
-    __eo_typeof Term.re_none = Term.RegLan := by
-  native_decide
-
-@[simp] theorem eo_typeof_re_all :
-    __eo_typeof Term.re_all = Term.RegLan := by
-  native_decide
-
 @[simp] theorem eo_to_smt_boolean (b : eo_lit_Bool) :
     __eo_to_smt (Term.Boolean b) = SmtTerm.Boolean b := by
-  simp [__eo_to_smt.eq_def]
-
-@[simp] theorem eo_to_smt_re_allchar :
-    __eo_to_smt Term.re_allchar = SmtTerm.re_allchar := by
-  simp [__eo_to_smt.eq_def]
-
-@[simp] theorem eo_to_smt_re_none :
-    __eo_to_smt Term.re_none = SmtTerm.re_none := by
-  simp [__eo_to_smt.eq_def]
-
-@[simp] theorem eo_to_smt_re_all :
-    __eo_to_smt Term.re_all = SmtTerm.re_all := by
   simp [__eo_to_smt.eq_def]
 
 @[simp] theorem eo_to_smt_var (s : eo_lit_String) (T : Term) :
@@ -48,10 +20,6 @@ namespace TranslationProofs
 
 @[simp] theorem eo_to_smt_uconst (i : eo_lit_Nat) (T : Term) :
     __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T) := by
-  simp [__eo_to_smt.eq_def]
-
-@[simp] theorem eo_to_smt_set_empty (T : Term) :
-    __eo_to_smt (Term.set_empty T) = __eo_to_smt_set_empty (__eo_to_smt_type T) := by
   simp [__eo_to_smt.eq_def]
 
 @[simp] theorem eo_to_smt_type_bool :
@@ -70,21 +38,8 @@ namespace TranslationProofs
 @[simp] theorem eo_to_smt_type_char :
     __eo_to_smt_type Term.Char = SmtType.Char := rfl
 
-@[simp] theorem eo_to_smt_type_reglan :
-    __eo_to_smt_type Term.RegLan = SmtType.RegLan := rfl
-
 @[simp] theorem eo_to_smt_type_seq (T : Term) :
     __eo_to_smt_type (Term.Apply Term.Seq T) = SmtType.Seq (__eo_to_smt_type T) := by
-  simp [__eo_to_smt_type]
-
-@[simp] theorem eo_to_smt_type_array (A B : Term) :
-    __eo_to_smt_type (Term.Apply (Term.Apply Term.Array A) B) =
-      SmtType.Map (__eo_to_smt_type A) (__eo_to_smt_type B) := by
-  simp [__eo_to_smt_type]
-
-@[simp] theorem eo_to_smt_type_set (T : Term) :
-    __eo_to_smt_type (Term.Apply Term.Set T) =
-      SmtType.Set (__eo_to_smt_type T) := by
   simp [__eo_to_smt_type]
 
 theorem smtx_typeof_guard_inhabited_of_non_none
@@ -110,25 +65,6 @@ theorem smtx_typeof_uconst_of_non_none
   intro h
   change __smtx_typeof_guard_inhabited T T = T
   exact smtx_typeof_guard_inhabited_of_non_none T T (by simpa [__smtx_typeof] using h)
-
-theorem smtx_typeof_seq_empty_of_non_none
-    (T : SmtType) :
-    __smtx_typeof (SmtTerm.seq_empty T) ≠ SmtType.None ->
-    __smtx_typeof (SmtTerm.seq_empty T) = SmtType.Seq T := by
-  intro h
-  change __smtx_typeof_guard_inhabited T (SmtType.Seq T) = SmtType.Seq T
-  exact smtx_typeof_guard_inhabited_of_non_none T (SmtType.Seq T)
-    (by simpa [__smtx_typeof] using h)
-
-theorem smtx_typeof_set_empty_of_non_none
-    (T : SmtType) :
-    __smtx_typeof (SmtTerm.set_empty T) ≠ SmtType.None ->
-    __smtx_typeof (SmtTerm.set_empty T) = SmtType.Set T := by
-  intro h
-  change __smtx_typeof_guard_inhabited T (SmtType.Set T) =
-    SmtType.Set T
-  exact smtx_typeof_guard_inhabited_of_non_none T (SmtType.Set T)
-    (by simpa [__smtx_typeof] using h)
 
 theorem smtx_binary_well_formed_of_non_none
     (w n : smt_lit_Int) :

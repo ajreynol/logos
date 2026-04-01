@@ -404,4 +404,3 @@ def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
   exists (s : ObjectTerm), (eo_is_obj t s) /\ (obj_interprets M s b)
 
 /- ---------------------------------------------- -/
-
