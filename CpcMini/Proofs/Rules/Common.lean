@@ -239,6 +239,9 @@ inductive smt_value_rel : SmtValue -> SmtValue -> Prop where
   | map {m1 m2 : SmtMap} :
       (∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) ->
       smt_value_rel (SmtValue.Map m1) (SmtValue.Map m2)
+  | set {m1 m2 : SmtMap} :
+      (∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) ->
+      smt_value_rel (SmtValue.Set m1) (SmtValue.Set m2)
   | seq {s1 s2 : SmtSeq} :
       smt_seq_rel s1 s2 ->
       smt_value_rel (SmtValue.Seq s1) (SmtValue.Seq s2)
@@ -275,6 +278,8 @@ theorem smt_value_rel_refl : (v : SmtValue) -> smt_value_rel v v
       exact smt_value_rel.base rfl
   | SmtValue.Map _ => by
       exact smt_value_rel.map (fun _ => rfl)
+  | SmtValue.Set _ => by
+      exact smt_value_rel.set (fun _ => rfl)
   | SmtValue.Seq s => by
       exact smt_value_rel.seq (smt_seq_rel_refl s)
   | SmtValue.Char _ => by
@@ -303,6 +308,8 @@ theorem smt_value_rel_symm (v1 v2 : SmtValue) :
   cases h with
   | map hm =>
       exact smt_value_rel.map (fun v => (hm v).symm)
+  | set hm =>
+      exact smt_value_rel.set (fun v => (hm v).symm)
   | seq hs =>
       exact smt_value_rel.seq (smt_seq_rel_symm _ _ hs)
   | apply hf hv =>
@@ -337,6 +344,13 @@ theorem smt_value_rel_trans (v1 v2 v3 : SmtValue) :
       | base hEq =>
           subst hEq
           exact smt_value_rel.map hm12
+  | set hm12 =>
+      cases h23 with
+      | set hm23 =>
+          exact smt_value_rel.set (fun v => by rw [hm12 v, hm23 v])
+      | base hEq =>
+          subst hEq
+          exact smt_value_rel.set hm12
   | seq hs12 =>
       cases h23 with
       | seq hs23 =>
@@ -380,6 +394,8 @@ private theorem smtx_model_eval_eq_refl_aux :
     (v : SmtValue) -> __smtx_model_eval_eq v v = SmtValue.Boolean true
   | SmtValue.Map _ => by
       simp [__smtx_model_eval_eq]
+  | SmtValue.Set _ => by
+      simp [__smtx_model_eval_eq]
   | SmtValue.Seq s => by
       simpa using smtx_model_eval_seq_eq_refl_aux s
   | SmtValue.Apply f v => by
@@ -420,6 +436,9 @@ theorem smt_value_rel_iff_model_eval_eq_true :
         | map hm =>
             classical
             simp [__smtx_model_eval_eq, hm]
+        | set hm =>
+            classical
+            simp [__smtx_model_eval_eq, hm]
         | seq hs =>
             simpa using (smt_seq_rel_iff_model_eval_eq_true _ _).mp hs
         | apply hf hv =>
@@ -435,6 +454,10 @@ theorem smt_value_rel_iff_model_eval_eq_true :
           classical
           simp [__smtx_model_eval_eq] at h
           exact smt_value_rel.map h
+        case Set.Set m1 m2 =>
+          classical
+          simp [__smtx_model_eval_eq] at h
+          exact smt_value_rel.set h
         case Seq.Seq s1 s2 =>
           exact smt_value_rel.seq ((smt_seq_rel_iff_model_eval_eq_true _ _).mpr h)
         case Apply.Apply f1 v1 f2 v2 =>

@@ -36,7 +36,7 @@ namespace TranslationProofs
 
 @[simp] theorem eo_to_smt_type_set (T : Term) :
     __eo_to_smt_type (Term.Apply Term.Set T) =
-      SmtType.Map (__eo_to_smt_type T) SmtType.Bool := by
+      SmtType.Set (__eo_to_smt_type T) := by
   simp [__eo_to_smt_type]
 
 end TranslationProofs

@@ -16,19 +16,17 @@ theorem set_binop_args_of_non_none
         __smtx_typeof_sets_op_2 (__smtx_typeof t1) (__smtx_typeof t2))
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
     ∃ A : SmtType,
-      __smtx_typeof t1 = SmtType.Map A SmtType.Bool ∧
-        __smtx_typeof t2 = SmtType.Map A SmtType.Bool := by
+      __smtx_typeof t1 = SmtType.Set A ∧
+        __smtx_typeof t2 = SmtType.Set A := by
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 with
-  | Map A B =>
+  | Set A =>
       cases h2 : __smtx_typeof t2 with
-      | Map C D =>
-          cases B <;> cases D <;>
-            simp [hTy, __smtx_typeof_sets_op_2, h1, h2] at ht
-          have hEq : A = C := by
-            simpa [hTy, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2] using ht
-          subst hEq
-          exact ⟨A, rfl, rfl⟩
+      | Set C =>
+          by_cases hEq : A = C
+          · subst hEq
+            exact ⟨A, rfl, rfl⟩
+          · simp [hTy, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2, hEq] at ht
       | _ =>
           simp [hTy, __smtx_typeof_sets_op_2, h1, h2] at ht
   | _ =>
@@ -42,20 +40,17 @@ theorem set_binop_ret_args_of_non_none
         __smtx_typeof_sets_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) T)
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
     ∃ A : SmtType,
-      __smtx_typeof t1 = SmtType.Map A SmtType.Bool ∧
-        __smtx_typeof t2 = SmtType.Map A SmtType.Bool := by
+      __smtx_typeof t1 = SmtType.Set A ∧
+        __smtx_typeof t2 = SmtType.Set A := by
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 with
-  | Map A B =>
+  | Set A =>
       cases h2 : __smtx_typeof t2 with
-      | Map C D =>
-          cases B <;> cases D <;>
-            simp [hTy, __smtx_typeof_sets_op_2_ret, h1, h2] at ht
-          have hEqAnd : A = C ∧ T ≠ SmtType.None := by
-            simpa [hTy, __smtx_typeof_sets_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2] using ht
-          have hEq : A = C := hEqAnd.1
-          subst hEq
-          exact ⟨A, rfl, rfl⟩
+      | Set C =>
+          by_cases hEq : A = C
+          · subst hEq
+            exact ⟨A, rfl, rfl⟩
+          · simp [hTy, __smtx_typeof_sets_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2, hEq] at ht
       | _ =>
           simp [hTy, __smtx_typeof_sets_op_2_ret, h1, h2] at ht
   | _ =>
@@ -67,18 +62,14 @@ theorem set_member_args_of_non_none
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_member t1) t2)) :
     ∃ A : SmtType,
       __smtx_typeof t1 = A ∧
-        __smtx_typeof t2 = SmtType.Map A SmtType.Bool := by
+        __smtx_typeof t2 = SmtType.Set A := by
   unfold term_has_non_none_type at ht
   cases h2 : __smtx_typeof t2 with
-  | Map A B =>
-      cases B with
-      | Bool =>
-          by_cases hEq : __smtx_typeof t1 = A
-          · refine ⟨A, hEq, ?_⟩
-            rfl
-          · simp [__smtx_typeof, __smtx_typeof_set_member, smt_lit_ite, smt_lit_Teq, h2, hEq] at ht
-      | _ =>
-          simp [__smtx_typeof, __smtx_typeof_set_member, h2] at ht
+  | Set A =>
+      by_cases hEq : __smtx_typeof t1 = A
+      · refine ⟨A, hEq, ?_⟩
+        rfl
+      · simp [__smtx_typeof, __smtx_typeof_set_member, smt_lit_ite, smt_lit_Teq, h2, hEq] at ht
   | _ =>
       simp [__smtx_typeof, __smtx_typeof_set_member, h2] at ht
 
@@ -143,18 +134,20 @@ theorem typeof_value_model_eval_set_union
       __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_union t1) t2) := by
   rcases set_binop_args_of_non_none (op := SmtTerm.set_union) rfl ht with ⟨A, h1, h2⟩
   rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_union t1) t2) =
-      SmtType.Map A SmtType.Bool by
+      SmtType.Set A by
     simp [__smtx_typeof, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2]]
   change __smtx_typeof_value (__smtx_model_eval_set_union (__smtx_model_eval M t1)
-      (__smtx_model_eval M t2)) = SmtType.Map A SmtType.Bool
-  rcases map_value_canonical (A := A) (B := SmtType.Bool)
+      (__smtx_model_eval M t2)) = SmtType.Set A
+  rcases set_value_canonical (A := A)
       (by simpa [h1] using hpres1) with ⟨m1, hm1⟩
-  rcases map_value_canonical (A := A) (B := SmtType.Bool)
+  rcases set_value_canonical (A := A)
       (by simpa [h2] using hpres2) with ⟨m2, hm2⟩
   have hm1Ty : __smtx_typeof_map_value m1 = SmtType.Map A SmtType.Bool := by
-    simpa [hm1, h1, __smtx_typeof_value] using hpres1
+    apply set_map_value_typed (A := A)
+    simpa [hm1, h1] using hpres1
   have hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A SmtType.Bool := by
-    simpa [hm2, h2, __smtx_typeof_value] using hpres2
+    apply set_map_value_typed (A := A)
+    simpa [hm2, h2] using hpres2
   have hIdx1 : __smtx_index_typeof_map (__smtx_typeof_map_value m1) = A := by
     simpa [__smtx_index_typeof_map] using congrArg __smtx_index_typeof_map hm1Ty
   have hDefault :
@@ -162,13 +155,18 @@ theorem typeof_value_model_eval_set_union
         SmtType.Map A SmtType.Bool := by
     simp [__smtx_typeof_map_value, __smtx_typeof_value]
   rw [hm1, hm2]
-  simpa [__smtx_model_eval_set_union, __smtx_set_union, __smtx_typeof_value, hIdx1] using
-    mss_op_internal_typed false
+  have hRes :
+      __smtx_typeof_map_value
+          (__smtx_mss_op_internal false m1 (SmtMap.default A (SmtValue.Boolean false)) m2) =
+        SmtType.Map A SmtType.Bool := by
+    exact mss_op_internal_typed false
       (m1 := m1) (m2 := SmtMap.default A (SmtValue.Boolean false)) (acc := m2)
       (A := A)
       hm1Ty
       hDefault
       hm2Ty
+  simp [__smtx_model_eval_set_union, __smtx_set_union, __smtx_typeof_value,
+    __smtx_map_to_set_type, hIdx1, hRes]
 
 theorem typeof_value_model_eval_set_inter
     (M : SmtModel)
@@ -181,18 +179,20 @@ theorem typeof_value_model_eval_set_inter
       __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_inter t1) t2) := by
   rcases set_binop_args_of_non_none (op := SmtTerm.set_inter) rfl ht with ⟨A, h1, h2⟩
   rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_inter t1) t2) =
-      SmtType.Map A SmtType.Bool by
+      SmtType.Set A by
     simp [__smtx_typeof, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2]]
   change __smtx_typeof_value (__smtx_model_eval_set_inter (__smtx_model_eval M t1)
-      (__smtx_model_eval M t2)) = SmtType.Map A SmtType.Bool
-  rcases map_value_canonical (A := A) (B := SmtType.Bool)
+      (__smtx_model_eval M t2)) = SmtType.Set A
+  rcases set_value_canonical (A := A)
       (by simpa [h1] using hpres1) with ⟨m1, hm1⟩
-  rcases map_value_canonical (A := A) (B := SmtType.Bool)
+  rcases set_value_canonical (A := A)
       (by simpa [h2] using hpres2) with ⟨m2, hm2⟩
   have hm1Ty : __smtx_typeof_map_value m1 = SmtType.Map A SmtType.Bool := by
-    simpa [hm1, h1, __smtx_typeof_value] using hpres1
+    apply set_map_value_typed (A := A)
+    simpa [hm1, h1] using hpres1
   have hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A SmtType.Bool := by
-    simpa [hm2, h2, __smtx_typeof_value] using hpres2
+    apply set_map_value_typed (A := A)
+    simpa [hm2, h2] using hpres2
   have hIdx1 : __smtx_index_typeof_map (__smtx_typeof_map_value m1) = A := by
     simpa [__smtx_index_typeof_map] using congrArg __smtx_index_typeof_map hm1Ty
   have hDefault :
@@ -200,13 +200,18 @@ theorem typeof_value_model_eval_set_inter
         SmtType.Map A SmtType.Bool := by
     simp [__smtx_typeof_map_value, __smtx_typeof_value]
   rw [hm1, hm2]
-  simpa [__smtx_model_eval_set_inter, __smtx_set_inter, __smtx_typeof_value, hIdx1] using
-    mss_op_internal_typed true
+  have hRes :
+      __smtx_typeof_map_value
+          (__smtx_mss_op_internal true m1 m2 (SmtMap.default A (SmtValue.Boolean false))) =
+        SmtType.Map A SmtType.Bool := by
+    exact mss_op_internal_typed true
       (m1 := m1) (m2 := m2) (acc := SmtMap.default A (SmtValue.Boolean false))
       (A := A)
       hm1Ty
       hm2Ty
       hDefault
+  simp [__smtx_model_eval_set_inter, __smtx_set_inter, __smtx_typeof_value,
+    __smtx_map_to_set_type, hIdx1, hRes]
 
 theorem typeof_value_model_eval_set_minus
     (M : SmtModel)
@@ -219,18 +224,20 @@ theorem typeof_value_model_eval_set_minus
       __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_minus t1) t2) := by
   rcases set_binop_args_of_non_none (op := SmtTerm.set_minus) rfl ht with ⟨A, h1, h2⟩
   rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_minus t1) t2) =
-      SmtType.Map A SmtType.Bool by
+      SmtType.Set A by
     simp [__smtx_typeof, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2]]
   change __smtx_typeof_value (__smtx_model_eval_set_minus (__smtx_model_eval M t1)
-      (__smtx_model_eval M t2)) = SmtType.Map A SmtType.Bool
-  rcases map_value_canonical (A := A) (B := SmtType.Bool)
+      (__smtx_model_eval M t2)) = SmtType.Set A
+  rcases set_value_canonical (A := A)
       (by simpa [h1] using hpres1) with ⟨m1, hm1⟩
-  rcases map_value_canonical (A := A) (B := SmtType.Bool)
+  rcases set_value_canonical (A := A)
       (by simpa [h2] using hpres2) with ⟨m2, hm2⟩
   have hm1Ty : __smtx_typeof_map_value m1 = SmtType.Map A SmtType.Bool := by
-    simpa [hm1, h1, __smtx_typeof_value] using hpres1
+    apply set_map_value_typed (A := A)
+    simpa [hm1, h1] using hpres1
   have hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A SmtType.Bool := by
-    simpa [hm2, h2, __smtx_typeof_value] using hpres2
+    apply set_map_value_typed (A := A)
+    simpa [hm2, h2] using hpres2
   have hIdx1 : __smtx_index_typeof_map (__smtx_typeof_map_value m1) = A := by
     simpa [__smtx_index_typeof_map] using congrArg __smtx_index_typeof_map hm1Ty
   have hDefault :
@@ -238,13 +245,18 @@ theorem typeof_value_model_eval_set_minus
         SmtType.Map A SmtType.Bool := by
     simp [__smtx_typeof_map_value, __smtx_typeof_value]
   rw [hm1, hm2]
-  simpa [__smtx_model_eval_set_minus, __smtx_set_minus, __smtx_typeof_value, hIdx1] using
-    mss_op_internal_typed false
+  have hRes :
+      __smtx_typeof_map_value
+          (__smtx_mss_op_internal false m1 m2 (SmtMap.default A (SmtValue.Boolean false))) =
+        SmtType.Map A SmtType.Bool := by
+    exact mss_op_internal_typed false
       (m1 := m1) (m2 := m2) (acc := SmtMap.default A (SmtValue.Boolean false))
       (A := A)
       hm1Ty
       hm2Ty
       hDefault
+  simp [__smtx_model_eval_set_minus, __smtx_set_minus, __smtx_typeof_value,
+    __smtx_map_to_set_type, hIdx1, hRes]
 
 theorem typeof_value_model_eval_set_member
     (M : SmtModel)
@@ -261,10 +273,11 @@ theorem typeof_value_model_eval_set_member
     simp [__smtx_typeof, __smtx_typeof_set_member, smt_lit_ite, smt_lit_Teq, h1, h2]]
   change __smtx_typeof_value (__smtx_model_eval_set_member (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
-  rcases map_value_canonical (A := A) (B := SmtType.Bool)
+  rcases set_value_canonical (A := A)
       (by simpa [h2] using hpres2) with ⟨m, hm⟩
   have hmTy : __smtx_typeof_map_value m = SmtType.Map A SmtType.Bool := by
-    simpa [hm, h2, __smtx_typeof_value] using hpres2
+    apply set_map_value_typed (A := A)
+    simpa [hm, h2] using hpres2
   rw [hm]
   simpa [__smtx_model_eval_set_member, __smtx_map_select] using
     map_lookup_typed (m := m) (A := A) (B := SmtType.Bool) (i := __smtx_model_eval M t1)
