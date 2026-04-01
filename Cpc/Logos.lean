@@ -10086,7 +10086,6 @@ def __eo_push_proven : Term -> CState -> CState
 
 
 def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
   | f, CIndexList.nil, S => (__eo_nil f Term.Bool)
   | f, (CIndexList.cons n pl), S => (__eo_cons f (__eo_state_proven_nth S n) (__eo_mk_premise_list f pl S))
 
@@ -10693,7 +10692,6 @@ def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
 
 
 def __eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
-  | _ , _ , Term.Stuck , _  => Term.Stuck
   | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
   | r, args, A, premises => Term.Stuck
 
