@@ -14,6 +14,9 @@ lake build CpcMini.Proofs.Checker
 echo "Compiling CpcMini.Proofs.TypePreservation..."
 lake build CpcMini.Proofs.TypePreservation
 
+echo "Compiling CpcMini.Proofs.Translation..."
+lake build CpcMini.Proofs.Translation
+
 shopt -s nullglob
 examples=(examples/*.cpc.lean)
 
