@@ -1,4 +1,4 @@
-import CpcMini.Proofs.Rules.Common
+import CpcMini.Proofs.Rules.Support
 
 open Eo
 open Smtm
@@ -117,3 +117,42 @@ by
   refine ⟨?_, ?_⟩
   · exact correct___eo_prog_contra_impl M hM x1 x2 hX1True hX2True hBool
   · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool
+
+theorem cmd_step_contra_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.contra args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.contra args premises ≠ Term.Stuck ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.contra args premises) :=
+by
+  intro _hCmdTrans hPremisesBool hProg
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons n1 premises =>
+          cases premises with
+          | nil =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+          | cons n2 premises =>
+              cases premises with
+              | nil =>
+                  let X1 := __eo_state_proven_nth s n1
+                  let X2 := __eo_state_proven_nth s n2
+                  constructor
+                  · intro hTrue
+                    exact facts___eo_prog_contra_impl M hM X1 X2
+                      (hTrue X1 (by simp [X1, premiseTermList]))
+                      (hTrue X2 (by simp [X2, premiseTermList]))
+                      (by simpa [X1, X2, premiseTermList, __eo_cmd_step_proven] using hProg)
+                  · exact typed___eo_prog_contra_impl X1 X2
+                      (hPremisesBool X1 (by simp [X1, premiseTermList]))
+                      (hPremisesBool X2 (by simp [X2, premiseTermList]))
+                      (by simpa [X1, X2, premiseTermList, __eo_cmd_step_proven] using hProg)
+              | cons n3 premises =>
+                  exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | cons a args =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))

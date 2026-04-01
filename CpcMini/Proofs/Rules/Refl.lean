@@ -1,4 +1,4 @@
-import CpcMini.Proofs.Rules.Common
+import CpcMini.Proofs.Rules.Support
 
 open Eo
 open Smtm
@@ -73,3 +73,34 @@ by
   refine ⟨?_, ?_⟩
   · exact correct___eo_prog_refl_impl M hM x1 hTrans hBool
   · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool
+
+theorem cmd_step_refl_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.refl args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_cmd_step_proven s CRule.refl args premises ≠ Term.Stuck ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.refl args premises) :=
+by
+  intro hCmdTrans hPremisesBool hProg
+  cases args with
+  | nil =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              have hATrans : RuleProofs.eo_has_smt_translation a1 := by
+                simpa [cmdTranslationOk] using hCmdTrans
+              refine ⟨?_, ?_⟩
+              · intro _hTrue
+                exact facts___eo_prog_refl_impl M hM a1 hATrans
+                  (by simpa [__eo_cmd_step_proven] using hProg)
+              · exact typed___eo_prog_refl_impl a1 hATrans
+                  (by simpa [__eo_cmd_step_proven] using hProg)
+          | cons n premises =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      | cons a2 args =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
