@@ -119,11 +119,11 @@ theorem smtx_typeof_seq_empty_of_non_none
 theorem smtx_typeof_set_empty_of_non_none
     (T : SmtType) :
     __smtx_typeof (SmtTerm.set_empty T) ≠ SmtType.None ->
-    __smtx_typeof (SmtTerm.set_empty T) = SmtType.Map T SmtType.Bool := by
+    __smtx_typeof (SmtTerm.set_empty T) = SmtType.Set T := by
   intro h
-  change __smtx_typeof_guard_inhabited T (SmtType.Map T SmtType.Bool) =
-    SmtType.Map T SmtType.Bool
-  exact smtx_typeof_guard_inhabited_of_non_none T (SmtType.Map T SmtType.Bool)
+  change __smtx_typeof_guard_inhabited T (SmtType.Set T) =
+    SmtType.Set T
+  exact smtx_typeof_guard_inhabited_of_non_none T (SmtType.Set T)
     (by simpa [__smtx_typeof] using h)
 
 theorem smtx_binary_well_formed_of_non_none

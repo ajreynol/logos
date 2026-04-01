@@ -220,14 +220,14 @@ theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
     (x : Term)
     (hx : __eo_to_smt_type (__eo_typeof x) ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.set_singleton x)) =
-      SmtType.Map (__eo_to_smt_type (__eo_typeof x)) SmtType.Bool := by
+      SmtType.Set (__eo_to_smt_type (__eo_typeof x)) := by
   sorry
 
-theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_smt_map
+theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_smt_set
     (x : Term)
     (hx :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Map (__eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose x))) SmtType.Bool) :
+        SmtType.Set (__eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose x)))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.set_is_singleton x)) = SmtType.Bool := by
   sorry
 
