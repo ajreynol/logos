@@ -23,8 +23,6 @@ def premiseAndFormulaList : List Term -> Term
   | [] => Term.Boolean true
   | p :: ps => Term.Apply (Term.Apply Term.and p) (premiseAndFormulaList ps)
 
-abbrev premiseAndFormula : List Term -> Term := premiseAndFormulaList
-
 def premiseTermList (s : CState) : CIndexList -> List Term
   | CIndexList.nil => []
   | CIndexList.cons n premises =>
@@ -58,16 +56,3 @@ def StepPopRuleProperties
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
       RuleProofs.RuleResultFacts M P) ∧
     RuleProofs.eo_has_bool_type P
-
-structure StepRuleSpecNArgMPrem (M : SmtModel) (mk : List Term -> List Term -> Term) : Prop where
-  facts_of_true :
-    ∀ args premises,
-      AllInterpretedTrue M premises ->
-      mk args premises ≠ Term.Stuck ->
-      RuleProofs.RuleResultFacts M (mk args premises)
-  bool_of_translation :
-    ∀ args premises,
-      AllHaveSmtTranslation args ->
-      AllHaveBoolType premises ->
-      mk args premises ≠ Term.Stuck ->
-      RuleProofs.eo_has_bool_type (mk args premises)
