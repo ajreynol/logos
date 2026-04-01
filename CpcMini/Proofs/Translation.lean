@@ -168,5 +168,50 @@ private theorem eo_fun_ends_in_bool_of_typeof_apply
     | _ =>
         simp [__eo_typeof_apply, hX, eo_fun_ends_in_bool] at h
 
+private theorem smtx_typeof_guard_inhabited_none :
+    __smtx_typeof_guard_inhabited SmtType.None SmtType.None = SmtType.None := by
+  unfold __smtx_typeof_guard_inhabited
+  cases h : smt_lit_inhabited_type SmtType.None <;> simp [smt_lit_ite, h]
+
+@[simp] private theorem smtx_typeof_translation_partial_or_none
+    (x : Term) :
+    __smtx_typeof (__eo_to_smt (Term.Apply Term.or x)) = SmtType.None := by
+  have hHead : __eo_to_smt Term.or = SmtTerm.None := by
+    rw [__eo_to_smt.eq_def]
+  rw [__eo_to_smt.eq_def]
+  change __smtx_typeof (SmtTerm.Apply (__eo_to_smt Term.or) (__eo_to_smt x)) = SmtType.None
+  rw [hHead]
+  rfl
+
+@[simp] private theorem smtx_typeof_translation_partial_and_none
+    (x : Term) :
+    __smtx_typeof (__eo_to_smt (Term.Apply Term.and x)) = SmtType.None := by
+  have hHead : __eo_to_smt Term.and = SmtTerm.None := by
+    rw [__eo_to_smt.eq_def]
+  rw [__eo_to_smt.eq_def]
+  change __smtx_typeof (SmtTerm.Apply (__eo_to_smt Term.and) (__eo_to_smt x)) = SmtType.None
+  rw [hHead]
+  rfl
+
+@[simp] private theorem smtx_typeof_translation_partial_imp_none
+    (x : Term) :
+    __smtx_typeof (__eo_to_smt (Term.Apply Term.imp x)) = SmtType.None := by
+  have hHead : __eo_to_smt Term.imp = SmtTerm.None := by
+    rw [__eo_to_smt.eq_def]
+  rw [__eo_to_smt.eq_def]
+  change __smtx_typeof (SmtTerm.Apply (__eo_to_smt Term.imp) (__eo_to_smt x)) = SmtType.None
+  rw [hHead]
+  rfl
+
+@[simp] private theorem smtx_typeof_translation_partial_eq_none
+    (x : Term) :
+    __smtx_typeof (__eo_to_smt (Term.Apply Term.eq x)) = SmtType.None := by
+  have hHead : __eo_to_smt Term.eq = SmtTerm.None := by
+    rw [__eo_to_smt.eq_def]
+  rw [__eo_to_smt.eq_def]
+  change __smtx_typeof (SmtTerm.Apply (__eo_to_smt Term.eq) (__eo_to_smt x)) = SmtType.None
+  rw [hHead]
+  rfl
+
 
 end TranslationProofs
