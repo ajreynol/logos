@@ -29,7 +29,7 @@ theorem eo_to_smt_type_none_of_fun_ends_in_bool
   | _ =>
       simp [eo_fun_ends_in_bool] at h
 
-private theorem eo_typeof_dt_cons_rec_not_bool_and_not_fun_ends_in_bool
+theorem eo_typeof_dt_cons_rec_not_bool_and_not_fun_ends_in_bool
     (s : eo_lit_String) (d0 : Datatype) :
     ∀ (d : Datatype) (i : eo_lit_Nat),
       __eo_typeof_dt_cons_rec (Term.DatatypeType s d0) d i ≠ Term.Bool ∧

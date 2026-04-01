@@ -76,4 +76,97 @@ theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool_of_supported
   subst s
   exact eo_to_smt_supported_bool_term_has_bool_smt_type hs hNonNone
 
+private theorem eo_requires_eq_bool
+    {T X U : Term} :
+    __eo_requires T X U = Term.Bool ->
+      T = X ∧ T ≠ Term.Stuck ∧ U = Term.Bool := by
+  intro h
+  by_cases hEq : T = X
+  · by_cases hStuck : T = Term.Stuck
+    · subst X
+      subst T
+      have : False := by
+        simpa [__eo_requires, eo_lit_teq, eo_lit_ite, SmtEval.smt_lit_not] using h
+      exact False.elim this
+    · have hU : U = Term.Bool := by
+        subst X
+        simpa [__eo_requires, eo_lit_teq, eo_lit_not, eo_lit_ite, hStuck] using h
+      exact ⟨hEq, hStuck, hU⟩
+  · simp [__eo_requires, eo_lit_ite, eo_lit_teq, eo_lit_not, hEq] at h
+
+private theorem eo_requires_fun_ends_in_bool
+    {T X U : Term} :
+    eo_fun_ends_in_bool (__eo_requires T X U) ->
+      T = X ∧ T ≠ Term.Stuck ∧ eo_fun_ends_in_bool U := by
+  intro h
+  by_cases hEq : T = X
+  · by_cases hStuck : T = Term.Stuck
+    · subst X
+      subst T
+      have : False := by
+        simpa [__eo_requires, eo_lit_teq, eo_lit_ite, SmtEval.smt_lit_not,
+          eo_fun_ends_in_bool] using h
+      exact False.elim this
+    · have hU : eo_fun_ends_in_bool U := by
+        subst X
+        simpa [__eo_requires, eo_lit_teq, eo_lit_not, eo_lit_ite, hStuck,
+          eo_fun_ends_in_bool] using h
+      exact ⟨hEq, hStuck, hU⟩
+  · simp [__eo_requires, eo_lit_ite, eo_lit_teq, eo_lit_not, hEq,
+      eo_fun_ends_in_bool] at h
+
+private theorem eo_typeof_apply_eq_bool
+    {F X : Term} :
+    __eo_typeof_apply F X = Term.Bool ->
+      F = Term.Apply (Term.Apply Term.FunType X) Term.Bool := by
+  intro h
+  by_cases hX : X = Term.Stuck
+  · subst X
+    simp [__eo_typeof_apply] at h
+  · cases F with
+    | Apply F1 U =>
+        cases F1 with
+        | Apply F11 T =>
+            cases F11 with
+            | FunType =>
+                obtain ⟨hEq, _hStuck, hU⟩ :=
+                  eo_requires_eq_bool (T := T) (X := X) (U := U)
+                    (by simpa [__eo_typeof_apply, hX] using h)
+                subst hEq
+                subst hU
+                rfl
+            | _ =>
+                simp [__eo_typeof_apply, hX] at h
+        | _ =>
+            simp [__eo_typeof_apply, hX] at h
+    | _ =>
+        simp [__eo_typeof_apply, hX] at h
+
+private theorem eo_fun_ends_in_bool_of_typeof_apply
+    {F X : Term} :
+    eo_fun_ends_in_bool (__eo_typeof_apply F X) ->
+      eo_fun_ends_in_bool F := by
+  intro h
+  by_cases hX : X = Term.Stuck
+  · subst X
+    simp [__eo_typeof_apply, eo_fun_ends_in_bool] at h
+  · cases F with
+    | Apply F1 U =>
+        cases F1 with
+        | Apply F11 T =>
+            cases F11 with
+            | FunType =>
+                obtain ⟨hEq, _hStuck, hU⟩ :=
+                  eo_requires_fun_ends_in_bool (T := T) (X := X) (U := U)
+                    (by simpa [__eo_typeof_apply, hX] using h)
+                subst hEq
+                simpa [eo_fun_ends_in_bool] using Or.inr hU
+            | _ =>
+                simp [__eo_typeof_apply, hX, eo_fun_ends_in_bool] at h
+        | _ =>
+            simp [__eo_typeof_apply, hX, eo_fun_ends_in_bool] at h
+    | _ =>
+        simp [__eo_typeof_apply, hX, eo_fun_ends_in_bool] at h
+
+
 end TranslationProofs
