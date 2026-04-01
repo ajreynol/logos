@@ -253,6 +253,31 @@ private theorem smt_type_ne_guard_inhabited_set_self
       simpa [__smtx_typeof_guard_inhabited, hInh, smt_lit_ite] using h
     exact hT hNone
 
+private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
+    (T X : SmtType) :
+    __smtx_typeof_apply (__smtx_typeof (__eo_to_smt_set_empty T)) X = SmtType.None := by
+  cases T with
+  | None
+  | Bool
+  | Int
+  | Real
+  | RegLan
+  | BitVec _
+  | Seq _
+  | Char
+  | Datatype _ _
+  | TypeRef _
+  | USort _
+  | Map _ _
+  | DtConsType _ _ =>
+      simp [__eo_to_smt_set_empty, __smtx_typeof, __smtx_typeof_apply]
+  | Set U =>
+      by_cases hInh : smt_lit_inhabited_type U = true
+      · simp [__eo_to_smt_set_empty, __smtx_typeof, __smtx_typeof_apply,
+          __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+      · simp [__eo_to_smt_set_empty, __smtx_typeof, __smtx_typeof_apply,
+          __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+
 theorem eo_to_smt_typeof_matches_translation_apply
     (f x : Term)
     (ihF :

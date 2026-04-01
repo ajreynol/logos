@@ -50,6 +50,10 @@ namespace TranslationProofs
     __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T) := by
   simp [__eo_to_smt.eq_def]
 
+@[simp] theorem eo_to_smt_set_empty (T : Term) :
+    __eo_to_smt (Term.set_empty T) = __eo_to_smt_set_empty (__eo_to_smt_type T) := by
+  simp [__eo_to_smt.eq_def]
+
 @[simp] theorem eo_to_smt_type_bool :
     __eo_to_smt_type Term.Bool = SmtType.Bool := rfl
 
