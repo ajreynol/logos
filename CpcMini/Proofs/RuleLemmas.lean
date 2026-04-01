@@ -6,6 +6,7 @@ import CpcMini.Proofs.Rules.Refl
 import CpcMini.Proofs.Rules.Symm
 import CpcMini.Proofs.Rules.Trans
 
+
 open Eo
 open Smtm
 
@@ -52,6 +53,7 @@ by
         cmd_step_trans_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
 
+
 /-
 Central expansion point for `step_pop` rules.
 
@@ -91,3 +93,4 @@ by
       exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
   | trans =>
       exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+
