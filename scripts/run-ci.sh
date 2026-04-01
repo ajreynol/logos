@@ -8,6 +8,9 @@ lake build logos
 echo "Compiling Cpc.Spec..."
 lake build Cpc.Spec
 
+echo "Compiling Cpc.Proofs.Checker..."
+lake build Cpc.Proofs.Checker
+
 echo "Compiling CpcMini.Proofs.Checker..."
 lake build CpcMini.Proofs.Checker
 
