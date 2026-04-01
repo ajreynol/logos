@@ -273,9 +273,9 @@ private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
       simp [__eo_to_smt_set_empty, __smtx_typeof, __smtx_typeof_apply]
   | Set U =>
       by_cases hInh : smt_lit_inhabited_type U = true
-      · simp [__eo_to_smt_set_empty, __smtx_typeof, __smtx_typeof_apply,
+      · simp [__eo_to_smt_set_empty, __smtx_typeof_apply,
           __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
-      · simp [__eo_to_smt_set_empty, __smtx_typeof, __smtx_typeof_apply,
+      · simp [__eo_to_smt_set_empty, __smtx_typeof_apply,
           __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
 theorem eo_to_smt_typeof_matches_translation_apply
@@ -3941,7 +3941,37 @@ theorem eo_to_smt_typeof_matches_translation_apply
     rw [__eo_to_smt.eq_def]
     simpa using smtx_typeof_eo_to_smt_tester_none (__eo_to_smt x)
   case set_empty T =>
-    sorry
+    exfalso
+    apply hNonNone
+    have hTranslate :
+        __eo_to_smt (Term.Apply (Term.set_empty T) x) =
+          SmtTerm.Apply (__eo_to_smt_set_empty (__eo_to_smt_type T)) (__eo_to_smt x) := by
+      rw [__eo_to_smt.eq_def]
+      change (__eo_to_smt (Term.set_empty T)).Apply (__eo_to_smt x) =
+          SmtTerm.Apply (__eo_to_smt_set_empty (__eo_to_smt_type T)) (__eo_to_smt x)
+      rw [eo_to_smt_set_empty]
+    rw [hTranslate]
+    cases hT : __eo_to_smt_type T with
+    | Set U =>
+        by_cases hInh : smt_lit_inhabited_type U = true
+        · simp [__eo_to_smt_set_empty, __smtx_typeof_apply,
+            __smtx_typeof_guard_inhabited, hInh, smt_lit_ite]
+        · simp [__eo_to_smt_set_empty, __smtx_typeof_apply,
+            __smtx_typeof_guard_inhabited, hInh, smt_lit_ite]
+    | None
+    | Bool
+    | Int
+    | Real
+    | RegLan
+    | BitVec _
+    | Seq _
+    | Char
+    | Datatype _ _
+    | TypeRef _
+    | USort _
+    | Map _ _
+    | DtConsType _ _ =>
+        simp [__eo_to_smt_set_empty, __smtx_typeof_apply]
   case set_singleton =>
     have hTranslate :
         __eo_to_smt (Term.Apply Term.set_singleton x) =
