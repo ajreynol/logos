@@ -82,7 +82,7 @@ def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> smt_lit_Nat -
 
 
 def __eo_to_smt_set_empty : SmtType -> SmtTerm
-  | (SmtType.Map T SmtType.Bool) => (SmtTerm.set_empty T)
+  | (SmtType.Set T) => (SmtTerm.set_empty T)
   | T => SmtTerm.None
 
 
@@ -125,7 +125,7 @@ def __eo_to_smt_type : Term -> SmtType
   | Term.RegLan => SmtType.RegLan
   | Term.UnitTuple => (SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
   | (Term.Apply (Term.Apply Term.Tuple x1) x2) => (__eo_to_smt_type_tuple (__eo_to_smt_type x1) (__eo_to_smt_type x2))
-  | (Term.Apply Term.Set x1) => (SmtType.Map (__eo_to_smt_type x1) SmtType.Bool)
+  | (Term.Apply Term.Set x1) => (SmtType.Set (__eo_to_smt_type x1))
   | T => SmtType.None
 
 
