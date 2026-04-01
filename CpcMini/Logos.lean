@@ -155,6 +155,53 @@ inductive Proof : Type where
 
 mutual
 
+private def __eo_term_dt_size : Term -> Nat
+  | Term.DatatypeType _ d => __eo_dt_size d + 1
+  | _ => 1
+
+private def __eo_dtc_size : DatatypeCons -> Nat
+  | DatatypeCons.unit => 0
+  | DatatypeCons.cons T c => __eo_term_dt_size T + __eo_dtc_size c + 1
+
+private def __eo_dt_size : Datatype -> Nat
+  | Datatype.null => 0
+  | Datatype.sum c d => __eo_dtc_size c + __eo_dt_size d + 1
+
+end
+
+private theorem __eo_term_dt_size_pos (T : Term) : 1 ≤ __eo_term_dt_size T := by
+  cases T <;> simp [__eo_term_dt_size]
+
+private theorem __eo_dtc_size_lt_cons (T : Term) (c : DatatypeCons) :
+    __eo_dtc_size c < __eo_dtc_size (DatatypeCons.cons T c) := by
+  have hT : 1 ≤ __eo_term_dt_size T := __eo_term_dt_size_pos T
+  simp [__eo_dtc_size]
+  omega
+
+private theorem __eo_dt_size_lt_dtc_size_of_datatypeType
+    (s : eo_lit_String) (d : Datatype) (c : DatatypeCons) :
+    __eo_dt_size d < __eo_dtc_size (DatatypeCons.cons (Term.DatatypeType s d) c) := by
+  simp [__eo_dtc_size, __eo_term_dt_size]
+  omega
+
+private theorem __eo_dt_size_lt_sum (c : DatatypeCons) (d : Datatype) :
+    __eo_dt_size d < __eo_dt_size (Datatype.sum c d) := by
+  simp [__eo_dt_size]
+  omega
+
+private theorem __eo_dtc_size_lt_sum (c : DatatypeCons) (d : Datatype) :
+    __eo_dtc_size c < __eo_dt_size (Datatype.sum c d) := by
+  simp [__eo_dt_size]
+  omega
+
+private theorem __eo_dt_size_lt_sum_cons (T : Term) (c : DatatypeCons) (d : Datatype) :
+    __eo_dt_size (Datatype.sum c d) < __eo_dt_size (Datatype.sum (DatatypeCons.cons T c) d) := by
+  have hT : 1 ≤ __eo_term_dt_size T := __eo_term_dt_size_pos T
+  simp [__eo_dt_size, __eo_dtc_size]
+  omega
+
+mutual
+
 def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -199,15 +246,27 @@ end
 
 mutual
 
-partial def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
+def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
   | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (eo_lit_ite (eo_lit_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
   | (DatatypeCons.cons T c) => (DatatypeCons.cons (eo_lit_ite (eo_lit_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
   | DatatypeCons.unit => DatatypeCons.unit
+termination_by c => __eo_dtc_size c
+decreasing_by
+  all_goals
+    first
+    | exact __eo_dt_size_lt_dtc_size_of_datatypeType _ _ _
+    | exact __eo_dtc_size_lt_cons _ _
 
 
-partial def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
+def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
   | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
   | Datatype.null => Datatype.null
+termination_by d0 => __eo_dt_size d0
+decreasing_by
+  all_goals
+    first
+    | exact __eo_dtc_size_lt_sum _ _
+    | exact __eo_dt_size_lt_sum _ _
 
 end
 
@@ -293,19 +352,37 @@ partial def __eo_prog_trans : Proof -> Term
   | _ => Term.Stuck
 
 
-partial def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
+def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | T, (Datatype.sum DatatypeCons.unit d), eo_lit_nat_zero => T
   | T, (Datatype.sum (DatatypeCons.cons U c) d), eo_lit_nat_zero => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) eo_lit_nat_zero))
   | T, (Datatype.sum c d), (eo_lit_nat_succ n) => (__eo_typeof_dt_cons_rec T d n)
   | _, _, _ => Term.Stuck
+termination_by _T d n => __eo_dt_size d + n
+decreasing_by
+  all_goals
+    first
+    | exact __eo_dt_size_lt_sum_cons U c d
+    | have hd : __eo_dt_size d < __eo_dt_size (Datatype.sum c d) := __eo_dt_size_lt_sum c d
+      omega
 
 
-partial def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
+def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
   | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, eo_lit_nat_zero => T
   | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, (eo_lit_nat_succ m) => (__eo_typeof_dt_sel_return (Datatype.sum c d) eo_lit_nat_zero m)
   | (Datatype.sum c d), (eo_lit_nat_succ n), m => (__eo_typeof_dt_sel_return d n m)
   | _, _, _ => Term.Stuck
+termination_by d i j => __eo_dt_size d + i + j
+decreasing_by
+  all_goals
+    first
+    | have hd :
+          __eo_dt_size (Datatype.sum c d) <
+            __eo_dt_size (Datatype.sum (DatatypeCons.cons T c) d) :=
+        __eo_dt_size_lt_sum_cons T c d
+      omega
+    | have hd : __eo_dt_size d < __eo_dt_size (Datatype.sum c d) := __eo_dt_size_lt_sum c d
+      omega
 
 
 def __eo_typeof_apply : Term -> Term -> Term
