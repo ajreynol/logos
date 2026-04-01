@@ -136,35 +136,33 @@ theorem cmd_step_pop_scope_properties
     (__eo_cmd_step_pop_proven s CRule.scope args x1 premises) :=
 by
   intro hTrans1 hTy1 hPremisesTrans hPremisesTy hProg
-  by_cases hX1 : x1 = Term.Stuck
-  · exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven, hX1]))
-  · cases args with
-    | nil =>
-        cases premises with
-        | nil =>
-            exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
-        | cons n1 premises =>
-            cases premises with
-            | nil =>
-                let x2 := __eo_state_proven_nth s n1
-                have hTrans2 : RuleProofs.eo_has_smt_translation x2 :=
-                  hPremisesTrans x2 (by simp [x2, premiseTermList])
-                have hTy2 : __eo_typeof x2 = Term.Bool :=
-                  hPremisesTy x2 (by simp [x2, premiseTermList])
-                have hBool1 : RuleProofs.eo_has_bool_type x1 :=
-                  RuleProofs.eo_typeof_bool_implies_has_bool_type x1 hTrans1 hTy1
-                have hBool2 : RuleProofs.eo_has_bool_type x2 :=
-                  RuleProofs.eo_typeof_bool_implies_has_bool_type x2 hTrans2 hTy2
-                refine ⟨x2, ?_, ?_, ?_⟩
-                · simp [x2, premiseTermList]
-                · intro M hM hImp
-                  simpa [x2, __eo_cmd_step_pop_proven, hX1] using
-                    facts___eo_prog_scope_impl M hM x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2
-                      (by simpa [x2, __eo_cmd_step_pop_proven, hX1] using hProg)
-                · simpa [x2, __eo_cmd_step_pop_proven, hX1] using
-                    typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2
-                      (by simpa [x2, __eo_cmd_step_pop_proven, hX1] using hProg)
-            | cons _ _ =>
-                exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
-    | cons _ _ =>
-        exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      | cons n1 premises =>
+          cases premises with
+          | nil =>
+              let x2 := __eo_state_proven_nth s n1
+              have hTrans2 : RuleProofs.eo_has_smt_translation x2 :=
+                hPremisesTrans x2 (by simp [x2, premiseTermList])
+              have hTy2 : __eo_typeof x2 = Term.Bool :=
+                hPremisesTy x2 (by simp [x2, premiseTermList])
+              have hBool1 : RuleProofs.eo_has_bool_type x1 :=
+                RuleProofs.eo_typeof_bool_implies_has_bool_type x1 hTrans1 hTy1
+              have hBool2 : RuleProofs.eo_has_bool_type x2 :=
+                RuleProofs.eo_typeof_bool_implies_has_bool_type x2 hTrans2 hTy2
+              refine ⟨x2, ?_, ?_, ?_⟩
+              · simp [x2, premiseTermList]
+              · intro M hM hImp
+                simpa [x2, __eo_cmd_step_pop_proven] using
+                  facts___eo_prog_scope_impl M hM x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2
+                    (by simpa [x2, __eo_cmd_step_pop_proven] using hProg)
+              · simpa [x2, __eo_cmd_step_pop_proven] using
+                  typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2
+                    (by simpa [x2, __eo_cmd_step_pop_proven] using hProg)
+          | cons _ _ =>
+              exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+  | cons _ _ =>
+      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))

@@ -84,22 +84,10 @@ by
         cmd_step_pop_scope_properties A root args premises
           hATrans hATy hPremisesTrans hPremisesTy hProg
   | contra =>
-      have hEq : __eo_cmd_step_pop_proven root CRule.contra args A premises = Term.Stuck := by
-        cases hA : A <;> cases args <;> cases premises <;>
-          simp [__eo_cmd_step_pop_proven, hA] at hATy ⊢
-      exact False.elim (hProg hEq)
+      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
   | refl =>
-      have hEq : __eo_cmd_step_pop_proven root CRule.refl args A premises = Term.Stuck := by
-        cases hA : A <;> cases args <;> cases premises <;>
-          simp [__eo_cmd_step_pop_proven, hA] at hATy ⊢
-      exact False.elim (hProg hEq)
+      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
   | symm =>
-      have hEq : __eo_cmd_step_pop_proven root CRule.symm args A premises = Term.Stuck := by
-        cases hA : A <;> cases args <;> cases premises <;>
-          simp [__eo_cmd_step_pop_proven, hA] at hATy ⊢
-      exact False.elim (hProg hEq)
+      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
   | trans =>
-      have hEq : __eo_cmd_step_pop_proven root CRule.trans args A premises = Term.Stuck := by
-        cases hA : A <;> cases args <;> cases premises <;>
-          simp [__eo_cmd_step_pop_proven, hA] at hATy ⊢
-      exact False.elim (hProg hEq)
+      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
