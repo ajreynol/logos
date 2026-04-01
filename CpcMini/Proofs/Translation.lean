@@ -1,5 +1,6 @@
 import CpcMini.Proofs.Translation.Datatypes
 import CpcMini.Proofs.Translation.Apply
+import CpcMini.Proofs.TypePreservation.Datatypes
 
 open Eo
 open Smtm
@@ -379,6 +380,27 @@ private theorem smtx_typeof_translation_dt_sel_apply_none_of_fun_ends_in_bool
   change __smtx_typeof (SmtTerm.Apply (__eo_to_smt Term.eq) (__eo_to_smt x)) = SmtType.None
   rw [hHead]
   rfl
+
+private theorem smtx_typeof_translation_dt_sel_apply_bool_of_non_none
+    (s : eo_lit_String) (d : Datatype) (i j : eo_lit_Nat) (x : Term) :
+    __eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j = Term.Bool ->
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) = SmtType.Bool := by
+  intro hRet hNonNone
+  rw [__eo_to_smt.eq_def] at hNonNone
+  have hApplyNN :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x)) := by
+    unfold term_has_non_none_type
+    exact hNonNone
+  have hSelTy :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x)) =
+        __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j :=
+    dt_sel_term_typeof_of_non_none hApplyNN
+  have hRetTy :
+      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j = SmtType.Bool :=
+    smtx_ret_typeof_sel_bool_of_eo_dt_sel_return_bool s d i j hRet
+  exact hSelTy.trans hRetTy
 
 
 end TranslationProofs
