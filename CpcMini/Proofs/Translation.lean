@@ -402,5 +402,39 @@ private theorem smtx_typeof_translation_dt_sel_apply_bool_of_non_none
     smtx_ret_typeof_sel_bool_of_eo_dt_sel_return_bool s d i j hRet
   exact hSelTy.trans hRetTy
 
+private theorem eo_typeof_dt_sel_apply_eq_bool_inv
+    (s : eo_lit_String) (d : Datatype) (i j : eo_lit_Nat) (x : Term) :
+    __eo_typeof (Term.Apply (Term.DtSel s d i j) x) = Term.Bool ->
+      __eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j = Term.Bool := by
+  intro h
+  have hInv :
+      __eo_typeof (Term.DtSel s d i j) =
+        Term.Apply (Term.Apply Term.FunType (__eo_typeof x)) Term.Bool := by
+    exact eo_typeof_apply_eq_bool (F := __eo_typeof (Term.DtSel s d i j))
+      (X := __eo_typeof x) (by simpa [__eo_typeof] using h)
+  change
+      Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d))
+        (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) =
+      Term.Apply (Term.Apply Term.FunType (__eo_typeof x)) Term.Bool at hInv
+  injection hInv with _ hRet
+
+private theorem eo_typeof_dt_sel_apply_fun_ends_in_bool_inv
+    (s : eo_lit_String) (d : Datatype) (i j : eo_lit_Nat) (x : Term) :
+    eo_fun_ends_in_bool (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) ->
+      eo_fun_ends_in_bool (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) := by
+  intro h
+  rcases eo_typeof_apply_fun_ends_in_bool_inv
+      (F := __eo_typeof (Term.DtSel s d i j)) (X := __eo_typeof x)
+      (by simpa [__eo_typeof] using h) with
+    ⟨A, U, hF, hU⟩
+  change
+      Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d))
+        (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) =
+      Term.Apply (Term.Apply Term.FunType (__eo_typeof x))
+        (Term.Apply (Term.Apply Term.FunType A) U) at hF
+  injection hF with _ hRet
+  rw [hRet]
+  simpa [eo_fun_ends_in_bool] using hU
+
 
 end TranslationProofs
