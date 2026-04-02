@@ -1,4 +1,3 @@
-import Cpc.Lemmas
 import Cpc.Proofs.Translation
 import Cpc.Proofs.TypePreservation
 import Cpc.Proofs.TypePreservation.Helpers
