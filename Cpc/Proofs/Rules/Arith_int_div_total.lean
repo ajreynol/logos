@@ -9,10 +9,10 @@ set_option maxHeartbeats 10000000
 theorem cmd_step_arith_int_div_total_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
-  cmdTranslationOk (CCmd.step CRule.trans args premises) ->
+  cmdTranslationOk (CCmd.step CRule.arith_int_div_total args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.trans args premises ≠ Term.Stuck ->
+  __eo_cmd_step_proven s CRule.arith_int_div_total args premises ≠ Term.Stuck ->
   StepRuleProperties M (premiseTermList s premises)
-    (__eo_cmd_step_proven s CRule.trans args premises) :=
+    (__eo_cmd_step_proven s CRule.arith_int_div_total args premises) :=
 by
   sorry

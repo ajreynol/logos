@@ -9,10 +9,10 @@ set_option maxHeartbeats 10000000
 theorem cmd_step_str_prefixof_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
-  cmdTranslationOk (CCmd.step CRule.trans args premises) ->
+  cmdTranslationOk (CCmd.step CRule.str_prefixof_elim args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.trans args premises ≠ Term.Stuck ->
+  __eo_cmd_step_proven s CRule.str_prefixof_elim args premises ≠ Term.Stuck ->
   StepRuleProperties M (premiseTermList s premises)
-    (__eo_cmd_step_proven s CRule.trans args premises) :=
+    (__eo_cmd_step_proven s CRule.str_prefixof_elim args premises) :=
 by
   sorry
