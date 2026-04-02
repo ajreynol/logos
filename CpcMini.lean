@@ -4,5 +4,3 @@ import CpcMini.Logos
 import CpcMini.SmtEval
 import CpcMini.SmtModel
 import CpcMini.Spec
-import CpcMini.Lemmas
-import CpcMini.Refutation
