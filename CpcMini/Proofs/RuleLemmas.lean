@@ -6,6 +6,7 @@ import CpcMini.Proofs.Rules.Refl
 import CpcMini.Proofs.Rules.Symm
 import CpcMini.Proofs.Rules.Trans
 
+
 open Eo
 open Smtm
 
@@ -34,7 +35,7 @@ by
     premiseTermList_has_bool_type s premises hsTy hsTrans
   cases r with
   | scope =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | contra =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_contra_properties M hM s args premises
@@ -51,6 +52,7 @@ by
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_trans_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
+
 
 /-
 Central expansion point for `step_pop` rules.
@@ -84,10 +86,11 @@ by
         cmd_step_pop_scope_properties A root args premises
           hATrans hATy hPremisesTrans hPremisesTy hProg
   | contra =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | refl =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | symm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
+
