@@ -621,7 +621,7 @@ by
     premiseTermList_has_bool_type s premises hsTy hsTrans
   cases r with
   | scope =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | process_scope =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_process_scope_properties M hM s args premises
@@ -3016,1183 +3016,1182 @@ by
         cmd_step_pop_scope_properties A root args premises
           hATrans hATy hPremisesTrans hPremisesTy hProg
   | process_scope =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | split =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | resolution =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | chain_resolution =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | chain_m_resolution =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | factoring =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | reordering =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | eq_resolve =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | modus_ponens =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_not_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | contra =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | and_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | and_intro =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_or_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | implies_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_implies_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_implies_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | equiv_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | equiv_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_equiv_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_equiv_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | xor_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | xor_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_xor_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_xor_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_ite_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_ite_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | not_and =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_and_pos =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_and_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_or_pos =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_or_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_implies_pos =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_implies_neg1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_implies_neg2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_equiv_pos1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_equiv_pos2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_equiv_neg1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_equiv_neg2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_xor_pos1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_xor_pos2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_xor_neg1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_xor_neg2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_ite_pos1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_ite_pos2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_ite_pos3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_ite_neg1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_ite_neg2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cnf_ite_neg3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arrays_read_over_write =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arrays_read_over_write_contra =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arrays_read_over_write_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arrays_ext =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | refl =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | symm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | cong =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | nary_cong =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | pairwise_cong =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | true_intro =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | true_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | false_intro =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | false_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ho_cong =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_true =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_sum_ub =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_mult_pos =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_mult_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_trichotomy =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | int_tight_ub =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | int_tight_lb =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_mult_tangent =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_mult_sign =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_mult_abs_comparison =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_reduction =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_poly_norm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_poly_norm_rel =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_repeat_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_smulo_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_umulo_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_bitwise_slicing =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_bitblast_step =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_poly_norm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_poly_norm_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | string_length_pos =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | string_length_non_empty =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | concat_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | concat_unify =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | concat_csplit =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | concat_split =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | concat_lprop =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | concat_cprop =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | string_decompose =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | exists_string_length =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | string_code_inj =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | string_seq_unit_inj =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_inter =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_concat =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_unfold_pos =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_unfold_neg_concat_fixed =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_unfold_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | string_ext =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | string_reduction =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | string_eager_reduction =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_string_pred_entail =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_string_pred_safe_approx =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_eval =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_consume =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_loop_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_eq_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_inter_inclusion =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_union_inclusion =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_concat_star_char =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_sigma =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_sigma_star =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_ctn_multiset_subset =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_overlap_split_ctn =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_overlap_endpoints_ctn =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_overlap_endpoints_indexof =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_overlap_endpoints_replace =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_re_eval =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_re_eval =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_re_all_eval =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | seq_eval_op =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_singleton_inj =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_ext =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_eval_op =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_insert_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ubv_to_int_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | int_to_bv_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | instantiate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | skolemize =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | skolem_intro =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | alpha_equiv =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | beta_reduce =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_var_reordering =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | exists_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_unused_vars =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_merge_prenex =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_miniscope_and =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_miniscope_or =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_miniscope_ite =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_var_elim_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_dt_split =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_split =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_inst =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_collapse_selector =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_collapse_tester =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_collapse_tester_singleton =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_cons_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_cons_eq_clash =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_cycle =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_collapse_updater =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | dt_updater_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_div_total_zero_real =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_div_total_zero_int =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_div_total =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_div_total_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_div_total_zero =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_div_total_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_mod_total =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_mod_total_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_mod_total_zero =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_mod_total_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_elim_gt =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_elim_lt =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_elim_int_gt =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_elim_int_lt =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_elim_leq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_leq_norm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_geq_tighten =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_geq_norm1_int =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_geq_norm1_real =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_eq_elim_real =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_eq_elim_int =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_to_int_elim_to_real =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_mod_over_mod_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_mod_over_mod =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_mod_over_mod_mult =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_eq_conflict =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_int_geq_tighten =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_divisible_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_abs_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_abs_int_gt =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_abs_real_gt =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_geq_ite_lift =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_leq_ite_lift =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_min_lt1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_min_lt2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_max_geq1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | arith_max_geq2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | array_read_over_write =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | array_read_over_write2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | array_store_overwrite =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | array_store_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | array_read_over_write_split =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | array_store_swap =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_double_not_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_not_true =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_not_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_eq_true =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_eq_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_eq_nrefl =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_impl_false1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_impl_false2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_impl_true1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_impl_true2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_impl_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_dual_impl_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_and_conf =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_and_conf2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_or_taut =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_or_taut2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_or_de_morgan =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_implies_de_morgan =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_and_de_morgan =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_or_and_distrib =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_implies_or_distrib =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_xor_refl =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_xor_nrefl =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_xor_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_xor_true =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_xor_comm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_xor_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_not_xor_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_not_eq_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_not_eq_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_neg_branch =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_then_true =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_else_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_then_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_else_true =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_then_lookahead_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_else_lookahead_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_then_lookahead_not_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_else_lookahead_not_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_expand =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bool_not_ite_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_true_cond =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_false_cond =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_not_cond =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_eq_branch =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_then_lookahead =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_else_lookahead =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_then_neg_lookahead =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_else_neg_lookahead =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_concat_extract_merge =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_extract =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_whole =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_concat_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_concat_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_concat_3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_concat_4 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_eq_extract_elim1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_eq_extract_elim2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_eq_extract_elim3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_not =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_sign_extend_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_sign_extend_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_sign_extend_3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_not_xor =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_and_simplify_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_and_simplify_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_or_simplify_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_or_simplify_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_simplify_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_simplify_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_simplify_3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ult_add_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_mult_slt_mult_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_mult_slt_mult_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_commutative_xor =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_commutative_comp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_zero_extend_eliminate_0 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sign_extend_eliminate_0 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_not_neq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ult_ones =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_concat_merge_const =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_commutative_add =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sub_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_width_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_width_one_not =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_eq_xor_solve =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_eq_not_solve =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ugt_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_uge_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sgt_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sge_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sle_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_redor_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_redand_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ule_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_comp_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_rotate_left_eliminate_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_rotate_left_eliminate_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_rotate_right_eliminate_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_rotate_right_eliminate_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_nand_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_nor_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xnor_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sdiv_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_zero_extend_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_uaddo_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_saddo_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sdivo_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_smod_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_srem_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_usubo_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ssubo_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_nego_eliminate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_equal_children =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_const_children_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_const_children_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_equal_cond_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_equal_cond_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_equal_cond_3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_merge_then_if =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_merge_else_if =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_merge_then_else =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ite_merge_else_else =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_shl_by_const_0 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_shl_by_const_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_shl_by_const_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_lshr_by_const_0 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_lshr_by_const_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_lshr_by_const_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ashr_by_const_0 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ashr_by_const_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ashr_by_const_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_and_concat_pullup =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_or_concat_pullup =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_concat_pullup =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_and_concat_pullup2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_or_concat_pullup2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_concat_pullup2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_and_concat_pullup3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_or_concat_pullup3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_concat_pullup3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_duplicate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_ones =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_xor_not =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_not_idemp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ult_zero_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ult_zero_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ult_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_lt_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ule_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ule_zero =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_zero_ule =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sle_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ule_max =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_not_ult =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_mult_pow2_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_mult_pow2_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_mult_pow2_2b =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_extract_mult_leading_bit =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_udiv_pow2_not_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_udiv_zero =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_udiv_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_urem_pow2_not_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_urem_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_urem_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_shl_zero =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_lshr_zero =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ashr_zero =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ugt_urem =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_ult_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_merge_sign_extend_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_merge_sign_extend_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sign_extend_eq_const_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sign_extend_eq_const_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_zero_extend_eq_const_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_zero_extend_eq_const_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_zero_extend_ult_const_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_zero_extend_ult_const_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sign_extend_ult_const_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sign_extend_ult_const_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sign_extend_ult_const_3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | bv_sign_extend_ult_const_4 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_eq_singleton_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_member_singleton =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_member_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_subset_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_union_comm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_inter_comm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_inter_emp1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_inter_emp2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_minus_emp1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_minus_emp2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_union_emp1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_union_emp2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_inter_member =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_minus_member =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_union_member =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_choose_singleton =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_minus_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_is_empty_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | sets_is_singleton_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_ctn_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_ctn_full_false1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_ctn_full_false2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_len_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_empty_str =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_empty_range =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_empty_start =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_empty_start_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_substr_start_geq_len =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_eq_empty =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_z_eq_empty_leq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_eq_empty_leq_len =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_len_replace_inv =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_len_replace_all_inv =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_len_update_inv =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_update_in_first_concat =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_len_substr_in_range =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_concat_clash =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_concat_clash_rev =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_concat_clash2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_concat_clash2_rev =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_concat_unify =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_concat_unify_rev =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_concat_unify_base =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_concat_unify_base_rev =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_prefixof_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_suffixof_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_prefixof_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_suffixof_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_prefixof_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_suffixof_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_combine1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_combine2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_combine3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_combine4 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_concat1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_concat2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_replace =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_full =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_full_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_refl =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_concat_find =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_concat_find_contra =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_split_char =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_leq_len_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_char =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_at_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_id =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_prefix =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_no_contains =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_find_base =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_find_first_concat =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_empty =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_one_pre =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_find_pre =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_all_no_contains =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_all_empty =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_all_id =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_all_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_re_none =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_re_all_none =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_len_concat_rec =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_len_eq_zero_concat_rec =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_len_eq_zero_base =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_no_contains =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_oob =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_oob2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_contains_pre =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_contains_concat_pre =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_find_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_eq_irr =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_re_none =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_indexof_re_emp_re =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_lower_concat =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_upper_concat =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_lower_upper =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_upper_lower =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_lower_len =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_upper_len =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_lower_from_int =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_upper_from_int =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_to_int_concat_neg_one =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_is_digit_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_leq_empty =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_leq_empty_eq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_leq_concat_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_leq_concat_true =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_leq_concat_base_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_leq_concat_base_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_lt_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_from_int_no_ctn_nondigit =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_ctn_contra =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_ctn =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_dual_ctn =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_dual_ctn_false =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_self_ctn_simp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_replace_emp_ctn_src =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_char_start_eq_len =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_repl_char =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_repl_self_tgt_char =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_repl_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_contains_repl_tgt =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_len_id =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_src_tgt_no_ctn =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_tgt_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_tgt_no_ctn =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_src_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_src_inv_no_ctn1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_src_inv_no_ctn2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_src_inv_no_ctn3 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_dual_self =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_dual_ite1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_dual_ite2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_repl_repl_lookahead_id_simp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_all_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_opt_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_diff_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_plus_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_repeat_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_concat_star_swap =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_concat_star_repeat =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_concat_star_subsume1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_concat_star_subsume2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_concat_merge =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_union_all =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_union_const_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_inter_all =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_star_none =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_star_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_star_star =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_range_refl =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_range_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_range_non_singleton_1 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_range_non_singleton_2 =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_star_union_char =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_star_union_drop_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_loop_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_inter_cstring =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_inter_cstring_neg =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_len_include =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_len_include_pre =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_substr_len_norm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | seq_len_rev =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | seq_rev_rev =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | seq_rev_concat =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_repl_self_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_repl_no_change =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_repl_tgt_eq_len =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_repl_len_one_emp_prefix =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_repl_emp_tgt_nemp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_repl_nemp_src_emp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_eq_repl_self_src =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | seq_len_unit =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | seq_nth_unit =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | seq_rev_unit =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_in_empty =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_in_sigma =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_in_sigma_star =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_in_cstring =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | re_in_comp =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_union_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_inter_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_range_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_contains =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_from_int_nemp_dig_range =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | str_in_re_from_int_dig_range =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | eq_refl =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | eq_symm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | eq_cond_deq =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | eq_ite_lift =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_binary_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | uf_bv2nat_int2bv =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | uf_bv2nat_int2bv_extend =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | uf_bv2nat_int2bv_extract =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | uf_int2bv_bv2nat =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | uf_bv2nat_geq_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | uf_int2bv_bvult_equiv =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | uf_int2bv_bvule_equiv =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | uf_sbv_to_int_elim =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | evaluate =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_values =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | aci_norm =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | absorb =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_card_conflict =>
-      exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
-
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
