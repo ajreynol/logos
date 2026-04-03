@@ -4195,3 +4195,4 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_card_conflict =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
+
