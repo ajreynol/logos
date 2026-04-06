@@ -64,4 +64,55 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (hsx : supported_preservation_term x) :
       supported_preservation_term (SmtTerm.Apply f x)
 
+inductive supported_preservation_apply_case : SmtTerm -> SmtTerm -> Prop where
+  | not_case (t : SmtTerm) :
+      supported_preservation_apply_case SmtTerm.not t
+  | or_case (t1 t2 : SmtTerm) :
+      supported_preservation_apply_case (SmtTerm.Apply SmtTerm.or t1) t2
+  | and_case (t1 t2 : SmtTerm) :
+      supported_preservation_apply_case (SmtTerm.Apply SmtTerm.and t1) t2
+  | imp_case (t1 t2 : SmtTerm) :
+      supported_preservation_apply_case (SmtTerm.Apply SmtTerm.imp t1) t2
+  | eq_case (t1 t2 : SmtTerm) :
+      supported_preservation_apply_case (SmtTerm.Apply SmtTerm.eq t1) t2
+  | ite_case (c t1 t2 : SmtTerm) :
+      supported_preservation_apply_case (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2
+  | exists_case (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+      supported_preservation_apply_case (SmtTerm.exists s T) body
+  | forall_case (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+      supported_preservation_apply_case (SmtTerm.forall s T) body
+  | choice_case (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+      supported_preservation_apply_case (SmtTerm.choice s T) body
+  | generic {f x : SmtTerm}
+      (hTy : generic_apply_type f x)
+      (hEval : generic_apply_eval f x) :
+      supported_preservation_apply_case f x
+
+theorem supported_preservation_apply_cases
+    (f x : SmtTerm) :
+    supported_preservation_apply_case f x := by
+  cases f <;> try exact supported_preservation_apply_case.generic rfl (by intro M; rfl)
+  case not =>
+    exact supported_preservation_apply_case.not_case x
+  case «exists» s T =>
+    exact supported_preservation_apply_case.exists_case s T x
+  case «forall» s T =>
+    exact supported_preservation_apply_case.forall_case s T x
+  case choice s T =>
+    exact supported_preservation_apply_case.choice_case s T x
+  case Apply f y =>
+    cases f <;> try exact supported_preservation_apply_case.generic rfl (by intro M; rfl)
+    case or =>
+      exact supported_preservation_apply_case.or_case y x
+    case and =>
+      exact supported_preservation_apply_case.and_case y x
+    case imp =>
+      exact supported_preservation_apply_case.imp_case y x
+    case eq =>
+      exact supported_preservation_apply_case.eq_case y x
+    case Apply g c =>
+      cases g <;> try exact supported_preservation_apply_case.generic rfl (by intro M; rfl)
+      case ite =>
+        exact supported_preservation_apply_case.ite_case c y x
+
 end Smtm

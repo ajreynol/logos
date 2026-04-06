@@ -21,7 +21,15 @@ theorem smt_model_eval_bool_is_boolean
     (t : SmtTerm) :
   __smtx_typeof t = SmtType.Bool ->
   ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
-  sorry
+  intro hTy
+  have hNN : term_has_non_none_type t := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    simp
+  have hPres :
+      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
+    by simpa [hTy] using type_preservation M hM t hNN
+  exact bool_value_canonical hPres
 
 theorem smt_model_eval_preserves_type_of_supported
     (M : SmtModel) (hM : model_total_typed M)
@@ -35,12 +43,7 @@ theorem smt_model_eval_preserves_type_of_supported
     unfold term_has_non_none_type
     rw [hTy]
     exact hNonNone
-  have hTermInh : term_has_inhabited_type t := by
-    unfold term_has_inhabited_type type_inhabited
-    rw [hTy]
-    simpa [smt_type_inhabited] using hInh
-  simpa [hTy] using
-    supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
+  simpa [hTy] using type_preservation M hM t hNN
 
 theorem smt_model_eval_bool_is_boolean_of_supported
     (M : SmtModel) (hM : model_total_typed M)
