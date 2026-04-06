@@ -12,9 +12,15 @@ theorem smt_model_eval_preserves_type
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) (T : SmtType) :
   __smtx_typeof t = T ->
+  T ≠ SmtType.None ->
   smt_type_inhabited T ->
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  sorry
+  intro hTy hNonNone _hInh
+  have hNN : term_has_non_none_type t := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    exact hNonNone
+  simpa [hTy] using type_preservation M hM t hNN
 
 theorem smt_model_eval_bool_is_boolean
     (M : SmtModel) (hM : model_total_typed M)
