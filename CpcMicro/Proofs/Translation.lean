@@ -79,6 +79,18 @@ private theorem eo_to_smt_type_fun_ne_seq
   cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
     simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
 
+private theorem eo_to_smt_type_fun_ne_reglan
+    (T U : Term) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.RegLan := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
+private theorem eo_to_smt_type_fun_ne_set
+    (T U : Term) (V : SmtType) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.Set V := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
 theorem eo_to_smt_type_eq_bool
     {T : Term}
     (h : __eo_to_smt_type T = SmtType.Bool) :
@@ -326,6 +338,40 @@ theorem eo_to_smt_type_eq_map_iff
       rwa [← hT2]
     simp [eo_to_smt_type_fun, hT1, hT2, hANN, hBNN,
       __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
+
+theorem eo_to_smt_type_ne_reglan
+    (T : Term) :
+    __eo_to_smt_type T ≠ SmtType.RegLan := by
+  cases T <;> try simp [__eo_to_smt_type]
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type]
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type]
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx]
+      · simp [hx]
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type]
+      case FunType =>
+        exact eo_to_smt_type_fun_ne_reglan y x
+
+theorem eo_to_smt_type_ne_set
+    (T : Term) (V : SmtType) :
+    __eo_to_smt_type T ≠ SmtType.Set V := by
+  cases T <;> try simp [__eo_to_smt_type]
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type]
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type]
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx]
+      · simp [hx]
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type]
+      case FunType =>
+        exact eo_to_smt_type_fun_ne_set y x V
 
 theorem smtx_typeof_guard_ne_map
     {T U A B : SmtType}
