@@ -1,4 +1,4 @@
-import CpcMicro.Proofs.TypePreservation.Support
+import CpcMicro.Proofs.TypePreservation.Common
 
 open Smtm
 

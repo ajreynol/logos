@@ -1,3 +1,4 @@
+import CpcMicro.Proofs.TypePreservation.Support
 import CpcMicro.Proofs.TypePreservation.CoreArith
 import CpcMicro.Proofs.TypePreservation.Datatypes
 
@@ -61,7 +62,7 @@ theorem generic_apply_children_non_none
     rw [hX]
     exact hA
 
-theorem supported_preservation_term_of_non_none :
+private theorem supported_preservation_term_of_non_none :
     ∀ (t : SmtTerm), term_has_non_none_type t -> supported_preservation_term t
   | SmtTerm.None, ht => by
       exact False.elim (ht rfl)
@@ -204,7 +205,7 @@ decreasing_by
   all_goals
     omega
 
-theorem supported_type_preservation
+private theorem supported_type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
     (t : SmtTerm)
@@ -270,16 +271,6 @@ theorem supported_type_preservation
         (supported_type_preservation M hM f htf hsf)
         (supported_type_preservation M hM x htx hsx)
 
-theorem supported_type_preservation_of_inhabited_type
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (t : SmtTerm)
-    (ht : term_has_non_none_type t)
-    (hti : term_has_inhabited_type t)
-    (hs : supported_preservation_term t) :
-    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t :=
-  supported_type_preservation M hM t ht hs
-
 theorem type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -288,15 +279,6 @@ theorem type_preservation
     __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
   exact supported_type_preservation M hM t ht
     (supported_preservation_term_of_non_none t ht)
-
-theorem type_preservation_of_inhabited_type
-    (M : SmtModel)
-    (hM : model_total_typed M)
-    (t : SmtTerm)
-    (ht : term_has_non_none_type t)
-    (_hti : term_has_inhabited_type t) :
-    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
-  exact type_preservation M hM t ht
 
 theorem smt_model_eval_bool_is_boolean
     (M : SmtModel) (hM : model_total_typed M)
