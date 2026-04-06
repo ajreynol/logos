@@ -12,17 +12,16 @@ attribute [local reducible] __smtx_typeof
 namespace TranslationProofs
 
 /-!
-This file is the staging area for the `CpcMini` EO-to-SMT translation typing
-port.
+This file is the staging area for the reduced `CpcMicro` EO-to-SMT translation
+typing port.
 
-Unlike `Cpc`, the current mini `__eo_to_smt_type` only translates first-order EO
-types, so the full wrapper theorem from `Cpc/Proofs/Translation.lean` is too
-strong for constructor heads whose SMT translation has a function-like datatype
-type. The port here therefore focuses on the fragment that already lines up
-cleanly in `CpcMini`:
+Unlike full `Cpc`, the micro development here still focuses on the fragment
+already used by the checker. The type translation now includes EO function
+types via SMT maps, but the proof file below is still centered on the direct
+boolean/equality fragment that already lines up cleanly:
 
 1. Direct translation helpers for literals and symbols.
-2. Datatype helper translations that remain in the reduced micro fragment.
+2. Shape lemmas for key translated type forms.
 3. Fully translated boolean/equality applications.
 -/
 
@@ -69,22 +68,61 @@ theorem smt_lit_ite_ne_map
   · simpa [smt_lit_ite] using hU
   · simpa [smt_lit_ite] using hT
 
-theorem eo_to_smt_type_ne_map
-    (T : Term) (A B : SmtType) :
-    __eo_to_smt_type T ≠ SmtType.Map A B := by
-  cases T with
-  | Apply f x =>
-      cases f with
-      | BitVec =>
-          cases x <;> simp [__eo_to_smt_type]
-      | Seq =>
-          by_cases h : __eo_to_smt_type x = SmtType.None
-          · simp [__eo_to_smt_type, h]
-          · simp [__eo_to_smt_type, h]
-      | _ =>
-          simp [__eo_to_smt_type]
-  | _ =>
-      simp [__eo_to_smt_type]
+theorem smtx_typeof_guard_eq_map_iff
+    {T U A B : SmtType} :
+    __smtx_typeof_guard T U = SmtType.Map A B ↔
+      T ≠ SmtType.None ∧ U = SmtType.Map A B := by
+  unfold __smtx_typeof_guard
+  by_cases hT : T = SmtType.None
+  · simp [hT, smt_lit_ite, smt_lit_Teq]
+  · simp [hT, smt_lit_ite, smt_lit_Teq]
+
+theorem eo_to_smt_type_eq_map_iff
+    {T : Term} {A B : SmtType} :
+    __eo_to_smt_type T = SmtType.Map A B ↔
+      ∃ T1 T2,
+        T = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
+        __eo_to_smt_type T1 = A ∧
+        __eo_to_smt_type T2 = B ∧
+        __eo_to_smt_type T1 ≠ SmtType.None ∧
+        __eo_to_smt_type T2 ≠ SmtType.None := by
+  constructor
+  · intro h
+    cases T with
+    | Apply f x =>
+        cases f with
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                have hOuter :
+                    __smtx_typeof_guard (__eo_to_smt_type y)
+                      (__smtx_typeof_guard (__eo_to_smt_type x)
+                        (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x))) =
+                      SmtType.Map A B := by
+                  simpa using h
+                rcases smtx_typeof_guard_eq_map_iff.mp hOuter with ⟨hyNN, hInner⟩
+                rcases smtx_typeof_guard_eq_map_iff.mp hInner with ⟨hxNN, hMap⟩
+                injection hMap with hA hB
+                exact ⟨y, x, rfl, hA, hB, hyNN, hxNN⟩
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | BitVec =>
+            cases x <;> simp [__eo_to_smt_type] at h
+        | Seq =>
+            by_cases hx : __eo_to_smt_type x = SmtType.None
+            · simp [__eo_to_smt_type, hx] at h
+            · simp [__eo_to_smt_type, hx] at h
+        | _ =>
+            simp [__eo_to_smt_type] at h
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
+    have hANN : A ≠ SmtType.None := by
+      rwa [← hT1]
+    have hBNN : B ≠ SmtType.None := by
+      rwa [← hT2]
+    simp [eo_to_smt_type_fun, hT1, hT2, hANN, hBNN,
+      __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
 
 theorem smtx_typeof_guard_ne_map
     {T U A B : SmtType}
