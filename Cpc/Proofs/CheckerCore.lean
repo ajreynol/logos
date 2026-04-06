@@ -2092,9 +2092,8 @@ by
   intro hs hProps
   refine ⟨?_, ?_⟩
   · intro hAss hPush
-    exact
-      (hProps.facts_of_true
-        (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)).true_in_model
+    exact hProps.facts_of_true
+      (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
   · exact RuleProofs.eo_has_smt_translation_of_has_bool_type P hProps.has_bool_type
 
 structure CmdStepPopFacts
@@ -2132,5 +2131,5 @@ by
         exact eo_interprets_and_intro M A (statePushes tail) hATrue hPush
       exact (premiseTermList_true_of_truthInvariant M root premises hTruth hAssRoot hPushRoot)
         X hXMem
-    exact (hFactsOfImp M hM hScoped).true_in_model
+    exact hFactsOfImp M hM hScoped
   · exact RuleProofs.eo_has_smt_translation_of_has_bool_type P hPopBool
