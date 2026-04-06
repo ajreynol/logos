@@ -100,10 +100,6 @@ inductive Term : Type where
   | Apply : Term -> Term -> Term
   | FunType : Term
   | Var : eo_lit_String -> Term -> Term
-  | DatatypeType : eo_lit_String -> Datatype -> Term
-  | DatatypeTypeRef : eo_lit_String -> Term
-  | DtCons : eo_lit_String -> Datatype -> eo_lit_Nat -> Term
-  | DtSel : eo_lit_String -> Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
   | USort : eo_lit_Nat -> Term
   | UConst : eo_lit_Nat -> Term -> Term
   | not : Term
@@ -183,7 +179,7 @@ def __eo_requires : Term -> Term -> Term -> Term
 
 def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (eo_lit_and b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) =>
     let _v0 := (Term.Numeral w1)
     (eo_lit_ite (eo_lit_teq _v0 (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_binary_and w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck

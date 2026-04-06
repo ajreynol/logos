@@ -15,7 +15,7 @@ abbrev smt_lit_teq := eo_lit_teq
 /- Definition of refutation -/
 
 inductive eo_is_refutation : Term -> CCmdList -> Prop
-  | intro (F : Term) (c : CCmdList) : 
+  | intro (F : Term) (c : CCmdList) :
     (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 
 
@@ -53,7 +53,6 @@ def __eo_to_smt_datatype : Datatype -> SmtDatatype
 
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
-  | (Term.DatatypeType _ _) => SmtType.None
   | (Term.USort i) => (SmtType.USort i)
   | Term.Int => SmtType.Int
   | Term.Real => SmtType.Real
@@ -70,8 +69,6 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
   | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons _ _ _) => SmtTerm.None
-  | (Term.DtSel _ _ _ _) => SmtTerm.None
   | (Term.UConst i T) => (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T))
   | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or (__eo_to_smt x1)) (__eo_to_smt x2))
