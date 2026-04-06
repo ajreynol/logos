@@ -60,6 +60,54 @@ theorem eo_to_smt_supported_bool_term_has_bool_smt_type
   | eq x y =>
       simpa using smtx_typeof_translation_eq_of_non_none x y hNonNone
 
+theorem smt_lit_ite_ne_map
+    {c : smt_lit_Bool} {T U A B : SmtType}
+    (hT : T ≠ SmtType.Map A B)
+    (hU : U ≠ SmtType.Map A B) :
+    smt_lit_ite c T U ≠ SmtType.Map A B := by
+  cases c
+  · simpa [smt_lit_ite] using hU
+  · simpa [smt_lit_ite] using hT
+
+theorem eo_to_smt_type_ne_map
+    (T : Term) (A B : SmtType) :
+    __eo_to_smt_type T ≠ SmtType.Map A B := by
+  cases T with
+  | Apply f x =>
+      cases f with
+      | BitVec =>
+          cases x <;> simp [__eo_to_smt_type]
+      | Seq =>
+          simp [__eo_to_smt_type]
+      | _ =>
+          simp [__eo_to_smt_type]
+  | _ =>
+      simp [__eo_to_smt_type]
+
+theorem smtx_typeof_guard_ne_map
+    {T U A B : SmtType}
+    (hU : U ≠ SmtType.Map A B) :
+    __smtx_typeof_guard T U ≠ SmtType.Map A B := by
+  unfold __smtx_typeof_guard
+  exact smt_lit_ite_ne_map (by simp) hU
+
+theorem smtx_typeof_guard_inhabited_ne_map
+    {T U A B : SmtType}
+    (hU : U ≠ SmtType.Map A B) :
+    __smtx_typeof_guard_inhabited T U ≠ SmtType.Map A B := by
+  unfold __smtx_typeof_guard_inhabited
+  exact smt_lit_ite_ne_map hU (by simp)
+
+theorem smtx_typeof_apply_eq_none_of_head_not_map
+    {F X : SmtType}
+    (hF : ∀ T U, F ≠ SmtType.Map T U) :
+    __smtx_typeof_apply F X = SmtType.None := by
+  cases F with
+  | Map T U =>
+      exact False.elim (hF T U rfl)
+  | _ =>
+      simp [__smtx_typeof_apply]
+
 /--
 Compatibility wrapper in the shape used by the mini proofs. The EO typing
 assumption is redundant for this supported fragment, but we keep it in the
