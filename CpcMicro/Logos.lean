@@ -110,21 +110,6 @@ inductive Term : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
-/-
-Eunoia datatypes.
--/
-inductive Datatype : Type where
-  | null : Datatype
-  | sum : DatatypeCons -> Datatype -> Datatype
-deriving Repr, DecidableEq, Inhabited
-
-/-
-Eunoia datatype constructors.
--/
-inductive DatatypeCons : Type where
-  | unit : DatatypeCons
-  | cons : Term -> DatatypeCons -> DatatypeCons
-deriving Repr, DecidableEq, Inhabited
 
 end
 
@@ -195,17 +180,6 @@ def __eo_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | t, s => (Term.Boolean (eo_lit_teq s t))
-
-
-def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
-  | (DatatypeCons.cons (Term.DatatypeType s2 d2) c) => (DatatypeCons.cons (Term.DatatypeType s2 (eo_lit_ite (eo_lit_streq s s2) d2 (__eo_dt_substitute s d d2))) (__eo_dtc_substitute s d c))
-  | (DatatypeCons.cons T c) => (DatatypeCons.cons (eo_lit_ite (eo_lit_teq T (Term.DatatypeTypeRef s)) (Term.DatatypeType s d) T) (__eo_dtc_substitute s d c))
-  | DatatypeCons.unit => DatatypeCons.unit
-
-
-def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
-  | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
-  | Datatype.null => Datatype.null
 
 
 def __eo_get_nil_rec : Term -> Term -> Term
@@ -282,20 +256,6 @@ def __eo_is_list_nil : Term -> Term -> Term
   | f, nil => (Term.Boolean false)
 
 
-def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | T, (Datatype.sum DatatypeCons.unit d), eo_lit_nat_zero => T
-  | T, (Datatype.sum (DatatypeCons.cons U c) d), eo_lit_nat_zero => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) eo_lit_nat_zero))
-  | T, (Datatype.sum c d), (eo_lit_nat_succ n) => (__eo_typeof_dt_cons_rec T d n)
-  | _, _, _ => Term.Stuck
-
-
-def __eo_typeof_dt_sel_return : Datatype -> eo_lit_Nat -> eo_lit_Nat -> Term
-  | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, eo_lit_nat_zero => T
-  | (Datatype.sum (DatatypeCons.cons T c) d), eo_lit_nat_zero, (eo_lit_nat_succ m) => (__eo_typeof_dt_sel_return (Datatype.sum c d) eo_lit_nat_zero m)
-  | (Datatype.sum c d), (eo_lit_nat_succ n), m => (__eo_typeof_dt_sel_return d n m)
-  | _, _, _ => Term.Stuck
-
 
 def __eo_typeof_apply : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
@@ -340,9 +300,6 @@ def __eo_typeof : Term -> Term
   | (Term.String s) => (__eo_lit_type_String (Term.String s))
   | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
   | (Term.Var s T) => T
-  | (Term.DatatypeType s d) => Term.Type
-  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
-  | (Term.DtSel s d i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d)) (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j))
   | (Term.USort i) => Term.Type
   | (Term.UConst i T) => T
   | Term.Type => Term.Type

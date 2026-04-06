@@ -22,7 +22,7 @@ type. The port here therefore focuses on the fragment that already lines up
 cleanly in `CpcMini`:
 
 1. Direct translation helpers for literals and symbols.
-2. Unsupported datatype heads translated to `None`.
+2. Datatype helper translations that remain in the reduced micro fragment.
 3. Fully translated boolean/equality applications.
 -/
 

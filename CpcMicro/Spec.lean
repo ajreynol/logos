@@ -41,15 +41,6 @@ noncomputable section
 
 mutual
 
-def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
-  | DatatypeCons.unit => SmtDatatypeCons.unit
-  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
-
-
-def __eo_to_smt_datatype : Datatype -> SmtDatatype
-  | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
-  | Datatype.null => SmtDatatype.null
-
 
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
