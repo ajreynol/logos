@@ -439,12 +439,12 @@ theorem model_eval_repeat_rec_binary :
 theorem typeof_value_model_eval_repeat
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2))
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2) := by
   rcases repeat_args_of_non_none ht with ⟨i, w, h1, h2, hi1⟩
-  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat t1) t2) =
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2) =
       SmtType.BitVec (smt_lit_zmult i w) by
     simp [__smtx_typeof, __smtx_typeof_repeat, smt_lit_ite, h1, h2, hi1]]
   change __smtx_typeof_value

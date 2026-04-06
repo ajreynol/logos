@@ -1717,27 +1717,27 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rfl
         (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsdivo_of_smt_bitvec x y w hy hx)
         hNonNone
-    case __smt_repeat =>
+    case «repeat» =>
       have hTranslate :
-          __eo_to_smt (Term.Apply (Term.Apply Term.__smt_repeat y) x) =
-            SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat (__eo_to_smt y))
+          __eo_to_smt (Term.Apply (Term.Apply Term.repeat y) x) =
+            SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat (__eo_to_smt y))
               (__eo_to_smt x) := by
         rw [__eo_to_smt.eq_def]
       have hApplyNN :
           term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat (__eo_to_smt y))
+            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat (__eo_to_smt y))
               (__eo_to_smt x)) := by
         unfold term_has_non_none_type
         rw [← hTranslate]
         exact hNonNone
       rcases repeat_args_of_non_none hApplyNN with ⟨i, w, hy, hx, hi⟩
       have hSmt :
-          __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.__smt_repeat y) x)) =
+          __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.repeat y) x)) =
             SmtType.BitVec (smt_lit_zmult i w) := by
         rw [hTranslate, typeof_repeat_eq, hy, hx]
         simp [__smtx_typeof_repeat, smt_lit_ite, hi]
       exact hSmt.trans
-        (eo_to_smt_type_typeof_apply_apply_smt_repeat_of_smt_numeral_bitvec
+        (eo_to_smt_type_typeof_apply_apply_repeat_of_smt_numeral_bitvec
           x y i w hy hx hi).symm
     case zero_extend =>
       have hTranslate :
