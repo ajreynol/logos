@@ -81,17 +81,20 @@ namespace TranslationProofs
     __eo_to_smt_type Term.RegLan = SmtType.RegLan := rfl
 
 @[simp] theorem eo_to_smt_type_seq (T : Term) :
-    __eo_to_smt_type (Term.Apply Term.Seq T) = SmtType.Seq (__eo_to_smt_type T) := by
+    __eo_to_smt_type (Term.Apply Term.Seq T) =
+      __smtx_typeof_guard (__eo_to_smt_type T) (SmtType.Seq (__eo_to_smt_type T)) := by
   simp [__eo_to_smt_type]
 
 @[simp] theorem eo_to_smt_type_array (A B : Term) :
     __eo_to_smt_type (Term.Apply (Term.Apply Term.Array A) B) =
-      SmtType.Map (__eo_to_smt_type A) (__eo_to_smt_type B) := by
+      __smtx_typeof_guard (__eo_to_smt_type A)
+        (__smtx_typeof_guard (__eo_to_smt_type B)
+          (SmtType.Map (__eo_to_smt_type A) (__eo_to_smt_type B))) := by
   simp [__eo_to_smt_type]
 
 @[simp] theorem eo_to_smt_type_set (T : Term) :
     __eo_to_smt_type (Term.Apply Term.Set T) =
-      SmtType.Set (__eo_to_smt_type T) := by
+      __smtx_typeof_guard (__eo_to_smt_type T) (SmtType.Set (__eo_to_smt_type T)) := by
   simp [__eo_to_smt_type]
 
 theorem smtx_typeof_guard_inhabited_of_non_none

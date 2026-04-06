@@ -178,6 +178,14 @@ private theorem eo_to_smt_type_fun_ne_seq
   cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
     simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
 
+private theorem eo_to_smt_type_seq_inner
+    (T : Term) {U : SmtType}
+    (h : __eo_to_smt_type (Term.Apply Term.Seq T) = SmtType.Seq U) :
+    __eo_to_smt_type T = U := by
+  cases hT : __eo_to_smt_type T <;>
+    simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT] at h
+  all_goals exact h
+
 theorem eo_to_smt_type_eq_bool
     {T : Term}
     (h : __eo_to_smt_type T = SmtType.Bool) :
@@ -187,6 +195,12 @@ theorem eo_to_smt_type_eq_bool
     rfl
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
+    case Seq =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
+    case Set =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
     case Apply f y =>
@@ -195,6 +209,9 @@ theorem eo_to_smt_type_eq_bool
         exact (eo_to_smt_type_fun_ne_bool y x h).elim
       case Tuple =>
         exact (eo_to_smt_type_tuple_ne_bool (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+      case Array =>
+        cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+          simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hy, hx] at h
 
 theorem eo_to_smt_type_eq_int
     {T : Term}
@@ -205,6 +222,12 @@ theorem eo_to_smt_type_eq_int
     rfl
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
+    case Seq =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
+    case Set =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
     case Apply f y =>
@@ -213,6 +236,9 @@ theorem eo_to_smt_type_eq_int
         exact (eo_to_smt_type_fun_ne_int y x h).elim
       case Tuple =>
         exact (eo_to_smt_type_tuple_ne_int (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+      case Array =>
+        cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+          simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hy, hx] at h
 
 theorem eo_to_smt_type_eq_real
     {T : Term}
@@ -223,6 +249,12 @@ theorem eo_to_smt_type_eq_real
     rfl
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
+    case Seq =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
+    case Set =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
     case Apply f y =>
@@ -231,6 +263,9 @@ theorem eo_to_smt_type_eq_real
         exact (eo_to_smt_type_fun_ne_real y x h).elim
       case Tuple =>
         exact (eo_to_smt_type_tuple_ne_real (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+      case Array =>
+        cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+          simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hy, hx] at h
 
 theorem eo_to_smt_type_eq_reglan
     {T : Term}
@@ -241,6 +276,12 @@ theorem eo_to_smt_type_eq_reglan
     rfl
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
+    case Seq =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
+    case Set =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
     case Apply f y =>
@@ -249,6 +290,9 @@ theorem eo_to_smt_type_eq_reglan
         exact (eo_to_smt_type_fun_ne_reglan y x h).elim
       case Tuple =>
         exact (eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+      case Array =>
+        cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+          simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hy, hx] at h
 
 theorem eo_to_smt_type_eq_char
     {T : Term}
@@ -259,6 +303,12 @@ theorem eo_to_smt_type_eq_char
     rfl
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
+    case Seq =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
+    case Set =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
     case Apply f y =>
@@ -267,6 +317,9 @@ theorem eo_to_smt_type_eq_char
         exact (eo_to_smt_type_fun_ne_char y x h).elim
       case Tuple =>
         exact (eo_to_smt_type_tuple_ne_char (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+      case Array =>
+        cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+          simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hy, hx] at h
 
 theorem eo_to_smt_type_eq_bitvec
     {T : Term} {w : smt_lit_Int}
@@ -275,6 +328,12 @@ theorem eo_to_smt_type_eq_bitvec
   cases T <;> try simp [__eo_to_smt_type] at h
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
+    case Seq =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
+    case Set =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
       case Numeral n =>
@@ -286,6 +345,9 @@ theorem eo_to_smt_type_eq_bitvec
         exact (eo_to_smt_type_fun_ne_bitvec y x w h).elim
       case Tuple =>
         exact (eo_to_smt_type_tuple_ne_bitvec (__eo_to_smt_type y) (__eo_to_smt_type x) w h).elim
+      case Array =>
+        cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+          simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hy, hx] at h
 
 theorem eo_to_smt_type_eq_seq
     {T : Term} {U : SmtType}
@@ -295,7 +357,10 @@ theorem eo_to_smt_type_eq_seq
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
     case Seq =>
-      exact ⟨x, rfl, by simpa [__eo_to_smt_type] using h⟩
+      exact ⟨x, rfl, eo_to_smt_type_seq_inner x h⟩
+    case Set =>
+      cases hx : __eo_to_smt_type x <;>
+        simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx] at h
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
     case Apply f y =>
@@ -304,6 +369,9 @@ theorem eo_to_smt_type_eq_seq
         exact (eo_to_smt_type_fun_ne_seq y x U h).elim
       case Tuple =>
         exact (eo_to_smt_type_tuple_ne_seq (__eo_to_smt_type y) (__eo_to_smt_type x) U h).elim
+      case Array =>
+        cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+          simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hy, hx] at h
 
 theorem eo_to_smt_type_eq_seq_char
     {T : Term}
