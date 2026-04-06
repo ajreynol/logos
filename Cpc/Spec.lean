@@ -116,6 +116,10 @@ def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
   | (Term.USort i) => (SmtType.USort i)
+  | (Term.Apply (Term.Apply Term.FunType T1) T2) => 
+    let _v0 := (__eo_to_smt_type T2)
+    let _v1 := (__eo_to_smt_type T1)
+    (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.Map _v1 _v0)))
   | Term.Int => SmtType.Int
   | Term.Real => SmtType.Real
   | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
@@ -411,3 +415,4 @@ def eo_satisfiability (t : Term) (b : Bool) : Prop :=
 
 
 /- ---------------------------------------------- -/
+
