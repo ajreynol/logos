@@ -331,7 +331,7 @@ inductive SmtTerm : Type where
   | store : SmtTerm
   | concat : SmtTerm
   | extract : SmtTerm
-  | __smt_repeat : SmtTerm
+  | repeat : SmtTerm
   | bvnot : SmtTerm
   | bvand : SmtTerm
   | bvor : SmtTerm
@@ -1609,7 +1609,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store x1) x2) x3) => (__smtx_typeof_store (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat x1) x2) => (__smtx_typeof_concat (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract x1) x2) x3) => (__smtx_typeof_extract x1 x2 (__smtx_typeof x3))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat x1) x2) => (__smtx_typeof_repeat x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat x1) x2) => (__smtx_typeof_repeat x1 (__smtx_typeof x2))
   | (SmtTerm.Apply SmtTerm.bvnot x1) => (__smtx_typeof_bv_op_1 (__smtx_typeof x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvand x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvor x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
@@ -1922,7 +1922,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.store x1) x2) x3) => (__smtx_model_eval_store (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat x1) x2) => (__smtx_model_eval_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract x1) x2) x3) => (__smtx_model_eval_extract (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat x1) x2) => (__smtx_model_eval_repeat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat x1) x2) => (__smtx_model_eval_repeat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply SmtTerm.bvnot x1) => (__smtx_model_eval_bvnot (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvand x1) x2) => (__smtx_model_eval_bvand (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvor x1) x2) => (__smtx_model_eval_bvor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
@@ -2049,16 +2049,23 @@ inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
       (__smtx_model_eval M t) = (SmtValue.Boolean false)->
       smt_interprets M t false
 
+def type_inhabited (T : SmtType) : Prop :=
+  ∃ v : SmtValue, __smtx_typeof_value v = T
+
+def model_total_typed (M : SmtModel) : Prop :=
+  (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
+  (∀ s T, ¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
+
 /-
 SMT interpretation is satisfiability, i.e. the existence of a model
 interpreting the free constants.
 -/
 inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
-      (exists M : SmtModel, (smt_interprets M t true)) ->
+      (exists M : SmtModel, model_total_typed M /\ (smt_interprets M t true)) ->
       smt_satisfiability t true
   | intro_false (t : SmtTerm) :
-      (forall M : SmtModel, ¬ (smt_interprets M t true))->
+      (forall M : SmtModel, model_total_typed M -> ¬ (smt_interprets M t true))->
       smt_satisfiability t false
 
 /- ---------------------------------------------- -/

@@ -222,7 +222,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply Term._at_bvsize x1) => (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x1))))
   | (Term.Apply (Term.Apply Term.concat x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.concat (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply Term.extract x1) x2) x3) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.extract (__eo_to_smt x1)) (__eo_to_smt x2)) (__eo_to_smt x3))
-  | (Term.Apply (Term.Apply Term.__smt_repeat x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.__smt_repeat (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.repeat x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply Term.bvnot x1) => (SmtTerm.Apply SmtTerm.bvnot (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.bvand x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvand (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.bvor x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvor (__eo_to_smt x1)) (__eo_to_smt x2))
@@ -396,12 +396,19 @@ inductive eo_is_obj : Term -> ObjectTerm -> Prop
 
 /-
 A predicate defining when a Eunoia term corresponds to an object term that
-evaluates to true or false.
+evaluates to true or false in an object model.
 (t,b) is true if t is a Eunoia term corresponding to an object term that
 evaluates to b.
 -/
 def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
   exists (s : ObjectTerm), (eo_is_obj t s) /\ (obj_interprets M s b)
+
+/-
+Eunoia satisfiability depends on SMT satisfiability.
+-/
+def eo_satisfiability : (t : Term) (b : Bool) : Prop :=
+  exists (s : ObjectTerm), (eo_is_obj t s) /\ (smt_satisfiability s b)
+
 
 /- ---------------------------------------------- -/
 
