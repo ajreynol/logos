@@ -789,18 +789,24 @@ theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   TranslatableAssumptionList F ->
   CmdListTranslationOk pf ->
   (eo_is_refutation F pf) ->
-  (forall M : SmtModel, model_total_typed M -> ¬ (eo_interprets M F true)) :=
+  eo_satisfiability F false :=
 by
-  intro hTyped hFTrans hPfTrans hRef M hM hF
-  cases hRef with
-  | intro hChecker =>
-      let S0 := __eo_invoke_assume_list CState.nil F
-      let S1 := __eo_invoke_cmd_list S0 pf
-      have hValid : ValidAssumptionList F :=
-        validAssumptionList_of_checker_true F pf hChecker
-      have hInit : checkerStateInvariant M S0 := by
-        simpa [S0] using checkerStateInvariant_after_assume_list M F hValid hTyped hFTrans
-      have hSteps : checkerStateInvariant M S1 := by
-        simpa [S0, S1] using invoke_cmd_list_preserves_stateInvariant M hM S0 pf hInit hPfTrans
-      exact refutation_contradiction_of_truthInvariant M F pf hF
-        (checkerLocalTruthInvariant_implies_truthInvariant M hSteps.2.1) hChecker
+  intro hTyped hFTrans hPfTrans hRef
+  have hNoInterp : forall M : SmtModel, model_total_typed M -> ¬ (eo_interprets M F true) := by
+    intro M hM hF
+    cases hRef with
+    | intro hChecker =>
+        let S0 := __eo_invoke_assume_list CState.nil F
+        let S1 := __eo_invoke_cmd_list S0 pf
+        have hValid : ValidAssumptionList F :=
+          validAssumptionList_of_checker_true F pf hChecker
+        have hInit : checkerStateInvariant M S0 := by
+          simpa [S0] using checkerStateInvariant_after_assume_list M F hValid hTyped hFTrans
+        have hSteps : checkerStateInvariant M S1 := by
+          simpa [S0, S1] using invoke_cmd_list_preserves_stateInvariant M hM S0 pf hInit hPfTrans
+        exact refutation_contradiction_of_truthInvariant M F pf hF
+          (checkerLocalTruthInvariant_implies_truthInvariant M hSteps.2.1) hChecker
+  refine ⟨__eo_to_smt F, eo_is_obj.intro F, ?_⟩
+  apply smt_satisfiability.intro_false
+  intro M hM hSmt
+  exact hNoInterp M hM ((eo_interprets_iff_smt_interprets M F true).2 hSmt)

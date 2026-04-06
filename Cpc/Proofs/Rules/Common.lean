@@ -16,10 +16,6 @@ def eo_has_smt_translation (t : Term) : Prop :=
 def eo_has_bool_type (t : Term) : Prop :=
   __smtx_typeof (__eo_to_smt t) = SmtType.Bool
 
-structure RuleResultFacts (M : SmtModel) (P : Term) : Prop where
-  true_in_model : eo_interprets M P true
-  has_smt_translation : eo_has_smt_translation P
-
 theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
     (t : Term) (s : SmtTerm) :
   __eo_to_smt t = s ->

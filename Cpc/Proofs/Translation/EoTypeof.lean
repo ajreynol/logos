@@ -964,12 +964,12 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsdivo_of_smt_bitvec
       SmtType.Bool := by
   sorry
 
-theorem eo_to_smt_type_typeof_apply_apply_smt_repeat_of_smt_numeral_bitvec
+theorem eo_to_smt_type_typeof_apply_apply_repeat_of_smt_numeral_bitvec
     (x y : Term) (i w : smt_lit_Int)
     (hy : __eo_to_smt y = SmtTerm.Numeral i)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
     (hi : smt_lit_zleq 1 i = true) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.__smt_repeat y) x)) =
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.repeat y) x)) =
       SmtType.BitVec (smt_lit_zmult i w) := by
   sorry
 
