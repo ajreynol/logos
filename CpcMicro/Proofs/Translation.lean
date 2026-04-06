@@ -25,6 +25,209 @@ boolean/equality fragment that already lines up cleanly:
 3. Fully translated boolean/equality applications.
 -/
 
+theorem smtx_typeof_eq_bool_iff
+    (T U : SmtType) :
+    __smtx_typeof_eq T U = SmtType.Bool ↔ T = U ∧ T ≠ SmtType.None := by
+  unfold __smtx_typeof_eq __smtx_typeof_guard
+  by_cases hT : T = SmtType.None
+  · subst hT
+    simp [smt_lit_ite, smt_lit_Teq]
+  · by_cases hEq : T = U
+    · subst hEq
+      simp [smt_lit_ite, smt_lit_Teq, hT]
+    · simp [smt_lit_ite, smt_lit_Teq, hEq, hT]
+
+private theorem eo_to_smt_type_fun_ne_bool
+    (T U : Term) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.Bool := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
+private theorem eo_to_smt_type_fun_ne_usort
+    (T U : Term) (i : eo_lit_Nat) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.USort i := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
+private theorem eo_to_smt_type_fun_ne_int
+    (T U : Term) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.Int := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
+private theorem eo_to_smt_type_fun_ne_real
+    (T U : Term) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.Real := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
+private theorem eo_to_smt_type_fun_ne_char
+    (T U : Term) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.Char := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
+private theorem eo_to_smt_type_fun_ne_bitvec
+    (T U : Term) (w : smt_lit_Int) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.BitVec w := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
+private theorem eo_to_smt_type_fun_ne_seq
+    (T U : Term) (V : SmtType) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.Seq V := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
+
+theorem eo_to_smt_type_eq_bool
+    {T : Term}
+    (h : __eo_to_smt_type T = SmtType.Bool) :
+    T = Term.Bool := by
+  cases T <;> try simp [__eo_to_smt_type] at h
+  case Bool =>
+    rfl
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type] at h
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type] at h
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx] at h
+      · simp [hx] at h
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type] at h
+      case FunType =>
+        exact (eo_to_smt_type_fun_ne_bool y x h).elim
+
+theorem eo_to_smt_type_eq_usort
+    {T : Term} {i : eo_lit_Nat}
+    (h : __eo_to_smt_type T = SmtType.USort i) :
+    T = Term.USort i := by
+  cases T <;> try simp [__eo_to_smt_type] at h
+  case USort j =>
+    cases h
+    rfl
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type] at h
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type] at h
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx] at h
+      · simp [hx] at h
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type] at h
+      case FunType =>
+        exact (eo_to_smt_type_fun_ne_usort y x i h).elim
+
+theorem eo_to_smt_type_eq_int
+    {T : Term}
+    (h : __eo_to_smt_type T = SmtType.Int) :
+    T = Term.Int := by
+  cases T <;> try simp [__eo_to_smt_type] at h
+  case Int =>
+    rfl
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type] at h
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type] at h
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx] at h
+      · simp [hx] at h
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type] at h
+      case FunType =>
+        exact (eo_to_smt_type_fun_ne_int y x h).elim
+
+theorem eo_to_smt_type_eq_real
+    {T : Term}
+    (h : __eo_to_smt_type T = SmtType.Real) :
+    T = Term.Real := by
+  cases T <;> try simp [__eo_to_smt_type] at h
+  case Real =>
+    rfl
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type] at h
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type] at h
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx] at h
+      · simp [hx] at h
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type] at h
+      case FunType =>
+        exact (eo_to_smt_type_fun_ne_real y x h).elim
+
+theorem eo_to_smt_type_eq_char
+    {T : Term}
+    (h : __eo_to_smt_type T = SmtType.Char) :
+    T = Term.Char := by
+  cases T <;> try simp [__eo_to_smt_type] at h
+  case Char =>
+    rfl
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type] at h
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type] at h
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx] at h
+      · simp [hx] at h
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type] at h
+      case FunType =>
+        exact (eo_to_smt_type_fun_ne_char y x h).elim
+
+theorem eo_to_smt_type_eq_bitvec
+    {T : Term} {w : smt_lit_Int}
+    (h : __eo_to_smt_type T = SmtType.BitVec w) :
+    T = Term.Apply Term.BitVec (Term.Numeral w) := by
+  cases T <;> try simp [__eo_to_smt_type] at h
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type] at h
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type] at h
+      case Numeral n =>
+        cases h
+        rfl
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx] at h
+      · simp [hx] at h
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type] at h
+      case FunType =>
+        exact (eo_to_smt_type_fun_ne_bitvec y x w h).elim
+
+theorem eo_to_smt_type_eq_seq
+    {T : Term} {U : SmtType}
+    (h : __eo_to_smt_type T = SmtType.Seq U) :
+    ∃ V, T = Term.Apply Term.Seq V ∧
+      __eo_to_smt_type V = U ∧
+      __eo_to_smt_type V ≠ SmtType.None := by
+  cases T <;> try simp [__eo_to_smt_type] at h
+  case Apply f x =>
+    cases f <;> try simp [__eo_to_smt_type] at h
+    case Seq =>
+      by_cases hx : __eo_to_smt_type x = SmtType.None
+      · simp [hx] at h
+      · exact ⟨x, rfl, by simpa [hx] using h, hx⟩
+    case BitVec =>
+      cases x <;> simp [__eo_to_smt_type] at h
+    case Apply g y =>
+      cases g <;> try simp [__eo_to_smt_type] at h
+      case FunType =>
+        exact (eo_to_smt_type_fun_ne_seq y x U h).elim
+
+theorem eo_to_smt_type_eq_seq_char
+    {T : Term}
+    (h : __eo_to_smt_type T = SmtType.Seq SmtType.Char) :
+    T = Term.Apply Term.Seq Term.Char := by
+  rcases eo_to_smt_type_eq_seq h with ⟨V, rfl, hV, _⟩
+  rw [eo_to_smt_type_eq_char hV]
+
 inductive supported_bool_translation_term : Term -> Prop where
   | boolean (b : eo_lit_Bool) :
       supported_bool_translation_term (Term.Boolean b)
