@@ -1,5 +1,6 @@
 import CpcMicro.Proofs.Translation.Datatypes
 import CpcMicro.Proofs.TypePreservation.CoreArith
+import CpcMicro.Proofs.TypePreservation.Datatypes
 
 open Eo
 open Smtm
@@ -78,5 +79,81 @@ theorem smtx_typeof_translation_eq_of_non_none
     exact hNonNone
   simpa using
     eq_term_typeof_of_non_none (t1 := __eo_to_smt x) (t2 := __eo_to_smt y) hApplyNN
+
+theorem smtx_typeof_eq_non_none
+    {T U : SmtType}
+    (h : __smtx_typeof_eq T U ≠ SmtType.None) :
+    T = U ∧ T ≠ SmtType.None := by
+  by_cases hNone : T = SmtType.None
+  · subst hNone
+    exfalso
+    exact h (by simp [__smtx_typeof_eq, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq])
+  · by_cases hEq : T = U
+    · exact ⟨hEq, hNone⟩
+    · exfalso
+      exact h (by
+        simp [__smtx_typeof_eq, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hNone, hEq])
+
+theorem eo_to_smt_typeof_matches_translation_apply_generic
+    (f x : Term)
+    (ihF :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hGeneric :
+      generic_apply_type (__eo_to_smt f) (__eo_to_smt x))
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) = SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hTypeof :
+      __eo_typeof (Term.Apply f x) = __eo_typeof_apply (__eo_typeof f) (__eo_typeof x))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+      __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
+  have hApplyNN :
+      __smtx_typeof_apply (__smtx_typeof (__eo_to_smt f)) (__smtx_typeof (__eo_to_smt x)) ≠
+        SmtType.None := by
+    have hApplyNN' :
+        __smtx_typeof (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) ≠
+          SmtType.None := by
+      simpa [hTranslate] using hNonNone
+    rw [hGeneric] at hApplyNN'
+    exact hApplyNN'
+  rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hF, hX, hA, _hB⟩
+  have hFNN : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None := by
+    rw [hF]
+    simp
+  have hXNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+    rw [hX]
+    exact hA
+  have hFEo : __eo_to_smt_type (__eo_typeof f) = SmtType.Map A B := by
+    simpa [ihF hFNN] using hF
+  have hXEo : __eo_to_smt_type (__eo_typeof x) = A := by
+    simpa [ihX hXNN] using hX
+  rcases eo_to_smt_type_eq_map_iff.mp hFEo with
+    ⟨T1, T2, hFun, hT1, hT2, hT1NN, _hT2NN⟩
+  have hArgTy : __eo_typeof x = T1 := by
+    apply eo_to_smt_type_eq_of_non_none
+    · rw [hXEo, ← hT1]
+    · rwa [hXEo, ← hT1]
+  have hT1NotStuck : T1 ≠ Term.Stuck := by
+    intro hStuck
+    apply hT1NN
+    simp [hStuck, __eo_to_smt_type]
+  have hSmt :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
+    rw [hTranslate, hGeneric]
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hF, hX, hA]
+  have hTypeApply :
+      __eo_typeof_apply (Term.Apply (Term.Apply Term.FunType T1) T2) T1 = T2 := by
+    rw [__eo_typeof_apply.eq_def]
+    by_cases hStuck : T1 = Term.Stuck
+    · exact False.elim (hT1NotStuck hStuck)
+    · simp [hStuck, __eo_requires.eq_def, eo_lit_teq, eo_lit_ite, eo_lit_not]
+      intro hFalse
+      cases hFalse
+  rw [hSmt, hTypeof, hFun, hArgTy, hTypeApply, hT2]
 
 end TranslationProofs
