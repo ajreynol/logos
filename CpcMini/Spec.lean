@@ -63,7 +63,9 @@ def __eo_to_smt_type : Term -> SmtType
   | Term.Real => SmtType.Real
   | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
   | Term.Char => SmtType.Char
-  | (Term.Apply Term.Seq x1) => (SmtType.Seq (__eo_to_smt_type x1))
+  | (Term.Apply Term.Seq x1) => 
+    let _v0 := (__eo_to_smt_type x1)
+    (__smtx_typeof_guard _v0 (SmtType.Seq _v0))
   | T => SmtType.None
 
 
