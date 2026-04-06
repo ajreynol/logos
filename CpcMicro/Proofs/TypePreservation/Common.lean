@@ -4,9 +4,6 @@ open Smtm
 
 namespace Smtm
 
-def type_inhabited (T : SmtType) : Prop :=
-  ∃ v : SmtValue, __smtx_typeof_value v = T
-
 theorem smtx_inhabited_type_eq_true_iff (T : SmtType) :
     smt_lit_inhabited_type T = true ↔ type_inhabited T := by
   classical
@@ -35,10 +32,6 @@ def generic_apply_eval (f x : SmtTerm) : Prop :=
   ∀ M,
     __smtx_model_eval M (SmtTerm.Apply f x) =
       __smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x)
-
-def model_total_typed (M : SmtModel) : Prop :=
-  (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
-  (∀ s T, ¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
 
 def model_typed_at (M : SmtModel) (s : smt_lit_String) (T : SmtType) : Prop :=
   (type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
