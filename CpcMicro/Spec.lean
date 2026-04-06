@@ -1,5 +1,5 @@
-import CpcMini.SmtModel
-import CpcMini.Logos
+import CpcMicro.SmtModel
+import CpcMicro.Logos
 
 open Eo
 open Smtm
@@ -15,7 +15,7 @@ abbrev smt_lit_teq := eo_lit_teq
 /- Definition of refutation -/
 
 inductive eo_is_refutation : Term -> CCmdList -> Prop
-  | intro (F : Term) (c : CCmdList) : 
+  | intro (F : Term) (c : CCmdList) :
     (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 
 
@@ -41,19 +41,9 @@ noncomputable section
 
 mutual
 
-def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
-  | DatatypeCons.unit => SmtDatatypeCons.unit
-  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
-
-
-def __eo_to_smt_datatype : Datatype -> SmtDatatype
-  | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
-  | Datatype.null => SmtDatatype.null
-
 
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
-  | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
   | (Term.USort i) => (SmtType.USort i)
   | (Term.Apply (Term.Apply Term.FunType T1) T2) => 
     let _v0 := (__eo_to_smt_type T2)
@@ -63,7 +53,9 @@ def __eo_to_smt_type : Term -> SmtType
   | Term.Real => SmtType.Real
   | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
   | Term.Char => SmtType.Char
-  | (Term.Apply Term.Seq x1) => (SmtType.Seq (__eo_to_smt_type x1))
+  | (Term.Apply Term.Seq x1) =>
+      let T1 := __eo_to_smt_type x1
+      if T1 = SmtType.None then SmtType.None else SmtType.Seq T1
   | T => SmtType.None
 
 
@@ -74,8 +66,6 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
   | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons s d i) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)
-  | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
   | (Term.UConst i T) => (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T))
   | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or (__eo_to_smt x1)) (__eo_to_smt x2))
@@ -106,19 +96,11 @@ inductive eo_is_obj : Term -> ObjectTerm -> Prop
 
 /-
 A predicate defining when a Eunoia term corresponds to an object term that
-evaluates to true or false in an object model.
+evaluates to true or false.
 (t,b) is true if t is a Eunoia term corresponding to an object term that
 evaluates to b.
 -/
 def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
   exists (s : ObjectTerm), (eo_is_obj t s) /\ (obj_interprets M s b)
 
-/-
-Eunoia satisfiability depends on SMT satisfiability.
--/
-def eo_satisfiability (t : Term) (b : Bool) : Prop :=
-  exists (s : ObjectTerm), (eo_is_obj t s) /\ (smt_satisfiability s b)
-
-
 /- ---------------------------------------------- -/
-

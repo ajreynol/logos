@@ -31,6 +31,13 @@ namespace TranslationProofs
 @[simp] theorem eo_to_smt_type_real :
     __eo_to_smt_type Term.Real = SmtType.Real := rfl
 
+@[simp] theorem eo_to_smt_type_fun (T U : Term) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) =
+      __smtx_typeof_guard (__eo_to_smt_type T)
+        (__smtx_typeof_guard (__eo_to_smt_type U)
+          (SmtType.Map (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
+  simp [__eo_to_smt_type]
+
 @[simp] theorem eo_to_smt_type_bitvec (n : eo_lit_Int) :
     __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) = SmtType.BitVec n := by
   simp [__eo_to_smt_type]

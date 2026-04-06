@@ -15,11 +15,10 @@ namespace TranslationProofs
 This file is the staging area for the `CpcMini` EO-to-SMT translation typing
 port.
 
-Unlike `Cpc`, the current mini `__eo_to_smt_type` only translates first-order EO
-types, so the full wrapper theorem from `Cpc/Proofs/Translation.lean` is too
-strong for constructor heads whose SMT translation has a function-like datatype
-type. The port here therefore focuses on the fragment that already lines up
-cleanly in `CpcMini`:
+The mini type translation now includes EO function types via SMT maps, but the
+proof port here is still intentionally centered on the boolean/equality fragment
+already used by the checker. In other words, the proof file is narrower than the
+translation semantics on purpose. The current staging area therefore focuses on:
 
 1. Direct translation helpers for literals and symbols.
 2. Datatype head translation helpers.
