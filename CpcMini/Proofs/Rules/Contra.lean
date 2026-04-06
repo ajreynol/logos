@@ -105,7 +105,7 @@ theorem facts___eo_prog_contra_impl
   eo_interprets M x1 true ->
   eo_interprets M x2 true ->
   __eo_prog_contra (Proof.pf x1) (Proof.pf x2) ≠ Term.Stuck ->
-  RuleProofs.RuleResultFacts M (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) :=
+  eo_interprets M (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) true :=
 by
   intro hX1True hX2True hProg
   let hX1Bool : RuleProofs.eo_has_bool_type x1 :=
@@ -114,9 +114,7 @@ by
     RuleProofs.eo_has_bool_type_of_interprets_true M x2 hX2True
   let hBool : RuleProofs.eo_has_bool_type (__eo_prog_contra (Proof.pf x1) (Proof.pf x2)) :=
     typed___eo_prog_contra_impl x1 x2 hX1Bool hX2Bool hProg
-  refine ⟨?_, ?_⟩
-  · exact correct___eo_prog_contra_impl M hM x1 x2 hX1True hX2True hBool
-  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool
+  exact correct___eo_prog_contra_impl M hM x1 x2 hX1True hX2True hBool
 
 theorem cmd_step_contra_properties
     (M : SmtModel) (hM : model_total_typed M)
