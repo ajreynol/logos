@@ -78,7 +78,9 @@ theorem eo_to_smt_type_ne_map
       | BitVec =>
           cases x <;> simp [__eo_to_smt_type]
       | Seq =>
-          simp [__eo_to_smt_type]
+          by_cases h : __eo_to_smt_type x = SmtType.None
+          · simp [__eo_to_smt_type, h]
+          · simp [__eo_to_smt_type, h]
       | _ =>
           simp [__eo_to_smt_type]
   | _ =>
