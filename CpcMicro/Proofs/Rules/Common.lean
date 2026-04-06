@@ -1,3 +1,4 @@
+import CpcMicro.Proofs.TypePreservation
 import CpcMicro.Proofs.Unproven
 
 open Eo

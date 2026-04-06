@@ -1,67 +1,10 @@
 import CpcMicro.Spec
-import CpcMicro.Proofs.SmtModelLemmas
-import CpcMicro.Proofs.TypePreservation
 
 open Eo
 open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-theorem smt_model_eval_preserves_type
-    (M : SmtModel) (hM : model_total_typed M)
-    (t : SmtTerm) (T : SmtType) :
-  __smtx_typeof t = T ->
-  T ≠ SmtType.None ->
-  smt_type_inhabited T ->
-  __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  intro hTy hNonNone _hInh
-  have hNN : term_has_non_none_type t := by
-    unfold term_has_non_none_type
-    rw [hTy]
-    exact hNonNone
-  simpa [hTy] using type_preservation M hM t hNN
-
-theorem smt_model_eval_bool_is_boolean
-    (M : SmtModel) (hM : model_total_typed M)
-    (t : SmtTerm) :
-  __smtx_typeof t = SmtType.Bool ->
-  ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
-  intro hTy
-  have hNN : term_has_non_none_type t := by
-    unfold term_has_non_none_type
-    rw [hTy]
-    simp
-  have hPres :
-      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
-    by simpa [hTy] using type_preservation M hM t hNN
-  exact bool_value_canonical hPres
-
-theorem smt_model_eval_preserves_type_of_supported
-    (M : SmtModel) (hM : model_total_typed M)
-    (t : SmtTerm) (T : SmtType)
-    (hTy : __smtx_typeof t = T)
-    (hNonNone : T ≠ SmtType.None)
-    (hInh : smt_type_inhabited T)
-    (hs : supported_preservation_term t) :
-  __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  have hNN : term_has_non_none_type t := by
-    unfold term_has_non_none_type
-    rw [hTy]
-    exact hNonNone
-  simpa [hTy] using type_preservation M hM t hNN
-
-theorem smt_model_eval_bool_is_boolean_of_supported
-    (M : SmtModel) (hM : model_total_typed M)
-    (t : SmtTerm)
-    (hTy : __smtx_typeof t = SmtType.Bool)
-    (hs : supported_preservation_term t) :
-  ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
-  have hPres :
-      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
-    smt_model_eval_preserves_type_of_supported M hM t SmtType.Bool hTy (by simp)
-      smt_type_inhabited_bool hs
-  exact bool_value_canonical hPres
 
 namespace RuleProofs
 
