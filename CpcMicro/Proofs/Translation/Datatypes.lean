@@ -10,10 +10,6 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
-@[simp] theorem eo_to_smt_datatype_cons_unit :
-    __eo_to_smt_datatype_cons DatatypeCons.unit = SmtDatatypeCons.unit := rfl
-
-@[simp] theorem eo_to_smt_datatype_null :
-    __eo_to_smt_datatype Datatype.null = SmtDatatype.null := rfl
+/- Datatype-specific SMT translation helpers were removed from `CpcMicro.Spec`. -/
 
 end TranslationProofs
