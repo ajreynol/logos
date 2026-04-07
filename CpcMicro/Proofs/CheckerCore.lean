@@ -1986,8 +1986,8 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
     eo_interprets M (stateAssumes s) true ->
     eo_interprets M (statePushes s) true ->
     eo_interprets M P true
-  has_smt_translation :
-    RuleProofs.eo_has_smt_translation P
+  has_bool_type :
+    RuleProofs.eo_has_bool_type P
 
 theorem cmd_step_facts_of_rule_properties
     (M : SmtModel) (s : CState) (premises : CIndexList) {P : Term} :
@@ -2001,7 +2001,7 @@ by
     exact
       hProps.facts_of_true
         (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
-  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type P hProps.has_bool_type
+  · exact hProps.has_bool_type
 
 structure CmdStepPopFacts
     (root tail : CState) (A P : Term) : Prop where
@@ -2013,8 +2013,8 @@ structure CmdStepPopFacts
       eo_interprets M (stateAssumes tail) true ->
       eo_interprets M (statePushes tail) true ->
       eo_interprets M P true
-  has_smt_translation :
-    RuleProofs.eo_has_smt_translation P
+  has_bool_type :
+    RuleProofs.eo_has_bool_type P
 
 theorem cmd_step_pop_facts_of_rule_properties
     (root tail : CState) (A : Term) (premises : CIndexList) {P : Term} :
@@ -2039,4 +2039,4 @@ by
       exact (premiseTermList_true_of_truthInvariant M root premises hTruth hAssRoot hPushRoot)
         X hXMem
     exact hFactsOfImp M hM hScoped
-  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type P hPopBool
+  · exact hPopBool
