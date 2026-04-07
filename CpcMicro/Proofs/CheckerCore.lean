@@ -748,10 +748,10 @@ by
   induction s with
   | nil =>
       intro n
-      simp [__eo_state_proven_nth, RuleProofs.eo_has_smt_translation, __eo_to_smt, __smtx_typeof]
+      simp [__eo_state_proven_nth, RuleProofs.eo_has_smt_translation, __eo_to_smt.eq_def, __smtx_typeof]
   | Stuck =>
       intro n
-      simp [__eo_state_proven_nth, RuleProofs.eo_has_smt_translation, __eo_to_smt, __smtx_typeof]
+      simp [__eo_state_proven_nth, RuleProofs.eo_has_smt_translation, __eo_to_smt.eq_def, __smtx_typeof]
   | cons so s ih =>
       intro n
       by_cases hZero : n = 0

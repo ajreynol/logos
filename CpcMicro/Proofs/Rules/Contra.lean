@@ -30,7 +30,7 @@ by
                   Term.Boolean false := by
               rw [__eo_prog_contra, hEqTerm]
               simp [__eo_requires, eo_lit_teq, eo_lit_ite, eo_lit_not, SmtEval.smt_lit_not]
-            simp [RuleProofs.eo_has_bool_type, hContraFalse, __eo_to_smt, __smtx_typeof]
+            simp [RuleProofs.eo_has_bool_type, hContraFalse, __eo_to_smt.eq_def, __smtx_typeof]
           · have hEqNe : __eo_eq x1 a ≠ Term.Boolean true := by
               intro hEqTerm
               by_cases hXStuck : x1 = Term.Stuck

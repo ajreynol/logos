@@ -10,18 +10,6 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
-@[simp] theorem eo_to_smt_boolean (b : eo_lit_Bool) :
-    __eo_to_smt (Term.Boolean b) = SmtTerm.Boolean b := by
-  simp [__eo_to_smt.eq_def]
-
-@[simp] theorem eo_to_smt_var (s : eo_lit_String) (T : Term) :
-    __eo_to_smt (Term.Var s T) = SmtTerm.Var s (__eo_to_smt_type T) := by
-  simp [__eo_to_smt.eq_def]
-
-@[simp] theorem eo_to_smt_uconst (i : eo_lit_Nat) (T : Term) :
-    __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T) := by
-  simp [__eo_to_smt.eq_def]
-
 theorem eo_to_smt_ne_not (t : Term) :
     __eo_to_smt t ≠ SmtTerm.not := by
   intro h
@@ -181,15 +169,6 @@ theorem eo_to_smt_ne_ite_partial2 (t : Term) (c u : SmtTerm) :
         injection h with hHead _
         exact eo_to_smt_ne_ite_partial ((Term.Apply a b).Apply y) c hHead
 
-@[simp] theorem eo_to_smt_type_bool :
-    __eo_to_smt_type Term.Bool = SmtType.Bool := rfl
-
-@[simp] theorem eo_to_smt_type_int :
-    __eo_to_smt_type Term.Int = SmtType.Int := rfl
-
-@[simp] theorem eo_to_smt_type_real :
-    __eo_to_smt_type Term.Real = SmtType.Real := rfl
-
 @[simp] theorem eo_to_smt_type_fun (T U : Term) :
     __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) =
       __smtx_typeof_guard (__eo_to_smt_type T)
@@ -197,22 +176,7 @@ theorem eo_to_smt_ne_ite_partial2 (t : Term) (c u : SmtTerm) :
           (SmtType.Map (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
   simp [__eo_to_smt_type]
 
-@[simp] theorem eo_to_smt_type_bitvec (n : eo_lit_Int) :
-    __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) = SmtType.BitVec n := by
-  simp [__eo_to_smt_type]
-
-@[simp] theorem eo_to_smt_type_char :
-    __eo_to_smt_type Term.Char = SmtType.Char := rfl
-
-@[simp] theorem eo_to_smt_type_seq (T : Term) :
-    __eo_to_smt_type (Term.Apply Term.Seq T) =
-      if __eo_to_smt_type T = SmtType.None then
-        SmtType.None
-      else
-        SmtType.Seq (__eo_to_smt_type T) := by
-  simp [__eo_to_smt_type]
-
-theorem smt_lit_ite_ne_map
+private theorem smt_lit_ite_ne_map
     {c : smt_lit_Bool} {T U A B : SmtType}
     (hT : T ≠ SmtType.Map A B)
     (hU : U ≠ SmtType.Map A B) :
@@ -221,7 +185,7 @@ theorem smt_lit_ite_ne_map
   · simpa [smt_lit_ite] using hU
   · simpa [smt_lit_ite] using hT
 
-theorem smtx_typeof_guard_eq_map_iff
+private theorem smtx_typeof_guard_eq_map_iff
     {T U A B : SmtType} :
     __smtx_typeof_guard T U = SmtType.Map A B ↔
       T ≠ SmtType.None ∧ U = SmtType.Map A B := by
@@ -331,7 +295,7 @@ private theorem eo_to_smt_type_fun_ne_set
   cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
     simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
 
-theorem eo_to_smt_type_eq_seq_iff
+private theorem eo_to_smt_type_eq_seq_iff
     {T : Term} {A : SmtType} :
     __eo_to_smt_type T = SmtType.Seq A ↔
       ∃ U,
@@ -365,7 +329,7 @@ theorem eo_to_smt_type_eq_seq_iff
       rwa [← hU]
     simp [__eo_to_smt_type, hANN, hU]
 
-theorem eo_to_smt_type_eq_bool
+private theorem eo_to_smt_type_eq_bool
     {T : Term} :
     __eo_to_smt_type T = SmtType.Bool ->
     T = Term.Bool := by
@@ -388,7 +352,7 @@ theorem eo_to_smt_type_eq_bool
   | _ =>
       simp [__eo_to_smt_type]
 
-theorem eo_to_smt_type_eq_int
+private theorem eo_to_smt_type_eq_int
     {T : Term} :
     __eo_to_smt_type T = SmtType.Int ->
     T = Term.Int := by
@@ -411,7 +375,7 @@ theorem eo_to_smt_type_eq_int
   | _ =>
       simp [__eo_to_smt_type]
 
-theorem eo_to_smt_type_eq_real
+private theorem eo_to_smt_type_eq_real
     {T : Term} :
     __eo_to_smt_type T = SmtType.Real ->
     T = Term.Real := by
@@ -434,7 +398,7 @@ theorem eo_to_smt_type_eq_real
   | _ =>
       simp [__eo_to_smt_type]
 
-theorem eo_to_smt_type_eq_char
+private theorem eo_to_smt_type_eq_char
     {T : Term} :
     __eo_to_smt_type T = SmtType.Char ->
     T = Term.Char := by
@@ -457,7 +421,7 @@ theorem eo_to_smt_type_eq_char
   | _ =>
       simp [__eo_to_smt_type]
 
-theorem eo_to_smt_type_eq_usort
+private theorem eo_to_smt_type_eq_usort
     {T : Term} {i : eo_lit_Nat} :
     __eo_to_smt_type T = SmtType.USort i ->
     T = Term.USort i := by
@@ -480,7 +444,7 @@ theorem eo_to_smt_type_eq_usort
   | _ =>
       simp [__eo_to_smt_type]
 
-theorem eo_to_smt_type_eq_bitvec
+private theorem eo_to_smt_type_eq_bitvec
     {T : Term} {w : eo_lit_Int} :
     __eo_to_smt_type T = SmtType.BitVec w ->
     T = Term.Apply Term.BitVec (Term.Numeral w) := by
@@ -503,7 +467,7 @@ theorem eo_to_smt_type_eq_bitvec
   | _ =>
       simp [__eo_to_smt_type]
 
-theorem eo_to_smt_type_non_none_unique :
+private theorem eo_to_smt_type_non_none_unique :
     ∀ {S : SmtType} {T U : Term},
       __eo_to_smt_type T = S ->
       __eo_to_smt_type U = S ->
@@ -597,21 +561,7 @@ theorem eo_to_smt_type_eq_of_non_none
     T = U := by
   exact eo_to_smt_type_non_none_unique rfl hEq.symm hNN
 
-theorem smtx_typeof_guard_ne_map
-    {T U A B : SmtType}
-    (hU : U ≠ SmtType.Map A B) :
-    __smtx_typeof_guard T U ≠ SmtType.Map A B := by
-  unfold __smtx_typeof_guard
-  exact smt_lit_ite_ne_map (by simp) hU
-
-theorem smtx_typeof_guard_inhabited_ne_map
-    {T U A B : SmtType}
-    (hU : U ≠ SmtType.Map A B) :
-    __smtx_typeof_guard_inhabited T U ≠ SmtType.Map A B := by
-  unfold __smtx_typeof_guard_inhabited
-  exact smt_lit_ite_ne_map hU (by simp)
-
-theorem smtx_typeof_guard_inhabited_of_non_none
+private theorem smtx_typeof_guard_inhabited_of_non_none
     (T U : SmtType) :
     __smtx_typeof_guard_inhabited T U ≠ SmtType.None ->
     __smtx_typeof_guard_inhabited T U = U := by
@@ -635,7 +585,7 @@ theorem smtx_typeof_uconst_of_non_none
   change __smtx_typeof_guard_inhabited T T = T
   exact smtx_typeof_guard_inhabited_of_non_none T T (by simpa [__smtx_typeof] using h)
 
-theorem smtx_binary_well_formed_of_non_none
+private theorem smtx_binary_well_formed_of_non_none
     (w n : smt_lit_Int) :
     __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None ->
     smt_lit_zleq 0 w = true ∧

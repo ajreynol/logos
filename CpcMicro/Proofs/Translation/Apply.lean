@@ -12,7 +12,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
-theorem smtx_typeof_apply_generic_of_head_not_special
+private theorem smtx_typeof_apply_generic_of_head_not_special
     (f x : SmtTerm)
     (hNot : f ≠ SmtTerm.not)
     (hOr : ∀ u, f ≠ SmtTerm.Apply SmtTerm.or u)
