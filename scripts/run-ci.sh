@@ -24,6 +24,9 @@ lake build CpcMini.Proofs.Translation
 echo "Compiling CpcMicro.Proofs.Checker..."
 lake build CpcMicro.Proofs.Checker
 
+echo "Compiling CpcMicro.Examples.TestSimpleCheckerAssumptions..."
+lake build CpcMicro.Examples.TestSimpleCheckerAssumptions
+
 shopt -s nullglob
 examples=(examples/*.cpc.lean)
 
