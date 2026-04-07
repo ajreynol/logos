@@ -65,14 +65,12 @@ theorem facts___eo_prog_refl_impl
     (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
   __eo_prog_refl x1 ≠ Term.Stuck ->
-  RuleProofs.RuleResultFacts M (__eo_prog_refl x1) :=
+  eo_interprets M (__eo_prog_refl x1) true :=
 by
   intro hTrans hProg
   let hBool : RuleProofs.eo_has_bool_type (__eo_prog_refl x1) :=
     typed___eo_prog_refl_impl x1 hTrans hProg
-  refine ⟨?_, ?_⟩
-  · exact correct___eo_prog_refl_impl M hM x1 hTrans hBool
-  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool
+  exact correct___eo_prog_refl_impl M hM x1 hTrans hBool
 
 theorem cmd_step_refl_properties
     (M : SmtModel) (hM : model_total_typed M)

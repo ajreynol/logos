@@ -130,7 +130,7 @@ structure StepRuleProperties
     (M : SmtModel) (premises : List Term) (P : Term) : Prop where
   facts_of_true :
     AllInterpretedTrue M premises ->
-    RuleProofs.RuleResultFacts M P
+    eo_interprets M P true
   has_bool_type :
     RuleProofs.eo_has_bool_type P
 
@@ -140,5 +140,5 @@ def StepPopRuleProperties
     x2 ∈ premises ∧
     (forall (M : SmtModel), model_total_typed M ->
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
-      RuleProofs.RuleResultFacts M P) ∧
+      eo_interprets M P true) ∧
     RuleProofs.eo_has_bool_type P

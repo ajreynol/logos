@@ -170,16 +170,14 @@ theorem facts___eo_prog_symm_impl
     (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   eo_interprets M x1 true ->
   __eo_prog_symm (Proof.pf x1) ≠ Term.Stuck ->
-  RuleProofs.RuleResultFacts M (__eo_prog_symm (Proof.pf x1)) :=
+  eo_interprets M (__eo_prog_symm (Proof.pf x1)) true :=
 by
   intro hXTrue hProg
   let hXBool : RuleProofs.eo_has_bool_type x1 :=
     RuleProofs.eo_has_bool_type_of_interprets_true M x1 hXTrue
   let hBool : RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf x1)) :=
     typed___eo_prog_symm_impl x1 hXBool hProg
-  refine ⟨?_, ?_⟩
-  · exact correct___eo_prog_symm_impl M hM x1 hXTrue hBool
-  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool
+  exact correct___eo_prog_symm_impl M hM x1 hXTrue hBool
 
 theorem cmd_step_symm_properties
     (M : SmtModel) (hM : model_total_typed M)

@@ -116,14 +116,12 @@ theorem facts___eo_prog_scope_impl
   __eo_typeof x1 = Term.Bool ->
   __eo_typeof x2 = Term.Bool ->
   __eo_prog_scope x1 (Proof.pf x2) ≠ Term.Stuck ->
-  RuleProofs.RuleResultFacts M (__eo_prog_scope x1 (Proof.pf x2)) :=
+  eo_interprets M (__eo_prog_scope x1 (Proof.pf x2)) true :=
 by
   intro hImp hTrans1 hTrans2 hTy1 hTy2 hProg
   let hBool : RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2)) :=
     typed___eo_prog_scope_impl M x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2 hProg
-  refine ⟨?_, ?_⟩
-  · exact correct___eo_prog_scope_impl M hM x1 x2 hImp hBool
-  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hBool
+  exact correct___eo_prog_scope_impl M hM x1 x2 hImp hBool
 
 theorem cmd_step_pop_scope_properties
     (x1 : Term) (s : CState) (args : CArgList) (premises : CIndexList) :
