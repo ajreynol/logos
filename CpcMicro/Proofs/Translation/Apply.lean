@@ -12,6 +12,65 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
+theorem smtx_typeof_apply_generic_of_head_not_special
+    (f x : SmtTerm)
+    (hNot : f ≠ SmtTerm.not)
+    (hOr : ∀ u, f ≠ SmtTerm.Apply SmtTerm.or u)
+    (hAnd : ∀ u, f ≠ SmtTerm.Apply SmtTerm.and u)
+    (hImp : ∀ u, f ≠ SmtTerm.Apply SmtTerm.imp u)
+    (hEq : ∀ u, f ≠ SmtTerm.Apply SmtTerm.eq u)
+    (hIte2 : ∀ c u, f ≠ SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) u)
+    (hExists : ∀ s T, f ≠ SmtTerm.exists s T)
+    (hForall : ∀ s T, f ≠ SmtTerm.forall s T)
+    (hChoice : ∀ s T, f ≠ SmtTerm.choice s T) :
+    generic_apply_type f x := by
+  unfold generic_apply_type
+  cases f <;> try rfl
+  case not =>
+      exact False.elim (hNot rfl)
+  case «exists» s T =>
+      exact False.elim (hExists s T rfl)
+  case «forall» s T =>
+      exact False.elim (hForall s T rfl)
+  case choice s T =>
+      exact False.elim (hChoice s T rfl)
+  case Apply f y =>
+      cases f <;> try rfl
+      case or =>
+          exact False.elim (hOr y rfl)
+      case and =>
+          exact False.elim (hAnd y rfl)
+      case imp =>
+          exact False.elim (hImp y rfl)
+      case eq =>
+          exact False.elim (hEq y rfl)
+      case Apply g c =>
+          cases g <;> try rfl
+          case ite =>
+              exact False.elim (hIte2 c y rfl)
+
+theorem eo_to_smt_apply_generic_type
+    (f x : Term) :
+    generic_apply_type (__eo_to_smt f) (__eo_to_smt x) := by
+  apply smtx_typeof_apply_generic_of_head_not_special
+  · exact eo_to_smt_ne_not f
+  · intro u
+    exact eo_to_smt_ne_or_partial f u
+  · intro u
+    exact eo_to_smt_ne_and_partial f u
+  · intro u
+    exact eo_to_smt_ne_imp_partial f u
+  · intro u
+    exact eo_to_smt_ne_eq_partial f u
+  · intro c u
+    exact eo_to_smt_ne_ite_partial2 f c u
+  · intro s T
+    exact eo_to_smt_ne_exists f s T
+  · intro s T
+    exact eo_to_smt_ne_forall f s T
+  · intro s T
+    exact eo_to_smt_ne_choice f s T
+
 theorem smtx_typeof_translation_not_of_non_none
     (x : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply Term.not x)) ≠ SmtType.None ->
@@ -155,5 +214,24 @@ theorem eo_to_smt_typeof_matches_translation_apply_generic
       intro hFalse
       cases hFalse
   rw [hSmt, hTypeof, hFun, hArgTy, hTypeApply, hT2]
+
+theorem eo_to_smt_typeof_matches_translation_apply
+    (f x : Term)
+    (ihF :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) = SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hTypeof :
+      __eo_typeof (Term.Apply f x) = __eo_typeof_apply (__eo_typeof f) (__eo_typeof x))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+      __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
+  exact eo_to_smt_typeof_matches_translation_apply_generic f x ihF ihX
+    (eo_to_smt_apply_generic_type f x) hTranslate hTypeof hNonNone
 
 end TranslationProofs
