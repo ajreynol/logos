@@ -149,7 +149,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
         simp
   have hHeadEo :
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.Map A B ∨
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.DtConsType A B := by
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.FunType A B := by
     rw [← ihF hHeadNN]
     exact hHead
   have hSmt :
@@ -205,7 +205,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
         simp
   have hHeadEo :
       __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.Map A B ∨
-        __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.DtConsType A B := by
+        __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.FunType A B := by
     rw [← ihF hHeadNN]
     exact hHead
   have hSmt :
@@ -269,7 +269,7 @@ private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
   | TypeRef _
   | USort _
   | Map _ _
-  | DtConsType _ _ =>
+  | FunType _ _ =>
       simp [__eo_to_smt_set_empty, __smtx_typeof, __smtx_typeof_apply]
   | Set U =>
       by_cases hInh : smt_lit_inhabited_type U = true
@@ -316,7 +316,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       simpa using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hVarNN
     have hT :
         __eo_to_smt_type T = SmtType.Map A B ∨
-          __eo_to_smt_type T = SmtType.DtConsType A B := by
+          __eo_to_smt_type T = SmtType.FunType A B := by
       rw [← hHeadTy]
       exact hHead
     have hSmt :
@@ -352,7 +352,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
     have hHeadEo :
         __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.Map A B ∨
-          __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.DtConsType A B := by
+          __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.FunType A B := by
       rw [eo_to_smt_type_typeof_dt_cons s d i]
       exact hHead
     have hSmt :
@@ -425,7 +425,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         smtx_typeof_uconst_of_non_none (smt_lit_uconst_id i) (__eo_to_smt_type T) hUConstNN
     have hT :
         __eo_to_smt_type T = SmtType.Map A B ∨
-          __eo_to_smt_type T = SmtType.DtConsType A B := by
+          __eo_to_smt_type T = SmtType.FunType A B := by
       rw [← hHeadTy]
       exact hHead
     have hSmt :
@@ -3287,7 +3287,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           simp
     have hHeadEo :
         __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.Map A B ∨
-          __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.DtConsType A B := by
+          __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.FunType A B := by
       rw [← ihF hHeadNN]
       exact hHead
     have hSmt :
@@ -3970,7 +3970,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     | TypeRef _
     | USort _
     | Map _ _
-    | DtConsType _ _ =>
+    | FunType _ _ =>
         simp [__eo_to_smt_set_empty, __smtx_typeof_apply]
   case set_singleton =>
     have hTranslate :
@@ -4111,7 +4111,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           simp
     have hHeadEo :
         __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.Map A B ∨
-          __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.DtConsType A B := by
+          __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.FunType A B := by
       rw [← ihF hHeadNN]
       exact hHead
     have hSmt :

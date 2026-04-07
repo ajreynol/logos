@@ -34,7 +34,7 @@ theorem typeof_seq_value_shape :
 def dt_cons_chain_result : SmtType -> Prop
   | SmtType.None => True
   | SmtType.Datatype _ _ => True
-  | SmtType.DtConsType _ U => dt_cons_chain_result U
+  | SmtType.FunType _ U => dt_cons_chain_result U
   | _ => False
 
 theorem typeof_dt_cons_value_rec_chain_result
@@ -55,7 +55,7 @@ theorem typeof_dt_cons_value_rec_chain_result
 
 theorem typeof_value_dt_cons_type_chain_result :
     ∀ v : SmtValue, ∀ T U : SmtType,
-      __smtx_typeof_value v = SmtType.DtConsType T U -> dt_cons_chain_result U
+      __smtx_typeof_value v = SmtType.FunType T U -> dt_cons_chain_result U
   | SmtValue.NotValue, T, U, h => by
       simp [__smtx_typeof_value] at h
   | SmtValue.Boolean _, T, U, h => by
@@ -100,7 +100,7 @@ theorem typeof_value_dt_cons_type_chain_result :
   | SmtValue.Apply f v, T, U, h => by
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType A B =>
+      case FunType A B =>
         cases hNone : smt_lit_Teq A SmtType.None <;>
         cases hEq : smt_lit_Teq A (__smtx_typeof_value v) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -109,7 +109,7 @@ theorem typeof_value_dt_cons_type_chain_result :
 
 theorem no_value_of_dt_cons_type_bool
     (T : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T SmtType.Bool := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.Bool := by
   intro h
   rcases h with ⟨v, hv⟩
   have hShape := typeof_value_dt_cons_type_chain_result v T SmtType.Bool hv
@@ -117,7 +117,7 @@ theorem no_value_of_dt_cons_type_bool
 
 theorem no_value_of_dt_cons_type_int
     (T : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T SmtType.Int := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.Int := by
   intro h
   rcases h with ⟨v, hv⟩
   have hShape := typeof_value_dt_cons_type_chain_result v T SmtType.Int hv
@@ -125,7 +125,7 @@ theorem no_value_of_dt_cons_type_int
 
 theorem no_value_of_dt_cons_type_real
     (T : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T SmtType.Real := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.Real := by
   intro h
   rcases h with ⟨v, hv⟩
   have hShape := typeof_value_dt_cons_type_chain_result v T SmtType.Real hv
@@ -134,7 +134,7 @@ theorem no_value_of_dt_cons_type_real
 theorem no_value_of_dt_cons_type_type_ref
     (T : SmtType)
     (s : smt_lit_String) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T (SmtType.TypeRef s) := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.TypeRef s) := by
   intro h
   rcases h with ⟨v, hv⟩
   have hShape := typeof_value_dt_cons_type_chain_result v T (SmtType.TypeRef s) hv
@@ -192,7 +192,7 @@ theorem typeof_value_ne_type_ref
       intro h
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType T U =>
+      case FunType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value v) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -259,7 +259,7 @@ theorem bool_value_canonical
       exfalso
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType T U =>
+      case FunType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -319,7 +319,7 @@ theorem int_value_canonical
       exfalso
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType T U =>
+      case FunType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -379,7 +379,7 @@ theorem real_value_canonical
       exfalso
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType T U =>
+      case FunType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -388,39 +388,39 @@ theorem real_value_canonical
 theorem no_value_of_dt_cons_type_of_non_chain
     (T U : SmtType)
     (hU : ¬ dt_cons_chain_result U) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T U := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T U := by
   intro h
   rcases h with ⟨v, hv⟩
   exact hU (typeof_value_dt_cons_type_chain_result v T U hv)
 
 theorem no_value_of_dt_cons_type_seq
     (T U : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T (SmtType.Seq U) := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.Seq U) := by
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Seq U) (by
     simp [dt_cons_chain_result])
 
 theorem no_value_of_dt_cons_type_reglan
     (T : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T SmtType.RegLan := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.RegLan := by
   exact no_value_of_dt_cons_type_of_non_chain T SmtType.RegLan (by
     simp [dt_cons_chain_result])
 
 theorem no_value_of_dt_cons_type_map
     (T A B : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T (SmtType.Map A B) := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.Map A B) := by
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Map A B) (by
     simp [dt_cons_chain_result])
 
 theorem no_value_of_dt_cons_type_set
     (T A : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T (SmtType.Set A) := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.Set A) := by
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Set A) (by
     simp [dt_cons_chain_result])
 
 theorem no_value_of_dt_cons_type_bitvec
     (T : SmtType)
     (w : smt_lit_Int) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.DtConsType T (SmtType.BitVec w) := by
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.BitVec w) := by
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.BitVec w) (by
     simp [dt_cons_chain_result])
 
@@ -477,7 +477,7 @@ theorem bitvec_value_canonical
       exfalso
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType T U =>
+      case FunType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -543,7 +543,7 @@ theorem map_value_canonical
       exfalso
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType T U =>
+      case FunType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -595,7 +595,7 @@ theorem set_value_canonical
       exfalso
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType T U =>
+      case FunType T U =>
         cases hNone : smt_lit_Teq T SmtType.None <;>
         cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -693,7 +693,7 @@ theorem seq_value_canonical
       exfalso
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType A B =>
+      case FunType A B =>
         cases hNone : smt_lit_Teq A SmtType.None <;>
         cases hEq : smt_lit_Teq A (__smtx_typeof_value x) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
@@ -1012,7 +1012,7 @@ theorem reglan_value_canonical
       exfalso
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case DtConsType A B =>
+      case FunType A B =>
         cases hNone : smt_lit_Teq A SmtType.None <;>
         cases hEq : smt_lit_Teq A (__smtx_typeof_value x) <;>
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
