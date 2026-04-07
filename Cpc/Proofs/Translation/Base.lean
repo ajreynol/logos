@@ -67,7 +67,7 @@ namespace TranslationProofs
     __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) =
       __smtx_typeof_guard (__eo_to_smt_type T)
         (__smtx_typeof_guard (__eo_to_smt_type U)
-          (SmtType.Map (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
+          (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
   simp [__eo_to_smt_type]
 
 @[simp] theorem eo_to_smt_type_bitvec (n : eo_lit_Int) :
