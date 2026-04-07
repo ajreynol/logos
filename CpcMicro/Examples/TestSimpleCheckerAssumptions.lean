@@ -3,6 +3,8 @@ import CpcMicro.Proofs.Checker
 open Eo
 open Smtm
 
+namespace CpcMicro.Examples.TestSimpleCheckerAssumptions
+
 deriving instance DecidableEq for CIndexList, CArgList, CStateObj, CState, CRule, CCmd, CCmdList
 
 def t1 := Term.UConst 1 Term.Int
@@ -32,6 +34,16 @@ def assumptions : Term :=
 
 def proof : CCmdList :=
   CCmdList.cons symmStep (CCmdList.cons contraStep CCmdList.nil)
+
+#eval decide (__eo_invoke_assume_list CState.nil assumptions = s2)
+#eval decide (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil assumptions) proof = s4)
+#eval __eo_typeof t7
+#eval __eo_to_smt_type (__eo_typeof t7)
+#eval __eo_to_smt t7
+#eval __eo_typeof t4
+#eval __eo_to_smt_type (__eo_typeof t4)
+#eval __eo_to_smt t4
+#eval __eo_checker_is_refutation assumptions proof
 
 private theorem uconst_int_smt_type (i : eo_lit_Nat) :
     __smtx_typeof (__eo_to_smt (Term.UConst i Term.Int)) = SmtType.Int := by
@@ -81,3 +93,5 @@ example : CmdListTranslationOk proof := by
 example : eo_is_refutation assumptions proof := by
   apply eo_is_refutation.intro
   native_decide
+
+end CpcMicro.Examples.TestSimpleCheckerAssumptions
