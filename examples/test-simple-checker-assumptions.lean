@@ -1,6 +1,7 @@
-import CpcMicro.Spec
+import CpcMicro.Proofs.Checker
 
 open Eo
+open Smtm
 
 deriving instance DecidableEq for CIndexList, CArgList, CStateObj, CState, CRule, CCmd, CCmdList
 
@@ -32,71 +33,51 @@ def assumptions : Term :=
 def proof : CCmdList :=
   CCmdList.cons symmStep (CCmdList.cons contraStep CCmdList.nil)
 
--- Executable shadow of the translation side-condition for the constructors
--- that appear in `examples/test-simple.cpc.lean`.
-def typeTranslationCheck : Term -> Bool
-  | Term.Bool => true
-  | Term.Int => true
-  | Term.Real => true
-  | Term.Char => true
-  | Term.USort _ => true
-  | Term.Apply Term.BitVec (Term.Numeral _) => true
-  | Term.Apply Term.Seq T => typeTranslationCheck T
-  | Term.Apply (Term.Apply Term.FunType T1) T2 =>
-      typeTranslationCheck T1 && typeTranslationCheck T2
-  | _ => false
+private theorem uconst_int_smt_type (i : eo_lit_Nat) :
+    __smtx_typeof (__eo_to_smt (Term.UConst i Term.Int)) = SmtType.Int := by
+  have hInh : smt_lit_inhabited_type SmtType.Int = true :=
+    (smtx_inhabited_type_eq_true_iff SmtType.Int).2 type_inhabited_int
+  have hNonNone :
+      __smtx_typeof (SmtTerm.UConst (smt_lit_uconst_id i) SmtType.Int) ≠ SmtType.None := by
+    simp [__smtx_typeof, __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+  simpa [__eo_to_smt, __eo_to_smt_type] using
+    TranslationProofs.smtx_typeof_uconst_of_non_none (smt_lit_uconst_id i) SmtType.Int hNonNone
 
-def hasSmtTranslationCheck : Term -> Bool
-  | Term.Boolean _ => true
-  | Term.Numeral _ => true
-  | Term.Rational _ => true
-  | Term.String _ => true
-  | Term.Binary _ _ => true
-  | Term.Var _ T => typeTranslationCheck T
-  | Term.UConst _ T => typeTranslationCheck T
-  | Term.Apply Term.not x => hasSmtTranslationCheck x
-  | Term.Apply (Term.Apply Term.or x) y =>
-      hasSmtTranslationCheck x && hasSmtTranslationCheck y
-  | Term.Apply (Term.Apply Term.and x) y =>
-      hasSmtTranslationCheck x && hasSmtTranslationCheck y
-  | Term.Apply (Term.Apply Term.imp x) y =>
-      hasSmtTranslationCheck x && hasSmtTranslationCheck y
-  | Term.Apply (Term.Apply Term.eq x) y =>
-      hasSmtTranslationCheck x && hasSmtTranslationCheck y
-  | _ => false
+private theorem t4_has_bool_type : RuleProofs.eo_has_bool_type t4 := by
+  have h1 : __smtx_typeof (__eo_to_smt t1) = SmtType.Int := by
+    simpa [t1] using uconst_int_smt_type 1
+  have h2 : __smtx_typeof (__eo_to_smt t2) = SmtType.Int := by
+    simpa [t2] using uconst_int_smt_type 2
+  apply RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+  · simp [h1, h2]
+  · simp [h2]
 
-def typedAssumptionListCheck : Term -> Bool
-  | Term.Boolean true => true
-  | Term.Apply (Term.Apply Term.and A) rest =>
-      decide (A ≠ Term.Stuck) &&
-      decide (__eo_typeof A = Term.Bool) &&
-      typedAssumptionListCheck rest
-  | _ => false
+private theorem t7_has_bool_type : RuleProofs.eo_has_bool_type t7 := by
+  exact RuleProofs.eo_has_bool_type_not_of_bool_arg t4 t4_has_bool_type
 
-def translatableAssumptionListCheck : Term -> Bool
-  | Term.Boolean true => true
-  | Term.Apply (Term.Apply Term.and A) rest =>
-      hasSmtTranslationCheck A &&
-      translatableAssumptionListCheck rest
-  | _ => false
+example : TypedAssumptionList assumptions := by
+  apply TypedAssumptionList.step
+  · native_decide
+  · native_decide
+  · apply TypedAssumptionList.step
+    · native_decide
+    · native_decide
+    · exact TypedAssumptionList.base
 
-def cmdTranslationOkCheck : CCmd -> Bool
-  | CCmd.assume_push A => hasSmtTranslationCheck A
-  | CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil =>
-      hasSmtTranslationCheck a1
-  | _ => true
+example : TranslatableAssumptionList assumptions := by
+  apply TranslatableAssumptionList.step
+  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ t7_has_bool_type
+  · apply TranslatableAssumptionList.step
+    · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ t4_has_bool_type
+    · exact TranslatableAssumptionList.base
 
-def cmdListTranslationOkCheck : CCmdList -> Bool
-  | CCmdList.nil => true
-  | CCmdList.cons c cs => cmdTranslationOkCheck c && cmdListTranslationOkCheck cs
+example : CmdListTranslationOk proof := by
+  apply CmdListTranslationOk.cons
+  · simp [symmStep, cmdTranslationOk]
+  · apply CmdListTranslationOk.cons
+    · simp [contraStep, cmdTranslationOk]
+    · exact CmdListTranslationOk.nil
 
-#eval decide (__eo_invoke_assume_list CState.nil assumptions = s2)
-#eval decide (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil assumptions) proof = s4)
-#eval decide (__eo_typeof t7 = Term.Bool)
-#eval hasSmtTranslationCheck t7
-#eval decide (__eo_typeof t4 = Term.Bool)
-#eval hasSmtTranslationCheck t4
-#eval typedAssumptionListCheck assumptions
-#eval translatableAssumptionListCheck assumptions
-#eval cmdListTranslationOkCheck proof
-#eval __eo_checker_is_refutation assumptions proof
+example : eo_is_refutation assumptions proof := by
+  apply eo_is_refutation.intro
+  native_decide
