@@ -1,5 +1,5 @@
 import CpcMicro.Proofs.TypePreservation
-import CpcMicro.Proofs.Unproven
+import CpcMicro.Proofs.Translation
 
 open Eo
 open Smtm
@@ -67,7 +67,7 @@ theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
   __eo_typeof t = Term.Bool ->
   __smtx_typeof s = SmtType.Bool := by
   intro hs hS hTy
-  exact eo_to_smt_well_typed_and_typeof_implies_smt_type
+  exact TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
     t Term.Bool s hs hS hTy
 
 theorem eo_typeof_bool_implies_has_bool_type
