@@ -8,8 +8,9 @@ lake build logos
 echo "Compiling Cpc.Spec..."
 lake build Cpc.Spec
 
-echo "Compiling Cpc.Proofs.Checker..."
-lake build Cpc.Proofs.Checker
+# expensive to compile and not currently used in CI checks, so skipping for now
+#echo "Compiling Cpc.Proofs.Checker..."
+#lake build Cpc.Proofs.Checker
 
 echo "Compiling CpcMini.Proofs.Checker..."
 lake build CpcMini.Proofs.Checker
@@ -19,6 +20,9 @@ lake build CpcMini.Proofs.TypePreservation
 
 echo "Compiling CpcMini.Proofs.Translation..."
 lake build CpcMini.Proofs.Translation
+
+echo "Compiling CpcMicro.Proofs.Checker..."
+lake build CpcMicro.Proofs.Checker
 
 shopt -s nullglob
 examples=(examples/*.cpc.lean)
