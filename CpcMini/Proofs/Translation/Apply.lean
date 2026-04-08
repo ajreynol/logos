@@ -11,6 +11,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
+/-- Computes `__smtx_typeof` for `translation_not_of_non_none`. -/
 theorem smtx_typeof_translation_not_of_non_none
     (x : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply Term.not x)) ≠ SmtType.None ->
@@ -23,6 +24,7 @@ theorem smtx_typeof_translation_not_of_non_none
     simp
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]
 
+/-- Computes `__smtx_typeof` for `translation_or_of_non_none`. -/
 theorem smtx_typeof_translation_or_of_non_none
     (x y : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.or x) y)) ≠ SmtType.None ->
@@ -37,6 +39,7 @@ theorem smtx_typeof_translation_or_of_non_none
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hApplyNN
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
 
+/-- Computes `__smtx_typeof` for `translation_and_of_non_none`. -/
 theorem smtx_typeof_translation_and_of_non_none
     (x y : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.and x) y)) ≠ SmtType.None ->
@@ -51,6 +54,7 @@ theorem smtx_typeof_translation_and_of_non_none
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hApplyNN
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
 
+/-- Computes `__smtx_typeof` for `translation_imp_of_non_none`. -/
 theorem smtx_typeof_translation_imp_of_non_none
     (x y : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.imp x) y)) ≠ SmtType.None ->
@@ -65,6 +69,7 @@ theorem smtx_typeof_translation_imp_of_non_none
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hApplyNN
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
 
+/-- Computes `__smtx_typeof` for `translation_eq_of_non_none`. -/
 theorem smtx_typeof_translation_eq_of_non_none
     (x y : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.eq x) y)) ≠ SmtType.None ->

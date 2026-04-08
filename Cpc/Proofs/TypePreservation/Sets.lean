@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Derives `set_binop_args` from `non_none`. -/
 theorem set_binop_args_of_non_none
     {op t1 t2 : SmtTerm}
     (hTy :
@@ -33,6 +34,7 @@ theorem set_binop_args_of_non_none
       cases h2 : __smtx_typeof t2 <;>
         simp [hTy, __smtx_typeof_sets_op_2, h1, h2] at ht
 
+/-- Derives `set_binop_ret_args` from `non_none`. -/
 theorem set_binop_ret_args_of_non_none
     {op t1 t2 : SmtTerm} {T : SmtType}
     (hTy :
@@ -57,6 +59,7 @@ theorem set_binop_ret_args_of_non_none
       cases h2 : __smtx_typeof t2 <;>
         simp [hTy, __smtx_typeof_sets_op_2_ret, h1, h2] at ht
 
+/-- Derives `set_member_args` from `non_none`. -/
 theorem set_member_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.set_member t1) t2)) :
@@ -73,6 +76,7 @@ theorem set_member_args_of_non_none
   | _ =>
       simp [__smtx_typeof, __smtx_typeof_set_member, h2] at ht
 
+/-- Lemma about `mss_op_internal_typed`. -/
 theorem mss_op_internal_typed
     (isInter : smt_lit_Bool) :
     ∀ {m1 m2 acc : SmtMap} {A : SmtType},
@@ -123,6 +127,7 @@ theorem mss_op_internal_typed
             (A := A) hm1' hm2 hacc'
       · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at hm1
 
+/-- Shows that evaluating `set_union` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_union
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -168,6 +173,7 @@ theorem typeof_value_model_eval_set_union
   simp [__smtx_model_eval_set_union, __smtx_set_union, __smtx_typeof_value,
     __smtx_map_to_set_type, hIdx1, hRes]
 
+/-- Shows that evaluating `set_inter` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_inter
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -213,6 +219,7 @@ theorem typeof_value_model_eval_set_inter
   simp [__smtx_model_eval_set_inter, __smtx_set_inter, __smtx_typeof_value,
     __smtx_map_to_set_type, hIdx1, hRes]
 
+/-- Shows that evaluating `set_minus` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_minus
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -258,6 +265,7 @@ theorem typeof_value_model_eval_set_minus
   simp [__smtx_model_eval_set_minus, __smtx_set_minus, __smtx_typeof_value,
     __smtx_map_to_set_type, hIdx1, hRes]
 
+/-- Shows that evaluating `set_member` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_member
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -284,6 +292,7 @@ theorem typeof_value_model_eval_set_member
       hmTy
       (by simpa [h1] using hpres1)
 
+/-- Shows that evaluating `set_subset` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_subset
     (M : SmtModel)
     (t1 t2 : SmtTerm)

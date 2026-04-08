@@ -4,6 +4,7 @@ open Smtm
 
 namespace Smtm
 
+/-- Extracts the lookup typing property from `model_total_typed`. -/
 theorem model_total_typed_lookup
     {M : SmtModel}
     (hM : model_total_typed M)
@@ -13,6 +14,7 @@ theorem model_total_typed_lookup
     __smtx_typeof_value (__smtx_model_lookup M s T) = T :=
   hM.1 s T hT
 
+/-- Describes `model_total_typed` lookups at uninhabited types. -/
 theorem model_total_typed_lookup_uninhabited
     {M : SmtModel}
     (hM : model_total_typed M)
@@ -22,6 +24,7 @@ theorem model_total_typed_lookup_uninhabited
     __smtx_model_lookup M s T = SmtValue.NotValue :=
   hM.2 s T hT
 
+/-- Shows that `model_typed_at` is preserved by model push. -/
 theorem model_typed_at_push
     {M : SmtModel}
     {s : smt_lit_String}
@@ -36,6 +39,7 @@ theorem model_typed_at_push
     exfalso
     exact hT ⟨v, hv⟩
 
+/-- Shows that `model_total_typed` is preserved by model push. -/
 theorem model_total_typed_push
     {M : SmtModel}
     (hM : model_total_typed M)
@@ -61,6 +65,7 @@ theorem model_total_typed_push
     · simp [h]
       exact model_total_typed_lookup_uninhabited hM s' T' hT'
 
+/-- Shows that `default_typed_model` is total and type-correct on every inhabited SMT type. -/
 theorem default_typed_model_total_typed :
     model_total_typed default_typed_model := by
   classical
@@ -71,6 +76,7 @@ theorem default_typed_model_total_typed :
   · intro s T hT
     simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT]
 
+/-- Constructs a total typed SMT model. -/
 theorem exists_total_typed_model :
     ∃ M : SmtModel, model_total_typed M :=
   ⟨default_typed_model, default_typed_model_total_typed⟩

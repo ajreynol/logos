@@ -6,6 +6,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Shows that the EO program for `refl_impl` is well typed. -/
 theorem typed___eo_prog_refl_impl (x1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
   __eo_prog_refl x1 ≠ Term.Stuck ->
@@ -26,6 +27,7 @@ by
 
 namespace RuleProofs
 
+/-- Derives `correct___eo_prog_refl` from `smt_translation`. -/
 theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
   eo_has_smt_translation x1 ->
   eo_has_bool_type (__eo_prog_refl x1) ->
@@ -42,6 +44,7 @@ theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
   · simpa [__eo_prog_refl, hNotEqStuck, __eo_to_smt, __smtx_model_eval] using
       smtx_model_eval_eq_refl (__smtx_model_eval M (__eo_to_smt x1))
 
+/-- Shows that the `refl` program instantiated at `Term.or` cannot evaluate to `true`. -/
 theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
   ¬ eo_interprets M (__eo_prog_refl Term.or) true := by
   rw [eo_interprets_iff_smt_interprets]
@@ -53,6 +56,7 @@ theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
 
 end RuleProofs
 
+/-- Proves correctness of the EO program for `refl_impl`. -/
 theorem correct___eo_prog_refl_impl
     (M : SmtModel) (_hM : model_total_typed M) (x1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
@@ -61,6 +65,7 @@ theorem correct___eo_prog_refl_impl
 by
   exact RuleProofs.correct___eo_prog_refl_of_smt_translation M x1
 
+/-- Derives the checker facts exposed by the EO program for `refl_impl`. -/
 theorem facts___eo_prog_refl_impl
     (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   RuleProofs.eo_has_smt_translation x1 ->
@@ -72,6 +77,7 @@ by
     typed___eo_prog_refl_impl x1 hTrans hProg
   exact correct___eo_prog_refl_impl M hM x1 hTrans hBool
 
+/-- Packages the properties needed for `cmd_step_refl`. -/
 theorem cmd_step_refl_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :

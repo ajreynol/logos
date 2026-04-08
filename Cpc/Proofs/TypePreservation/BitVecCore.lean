@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Shows that evaluating `concat` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_concat
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -43,6 +44,7 @@ theorem typeof_value_model_eval_concat
       (smt_lit_mod_total (smt_lit_binary_concat w1 n1 w2 n2)
         (smt_lit_int_pow2 (smt_lit_zplus w1 w2))) hWidth
 
+/-- Shows that evaluating `extract` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_extract
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -88,6 +90,7 @@ theorem typeof_value_model_eval_extract
       (smt_lit_mod_total (smt_lit_binary_extract w n i j)
         (smt_lit_int_pow2 (smt_lit_zplus (smt_lit_zplus i 1) (smt_lit_zneg j)))) hWidth
 
+/-- Shows that evaluating `bv_unop` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bv_unop
     (M : SmtModel)
     (op : SmtTerm)
@@ -115,6 +118,7 @@ theorem typeof_value_model_eval_bv_unop
     exact bitvec_width_nonneg (by simpa [hArg, hv] using hpres)
   simpa using hEvalTy w n hWidth
 
+/-- Shows that evaluating `bv_unop_ret` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bv_unop_ret
     (M : SmtModel)
     (op : SmtTerm)
@@ -143,6 +147,7 @@ theorem typeof_value_model_eval_bv_unop_ret
     exact bitvec_width_nonneg (by simpa [hArg, hv] using hpres)
   simpa using hEvalTy w n hWidth
 
+/-- Shows that evaluating `bv_binop` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bv_binop
     (M : SmtModel)
     (op : SmtTerm)
@@ -174,6 +179,7 @@ theorem typeof_value_model_eval_bv_binop
     exact bitvec_width_nonneg (by simpa [h1, hv1] using hpres1)
   simpa using hEvalTy w n1 n2 hWidth
 
+/-- Shows that evaluating `bv_binop_ret` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bv_binop_ret
     (M : SmtModel)
     (op : SmtTerm)
@@ -205,6 +211,7 @@ theorem typeof_value_model_eval_bv_binop_ret
     exact bitvec_width_nonneg (by simpa [h1, hv1] using hpres1)
   simpa using hEvalTy w n1 n2 hWidth
 
+/-- Shows that evaluating `bvcomp_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvcomp_value
     (w n1 n2 : smt_lit_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvcomp (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
@@ -218,6 +225,7 @@ theorem typeof_value_model_eval_bvcomp_value
   rw [hb]
   cases b <;> simp [__smtx_model_eval_ite, __smtx_typeof_value, smt_lit_ite, SmtEval.smt_lit_zleq]
 
+/-- Shows that evaluating `bvugt_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvugt_value
     (w n1 n2 : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
@@ -225,6 +233,7 @@ theorem typeof_value_model_eval_bvugt_value
       SmtType.Bool := by
   simp [__smtx_model_eval_bvugt, __smtx_typeof_value]
 
+/-- Shows that evaluating `bvuge_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvuge_value
     (w n1 n2 : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
@@ -244,6 +253,7 @@ theorem typeof_value_model_eval_bvuge_value
   rw [hb1, hb2]
   simp [__smtx_model_eval_or, __smtx_typeof_value]
 
+/-- Shows that evaluating `ite_of_bool` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_ite_of_bool
     {c t e : SmtValue}
     {T : SmtType}
@@ -257,6 +267,7 @@ theorem typeof_value_model_eval_ite_of_bool
   · simpa [__smtx_model_eval_ite] using he
   · simpa [__smtx_model_eval_ite] using ht
 
+/-- Shows that evaluating `not_of_bool` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_not_of_bool
     {v : SmtValue}
     (hv : __smtx_typeof_value v = SmtType.Bool) :
@@ -265,6 +276,7 @@ theorem typeof_value_model_eval_not_of_bool
   rw [hb]
   simp [__smtx_model_eval_not, __smtx_typeof_value]
 
+/-- Shows that evaluating `and_of_bool` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_and_of_bool
     {v1 v2 : SmtValue}
     (h1 : __smtx_typeof_value v1 = SmtType.Bool)
@@ -275,6 +287,7 @@ theorem typeof_value_model_eval_and_of_bool
   rw [hb1, hb2]
   simp [__smtx_model_eval_and, __smtx_typeof_value]
 
+/-- Shows that evaluating `or_of_bool` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_or_of_bool
     {v1 v2 : SmtValue}
     (h1 : __smtx_typeof_value v1 = SmtType.Bool)
@@ -285,6 +298,7 @@ theorem typeof_value_model_eval_or_of_bool
   rw [hb1, hb2]
   simp [__smtx_model_eval_or, __smtx_typeof_value]
 
+/-- Shows that evaluating `bvnot_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnot_value
     (w n : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
@@ -293,6 +307,7 @@ theorem typeof_value_model_eval_bvnot_value
     typeof_value_binary_of_nonneg w
       (smt_lit_mod_total (smt_lit_binary_not w n) (smt_lit_int_pow2 w)) hWidth
 
+/-- Shows that evaluating `bvneg_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvneg_value
     (w n : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
@@ -301,6 +316,7 @@ theorem typeof_value_model_eval_bvneg_value
     typeof_value_binary_of_nonneg w
       (smt_lit_mod_total (smt_lit_zneg n) (smt_lit_int_pow2 w)) hWidth
 
+/-- Shows that evaluating `bvadd_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvadd_value
     (w n1 n2 : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
@@ -310,6 +326,7 @@ theorem typeof_value_model_eval_bvadd_value
     typeof_value_binary_of_nonneg w
       (smt_lit_mod_total (smt_lit_zplus n1 n2) (smt_lit_int_pow2 w)) hWidth
 
+/-- Shows that evaluating `bvudiv_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvudiv_value
     (w n1 n2 : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
@@ -321,6 +338,7 @@ theorem typeof_value_model_eval_bvudiv_value
         (smt_lit_ite (smt_lit_zeq n2 0) (smt_lit_binary_max w) (smt_lit_div_total n1 n2))
         (smt_lit_int_pow2 w)) hWidth
 
+/-- Shows that evaluating `bvurem_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvurem_value
     (w n1 n2 : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
@@ -332,6 +350,7 @@ theorem typeof_value_model_eval_bvurem_value
         (smt_lit_ite (smt_lit_zeq n2 0) n1 (smt_lit_mod_total n1 n2))
         (smt_lit_int_pow2 w)) hWidth
 
+/-- Shows that evaluating `bvlshr_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvlshr_value
     (w n1 n2 : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
@@ -341,17 +360,20 @@ theorem typeof_value_model_eval_bvlshr_value
     typeof_value_binary_of_nonneg w
       (smt_lit_mod_total (smt_lit_div_total n1 (smt_lit_int_pow2 n2)) (smt_lit_int_pow2 w)) hWidth
 
+/-- Shows that evaluating `bvnego_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnego_value
     (w n : smt_lit_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvnego (SmtValue.Binary w n)) = SmtType.Bool := by
   simp [__smtx_model_eval_bvnego, __smtx_typeof_value]
 
+/-- Shows that evaluating `bvsaddo_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsaddo_value
     (w n1 n2 : smt_lit_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsaddo (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
   simp [__smtx_model_eval_bvsaddo, __smtx_typeof_value]
 
+/-- Shows that evaluating `bvnot_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnot_of_bitvec
     {v : SmtValue}
     {w : smt_lit_Int}
@@ -360,6 +382,7 @@ theorem typeof_value_model_eval_bvnot_of_bitvec
   rcases bitvec_value_canonical hv with ⟨n, rfl⟩
   exact typeof_value_model_eval_bvnot_value w n (bitvec_width_nonneg hv)
 
+/-- Shows that evaluating `bvneg_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvneg_of_bitvec
     {v : SmtValue}
     {w : smt_lit_Int}
@@ -368,6 +391,7 @@ theorem typeof_value_model_eval_bvneg_of_bitvec
   rcases bitvec_value_canonical hv with ⟨n, rfl⟩
   exact typeof_value_model_eval_bvneg_value w n (bitvec_width_nonneg hv)
 
+/-- Shows that evaluating `bvadd_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvadd_of_bitvec
     {v1 v2 : SmtValue}
     {w : smt_lit_Int}
@@ -381,6 +405,7 @@ theorem typeof_value_model_eval_bvadd_of_bitvec
   rw [hv1, hv2]
   exact typeof_value_model_eval_bvadd_value w n1 n2 hWidth
 
+/-- Shows that evaluating `bvudiv_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvudiv_of_bitvec
     {v1 v2 : SmtValue}
     {w : smt_lit_Int}
@@ -394,6 +419,7 @@ theorem typeof_value_model_eval_bvudiv_of_bitvec
   rw [hv1, hv2]
   exact typeof_value_model_eval_bvudiv_value w n1 n2 hWidth
 
+/-- Shows that evaluating `bvurem_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvurem_of_bitvec
     {v1 v2 : SmtValue}
     {w : smt_lit_Int}
@@ -407,6 +433,7 @@ theorem typeof_value_model_eval_bvurem_of_bitvec
   rw [hv1, hv2]
   exact typeof_value_model_eval_bvurem_value w n1 n2 hWidth
 
+/-- Shows that evaluating `bvlshr_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvlshr_of_bitvec
     {v1 v2 : SmtValue}
     {w : smt_lit_Int}
@@ -420,6 +447,7 @@ theorem typeof_value_model_eval_bvlshr_of_bitvec
   rw [hv1, hv2]
   exact typeof_value_model_eval_bvlshr_value w n1 n2 hWidth
 
+/-- Shows that evaluating `bvnego_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnego_of_bitvec
     {v : SmtValue}
     {w : smt_lit_Int}
@@ -429,6 +457,7 @@ theorem typeof_value_model_eval_bvnego_of_bitvec
   rw [hv']
   exact typeof_value_model_eval_bvnego_value w n
 
+/-- Shows that evaluating `bvsaddo_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsaddo_of_bitvec
     {v1 v2 : SmtValue}
     {w : smt_lit_Int}

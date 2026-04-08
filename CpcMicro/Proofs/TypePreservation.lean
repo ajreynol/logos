@@ -9,6 +9,7 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+/-- Derives `inhabited_type` from `guard_inhabited_self_non_none`. -/
 theorem inhabited_type_of_guard_inhabited_self_non_none
     {T : SmtType}
     (ht : __smtx_typeof_guard_inhabited T T ≠ SmtType.None) :
@@ -17,6 +18,7 @@ theorem inhabited_type_of_guard_inhabited_self_non_none
   · simp [__smtx_typeof_guard_inhabited, smt_lit_ite, h] at ht
   · exact (smtx_inhabited_type_eq_true_iff T).mp h
 
+/-- Derives `var_type_inhabited` from `non_none`. -/
 theorem var_type_inhabited_of_non_none
     {s : smt_lit_String}
     {T : SmtType}
@@ -25,6 +27,7 @@ theorem var_type_inhabited_of_non_none
   exact inhabited_type_of_guard_inhabited_self_non_none
     (by simpa [term_has_non_none_type, __smtx_typeof] using ht)
 
+/-- Derives `uconst_type_inhabited` from `non_none`. -/
 theorem uconst_type_inhabited_of_non_none
     {s : smt_lit_String}
     {T : SmtType}
@@ -33,6 +36,7 @@ theorem uconst_type_inhabited_of_non_none
   exact inhabited_type_of_guard_inhabited_self_non_none
     (by simpa [term_has_non_none_type, __smtx_typeof] using ht)
 
+/-- Derives `not_arg_bool` from `non_none`. -/
 theorem not_arg_bool_of_non_none
     {t : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.not t)) :
@@ -42,6 +46,7 @@ theorem not_arg_bool_of_non_none
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
   rfl
 
+/-- Shows that a well-typed generic application has well-typed children. -/
 theorem generic_apply_children_non_none
     {f x : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply f x))
@@ -62,6 +67,7 @@ theorem generic_apply_children_non_none
     rw [hX]
     exact hA
 
+/-- Builds the supported-preservation witness for any SMT term whose type is not `None`. -/
 private theorem supported_preservation_term_of_non_none :
     ∀ (t : SmtTerm), term_has_non_none_type t -> supported_preservation_term t
   | SmtTerm.None, ht => by
@@ -205,6 +211,7 @@ decreasing_by
   all_goals
     omega
 
+/-- Proves type preservation for SMT terms covered by `supported_preservation_term`. -/
 private theorem supported_type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -271,6 +278,7 @@ private theorem supported_type_preservation
         (supported_type_preservation M hM f htf hsf)
         (supported_type_preservation M hM x htx hsx)
 
+/-- Main type-preservation theorem for evaluation of non-`None` SMT terms in total typed models. -/
 theorem type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -280,6 +288,7 @@ theorem type_preservation
   exact supported_type_preservation M hM t ht
     (supported_preservation_term_of_non_none t ht)
 
+/-- Shows that evaluating a Boolean-typed SMT term yields a Boolean value in a total typed model. -/
 theorem smt_model_eval_bool_is_boolean
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) :
@@ -295,6 +304,7 @@ theorem smt_model_eval_bool_is_boolean
     simpa [hTy] using type_preservation M hM t hNN
   exact bool_value_canonical hPres
 
+/-- Shows that total typed SMT models exist. -/
 theorem total_typed_model_nonvacuous :
     ∃ M : SmtModel, model_total_typed M :=
   exists_total_typed_model

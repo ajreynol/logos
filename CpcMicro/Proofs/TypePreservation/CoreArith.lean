@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Derives `bool_binop_args_bool` from `non_none`. -/
 theorem bool_binop_args_bool_of_non_none
     {op t1 t2 : SmtTerm}
     (hTy :
@@ -23,6 +24,7 @@ theorem bool_binop_args_bool_of_non_none
     simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
   simp
 
+/-- Derives `ite_args` from `non_none`. -/
 theorem ite_args_of_non_none
     {c t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)) :
@@ -48,6 +50,7 @@ theorem ite_args_of_non_none
     apply ht
     simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, hBool, T1, T2, hEq]
 
+/-- Shows that evaluating `ite` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_ite
     (M : SmtModel)
     (c t1 t2 : SmtTerm)
@@ -70,6 +73,7 @@ theorem typeof_value_model_eval_ite
   · simpa [__smtx_model_eval_ite, h1, h2] using hpres2
   · simpa [__smtx_model_eval_ite, h1, h2] using hpres1
 
+/-- Derives `eq_term_typeof` from `non_none`. -/
 theorem eq_term_typeof_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)) :
@@ -80,6 +84,7 @@ theorem eq_term_typeof_of_non_none
   all_goals
     first | exact ht
 
+/-- Shows that evaluating `not` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_not
     (M : SmtModel)
     (t : SmtTerm)
@@ -99,6 +104,7 @@ theorem typeof_value_model_eval_not
   rw [hb]
   rfl
 
+/-- Shows that evaluating `or` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_or
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -117,6 +123,7 @@ theorem typeof_value_model_eval_or
   rw [hb1, hb2]
   rfl
 
+/-- Shows that evaluating `and` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_and
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -135,6 +142,7 @@ theorem typeof_value_model_eval_and
   rw [hb1, hb2]
   rfl
 
+/-- Shows that evaluating `imp` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_imp
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -153,6 +161,7 @@ theorem typeof_value_model_eval_imp
   rw [hb1, hb2]
   rfl
 
+/-- Shows that evaluating `eq` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_eq
     (M : SmtModel)
     (t1 t2 : SmtTerm)

@@ -6,6 +6,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Shows that the EO program for `contra_impl` is well typed. -/
 theorem typed___eo_prog_contra_impl (x1 x2 : Term) :
   RuleProofs.eo_has_bool_type x1 ->
   RuleProofs.eo_has_bool_type x2 ->
@@ -53,6 +54,7 @@ by
 
 namespace RuleProofs
 
+/-- Proves correctness of the EO program for `contra`. -/
 theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
   eo_interprets M x1 true ->
   eo_interprets M x2 true ->
@@ -91,6 +93,7 @@ theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
 
 end RuleProofs
 
+/-- Proves correctness of the EO program for `contra_impl`. -/
 theorem correct___eo_prog_contra_impl
     (M : SmtModel) (_hM : model_total_typed M) (x1 x2 : Term) :
   (eo_interprets M x1 true) ->
@@ -100,6 +103,7 @@ theorem correct___eo_prog_contra_impl
 by
   exact RuleProofs.correct___eo_prog_contra M x1 x2
 
+/-- Derives the checker facts exposed by the EO program for `contra_impl`. -/
 theorem facts___eo_prog_contra_impl
     (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   eo_interprets M x1 true ->
@@ -116,6 +120,7 @@ by
     typed___eo_prog_contra_impl x1 x2 hX1Bool hX2Bool hProg
   exact correct___eo_prog_contra_impl M hM x1 x2 hX1True hX2True hBool
 
+/-- Packages the properties needed for `cmd_step_contra`. -/
 theorem cmd_step_contra_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :

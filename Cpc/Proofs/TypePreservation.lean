@@ -11,6 +11,7 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+/-- Main type-preservation theorem for evaluation of supported SMT terms in total typed models. -/
 theorem supported_type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -532,6 +533,7 @@ theorem supported_type_preservation
         (supported_type_preservation M hM f htf hsf)
         (supported_type_preservation M hM x htx hsx)
 
+/-- Restates supported type preservation using an inhabited-type hypothesis. -/
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -542,6 +544,7 @@ theorem supported_type_preservation_of_inhabited_type
     __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t :=
   supported_type_preservation M hM t ht hs
 
+/-- Datatype used in the counterexample to universal type preservation. -/
 def universal_counterexample_dt : SmtDatatype :=
   SmtDatatype.sum
     SmtDatatypeCons.unit
@@ -549,30 +552,37 @@ def universal_counterexample_dt : SmtDatatype :=
       (SmtDatatypeCons.cons (SmtType.TypeRef "A") SmtDatatypeCons.unit)
       SmtDatatype.null)
 
+/-- Datatype type used in the universal counterexample construction. -/
 def universal_counterexample_datatype_type : SmtType :=
   SmtType.Datatype "D" universal_counterexample_dt
 
+/-- Witness value used in the universal counterexample construction. -/
 def universal_counterexample_value : SmtValue :=
   SmtValue.DtCons "D" universal_counterexample_dt smt_lit_nat_zero
 
+/-- Model used to witness failure of universal type preservation. -/
 noncomputable def universal_counterexample_model : SmtModel :=
   __smtx_model_push default_typed_model "x"
     universal_counterexample_datatype_type universal_counterexample_value
 
+/-- Selector term used in the universal counterexample construction. -/
 def universal_counterexample_sel : SmtTerm :=
   SmtTerm.Apply
     (SmtTerm.DtSel "D" universal_counterexample_dt
       (smt_lit_nat_succ smt_lit_nat_zero) smt_lit_nat_zero)
     (SmtTerm.Var "x" universal_counterexample_datatype_type)
 
+/-- Full SMT term used in the universal counterexample construction. -/
 def universal_counterexample_term : SmtTerm :=
   SmtTerm.Apply SmtTerm.seq_unit universal_counterexample_sel
 
+/-- Ill-typed selector result type used in the universal counterexample lookup. -/
 def universal_counterexample_wrong_sel_type : SmtType :=
   SmtType.Map SmtType.Int
     (SmtType.Map SmtType.Int
       (SmtType.Map universal_counterexample_datatype_type (SmtType.TypeRef "A")))
 
+/-- Computes the type of the universal counterexample value. -/
 theorem universal_counterexample_value_typeof :
     __smtx_typeof_value universal_counterexample_value =
       universal_counterexample_datatype_type := by
@@ -580,16 +590,19 @@ theorem universal_counterexample_value_typeof :
     universal_counterexample_dt, __smtx_typeof_value, __smtx_typeof_dt_cons_value_rec,
     __smtx_dt_substitute, __smtx_dtc_substitute]
 
+/-- Shows that the counterexample datatype is inhabited. -/
 theorem universal_counterexample_datatype_inhabited :
     type_inhabited universal_counterexample_datatype_type :=
   ⟨universal_counterexample_value, universal_counterexample_value_typeof⟩
 
+/-- Shows that the universal counterexample model is total and typed. -/
 theorem universal_counterexample_model_typed :
     model_total_typed universal_counterexample_model := by
   exact model_total_typed_push default_typed_model_total_typed "x"
     universal_counterexample_datatype_type universal_counterexample_value
     universal_counterexample_value_typeof
 
+/-- Computes the type of the counterexample variable. -/
 theorem universal_counterexample_var_typeof :
     __smtx_typeof (SmtTerm.Var "x" universal_counterexample_datatype_type) =
       universal_counterexample_datatype_type := by
@@ -601,6 +614,7 @@ theorem universal_counterexample_var_typeof :
     universal_counterexample_datatype_type
   simp [__smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
+/-- Computes the selector result type used in the counterexample. -/
 theorem universal_counterexample_sel_result_type :
     __smtx_ret_typeof_sel "D" universal_counterexample_dt
       (smt_lit_nat_succ smt_lit_nat_zero) smt_lit_nat_zero =
@@ -609,6 +623,7 @@ theorem universal_counterexample_sel_result_type :
     __smtx_ret_typeof_sel_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
     smt_lit_ite, smt_lit_Teq]
 
+/-- Computes the type of the counterexample selector term. -/
 theorem universal_counterexample_sel_typeof :
     __smtx_typeof universal_counterexample_sel = SmtType.TypeRef "A" := by
   have hNN : term_has_non_none_type universal_counterexample_sel := by
@@ -626,6 +641,7 @@ theorem universal_counterexample_sel_typeof :
   simpa [universal_counterexample_sel_result_type, universal_counterexample_sel] using
     dt_sel_term_typeof_of_non_none hNN
 
+/-- Computes the type of the full universal counterexample term. -/
 theorem universal_counterexample_term_typeof :
     __smtx_typeof universal_counterexample_term = SmtType.Seq (SmtType.TypeRef "A") := by
   unfold universal_counterexample_term
@@ -636,18 +652,21 @@ theorem universal_counterexample_term_typeof :
   rw [universal_counterexample_sel_typeof]
   simp [smt_lit_ite, smt_lit_Teq]
 
+/-- Shows that the universal counterexample term has non-`None` type. -/
 theorem universal_counterexample_term_non_none :
     term_has_non_none_type universal_counterexample_term := by
   unfold term_has_non_none_type
   rw [universal_counterexample_term_typeof]
   simp
 
+/-- Shows that the universal counterexample term has inhabited type. -/
 theorem universal_counterexample_term_inhabited :
     term_has_inhabited_type universal_counterexample_term := by
   unfold term_has_inhabited_type
   rw [universal_counterexample_term_typeof]
   exact type_inhabited_seq (SmtType.TypeRef "A")
 
+/-- Shows that the counterexample selector lookup type is uninhabited. -/
 theorem universal_counterexample_wrong_sel_type_uninhabited :
     ¬ type_inhabited universal_counterexample_wrong_sel_type := by
   apply not_type_inhabited_map
@@ -655,6 +674,7 @@ theorem universal_counterexample_wrong_sel_type_uninhabited :
   apply not_type_inhabited_map
   simpa [type_inhabited] using no_value_of_type_ref "A"
 
+/-- Computes the failed selector lookup in the counterexample model. -/
 theorem universal_counterexample_wrong_sel_lookup :
     __smtx_model_lookup universal_counterexample_model smt_lit_wrong_apply_sel_id
       universal_counterexample_wrong_sel_type = SmtValue.NotValue := by
@@ -662,6 +682,7 @@ theorem universal_counterexample_wrong_sel_lookup :
     smt_lit_wrong_apply_sel_id universal_counterexample_wrong_sel_type
     universal_counterexample_wrong_sel_type_uninhabited
 
+/-- Computes evaluation of the counterexample variable. -/
 theorem universal_counterexample_var_eval :
     __smtx_model_eval universal_counterexample_model
       (SmtTerm.Var "x" universal_counterexample_datatype_type) =
@@ -671,6 +692,7 @@ theorem universal_counterexample_var_eval :
   simp [universal_counterexample_model, __smtx_model_lookup, __smtx_model_push,
     __smtx_model_key]
 
+/-- Computes evaluation of the counterexample selector term. -/
 theorem universal_counterexample_sel_eval :
     __smtx_model_eval universal_counterexample_model universal_counterexample_sel =
       SmtValue.NotValue := by
@@ -701,6 +723,7 @@ theorem universal_counterexample_sel_eval :
   rw [hLookup]
   simp [__smtx_map_select]
 
+/-- Computes evaluation of the full universal counterexample term. -/
 theorem universal_counterexample_term_eval :
     __smtx_model_eval universal_counterexample_model universal_counterexample_term =
       SmtValue.Seq (SmtSeq.cons SmtValue.NotValue (SmtSeq.empty SmtType.None)) := by
@@ -712,6 +735,7 @@ theorem universal_counterexample_term_eval :
   rw [universal_counterexample_sel_eval]
   rfl
 
+/-- Computes the value type produced by evaluating the universal counterexample term. -/
 theorem universal_counterexample_term_value_typeof :
     __smtx_typeof_value
       (__smtx_model_eval universal_counterexample_model universal_counterexample_term) =
@@ -719,6 +743,7 @@ theorem universal_counterexample_term_value_typeof :
   rw [universal_counterexample_term_eval]
   simp [__smtx_typeof_value, __smtx_typeof_seq_value, smt_lit_ite, smt_lit_Teq]
 
+/-- Shows that the universal counterexample violates type preservation. -/
 theorem universal_counterexample_not_preserved :
     __smtx_typeof_value
       (__smtx_model_eval universal_counterexample_model universal_counterexample_term) ≠
@@ -727,6 +752,7 @@ theorem universal_counterexample_not_preserved :
     universal_counterexample_term_typeof]
   simp
 
+/-- Shows that inhabited supported type preservation does not extend to a universal theorem. -/
 theorem supported_type_preservation_of_inhabited_type_not_universal :
     ¬ ∀ (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm),
         term_has_non_none_type t ->
@@ -739,6 +765,7 @@ theorem supported_type_preservation_of_inhabited_type_not_universal :
       universal_counterexample_term_inhabited
   exact universal_counterexample_not_preserved hEq
 
+/-- Shows that total typed SMT models exist. -/
 theorem total_typed_model_nonvacuous :
     ∃ M : SmtModel, model_total_typed M :=
   exists_total_typed_model

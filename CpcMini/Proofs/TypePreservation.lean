@@ -8,6 +8,7 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+/-- Main type-preservation theorem for evaluation of supported SMT terms in total typed models. -/
 theorem supported_type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -81,6 +82,7 @@ theorem supported_type_preservation
         (supported_type_preservation M hM f htf hsf)
         (supported_type_preservation M hM x htx hsx)
 
+/-- Restates supported type preservation using an inhabited-type hypothesis. -/
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -91,6 +93,7 @@ theorem supported_type_preservation_of_inhabited_type
     __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t :=
   supported_type_preservation M hM t ht hs
 
+/-- Shows that total typed SMT models exist. -/
 theorem total_typed_model_nonvacuous :
     ∃ M : SmtModel, model_total_typed M :=
   exists_total_typed_model

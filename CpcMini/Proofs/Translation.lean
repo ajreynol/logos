@@ -25,6 +25,7 @@ translation semantics on purpose. The current staging area therefore focuses on:
 3. Fully translated boolean/equality applications.
 -/
 
+/-- Inductive predicate describing the boolean and equality EO terms handled by the mini translation proof. -/
 inductive supported_bool_translation_term : Term -> Prop where
   | boolean (b : eo_lit_Bool) :
       supported_bool_translation_term (Term.Boolean b)
@@ -39,6 +40,7 @@ inductive supported_bool_translation_term : Term -> Prop where
   | eq (x y : Term) :
       supported_bool_translation_term (Term.Apply (Term.Apply Term.eq x) y)
 
+/-- Shows that supported boolean mini translations always have SMT Boolean type when defined. -/
 theorem eo_to_smt_supported_bool_term_has_bool_smt_type
     {t : Term} :
     supported_bool_translation_term t ->

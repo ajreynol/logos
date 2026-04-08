@@ -6,6 +6,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Lemma about `eo_requires_not_stuck`. -/
 theorem eo_requires_not_stuck (x1 x2 x3 : Term) :
   __eo_requires x1 x2 x3 ≠ Term.Stuck ->
   x1 = x2 ∧ x1 ≠ Term.Stuck ∧ x3 ≠ Term.Stuck := by
@@ -24,6 +25,7 @@ theorem eo_requires_not_stuck (x1 x2 x3 : Term) :
   · exact False.elim <| hReq (by
       simp [__eo_requires, eo_lit_teq, hEq, eo_lit_ite])
 
+/-- Derives `eo_requires_eq` from `eq_not_stuck`. -/
 theorem eo_requires_eq_of_eq_not_stuck (x1 x2 x3 : Term) :
   x1 = x2 ->
   x1 ≠ Term.Stuck ->
@@ -32,6 +34,7 @@ theorem eo_requires_eq_of_eq_not_stuck (x1 x2 x3 : Term) :
   subst x2
   cases x1 <;> simp [__eo_requires, eo_lit_teq, eo_lit_ite, eo_lit_not, SmtEval.smt_lit_not] at hNotStuck ⊢
 
+/-- Lemma about `mk_trans_step_eq`. -/
 theorem mk_trans_step_eq (t1 t2 t3 t4 tail : Term) :
   t1 ≠ Term.Stuck ->
   t2 ≠ Term.Stuck ->
@@ -40,6 +43,7 @@ theorem mk_trans_step_eq (t1 t2 t3 t4 tail : Term) :
   intro _ _
   simp [__mk_trans]
 
+/-- Lemma about `mk_trans_base_eq`. -/
 theorem mk_trans_base_eq (t1 t2 : Term) :
   t1 ≠ Term.Stuck ->
   t2 ≠ Term.Stuck ->
@@ -47,6 +51,7 @@ theorem mk_trans_base_eq (t1 t2 : Term) :
   intro _ _
   simp [__mk_trans]
 
+/-- Derives `term_ne_stuck` from `smt_type_not_none`. -/
 theorem term_ne_stuck_of_smt_type_not_none (t : Term) :
   __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
   t ≠ Term.Stuck := by
@@ -54,6 +59,7 @@ theorem term_ne_stuck_of_smt_type_not_none (t : Term) :
   subst hStuck
   simp [__eo_to_smt, __smtx_typeof] at hTy
 
+/-- Derives `mk_trans_shape` from `not_stuck`. -/
 private theorem mk_trans_shape_of_not_stuck (t1 t2 tail : Term) :
   t1 ≠ Term.Stuck ->
   t2 ≠ Term.Stuck ->
@@ -93,12 +99,14 @@ private theorem mk_trans_shape_of_not_stuck (t1 t2 tail : Term) :
   | _ =>
       exact False.elim (hProg (by simp [__mk_trans]))
 
+/-- Lemma about `sizeOf_lt_trans_tail`. -/
 private theorem sizeOf_lt_trans_tail (t3 t4 tail : Term) :
   sizeOf tail <
     sizeOf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail) := by
   simp
   omega
 
+/-- Transitivity lemma for `typed_mk`. -/
 private theorem typed_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
     eo_interprets M
       (Term.Apply
@@ -165,6 +173,7 @@ termination_by sizeOf tail
 decreasing_by
   simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
 
+/-- Derives `typed_mk_trans` from `bool_chain`. -/
 private theorem typed_mk_trans_of_bool_chain (t1 t2 tail : Term) :
     RuleProofs.eo_has_bool_type
       (Term.Apply
@@ -231,6 +240,7 @@ termination_by sizeOf tail
 decreasing_by
   simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
 
+/-- Transitivity lemma for `correct_mk`. -/
 private theorem correct_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
     eo_interprets M
       (Term.Apply
@@ -297,6 +307,7 @@ termination_by sizeOf tail
 decreasing_by
   simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
 
+/-- Shows that the EO program for `trans_impl` is well typed. -/
 theorem typed___eo_prog_trans_impl (x1 : Term) :
   RuleProofs.eo_has_bool_type x1 ->
   __eo_prog_trans (Proof.pf x1) ≠ Term.Stuck ->
@@ -330,6 +341,7 @@ by
   | _ =>
       exact False.elim (hProg (by simp [__eo_prog_trans]))
 
+/-- Proves correctness of the EO program for `trans_impl`. -/
 theorem correct___eo_prog_trans_impl
     (M : SmtModel) (_hM : model_total_typed M) (x1 : Term) :
   (eo_interprets M x1 true) ->
@@ -366,6 +378,7 @@ by
   | _ =>
       exact False.elim (hProg (by simp [__eo_prog_trans]))
 
+/-- Derives the checker facts exposed by the EO program for `trans_impl`. -/
 theorem facts___eo_prog_trans_impl
     (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   eo_interprets M x1 true ->
@@ -379,6 +392,7 @@ by
     typed___eo_prog_trans_impl x1 hXBool hProg
   exact correct___eo_prog_trans_impl M hM x1 hXTrue hBool
 
+/-- Packages the properties required for the `trans` checker step. -/
 theorem cmd_step_trans_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :

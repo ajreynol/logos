@@ -6,6 +6,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Shows that the EO program for `symm_impl` is well typed. -/
 theorem typed___eo_prog_symm_impl (x1 : Term) :
   RuleProofs.eo_has_bool_type x1 ->
   __eo_prog_symm (Proof.pf x1) ≠ Term.Stuck ->
@@ -68,6 +69,7 @@ by
   | _ =>
       exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
 
+/-- Shows that `eo_interprets_not_false` implies `true`. -/
 private theorem eo_interprets_not_false_implies_true (M : SmtModel) (t : Term) :
   eo_interprets M (Term.Apply Term.not t) false -> eo_interprets M t true := by
   intro h
@@ -83,6 +85,7 @@ private theorem eo_interprets_not_false_implies_true (M : SmtModel) (t : Term) :
         cases b <;> simp [SmtEval.smt_lit_not] at hEval
         exact smt_interprets.intro_true M (__eo_to_smt t) htyt ht
 
+/-- Establishes an equality relating `eo_interprets` and `symm_true`. -/
 private theorem eo_interprets_eq_symm_true (M : SmtModel) (a b : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.eq b) a) true ->
   eo_interprets M (Term.Apply (Term.Apply Term.eq a) b) true := by
@@ -103,6 +106,7 @@ private theorem eo_interprets_eq_symm_true (M : SmtModel) (a b : Term) :
   · exact hTySymm
   · exact RuleProofs.smt_value_rel_symm _ _ (RuleProofs.eo_interprets_eq_rel M b a hEqTrue)
 
+/-- Proves correctness of the EO program for `symm_impl`. -/
 theorem correct___eo_prog_symm_impl
     (M : SmtModel) (_hM : model_total_typed M) (x1 : Term) :
   (eo_interprets M x1 true) ->
@@ -166,6 +170,7 @@ by
       exfalso
       exact hProgNotStuck (by simp [__eo_prog_symm, __mk_symm])
 
+/-- Derives the checker facts exposed by the EO program for `symm_impl`. -/
 theorem facts___eo_prog_symm_impl
     (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   eo_interprets M x1 true ->
@@ -179,6 +184,7 @@ by
     typed___eo_prog_symm_impl x1 hXBool hProg
   exact correct___eo_prog_symm_impl M hM x1 hXTrue hBool
 
+/-- Packages the properties required for the `symm` checker step. -/
 theorem cmd_step_symm_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :

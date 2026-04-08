@@ -255,6 +255,7 @@ theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
   subst s
   simpa [hTy] using eo_to_smt_typeof_matches_translation t hNonNone
 
+/-- Transfers EO Boolean typing to the translated SMT term under a defined translation. -/
 theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
     (t : Term) (s : SmtTerm) :
     __eo_to_smt t = s ->

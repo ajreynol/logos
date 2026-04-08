@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Lemma about `typeof_map_value_shape`. -/
 theorem typeof_map_value_shape :
     ∀ m : SmtMap,
       (∃ T U, __smtx_typeof_map_value m = SmtType.Map T U) ∨
@@ -21,6 +22,7 @@ theorem typeof_map_value_shape :
       · simpa [__smtx_typeof_map_value, smt_lit_ite, hEq] using typeof_map_value_shape m
       · exact Or.inr (by simp [__smtx_typeof_map_value, smt_lit_ite, hEq])
 
+/-- Lemma about `typeof_seq_value_shape`. -/
 theorem typeof_seq_value_shape :
     ∀ ss : SmtSeq,
       (∃ T, __smtx_typeof_seq_value ss = SmtType.Seq T) ∨
@@ -31,12 +33,14 @@ theorem typeof_seq_value_shape :
       · simpa [__smtx_typeof_seq_value, smt_lit_ite, hEq] using typeof_seq_value_shape vs
       · exact Or.inr (by simp [__smtx_typeof_seq_value, smt_lit_ite, hEq])
 
+/-- Definition used in the proof development for `dt_cons_chain_result`. -/
 def dt_cons_chain_result : SmtType -> Prop
   | SmtType.None => True
   | SmtType.Datatype _ _ => True
   | SmtType.FunType _ U => dt_cons_chain_result U
   | _ => False
 
+/-- Lemma about `typeof_dt_cons_value_rec_chain_result`. -/
 theorem typeof_dt_cons_value_rec_chain_result
     (s : smt_lit_String)
     (d0 : SmtDatatype) :
@@ -53,6 +57,7 @@ theorem typeof_dt_cons_value_rec_chain_result
       simpa [__smtx_typeof_dt_cons_value_rec] using
         typeof_dt_cons_value_rec_chain_result s d0 d n
 
+/-- Lemma about `typeof_value_dt_cons_type_chain_result`. -/
 theorem typeof_value_dt_cons_type_chain_result :
     ∀ v : SmtValue, ∀ T U : SmtType,
       __smtx_typeof_value v = SmtType.FunType T U -> dt_cons_chain_result U
@@ -107,6 +112,7 @@ theorem typeof_value_dt_cons_type_chain_result :
         have hShape := typeof_value_dt_cons_type_chain_result f A B hf
         simpa [h, dt_cons_chain_result] using hShape
 
+/-- Derives `no_value` from `dt_cons_type_bool`. -/
 theorem no_value_of_dt_cons_type_bool
     (T : SmtType) :
     ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.Bool := by
@@ -115,6 +121,7 @@ theorem no_value_of_dt_cons_type_bool
   have hShape := typeof_value_dt_cons_type_chain_result v T SmtType.Bool hv
   simp [dt_cons_chain_result] at hShape
 
+/-- Derives `no_value` from `dt_cons_type_of_non_chain`. -/
 theorem no_value_of_dt_cons_type_of_non_chain
     (T U : SmtType)
     (hU : ¬ dt_cons_chain_result U) :
@@ -123,18 +130,21 @@ theorem no_value_of_dt_cons_type_of_non_chain
   rcases h with ⟨v, hv⟩
   exact hU (typeof_value_dt_cons_type_chain_result v T U hv)
 
+/-- Derives `no_value` from `dt_cons_type_seq`. -/
 theorem no_value_of_dt_cons_type_seq
     (T U : SmtType) :
     ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.Seq U) := by
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Seq U) (by
     simp [dt_cons_chain_result])
 
+/-- Derives `no_value` from `dt_cons_type_map`. -/
 theorem no_value_of_dt_cons_type_map
     (T A B : SmtType) :
     ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.Map A B) := by
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Map A B) (by
     simp [dt_cons_chain_result])
 
+/-- Derives `no_value` from `dt_cons_type_type_ref`. -/
 theorem no_value_of_dt_cons_type_type_ref
     (T : SmtType)
     (s : smt_lit_String) :
@@ -142,6 +152,7 @@ theorem no_value_of_dt_cons_type_type_ref
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.TypeRef s) (by
     simp [dt_cons_chain_result])
 
+/-- Derives `no_value` from `type_ref`. -/
 theorem no_value_of_type_ref
     (s : smt_lit_String) :
     ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.TypeRef s := by
@@ -198,6 +209,7 @@ theorem no_value_of_type_ref
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at hv
         exact no_value_of_dt_cons_type_type_ref T s ⟨f, by simpa [hv] using hf⟩
 
+/-- Canonical-form lemma for `bool_value`. -/
 theorem bool_value_canonical
     {v : SmtValue}
     (h : __smtx_typeof_value v = SmtType.Bool) :
@@ -254,6 +266,7 @@ theorem bool_value_canonical
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_bool T ⟨f, by simpa [h] using hf⟩
 
+/-- Canonical-form lemma for `map_value`. -/
 theorem map_value_canonical
     {v : SmtValue}
     {A B : SmtType}
@@ -306,6 +319,7 @@ theorem map_value_canonical
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_map T A B ⟨f, by simpa [h] using hf⟩
 
+/-- Canonical-form lemma for `seq_value`. -/
 theorem seq_value_canonical
     {v : SmtValue}
     {T : SmtType}
@@ -358,10 +372,12 @@ theorem seq_value_canonical
           simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_seq A T ⟨f, by simpa [h] using hf⟩
 
+/-- Predicate asserting that every value in a list has the given SMT type. -/
 def list_typed (T : SmtType) : List SmtValue -> Prop
   | [] => True
   | v :: vs => __smtx_typeof_value v = T ∧ list_typed T vs
 
+/-- Derives `typeof_seq_value_pack_seq` from `typed`. -/
 theorem typeof_seq_value_pack_seq_of_typed
     {T : SmtType} :
     ∀ {xs : List SmtValue},
@@ -374,6 +390,7 @@ theorem typeof_seq_value_pack_seq_of_typed
       have ih := typeof_seq_value_pack_seq_of_typed hxs
       simp [smt_lit_pack_seq, __smtx_typeof_seq_value, hv, ih, smt_lit_ite, smt_lit_Teq]
 
+/-- Lemma about `char_value_list_typed`. -/
 theorem char_value_list_typed :
     ∀ cs : List Char, list_typed SmtType.Char (cs.map SmtValue.Char)
   | [] => by
@@ -381,11 +398,13 @@ theorem char_value_list_typed :
   | _ :: cs => by
       simp [list_typed, char_value_list_typed cs, __smtx_typeof_value]
 
+/-- Derives `char_values` from `string_typed`. -/
 theorem char_values_of_string_typed
     (s : smt_lit_String) :
     list_typed SmtType.Char (__smtx_ssm_char_values_of_string s) := by
   simpa [__smtx_ssm_char_values_of_string] using char_value_list_typed s.toList
 
+/-- Lemma about `typeof_pack_string`. -/
 theorem typeof_pack_string
     (s : smt_lit_String) :
     __smtx_typeof_seq_value (smt_lit_pack_string s) = SmtType.Seq SmtType.Char := by
@@ -394,6 +413,7 @@ theorem typeof_pack_string
     SmtType.Seq SmtType.Char
   exact typeof_seq_value_pack_seq_of_typed (char_values_of_string_typed s)
 
+/-- Shows that evaluating `string` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_string
     (M : SmtModel)
     (s : smt_lit_String) :
@@ -402,6 +422,7 @@ theorem typeof_value_model_eval_string
   change __smtx_typeof_seq_value (smt_lit_pack_string s) = SmtType.Seq SmtType.Char
   exact typeof_pack_string s
 
+/-- Lemma about `map_lookup_typed`. -/
 theorem map_lookup_typed :
     ∀ {m : SmtMap} {A B : SmtType} {i : SmtValue},
       __smtx_typeof_map_value m = SmtType.Map A B ->
@@ -435,6 +456,7 @@ theorem map_lookup_typed :
         · simpa [__smtx_msm_lookup, smt_lit_ite, hVeq] using hRec
       · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at hMap
 
+/-- Shows that evaluating `eq_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_eq_value
     (v1 v2 : SmtValue) :
     __smtx_typeof_value (__smtx_model_eval_eq v1 v2) = SmtType.Bool := by

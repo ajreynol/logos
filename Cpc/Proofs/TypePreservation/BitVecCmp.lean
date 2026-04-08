@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Shows that evaluating `bvnot` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnot
     (M : SmtModel)
     (t : SmtTerm)
@@ -22,6 +23,7 @@ theorem typeof_value_model_eval_bvnot
         typeof_value_binary_of_nonneg w
           (smt_lit_mod_total (smt_lit_binary_not w n) (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvand` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvand
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -36,6 +38,7 @@ theorem typeof_value_model_eval_bvand
         typeof_value_binary_of_nonneg w
           (smt_lit_mod_total (smt_lit_binary_and w n1 n2) (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvor
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -50,6 +53,7 @@ theorem typeof_value_model_eval_bvor
         typeof_value_binary_of_nonneg w
           (smt_lit_mod_total (smt_lit_binary_or w n1 n2) (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvnand` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnand
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -67,6 +71,7 @@ theorem typeof_value_model_eval_bvnand
               (smt_lit_mod_total (smt_lit_binary_and w n1 n2) (smt_lit_int_pow2 w)))
             (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvnor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnor
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -84,6 +89,7 @@ theorem typeof_value_model_eval_bvnor
               (smt_lit_mod_total (smt_lit_binary_or w n1 n2) (smt_lit_int_pow2 w)))
             (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvxor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvxor
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -98,6 +104,7 @@ theorem typeof_value_model_eval_bvxor
         typeof_value_binary_of_nonneg w
           (smt_lit_mod_total (smt_lit_binary_xor w n1 n2) (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvxnor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvxnor
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -115,6 +122,7 @@ theorem typeof_value_model_eval_bvxnor
               (smt_lit_mod_total (smt_lit_binary_xor w n1 n2) (smt_lit_int_pow2 w)))
             (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvcomp` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvcomp
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -127,6 +135,7 @@ theorem typeof_value_model_eval_bvcomp
     (SmtType.BitVec 1) t1 t2 rfl rfl ht hpres1 hpres2 (fun w n1 n2 _ => by
       exact typeof_value_model_eval_bvcomp_value w n1 n2)
 
+/-- Shows that evaluating `bvneg` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvneg
     (M : SmtModel)
     (t : SmtTerm)
@@ -140,6 +149,7 @@ theorem typeof_value_model_eval_bvneg
         typeof_value_binary_of_nonneg w
           (smt_lit_mod_total (smt_lit_zneg n) (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvadd` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvadd
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -154,6 +164,7 @@ theorem typeof_value_model_eval_bvadd
         typeof_value_binary_of_nonneg w
           (smt_lit_mod_total (smt_lit_zplus n1 n2) (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvmul` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvmul
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -168,6 +179,7 @@ theorem typeof_value_model_eval_bvmul
         typeof_value_binary_of_nonneg w
           (smt_lit_mod_total (smt_lit_zmult n1 n2) (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvudiv` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvudiv
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -184,6 +196,7 @@ theorem typeof_value_model_eval_bvudiv
             (smt_lit_ite (smt_lit_zeq n2 0) (smt_lit_binary_max w) (smt_lit_div_total n1 n2))
             (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvurem` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvurem
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -200,6 +213,7 @@ theorem typeof_value_model_eval_bvurem
             (smt_lit_ite (smt_lit_zeq n2 0) n1 (smt_lit_mod_total n1 n2))
             (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvsub` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsub
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -217,6 +231,7 @@ theorem typeof_value_model_eval_bvsub
               (smt_lit_mod_total (smt_lit_zneg n2) (smt_lit_int_pow2 w)))
             (smt_lit_int_pow2 w)) hWidth)
 
+/-- Shows that evaluating `bvult` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvult
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -230,6 +245,7 @@ theorem typeof_value_model_eval_bvult
       rw [__smtx_model_eval_bvult]
       exact typeof_value_model_eval_bvugt_value w n2 n1 hWidth)
 
+/-- Shows that evaluating `bvule` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvule
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -243,6 +259,7 @@ theorem typeof_value_model_eval_bvule
       simpa [__smtx_model_eval_bvule, __smtx_model_eval_bvuge] using
         typeof_value_model_eval_bvuge_value w n2 n1 hWidth)
 
+/-- Shows that evaluating `bvugt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvugt
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -254,6 +271,7 @@ theorem typeof_value_model_eval_bvugt
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvugt __smtx_model_eval_bvugt
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 typeof_value_model_eval_bvugt_value
 
+/-- Shows that evaluating `bvuge` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvuge
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -265,6 +283,7 @@ theorem typeof_value_model_eval_bvuge
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvuge __smtx_model_eval_bvuge
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 typeof_value_model_eval_bvuge_value
 
+/-- Shows that evaluating `bvsgt_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsgt_value
     (w n1 n2 : smt_lit_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsgt (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
@@ -274,6 +293,7 @@ theorem typeof_value_model_eval_bvsgt_value
     __smtx_model_eval_or, __smtx_model_eval_bvugt, __smtx_typeof_value,
     SmtEval.smt_lit_zplus, SmtEval.smt_lit_zneg]
 
+/-- Shows that evaluating `bvsge_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsge_value
     (w n1 n2 : smt_lit_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsge (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
@@ -285,18 +305,21 @@ theorem typeof_value_model_eval_bvsge_value
   rw [hb1, hb2]
   simp [__smtx_model_eval_or, __smtx_typeof_value]
 
+/-- Shows that evaluating `bvslt_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvslt_value
     (w n1 n2 : smt_lit_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvslt (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
   simpa [__smtx_model_eval_bvslt] using typeof_value_model_eval_bvsgt_value w n2 n1
 
+/-- Shows that evaluating `bvsle_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsle_value
     (w n1 n2 : smt_lit_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsle (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
   simpa [__smtx_model_eval_bvsle] using typeof_value_model_eval_bvsge_value w n2 n1
 
+/-- Shows that evaluating `bvslt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvslt
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -309,6 +332,7 @@ theorem typeof_value_model_eval_bvslt
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun w n1 n2 _ => by
       exact typeof_value_model_eval_bvslt_value w n1 n2)
 
+/-- Shows that evaluating `bvsle` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsle
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -321,6 +345,7 @@ theorem typeof_value_model_eval_bvsle
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun w n1 n2 _ => by
       exact typeof_value_model_eval_bvsle_value w n1 n2)
 
+/-- Shows that evaluating `bvsgt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsgt
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -333,6 +358,7 @@ theorem typeof_value_model_eval_bvsgt
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun w n1 n2 _ => by
       exact typeof_value_model_eval_bvsgt_value w n1 n2)
 
+/-- Shows that evaluating `bvsge` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsge
     (M : SmtModel)
     (t1 t2 : SmtTerm)

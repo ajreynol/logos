@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Characterizes the non-`None` cases of `__smtx_typeof_apply`. -/
 theorem typeof_apply_non_none_cases
     {F X : SmtType}
     (h : __smtx_typeof_apply F X ≠ SmtType.None) :
@@ -35,6 +36,7 @@ theorem typeof_apply_non_none_cases
           | contradiction
           | exact ⟨A, B, rfl, h.2.1.symm, h.1, h.2.2⟩
 
+/-- Shows that evaluating `apply_map` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_map
     {f i : SmtValue}
     {A B : SmtType}
@@ -69,6 +71,7 @@ theorem typeof_value_model_eval_apply_map
     map_lookup_typed (m := m) (A := A) (B := B)
       (by simp [__smtx_typeof_value] at hf; simpa using hf) hi
 
+/-- Shows that evaluating `apply_generic` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_generic
     (M : SmtModel)
     (f x : SmtTerm)

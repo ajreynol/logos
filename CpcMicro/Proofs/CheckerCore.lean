@@ -4,11 +4,13 @@ import CpcMicro.Proofs.Rules.Support
 open Eo
 open Smtm
 
+/-- Inductive predicate for assumption terms that are well-formed `and`-chains ending in `true`. -/
 inductive ValidAssumptionList : Term -> Prop
   | base : ValidAssumptionList (Term.Boolean true)
   | step (A rest : Term) : ValidAssumptionList rest ->
       ValidAssumptionList (Term.Apply (Term.Apply Term.and A) rest)
 
+/-- Inductive predicate for valid assumption lists whose entries are non-stuck EO Boolean terms. -/
 inductive TypedAssumptionList : Term -> Prop
   | base : TypedAssumptionList (Term.Boolean true)
   | step (A rest : Term) :
@@ -17,6 +19,7 @@ inductive TypedAssumptionList : Term -> Prop
       TypedAssumptionList rest ->
       TypedAssumptionList (Term.Apply (Term.Apply Term.and A) rest)
 
+/-- Inductive predicate for valid assumption lists whose entries all admit SMT translations. -/
 inductive TranslatableAssumptionList : Term -> Prop
   | base : TranslatableAssumptionList (Term.Boolean true)
   | step (A rest : Term) :
@@ -24,11 +27,13 @@ inductive TranslatableAssumptionList : Term -> Prop
       TranslatableAssumptionList rest ->
       TranslatableAssumptionList (Term.Apply (Term.Apply Term.and A) rest)
 
+/-- Predicate asserting that a checker state is structurally well-formed and not `Stuck`. -/
 def stateOk : CState -> Prop
   | CState.nil => True
   | CState.cons _ s => stateOk s
   | CState.Stuck => False
 
+/-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
   eo_interprets M t b ↔ smt_interprets M (__eo_to_smt t) b :=
 by
@@ -40,12 +45,14 @@ by
   · intro h
     exact ⟨__eo_to_smt t, eo_is_obj.intro t, h⟩
 
+/-- Shows that the EO term `true` is interpreted as `true` in every model. -/
 theorem eo_interprets_true (M : SmtModel) :
   eo_interprets M (Term.Boolean true) true :=
 by
   rw [eo_interprets_iff_smt_interprets]
   exact smt_interprets.intro_true M (__eo_to_smt (Term.Boolean true)) rfl rfl
 
+/-- Shows that `eo_interprets_false_true` cannot occur. -/
 theorem eo_interprets_false_true_absurd (M : SmtModel) :
   ¬ eo_interprets M (Term.Boolean false) true :=
 by
@@ -55,6 +62,7 @@ by
   | intro_true _ hEval =>
       cases hEval
 
+/-- Shows that `eo_interprets_stuck_false` cannot occur. -/
 theorem eo_interprets_stuck_false_absurd (M : SmtModel) :
   ¬ eo_interprets M Term.Stuck false :=
 by
@@ -64,6 +72,7 @@ by
   | intro_false hty _ =>
       simp [__eo_to_smt, __smtx_typeof] at hty
 
+/-- Shows that `eo_interprets_stuck_true` cannot occur. -/
 theorem eo_interprets_stuck_true_absurd (M : SmtModel) :
   ¬ eo_interprets M Term.Stuck true :=
 by
@@ -73,6 +82,7 @@ by
   | intro_true hty _ =>
       simp [__eo_to_smt, __smtx_typeof] at hty
 
+/-- Shows that an EO term cannot be interpreted as both `true` and `false`. -/
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :
   eo_interprets M t true ->
   ¬ eo_interprets M t false :=
@@ -86,6 +96,7 @@ by
           rw [hEvalTrue] at hEvalFalse
           cases hEvalFalse
 
+/-- Left-projection lemma for `eo_interprets_and`. -/
 theorem eo_interprets_and_left (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true ->
   eo_interprets M A true :=
@@ -109,6 +120,7 @@ by
           simp
       exact smt_interprets.intro_true M (__eo_to_smt A) htyA hEvalA
 
+/-- Right-projection lemma for `eo_interprets_and`. -/
 theorem eo_interprets_and_right (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true ->
   eo_interprets M B true :=
@@ -132,6 +144,7 @@ by
           simp
       exact smt_interprets.intro_true M (__eo_to_smt B) htyB hEvalB
 
+/-- Introduction lemma for `eo_interprets_and`. -/
 theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
   eo_interprets M A true ->
   eo_interprets M B true ->
@@ -148,6 +161,7 @@ by
           · simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_and, hEvalA, hEvalB,
               SmtEval.smt_lit_and]
 
+/-- Elimination lemma for `eo_interprets_imp`. -/
 theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) true ->
   eo_interprets M A true ->
@@ -171,6 +185,7 @@ by
               simp
           exact smt_interprets.intro_true M (__eo_to_smt B) htyB hEvalB
 
+/-- Introduction lemma for `eo_interprets_imp`. -/
 theorem eo_interprets_imp_intro (M : SmtModel) (A B : Term) :
   eo_interprets M A true ->
   eo_interprets M B true ->
@@ -187,6 +202,7 @@ by
           · simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_imp, __smtx_model_eval_or,
               __smtx_model_eval_not, hEvalA, hEvalB, SmtEval.smt_lit_or, SmtEval.smt_lit_not]
 
+/-- Left-projection lemma for `eo_interprets_imp_false`. -/
 theorem eo_interprets_imp_false_left (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) false ->
   eo_interprets M A true :=
@@ -211,6 +227,7 @@ by
           simp
       exact smt_interprets.intro_true M (__eo_to_smt A) htyA hEvalA
 
+/-- Right-projection lemma for `eo_interprets_imp_false`. -/
 theorem eo_interprets_imp_false_right (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) false ->
   eo_interprets M B false :=
@@ -241,6 +258,7 @@ by
           simp
       exact smt_interprets.intro_false M (__eo_to_smt B) htyB hEvalB
 
+/-- Introduction lemma for `eo_interprets_imp_false`. -/
 theorem eo_interprets_imp_false_intro (M : SmtModel) (A B : Term) :
   eo_interprets M A true ->
   eo_interprets M B false ->
@@ -257,6 +275,7 @@ by
           · simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_imp, __smtx_model_eval_or,
               __smtx_model_eval_not, hEvalA, hEvalB, SmtEval.smt_lit_or, SmtEval.smt_lit_not]
 
+/-- Derives `eo_interprets_and_false_left` from `right_not_false`. -/
 theorem eo_interprets_and_false_left_of_right_not_false (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.and A) B) false ->
   ¬ eo_interprets M B false ->
@@ -297,6 +316,7 @@ by
           · simp [SmtEval.smt_lit_and] at hEval
       exact smt_interprets.intro_false M (__eo_to_smt A) htyA hEvalA
 
+/-- Derives `eo_interprets_and_false_right_true` from `left_false_and_right_not_false`. -/
 theorem eo_interprets_and_false_right_true_of_left_false_and_right_not_false
     (M : SmtModel) (A B : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.and A) B) false ->
@@ -326,18 +346,21 @@ by
                   simp
           exact smt_interprets.intro_true M (__eo_to_smt B) htyB hEvalB
 
+/-- Extracts the conjunction of active assumptions from a checker state. -/
 def stateAssumes : CState -> Term
   | CState.nil => Term.Boolean true
   | CState.cons (CStateObj.assume F) s => Term.Apply (Term.Apply Term.and F) (stateAssumes s)
   | CState.cons _ s => stateAssumes s
   | CState.Stuck => Term.Stuck
 
+/-- Extracts the list of assumptions introduced by `assume_push` commands in a checker state. -/
 def statePushes : CState -> Term
   | CState.nil => Term.Boolean true
   | CState.cons (CStateObj.assume_push F) s => Term.Apply (Term.Apply Term.and F) (statePushes s)
   | CState.cons _ s => statePushes s
   | CState.Stuck => Term.Stuck
 
+/-- Extracts the list of proven terms stored in a checker state. -/
 def stateProvens : CState -> Term
   | CState.nil => Term.Boolean true
   | CState.cons (CStateObj.proven F) s => Term.Apply (Term.Apply Term.and F) (stateProvens s)
@@ -350,17 +373,20 @@ assumptions from `__eo_invoke_assume_list` live in a tail block of reachable
 states. This is the structural fact that lets `step_pop` discard a prefix
 without changing the assumption component.
 -/
+/-- Predicate asserting that a state appears as the tail of another checker state. -/
 def stateAssumptionTail : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume _) s => stateAssumptionTail s
   | _ => False
 
+/-- Predicate asserting that a state occurs as a suffix reached by repeatedly dropping assumptions. -/
 def stateAssumptionSuffix : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume _) s => stateAssumptionTail s
   | CState.cons _ s => stateAssumptionSuffix s
   | CState.Stuck => False
 
+/-- Derives `stateAssumptionSuffix` from `tail`. -/
 theorem stateAssumptionSuffix_of_tail :
   forall {s : CState}, stateAssumptionTail s -> stateAssumptionSuffix s
 :=
@@ -378,12 +404,14 @@ by
 /- `step_pop` traverses only across proved entries before it either finds the
    leading `assume_push` to discharge or falls into the assumption tail. This
    relation records the suffixes reachable by discarding only a proved prefix. -/
+/-- Inductive relation describing suffix states reachable by repeated `step_pop` operations. -/
 inductive stateStepPopSuffix : CState -> CState -> Prop
   | refl (s : CState) : stateStepPopSuffix s s
   | proven (P : Term) {cur root : CState} :
       stateStepPopSuffix cur root ->
       stateStepPopSuffix cur (CState.cons (CStateObj.proven P) root)
 
+/-- Transitivity lemma for `stateStepPopSuffix`. -/
 theorem stateStepPopSuffix_trans :
   forall {s t u : CState},
     stateStepPopSuffix s t ->
@@ -398,6 +426,7 @@ by
   | proven P htu ih =>
       exact stateStepPopSuffix.proven P (ih hst)
 
+/-- Derives `stateAssumes_eq` from `stateStepPopSuffix`. -/
 theorem stateAssumes_eq_of_stateStepPopSuffix :
   forall {cur root : CState},
     stateStepPopSuffix cur root ->
@@ -411,6 +440,7 @@ by
   | proven P hSuffix ih =>
       simpa [stateAssumes] using ih
 
+/-- Derives `statePushes_eq` from `stateStepPopSuffix`. -/
 theorem statePushes_eq_of_stateStepPopSuffix :
   forall {cur root : CState},
     stateStepPopSuffix cur root ->
@@ -424,6 +454,7 @@ by
   | proven P hSuffix ih =>
       simpa [statePushes] using ih
 
+/-- Derives `stateAssumes_eq` from `stateStepPopSuffix_assume_push`. -/
 theorem stateAssumes_eq_of_stateStepPopSuffix_assume_push
     {root tail : CState} {A : Term} :
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
@@ -432,6 +463,7 @@ by
   intro hSuffix
   simpa [stateAssumes] using stateAssumes_eq_of_stateStepPopSuffix hSuffix
 
+/-- Derives `statePushes_eq` from `stateStepPopSuffix_assume_push`. -/
 theorem statePushes_eq_of_stateStepPopSuffix_assume_push
     {root tail : CState} {A : Term} :
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
@@ -440,6 +472,7 @@ by
   intro hSuffix
   simpa [statePushes] using statePushes_eq_of_stateStepPopSuffix hSuffix
 
+/-- Shows that `stateOk` rules out the stuck state. -/
 theorem stateOk_not_stuck {s : CState} :
   stateOk s -> s ≠ CState.Stuck :=
 by
@@ -452,6 +485,7 @@ by
 by
   cases t <;> simp [__eo_eq, eo_lit_teq]
 
+/-- Shows that `Term.Stuck` never has EO type `Bool`. -/
 theorem typeof_stuck_ne_bool :
   __eo_typeof Term.Stuck ≠ Term.Bool :=
 by
@@ -474,6 +508,7 @@ by
   intro hTy
   exact (eo_is_bool_type_eq_true_iff t).2 hTy
 
+/-- Derives `term_ne_stuck` from `typeof_bool`. -/
 theorem term_ne_stuck_of_typeof_bool (t : Term) :
   __eo_typeof t = Term.Bool ->
   t ≠ Term.Stuck :=
@@ -507,6 +542,7 @@ by
   case Boolean b =>
     cases b <;> simp [hCheck] at hBool ⊢
 
+/-- Derives `assume_push_arg_ne_stuck` from `stateOk`. -/
 theorem assume_push_arg_ne_stuck_of_stateOk (A : Term) (s : CState) :
   stateOk (__eo_push_assume A s) -> A ≠ Term.Stuck :=
 by
@@ -514,6 +550,7 @@ by
   subst hA
   simp [push_assume_eq_stuck_of_eq_stuck, stateOk] at hOk
 
+/-- Shows that `push_assume` reflects `stateOk`. -/
 theorem push_assume_reflects_stateOk (A : Term) (s : CState) :
   stateOk (__eo_push_assume A s) -> stateOk s :=
 by
@@ -527,6 +564,7 @@ by
     exact (eo_is_bool_type_eq_true_iff A).1 hBool
   simpa [push_assume_eq_cons_of_typeof_bool, hTy, stateOk] using hOk
 
+/-- Derives `push_assume_typeof_bool` from `stateOk`. -/
 theorem push_assume_typeof_bool_of_stateOk (A : Term) (s : CState) :
   stateOk (__eo_push_assume A s) -> __eo_typeof A = Term.Bool :=
 by
@@ -539,6 +577,7 @@ by
       simp
   exact (eo_is_bool_type_eq_true_iff A).1 hBool
 
+/-- Derives `push_assume_eq_cons` from `stateOk`. -/
 theorem push_assume_eq_cons_of_stateOk (A : Term) (s : CState) :
   stateOk (__eo_push_assume A s) ->
   __eo_push_assume A s = CState.cons (CStateObj.assume_push A) s :=
@@ -571,6 +610,7 @@ by
   case Boolean b =>
     cases b <;> simp [hCheck] at hBool ⊢
 
+/-- Derives `push_proven_typeof_bool` from `stateOk`. -/
 theorem push_proven_typeof_bool_of_stateOk (P : Term) (s : CState) :
   stateOk (__eo_push_proven P s) -> __eo_typeof P = Term.Bool :=
 by
@@ -583,6 +623,7 @@ by
       simp
   exact (eo_is_bool_type_eq_true_iff P).1 hBool
 
+/-- Derives `push_proven_eq_cons` from `stateOk`. -/
 theorem push_proven_eq_cons_of_stateOk (P : Term) (s : CState) :
   stateOk (__eo_push_proven P s) ->
   __eo_push_proven P s = CState.cons (CStateObj.proven P) s :=
@@ -590,6 +631,7 @@ by
   intro hOk
   exact push_proven_eq_cons_of_typeof_bool P s (push_proven_typeof_bool_of_stateOk P s hOk)
 
+/-- Shows that `push_proven` reflects `stateOk`. -/
 theorem push_proven_reflects_stateOk (P : Term) (s : CState) :
   stateOk (__eo_push_proven P s) -> stateOk s :=
 by
@@ -615,6 +657,7 @@ by
    every indexed state entry is true. Since `CStateObj.Stuck` has been
    removed, indexed lookup can be handled directly from the semantic context,
    without extra per-rule premise side lemmas. -/
+/-- Global truth invariant requiring every proven term in the state to evaluate to `true`. -/
 def checkerTruthInvariant (M : SmtModel) : CState -> Prop
   | CState.Stuck => True
   | s =>
@@ -623,6 +666,7 @@ def checkerTruthInvariant (M : SmtModel) : CState -> Prop
         eo_interprets M (statePushes s) true ->
         eo_interprets M (__eo_state_proven_nth s n) true
 
+/-- Describes `checkerTruthInvariant` on the stuck state. -/
 theorem checkerTruthInvariant_stuck (M : SmtModel) :
   checkerTruthInvariant M CState.Stuck :=
 by
@@ -634,6 +678,7 @@ by
    This matches the operational checks for `assume_push` / `push_proven`, and
    for initial assumptions we thread a separate `TypedAssumptionList` premise.
 -/
+/-- Type invariant requiring every stored assumption and proven term to have EO Boolean type. -/
 def checkerTypeInvariant : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume A) s =>
@@ -644,11 +689,13 @@ def checkerTypeInvariant : CState -> Prop
       P ≠ Term.Stuck ∧ __eo_typeof P = Term.Bool ∧ checkerTypeInvariant s
   | CState.Stuck => True
 
+/-- Describes `checkerTypeInvariant` on the stuck state. -/
 theorem checkerTypeInvariant_stuck :
   checkerTypeInvariant CState.Stuck :=
 by
   trivial
 
+/-- Translation invariant requiring every stored assumption and proven term to admit SMT translation. -/
 def checkerTranslationInvariant : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume A) s =>
@@ -659,6 +706,7 @@ def checkerTranslationInvariant : CState -> Prop
       RuleProofs.eo_has_smt_translation P ∧ checkerTranslationInvariant s
   | CState.Stuck => True
 
+/-- Describes `checkerTranslationInvariant` on the stuck state. -/
 theorem checkerTranslationInvariant_stuck :
   checkerTranslationInvariant CState.Stuck :=
 by
@@ -671,6 +719,7 @@ by
    invariant shape that matches `step_pop`, since popping a local assumption
    keeps the tail unchanged and only replaces the scoped prefix by one new
    proved implication. -/
+/-- Local truth invariant relating each proven term to the assumptions that were active when it was derived. -/
 def checkerLocalTruthInvariant (M : SmtModel) : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.proven P) s =>
@@ -681,11 +730,13 @@ def checkerLocalTruthInvariant (M : SmtModel) : CState -> Prop
   | CState.cons _ s => checkerLocalTruthInvariant M s
   | CState.Stuck => True
 
+/-- Describes `checkerLocalTruthInvariant` on the stuck state. -/
 theorem checkerLocalTruthInvariant_stuck (M : SmtModel) :
   checkerLocalTruthInvariant M CState.Stuck :=
 by
   trivial
 
+/-- Shows how `checkerTypeInvariant` behaves on suffix tails. -/
 theorem checkerTypeInvariant_tail :
   forall {so : CStateObj} {s : CState},
     checkerTypeInvariant (CState.cons so s) ->
@@ -701,6 +752,7 @@ by
   | proven P =>
       exact hs.2.2
 
+/-- Shows how `checkerTypeInvariant` behaves at an `assume` head. -/
 theorem checkerTypeInvariant_head_assume
     (A : Term) (s : CState) :
   checkerTypeInvariant (CState.cons (CStateObj.assume A) s) ->
@@ -709,6 +761,7 @@ by
   intro hs
   exact ⟨hs.1, hs.2.1⟩
 
+/-- Shows how `checkerTypeInvariant` behaves at an `assume_push` head. -/
 theorem checkerTypeInvariant_head_assume_push
     (A : Term) (s : CState) :
   checkerTypeInvariant (CState.cons (CStateObj.assume_push A) s) ->
@@ -717,6 +770,7 @@ by
   intro hs
   exact ⟨hs.1, hs.2.1⟩
 
+/-- Shows how `checkerTypeInvariant` behaves at a proven head entry. -/
 theorem checkerTypeInvariant_head_proven
     (P : Term) (s : CState) :
   checkerTypeInvariant (CState.cons (CStateObj.proven P) s) ->
@@ -725,6 +779,7 @@ by
   intro hs
   exact ⟨hs.1, hs.2.1⟩
 
+/-- Retrieves the `checkerTypeInvariant` fact at a given index. -/
 theorem checkerTypeInvariant_at :
   forall {s : CState},
     checkerTypeInvariant s ->
@@ -769,6 +824,7 @@ by
             simpa [__eo_state_proven_nth, hZero] using
               ih (checkerTypeInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
 
+/-- Shows how `checkerTranslationInvariant` behaves on suffix tails. -/
 theorem checkerTranslationInvariant_tail :
   forall {so : CStateObj} {s : CState},
     checkerTranslationInvariant (CState.cons so s) ->
@@ -778,6 +834,7 @@ by
   intro so s hs
   cases so <;> exact hs.2
 
+/-- Shows how `checkerTranslationInvariant` behaves at an `assume` head. -/
 theorem checkerTranslationInvariant_head_assume
     (A : Term) (s : CState) :
   checkerTranslationInvariant (CState.cons (CStateObj.assume A) s) ->
@@ -786,6 +843,7 @@ by
   intro hs
   exact hs.1
 
+/-- Shows how `checkerTranslationInvariant` behaves at an `assume_push` head. -/
 theorem checkerTranslationInvariant_head_assume_push
     (A : Term) (s : CState) :
   checkerTranslationInvariant (CState.cons (CStateObj.assume_push A) s) ->
@@ -794,6 +852,7 @@ by
   intro hs
   exact hs.1
 
+/-- Shows how `checkerTranslationInvariant` behaves at a proven head entry. -/
 theorem checkerTranslationInvariant_head_proven
     (P : Term) (s : CState) :
   checkerTranslationInvariant (CState.cons (CStateObj.proven P) s) ->
@@ -802,6 +861,7 @@ by
   intro hs
   exact hs.1
 
+/-- Retrieves the `checkerTranslationInvariant` fact at a given index. -/
 theorem checkerTranslationInvariant_at :
   forall {s : CState},
     checkerTranslationInvariant s ->
@@ -839,6 +899,7 @@ by
             simpa [__eo_state_proven_nth, hZero] using
               ih (checkerTranslationInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
 
+/-- Retrieves the `checkerEntry_has_bool_type` fact at a given index. -/
 theorem checkerEntry_has_bool_type_at :
   forall {s : CState},
     checkerTypeInvariant s ->
@@ -854,6 +915,7 @@ by
   exact RuleProofs.eo_typeof_bool_implies_has_bool_type
     (__eo_state_proven_nth s n) hTrans hTy
 
+/-- Derives `checkerTypeInvariant` from `stateStepPopSuffix`. -/
 theorem checkerTypeInvariant_of_stateStepPopSuffix :
   forall {cur root : CState},
     stateStepPopSuffix cur root ->
@@ -870,6 +932,7 @@ by
       intro hsRoot
       exact ih (checkerTypeInvariant_tail hsRoot)
 
+/-- Derives `checkerTranslationInvariant` from `stateStepPopSuffix`. -/
 theorem checkerTranslationInvariant_of_stateStepPopSuffix :
   forall {cur root : CState},
     stateStepPopSuffix cur root ->
@@ -886,6 +949,7 @@ by
       intro hsRoot
       exact ih (checkerTranslationInvariant_tail hsRoot)
 
+/-- Shows how `checkerLocalTruthInvariant` behaves on suffix tails. -/
 theorem checkerLocalTruthInvariant_tail (M : SmtModel) :
   forall {so : CStateObj} {s : CState},
     checkerLocalTruthInvariant M (CState.cons so s) ->
@@ -901,6 +965,7 @@ by
   | proven P =>
       exact hs.2
 
+/-- Shows how `checkerLocalTruthInvariant` behaves at a proven head entry. -/
 theorem checkerLocalTruthInvariant_head_proven
     (M : SmtModel) (s : CState) (P : Term) :
   checkerLocalTruthInvariant M (CState.cons (CStateObj.proven P) s) ->
@@ -911,6 +976,7 @@ by
   intro hs hAss hPush
   exact hs.1 hAss hPush
 
+/-- Retrieves the `checkerLocalTruthInvariant` fact at a given index. -/
 theorem checkerLocalTruthInvariant_at (M : SmtModel) :
   forall {s : CState},
     checkerLocalTruthInvariant M s ->
@@ -964,6 +1030,7 @@ by
                 (by simpa [stateAssumes] using hAss)
                 (by simpa [statePushes] using hPush)
 
+/-- Shows that `checkerLocalTruthInvariant` implies `truthInvariant`. -/
 theorem checkerLocalTruthInvariant_implies_truthInvariant (M : SmtModel) :
   forall {s : CState},
     checkerLocalTruthInvariant M s ->
@@ -981,6 +1048,7 @@ by
       intro n hAss hPush
       exact checkerLocalTruthInvariant_at M hs n hAss hPush
 
+/-- Describes `checkerLocalTruthInvariant` after `assume_list`. -/
 theorem checkerLocalTruthInvariant_after_assume_list (M : SmtModel) (F : Term) :
   ValidAssumptionList F ->
   checkerLocalTruthInvariant M (__eo_invoke_assume_list CState.nil F)
@@ -993,6 +1061,7 @@ by
   | step A rest hRest ih =>
       simpa [__eo_invoke_assume_list, checkerLocalTruthInvariant] using ih
 
+/-- Describes `checkerTypeInvariant` after `assume_list`. -/
 theorem checkerTypeInvariant_after_assume_list (F : Term) :
   TypedAssumptionList F ->
   checkerTypeInvariant (__eo_invoke_assume_list CState.nil F)
@@ -1005,6 +1074,7 @@ by
   | step A rest hA hTy hRest ih =>
       simpa [__eo_invoke_assume_list, checkerTypeInvariant, hA, hTy] using ih
 
+/-- Describes `checkerTranslationInvariant` after `assume_list`. -/
 theorem checkerTranslationInvariant_after_assume_list (F : Term) :
   TranslatableAssumptionList F ->
   checkerTranslationInvariant (__eo_invoke_assume_list CState.nil F)
@@ -1017,6 +1087,7 @@ by
   | step A rest hA hRest ih =>
       exact ⟨hA, ih⟩
 
+/-- Shows that `push_assume` preserves `localTruthInvariant`. -/
 theorem push_assume_preserves_localTruthInvariant
     (M : SmtModel) (s : CState) (A : Term) :
   checkerLocalTruthInvariant M s ->
@@ -1027,6 +1098,7 @@ by
   · simpa [push_assume_eq_cons_of_typeof_bool, hTy, checkerLocalTruthInvariant] using hs
   · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerLocalTruthInvariant_stuck M
 
+/-- Shows that `push_assume` preserves `typeInvariant`. -/
 theorem push_assume_preserves_typeInvariant
     (s : CState) (A : Term) :
   checkerTypeInvariant s ->
@@ -1038,6 +1110,7 @@ by
     simpa [push_assume_eq_cons_of_typeof_bool, hTy, checkerTypeInvariant, hA] using hs
   · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerTypeInvariant_stuck
 
+/-- Shows that `push_assume` preserves `translationInvariant`. -/
 theorem push_assume_preserves_translationInvariant
     (s : CState) (A : Term) :
   checkerTranslationInvariant s ->
@@ -1050,6 +1123,7 @@ by
       (show RuleProofs.eo_has_smt_translation A ∧ checkerTranslationInvariant s from ⟨hA, hs⟩)
   · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerTranslationInvariant_stuck
 
+/-- Shows that `push_proven` preserves `typeInvariant`. -/
 theorem push_proven_preserves_typeInvariant
     (s : CState) (P : Term) :
   checkerTypeInvariant s ->
@@ -1061,6 +1135,7 @@ by
     simpa [push_proven_eq_cons_of_typeof_bool, hTy, checkerTypeInvariant, hP] using hs
   · simpa [push_proven_eq_stuck_of_typeof_ne_bool, hTy] using checkerTypeInvariant_stuck
 
+/-- Shows that `push_proven` preserves `translationInvariant`. -/
 theorem push_proven_preserves_translationInvariant
     (s : CState) (P : Term) :
   checkerTranslationInvariant s ->
@@ -1073,6 +1148,7 @@ by
       (show RuleProofs.eo_has_smt_translation P ∧ checkerTranslationInvariant s from ⟨hP, hs⟩)
   · simpa [push_proven_eq_stuck_of_typeof_ne_bool, hTy] using checkerTranslationInvariant_stuck
 
+/-- Shows that `push_proven` preserves `localTruthInvariant_of_contextual_true`. -/
 theorem push_proven_preserves_localTruthInvariant_of_contextual_true
     (M : SmtModel) (s : CState) (P : Term) :
   checkerLocalTruthInvariant M s ->
@@ -1084,16 +1160,19 @@ by
   intro hs hP
   exact ⟨hP, hs⟩
 
+/-- Shape invariant asserting that the checker state forms a valid assumption suffix chain. -/
 def checkerShapeInvariant : CState -> Prop
   | CState.Stuck => True
   | s => stateAssumptionSuffix s
 
+/-- Derives `checkerShapeInvariant` from `suffix`. -/
 theorem checkerShapeInvariant_of_suffix {s : CState} :
   stateAssumptionSuffix s ->
   checkerShapeInvariant s :=
 by
   cases s <;> simp [checkerShapeInvariant, stateAssumptionSuffix]
 
+/-- Derives `suffix` from `checkerShapeInvariant_nonstuck`. -/
 theorem suffix_of_checkerShapeInvariant_nonstuck {s : CState} :
   checkerShapeInvariant s ->
   s ≠ CState.Stuck ->
@@ -1108,12 +1187,14 @@ by
   | cons so s =>
       simpa [checkerShapeInvariant] using hShape
 
+/-- Combined checker invariant bundling the shape, truth, typing, and translation conditions. -/
 def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
   checkerShapeInvariant s ∧
   checkerLocalTruthInvariant M s ∧
   checkerTypeInvariant s ∧
   checkerTranslationInvariant s
 
+/-- Derives `invoke_step_eq` from `nonstuck`. -/
 theorem invoke_step_eq_of_nonstuck
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
@@ -1128,6 +1209,7 @@ by
   | Stuck =>
       exact False.elim (hNotStuck rfl)
 
+/-- Derives `invoke_step_eq_stuck` from `nonstuck`. -/
 theorem invoke_step_eq_stuck_of_nonstuck
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
@@ -1138,6 +1220,7 @@ by
   rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises, hStep]
   simp [__eo_push_proven, __eo_push_proven_check, __eo_is_bool_type]
 
+/-- Derives `invoke_step_eq_cons` from `nonstuck`. -/
 theorem invoke_step_eq_cons_of_nonstuck
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) (P : Term) :
@@ -1149,6 +1232,7 @@ by
   rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises, hStep]
   simp [push_proven_eq_cons_of_typeof_bool, hTy]
 
+/-- Derives `invoke_step_eq_stuck` from `typeof_ne_bool`. -/
 theorem invoke_step_eq_stuck_of_typeof_ne_bool
     (s : CState) (hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) (P : Term) :
@@ -1160,6 +1244,7 @@ by
   rw [invoke_step_eq_of_nonstuck s hNotStuck r args premises, hStep]
   simp [push_proven_eq_stuck_of_typeof_ne_bool, hTy]
 
+/-- Derives `state_proven_nth_true` from `context`. -/
 theorem state_proven_nth_true_of_context (M : SmtModel) :
   forall (s : CState) (n : eo_lit_Int),
     eo_interprets M (stateAssumes s) true ->
@@ -1205,6 +1290,7 @@ by
             simpa [__eo_state_proven_nth, hZero] using
               ih (eo_lit_zplus n (eo_lit_zneg 1)) hAss hPush hProvTail
 
+/-- Retrieves the `checkerTruthInvariant` fact at a given index. -/
 theorem checkerTruthInvariant_at (M : SmtModel) {s : CState} :
   checkerTruthInvariant M s ->
   ∀ n : eo_lit_Int,
@@ -1232,6 +1318,7 @@ by
         simpa [checkerTruthInvariant] using hs
       exact hs' n hAss hPush
 
+/-- Shows that `push_assume` preserves `truthInvariant`. -/
 theorem push_assume_preserves_truthInvariant
     (M : SmtModel) (s : CState) (A : Term) :
   checkerTruthInvariant M s ->
@@ -1262,6 +1349,7 @@ by
           (eo_lit_zplus n (eo_lit_zneg 1)) hAss' hPushTail
   · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerTruthInvariant_stuck M
 
+/-- Shows that `push_proven` preserves `truthInvariant_of_contextual_true`. -/
 theorem push_proven_preserves_truthInvariant_of_contextual_true
     (M : SmtModel) (s : CState) (P : Term) :
   checkerTruthInvariant M s ->
@@ -1286,6 +1374,7 @@ by
       checkerTruthInvariant_at M hs
         (eo_lit_zplus n (eo_lit_zneg 1)) hAss' hPush'
 
+/-- Describes `stateAssumptionTail` after `invoke_assume_list`. -/
 theorem stateAssumptionTail_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
     stateAssumptionTail (__eo_invoke_assume_list CState.nil F)
@@ -1298,6 +1387,7 @@ by
   | step A rest hRest ih =>
       simpa [__eo_invoke_assume_list, stateAssumptionTail] using ih
 
+/-- Describes `stateAssumptionSuffix` after `invoke_assume_list`. -/
 theorem stateAssumptionSuffix_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
     stateAssumptionSuffix (__eo_invoke_assume_list CState.nil F)
@@ -1306,6 +1396,7 @@ by
   intro F hValid
   exact stateAssumptionSuffix_of_tail (stateAssumptionTail_invoke_assume_list hValid)
 
+/-- Describes `stateOk` after `invoke_assume_list`. -/
 theorem stateOk_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
     stateOk (__eo_invoke_assume_list CState.nil F)
@@ -1318,6 +1409,7 @@ by
   | step A rest hRest ih =>
       simpa [__eo_invoke_assume_list, stateOk] using ih
 
+/-- Describes `stateAssumes` after `invoke_assume_list`. -/
 theorem stateAssumes_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
     stateAssumes (__eo_invoke_assume_list CState.nil F) = F
@@ -1330,6 +1422,7 @@ by
   | step A rest hRest ih =>
       simpa [__eo_invoke_assume_list, stateAssumes] using ih
 
+/-- Describes `statePushes` after `invoke_assume_list`. -/
 theorem statePushes_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
     statePushes (__eo_invoke_assume_list CState.nil F) = Term.Boolean true
@@ -1342,6 +1435,7 @@ by
   | step A rest hRest ih =>
       simpa [__eo_invoke_assume_list, statePushes] using ih
 
+/-- Describes `stateProvens` after `invoke_assume_list`. -/
 theorem stateProvens_invoke_assume_list :
   forall {F : Term}, ValidAssumptionList F ->
     stateProvens (__eo_invoke_assume_list CState.nil F) = Term.Boolean true
@@ -1354,6 +1448,7 @@ by
   | step A rest hRest ih =>
       simpa [__eo_invoke_assume_list, stateProvens] using ih
 
+/-- Describes `checkerTruthInvariant` after `assume_list`. -/
 theorem checkerTruthInvariant_after_assume_list (M : SmtModel) (F : Term) :
   ValidAssumptionList F ->
   checkerTruthInvariant M (__eo_invoke_assume_list CState.nil F)
@@ -1388,6 +1483,7 @@ by
   | Stuck =>
       exact False.elim (hNotStuck hS)
 
+/-- Describes `checkerStateInvariant` after `assume_list`. -/
 theorem checkerStateInvariant_after_assume_list (M : SmtModel) (F : Term) :
   ValidAssumptionList F ->
   TypedAssumptionList F ->
@@ -1403,6 +1499,7 @@ by
     checkerTranslationInvariant_after_assume_list F hTrans
   ⟩
 
+/-- Derives `stateOk` from `state_closed_true`. -/
 theorem stateOk_of_state_closed_true :
   forall {s : CState}, __eo_state_is_closed s = true -> stateOk s
 :=
@@ -1422,6 +1519,7 @@ by
       | proven A =>
           exact ih hClosed
 
+/-- Derives `statePushes` from `state_closed_true`. -/
 theorem statePushes_of_state_closed_true :
   forall {s : CState}, __eo_state_is_closed s = true -> statePushes s = Term.Boolean true
 :=
@@ -1441,6 +1539,7 @@ by
       | proven A =>
           simpa [__eo_state_is_closed, statePushes] using ih hClosed
 
+/-- Derives `validAssumptionList` from `stateOk_assume_list`. -/
 theorem validAssumptionList_of_stateOk_assume_list :
   forall {F : Term}, stateOk (__eo_invoke_assume_list CState.nil F) -> ValidAssumptionList F
 :=
@@ -1468,6 +1567,7 @@ by
   | _ =>
       simp [__eo_invoke_assume_list, stateOk] at hOk
 
+/-- Derives `invoke_cmd_step_pop` from `assumptionTail`. -/
 theorem invoke_cmd_step_pop_of_assumptionTail :
   forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     stateAssumptionTail cur ->
@@ -1493,6 +1593,7 @@ by
       | proven A =>
           cases hTail
 
+/-- Describes `stateAssumptionSuffix` after `invoke_cmd_step_pop`. -/
 theorem stateAssumptionSuffix_invoke_cmd_step_pop :
   forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     stateAssumptionSuffix cur ->
@@ -1534,6 +1635,7 @@ by
           exact ih r args premises hTailSuffix
             (by simpa [__eo_invoke_cmd_step_pop, stateOk] using hOk)
 
+/-- Describes `stateAssumes` after `invoke_cmd_step_pop`. -/
 theorem stateAssumes_invoke_cmd_step_pop :
   forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     stateAssumptionSuffix cur ->
@@ -1573,6 +1675,7 @@ by
           simpa [__eo_invoke_cmd_step_pop, stateAssumes] using
             ih r args premises hTailSuffix (by simpa [__eo_invoke_cmd_step_pop, stateOk] using hOk)
 
+/-- Shows that `invoke_cmd_step_pop` reflects `stateOk`. -/
 theorem invoke_cmd_step_pop_reflects_stateOk :
   forall (s cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
     stateOk (__eo_invoke_cmd_step_pop s cur r args premises) -> stateOk cur
@@ -1602,6 +1705,7 @@ by
           intro hOk
           exact ih r args premises (by simpa [__eo_invoke_cmd_step_pop, stateOk] using hOk)
 
+/-- Shows that `invoke_cmd` reflects `stateOk`. -/
 theorem invoke_cmd_reflects_stateOk :
   forall (s : CState) (c : CCmd), stateOk (__eo_invoke_cmd s c) -> stateOk s
 :=
@@ -1649,6 +1753,7 @@ by
           exact invoke_cmd_step_pop_reflects_stateOk (CState.cons so s) (CState.cons so s)
             r args premises (by simpa [__eo_invoke_cmd] using hOk)
 
+/-- Describes `stateAssumptionSuffix` after `invoke_cmd`. -/
 theorem stateAssumptionSuffix_invoke_cmd :
   forall (s : CState) (c : CCmd),
     stateAssumptionSuffix s ->
@@ -1731,6 +1836,7 @@ by
       | Stuck =>
           cases hSuffix
 
+/-- Describes `stateAssumes` after `invoke_cmd`. -/
 theorem stateAssumes_invoke_cmd :
   forall (s : CState) (c : CCmd),
     stateAssumptionSuffix s ->
@@ -1811,6 +1917,7 @@ by
       | Stuck =>
           cases hSuffix
 
+/-- Shows that `invoke_cmd_list` reflects `stateOk`. -/
 theorem invoke_cmd_list_reflects_stateOk :
   forall (s : CState) (cs : CCmdList), stateOk (__eo_invoke_cmd_list s cs) -> stateOk s
 :=
@@ -1825,6 +1932,7 @@ by
         exact ih (__eo_invoke_cmd s c) (by simpa [__eo_invoke_cmd_list] using hOk)
       exact invoke_cmd_reflects_stateOk s c hTail
 
+/-- Describes `stateAssumptionSuffix` after `invoke_cmd_list`. -/
 theorem stateAssumptionSuffix_invoke_cmd_list :
   forall (s : CState) (cs : CCmdList),
     stateAssumptionSuffix s ->
@@ -1847,6 +1955,7 @@ by
       exact ih (__eo_invoke_cmd s c) hStepSuffix
         (by simpa [__eo_invoke_cmd_list] using hOk)
 
+/-- Describes `stateAssumes` after `invoke_cmd_list`. -/
 theorem stateAssumes_invoke_cmd_list :
   forall (s : CState) (cs : CCmdList),
     stateAssumptionSuffix s ->
@@ -1877,6 +1986,7 @@ by
                     (by simpa [__eo_invoke_cmd_list] using hOk)
         _ = stateAssumes s := hStepAssumes
 
+/-- Derives `validAssumptionList` from `checker_true`. -/
 theorem validAssumptionList_of_checker_true (F : Term) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
   ValidAssumptionList F :=
@@ -1897,6 +2007,7 @@ by
     simpa [S1] using invoke_cmd_list_reflects_stateOk S0 pf hFinalOk
   simpa [S0] using validAssumptionList_of_stateOk_assume_list hInitOk
 
+/-- Derives `final_stateOk` from `checker_true`. -/
 theorem final_stateOk_of_checker_true (F : Term) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
   stateOk (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) :=
@@ -1911,6 +2022,7 @@ by
     cases hS1 : S1 <;> simpa [__eo_invoke_cmd, hS1] using hCheckedOk
   simpa using invoke_cmd_reflects_stateOk S1 (CCmd.check_proven (Term.Boolean false)) hCheckedOk'
 
+/-- Shows that `eo_eq_false_true` implies `eq_false`. -/
 theorem eo_eq_false_true_implies_eq_false (t : Term) :
   __eo_eq t (Term.Boolean false) = Term.Boolean true ->
   t = Term.Boolean false :=
@@ -1918,6 +2030,7 @@ by
   intro hEq
   cases t <;> simp [__eo_eq, eo_lit_teq] at hEq ⊢ <;> assumption
 
+/-- Derives `final_state_shape` from `checker_true`. -/
 theorem final_state_shape_of_checker_true (F : Term) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
   ∃ s : CState,
@@ -1955,6 +2068,7 @@ by
                 refine ⟨s, ?_, hClosed⟩
                 simp [S1, hS1]
 
+/-- Derives `stateAssumes` from `checker_true`. -/
 theorem stateAssumes_of_checker_true (F : Term) (pf : CCmdList) :
   (__eo_checker_is_refutation F pf) = true ->
   stateAssumes (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil F) pf) = F :=
@@ -1974,6 +2088,7 @@ by
     _ = F := by
       simpa [S0] using stateAssumes_invoke_assume_list hValid
 
+/-- Derives `refutation_contradiction` from `truthInvariant`. -/
 theorem refutation_contradiction_of_truthInvariant
     (M : SmtModel) (F : Term) (pf : CCmdList) :
   eo_interprets M F true ->
@@ -2002,6 +2117,7 @@ by
     simpa [__eo_state_proven_nth] using hAt
   exact eo_interprets_false_true_absurd M hFalseTrue
 
+/-- Shows that `premiseTermList` preserves `bool_type`. -/
 theorem premiseTermList_has_bool_type (s : CState) :
   forall (premises : CIndexList),
     checkerTypeInvariant s ->
@@ -2021,6 +2137,7 @@ by
       · exact checkerEntry_has_bool_type_at hsTy hsTrans n
       · exact ih hsTy hsTrans t ht
 
+/-- Shows that `premiseTermList` preserves `smt_translation`. -/
 theorem premiseTermList_has_smt_translation (s : CState) :
   forall (premises : CIndexList),
     checkerTranslationInvariant s ->
@@ -2039,6 +2156,7 @@ by
       · exact checkerTranslationInvariant_at hsTrans n
       · exact ih hsTrans t ht
 
+/-- Shows that `premiseTermList` preserves `typeof_bool`. -/
 theorem premiseTermList_has_typeof_bool (s : CState) :
   forall (premises : CIndexList),
     checkerTypeInvariant s ->
@@ -2057,6 +2175,7 @@ by
       · exact (checkerTypeInvariant_at hsTy n).2
       · exact ih hsTy t ht
 
+/-- Derives `premiseTermList_true` from `truthInvariant`. -/
 theorem premiseTermList_true_of_truthInvariant
     (M : SmtModel) (s : CState) :
   forall (premises : CIndexList),
@@ -2078,6 +2197,7 @@ by
       · exact checkerTruthInvariant_at M hs n hAss hPush
       · exact ih hs hAss hPush t ht
 
+/-- Structure bundling the premise facts needed to justify a single checker step. -/
 structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
   true_of_context :
     eo_interprets M (stateAssumes s) true ->
@@ -2086,6 +2206,7 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
   has_bool_type :
     RuleProofs.eo_has_bool_type P
 
+/-- Packages rule-level step properties into the checker facts required for a single step. -/
 theorem cmd_step_facts_of_rule_properties
     (M : SmtModel) (s : CState) (premises : CIndexList) {P : Term} :
   checkerTruthInvariant M s ->
@@ -2100,6 +2221,7 @@ by
         (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
   · exact hProps.has_bool_type
 
+/-- Packages rule-level step-pop properties into the checker facts required for a pop step. -/
 theorem cmd_step_pop_facts_of_rule_properties
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term) (premises : CIndexList) {P : Term} :

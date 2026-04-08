@@ -4,6 +4,7 @@ open Smtm
 
 namespace Smtm
 
+/-- Inductive predicate describing the SMT terms covered by the type-preservation proof. -/
 inductive supported_preservation_term : SmtTerm -> Prop
   | boolean (b : smt_lit_Bool) : supported_preservation_term (SmtTerm.Boolean b)
   | numeral (n : smt_lit_Int) : supported_preservation_term (SmtTerm.Numeral n)
@@ -64,6 +65,7 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (hsx : supported_preservation_term x) :
       supported_preservation_term (SmtTerm.Apply f x)
 
+/-- Inductive classification of application heads used in the supported type-preservation case split. -/
 inductive supported_preservation_apply_case : SmtTerm -> SmtTerm -> Prop where
   | not_case (t : SmtTerm) :
       supported_preservation_apply_case SmtTerm.not t
@@ -88,6 +90,7 @@ inductive supported_preservation_apply_case : SmtTerm -> SmtTerm -> Prop where
       (hEval : generic_apply_eval f x) :
       supported_preservation_apply_case f x
 
+/-- Classifies every SMT application into one of the supported preservation cases. -/
 theorem supported_preservation_apply_cases
     (f x : SmtTerm) :
     supported_preservation_apply_case f x := by

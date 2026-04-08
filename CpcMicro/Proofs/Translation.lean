@@ -24,6 +24,7 @@ boolean/equality fragment that already lines up cleanly:
 2. Fully translated boolean/equality applications.
 -/
 
+/-- Derives `eo_typeof_eq_self` from `not_stuck`. -/
 private theorem eo_typeof_eq_self_of_not_stuck
     (A : Term)
     (hA : A ≠ Term.Stuck) :
@@ -33,6 +34,7 @@ private theorem eo_typeof_eq_self_of_not_stuck
       SmtEval.smt_lit_not]
   exact False.elim (hA rfl)
 
+/-- Derives `eo_typeof_bool` from `smt_bool`. -/
 private theorem eo_typeof_bool_of_smt_bool
     {t : Term}
     (hRec : __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t))
@@ -56,6 +58,7 @@ private theorem eo_typeof_bool_of_smt_bool
       _ ≠ SmtType.None := by
               simp
 
+/-- Computes EO typing for generic double applications. -/
 private theorem eo_typeof_double_apply_generic
     (g y x : Term)
     (hFun : g ≠ Term.FunType)
@@ -77,6 +80,7 @@ private theorem eo_typeof_double_apply_generic
   case eq =>
       exact False.elim (hEq rfl)
 
+/-- Computes EO typing for generic single applications. -/
 private theorem eo_typeof_single_apply_generic
     (f x : Term)
     (hApply : ∀ g y, f ≠ Term.Apply g y)
@@ -98,6 +102,7 @@ private theorem eo_typeof_single_apply_generic
   case not =>
       exact False.elim (hNot rfl)
 
+/-- Computes SMT translation for generic double EO applications. -/
 private theorem eo_to_smt_double_apply_generic
     (g y x : Term)
     (hOr : g ≠ Term.or)
@@ -116,6 +121,7 @@ private theorem eo_to_smt_double_apply_generic
   case eq =>
       exact False.elim (hEq rfl)
 
+/-- Computes SMT translation for generic single EO applications. -/
 private theorem eo_to_smt_single_apply_generic
     (f x : Term)
     (hApply : ∀ g y, f ≠ Term.Apply g y)
@@ -128,6 +134,7 @@ private theorem eo_to_smt_single_apply_generic
   case not =>
       exact False.elim (hNot rfl)
 
+/-- Shows that translated SMT terms carry the type predicted by EO typing when the translation is defined. -/
 private theorem eo_to_smt_typeof_matches_translation :
     ∀ (t : Term),
       __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
@@ -418,6 +425,7 @@ decreasing_by
   all_goals
     omega
 
+/-- Transfers EO typing information to the translated SMT term when the translation is defined. -/
 theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
     (t T : Term) (s : SmtTerm) :
   __eo_to_smt t = s ->

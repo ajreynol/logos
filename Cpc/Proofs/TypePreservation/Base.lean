@@ -9,24 +9,28 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Shows that evaluating `boolean` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_boolean
     (M : SmtModel)
     (b : smt_lit_Bool) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Boolean b)) =
       __smtx_typeof (SmtTerm.Boolean b) := rfl
 
+/-- Shows that evaluating `numeral` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_numeral
     (M : SmtModel)
     (n : smt_lit_Int) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Numeral n)) =
       __smtx_typeof (SmtTerm.Numeral n) := rfl
 
+/-- Shows that evaluating `rational` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_rational
     (M : SmtModel)
     (q : smt_lit_Rat) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Rational q)) =
       __smtx_typeof (SmtTerm.Rational q) := rfl
 
+/-- Shows that evaluating `binary` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_binary
     (M : SmtModel)
     (w n : smt_lit_Int)
@@ -60,6 +64,7 @@ theorem typeof_value_model_eval_binary
   rw [show __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec w by
     simp [__smtx_typeof, smt_lit_ite, SmtEval.smt_lit_and, hWidth, hMod]]
 
+/-- Shows that evaluating `var` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_var
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -75,6 +80,7 @@ theorem typeof_value_model_eval_var
   rw [model_total_typed_lookup hM s T hT]
   simp [__smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
+/-- Shows that evaluating `uconst` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_uconst
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -90,6 +96,7 @@ theorem typeof_value_model_eval_uconst
   rw [model_total_typed_lookup hM s T hT]
   simp [__smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
+/-- Derives `model_eval_var` from `uninhabited`. -/
 theorem model_eval_var_of_uninhabited
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -100,6 +107,7 @@ theorem model_eval_var_of_uninhabited
   change __smtx_model_lookup M s T = SmtValue.NotValue
   exact model_total_typed_lookup_uninhabited hM s T hT
 
+/-- Derives `model_eval_uconst` from `uninhabited`. -/
 theorem model_eval_uconst_of_uninhabited
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -110,21 +118,25 @@ theorem model_eval_uconst_of_uninhabited
   change __smtx_model_lookup M s T = SmtValue.NotValue
   exact model_total_typed_lookup_uninhabited hM s T hT
 
+/-- Shows that evaluating `re_allchar` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_allchar
     (M : SmtModel) :
     __smtx_typeof_value (__smtx_model_eval M SmtTerm.re_allchar) =
       __smtx_typeof SmtTerm.re_allchar := rfl
 
+/-- Shows that evaluating `re_none` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_none
     (M : SmtModel) :
     __smtx_typeof_value (__smtx_model_eval M SmtTerm.re_none) =
       __smtx_typeof SmtTerm.re_none := rfl
 
+/-- Shows that evaluating `re_all` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_all
     (M : SmtModel) :
     __smtx_typeof_value (__smtx_model_eval M SmtTerm.re_all) =
       __smtx_typeof SmtTerm.re_all := rfl
 
+/-- Shows that evaluating `seq_empty` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_seq_empty
     (M : SmtModel)
     (T : SmtType)
@@ -138,6 +150,7 @@ theorem typeof_value_model_eval_seq_empty
   simp [__smtx_typeof_seq_value,
     __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
+/-- Shows that evaluating `set_empty` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_empty
     (M : SmtModel)
     (T : SmtType)
@@ -153,6 +166,7 @@ theorem typeof_value_model_eval_set_empty
   simp [__smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_set_type,
     __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
+/-- Shows that evaluating `seq_unit` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_seq_unit
     (M : SmtModel)
     (t : SmtTerm)
@@ -170,6 +184,7 @@ theorem typeof_value_model_eval_seq_unit
     rfl]
   simp [__smtx_typeof_value, __smtx_typeof_seq_value, smt_lit_ite, smt_lit_Teq, hpres]
 
+/-- Shows that evaluating `set_singleton` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_singleton
     (M : SmtModel)
     (t : SmtTerm)
@@ -186,6 +201,7 @@ theorem typeof_value_model_eval_set_singleton
   simp [__smtx_model_eval_set_singleton, __smtx_typeof_value, __smtx_typeof_map_value,
     __smtx_map_to_set_type, smt_lit_ite, smt_lit_Teq, hpres]
 
+/-- Derives `exists_body_bool` from `non_none`. -/
 theorem exists_body_bool_of_non_none
     {s : smt_lit_String}
     {T : SmtType}
@@ -197,6 +213,7 @@ theorem exists_body_bool_of_non_none
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
   rfl
 
+/-- Derives `exists_term_typeof` from `non_none`. -/
 theorem exists_term_typeof_of_non_none
     {s : smt_lit_String}
     {T : SmtType}
@@ -205,6 +222,7 @@ theorem exists_term_typeof_of_non_none
     __smtx_typeof (SmtTerm.Apply (SmtTerm.exists s T) body) = SmtType.Bool := by
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, exists_body_bool_of_non_none ht]
 
+/-- Shows that evaluating `exists` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_exists
     (M : SmtModel)
     (s : smt_lit_String)
@@ -231,6 +249,7 @@ theorem typeof_value_model_eval_exists
   · simp [h, __smtx_typeof_value]
   · simp [h, __smtx_typeof_value]
 
+/-- Derives `forall_body_bool` from `non_none`. -/
 theorem forall_body_bool_of_non_none
     {s : smt_lit_String}
     {T : SmtType}
@@ -242,6 +261,7 @@ theorem forall_body_bool_of_non_none
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
   rfl
 
+/-- Derives `forall_term_typeof` from `non_none`. -/
 theorem forall_term_typeof_of_non_none
     {s : smt_lit_String}
     {T : SmtType}
@@ -250,6 +270,7 @@ theorem forall_term_typeof_of_non_none
     __smtx_typeof (SmtTerm.Apply (SmtTerm.forall s T) body) = SmtType.Bool := by
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, forall_body_bool_of_non_none ht]
 
+/-- Shows that evaluating `forall` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_forall
     (M : SmtModel)
     (s : smt_lit_String)
@@ -306,6 +327,7 @@ theorem typeof_value_model_eval_forall
     rw [hIf]
     rfl
 
+/-- Provides a witness for `choice_term_has`. -/
 theorem choice_term_has_witness
     {s : smt_lit_String}
     {T : SmtType}
@@ -318,6 +340,7 @@ theorem choice_term_has_witness
       __smtx_typeof_guard_inhabited, h, smtx_inhabited_type_eq_true_iff] at ht
   exact ht.1
 
+/-- Derives `choice_term_typeof` from `non_none`. -/
 theorem choice_term_typeof_of_non_none
     {s : smt_lit_String}
     {T : SmtType}
@@ -332,6 +355,7 @@ theorem choice_term_typeof_of_non_none
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq,
       __smtx_typeof_guard_inhabited, h, hInh] at ht ⊢
 
+/-- Shows that evaluating `choice` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_choice
     (M : SmtModel)
     (s : smt_lit_String)

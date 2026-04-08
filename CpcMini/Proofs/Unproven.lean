@@ -8,6 +8,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- States that SMT evaluation preserves the expected type in total typed models. -/
 theorem smt_model_eval_preserves_type
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) (T : SmtType) :
@@ -16,6 +17,7 @@ theorem smt_model_eval_preserves_type
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
   sorry
 
+/-- States that evaluating a Boolean-typed SMT term yields a Boolean value. -/
 theorem smt_model_eval_bool_is_boolean
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) :
@@ -23,6 +25,7 @@ theorem smt_model_eval_bool_is_boolean
   ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
   sorry
 
+/-- Derives SMT evaluation type preservation for terms in the supported fragment. -/
 theorem smt_model_eval_preserves_type_of_supported
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) (T : SmtType)
@@ -42,6 +45,7 @@ theorem smt_model_eval_preserves_type_of_supported
   simpa [hTy] using
     supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
 
+/-- Derives Boolean-value evaluation for supported Boolean-typed SMT terms. -/
 theorem smt_model_eval_bool_is_boolean_of_supported
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm)
@@ -56,6 +60,7 @@ theorem smt_model_eval_bool_is_boolean_of_supported
 
 namespace RuleProofs
 
+/-- Transfers EO typing information to the translated SMT term when the translation is defined. -/
 theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
     (t T : Term) (s : SmtTerm) :
   __eo_to_smt t = s ->

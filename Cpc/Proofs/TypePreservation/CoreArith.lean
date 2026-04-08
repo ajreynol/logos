@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Derives `ite_args` from `non_none`. -/
 theorem ite_args_of_non_none
     {c t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)) :
@@ -34,6 +35,7 @@ theorem ite_args_of_non_none
     apply ht
     simp [__smtx_typeof, __smtx_typeof_ite, smt_lit_ite, hBool, T1, T2, hEq]
 
+/-- Shows that evaluating `ite` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_ite
     (M : SmtModel)
     (c t1 t2 : SmtTerm)
@@ -56,6 +58,7 @@ theorem typeof_value_model_eval_ite
   · simpa [__smtx_model_eval_ite, h1, h2] using hpres2
   · simpa [__smtx_model_eval_ite, h1, h2] using hpres1
 
+/-- Derives `select_args` from `non_none`. -/
 theorem select_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select t1) t2)) :
@@ -75,6 +78,7 @@ theorem select_args_of_non_none
       exfalso
       exact ht (by simp [__smtx_typeof, __smtx_typeof_select, h1])
 
+/-- Derives `store_args` from `non_none`. -/
 theorem store_args_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht : term_has_non_none_type
@@ -103,6 +107,7 @@ theorem store_args_of_non_none
       exfalso
       exact ht (by simp [__smtx_typeof, __smtx_typeof_store, h1])
 
+/-- Shows that evaluating `select` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_select
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -124,6 +129,7 @@ theorem typeof_value_model_eval_select
       (by simpa [hm, h1] using hpres1)
       (by simpa [h2] using hpres2)
 
+/-- Shows that evaluating `store` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_store
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -153,6 +159,7 @@ theorem typeof_value_model_eval_store
       (by simpa [h2] using hpres2)
       (by simpa [h3] using hpres3)
 
+/-- Derives `eq_term_typeof` from `non_none`. -/
 theorem eq_term_typeof_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)) :
@@ -163,6 +170,7 @@ theorem eq_term_typeof_of_non_none
   all_goals
     first | exact ht
 
+/-- Shows that evaluating `not` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_not
     (M : SmtModel)
     (t : SmtTerm)
@@ -182,6 +190,7 @@ theorem typeof_value_model_eval_not
   rw [hb]
   rfl
 
+/-- Shows that evaluating `or` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_or
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -200,6 +209,7 @@ theorem typeof_value_model_eval_or
   rw [hb1, hb2]
   rfl
 
+/-- Shows that evaluating `and` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_and
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -218,6 +228,7 @@ theorem typeof_value_model_eval_and
   rw [hb1, hb2]
   rfl
 
+/-- Shows that evaluating `imp` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_imp
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -236,6 +247,7 @@ theorem typeof_value_model_eval_imp
   rw [hb1, hb2]
   rfl
 
+/-- Shows that evaluating `eq` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_eq
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -245,6 +257,7 @@ theorem typeof_value_model_eval_eq
   rw [eq_term_typeof_of_non_none ht]
   simpa using typeof_value_model_eval_eq_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
+/-- Shows that evaluating `xor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_xor
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -256,6 +269,7 @@ theorem typeof_value_model_eval_xor
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]]
   simpa using typeof_value_model_eval_xor_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
+/-- Shows that evaluating `distinct` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_distinct
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -265,6 +279,7 @@ theorem typeof_value_model_eval_distinct
   rw [eq_term_typeof_of_non_none ht]
   simpa using typeof_value_model_eval_distinct_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
+/-- Shows that evaluating `plus` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_plus
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -291,6 +306,7 @@ theorem typeof_value_model_eval_plus
     rw [hq1, hq2]
     rfl
 
+/-- Shows that evaluating `neg` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_neg
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -317,6 +333,7 @@ theorem typeof_value_model_eval_neg
     rw [hq1, hq2]
     rfl
 
+/-- Shows that evaluating `mult` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_mult
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -343,6 +360,7 @@ theorem typeof_value_model_eval_mult
     rw [hq1, hq2]
     rfl
 
+/-- Shows that evaluating `lt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_lt
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -369,6 +387,7 @@ theorem typeof_value_model_eval_lt
     rw [hq1, hq2]
     rfl
 
+/-- Shows that evaluating `leq` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_leq
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -395,6 +414,7 @@ theorem typeof_value_model_eval_leq
     rw [hq1, hq2]
     rfl
 
+/-- Shows that evaluating `gt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_gt
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -421,6 +441,7 @@ theorem typeof_value_model_eval_gt
     rw [hq1, hq2]
     rfl
 
+/-- Shows that evaluating `geq` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_geq
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -447,6 +468,7 @@ theorem typeof_value_model_eval_geq
     rw [hq1, hq2]
     rfl
 
+/-- Shows that evaluating `to_real` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_to_real
     (M : SmtModel)
     (t : SmtTerm)
@@ -468,6 +490,7 @@ theorem typeof_value_model_eval_to_real
     rw [hq]
     rfl
 
+/-- Shows that evaluating `to_int` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_to_int
     (M : SmtModel)
     (t : SmtTerm)
@@ -484,6 +507,7 @@ theorem typeof_value_model_eval_to_int
   rw [hq]
   rfl
 
+/-- Shows that evaluating `is_int` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_is_int
     (M : SmtModel)
     (t : SmtTerm)
@@ -502,6 +526,7 @@ theorem typeof_value_model_eval_is_int
     typeof_value_model_eval_eq_value
       (SmtValue.Rational (smt_lit_to_real (smt_lit_to_int q))) (SmtValue.Rational q)
 
+/-- Shows that evaluating `abs` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_abs
     (M : SmtModel)
     (t : SmtTerm)
@@ -519,6 +544,7 @@ theorem typeof_value_model_eval_abs
     simp [__smtx_model_eval_abs, __smtx_model_eval_lt, __smtx_model_eval_ite,
       __smtx_model_eval__, __smtx_typeof_value, hlt]
 
+/-- Derives `int_ret_arg` from `non_none`. -/
 theorem int_ret_arg_of_non_none
     {op t : SmtTerm}
     {R : SmtType}
@@ -532,6 +558,7 @@ theorem int_ret_arg_of_non_none
     simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
   simp
 
+/-- Derives `int_binop_args` from `non_none`. -/
 theorem int_binop_args_of_non_none
     {op t1 t2 : SmtTerm}
     {R : SmtType}
@@ -547,6 +574,7 @@ theorem int_binop_args_of_non_none
     simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
   simp
 
+/-- Shows that evaluating `apply_lookup_map` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_lookup_map
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -593,6 +621,7 @@ theorem typeof_value_model_eval_apply_lookup_map
     map_lookup_typed (m := m) (A := A) (B := B) (i := i)
       (by simpa [hm] using hLookup) hi
 
+/-- Shows that evaluating `div_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_div_total
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -612,6 +641,7 @@ theorem typeof_value_model_eval_div_total
   rw [hn1, hn2]
   rfl
 
+/-- Shows that evaluating `mod_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_mod_total
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -631,6 +661,7 @@ theorem typeof_value_model_eval_mod_total
   rw [hn1, hn2]
   rfl
 
+/-- Shows that evaluating `multmult_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_multmult_total
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -651,6 +682,7 @@ theorem typeof_value_model_eval_multmult_total
   rw [hn1, hn2]
   rfl
 
+/-- Shows that evaluating `divisible` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_divisible
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -673,6 +705,7 @@ theorem typeof_value_model_eval_divisible
       (SmtValue.Numeral (smt_lit_mod_total n2 n1))
       (SmtValue.Numeral 0)
 
+/-- Shows that evaluating `int_pow2` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_int_pow2
     (M : SmtModel)
     (t : SmtTerm)
@@ -689,6 +722,7 @@ theorem typeof_value_model_eval_int_pow2
   rw [hn]
   rfl
 
+/-- Shows that evaluating `int_log2` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_int_log2
     (M : SmtModel)
     (t : SmtTerm)
@@ -705,6 +739,7 @@ theorem typeof_value_model_eval_int_log2
   rw [hn]
   rfl
 
+/-- Shows that evaluating `div` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_div
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -738,6 +773,7 @@ theorem typeof_value_model_eval_div
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_div_total,
       __smtx_typeof_value, smt_lit_veq, hZero]
 
+/-- Shows that evaluating `mod` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_mod
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -771,6 +807,7 @@ theorem typeof_value_model_eval_mod
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_mod_total,
       __smtx_typeof_value, smt_lit_veq, hZero]
 
+/-- Shows that evaluating `multmult` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_multmult
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -814,6 +851,7 @@ theorem typeof_value_model_eval_multmult
         __smtx_model_eval_eq, __smtx_model_eval_div_total, __smtx_model_eval_multmult_total,
         __smtx_model_eval__, __smtx_typeof_value, smt_lit_veq, hNonneg, hZero]
 
+/-- Shows that evaluating `qdiv_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_qdiv_total
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -841,6 +879,7 @@ theorem typeof_value_model_eval_qdiv_total
     rw [hq1, hq2]
     rfl
 
+/-- Shows that evaluating `qdiv` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_qdiv
     (M : SmtModel)
     (hM : model_total_typed M)

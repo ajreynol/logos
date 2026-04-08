@@ -4,6 +4,7 @@ open Smtm
 
 namespace Smtm
 
+/-- Inductive predicate describing the SMT terms covered by the type-preservation proof. -/
 inductive supported_preservation_term : SmtTerm -> Prop
   | boolean (b : smt_lit_Bool) : supported_preservation_term (SmtTerm.Boolean b)
   | numeral (n : smt_lit_Int) : supported_preservation_term (SmtTerm.Numeral n)

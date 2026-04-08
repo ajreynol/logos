@@ -16,6 +16,7 @@ attribute [local reducible] __eo_to_smt
 
 namespace TranslationProofs
 
+/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_concat`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_concat
     (x y : Term)
     (hTranslate :
@@ -45,6 +46,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_concat
     simp [__smtx_typeof, __smtx_typeof_concat, hy, hx]
   exact hSmt.trans (hEo w1 w2 hy hx).symm
 
+/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_bv_binop`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop
     (eoOp : Term) (smtOp : SmtTerm) (x y : Term)
     (hTranslate :
@@ -76,6 +78,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop
     simp [__smtx_typeof_bv_op_2, smt_lit_ite, SmtEval.smt_lit_zeq]
   exact hSmt.trans (hEo w hy hx).symm
 
+/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_bv_binop_ret`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
     (eoOp : Term) (smtOp : SmtTerm) (ret : SmtType) (x y : Term)
     (hTranslate :
@@ -109,6 +112,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
     simp [__smtx_typeof_bv_op_2_ret, smt_lit_ite, SmtEval.smt_lit_zeq]
   exact hSmt.trans (hEo w hy hx).symm
 
+/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_apply_generic`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
     (g z y x : Term)
     (ihF :
@@ -165,6 +169,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
     (eo_to_smt_type_typeof_apply_of_smt_apply
       x (Term.Apply (Term.Apply g z) y) A B hHeadEo hX).symm
 
+/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_generic`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
     (g y x : Term)
     (ihF :
@@ -221,6 +226,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
     (eo_to_smt_type_typeof_apply_of_smt_apply
       x (Term.Apply g y) A B hHeadEo hX).symm
 
+/-- Computes `__smtx_typeof` for `eq_non_none`. -/
 private theorem smtx_typeof_eq_non_none
     {T U : SmtType}
     (h : __smtx_typeof_eq T U ≠ SmtType.None) :
@@ -235,11 +241,13 @@ private theorem smtx_typeof_eq_non_none
       exact h (by
         simp [__smtx_typeof_eq, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hNone, hEq])
 
+/-- Lemma about `smt_type_ne_set_self`. -/
 private theorem smt_type_ne_set_self
     (T : SmtType) :
     T ≠ SmtType.Set T := by
   cases T <;> intro h <;> cases h
 
+/-- Lemma about `smt_type_ne_guard_inhabited_set_self`. -/
 private theorem smt_type_ne_guard_inhabited_set_self
     {T : SmtType}
     (hT : T ≠ SmtType.None) :
@@ -253,6 +261,7 @@ private theorem smt_type_ne_guard_inhabited_set_self
       simpa [__smtx_typeof_guard_inhabited, hInh, smt_lit_ite] using h
     exact hT hNone
 
+/-- Computes `__smtx_typeof` for `apply_eo_to_smt_set_empty_eq_none`. -/
 private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
     (T X : SmtType) :
     __smtx_typeof_apply (__smtx_typeof (__eo_to_smt_set_empty T)) X = SmtType.None := by
@@ -278,6 +287,7 @@ private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
       · simp [__eo_to_smt_set_empty, __smtx_typeof_apply,
           __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
 
+/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply`. -/
 theorem eo_to_smt_typeof_matches_translation_apply
     (f x : Term)
     (ihF :

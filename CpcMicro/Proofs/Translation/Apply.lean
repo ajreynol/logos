@@ -12,6 +12,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
+/-- Derives `smtx_typeof_apply_generic` from `head_not_special`. -/
 private theorem smtx_typeof_apply_generic_of_head_not_special
     (f x : SmtTerm)
     (hNot : f ≠ SmtTerm.not)
@@ -49,6 +50,7 @@ private theorem smtx_typeof_apply_generic_of_head_not_special
           case ite =>
               exact False.elim (hIte2 c y rfl)
 
+/-- Shows that generic EO application translation satisfies `generic_apply_type`. -/
 theorem eo_to_smt_apply_generic_type
     (f x : Term) :
     generic_apply_type (__eo_to_smt f) (__eo_to_smt x) := by
@@ -71,6 +73,7 @@ theorem eo_to_smt_apply_generic_type
   · intro s T
     exact eo_to_smt_ne_choice f s T
 
+/-- Derives `smtx_typeof_translation_not` from `non_none`. -/
 theorem smtx_typeof_translation_not_of_non_none
     (x : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply Term.not x)) ≠ SmtType.None ->
@@ -83,6 +86,7 @@ theorem smtx_typeof_translation_not_of_non_none
     simp
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]
 
+/-- Derives `smtx_typeof_translation_or` from `non_none`. -/
 theorem smtx_typeof_translation_or_of_non_none
     (x y : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.or x) y)) ≠ SmtType.None ->
@@ -97,6 +101,7 @@ theorem smtx_typeof_translation_or_of_non_none
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hApplyNN
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
 
+/-- Derives `smtx_typeof_translation_and` from `non_none`. -/
 theorem smtx_typeof_translation_and_of_non_none
     (x y : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.and x) y)) ≠ SmtType.None ->
@@ -111,6 +116,7 @@ theorem smtx_typeof_translation_and_of_non_none
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hApplyNN
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
 
+/-- Derives `smtx_typeof_translation_imp` from `non_none`. -/
 theorem smtx_typeof_translation_imp_of_non_none
     (x y : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.imp x) y)) ≠ SmtType.None ->
@@ -125,6 +131,7 @@ theorem smtx_typeof_translation_imp_of_non_none
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hApplyNN
   simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
 
+/-- Derives `smtx_typeof_translation_eq` from `non_none`. -/
 theorem smtx_typeof_translation_eq_of_non_none
     (x y : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.eq x) y)) ≠ SmtType.None ->
@@ -139,6 +146,7 @@ theorem smtx_typeof_translation_eq_of_non_none
   simpa using
     eq_term_typeof_of_non_none (t1 := __eo_to_smt x) (t2 := __eo_to_smt y) hApplyNN
 
+/-- Establishes an equality relating `smtx_typeof` and `non_none`. -/
 theorem smtx_typeof_eq_non_none
     {T U : SmtType}
     (h : __smtx_typeof_eq T U ≠ SmtType.None) :
@@ -153,6 +161,7 @@ theorem smtx_typeof_eq_non_none
       exact h (by
         simp [__smtx_typeof_eq, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hNone, hEq])
 
+/-- Transfers generic application typing from EO terms to their SMT translations. -/
 theorem eo_to_smt_typeof_matches_translation_apply_generic
     (f x : Term)
     (ihF :
@@ -215,6 +224,7 @@ theorem eo_to_smt_typeof_matches_translation_apply_generic
       cases hFalse
   rw [hSmt, hTypeof, hFun, hArgTy, hTypeApply, hT2]
 
+/-- Handles the application case of `eo_to_smt_typeof_matches_translation`. -/
 theorem eo_to_smt_typeof_matches_translation_apply
     (f x : Term)
     (ihF :

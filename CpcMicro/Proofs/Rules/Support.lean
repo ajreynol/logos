@@ -6,12 +6,14 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => RuleProofs.eo_has_smt_translation A
   | CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil =>
       RuleProofs.eo_has_smt_translation a1
   | _ => True
 
+/-- Inductive predicate asserting that every command in a checker command list satisfies `cmdTranslationOk`. -/
 inductive CmdListTranslationOk : CCmdList -> Prop
   | nil : CmdListTranslationOk CCmdList.nil
   | cons (c : CCmd) (cs : CCmdList) :
@@ -19,27 +21,34 @@ inductive CmdListTranslationOk : CCmdList -> Prop
       CmdListTranslationOk cs ->
       CmdListTranslationOk (CCmdList.cons c cs)
 
+/-- Builds the right-associated conjunction of a list of premise terms, using `true` as the empty case. -/
 def premiseAndFormulaList : List Term -> Term
   | [] => Term.Boolean true
   | p :: ps => Term.Apply (Term.Apply Term.and p) (premiseAndFormulaList ps)
 
+/-- Collects the proven terms referenced by a premise index list in a checker state. -/
 def premiseTermList (s : CState) : CIndexList -> List Term
   | CIndexList.nil => []
   | CIndexList.cons n premises =>
       __eo_state_proven_nth s n :: premiseTermList s premises
 
+/-- Predicate asserting that every term in a list is interpreted as `true` by a model. -/
 def AllInterpretedTrue (M : SmtModel) (ts : List Term) : Prop :=
   ∀ t ∈ ts, eo_interprets M t true
 
+/-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
   ∀ t ∈ ts, RuleProofs.eo_has_smt_translation t
 
+/-- Predicate asserting that every term in a list has translated SMT Boolean type. -/
 def AllHaveBoolType (ts : List Term) : Prop :=
   ∀ t ∈ ts, RuleProofs.eo_has_bool_type t
 
+/-- Predicate asserting that every term in a list has EO type `Bool`. -/
 def AllTypeofBool (ts : List Term) : Prop :=
   ∀ t ∈ ts, __eo_typeof t = Term.Bool
 
+/-- Derives `premiseAndFormulaList_true` from `all_true`. -/
 theorem premiseAndFormulaList_true_of_all_true
     (M : SmtModel) :
   ∀ premises : List Term,
@@ -57,6 +66,7 @@ by
         intro t ht
         exact hPremises t (by simp [ht])
 
+/-- Shows that a conjunction built from Boolean premises still has Boolean type. -/
 theorem premiseAndFormulaList_has_bool_type :
   ∀ premises : List Term,
     AllHaveBoolType premises ->
@@ -73,6 +83,7 @@ by
         intro t ht
         exact hPremises t (by simp [ht])
 
+/-- Shows that `premiseAndFormulaList` is recognized as an `and`-list by `__eo_is_list`. -/
 theorem premiseAndFormulaList_is_and_list :
   ∀ premises : List Term,
     __eo_is_list Term.and (premiseAndFormulaList premises) = Term.Boolean true
@@ -111,6 +122,7 @@ by
   unfold __eo_is_ok
   simpa [eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using hNotStuck
 
+/-- Establishes an equality relating `mk_premise_list_and` and `premiseAndFormulaList`. -/
 theorem mk_premise_list_and_eq_premiseAndFormulaList :
   ∀ (s : CState) (premises : CIndexList),
     __eo_mk_premise_list Term.and premises s =
@@ -126,6 +138,7 @@ by
         __eo_requires, eo_lit_ite, eo_lit_teq, eo_lit_not, ih,
         premiseAndFormulaList_is_and_list, SmtEval.smt_lit_not]
 
+/-- Structure bundling the correctness and typing obligations for rules that only add a proven fact. -/
 structure StepRuleProperties
     (M : SmtModel) (premises : List Term) (P : Term) : Prop where
   facts_of_true :
@@ -134,6 +147,7 @@ structure StepRuleProperties
   has_bool_type :
     RuleProofs.eo_has_bool_type P
 
+/-- Predicate packaging the correctness and typing obligations for rules that also pop assumptions. -/
 def StepPopRuleProperties
     (x1 : Term) (premises : List Term) (P : Term) : Prop :=
   ∃ x2,

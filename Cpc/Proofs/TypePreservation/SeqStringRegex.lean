@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Derives `seq_arg` from `non_none`. -/
 theorem seq_arg_of_non_none
     {op t : SmtTerm}
     (hTy :
@@ -23,6 +24,7 @@ theorem seq_arg_of_non_none
   | _ =>
       simp [hTy, __smtx_typeof_seq_op_1, h] at ht
 
+/-- Derives `seq_binop_args` from `non_none`. -/
 theorem seq_binop_args_of_non_none
     {op t1 t2 : SmtTerm}
     (hTy :
@@ -46,6 +48,7 @@ theorem seq_binop_args_of_non_none
       cases h2 : __smtx_typeof t2 <;>
         simp [hTy, __smtx_typeof_seq_op_2, h1, h2] at ht
 
+/-- Derives `seq_triop_args` from `non_none`. -/
 theorem seq_triop_args_of_non_none
     {op t1 t2 t3 : SmtTerm}
     (hTy :
@@ -81,6 +84,7 @@ theorem seq_triop_args_of_non_none
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
         simp [hTy, __smtx_typeof_seq_op_3, h1, h2, h3] at ht
 
+/-- Derives `seq_nth_args` from `non_none`. -/
 theorem seq_nth_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.seq_nth t1) t2)) :
@@ -98,6 +102,7 @@ theorem seq_nth_args_of_non_none
       cases h2 : __smtx_typeof t2 <;>
         simp [__smtx_typeof, __smtx_typeof_seq_nth, h1, h2] at ht
 
+/-- Derives `seq_cons_typed` from `typeof_seq_value`. -/
 theorem seq_cons_typed_of_typeof_seq_value
     {v : SmtValue} {vs : SmtSeq} {T : SmtType}
     (h : __smtx_typeof_seq_value (SmtSeq.cons v vs) = SmtType.Seq T) :
@@ -115,6 +120,7 @@ theorem seq_cons_typed_of_typeof_seq_value
     exact ⟨hv, hvs⟩
   · simp [__smtx_typeof_seq_value, smt_lit_ite, hEq] at h
 
+/-- Lemma about `ssm_seq_nth_typed`. -/
 theorem ssm_seq_nth_typed :
     ∀ {ss : SmtSeq} {n : smt_lit_Int} {d : SmtValue} {T : SmtType},
       __smtx_typeof_seq_value ss = SmtType.Seq T ->
@@ -132,6 +138,7 @@ theorem ssm_seq_nth_typed :
           ssm_seq_nth_typed (ss := vs) (n := smt_lit_zplus n (smt_lit_zneg 1))
             (d := d) (T := T) hvs hd
 
+/-- Lemma about `typeof_value_seq_nth_wrong`. -/
 theorem typeof_value_seq_nth_wrong
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -177,6 +184,7 @@ theorem typeof_value_seq_nth_wrong
       (by simpa [hm1] using hInner)
       rfl
 
+/-- Derives `str_substr_args` from `non_none`. -/
 theorem str_substr_args_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht :
@@ -196,6 +204,7 @@ theorem str_substr_args_of_non_none
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
         simp [__smtx_typeof, __smtx_typeof_str_substr, h1, h2, h3] at ht
 
+/-- Derives `str_indexof_args` from `non_none`. -/
 theorem str_indexof_args_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht :
@@ -228,6 +237,7 @@ theorem str_indexof_args_of_non_none
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
         simp [__smtx_typeof, __smtx_typeof_str_indexof, h1, h2, h3] at ht
 
+/-- Derives `str_at_args` from `non_none`. -/
 theorem str_at_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.str_at t1) t2)) :
@@ -242,6 +252,7 @@ theorem str_at_args_of_non_none
       cases h2 : __smtx_typeof t2 <;>
         simp [__smtx_typeof, __smtx_typeof_str_at, h1, h2] at ht
 
+/-- Derives `str_update_args` from `non_none`. -/
 theorem str_update_args_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht :
@@ -272,6 +283,7 @@ theorem str_update_args_of_non_none
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
         simp [__smtx_typeof, __smtx_typeof_str_update, h1, h2, h3] at ht
 
+/-- Derives `reglan_arg` from `non_none`. -/
 theorem reglan_arg_of_non_none
     {op t : SmtTerm}
     (hTy :
@@ -285,6 +297,7 @@ theorem reglan_arg_of_non_none
     simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
   simp
 
+/-- Derives `reglan_binop_args` from `non_none`. -/
 theorem reglan_binop_args_of_non_none
     {op t1 t2 : SmtTerm}
     (hTy :
@@ -300,6 +313,7 @@ theorem reglan_binop_args_of_non_none
     simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
   exact ⟨rfl, rfl⟩
 
+/-- Derives `re_exp_arg` from `non_none`. -/
 theorem re_exp_arg_of_non_none
     {n : smt_lit_Int} {t : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.re_exp (SmtTerm.Numeral n)) t)) :
@@ -315,6 +329,7 @@ theorem re_exp_arg_of_non_none
   | _ =>
       simp [__smtx_typeof, __smtx_typeof_re_exp, h] at ht
 
+/-- Derives `re_loop_arg` from `non_none`. -/
 theorem re_loop_arg_of_non_none
     {n1 n2 : smt_lit_Int} {t : SmtTerm}
     (ht :
@@ -339,6 +354,7 @@ theorem re_loop_arg_of_non_none
   | _ =>
       simp [__smtx_typeof, __smtx_typeof_re_loop, h] at ht
 
+/-- Derives `seq_char_arg` from `non_none`. -/
 theorem seq_char_arg_of_non_none
     {op t : SmtTerm}
     {ret : SmtType}
@@ -359,6 +375,7 @@ theorem seq_char_arg_of_non_none
   | _ =>
       simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
 
+/-- Derives `seq_char_binop_args` from `non_none`. -/
 theorem seq_char_binop_args_of_non_none
     {op t1 t2 : SmtTerm}
     {ret : SmtType}
@@ -389,6 +406,7 @@ theorem seq_char_binop_args_of_non_none
       cases h2 : __smtx_typeof t2 <;>
         simp [hTy, smt_lit_ite, smt_lit_Teq, h1] at ht
 
+/-- Derives `seq_char_reglan_args` from `non_none`. -/
 theorem seq_char_reglan_args_of_non_none
     {op t1 t2 : SmtTerm}
     {ret : SmtType}
@@ -416,6 +434,7 @@ theorem seq_char_reglan_args_of_non_none
       cases h2 : __smtx_typeof t2 <;>
         simp [hTy, smt_lit_ite, smt_lit_Teq, h1] at ht
 
+/-- Derives `str_replace_re_args` from `non_none`. -/
 theorem str_replace_re_args_of_non_none
     {op t1 t2 t3 : SmtTerm}
     (hTy :
@@ -452,6 +471,7 @@ theorem str_replace_re_args_of_non_none
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
         simp [hTy, smt_lit_ite, smt_lit_Teq, h1] at ht
 
+/-- Derives `str_indexof_re_args` from `non_none`. -/
 theorem str_indexof_re_args_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht :
@@ -480,6 +500,7 @@ theorem str_indexof_re_args_of_non_none
       cases h2 : __smtx_typeof t2 <;> cases h3 : __smtx_typeof t3 <;>
         simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h1] at ht
 
+/-- Shows that evaluating `str_len` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_len
     (M : SmtModel)
     (t : SmtTerm)
@@ -497,6 +518,7 @@ theorem typeof_value_model_eval_str_len
   rw [hss]
   rfl
 
+/-- Shows that evaluating `str_to_lower` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_to_lower
     (M : SmtModel)
     (t : SmtTerm)
@@ -517,6 +539,7 @@ theorem typeof_value_model_eval_str_to_lower
     SmtType.Seq SmtType.Char
   exact typeof_pack_string _
 
+/-- Shows that evaluating `str_to_upper` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_to_upper
     (M : SmtModel)
     (t : SmtTerm)
@@ -537,6 +560,7 @@ theorem typeof_value_model_eval_str_to_upper
     SmtType.Seq SmtType.Char
   exact typeof_pack_string _
 
+/-- Shows that evaluating `str_concat` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_concat
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -569,6 +593,7 @@ theorem typeof_value_model_eval_str_concat
       (xs := smt_lit_unpack_seq ss1 ++ smt_lit_unpack_seq ss2)
       (list_typed_append hxs1 hxs2))
 
+/-- Shows that evaluating `str_substr` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_substr
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -606,6 +631,7 @@ theorem typeof_value_model_eval_str_substr
       (xs := smt_lit_seq_extract (smt_lit_unpack_seq ss1) n2 n3)
       (list_typed_extract hxs1 n2 n3))
 
+/-- Shows that evaluating `str_contains` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_contains
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -638,6 +664,7 @@ theorem typeof_value_model_eval_str_contains
       cases h2 : __smtx_typeof t2 <;>
         simp [__smtx_typeof, __smtx_typeof_seq_op_2_ret, h1, h2] at ht
 
+/-- Shows that evaluating `str_indexof` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_indexof
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -666,6 +693,7 @@ theorem typeof_value_model_eval_str_indexof
   rw [hss1, hss2, hn]
   rfl
 
+/-- Shows that evaluating `str_at` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_at
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -694,6 +722,7 @@ theorem typeof_value_model_eval_str_at
       (xs := smt_lit_seq_extract (smt_lit_unpack_seq ss1) n2 1)
       (list_typed_extract hxs1 n2 1))
 
+/-- Shows that evaluating `str_replace` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_replace
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -736,6 +765,7 @@ theorem typeof_value_model_eval_str_replace
         (smt_lit_unpack_seq ss3))
       (list_typed_replace hxs1 hxs3))
 
+/-- Shows that evaluating `str_rev` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_rev
     (M : SmtModel)
     (t : SmtTerm)
@@ -761,6 +791,7 @@ theorem typeof_value_model_eval_str_rev
       (xs := (smt_lit_unpack_seq ss).reverse)
       (list_typed_reverse hxs))
 
+/-- Shows that evaluating `str_update` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_update
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -802,6 +833,7 @@ theorem typeof_value_model_eval_str_update
       (xs := smt_lit_seq_update (smt_lit_unpack_seq ss1) n2 (smt_lit_unpack_seq ss3))
       (list_typed_update hxs1 hxs3 n2))
 
+/-- Shows that evaluating `str_replace_all` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_replace_all
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -844,6 +876,7 @@ theorem typeof_value_model_eval_str_replace_all
         (smt_lit_unpack_seq ss3))
       (list_typed_replace_all hxs1 hxs3))
 
+/-- Shows that evaluating `str_replace_re` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_replace_re
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -876,6 +909,7 @@ theorem typeof_value_model_eval_str_replace_re
     SmtType.Seq SmtType.Char
   exact typeof_pack_string _
 
+/-- Shows that evaluating `str_replace_re_all` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_replace_re_all
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -908,6 +942,7 @@ theorem typeof_value_model_eval_str_replace_re_all
     SmtType.Seq SmtType.Char
   exact typeof_pack_string _
 
+/-- Shows that evaluating `str_indexof_re` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_indexof_re
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
@@ -936,6 +971,7 @@ theorem typeof_value_model_eval_str_indexof_re
   rw [hss1, hr, hn]
   rfl
 
+/-- Shows that evaluating `str_to_code` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_to_code
     (M : SmtModel)
     (t : SmtTerm)
@@ -953,6 +989,7 @@ theorem typeof_value_model_eval_str_to_code
   rw [hss]
   rfl
 
+/-- Shows that evaluating `str_to_int` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_to_int
     (M : SmtModel)
     (t : SmtTerm)
@@ -970,6 +1007,7 @@ theorem typeof_value_model_eval_str_to_int
   rw [hss]
   rfl
 
+/-- Shows that evaluating `str_from_code` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_from_code
     (M : SmtModel)
     (t : SmtTerm)
@@ -990,6 +1028,7 @@ theorem typeof_value_model_eval_str_from_code
     SmtType.Seq SmtType.Char
   exact typeof_pack_string _
 
+/-- Shows that evaluating `str_from_int` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_from_int
     (M : SmtModel)
     (t : SmtTerm)
@@ -1010,6 +1049,7 @@ theorem typeof_value_model_eval_str_from_int
     SmtType.Seq SmtType.Char
   exact typeof_pack_string _
 
+/-- Shows that evaluating `str_to_re` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_to_re
     (M : SmtModel)
     (t : SmtTerm)
@@ -1027,6 +1067,7 @@ theorem typeof_value_model_eval_str_to_re
   rw [hss]
   rfl
 
+/-- Shows that evaluating `re_mult` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_mult
     (M : SmtModel)
     (t : SmtTerm)
@@ -1044,6 +1085,7 @@ theorem typeof_value_model_eval_re_mult
   rw [hr]
   rfl
 
+/-- Shows that evaluating `re_plus` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_plus
     (M : SmtModel)
     (t : SmtTerm)
@@ -1061,6 +1103,7 @@ theorem typeof_value_model_eval_re_plus
   rw [hr]
   rfl
 
+/-- Lemma about `model_eval_re_exp_rec_reglan`. -/
 theorem model_eval_re_exp_rec_reglan :
     ∀ (n : smt_lit_Nat) (r : smt_lit_RegLan),
       ∃ r' : smt_lit_RegLan,
@@ -1072,6 +1115,7 @@ theorem model_eval_re_exp_rec_reglan :
       refine ⟨smt_lit_re_concat r' r, ?_⟩
       simp [__smtx_model_eval_re_exp_rec, hr', __smtx_model_eval_re_concat]
 
+/-- Lemma about `model_eval_re_exp_reglan`. -/
 theorem model_eval_re_exp_reglan
     (n : smt_lit_Int)
     (r : smt_lit_RegLan) :
@@ -1080,6 +1124,7 @@ theorem model_eval_re_exp_reglan
   rcases model_eval_re_exp_rec_reglan (smt_lit_int_to_nat n) r with ⟨r', hr'⟩
   exact ⟨r', by simpa [__smtx_model_eval_re_exp] using hr'⟩
 
+/-- Shows that evaluating `re_exp` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_exp
     (M : SmtModel)
     (n : smt_lit_Int)
@@ -1101,6 +1146,7 @@ theorem typeof_value_model_eval_re_exp
   rw [hr']
   rfl
 
+/-- Shows that evaluating `re_opt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_opt
     (M : SmtModel)
     (t : SmtTerm)
@@ -1118,6 +1164,7 @@ theorem typeof_value_model_eval_re_opt
   rw [hr]
   rfl
 
+/-- Shows that evaluating `re_comp` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_comp
     (M : SmtModel)
     (t : SmtTerm)
@@ -1135,6 +1182,7 @@ theorem typeof_value_model_eval_re_comp
   rw [hr]
   rfl
 
+/-- Shows that evaluating `re_range` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_range
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1154,6 +1202,7 @@ theorem typeof_value_model_eval_re_range
   rw [hss1, hss2]
   rfl
 
+/-- Shows that evaluating `re_concat` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_concat
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1173,6 +1222,7 @@ theorem typeof_value_model_eval_re_concat
   rw [hr1, hr2]
   rfl
 
+/-- Shows that evaluating `re_inter` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_inter
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1192,6 +1242,7 @@ theorem typeof_value_model_eval_re_inter
   rw [hr1, hr2]
   rfl
 
+/-- Shows that evaluating `re_union` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_union
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1211,6 +1262,7 @@ theorem typeof_value_model_eval_re_union
   rw [hr1, hr2]
   rfl
 
+/-- Shows that evaluating `re_diff` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_diff
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1230,6 +1282,7 @@ theorem typeof_value_model_eval_re_diff
   rw [hr1, hr2]
   rfl
 
+/-- Lemma about `model_eval_re_loop_rec_reglan`. -/
 theorem model_eval_re_loop_rec_reglan :
     ∀ (n : smt_lit_Nat) (n1 n2 : smt_lit_Int) (r : smt_lit_RegLan),
       ∃ r' : smt_lit_RegLan,
@@ -1245,6 +1298,7 @@ theorem model_eval_re_loop_rec_reglan :
       refine ⟨smt_lit_re_union r1 r2, ?_⟩
       simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union]
 
+/-- Shows that evaluating `re_loop` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_loop
     (M : SmtModel)
     (n1 n2 : smt_lit_Int)
@@ -1287,6 +1341,7 @@ theorem typeof_value_model_eval_re_loop
     simp [__smtx_model_eval_re_loop, __smtx_model_eval_gt, __smtx_model_eval_lt,
       __smtx_model_eval_ite, hlt, hr', __smtx_typeof_value]
 
+/-- Shows that evaluating `str_in_re` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_in_re
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1306,6 +1361,7 @@ theorem typeof_value_model_eval_str_in_re
   rw [hss, hr]
   rfl
 
+/-- Shows that evaluating `str_lt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_lt
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1325,6 +1381,7 @@ theorem typeof_value_model_eval_str_lt
   rw [hss1, hss2]
   rfl
 
+/-- Shows that evaluating `str_leq` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_leq
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1349,6 +1406,7 @@ theorem typeof_value_model_eval_str_leq
   rw [hbEq]
   rfl
 
+/-- Shows that evaluating `str_prefixof` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_prefixof
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1374,6 +1432,7 @@ theorem typeof_value_model_eval_str_prefixof
       (__smtx_model_eval_str_substr (SmtValue.Seq ss2) (SmtValue.Numeral 0)
         (__smtx_model_eval_str_len (SmtValue.Seq ss1)))
 
+/-- Shows that evaluating `str_suffixof` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_suffixof
     (M : SmtModel)
     (t1 t2 : SmtTerm)
@@ -1401,6 +1460,7 @@ theorem typeof_value_model_eval_str_suffixof
           (__smtx_model_eval_str_len (SmtValue.Seq ss1)))
         (__smtx_model_eval_str_len (SmtValue.Seq ss1)))
 
+/-- Shows that evaluating `str_is_digit` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_is_digit
     (M : SmtModel)
     (t : SmtTerm)
@@ -1419,6 +1479,7 @@ theorem typeof_value_model_eval_str_is_digit
   simp [__smtx_model_eval_str_is_digit, __smtx_model_eval_str_to_code, __smtx_model_eval_leq,
     __smtx_model_eval_and, __smtx_typeof_value]
 
+/-- Shows that evaluating `seq_nth` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_seq_nth
     (M : SmtModel)
     (hM : model_total_typed M)

@@ -12,6 +12,7 @@ for checker-side Bool guards on the antecedent and consequent. The actual
 semantic typing fact for `scope` is the stronger rule-local theorem below,
 which consumes SMT-side Bool typing.
 -/
+/-- Derives `typed___eo_prog_scope` from `bool_args`. -/
 theorem typed___eo_prog_scope_of_bool_args (x1 x2 : Term) :
   RuleProofs.eo_has_bool_type x1 ->
   RuleProofs.eo_has_bool_type x2 ->
@@ -23,6 +24,7 @@ theorem typed___eo_prog_scope_of_bool_args (x1 x2 : Term) :
       smt_lit_ite, smt_lit_Teq] at hTy1 hTy2 ⊢ <;>
     simp [hTy1, hTy2]
 
+/-- Shows that the EO program for `scope_impl` is well typed. -/
 theorem typed___eo_prog_scope_impl (M : SmtModel) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
   RuleProofs.eo_has_smt_translation x1 ->
@@ -41,6 +43,7 @@ by
 
 namespace RuleProofs
 
+/-- Proves correctness of the EO program for `scope`. -/
 theorem correct___eo_prog_scope
     (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   (eo_interprets M x1 true -> eo_interprets M x2 true) ->
@@ -84,6 +87,7 @@ theorem correct___eo_prog_scope
                 __smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not,
                 SmtEval.smt_lit_not, SmtEval.smt_lit_or]
 
+/-- Shows that the malformed numeric `scope` program cannot evaluate to `true`. -/
 theorem not_eo_interprets_prog_scope_num_true (M : SmtModel) :
   ¬ eo_interprets M (__eo_prog_scope (Term.Numeral 0) (Proof.pf (Term.Boolean true))) true := by
   rw [eo_interprets_iff_smt_interprets]
@@ -92,6 +96,7 @@ theorem not_eo_interprets_prog_scope_num_true (M : SmtModel) :
   | intro_true hTy hEval =>
       simp [__eo_prog_scope, __eo_to_smt, __smtx_typeof, smt_lit_ite, smt_lit_Teq] at hTy
 
+/-- Shows that the malformed numeric `scope` program does not have translated Boolean type. -/
 theorem not_eo_has_bool_type_prog_scope_num_true :
   ¬ RuleProofs.eo_has_bool_type
       (__eo_prog_scope (Term.Numeral 0) (Proof.pf (Term.Boolean true))) := by
@@ -100,6 +105,7 @@ theorem not_eo_has_bool_type_prog_scope_num_true :
 
 end RuleProofs
 
+/-- Proves correctness of the EO program for `scope_impl`. -/
 theorem correct___eo_prog_scope_impl
     (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
@@ -108,6 +114,7 @@ theorem correct___eo_prog_scope_impl
 by
   exact RuleProofs.correct___eo_prog_scope M hM x1 x2
 
+/-- Derives the checker facts exposed by the EO program for `scope_impl`. -/
 theorem facts___eo_prog_scope_impl
     (M : SmtModel) (hM : model_total_typed M) (x1 x2 : Term) :
   (eo_interprets M x1 true -> eo_interprets M x2 true) ->
@@ -123,6 +130,7 @@ by
     typed___eo_prog_scope_impl M x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2 hProg
   exact correct___eo_prog_scope_impl M hM x1 x2 hImp hBool
 
+/-- Packages the properties needed for `cmd_step_pop_scope`. -/
 theorem cmd_step_pop_scope_properties
     (x1 : Term) (s : CState) (args : CArgList) (premises : CIndexList) :
   RuleProofs.eo_has_smt_translation x1 ->

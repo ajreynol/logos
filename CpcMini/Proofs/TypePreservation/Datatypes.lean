@@ -9,6 +9,7 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Establishes an equality relating `typeof_dt_cons_value_rec` and `typeof_dt_cons_rec_zero`. -/
 theorem typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec_zero
     (T : SmtType) :
     ∀ c d,
@@ -20,6 +21,7 @@ theorem typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec_zero
       simp [__smtx_typeof_dt_cons_value_rec, __smtx_typeof_dt_cons_rec,
         typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec_zero T c d]
 
+/-- Establishes an equality relating `typeof_dt_cons_value_rec` and `typeof_dt_cons_rec`. -/
 theorem typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec
     (T : SmtType) :
     ∀ d n,
@@ -33,6 +35,7 @@ theorem typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec
       simpa [__smtx_typeof_dt_cons_value_rec, __smtx_typeof_dt_cons_rec] using
         typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec T d n
 
+/-- Shows that evaluating `dt_cons` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_cons
     (M : SmtModel)
     (s : smt_lit_String)
@@ -46,10 +49,12 @@ theorem typeof_value_model_eval_dt_cons
   exact typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec (SmtType.Datatype s d)
     (__smtx_dt_substitute s d d) i
 
+/-- Definition used in the proof development for `dt_cons_type_num_args`. -/
 def dt_cons_type_num_args : SmtType -> Nat
   | SmtType.FunType _ U => Nat.succ (dt_cons_type_num_args U)
   | _ => 0
 
+/-- Definition used in the proof development for `dt_cons_applied_type_rec`. -/
 def dt_cons_applied_type_rec
     (s : smt_lit_String)
     (d0 : SmtDatatype) :
@@ -61,6 +66,7 @@ def dt_cons_applied_type_rec
       dt_cons_applied_type_rec s d0 d i n
   | _, _, _ => SmtType.None
 
+/-- Lemma about `dt_cons_type_num_args_typeof_dt_cons_value_rec`. -/
 theorem dt_cons_type_num_args_typeof_dt_cons_value_rec
     (s : smt_lit_String)
     (d0 : SmtDatatype) :
@@ -81,6 +87,7 @@ theorem dt_cons_type_num_args_typeof_dt_cons_value_rec
       simp [__smtx_typeof_dt_cons_value_rec, __smtx_dt_num_sels,
         dt_cons_type_num_args_typeof_dt_cons_value_rec s d0 d i]
 
+/-- Lemma about `dt_cons_type_num_args_dt_cons_applied_type_rec`. -/
 theorem dt_cons_type_num_args_dt_cons_applied_type_rec
     (s : smt_lit_String)
     (d0 : SmtDatatype) :
@@ -106,6 +113,7 @@ theorem dt_cons_type_num_args_dt_cons_applied_type_rec
           have ih := dt_cons_type_num_args_dt_cons_applied_type_rec s d0 d i (Nat.succ n)
           simpa [dt_cons_applied_type_rec, __smtx_dt_num_sels] using ih
 
+/-- Lemma about `dt_cons_applied_type_rec_step`. -/
 theorem dt_cons_applied_type_rec_step
     (s : smt_lit_String)
     (d0 : SmtDatatype) :
@@ -136,6 +144,7 @@ theorem dt_cons_applied_type_rec_step
           simpa [dt_cons_applied_type_rec, __smtx_ret_typeof_sel_rec] using
             dt_cons_applied_type_rec_step s d0 d i (Nat.succ n) hlt'
 
+/-- Shows that `dt_cons_applied_type_rec_non_none` implies `le`. -/
 theorem dt_cons_applied_type_rec_non_none_implies_le
     (s : smt_lit_String)
     (d0 : SmtDatatype) :
@@ -165,6 +174,7 @@ theorem dt_cons_applied_type_rec_non_none_implies_le
           have hle : Nat.succ n ≤ __smtx_dt_num_sels d i := ih h'
           simpa [__smtx_dt_num_sels] using hle
 
+/-- Shows that `dt_cons_applied_type_rec_eq_bare_type` implies `zero`. -/
 theorem dt_cons_applied_type_rec_eq_bare_type_implies_zero
     {s : smt_lit_String}
     {d0 : SmtDatatype}
@@ -182,10 +192,12 @@ theorem dt_cons_applied_type_rec_eq_bare_type_implies_zero
     dt_cons_applied_type_rec_non_none_implies_le s d0 (__smtx_dt_substitute s d0 d0) i n hNN
   omega
 
+/-- Definition used in the proof development for `vsm_num_apply_args`. -/
 def vsm_num_apply_args : SmtValue -> Nat
   | SmtValue.Apply f _ => Nat.succ (vsm_num_apply_args f)
   | _ => 0
 
+/-- Lemma about `dtc_num_sels_substitute`. -/
 theorem dtc_num_sels_substitute
     (s : smt_lit_String)
     (d : SmtDatatype) :
@@ -197,6 +209,7 @@ theorem dtc_num_sels_substitute
         simp [__smtx_dtc_substitute, __smtx_dtc_num_sels,
           dtc_num_sels_substitute s d c, smt_lit_ite, smt_lit_Teq, smt_lit_streq]
 
+/-- Lemma about `dt_num_sels_substitute`. -/
 theorem dt_num_sels_substitute
     (s : smt_lit_String)
     (d0 : SmtDatatype) :
@@ -208,6 +221,7 @@ theorem dt_num_sels_substitute
   | SmtDatatype.sum c d, Nat.succ i => by
       simp [__smtx_dt_substitute, __smtx_dt_num_sels, dt_num_sels_substitute s d0 d i]
 
+/-- Shows that `ret_typeof_sel_rec_non_none` implies `lt`. -/
 theorem ret_typeof_sel_rec_non_none_implies_lt :
     ∀ d i j,
       __smtx_ret_typeof_sel_rec d i j ≠ SmtType.None ->
@@ -229,6 +243,7 @@ theorem ret_typeof_sel_rec_non_none_implies_lt :
       have ih := ret_typeof_sel_rec_non_none_implies_lt d i j h'
       simpa [__smtx_dt_num_sels] using ih
 
+/-- Enumerates the cases for `typeof_apply_value_non_none`. -/
 theorem typeof_apply_value_non_none_cases
     {F X : SmtType}
     (h : __smtx_typeof_apply_value F X ≠ SmtType.None) :
@@ -245,6 +260,7 @@ theorem typeof_apply_value_non_none_cases
   | _ =>
       simp [__smtx_typeof_apply_value] at h
 
+/-- Derives `dt_cons_chain_type` from `non_none`. -/
 theorem dt_cons_chain_type_of_non_none :
     ∀ {v : SmtValue} {s : smt_lit_String} {d : SmtDatatype} {i : smt_lit_Nat},
       __vsm_apply_head v = SmtValue.DtCons s d i ->
@@ -321,6 +337,7 @@ theorem dt_cons_chain_type_of_non_none :
       simp [__smtx_typeof_apply_value, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq,
         hA, vsm_num_apply_args, hB']
 
+/-- Derives `vsm_num_apply_args_eq_dt_num_sels` from `datatype`. -/
 theorem vsm_num_apply_args_eq_dt_num_sels_of_datatype
     {v : SmtValue}
     {s : smt_lit_String}
@@ -346,6 +363,7 @@ theorem vsm_num_apply_args_eq_dt_num_sels_of_datatype
       (vsm_num_apply_args v) (by rw [hEq]; simp)
   omega
 
+/-- Derives `apply_arg_nth_type` from `non_none`. -/
 theorem apply_arg_nth_type_of_non_none :
     ∀ {v : SmtValue} {s : smt_lit_String} {d : SmtDatatype} {i j : Nat},
       __vsm_apply_head v = SmtValue.DtCons s d i ->
@@ -455,6 +473,7 @@ theorem apply_arg_nth_type_of_non_none :
         simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hcond] using
           apply_arg_nth_type_of_non_none hHeadF hFunNN hj'
 
+/-- Derives `dt_sel_arg_datatype` from `non_none`. -/
 theorem dt_sel_arg_datatype_of_non_none
     {s : smt_lit_String}
     {d : SmtDatatype}
@@ -470,6 +489,7 @@ theorem dt_sel_arg_datatype_of_non_none
   · simpa using ht.1.symm
   · simpa using ht.2.1.symm
 
+/-- Derives `dt_sel_term_typeof` from `non_none`. -/
 theorem dt_sel_term_typeof_of_non_none
     {s : smt_lit_String}
     {d : SmtDatatype}
@@ -480,6 +500,7 @@ theorem dt_sel_term_typeof_of_non_none
   have hx : __smtx_typeof x = SmtType.Datatype s d := dt_sel_arg_datatype_of_non_none ht
   simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx]
 
+/-- Shows that evaluating `dt_sel_wrong` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_sel_wrong
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -562,6 +583,7 @@ theorem typeof_value_model_eval_dt_sel_wrong
       (by simpa [hm2] using hInner1)
       hv
 
+/-- Shows that evaluating `dt_sel` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_sel
     (M : SmtModel)
     (hM : model_total_typed M)
@@ -622,6 +644,7 @@ theorem typeof_value_model_eval_dt_sel
   · simpa [v, smt_lit_ite, hHead] using
       typeof_value_model_eval_dt_sel_wrong M hM s d i j v hResInh hv
 
+/-- Derives `dt_tester_arg_datatype` from `non_none`. -/
 theorem dt_tester_arg_datatype_of_non_none
     {s : smt_lit_String}
     {d : SmtDatatype}
@@ -636,6 +659,7 @@ theorem dt_tester_arg_datatype_of_non_none
   rcases ht with ⟨rfl, rfl⟩
   simp
 
+/-- Derives `dt_tester_term_typeof` from `non_none`. -/
 theorem dt_tester_term_typeof_of_non_none
     {s : smt_lit_String}
     {d : SmtDatatype}
@@ -646,6 +670,7 @@ theorem dt_tester_term_typeof_of_non_none
   have hx : __smtx_typeof x = SmtType.Datatype s d := dt_tester_arg_datatype_of_non_none ht
   simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hx]
 
+/-- Shows that evaluating `dt_tester` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_tester
     (M : SmtModel)
     (s : smt_lit_String)
@@ -661,6 +686,7 @@ theorem typeof_value_model_eval_dt_tester
       SmtType.Bool
   simp [__smtx_model_eval_dt_tester, __smtx_typeof_value]
 
+/-- Enumerates the cases for `typeof_apply_non_none`. -/
 theorem typeof_apply_non_none_cases
     {F X : SmtType}
     (h : __smtx_typeof_apply F X ≠ SmtType.None) :
@@ -689,6 +715,7 @@ theorem typeof_apply_non_none_cases
       cases X <;> simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h
       all_goals first | contradiction | exact ⟨A, B, Or.inr rfl, h.2.1.symm, h.1, h.2.2⟩
 
+/-- Shows that evaluating `apply_map` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_map
     {f i : SmtValue}
     {A B : SmtType}
@@ -727,6 +754,7 @@ theorem typeof_value_model_eval_apply_map
     map_lookup_typed (m := m) (A := A) (B := B)
       (by simp [__smtx_typeof_value] at hf; simpa using hf) hi
 
+/-- Shows that evaluating `apply_dt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_dt
     {f i : SmtValue}
     {A B : SmtType}
@@ -819,6 +847,7 @@ theorem typeof_value_model_eval_apply_dt
       simp [__smtx_typeof_apply_value, __smtx_typeof_guard, smt_lit_ite,
         smt_lit_Teq, hA]
 
+/-- Shows that evaluating `apply_generic` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_generic
     (M : SmtModel)
     (f x : SmtTerm)
