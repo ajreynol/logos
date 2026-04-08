@@ -97,6 +97,41 @@ by
   | trans =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
 
+theorem cmd_step_pop_has_bool_type_of_invariants
+    (root tail : CState) (A : Term)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTypeInvariant root ->
+  checkerTranslationInvariant root ->
+  checkerTypeInvariant (CState.cons (CStateObj.assume_push A) tail) ->
+  checkerTranslationInvariant (CState.cons (CStateObj.assume_push A) tail) ->
+  __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type (__eo_cmd_step_pop_proven root r args A premises)
+:=
+by
+  intro hsRootTy hsRootTrans hsCurTy hsCurTrans hProg
+  have hATy : __eo_typeof A = Term.Bool :=
+    (checkerTypeInvariant_head_assume_push A tail hsCurTy).2
+  have hATrans : RuleProofs.eo_has_smt_translation A :=
+    checkerTranslationInvariant_head_assume_push A tail hsCurTrans
+  have hPremisesTrans : AllHaveSmtTranslation (premiseTermList root premises) :=
+    premiseTermList_has_smt_translation root premises hsRootTrans
+  have hPremisesTy : AllTypeofBool (premiseTermList root premises) :=
+    premiseTermList_has_typeof_bool root premises hsRootTy
+  cases r with
+  | scope =>
+      rcases cmd_step_pop_scope_properties A root args premises
+          hATrans hATy hPremisesTrans hPremisesTy hProg with
+        ⟨_, _, _, hBool⟩
+      exact hBool
+  | contra =>
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
+  | refl =>
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
+  | symm =>
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
+  | trans =>
+      cases args <;> cases premises <;> exact False.elim (hProg rfl)
+
 theorem cmd_step_pop_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term)

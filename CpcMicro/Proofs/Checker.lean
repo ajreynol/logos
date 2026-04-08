@@ -320,36 +320,12 @@ by
               have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck := by
                 intro hEq
                 simp [eo_lit_teq, hEq] at hStep
-              have hATy : __eo_typeof A = Term.Bool :=
-                (checkerTypeInvariant_head_assume_push A cur hsCurTy).2
-              have hATrans : RuleProofs.eo_has_smt_translation A :=
-                checkerTranslationInvariant_head_assume_push A cur hsCurTrans
-              have hPremisesTrans : AllHaveSmtTranslation (premiseTermList root premises) :=
-                premiseTermList_has_smt_translation root premises hsRootTrans
-              have hPremisesTy : AllTypeofBool (premiseTermList root premises) :=
-                premiseTermList_has_typeof_bool root premises hsRootTy
-              have hProps :
-                  StepPopRuleProperties A (premiseTermList root premises)
-                    (__eo_cmd_step_pop_proven root r args A premises) := by
-                cases r with
-                | scope =>
-                    exact cmd_step_pop_scope_properties A root args premises
-                      hATrans hATy hPremisesTrans hPremisesTy hProg
-                | contra =>
-                    cases args <;> cases premises <;> exact False.elim (hProg rfl)
-                | refl =>
-                    cases args <;> cases premises <;> exact False.elim (hProg rfl)
-                | symm =>
-                    cases args <;> cases premises <;> exact False.elim (hProg rfl)
-                | trans =>
-                    cases args <;> cases premises <;> exact False.elim (hProg rfl)
               have hTail : checkerTranslationInvariant cur :=
                 checkerTranslationInvariant_tail hsCurTrans
               have hPBool :
                   RuleProofs.eo_has_bool_type (__eo_cmd_step_pop_proven root r args A premises) :=
-                by
-                  rcases hProps with ⟨_, _, _, hBool⟩
-                  exact hBool
+                cmd_step_pop_has_bool_type_of_invariants root cur A r args premises
+                  hsRootTy hsRootTrans hsCurTy hsCurTrans hProg
               have hPTrans :
                   RuleProofs.eo_has_smt_translation (__eo_cmd_step_pop_proven root r args A premises) :=
                 RuleProofs.eo_has_smt_translation_of_has_bool_type
