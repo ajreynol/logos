@@ -140,7 +140,6 @@ import Cpc.Proofs.Rules.Instantiate
 import Cpc.Proofs.Rules.Skolemize
 import Cpc.Proofs.Rules.Skolem_intro
 import Cpc.Proofs.Rules.Alpha_equiv
-import Cpc.Proofs.Rules.Beta_reduce
 import Cpc.Proofs.Rules.Quant_var_reordering
 import Cpc.Proofs.Rules.Exists_elim
 import Cpc.Proofs.Rules.Quant_unused_vars
@@ -1177,10 +1176,6 @@ by
   | alpha_equiv =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_alpha_equiv_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
-  | beta_reduce =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
-        cmd_step_beta_reduce_properties M hM s args premises
           (by simpa using hCmdTrans) hPremisesBool hProg
   | quant_var_reordering =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
@@ -3297,8 +3292,6 @@ by
   | skolem_intro =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | alpha_equiv =>
-      cases args <;> cases premises <;> exact False.elim (hProg rfl)
-  | beta_reduce =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | quant_var_reordering =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)

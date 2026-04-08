@@ -182,6 +182,12 @@ inductive Proof : Type where
 
 mutual
 
+
+
+end
+
+mutual
+
 def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -190,11 +196,6 @@ def __eo_mk_apply : Term -> Term -> Term
 
 def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
-
-def __eo_is_bool_type : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | x => (__eo_eq (__eo_typeof x) Term.Bool)
-
 
 def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
@@ -237,6 +238,11 @@ def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> Dat
 def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
   | (Datatype.sum c d2) => (Datatype.sum (__eo_dtc_substitute s d c) (__eo_dt_substitute s d d2))
   | Datatype.null => Datatype.null
+
+
+def __eo_is_bool_type : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
 
 
 def __eo_get_nil_rec : Term -> Term -> Term
