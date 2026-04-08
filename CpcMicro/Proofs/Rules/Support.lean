@@ -142,3 +142,12 @@ def StepPopRuleProperties
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
       eo_interprets M P true) ∧
     RuleProofs.eo_has_bool_type P
+
+theorem step_pop_rule_properties_has_bool_type
+    (x1 : Term) (premises : List Term) {P : Term} :
+  StepPopRuleProperties x1 premises P ->
+  RuleProofs.eo_has_bool_type P :=
+by
+  intro hProps
+  rcases hProps with ⟨_, _, _, hBool⟩
+  exact hBool
