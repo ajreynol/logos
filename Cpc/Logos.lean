@@ -844,70 +844,6 @@ def __eo_dt_selectors_main : Term -> Term
   | _ => Term.Stuck
 
 
-def __eo_nil_plus : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | T => (__arith_mk_zero T)
-
-
-def __eo_nil_mult : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | T => (__arith_mk_one T)
-
-
-def __eo_nil_bvand : Term -> Term
-  | (Term.Apply Term.BitVec m) => (__eo_not (__eo_to_bin m (Term.Numeral 0)))
-  | _ => Term.Stuck
-
-
-def __eo_nil_bvor : Term -> Term
-  | (Term.Apply Term.BitVec m) => (__eo_to_bin m (Term.Numeral 0))
-  | _ => Term.Stuck
-
-
-def __eo_nil_bvxor : Term -> Term
-  | (Term.Apply Term.BitVec m) => (__eo_to_bin m (Term.Numeral 0))
-  | _ => Term.Stuck
-
-
-def __eo_nil_bvadd : Term -> Term
-  | (Term.Apply Term.BitVec m) => (__eo_to_bin m (Term.Numeral 0))
-  | _ => Term.Stuck
-
-
-def __eo_nil_bvmul : Term -> Term
-  | (Term.Apply Term.BitVec m) => (__eo_to_bin m (Term.Numeral 1))
-  | _ => Term.Stuck
-
-
-def __eo_nil_str_concat : Term -> Term
-  | (Term.Apply Term.Seq T) => (__seq_empty (Term.Apply Term.Seq T))
-  | _ => Term.Stuck
-
-
-def __eo_nil : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, T => (Term.Boolean false)
-  | Term.and, T => (Term.Boolean true)
-  | Term.plus, T => (__eo_nil_plus T)
-  | Term.mult, T => (__eo_nil_mult T)
-  | Term.concat, T => (Term.Binary 0 0)
-  | Term.bvand, T => (__eo_nil_bvand T)
-  | Term.bvor, T => (__eo_nil_bvor T)
-  | Term.bvxor, T => (__eo_nil_bvxor T)
-  | Term.bvadd, T => (__eo_nil_bvadd T)
-  | Term.bvmul, T => (__eo_nil_bvmul T)
-  | Term._at_from_bools, T => (Term.Binary 0 0)
-  | Term.str_concat, T => (__eo_nil_str_concat T)
-  | Term.re_concat, T => (Term.Apply Term.str_to_re (Term.String ""))
-  | Term.re_inter, T => Term.re_all
-  | Term.re_union, T => Term.re_none
-  | Term.Tuple, T => Term.UnitTuple
-  | Term.tuple, T => Term.tuple_unit
-  | Term._at__at_poly, T => Term._at__at_Polynomial
-  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
-  | _, _ => Term.Stuck
-
-
 def __eo_lit_type_Numeral : Term -> Term
   | Term.Stuck  => Term.Stuck
   | t => Term.Int
@@ -8493,6 +8429,70 @@ partial def __eo_prog_distinct_card_conflict : Term -> Term
 partial def __eo_prog_trust : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
   | F, (Proof.pf P) => F
+  | _, _ => Term.Stuck
+
+
+partial def __eo_nil_plus : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (__arith_mk_zero T)
+
+
+partial def __eo_nil_mult : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (__arith_mk_one T)
+
+
+partial def __eo_nil_bvand : Term -> Term
+  | (Term.Apply Term.BitVec m) => (__eo_not (__eo_to_bin m (Term.Numeral 0)))
+  | _ => Term.Stuck
+
+
+partial def __eo_nil_bvor : Term -> Term
+  | (Term.Apply Term.BitVec m) => (__eo_to_bin m (Term.Numeral 0))
+  | _ => Term.Stuck
+
+
+partial def __eo_nil_bvxor : Term -> Term
+  | (Term.Apply Term.BitVec m) => (__eo_to_bin m (Term.Numeral 0))
+  | _ => Term.Stuck
+
+
+partial def __eo_nil_bvadd : Term -> Term
+  | (Term.Apply Term.BitVec m) => (__eo_to_bin m (Term.Numeral 0))
+  | _ => Term.Stuck
+
+
+partial def __eo_nil_bvmul : Term -> Term
+  | (Term.Apply Term.BitVec m) => (__eo_to_bin m (Term.Numeral 1))
+  | _ => Term.Stuck
+
+
+partial def __eo_nil_str_concat : Term -> Term
+  | (Term.Apply Term.Seq T) => (__seq_empty (Term.Apply Term.Seq T))
+  | _ => Term.Stuck
+
+
+partial def __eo_nil : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, T => (Term.Boolean false)
+  | Term.and, T => (Term.Boolean true)
+  | Term.plus, T => (__eo_nil_plus T)
+  | Term.mult, T => (__eo_nil_mult T)
+  | Term.concat, T => (Term.Binary 0 0)
+  | Term.bvand, T => (__eo_nil_bvand T)
+  | Term.bvor, T => (__eo_nil_bvor T)
+  | Term.bvxor, T => (__eo_nil_bvxor T)
+  | Term.bvadd, T => (__eo_nil_bvadd T)
+  | Term.bvmul, T => (__eo_nil_bvmul T)
+  | Term._at_from_bools, T => (Term.Binary 0 0)
+  | Term.str_concat, T => (__eo_nil_str_concat T)
+  | Term.re_concat, T => (Term.Apply Term.str_to_re (Term.String ""))
+  | Term.re_inter, T => Term.re_all
+  | Term.re_union, T => Term.re_none
+  | Term.Tuple, T => Term.UnitTuple
+  | Term.tuple, T => Term.tuple_unit
+  | Term._at__at_poly, T => Term._at__at_Polynomial
+  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
   | _, _ => Term.Stuck
 
 

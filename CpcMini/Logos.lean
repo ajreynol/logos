@@ -251,14 +251,6 @@ def __eo_cons : Term -> Term -> Term -> Term
   | f, e, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (Term.Apply (Term.Apply f e) a))
 
 
-def __eo_nil : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, T => (Term.Boolean false)
-  | Term.and, T => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
-  | _, _ => Term.Stuck
-
-
 def __eo_lit_type_Numeral : Term -> Term
   | Term.Stuck  => Term.Stuck
   | t => Term.Int
@@ -328,6 +320,14 @@ def __mk_trans : Term -> Term -> Term -> Term
 def __eo_prog_trans : Proof -> Term
   | (Proof.pf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2)) tail)) => (__mk_trans t1 t2 tail)
   | _ => Term.Stuck
+
+
+def __eo_nil : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, T => (Term.Boolean false)
+  | Term.and, T => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
+  | _, _ => Term.Stuck
 
 
 def __eo_is_list_nil : Term -> Term -> Term
