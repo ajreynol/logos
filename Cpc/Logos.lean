@@ -360,11 +360,7 @@ inductive Proof : Type where
 
 /- Definition of Eunoia signature -/
 
-mutual
 
-
-
-end
 
 mutual
 
