@@ -358,6 +358,19 @@ inductive Proof : Type where
   | pf : Term -> Proof
   | Stuck : Proof
 
+def __get_var_list : Term -> Term
+  | (Term.Apply (Term.Apply Q xs) G) => xs
+  | _ => Term.Stuck
+
+theorem sizeOf_get_var_list_le (F : Term) : sizeOf (__get_var_list F) <= sizeOf F := by
+  cases F
+  case Apply f x =>
+    cases f
+    all_goals simp [__get_var_list]
+    all_goals omega
+  all_goals simp [__get_var_list]
+  all_goals omega
+
 /- Definition of Eunoia signature -/
 
 mutual
@@ -1544,12 +1557,6 @@ def __eo_l_1___bv_mk_bitblast_step_bitwise : Term -> Term -> Term -> Term -> Ter
 def __eo_prog_bv_poly_norm_eq : Term -> Proof -> Term
   | (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.eq xb1) xb2)) (Term.Apply (Term.Apply Term.eq yb1) yb2)), (Proof.pf (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.bvmul cx) (Term.Apply (Term.Apply Term.bvmul (Term.Apply (Term.Apply Term.bvsub __eo_lv_xb1_2) __eo_lv_xb2_2)) one))) (Term.Apply (Term.Apply Term.bvmul cy) (Term.Apply (Term.Apply Term.bvmul (Term.Apply (Term.Apply Term.bvsub __eo_lv_yb1_2) __eo_lv_yb2_2)) __eo_lv_one_2)))) => (__eo_requires (__eo_and (__eo_and (__eo_and (__eo_and (__eo_eq xb1 __eo_lv_xb1_2) (__eo_eq xb2 __eo_lv_xb2_2)) (__eo_eq yb1 __eo_lv_yb1_2)) (__eo_eq yb2 __eo_lv_yb2_2)) (__eo_eq one __eo_lv_one_2)) (Term.Boolean true) (__eo_requires (__eo_to_z one) (Term.Numeral 1) (__eo_requires (__eo_zmod (__eo_to_z cx) (Term.Numeral 2)) (Term.Numeral 1) (__eo_requires (__eo_zmod (__eo_to_z cy) (Term.Numeral 2)) (Term.Numeral 1) (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.eq xb1) xb2)) (Term.Apply (Term.Apply Term.eq yb1) yb2))))))
   | _, _ => Term.Stuck
-
-
-def __get_var_list : Term -> Term
-  | (Term.Apply (Term.Apply Q xs) G) => xs
-  | _ => Term.Stuck
-
 
 def __eo_l_1___substitute : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
@@ -5610,21 +5617,32 @@ def __eo_nil : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
+def __eo_shallow_typeof : Term -> Term
+  | Term.Stuck => Term.Stuck
+  | (Term.Boolean b) => Term.Bool
+  | (Term.Numeral n) => Term.Int
+  | (Term.Rational r) => Term.Real
+  | (Term.String s) => (Term.Apply Term.Seq Term.Char)
+  | (Term.Binary w n) => (Term.Apply Term.BitVec (Term.Numeral w))
+  | (Term.seq_empty T) => T
+  | t => Term.Stuck
+
+
 def __eo_is_list_nil : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | Term.or, (Term.Boolean false) => (Term.Boolean true)
   | Term.and, (Term.Boolean true) => (Term.Boolean true)
-  | Term.plus, nil => (__eo_eq nil (__eo_nil Term.plus (__eo_typeof nil)))
-  | Term.mult, nil => (__eo_eq nil (__eo_nil Term.mult (__eo_typeof nil)))
+  | Term.plus, nil => (__eo_eq nil (__eo_nil Term.plus (__eo_shallow_typeof nil)))
+  | Term.mult, nil => (__eo_eq nil (__eo_nil Term.mult (__eo_shallow_typeof nil)))
   | Term.concat, (Term.Binary 0 0) => (Term.Boolean true)
-  | Term.bvand, nil => (__eo_eq nil (__eo_nil Term.bvand (__eo_typeof nil)))
-  | Term.bvor, nil => (__eo_eq nil (__eo_nil Term.bvor (__eo_typeof nil)))
-  | Term.bvxor, nil => (__eo_eq nil (__eo_nil Term.bvxor (__eo_typeof nil)))
-  | Term.bvadd, nil => (__eo_eq nil (__eo_nil Term.bvadd (__eo_typeof nil)))
-  | Term.bvmul, nil => (__eo_eq nil (__eo_nil Term.bvmul (__eo_typeof nil)))
+  | Term.bvand, nil => (__eo_eq nil (__eo_nil Term.bvand (__eo_shallow_typeof nil)))
+  | Term.bvor, nil => (__eo_eq nil (__eo_nil Term.bvor (__eo_shallow_typeof nil)))
+  | Term.bvxor, nil => (__eo_eq nil (__eo_nil Term.bvxor (__eo_shallow_typeof nil)))
+  | Term.bvadd, nil => (__eo_eq nil (__eo_nil Term.bvadd (__eo_shallow_typeof nil)))
+  | Term.bvmul, nil => (__eo_eq nil (__eo_nil Term.bvmul (__eo_shallow_typeof nil)))
   | Term._at_from_bools, (Term.Binary 0 0) => (Term.Boolean true)
-  | Term.str_concat, nil => (__eo_eq nil (__eo_nil Term.str_concat (__eo_typeof nil)))
+  | Term.str_concat, nil => (__eo_eq nil (__eo_nil Term.str_concat (__eo_shallow_typeof nil)))
   | Term.re_concat, (Term.Apply Term.str_to_re (Term.String "")) => (Term.Boolean true)
   | Term.re_inter, Term.re_all => (Term.Boolean true)
   | Term.re_union, Term.re_none => (Term.Boolean true)
@@ -5740,10 +5758,69 @@ def __eo_typeof_eq : Term -> Term -> Term
   | A, __eo_lv_A_2 => (__eo_requires (__eo_eq A __eo_lv_A_2) (Term.Boolean true) Term.Bool)
 
 
+def __assoc_nil_has_type_rec : Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | _ , Term.Stuck , _  => Term.Stuck
+  | _ , _ , Term.Stuck  => Term.Stuck
+  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2), W => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_requires (__eo_typeof x1) W (__assoc_nil_has_type_rec f x2 W)) (__eo_l_1___assoc_nil_has_type_rec f (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2) W))
+  | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___assoc_nil_has_type_rec __eo_dv_1 __eo_dv_2 __eo_dv_3)
+termination_by f xs W => (sizeOf xs, 0)
+decreasing_by
+  all_goals
+    simp_wf
+  all_goals
+    omega
+
+
+def __assoc_nil_same_type : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2) => (__eo_requires (__eo_eq f __eo_lv_f_2) (Term.Boolean true) (__assoc_nil_has_type_rec f x2 (__eo_typeof x1)))
+  | _, _ => Term.Stuck
+termination_by f xs => (sizeOf xs, 0)
+decreasing_by
+  all_goals
+    simp_wf
+  all_goals
+    omega
+
+
+def __eo_l_1___assoc_nil_nth_type : Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | _ , _ , Term.Stuck  => Term.Stuck
+  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2), n => (__eo_requires (__eo_eq f __eo_lv_f_2) (Term.Boolean true) (__assoc_nil_nth_type f x2 (__eo_add n (Term.Numeral (-1 : eo_lit_Int)))))
+  | _, _, _ => Term.Stuck
+termination_by f xs n => (sizeOf xs, 0)
+decreasing_by
+  all_goals
+    simp_wf
+  all_goals
+    omega
+
+
+def __assoc_nil_nth_type : Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | _ , Term.Stuck , _  => Term.Stuck
+  | _ , _ , Term.Stuck  => Term.Stuck
+  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2), (Term.Numeral 0) => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_typeof x1) (__eo_l_1___assoc_nil_nth_type f (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2) (Term.Numeral 0)))
+  | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___assoc_nil_nth_type __eo_dv_1 __eo_dv_2 __eo_dv_3)
+termination_by f xs n => (sizeOf xs, 1)
+decreasing_by
+  all_goals
+    simp_wf
+  all_goals
+    omega
+
+
 def __eo_typeof_distinct : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | Term.__eo_List, xs => (__eo_requires (__assoc_nil_same_type Term.__eo_List_cons xs) (Term.Boolean true) Term.Bool)
   | _, _ => Term.Stuck
+termination_by A xs => (sizeOf xs, 1)
+decreasing_by
+  all_goals
+    simp_wf
+  all_goals
+    omega
 
 
 def __eo_typeof__at_purify : Term -> Term
@@ -6574,6 +6651,13 @@ def __eo_typeof__at_quantifiers_skolemize : Term -> Term -> Term -> Term -> Term
   | _ , _ , _ , Term.Stuck  => Term.Stuck
   | Term.Bool, F, Term.Int, i => (__assoc_nil_nth_type Term.__eo_List_cons (__get_var_list F) i)
   | _, _, _, _ => Term.Stuck
+termination_by A F B i => (sizeOf F, 2)
+decreasing_by
+  simp_wf
+  first
+    | omega
+    | have h := sizeOf_get_var_list_le F
+      omega
 
 
 def __eo_typeof_int_to_bv : Term -> Term -> Term -> Term
@@ -6814,6 +6898,12 @@ def __eo_typeof : Term -> Term
   | (Term._at_const __eo_x1 __eo_x2) => (__eo_typeof__at_const (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) __eo_x2)
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck
+termination_by t => (sizeOf t, 0)
+decreasing_by
+  all_goals
+    simp_wf
+  all_goals
+    omega
 
 
 def __eo_prog_re_all_elim : Term := (Term.Apply (Term.Apply Term.eq Term.re_all) (Term.Apply Term.re_mult Term.re_allchar))
@@ -6845,20 +6935,6 @@ partial def __is_var_list : Term -> Term
   | (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) => (__eo_ite (__eo_is_var x) (__is_var_list xs) (Term.Boolean false))
   | Term.__eo_List_nil => (Term.Boolean true)
   | _ => Term.Stuck
-
-
-partial def __assoc_nil_has_type_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2), W => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_requires (__eo_typeof x1) W (__assoc_nil_has_type_rec f x2 W)) (__eo_l_1___assoc_nil_has_type_rec f (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2) W))
-  | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___assoc_nil_has_type_rec __eo_dv_1 __eo_dv_2 __eo_dv_3)
-
-
-partial def __assoc_nil_same_type : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2) => (__eo_requires (__eo_eq f __eo_lv_f_2) (Term.Boolean true) (__assoc_nil_has_type_rec f x2 (__eo_typeof x1)))
-  | _, _ => Term.Stuck
 
 
 partial def __eo_l_1___extract_antec_rec : Term -> Term -> Term
@@ -6897,21 +6973,6 @@ partial def __eo_prog_process_scope : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
   | C, (Proof.pf F) => (__run_process_scope F C)
   | _, _ => Term.Stuck
-
-
-partial def __eo_l_1___assoc_nil_nth_type : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2), n => (__eo_requires (__eo_eq f __eo_lv_f_2) (Term.Boolean true) (__assoc_nil_nth_type f x2 (__eo_add n (Term.Numeral (-1 : eo_lit_Int)))))
-  | _, _, _ => Term.Stuck
-
-
-partial def __assoc_nil_nth_type : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2), (Term.Numeral 0) => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_typeof x1) (__eo_l_1___assoc_nil_nth_type f (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2) (Term.Numeral 0)))
-  | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___assoc_nil_nth_type __eo_dv_1 __eo_dv_2 __eo_dv_3)
 
 
 partial def __eo_l_1___assoc_nil_nth : Term -> Term -> Term -> Term
