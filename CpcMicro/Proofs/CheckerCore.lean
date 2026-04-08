@@ -2100,22 +2100,13 @@ by
         (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
   · exact hProps.has_bool_type
 
-structure CmdStepPopFacts
-    (M : SmtModel) (root tail : CState) (A P : Term) : Prop where
-  true_of_tail_context :
-    eo_interprets M (stateAssumes tail) true ->
-    eo_interprets M (statePushes tail) true ->
-    eo_interprets M P true
-  has_bool_type :
-    RuleProofs.eo_has_bool_type P
-
 theorem cmd_step_pop_facts_of_rule_properties
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term) (premises : CIndexList) {P : Term} :
   checkerTruthInvariant M root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
   StepPopRuleProperties A (premiseTermList root premises) P ->
-  CmdStepPopFacts M root tail A P :=
+  CmdStepFacts M tail P :=
 by
   intro hsRoot hSuffix hProps
   rcases hProps with ⟨X, hXMem, hFactsOfImp, hPopBool⟩

@@ -188,7 +188,7 @@ by
               have hTruth : checkerTruthInvariant M root :=
                 checkerLocalTruthInvariant_implies_truthInvariant M hsRoot
               have hFacts :
-                  CmdStepPopFacts M root cur A
+                  CmdStepFacts M cur
                     (__eo_cmd_step_pop_proven root r args A premises) :=
                 cmd_step_pop_proven_facts_of_invariants M hM root cur A r args premises
                   hTruth hsRootTy hsRootTrans hCurSuffix hProg
@@ -199,7 +199,7 @@ by
                   eo_interprets M (statePushes cur) true ->
                   eo_interprets M (__eo_cmd_step_pop_proven root r args A premises) true := by
                 intro hAss hPush
-                exact hFacts.true_of_tail_context hAss hPush
+                exact hFacts.true_of_context hAss hPush
               by_cases hTy : __eo_typeof (__eo_cmd_step_pop_proven root r args A premises) = Term.Bool
               · have hPost :
                     __eo_invoke_cmd_step_pop root (CState.cons (CStateObj.assume_push A) cur) r args premises =

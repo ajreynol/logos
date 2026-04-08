@@ -106,7 +106,7 @@ theorem cmd_step_pop_proven_facts_of_invariants
   checkerTranslationInvariant root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
   __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck ->
-  CmdStepPopFacts M root tail A (__eo_cmd_step_pop_proven root r args A premises)
+  CmdStepFacts M tail (__eo_cmd_step_pop_proven root r args A premises)
 :=
 by
   intro hsRoot hsRootTy hsRootTrans hSuffix hProg
