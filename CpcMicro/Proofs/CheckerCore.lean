@@ -392,11 +392,11 @@ theorem stateStepPopSuffix_trans :
 :=
 by
   intro s t u hst htu
-  induction htu with
+  induction htu generalizing s with
   | refl _ =>
       exact hst
   | proven P htu ih =>
-      exact stateStepPopSuffix.proven P ih
+      exact stateStepPopSuffix.proven P (ih hst)
 
 theorem stateAssumes_eq_of_stateStepPopSuffix :
   forall {cur root : CState},
