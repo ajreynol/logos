@@ -363,10 +363,10 @@ inductive Proof : Type where
 
 mutual
 
-partial def __eo_Numeral : Term := Term.Int
-partial def __eo_Rational : Term := Term.Real
-partial def __eo_Binary : Term := (Term.Apply Term.BitVec (Term.Numeral 1))
-partial def __eo_String : Term := (Term.Apply Term.Seq Term.Char)
+def __eo_Numeral : Term := Term.Int
+def __eo_Rational : Term := Term.Real
+def __eo_Binary : Term := (Term.Apply Term.BitVec (Term.Numeral 1))
+def __eo_String : Term := (Term.Apply Term.Seq Term.Char)
 partial def __eo_prepend_if : Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck , _  => Term.Stuck
@@ -386,7 +386,7 @@ partial def __eo_mk_apply : Term -> Term -> Term
   | x1, x2 => (Term.Apply x1 x2)
 
 
-partial def __eo_empty_binary : Term := (Term.Binary 0 0)
+def __eo_empty_binary : Term := (Term.Binary 0 0)
 partial def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
 
@@ -9684,9 +9684,9 @@ partial def __eo_typeof : Term -> Term
   | _ => Term.Stuck
 
 
-partial def __eo_prog_re_all_elim : Term := (Term.Apply (Term.Apply Term.eq Term.re_all) (Term.Apply Term.re_mult Term.re_allchar))
-partial def __eo_prog_re_star_none : Term := (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult Term.re_none)) (Term.Apply Term.str_to_re (Term.String "")))
-partial def __eo_prog_re_star_emp : Term := 
+def __eo_prog_re_all_elim : Term := (Term.Apply (Term.Apply Term.eq Term.re_all) (Term.Apply Term.re_mult Term.re_allchar))
+def __eo_prog_re_star_none : Term := (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult Term.re_none)) (Term.Apply Term.str_to_re (Term.String "")))
+def __eo_prog_re_star_emp : Term := 
     let _v0 := (Term.Apply Term.str_to_re (Term.String ""))
     (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult _v0)) _v0)
 
