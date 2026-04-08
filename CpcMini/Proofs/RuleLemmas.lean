@@ -61,17 +61,22 @@ If `__eo_cmd_step_pop_proven` grows more supported rules, add a matching
 branch below and route it to the rule-specific helper.
 -/
 theorem cmd_step_pop_proven_facts_of_invariants
+    (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTruthInvariant M root ->
   checkerTypeInvariant root ->
   checkerTranslationInvariant root ->
-  checkerTypeInvariant (CState.cons (CStateObj.assume_push A) tail) ->
-  checkerTranslationInvariant (CState.cons (CStateObj.assume_push A) tail) ->
+  stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
   __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck ->
-  CmdStepPopFacts root tail A (__eo_cmd_step_pop_proven root r args A premises)
+  CmdStepFacts M tail (__eo_cmd_step_pop_proven root r args A premises)
 :=
 by
-  intro hsRootTy hsRootTrans hsCurTy hsCurTrans hProg
+  intro hsRoot hsRootTy hsRootTrans hSuffix hProg
+  have hsCurTy : checkerTypeInvariant (CState.cons (CStateObj.assume_push A) tail) :=
+    checkerTypeInvariant_of_stateStepPopSuffix hSuffix hsRootTy
+  have hsCurTrans : checkerTranslationInvariant (CState.cons (CStateObj.assume_push A) tail) :=
+    checkerTranslationInvariant_of_stateStepPopSuffix hSuffix hsRootTrans
   have hATy : __eo_typeof A = Term.Bool :=
     (checkerTypeInvariant_head_assume_push A tail hsCurTy).2
   have hATrans : RuleProofs.eo_has_smt_translation A :=
@@ -82,7 +87,7 @@ by
     premiseTermList_has_typeof_bool root premises hsRootTy
   cases r with
   | scope =>
-      exact cmd_step_pop_facts_of_rule_properties root tail A premises <|
+      exact cmd_step_pop_facts_of_rule_properties M hM root tail A premises hsRoot hSuffix <|
         cmd_step_pop_scope_properties A root args premises
           hATrans hATy hPremisesTrans hPremisesTy hProg
   | contra =>
@@ -93,4 +98,3 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-

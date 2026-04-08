@@ -375,6 +375,71 @@ by
       cases so <;> simp [stateAssumptionTail, stateAssumptionSuffix] at hTail ⊢
       exact hTail
 
+/- `step_pop` traverses only across proved entries before it either finds the
+   leading `assume_push` to discharge or falls into the assumption tail. This
+   relation records the suffixes reachable by discarding only a proved prefix. -/
+inductive stateStepPopSuffix : CState -> CState -> Prop
+  | refl (s : CState) : stateStepPopSuffix s s
+  | proven (P : Term) {cur root : CState} :
+      stateStepPopSuffix cur root ->
+      stateStepPopSuffix cur (CState.cons (CStateObj.proven P) root)
+
+theorem stateStepPopSuffix_trans :
+  forall {s t u : CState},
+    stateStepPopSuffix s t ->
+    stateStepPopSuffix t u ->
+    stateStepPopSuffix s u
+:=
+by
+  intro s t u hst htu
+  induction htu generalizing s with
+  | refl _ =>
+      exact hst
+  | proven P htu ih =>
+      exact stateStepPopSuffix.proven P (ih hst)
+
+theorem stateAssumes_eq_of_stateStepPopSuffix :
+  forall {cur root : CState},
+    stateStepPopSuffix cur root ->
+    stateAssumes root = stateAssumes cur
+:=
+by
+  intro cur root hSuffix
+  induction hSuffix with
+  | refl _ =>
+      rfl
+  | proven P hSuffix ih =>
+      simpa [stateAssumes] using ih
+
+theorem statePushes_eq_of_stateStepPopSuffix :
+  forall {cur root : CState},
+    stateStepPopSuffix cur root ->
+    statePushes root = statePushes cur
+:=
+by
+  intro cur root hSuffix
+  induction hSuffix with
+  | refl _ =>
+      rfl
+  | proven P hSuffix ih =>
+      simpa [statePushes] using ih
+
+theorem stateAssumes_eq_of_stateStepPopSuffix_assume_push
+    {root tail : CState} {A : Term} :
+  stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
+  stateAssumes root = stateAssumes tail :=
+by
+  intro hSuffix
+  simpa [stateAssumes] using stateAssumes_eq_of_stateStepPopSuffix hSuffix
+
+theorem statePushes_eq_of_stateStepPopSuffix_assume_push
+    {root tail : CState} {A : Term} :
+  stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
+  statePushes root = Term.Apply (Term.Apply Term.and A) (statePushes tail) :=
+by
+  intro hSuffix
+  simpa [statePushes] using statePushes_eq_of_stateStepPopSuffix hSuffix
+
 theorem stateOk_not_stuck {s : CState} :
   stateOk s -> s ≠ CState.Stuck :=
 by
@@ -788,6 +853,38 @@ by
     checkerTranslationInvariant_at hsTrans n
   exact RuleProofs.eo_typeof_bool_implies_has_bool_type
     (__eo_state_proven_nth s n) hTrans hTy
+
+theorem checkerTypeInvariant_of_stateStepPopSuffix :
+  forall {cur root : CState},
+    stateStepPopSuffix cur root ->
+    checkerTypeInvariant root ->
+    checkerTypeInvariant cur
+:=
+by
+  intro cur root hSuffix
+  induction hSuffix with
+  | refl _ =>
+      intro hsRoot
+      exact hsRoot
+  | proven P hSuffix ih =>
+      intro hsRoot
+      exact ih (checkerTypeInvariant_tail hsRoot)
+
+theorem checkerTranslationInvariant_of_stateStepPopSuffix :
+  forall {cur root : CState},
+    stateStepPopSuffix cur root ->
+    checkerTranslationInvariant root ->
+    checkerTranslationInvariant cur
+:=
+by
+  intro cur root hSuffix
+  induction hSuffix with
+  | refl _ =>
+      intro hsRoot
+      exact hsRoot
+  | proven P hSuffix ih =>
+      intro hsRoot
+      exact ih (checkerTranslationInvariant_tail hsRoot)
 
 theorem checkerLocalTruthInvariant_tail (M : SmtModel) :
   forall {so : CStateObj} {s : CState},
@@ -2002,40 +2099,28 @@ by
       (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
   · exact hProps.has_bool_type
 
-structure CmdStepPopFacts
-    (root tail : CState) (A P : Term) : Prop where
-  true_of_tail_context :
-    forall (M : SmtModel), model_total_typed M ->
-      checkerLocalTruthInvariant M root ->
-      stateAssumes root = stateAssumes tail ->
-      statePushes root = Term.Apply (Term.Apply Term.and A) (statePushes tail) ->
-      eo_interprets M (stateAssumes tail) true ->
-      eo_interprets M (statePushes tail) true ->
-      eo_interprets M P true
-  has_bool_type :
-    RuleProofs.eo_has_bool_type P
-
 theorem cmd_step_pop_facts_of_rule_properties
+    (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term) (premises : CIndexList) {P : Term} :
+  checkerTruthInvariant M root ->
+  stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
   StepPopRuleProperties A (premiseTermList root premises) P ->
-  CmdStepPopFacts root tail A P :=
+  CmdStepFacts M tail P :=
 by
-  intro hProps
+  intro hsRoot hSuffix hProps
   rcases hProps with ⟨X, hXMem, hFactsOfImp, hPopBool⟩
   refine ⟨?_, ?_⟩
-  · intro M hM hsRoot hAssEq hPushEq hAss hPush
-    have hTruth : checkerTruthInvariant M root :=
-      checkerLocalTruthInvariant_implies_truthInvariant M hsRoot
+  · intro hAss hPush
+    have hAssRoot : eo_interprets M (stateAssumes root) true := by
+      rw [stateAssumes_eq_of_stateStepPopSuffix_assume_push hSuffix]
+      exact hAss
     have hScoped :
         eo_interprets M A true -> eo_interprets M X true := by
       intro hATrue
-      have hAssRoot : eo_interprets M (stateAssumes root) true := by
-        rw [hAssEq]
-        exact hAss
       have hPushRoot : eo_interprets M (statePushes root) true := by
-        rw [hPushEq]
+        rw [statePushes_eq_of_stateStepPopSuffix_assume_push hSuffix]
         exact eo_interprets_and_intro M A (statePushes tail) hATrue hPush
-      exact (premiseTermList_true_of_truthInvariant M root premises hTruth hAssRoot hPushRoot)
+      exact (premiseTermList_true_of_truthInvariant M root premises hsRoot hAssRoot hPushRoot)
         X hXMem
     exact hFactsOfImp M hM hScoped
   · exact hPopBool

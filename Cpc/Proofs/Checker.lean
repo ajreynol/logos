@@ -162,25 +162,22 @@ theorem invoke_cmd_step_pop_preserves_localTruthInvariant_aux
     checkerLocalTruthInvariant M root ->
     checkerLocalTruthInvariant M cur ->
     checkerTypeInvariant root ->
-    checkerTypeInvariant cur ->
     checkerTranslationInvariant root ->
-    checkerTranslationInvariant cur ->
     stateAssumptionSuffix cur ->
-    stateAssumes root = stateAssumes cur ->
-    statePushes root = statePushes cur ->
+    stateStepPopSuffix cur root ->
     checkerLocalTruthInvariant M (__eo_invoke_cmd_step_pop root cur r args premises)
 :=
 by
   intro root cur
   induction cur with
   | nil =>
-      intro r args premises hsRoot hCur hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix hAssEq hPushEq
+      intro r args premises hsRoot hCur hsRootTy hsRootTrans hSuffix hCurSuffix
       simpa [__eo_invoke_cmd_step_pop] using checkerLocalTruthInvariant_stuck M
   | Stuck =>
-      intro r args premises hsRoot hCur hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix hAssEq hPushEq
+      intro r args premises hsRoot hCur hsRootTy hsRootTrans hSuffix hCurSuffix
       cases hSuffix
   | cons so cur ih =>
-      intro r args premises hsRoot hCur hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix hAssEq hPushEq
+      intro r args premises hsRoot hCur hsRootTy hsRootTrans hSuffix hCurSuffix
       cases so with
       | assume_push A =>
           cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
@@ -188,24 +185,21 @@ by
               have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck := by
                 intro hEq
                 simp [eo_lit_teq, hEq] at hStep
+              have hTruth : checkerTruthInvariant M root :=
+                checkerLocalTruthInvariant_implies_truthInvariant M hsRoot
               have hFacts :
-                  CmdStepPopFacts root cur A
+                  CmdStepFacts M cur
                     (__eo_cmd_step_pop_proven root r args A premises) :=
-                cmd_step_pop_proven_facts_of_invariants root cur A r args premises
-                  hsRootTy hsRootTrans hsCurTy hsCurTrans hProg
+                cmd_step_pop_proven_facts_of_invariants M hM root cur A r args premises
+                  hTruth hsRootTy hsRootTrans hCurSuffix hProg
               have hTail : checkerLocalTruthInvariant M cur := by
                 simpa [checkerLocalTruthInvariant] using hCur
-              have hAssEqTail : stateAssumes root = stateAssumes cur := by
-                simpa [stateAssumes] using hAssEq
-              have hPushEqTail :
-                  statePushes root = Term.Apply (Term.Apply Term.and A) (statePushes cur) := by
-                simpa [statePushes] using hPushEq
               have hContext :
                   eo_interprets M (stateAssumes cur) true ->
                   eo_interprets M (statePushes cur) true ->
                   eo_interprets M (__eo_cmd_step_pop_proven root r args A premises) true := by
                 intro hAss hPush
-                exact hFacts.true_of_tail_context M hM hsRoot hAssEqTail hPushEqTail hAss hPush
+                exact hFacts.true_of_context hAss hPush
               by_cases hTy : __eo_typeof (__eo_cmd_step_pop_proven root r args A premises) = Term.Bool
               · have hPost :
                     __eo_invoke_cmd_step_pop root (CState.cons (CStateObj.assume_push A) cur) r args premises =
@@ -235,13 +229,12 @@ by
             checkerLocalTruthInvariant_tail M hCur
           have hSuffixTail : stateAssumptionSuffix cur := by
             simpa [stateAssumptionSuffix] using hSuffix
-          have hAssEqTail : stateAssumes root = stateAssumes cur := by
-            simpa [stateAssumes] using hAssEq
-          have hPushEqTail : statePushes root = statePushes cur := by
-            simpa [statePushes] using hPushEq
-          exact ih r args premises hsRoot hCurTail hsRootTy (checkerTypeInvariant_tail hsCurTy)
-            hsRootTrans (checkerTranslationInvariant_tail hsCurTrans)
-            hSuffixTail hAssEqTail hPushEqTail
+          have hCurSuffixTail : stateStepPopSuffix cur root := by
+            exact stateStepPopSuffix_trans
+              (stateStepPopSuffix.proven P (stateStepPopSuffix.refl cur))
+              hCurSuffix
+          exact ih r args premises hsRoot hCurTail hsRootTy hsRootTrans
+            hSuffixTail hCurSuffixTail
 
 theorem invoke_cmd_step_pop_preserves_localTruthInvariant
     (M : SmtModel) (hM : model_total_typed M)
@@ -254,7 +247,7 @@ theorem invoke_cmd_step_pop_preserves_localTruthInvariant
 by
   intro hs hsTy hsTrans hSuffix
   exact invoke_cmd_step_pop_preserves_localTruthInvariant_aux M hM s s r args premises
-    hs hs hsTy hsTy hsTrans hsTrans hSuffix rfl rfl
+    hs hs hsTy hsTrans hSuffix (stateStepPopSuffix.refl s)
 
 theorem invoke_cmd_step_pop_preserves_typeInvariant_aux :
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
@@ -300,26 +293,29 @@ by
   intro hs hSuffix
   exact invoke_cmd_step_pop_preserves_typeInvariant_aux s s r args premises hs hSuffix
 
-theorem invoke_cmd_step_pop_preserves_translationInvariant_aux :
+theorem invoke_cmd_step_pop_preserves_translationInvariant_aux
+    (M : SmtModel) (hM : model_total_typed M) :
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
+    checkerLocalTruthInvariant M root ->
     checkerTypeInvariant root ->
     checkerTypeInvariant cur ->
     checkerTranslationInvariant root ->
     checkerTranslationInvariant cur ->
     stateAssumptionSuffix cur ->
+    stateStepPopSuffix cur root ->
     checkerTranslationInvariant (__eo_invoke_cmd_step_pop root cur r args premises)
 :=
 by
   intro root cur
   induction cur with
   | nil =>
-      intro r args premises hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix
+      intro r args premises hsRoot hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix hCurSuffix
       simpa [__eo_invoke_cmd_step_pop] using checkerTranslationInvariant_stuck
   | Stuck =>
-      intro r args premises hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix
+      intro r args premises hsRoot hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix hCurSuffix
       cases hSuffix
   | cons so cur ih =>
-      intro r args premises hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix
+      intro r args premises hsRoot hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix hCurSuffix
       cases so with
       | assume_push A =>
           cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
@@ -327,11 +323,13 @@ by
               have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck := by
                 intro hEq
                 simp [eo_lit_teq, hEq] at hStep
+              have hTruth : checkerTruthInvariant M root :=
+                checkerLocalTruthInvariant_implies_truthInvariant M hsRoot
               have hFacts :
-                  CmdStepPopFacts root cur A
+                  CmdStepFacts M cur
                     (__eo_cmd_step_pop_proven root r args A premises) :=
-                cmd_step_pop_proven_facts_of_invariants root cur A r args premises
-                  hsRootTy hsRootTrans hsCurTy hsCurTrans hProg
+                cmd_step_pop_proven_facts_of_invariants M hM root cur A r args premises
+                  hTruth hsRootTy hsRootTrans hCurSuffix hProg
               have hTail : checkerTranslationInvariant cur :=
                 checkerTranslationInvariant_tail hsCurTrans
               have hPBool :
@@ -366,27 +364,33 @@ by
       | assume A =>
           have hTail : stateAssumptionTail cur := by
             simpa [stateAssumptionSuffix] using hSuffix
-          have hTailSuffix : stateAssumptionSuffix cur := stateAssumptionSuffix_of_tail hTail
-          simpa [__eo_invoke_cmd_step_pop] using
-            ih r args premises hsRootTy (checkerTypeInvariant_tail hsCurTy)
-              hsRootTrans (checkerTranslationInvariant_tail hsCurTrans) hTailSuffix
+          have hStuck : __eo_invoke_cmd_step_pop root cur r args premises = CState.Stuck :=
+            invoke_cmd_step_pop_of_assumptionTail root cur r args premises hTail
+          simpa [__eo_invoke_cmd_step_pop, hStuck] using checkerTranslationInvariant_stuck
       | proven P =>
           have hTailSuffix : stateAssumptionSuffix cur := by
             simpa [stateAssumptionSuffix] using hSuffix
+          have hCurSuffixTail : stateStepPopSuffix cur root := by
+            exact stateStepPopSuffix_trans
+              (stateStepPopSuffix.proven P (stateStepPopSuffix.refl cur))
+              hCurSuffix
           simpa [__eo_invoke_cmd_step_pop] using
-            ih r args premises hsRootTy (checkerTypeInvariant_tail hsCurTy)
+            ih r args premises hsRoot hsRootTy (checkerTypeInvariant_tail hsCurTy)
               hsRootTrans (checkerTranslationInvariant_tail hsCurTrans) hTailSuffix
+              hCurSuffixTail
 
 theorem invoke_cmd_step_pop_preserves_translationInvariant
+    (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerLocalTruthInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   stateAssumptionSuffix s ->
   checkerTranslationInvariant (__eo_invoke_cmd_step_pop s s r args premises) :=
 by
-  intro hsTy hsTrans hSuffix
-  exact invoke_cmd_step_pop_preserves_translationInvariant_aux s s r args premises
-    hsTy hsTy hsTrans hsTrans hSuffix
+  intro hs hsTy hsTrans hSuffix
+  exact invoke_cmd_step_pop_preserves_translationInvariant_aux M hM s s r args premises
+    hs hsTy hsTy hsTrans hsTrans hSuffix (stateStepPopSuffix.refl s)
 
 theorem invoke_cmd_step_pop_preserves_shapeInvariant_aux :
   forall (root cur : CState) (r : CRule) (args : CArgList) (premises : CIndexList),
@@ -719,10 +723,12 @@ by
       cases s with
       | nil =>
           simpa [__eo_invoke_cmd] using
-            invoke_cmd_step_pop_preserves_translationInvariant CState.nil r args premises hsTy hsTrans hSuffix
+            invoke_cmd_step_pop_preserves_translationInvariant M hM CState.nil r args premises
+              hs hsTy hsTrans hSuffix
       | cons so s =>
           simpa [__eo_invoke_cmd] using
-            invoke_cmd_step_pop_preserves_translationInvariant (CState.cons so s) r args premises hsTy hsTrans hSuffix
+            invoke_cmd_step_pop_preserves_translationInvariant M hM (CState.cons so s) r args premises
+              hs hsTy hsTrans hSuffix
       | Stuck =>
           exact False.elim (hNotStuck rfl)
 
