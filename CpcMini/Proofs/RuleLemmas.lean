@@ -18,7 +18,6 @@ set_option maxHeartbeats 10000000
    To add a new rule handled by `__eo_cmd_step_proven`, add its matching
    pattern here and dispatch to the arity helper matching the rule shape.
    The preservation theorems below then pick the new rule up automatically. -/
-/-- Derives `cmd_step_proven_facts` from `invariants`. -/
 theorem cmd_step_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
@@ -61,7 +60,6 @@ Central expansion point for `step_pop` rules.
 If `__eo_cmd_step_pop_proven` grows more supported rules, add a matching
 branch below and route it to the rule-specific helper.
 -/
-/-- Derives `cmd_step_pop_proven_facts` from `invariants`. -/
 theorem cmd_step_pop_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term)
@@ -100,3 +98,4 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
+

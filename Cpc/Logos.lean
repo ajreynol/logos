@@ -2084,6 +2084,13 @@ partial def __bv_unfold_repeat_rec : Term -> Term -> Term
   | n, b => (__eo_cons Term.concat b (__bv_unfold_repeat_rec (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) b))
 
 
+partial def __bv_repeat_eval_rec : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Numeral 0), b => (Term.Binary 0 0)
+  | n, b => (__eo_concat b (__bv_repeat_eval_rec (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) b))
+
+
 partial def __bv_get_first_const_child : Term -> Term
   | (Term.Apply (Term.Apply f a) b) => (__eo_ite (__eo_is_bin a) a (__bv_get_first_const_child b))
   | _ => Term.Stuck
@@ -4232,13 +4239,13 @@ partial def __is_quant_dt_split_conj : Term -> Term -> Term -> Term -> Term -> T
 
 partial def __is_quant_dt_split : Term -> Term -> Term -> Term -> Term -> Term
   | Term.Stuck , _ , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , _ , _ , Term.Stuck  => Term.Stuck
   | x, (Term.Apply (Term.Apply Term.__eo_List_cons c) cs), ys, F, (Term.Apply (Term.Apply Term.and g) G) => (__eo_requires (__is_quant_dt_split_conj x c ys F g) (Term.Boolean true) (__is_quant_dt_split x cs ys F G))
   | x, Term.__eo_List_nil, ys, F, (Term.Boolean true) => (Term.Boolean true)
-  | x, cs, ys, F, g => (__is_quant_dt_split x cs ys F (Term.Apply (Term.Apply Term.and g) (Term.Boolean true)))
+  | x, (Term.Apply (Term.Apply Term.__eo_List_cons c) cs), ys, F, g => (__eo_requires cs Term.__eo_List_nil (__is_quant_dt_split_conj x c ys F g))
+  | _, _, _, _, _ => Term.Stuck
 
 
 partial def __eo_prog_quant_dt_split : Term -> Term
@@ -8256,14 +8263,16 @@ partial def __run_evaluate : Term -> Term
     let _v1 := (__bv_bitwidth (__eo_typeof xb))
     (__eo_ite (__eo_gt _v0 _v1) (__eo_to_bin _v1 (Term.Numeral 0)) (__eo_to_bin _v1 (__eo_zdiv (__eo_to_z (__run_evaluate xb)) (__eo_ite (__eo_is_z _v0) (__eo_ite (__eo_is_neg _v0) (Term.Numeral 0) (__arith_eval_int_pow_2_rec _v0)) (__eo_mk_apply Term.int_pow2 _v0)))))
   | (Term.Apply (Term.Apply Term.bvashr xb) yb) => 
-    let _v0 := (__run_evaluate yb)
+    let _v0 := (__eo_to_z (__run_evaluate yb))
     let _v1 := (__run_evaluate xb)
-    let _v2 := (__eo_add (__bv_bitwidth (__eo_typeof _v1)) (Term.Numeral (-1 : eo_lit_Int)))
-    (__eo_ite (__eo_eq (__eo_extract _v1 _v2 _v2) (Term.Binary 1 0)) (__run_evaluate (__eo_mk_apply (__eo_mk_apply Term.bvlshr _v1) _v0)) (__run_evaluate (__eo_mk_apply Term.bvnot (__eo_mk_apply (__eo_mk_apply Term.bvlshr (__eo_mk_apply Term.bvnot _v1)) _v0))))
+    let _v2 := (__bv_bitwidth (__eo_typeof _v1))
+    let _v3 := (__eo_to_z (__eo_extract _v1 (Term.Numeral 0) (__eo_add _v2 (Term.Numeral (-2 : eo_lit_Int)))))
+    let _v4 := (__eo_add _v2 (Term.Numeral (-1 : eo_lit_Int)))
+    (__eo_to_bin (__bv_bitwidth (__eo_typeof xb)) (__eo_zdiv (__eo_ite (__eo_eq (__eo_extract _v1 _v4 _v4) (Term.Binary 1 1)) (__eo_add (__eo_neg (__eo_ite (__eo_is_z _v4) (__eo_ite (__eo_is_neg _v4) (Term.Numeral 0) (__arith_eval_int_pow_2_rec _v4)) (__eo_mk_apply Term.int_pow2 _v4))) _v3) _v3) (__eo_ite (__eo_is_z _v0) (__eo_ite (__eo_is_neg _v0) (Term.Numeral 0) (__arith_eval_int_pow_2_rec _v0)) (__eo_mk_apply Term.int_pow2 _v0))))
   | (Term.Apply (Term.Apply Term.repeat n) xb) => 
     let _v0 := (__run_evaluate xb)
     let _v1 := (__run_evaluate n)
-    (__run_evaluate (__eo_ite (__eo_and (__eo_is_z _v1) (__eo_not (__eo_is_neg _v1))) (__bv_unfold_repeat_rec _v1 _v0) (__eo_mk_apply (__eo_mk_apply Term.repeat _v1) _v0)))
+    (__eo_ite (__eo_and (__eo_is_z _v1) (__eo_not (__eo_is_neg _v1))) (__bv_repeat_eval_rec _v1 _v0) (__eo_mk_apply (__eo_mk_apply Term.repeat _v1) _v0))
   | (Term.Apply (Term.Apply Term.sign_extend n) xb) => 
     let _v0 := (__run_evaluate xb)
     let _v1 := (__bv_bitwidth (__eo_typeof _v0))
