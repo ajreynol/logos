@@ -609,23 +609,9 @@ def __eo_cmp : Term -> Term -> Term
   | a, b => (Term.Boolean (eo_lit_tcmp a b))
 
 
-def __eo_var : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.String s), T => 
-    let _v0 := (__eo_typeof T)
-    (eo_lit_ite (eo_lit_teq _v0 Term.Type) (eo_lit_ite (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (Term.Var s T) Term.Stuck) Term.Stuck)
-  | _, _ => Term.Stuck
-
-
 def __eo_nameof : Term -> Term
   | (Term.Var s T) => (Term.String s)
   | _ => Term.Stuck
-
-
-def __eo_is_var : Term -> Term
-  | x => 
-    let _v0 := (__eo_var (__eo_nameof x) (__eo_typeof x))
-    (Term.Boolean (eo_lit_and (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (eo_lit_and (eo_lit_not (eo_lit_teq x Term.Stuck)) (eo_lit_teq x _v0))))
 
 
 def __eo_dtc_substitute (s : eo_lit_String) (d : Datatype) : DatatypeCons -> DatatypeCons
@@ -661,11 +647,6 @@ def __eo_dt_selectors : Term -> Term
   | Term.Stuck  => Term.Stuck
   | (Term.DtCons s d n) => (__eo_datatype_cons_selectors_rec s d n d n eo_lit_nat_zero)
   | t => (__eo_dt_selectors_main t)
-
-
-def __eo_is_bool_type : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | x => (__eo_eq (__eo_typeof x) Term.Bool)
 
 
 def __eo_get_nil_rec : Term -> Term -> Term
@@ -927,31 +908,6 @@ def __eo_nil : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-def __eo_is_list_nil : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, (Term.Boolean false) => (Term.Boolean true)
-  | Term.and, (Term.Boolean true) => (Term.Boolean true)
-  | Term.plus, nil => (__eo_eq nil (__eo_nil Term.plus (__eo_typeof nil)))
-  | Term.mult, nil => (__eo_eq nil (__eo_nil Term.mult (__eo_typeof nil)))
-  | Term.concat, (Term.Binary 0 0) => (Term.Boolean true)
-  | Term.bvand, nil => (__eo_eq nil (__eo_nil Term.bvand (__eo_typeof nil)))
-  | Term.bvor, nil => (__eo_eq nil (__eo_nil Term.bvor (__eo_typeof nil)))
-  | Term.bvxor, nil => (__eo_eq nil (__eo_nil Term.bvxor (__eo_typeof nil)))
-  | Term.bvadd, nil => (__eo_eq nil (__eo_nil Term.bvadd (__eo_typeof nil)))
-  | Term.bvmul, nil => (__eo_eq nil (__eo_nil Term.bvmul (__eo_typeof nil)))
-  | Term._at_from_bools, (Term.Binary 0 0) => (Term.Boolean true)
-  | Term.str_concat, nil => (__eo_eq nil (__eo_nil Term.str_concat (__eo_typeof nil)))
-  | Term.re_concat, (Term.Apply Term.str_to_re (Term.String "")) => (Term.Boolean true)
-  | Term.re_inter, Term.re_all => (Term.Boolean true)
-  | Term.re_union, Term.re_none => (Term.Boolean true)
-  | Term.Tuple, Term.UnitTuple => (Term.Boolean true)
-  | Term.tuple, Term.tuple_unit => (Term.Boolean true)
-  | Term._at__at_poly, Term._at__at_Polynomial => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
-  | f, nil => (Term.Boolean false)
-
-
 def __eo_lit_type_Numeral : Term -> Term
   | Term.Stuck  => Term.Stuck
   | t => Term.Int
@@ -983,6 +939,25 @@ def __eo_Rational : Term := Term.Real
 def __eo_Binary : Term := (Term.Apply Term.BitVec (Term.Numeral 1))
 def __eo_String : Term := (Term.Apply Term.Seq Term.Char)
 def __eo_empty_binary : Term := (Term.Binary 0 0)
+partial def __eo_var : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.String s), T => 
+    let _v0 := (__eo_typeof T)
+    (eo_lit_ite (eo_lit_teq _v0 Term.Type) (eo_lit_ite (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (Term.Var s T) Term.Stuck) Term.Stuck)
+  | _, _ => Term.Stuck
+
+
+partial def __eo_is_var : Term -> Term
+  | x => 
+    let _v0 := (__eo_var (__eo_nameof x) (__eo_typeof x))
+    (Term.Boolean (eo_lit_and (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (eo_lit_and (eo_lit_not (eo_lit_teq x Term.Stuck)) (eo_lit_teq x _v0))))
+
+
+partial def __eo_is_bool_type : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
+
+
 partial def __pair_first : Term -> Term
   | (Term.Apply (Term.Apply Term._at__at_pair t) s) => t
   | _ => Term.Stuck
@@ -8519,6 +8494,31 @@ partial def __eo_prog_trust : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
   | F, (Proof.pf P) => F
   | _, _ => Term.Stuck
+
+
+partial def __eo_is_list_nil : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, (Term.Boolean false) => (Term.Boolean true)
+  | Term.and, (Term.Boolean true) => (Term.Boolean true)
+  | Term.plus, nil => (__eo_eq nil (__eo_nil Term.plus (__eo_typeof nil)))
+  | Term.mult, nil => (__eo_eq nil (__eo_nil Term.mult (__eo_typeof nil)))
+  | Term.concat, (Term.Binary 0 0) => (Term.Boolean true)
+  | Term.bvand, nil => (__eo_eq nil (__eo_nil Term.bvand (__eo_typeof nil)))
+  | Term.bvor, nil => (__eo_eq nil (__eo_nil Term.bvor (__eo_typeof nil)))
+  | Term.bvxor, nil => (__eo_eq nil (__eo_nil Term.bvxor (__eo_typeof nil)))
+  | Term.bvadd, nil => (__eo_eq nil (__eo_nil Term.bvadd (__eo_typeof nil)))
+  | Term.bvmul, nil => (__eo_eq nil (__eo_nil Term.bvmul (__eo_typeof nil)))
+  | Term._at_from_bools, (Term.Binary 0 0) => (Term.Boolean true)
+  | Term.str_concat, nil => (__eo_eq nil (__eo_nil Term.str_concat (__eo_typeof nil)))
+  | Term.re_concat, (Term.Apply Term.str_to_re (Term.String "")) => (Term.Boolean true)
+  | Term.re_inter, Term.re_all => (Term.Boolean true)
+  | Term.re_union, Term.re_none => (Term.Boolean true)
+  | Term.Tuple, Term.UnitTuple => (Term.Boolean true)
+  | Term.tuple, Term.tuple_unit => (Term.Boolean true)
+  | Term._at__at_poly, Term._at__at_Polynomial => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
+  | f, nil => (Term.Boolean false)
 
 
 partial def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term

@@ -234,11 +234,6 @@ def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
   | Datatype.null => Datatype.null
 
 
-def __eo_is_bool_type : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | x => (__eo_eq (__eo_typeof x) Term.Bool)
-
-
 def __eo_get_nil_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -262,15 +257,6 @@ def __eo_nil : Term -> Term -> Term
   | Term.and, T => (Term.Boolean true)
   | Term.__eo_List_cons, Term.__eo_List => Term.__eo_List_nil
   | _, _ => Term.Stuck
-
-
-def __eo_is_list_nil : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.or, (Term.Boolean false) => (Term.Boolean true)
-  | Term.and, (Term.Boolean true) => (Term.Boolean true)
-  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
-  | f, nil => (Term.Boolean false)
 
 
 def __eo_lit_type_Numeral : Term -> Term
@@ -298,6 +284,11 @@ def __eo_lit_type_String : Term -> Term
 end
 
 mutual
+
+def __eo_is_bool_type : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x => (__eo_eq (__eo_typeof x) Term.Bool)
+
 
 def __eo_prog_scope : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
@@ -337,6 +328,15 @@ def __mk_trans : Term -> Term -> Term -> Term
 def __eo_prog_trans : Proof -> Term
   | (Proof.pf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2)) tail)) => (__mk_trans t1 t2 tail)
   | _ => Term.Stuck
+
+
+def __eo_is_list_nil : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.or, (Term.Boolean false) => (Term.Boolean true)
+  | Term.and, (Term.Boolean true) => (Term.Boolean true)
+  | Term.__eo_List_cons, Term.__eo_List_nil => (Term.Boolean true)
+  | f, nil => (Term.Boolean false)
 
 
 def __eo_typeof_dt_cons_rec : Term -> Datatype -> eo_lit_Nat -> Term
