@@ -180,8 +180,6 @@ inductive Proof : Type where
 
 /- Definition of Eunoia signature -/
 
-mutual
-
 def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -254,46 +252,6 @@ def __eo_is_list : Term -> Term -> Term
 
 def __eo_cons : Term -> Term -> Term -> Term
   | f, e, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (Term.Apply (Term.Apply f e) a))
-
-
-def __eo_prog_scope : Term -> Proof -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | F, (Proof.pf G) => (Term.Apply (Term.Apply Term.imp F) G)
-  | _, _ => Term.Stuck
-
-
-def __eo_prog_contra : Proof -> Proof -> Term
-  | (Proof.pf F), (Proof.pf (Term.Apply Term.not __eo_lv_F_2)) => (__eo_requires (__eo_eq F __eo_lv_F_2) (Term.Boolean true) (Term.Boolean false))
-  | _, _ => Term.Stuck
-
-
-def __eo_prog_refl : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | t => (Term.Apply (Term.Apply Term.eq t) t)
-
-
-def __mk_symm : Term -> Term
-  | (Term.Apply (Term.Apply Term.eq t1) t2) => (Term.Apply (Term.Apply Term.eq t2) t1)
-  | (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t1) t2)) => (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t2) t1))
-  | _ => Term.Stuck
-
-
-def __eo_prog_symm : Proof -> Term
-  | (Proof.pf F) => (__mk_symm F)
-  | _ => Term.Stuck
-
-
-def __mk_trans : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | t1, t2, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail) => (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
-  | t1, t2, (Term.Boolean true) => (Term.Apply (Term.Apply Term.eq t1) t2)
-  | _, _, _ => Term.Stuck
-
-
-def __eo_prog_trans : Proof -> Term
-  | (Proof.pf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2)) tail)) => (__mk_trans t1 t2 tail)
-  | _ => Term.Stuck
 
 
 def __eo_nil : Term -> Term -> Term
@@ -424,6 +382,50 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply Term.imp __eo_x1) __eo_x2) => (__eo_typeof_imp (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term.eq __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
+  | _ => Term.Stuck
+
+
+
+
+mutual
+
+def __eo_prog_scope : Term -> Proof -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | F, (Proof.pf G) => (Term.Apply (Term.Apply Term.imp F) G)
+  | _, _ => Term.Stuck
+
+
+def __eo_prog_contra : Proof -> Proof -> Term
+  | (Proof.pf F), (Proof.pf (Term.Apply Term.not __eo_lv_F_2)) => (__eo_requires (__eo_eq F __eo_lv_F_2) (Term.Boolean true) (Term.Boolean false))
+  | _, _ => Term.Stuck
+
+
+def __eo_prog_refl : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | t => (Term.Apply (Term.Apply Term.eq t) t)
+
+
+def __mk_symm : Term -> Term
+  | (Term.Apply (Term.Apply Term.eq t1) t2) => (Term.Apply (Term.Apply Term.eq t2) t1)
+  | (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t1) t2)) => (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t2) t1))
+  | _ => Term.Stuck
+
+
+def __eo_prog_symm : Proof -> Term
+  | (Proof.pf F) => (__mk_symm F)
+  | _ => Term.Stuck
+
+
+def __mk_trans : Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | _ , Term.Stuck , _  => Term.Stuck
+  | t1, t2, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail) => (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
+  | t1, t2, (Term.Boolean true) => (Term.Apply (Term.Apply Term.eq t1) t2)
+  | _, _, _ => Term.Stuck
+
+
+def __eo_prog_trans : Proof -> Term
+  | (Proof.pf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2)) tail)) => (__mk_trans t1 t2 tail)
   | _ => Term.Stuck
 
 
