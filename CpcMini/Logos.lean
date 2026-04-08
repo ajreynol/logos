@@ -234,13 +234,6 @@ def __eo_dt_substitute (s : eo_lit_String) (d : Datatype) : Datatype -> Datatype
   | Datatype.null => Datatype.null
 
 
-def __eo_get_nil_rec : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | f, (Term.Apply (Term.Apply g x) y) => (__eo_requires f g (__eo_get_nil_rec f y))
-  | f, nil => (__eo_requires (__eo_is_list_nil f nil) (Term.Boolean true) nil)
-
-
 def __eo_is_list : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -280,6 +273,13 @@ mutual
 def __eo_is_bool_type : Term -> Term
   | Term.Stuck  => Term.Stuck
   | x => (__eo_eq (__eo_typeof x) Term.Bool)
+
+
+def __eo_get_nil_rec : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | f, (Term.Apply (Term.Apply g x) y) => (__eo_requires f g (__eo_get_nil_rec f y))
+  | f, nil => (__eo_requires (__eo_is_list_nil f nil) (Term.Boolean true) nil)
 
 
 def __eo_prog_scope : Term -> Proof -> Term
