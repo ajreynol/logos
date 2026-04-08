@@ -363,6 +363,10 @@ inductive Proof : Type where
 
 mutual
 
+def __eo_Numeral : Term := Term.Int
+def __eo_Rational : Term := Term.Real
+def __eo_Binary : Term := (Term.Apply Term.BitVec (Term.Numeral 1))
+def __eo_String : Term := (Term.Apply Term.Seq Term.Char)
 def __eo_prepend_if : Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck , _  => Term.Stuck
@@ -382,6 +386,7 @@ def __eo_mk_apply : Term -> Term -> Term
   | x1, x2 => (Term.Apply x1 x2)
 
 
+def __eo_empty_binary : Term := (Term.Binary 0 0)
 def __eo_binary_mod_w (w : eo_lit_Int) (n : eo_lit_Int) : Term :=
   (Term.Binary w (eo_lit_mod_total n (eo_lit_int_pow2 w)))
 
@@ -816,16 +821,6 @@ def __eo_list_inter : Term -> Term -> Term -> Term
   | f, a, b => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_requires (__eo_is_list f b) (Term.Boolean true) (__eo_list_inter_rec a b)))
 
 
-def __eo_list_singleton_elim_2 : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply f x) y) => (__eo_ite (__eo_is_list_nil f y) x (Term.Apply (Term.Apply f x) y))
-  | y => y
-
-
-def __eo_list_singleton_elim : Term -> Term -> Term
-  | f, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_singleton_elim_2 a))
-
-
 def __eo_disamb_type_seq_empty : Term -> Term
   | (Term.Apply Term.Seq T) => (Term.Apply Term.Seq T)
   | _ => Term.Stuck
@@ -864,17 +859,17 @@ def __eo_lit_type_String : Term -> Term
   | t => (Term.Apply Term.Seq Term.Char)
 
 
+def __eo_prog_re_all_elim : Term := (Term.Apply (Term.Apply Term.eq Term.re_all) (Term.Apply Term.re_mult Term.re_allchar))
+def __eo_prog_re_star_none : Term := (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult Term.re_none)) (Term.Apply Term.str_to_re (Term.String "")))
+def __eo_prog_re_star_emp : Term := 
+    let _v0 := (Term.Apply Term.str_to_re (Term.String ""))
+    (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult _v0)) _v0)
 
 
 end
 
 mutual
 
-def __eo_Numeral : Term := Term.Int
-def __eo_Rational : Term := Term.Real
-def __eo_Binary : Term := (Term.Apply Term.BitVec (Term.Numeral 1))
-def __eo_String : Term := (Term.Apply Term.Seq Term.Char)
-def __eo_empty_binary : Term := (Term.Binary 0 0)
 partial def __eo_var : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.String s), T => 
@@ -892,6 +887,16 @@ partial def __eo_is_var : Term -> Term
 partial def __eo_is_bool_type : Term -> Term
   | Term.Stuck  => Term.Stuck
   | x => (__eo_eq (__eo_typeof x) Term.Bool)
+
+
+partial def __eo_list_singleton_elim_2 : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply f x) y) => (__eo_ite (__eo_is_list_nil f y) x (Term.Apply (Term.Apply f x) y))
+  | y => y
+
+
+partial def __eo_list_singleton_elim : Term -> Term -> Term
+  | f, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_singleton_elim_2 a))
 
 
 partial def __pair_first : Term -> Term
@@ -9690,11 +9695,6 @@ partial def __eo_typeof : Term -> Term
   | _ => Term.Stuck
 
 
-def __eo_prog_re_all_elim : Term := (Term.Apply (Term.Apply Term.eq Term.re_all) (Term.Apply Term.re_mult Term.re_allchar))
-def __eo_prog_re_star_none : Term := (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult Term.re_none)) (Term.Apply Term.str_to_re (Term.String "")))
-def __eo_prog_re_star_emp : Term := 
-    let _v0 := (Term.Apply Term.str_to_re (Term.String ""))
-    (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult _v0)) _v0)
 
 
 end
