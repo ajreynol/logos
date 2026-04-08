@@ -654,12 +654,6 @@ def __eo_dt_selectors : Term -> Term
   | t => (__eo_dt_selectors_main t)
 
 
-def __eo_is_list : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | f, x => (__eo_is_ok (__eo_get_nil_rec f x))
-
-
 def __eo_cons : Term -> Term -> Term -> Term
   | f, e, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (Term.Apply (Term.Apply f e) a))
 
@@ -882,6 +876,12 @@ partial def __eo_get_nil_rec : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | f, (Term.Apply (Term.Apply g x) y) => (__eo_requires f g (__eo_get_nil_rec f y))
   | f, nil => (__eo_requires (__eo_is_list_nil f nil) (Term.Boolean true) nil)
+
+
+partial def __eo_is_list : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | f, x => (__eo_is_ok (__eo_get_nil_rec f x))
 
 
 partial def __eo_list_singleton_elim_2 : Term -> Term
