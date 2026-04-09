@@ -8446,16 +8446,16 @@ partial def __eo_is_list_nil : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | Term.or, (Term.Boolean false) => (Term.Boolean true)
   | Term.and, (Term.Boolean true) => (Term.Boolean true)
-  | Term.plus, nil => (__eo_eq nil (__eo_nil Term.plus (__eo_typeof nil)))
-  | Term.mult, nil => (__eo_eq nil (__eo_nil Term.mult (__eo_typeof nil)))
+  | Term.plus, nil => (__eo_is_list_nil_plus nil)
+  | Term.mult, nil => (__eo_is_list_nil_mult nil)
   | Term.concat, (Term.Binary 0 0) => (Term.Boolean true)
-  | Term.bvand, nil => (__eo_eq nil (__eo_nil Term.bvand (__eo_typeof nil)))
-  | Term.bvor, nil => (__eo_eq nil (__eo_nil Term.bvor (__eo_typeof nil)))
-  | Term.bvxor, nil => (__eo_eq nil (__eo_nil Term.bvxor (__eo_typeof nil)))
-  | Term.bvadd, nil => (__eo_eq nil (__eo_nil Term.bvadd (__eo_typeof nil)))
-  | Term.bvmul, nil => (__eo_eq nil (__eo_nil Term.bvmul (__eo_typeof nil)))
+  | Term.bvand, nil => (__eo_is_list_nil_bvand nil)
+  | Term.bvor, nil => (__eo_is_list_nil_bvor nil)
+  | Term.bvxor, nil => (__eo_is_list_nil_bvxor nil)
+  | Term.bvadd, nil => (__eo_is_list_nil_bvadd nil)
+  | Term.bvmul, nil => (__eo_is_list_nil_bvmul nil)
   | Term._at_from_bools, (Term.Binary 0 0) => (Term.Boolean true)
-  | Term.str_concat, nil => (__eo_eq nil (__eo_nil Term.str_concat (__eo_typeof nil)))
+  | Term.str_concat, nil => (__eo_is_list_nil_str_concat nil)
   | Term.re_concat, (Term.Apply Term.str_to_re (Term.String "")) => (Term.Boolean true)
   | Term.re_inter, Term.re_all => (Term.Boolean true)
   | Term.re_union, Term.re_none => (Term.Boolean true)
@@ -9645,6 +9645,47 @@ partial def __eo_typeof : Term -> Term
   | (Term._at_const __eo_x1 __eo_x2) => (__eo_typeof__at_const (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) __eo_x2)
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck
+
+
+partial def __eo_is_list_nil_plus : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x1 => (__eo_is_eq (__eo_to_q x1) (Term.Rational (eo_lit_mk_rational 0 1)))
+
+
+partial def __eo_is_list_nil_mult : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x1 => (__eo_is_eq (__eo_to_q x1) (Term.Rational (eo_lit_mk_rational 1 1)))
+
+
+partial def __eo_is_list_nil_bvand : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x1 => (__eo_is_eq (__eo_to_z (__eo_not x1)) (Term.Numeral 0))
+
+
+partial def __eo_is_list_nil_bvor : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x1 => (__eo_is_eq (__eo_to_z x1) (Term.Numeral 0))
+
+
+partial def __eo_is_list_nil_bvxor : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x1 => (__eo_is_eq (__eo_to_z x1) (Term.Numeral 0))
+
+
+partial def __eo_is_list_nil_bvadd : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x1 => (__eo_is_eq (__eo_to_z x1) (Term.Numeral 0))
+
+
+partial def __eo_is_list_nil_bvmul : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | x1 => (__eo_is_eq (__eo_to_z x1) (Term.Numeral 1))
+
+
+partial def __eo_is_list_nil_str_concat : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.seq_empty T) => (Term.Boolean true)
+  | t => (__eo_eq t (Term.String ""))
 
 
 partial def __eo_prog_re_all_elim : Term := (Term.Apply (Term.Apply Term.eq Term.re_all) (Term.Apply Term.re_mult Term.re_allchar))
