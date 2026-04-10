@@ -620,7 +620,7 @@ partial def __eo_var : Term -> Term -> Term
 
 
 partial def __eo_nameof : Term -> Term
-  | (Term.Var s T) => (Term.String s)
+  | (Term.Var s T) => s
   | _ => Term.Stuck
 
 
