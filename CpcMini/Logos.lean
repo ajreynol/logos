@@ -403,7 +403,7 @@ def __eo_typeof : Term -> Term
   | (Term.Rational r) => (__eo_lit_type_Rational (Term.Rational r))
   | (Term.String s) => (__eo_lit_type_String (Term.String s))
   | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
-  | (Term.Var s T) => T
+  | (Term.Var (Term.String s) T) => T
   | (Term.DatatypeType s d) => Term.Type
   | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
   | (Term.DtSel s d i j) => (Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d)) (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j))
