@@ -126,7 +126,7 @@ inductive Term : Type where
   | Stuck : Term
   | Apply : Term -> Term -> Term
   | FunType : Term
-  | Var : eo_lit_String -> Term -> Term
+  | Var : Term -> Term -> Term
   | DatatypeType : eo_lit_String -> Datatype -> Term
   | DatatypeTypeRef : eo_lit_String -> Term
   | DtCons : eo_lit_String -> Datatype -> eo_lit_Nat -> Term

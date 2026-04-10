@@ -176,7 +176,7 @@ def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTe
 
 def __eo_to_smt_exists : Term -> SmtTerm -> SmtTerm
   | Term.__eo_List_nil, F => F
-  | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s T)) vs), F => (SmtTerm.Apply (SmtTerm.exists s (__eo_to_smt_type T)) (__eo_to_smt_exists vs F))
+  | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs), F => (SmtTerm.Apply (SmtTerm.exists s (__eo_to_smt_type T)) (__eo_to_smt_exists vs F))
   | vs, F => SmtTerm.None
 
 
@@ -186,7 +186,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Rational r) => (SmtTerm.Rational r)
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
-  | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
+  | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
   | (Term.DtCons s d i) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)
   | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
   | (Term.UConst i T) => (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T))

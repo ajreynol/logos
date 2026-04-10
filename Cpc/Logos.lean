@@ -126,7 +126,7 @@ inductive Term : Type where
   | Stuck : Term
   | Apply : Term -> Term -> Term
   | FunType : Term
-  | Var : eo_lit_String -> Term -> Term
+  | Var : Term -> Term -> Term
   | DatatypeType : eo_lit_String -> Datatype -> Term
   | DatatypeTypeRef : eo_lit_String -> Term
   | DtCons : eo_lit_String -> Datatype -> eo_lit_Nat -> Term
@@ -616,11 +616,7 @@ partial def __eo_cmp : Term -> Term -> Term
 
 
 partial def __eo_var : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.String s), T => 
-    let _v0 := (__eo_typeof T)
-    (eo_lit_ite (eo_lit_teq _v0 Term.Type) (eo_lit_ite (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (Term.Var s T) Term.Stuck) Term.Stuck)
-  | _, _ => Term.Stuck
+  | s, T => (Term.Var s T)
 
 
 partial def __eo_nameof : Term -> Term
@@ -630,7 +626,7 @@ partial def __eo_nameof : Term -> Term
 
 partial def __eo_is_var : Term -> Term
   | x => 
-    let _v0 := (__eo_var (__eo_nameof x) (__eo_typeof x))
+    let _v0 := (Term.Var (__eo_nameof x) (__eo_typeof x))
     (Term.Boolean (eo_lit_and (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (eo_lit_and (eo_lit_not (eo_lit_teq x Term.Stuck)) (eo_lit_teq x _v0))))
 
 
@@ -2840,7 +2836,7 @@ partial def __re_nary_elim : Term -> Term
 partial def __str_reduction_pred : Term -> Term
   | (Term.Apply (Term.Apply Term.str_contains x) y) => 
     let _v0 := (Term.Apply Term.str_len y)
-    let _v1 := (Term.Var "@var.str_index" Term.Int)
+    let _v1 := (Term.Var (Term.String "@var.str_index") Term.Int)
     (Term.Apply (Term.Apply Term.eq (Term._at_purify (Term.Apply (Term.Apply Term.str_contains x) y))) (Term.Apply Term.not (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v1) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v1) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.leq _v1) (Term.Apply (Term.Apply Term.neg (Term.Apply Term.str_len x)) _v0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply (Term.Apply Term.str_substr x) _v1) _v0)) y))) (Term.Boolean false)))))))
   | (Term.Apply (Term.Apply (Term.Apply Term.str_substr x) n) m) => 
     let _v0 := (Term.Apply Term.str_substr x)
@@ -2877,7 +2873,7 @@ partial def __str_reduction_pred : Term -> Term
     (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.ite (__eo_mk_apply (Term.Apply Term.eq y) (__seq_empty (__eo_typeof y)))) (__eo_mk_apply _v0 (__eo_mk_apply _v8 (__eo_mk_apply (Term.Apply Term.str_concat x) (__eo_nil Term.str_concat (__eo_typeof z)))))) (__eo_mk_apply (__eo_mk_apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.str_contains x) y)) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (Term.Apply Term.eq x) (__eo_mk_apply _v5 (__eo_mk_apply (Term.Apply Term.str_concat y) _v7)))) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply _v0 (__eo_mk_apply _v5 (__eo_mk_apply _v8 _v7)))) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply Term.not (__eo_mk_apply (__eo_mk_apply Term.str_contains (__eo_mk_apply _v5 (__eo_mk_apply (Term.Apply Term.str_concat (Term.Apply (Term.Apply (Term.Apply Term.str_substr y) (Term.Numeral 0)) (Term.Apply (Term.Apply Term.neg _v4) (Term.Numeral 1)))) _v3))) y))) (Term.Boolean true))))) (Term.Apply _v0 x)))
   | (Term.Apply Term.str_from_int n) => 
     let _v0 := (Term._at_purify (Term.Apply Term.str_from_int n))
-    let _v1 := (Term.Var "@var.str_index" Term.Int)
+    let _v1 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v2 := (Term.Apply Term._at_strings_itos_result n)
     let _v3 := (Term.Apply _v2 (Term.Apply (Term.Apply Term.plus _v1) (Term.Apply (Term.Apply Term.plus (Term.Numeral 1)) (Term.Numeral 0))))
     let _v4 := (Term.Apply Term.geq n)
@@ -2885,7 +2881,7 @@ partial def __str_reduction_pred : Term -> Term
     let _v6 := (Term.Apply Term.str_len _v0)
     (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply _v4 (Term.Numeral 0))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.geq _v6) (Term.Numeral 1))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq n) (Term.Apply _v2 _v6))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Numeral 0)) (Term.Apply _v2 (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v1) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v1) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.lt _v1) _v6))) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq _v3) (Term.Apply (Term.Apply Term.plus _v5) (Term.Apply (Term.Apply Term.plus (Term.Apply (Term.Apply Term.mult (Term.Numeral 10)) (Term.Apply (Term.Apply Term.mult (Term.Apply _v2 _v1)) (Term.Numeral 1)))) (Term.Numeral 0))))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.geq _v5) (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq _v1) (Term.Numeral 0))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt _v6) (Term.Numeral 1))) (Term.Boolean true)))) (Term.Numeral 1)) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.lt _v5) (Term.Numeral 10))) (Term.Boolean true)))) (Term.Apply (Term.Apply Term.and (Term.Apply _v4 _v3)) (Term.Boolean true))))) (Term.Boolean false)))))) (Term.Boolean true)))))) (Term.Apply (Term.Apply Term.eq _v0) (Term.String "")))
   | (Term.Apply Term.str_to_int s) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply Term._at_strings_stoi_result s)
     let _v2 := (Term.Apply _v1 (Term.Apply (Term.Apply Term.plus _v0) (Term.Apply (Term.Apply Term.plus (Term.Numeral 1)) (Term.Numeral 0))))
     let _v3 := (Term._at_purify (Term.Apply Term.str_to_int s))
@@ -2918,7 +2914,7 @@ partial def __str_reduction_pred : Term -> Term
     let _v10 := (Term.Apply Term.str_concat _v7)
     (__eo_mk_apply (__eo_mk_apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.geq n) (Term.Numeral 0))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt _v1) n)) (Term.Boolean true)))) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply _v0 (__eo_mk_apply _v10 (__eo_mk_apply (__eo_mk_apply Term.str_concat _v3) _v9)))) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (Term.Apply Term.eq x) (__eo_mk_apply _v10 (__eo_mk_apply (__eo_mk_apply Term.str_concat _v6) _v9)))) (__eo_mk_apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_len _v7)) n)) (__eo_mk_apply (__eo_mk_apply Term.and (__eo_mk_apply (__eo_mk_apply Term.eq _v4) (__eo_mk_apply Term.str_len _v6))) (Term.Boolean true)))))) (Term.Apply _v0 x))
   | (Term.Apply (Term.Apply (Term.Apply Term.str_replace_all x) y) z) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply (Term.Apply Term._at_strings_occur_index x) y)
     let _v2 := (Term.Apply _v1 _v0)
     let _v3 := (Term.Apply (Term.Apply Term.str_indexof x) y)
@@ -2941,10 +2937,10 @@ partial def __str_reduction_pred : Term -> Term
     let _v5 := (Term.Apply Term.str_concat _v4)
     let _v6 := (Term.Apply Term.eq (Term._at_purify (Term.Apply (Term.Apply (Term.Apply Term.str_replace_re s) r) t)))
     let _v7 := (Term._at_purify (Term.Apply (Term.Apply _v1 _v3) (Term.Apply (Term.Apply Term.neg _v0) _v3)))
-    let _v8 := (Term.Var "@var.str_length" Term.Int)
+    let _v8 := (Term.Var (Term.String "@var.str_length") Term.Int)
     (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.eq _v3) (Term.Numeral (-1 : eo_lit_Int)))) (Term.Apply _v6 s)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq s) (Term.Apply _v5 (Term.Apply (Term.Apply Term.str_concat _v7) _v2)))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_len _v4)) _v3)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v8) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v8) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.lt _v8) (Term.Apply Term.str_len _v7)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.str_in_re (Term.Apply (Term.Apply (Term.Apply Term.str_substr _v7) (Term.Numeral 0)) _v8)) r))) (Term.Boolean false)))))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.str_in_re _v7) r)) (Term.Apply (Term.Apply Term.and (Term.Apply _v6 (Term.Apply _v5 (Term.Apply (Term.Apply Term.str_concat t) _v2)))) (Term.Boolean true)))))))
   | (Term.Apply (Term.Apply (Term.Apply Term.str_replace_re_all s) r) t) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply (Term.Apply Term.plus _v0) (Term.Apply (Term.Apply Term.plus (Term.Numeral 1)) (Term.Numeral 0)))
     let _v2 := (Term.Apply (Term.Apply (Term.Apply Term.str_replace_re_all s) r) t)
     let _v3 := (Term._at_strings_replace_all_result _v2)
@@ -2954,7 +2950,7 @@ partial def __str_reduction_pred : Term -> Term
     let _v7 := (Term.Apply (Term.Apply Term.str_indexof_re s) _v6)
     let _v8 := (Term.Apply _v7 _v5)
     let _v9 := (Term.Apply Term.str_substr s)
-    let _v10 := (Term.Var "@var.str_length" Term.Int)
+    let _v10 := (Term.Var (Term.String "@var.str_length") Term.Int)
     let _v11 := (Term.Apply _v9 _v8)
     let _v12 := (Term.Apply (Term.Apply Term.neg (Term.Apply _v4 _v1)) _v8)
     let _v13 := (Term.Apply (Term.Apply Term._at_strings_num_occur_re s) r)
@@ -2962,7 +2958,7 @@ partial def __str_reduction_pred : Term -> Term
     let _v15 := (Term.Apply Term.eq (Term._at_purify _v2))
     (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.eq (Term.Apply _v7 (Term.Numeral 0))) (Term.Numeral (-1 : eo_lit_Int)))) (Term.Apply _v15 s)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt _v13) (Term.Numeral 0))) (Term.Apply (Term.Apply Term.and (Term.Apply _v15 (Term.Apply _v3 (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply _v3 _v13)) _v14)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply _v4 (Term.Numeral 0))) (Term.Numeral 0))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply (Term.Apply Term.str_indexof_re _v14) _v6) (Term.Numeral 0))) (Term.Numeral (-1 : eo_lit_Int)))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v0) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.lt _v0) _v13))) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt _v12) (Term.Numeral 0))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.str_in_re (Term.Apply _v11 _v12)) _v6)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v10) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.gt _v10) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.lt _v10) _v12))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.str_in_re (Term.Apply _v11 _v10)) r))) (Term.Boolean false)))))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply _v3 _v0)) (Term.Apply (Term.Apply Term.str_concat (Term.Apply (Term.Apply _v9 _v5) (Term.Apply (Term.Apply Term.neg _v8) _v5))) (Term.Apply (Term.Apply Term.str_concat t) (Term.Apply (Term.Apply Term.str_concat (Term.Apply _v3 _v1)) (Term.String "")))))) (Term.Boolean true)))))) (Term.Boolean false)))))) (Term.Boolean true))))))))
   | (Term.Apply (Term.Apply (Term.Apply Term.str_indexof_re s) r) n) => 
-    let _v0 := (Term.Var "@var.str_length" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_length") Term.Int)
     let _v1 := (Term._at_purify (Term.Apply (Term.Apply (Term.Apply Term.str_indexof_re s) r) n))
     let _v2 := (Term.Apply Term.str_substr s)
     let _v3 := (Term.Apply Term.str_len s)
@@ -2971,10 +2967,10 @@ partial def __str_reduction_pred : Term -> Term
     let _v6 := (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)
     let _v7 := (Term.Apply Term.eq _v1)
     let _v8 := (Term.Apply _v7 (Term.Numeral (-1 : eo_lit_Int)))
-    let _v9 := (Term.Var "@var.str_index" Term.Int)
+    let _v9 := (Term.Var (Term.String "@var.str_index") Term.Int)
     (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.gt n) _v3)) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.gt (Term.Numeral 0)) n)) (Term.Boolean false)))) _v8) (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.str_in_re (Term.String "")) r)) (Term.Apply _v7 n)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v9) _v6)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v9) n))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.lt _v9) (Term.Apply (Term.Apply (Term.Apply Term.ite _v8) _v3) _v1)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.gt _v0) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply _v5 (Term.Apply _v4 _v9)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.str_in_re (Term.Apply (Term.Apply _v2 _v9) _v0)) r))) (Term.Boolean false)))))))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.or _v8) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.geq _v1) n)) (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.forall _v6) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v0) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply _v5 (Term.Apply _v4 _v1)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.str_in_re (Term.Apply (Term.Apply _v2 _v1) _v0)) r))) (Term.Boolean false))))))) (Term.Boolean true)))) (Term.Boolean false)))) (Term.Boolean true)))))
   | (Term.Apply (Term.Apply Term.str_leq s) t) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply Term.str_substr s)
     let _v2 := (Term.Apply Term.str_to_code (Term.Apply (Term.Apply _v1 _v0) (Term.Numeral 1)))
     let _v3 := (Term.Apply Term.str_substr t)
@@ -2983,19 +2979,19 @@ partial def __str_reduction_pred : Term -> Term
     let _v6 := (Term.Apply Term.leq _v0)
     (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.eq s) t)) _v5) (Term.Apply Term.not (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v0) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply _v6 (Term.Apply Term.str_len s)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply _v6 (Term.Apply Term.str_len t)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply _v1 (Term.Numeral 0)) _v0)) (Term.Apply (Term.Apply _v3 (Term.Numeral 0)) _v0)))) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply (Term.Apply Term.ite _v5) (Term.Apply (Term.Apply Term.geq _v2) _v4)) (Term.Apply (Term.Apply Term.geq _v4) _v2))) (Term.Boolean false)))))))))
   | (Term.Apply Term.str_to_lower s) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply Term.str_to_code (Term.Apply (Term.Apply (Term.Apply Term.str_substr s) _v0) (Term.Numeral 1)))
     let _v2 := (Term._at_purify (Term.Apply Term.str_to_lower s))
     let _v3 := (Term.Apply Term.str_len _v2)
     (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_len s)) _v3)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v0) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.lt _v0) _v3))) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_to_code (Term.Apply (Term.Apply (Term.Apply Term.str_substr _v2) _v0) (Term.Numeral 1)))) (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq (Term.Numeral 65)) _v1)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq _v1) (Term.Numeral 90))) (Term.Boolean true)))) (Term.Apply (Term.Apply Term.plus _v1) (Term.Apply (Term.Apply Term.plus (Term.Numeral 32)) (Term.Numeral 0)))) _v1))) (Term.Boolean false)))))) (Term.Boolean true)))
   | (Term.Apply Term.str_to_upper s) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply Term.str_to_code (Term.Apply (Term.Apply (Term.Apply Term.str_substr s) _v0) (Term.Numeral 1)))
     let _v2 := (Term._at_purify (Term.Apply Term.str_to_upper s))
     let _v3 := (Term.Apply Term.str_len _v2)
     (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_len s)) _v3)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.geq _v0) (Term.Numeral 0)))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.lt _v0) _v3))) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_to_code (Term.Apply (Term.Apply (Term.Apply Term.str_substr _v2) _v0) (Term.Numeral 1)))) (Term.Apply (Term.Apply (Term.Apply Term.ite (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq (Term.Numeral 97)) _v1)) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.leq _v1) (Term.Numeral 122))) (Term.Boolean true)))) (Term.Apply (Term.Apply Term.plus _v1) (Term.Apply (Term.Apply Term.plus (Term.Numeral (-32 : eo_lit_Int))) (Term.Numeral 0)))) _v1))) (Term.Boolean false)))))) (Term.Boolean true)))
   | (Term.Apply Term.str_rev x) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply Term.str_len x)
     let _v2 := (Term._at_purify (Term.Apply Term.str_rev x))
     let _v3 := (Term.Apply Term.str_len _v2)
@@ -3620,12 +3616,12 @@ partial def __eo_prog_re_unfold_neg_concat_fixed : Term -> Proof -> Term
 partial def __mk_re_unfold_neg : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | t, (Term.Apply Term.re_mult r1) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply Term.str_len t)
     let _v2 := (Term.Apply Term.str_substr t)
     (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t) (Term.String "")))) (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.leq _v0) (Term.Numeral 0))) (Term.Apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.lt _v1) _v0)) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.str_in_re (Term.Apply (Term.Apply _v2 (Term.Numeral 0)) _v0)) r1))) (Term.Apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.str_in_re (Term.Apply (Term.Apply _v2 _v0) (Term.Apply (Term.Apply Term.neg _v1) _v0))) (Term.Apply Term.re_mult r1)))) (Term.Boolean false))))))) (Term.Boolean true)))
   | t, (Term.Apply (Term.Apply Term.re_concat r1) r2) => 
-    let _v0 := (Term.Var "@var.str_index" Term.Int)
+    let _v0 := (Term.Var (Term.String "@var.str_index") Term.Int)
     let _v1 := (Term.Apply Term.str_len t)
     let _v2 := (Term.Apply Term.str_substr t)
     (__eo_mk_apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)) (__eo_mk_apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.lt _v0) (Term.Numeral 0))) (__eo_mk_apply (Term.Apply Term.or (Term.Apply (Term.Apply Term.lt _v1) _v0)) (__eo_mk_apply (Term.Apply Term.or (Term.Apply Term.not (Term.Apply (Term.Apply Term.str_in_re (Term.Apply (Term.Apply _v2 (Term.Numeral 0)) _v0)) r1))) (__eo_mk_apply (__eo_mk_apply Term.or (__eo_mk_apply Term.not (__eo_mk_apply (Term.Apply Term.str_in_re (Term.Apply (Term.Apply _v2 _v0) (Term.Apply (Term.Apply Term.neg _v1) _v0))) (__eo_list_singleton_elim Term.re_concat r2)))) (Term.Boolean false))))))
@@ -3695,7 +3691,7 @@ partial def __eo_prog_re_loop_elim : Term -> Term
 
 partial def __eo_prog_re_eq_elim : Term -> Term
   | (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.eq r1) r2)) Q) => 
-    let _v0 := (Term.Var "@var.re_eq" (Term.Apply Term.Seq Term.Char))
+    let _v0 := (Term.Var (Term.String "@var.re_eq") (Term.Apply Term.Seq Term.Char))
     let _v1 := (Term.Apply Term.str_in_re _v0)
     (__eo_requires Q (Term.Apply (Term.Apply Term.forall (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)) (Term.Apply (Term.Apply Term.eq (Term.Apply _v1 r1)) (Term.Apply _v1 r2))) (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.eq r1) r2)) Q))
   | _ => Term.Stuck
