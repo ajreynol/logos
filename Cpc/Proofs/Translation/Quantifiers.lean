@@ -62,7 +62,8 @@ theorem eo_to_smt_substitute_var_miss
 /-- Simplifies EO-to-SMT translation for `exists_cons`. -/
 @[simp] theorem eo_to_smt_exists_cons
     (s : eo_lit_String) (T vs : Term) (F : SmtTerm) :
-    __eo_to_smt_exists (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s T)) vs) F =
+    __eo_to_smt_exists
+        (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs) F =
       SmtTerm.Apply (SmtTerm.exists s (__eo_to_smt_type T)) (__eo_to_smt_exists vs F) := rfl
 
 /-- Simplifies EO-to-SMT translation for `quantifiers_skolemize_zero`. -/

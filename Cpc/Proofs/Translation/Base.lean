@@ -52,8 +52,8 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT translation for `var`. -/
 @[simp] theorem eo_to_smt_var (s : eo_lit_String) (T : Term) :
-    __eo_to_smt (Term.Var s T) = SmtTerm.Var s (__eo_to_smt_type T) := by
-  simp [__eo_to_smt.eq_def]
+    __eo_to_smt (Term.Var (Term.String s) T) = SmtTerm.Var s (__eo_to_smt_type T) := by
+  rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `uconst`. -/
 @[simp] theorem eo_to_smt_uconst (i : eo_lit_Nat) (T : Term) :

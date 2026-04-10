@@ -300,50 +300,54 @@ theorem eo_to_smt_typeof_matches_translation_apply
     __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
   cases f <;> intro hNonNone
-  case Var s T =>
-    have hTranslate :
-        __eo_to_smt (Term.Apply (Term.Var s T) x) =
-          SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x) := by
-      have hGeneric :
-          __eo_to_smt (Term.Apply (Term.Var s T) x) =
-            SmtTerm.Apply (__eo_to_smt (Term.Var s T)) (__eo_to_smt x) := by
-        rw [__eo_to_smt.eq_def]
-      rw [eo_to_smt_var] at hGeneric
-      exact hGeneric
-    have hApplyNN :
-        __smtx_typeof_apply
-            (__smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)))
-            (__smtx_typeof (__eo_to_smt x)) ≠
-          SmtType.None := by
-      simpa [hTranslate, __smtx_typeof] using hNonNone
-    rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
-    have hVarNN : __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠ SmtType.None := by
-      intro hVarNone
-      apply hApplyNN
-      simp [__smtx_typeof_apply, hVarNone]
-    have hHeadTy :
-        __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) = __eo_to_smt_type T := by
-      simpa using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hVarNN
-    have hT :
-        __eo_to_smt_type T = SmtType.Map A B ∨
-          __eo_to_smt_type T = SmtType.FunType A B := by
-      rw [← hHeadTy]
-      exact hHead
-    have hSmt :
-        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Var s T) x)) = B := by
-      rw [hTranslate]
-      change
-        __smtx_typeof_apply
-            (__smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)))
-            (__smtx_typeof (__eo_to_smt x)) = B
-      cases hHead with
-      | inl hMap =>
-          rw [hMap, hX]
-          simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA]
-      | inr hDt =>
-          rw [hDt, hX]
-          simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA]
-    exact hSmt.trans (eo_to_smt_type_typeof_apply_var_of_smt_apply x T s A B hT hX).symm
+  case Var name T =>
+    cases name
+    case String s =>
+        have hTranslate :
+            __eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x) =
+              SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x) := by
+          have hGeneric :
+              __eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x) =
+                SmtTerm.Apply (__eo_to_smt (Term.Var (Term.String s) T)) (__eo_to_smt x) := by
+            rw [__eo_to_smt.eq_def]
+          rw [eo_to_smt_var] at hGeneric
+          exact hGeneric
+        have hApplyNN :
+            __smtx_typeof_apply
+                (__smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)))
+                (__smtx_typeof (__eo_to_smt x)) ≠
+              SmtType.None := by
+          simpa [hTranslate, __smtx_typeof] using hNonNone
+        rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
+        have hVarNN : __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠ SmtType.None := by
+          intro hVarNone
+          apply hApplyNN
+          simp [__smtx_typeof_apply, hVarNone]
+        have hHeadTy :
+            __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) = __eo_to_smt_type T := by
+          simpa using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hVarNN
+        have hT :
+            __eo_to_smt_type T = SmtType.Map A B ∨
+              __eo_to_smt_type T = SmtType.FunType A B := by
+          rw [← hHeadTy]
+          exact hHead
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x)) = B := by
+          rw [hTranslate]
+          change
+            __smtx_typeof_apply
+                (__smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)))
+                (__smtx_typeof (__eo_to_smt x)) = B
+          cases hHead with
+          | inl hMap =>
+              rw [hMap, hX]
+              simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA]
+          | inr hDt =>
+              rw [hDt, hX]
+              simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA]
+        exact hSmt.trans (eo_to_smt_type_typeof_apply_var_of_smt_apply x T s A B hT hX).symm
+    all_goals
+      sorry
   case DtCons s d i =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.DtCons s d i) x) =

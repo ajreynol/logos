@@ -104,13 +104,18 @@ theorem eo_to_smt_typeof_matches_translation
         simpa [__eo_to_smt.eq_def] using smtx_typeof_binary_of_non_none w n hTy]
       symm
       simpa using eo_to_smt_type_typeof_binary w n
-    case Var s T =>
-      have hTy : __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠ SmtType.None := by
-        simpa [__eo_to_smt.eq_def] using hNonNone
-      rw [show __smtx_typeof (__eo_to_smt (Term.Var s T)) = __eo_to_smt_type T by
-        simpa [__eo_to_smt.eq_def] using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hTy]
-      symm
-      simpa using eo_to_smt_type_typeof_var s T
+    case Var name T =>
+      cases name
+      case String s =>
+          have hTy : __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠ SmtType.None := by
+            simpa [__eo_to_smt.eq_def] using hNonNone
+          rw [show __smtx_typeof (__eo_to_smt (Term.Var (Term.String s) T)) = __eo_to_smt_type T by
+            simpa [__eo_to_smt.eq_def] using
+              smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hTy]
+          symm
+          simpa using eo_to_smt_type_typeof_var s T
+      all_goals
+        exact False.elim (hNonNone (by simp [__eo_to_smt.eq_def]))
     case DtCons s d i =>
       symm
       simpa [eo_to_smt_term_dt_cons] using eo_to_smt_type_typeof_dt_cons s d i

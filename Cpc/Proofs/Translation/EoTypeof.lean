@@ -45,7 +45,7 @@ theorem eo_to_smt_type_typeof_binary
 /-- Simplifies EO-to-SMT type translation for `typeof_var`. -/
 theorem eo_to_smt_type_typeof_var
     (s : eo_lit_String) (T : Term) :
-    __eo_to_smt_type (__eo_typeof (Term.Var s T)) = __eo_to_smt_type T := by
+    __eo_to_smt_type (__eo_typeof (Term.Var (Term.String s) T)) = __eo_to_smt_type T := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_uconst`. -/
@@ -61,7 +61,7 @@ theorem eo_to_smt_type_typeof_apply_var_of_smt_apply
       __eo_to_smt_type T = SmtType.Map A B ∨
         __eo_to_smt_type T = SmtType.FunType A B)
     (hx : __smtx_typeof (__eo_to_smt x) = A) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Var s T) x)) = B := by
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Var (Term.String s) T) x)) = B := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_uconst_of_smt_apply`. -/
