@@ -10,11 +10,63 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
+private theorem eo_to_smt_var_ne
+    (name T : Term) (u : SmtTerm)
+    (hNone : SmtTerm.None ≠ u)
+    (hString : ∀ s, SmtTerm.Var s (__eo_to_smt_type T) ≠ u) :
+    __eo_to_smt (Term.Var name T) ≠ u := by
+  intro h
+  cases name with
+  | String s =>
+      change SmtTerm.Var s (__eo_to_smt_type T) = u at h
+      exact hString s h
+  | _ =>
+      change SmtTerm.None = u at h
+      exact hNone h
+
+private theorem eo_to_smt_apply_var_ne
+    (name T x : Term) (u : SmtTerm)
+    (hNone : SmtTerm.Apply SmtTerm.None (__eo_to_smt x) ≠ u)
+    (hString :
+      ∀ s, SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x) ≠ u) :
+    __eo_to_smt (Term.Apply (Term.Var name T) x) ≠ u := by
+  intro h
+  cases name with
+  | String s =>
+      change SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x) = u at h
+      exact hString s h
+  | _ =>
+      change SmtTerm.Apply SmtTerm.None (__eo_to_smt x) = u at h
+      exact hNone h
+
+private theorem eo_to_smt_double_apply_var_ne
+    (name T y x : Term) (u : SmtTerm)
+    (hNone :
+      SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt y)) (__eo_to_smt x) ≠ u)
+    (hString :
+      ∀ s,
+        SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt y))
+          (__eo_to_smt x) ≠ u) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.Var name T) y) x) ≠ u := by
+  intro h
+  cases name with
+  | String s =>
+      change
+        SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt y))
+          (__eo_to_smt x) = u at h
+      exact hString s h
+  | _ =>
+      change SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt y)) (__eo_to_smt x) = u at h
+      exact hNone h
+
 /-- Shows that EO translation never produces the bare SMT term `not`. -/
 theorem eo_to_smt_ne_not (t : Term) :
     __eo_to_smt t ≠ SmtTerm.not := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T SmtTerm.not (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -25,6 +77,9 @@ theorem eo_to_smt_ne_or (t : Term) :
     __eo_to_smt t ≠ SmtTerm.or := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T SmtTerm.or (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -35,6 +90,9 @@ theorem eo_to_smt_ne_and (t : Term) :
     __eo_to_smt t ≠ SmtTerm.and := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T SmtTerm.and (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -45,6 +103,9 @@ theorem eo_to_smt_ne_imp (t : Term) :
     __eo_to_smt t ≠ SmtTerm.imp := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T SmtTerm.imp (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -55,6 +116,9 @@ theorem eo_to_smt_ne_eq (t : Term) :
     __eo_to_smt t ≠ SmtTerm.eq := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T SmtTerm.eq (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -65,6 +129,9 @@ theorem eo_to_smt_ne_ite (t : Term) :
     __eo_to_smt t ≠ SmtTerm.ite := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T SmtTerm.ite (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -75,6 +142,9 @@ theorem eo_to_smt_ne_exists (t : Term) (s : smt_lit_String) (T : SmtType) :
     __eo_to_smt t ≠ SmtTerm.exists s T := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name U =>
+    exact eo_to_smt_var_ne name U (SmtTerm.exists s T) (by intro hEq; cases hEq)
+      (by intro s' hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -85,6 +155,9 @@ theorem eo_to_smt_ne_forall (t : Term) (s : smt_lit_String) (T : SmtType) :
     __eo_to_smt t ≠ SmtTerm.forall s T := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name U =>
+    exact eo_to_smt_var_ne name U (SmtTerm.forall s T) (by intro hEq; cases hEq)
+      (by intro s' hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -95,6 +168,9 @@ theorem eo_to_smt_ne_choice (t : Term) (s : smt_lit_String) (T : SmtType) :
     __eo_to_smt t ≠ SmtTerm.choice s T := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name U =>
+    exact eo_to_smt_var_ne name U (SmtTerm.choice s T) (by intro hEq; cases hEq)
+      (by intro s' hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
     case Apply g y =>
@@ -105,8 +181,15 @@ theorem eo_to_smt_ne_or_partial (t : Term) (u : SmtTerm) :
     __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.or u := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T (SmtTerm.Apply SmtTerm.or u) (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Var name T =>
+      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply SmtTerm.or u)
+        (by intro hEq; cases hEq)
+        (by intro s hEq; cases hEq) h
     case Apply g y =>
       cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
       case Apply a b =>
@@ -119,8 +202,15 @@ theorem eo_to_smt_ne_and_partial (t : Term) (u : SmtTerm) :
     __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.and u := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T (SmtTerm.Apply SmtTerm.and u) (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Var name T =>
+      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply SmtTerm.and u)
+        (by intro hEq; cases hEq)
+        (by intro s hEq; cases hEq) h
     case Apply g y =>
       cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
       case Apply a b =>
@@ -133,8 +223,15 @@ theorem eo_to_smt_ne_imp_partial (t : Term) (u : SmtTerm) :
     __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.imp u := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T (SmtTerm.Apply SmtTerm.imp u) (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Var name T =>
+      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply SmtTerm.imp u)
+        (by intro hEq; cases hEq)
+        (by intro s hEq; cases hEq) h
     case Apply g y =>
       cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
       case Apply a b =>
@@ -147,8 +244,15 @@ theorem eo_to_smt_ne_eq_partial (t : Term) (u : SmtTerm) :
     __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.eq u := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T (SmtTerm.Apply SmtTerm.eq u) (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Var name T =>
+      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply SmtTerm.eq u)
+        (by intro hEq; cases hEq)
+        (by intro s hEq; cases hEq) h
     case Apply g y =>
       cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
       case Apply a b =>
@@ -161,8 +265,15 @@ theorem eo_to_smt_ne_ite_partial (t : Term) (c : SmtTerm) :
     __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.ite c := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T (SmtTerm.Apply SmtTerm.ite c) (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Var name T =>
+      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply SmtTerm.ite c)
+        (by intro hEq; cases hEq)
+        (by intro s hEq; cases hEq) h
     case Apply g y =>
       cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
       case Apply a b =>
@@ -175,10 +286,23 @@ theorem eo_to_smt_ne_ite_partial2 (t : Term) (c u : SmtTerm) :
     __eo_to_smt t ≠ SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) u := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name T =>
+    exact eo_to_smt_var_ne name T (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) u)
+      (by intro hEq; cases hEq)
+      (by intro s hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Var name T =>
+      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) u)
+        (by intro hEq; cases hEq)
+        (by intro s hEq; cases hEq) h
     case Apply g y =>
       cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+      case Var name T =>
+        exact eo_to_smt_double_apply_var_ne name T y x
+          (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) u)
+          (by intro hEq; cases hEq)
+          (by intro s hEq; cases hEq) h
       case Apply a b =>
         rw [__eo_to_smt.eq_def] at h
         injection h with hHead _
