@@ -1472,6 +1472,12 @@ def __smtx_typeof_bv_op_1_ret : SmtType -> SmtType -> SmtType
   | T, U => SmtType.None
 
 
+def __smtx_typeof_arith_overload_op_1 : SmtType -> SmtType
+  | SmtType.Int => SmtType.Int
+  | SmtType.Real => SmtType.Real
+  | T => SmtType.None
+
+
 def __smtx_typeof_arith_overload_op_2 : SmtType -> SmtType -> SmtType
   | SmtType.Int, SmtType.Int => SmtType.Int
   | SmtType.Real, SmtType.Real => SmtType.Real
@@ -1599,7 +1605,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply SmtTerm.to_int x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Int SmtType.None)
   | (SmtTerm.Apply SmtTerm.is_int x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Bool SmtType.None)
   | (SmtTerm.Apply SmtTerm.abs x1) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
-  | (SmtTerm.Apply SmtTerm.__eoo_neg_2 x1) => SmtType.None
+  | (SmtTerm.Apply SmtTerm.__eoo_neg_2 x1) => (__smtx_typeof_arith_overload_op_1 (__smtx_typeof x1))
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mod x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult x1) x2) => (smt_lit_ite (smt_lit_Teq (__smtx_typeof x1) SmtType.Int) (smt_lit_ite (smt_lit_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
