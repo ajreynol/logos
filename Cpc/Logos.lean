@@ -365,6 +365,8 @@ def __dt_find_cycle_term_weight : Term -> Nat
   | (Term.Apply f a) => __dt_find_cycle_term_weight f + __dt_find_cycle_term_weight a + 1
   | _ => 1
 
+abbrev __term_weight := __dt_find_cycle_term_weight
+
 def __dt_find_cycle_pending : Term -> Nat
   | (Term.Apply (Term.Apply Term.__eo_List_cons t) ts) => __dt_find_cycle_term_weight t + __dt_find_cycle_pending ts
   | _ => 0
@@ -377,6 +379,38 @@ def __dt_find_cycle_rank_list_aux (ts : Term) : Nat :=
 
 def __dt_find_cycle_rank_list (ts : Term) : Nat :=
   3 * __dt_find_cycle_pending ts + 2
+
+def __arith_eval_int_rank : Term -> Nat
+  | (Term.Numeral n) => eo_lit_int_to_nat n + 2
+  | t => __term_weight t + 2
+
+def __distinct_terms_rank_2 (t s : Term) : Nat :=
+  let w := __term_weight t + __term_weight s + 1
+  4 * w * w + 4
+
+def __distinct_terms_rank_3 (t s u : Term) : Nat :=
+  let w := __term_weight t + __term_weight s + __term_weight u + 1
+  4 * w * w + 4
+
+def __distinct_terms_rank_4 (t s u v : Term) : Nat :=
+  let w := __term_weight t + __term_weight s + __term_weight u + __term_weight v + 1
+  4 * w * w + 4
+
+def __linear_rank_3 (t s u : Term) : Nat :=
+  8 * (__term_weight t + __term_weight s + __term_weight u + 1) + 8
+
+def __repeat_rank (n b : Term) : Nat :=
+  __arith_eval_int_rank n + __term_weight b + 2
+
+def __div_mod_rank (sz : Term) : Nat :=
+  __arith_eval_int_rank sz + 2
+
+def __index_pair_rank (i n : Term) : Nat :=
+  __arith_eval_int_rank i + __arith_eval_int_rank n + 2
+
+def __minus_one_rank : Term -> Nat
+  | (Term.Numeral n) => eo_lit_int_to_nat (eo_lit_zplus n 1) + 2
+  | t => __term_weight t + 2
 
 /- Definition of Eunoia signature -/
 
@@ -1364,16 +1398,26 @@ def __eo_prog_arrays_ext : Proof -> Term
   | _ => Term.Stuck
 
 
+def __arith_eval_int_log_2_rec_go : Nat -> Term -> Term
+  | 0, _ => Term.Stuck
+  | fuel + 1, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Numeral 1) => (Term.Numeral 0)
+  | fuel + 1, x => (__eo_add (Term.Numeral 1) (__arith_eval_int_log_2_rec_go fuel (__eo_zdiv x (Term.Numeral 2))))
+
+
 def __arith_eval_int_log_2_rec : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Numeral 1) => (Term.Numeral 0)
-  | x => (__eo_add (Term.Numeral 1) (__arith_eval_int_log_2_rec (__eo_zdiv x (Term.Numeral 2))))
+  | x => (__arith_eval_int_log_2_rec_go (__arith_eval_int_rank x) x)
+
+
+def __arith_eval_int_pow_2_rec_go : Nat -> Term -> Term
+  | 0, _ => Term.Stuck
+  | fuel + 1, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Numeral 0) => (Term.Numeral 1)
+  | fuel + 1, x => (__eo_mul (Term.Numeral 2) (__arith_eval_int_pow_2_rec_go fuel (__eo_add x (Term.Numeral (-1 : eo_lit_Int)))))
 
 
 def __arith_eval_int_pow_2_rec : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Numeral 0) => (Term.Numeral 1)
-  | x => (__eo_mul (Term.Numeral 2) (__arith_eval_int_pow_2_rec (__eo_add x (Term.Numeral (-1 : eo_lit_Int)))))
+  | x => (__arith_eval_int_pow_2_rec_go (__arith_eval_int_rank x) x)
 
 
 def __bv_bitwidth : Term -> Term
@@ -1448,20 +1492,22 @@ def __tuple_nth : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
-def __some_pairwise_distinct_term : Term -> Term -> Term
-  | (Term.Apply (Term.Apply Term.__eo_List_cons t) ts), (Term.Apply (Term.Apply Term.__eo_List_cons s) ss) => (__eo_ite (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons t) (Term.Apply (Term.Apply Term.__eo_List_cons s) Term.__eo_List_nil)) (__eo_typeof t))) (Term.Boolean true) (__some_pairwise_distinct_term ts ss))
-  | Term.__eo_List_nil, Term.__eo_List_nil => (Term.Boolean false)
-  | _, _ => Term.Stuck
+def __some_pairwise_distinct_term_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, (Term.Apply (Term.Apply Term.__eo_List_cons t) ts), (Term.Apply (Term.Apply Term.__eo_List_cons s) ss) => (__eo_ite (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_list_go fuel (Term.Apply (Term.Apply Term.__eo_List_cons t) (Term.Apply (Term.Apply Term.__eo_List_cons s) Term.__eo_List_nil)) (__eo_typeof t))) (Term.Boolean true) (__some_pairwise_distinct_term_go fuel ts ss))
+  | fuel + 1, Term.__eo_List_nil, Term.__eo_List_nil => (Term.Boolean false)
+  | fuel + 1, _, _ => Term.Stuck
 
 
-def __set_is_not_subset : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.set_empty (Term.Apply Term.Set T)), s => (Term.Boolean false)
-  | (Term.Apply Term.set_singleton e1), (Term.set_empty (Term.Apply Term.Set T)) => (Term.Boolean true)
-  | (Term.Apply Term.set_singleton e1), (Term.Apply Term.set_singleton e2) => (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1)))
-  | (Term.Apply Term.set_singleton e1), (Term.Apply (Term.Apply Term.set_union (Term.Apply Term.set_singleton e2)) ss) => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1))) (__set_is_not_subset (Term.Apply Term.set_singleton e1) ss) (Term.Boolean false))
-  | (Term.Apply (Term.Apply Term.set_union (Term.Apply Term.set_singleton e1)) ts), s => (__eo_ite (__set_is_not_subset (Term.Apply Term.set_singleton e1) s) (Term.Boolean true) (__set_is_not_subset ts s))
-  | _, _ => Term.Stuck
+def __set_is_not_subset_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.set_empty (Term.Apply Term.Set T)), s => (Term.Boolean false)
+  | fuel + 1, (Term.Apply Term.set_singleton e1), (Term.set_empty (Term.Apply Term.Set T)) => (Term.Boolean true)
+  | fuel + 1, (Term.Apply Term.set_singleton e1), (Term.Apply Term.set_singleton e2) => (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list_go fuel (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1)))
+  | fuel + 1, (Term.Apply Term.set_singleton e1), (Term.Apply (Term.Apply Term.set_union (Term.Apply Term.set_singleton e2)) ss) => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list_go fuel (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1))) (__set_is_not_subset_go fuel (Term.Apply Term.set_singleton e1) ss) (Term.Boolean false))
+  | fuel + 1, (Term.Apply (Term.Apply Term.set_union (Term.Apply Term.set_singleton e1)) ts), s => (__eo_ite (__set_is_not_subset_go fuel (Term.Apply Term.set_singleton e1) s) (Term.Boolean true) (__set_is_not_subset_go fuel ts s))
+  | fuel + 1, _, _ => Term.Stuck
 
 
 def __eo_l_1___seq_distinct_terms : Term -> Term -> Term
@@ -1470,63 +1516,101 @@ def __eo_l_1___seq_distinct_terms : Term -> Term -> Term
   | t, s => (Term.Boolean true)
 
 
-def __seq_distinct_terms : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply Term.seq_unit e1), s =>
+def __seq_distinct_terms_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Apply Term.seq_unit e1), s =>
     let _v0 := (Term.Apply Term.seq_unit e1)
-    (__seq_distinct_terms (__eo_mk_apply (Term.Apply Term.str_concat _v0) (__eo_nil Term.str_concat (__eo_typeof _v0))) s)
-  | t, (Term.Apply Term.seq_unit e2) =>
+    (__seq_distinct_terms_go fuel (__eo_mk_apply (Term.Apply Term.str_concat _v0) (__eo_nil Term.str_concat (__eo_typeof _v0))) s)
+  | fuel + 1, t, (Term.Apply Term.seq_unit e2) =>
     let _v0 := (Term.Apply Term.seq_unit e2)
-    (__seq_distinct_terms t (__eo_mk_apply (Term.Apply Term.str_concat _v0) (__eo_nil Term.str_concat (__eo_typeof _v0))))
-  | (Term.Apply (Term.Apply Term.str_concat (Term.Apply Term.seq_unit e1)) ts), (Term.Apply (Term.Apply Term.str_concat (Term.Apply Term.seq_unit e2)) ss) => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1))) (Term.Boolean true) (__seq_distinct_terms ts ss))
-  | t, __eo_lv_t_2 => (__eo_ite (__eo_eq t __eo_lv_t_2) (Term.Boolean false) (__eo_l_1___seq_distinct_terms t __eo_lv_t_2))
+    (__seq_distinct_terms_go fuel t (__eo_mk_apply (Term.Apply Term.str_concat _v0) (__eo_nil Term.str_concat (__eo_typeof _v0))))
+  | fuel + 1, (Term.Apply (Term.Apply Term.str_concat (Term.Apply Term.seq_unit e1)) ts), (Term.Apply (Term.Apply Term.str_concat (Term.Apply Term.seq_unit e2)) ss) => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list_go fuel (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1))) (Term.Boolean true) (__seq_distinct_terms_go fuel ts ss))
+  | fuel + 1, t, __eo_lv_t_2 => (__eo_ite (__eo_eq t __eo_lv_t_2) (Term.Boolean false) (__eo_l_1___seq_distinct_terms t __eo_lv_t_2))
+
+
+def __dt_distinct_terms_rec_go : Nat -> Term -> Term -> Term -> Term -> Term
+  | 0, _, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Apply f a), cs, l1, l2 => (__dt_distinct_terms_rec_go fuel f cs (Term.Apply (Term.Apply Term.__eo_List_cons a) l1) l2)
+  | fuel + 1, ct, (Term.Apply f a), l1, l2 => (__dt_distinct_terms_rec_go fuel ct f l1 (Term.Apply (Term.Apply Term.__eo_List_cons a) l2))
+  | fuel + 1, ct, cs, l1, l2 => (__eo_ite (__eo_eq (__eo_ite (__eo_is_eq ct Term.tuple) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors ct))) (Term.Boolean true)) (__eo_ite (__eo_eq ct cs) (__some_pairwise_distinct_term_go fuel l1 l2) (__eo_eq (__eo_ite (__eo_is_eq cs Term.tuple) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors cs))) (Term.Boolean true))) (Term.Boolean false))
+
+
+def __eo_l_1___are_distinct_terms_type_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, t, s, Term.Int => (__eo_and (__eo_is_z t) (__eo_is_z s))
+  | fuel + 1, t, s, Term.Real => (__eo_and (__eo_is_q t) (__eo_is_q s))
+  | fuel + 1, t, s, (Term.Apply Term.Seq Term.Char) => (__eo_and (__eo_is_str t) (__eo_is_str s))
+  | fuel + 1, t, s, (Term.Apply Term.BitVec n) => (__eo_and (__eo_is_bin t) (__eo_is_bin s))
+  | fuel + 1, t, s, Term.Bool => (__eo_and (__eo_is_bool t) (__eo_is_bool s))
+  | fuel + 1, st, ss, (Term.Apply Term.Set U) => (__eo_or (__set_is_not_subset_go fuel st ss) (__set_is_not_subset_go fuel ss st))
+  | fuel + 1, sst, sss, (Term.Apply Term.Seq U) => (__seq_distinct_terms_go fuel sst sss)
+  | fuel + 1, t, s, T => (__dt_distinct_terms_rec_go fuel t s Term.__eo_List_nil Term.__eo_List_nil)
+
+
+def __are_distinct_terms_type_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, t, __eo_lv_t_2, T => (__eo_ite (__eo_eq t __eo_lv_t_2) (Term.Boolean false) (__eo_l_1___are_distinct_terms_type_go fuel t __eo_lv_t_2 T))
+
+
+def __are_distinct_terms_list_rec_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, t, (Term.Apply (Term.Apply Term.__eo_List_cons s) xs), T => (__eo_ite (__are_distinct_terms_type_go fuel t s T) (__are_distinct_terms_list_rec_go fuel t xs T) (Term.Boolean false))
+  | fuel + 1, t, Term.__eo_List_nil, T => (Term.Boolean true)
+  | fuel + 1, _, _, _ => Term.Stuck
+
+
+def __are_distinct_terms_list_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, Term.__eo_List_nil, T => (Term.Boolean true)
+  | fuel + 1, (Term.Apply (Term.Apply Term.__eo_List_cons t) xs), T => (__eo_ite (__are_distinct_terms_list_rec_go fuel t xs T) (__are_distinct_terms_list_go fuel xs T) (Term.Boolean false))
+  | fuel + 1, _, _ => Term.Stuck
+
+
+def __some_pairwise_distinct_term : Term -> Term -> Term
+  | ts, ss => (__some_pairwise_distinct_term_go (__distinct_terms_rank_2 ts ss) ts ss)
+
+
+def __set_is_not_subset : Term -> Term -> Term
+  | st, ss => (__set_is_not_subset_go (__distinct_terms_rank_2 st ss) st ss)
+
+
+def __seq_distinct_terms : Term -> Term -> Term
+  | sst, sss => (__seq_distinct_terms_go (__distinct_terms_rank_2 sst sss) sst sss)
 
 
 def __dt_distinct_terms_rec : Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply f a), cs, l1, l2 => (__dt_distinct_terms_rec f cs (Term.Apply (Term.Apply Term.__eo_List_cons a) l1) l2)
-  | ct, (Term.Apply f a), l1, l2 => (__dt_distinct_terms_rec ct f l1 (Term.Apply (Term.Apply Term.__eo_List_cons a) l2))
-  | ct, cs, l1, l2 => (__eo_ite (__eo_eq (__eo_ite (__eo_is_eq ct Term.tuple) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors ct))) (Term.Boolean true)) (__eo_ite (__eo_eq ct cs) (__some_pairwise_distinct_term l1 l2) (__eo_eq (__eo_ite (__eo_is_eq cs Term.tuple) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors cs))) (Term.Boolean true))) (Term.Boolean false))
+  | ct, cs, l1, l2 => (__dt_distinct_terms_rec_go (__distinct_terms_rank_4 ct cs l1 l2) ct cs l1 l2)
 
 
 def __eo_l_1___are_distinct_terms_type : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | t, s, Term.Int => (__eo_and (__eo_is_z t) (__eo_is_z s))
-  | t, s, Term.Real => (__eo_and (__eo_is_q t) (__eo_is_q s))
-  | t, s, (Term.Apply Term.Seq Term.Char) => (__eo_and (__eo_is_str t) (__eo_is_str s))
-  | t, s, (Term.Apply Term.BitVec n) => (__eo_and (__eo_is_bin t) (__eo_is_bin s))
-  | t, s, Term.Bool => (__eo_and (__eo_is_bool t) (__eo_is_bool s))
-  | st, ss, (Term.Apply Term.Set U) => (__eo_or (__set_is_not_subset st ss) (__set_is_not_subset ss st))
-  | sst, sss, (Term.Apply Term.Seq U) => (__seq_distinct_terms sst sss)
-  | t, s, T => (__dt_distinct_terms_rec t s Term.__eo_List_nil Term.__eo_List_nil)
+  | t, s, T => (__eo_l_1___are_distinct_terms_type_go (__distinct_terms_rank_3 t s T) t s T)
 
 
 def __are_distinct_terms_type : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | t, __eo_lv_t_2, T => (__eo_ite (__eo_eq t __eo_lv_t_2) (Term.Boolean false) (__eo_l_1___are_distinct_terms_type t __eo_lv_t_2 T))
+  | t, s, T => (__are_distinct_terms_type_go (__distinct_terms_rank_3 t s T) t s T)
 
 
 def __are_distinct_terms_list_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | t, (Term.Apply (Term.Apply Term.__eo_List_cons s) xs), T => (__eo_ite (__are_distinct_terms_type t s T) (__are_distinct_terms_list_rec t xs T) (Term.Boolean false))
-  | t, Term.__eo_List_nil, T => (Term.Boolean true)
-  | _, _, _ => Term.Stuck
+  | t, xs, T => (__are_distinct_terms_list_rec_go (__distinct_terms_rank_3 t xs T) t xs T)
 
 
 def __are_distinct_terms_list : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.__eo_List_nil, T => (Term.Boolean true)
-  | (Term.Apply (Term.Apply Term.__eo_List_cons t) xs), T => (__eo_ite (__are_distinct_terms_list_rec t xs T) (__are_distinct_terms_list xs T) (Term.Boolean false))
-  | _, _ => Term.Stuck
+  | xs, T => (__are_distinct_terms_list_go (__distinct_terms_rank_2 xs T) xs T)
 
 
 def __eo_prog_refl : Term -> Term
@@ -1922,36 +2006,56 @@ def __strip_even_exponent : Term -> Term -> Term
   | __eo_dv_1, __eo_dv_2 => (__eo_l_1___strip_even_exponent __eo_dv_1 __eo_dv_2)
 
 
+def __eo_l_3___mk_arith_mult_sign_sgn_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, sgn, (Term.Boolean true), one => (__eo_requires (__eo_to_q one) (Term.Rational (eo_lit_mk_rational 1 1)) sgn)
+  | fuel + 1, sgn, l, m => (__mk_arith_mult_sign_sgn_go fuel sgn (Term.Apply (Term.Apply Term.and l) (Term.Boolean true)) m)
+
+
+def __eo_l_2___mk_arith_mult_sign_sgn_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, sgn, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.lt t) z)) F), (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) m) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn_go fuel (__eo_not sgn) F (__strip_even_exponent t m))) (__eo_l_3___mk_arith_mult_sign_sgn_go fuel sgn (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.lt t) z)) F) (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) m)))
+  | fuel + 1, __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_3___mk_arith_mult_sign_sgn_go fuel __eo_dv_1 __eo_dv_2 __eo_dv_3)
+
+
+def __eo_l_1___mk_arith_mult_sign_sgn_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, sgn, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt t) z)) F), (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) m) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn_go fuel sgn F (__strip_even_exponent t m))) (__eo_l_2___mk_arith_mult_sign_sgn_go fuel sgn (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt t) z)) F) (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) m)))
+  | fuel + 1, __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_2___mk_arith_mult_sign_sgn_go fuel __eo_dv_1 __eo_dv_2 __eo_dv_3)
+
+
+def __mk_arith_mult_sign_sgn_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, sgn, (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t) z))) F), (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) (Term.Apply (Term.Apply Term.mult __eo_lv_t_3) m)) => (__eo_ite (__eo_and (__eo_eq t __eo_lv_t_2) (__eo_eq t __eo_lv_t_3)) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn_go fuel sgn F (__strip_even_exponent t m))) (__eo_l_1___mk_arith_mult_sign_sgn_go fuel sgn (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t) z))) F) (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) (Term.Apply (Term.Apply Term.mult __eo_lv_t_3) m))))
+  | fuel + 1, __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___mk_arith_mult_sign_sgn_go fuel __eo_dv_1 __eo_dv_2 __eo_dv_3)
+
+
 def __eo_l_3___mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | sgn, (Term.Boolean true), one => (__eo_requires (__eo_to_q one) (Term.Rational (eo_lit_mk_rational 1 1)) sgn)
-  | sgn, l, m => (__mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply Term.and l) (Term.Boolean true)) m)
+  | sgn, l, m => (__eo_l_3___mk_arith_mult_sign_sgn_go (__linear_rank_3 sgn l m) sgn l m)
 
 
 def __eo_l_2___mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | sgn, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.lt t) z)) F), (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) m) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn (__eo_not sgn) F (__strip_even_exponent t m))) (__eo_l_3___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.lt t) z)) F) (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) m)))
-  | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_3___mk_arith_mult_sign_sgn __eo_dv_1 __eo_dv_2 __eo_dv_3)
+  | sgn, l, m => (__eo_l_2___mk_arith_mult_sign_sgn_go (__linear_rank_3 sgn l m) sgn l m)
 
 
 def __eo_l_1___mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | sgn, (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt t) z)) F), (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) m) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn sgn F (__strip_even_exponent t m))) (__eo_l_2___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.gt t) z)) F) (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) m)))
-  | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_2___mk_arith_mult_sign_sgn __eo_dv_1 __eo_dv_2 __eo_dv_3)
+  | sgn, l, m => (__eo_l_1___mk_arith_mult_sign_sgn_go (__linear_rank_3 sgn l m) sgn l m)
 
 
 def __mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | sgn, (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t) z))) F), (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) (Term.Apply (Term.Apply Term.mult __eo_lv_t_3) m)) => (__eo_ite (__eo_and (__eo_eq t __eo_lv_t_2) (__eo_eq t __eo_lv_t_3)) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn sgn F (__strip_even_exponent t m))) (__eo_l_1___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t) z))) F) (Term.Apply (Term.Apply Term.mult __eo_lv_t_2) (Term.Apply (Term.Apply Term.mult __eo_lv_t_3) m))))
-  | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___mk_arith_mult_sign_sgn __eo_dv_1 __eo_dv_2 __eo_dv_3)
+  | sgn, l, m => (__mk_arith_mult_sign_sgn_go (__linear_rank_3 sgn l m) sgn l m)
 
 
 def __eo_prog_arith_mult_sign : Term -> Term -> Term
@@ -2075,18 +2179,28 @@ def __eo_prog_arith_poly_norm_rel : Term -> Proof -> Term
   | _, _ => Term.Stuck
 
 
+def __bv_unfold_repeat_rec_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Numeral 0), b => (Term.Binary 0 0)
+  | fuel + 1, n, b => (__eo_mk_apply (Term.Apply Term.concat b) (__bv_unfold_repeat_rec_go fuel (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) b))
+
+
 def __bv_unfold_repeat_rec : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Numeral 0), b => (Term.Binary 0 0)
-  | n, b => (__eo_mk_apply (Term.Apply Term.concat b) (__bv_unfold_repeat_rec (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) b))
+  | n, b => (__bv_unfold_repeat_rec_go (__repeat_rank n b) n b)
+
+
+def __bv_repeat_eval_rec_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Numeral 0), b => (Term.Binary 0 0)
+  | fuel + 1, n, b => (__eo_concat b (__bv_repeat_eval_rec_go fuel (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) b))
 
 
 def __bv_repeat_eval_rec : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Numeral 0), b => (Term.Binary 0 0)
-  | n, b => (__eo_concat b (__bv_repeat_eval_rec (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) b))
+  | n, b => (__bv_repeat_eval_rec_go (__repeat_rank n b) n b)
 
 
 def __bv_get_first_const_child : Term -> Term
@@ -2111,11 +2225,16 @@ def __bv_bitblast_binary_app : Term -> Term -> Term -> Term
   | _, _, _ => Term.Stuck
 
 
+def __bv_bitblast_repeat_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, b, (Term.Numeral 0) => (Term.Binary 0 0)
+  | fuel + 1, b, n => (__eo_mk_apply (Term.Apply Term._at_from_bools b) (__bv_bitblast_repeat_go fuel b (__eo_add n (Term.Numeral (-1 : eo_lit_Int)))))
+
+
 def __bv_bitblast_repeat : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | b, (Term.Numeral 0) => (Term.Binary 0 0)
-  | b, n => (__eo_mk_apply (Term.Apply Term._at_from_bools b) (__bv_bitblast_repeat b (__eo_add n (Term.Numeral (-1 : eo_lit_Int)))))
+  | b, n => (__bv_bitblast_repeat_go (__repeat_rank n b) b n)
 
 
 def __bv_bitblast_prefix : Term -> Term -> Term
@@ -2272,15 +2391,16 @@ def __bv_mk_bitblast_step_mul : Term -> Term -> Term
   | a2, ac => ac
 
 
-def __eo_l_1___bv_div_mod_impl : Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | a1, a2, zero, sz =>
+def __eo_l_1___bv_div_mod_impl_go : Nat -> Term -> Term -> Term -> Term -> Term
+  | 0, _, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, a1, a2, zero, sz =>
     let _v0 := (__bv_bitblast_apply_unary Term.not a2)
     let _v1 := (Term.Apply (Term.Apply Term._at_from_bools (Term.Boolean false)) (Term.Binary 0 0))
-    let _v2 := (__bv_div_mod_impl (__bv_bitblast_concat (__bv_bitblast_subsequence (Term.Numeral 1) (__eo_list_len Term._at_from_bools a1) a1) _v1) a2 zero (__eo_add sz (Term.Numeral (-1 : eo_lit_Int))))
+    let _v2 := (__bv_div_mod_impl_go fuel (__bv_bitblast_concat (__bv_bitblast_subsequence (Term.Numeral 1) (__eo_list_len Term._at_from_bools a1) a1) _v1) a2 zero (__eo_add sz (Term.Numeral (-1 : eo_lit_Int))))
     let _v3 := (__pair_second _v2)
     let _v4 := (__pair_second (__bv_ripple_carry_adder_2 (__bv_bitblast_concat _v1 (__bv_bitblast_subsequence (Term.Numeral 0) (__eo_add (__eo_add (__eo_list_len Term._at_from_bools _v3) (Term.Numeral (-1 : eo_lit_Int))) (Term.Numeral (-1 : eo_lit_Int))) _v3)) zero (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.ite (__eo_mk_apply (__eo_mk_apply Term.eq (__bv_bitblast_head a1)) (Term.Boolean true))) (Term.Boolean true)) (Term.Boolean false)) (Term.Binary 0 0)))
     let _v5 := (__bv_ripple_carry_adder_2 _v4 _v0 (Term.Boolean true) (Term.Binary 0 0))
@@ -2291,13 +2411,22 @@ def __eo_l_1___bv_div_mod_impl : Term -> Term -> Term -> Term -> Term
     (__eo_mk_apply (__eo_mk_apply Term._at__at_pair (__bv_bitblast_apply_ite _v7 zero (__eo_mk_apply (__eo_mk_apply Term._at_from_bools (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.ite _v6) (__bv_bitblast_head _v9)) (Term.Boolean true))) (__bv_bitblast_tail _v9)))) (__bv_bitblast_apply_ite _v7 a1 (__bv_bitblast_apply_ite _v6 _v4 (__pair_second _v5))))
 
 
+def __bv_div_mod_impl_go : Nat -> Term -> Term -> Term -> Term -> Term
+  | 0, _, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, a1, a2, zero, (Term.Numeral 0) => (Term.Apply (Term.Apply Term._at__at_pair zero) zero)
+  | fuel + 1, zero, a2, __eo_lv_zero_2, sz => (__eo_ite (__eo_eq zero __eo_lv_zero_2) (Term.Apply (Term.Apply Term._at__at_pair zero) zero) (__eo_l_1___bv_div_mod_impl_go fuel zero a2 __eo_lv_zero_2 sz))
+
+
+def __eo_l_1___bv_div_mod_impl : Term -> Term -> Term -> Term -> Term
+  | a1, a2, zero, sz => (__eo_l_1___bv_div_mod_impl_go (__div_mod_rank sz) a1 a2 zero sz)
+
+
 def __bv_div_mod_impl : Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | a1, a2, zero, (Term.Numeral 0) => (Term.Apply (Term.Apply Term._at__at_pair zero) zero)
-  | zero, a2, __eo_lv_zero_2, sz => (__eo_ite (__eo_eq zero __eo_lv_zero_2) (Term.Apply (Term.Apply Term._at__at_pair zero) zero) (__eo_l_1___bv_div_mod_impl zero a2 __eo_lv_zero_2 sz))
+  | a1, a2, zero, sz => (__bv_div_mod_impl_go (__div_mod_rank sz) a1 a2 zero sz)
 
 
 def __bv_mk_bitblast_step_ite : Term -> Term -> Term -> Term
@@ -2306,18 +2435,28 @@ def __bv_mk_bitblast_step_ite : Term -> Term -> Term -> Term
   | _, _, _ => Term.Stuck
 
 
+def __eo_l_1___bv_const_to_bitlist_rec_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, c, i, n => (__eo_mk_apply (__eo_mk_apply Term._at_from_bools (__eo_eq (__eo_extract c i i) (Term.Binary 1 1))) (__bv_const_to_bitlist_rec_go fuel c (__eo_add i (Term.Numeral 1)) n))
+
+
+def __bv_const_to_bitlist_rec_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, c, n, __eo_lv_n_2 => (__eo_ite (__eo_eq n __eo_lv_n_2) (Term.Binary 0 0) (__eo_l_1___bv_const_to_bitlist_rec_go fuel c n __eo_lv_n_2))
+
+
 def __eo_l_1___bv_const_to_bitlist_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | c, i, n => (__eo_mk_apply (__eo_mk_apply Term._at_from_bools (__eo_eq (__eo_extract c i i) (Term.Binary 1 1))) (__bv_const_to_bitlist_rec c (__eo_add i (Term.Numeral 1)) n))
+  | c, i, n => (__eo_l_1___bv_const_to_bitlist_rec_go (__index_pair_rank i n) c i n)
 
 
 def __bv_const_to_bitlist_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | c, n, __eo_lv_n_2 => (__eo_ite (__eo_eq n __eo_lv_n_2) (Term.Binary 0 0) (__eo_l_1___bv_const_to_bitlist_rec c n __eo_lv_n_2))
+  | c, i, n => (__bv_const_to_bitlist_rec_go (__index_pair_rank i n) c i n)
 
 
 def __bv_mk_bitblast_step_shl_rec_step : Term -> Term -> Term -> Term -> Term
@@ -2377,11 +2516,16 @@ def __bv_mk_bitblast_step_shr_rec : Term -> Term -> Term -> Term -> Term -> Term
   | a1, a2, lsz, __eo_lv_lsz_2, sbit => (__eo_ite (__eo_eq lsz __eo_lv_lsz_2) a1 (__eo_l_1___bv_mk_bitblast_step_shr_rec a1 a2 lsz __eo_lv_lsz_2 sbit))
 
 
+def __bv_mk_bitblast_step_var_rec_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, a, (Term.Numeral (-1 : eo_lit_Int)) => (Term.Binary 0 0)
+  | fuel + 1, a, i => (__eo_mk_apply (Term.Apply Term._at_from_bools (Term.Apply (Term.Apply Term._at_bit i) a)) (__bv_mk_bitblast_step_var_rec_go fuel a (__eo_add i (Term.Numeral (-1 : eo_lit_Int)))))
+
+
 def __bv_mk_bitblast_step_var_rec : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | a, (Term.Numeral (-1 : eo_lit_Int)) => (Term.Binary 0 0)
-  | a, i => (__eo_mk_apply (Term.Apply Term._at_from_bools (Term.Apply (Term.Apply Term._at_bit i) a)) (__bv_mk_bitblast_step_var_rec a (__eo_add i (Term.Numeral (-1 : eo_lit_Int)))))
+  | a, i => (__bv_mk_bitblast_step_var_rec_go (__minus_one_rank i) a i)
 
 
 def __bv_mk_bitblast_step : Term -> Term
