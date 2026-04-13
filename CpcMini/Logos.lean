@@ -433,9 +433,9 @@ def __eo_prog_trans : Proof -> Term
   | _ => Term.Stuck
 
 
-
-
 end
+
+
 
 /- Definition of the checker -/
 

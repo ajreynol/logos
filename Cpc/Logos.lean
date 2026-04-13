@@ -9721,9 +9721,9 @@ partial def __eo_prog_distinct_card_conflict : Term -> Term
   | _ => Term.Stuck
 
 
-
-
 end
+
+
 
 /- Definition of the checker -/
 
