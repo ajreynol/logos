@@ -361,6 +361,23 @@ inductive Proof : Type where
   | pf : Term -> Proof
   | Stuck : Proof
 
+def __dt_find_cycle_term_weight : Term -> Nat
+  | (Term.Apply f a) => __dt_find_cycle_term_weight f + __dt_find_cycle_term_weight a + 1
+  | _ => 1
+
+def __dt_find_cycle_pending : Term -> Nat
+  | (Term.Apply (Term.Apply Term.__eo_List_cons t) ts) => __dt_find_cycle_term_weight t + __dt_find_cycle_pending ts
+  | _ => 0
+
+def __dt_find_cycle_rank_rec (t l : Term) : Nat :=
+  3 * (__dt_find_cycle_term_weight t + __dt_find_cycle_pending l)
+
+def __dt_find_cycle_rank_list_aux (ts : Term) : Nat :=
+  3 * __dt_find_cycle_pending ts + 1
+
+def __dt_find_cycle_rank_list (ts : Term) : Nat :=
+  3 * __dt_find_cycle_pending ts + 2
+
 /- Definition of Eunoia signature -/
 
 
@@ -4295,26 +4312,41 @@ def __eo_prog_dt_cons_eq_clash : Term -> Term
   | _ => Term.Stuck
 
 
+def __dt_find_cycle_rec_go : Nat -> Term -> Term -> Term -> Term
+  | 0, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Apply f a), s, l => (__dt_find_cycle_rec_go fuel f s (Term.Apply (Term.Apply Term.__eo_List_cons a) l))
+  | fuel + 1, c, s, l => (__eo_ite (__eo_ite (__eo_is_eq c Term.tuple) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors c))) (__dt_find_cycle_list_go fuel l s) (Term.Boolean false))
+
+
+def __eo_l_1___dt_find_cycle_list_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Apply (Term.Apply Term.__eo_List_cons t) ts), ss => (__eo_ite (__dt_find_cycle_rec_go fuel t ss Term.__eo_List_nil) (Term.Boolean true) (__dt_find_cycle_list_go fuel ts ss))
+  | fuel + 1, Term.__eo_List_nil, ss => (Term.Boolean false)
+  | fuel + 1, _, _ => Term.Stuck
+
+
+def __dt_find_cycle_list_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Apply (Term.Apply Term.__eo_List_cons s) ts), (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_s_2) Term.__eo_List_nil) => (__eo_ite (__eo_eq s __eo_lv_s_2) (Term.Boolean true) (__eo_l_1___dt_find_cycle_list_go fuel (Term.Apply (Term.Apply Term.__eo_List_cons s) ts) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_s_2) Term.__eo_List_nil)))
+  | fuel + 1, __eo_dv_1, __eo_dv_2 => (__eo_l_1___dt_find_cycle_list_go fuel __eo_dv_1 __eo_dv_2)
+
+
 def __dt_find_cycle_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply f a), s, l => (__dt_find_cycle_rec f s (Term.Apply (Term.Apply Term.__eo_List_cons a) l))
-  | c, s, l => (__eo_ite (__eo_ite (__eo_is_eq c Term.tuple) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors c))) (__dt_find_cycle_list l s) (Term.Boolean false))
+  | t, s, l => (__dt_find_cycle_rec_go (__dt_find_cycle_rank_rec t l + 1) t s l)
 
 
 def __eo_l_1___dt_find_cycle_list : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Term.__eo_List_cons t) ts), ss => (__eo_ite (__dt_find_cycle_rec t ss Term.__eo_List_nil) (Term.Boolean true) (__dt_find_cycle_list ts ss))
-  | Term.__eo_List_nil, ss => (Term.Boolean false)
-  | _, _ => Term.Stuck
+  | ts, ss => (__eo_l_1___dt_find_cycle_list_go (__dt_find_cycle_rank_list_aux ts + 1) ts ss)
 
 
 def __dt_find_cycle_list : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Term.__eo_List_cons s) ts), (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_s_2) Term.__eo_List_nil) => (__eo_ite (__eo_eq s __eo_lv_s_2) (Term.Boolean true) (__eo_l_1___dt_find_cycle_list (Term.Apply (Term.Apply Term.__eo_List_cons s) ts) (Term.Apply (Term.Apply Term.__eo_List_cons __eo_lv_s_2) Term.__eo_List_nil)))
-  | __eo_dv_1, __eo_dv_2 => (__eo_l_1___dt_find_cycle_list __eo_dv_1 __eo_dv_2)
+  | ts, ss => (__dt_find_cycle_list_go (__dt_find_cycle_rank_list ts + 1) ts ss)
 
 
 def __eo_prog_dt_cycle : Term -> Term
