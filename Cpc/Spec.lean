@@ -210,6 +210,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply Term.to_int x1) => (SmtTerm.Apply SmtTerm.to_int (__eo_to_smt x1))
   | (Term.Apply Term.is_int x1) => (SmtTerm.Apply SmtTerm.is_int (__eo_to_smt x1))
   | (Term.Apply Term.abs x1) => (SmtTerm.Apply SmtTerm.abs (__eo_to_smt x1))
+  | (Term.Apply Term.__eoo_neg_2 x1) => (SmtTerm.Apply SmtTerm.__eoo_neg_2 (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.div x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.div (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.mod x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.mod (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.multmult x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.multmult (__eo_to_smt x1)) (__eo_to_smt x2))

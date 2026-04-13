@@ -135,6 +135,9 @@ inductive Term : Type where
   | UConst : eo_lit_Nat -> Term -> Term
   | _at__at_Pair : Term
   | _at__at_pair : Term
+  | _at__at_TypedList : Term
+  | _at__at_TypedList_nil : Term
+  | _at__at_TypedList_cons : Term
   | _at__at_result_null : Term
   | _at__at_result_invalid : Term
   | ite : Term
@@ -852,6 +855,17 @@ partial def __pair_second : Term -> Term
   | _ => Term.Stuck
 
 
+partial def __typed_list_element_type : Term -> Term
+  | (Term.Apply Term._at__at_TypedList T) => T
+  | _ => Term.Stuck
+
+
+partial def __typed_list_to_untyped : Term -> Term
+  | (Term.Apply (Term.Apply Term._at__at_TypedList_cons x) xs) => (__eo_mk_apply (Term.Apply Term.__eo_List_cons x) (__typed_list_to_untyped xs))
+  | (Term.Apply Term._at__at_TypedList_nil T) => Term.__eo_List_nil
+  | _ => Term.Stuck
+
+
 partial def __evaluate_internal : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | t, (Term.Apply (Term.Apply Term.__eo_List_cons tev) Term.__eo_List_nil) => tev
@@ -889,27 +903,6 @@ partial def __result_combine : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | b1, Term._at__at_result_null => b1
   | b1, __eo_lv_b1_2 => (__eo_ite (__eo_eq b1 __eo_lv_b1_2) b1 (__eo_l_1___result_combine b1 __eo_lv_b1_2))
-
-
-partial def __eo_l_1___assoc_nil_has_type_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | f, nil, W => (Term.Boolean true)
-
-
-partial def __assoc_nil_has_type_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2), W => (__eo_ite (__eo_eq f __eo_lv_f_2) (__eo_requires (__eo_typeof x1) W (__assoc_nil_has_type_rec f x2 W)) (__eo_l_1___assoc_nil_has_type_rec f (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2) W))
-  | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___assoc_nil_has_type_rec __eo_dv_1 __eo_dv_2 __eo_dv_3)
-
-
-partial def __assoc_nil_same_type : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | f, (Term.Apply (Term.Apply __eo_lv_f_2 x1) x2) => (__eo_requires (__eo_eq f __eo_lv_f_2) (Term.Boolean true) (__assoc_nil_has_type_rec f x2 (__eo_typeof x1)))
-  | _, _ => Term.Stuck
 
 
 partial def __eo_prog_scope : Term -> Proof -> Term
@@ -1627,13 +1620,13 @@ partial def __eo_prog_ho_cong : Proof -> Term
 partial def __mk_distinct_elim_rec : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | x, (Term.Apply (Term.Apply Term.__eo_List_cons y) xs), b => (__eo_mk_apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq x) y))) (__mk_distinct_elim_rec x xs b))
-  | x, Term.__eo_List_nil, b => b
+  | x, (Term.Apply (Term.Apply Term._at__at_TypedList_cons y) xs), b => (__eo_mk_apply (Term.Apply Term.and (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq x) y))) (__mk_distinct_elim_rec x xs b))
+  | x, (Term.Apply Term._at__at_TypedList_nil T), b => b
   | _, _, _ => Term.Stuck
 
 
 partial def __mk_distinct_elim : Term -> Term
-  | (Term.Apply Term.distinct (Term.Apply (Term.Apply Term.__eo_List_cons x) xs)) => (__mk_distinct_elim_rec x xs (__mk_distinct_elim (Term.Apply Term.distinct xs)))
+  | (Term.Apply Term.distinct (Term.Apply (Term.Apply Term._at__at_TypedList_cons x) xs)) => (__mk_distinct_elim_rec x xs (__mk_distinct_elim (Term.Apply Term.distinct xs)))
   | (Term.Apply Term.distinct xs) => (Term.Boolean true)
   | _ => Term.Stuck
 
@@ -1644,12 +1637,12 @@ partial def __eo_prog_distinct_elim : Term -> Term
 
 
 partial def __eo_prog_distinct_true : Term -> Term
-  | (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean true)) => (__eo_requires (__are_distinct_terms_list xs (__assoc_nil_nth_type Term.__eo_List_cons xs (Term.Numeral 0))) (Term.Boolean true) (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean true)))
+  | (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean true)) => (__eo_requires (__are_distinct_terms_list (__typed_list_to_untyped xs) (__typed_list_element_type (__eo_typeof xs))) (Term.Boolean true) (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean true)))
   | _ => Term.Stuck
 
 
 partial def __eo_prog_distinct_false : Term -> Term
-  | (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean false)) => (__eo_requires (__eo_eq (__eo_list_setof Term.__eo_List_cons xs) xs) (Term.Boolean false) (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean false)))
+  | (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean false)) => (__eo_requires (__eo_eq (__eo_list_setof Term._at__at_TypedList_cons xs) xs) (Term.Boolean false) (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean false)))
   | _ => Term.Stuck
 
 
@@ -2569,6 +2562,13 @@ partial def __eo_prog_bv_poly_norm_eq : Term -> Proof -> Term
 partial def __get_var_list : Term -> Term
   | (Term.Apply (Term.Apply Q xs) G) => xs
   | _ => Term.Stuck
+
+
+partial def __get_nth_var_type : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply Q (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var s T)) xs)) G), (Term.Numeral 0) => T
+  | (Term.Apply (Term.Apply Q (Term.Apply (Term.Apply Term.__eo_List_cons v) xs)) G), i => (__get_nth_var_type (Term.Apply (Term.Apply Q xs) G) (__eo_add i (Term.Numeral (-1 : eo_lit_Int))))
+  | _, _ => Term.Stuck
 
 
 partial def __contains_atomic_term : Term -> Term -> Term
@@ -5373,7 +5373,7 @@ partial def __eo_prog_bv_ult_ones : Term -> Term -> Term -> Proof -> Term
   | _ , _ , Term.Stuck , _  => Term.Stuck
   | x1, n1, w1, (Proof.pf (Term.Apply (Term.Apply Term.eq __eo_lv_n1_2) (Term.Apply (Term.Apply Term.neg (Term.Apply Term.int_pow2 __eo_lv_w1_2)) (Term.Numeral 1)))) => 
     let _v0 := (Term.Apply (Term.Apply Term._at_bv n1) w1)
-    (__eo_requires (__eo_and (__eo_eq n1 __eo_lv_n1_2) (__eo_eq w1 __eo_lv_w1_2)) (Term.Boolean true) (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.bvult x1) _v0)) (Term.Apply Term.distinct (Term.Apply (Term.Apply Term.__eo_List_cons x1) (Term.Apply (Term.Apply Term.__eo_List_cons _v0) Term.__eo_List_nil)))))
+    (__eo_requires (__eo_and (__eo_eq n1 __eo_lv_n1_2) (__eo_eq w1 __eo_lv_w1_2)) (Term.Boolean true) (__eo_mk_apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.bvult x1) _v0)) (__eo_mk_apply Term.distinct (__eo_mk_apply (Term.Apply Term._at__at_TypedList_cons x1) (__eo_mk_apply (Term.Apply Term._at__at_TypedList_cons _v0) (__eo_nil Term._at__at_TypedList_cons (__eo_typeof x1)))))))
   | _, _, _, _ => Term.Stuck
 
 
@@ -7886,7 +7886,7 @@ partial def __eo_prog_eq_ite_lift : Term -> Term -> Term -> Term -> Term
 partial def __eo_prog_distinct_binary_elim : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | t1, s1 => (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct (Term.Apply (Term.Apply Term.__eo_List_cons t1) (Term.Apply (Term.Apply Term.__eo_List_cons s1) Term.__eo_List_nil)))) (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t1) s1)))
+  | t1, s1 => (__eo_mk_apply (__eo_mk_apply Term.eq (__eo_mk_apply Term.distinct (__eo_mk_apply (Term.Apply Term._at__at_TypedList_cons t1) (__eo_mk_apply (Term.Apply Term._at__at_TypedList_cons s1) (__eo_nil Term._at__at_TypedList_cons (__eo_typeof t1)))))) (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq t1) s1)))
 
 
 partial def __eo_prog_uf_bv2nat_int2bv : Term -> Term -> Proof -> Term
@@ -8355,7 +8355,7 @@ partial def __compute_card : Term -> Term
 
 
 partial def __eo_prog_distinct_card_conflict : Term -> Term
-  | (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean false)) => (__eo_requires (__eo_gt (__eo_list_len Term.__eo_List_cons xs) (__compute_card (__assoc_nil_nth_type Term.__eo_List_cons xs (Term.Numeral 0)))) (Term.Boolean true) (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean false)))
+  | (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean false)) => (__eo_requires (__eo_gt (__eo_list_len Term._at__at_TypedList_cons xs) (__compute_card (__assoc_nil_nth_type Term._at__at_TypedList_cons xs (Term.Numeral 0)))) (Term.Boolean true) (Term.Apply (Term.Apply Term.eq (Term.Apply Term.distinct xs)) (Term.Boolean false)))
   | _ => Term.Stuck
 
 
@@ -8371,6 +8371,11 @@ partial def __eo_dt_constructors_main : Term -> Term
 
 partial def __eo_dt_selectors_main : Term -> Term
   | _ => Term.Stuck
+
+
+partial def __eo_nil__at__at_TypedList_cons : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | T => (Term.Apply Term._at__at_TypedList_nil T)
 
 
 partial def __eo_nil_plus : Term -> Term
@@ -8415,6 +8420,7 @@ partial def __eo_nil_str_concat : Term -> Term
 
 partial def __eo_nil : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
+  | Term._at__at_TypedList_cons, T => (__eo_nil__at__at_TypedList_cons T)
   | Term.or, T => (Term.Boolean false)
   | Term.and, T => (Term.Boolean true)
   | Term.plus, T => (__eo_nil_plus T)
@@ -8440,6 +8446,7 @@ partial def __eo_nil : Term -> Term -> Term
 partial def __eo_is_list_nil : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
+  | Term._at__at_TypedList_cons, nil => (__eo_is_list_nil__at__at_TypedList_cons nil)
   | Term.or, (Term.Boolean false) => (Term.Boolean true)
   | Term.and, (Term.Boolean true) => (Term.Boolean true)
   | Term.plus, nil => (__eo_is_list_nil_plus nil)
@@ -8529,6 +8536,23 @@ partial def __eo_typeof__at__at_pair : Term -> Term -> Term
   | U, T => (Term.Apply (Term.Apply Term._at__at_Pair U) T)
 
 
+partial def __eo_typeof__at__at_TypedList : Term -> Term
+  | Term.Type => Term.Type
+  | _ => Term.Stuck
+
+
+partial def __eo_typeof__at__at_TypedList_nil : Term -> Term -> Term
+  | _ , Term.Stuck  => Term.Stuck
+  | Term.Type, T => (Term.Apply Term._at__at_TypedList T)
+  | _, _ => Term.Stuck
+
+
+partial def __eo_typeof__at__at_TypedList_cons : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | T, (Term.Apply Term._at__at_TypedList __eo_lv_T_2) => (__eo_requires (__eo_eq T __eo_lv_T_2) (Term.Boolean true) (Term.Apply Term._at__at_TypedList T))
+  | _, _ => Term.Stuck
+
+
 partial def __eo_typeof_ite : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
@@ -8567,10 +8591,9 @@ partial def __eo_typeof_eq : Term -> Term -> Term
   | A, __eo_lv_A_2 => (__eo_requires (__eo_eq A __eo_lv_A_2) (Term.Boolean true) Term.Bool)
 
 
-partial def __eo_typeof_distinct : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.__eo_List, xs => (__eo_requires (__assoc_nil_same_type Term.__eo_List_cons xs) (Term.Boolean true) Term.Bool)
-  | _, _ => Term.Stuck
+partial def __eo_typeof_distinct : Term -> Term
+  | (Term.Apply Term._at__at_TypedList T) => Term.Bool
+  | _ => Term.Stuck
 
 
 partial def __eo_typeof__at_purify : Term -> Term
@@ -9399,7 +9422,7 @@ partial def __eo_typeof_exists : Term -> Term -> Term
 partial def __eo_typeof__at_quantifiers_skolemize : Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | Term.Bool, F, Term.Int, i => (__assoc_nil_nth_type Term.__eo_List_cons (__get_var_list F) i)
+  | Term.Bool, F, Term.Int, i => (__get_nth_var_type F i)
   | _, _, _, _ => Term.Stuck
 
 
@@ -9456,6 +9479,9 @@ partial def __eo_typeof : Term -> Term
   | (Term.Apply Term.Seq __eo_x1) => (__eo_typeof_Seq (__eo_typeof __eo_x1))
   | (Term.Apply (Term.Apply Term._at__at_Pair __eo_x1) __eo_x2) => (__eo_typeof__at__at_Pair (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term._at__at_pair __eo_x1) __eo_x2) => (__eo_typeof__at__at_pair (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply Term._at__at_TypedList __eo_x1) => (__eo_typeof__at__at_TypedList (__eo_typeof __eo_x1))
+  | (Term.Apply Term._at__at_TypedList_nil __eo_x1) => (__eo_typeof__at__at_TypedList_nil (__eo_typeof __eo_x1) __eo_x1)
+  | (Term.Apply (Term.Apply Term._at__at_TypedList_cons __eo_x1) __eo_x2) => (__eo_typeof__at__at_TypedList_cons (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | Term._at__at_result_null => Term.Bool
   | Term._at__at_result_invalid => Term.Bool
   | (Term.Apply (Term.Apply (Term.Apply Term.ite __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof_ite (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
@@ -9465,7 +9491,7 @@ partial def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply Term.imp __eo_x1) __eo_x2) => (__eo_typeof_imp (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term.xor __eo_x1) __eo_x2) => (__eo_typeof_xor (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term.eq __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply Term.distinct __eo_x1) => (__eo_typeof_distinct (__eo_typeof __eo_x1) __eo_x1)
+  | (Term.Apply Term.distinct __eo_x1) => (__eo_typeof_distinct (__eo_typeof __eo_x1))
   | (Term._at_purify __eo_x1) => (__eo_typeof__at_purify (__eo_typeof __eo_x1))
   | (Term.Apply (Term.Apply Term.plus __eo_x1) __eo_x2) => (__eo_typeof_plus (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term.neg __eo_x1) __eo_x2) => (__eo_typeof__ (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
@@ -9640,6 +9666,11 @@ partial def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply Term._at__at_aci_sorted __eo_x1) __eo_x2) => (__eo_typeof__at__at_aci_sorted (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term._at_const __eo_x1 __eo_x2) => (__eo_typeof__at_const (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) __eo_x2)
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
+  | _ => Term.Stuck
+
+
+partial def __eo_is_list_nil__at__at_TypedList_cons : Term -> Term
+  | (Term.Apply Term._at__at_TypedList_nil T) => (Term.Boolean true)
   | _ => Term.Stuck
 
 
