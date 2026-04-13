@@ -1,13 +1,13 @@
 import Cpc.Logos
 open Eo
 def t1 := (Term.UConst 1 Term.Int)
-def t2 := (Term.Apply Term.__eo_List_cons t1)
-def t3 := (Term.Apply t2 Term.__eo_List_nil)
+def t2 := (Term.Apply Term._at__at_TypedList_cons t1)
+def t3 := (Term.Apply t2 (Term._at__at_TypedList_nil Term.Int))
 def t4 := (Term.UConst 2 Term.Int)
-def t5 := (Term.Apply Term.__eo_List_cons t4)
+def t5 := (Term.Apply Term._at__at_TypedList_cons t4)
 def t6 := (Term.Apply t5 t3)
 def t7 := (Term.UConst 3 Term.Int)
-def t8 := (Term.Apply Term.__eo_List_cons t7)
+def t8 := (Term.Apply Term._at__at_TypedList_cons t7)
 def t9 := (Term.Apply t8 t6)
 def t10 := (Term.Apply Term.distinct t9)
 def t11 := (Term.Apply Term.eq t4)
