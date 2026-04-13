@@ -99,7 +99,7 @@ inductive Term : Type where
   | Stuck : Term
   | Apply : Term -> Term -> Term
   | FunType : Term
-  | Var : eo_lit_String -> Term -> Term
+  | Var : Term -> Term -> Term
   | USort : eo_lit_Nat -> Term
   | UConst : eo_lit_Nat -> Term -> Term
   | not : Term
@@ -330,7 +330,7 @@ def __eo_typeof : Term -> Term
   | (Term.Rational r) => (__eo_lit_type_Rational (Term.Rational r))
   | (Term.String s) => (__eo_lit_type_String (Term.String s))
   | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
-  | (Term.Var s T) => T
+  | (Term.Var (Term.String s) T) => T
   | (Term.USort i) => Term.Type
   | (Term.UConst i T) => T
   | Term.Type => Term.Type

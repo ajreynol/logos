@@ -177,9 +177,13 @@ private theorem eo_to_smt_typeof_matches_translation :
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.FunType, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
-  | Term.Var s T, hNN => by
-      simpa [__eo_to_smt.eq_def, __eo_typeof] using
-        smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hNN
+  | Term.Var name T, hNN => by
+      cases name with
+      | String s =>
+          simpa [__eo_to_smt.eq_def, __eo_typeof] using
+            smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hNN
+      | _ =>
+          exact False.elim (hNN (by simp [__eo_to_smt.eq_def, __smtx_typeof]))
   | Term.USort i, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.UConst i T, hNN => by
