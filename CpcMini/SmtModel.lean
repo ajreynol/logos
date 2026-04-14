@@ -482,7 +482,7 @@ def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> smt_lit_Bool
 
 def __smtx_dt_wf_rec : SmtDatatype -> RefList -> smt_lit_Bool
   | SmtDatatype.null, refs => true
-  | (SmtDatatype.sum c d), refs => (smt_lit_ite (__smtx_dt_cons_wf_rec c refs) (__smtx_dt_wf_rec d) false)
+  | (SmtDatatype.sum c d), refs => (smt_lit_ite (__smtx_dt_cons_wf_rec c refs) (__smtx_dt_wf_rec d refs) false)
 
 
 def __smtx_type_wf_rec : SmtType -> RefList -> smt_lit_Bool
