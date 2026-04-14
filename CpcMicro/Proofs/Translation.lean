@@ -274,7 +274,7 @@ private theorem eo_to_smt_typeof_matches_translation :
                 eo_typeof_bool_of_smt_bool hIx hArgs.2
               have hTy :
                   __eo_typeof (Term.Apply (Term.Apply Term.and y) x) = Term.Bool := by
-                simp [__eo_typeof, __eo_typeof_and, hTyY, hTyX]
+                simp [__eo_typeof, __eo_typeof_or, hTyY, hTyX]
               rw [hTy]
               exact smtx_typeof_translation_and_of_non_none y x hNN
             · by_cases hImp : g = Term.imp
@@ -303,7 +303,7 @@ private theorem eo_to_smt_typeof_matches_translation :
                   eo_typeof_bool_of_smt_bool hIx hArgs.2
                 have hTy :
                     __eo_typeof (Term.Apply (Term.Apply Term.imp y) x) = Term.Bool := by
-                  simp [__eo_typeof, __eo_typeof_imp, hTyY, hTyX]
+                  simp [__eo_typeof, __eo_typeof_or, hTyY, hTyX]
                 rw [hTy]
                 exact smtx_typeof_translation_imp_of_non_none y x hNN
               · by_cases hEq : g = Term.eq
