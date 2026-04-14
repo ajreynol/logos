@@ -33,7 +33,7 @@ theorem smtx_typeof_translation_or_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hApplyNN :
       term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or (__eo_to_smt x)) (__eo_to_smt y)) := by
+        (SmtTerm.or (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hApplyNN
@@ -48,7 +48,7 @@ theorem smtx_typeof_translation_and_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hApplyNN :
       term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x)) (__eo_to_smt y)) := by
+        (SmtTerm.and (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hApplyNN
@@ -63,7 +63,7 @@ theorem smtx_typeof_translation_imp_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hApplyNN :
       term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt x)) (__eo_to_smt y)) := by
+        (SmtTerm.imp (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hApplyNN

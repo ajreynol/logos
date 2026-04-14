@@ -1070,13 +1070,14 @@ theorem reglan_value_canonical
 
 /-- Derives `bool_binop_args_bool` from `non_none`. -/
 theorem bool_binop_args_bool_of_non_none
-    {op t1 t2 : SmtTerm}
+    {op : SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 : SmtTerm}
     (hTy :
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply op t1) t2) =
+      __smtx_typeof (op t1 t2) =
         smt_lit_ite (smt_lit_Teq (__smtx_typeof t1) SmtType.Bool)
           (smt_lit_ite (smt_lit_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
           SmtType.None)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
+    (ht : term_has_non_none_type (op t1 t2)) :
     __smtx_typeof t1 = SmtType.Bool ∧ __smtx_typeof t2 = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
@@ -1085,11 +1086,12 @@ theorem bool_binop_args_bool_of_non_none
 
 /-- Derives `arith_binop_args` from `non_none`. -/
 theorem arith_binop_args_of_non_none
-    {op t1 t2 : SmtTerm}
+    {op : SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 : SmtTerm}
     (hTy :
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply op t1) t2) =
+      __smtx_typeof (op t1 t2) =
         __smtx_typeof_arith_overload_op_2 (__smtx_typeof t1) (__smtx_typeof t2))
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
+    (ht : term_has_non_none_type (op t1 t2)) :
     (__smtx_typeof t1 = SmtType.Int ∧ __smtx_typeof t2 = SmtType.Int) ∨
       (__smtx_typeof t1 = SmtType.Real ∧ __smtx_typeof t2 = SmtType.Real) := by
   unfold term_has_non_none_type at ht
@@ -1100,11 +1102,12 @@ theorem arith_binop_args_of_non_none
 
 /-- Derives `arith_binop_ret_bool_args` from `non_none`. -/
 theorem arith_binop_ret_bool_args_of_non_none
-    {op t1 t2 : SmtTerm}
+    {op : SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 : SmtTerm}
     (hTy :
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply op t1) t2) =
+      __smtx_typeof (op t1 t2) =
         __smtx_typeof_arith_overload_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
+    (ht : term_has_non_none_type (op t1 t2)) :
     (__smtx_typeof t1 = SmtType.Int ∧ __smtx_typeof t2 = SmtType.Int) ∨
       (__smtx_typeof t1 = SmtType.Real ∧ __smtx_typeof t2 = SmtType.Real) := by
   unfold term_has_non_none_type at ht
@@ -1115,12 +1118,13 @@ theorem arith_binop_ret_bool_args_of_non_none
 
 /-- Derives `arith_binop_ret_args` from `non_none`. -/
 theorem arith_binop_ret_args_of_non_none
-    {op t1 t2 : SmtTerm}
+    {op : SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 : SmtTerm}
     {R : SmtType}
     (hTy :
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply op t1) t2) =
+      __smtx_typeof (op t1 t2) =
         __smtx_typeof_arith_overload_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) R)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply op t1) t2)) :
+    (ht : term_has_non_none_type (op t1 t2)) :
     (__smtx_typeof t1 = SmtType.Int ∧ __smtx_typeof t2 = SmtType.Int) ∨
       (__smtx_typeof t1 = SmtType.Real ∧ __smtx_typeof t2 = SmtType.Real) := by
   unfold term_has_non_none_type at ht
@@ -1132,7 +1136,7 @@ theorem arith_binop_ret_args_of_non_none
 /-- Derives `to_real_arg` from `non_none`. -/
 theorem to_real_arg_of_non_none
     {t : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.to_real t)) :
+    (ht : term_has_non_none_type (SmtTerm.to_real t)) :
     __smtx_typeof t = SmtType.Int ∨ __smtx_typeof t = SmtType.Real := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
@@ -1142,12 +1146,14 @@ theorem to_real_arg_of_non_none
 
 /-- Derives `real_arg` from `non_none`. -/
 theorem real_arg_of_non_none
-    {op t : SmtTerm}
+    {op : SmtTerm -> SmtTerm}
+    {t : SmtTerm}
+    {Tout : SmtType}
     (hTy :
-      __smtx_typeof (SmtTerm.Apply op t) =
+      __smtx_typeof (op t) =
         smt_lit_ite (smt_lit_Teq (__smtx_typeof t) SmtType.Real)
-          (if op = SmtTerm.to_int then SmtType.Int else SmtType.Bool) SmtType.None)
-    (ht : term_has_non_none_type (SmtTerm.Apply op t)) :
+          Tout SmtType.None)
+    (ht : term_has_non_none_type (op t)) :
     __smtx_typeof t = SmtType.Real := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
@@ -1157,7 +1163,7 @@ theorem real_arg_of_non_none
 /-- Derives `int_arg` from `non_none`. -/
 theorem int_arg_of_non_none
     {t : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.abs t)) :
+    (ht : term_has_non_none_type (SmtTerm.abs t)) :
     __smtx_typeof t = SmtType.Int := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>

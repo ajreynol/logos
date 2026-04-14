@@ -183,8 +183,9 @@ theorem eo_to_smt_type_typeof_purify
     (x : Term) :
     __eo_to_smt_type (__eo_typeof (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof x) := by
-  change __eo_to_smt_type (__eo_typeof x) = __eo_to_smt_type (__eo_typeof x)
-  rfl
+  change __eo_to_smt_type (__eo_typeof__at_purify (__eo_typeof x)) =
+      __eo_to_smt_type (__eo_typeof x)
+  cases h : __eo_typeof x <;> rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_purify_of_smt_apply`. -/
 theorem eo_to_smt_type_typeof_apply_purify_of_smt_apply
@@ -562,7 +563,7 @@ theorem eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.ubv_to_int x)) = SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof_ubv_to_int (__eo_typeof x)) = SmtType.Int
+  change __eo_to_smt_type (__eo_typeof__at_bvsize (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
 
@@ -571,7 +572,7 @@ theorem eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.sbv_to_int x)) = SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof_ubv_to_int (__eo_typeof x)) = SmtType.Int
+  change __eo_to_smt_type (__eo_typeof__at_bvsize (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
 

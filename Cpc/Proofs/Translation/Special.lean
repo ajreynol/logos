@@ -31,22 +31,22 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
         let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
         let _v2 := SmtTerm.Var "_at_x" _v0
         SmtTerm.Apply (SmtTerm.choice "_at_x" _v0)
-          (SmtTerm.Apply SmtTerm.not
+          (SmtTerm.not
             (SmtTerm.Apply
               (SmtTerm.Apply SmtTerm.eq
-                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt x1)) _v2))
-              (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt x2)) _v2))) := by
+                (SmtTerm.select (__eo_to_smt x1) _v2))
+              (SmtTerm.select (__eo_to_smt x2) _v2))) := by
     rw [__eo_to_smt.eq_def]
   have hApplyNN :
       term_has_non_none_type
         (let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
          let _v2 := SmtTerm.Var "_at_x" _v0
          SmtTerm.Apply (SmtTerm.choice "_at_x" _v0)
-           (SmtTerm.Apply SmtTerm.not
+           (SmtTerm.not
              (SmtTerm.Apply
                (SmtTerm.Apply SmtTerm.eq
-                 (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt x1)) _v2))
-               (SmtTerm.Apply (SmtTerm.Apply SmtTerm.select (__eo_to_smt x2)) _v2)))) := by
+                 (SmtTerm.select (__eo_to_smt x1) _v2))
+               (SmtTerm.select (__eo_to_smt x2) _v2)))) := by
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
@@ -56,15 +56,15 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
       (s := "_at_x")
       (T := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))
       (body :=
-        SmtTerm.Apply SmtTerm.not
+        SmtTerm.not
           (SmtTerm.Apply
             (SmtTerm.Apply SmtTerm.eq
-              (SmtTerm.Apply
-                (SmtTerm.Apply SmtTerm.select (__eo_to_smt x1))
+              (SmtTerm.select
+                (__eo_to_smt x1)
                 (SmtTerm.Var "_at_x"
                   (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))))))
-            (SmtTerm.Apply
-              (SmtTerm.Apply SmtTerm.select (__eo_to_smt x2))
+            (SmtTerm.select
+              (__eo_to_smt x2)
               (SmtTerm.Var "_at_x"
                 (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))))))
       hApplyNN
@@ -79,22 +79,22 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
   have hTranslate :
       __eo_to_smt (Term._at_sets_deq_diff x1 x2) =
         let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))
-        let _v2 := SmtTerm.Apply SmtTerm.set_member (SmtTerm.Var "_at_x" _v0)
+        let _v2 := SmtTerm.Var "_at_x" _v0
         SmtTerm.Apply (SmtTerm.choice "_at_x" _v0)
-          (SmtTerm.Apply SmtTerm.not
+          (SmtTerm.not
             (SmtTerm.Apply
-              (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply _v2 (__eo_to_smt x1)))
-              (SmtTerm.Apply _v2 (__eo_to_smt x2)))) := by
+              (SmtTerm.Apply SmtTerm.eq (SmtTerm.set_member _v2 (__eo_to_smt x1)))
+              (SmtTerm.set_member _v2 (__eo_to_smt x2)))) := by
     rw [__eo_to_smt.eq_def]
   have hApplyNN :
       term_has_non_none_type
         (let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))
-         let _v2 := SmtTerm.Apply SmtTerm.set_member (SmtTerm.Var "_at_x" _v0)
+         let _v2 := SmtTerm.Var "_at_x" _v0
          SmtTerm.Apply (SmtTerm.choice "_at_x" _v0)
-           (SmtTerm.Apply SmtTerm.not
+           (SmtTerm.not
              (SmtTerm.Apply
-               (SmtTerm.Apply SmtTerm.eq (SmtTerm.Apply _v2 (__eo_to_smt x1)))
-               (SmtTerm.Apply _v2 (__eo_to_smt x2))))) := by
+               (SmtTerm.Apply SmtTerm.eq (SmtTerm.set_member _v2 (__eo_to_smt x1)))
+               (SmtTerm.set_member _v2 (__eo_to_smt x2))))) := by
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
@@ -104,18 +104,16 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
       (s := "_at_x")
       (T := __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)))
       (body :=
-        SmtTerm.Apply SmtTerm.not
+        SmtTerm.not
           (SmtTerm.Apply
             (SmtTerm.Apply SmtTerm.eq
-              (SmtTerm.Apply
-                (SmtTerm.Apply SmtTerm.set_member
-                  (SmtTerm.Var "_at_x"
-                    (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)))))
-                (__eo_to_smt x1)))
-            (SmtTerm.Apply
-              (SmtTerm.Apply SmtTerm.set_member
+              (SmtTerm.set_member
                 (SmtTerm.Var "_at_x"
-                  (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)))))
+                  (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))))
+                (__eo_to_smt x1)))
+            (SmtTerm.set_member
+              (SmtTerm.Var "_at_x"
+                (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))))
               (__eo_to_smt x2))))
       hApplyNN
 

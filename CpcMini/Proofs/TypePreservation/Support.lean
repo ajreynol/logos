@@ -35,25 +35,25 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
-      supported_preservation_term (SmtTerm.Apply SmtTerm.not t)
+      supported_preservation_term (SmtTerm.not t)
   | or {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or t1) t2)
+      supported_preservation_term (SmtTerm.or t1 t2)
   | and {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and t1) t2)
+      supported_preservation_term (SmtTerm.and t1 t2)
   | imp {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp t1) t2)
+      supported_preservation_term (SmtTerm.imp t1 t2)
   | eq (t1 t2 : SmtTerm) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)
   | dt_cons (s : smt_lit_String) (d : SmtDatatype) (i : smt_lit_Nat) :
