@@ -1,4 +1,5 @@
 import Cpc.Proofs.Rules.Common
+import Cpc.Proofs.Unproven
 
 open Eo
 open Smtm
@@ -6,11 +7,40 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Predicate asserting that every element of an EO list has an SMT translation. -/
+def EoListAllHaveSmtTranslation : Term -> Prop
+  | Term.__eo_List_nil => True
+  | Term.Apply (Term.Apply Term.__eo_List_cons t) ts =>
+      RuleProofs.eo_has_smt_translation t ∧ EoListAllHaveSmtTranslation ts
+  | _ => False
+
+/-- Predicate asserting that a rule argument is either directly translatable or a list of translatable terms. -/
+def argTranslationOk (t : Term) : Prop :=
+  RuleProofs.eo_has_smt_translation t ∨ EoListAllHaveSmtTranslation t
+
+/-- Predicate asserting that every argument in a checker argument list is translation-safe. -/
+def cArgListTranslationOk : CArgList -> Prop
+  | CArgList.nil => True
+  | CArgList.cons a args => argTranslationOk a ∧ cArgListTranslationOk args
+
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => RuleProofs.eo_has_smt_translation A
   | CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil =>
       RuleProofs.eo_has_smt_translation a1
+  | CCmd.step CRule.arith_elim_gt
+      (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) CIndexList.nil =>
+      cArgListTranslationOk (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) ∧
+        RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply Term.gt t1) s1)
+  | CCmd.step CRule.arith_elim_lt
+      (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) CIndexList.nil =>
+      cArgListTranslationOk (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) ∧
+        RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply Term.lt t1) s1)
+  | CCmd.step CRule.arith_elim_leq
+      (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) CIndexList.nil =>
+      cArgListTranslationOk (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) ∧
+        RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply Term.leq t1) s1)
+  | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
 /-- Inductive predicate asserting that every command in a checker command list satisfies `cmdTranslationOk`. -/
