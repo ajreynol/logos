@@ -574,7 +574,7 @@ def universal_counterexample_sel : SmtTerm :=
 
 /-- Full SMT term used in the universal counterexample construction. -/
 def universal_counterexample_term : SmtTerm :=
-  SmtTerm.Apply SmtTerm.seq_unit universal_counterexample_sel
+  SmtTerm.seq_unit universal_counterexample_sel
 
 /-- Ill-typed selector result type used in the universal counterexample lookup. -/
 def universal_counterexample_wrong_sel_type : SmtType :=

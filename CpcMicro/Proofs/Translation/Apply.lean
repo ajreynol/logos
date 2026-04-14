@@ -15,10 +15,6 @@ namespace TranslationProofs
 /-- Derives `smtx_typeof_apply_generic` from `head_not_special`. -/
 private theorem smtx_typeof_apply_generic_of_head_not_special
     (f x : SmtTerm)
-    (hNot : f ≠ SmtTerm.not)
-    (hOr : ∀ u, f ≠ SmtTerm.Apply SmtTerm.or u)
-    (hAnd : ∀ u, f ≠ SmtTerm.Apply SmtTerm.and u)
-    (hImp : ∀ u, f ≠ SmtTerm.Apply SmtTerm.imp u)
     (hEq : ∀ u, f ≠ SmtTerm.Apply SmtTerm.eq u)
     (hIte2 : ∀ c u, f ≠ SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) u)
     (hExists : ∀ s T, f ≠ SmtTerm.exists s T)
@@ -27,8 +23,6 @@ private theorem smtx_typeof_apply_generic_of_head_not_special
     generic_apply_type f x := by
   unfold generic_apply_type
   cases f <;> try rfl
-  case not =>
-      exact False.elim (hNot rfl)
   case «exists» s T =>
       exact False.elim (hExists s T rfl)
   case «forall» s T =>
@@ -37,12 +31,6 @@ private theorem smtx_typeof_apply_generic_of_head_not_special
       exact False.elim (hChoice s T rfl)
   case Apply f y =>
       cases f <;> try rfl
-      case or =>
-          exact False.elim (hOr y rfl)
-      case and =>
-          exact False.elim (hAnd y rfl)
-      case imp =>
-          exact False.elim (hImp y rfl)
       case eq =>
           exact False.elim (hEq y rfl)
       case Apply g c =>
@@ -55,13 +43,6 @@ theorem eo_to_smt_apply_generic_type
     (f x : Term) :
     generic_apply_type (__eo_to_smt f) (__eo_to_smt x) := by
   apply smtx_typeof_apply_generic_of_head_not_special
-  · exact eo_to_smt_ne_not f
-  · intro u
-    exact eo_to_smt_ne_or_partial f u
-  · intro u
-    exact eo_to_smt_ne_and_partial f u
-  · intro u
-    exact eo_to_smt_ne_imp_partial f u
   · intro u
     exact eo_to_smt_ne_eq_partial f u
   · intro c u
@@ -95,7 +76,7 @@ theorem smtx_typeof_translation_or_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hApplyNN :
       term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or (__eo_to_smt x)) (__eo_to_smt y)) := by
+        (SmtTerm.or (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hApplyNN
@@ -110,7 +91,7 @@ theorem smtx_typeof_translation_and_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hApplyNN :
       term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x)) (__eo_to_smt y)) := by
+        (SmtTerm.and (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hApplyNN
@@ -125,7 +106,7 @@ theorem smtx_typeof_translation_imp_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hApplyNN :
       term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt x)) (__eo_to_smt y)) := by
+        (SmtTerm.imp (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hApplyNN
@@ -191,38 +172,49 @@ theorem eo_to_smt_typeof_matches_translation_apply_generic
     exact hApplyNN'
   rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hF, hX, hA, _hB⟩
   have hFNN : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None := by
-    rw [hF]
-    simp
+    cases hF with
+    | inl hMap =>
+        rw [hMap]
+        simp
+    | inr hFun =>
+        rw [hFun]
+        simp
   have hXNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
     rw [hX]
     exact hA
-  have hFEo : __eo_to_smt_type (__eo_typeof f) = SmtType.Map A B := by
-    simpa [ihF hFNN] using hF
   have hXEo : __eo_to_smt_type (__eo_typeof x) = A := by
     simpa [ihX hXNN] using hX
-  rcases eo_to_smt_type_eq_map_iff.mp hFEo with
-    ⟨T1, T2, hFun, hT1, hT2, hT1NN, _hT2NN⟩
-  have hArgTy : __eo_typeof x = T1 := by
-    apply eo_to_smt_type_eq_of_non_none
-    · rw [hXEo, ← hT1]
-    · rwa [hXEo, ← hT1]
-  have hT1NotStuck : T1 ≠ Term.Stuck := by
-    intro hStuck
-    apply hT1NN
-    simp [hStuck, __eo_to_smt_type]
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
-    rw [hTranslate, hGeneric]
-    simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hF, hX, hA]
-  have hTypeApply :
-      __eo_typeof_apply (Term.Apply (Term.Apply Term.FunType T1) T2) T1 = T2 := by
-    rw [__eo_typeof_apply.eq_def]
-    by_cases hStuck : T1 = Term.Stuck
-    · exact False.elim (hT1NotStuck hStuck)
-    · simp [hStuck, __eo_requires.eq_def, eo_lit_teq, eo_lit_ite, eo_lit_not]
-      intro hFalse
-      cases hFalse
-  rw [hSmt, hTypeof, hFun, hArgTy, hTypeApply, hT2]
+  cases hF with
+  | inl hMap =>
+      have hFEo : __eo_to_smt_type (__eo_typeof f) = SmtType.Map A B := by
+        simpa [ihF hFNN] using hMap
+      exact False.elim ((eo_to_smt_type_ne_map (T := __eo_typeof f) (A := A) (B := B)) hFEo)
+  | inr hFun =>
+      have hFEo : __eo_to_smt_type (__eo_typeof f) = SmtType.FunType A B := by
+        simpa [ihF hFNN] using hFun
+      rcases eo_to_smt_type_eq_fun_iff.mp hFEo with
+        ⟨T1, T2, hFunTy, hT1, hT2, hT1NN, _hT2NN⟩
+      have hArgTy : __eo_typeof x = T1 := by
+        apply eo_to_smt_type_eq_of_non_none
+        · rw [hXEo, ← hT1]
+        · rwa [hXEo, ← hT1]
+      have hT1NotStuck : T1 ≠ Term.Stuck := by
+        intro hStuck
+        apply hT1NN
+        simp [hStuck, __eo_to_smt_type]
+      have hSmt :
+          __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
+        rw [hTranslate, hGeneric, hFun, hX]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA]
+      have hTypeApply :
+          __eo_typeof_apply (Term.Apply (Term.Apply Term.FunType T1) T2) T1 = T2 := by
+        rw [__eo_typeof_apply.eq_def]
+        by_cases hStuck : T1 = Term.Stuck
+        · exact False.elim (hT1NotStuck hStuck)
+        · simp [hStuck, __eo_requires.eq_def, eo_lit_teq, eo_lit_ite, eo_lit_not]
+          intro hFalse
+          cases hFalse
+      rw [hSmt, hTypeof, hFunTy, hArgTy, hTypeApply, hT2]
 
 /-- Handles the application case of `eo_to_smt_typeof_matches_translation`. -/
 theorem eo_to_smt_typeof_matches_translation_apply

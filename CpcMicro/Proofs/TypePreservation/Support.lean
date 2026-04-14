@@ -35,25 +35,25 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
-      supported_preservation_term (SmtTerm.Apply SmtTerm.not t)
+      supported_preservation_term (SmtTerm.not t)
   | or {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.or t1) t2)
+      supported_preservation_term (SmtTerm.or t1 t2)
   | and {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and t1) t2)
+      supported_preservation_term (SmtTerm.and t1 t2)
   | imp {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp t1) t2)
+      supported_preservation_term (SmtTerm.imp t1 t2)
   | eq (t1 t2 : SmtTerm) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)
   | apply {f x : SmtTerm}
@@ -67,14 +67,6 @@ inductive supported_preservation_term : SmtTerm -> Prop
 
 /-- Inductive classification of application heads used in the supported type-preservation case split. -/
 inductive supported_preservation_apply_case : SmtTerm -> SmtTerm -> Prop where
-  | not_case (t : SmtTerm) :
-      supported_preservation_apply_case SmtTerm.not t
-  | or_case (t1 t2 : SmtTerm) :
-      supported_preservation_apply_case (SmtTerm.Apply SmtTerm.or t1) t2
-  | and_case (t1 t2 : SmtTerm) :
-      supported_preservation_apply_case (SmtTerm.Apply SmtTerm.and t1) t2
-  | imp_case (t1 t2 : SmtTerm) :
-      supported_preservation_apply_case (SmtTerm.Apply SmtTerm.imp t1) t2
   | eq_case (t1 t2 : SmtTerm) :
       supported_preservation_apply_case (SmtTerm.Apply SmtTerm.eq t1) t2
   | ite_case (c t1 t2 : SmtTerm) :
@@ -95,8 +87,6 @@ theorem supported_preservation_apply_cases
     (f x : SmtTerm) :
     supported_preservation_apply_case f x := by
   cases f <;> try exact supported_preservation_apply_case.generic rfl (by intro M; rfl)
-  case not =>
-    exact supported_preservation_apply_case.not_case x
   case «exists» s T =>
     exact supported_preservation_apply_case.exists_case s T x
   case «forall» s T =>
@@ -105,12 +95,6 @@ theorem supported_preservation_apply_cases
     exact supported_preservation_apply_case.choice_case s T x
   case Apply f y =>
     cases f <;> try exact supported_preservation_apply_case.generic rfl (by intro M; rfl)
-    case or =>
-      exact supported_preservation_apply_case.or_case y x
-    case and =>
-      exact supported_preservation_apply_case.and_case y x
-    case imp =>
-      exact supported_preservation_apply_case.imp_case y x
     case eq =>
       exact supported_preservation_apply_case.eq_case y x
     case Apply g c =>

@@ -54,13 +54,13 @@ private theorem eo_to_smt_stuck_eq :
 /-- Simplifies EO-to-SMT translation for `and_eq`. -/
 private theorem eo_to_smt_and_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.and A) B) =
-      SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B) := by
+      SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `imp_eq`. -/
 private theorem eo_to_smt_imp_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.imp A) B) =
-      SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt A)) (__eo_to_smt B) := by
+      SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Lemma about `eo_has_smt_translation_true`. -/
@@ -146,7 +146,7 @@ by
   | intro_true hty hEval =>
       have htyA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [hty]
           simp
@@ -175,7 +175,7 @@ by
   | intro_true hty hEval =>
       have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [hty]
           simp
@@ -232,7 +232,7 @@ by
       | intro_true htyA hEvalA =>
           have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
             have hNN : term_has_non_none_type
-                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt A)) (__eo_to_smt B)) := by
+                (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
               unfold term_has_non_none_type
               rw [htyImp]
               simp
@@ -287,7 +287,7 @@ by
   | intro_false htyImp hEvalImp =>
       have htyA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [htyImp]
           simp
@@ -317,7 +317,7 @@ by
   | intro_false htyImp hEvalImp =>
       have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [htyImp]
           simp
@@ -374,14 +374,14 @@ by
   | intro_false hty hEval =>
       have htyA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [hty]
           simp
         exact (bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hNN).1
       have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [hty]
           simp
@@ -425,7 +425,7 @@ by
       | intro_false htyA hEvalA =>
           have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
             have hNN : term_has_non_none_type
-                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+                (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
               unfold term_has_non_none_type
               rw [htyAnd]
               simp

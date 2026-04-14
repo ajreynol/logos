@@ -13,10 +13,10 @@ namespace Smtm
 theorem typeof_value_model_eval_ubv_to_int
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.ubv_to_int t))
+    (ht : term_has_non_none_type (SmtTerm.ubv_to_int t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.ubv_to_int t)) =
-      __smtx_typeof (SmtTerm.Apply SmtTerm.ubv_to_int t) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.ubv_to_int t)) =
+      __smtx_typeof (SmtTerm.ubv_to_int t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.ubv_to_int __smtx_model_eval_ubv_to_int
     SmtType.Int t rfl rfl ht hpres (fun w n hWidth => by
       simp [__smtx_model_eval_ubv_to_int, __smtx_typeof_value])
@@ -25,10 +25,10 @@ theorem typeof_value_model_eval_ubv_to_int
 theorem typeof_value_model_eval_sbv_to_int
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.sbv_to_int t))
+    (ht : term_has_non_none_type (SmtTerm.sbv_to_int t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.sbv_to_int t)) =
-      __smtx_typeof (SmtTerm.Apply SmtTerm.sbv_to_int t) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.sbv_to_int t)) =
+      __smtx_typeof (SmtTerm.sbv_to_int t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.sbv_to_int __smtx_model_eval_sbv_to_int
     SmtType.Int t rfl rfl ht hpres (fun w n hWidth => by
       simp [__smtx_model_eval_sbv_to_int, __smtx_typeof_value])
@@ -37,11 +37,11 @@ theorem typeof_value_model_eval_sbv_to_int
 theorem typeof_value_model_eval_bvshl
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvshl t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvshl t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvshl t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvshl t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvshl t1 t2)) =
+      __smtx_typeof (SmtTerm.bvshl t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvshl __smtx_model_eval_bvshl t1 t2
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvshl] using
@@ -52,11 +52,11 @@ theorem typeof_value_model_eval_bvshl
 theorem typeof_value_model_eval_bvlshr
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvlshr t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvlshr t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvlshr t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvlshr t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvlshr t1 t2)) =
+      __smtx_typeof (SmtTerm.bvlshr t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvlshr __smtx_model_eval_bvlshr t1 t2
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvlshr] using
@@ -140,11 +140,11 @@ theorem typeof_value_model_eval_bvsdiv_value
 theorem typeof_value_model_eval_bvsdiv
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdiv t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvsdiv t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdiv t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdiv t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsdiv t1 t2)) =
+      __smtx_typeof (SmtTerm.bvsdiv t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvsdiv __smtx_model_eval_bvsdiv t1 t2
     rfl rfl ht hpres1 hpres2 typeof_value_model_eval_bvsdiv_value
 
@@ -213,11 +213,11 @@ theorem typeof_value_model_eval_bvsrem_value
 theorem typeof_value_model_eval_bvsrem
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsrem t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvsrem t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsrem t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsrem t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsrem t1 t2)) =
+      __smtx_typeof (SmtTerm.bvsrem t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvsrem __smtx_model_eval_bvsrem t1 t2
     rfl rfl ht hpres1 hpres2 typeof_value_model_eval_bvsrem_value
 
@@ -296,11 +296,11 @@ theorem typeof_value_model_eval_bvsmod_value
 theorem typeof_value_model_eval_bvsmod
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsmod t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvsmod t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsmod t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsmod t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsmod t1 t2)) =
+      __smtx_typeof (SmtTerm.bvsmod t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvsmod __smtx_model_eval_bvsmod t1 t2
     rfl rfl ht hpres1 hpres2 typeof_value_model_eval_bvsmod_value
 
@@ -343,11 +343,11 @@ theorem typeof_value_model_eval_bvashr_value
 theorem typeof_value_model_eval_bvashr
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvashr t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvashr t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvashr t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvashr t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvashr t1 t2)) =
+      __smtx_typeof (SmtTerm.bvashr t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvashr __smtx_model_eval_bvashr t1 t2
     rfl rfl ht hpres1 hpres2 typeof_value_model_eval_bvashr_value
 
@@ -381,11 +381,11 @@ theorem typeof_value_model_eval_bvssubo_value
 theorem typeof_value_model_eval_bvssubo
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvssubo t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvssubo t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvssubo t1 t2)) =
+      __smtx_typeof (SmtTerm.bvssubo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvssubo __smtx_model_eval_bvssubo
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 typeof_value_model_eval_bvssubo_value
 
@@ -414,11 +414,11 @@ theorem typeof_value_model_eval_bvsdivo_value
 theorem typeof_value_model_eval_bvsdivo
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvsdivo t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsdivo t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsdivo t1 t2)) =
+      __smtx_typeof (SmtTerm.bvsdivo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvsdivo __smtx_model_eval_bvsdivo
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 typeof_value_model_eval_bvsdivo_value
 
@@ -458,12 +458,12 @@ theorem model_eval_repeat_rec_binary :
 theorem typeof_value_model_eval_repeat
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.repeat t1 t2))
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.repeat t1 t2)) =
+      __smtx_typeof (SmtTerm.repeat t1 t2) := by
   rcases repeat_args_of_non_none ht with ⟨i, w, h1, h2, hi1⟩
-  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.repeat t1) t2) =
+  rw [show __smtx_typeof (SmtTerm.repeat t1 t2) =
       SmtType.BitVec (smt_lit_zmult i w) by
     simp [__smtx_typeof, __smtx_typeof_repeat, smt_lit_ite, h1, h2, hi1]]
   change __smtx_typeof_value
@@ -554,12 +554,12 @@ theorem model_eval_rotate_left_rec_binary :
 theorem typeof_value_model_eval_rotate_left
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.rotate_left t1 t2))
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.rotate_left t1 t2)) =
+      __smtx_typeof (SmtTerm.rotate_left t1 t2) := by
   rcases rotate_left_args_of_non_none ht with ⟨i, w, h1, h2, hi0⟩
-  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_left t1) t2) =
+  rw [show __smtx_typeof (SmtTerm.rotate_left t1 t2) =
       SmtType.BitVec w by
     simp [__smtx_typeof, __smtx_typeof_rotate_left, smt_lit_ite, h1, h2, hi0]]
   change __smtx_typeof_value
@@ -626,12 +626,12 @@ theorem model_eval_rotate_right_rec_binary :
 theorem typeof_value_model_eval_rotate_right
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.rotate_right t1 t2))
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.rotate_right t1 t2)) =
+      __smtx_typeof (SmtTerm.rotate_right t1 t2) := by
   rcases rotate_right_args_of_non_none ht with ⟨i, w, h1, h2, hi0⟩
-  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.rotate_right t1) t2) =
+  rw [show __smtx_typeof (SmtTerm.rotate_right t1 t2) =
       SmtType.BitVec w by
     simp [__smtx_typeof, __smtx_typeof_rotate_right, smt_lit_ite, h1, h2, hi0]]
   change __smtx_typeof_value
@@ -653,11 +653,11 @@ theorem typeof_value_model_eval_rotate_right
 theorem typeof_value_model_eval_bvuaddo
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvuaddo t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvuaddo t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvuaddo t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvuaddo t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvuaddo t1 t2)) =
+      __smtx_typeof (SmtTerm.bvuaddo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvuaddo __smtx_model_eval_bvuaddo
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun _ _ _ _ => by
       simp [__smtx_model_eval_bvuaddo, __smtx_typeof_value])
@@ -666,10 +666,10 @@ theorem typeof_value_model_eval_bvuaddo
 theorem typeof_value_model_eval_bvnego
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.bvnego t))
+    (ht : term_has_non_none_type (SmtTerm.bvnego t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.bvnego t)) =
-      __smtx_typeof (SmtTerm.Apply SmtTerm.bvnego t) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvnego t)) =
+      __smtx_typeof (SmtTerm.bvnego t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.bvnego __smtx_model_eval_bvnego
     SmtType.Bool t rfl rfl ht hpres (fun _ _ _ => by
       simp [__smtx_model_eval_bvnego, __smtx_typeof_value])
@@ -678,11 +678,11 @@ theorem typeof_value_model_eval_bvnego
 theorem typeof_value_model_eval_bvsaddo
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsaddo t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvsaddo t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsaddo t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsaddo t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsaddo t1 t2)) =
+      __smtx_typeof (SmtTerm.bvsaddo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvsaddo __smtx_model_eval_bvsaddo
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun _ _ _ _ => by
       simp [__smtx_model_eval_bvsaddo, __smtx_typeof_value])
@@ -691,11 +691,11 @@ theorem typeof_value_model_eval_bvsaddo
 theorem typeof_value_model_eval_bvumulo
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvumulo t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvumulo t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvumulo t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvumulo t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvumulo t1 t2)) =
+      __smtx_typeof (SmtTerm.bvumulo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvumulo __smtx_model_eval_bvumulo
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun _ _ _ _ => by
       simp [__smtx_model_eval_bvumulo, __smtx_typeof_value])
@@ -704,11 +704,11 @@ theorem typeof_value_model_eval_bvumulo
 theorem typeof_value_model_eval_bvsmulo
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsmulo t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvsmulo t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsmulo t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvsmulo t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsmulo t1 t2)) =
+      __smtx_typeof (SmtTerm.bvsmulo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvsmulo __smtx_model_eval_bvsmulo
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun _ _ _ _ => by
       simp [__smtx_model_eval_bvsmulo, __smtx_typeof_value])
@@ -717,11 +717,11 @@ theorem typeof_value_model_eval_bvsmulo
 theorem typeof_value_model_eval_bvusubo
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.bvusubo t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.bvusubo t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvusubo t1 t2)) =
+      __smtx_typeof (SmtTerm.bvusubo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvusubo __smtx_model_eval_bvusubo
     SmtType.Bool t1 t2 rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvusubo, __smtx_model_eval_bvult] using
@@ -731,12 +731,12 @@ theorem typeof_value_model_eval_bvusubo
 theorem typeof_value_model_eval_zero_extend
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.zero_extend t1 t2))
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.zero_extend t1 t2)) =
+      __smtx_typeof (SmtTerm.zero_extend t1 t2) := by
   rcases zero_extend_args_of_non_none ht with ⟨i, w, h1, h2, hi0⟩
-  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.zero_extend t1) t2) =
+  rw [show __smtx_typeof (SmtTerm.zero_extend t1 t2) =
       SmtType.BitVec (smt_lit_zplus i w) by
     simp [__smtx_typeof, __smtx_typeof_zero_extend, smt_lit_ite, h1, h2, hi0]]
   change __smtx_typeof_value
@@ -764,12 +764,12 @@ theorem typeof_value_model_eval_zero_extend
 theorem typeof_value_model_eval_sign_extend
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.sign_extend t1 t2))
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.sign_extend t1 t2)) =
+      __smtx_typeof (SmtTerm.sign_extend t1 t2) := by
   rcases sign_extend_args_of_non_none ht with ⟨i, w, h1, h2, hi0⟩
-  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.sign_extend t1) t2) =
+  rw [show __smtx_typeof (SmtTerm.sign_extend t1 t2) =
       SmtType.BitVec (smt_lit_zplus i w) by
     simp [__smtx_typeof, __smtx_typeof_sign_extend, smt_lit_ite, h1, h2, hi0]]
   change __smtx_typeof_value
@@ -798,12 +798,12 @@ theorem typeof_value_model_eval_sign_extend
 theorem typeof_value_model_eval_int_to_bv
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.int_to_bv t1 t2))
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.int_to_bv t1 t2)) =
+      __smtx_typeof (SmtTerm.int_to_bv t1 t2) := by
   rcases int_to_bv_args_of_non_none ht with ⟨i, h1, h2, hi0⟩
-  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.int_to_bv t1) t2) =
+  rw [show __smtx_typeof (SmtTerm.int_to_bv t1 t2) =
       SmtType.BitVec i by
     simp [__smtx_typeof, __smtx_typeof_int_to_bv, smt_lit_ite, h1, h2, hi0]]
   change __smtx_typeof_value

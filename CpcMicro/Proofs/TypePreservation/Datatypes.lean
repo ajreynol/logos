@@ -14,7 +14,7 @@ theorem typeof_apply_non_none_cases
     {F X : SmtType}
     (h : __smtx_typeof_apply F X ≠ SmtType.None) :
     ∃ A B,
-      F = SmtType.Map A B ∧
+      (F = SmtType.Map A B ∨ F = SmtType.FunType A B) ∧
       X = A ∧
       A ≠ SmtType.None ∧
       B ≠ SmtType.None := by
@@ -34,7 +34,13 @@ theorem typeof_apply_non_none_cases
       all_goals
         first
           | contradiction
-          | exact ⟨A, B, rfl, h.2.1.symm, h.1, h.2.2⟩
+          | exact ⟨A, B, Or.inl rfl, h.2.1.symm, h.1, h.2.2⟩
+  | FunType A B =>
+      cases X <;> simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h
+      all_goals
+        first
+          | contradiction
+          | exact ⟨A, B, Or.inr rfl, h.2.1.symm, h.1, h.2.2⟩
 
 /-- Shows that evaluating `apply_map` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_map
@@ -81,12 +87,18 @@ theorem typeof_value_model_eval_apply_generic
     __smtx_typeof_value (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x)) =
       __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) := by
   rcases typeof_apply_non_none_cases hNN with ⟨A, B, hF, hX, hA, _hB⟩
-  rw [hF, hX]
-  have hFun : __smtx_typeof_value (__smtx_model_eval M f) = SmtType.Map A B := by
-    simpa [hF] using hpresf
   have hArg : __smtx_typeof_value (__smtx_model_eval M x) = A := by
     simpa [hX] using hpresx
-  simpa [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA] using
-    typeof_value_model_eval_apply_map hA hFun hArg
+  cases hF with
+  | inl hMap =>
+      rw [hMap, hX]
+      have hFun : __smtx_typeof_value (__smtx_model_eval M f) = SmtType.Map A B := by
+        simpa [hMap] using hpresf
+      simpa [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA] using
+        typeof_value_model_eval_apply_map hA hFun hArg
+  | inr hFunType =>
+      have hFunVal : __smtx_typeof_value (__smtx_model_eval M f) = SmtType.FunType A B := by
+        simpa [hFunType] using hpresf
+      exact False.elim (no_value_of_fun_type A B ⟨__smtx_model_eval M f, hFunVal⟩)
 
 end Smtm

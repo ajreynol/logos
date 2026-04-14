@@ -172,12 +172,12 @@ theorem typeof_value_model_eval_seq_unit
     (t : SmtTerm)
     (ht : term_has_non_none_type t)
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.seq_unit t)) =
-      __smtx_typeof (SmtTerm.Apply SmtTerm.seq_unit t) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.seq_unit t)) =
+      __smtx_typeof (SmtTerm.seq_unit t) := by
   unfold term_has_non_none_type at ht
-  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.seq_unit t) = SmtType.Seq (__smtx_typeof t) by
+  rw [show __smtx_typeof (SmtTerm.seq_unit t) = SmtType.Seq (__smtx_typeof t) by
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, ht]]
-  rw [show __smtx_model_eval M (SmtTerm.Apply SmtTerm.seq_unit t) =
+  rw [show __smtx_model_eval M (SmtTerm.seq_unit t) =
       SmtValue.Seq
         (SmtSeq.cons (__smtx_model_eval M t)
           (SmtSeq.empty (__smtx_typeof_value (__smtx_model_eval M t)))) by
@@ -190,13 +190,13 @@ theorem typeof_value_model_eval_set_singleton
     (t : SmtTerm)
     (ht : term_has_non_none_type t)
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply SmtTerm.set_singleton t)) =
-      __smtx_typeof (SmtTerm.Apply SmtTerm.set_singleton t) := by
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.set_singleton t)) =
+      __smtx_typeof (SmtTerm.set_singleton t) := by
   unfold term_has_non_none_type at ht
-  rw [show __smtx_typeof (SmtTerm.Apply SmtTerm.set_singleton t) =
+  rw [show __smtx_typeof (SmtTerm.set_singleton t) =
       SmtType.Set (__smtx_typeof t) by
     simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, ht]]
-  rw [show __smtx_model_eval M (SmtTerm.Apply SmtTerm.set_singleton t) =
+  rw [show __smtx_model_eval M (SmtTerm.set_singleton t) =
       __smtx_model_eval_set_singleton (__smtx_model_eval M t) by rfl]
   simp [__smtx_model_eval_set_singleton, __smtx_typeof_value, __smtx_typeof_map_value,
     __smtx_map_to_set_type, smt_lit_ite, smt_lit_Teq, hpres]

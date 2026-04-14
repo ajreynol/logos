@@ -59,58 +59,6 @@ private theorem eo_to_smt_double_apply_var_ne
       change SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt y)) (__eo_to_smt x) = u at h
       exact hNone h
 
-/-- Shows that EO translation never produces the bare SMT term `not`. -/
-theorem eo_to_smt_ne_not (t : Term) :
-    __eo_to_smt t ≠ SmtTerm.not := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name T =>
-    exact eo_to_smt_var_ne name T SmtTerm.not (by intro hEq; cases hEq)
-      (by intro s hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
-
-/-- Shows that EO translation never produces the bare SMT term `or`. -/
-theorem eo_to_smt_ne_or (t : Term) :
-    __eo_to_smt t ≠ SmtTerm.or := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name T =>
-    exact eo_to_smt_var_ne name T SmtTerm.or (by intro hEq; cases hEq)
-      (by intro s hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
-
-/-- Shows that EO translation never produces the bare SMT term `and`. -/
-theorem eo_to_smt_ne_and (t : Term) :
-    __eo_to_smt t ≠ SmtTerm.and := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name T =>
-    exact eo_to_smt_var_ne name T SmtTerm.and (by intro hEq; cases hEq)
-      (by intro s hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
-
-/-- Shows that EO translation never produces the bare SMT term `imp`. -/
-theorem eo_to_smt_ne_imp (t : Term) :
-    __eo_to_smt t ≠ SmtTerm.imp := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name T =>
-    exact eo_to_smt_var_ne name T SmtTerm.imp (by intro hEq; cases hEq)
-      (by intro s hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
-
 /-- Shows that EO translation never produces the bare SMT term `eq`. -/
 theorem eo_to_smt_ne_eq (t : Term) :
     __eo_to_smt t ≠ SmtTerm.eq := by
@@ -176,70 +124,7 @@ theorem eo_to_smt_ne_choice (t : Term) (s : smt_lit_String) (T : SmtType) :
     case Apply g y =>
       cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
 
-/-- Shows that EO translation never produces the bare SMT term `or_partial`. -/
-theorem eo_to_smt_ne_or_partial (t : Term) (u : SmtTerm) :
-    __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.or u := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name T =>
-    exact eo_to_smt_var_ne name T (SmtTerm.Apply SmtTerm.or u) (by intro hEq; cases hEq)
-      (by intro s hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Var name T =>
-      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply SmtTerm.or u)
-        (by intro hEq; cases hEq)
-        (by intro s hEq; cases hEq) h
-    case Apply g y =>
-      cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-      case Apply a b =>
-        rw [__eo_to_smt.eq_def] at h
-        injection h with hHead _
-        exact eo_to_smt_ne_or ((Term.Apply a b).Apply y) hHead
-
-/-- Shows that EO translation never produces the bare SMT term `and_partial`. -/
-theorem eo_to_smt_ne_and_partial (t : Term) (u : SmtTerm) :
-    __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.and u := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name T =>
-    exact eo_to_smt_var_ne name T (SmtTerm.Apply SmtTerm.and u) (by intro hEq; cases hEq)
-      (by intro s hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Var name T =>
-      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply SmtTerm.and u)
-        (by intro hEq; cases hEq)
-        (by intro s hEq; cases hEq) h
-    case Apply g y =>
-      cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-      case Apply a b =>
-        rw [__eo_to_smt.eq_def] at h
-        injection h with hHead _
-        exact eo_to_smt_ne_and ((Term.Apply a b).Apply y) hHead
-
-/-- Shows that EO translation never produces the bare SMT term `imp_partial`. -/
-theorem eo_to_smt_ne_imp_partial (t : Term) (u : SmtTerm) :
-    __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.imp u := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name T =>
-    exact eo_to_smt_var_ne name T (SmtTerm.Apply SmtTerm.imp u) (by intro hEq; cases hEq)
-      (by intro s hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Var name T =>
-      exact eo_to_smt_apply_var_ne name T x (SmtTerm.Apply SmtTerm.imp u)
-        (by intro hEq; cases hEq)
-        (by intro s hEq; cases hEq) h
-    case Apply g y =>
-      cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-      case Apply a b =>
-        rw [__eo_to_smt.eq_def] at h
-        injection h with hHead _
-        exact eo_to_smt_ne_imp ((Term.Apply a b).Apply y) hHead
-
-/-- Establishes an equality relating `eo_to_smt_ne` and `partial`. -/
+/-- Shows that EO translation never produces the bare SMT term `eq_partial`. -/
 theorem eo_to_smt_ne_eq_partial (t : Term) (u : SmtTerm) :
     __eo_to_smt t ≠ SmtTerm.Apply SmtTerm.eq u := by
   intro h
@@ -308,37 +193,79 @@ theorem eo_to_smt_ne_ite_partial2 (t : Term) (c u : SmtTerm) :
         injection h with hHead _
         exact eo_to_smt_ne_ite_partial ((Term.Apply a b).Apply y) c hHead
 
+/-- Simplifies EO-to-SMT translation for `boolean`. -/
+@[simp] theorem eo_to_smt_boolean (b : eo_lit_Bool) :
+    __eo_to_smt (Term.Boolean b) = SmtTerm.Boolean b := by
+  simp [__eo_to_smt.eq_def]
+
+/-- Simplifies EO-to-SMT translation for `var`. -/
+@[simp] theorem eo_to_smt_var (s : eo_lit_String) (T : Term) :
+    __eo_to_smt (Term.Var (Term.String s) T) = SmtTerm.Var s (__eo_to_smt_type T) := by
+  rw [__eo_to_smt.eq_def]
+
+/-- Simplifies EO-to-SMT translation for `uconst`. -/
+@[simp] theorem eo_to_smt_uconst (i : eo_lit_Nat) (T : Term) :
+    __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T) := by
+  simp [__eo_to_smt.eq_def]
+
+/-- Simplifies EO-to-SMT type translation for `bool`. -/
+@[simp] theorem eo_to_smt_type_bool :
+    __eo_to_smt_type Term.Bool = SmtType.Bool := rfl
+
+/-- Simplifies EO-to-SMT type translation for `int`. -/
+@[simp] theorem eo_to_smt_type_int :
+    __eo_to_smt_type Term.Int = SmtType.Int := rfl
+
+/-- Simplifies EO-to-SMT type translation for `real`. -/
+@[simp] theorem eo_to_smt_type_real :
+    __eo_to_smt_type Term.Real = SmtType.Real := rfl
+
 @[simp] theorem eo_to_smt_type_fun (T U : Term) :
     __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) =
       __smtx_typeof_guard (__eo_to_smt_type T)
         (__smtx_typeof_guard (__eo_to_smt_type U)
-          (SmtType.Map (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
+          (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
   simp [__eo_to_smt_type]
 
-/-- Shows that `smt_lit_ite` cannot produce a map type when neither branch is a map type. -/
-private theorem smt_lit_ite_ne_map
-    {c : smt_lit_Bool} {T U A B : SmtType}
-    (hT : T ≠ SmtType.Map A B)
-    (hU : U ≠ SmtType.Map A B) :
-    smt_lit_ite c T U ≠ SmtType.Map A B := by
-  cases c
-  · simpa [smt_lit_ite] using hU
-  · simpa [smt_lit_ite] using hT
+/-- No EO type translates to an SMT map type. -/
+theorem eo_to_smt_type_ne_map
+    {T : Term} {A B : SmtType} :
+    __eo_to_smt_type T ≠ SmtType.Map A B := by
+  cases T with
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | FunType =>
+              cases hY : __eo_to_smt_type y <;> cases hX : __eo_to_smt_type x <;>
+                simp [__eo_to_smt_type, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hY, hX]
+          | _ =>
+              simp [__eo_to_smt_type]
+      | BitVec =>
+          cases x <;> simp [__eo_to_smt_type]
+      | Seq =>
+          by_cases hx : __eo_to_smt_type x = SmtType.None
+          · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
+          · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
+      | _ =>
+          simp [__eo_to_smt_type]
+  | _ =>
+      simp [__eo_to_smt_type]
 
-/-- Establishes an equality relating `smtx_typeof_guard` and `map_iff`. -/
-private theorem smtx_typeof_guard_eq_map_iff
+/-- Establishes an equality relating `smtx_typeof_guard` and `fun_iff`. -/
+private theorem smtx_typeof_guard_eq_fun_iff
     {T U A B : SmtType} :
-    __smtx_typeof_guard T U = SmtType.Map A B ↔
-      T ≠ SmtType.None ∧ U = SmtType.Map A B := by
+    __smtx_typeof_guard T U = SmtType.FunType A B ↔
+      T ≠ SmtType.None ∧ U = SmtType.FunType A B := by
   unfold __smtx_typeof_guard
   by_cases hT : T = SmtType.None
   · simp [hT, smt_lit_ite, smt_lit_Teq]
   · simp [hT, smt_lit_ite, smt_lit_Teq]
 
-/-- Establishes an equality relating `eo_to_smt_type` and `map_iff`. -/
-theorem eo_to_smt_type_eq_map_iff
+/-- Establishes an equality relating `eo_to_smt_type` and `fun_iff`. -/
+theorem eo_to_smt_type_eq_fun_iff
     {T : Term} {A B : SmtType} :
-    __eo_to_smt_type T = SmtType.Map A B ↔
+    __eo_to_smt_type T = SmtType.FunType A B ↔
       ∃ T1 T2,
         T = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
         __eo_to_smt_type T1 = A ∧
@@ -356,12 +283,12 @@ theorem eo_to_smt_type_eq_map_iff
                 have hOuter :
                     __smtx_typeof_guard (__eo_to_smt_type y)
                       (__smtx_typeof_guard (__eo_to_smt_type x)
-                        (SmtType.Map (__eo_to_smt_type y) (__eo_to_smt_type x))) =
-                      SmtType.Map A B := by
+                        (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))) =
+                      SmtType.FunType A B := by
                   simpa using h
-                rcases smtx_typeof_guard_eq_map_iff.mp hOuter with ⟨hyNN, hInner⟩
-                rcases smtx_typeof_guard_eq_map_iff.mp hInner with ⟨hxNN, hMap⟩
-                injection hMap with hA hB
+                rcases smtx_typeof_guard_eq_fun_iff.mp hOuter with ⟨hyNN, hInner⟩
+                rcases smtx_typeof_guard_eq_fun_iff.mp hInner with ⟨hxNN, hFun⟩
+                injection hFun with hA hB
                 exact ⟨y, x, rfl, hA, hB, hyNN, hxNN⟩
             | _ =>
                 simp [__eo_to_smt_type] at h
@@ -369,8 +296,8 @@ theorem eo_to_smt_type_eq_map_iff
             cases x <;> simp [__eo_to_smt_type] at h
         | Seq =>
             by_cases hx : __eo_to_smt_type x = SmtType.None
-            · simp [__eo_to_smt_type, hx] at h
-            · simp [__eo_to_smt_type, hx] at h
+            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h
+            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h
         | _ =>
             simp [__eo_to_smt_type] at h
     | _ =>
@@ -461,8 +388,8 @@ private theorem eo_to_smt_type_eq_seq_iff
         cases f with
         | Seq =>
             by_cases hx : __eo_to_smt_type x = SmtType.None
-            · simp [__eo_to_smt_type, hx] at h
-            · simp [__eo_to_smt_type, hx] at h
+            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h
+            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h
               exact ⟨x, rfl, h, hx⟩
         | Apply g y =>
             cases g with
@@ -479,7 +406,7 @@ private theorem eo_to_smt_type_eq_seq_iff
   · rintro ⟨U, rfl, hU, hUNN⟩
     have hANN : A ≠ SmtType.None := by
       rwa [← hU]
-    simp [__eo_to_smt_type, hANN, hU]
+    simp [__eo_to_smt_type, hU, hANN, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
 
 /-- Establishes an equality relating `eo_to_smt_type` and `bool`. -/
 private theorem eo_to_smt_type_eq_bool
@@ -499,7 +426,8 @@ private theorem eo_to_smt_type_eq_bool
       | BitVec =>
           cases x <;> simp [__eo_to_smt_type]
       | Seq =>
-          by_cases hx : __eo_to_smt_type x = SmtType.None <;> simp [__eo_to_smt_type, hx]
+          by_cases hx : __eo_to_smt_type x = SmtType.None <;>
+            simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
       | _ =>
           simp [__eo_to_smt_type]
   | _ =>
@@ -523,7 +451,8 @@ private theorem eo_to_smt_type_eq_int
       | BitVec =>
           cases x <;> simp [__eo_to_smt_type]
       | Seq =>
-          by_cases hx : __eo_to_smt_type x = SmtType.None <;> simp [__eo_to_smt_type, hx]
+          by_cases hx : __eo_to_smt_type x = SmtType.None <;>
+            simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
       | _ =>
           simp [__eo_to_smt_type]
   | _ =>
@@ -547,7 +476,8 @@ private theorem eo_to_smt_type_eq_real
       | BitVec =>
           cases x <;> simp [__eo_to_smt_type]
       | Seq =>
-          by_cases hx : __eo_to_smt_type x = SmtType.None <;> simp [__eo_to_smt_type, hx]
+          by_cases hx : __eo_to_smt_type x = SmtType.None <;>
+            simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
       | _ =>
           simp [__eo_to_smt_type]
   | _ =>
@@ -571,7 +501,8 @@ private theorem eo_to_smt_type_eq_char
       | BitVec =>
           cases x <;> simp [__eo_to_smt_type]
       | Seq =>
-          by_cases hx : __eo_to_smt_type x = SmtType.None <;> simp [__eo_to_smt_type, hx]
+          by_cases hx : __eo_to_smt_type x = SmtType.None <;>
+            simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
       | _ =>
           simp [__eo_to_smt_type]
   | _ =>
@@ -595,7 +526,8 @@ private theorem eo_to_smt_type_eq_usort
       | BitVec =>
           cases x <;> simp [__eo_to_smt_type]
       | Seq =>
-          by_cases hx : __eo_to_smt_type x = SmtType.None <;> simp [__eo_to_smt_type, hx]
+          by_cases hx : __eo_to_smt_type x = SmtType.None <;>
+            simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
       | _ =>
           simp [__eo_to_smt_type]
   | _ =>
@@ -612,7 +544,8 @@ private theorem eo_to_smt_type_eq_bitvec
       | BitVec =>
           cases x <;> simp [__eo_to_smt_type]
       | Seq =>
-          by_cases hx : __eo_to_smt_type x = SmtType.None <;> simp [__eo_to_smt_type, hx]
+          by_cases hx : __eo_to_smt_type x = SmtType.None <;>
+            simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
       | Apply g y =>
           cases g with
           | FunType =>
@@ -666,7 +599,8 @@ private theorem eo_to_smt_type_non_none_unique :
             | BitVec =>
                 cases x <;> simp [__eo_to_smt_type] at hT
             | Seq =>
-                by_cases hx : __eo_to_smt_type x = SmtType.None <;> simp [__eo_to_smt_type, hx] at hT
+                by_cases hx : __eo_to_smt_type x = SmtType.None <;>
+                  simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at hT
             | _ =>
                 simp [__eo_to_smt_type] at hT
         | _ =>
@@ -688,7 +622,8 @@ private theorem eo_to_smt_type_non_none_unique :
             | BitVec =>
                 cases x <;> simp [__eo_to_smt_type] at hT
             | Seq =>
-                by_cases hx : __eo_to_smt_type x = SmtType.None <;> simp [__eo_to_smt_type, hx] at hT
+                by_cases hx : __eo_to_smt_type x = SmtType.None <;>
+                  simp [__eo_to_smt_type, hx, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at hT
             | _ =>
                 simp [__eo_to_smt_type] at hT
         | _ =>
@@ -706,9 +641,12 @@ private theorem eo_to_smt_type_non_none_unique :
         rw [eo_to_smt_type_eq_usort hT, eo_to_smt_type_eq_usort hU]
     | Map A B =>
         intro T U hT hU _
-        rcases eo_to_smt_type_eq_map_iff.mp hT with
+        exact False.elim ((eo_to_smt_type_ne_map (T := T) (A := A) (B := B)) hT)
+    | FunType A B =>
+        intro T U hT hU _
+        rcases eo_to_smt_type_eq_fun_iff.mp hT with
           ⟨T1, T2, hT', hT1, hT2, hT1NN, hT2NN⟩
-        rcases eo_to_smt_type_eq_map_iff.mp hU with
+        rcases eo_to_smt_type_eq_fun_iff.mp hU with
           ⟨U1, U2, hU', hU1, hU2, hU1NN, hU2NN⟩
         rw [hT', hU', go A hT1 hU1 (by rwa [← hT1]), go B hT2 hU2 (by rwa [← hT2])]
   exact go S hT hU hNN

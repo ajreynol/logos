@@ -28,19 +28,19 @@ private theorem eo_to_smt_stuck_eq :
 /-- Simplifies EO-to-SMT translation for `and`. -/
 private theorem eo_to_smt_and_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.and A) B) =
-      SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B) := by
+      SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `not`. -/
 private theorem eo_to_smt_not_eq (t : Term) :
     __eo_to_smt (Term.Apply Term.not t) =
-      SmtTerm.Apply SmtTerm.not (__eo_to_smt t) := by
+      SmtTerm.not (__eo_to_smt t) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `imp`. -/
 private theorem eo_to_smt_imp_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.imp A) B) =
-      SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt A)) (__eo_to_smt B) := by
+      SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `eq`. -/
@@ -169,7 +169,7 @@ theorem eo_has_bool_type_and_left (A B : Term) :
   unfold eo_has_bool_type at hTy ⊢
   rw [eo_to_smt_and_eq A B] at hTy
   have hNN : term_has_non_none_type
-      (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+      (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hTy]
     simp
@@ -183,7 +183,7 @@ theorem eo_has_bool_type_and_right (A B : Term) :
   unfold eo_has_bool_type at hTy ⊢
   rw [eo_to_smt_and_eq A B] at hTy
   have hNN : term_has_non_none_type
-      (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+      (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hTy]
     simp
@@ -260,7 +260,7 @@ theorem eo_interprets_and_left (M : SmtModel) (A B : Term) :
   | intro_true hty hEval =>
       have htyA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [hty]
           simp
@@ -288,7 +288,7 @@ theorem eo_interprets_and_right (M : SmtModel) (A B : Term) :
   | intro_true hty hEval =>
       have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.and (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [hty]
           simp
@@ -343,7 +343,7 @@ theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
       | intro_true htyA hEvalA =>
           have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
             have hNN : term_has_non_none_type
-                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt A)) (__eo_to_smt B)) := by
+                (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
               unfold term_has_non_none_type
               rw [htyImp]
               simp
@@ -396,7 +396,7 @@ theorem eo_interprets_imp_false_left (M : SmtModel) (A B : Term) :
   | intro_false htyImp hEvalImp =>
       have htyA : __smtx_typeof (__eo_to_smt A) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [htyImp]
           simp
@@ -425,7 +425,7 @@ theorem eo_interprets_imp_false_right (M : SmtModel) (A B : Term) :
   | intro_false htyImp hEvalImp =>
       have htyB : __smtx_typeof (__eo_to_smt B) = SmtType.Bool := by
         have hNN : term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.imp (__eo_to_smt A)) (__eo_to_smt B)) := by
+            (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
           unfold term_has_non_none_type
           rw [htyImp]
           simp
@@ -869,7 +869,7 @@ theorem eo_interprets_not_of_false (M : SmtModel) (t : Term) :
   cases hFalse with
   | intro_false hTy hEval =>
       refine smt_interprets.intro_true M
-          (SmtTerm.Apply SmtTerm.not (__eo_to_smt t)) ?_ ?_
+          (SmtTerm.not (__eo_to_smt t)) ?_ ?_
       · change smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt t)) SmtType.Bool)
             SmtType.Bool SmtType.None = SmtType.Bool
         simp [hTy, smt_lit_Teq, smt_lit_ite]

@@ -39,7 +39,7 @@ theorem uconst_type_inhabited_of_non_none
 /-- Derives `not_arg_bool` from `non_none`. -/
 theorem not_arg_bool_of_non_none
     {t : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply SmtTerm.not t)) :
+    (ht : term_has_non_none_type (SmtTerm.not t)) :
     __smtx_typeof t = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
@@ -61,8 +61,13 @@ theorem generic_apply_children_non_none
   rcases typeof_apply_non_none_cases hNN with ⟨A, B, hF, hX, hA, _hB⟩
   constructor
   · unfold term_has_non_none_type
-    rw [hF]
-    simp
+    cases hF with
+    | inl hMap =>
+        rw [hMap]
+        simp
+    | inr hFun =>
+        rw [hFun]
+        simp
   · unfold term_has_non_none_type
     rw [hX]
     exact hA
@@ -82,63 +87,59 @@ private theorem supported_preservation_term_of_non_none :
       exact supported_preservation_term.string s
   | SmtTerm.Binary w n, _ => by
       exact supported_preservation_term.binary w n
+  | SmtTerm.not t, ht => by
+      have htxTy : __smtx_typeof t = SmtType.Bool :=
+        not_arg_bool_of_non_none ht
+      have htx : term_has_non_none_type t := by
+        unfold term_has_non_none_type
+        rw [htxTy]
+        simp
+      exact supported_preservation_term.not htx
+        (supported_preservation_term_of_non_none t htx)
+  | SmtTerm.or t1 t2, ht => by
+      have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl ht
+      have ht1 : term_has_non_none_type t1 := by
+        unfold term_has_non_none_type
+        rw [hArgs.1]
+        simp
+      have ht2 : term_has_non_none_type t2 := by
+        unfold term_has_non_none_type
+        rw [hArgs.2]
+        simp
+      exact supported_preservation_term.or ht1
+        (supported_preservation_term_of_non_none t1 ht1)
+        ht2
+        (supported_preservation_term_of_non_none t2 ht2)
+  | SmtTerm.and t1 t2, ht => by
+      have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl ht
+      have ht1 : term_has_non_none_type t1 := by
+        unfold term_has_non_none_type
+        rw [hArgs.1]
+        simp
+      have ht2 : term_has_non_none_type t2 := by
+        unfold term_has_non_none_type
+        rw [hArgs.2]
+        simp
+      exact supported_preservation_term.and ht1
+        (supported_preservation_term_of_non_none t1 ht1)
+        ht2
+        (supported_preservation_term_of_non_none t2 ht2)
+  | SmtTerm.imp t1 t2, ht => by
+      have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl ht
+      have ht1 : term_has_non_none_type t1 := by
+        unfold term_has_non_none_type
+        rw [hArgs.1]
+        simp
+      have ht2 : term_has_non_none_type t2 := by
+        unfold term_has_non_none_type
+        rw [hArgs.2]
+        simp
+      exact supported_preservation_term.imp ht1
+        (supported_preservation_term_of_non_none t1 ht1)
+        ht2
+        (supported_preservation_term_of_non_none t2 ht2)
   | SmtTerm.Apply f x, ht => by
       cases supported_preservation_apply_cases f x with
-      | not_case =>
-          subst_vars
-          have htxTy : __smtx_typeof x = SmtType.Bool :=
-            not_arg_bool_of_non_none ht
-          have htx : term_has_non_none_type x := by
-            unfold term_has_non_none_type
-            rw [htxTy]
-            simp
-          exact supported_preservation_term.not htx
-            (supported_preservation_term_of_non_none x htx)
-      | or_case t1 =>
-          subst_vars
-          have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl ht
-          have ht1 : term_has_non_none_type t1 := by
-            unfold term_has_non_none_type
-            rw [hArgs.1]
-            simp
-          have ht2 : term_has_non_none_type x := by
-            unfold term_has_non_none_type
-            rw [hArgs.2]
-            simp
-          exact supported_preservation_term.or ht1
-            (supported_preservation_term_of_non_none t1 ht1)
-            ht2
-            (supported_preservation_term_of_non_none x ht2)
-      | and_case t1 =>
-          subst_vars
-          have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl ht
-          have ht1 : term_has_non_none_type t1 := by
-            unfold term_has_non_none_type
-            rw [hArgs.1]
-            simp
-          have ht2 : term_has_non_none_type x := by
-            unfold term_has_non_none_type
-            rw [hArgs.2]
-            simp
-          exact supported_preservation_term.and ht1
-            (supported_preservation_term_of_non_none t1 ht1)
-            ht2
-            (supported_preservation_term_of_non_none x ht2)
-      | imp_case t1 =>
-          subst_vars
-          have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl ht
-          have ht1 : term_has_non_none_type t1 := by
-            unfold term_has_non_none_type
-            rw [hArgs.1]
-            simp
-          have ht2 : term_has_non_none_type x := by
-            unfold term_has_non_none_type
-            rw [hArgs.2]
-            simp
-          exact supported_preservation_term.imp ht1
-            (supported_preservation_term_of_non_none t1 ht1)
-            ht2
-            (supported_preservation_term_of_non_none x ht2)
       | eq_case t1 =>
           subst_vars
           exact supported_preservation_term.eq t1 x
@@ -195,14 +196,6 @@ private theorem supported_preservation_term_of_non_none :
   | SmtTerm.UConst s T, ht => by
       exact supported_preservation_term.uconst s T
         (uconst_type_inhabited_of_non_none ht)
-  | SmtTerm.not, ht => by
-      exact False.elim (ht rfl)
-  | SmtTerm.or, ht => by
-      exact False.elim (ht rfl)
-  | SmtTerm.and, ht => by
-      exact False.elim (ht rfl)
-  | SmtTerm.imp, ht => by
-      exact False.elim (ht rfl)
 termination_by t _ => sizeOf t
 decreasing_by
   all_goals
