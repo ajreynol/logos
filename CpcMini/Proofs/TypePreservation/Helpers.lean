@@ -57,6 +57,24 @@ theorem typeof_dt_cons_value_rec_chain_result
       simpa [__smtx_typeof_dt_cons_value_rec] using
         typeof_dt_cons_value_rec_chain_result s d0 d n
 
+/-- Removes the datatype well-formedness guard from a non-`None` `dt_cons` value typing equality. -/
+theorem typeof_value_dt_cons_inner_eq_of_eq_non_none
+    {s : smt_lit_String}
+    {d : SmtDatatype}
+    {i : smt_lit_Nat}
+    {U : SmtType}
+    (h :
+      __smtx_typeof_value (SmtValue.DtCons s d i) = U)
+    (hU : U ≠ SmtType.None) :
+    __smtx_typeof_dt_cons_value_rec
+        (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i = U := by
+  cases hwf : __smtx_type_wf (SmtType.Datatype s d) with
+  | false =>
+      simp [__smtx_typeof_value, smt_lit_ite, hwf] at h
+      exact False.elim (hU (by simpa using h.symm))
+  | true =>
+      simpa [__smtx_typeof_value, smt_lit_ite, hwf] using h
+
 /-- Lemma about `typeof_value_dt_cons_type_chain_result`. -/
 theorem typeof_value_dt_cons_type_chain_result :
     ∀ v : SmtValue, ∀ T U : SmtType,
@@ -99,8 +117,12 @@ theorem typeof_value_dt_cons_type_chain_result :
       simp [__smtx_typeof_value] at h
   | SmtValue.DtCons s d i, T, U, h => by
       have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
+      have hInner :
+          __smtx_typeof_dt_cons_value_rec
+              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+            SmtType.FunType T U :=
+        typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
+      rw [hInner] at hShape
       simpa [dt_cons_chain_result] using hShape
   | SmtValue.Apply f v, T, U, h => by
       cases hf : __smtx_typeof_value f <;>
@@ -197,8 +219,12 @@ theorem no_value_of_type_ref
       simp [__smtx_typeof_value] at hv
   | DtCons s' d i =>
       have hShape := typeof_dt_cons_value_rec_chain_result s' d (__smtx_dt_substitute s' d d) i
-      rw [__smtx_typeof_value] at hv
-      rw [hv] at hShape
+      have hInner :
+          __smtx_typeof_dt_cons_value_rec
+              (SmtType.Datatype s' d) (__smtx_dt_substitute s' d d) i =
+            SmtType.TypeRef s :=
+        typeof_value_dt_cons_inner_eq_of_eq_non_none hv (by simp)
+      rw [hInner] at hShape
       simp [dt_cons_chain_result] at hShape
   | Apply f x =>
       cases hf : __smtx_typeof_value f <;>
@@ -253,8 +279,12 @@ theorem bool_value_canonical
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
+      have hInner :
+          __smtx_typeof_dt_cons_value_rec
+              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+            SmtType.Bool :=
+        typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
+      rw [hInner] at hShape
       simp [dt_cons_chain_result] at hShape
   | Apply f x =>
       exfalso
@@ -306,8 +336,12 @@ theorem map_value_canonical
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
+      have hInner :
+          __smtx_typeof_dt_cons_value_rec
+              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+            SmtType.Map A B :=
+        typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
+      rw [hInner] at hShape
       simp [dt_cons_chain_result] at hShape
   | Apply f x =>
       exfalso
@@ -359,8 +393,12 @@ theorem seq_value_canonical
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
+      have hInner :
+          __smtx_typeof_dt_cons_value_rec
+              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+            SmtType.Seq T :=
+        typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
+      rw [hInner] at hShape
       simp [dt_cons_chain_result] at hShape
   | Apply f x =>
       exfalso
