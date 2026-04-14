@@ -59,7 +59,7 @@ def __eo_to_smt_substitute (s : smt_lit_String) (T : SmtType) (u : SmtTerm) : Sm
 
 
 def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (smt_lit_ite (smt_lit_zleq 0 x2) (SmtTerm.Binary x2 (smt_lit_mod_total x1 (smt_lit_int_pow2 x2))) SmtTerm.None)
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (smt_lit_ite (smt_lit_zleq 0 x2) (SmtTerm.Binary x2 (smt_lit_mod_total x1 (smt_lit_int_pow2 (smt_lit_nat_to_int x2)))) SmtTerm.None)
   | t1, t2 => SmtTerm.None
 
 

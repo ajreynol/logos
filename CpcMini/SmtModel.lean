@@ -285,7 +285,7 @@ inductive SmtTerm : Type where
   | Numeral : smt_lit_Int -> SmtTerm
   | Rational : smt_lit_Rat -> SmtTerm
   | String : smt_lit_String -> SmtTerm
-  | Binary : smt_lit_Int -> smt_lit_Int -> SmtTerm
+  | Binary : smt_lit_Nat -> smt_lit_Int -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | Var : smt_lit_String -> SmtType -> SmtTerm
   | ite : SmtTerm

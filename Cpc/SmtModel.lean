@@ -285,7 +285,7 @@ inductive SmtTerm : Type where
   | Numeral : smt_lit_Int -> SmtTerm
   | Rational : smt_lit_Rat -> SmtTerm
   | String : smt_lit_String -> SmtTerm
-  | Binary : smt_lit_Int -> smt_lit_Int -> SmtTerm
+  | Binary : smt_lit_Nat -> smt_lit_Int -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | Var : smt_lit_String -> SmtType -> SmtTerm
   | ite : SmtTerm
@@ -1537,7 +1537,7 @@ def __smtx_typeof_store : SmtType -> SmtType -> SmtType -> SmtType
 
 
 def __smtx_typeof_concat : SmtType -> SmtType -> SmtType
-  | (SmtType.BitVec x1), (SmtType.BitVec x2) => (SmtType.BitVec (smt_lit_zplus x1 x2))
+  | (SmtType.BitVec x1), (SmtType.BitVec x2) => (SmtType.BitVec (smt_lit_nat_plus x1 x2))
   | x3, x4 => SmtType.None
 
 
