@@ -15,4 +15,19 @@ theorem cmd_step_and_intro_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.and_intro args premises) :=
 by
-  sorry
+  intro _hCmdTrans hPremisesBool hProg
+  cases args with
+  | nil =>
+      refine ⟨?_, ?_⟩
+      · intro hTrue
+        change eo_interprets M (__eo_mk_premise_list Term.and premises s) true
+        rw [mk_premise_list_and_eq_premiseAndFormulaList]
+        exact premiseAndFormulaList_true_of_all_true M
+          (premiseTermList s premises) hTrue
+      · change RuleProofs.eo_has_bool_type (__eo_mk_premise_list Term.and premises s)
+        rw [mk_premise_list_and_eq_premiseAndFormulaList]
+        exact premiseAndFormulaList_has_bool_type
+          (premiseTermList s premises) hPremisesBool
+  | cons _ _ =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)

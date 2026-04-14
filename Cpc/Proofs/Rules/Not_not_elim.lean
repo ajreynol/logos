@@ -6,6 +6,122 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+private theorem eo_interprets_of_not_false (M : SmtModel) (F : Term) :
+  eo_interprets M (Term.Apply Term.not F) false ->
+  eo_interprets M F true := by
+  intro hNotFalse
+  have hNotBool : RuleProofs.eo_has_bool_type (Term.Apply Term.not F) :=
+    RuleProofs.eo_has_bool_type_of_interprets_false M _ hNotFalse
+  have hFBool : RuleProofs.eo_has_bool_type F :=
+    RuleProofs.eo_has_bool_type_not_arg F hNotBool
+  rw [RuleProofs.eo_interprets_iff_smt_interprets] at hNotFalse
+  rw [__eo_to_smt.eq_def] at hNotFalse
+  cases hNotFalse with
+  | intro_false _ hEvalNot =>
+      change __smtx_model_eval_not (__smtx_model_eval M (__eo_to_smt F)) =
+          SmtValue.Boolean false at hEvalNot
+      cases hEvalF : __smtx_model_eval M (__eo_to_smt F) with
+      | NotValue =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | Boolean b =>
+          cases b with
+          | false =>
+              exfalso
+              simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+          | true =>
+              exact RuleProofs.eo_interprets_of_bool_eval M F true hFBool hEvalF
+      | Numeral _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | Rational _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | Binary _ _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | Map _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | Set _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | Seq _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | Char _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | RegLan _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | DtCons _ _ _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+      | Apply _ _ =>
+          exfalso
+          simpa [hEvalF, __smtx_model_eval_not, SmtEval.smt_lit_not] using hEvalNot
+
+/-- Shows that the EO program for `not_not_elim` is well typed. -/
+theorem typed___eo_prog_not_not_elim_impl (x1 : Term) :
+  RuleProofs.eo_has_bool_type x1 ->
+  __eo_prog_not_not_elim (Proof.pf x1) ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type (__eo_prog_not_not_elim (Proof.pf x1)) := by
+  intro hX1Bool hProg
+  cases x1 with
+  | Apply f a =>
+      cases f with
+      | not =>
+          cases a with
+          | Apply g F =>
+              cases g with
+              | not =>
+                  have hNotFBool : RuleProofs.eo_has_bool_type (Term.Apply Term.not F) :=
+                    RuleProofs.eo_has_bool_type_not_arg _ hX1Bool
+                  exact RuleProofs.eo_has_bool_type_not_arg F hNotFBool
+              | _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+          | _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+      | _ =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+  | _ =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+
+/-- Derives the checker facts exposed by the EO program for `not_not_elim`. -/
+theorem facts___eo_prog_not_not_elim_impl (M : SmtModel) (x1 : Term) :
+  eo_interprets M x1 true ->
+  __eo_prog_not_not_elim (Proof.pf x1) ≠ Term.Stuck ->
+  eo_interprets M (__eo_prog_not_not_elim (Proof.pf x1)) true := by
+  intro hX1True hProg
+  cases x1 with
+  | Apply f a =>
+      cases f with
+      | not =>
+          cases a with
+          | Apply g F =>
+              cases g with
+              | not =>
+                  exact eo_interprets_of_not_false M F
+                    (RuleProofs.eo_interprets_not_true_implies_false M
+                      (Term.Apply Term.not F) hX1True)
+              | _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+          | _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+      | _ =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+  | _ =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+
 theorem cmd_step_not_not_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
@@ -15,4 +131,33 @@ theorem cmd_step_not_not_elim_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.not_not_elim args premises) :=
 by
-  sorry
+  intro _hCmdTrans hPremisesBool hProg
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons n1 premises =>
+          cases premises with
+          | nil =>
+              let X1 := __eo_state_proven_nth s n1
+              have hProgNotNot : __eo_prog_not_not_elim (Proof.pf X1) ≠ Term.Stuck := by
+                change __eo_prog_not_not_elim (Proof.pf (__eo_state_proven_nth s n1)) ≠ Term.Stuck at hProg
+                simpa [X1] using hProg
+              refine ⟨?_, ?_⟩
+              · intro hTrue
+                change eo_interprets M (__eo_prog_not_not_elim (Proof.pf X1)) true
+                exact facts___eo_prog_not_not_elim_impl M X1
+                  (hTrue X1 (by simp [X1, premiseTermList]))
+                  hProgNotNot
+              · change RuleProofs.eo_has_bool_type (__eo_prog_not_not_elim (Proof.pf X1))
+                exact typed___eo_prog_not_not_elim_impl X1
+                  (hPremisesBool X1 (by simp [X1, premiseTermList]))
+                  hProgNotNot
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+  | cons _ _ =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)

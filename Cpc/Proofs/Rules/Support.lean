@@ -1,4 +1,5 @@
 import Cpc.Proofs.Rules.Common
+import Cpc.Proofs.Unproven
 
 open Eo
 open Smtm
@@ -6,11 +7,41 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Predicate asserting that every element of an EO list has an SMT translation. -/
+def EoListAllHaveSmtTranslation : Term -> Prop
+  | Term.__eo_List_nil => True
+  | Term.Apply (Term.Apply Term.__eo_List_cons t) ts =>
+      RuleProofs.eo_has_smt_translation t ∧ EoListAllHaveSmtTranslation ts
+  | _ => False
+
+/-- Interprets a command-argument mask bit, where `true` marks EO-list arguments. -/
+def argTranslationOkMasked (isListArg : Bool) (t : Term) : Prop :=
+  if isListArg then EoListAllHaveSmtTranslation t else RuleProofs.eo_has_smt_translation t
+
+/-- Predicate asserting that every argument in a checker argument list is translation-safe. -/
+def cArgListTranslationOk : CArgList -> Prop
+  | CArgList.nil => True
+  | CArgList.cons a args => RuleProofs.eo_has_smt_translation a ∧ cArgListTranslationOk args
+
+/-- Predicate asserting that a checker argument list matches a scalar/list translation mask. -/
+def cArgListTranslationOkMask : List Bool -> CArgList -> Prop
+  | [], CArgList.nil => True
+  | isListArg :: mask, CArgList.cons a args =>
+      argTranslationOkMasked isListArg a ∧ cArgListTranslationOkMask mask args
+  | _, _ => False
+
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => RuleProofs.eo_has_smt_translation A
-  | CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil =>
-      RuleProofs.eo_has_smt_translation a1
+  | CCmd.step CRule.chain_resolution args _ =>
+      cArgListTranslationOkMask [true, true] args
+  | CCmd.step CRule.chain_m_resolution args _ =>
+      cArgListTranslationOkMask [false, true, true] args
+  | CCmd.step CRule.instantiate args _ =>
+      cArgListTranslationOkMask [true] args
+  | CCmd.step CRule.alpha_equiv args _ =>
+      cArgListTranslationOkMask [false, true, true] args
+  | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
 /-- Inductive predicate asserting that every command in a checker command list satisfies `cmdTranslationOk`. -/
