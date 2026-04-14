@@ -312,7 +312,7 @@ inductive SmtValue : Type where
   | Boolean : smt_lit_Bool -> SmtValue
   | Numeral : smt_lit_Int -> SmtValue
   | Rational : smt_lit_Rat -> SmtValue
-  | Binary : smt_lit_Int -> smt_lit_Int -> SmtValue
+  | Binary : smt_lit_Nat -> smt_lit_Int -> SmtValue
   | Map : SmtMap -> SmtValue
   | Set : SmtMap -> SmtValue
   | Seq : SmtSeq -> SmtValue
@@ -587,7 +587,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Numeral n) => SmtType.Int
   | (SmtValue.Rational q) => SmtType.Real
-  | (SmtValue.Binary w n) => (smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None)
+  | (SmtValue.Binary w n) => (SmtType.BitVec w)
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
   | (SmtValue.Set m) => (__smtx_map_to_set_type (__smtx_typeof_map_value m))

@@ -186,7 +186,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Numeral n) => (SmtTerm.Numeral n)
   | (Term.Rational r) => (SmtTerm.Rational r)
   | (Term.String s) => (SmtTerm.String s)
-  | (Term.Binary w n) => (SmtTerm.Binary w n)
+  | (Term.Binary w n) => (smt_lit_ite (smt_lit_zleq 0 w) (SmtTerm.Binary (smt_lit_int_to_nat w) n) SmtTerm.None)
   | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
   | (Term.DtCons s d i) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)
   | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
