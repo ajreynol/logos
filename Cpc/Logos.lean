@@ -5757,6 +5757,11 @@ def __eo_typeof_distinct : Term -> Term
   | _ => Term.Stuck
 
 
+def __eo_typeof__at_purify : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | A => A
+
+
 def __eo_typeof_plus : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -6081,6 +6086,12 @@ def __eo_typeof__at_witness_string_length : Term -> Term -> Term -> Term -> Term
   | _, _, _, _ => Term.Stuck
 
 
+def __eo_typeof_is : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | C, D => Term.Bool
+
+
 def __eo_typeof_update : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
@@ -6195,9 +6206,10 @@ def __eo_typeof_int_to_bv : Term -> Term -> Term -> Term
   | _, _, _ => Term.Stuck
 
 
-def __eo_typeof_ubv_to_int : Term -> Term
-  | (Term.Apply Term.BitVec m) => Term.Int
-  | _ => Term.Stuck
+def __eo_typeof__at__at_aci_sorted : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | U, T => T
 
 
 def __eo_typeof__at_const : Term -> Term -> Term -> Term
@@ -6244,7 +6256,7 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply Term.xor __eo_x1) __eo_x2) => (__eo_typeof_or (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term.eq __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply Term.distinct __eo_x1) => (__eo_typeof_distinct (__eo_typeof __eo_x1))
-  | (Term._at_purify __eo_x1) => (__eo_typeof __eo_x1)
+  | (Term._at_purify __eo_x1) => (__eo_typeof__at_purify (__eo_typeof __eo_x1))
   | (Term.Apply (Term.Apply Term.plus __eo_x1) __eo_x2) => (__eo_typeof_plus (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term.neg __eo_x1) __eo_x2) => (__eo_typeof_plus (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply Term.mult __eo_x1) __eo_x2) => (__eo_typeof_plus (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
@@ -6380,7 +6392,7 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply (Term.Apply Term._at_strings_occur_index_re __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof__at_strings_occur_index_re (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.Apply (Term._at_strings_replace_all_result __eo_x1) __eo_x2) => (__eo_typeof_str_at (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.Apply Term._at_witness_string_length __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof__at_witness_string_length (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
-  | (Term.Apply (Term.Apply Term.is __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply (Term.Apply Term.is __eo_x1) __eo_x2) => (__eo_typeof_is (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.Apply Term.update __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof_update (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | Term.UnitTuple => Term.Type
   | (Term.Apply (Term.Apply Term.Tuple __eo_x1) __eo_x2) => (__eo_typeof__at__at_Pair (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
@@ -6413,9 +6425,9 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply Term.exists __eo_x1) __eo_x2) => (__eo_typeof_forall (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term._at_quantifiers_skolemize __eo_x1 __eo_x2) => (__eo_typeof__at_quantifiers_skolemize (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2) __eo_x2)
   | (Term.Apply (Term.Apply Term.int_to_bv __eo_x1) __eo_x2) => (__eo_typeof_int_to_bv (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2))
-  | (Term.Apply Term.ubv_to_int __eo_x1) => (__eo_typeof_ubv_to_int (__eo_typeof __eo_x1))
-  | (Term.Apply Term.sbv_to_int __eo_x1) => (__eo_typeof_ubv_to_int (__eo_typeof __eo_x1))
-  | (Term.Apply (Term.Apply Term._at__at_aci_sorted __eo_x1) __eo_x2) => (__eo_typeof__at__at_Pair (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply Term.ubv_to_int __eo_x1) => (__eo_typeof__at_bvsize (__eo_typeof __eo_x1))
+  | (Term.Apply Term.sbv_to_int __eo_x1) => (__eo_typeof__at_bvsize (__eo_typeof __eo_x1))
+  | (Term.Apply (Term.Apply Term._at__at_aci_sorted __eo_x1) __eo_x2) => (__eo_typeof__at__at_aci_sorted (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term._at_const __eo_x1 __eo_x2) => (__eo_typeof__at_const (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) __eo_x2)
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | _ => Term.Stuck
