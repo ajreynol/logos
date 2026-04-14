@@ -612,10 +612,11 @@ theorem cmd_step_proven_facts_of_invariants
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
   __eo_cmd_step_proven s r args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s r args premises) = Term.Bool ->
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 :=
 by
-  intro hs hsTy hsTrans hCmdTrans hProg
+  intro hs hsTy hsTrans hCmdTrans hProg hResultTy
   have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
     premiseTermList_has_bool_type s premises hsTy hsTrans
   cases r with
@@ -1268,11 +1269,11 @@ by
   | arith_int_div_total_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_div_total_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hProg hResultTy
   | arith_int_div_total_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_div_total_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hProg hResultTy
   | arith_int_div_total_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_div_total_neg_properties M hM s args premises
@@ -1284,11 +1285,11 @@ by
   | arith_int_mod_total_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_mod_total_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hProg hResultTy
   | arith_int_mod_total_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_mod_total_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hProg hResultTy
   | arith_int_mod_total_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_mod_total_neg_properties M hM s args premises
@@ -1388,7 +1389,7 @@ by
   | arith_min_lt1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_min_lt1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hProg hResultTy
   | arith_min_lt2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_min_lt2_properties M hM s args premises
@@ -1396,7 +1397,7 @@ by
   | arith_max_geq1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_max_geq1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hProg hResultTy
   | arith_max_geq2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_max_geq2_properties M hM s args premises
@@ -4193,4 +4194,3 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_card_conflict =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-
