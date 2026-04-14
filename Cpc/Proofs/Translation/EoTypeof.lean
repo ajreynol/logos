@@ -18,41 +18,53 @@ They let the main translation theorem make progress on the direct constructor
 cases while we continue filling in the EO typing story separately.
 -/
 
+/-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
+theorem smtx_typeof_guard_of_non_none
+    (T U : SmtType) (h : T ≠ SmtType.None) :
+    __smtx_typeof_guard T U = U := by
+  cases T <;> simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h ⊢
+
 /-- Simplifies EO-to-SMT type translation for `typeof_numeral`. -/
 theorem eo_to_smt_type_typeof_numeral
     (n : eo_lit_Int) :
     __eo_to_smt_type (__eo_typeof (Term.Numeral n)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type Term.Int = SmtType.Int
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_rational`. -/
 theorem eo_to_smt_type_typeof_rational
     (q : eo_lit_Rat) :
     __eo_to_smt_type (__eo_typeof (Term.Rational q)) = SmtType.Real := by
-  sorry
+  change __eo_to_smt_type Term.Real = SmtType.Real
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_string`. -/
 theorem eo_to_smt_type_typeof_string
     (s : eo_lit_String) :
     __eo_to_smt_type (__eo_typeof (Term.String s)) = SmtType.Seq SmtType.Char := by
-  sorry
+  change __eo_to_smt_type (Term.Apply Term.Seq Term.Char) = SmtType.Seq SmtType.Char
+  simp [__eo_to_smt_type, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_binary`. -/
 theorem eo_to_smt_type_typeof_binary
     (w n : eo_lit_Int) :
     __eo_to_smt_type (__eo_typeof (Term.Binary w n)) = SmtType.BitVec w := by
-  sorry
+  change __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral w)) = SmtType.BitVec w
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_var`. -/
 theorem eo_to_smt_type_typeof_var
     (s : eo_lit_String) (T : Term) :
     __eo_to_smt_type (__eo_typeof (Term.Var (Term.String s) T)) = __eo_to_smt_type T := by
-  sorry
+  change __eo_to_smt_type T = __eo_to_smt_type T
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_uconst`. -/
 theorem eo_to_smt_type_typeof_uconst
     (i : eo_lit_Nat) (T : Term) :
     __eo_to_smt_type (__eo_typeof (Term.UConst i T)) = __eo_to_smt_type T := by
-  sorry
+  change __eo_to_smt_type T = __eo_to_smt_type T
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_var_of_smt_apply`. -/
 theorem eo_to_smt_type_typeof_apply_var_of_smt_apply
@@ -171,7 +183,9 @@ theorem eo_to_smt_type_typeof_purify
     (x : Term) :
     __eo_to_smt_type (__eo_typeof (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof x) := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof__at_purify (__eo_typeof x)) =
+    __eo_to_smt_type (__eo_typeof x)
+  cases __eo_typeof x <;> rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_purify_of_smt_apply`. -/
 theorem eo_to_smt_type_typeof_apply_purify_of_smt_apply
@@ -211,21 +225,27 @@ theorem eo_to_smt_type_typeof_apply_not_of_bool
     (x : Term)
     (hx : __eo_typeof x = Term.Bool) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.not x)) = SmtType.Bool := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_not (__eo_typeof x)) = SmtType.Bool
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_abs_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_abs_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.abs x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_abs (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_len_of_seq`. -/
 theorem eo_to_smt_type_typeof_apply_str_len_of_seq
     (x V : Term)
     (hx : __eo_typeof x = Term.Apply Term.Seq V) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_len x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_len (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_rev_of_seq`. -/
 theorem eo_to_smt_type_typeof_apply_str_rev_of_seq
@@ -241,7 +261,12 @@ theorem eo_to_smt_type_typeof_apply_seq_unit_of_non_none
     (hx : __eo_to_smt_type (__eo_typeof x) ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.seq_unit x)) =
       SmtType.Seq (__eo_to_smt_type (__eo_typeof x)) := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_seq_unit (__eo_typeof x)) =
+    SmtType.Seq (__eo_to_smt_type (__eo_typeof x))
+  cases hTy : __eo_typeof x <;> simp [__eo_typeof_seq_unit, __eo_to_smt_type, hTy] at hx ⊢
+  case Apply =>
+    exact smtx_typeof_guard_of_non_none _ _ hx
+  all_goals simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_set_singleton_of_non_none`. -/
 theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
@@ -249,7 +274,12 @@ theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
     (hx : __eo_to_smt_type (__eo_typeof x) ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.set_singleton x)) =
       SmtType.Set (__eo_to_smt_type (__eo_typeof x)) := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_set_singleton (__eo_typeof x)) =
+    SmtType.Set (__eo_to_smt_type (__eo_typeof x))
+  cases hTy : __eo_typeof x <;> simp [__eo_typeof_set_singleton, __eo_to_smt_type, hTy] at hx ⊢
+  case Apply =>
+    exact smtx_typeof_guard_of_non_none _ _ hx
+  all_goals simp [__smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_set_is_singleton_of_smt_set`. -/
 theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_smt_set
@@ -276,70 +306,90 @@ theorem eo_to_smt_type_typeof_apply_to_real_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.to_real x)) = SmtType.Real := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_to_real (__eo_typeof x)) = SmtType.Real
+  rw [hx]
+  native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_real_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_to_real_of_real
     (x : Term)
     (hx : __eo_typeof x = Term.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.to_real x)) = SmtType.Real := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_to_real (__eo_typeof x)) = SmtType.Real
+  rw [hx]
+  native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_int_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_to_int_of_real
     (x : Term)
     (hx : __eo_typeof x = Term.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.to_int x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_to_int (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_int_pow2_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_int_pow2_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.int_pow2 x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_int_pow2 (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_int_log2_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_int_log2_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.int_log2 x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_int_log2 (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_int_ispow2_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_int_ispow2_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.int_ispow2 x)) = SmtType.Bool := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_int_ispow2 (__eo_typeof x)) = SmtType.Bool
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_int_div_by_zero_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_at_int_div_by_zero_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_int_div_by_zero x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof__at_int_div_by_zero (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_mod_by_zero_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_at_mod_by_zero_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_mod_by_zero x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof__at_mod_by_zero (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_div_by_zero_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_at_div_by_zero_of_real
     (x : Term)
     (hx : __eo_typeof x = Term.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_div_by_zero x)) = SmtType.Real := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof__at_div_by_zero (__eo_typeof x)) = SmtType.Real
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_is_int_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_is_int_of_real
     (x : Term)
     (hx : __eo_typeof x = Term.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.is_int x)) = SmtType.Bool := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_is_int (__eo_typeof x)) = SmtType.Bool
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_lower_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_lower_of_seq_char
@@ -347,7 +397,9 @@ theorem eo_to_smt_type_typeof_apply_str_to_lower_of_seq_char
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_to_lower x)) =
       SmtType.Seq SmtType.Char := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_to_lower (__eo_typeof x)) = SmtType.Seq SmtType.Char
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_upper_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_upper_of_seq_char
@@ -355,14 +407,18 @@ theorem eo_to_smt_type_typeof_apply_str_to_upper_of_seq_char
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_to_upper x)) =
       SmtType.Seq SmtType.Char := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_to_upper (__eo_typeof x)) = SmtType.Seq SmtType.Char
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_code_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_code_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_to_code x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_to_code (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_from_code_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_str_from_code_of_int
@@ -370,21 +426,27 @@ theorem eo_to_smt_type_typeof_apply_str_from_code_of_int
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_from_code x)) =
       SmtType.Seq SmtType.Char := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_from_code (__eo_typeof x)) = SmtType.Seq SmtType.Char
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_is_digit_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_is_digit_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_is_digit x)) = SmtType.Bool := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_is_digit (__eo_typeof x)) = SmtType.Bool
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_int_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_int_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_to_int x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_to_int (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_from_int_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
@@ -392,7 +454,9 @@ theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_from_int x)) =
       SmtType.Seq SmtType.Char := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_from_int (__eo_typeof x)) = SmtType.Seq SmtType.Char
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_strings_stoi_non_digit_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
@@ -400,7 +464,9 @@ theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_strings_stoi_non_digit x)) =
       SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof__at_strings_stoi_non_digit (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_at_strings_stoi_result_of_smt_seq_char_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_smt_seq_char_int
@@ -416,77 +482,99 @@ theorem eo_to_smt_type_typeof_apply_str_to_re_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_to_re x)) = SmtType.RegLan := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_to_re (__eo_typeof x)) = SmtType.RegLan
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_re_mult_of_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_re_mult_of_reglan
     (x : Term)
     (hx : __eo_typeof x = Term.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.re_mult x)) = SmtType.RegLan := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_re_mult (__eo_typeof x)) = SmtType.RegLan
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_re_plus_of_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_re_plus_of_reglan
     (x : Term)
     (hx : __eo_typeof x = Term.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.re_plus x)) = SmtType.RegLan := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_re_plus (__eo_typeof x)) = SmtType.RegLan
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_re_opt_of_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_re_opt_of_reglan
     (x : Term)
     (hx : __eo_typeof x = Term.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.re_opt x)) = SmtType.RegLan := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_re_opt (__eo_typeof x)) = SmtType.RegLan
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_re_comp_of_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_re_comp_of_reglan
     (x : Term)
     (hx : __eo_typeof x = Term.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.re_comp x)) = SmtType.RegLan := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_re_comp (__eo_typeof x)) = SmtType.RegLan
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvnot_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvnot_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvnot x)) = SmtType.BitVec w := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_bvnot (__eo_typeof x)) = SmtType.BitVec w
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvneg_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvneg_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvneg x)) = SmtType.BitVec w := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_bvneg (__eo_typeof x)) = SmtType.BitVec w
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvredand_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvredand_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvredand x)) = SmtType.BitVec 1 := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_bvredand (__eo_typeof x)) = SmtType.BitVec 1
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvredor_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvredor_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvredor x)) = SmtType.BitVec 1 := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_bvredor (__eo_typeof x)) = SmtType.BitVec 1
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_ubv_to_int_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.ubv_to_int x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_ubv_to_int (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_sbv_to_int_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.sbv_to_int x)) = SmtType.Int := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_sbv_to_int (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_contains_of_smt_seq`. -/
 theorem eo_to_smt_type_typeof_apply_apply_str_contains_of_smt_seq
