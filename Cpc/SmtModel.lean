@@ -72,6 +72,7 @@ abbrev smt_lit_binary_extract := SmtEval.smt_lit_binary_extract
 abbrev smt_lit_Nat := SmtEval.smt_lit_Nat
 abbrev smt_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
 abbrev smt_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
+abbrev smt_lit_nat_plus := SmtEval.smt_lit_nat_plus
 abbrev smt_lit_nateq := SmtEval.smt_lit_nateq
   
 -- SMT Beyond Eunoia
@@ -264,7 +265,7 @@ inductive SmtType : Type where
   | Int : SmtType
   | Real : SmtType
   | RegLan : SmtType
-  | BitVec : smt_lit_Int -> SmtType
+  | BitVec : smt_lit_Nat -> SmtType
   | Map : SmtType -> SmtType -> SmtType
   | Set : SmtType -> SmtType
   | Seq : SmtType -> SmtType
@@ -962,7 +963,7 @@ def __smtx_model_eval_store (x1 : SmtValue) (x2 : SmtValue) (x3 : SmtValue) : Sm
 
 def __smtx_model_eval_concat : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Binary x1 x2), (SmtValue.Binary x3 x4) => 
-    let _v0 := (smt_lit_zplus x1 x3)
+    let _v0 := (smt_lit_nat_plus x1 x3)
     (SmtValue.Binary _v0 (smt_lit_mod_total (smt_lit_binary_concat x1 x2 x3 x4) (smt_lit_int_pow2 (smt_lit_nat_to_int _v0))))
   | t1, t2 => SmtValue.NotValue
 
