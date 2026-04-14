@@ -14,32 +14,33 @@ def EoListAllHaveSmtTranslation : Term -> Prop
       RuleProofs.eo_has_smt_translation t ∧ EoListAllHaveSmtTranslation ts
   | _ => False
 
-/-- Predicate asserting that a rule argument is either directly translatable or a list of translatable terms. -/
-def argTranslationOk (t : Term) : Prop :=
-  RuleProofs.eo_has_smt_translation t ∨ EoListAllHaveSmtTranslation t
+/-- Interprets a command-argument mask bit, where `true` marks EO-list arguments. -/
+def argTranslationOkMasked (isListArg : Bool) (t : Term) : Prop :=
+  if isListArg then EoListAllHaveSmtTranslation t else RuleProofs.eo_has_smt_translation t
 
 /-- Predicate asserting that every argument in a checker argument list is translation-safe. -/
 def cArgListTranslationOk : CArgList -> Prop
   | CArgList.nil => True
-  | CArgList.cons a args => argTranslationOk a ∧ cArgListTranslationOk args
+  | CArgList.cons a args => RuleProofs.eo_has_smt_translation a ∧ cArgListTranslationOk args
+
+/-- Predicate asserting that a checker argument list matches a scalar/list translation mask. -/
+def cArgListTranslationOkMask : List Bool -> CArgList -> Prop
+  | [], CArgList.nil => True
+  | isListArg :: mask, CArgList.cons a args =>
+      argTranslationOkMasked isListArg a ∧ cArgListTranslationOkMask mask args
+  | _, _ => False
 
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => RuleProofs.eo_has_smt_translation A
-  | CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil =>
-      RuleProofs.eo_has_smt_translation a1
-  | CCmd.step CRule.arith_elim_gt
-      (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) CIndexList.nil =>
-      cArgListTranslationOk (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) ∧
-        RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply Term.gt t1) s1)
-  | CCmd.step CRule.arith_elim_lt
-      (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) CIndexList.nil =>
-      cArgListTranslationOk (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) ∧
-        RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply Term.lt t1) s1)
-  | CCmd.step CRule.arith_elim_leq
-      (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) CIndexList.nil =>
-      cArgListTranslationOk (CArgList.cons t1 (CArgList.cons s1 CArgList.nil)) ∧
-        RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply Term.leq t1) s1)
+  | CCmd.step CRule.chain_resolution args _ =>
+      cArgListTranslationOkMask [true, true] args
+  | CCmd.step CRule.chain_m_resolution args _ =>
+      cArgListTranslationOkMask [false, true, true] args
+  | CCmd.step CRule.instantiate args _ =>
+      cArgListTranslationOkMask [true] args
+  | CCmd.step CRule.alpha_equiv args _ =>
+      cArgListTranslationOkMask [false, true, true] args
   | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 

@@ -96,8 +96,9 @@ by
       | nil =>
           cases premises with
           | nil =>
-              have hATrans : RuleProofs.eo_has_smt_translation a1 := by
-                simpa [cmdTranslationOk] using hCmdTrans
+              have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
+                simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+              have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
               refine ⟨?_, ?_⟩
               · intro _hTrue
                 exact facts___eo_prog_refl_impl M hM a1 hATrans
