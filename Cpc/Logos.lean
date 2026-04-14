@@ -412,6 +412,10 @@ def __minus_one_rank : Term -> Nat
   | (Term.Numeral n) => eo_lit_int_to_nat (eo_lit_zplus n 1) + 2
   | t => __term_weight t + 2
 
+def __bounded_iter_rank_6 (a b c d i n : Term) : Nat :=
+  __term_weight a + __term_weight b + __term_weight c + __term_weight d +
+    4 * (__arith_eval_int_rank i + __arith_eval_int_rank n + 1) + 8
+
 /- Definition of Eunoia signature -/
 
 
@@ -547,6 +551,25 @@ def __eo_len : Term -> Term
   | (Term.String s1) => (Term.Numeral (eo_lit_str_len s1))
   | (Term.Binary w n1) => (Term.Numeral w)
   | _ => Term.Stuck
+
+
+def __str_len_rank (s : Term) : Nat :=
+  __arith_eval_int_rank (__eo_len s)
+
+def __str_eval_rank_2 (s r : Term) : Nat :=
+  2 * (__str_len_rank s + __term_weight r + 1) + 2
+
+def __str_search_rank_4 (s r m lens : Term) : Nat :=
+  4 * (__str_len_rank s + __term_weight r + __arith_eval_int_rank m + __arith_eval_int_rank lens + 1) + 4
+
+def __str_search_rank_5 (s r rs n lens : Term) : Nat :=
+  4 * (__str_len_rank s + __term_weight r + __term_weight rs + __arith_eval_int_rank n + __arith_eval_int_rank lens + 1) + 4
+
+def __str_term_rank (t : Term) : Nat :=
+  __term_weight t + __str_len_rank t + 2
+
+def __str_loop_rank_4 (n d r rr : Term) : Nat :=
+  4 * (__arith_eval_int_rank n + __arith_eval_int_rank d + __term_weight r + __term_weight rr + 1) + 4
 
 
 def __eo_concat : Term -> Term -> Term
@@ -2585,29 +2608,39 @@ def __eo_prog_bv_repeat_elim : Term -> Term
   | _ => Term.Stuck
 
 
-def __eo_l_1___bv_smulo_elim_rec : Term -> Term -> Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _ , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | xa, xb, ppc, res, i, nm2 =>
+def __eo_l_1___bv_smulo_elim_rec_go : Nat -> Term -> Term -> Term -> Term -> Term -> Term -> Term
+  | 0, _, _, _, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _, _, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _, _, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck, _, _, _ => Term.Stuck
+  | fuel + 1, _, _, _, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, _, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, _, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, xa, xb, ppc, res, i, nm2 =>
     let _v0 := (__eo_add i (Term.Numeral 1))
     let _v1 := (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.extract _v0) _v0) xb)
     let _v2 := (__eo_add nm2 (__eo_neg i))
     let _v3 := (__eo_mk_apply (Term.Apply Term.bvor ppc) (__eo_mk_apply (__eo_mk_apply Term.bvor (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.extract _v2) _v2) xa)) (Term.Binary 1 0)))
-    (__bv_smulo_elim_rec xa xb _v3 (__eo_mk_apply (Term.Apply Term.bvor res) (__eo_mk_apply (__eo_mk_apply Term.bvor (__eo_mk_apply (__eo_mk_apply Term.bvand _v1) (__eo_mk_apply (__eo_mk_apply Term.bvand _v3) (__eo_nil Term.bvand (__eo_typeof _v1))))) (Term.Binary 1 0))) _v0 nm2)
+    (__bv_smulo_elim_rec_go fuel xa xb _v3 (__eo_mk_apply (Term.Apply Term.bvor res) (__eo_mk_apply (__eo_mk_apply Term.bvor (__eo_mk_apply (__eo_mk_apply Term.bvand _v1) (__eo_mk_apply (__eo_mk_apply Term.bvand _v3) (__eo_nil Term.bvand (__eo_typeof _v1))))) (Term.Binary 1 0))) _v0 nm2)
+
+
+def __bv_smulo_elim_rec_go : Nat -> Term -> Term -> Term -> Term -> Term -> Term -> Term
+  | 0, _, _, _, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _, _, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _, _, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck, _, _, _ => Term.Stuck
+  | fuel + 1, _, _, _, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, _, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, _, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, xa, xb, ppc, res, nm2, __eo_lv_nm2_2 => (__eo_ite (__eo_eq nm2 __eo_lv_nm2_2) res (__eo_l_1___bv_smulo_elim_rec_go fuel xa xb ppc res nm2 __eo_lv_nm2_2))
+
+
+def __eo_l_1___bv_smulo_elim_rec : Term -> Term -> Term -> Term -> Term -> Term -> Term
+  | xa, xb, ppc, res, i, nm2 => (__eo_l_1___bv_smulo_elim_rec_go (__bounded_iter_rank_6 xa xb ppc res i nm2) xa xb ppc res i nm2)
 
 
 def __bv_smulo_elim_rec : Term -> Term -> Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _ , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | xa, xb, ppc, res, nm2, __eo_lv_nm2_2 => (__eo_ite (__eo_eq nm2 __eo_lv_nm2_2) res (__eo_l_1___bv_smulo_elim_rec xa xb ppc res nm2 __eo_lv_nm2_2))
+  | xa, xb, ppc, res, i, nm2 => (__bv_smulo_elim_rec_go (__bounded_iter_rank_6 xa xb ppc res i nm2) xa xb ppc res i nm2)
 
 
 def __eo_prog_bv_smulo_elim : Term -> Term
@@ -2632,28 +2665,38 @@ def __eo_prog_bv_smulo_elim : Term -> Term
   | _ => Term.Stuck
 
 
-def __eo_l_1___bv_umulo_elim_rec : Term -> Term -> Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _ , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | a, b, uppc, res, i, n =>
+def __eo_l_1___bv_umulo_elim_rec_go : Term -> Nat -> Term -> Term -> Term -> Term -> Term -> Term -> Term
+  | _, 0, _, _, _, _, _, _ => Term.Stuck
+  | a0, fuel + 1, Term.Stuck, _, _, _, _, _ => Term.Stuck
+  | a0, fuel + 1, _, Term.Stuck, _, _, _, _ => Term.Stuck
+  | a0, fuel + 1, _, _, Term.Stuck, _, _, _ => Term.Stuck
+  | a0, fuel + 1, _, _, _, Term.Stuck, _, _ => Term.Stuck
+  | a0, fuel + 1, _, _, _, _, Term.Stuck, _ => Term.Stuck
+  | a0, fuel + 1, _, _, _, _, _, Term.Stuck => Term.Stuck
+  | a0, fuel + 1, a, b, uppc, res, i, n =>
     let _v0 := (__eo_add (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) (__eo_neg i))
     let _v1 := (__eo_mk_apply (__eo_mk_apply (__eo_mk_apply Term.extract _v0) _v0) a)
     let _v2 := (Term.Apply (Term.Apply (Term.Apply Term.extract i) i) b)
-    (__eo_mk_apply (__eo_mk_apply Term.bvor (__eo_mk_apply (Term.Apply Term.bvand _v2) (__eo_mk_apply (Term.Apply Term.bvand uppc) (__eo_nil Term.bvand (__eo_typeof _v2))))) (__bv_umulo_elim_rec a b (__eo_mk_apply (__eo_mk_apply Term.bvor _v1) (__eo_mk_apply (Term.Apply Term.bvor uppc) (__eo_nil Term.bvor (__eo_typeof _v1)))) res (__eo_add i (Term.Numeral 1)) n))
+    (__eo_mk_apply (__eo_mk_apply Term.bvor (__eo_mk_apply (Term.Apply Term.bvand _v2) (__eo_mk_apply (Term.Apply Term.bvand uppc) (__eo_nil Term.bvand (__eo_typeof _v2))))) (__bv_umulo_elim_rec_go a0 fuel a b (__eo_mk_apply (__eo_mk_apply Term.bvor _v1) (__eo_mk_apply (Term.Apply Term.bvor uppc) (__eo_nil Term.bvor (__eo_typeof _v1)))) res (__eo_add i (Term.Numeral 1)) n))
+
+
+def __bv_umulo_elim_rec_go : Term -> Nat -> Term -> Term -> Term -> Term -> Term -> Term -> Term
+  | _, 0, _, _, _, _, _, _ => Term.Stuck
+  | a0, fuel + 1, Term.Stuck, _, _, _, _, _ => Term.Stuck
+  | a0, fuel + 1, _, Term.Stuck, _, _, _, _ => Term.Stuck
+  | a0, fuel + 1, _, _, Term.Stuck, _, _, _ => Term.Stuck
+  | a0, fuel + 1, _, _, _, Term.Stuck, _, _ => Term.Stuck
+  | a0, fuel + 1, _, _, _, _, Term.Stuck, _ => Term.Stuck
+  | a0, fuel + 1, _, _, _, _, _, Term.Stuck => Term.Stuck
+  | a0, fuel + 1, a, b, uppc, res, n, __eo_lv_n_2 => (__eo_ite (__eo_eq n __eo_lv_n_2) res (__eo_l_1___bv_umulo_elim_rec_go a0 fuel a b uppc res n __eo_lv_n_2))
+
+
+def __eo_l_1___bv_umulo_elim_rec : Term -> Term -> Term -> Term -> Term -> Term -> Term
+  | a, b, uppc, res, i, n => (__eo_l_1___bv_umulo_elim_rec_go a (__bounded_iter_rank_6 a b uppc res i n) a b uppc res i n)
 
 
 def __bv_umulo_elim_rec : Term -> Term -> Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _ , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | a, b, uppc, res, n, __eo_lv_n_2 => (__eo_ite (__eo_eq n __eo_lv_n_2) res (__eo_l_1___bv_umulo_elim_rec a b uppc res n __eo_lv_n_2))
+  | a, b, uppc, res, i, n => (__bv_umulo_elim_rec_go a (__bounded_iter_rank_6 a b uppc res i n) a b uppc res i n)
 
 
 def __eo_prog_bv_umulo_elim : Term -> Term
@@ -2926,31 +2969,46 @@ def __derivative : Term -> Term -> Term
   | _, _ => Term.Stuck
 
 
+def __str_eval_str_in_re_go : Nat -> Term -> Term -> Term
+  | 0, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.String ""), r => (__re_nullable r)
+  | fuel + 1, s, Term.re_none => (Term.Boolean false)
+  | fuel + 1, s, r => (__str_eval_str_in_re_go fuel (__eo_extract s (Term.Numeral 1) (__eo_add (Term.Numeral (-1 : eo_lit_Int)) (__eo_len s))) (__derivative (__eo_extract s (Term.Numeral 0) (Term.Numeral 0)) r))
+
+
 def __str_eval_str_in_re : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.String ""), r => (__re_nullable r)
-  | s, Term.re_none => (Term.Boolean false)
-  | s, r => (__str_eval_str_in_re (__eo_extract s (Term.Numeral 1) (__eo_add (Term.Numeral (-1 : eo_lit_Int)) (__eo_len s))) (__derivative (__eo_extract s (Term.Numeral 0) (Term.Numeral 0)) r))
+  | s, r => (__str_eval_str_in_re_go (__str_eval_rank_2 s r) s r)
+
+
+def __str_first_match_rec_smallest_go : Nat -> Term -> Term -> Term -> Term -> Term
+  | 0, _, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, s, r, m, lens => (__eo_ite (__str_eval_str_in_re (__eo_extract s (Term.Numeral 0) (__eo_add m (Term.Numeral (-1 : eo_lit_Int)))) r) m (__eo_requires (__eo_eq m lens) (Term.Boolean false) (__str_first_match_rec_smallest_go fuel s r (__eo_add m (Term.Numeral 1)) lens)))
 
 
 def __str_first_match_rec_smallest : Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | s, r, m, lens => (__eo_ite (__str_eval_str_in_re (__eo_extract s (Term.Numeral 0) (__eo_add m (Term.Numeral (-1 : eo_lit_Int)))) r) m (__eo_requires (__eo_eq m lens) (Term.Boolean false) (__str_first_match_rec_smallest s r (__eo_add m (Term.Numeral 1)) lens)))
+  | s, r, m, lens => (__str_first_match_rec_smallest_go (__str_search_rank_4 s r m lens) s r m lens)
+
+
+def __str_first_match_rec_go : Nat -> Term -> Term -> Term -> Term -> Term -> Term
+  | 0, _, _, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, s, r, rs, n, lens =>
+    let _v0 := (__eo_add lens (Term.Numeral (-1 : eo_lit_Int)))
+    (__eo_ite (__str_eval_str_in_re s rs) (__eo_mk_apply (Term.Apply Term._at__at_pair n) (__eo_add n (__str_first_match_rec_smallest s r (Term.Numeral 0) lens))) (__eo_ite (__eo_eq lens (Term.Numeral 0)) (Term.Apply (Term.Apply Term._at__at_pair (Term.Numeral (-1 : eo_lit_Int))) (Term.Numeral (-1 : eo_lit_Int))) (__str_first_match_rec_go fuel (__eo_extract s (Term.Numeral 1) _v0) r rs (__eo_add n (Term.Numeral 1)) _v0)))
 
 
 def __str_first_match_rec : Term -> Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , _ , Term.Stuck  => Term.Stuck
-  | s, r, rs, n, lens =>
-    let _v0 := (__eo_add lens (Term.Numeral (-1 : eo_lit_Int)))
-    (__eo_ite (__str_eval_str_in_re s rs) (__eo_mk_apply (Term.Apply Term._at__at_pair n) (__eo_add n (__str_first_match_rec_smallest s r (Term.Numeral 0) lens))) (__eo_ite (__eo_eq lens (Term.Numeral 0)) (Term.Apply (Term.Apply Term._at__at_pair (Term.Numeral (-1 : eo_lit_Int))) (Term.Numeral (-1 : eo_lit_Int))) (__str_first_match_rec (__eo_extract s (Term.Numeral 1) _v0) r rs (__eo_add n (Term.Numeral 1)) _v0)))
+  | s, r, rs, n, lens => (__str_first_match_rec_go (__str_search_rank_5 s r rs n lens) s r rs n lens)
 
 
 def __str_unify_split : Term -> Term -> Term -> Term
@@ -3199,10 +3257,15 @@ def __re_unfold_pos_concat_rec : Term -> Term -> Term -> Term -> Term
   | _, _, _, _ => Term.Stuck
 
 
+def __str_flatten_word_go : Nat -> Term -> Term
+  | 0, _ => Term.Stuck
+  | fuel + 1, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.String "") => (Term.String "")
+  | fuel + 1, t => (__eo_mk_apply (__eo_mk_apply Term.str_concat (__eo_extract t (Term.Numeral 0) (Term.Numeral 0))) (__str_flatten_word_go fuel (__eo_extract t (Term.Numeral 1) (__eo_len t))))
+
+
 def __str_flatten_word : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.String "") => (Term.String "")
-  | t => (__eo_mk_apply (__eo_mk_apply Term.str_concat (__eo_extract t (Term.Numeral 0) (Term.Numeral 0))) (__str_flatten_word (__eo_extract t (Term.Numeral 1) (__eo_len t))))
+  | t => (__str_flatten_word_go (__str_term_rank t) t)
 
 
 def __str_flatten : Term -> Term
@@ -3223,14 +3286,19 @@ def __str_collect_acc : Term -> Term
   | _ => Term.Stuck
 
 
-def __str_collect : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Term.str_concat t) s) =>
+def __str_collect_go : Nat -> Term -> Term
+  | 0, _ => Term.Stuck
+  | fuel + 1, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Apply (Term.Apply Term.str_concat t) s) =>
     let _v0 := (Term.Apply Term.str_concat t)
     let _v1 := (__str_collect_acc (Term.Apply _v0 s))
     let _v2 := (__pair_first _v1)
-    (__eo_ite (__eo_eq _v2 (Term.String "")) (__eo_mk_apply _v0 (__str_collect s)) (__eo_mk_apply (__eo_mk_apply Term.str_concat _v2) (__str_collect (__pair_second _v1))))
-  | t => (__eo_requires t (__seq_empty (__eo_typeof t)) t)
+    (__eo_ite (__eo_eq _v2 (Term.String "")) (__eo_mk_apply _v0 (__str_collect_go fuel s)) (__eo_mk_apply (__eo_mk_apply Term.str_concat _v2) (__str_collect_go fuel (__pair_second _v1))))
+  | fuel + 1, t => (__eo_requires t (__seq_empty (__eo_typeof t)) t)
+
+
+def __str_collect : Term -> Term
+  | t => (__str_collect_go (__str_term_rank t) t)
 
 
 def __eo_l_1___str_strip_prefix : Term -> Term -> Term
@@ -3246,14 +3314,19 @@ def __str_strip_prefix : Term -> Term -> Term
   | __eo_dv_1, __eo_dv_2 => (__eo_l_1___str_strip_prefix __eo_dv_1 __eo_dv_2)
 
 
+def __str_mk_re_loop_elim_rec_go : Nat -> Term -> Term -> Term -> Term -> Term
+  | 0, _, _, _, _ => Term.Stuck
+  | fuel + 1, Term.Stuck, _, _, _ => Term.Stuck
+  | fuel + 1, _, Term.Stuck, _, _ => Term.Stuck
+  | fuel + 1, _, _, Term.Stuck, _ => Term.Stuck
+  | fuel + 1, _, _, _, Term.Stuck => Term.Stuck
+  | fuel + 1, (Term.Numeral 0), (Term.Numeral 0), r, rr => (__eo_mk_apply (__eo_mk_apply Term.re_union (__eo_list_singleton_elim Term.re_concat rr)) Term.re_none)
+  | fuel + 1, (Term.Numeral 0), d, r, rr => (__eo_mk_apply (__eo_mk_apply Term.re_union (__eo_list_singleton_elim Term.re_concat rr)) (__str_mk_re_loop_elim_rec_go fuel (Term.Numeral 0) (__eo_add d (Term.Numeral (-1 : eo_lit_Int))) r (Term.Apply (Term.Apply Term.re_concat r) rr)))
+  | fuel + 1, n, d, r, rr => (__str_mk_re_loop_elim_rec_go fuel (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) d r (Term.Apply (Term.Apply Term.re_concat r) rr))
+
+
 def __str_mk_re_loop_elim_rec : Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Numeral 0), (Term.Numeral 0), r, rr => (__eo_mk_apply (__eo_mk_apply Term.re_union (__eo_list_singleton_elim Term.re_concat rr)) Term.re_none)
-  | (Term.Numeral 0), d, r, rr => (__eo_mk_apply (__eo_mk_apply Term.re_union (__eo_list_singleton_elim Term.re_concat rr)) (__str_mk_re_loop_elim_rec (Term.Numeral 0) (__eo_add d (Term.Numeral (-1 : eo_lit_Int))) r (Term.Apply (Term.Apply Term.re_concat r) rr)))
-  | n, d, r, rr => (__str_mk_re_loop_elim_rec (__eo_add n (Term.Numeral (-1 : eo_lit_Int))) d r (Term.Apply (Term.Apply Term.re_concat r) rr))
+  | n, d, r, rr => (__str_mk_re_loop_elim_rec_go (__str_loop_rank_4 n d r rr) n d r rr)
 
 
 def __str_mk_str_in_re_concat_star_char : Term -> Term -> Term
