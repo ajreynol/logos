@@ -384,6 +384,13 @@ def __smtx_model_push (M : SmtModel) (s : smt_lit_String) (T : SmtType) (v : Smt
     else
       M k
 
+abbrev RefList := List smt_lit_String
+
+def smt_lit_reflist_nil : RefList := []
+def smt_lit_reflist_insert (xs : RefList) (s : smt_lit_String) := (s :: xs)
+def smt_lit_reflist_contains (xs : RefList) (s : smt_lit_String ) :=
+  decide (s ∈ xs)
+
 /- Type equality -/
 def smt_lit_Teq : SmtType -> SmtType -> smt_lit_Bool
   | x, y => decide (x = y)
@@ -468,25 +475,25 @@ def __vsm_apply_arg_nth : SmtValue -> smt_lit_Nat -> smt_lit_Nat -> SmtValue
   | a, n, npos => SmtValue.NotValue
 
 
-def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> Term -> smt_lit_Bool
-  | (SmtDatatypeCons.cons T c), refs => (__eo_ite (__smtx_type_wf_rec T refs) (__smtx_dt_cons_wf_rec c refs) false)
+def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> smt_lit_Bool
+  | (SmtDatatypeCons.cons T c), refs => (smt_lit_ite (__smtx_type_wf_rec T refs) (__smtx_dt_cons_wf_rec c refs) false)
   | SmtDatatypeCons.unit, refs => true
 
 
-def __smtx_dt_wf_rec : SmtDatatype -> Term -> smt_lit_Bool
+def __smtx_dt_wf_rec : SmtDatatype -> RefList -> smt_lit_Bool
   | SmtDatatype.null, refs => true
-  | (SmtDatatype.sum c d), refs => (__eo_ite (__smtx_dt_cons_wf_rec c refs) (__smtx_dt_wf_rec d) false)
+  | (SmtDatatype.sum c d), refs => (smt_lit_ite (__smtx_dt_cons_wf_rec c refs) (__smtx_dt_wf_rec d) false)
 
 
-def __smtx_type_wf_rec : SmtType -> Term -> smt_lit_Bool
-  | (SmtType.Datatype s d), refs => (__smtx_dt_wf_rec d (Term.Apply (Term.Apply Term.__eo_List_cons (Term.String s)) refs))
-  | (SmtType.TypeRef s), refs => (smt_lit_teq (__eo_list_find Term.__eo_List_cons refs (Term.String s)) (Term.Numeral (-1 : eo_lit_Int)))
+def __smtx_type_wf_rec : SmtType -> RefList -> smt_lit_Bool
+  | (SmtType.Datatype s d), refs => (__smtx_dt_wf_rec d (smt_lit_reflist_insert refs s))
+  | (SmtType.TypeRef s), refs => (smt_lit_reflist_contains refs s)
   | SmtType.None, refs => false
   | T, refs => true
 
 
 def __smtx_type_wf (T : SmtType) : smt_lit_Bool :=
-  (__smtx_type_wf_rec T Term.__eo_List_nil)
+  (__smtx_type_wf_rec T smt_lit_reflist_nil)
 
 def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
   (smt_lit_ite (smt_lit_Teq T SmtType.None) SmtType.None U)

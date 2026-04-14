@@ -182,7 +182,6 @@ inductive Proof : Type where
 
 mutual
 
-def __eo_Numeral : Term := Term.Int
 def __eo_mk_apply : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
@@ -209,15 +208,6 @@ def __eo_and : Term -> Term -> Term
   | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
     let _v0 := (Term.Numeral w1)
     (eo_lit_ite (eo_lit_teq _v0 (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_binary_and w1 n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
-  | _, _ => Term.Stuck
-
-
-def __eo_add : Term -> Term -> Term
-  | (Term.Numeral n1), (Term.Numeral n2) => (Term.Numeral (eo_lit_zplus n1 n2))
-  | (Term.Rational r1), (Term.Rational r2) => (Term.Rational (eo_lit_qplus r1 r2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (eo_lit_ite (eo_lit_teq _v0 (Term.Numeral w2)) (eo_lit_ite (eo_lit_not (eo_lit_teq _v0 Term.Stuck)) (Term.Binary w1 (eo_lit_mod_total (eo_lit_zplus n1 n2) (eo_lit_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
@@ -264,18 +254,6 @@ def __eo_is_list : Term -> Term -> Term
 
 def __eo_cons : Term -> Term -> Term -> Term
   | f, e, a => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (Term.Apply (Term.Apply f e) a))
-
-
-def __eo_list_find_rec : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply f x) y), z, n => (__eo_ite (__eo_eq x z) n (__eo_list_find_rec y z (__eo_add n (Term.Numeral 1))))
-  | nil, z, n => (Term.Numeral (-1 : eo_lit_Int))
-
-
-def __eo_list_find : Term -> Term -> Term -> Term
-  | f, a, e => (__eo_requires (__eo_is_list f a) (Term.Boolean true) (__eo_list_find_rec a e (Term.Numeral 0)))
 
 
 def __eo_prog_scope : Term -> Proof -> Term
