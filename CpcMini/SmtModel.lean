@@ -499,6 +499,48 @@ def __smtx_type_wf_rec : SmtType -> RefList -> smt_lit_Bool
 def __smtx_type_wf (T : SmtType) : smt_lit_Bool :=
   (__smtx_type_wf_rec T smt_lit_reflist_nil)
 
+/-
+A stronger admissibility predicate used by the EO mini translation for
+datatype-bearing terms. Besides recursive well-formedness, it rules out field
+types that can still lead to typed EO translations whose SMT evaluation gets
+stuck. In the mini setting we keep this conservative and reject higher-order
+datatype fields outright.
+-/
+def __smtx_dt_cons_eo_safe_rec : SmtDatatypeCons -> RefList -> smt_lit_Bool
+  | SmtDatatypeCons.unit, refs => true
+  | (SmtDatatypeCons.cons T c), refs =>
+      smt_lit_and (__smtx_type_eo_safe_rec T refs) (__smtx_dt_cons_eo_safe_rec c refs)
+
+
+def __smtx_dt_eo_safe_rec : SmtDatatype -> RefList -> smt_lit_Bool
+  | SmtDatatype.null, refs => true
+  | (SmtDatatype.sum c d), refs =>
+      smt_lit_and (__smtx_dt_cons_eo_safe_rec c refs) (__smtx_dt_eo_safe_rec d refs)
+
+
+def __smtx_type_eo_safe_rec : SmtType -> RefList -> smt_lit_Bool
+  | SmtType.None, refs => false
+  | SmtType.Bool, refs => true
+  | SmtType.Int, refs => true
+  | SmtType.Real, refs => true
+  | SmtType.RegLan, refs => true
+  | SmtType.BitVec w, refs => smt_lit_zleq 0 w
+  | (SmtType.Map x1 x2), refs =>
+      smt_lit_and (__smtx_type_eo_safe_rec x1 refs) (__smtx_type_eo_safe_rec x2 refs)
+  | (SmtType.Set x1), refs => __smtx_type_eo_safe_rec x1 refs
+  | (SmtType.Seq x1), refs => __smtx_type_eo_safe_rec x1 refs
+  | SmtType.Char, refs => true
+  | (SmtType.Datatype s d), refs =>
+      let T := SmtType.Datatype s d
+      smt_lit_and (__smtx_dt_eo_safe_rec d (smt_lit_reflist_insert refs s)) (smt_lit_inhabited_type T)
+  | (SmtType.TypeRef s), refs => smt_lit_reflist_contains refs s
+  | (SmtType.USort _), refs => false
+  | (SmtType.FunType _ _), refs => false
+
+
+def __smtx_type_eo_safe (T : SmtType) : smt_lit_Bool :=
+  __smtx_type_eo_safe_rec T smt_lit_reflist_nil
+
 def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
   (smt_lit_ite (smt_lit_Teq T SmtType.None) SmtType.None U)
 
@@ -507,6 +549,9 @@ def __smtx_typeof_guard_inhabited (T : SmtType) (U : SmtType) : SmtType :=
 
 def __smtx_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
   (smt_lit_ite (__smtx_type_wf T) U SmtType.None)
+
+def __smtx_typeof_guard_eo_safe (T : SmtType) (U : SmtType) : SmtType :=
+  (smt_lit_ite (__smtx_type_eo_safe T) U SmtType.None)
 
 def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
   | (SmtMap.cons j e m), i => (smt_lit_ite (smt_lit_veq j i) e (__smtx_msm_lookup m i))

@@ -41,19 +41,47 @@ noncomputable section
 
 mutual
 
+/-
+Datatype bodies are translated against a raw type translation so mutually
+recursive clusters are exposed before the EO-safety guard is checked.
+-/
+def __eo_to_smt_type_in_datatype : Term -> SmtType
+  | Term.Bool => SmtType.Bool
+  | (Term.DatatypeType s d) => SmtType.Datatype s (__eo_to_smt_datatype d)
+  | (Term.DatatypeTypeRef s) => SmtType.TypeRef s
+  | (Term.USort i) => SmtType.USort i
+  | (Term.Apply (Term.Apply Term.FunType T1) T2) =>
+    let _v0 := (__eo_to_smt_type_in_datatype T2)
+    let _v1 := (__eo_to_smt_type_in_datatype T1)
+    (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
+  | Term.Int => SmtType.Int
+  | Term.Real => SmtType.Real
+  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
+  | Term.Char => SmtType.Char
+  | (Term.Apply Term.Seq x1) =>
+    let _v0 := (__eo_to_smt_type_in_datatype x1)
+    (__smtx_typeof_guard _v0 (SmtType.Seq _v0))
+  | T => SmtType.None
+
+
 def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
   | DatatypeCons.unit => SmtDatatypeCons.unit
-  | (DatatypeCons.cons U c) => (SmtDatatypeCons.cons (__eo_to_smt_type U) (__eo_to_smt_datatype_cons c))
+  | (DatatypeCons.cons U c) =>
+    (SmtDatatypeCons.cons (__eo_to_smt_type_in_datatype U) (__eo_to_smt_datatype_cons c))
 
 
 def __eo_to_smt_datatype : Datatype -> SmtDatatype
   | (Datatype.sum c d) => (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
   | Datatype.null => SmtDatatype.null
 
+end
+
 
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
-  | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
+  | (Term.DatatypeType s d) =>
+    let _v0 := (SmtType.Datatype s (__eo_to_smt_datatype d))
+    (__smtx_typeof_guard_eo_safe _v0 _v0)
   | (Term.DatatypeTypeRef s) => (SmtType.TypeRef s)
   | (Term.USort i) => (SmtType.USort i)
   | (Term.Apply (Term.Apply Term.FunType T1) T2) => 
@@ -77,8 +105,12 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
   | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons s d i) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)
-  | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
+  | (Term.DtCons s d i) =>
+    let _v0 := (SmtType.Datatype s (__eo_to_smt_datatype d))
+    (smt_lit_ite (__smtx_type_eo_safe _v0) (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) SmtTerm.None)
+  | (Term.DtSel s d i j) =>
+    let _v0 := (SmtType.Datatype s (__eo_to_smt_datatype d))
+    (smt_lit_ite (__smtx_type_eo_safe _v0) (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) SmtTerm.None)
   | (Term.UConst i T) => (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T))
   | (Term.Apply Term.not x1) => (SmtTerm.not (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.or (__eo_to_smt x1) (__eo_to_smt x2))
@@ -90,8 +122,6 @@ def __eo_to_smt : Term -> SmtTerm
 
 
 
-
-end
 
 end
 

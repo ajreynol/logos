@@ -69,6 +69,15 @@ theorem smtx_typeof_guard_inhabited_of_non_none
   unfold __smtx_typeof_guard_inhabited at h ⊢
   cases hInh : smt_lit_inhabited_type T <;> simp [smt_lit_ite, hInh] at h ⊢
 
+/-- Computes `__smtx_typeof` for `guard_eo_safe_of_non_none`. -/
+theorem smtx_typeof_guard_eo_safe_of_non_none
+    (T U : SmtType) :
+    __smtx_typeof_guard_eo_safe T U ≠ SmtType.None ->
+    __smtx_typeof_guard_eo_safe T U = U := by
+  intro h
+  unfold __smtx_typeof_guard_eo_safe at h ⊢
+  cases hSafe : __smtx_type_eo_safe T <;> simp [smt_lit_ite, hSafe] at h ⊢
+
 /-- Computes `__smtx_typeof` for `var_of_non_none`. -/
 theorem smtx_typeof_var_of_non_none
     (s : smt_lit_String) (T : SmtType) :
