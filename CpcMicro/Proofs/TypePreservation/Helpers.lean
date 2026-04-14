@@ -154,6 +154,50 @@ theorem seq_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
 
+/-- No SMT value has a function type. -/
+theorem no_value_of_fun_type
+    (A B : SmtType) :
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType A B := by
+  intro h
+  rcases h with ⟨v, hv⟩
+  cases v with
+  | NotValue =>
+      simp [__smtx_typeof_value] at hv
+  | Boolean _ =>
+      simp [__smtx_typeof_value] at hv
+  | Numeral _ =>
+      simp [__smtx_typeof_value] at hv
+  | Rational _ =>
+      simp [__smtx_typeof_value] at hv
+  | Binary w _ =>
+      cases hWidth : smt_lit_zleq 0 w <;>
+        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at hv
+  | Map m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A', B', hMap⟩
+          simp [__smtx_typeof_value, hMap] at hv
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at hv
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A', B', hMap⟩
+          cases B' <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at hv
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at hv
+  | Seq ss =>
+      cases typeof_seq_value_shape ss with
+      | inl hSeq =>
+          rcases hSeq with ⟨T, hSeq⟩
+          simp [__smtx_typeof_value, hSeq] at hv
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at hv
+  | Char _ =>
+      simp [__smtx_typeof_value] at hv
+  | RegLan _ =>
+      simp [__smtx_typeof_value] at hv
+
 /-- Predicate asserting that every value in a list has the given SMT type. -/
 def list_typed (T : SmtType) : List SmtValue -> Prop
   | [] => True
