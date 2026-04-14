@@ -183,9 +183,8 @@ theorem eo_to_smt_type_typeof_purify
     (x : Term) :
     __eo_to_smt_type (__eo_typeof (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof x) := by
-  change __eo_to_smt_type (__eo_typeof__at_purify (__eo_typeof x)) =
-    __eo_to_smt_type (__eo_typeof x)
-  cases __eo_typeof x <;> rfl
+  change __eo_to_smt_type (__eo_typeof x) = __eo_to_smt_type (__eo_typeof x)
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_purify_of_smt_apply`. -/
 theorem eo_to_smt_type_typeof_apply_purify_of_smt_apply
@@ -342,7 +341,7 @@ theorem eo_to_smt_type_typeof_apply_int_log2_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.int_log2 x)) = SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof_int_log2 (__eo_typeof x)) = SmtType.Int
+  change __eo_to_smt_type (__eo_typeof_int_pow2 (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
 
@@ -360,7 +359,7 @@ theorem eo_to_smt_type_typeof_apply_at_int_div_by_zero_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_int_div_by_zero x)) = SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof__at_int_div_by_zero (__eo_typeof x)) = SmtType.Int
+  change __eo_to_smt_type (__eo_typeof_int_pow2 (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
 
@@ -369,7 +368,7 @@ theorem eo_to_smt_type_typeof_apply_at_mod_by_zero_of_int
     (x : Term)
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_mod_by_zero x)) = SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof__at_mod_by_zero (__eo_typeof x)) = SmtType.Int
+  change __eo_to_smt_type (__eo_typeof_int_pow2 (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
 
@@ -407,7 +406,7 @@ theorem eo_to_smt_type_typeof_apply_str_to_upper_of_seq_char
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_to_upper x)) =
       SmtType.Seq SmtType.Char := by
-  change __eo_to_smt_type (__eo_typeof_str_to_upper (__eo_typeof x)) = SmtType.Seq SmtType.Char
+  change __eo_to_smt_type (__eo_typeof_str_to_lower (__eo_typeof x)) = SmtType.Seq SmtType.Char
   rw [hx]
   rfl
 
@@ -444,7 +443,7 @@ theorem eo_to_smt_type_typeof_apply_str_to_int_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_to_int x)) = SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof_str_to_int (__eo_typeof x)) = SmtType.Int
+  change __eo_to_smt_type (__eo_typeof_str_to_code (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
 
@@ -454,7 +453,7 @@ theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
     (hx : __eo_typeof x = Term.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.str_from_int x)) =
       SmtType.Seq SmtType.Char := by
-  change __eo_to_smt_type (__eo_typeof_str_from_int (__eo_typeof x)) = SmtType.Seq SmtType.Char
+  change __eo_to_smt_type (__eo_typeof_str_from_code (__eo_typeof x)) = SmtType.Seq SmtType.Char
   rw [hx]
   rfl
 
@@ -464,7 +463,7 @@ theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
     (hx : __eo_typeof x = Term.Apply Term.Seq Term.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term._at_strings_stoi_non_digit x)) =
       SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof__at_strings_stoi_non_digit (__eo_typeof x)) = SmtType.Int
+  change __eo_to_smt_type (__eo_typeof_str_to_code (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
 
@@ -500,7 +499,7 @@ theorem eo_to_smt_type_typeof_apply_re_plus_of_reglan
     (x : Term)
     (hx : __eo_typeof x = Term.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.re_plus x)) = SmtType.RegLan := by
-  change __eo_to_smt_type (__eo_typeof_re_plus (__eo_typeof x)) = SmtType.RegLan
+  change __eo_to_smt_type (__eo_typeof_re_mult (__eo_typeof x)) = SmtType.RegLan
   rw [hx]
   rfl
 
@@ -509,7 +508,7 @@ theorem eo_to_smt_type_typeof_apply_re_opt_of_reglan
     (x : Term)
     (hx : __eo_typeof x = Term.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.re_opt x)) = SmtType.RegLan := by
-  change __eo_to_smt_type (__eo_typeof_re_opt (__eo_typeof x)) = SmtType.RegLan
+  change __eo_to_smt_type (__eo_typeof_re_mult (__eo_typeof x)) = SmtType.RegLan
   rw [hx]
   rfl
 
@@ -518,7 +517,7 @@ theorem eo_to_smt_type_typeof_apply_re_comp_of_reglan
     (x : Term)
     (hx : __eo_typeof x = Term.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.re_comp x)) = SmtType.RegLan := by
-  change __eo_to_smt_type (__eo_typeof_re_comp (__eo_typeof x)) = SmtType.RegLan
+  change __eo_to_smt_type (__eo_typeof_re_mult (__eo_typeof x)) = SmtType.RegLan
   rw [hx]
   rfl
 
@@ -536,7 +535,7 @@ theorem eo_to_smt_type_typeof_apply_bvneg_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvneg x)) = SmtType.BitVec w := by
-  change __eo_to_smt_type (__eo_typeof_bvneg (__eo_typeof x)) = SmtType.BitVec w
+  change __eo_to_smt_type (__eo_typeof_bvnot (__eo_typeof x)) = SmtType.BitVec w
   rw [hx]
   rfl
 
@@ -554,7 +553,7 @@ theorem eo_to_smt_type_typeof_apply_bvredor_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvredor x)) = SmtType.BitVec 1 := by
-  change __eo_to_smt_type (__eo_typeof_bvredor (__eo_typeof x)) = SmtType.BitVec 1
+  change __eo_to_smt_type (__eo_typeof_bvredand (__eo_typeof x)) = SmtType.BitVec 1
   rw [hx]
   rfl
 
@@ -572,7 +571,7 @@ theorem eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec
     (x : Term) (w : eo_lit_Int)
     (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.sbv_to_int x)) = SmtType.Int := by
-  change __eo_to_smt_type (__eo_typeof_sbv_to_int (__eo_typeof x)) = SmtType.Int
+  change __eo_to_smt_type (__eo_typeof_ubv_to_int (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
 
