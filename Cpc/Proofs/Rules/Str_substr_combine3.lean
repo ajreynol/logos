@@ -11,7 +11,7 @@ theorem cmd_step_str_substr_combine3_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_substr_combine3 args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.str_substr_combine3 args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.str_substr_combine3 args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.str_substr_combine3 args premises) :=
 by

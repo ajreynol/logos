@@ -141,10 +141,12 @@ theorem cmd_step_pop_scope_properties
   __eo_typeof x1 = Term.Bool ->
   AllHaveSmtTranslation (premiseTermList s premises) ->
   AllTypeofBool (premiseTermList s premises) ->
-  __eo_cmd_step_pop_proven s CRule.scope args x1 premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_pop_proven s CRule.scope args x1 premises) = Term.Bool ->
   StepPopRuleProperties x1 (premiseTermList s premises)
     (__eo_cmd_step_pop_proven s CRule.scope args x1 premises) := by
-  intro hTrans1 hTy1 hPremisesTrans hPremisesTy hProg
+  intro hTrans1 hTy1 hPremisesTrans hPremisesTy hResultTy
+  have hProg : __eo_cmd_step_pop_proven s CRule.scope args x1 premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
   cases args with
   | nil =>
       cases premises with

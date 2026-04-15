@@ -11,7 +11,7 @@ theorem cmd_step_arith_poly_norm_rel_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_poly_norm_rel args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.arith_poly_norm_rel args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.arith_poly_norm_rel args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.arith_poly_norm_rel args premises) :=
 by

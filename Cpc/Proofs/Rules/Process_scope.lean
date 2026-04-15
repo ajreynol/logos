@@ -11,7 +11,7 @@ theorem cmd_step_process_scope_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.process_scope args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.process_scope args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.process_scope args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.process_scope args premises) :=
 by

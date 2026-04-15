@@ -11,7 +11,7 @@ theorem cmd_step_bool_and_de_morgan_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bool_and_de_morgan args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.bool_and_de_morgan args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.bool_and_de_morgan args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bool_and_de_morgan args premises) :=
 by

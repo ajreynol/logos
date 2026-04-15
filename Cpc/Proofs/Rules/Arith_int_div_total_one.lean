@@ -124,12 +124,13 @@ theorem cmd_step_arith_int_div_total_one_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_div_total_one args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.arith_int_div_total_one args premises ≠ Term.Stuck ->
   __eo_typeof (__eo_cmd_step_proven s CRule.arith_int_div_total_one args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.arith_int_div_total_one args premises) :=
 by
-  intro hCmdTrans _hPremisesBool hProg hResultTy
+  intro hCmdTrans _hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.arith_int_div_total_one args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
   cases args with
   | nil =>
       change Term.Stuck ≠ Term.Stuck at hProg

@@ -11,7 +11,7 @@ theorem cmd_step_array_store_overwrite_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.array_store_overwrite args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.array_store_overwrite args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.array_store_overwrite args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.array_store_overwrite args premises) :=
 by
