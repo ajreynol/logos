@@ -74,6 +74,8 @@ abbrev smt_lit_int_to_nat := SmtEval.smt_lit_int_to_nat
 abbrev smt_lit_nat_to_int := SmtEval.smt_lit_nat_to_int
 abbrev smt_lit_nat_plus := SmtEval.smt_lit_nat_plus
 abbrev smt_lit_nateq := SmtEval.smt_lit_nateq
+
+instance : Coe smt_lit_Int smt_lit_Nat := ⟨smt_lit_int_to_nat⟩
   
 -- SMT Beyond Eunoia
 

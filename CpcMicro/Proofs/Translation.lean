@@ -169,8 +169,19 @@ private theorem eo_to_smt_typeof_matches_translation :
       simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_String,
         __eo_to_smt_type, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
   | Term.Binary w n, hNN => by
-      simpa [__eo_typeof, __eo_lit_type_Binary, __eo_mk_apply, __eo_len, __eo_to_smt_type] using
-        smtx_typeof_binary_of_non_none w n hNN
+      have hWidth : smt_lit_zleq 0 w = true := by
+        by_cases hw : smt_lit_zleq 0 w = true
+        · exact hw
+        · exfalso
+          apply hNN
+          simp [__eo_to_smt.eq_def, smt_lit_ite, SmtEval.smt_lit_and, hw]
+      have hSmt := smtx_typeof_binary_of_non_none w n hNN
+      have hEo :
+          __eo_to_smt_type (__eo_typeof (Term.Binary w n)) =
+            SmtType.BitVec (smt_lit_int_to_nat w) := by
+        simp [__eo_typeof, __eo_lit_type_Binary, __eo_mk_apply, __eo_len,
+          __eo_to_smt_type, smt_lit_ite, hWidth]
+      simpa [__eo_to_smt.eq_def] using hSmt.trans hEo.symm
   | Term.Type, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.Stuck, hNN => by
