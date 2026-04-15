@@ -11,7 +11,7 @@ theorem cmd_step_str_eq_repl_no_change_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_eq_repl_no_change args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.str_eq_repl_no_change args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.str_eq_repl_no_change args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.str_eq_repl_no_change args premises) :=
 by

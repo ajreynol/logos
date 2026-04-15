@@ -11,7 +11,7 @@ theorem cmd_step_dt_inst_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.dt_inst args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.dt_inst args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.dt_inst args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.dt_inst args premises) :=
 by

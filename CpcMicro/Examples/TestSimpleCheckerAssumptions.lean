@@ -85,9 +85,9 @@ example : TranslatableAssumptionList assumptions := by
 
 example : CmdListTranslationOk proof := by
   apply CmdListTranslationOk.cons
-  · simp [symmStep, cmdTranslationOk]
+  · simp [symmStep, cmdTranslationOk, cArgListTranslationOk]
   · apply CmdListTranslationOk.cons
-    · simp [contraStep, cmdTranslationOk]
+    · simp [contraStep, cmdTranslationOk, cArgListTranslationOk]
     · exact CmdListTranslationOk.nil
 
 example : eo_is_refutation assumptions proof := by

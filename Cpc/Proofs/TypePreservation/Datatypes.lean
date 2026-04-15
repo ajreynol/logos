@@ -43,11 +43,8 @@ theorem typeof_value_model_eval_dt_cons
     (i : smt_lit_Nat) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.DtCons s d i)) =
       __smtx_typeof (SmtTerm.DtCons s d i) := by
-  change
-    __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
-      __smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i
-  exact typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec (SmtType.Datatype s d)
-    (__smtx_dt_substitute s d d) i
+  simp [__smtx_model_eval, __smtx_typeof, __smtx_typeof_value, __smtx_typeof_guard_wf,
+    typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec]
 
 /-- Definition used in the proof development for `dt_cons_type_num_args`. -/
 def dt_cons_type_num_args : SmtType -> Nat
@@ -289,7 +286,9 @@ theorem dt_cons_chain_type_of_non_none :
       simp [__vsm_apply_head] at hHead
       rcases hHead with ⟨rfl, hEq⟩
       rcases hEq with ⟨rfl, rfl⟩
-      simp [__smtx_typeof_value, dt_cons_applied_type_rec, vsm_num_apply_args]
+      cases hWf : __smtx_type_wf (SmtType.Datatype s' d') <;>
+        simp [__smtx_typeof_value, dt_cons_applied_type_rec, vsm_num_apply_args, smt_lit_ite,
+          hWf] at hNN ⊢
   | SmtValue.Apply f a, s, d, i, hHead, hNN => by
       have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
         simpa [__vsm_apply_head] using hHead

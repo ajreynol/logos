@@ -1,6 +1,7 @@
 import Cpc.Proofs.Translation
 import Cpc.Proofs.TypePreservation
 import Cpc.Proofs.TypePreservation.Helpers
+import Cpc.Proofs.Unproven
 
 open Eo
 open Smtm
@@ -234,8 +235,8 @@ theorem eo_eval_is_boolean_of_has_bool_type
     (M : SmtModel) (hM : model_total_typed M) (t : Term) :
   eo_has_bool_type t ->
   ∃ b : Bool, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Boolean b := by
-  intro _hTy
-  sorry
+  intro hTy
+  exact smt_model_eval_bool_is_boolean M hM (__eo_to_smt t) hTy
 
 /-- Shows that an EO term cannot be interpreted as both `true` and `false`. -/
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :

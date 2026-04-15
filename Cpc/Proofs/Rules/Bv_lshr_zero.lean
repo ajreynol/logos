@@ -11,7 +11,7 @@ theorem cmd_step_bv_lshr_zero_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_lshr_zero args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.bv_lshr_zero args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.bv_lshr_zero args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_lshr_zero args premises) :=
 by

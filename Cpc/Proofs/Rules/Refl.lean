@@ -98,11 +98,13 @@ theorem cmd_step_refl_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.refl args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.refl args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.refl args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.refl args premises) :=
 by
-  intro hCmdTrans hPremisesBool hProg
+  intro hCmdTrans hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.refl args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
   cases args with
   | nil =>
       change Term.Stuck ≠ Term.Stuck at hProg
@@ -112,8 +114,9 @@ by
       | nil =>
           cases premises with
           | nil =>
-              have hATrans : RuleProofs.eo_has_smt_translation a1 := by
-                simpa [cmdTranslationOk] using hCmdTrans
+              have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
+                simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+              have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
               have hProgRefl : __eo_prog_refl a1 ≠ Term.Stuck := by
                 change __eo_prog_refl a1 ≠ Term.Stuck at hProg
                 exact hProg

@@ -6,11 +6,15 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+/-- Predicate asserting that every argument in a checker argument list is translation-safe. -/
+def cArgListTranslationOk : CArgList -> Prop
+  | CArgList.nil => True
+  | CArgList.cons a args => RuleProofs.eo_has_smt_translation a ∧ cArgListTranslationOk args
+
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => RuleProofs.eo_has_smt_translation A
-  | CCmd.step CRule.refl (CArgList.cons a1 CArgList.nil) CIndexList.nil =>
-      RuleProofs.eo_has_smt_translation a1
+  | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
 /-- Inductive predicate asserting that every command in a checker command list satisfies `cmdTranslationOk`. -/
@@ -47,6 +51,17 @@ def AllHaveBoolType (ts : List Term) : Prop :=
 /-- Predicate asserting that every term in a list has EO type `Bool`. -/
 def AllTypeofBool (ts : List Term) : Prop :=
   ∀ t ∈ ts, __eo_typeof t = Term.Bool
+
+/-- A term with EO type `Bool` cannot be `Stuck`. -/
+theorem term_ne_stuck_of_typeof_bool
+    {t : Term}
+    (hTy : __eo_typeof t = Term.Bool) :
+    t ≠ Term.Stuck := by
+  intro hStuck
+  rw [hStuck] at hTy
+  have hStuckTy : __eo_typeof Term.Stuck ≠ Term.Bool := by
+    native_decide
+  exact hStuckTy hTy
 
 /-- Derives `premiseAndFormulaList_true` from `all_true`. -/
 theorem premiseAndFormulaList_true_of_all_true

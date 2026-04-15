@@ -11,7 +11,7 @@ theorem cmd_step_sets_inter_comm_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.sets_inter_comm args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.sets_inter_comm args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.sets_inter_comm args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.sets_inter_comm args premises) :=
 by

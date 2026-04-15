@@ -11,7 +11,7 @@ theorem cmd_step_str_overlap_endpoints_indexof_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_overlap_endpoints_indexof args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.str_overlap_endpoints_indexof args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.str_overlap_endpoints_indexof args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.str_overlap_endpoints_indexof args premises) :=
 by
