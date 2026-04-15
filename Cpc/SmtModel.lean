@@ -1455,12 +1455,12 @@ def __smtx_typeof_apply : SmtType -> SmtType -> SmtType
 
 
 def __smtx_typeof_bv_op_2 : SmtType -> SmtType -> SmtType
-  | (SmtType.BitVec n1), (SmtType.BitVec n2) => (smt_lit_ite (smt_lit_zeq n1 n2) (SmtType.BitVec n1) SmtType.None)
+  | (SmtType.BitVec n1), (SmtType.BitVec n2) => (smt_lit_ite (smt_lit_nateq n1 n2) (SmtType.BitVec n1) SmtType.None)
   | T, U => SmtType.None
 
 
 def __smtx_typeof_bv_op_2_ret : SmtType -> SmtType -> SmtType -> SmtType
-  | (SmtType.BitVec n1), (SmtType.BitVec n2), U => (smt_lit_ite (smt_lit_zeq n1 n2) U SmtType.None)
+  | (SmtType.BitVec n1), (SmtType.BitVec n2), U => (smt_lit_ite (smt_lit_nateq n1 n2) U SmtType.None)
   | T, U, V => SmtType.None
 
 
