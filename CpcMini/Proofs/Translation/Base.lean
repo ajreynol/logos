@@ -48,7 +48,7 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT type translation for `bitvec`. -/
 @[simp] theorem eo_to_smt_type_bitvec (n : eo_lit_Int) :
     __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) =
-      smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec n) SmtType.None := by
+      smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `char`. -/
@@ -103,7 +103,7 @@ theorem smtx_binary_well_formed_of_non_none
     · exact h'
     · exfalso
       apply h
-      change smt_lit_ite g (SmtType.BitVec w) SmtType.None = SmtType.None
+      change smt_lit_ite g (SmtType.BitVec (smt_lit_int_to_nat w)) SmtType.None = SmtType.None
       simp [smt_lit_ite, h']
   have hWidth : smt_lit_zleq 0 w = true := by
     cases hw : smt_lit_zleq 0 w <;> simp [g, SmtEval.smt_lit_and, hw] at hg
@@ -118,7 +118,7 @@ theorem smtx_binary_well_formed_of_non_none
 theorem smtx_typeof_binary_of_non_none
     (w n : smt_lit_Int) :
     __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None ->
-    __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec w := by
+    __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (smt_lit_int_to_nat w) := by
   intro h
   obtain ⟨hWidth, hMod⟩ := smtx_binary_well_formed_of_non_none w n h
   simp [__smtx_typeof, smt_lit_ite, SmtEval.smt_lit_and, hWidth, hMod]

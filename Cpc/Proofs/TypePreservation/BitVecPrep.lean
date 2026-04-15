@@ -60,7 +60,7 @@ theorem typeof_int_to_bv_eq
 theorem bv_concat_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.concat t1 t2)) :
-    ∃ w1 w2 : smt_lit_Int,
+    ∃ w1 w2 : smt_lit_Nat,
       __smtx_typeof t1 = SmtType.BitVec w1 ∧
         __smtx_typeof t2 = SmtType.BitVec w2 := by
   have ht' : __smtx_typeof_concat (__smtx_typeof t1) (__smtx_typeof t2) ≠ SmtType.None := by
@@ -82,13 +82,13 @@ theorem extract_args_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht : term_has_non_none_type
       (SmtTerm.extract t1 t2 t3)) :
-    ∃ i j w : smt_lit_Int,
+    ∃ i j : smt_lit_Int, ∃ w : smt_lit_Nat,
       t1 = SmtTerm.Numeral i ∧
         t2 = SmtTerm.Numeral j ∧
         __smtx_typeof t3 = SmtType.BitVec w ∧
         smt_lit_zleq 0 j = true ∧
         smt_lit_zleq j i = true ∧
-        smt_lit_zlt i w = true := by
+        smt_lit_zlt i (smt_lit_nat_to_int w) = true := by
   have ht' : __smtx_typeof_extract t1 t2 (__smtx_typeof t3) ≠ SmtType.None := by
     rw [← typeof_extract_eq t1 t2 t3]
     exact ht
@@ -100,7 +100,7 @@ theorem extract_args_of_non_none
           | BitVec w =>
               by_cases hj0 : smt_lit_zleq 0 j = true
               · by_cases hji : smt_lit_zleq j i = true
-                · by_cases hiw : smt_lit_zlt i w = true
+                · by_cases hiw : smt_lit_zlt i (smt_lit_nat_to_int w) = true
                   · exact ⟨i, j, w, rfl, rfl, rfl, hj0, hji, hiw⟩
                   · exfalso
                     exact ht' (by
@@ -122,7 +122,7 @@ theorem extract_args_of_non_none
 theorem repeat_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.repeat t1 t2)) :
-    ∃ i w : smt_lit_Int,
+    ∃ i : smt_lit_Int, ∃ w : smt_lit_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
         smt_lit_zleq 1 i = true := by
@@ -148,7 +148,7 @@ theorem repeat_args_of_non_none
 theorem zero_extend_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.zero_extend t1 t2)) :
-    ∃ i w : smt_lit_Int,
+    ∃ i : smt_lit_Int, ∃ w : smt_lit_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
         smt_lit_zleq 0 i = true := by
@@ -174,7 +174,7 @@ theorem zero_extend_args_of_non_none
 theorem sign_extend_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.sign_extend t1 t2)) :
-    ∃ i w : smt_lit_Int,
+    ∃ i : smt_lit_Int, ∃ w : smt_lit_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
         smt_lit_zleq 0 i = true := by
@@ -200,7 +200,7 @@ theorem sign_extend_args_of_non_none
 theorem rotate_left_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.rotate_left t1 t2)) :
-    ∃ i w : smt_lit_Int,
+    ∃ i : smt_lit_Int, ∃ w : smt_lit_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
         smt_lit_zleq 0 i = true := by
@@ -226,7 +226,7 @@ theorem rotate_left_args_of_non_none
 theorem rotate_right_args_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.rotate_right t1 t2)) :
-    ∃ i w : smt_lit_Int,
+    ∃ i : smt_lit_Int, ∃ w : smt_lit_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
         smt_lit_zleq 0 i = true := by
@@ -281,7 +281,7 @@ theorem bv_unop_arg_of_non_none
       __smtx_typeof (op t) =
         __smtx_typeof_bv_op_1 (__smtx_typeof t))
     (ht : term_has_non_none_type (op t)) :
-    ∃ w : smt_lit_Int, __smtx_typeof t = SmtType.BitVec w := by
+    ∃ w : smt_lit_Nat, __smtx_typeof t = SmtType.BitVec w := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t with
   | BitVec w =>
@@ -297,7 +297,7 @@ theorem bv_unop_ret_arg_of_non_none
       __smtx_typeof (op t) =
         __smtx_typeof_bv_op_1_ret (__smtx_typeof t) ret)
     (ht : term_has_non_none_type (op t)) :
-    ∃ w : smt_lit_Int, __smtx_typeof t = SmtType.BitVec w := by
+    ∃ w : smt_lit_Nat, __smtx_typeof t = SmtType.BitVec w := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t with
   | BitVec w =>
@@ -312,7 +312,7 @@ theorem bv_binop_args_of_non_none
       __smtx_typeof (op t1 t2) =
         __smtx_typeof_bv_op_2 (__smtx_typeof t1) (__smtx_typeof t2))
     (ht : term_has_non_none_type (op t1 t2)) :
-    ∃ w : smt_lit_Int,
+    ∃ w : smt_lit_Nat,
       __smtx_typeof t1 = SmtType.BitVec w ∧
         __smtx_typeof t2 = SmtType.BitVec w := by
   unfold term_has_non_none_type at ht
@@ -320,9 +320,9 @@ theorem bv_binop_args_of_non_none
   | BitVec w1 =>
       cases h2 : __smtx_typeof t2 with
       | BitVec w2 =>
-          by_cases hEq : smt_lit_zeq w1 w2 = true
+          by_cases hEq : smt_lit_nateq w1 w2 = true
           · have hw : w1 = w2 := by
-              simpa [SmtEval.smt_lit_zeq] using hEq
+              simpa [smt_lit_nateq, SmtEval.smt_lit_nateq] using hEq
             cases hw
             exact ⟨w1, rfl, rfl⟩
           · exfalso
@@ -342,7 +342,7 @@ theorem bv_binop_ret_args_of_non_none
       __smtx_typeof (op t1 t2) =
         __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) ret)
     (ht : term_has_non_none_type (op t1 t2)) :
-    ∃ w : smt_lit_Int,
+    ∃ w : smt_lit_Nat,
       __smtx_typeof t1 = SmtType.BitVec w ∧
         __smtx_typeof t2 = SmtType.BitVec w := by
   unfold term_has_non_none_type at ht
@@ -350,9 +350,9 @@ theorem bv_binop_ret_args_of_non_none
   | BitVec w1 =>
       cases h2 : __smtx_typeof t2 with
       | BitVec w2 =>
-          by_cases hEq : smt_lit_zeq w1 w2 = true
+          by_cases hEq : smt_lit_nateq w1 w2 = true
           · have hw : w1 = w2 := by
-              simpa [SmtEval.smt_lit_zeq] using hEq
+              simpa [smt_lit_nateq, SmtEval.smt_lit_nateq] using hEq
             cases hw
             exact ⟨w1, rfl, rfl⟩
           · exfalso

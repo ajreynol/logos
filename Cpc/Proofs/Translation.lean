@@ -100,10 +100,13 @@ theorem eo_to_smt_typeof_matches_translation
     case Binary w n =>
       have hTy : __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None := by
         simpa [__eo_to_smt.eq_def] using hNonNone
-      rw [show __smtx_typeof (__eo_to_smt (Term.Binary w n)) = SmtType.BitVec w by
+      have hWidth : smt_lit_zleq 0 w = true :=
+        (smtx_binary_well_formed_of_non_none w n hTy).1
+      rw [show __smtx_typeof (__eo_to_smt (Term.Binary w n)) =
+        SmtType.BitVec (smt_lit_int_to_nat w) by
         simpa [__eo_to_smt.eq_def] using smtx_typeof_binary_of_non_none w n hTy]
       symm
-      simpa using eo_to_smt_type_typeof_binary w n
+      simpa using eo_to_smt_type_typeof_binary w n hWidth
     case Var name T =>
       cases name
       case String s =>

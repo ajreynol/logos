@@ -23,11 +23,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_concat
       __eo_to_smt (Term.Apply (Term.Apply Term.concat y) x) =
         SmtTerm.concat (__eo_to_smt y) (__eo_to_smt x))
     (hEo :
-      ∀ w1 w2 : smt_lit_Int,
+      ∀ w1 w2 : smt_lit_Nat,
         __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w1 ->
         __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w2 ->
         __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.concat y) x)) =
-          SmtType.BitVec (smt_lit_zplus w1 w2))
+          SmtType.BitVec
+            (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_nat_to_int w1) (smt_lit_nat_to_int w2))))
     (hNonNone :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.concat y) x)) ≠ SmtType.None) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.concat y) x)) =
@@ -41,7 +42,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_concat
   rcases bv_concat_args_of_non_none hApplyNN with ⟨w1, w2, hy, hx⟩
   have hSmt :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.concat y) x)) =
-        SmtType.BitVec (smt_lit_zplus w1 w2) := by
+        SmtType.BitVec
+          (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_nat_to_int w1) (smt_lit_nat_to_int w2))) := by
     rw [hTranslate]
     simp [__smtx_typeof, __smtx_typeof_concat, hy, hx]
   exact hSmt.trans (hEo w1 w2 hy hx).symm
@@ -56,7 +58,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop
       __smtx_typeof (smtOp (__eo_to_smt y) (__eo_to_smt x)) =
         __smtx_typeof_bv_op_2 (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x)))
     (hEo :
-      ∀ w : smt_lit_Int,
+      ∀ w : smt_lit_Nat,
         __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
         __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
         __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply eoOp y) x)) = SmtType.BitVec w)
@@ -75,7 +77,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply eoOp y) x)) = SmtType.BitVec w := by
     rw [hTranslate]
     rw [hTy, hy, hx]
-    simp [__smtx_typeof_bv_op_2, smt_lit_ite, SmtEval.smt_lit_zeq]
+    simp [__smtx_typeof_bv_op_2, smt_lit_ite, smt_lit_nateq, SmtEval.smt_lit_nateq]
   exact hSmt.trans (hEo w hy hx).symm
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_bv_binop_ret`. -/
@@ -89,7 +91,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
         __smtx_typeof_bv_op_2_ret (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x))
           ret)
     (hEo :
-      ∀ w : smt_lit_Int,
+      ∀ w : smt_lit_Nat,
         __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w ->
         __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
         __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply eoOp y) x)) = ret)
@@ -109,7 +111,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply eoOp y) x)) = ret := by
     rw [hTranslate]
     rw [hTy, hy, hx]
-    simp [__smtx_typeof_bv_op_2_ret, smt_lit_ite, SmtEval.smt_lit_zeq]
+    simp [__smtx_typeof_bv_op_2_ret, smt_lit_ite, smt_lit_nateq, SmtEval.smt_lit_nateq]
   exact hSmt.trans (hEo w hy hx).symm
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_apply_generic`. -/
@@ -1678,7 +1680,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rcases repeat_args_of_non_none hApplyNN with ⟨i, w, hy, hx, hi⟩
       have hSmt :
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.repeat y) x)) =
-            SmtType.BitVec (smt_lit_zmult i w) := by
+            SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zmult i (smt_lit_nat_to_int w))) := by
         rw [hTranslate, typeof_repeat_eq, hy, hx]
         simp [__smtx_typeof_repeat, smt_lit_ite, hi]
       exact hSmt.trans
@@ -1698,7 +1700,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rcases zero_extend_args_of_non_none hApplyNN with ⟨i, w, hy, hx, hi⟩
       have hSmt :
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.zero_extend y) x)) =
-            SmtType.BitVec (smt_lit_zplus i w) := by
+            SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus i (smt_lit_nat_to_int w))) := by
         rw [hTranslate, typeof_zero_extend_eq, hy, hx]
         simp [__smtx_typeof_zero_extend, smt_lit_ite, hi]
       exact hSmt.trans
@@ -1718,7 +1720,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rcases sign_extend_args_of_non_none hApplyNN with ⟨i, w, hy, hx, hi⟩
       have hSmt :
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.sign_extend y) x)) =
-            SmtType.BitVec (smt_lit_zplus i w) := by
+            SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus i (smt_lit_nat_to_int w))) := by
         rw [hTranslate, typeof_sign_extend_eq, hy, hx]
         simp [__smtx_typeof_sign_extend, smt_lit_ite, hi]
       exact hSmt.trans
@@ -1778,7 +1780,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rcases int_to_bv_args_of_non_none hApplyNN with ⟨i, hy, hx, hi⟩
       have hSmt :
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.int_to_bv y) x)) =
-            SmtType.BitVec i := by
+            SmtType.BitVec (smt_lit_int_to_nat i) := by
         rw [hTranslate, typeof_int_to_bv_eq, hy, hx]
         simp [__smtx_typeof_int_to_bv, smt_lit_ite, hi]
       exact hSmt.trans
@@ -1927,7 +1929,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rcases extract_args_of_non_none hApplyNN with ⟨i, j, w, hZ, hY, hX, hj0, hji, hiw⟩
         have hSmt :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.extract z) y) x)) =
-              SmtType.BitVec (smt_lit_zplus (smt_lit_zplus i (smt_lit_zneg j)) 1) := by
+              SmtType.BitVec
+                (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_zplus i (smt_lit_zneg j)) 1)) := by
           rw [hTranslate, typeof_extract_eq, hZ, hY, hX]
           simp [__smtx_typeof_extract, smt_lit_ite, hj0, hji, hiw]
         exact hSmt.trans
@@ -2785,7 +2788,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rcases int_to_bv_args_of_non_none hHeadNN with ⟨i, hz', hy', hi⟩
         have hHeadTy :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.int_to_bv z) y)) =
-              SmtType.BitVec i := by
+              SmtType.BitVec (smt_lit_int_to_nat i) := by
           rw [hHeadTranslate, typeof_int_to_bv_eq, hz', hy']
           simp [__smtx_typeof_int_to_bv, smt_lit_ite, hi]
         cases hHead with
@@ -3202,7 +3205,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w := by
       rw [← hXTyped]
       exact hArg
-    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w) :=
+    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w)) :=
       eo_to_smt_type_eq_bitvec hxSmt
     have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply Term.bvnot x)) = SmtType.BitVec w := by
       rw [hTranslate]
@@ -3225,7 +3228,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w := by
       rw [← hXTyped]
       exact hArg
-    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w) :=
+    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w)) :=
       eo_to_smt_type_eq_bitvec hxSmt
     have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply Term.bvneg x)) = SmtType.BitVec w := by
       rw [hTranslate]
@@ -3249,7 +3252,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w := by
       rw [← hXTyped]
       exact hArg
-    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w) :=
+    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w)) :=
       eo_to_smt_type_eq_bitvec hxSmt
     have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply Term.bvnego x)) = SmtType.Bool := by
       rw [hTranslate]
@@ -3282,7 +3285,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w := by
       rw [← hXTyped]
       exact hArgX
-    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w) :=
+    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w)) :=
       eo_to_smt_type_eq_bitvec hxSmt
     have hArgY' :
         __smtx_typeof
@@ -3301,7 +3304,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
               (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)))
           (SmtType.BitVec 1) = SmtType.BitVec 1
       rw [hArgX, hArgY']
-      simp [__smtx_typeof_bv_op_2_ret, smt_lit_ite, SmtEval.smt_lit_zeq]
+      simp [__smtx_typeof_bv_op_2_ret, smt_lit_ite, smt_lit_nateq, SmtEval.smt_lit_nateq]
     exact hSmt.trans (eo_to_smt_type_typeof_apply_bvredand_of_bitvec x w hxEo).symm
   case bvredor =>
     have hTranslate :
@@ -3321,7 +3324,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rw [← hTranslate]
       exact hNonNone
     have hInner :
-        ∃ w : smt_lit_Int,
+        ∃ w : smt_lit_Nat,
           __smtx_typeof
               (SmtTerm.bvcomp
                 (__eo_to_smt x)
@@ -3348,7 +3351,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w := by
       rw [← hXTyped]
       exact hArgX
-    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w) :=
+    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w)) :=
       eo_to_smt_type_eq_bitvec hxSmt
     have hArgY' :
         __smtx_typeof (SmtTerm.Binary (__smtx_bv_sizeof_type (SmtType.BitVec w)) 0) =
@@ -3367,7 +3370,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0))
           (SmtType.BitVec 1) = SmtType.BitVec 1
       rw [hArgX, hArgY']
-      simp [__smtx_typeof_bv_op_2_ret, smt_lit_ite, SmtEval.smt_lit_zeq]
+      simp [__smtx_typeof_bv_op_2_ret, smt_lit_ite, smt_lit_nateq, SmtEval.smt_lit_nateq]
     have hSmt :
         __smtx_typeof (__eo_to_smt (Term.Apply Term.bvredor x)) = SmtType.BitVec 1 := by
       rw [hTranslate]
@@ -4060,7 +4063,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w := by
       rw [← hXTyped]
       exact hArg
-    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w) :=
+    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w)) :=
       eo_to_smt_type_eq_bitvec hxSmt
     have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply Term.ubv_to_int x)) = SmtType.Int := by
       rw [hTranslate]
@@ -4084,7 +4087,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w := by
       rw [← hXTyped]
       exact hArg
-    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w) :=
+    have hxEo : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w)) :=
       eo_to_smt_type_eq_bitvec hxSmt
     have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply Term.sbv_to_int x)) = SmtType.Int := by
       rw [hTranslate]

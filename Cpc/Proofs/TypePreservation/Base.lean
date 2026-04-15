@@ -46,7 +46,7 @@ theorem typeof_value_model_eval_binary
     · exact h
     · exfalso
       apply ht
-      change smt_lit_ite g (SmtType.BitVec w) SmtType.None = SmtType.None
+      change smt_lit_ite g (SmtType.BitVec (smt_lit_int_to_nat w)) SmtType.None = SmtType.None
       simp [smt_lit_ite, h]
   have hWidth : smt_lit_zleq 0 w = true := by
     cases h1 : smt_lit_zleq 0 w
@@ -57,11 +57,11 @@ theorem typeof_value_model_eval_binary
     cases h2 : smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w))
     · simp [g, SmtEval.smt_lit_and, hWidth, h2] at hg
     · rfl
-  change smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None =
+  change smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec (smt_lit_int_to_nat w)) SmtType.None =
     __smtx_typeof (SmtTerm.Binary w n)
-  rw [show smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec w) SmtType.None = SmtType.BitVec w by
+  rw [show smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec (smt_lit_int_to_nat w)) SmtType.None = SmtType.BitVec (smt_lit_int_to_nat w) by
     simp [smt_lit_ite, hWidth]]
-  rw [show __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec w by
+  rw [show __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (smt_lit_int_to_nat w) by
     simp [__smtx_typeof, smt_lit_ite, SmtEval.smt_lit_and, hWidth, hMod]]
 
 /-- Shows that evaluating `var` terms produces values of the expected type. -/
