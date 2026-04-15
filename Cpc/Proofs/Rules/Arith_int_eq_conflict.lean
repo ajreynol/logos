@@ -11,7 +11,7 @@ theorem cmd_step_arith_int_eq_conflict_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.arith_int_eq_conflict args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.arith_int_eq_conflict args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.arith_int_eq_conflict args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.arith_int_eq_conflict args premises) :=
 by

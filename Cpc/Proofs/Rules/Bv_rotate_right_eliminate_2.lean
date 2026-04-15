@@ -11,7 +11,7 @@ theorem cmd_step_bv_rotate_right_eliminate_2_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_rotate_right_eliminate_2 args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.bv_rotate_right_eliminate_2 args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.bv_rotate_right_eliminate_2 args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_rotate_right_eliminate_2 args premises) :=
 by

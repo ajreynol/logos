@@ -611,15 +611,6 @@ by
   intro hTy
   exact (eo_is_bool_type_eq_true_iff t).2 hTy
 
-/-- Derives `term_ne_stuck` from `typeof_bool`. -/
-theorem term_ne_stuck_of_typeof_bool (t : Term) :
-  __eo_typeof t = Term.Bool ->
-  t ≠ Term.Stuck :=
-by
-  intro hTy hStuck
-  subst hStuck
-  exact False.elim (typeof_stuck_ne_bool hTy)
-
 /-- Derives `push_assume_eq_cons` from `typeof_bool`. -/
 @[simp] theorem push_assume_eq_cons_of_typeof_bool (A : Term) (s : CState) :
   __eo_typeof A = Term.Bool ->
@@ -1217,7 +1208,7 @@ theorem push_assume_preserves_typeInvariant
 by
   intro hs
   by_cases hTy : __eo_typeof A = Term.Bool
-  · have hA : A ≠ Term.Stuck := term_ne_stuck_of_typeof_bool A hTy
+  · have hA : A ≠ Term.Stuck := term_ne_stuck_of_typeof_bool hTy
     simpa [push_assume_eq_cons_of_typeof_bool, hTy, checkerTypeInvariant, hA] using hs
   · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerTypeInvariant_stuck
 
@@ -1242,7 +1233,7 @@ theorem push_proven_preserves_typeInvariant
 by
   intro hs
   by_cases hTy : __eo_typeof P = Term.Bool
-  · have hP : P ≠ Term.Stuck := term_ne_stuck_of_typeof_bool P hTy
+  · have hP : P ≠ Term.Stuck := term_ne_stuck_of_typeof_bool hTy
     simpa [push_proven_eq_cons_of_typeof_bool, hTy, checkerTypeInvariant, hP] using hs
   · simpa [push_proven_eq_stuck_of_typeof_ne_bool, hTy] using checkerTypeInvariant_stuck
 

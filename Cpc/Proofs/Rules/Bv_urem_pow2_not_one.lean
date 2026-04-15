@@ -11,7 +11,7 @@ theorem cmd_step_bv_urem_pow2_not_one_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.bv_urem_pow2_not_one args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.bv_urem_pow2_not_one args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.bv_urem_pow2_not_one args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.bv_urem_pow2_not_one args premises) :=
 by

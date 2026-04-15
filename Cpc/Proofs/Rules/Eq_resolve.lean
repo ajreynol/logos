@@ -165,11 +165,13 @@ theorem cmd_step_eq_resolve_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.eq_resolve args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.eq_resolve args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.eq_resolve args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.eq_resolve args premises) :=
 by
-  intro _hCmdTrans hPremisesBool hProg
+  intro _hCmdTrans hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.eq_resolve args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
   cases args with
   | nil =>
       cases premises with

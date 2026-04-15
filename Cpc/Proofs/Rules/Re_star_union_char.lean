@@ -11,7 +11,7 @@ theorem cmd_step_re_star_union_char_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.re_star_union_char args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.re_star_union_char args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.re_star_union_char args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.re_star_union_char args premises) :=
 by

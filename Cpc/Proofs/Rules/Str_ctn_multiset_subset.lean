@@ -11,7 +11,7 @@ theorem cmd_step_str_ctn_multiset_subset_properties
     (s : CState) (args : CArgList) (premises : CIndexList) :
   cmdTranslationOk (CCmd.step CRule.str_ctn_multiset_subset args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
-  __eo_cmd_step_proven s CRule.str_ctn_multiset_subset args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.str_ctn_multiset_subset args premises) = Term.Bool ->
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.str_ctn_multiset_subset args premises) :=
 by

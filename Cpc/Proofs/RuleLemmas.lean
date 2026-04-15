@@ -611,11 +611,13 @@ theorem cmd_step_proven_facts_of_invariants
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
-  __eo_cmd_step_proven s r args premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_proven s r args premises) = Term.Bool ->
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 :=
 by
-  intro hs hsTy hsTrans hCmdTrans hProg
+  intro hs hsTy hsTrans hCmdTrans hResultTy
+  have hProg : __eo_cmd_step_proven s r args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
   have hPremisesBool : AllHaveBoolType (premiseTermList s premises) :=
     premiseTermList_has_bool_type s premises hsTy hsTrans
   cases r with
@@ -624,2359 +626,2359 @@ by
   | process_scope =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_process_scope_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | split =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_split_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | resolution =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_resolution_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | chain_resolution =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_chain_resolution_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | chain_m_resolution =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_chain_m_resolution_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | factoring =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_factoring_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | reordering =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_reordering_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | eq_resolve =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_eq_resolve_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | modus_ponens =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_modus_ponens_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_not_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_not_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | contra =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_contra_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | and_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_and_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | and_intro =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_and_intro_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_or_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_or_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | implies_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_implies_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_implies_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_implies_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_implies_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_implies_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | equiv_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_equiv_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | equiv_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_equiv_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_equiv_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_equiv_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_equiv_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_equiv_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | xor_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_xor_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | xor_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_xor_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_xor_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_xor_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_xor_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_xor_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_ite_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_ite_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_ite_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_ite_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | not_and =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_not_and_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_and_pos =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_and_pos_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_and_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_and_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_or_pos =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_or_pos_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_or_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_or_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_implies_pos =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_implies_pos_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_implies_neg1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_implies_neg1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_implies_neg2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_implies_neg2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_equiv_pos1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_equiv_pos1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_equiv_pos2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_equiv_pos2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_equiv_neg1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_equiv_neg1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_equiv_neg2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_equiv_neg2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_xor_pos1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_xor_pos1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_xor_pos2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_xor_pos2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_xor_neg1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_xor_neg1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_xor_neg2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_xor_neg2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_ite_pos1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_ite_pos1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_ite_pos2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_ite_pos2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_ite_pos3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_ite_pos3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_ite_neg1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_ite_neg1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_ite_neg2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_ite_neg2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cnf_ite_neg3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cnf_ite_neg3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arrays_read_over_write =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arrays_read_over_write_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arrays_read_over_write_contra =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arrays_read_over_write_contra_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arrays_read_over_write_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arrays_read_over_write_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arrays_ext =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arrays_ext_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | refl =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_refl_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | symm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_symm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | trans =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_trans_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | cong =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_cong_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | nary_cong =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_nary_cong_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | pairwise_cong =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_pairwise_cong_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | true_intro =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_true_intro_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | true_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_true_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | false_intro =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_false_intro_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | false_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_false_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ho_cong =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ho_cong_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | distinct_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_distinct_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | distinct_true =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_distinct_true_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | distinct_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_distinct_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_sum_ub =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_sum_ub_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_mult_pos =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_mult_pos_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_mult_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_mult_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_trichotomy =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_trichotomy_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | int_tight_ub =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_int_tight_ub_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | int_tight_lb =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_int_tight_lb_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_mult_tangent =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_mult_tangent_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_mult_sign =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_mult_sign_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_mult_abs_comparison =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_mult_abs_comparison_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_reduction =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_reduction_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_poly_norm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_poly_norm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_poly_norm_rel =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_poly_norm_rel_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_repeat_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_repeat_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_smulo_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_smulo_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_umulo_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_umulo_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_bitwise_slicing =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_bitwise_slicing_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_bitblast_step =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_bitblast_step_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_poly_norm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_poly_norm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_poly_norm_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_poly_norm_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | string_length_pos =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_string_length_pos_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | string_length_non_empty =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_string_length_non_empty_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | concat_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_concat_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | concat_unify =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_concat_unify_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | concat_csplit =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_concat_csplit_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | concat_split =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_concat_split_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | concat_lprop =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_concat_lprop_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | concat_cprop =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_concat_cprop_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | string_decompose =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_string_decompose_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | exists_string_length =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_exists_string_length_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | string_code_inj =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_string_code_inj_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | string_seq_unit_inj =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_string_seq_unit_inj_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_inter =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_inter_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_concat =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_concat_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_unfold_pos =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_unfold_pos_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_unfold_neg_concat_fixed =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_unfold_neg_concat_fixed_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_unfold_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_unfold_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | string_ext =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_string_ext_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | string_reduction =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_string_reduction_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | string_eager_reduction =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_string_eager_reduction_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_string_pred_entail =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_string_pred_entail_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_string_pred_safe_approx =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_string_pred_safe_approx_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_eval =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_eval_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_consume =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_consume_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_loop_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_loop_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_eq_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_eq_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_inter_inclusion =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_inter_inclusion_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_union_inclusion =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_union_inclusion_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_concat_star_char =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_concat_star_char_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_sigma =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_sigma_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_sigma_star =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_sigma_star_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_ctn_multiset_subset =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_ctn_multiset_subset_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_overlap_split_ctn =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_overlap_split_ctn_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_overlap_endpoints_ctn =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_overlap_endpoints_ctn_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_overlap_endpoints_indexof =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_overlap_endpoints_indexof_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_overlap_endpoints_replace =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_overlap_endpoints_replace_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_re_eval =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_re_eval_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_re_eval =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_re_eval_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_re_all_eval =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_re_all_eval_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | seq_eval_op =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_seq_eval_op_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_singleton_inj =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_singleton_inj_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_ext =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_ext_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_eval_op =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_eval_op_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_insert_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_insert_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ubv_to_int_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ubv_to_int_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | int_to_bv_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_int_to_bv_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | instantiate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_instantiate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | skolemize =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_skolemize_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | skolem_intro =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_skolem_intro_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | alpha_equiv =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_alpha_equiv_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | quant_var_reordering =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_quant_var_reordering_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | exists_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_exists_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | quant_unused_vars =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_quant_unused_vars_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | quant_merge_prenex =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_quant_merge_prenex_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | quant_miniscope_and =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_quant_miniscope_and_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | quant_miniscope_or =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_quant_miniscope_or_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | quant_miniscope_ite =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_quant_miniscope_ite_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | quant_var_elim_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_quant_var_elim_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | quant_dt_split =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_quant_dt_split_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_split =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_split_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_inst =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_inst_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_collapse_selector =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_collapse_selector_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_collapse_tester =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_collapse_tester_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_collapse_tester_singleton =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_collapse_tester_singleton_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_cons_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_cons_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_cons_eq_clash =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_cons_eq_clash_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_cycle =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_cycle_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_collapse_updater =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_collapse_updater_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | dt_updater_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_dt_updater_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_div_total_zero_real =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_div_total_zero_real_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_div_total_zero_int =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_div_total_zero_int_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_div_total =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_div_total_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_div_total_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_div_total_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_div_total_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_div_total_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_div_total_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_div_total_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_mod_total =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_mod_total_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_mod_total_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_mod_total_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_mod_total_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_mod_total_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_mod_total_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_mod_total_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_elim_gt =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_elim_gt_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_elim_lt =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_elim_lt_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_elim_int_gt =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_elim_int_gt_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_elim_int_lt =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_elim_int_lt_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_elim_leq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_elim_leq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_leq_norm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_leq_norm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_geq_tighten =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_geq_tighten_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_geq_norm1_int =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_geq_norm1_int_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_geq_norm1_real =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_geq_norm1_real_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_eq_elim_real =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_eq_elim_real_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_eq_elim_int =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_eq_elim_int_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_to_int_elim_to_real =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_to_int_elim_to_real_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_mod_over_mod_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_mod_over_mod_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_mod_over_mod =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_mod_over_mod_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_mod_over_mod_mult =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_mod_over_mod_mult_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_eq_conflict =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_eq_conflict_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_int_geq_tighten =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_int_geq_tighten_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_divisible_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_divisible_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_abs_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_abs_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_abs_int_gt =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_abs_int_gt_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_abs_real_gt =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_abs_real_gt_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_geq_ite_lift =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_geq_ite_lift_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_leq_ite_lift =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_leq_ite_lift_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_min_lt1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_min_lt1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_min_lt2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_min_lt2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_max_geq1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_max_geq1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | arith_max_geq2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_arith_max_geq2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | array_read_over_write =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_array_read_over_write_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | array_read_over_write2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_array_read_over_write2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | array_store_overwrite =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_array_store_overwrite_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | array_store_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_array_store_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | array_read_over_write_split =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_array_read_over_write_split_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | array_store_swap =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_array_store_swap_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_double_not_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_double_not_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_not_true =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_not_true_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_not_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_not_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_eq_true =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_eq_true_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_eq_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_eq_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_eq_nrefl =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_eq_nrefl_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_impl_false1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_impl_false1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_impl_false2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_impl_false2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_impl_true1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_impl_true1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_impl_true2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_impl_true2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_impl_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_impl_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_dual_impl_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_dual_impl_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_and_conf =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_and_conf_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_and_conf2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_and_conf2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_or_taut =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_or_taut_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_or_taut2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_or_taut2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_or_de_morgan =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_or_de_morgan_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_implies_de_morgan =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_implies_de_morgan_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_and_de_morgan =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_and_de_morgan_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_or_and_distrib =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_or_and_distrib_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_implies_or_distrib =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_implies_or_distrib_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_xor_refl =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_xor_refl_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_xor_nrefl =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_xor_nrefl_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_xor_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_xor_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_xor_true =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_xor_true_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_xor_comm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_xor_comm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_xor_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_xor_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_not_xor_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_not_xor_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_not_eq_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_not_eq_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_not_eq_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_not_eq_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_neg_branch =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_neg_branch_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_then_true =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_then_true_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_else_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_else_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_then_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_then_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_else_true =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_else_true_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_then_lookahead_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_then_lookahead_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_else_lookahead_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_else_lookahead_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_then_lookahead_not_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_then_lookahead_not_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_else_lookahead_not_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_else_lookahead_not_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_expand =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_expand_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bool_not_ite_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bool_not_ite_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_true_cond =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_true_cond_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_false_cond =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_false_cond_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_not_cond =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_not_cond_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_eq_branch =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_eq_branch_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_then_lookahead =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_then_lookahead_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_else_lookahead =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_else_lookahead_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_then_neg_lookahead =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_then_neg_lookahead_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | ite_else_neg_lookahead =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_ite_else_neg_lookahead_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_concat_extract_merge =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_concat_extract_merge_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_extract =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_extract_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_whole =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_whole_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_concat_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_concat_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_concat_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_concat_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_concat_3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_concat_3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_concat_4 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_concat_4_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_eq_extract_elim1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_eq_extract_elim1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_eq_extract_elim2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_eq_extract_elim2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_eq_extract_elim3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_eq_extract_elim3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_not =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_not_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_sign_extend_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_sign_extend_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_sign_extend_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_sign_extend_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_sign_extend_3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_sign_extend_3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_not_xor =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_not_xor_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_and_simplify_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_and_simplify_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_and_simplify_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_and_simplify_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_or_simplify_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_or_simplify_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_or_simplify_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_or_simplify_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_simplify_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_simplify_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_simplify_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_simplify_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_simplify_3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_simplify_3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ult_add_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ult_add_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_mult_slt_mult_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_mult_slt_mult_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_mult_slt_mult_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_mult_slt_mult_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_commutative_xor =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_commutative_xor_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_commutative_comp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_commutative_comp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_zero_extend_eliminate_0 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_zero_extend_eliminate_0_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sign_extend_eliminate_0 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sign_extend_eliminate_0_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_not_neq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_not_neq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ult_ones =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ult_ones_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_concat_merge_const =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_concat_merge_const_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_commutative_add =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_commutative_add_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sub_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sub_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_width_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_width_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_width_one_not =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_width_one_not_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_eq_xor_solve =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_eq_xor_solve_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_eq_not_solve =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_eq_not_solve_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ugt_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ugt_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_uge_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_uge_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sgt_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sgt_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sge_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sge_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sle_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sle_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_redor_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_redor_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_redand_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_redand_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ule_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ule_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_comp_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_comp_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_rotate_left_eliminate_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_rotate_left_eliminate_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_rotate_left_eliminate_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_rotate_left_eliminate_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_rotate_right_eliminate_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_rotate_right_eliminate_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_rotate_right_eliminate_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_rotate_right_eliminate_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_nand_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_nand_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_nor_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_nor_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xnor_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xnor_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sdiv_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sdiv_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_zero_extend_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_zero_extend_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_uaddo_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_uaddo_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_saddo_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_saddo_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sdivo_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sdivo_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_smod_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_smod_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_srem_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_srem_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_usubo_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_usubo_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ssubo_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ssubo_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_nego_eliminate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_nego_eliminate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_equal_children =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_equal_children_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_const_children_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_const_children_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_const_children_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_const_children_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_equal_cond_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_equal_cond_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_equal_cond_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_equal_cond_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_equal_cond_3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_equal_cond_3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_merge_then_if =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_merge_then_if_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_merge_else_if =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_merge_else_if_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_merge_then_else =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_merge_then_else_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ite_merge_else_else =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ite_merge_else_else_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_shl_by_const_0 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_shl_by_const_0_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_shl_by_const_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_shl_by_const_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_shl_by_const_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_shl_by_const_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_lshr_by_const_0 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_lshr_by_const_0_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_lshr_by_const_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_lshr_by_const_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_lshr_by_const_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_lshr_by_const_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ashr_by_const_0 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ashr_by_const_0_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ashr_by_const_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ashr_by_const_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ashr_by_const_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ashr_by_const_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_and_concat_pullup =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_and_concat_pullup_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_or_concat_pullup =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_or_concat_pullup_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_concat_pullup =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_concat_pullup_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_and_concat_pullup2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_and_concat_pullup2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_or_concat_pullup2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_or_concat_pullup2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_concat_pullup2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_concat_pullup2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_and_concat_pullup3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_and_concat_pullup3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_or_concat_pullup3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_or_concat_pullup3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_concat_pullup3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_concat_pullup3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_duplicate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_duplicate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_ones =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_ones_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_xor_not =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_xor_not_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_not_idemp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_not_idemp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ult_zero_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ult_zero_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ult_zero_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ult_zero_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ult_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ult_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_lt_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_lt_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ule_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ule_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ule_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ule_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_zero_ule =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_zero_ule_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sle_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sle_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ule_max =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ule_max_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_not_ult =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_not_ult_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_mult_pow2_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_mult_pow2_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_mult_pow2_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_mult_pow2_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_mult_pow2_2b =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_mult_pow2_2b_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_extract_mult_leading_bit =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_extract_mult_leading_bit_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_udiv_pow2_not_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_udiv_pow2_not_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_udiv_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_udiv_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_udiv_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_udiv_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_urem_pow2_not_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_urem_pow2_not_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_urem_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_urem_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_urem_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_urem_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_shl_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_shl_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_lshr_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_lshr_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ashr_zero =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ashr_zero_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ugt_urem =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ugt_urem_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_ult_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_ult_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_merge_sign_extend_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_merge_sign_extend_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_merge_sign_extend_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_merge_sign_extend_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sign_extend_eq_const_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sign_extend_eq_const_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sign_extend_eq_const_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sign_extend_eq_const_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_zero_extend_eq_const_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_zero_extend_eq_const_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_zero_extend_eq_const_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_zero_extend_eq_const_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_zero_extend_ult_const_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_zero_extend_ult_const_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_zero_extend_ult_const_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_zero_extend_ult_const_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sign_extend_ult_const_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sign_extend_ult_const_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sign_extend_ult_const_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sign_extend_ult_const_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sign_extend_ult_const_3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sign_extend_ult_const_3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | bv_sign_extend_ult_const_4 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_bv_sign_extend_ult_const_4_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_eq_singleton_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_eq_singleton_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_member_singleton =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_member_singleton_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_member_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_member_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_subset_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_subset_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_union_comm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_union_comm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_inter_comm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_inter_comm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_inter_emp1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_inter_emp1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_inter_emp2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_inter_emp2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_minus_emp1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_minus_emp1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_minus_emp2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_minus_emp2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_union_emp1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_union_emp1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_union_emp2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_union_emp2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_inter_member =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_inter_member_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_minus_member =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_minus_member_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_union_member =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_union_member_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_choose_singleton =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_choose_singleton_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_minus_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_minus_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_is_empty_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_is_empty_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | sets_is_singleton_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_sets_is_singleton_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_ctn_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_ctn_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_ctn_full_false1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_ctn_full_false1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_ctn_full_false2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_ctn_full_false2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_len_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_len_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_empty_str =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_empty_str_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_empty_range =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_empty_range_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_empty_start =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_empty_start_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_empty_start_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_empty_start_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_substr_start_geq_len =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_substr_start_geq_len_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_eq_empty =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_eq_empty_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_z_eq_empty_leq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_z_eq_empty_leq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_eq_empty_leq_len =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_eq_empty_leq_len_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_len_replace_inv =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_len_replace_inv_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_len_replace_all_inv =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_len_replace_all_inv_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_len_update_inv =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_len_update_inv_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_update_in_first_concat =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_update_in_first_concat_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_len_substr_in_range =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_len_substr_in_range_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_concat_clash =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_concat_clash_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_concat_clash_rev =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_concat_clash_rev_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_concat_clash2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_concat_clash2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_concat_clash2_rev =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_concat_clash2_rev_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_concat_unify =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_concat_unify_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_concat_unify_rev =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_concat_unify_rev_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_concat_unify_base =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_concat_unify_base_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_concat_unify_base_rev =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_concat_unify_base_rev_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_prefixof_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_prefixof_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_suffixof_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_suffixof_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_prefixof_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_prefixof_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_suffixof_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_suffixof_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_prefixof_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_prefixof_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_suffixof_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_suffixof_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_combine1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_combine1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_combine2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_combine2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_combine3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_combine3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_combine4 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_combine4_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_concat1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_concat1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_concat2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_concat2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_replace =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_replace_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_full =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_full_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_full_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_full_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_refl =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_refl_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_concat_find =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_concat_find_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_concat_find_contra =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_concat_find_contra_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_split_char =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_split_char_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_leq_len_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_leq_len_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_char =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_char_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_at_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_at_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_id =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_id_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_prefix =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_prefix_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_no_contains =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_no_contains_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_find_base =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_find_base_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_find_first_concat =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_find_first_concat_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_empty =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_empty_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_one_pre =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_one_pre_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_find_pre =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_find_pre_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_all_no_contains =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_all_no_contains_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_all_empty =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_all_empty_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_all_id =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_all_id_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_all_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_all_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_re_none =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_re_none_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_re_all_none =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_re_all_none_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_len_concat_rec =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_len_concat_rec_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_len_eq_zero_concat_rec =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_len_eq_zero_concat_rec_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_len_eq_zero_base =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_len_eq_zero_base_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_no_contains =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_no_contains_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_oob =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_oob_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_oob2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_oob2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_contains_pre =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_contains_pre_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_contains_concat_pre =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_contains_concat_pre_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_find_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_find_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_eq_irr =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_eq_irr_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_re_none =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_re_none_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_indexof_re_emp_re =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_indexof_re_emp_re_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_lower_concat =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_lower_concat_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_upper_concat =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_upper_concat_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_lower_upper =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_lower_upper_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_upper_lower =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_upper_lower_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_lower_len =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_lower_len_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_upper_len =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_upper_len_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_lower_from_int =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_lower_from_int_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_upper_from_int =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_upper_from_int_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_to_int_concat_neg_one =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_to_int_concat_neg_one_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_is_digit_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_is_digit_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_leq_empty =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_leq_empty_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_leq_empty_eq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_leq_empty_eq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_leq_concat_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_leq_concat_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_leq_concat_true =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_leq_concat_true_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_leq_concat_base_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_leq_concat_base_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_leq_concat_base_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_leq_concat_base_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_lt_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_lt_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_from_int_no_ctn_nondigit =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_from_int_no_ctn_nondigit_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_ctn_contra =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_ctn_contra_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_ctn =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_ctn_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_dual_ctn =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_dual_ctn_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_dual_ctn_false =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_dual_ctn_false_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_self_ctn_simp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_self_ctn_simp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_replace_emp_ctn_src =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_replace_emp_ctn_src_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_char_start_eq_len =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_char_start_eq_len_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_repl_char =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_repl_char_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_repl_self_tgt_char =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_repl_self_tgt_char_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_repl_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_repl_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_contains_repl_tgt =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_contains_repl_tgt_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_len_id =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_len_id_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_src_tgt_no_ctn =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_src_tgt_no_ctn_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_tgt_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_tgt_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_tgt_no_ctn =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_tgt_no_ctn_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_src_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_src_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_src_inv_no_ctn1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_src_inv_no_ctn1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_src_inv_no_ctn2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_src_inv_no_ctn2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_src_inv_no_ctn3 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_src_inv_no_ctn3_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_dual_self =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_dual_self_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_dual_ite1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_dual_ite1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_dual_ite2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_dual_ite2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_repl_repl_lookahead_id_simp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_repl_repl_lookahead_id_simp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_all_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_all_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_opt_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_opt_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_diff_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_diff_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_plus_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_plus_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_repeat_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_repeat_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_concat_star_swap =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_concat_star_swap_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_concat_star_repeat =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_concat_star_repeat_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_concat_star_subsume1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_concat_star_subsume1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_concat_star_subsume2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_concat_star_subsume2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_concat_merge =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_concat_merge_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_union_all =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_union_all_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_union_const_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_union_const_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_inter_all =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_inter_all_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_star_none =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_star_none_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_star_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_star_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_star_star =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_star_star_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_range_refl =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_range_refl_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_range_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_range_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_range_non_singleton_1 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_range_non_singleton_1_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_range_non_singleton_2 =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_range_non_singleton_2_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_star_union_char =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_star_union_char_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_star_union_drop_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_star_union_drop_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_loop_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_loop_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_inter_cstring =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_inter_cstring_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_inter_cstring_neg =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_inter_cstring_neg_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_len_include =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_len_include_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_len_include_pre =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_len_include_pre_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_substr_len_norm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_substr_len_norm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | seq_len_rev =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_seq_len_rev_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | seq_rev_rev =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_seq_rev_rev_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | seq_rev_concat =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_seq_rev_concat_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_repl_self_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_repl_self_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_repl_no_change =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_repl_no_change_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_repl_tgt_eq_len =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_repl_tgt_eq_len_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_repl_len_one_emp_prefix =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_repl_len_one_emp_prefix_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_repl_emp_tgt_nemp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_repl_emp_tgt_nemp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_repl_nemp_src_emp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_repl_nemp_src_emp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_eq_repl_self_src =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_eq_repl_self_src_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | seq_len_unit =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_seq_len_unit_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | seq_nth_unit =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_seq_nth_unit_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | seq_rev_unit =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_seq_rev_unit_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_in_empty =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_in_empty_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_in_sigma =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_in_sigma_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_in_sigma_star =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_in_sigma_star_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_in_cstring =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_in_cstring_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | re_in_comp =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_re_in_comp_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_union_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_union_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_inter_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_inter_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_range_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_range_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_contains =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_contains_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_from_int_nemp_dig_range =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_from_int_nemp_dig_range_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | str_in_re_from_int_dig_range =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_str_in_re_from_int_dig_range_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | eq_refl =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_eq_refl_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | eq_symm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_eq_symm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | eq_cond_deq =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_eq_cond_deq_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | eq_ite_lift =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_eq_ite_lift_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | distinct_binary_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_distinct_binary_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | uf_bv2nat_int2bv =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_uf_bv2nat_int2bv_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | uf_bv2nat_int2bv_extend =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_uf_bv2nat_int2bv_extend_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | uf_bv2nat_int2bv_extract =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_uf_bv2nat_int2bv_extract_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | uf_int2bv_bv2nat =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_uf_int2bv_bv2nat_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | uf_bv2nat_geq_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_uf_bv2nat_geq_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | uf_int2bv_bvult_equiv =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_uf_int2bv_bvult_equiv_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | uf_int2bv_bvule_equiv =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_uf_int2bv_bvule_equiv_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | uf_sbv_to_int_elim =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_uf_sbv_to_int_elim_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | evaluate =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_evaluate_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | distinct_values =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_distinct_values_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | aci_norm =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_aci_norm_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | absorb =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_absorb_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
   | distinct_card_conflict =>
       exact cmd_step_facts_of_rule_properties M s premises hs <|
         cmd_step_distinct_card_conflict_properties M hM s args premises
-          (by simpa using hCmdTrans) hPremisesBool hProg
+          (by simpa using hCmdTrans) hPremisesBool hResultTy
 
 
 /-
@@ -2993,11 +2995,13 @@ theorem cmd_step_pop_proven_facts_of_invariants
   checkerTypeInvariant root ->
   checkerTranslationInvariant root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
-  __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck ->
+  __eo_typeof (__eo_cmd_step_pop_proven root r args A premises) = Term.Bool ->
   CmdStepFacts M tail (__eo_cmd_step_pop_proven root r args A premises)
 :=
 by
-  intro hsRoot hsRootTy hsRootTrans hSuffix hProg
+  intro hsRoot hsRootTy hsRootTrans hSuffix hResultTy
+  have hProg : __eo_cmd_step_pop_proven root r args A premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
   have hsCurTy : checkerTypeInvariant (CState.cons (CStateObj.assume_push A) tail) :=
     checkerTypeInvariant_of_stateStepPopSuffix hSuffix hsRootTy
   have hsCurTrans : checkerTranslationInvariant (CState.cons (CStateObj.assume_push A) tail) :=
@@ -3014,7 +3018,7 @@ by
   | scope =>
       exact cmd_step_pop_facts_of_rule_properties M hM root tail A premises hsRoot hSuffix <|
         cmd_step_pop_scope_properties A root args premises
-          hATrans hATy hPremisesTrans hPremisesTy hProg
+          hATrans hATy hPremisesTrans hPremisesTy hResultTy
   | process_scope =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | ite_eq =>
@@ -4193,4 +4197,3 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_card_conflict =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-
