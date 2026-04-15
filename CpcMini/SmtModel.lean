@@ -23,7 +23,7 @@ inductive SmtRegLan : Type where
   | comp : SmtRegLan -> SmtRegLan
 deriving Repr, DecidableEq, Inhabited
 abbrev native_RegLan := SmtRegLan
-
+  
 -- SMT Beyond Eunoia
 
 def native_int_log2 : native_Int -> native_Int
