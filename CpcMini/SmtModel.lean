@@ -268,6 +268,7 @@ inductive SmtValue : Type where
   | Set : SmtMap -> SmtValue
   | Seq : SmtSeq -> SmtValue
   | Char : native_Char -> SmtValue
+  | UValue : native_Nat -> native_Nat -> SmtValue
   | RegLan : native_RegLan -> SmtValue
   | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
@@ -548,6 +549,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Fun m) => (__smtx_map_to_fun_type (__smtx_typeof_map_value m))
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
   | (SmtValue.Char c) => SmtType.Char
+  | (SmtValue.UValue i e) => (SmtType.USort i)
   | (SmtValue.DtCons s d i) => 
     let _v0 := (SmtType.Datatype s d)
     (native_ite (__smtx_type_wf _v0) (__smtx_typeof_dt_cons_value_rec _v0 (__smtx_dt_substitute s d d) i) SmtType.None)
