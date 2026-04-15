@@ -52,6 +52,17 @@ def AllHaveBoolType (ts : List Term) : Prop :=
 def AllTypeofBool (ts : List Term) : Prop :=
   ∀ t ∈ ts, __eo_typeof t = Term.Bool
 
+/-- A term with EO type `Bool` cannot be `Stuck`. -/
+theorem term_ne_stuck_of_typeof_bool
+    {t : Term}
+    (hTy : __eo_typeof t = Term.Bool) :
+    t ≠ Term.Stuck := by
+  intro hStuck
+  rw [hStuck] at hTy
+  have hStuckTy : __eo_typeof Term.Stuck ≠ Term.Bool := by
+    native_decide
+  exact hStuckTy hTy
+
 /-- Derives `premiseAndFormulaList_true` from `all_true`. -/
 theorem premiseAndFormulaList_true_of_all_true
     (M : SmtModel) :
