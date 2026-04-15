@@ -387,6 +387,7 @@ inductive SmtValue : Type where
   | Rational : native_Rat -> SmtValue
   | Binary : native_Int -> native_Int -> SmtValue
   | Map : SmtMap -> SmtValue
+  | Fun : SmtMap -> SmtValue
   | Set : SmtMap -> SmtValue
   | Seq : SmtSeq -> SmtValue
   | Char : native_Char -> SmtValue
@@ -550,7 +551,7 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
 
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs => (native_ite (native_reflist_contains refs s) (__smtx_dt_cons_wf_rec c refs) false)
-  | (SmtDatatypeCons.cons T c), refs => (native_ite (__smtx_type_wf_rec T refs) (native_ite (native_inhabited_type T) (__smtx_dt_cons_wf_rec c refs) false) false)
+  | (SmtDatatypeCons.cons T c), refs => (native_ite (__smtx_type_wf_rec T refs) (__smtx_dt_cons_wf_rec c refs) false)
   | SmtDatatypeCons.unit, refs => true
 
 
@@ -615,6 +616,11 @@ def __smtx_mss_op_internal (isInter : native_Bool) : SmtMap -> SmtMap -> SmtMap 
 
 def __smtx_map_to_set_type : SmtType -> SmtType
   | (SmtType.Map T SmtType.Bool) => (SmtType.Set T)
+  | T => SmtType.None
+
+
+def __smtx_map_to_fun_type : SmtType -> SmtType
+  | (SmtType.Map T U) => (SmtType.FunType T U)
   | T => SmtType.None
 
 
@@ -700,6 +706,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
   | (SmtValue.Set m) => (__smtx_map_to_set_type (__smtx_typeof_map_value m))
+  | (SmtValue.Fun m) => (__smtx_map_to_fun_type (__smtx_typeof_map_value m))
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
   | (SmtValue.Char c) => SmtType.Char
   | (SmtValue.DtCons s d i) => 
@@ -785,7 +792,7 @@ def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
   | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
-  | (SmtValue.Map m), i => (__smtx_map_select (SmtValue.Map m) i)
+  | (SmtValue.Fun m), i => (__smtx_map_select (SmtValue.Map m) i)
   | v, i => SmtValue.NotValue
 
 
@@ -1396,7 +1403,6 @@ def __smtx_typeof_eq (T : SmtType) (U : SmtType) : SmtType :=
   (__smtx_typeof_guard T (native_ite (native_Teq T U) SmtType.Bool SmtType.None))
 
 def __smtx_typeof_apply : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
   | (SmtType.FunType T U), V => (__smtx_typeof_guard T (native_ite (native_Teq T V) U SmtType.None))
   | T, U => SmtType.None
 
