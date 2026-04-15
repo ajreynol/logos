@@ -124,7 +124,7 @@ theorem eo_to_smt_typeof_matches_translation
       simpa [eo_to_smt_term_dt_cons] using eo_to_smt_type_typeof_dt_cons s d i
     case DtSel s d i j =>
       have hNone : __smtx_typeof (__eo_to_smt (Term.DtSel s d i j)) = SmtType.None := by
-        simpa using smtx_typeof_dt_sel_head_none s (__eo_to_smt_datatype d) i j
+        rw [__eo_to_smt.eq_def]
       exact (hNonNone hNone).elim
     case UConst i T =>
       have hTy :

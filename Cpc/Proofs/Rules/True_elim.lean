@@ -4,12 +4,7 @@ open Eo
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
-
-private theorem eo_to_smt_true_eq :
-  __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
-  rw [__eo_to_smt.eq_def]
 
 private theorem eo_has_bool_type_eq_left (A B : Term) :
   RuleProofs.eo_has_bool_type B ->
@@ -40,15 +35,15 @@ theorem typed___eo_prog_true_elim_impl (x1 : Term) :
                         (eo_has_bool_type_eq_left b (Term.Boolean true)
                           RuleProofs.eo_has_bool_type_true hX1Bool)
                   | _ =>
-                      exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+                      simp [__eo_prog_true_elim] at hProg
               | _ =>
-                  exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+                  simp [__eo_prog_true_elim] at hProg
           | false =>
-              exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+              simp [__eo_prog_true_elim] at hProg
       | _ =>
-          exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+          simp [__eo_prog_true_elim] at hProg
   | _ =>
-      exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+      simp [__eo_prog_true_elim] at hProg
 
 /-- Derives the checker facts exposed by the EO program for `true_elim`. -/
 theorem facts___eo_prog_true_elim_impl
@@ -82,10 +77,8 @@ theorem facts___eo_prog_true_elim_impl
                         by
                           have hRel' :=
                             RuleProofs.eo_interprets_eq_rel M b (Term.Boolean true) hX1True
-                          rw [show __smtx_model_eval M (__eo_to_smt (Term.Boolean true)) =
-                              SmtValue.Boolean true by
-                                rw [eo_to_smt_true_eq]
-                                rfl] at hRel'
+                          rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
+                            rw [__eo_to_smt.eq_def]] at hRel'
                           exact hRel'
                       cases bv with
                       | false =>
@@ -96,15 +89,15 @@ theorem facts___eo_prog_true_elim_impl
                           simpa [__eo_prog_true_elim] using
                             (RuleProofs.eo_interprets_of_bool_eval M b true hBBool hEvalB)
                   | _ =>
-                      exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+                      simp [__eo_prog_true_elim] at hProg
               | _ =>
-                  exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+                  simp [__eo_prog_true_elim] at hProg
           | false =>
-              exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+              simp [__eo_prog_true_elim] at hProg
       | _ =>
-          exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+          simp [__eo_prog_true_elim] at hProg
   | _ =>
-      exact False.elim (by simpa [__eo_prog_true_elim] using hProg)
+      simp [__eo_prog_true_elim] at hProg
 
 theorem cmd_step_true_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
