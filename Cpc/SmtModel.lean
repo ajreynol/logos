@@ -555,16 +555,17 @@ def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
 
 def __smtx_dt_wf_rec : SmtDatatype -> RefList -> native_Bool
   | SmtDatatype.null, refs => true
+  | (SmtDatatype.sum (SmtType.TypeRef s) d), refs => (native_ite (native_reflist_contains refs s) (__smtx_dt_wf_rec d refs) false)
   | (SmtDatatype.sum c d), refs => (native_ite (__smtx_dt_cons_wf_rec c refs) (__smtx_dt_wf_rec d refs) false)
 
 
 def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
   | (SmtType.Datatype s d), refs => (__smtx_dt_wf_rec d (native_reflist_insert refs s))
-  | (SmtType.TypeRef s), refs => (native_reflist_contains refs s)
-  | (SmtType.Seq x1), refs => (__smtx_type_wf_rec x1 refs)
-  | (SmtType.Map x1 x2), refs => (native_and (__smtx_type_wf_rec x1 refs) (__smtx_type_wf_rec x2 refs))
-  | (SmtType.FunType x1 x2), refs => (native_and (__smtx_type_wf_rec x1 refs) (__smtx_type_wf_rec x2 refs))
-  | (SmtType.Set x1), refs => (__smtx_type_wf_rec x1 refs)
+  | (SmtType.TypeRef s), refs => (Term.Boolean false)
+  | (SmtType.Seq x1), refs => (__smtx_type_wf_rec x1 native_reflist_nil)
+  | (SmtType.Map x1 x2), refs => (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (__smtx_type_wf_rec x2 native_reflist_nil))
+  | (SmtType.FunType x1 x2), refs => (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (__smtx_type_wf_rec x2 native_reflist_nil))
+  | (SmtType.Set x1), refs => (__smtx_type_wf_rec x1 native_reflist_nil)
   | SmtType.None, refs => false
   | T, refs => true
 
