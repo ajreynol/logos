@@ -100,10 +100,10 @@ theorem eo_to_smt_typeof_matches_translation
     case Binary w n =>
       have hTy : __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None := by
         simpa [__eo_to_smt.eq_def] using hNonNone
-      have hWidth : smt_lit_zleq 0 w = true :=
+      have hWidth : native_zleq 0 w = true :=
         (smtx_binary_well_formed_of_non_none w n hTy).1
       rw [show __smtx_typeof (__eo_to_smt (Term.Binary w n)) =
-        SmtType.BitVec (smt_lit_int_to_nat w) by
+        SmtType.BitVec (native_int_to_nat w) by
         simpa [__eo_to_smt.eq_def] using smtx_typeof_binary_of_non_none w n hTy]
       symm
       simpa using eo_to_smt_type_typeof_binary w n hWidth
@@ -128,12 +128,12 @@ theorem eo_to_smt_typeof_matches_translation
       exact (hNonNone hNone).elim
     case UConst i T =>
       have hTy :
-          __smtx_typeof (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T)) ≠
+          __smtx_typeof (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)) ≠
             SmtType.None := by
         simpa [__eo_to_smt.eq_def] using hNonNone
       rw [show __smtx_typeof (__eo_to_smt (Term.UConst i T)) = __eo_to_smt_type T by
         simpa [__eo_to_smt.eq_def] using
-          smtx_typeof_uconst_of_non_none (smt_lit_uconst_id i) (__eo_to_smt_type T) hTy]
+          smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T) hTy]
       symm
       simpa using eo_to_smt_type_typeof_uconst i T
     case Apply f x =>

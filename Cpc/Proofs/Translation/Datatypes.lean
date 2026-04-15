@@ -23,13 +23,13 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT translation for `term_dt_cons`. -/
 @[simp] theorem eo_to_smt_term_dt_cons
-    (s : eo_lit_String) (d : Datatype) (i : eo_lit_Nat) :
+    (s : native_String) (d : Datatype) (i : native_Nat) :
     __eo_to_smt (Term.DtCons s d i) = SmtTerm.DtCons s (__eo_to_smt_datatype d) i := by
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `term_dt_sel`. -/
 @[simp] theorem eo_to_smt_term_dt_sel
-    (s : eo_lit_String) (d : Datatype) (i j : eo_lit_Nat) :
+    (s : native_String) (d : Datatype) (i j : native_Nat) :
     __eo_to_smt (Term.DtSel s d i j) = SmtTerm.DtSel s (__eo_to_smt_datatype d) i j := by
   simp [__eo_to_smt.eq_def]
 
@@ -42,7 +42,7 @@ namespace TranslationProofs
     __eo_to_smt_datatype Datatype.null = SmtDatatype.null := rfl
 
 /-- Simplifies EO-to-SMT type translation for `datatype`. -/
-@[simp] theorem eo_to_smt_type_datatype (s : eo_lit_String) (d : Datatype) :
+@[simp] theorem eo_to_smt_type_datatype (s : native_String) (d : Datatype) :
     __eo_to_smt_type (Term.DatatypeType s d) =
       SmtType.Datatype s (__eo_to_smt_datatype d) := by
   simp [__eo_to_smt_type]
@@ -61,12 +61,12 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT translation for `tester_of_dtcons`. -/
 @[simp] theorem eo_to_smt_tester_of_dtcons
-    (s : smt_lit_String) (d : SmtDatatype) (n : smt_lit_Nat) :
+    (s : native_String) (d : SmtDatatype) (n : native_Nat) :
     __eo_to_smt_tester (SmtTerm.DtCons s d n) = SmtTerm.DtTester s d n := rfl
 
 /-- Computes `__smtx_typeof` for `dt_sel_head_none`. -/
 @[simp] theorem smtx_typeof_dt_sel_head_none
-    (s : smt_lit_String) (d : SmtDatatype) (i j : smt_lit_Nat) :
+    (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := rfl
 
 /-- Computes `__smtx_typeof` for `eo_to_smt_tester_none`. -/

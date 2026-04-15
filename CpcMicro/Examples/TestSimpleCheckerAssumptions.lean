@@ -45,15 +45,15 @@ def proof : CCmdList :=
 #eval __eo_to_smt t4
 #eval __eo_checker_is_refutation assumptions proof
 
-private theorem uconst_int_smt_type (i : eo_lit_Nat) :
+private theorem uconst_int_smt_type (i : native_Nat) :
     __smtx_typeof (__eo_to_smt (Term.UConst i Term.Int)) = SmtType.Int := by
-  have hInh : smt_lit_inhabited_type SmtType.Int = true :=
+  have hInh : native_inhabited_type SmtType.Int = true :=
     (smtx_inhabited_type_eq_true_iff SmtType.Int).2 type_inhabited_int
   have hNonNone :
-      __smtx_typeof (SmtTerm.UConst (smt_lit_uconst_id i) SmtType.Int) ≠ SmtType.None := by
-    simp [__smtx_typeof, __smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+      __smtx_typeof (SmtTerm.UConst (native_uconst_id i) SmtType.Int) ≠ SmtType.None := by
+    simp [__smtx_typeof, __smtx_typeof_guard_inhabited, native_ite, hInh]
   simpa [__eo_to_smt, __eo_to_smt_type] using
-    TranslationProofs.smtx_typeof_uconst_of_non_none (smt_lit_uconst_id i) SmtType.Int hNonNone
+    TranslationProofs.smtx_typeof_uconst_of_non_none (native_uconst_id i) SmtType.Int hNonNone
 
 private theorem t4_has_bool_type : RuleProofs.eo_has_bool_type t4 := by
   have h1 : __smtx_typeof (__eo_to_smt t1) = SmtType.Int := by

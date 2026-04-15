@@ -15,15 +15,15 @@ theorem eo_requires_not_stuck (x1 x2 x3 : Term) :
   · by_cases hStuck : x1 = Term.Stuck
     · have hX2Stuck : x2 = Term.Stuck := by simpa [hEq] using hStuck
       exact False.elim <| hReq (by
-        simp [__eo_requires, eo_lit_teq, hEq, hX2Stuck, eo_lit_ite, eo_lit_not,
-          SmtEval.smt_lit_not])
+        simp [__eo_requires, native_teq, hEq, hX2Stuck, native_ite, native_not,
+          SmtEval.native_not])
     · refine ⟨hEq, hStuck, ?_⟩
       intro hX3
       exact hReq (by
-        simp [__eo_requires, eo_lit_teq, hEq, hX3, eo_lit_ite, eo_lit_not,
-          SmtEval.smt_lit_not])
+        simp [__eo_requires, native_teq, hEq, hX3, native_ite, native_not,
+          SmtEval.native_not])
   · exact False.elim <| hReq (by
-      simp [__eo_requires, eo_lit_teq, hEq, eo_lit_ite])
+      simp [__eo_requires, native_teq, hEq, native_ite])
 
 /-- Derives `eo_requires_eq` from `eq_not_stuck`. -/
 theorem eo_requires_eq_of_eq_not_stuck (x1 x2 x3 : Term) :
@@ -32,7 +32,7 @@ theorem eo_requires_eq_of_eq_not_stuck (x1 x2 x3 : Term) :
   __eo_requires x1 x2 x3 = x3 := by
   intro hEq hNotStuck
   subst x2
-  cases x1 <;> simp [__eo_requires, eo_lit_teq, eo_lit_ite, eo_lit_not, SmtEval.smt_lit_not] at hNotStuck ⊢
+  cases x1 <;> simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not] at hNotStuck ⊢
 
 /-- Expands the recursive transitivity constructor into an explicit equality. -/
 theorem mk_trans_step_eq (t1 t2 t3 t4 tail : Term) :

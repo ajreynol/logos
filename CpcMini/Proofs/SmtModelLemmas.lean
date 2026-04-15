@@ -18,7 +18,7 @@ def smt_model_well_typed (M : SmtModel) : Prop :=
 /-- Derives `smt_model_lookup_type` from `well_typed`. -/
 theorem smt_model_lookup_type_of_well_typed
     (M : SmtModel) (hM : smt_model_well_typed M)
-    (s : smt_lit_String) (T : SmtType) :
+    (s : native_String) (T : SmtType) :
   smt_type_inhabited T ->
   __smtx_typeof_value (__smtx_model_lookup M s T) = T := by
   exact hM s T
@@ -26,7 +26,7 @@ theorem smt_model_lookup_type_of_well_typed
 /-- Lemma about `smt_model_well_typed_push`. -/
 theorem smt_model_well_typed_push
     (M : SmtModel) (hM : smt_model_well_typed M)
-    (s : smt_lit_String) (T : SmtType) (v : SmtValue) :
+    (s : native_String) (T : SmtType) (v : SmtValue) :
   __smtx_typeof_value v = T ->
   smt_model_well_typed (__smtx_model_push M s T v) := by
   intro hTy

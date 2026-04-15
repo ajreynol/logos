@@ -21,7 +21,7 @@ theorem typeof_value_model_eval_bvnot
     rfl rfl ht hpres (fun w n hWidth => by
       simpa [__smtx_model_eval_bvnot] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total (smt_lit_binary_not w n) (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total (native_binary_not w n) (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvand` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvand
@@ -36,7 +36,7 @@ theorem typeof_value_model_eval_bvand
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvand] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total (smt_lit_binary_and w n1 n2) (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total (native_binary_and w n1 n2) (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvor
@@ -51,7 +51,7 @@ theorem typeof_value_model_eval_bvor
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvor] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total (smt_lit_binary_or w n1 n2) (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total (native_binary_or w n1 n2) (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvnand` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnand
@@ -66,10 +66,10 @@ theorem typeof_value_model_eval_bvnand
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvnand, __smtx_model_eval_bvnot, __smtx_model_eval_bvand] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total
-            (smt_lit_binary_not w
-              (smt_lit_mod_total (smt_lit_binary_and w n1 n2) (smt_lit_int_pow2 w)))
-            (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total
+            (native_binary_not w
+              (native_mod_total (native_binary_and w n1 n2) (native_int_pow2 w)))
+            (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvnor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvnor
@@ -84,10 +84,10 @@ theorem typeof_value_model_eval_bvnor
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvnor, __smtx_model_eval_bvnot, __smtx_model_eval_bvor] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total
-            (smt_lit_binary_not w
-              (smt_lit_mod_total (smt_lit_binary_or w n1 n2) (smt_lit_int_pow2 w)))
-            (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total
+            (native_binary_not w
+              (native_mod_total (native_binary_or w n1 n2) (native_int_pow2 w)))
+            (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvxor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvxor
@@ -102,7 +102,7 @@ theorem typeof_value_model_eval_bvxor
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvxor] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total (smt_lit_binary_xor w n1 n2) (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total (native_binary_xor w n1 n2) (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvxnor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvxnor
@@ -117,10 +117,10 @@ theorem typeof_value_model_eval_bvxnor
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvxnor, __smtx_model_eval_bvnot, __smtx_model_eval_bvxor] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total
-            (smt_lit_binary_not w
-              (smt_lit_mod_total (smt_lit_binary_xor w n1 n2) (smt_lit_int_pow2 w)))
-            (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total
+            (native_binary_not w
+              (native_mod_total (native_binary_xor w n1 n2) (native_int_pow2 w)))
+            (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvcomp` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvcomp
@@ -147,7 +147,7 @@ theorem typeof_value_model_eval_bvneg
     rfl rfl ht hpres (fun w n hWidth => by
       simpa [__smtx_model_eval_bvneg] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total (smt_lit_zneg n) (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total (native_zneg n) (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvadd` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvadd
@@ -162,7 +162,7 @@ theorem typeof_value_model_eval_bvadd
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvadd] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total (smt_lit_zplus n1 n2) (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total (native_zplus n1 n2) (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvmul` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvmul
@@ -177,7 +177,7 @@ theorem typeof_value_model_eval_bvmul
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvmul] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total (smt_lit_zmult n1 n2) (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total (native_zmult n1 n2) (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvudiv` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvudiv
@@ -192,9 +192,9 @@ theorem typeof_value_model_eval_bvudiv
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvudiv] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total
-            (smt_lit_ite (smt_lit_zeq n2 0) (smt_lit_binary_max w) (smt_lit_div_total n1 n2))
-            (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total
+            (native_ite (native_zeq n2 0) (native_binary_max w) (native_div_total n1 n2))
+            (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvurem` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvurem
@@ -209,9 +209,9 @@ theorem typeof_value_model_eval_bvurem
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvurem] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total
-            (smt_lit_ite (smt_lit_zeq n2 0) n1 (smt_lit_mod_total n1 n2))
-            (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total
+            (native_ite (native_zeq n2 0) n1 (native_mod_total n1 n2))
+            (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvsub` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsub
@@ -226,10 +226,10 @@ theorem typeof_value_model_eval_bvsub
     rfl rfl ht hpres1 hpres2 (fun w n1 n2 hWidth => by
       simpa [__smtx_model_eval_bvsub, __smtx_model_eval_bvadd, __smtx_model_eval_bvneg] using
         typeof_value_binary_of_nonneg w
-          (smt_lit_mod_total
-            (smt_lit_zplus n1
-              (smt_lit_mod_total (smt_lit_zneg n2) (smt_lit_int_pow2 w)))
-            (smt_lit_int_pow2 w)) hWidth)
+          (native_mod_total
+            (native_zplus n1
+              (native_mod_total (native_zneg n2) (native_int_pow2 w)))
+            (native_int_pow2 w)) hWidth)
 
 /-- Shows that evaluating `bvult` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvult
@@ -285,17 +285,17 @@ theorem typeof_value_model_eval_bvuge
 
 /-- Shows that evaluating `bvsgt_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsgt_value
-    (w n1 n2 : smt_lit_Int) :
+    (w n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsgt (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
   simp [__smtx_model_eval_bvsgt, __smtx_model_eval__, __smtx_model_eval_extract,
     __smtx_model_eval_eq, __smtx_model_eval_not, __smtx_model_eval_and,
     __smtx_model_eval_or, __smtx_model_eval_bvugt, __smtx_typeof_value,
-    SmtEval.smt_lit_zplus, SmtEval.smt_lit_zneg]
+    SmtEval.native_zplus, SmtEval.native_zneg]
 
 /-- Shows that evaluating `bvsge_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsge_value
-    (w n1 n2 : smt_lit_Int) :
+    (w n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsge (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
   unfold __smtx_model_eval_bvsge
@@ -307,14 +307,14 @@ theorem typeof_value_model_eval_bvsge_value
 
 /-- Shows that evaluating `bvslt_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvslt_value
-    (w n1 n2 : smt_lit_Int) :
+    (w n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvslt (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
   simpa [__smtx_model_eval_bvslt] using typeof_value_model_eval_bvsgt_value w n2 n1
 
 /-- Shows that evaluating `bvsle_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsle_value
-    (w n1 n2 : smt_lit_Int) :
+    (w n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsle (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
   simpa [__smtx_model_eval_bvsle] using typeof_value_model_eval_bvsge_value w n2 n1

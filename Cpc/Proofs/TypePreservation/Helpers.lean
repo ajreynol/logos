@@ -17,10 +17,10 @@ theorem typeof_map_value_shape :
   | SmtMap.default T e => Or.inl ⟨T, __smtx_typeof_value e, rfl⟩
   | SmtMap.cons i e m => by
       by_cases hEq :
-          smt_lit_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+          native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
             (__smtx_typeof_map_value m)
-      · simpa [__smtx_typeof_map_value, smt_lit_ite, hEq] using typeof_map_value_shape m
-      · exact Or.inr (by simp [__smtx_typeof_map_value, smt_lit_ite, hEq])
+      · simpa [__smtx_typeof_map_value, native_ite, hEq] using typeof_map_value_shape m
+      · exact Or.inr (by simp [__smtx_typeof_map_value, native_ite, hEq])
 
 /-- Lemma about `typeof_seq_value_shape`. -/
 theorem typeof_seq_value_shape :
@@ -29,9 +29,9 @@ theorem typeof_seq_value_shape :
         __smtx_typeof_seq_value ss = SmtType.None
   | SmtSeq.empty T => Or.inl ⟨T, rfl⟩
   | SmtSeq.cons v vs => by
-      by_cases hEq : smt_lit_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)
-      · simpa [__smtx_typeof_seq_value, smt_lit_ite, hEq] using typeof_seq_value_shape vs
-      · exact Or.inr (by simp [__smtx_typeof_seq_value, smt_lit_ite, hEq])
+      by_cases hEq : native_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)
+      · simpa [__smtx_typeof_seq_value, native_ite, hEq] using typeof_seq_value_shape vs
+      · exact Or.inr (by simp [__smtx_typeof_seq_value, native_ite, hEq])
 
 /-- Definition used in the proof development for `dt_cons_chain_result`. -/
 def dt_cons_chain_result : SmtType -> Prop
@@ -42,26 +42,26 @@ def dt_cons_chain_result : SmtType -> Prop
 
 /-- Lemma about `typeof_dt_cons_value_rec_chain_result`. -/
 theorem typeof_dt_cons_value_rec_chain_result
-    (s : smt_lit_String)
+    (s : native_String)
     (d0 : SmtDatatype) :
     ∀ d n,
       dt_cons_chain_result (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d n)
   | SmtDatatype.null, n => by
       simp [dt_cons_chain_result, __smtx_typeof_dt_cons_value_rec]
-  | SmtDatatype.sum SmtDatatypeCons.unit d, smt_lit_nat_zero => by
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero => by
       simp [dt_cons_chain_result, __smtx_typeof_dt_cons_value_rec]
-  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, smt_lit_nat_zero => by
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero => by
       simpa [dt_cons_chain_result, __smtx_typeof_dt_cons_value_rec] using
-        typeof_dt_cons_value_rec_chain_result s d0 (SmtDatatype.sum c d) smt_lit_nat_zero
-  | SmtDatatype.sum c d, smt_lit_nat_succ n => by
+        typeof_dt_cons_value_rec_chain_result s d0 (SmtDatatype.sum c d) native_nat_zero
+  | SmtDatatype.sum c d, native_nat_succ n => by
       simpa [__smtx_typeof_dt_cons_value_rec] using
         typeof_dt_cons_value_rec_chain_result s d0 d n
 
 /-- Lemma about `dt_cons_chain_result_of_dt_cons_value_type`. -/
 theorem dt_cons_chain_result_of_dt_cons_value_type
-    {s : smt_lit_String}
+    {s : native_String}
     {d : SmtDatatype}
-    {i : smt_lit_Nat}
+    {i : native_Nat}
     {T : SmtType}
     (h : __smtx_typeof_value (SmtValue.DtCons s d i) = T) :
     dt_cons_chain_result T := by
@@ -87,8 +87,8 @@ theorem typeof_value_dt_cons_type_chain_result :
   | SmtValue.Rational _, T, U, h => by
       simp [__smtx_typeof_value] at h
   | SmtValue.Binary w _, T, U, h => by
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
   | SmtValue.Map m, T, U, h => by
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -120,9 +120,9 @@ theorem typeof_value_dt_cons_type_chain_result :
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType A B =>
-        cases hNone : smt_lit_Teq A SmtType.None <;>
-        cases hEq : smt_lit_Teq A (__smtx_typeof_value v) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq A SmtType.None <;>
+        cases hEq : native_Teq A (__smtx_typeof_value v) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         have hShape := typeof_value_dt_cons_type_chain_result f A B hf
         simpa [h, dt_cons_chain_result] using hShape
 
@@ -156,7 +156,7 @@ theorem no_value_of_dt_cons_type_real
 /-- Derives `no_value` from `dt_cons_type_type_ref`. -/
 theorem no_value_of_dt_cons_type_type_ref
     (T : SmtType)
-    (s : smt_lit_String) :
+    (s : native_String) :
     ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.TypeRef s) := by
   intro h
   rcases h with ⟨v, hv⟩
@@ -165,7 +165,7 @@ theorem no_value_of_dt_cons_type_type_ref
 
 /-- Lemma about `typeof_value_ne_type_ref`. -/
 theorem typeof_value_ne_type_ref
-    (s : smt_lit_String) :
+    (s : native_String) :
     ∀ v : SmtValue, __smtx_typeof_value v ≠ SmtType.TypeRef s
   | SmtValue.NotValue => by
       simp [__smtx_typeof_value]
@@ -176,8 +176,8 @@ theorem typeof_value_ne_type_ref
   | SmtValue.Rational _ => by
       simp [__smtx_typeof_value]
   | SmtValue.Binary w _ => by
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth]
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth]
   | SmtValue.Map m => by
       intro h
       cases typeof_map_value_shape m with
@@ -214,14 +214,14 @@ theorem typeof_value_ne_type_ref
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType T U =>
-        cases hNone : smt_lit_Teq T SmtType.None <;>
-        cases hEq : smt_lit_Teq T (__smtx_typeof_value v) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq T SmtType.None <;>
+        cases hEq : native_Teq T (__smtx_typeof_value v) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_type_ref T s ⟨f, by simpa [h] using hf⟩
 
 /-- Derives `no_value` from `type_ref`. -/
 theorem no_value_of_type_ref
-    (s : smt_lit_String) :
+    (s : native_String) :
     ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.TypeRef s := by
   intro h
   rcases h with ⟨v, hv⟩
@@ -231,7 +231,7 @@ theorem no_value_of_type_ref
 theorem bool_value_canonical
     {v : SmtValue}
     (h : __smtx_typeof_value v = SmtType.Bool) :
-    ∃ b : smt_lit_Bool, v = SmtValue.Boolean b := by
+    ∃ b : native_Bool, v = SmtValue.Boolean b := by
   cases v with
   | Boolean b =>
       exact ⟨b, rfl⟩
@@ -242,8 +242,8 @@ theorem bool_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
   | Map m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -280,16 +280,16 @@ theorem bool_value_canonical
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType T U =>
-        cases hNone : smt_lit_Teq T SmtType.None <;>
-        cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq T SmtType.None <;>
+        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_bool T ⟨f, by simpa [h] using hf⟩
 
 /-- Canonical-form lemma for `int_value`. -/
 theorem int_value_canonical
     {v : SmtValue}
     (h : __smtx_typeof_value v = SmtType.Int) :
-    ∃ n : smt_lit_Int, v = SmtValue.Numeral n := by
+    ∃ n : native_Int, v = SmtValue.Numeral n := by
   cases v with
   | Numeral n =>
       exact ⟨n, rfl⟩
@@ -300,8 +300,8 @@ theorem int_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
   | Map m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -338,16 +338,16 @@ theorem int_value_canonical
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType T U =>
-        cases hNone : smt_lit_Teq T SmtType.None <;>
-        cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq T SmtType.None <;>
+        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_int T ⟨f, by simpa [h] using hf⟩
 
 /-- Canonical-form lemma for `real_value`. -/
 theorem real_value_canonical
     {v : SmtValue}
     (h : __smtx_typeof_value v = SmtType.Real) :
-    ∃ q : smt_lit_Rat, v = SmtValue.Rational q := by
+    ∃ q : native_Rat, v = SmtValue.Rational q := by
   cases v with
   | Rational q =>
       exact ⟨q, rfl⟩
@@ -358,8 +358,8 @@ theorem real_value_canonical
   | Numeral _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
   | Map m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -396,9 +396,9 @@ theorem real_value_canonical
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType T U =>
-        cases hNone : smt_lit_Teq T SmtType.None <;>
-        cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq T SmtType.None <;>
+        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_real T ⟨f, by simpa [h] using hf⟩
 
 /-- Derives `no_value` from `dt_cons_type_of_non_chain`. -/
@@ -441,7 +441,7 @@ theorem no_value_of_dt_cons_type_set
 /-- Derives `no_value` from `dt_cons_type_bitvec`. -/
 theorem no_value_of_dt_cons_type_bitvec
     (T : SmtType)
-    (w : smt_lit_Nat) :
+    (w : native_Nat) :
     ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.BitVec w) := by
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.BitVec w) (by
     simp [dt_cons_chain_result])
@@ -449,22 +449,22 @@ theorem no_value_of_dt_cons_type_bitvec
 /-- Canonical-form lemma for `bitvec_value`. -/
 theorem bitvec_value_canonical
     {v : SmtValue}
-    {w : smt_lit_Nat}
+    {w : native_Nat}
     (h : __smtx_typeof_value v = SmtType.BitVec w) :
-    ∃ n : smt_lit_Int, v = SmtValue.Binary (smt_lit_nat_to_int w) n := by
+    ∃ n : native_Int, v = SmtValue.Binary (native_nat_to_int w) n := by
   cases v with
   | Binary w' n =>
-      cases hWidth : smt_lit_zleq 0 w' <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
-      have hw' : w' = smt_lit_nat_to_int w := by
+      cases hWidth : native_zleq 0 w' <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
+      have hw' : w' = native_nat_to_int w := by
         have hNonneg : 0 <= w' := by
-          simpa [smt_lit_zleq, SmtEval.smt_lit_zleq] using hWidth
-        have hNat : smt_lit_int_to_nat w' = w := by
+          simpa [native_zleq, SmtEval.native_zleq] using hWidth
+        have hNat : native_int_to_nat w' = w := by
           cases h
           rfl
         have hInt : (Int.ofNat (Int.toNat w') : Int) = w' :=
           Int.toNat_of_nonneg hNonneg
-        simp [smt_lit_int_to_nat, SmtEval.smt_lit_int_to_nat] at hNat
+        simp [native_int_to_nat, SmtEval.native_int_to_nat] at hNat
         simp [hNat] at hInt
         exact hInt.symm
       subst hw'
@@ -509,26 +509,26 @@ theorem bitvec_value_canonical
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType T U =>
-        cases hNone : smt_lit_Teq T SmtType.None <;>
-        cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq T SmtType.None <;>
+        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_bitvec T w ⟨f, by simpa [h] using hf⟩
 
 /-- Lemma about `bitvec_width_nonneg`. -/
 theorem bitvec_width_nonneg
-    {w n : smt_lit_Int} {u : smt_lit_Nat}
+    {w n : native_Int} {u : native_Nat}
     (h : __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec u) :
-    smt_lit_zleq 0 w = true := by
-  cases hWidth : smt_lit_zleq 0 w <;>
-    simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+    native_zleq 0 w = true := by
+  cases hWidth : native_zleq 0 w <;>
+    simp [__smtx_typeof_value, native_ite, hWidth] at h
   simp
 
 /-- Derives `typeof_value_binary` from `nonneg`. -/
 theorem typeof_value_binary_of_nonneg
-    (w n : smt_lit_Int)
-    (hWidth : smt_lit_zleq 0 w = true) :
-    __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec (smt_lit_int_to_nat w) := by
-  simp [__smtx_typeof_value, smt_lit_ite, hWidth]
+    (w n : native_Int)
+    (hWidth : native_zleq 0 w = true) :
+    __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
+  simp [__smtx_typeof_value, native_ite, hWidth]
 
 /-- Canonical-form lemma for `map_value`. -/
 theorem map_value_canonical
@@ -548,8 +548,8 @@ theorem map_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
   | Seq ss =>
       cases typeof_seq_value_shape ss with
       | inl hSeq =>
@@ -575,9 +575,9 @@ theorem map_value_canonical
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType T U =>
-        cases hNone : smt_lit_Teq T SmtType.None <;>
-        cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq T SmtType.None <;>
+        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_map T A B ⟨f, by simpa [h] using hf⟩
 
 /-- Canonical-form lemma for `set_value`. -/
@@ -598,8 +598,8 @@ theorem set_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -625,9 +625,9 @@ theorem set_value_canonical
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType T U =>
-        cases hNone : smt_lit_Teq T SmtType.None <;>
-        cases hEq : smt_lit_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq T SmtType.None <;>
+        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_set T A ⟨f, by simpa [h] using hf⟩
 
 /-- Lemma about `set_map_value_typed`. -/
@@ -655,11 +655,11 @@ theorem map_codomain_inhabited_of_map_value :
       exact ⟨e, rfl⟩
   | SmtMap.cons i e m, A, B, h => by
       by_cases hEq :
-          smt_lit_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+          native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
             (__smtx_typeof_map_value m)
-      · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at h
+      · simp [__smtx_typeof_map_value, native_ite, hEq] at h
         exact map_codomain_inhabited_of_map_value h
-      · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at h
+      · simp [__smtx_typeof_map_value, native_ite, hEq] at h
 
 /-- Lemma about `map_codomain_inhabited`. -/
 theorem map_codomain_inhabited
@@ -698,8 +698,8 @@ theorem seq_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -725,9 +725,9 @@ theorem seq_value_canonical
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType A B =>
-        cases hNone : smt_lit_Teq A SmtType.None <;>
-        cases hEq : smt_lit_Teq A (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq A SmtType.None <;>
+        cases hEq : native_Teq A (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_seq A T ⟨f, by simpa [h] using hf⟩
 
 /-- Predicate asserting that every value in a list has the given SMT type. -/
@@ -794,9 +794,9 @@ theorem list_typed_extract
     {T : SmtType}
     {xs : List SmtValue}
     (hxs : list_typed T xs)
-    (i n : smt_lit_Int) :
-    list_typed T (smt_lit_seq_extract xs i n) := by
-  unfold smt_lit_seq_extract
+    (i n : native_Int) :
+    list_typed T (native_seq_extract xs i n) := by
+  unfold native_seq_extract
   dsimp
   by_cases h :
       (decide (i < 0) || decide (n <= 0) || decide (i >= (↑xs.length : Int))) = true
@@ -813,22 +813,22 @@ theorem list_typed_replace
     {xs pat repl : List SmtValue}
     (hxs : list_typed T xs)
     (hrepl : list_typed T repl) :
-    list_typed T (smt_lit_seq_replace xs pat repl) := by
-  unfold smt_lit_seq_replace
+    list_typed T (native_seq_replace xs pat repl) := by
+  unfold native_seq_replace
   cases pat with
   | nil =>
-      simpa [smt_lit_seq_concat] using list_typed_append hrepl hxs
+      simpa [native_seq_concat] using list_typed_append hrepl hxs
   | cons p ps =>
-      by_cases hIdx : smt_lit_seq_indexof xs (p :: ps) 0 < 0
+      by_cases hIdx : native_seq_indexof xs (p :: ps) 0 < 0
       · simp [hIdx]
         exact hxs
       · simp [hIdx]
         simpa [List.append_assoc] using
           (list_typed_append
             (list_typed_append
-              (list_typed_take (Int.toNat (smt_lit_seq_indexof xs (p :: ps) 0)) hxs)
+              (list_typed_take (Int.toNat (native_seq_indexof xs (p :: ps) 0)) hxs)
               hrepl)
-            (list_typed_drop (Int.toNat (smt_lit_seq_indexof xs (p :: ps) 0) + (p :: ps).length)
+            (list_typed_drop (Int.toNat (native_seq_indexof xs (p :: ps) 0) + (p :: ps).length)
               hxs))
 
 /-- Auxiliary lemma for `list_typed_replace_all`. -/
@@ -837,26 +837,26 @@ theorem list_typed_replace_all_aux
     ∀ fuel (pat repl : List SmtValue) {xs : List SmtValue},
       list_typed T repl ->
         list_typed T xs ->
-        list_typed T (smt_lit_seq_replace_all_aux fuel pat repl xs)
+        list_typed T (native_seq_replace_all_aux fuel pat repl xs)
   | 0, pat, repl, xs, hrepl, hxs => by
-      simp [smt_lit_seq_replace_all_aux]
+      simp [native_seq_replace_all_aux]
       exact hxs
   | Nat.succ fuel, [], repl, xs, hrepl, hxs => by
-      simp [smt_lit_seq_replace_all_aux]
+      simp [native_seq_replace_all_aux]
       exact hxs
   | Nat.succ fuel, p :: ps, repl, xs, hrepl, hxs => by
-      by_cases hIdx : smt_lit_seq_indexof xs (p :: ps) 0 < 0
-      · simp [smt_lit_seq_replace_all_aux, hIdx]
+      by_cases hIdx : native_seq_indexof xs (p :: ps) 0 < 0
+      · simp [native_seq_replace_all_aux, hIdx]
         exact hxs
-      · simp [smt_lit_seq_replace_all_aux, hIdx]
+      · simp [native_seq_replace_all_aux, hIdx]
         simpa [List.append_assoc] using
           (list_typed_append
             (list_typed_append
-              (list_typed_take (Int.toNat (smt_lit_seq_indexof xs (p :: ps) 0)) hxs)
+              (list_typed_take (Int.toNat (native_seq_indexof xs (p :: ps) 0)) hxs)
               hrepl)
             (list_typed_replace_all_aux fuel (p :: ps) repl hrepl
               (list_typed_drop
-                (Int.toNat (smt_lit_seq_indexof xs (p :: ps) 0) + (p :: ps).length) hxs)))
+                (Int.toNat (native_seq_indexof xs (p :: ps) 0) + (p :: ps).length) hxs)))
 
 /-- Lemma about `list_typed_replace_all`. -/
 theorem list_typed_replace_all
@@ -864,8 +864,8 @@ theorem list_typed_replace_all
     {xs pat repl : List SmtValue}
     (hxs : list_typed T xs)
     (hrepl : list_typed T repl) :
-    list_typed T (smt_lit_seq_replace_all xs pat repl) := by
-  unfold smt_lit_seq_replace_all
+    list_typed T (native_seq_replace_all xs pat repl) := by
+  unfold native_seq_replace_all
   exact list_typed_replace_all_aux (xs.length + 1) pat repl hrepl hxs
 
 /-- Lemma about `list_typed_update`. -/
@@ -874,9 +874,9 @@ theorem list_typed_update
     {xs ys : List SmtValue}
     (hxs : list_typed T xs)
     (hys : list_typed T ys)
-    (i : smt_lit_Int) :
-    list_typed T (smt_lit_seq_update xs i ys) := by
-  unfold smt_lit_seq_update
+    (i : native_Int) :
+    list_typed T (native_seq_update xs i ys) := by
+  unfold native_seq_update
   dsimp
   by_cases h : (decide (i < 0) || decide ((↑xs.length : Int) <= i)) = true
   · rw [if_pos h]
@@ -895,45 +895,45 @@ theorem elem_typeof_seq_value_of_typeof_seq_value :
   | SmtSeq.empty U, T, h => by
       simpa [__smtx_typeof_seq_value, __smtx_elem_typeof_seq_value] using h
   | SmtSeq.cons v vs, T, h => by
-      by_cases hEq : smt_lit_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)
+      by_cases hEq : native_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)
       · have hvs : __smtx_typeof_seq_value vs = SmtType.Seq T := by
-          simpa [__smtx_typeof_seq_value, smt_lit_ite, hEq] using h
+          simpa [__smtx_typeof_seq_value, native_ite, hEq] using h
         simpa [__smtx_elem_typeof_seq_value] using
           (elem_typeof_seq_value_of_typeof_seq_value hvs)
-      · simp [__smtx_typeof_seq_value, smt_lit_ite, hEq] at h
+      · simp [__smtx_typeof_seq_value, native_ite, hEq] at h
 
 /-- Derives `typed_unpack_seq` from `typeof_seq_value`. -/
 theorem typed_unpack_seq_of_typeof_seq_value :
     ∀ {ss : SmtSeq} {T : SmtType},
       __smtx_typeof_seq_value ss = SmtType.Seq T ->
-        list_typed T (smt_lit_unpack_seq ss)
+        list_typed T (native_unpack_seq ss)
   | SmtSeq.empty U, T, h => by
-      simp [smt_lit_unpack_seq, list_typed]
+      simp [native_unpack_seq, list_typed]
   | SmtSeq.cons v vs, T, h => by
-      by_cases hEq : smt_lit_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)
+      by_cases hEq : native_Teq (SmtType.Seq (__smtx_typeof_value v)) (__smtx_typeof_seq_value vs)
       · have hEq' : SmtType.Seq (__smtx_typeof_value v) = __smtx_typeof_seq_value vs := by
-          simpa [smt_lit_Teq] using hEq
+          simpa [native_Teq] using hEq
         have hvs : __smtx_typeof_seq_value vs = SmtType.Seq T := by
-          simpa [__smtx_typeof_seq_value, smt_lit_ite, hEq] using h
+          simpa [__smtx_typeof_seq_value, native_ite, hEq] using h
         rw [hvs] at hEq'
         have hv : __smtx_typeof_value v = T := by
           cases hEq'
           rfl
         exact ⟨hv, typed_unpack_seq_of_typeof_seq_value hvs⟩
-      · simp [__smtx_typeof_seq_value, smt_lit_ite, hEq] at h
+      · simp [__smtx_typeof_seq_value, native_ite, hEq] at h
 
 /-- Derives `typeof_seq_value_pack_seq` from `typed`. -/
 theorem typeof_seq_value_pack_seq_of_typed
     {T : SmtType} :
     ∀ {xs : List SmtValue},
       list_typed T xs ->
-        __smtx_typeof_seq_value (smt_lit_pack_seq T xs) = SmtType.Seq T
+        __smtx_typeof_seq_value (native_pack_seq T xs) = SmtType.Seq T
   | [], hxs => by
       rfl
   | v :: xs, hxs => by
       rcases hxs with ⟨hv, hxs⟩
       have ih := typeof_seq_value_pack_seq_of_typed hxs
-      simp [smt_lit_pack_seq, __smtx_typeof_seq_value, hv, ih, smt_lit_ite, smt_lit_Teq]
+      simp [native_pack_seq, __smtx_typeof_seq_value, hv, ih, native_ite, native_Teq]
 
 /-- Lemma about `char_value_list_typed`. -/
 theorem char_value_list_typed :
@@ -945,26 +945,26 @@ theorem char_value_list_typed :
 
 /-- Derives `char_values` from `string_typed`. -/
 theorem char_values_of_string_typed
-    (s : smt_lit_String) :
+    (s : native_String) :
     list_typed SmtType.Char (__smtx_ssm_char_values_of_string s) := by
   simpa [__smtx_ssm_char_values_of_string] using char_value_list_typed s.toList
 
 /-- Lemma about `typeof_pack_string`. -/
 theorem typeof_pack_string
-    (s : smt_lit_String) :
-    __smtx_typeof_seq_value (smt_lit_pack_string s) = SmtType.Seq SmtType.Char := by
+    (s : native_String) :
+    __smtx_typeof_seq_value (native_pack_string s) = SmtType.Seq SmtType.Char := by
   change __smtx_typeof_seq_value
-      (smt_lit_pack_seq SmtType.Char (__smtx_ssm_char_values_of_string s)) =
+      (native_pack_seq SmtType.Char (__smtx_ssm_char_values_of_string s)) =
     SmtType.Seq SmtType.Char
   exact typeof_seq_value_pack_seq_of_typed (char_values_of_string_typed s)
 
 /-- Shows that evaluating `string` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_string
     (M : SmtModel)
-    (s : smt_lit_String) :
+    (s : native_String) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.String s)) =
       __smtx_typeof (SmtTerm.String s) := by
-  change __smtx_typeof_seq_value (smt_lit_pack_string s) = SmtType.Seq SmtType.Char
+  change __smtx_typeof_seq_value (native_pack_string s) = SmtType.Seq SmtType.Char
   exact typeof_pack_string s
 
 /-- Lemma about `map_lookup_typed`. -/
@@ -978,14 +978,14 @@ theorem map_lookup_typed :
       simp [__smtx_msm_lookup]
   | SmtMap.cons j e m, A, B, i, hMap, hi => by
       by_cases hEq :
-          smt_lit_Teq (SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e))
+          native_Teq (SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e))
             (__smtx_typeof_map_value m)
       · have hm : __smtx_typeof_map_value m = SmtType.Map A B := by
-          simpa [__smtx_typeof_map_value, smt_lit_ite, hEq] using hMap
+          simpa [__smtx_typeof_map_value, native_ite, hEq] using hMap
         have hEq' :
             SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e) =
               __smtx_typeof_map_value m := by
-          simpa [smt_lit_Teq] using hEq
+          simpa [native_Teq] using hEq
         have hHead : SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e) =
             SmtType.Map A B := hEq'.trans hm
         have hj : __smtx_typeof_value j = A := by
@@ -996,10 +996,10 @@ theorem map_lookup_typed :
           rfl
         have hRec : __smtx_typeof_value (__smtx_msm_lookup m i) = B :=
           map_lookup_typed hm hi
-        by_cases hVeq : smt_lit_veq j i
-        · simpa [__smtx_msm_lookup, smt_lit_ite, hVeq] using he
-        · simpa [__smtx_msm_lookup, smt_lit_ite, hVeq] using hRec
-      · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at hMap
+        by_cases hVeq : native_veq j i
+        · simpa [__smtx_msm_lookup, native_ite, hVeq] using he
+        · simpa [__smtx_msm_lookup, native_ite, hVeq] using hRec
+      · simp [__smtx_typeof_map_value, native_ite, hEq] at hMap
 
 /-- Lemma about `map_store_typed`. -/
 theorem map_store_typed
@@ -1010,13 +1010,13 @@ theorem map_store_typed
     (hi : __smtx_typeof_value i = A)
     (he : __smtx_typeof_value e = B) :
     __smtx_typeof_value (SmtValue.Map (SmtMap.cons i e m)) = SmtType.Map A B := by
-  simp [__smtx_typeof_value, __smtx_typeof_map_value, hMap, hi, he, smt_lit_ite, smt_lit_Teq]
+  simp [__smtx_typeof_value, __smtx_typeof_map_value, hMap, hi, he, native_ite, native_Teq]
 
 /-- Canonical-form lemma for `reglan_value`. -/
 theorem reglan_value_canonical
     {v : SmtValue}
     (h : __smtx_typeof_value v = SmtType.RegLan) :
-    ∃ r : smt_lit_RegLan, v = SmtValue.RegLan r := by
+    ∃ r : native_RegLan, v = SmtValue.RegLan r := by
   cases v with
   | RegLan r =>
       exact ⟨r, rfl⟩
@@ -1029,8 +1029,8 @@ theorem reglan_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : smt_lit_zleq 0 w <;>
-        simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -1061,9 +1061,9 @@ theorem reglan_value_canonical
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case FunType A B =>
-        cases hNone : smt_lit_Teq A SmtType.None <;>
-        cases hEq : smt_lit_Teq A (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, smt_lit_ite, hNone, hEq] at h
+        cases hNone : native_Teq A SmtType.None <;>
+        cases hEq : native_Teq A (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
         exact no_value_of_dt_cons_type_reglan A ⟨f, by simpa [h] using hf⟩
 
 /-- Derives `bool_binop_args_bool` from `non_none`. -/
@@ -1072,14 +1072,14 @@ theorem bool_binop_args_bool_of_non_none
     {t1 t2 : SmtTerm}
     (hTy :
       __smtx_typeof (op t1 t2) =
-        smt_lit_ite (smt_lit_Teq (__smtx_typeof t1) SmtType.Bool)
-          (smt_lit_ite (smt_lit_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
+        native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
+          (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
           SmtType.None)
     (ht : term_has_non_none_type (op t1 t2)) :
     __smtx_typeof t1 = SmtType.Bool ∧ __smtx_typeof t2 = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
-    simp [hTy, smt_lit_ite, smt_lit_Teq, h1, h2] at ht
+    simp [hTy, native_ite, native_Teq, h1, h2] at ht
   simp
 
 /-- Derives `arith_binop_args` from `non_none`. -/
@@ -1138,7 +1138,7 @@ theorem to_real_arg_of_non_none
     __smtx_typeof t = SmtType.Int ∨ __smtx_typeof t = SmtType.Real := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
+    simp [__smtx_typeof, native_ite, native_Teq, h] at ht
   · simp
   · simp
 
@@ -1149,13 +1149,13 @@ theorem real_arg_of_non_none
     {Tout : SmtType}
     (hTy :
       __smtx_typeof (op t) =
-        smt_lit_ite (smt_lit_Teq (__smtx_typeof t) SmtType.Real)
+        native_ite (native_Teq (__smtx_typeof t) SmtType.Real)
           Tout SmtType.None)
     (ht : term_has_non_none_type (op t)) :
     __smtx_typeof t = SmtType.Real := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
-    simp [hTy, smt_lit_ite, smt_lit_Teq, h] at ht
+    simp [hTy, native_ite, native_Teq, h] at ht
   simp
 
 /-- Derives `int_arg` from `non_none`. -/
@@ -1165,7 +1165,7 @@ theorem int_arg_of_non_none
     __smtx_typeof t = SmtType.Int := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
+    simp [__smtx_typeof, native_ite, native_Teq, h] at ht
   simp
 
 /-- Shows that evaluating `eq_value` terms produces values of the expected type. -/

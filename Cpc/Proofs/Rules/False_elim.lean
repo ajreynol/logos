@@ -97,7 +97,7 @@ theorem facts___eo_prog_false_elim_impl
                       | true =>
                           rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
                           rw [hEvalB] at hRel
-                          simp [__smtx_model_eval_eq, smt_lit_veq] at hRel
+                          simp [__smtx_model_eval_eq, native_veq] at hRel
                   | _ =>
                       simp [__eo_prog_false_elim] at hProg
               | _ =>

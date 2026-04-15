@@ -28,7 +28,7 @@ theorem set_binop_args_of_non_none
           by_cases hEq : A = C
           · subst hEq
             exact ⟨A, rfl, rfl⟩
-          · simp [hTy, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2, hEq] at ht
+          · simp [hTy, __smtx_typeof_sets_op_2, native_ite, native_Teq, h1, h2, hEq] at ht
       | _ =>
           simp [hTy, __smtx_typeof_sets_op_2, h1, h2] at ht
   | _ =>
@@ -53,7 +53,7 @@ theorem set_binop_ret_args_of_non_none
           by_cases hEq : A = C
           · subst hEq
             exact ⟨A, rfl, rfl⟩
-          · simp [hTy, __smtx_typeof_sets_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2, hEq] at ht
+          · simp [hTy, __smtx_typeof_sets_op_2_ret, native_ite, native_Teq, h1, h2, hEq] at ht
       | _ =>
           simp [hTy, __smtx_typeof_sets_op_2_ret, h1, h2] at ht
   | _ =>
@@ -73,13 +73,13 @@ theorem set_member_args_of_non_none
       by_cases hEq : __smtx_typeof t1 = A
       · refine ⟨A, hEq, ?_⟩
         rfl
-      · simp [__smtx_typeof, __smtx_typeof_set_member, smt_lit_ite, smt_lit_Teq, h2, hEq] at ht
+      · simp [__smtx_typeof, __smtx_typeof_set_member, native_ite, native_Teq, h2, hEq] at ht
   | _ =>
       simp [__smtx_typeof, __smtx_typeof_set_member, h2] at ht
 
 /-- Lemma about `mss_op_internal_typed`. -/
 theorem mss_op_internal_typed
-    (isInter : smt_lit_Bool) :
+    (isInter : native_Bool) :
     ∀ {m1 m2 acc : SmtMap} {A : SmtType},
       __smtx_typeof_map_value m1 = SmtType.Map A SmtType.Bool ->
         __smtx_typeof_map_value m2 = SmtType.Map A SmtType.Bool ->
@@ -90,14 +90,14 @@ theorem mss_op_internal_typed
       simpa [__smtx_mss_op_internal] using hacc
   | SmtMap.cons e etrue m1, m2, acc, A, hm1, hm2, hacc => by
       by_cases hEq :
-          smt_lit_Teq (SmtType.Map (__smtx_typeof_value e) (__smtx_typeof_value etrue))
+          native_Teq (SmtType.Map (__smtx_typeof_value e) (__smtx_typeof_value etrue))
             (__smtx_typeof_map_value m1)
       · have hm1' : __smtx_typeof_map_value m1 = SmtType.Map A SmtType.Bool := by
-          simpa [__smtx_typeof_map_value, smt_lit_ite, hEq] using hm1
+          simpa [__smtx_typeof_map_value, native_ite, hEq] using hm1
         have hEq' :
             SmtType.Map (__smtx_typeof_value e) (__smtx_typeof_value etrue) =
               __smtx_typeof_map_value m1 := by
-          simpa [smt_lit_Teq] using hEq
+          simpa [native_Teq] using hEq
         have hHead :
             SmtType.Map (__smtx_typeof_value e) (__smtx_typeof_value etrue) =
               SmtType.Map A SmtType.Bool := hEq'.trans hm1'
@@ -110,23 +110,23 @@ theorem mss_op_internal_typed
             map_store_typed (m := acc) (A := A) (B := SmtType.Bool)
               hacc he rfl
         let acc' :=
-          smt_lit_ite
-            (smt_lit_iff
-              (smt_lit_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true))
+          native_ite
+            (native_iff
+              (native_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true))
               isInter)
             (SmtMap.cons e (SmtValue.Boolean true) acc) acc
         have hacc' : __smtx_typeof_map_value acc' = SmtType.Map A SmtType.Bool := by
           dsimp [acc']
           by_cases hKeep :
-              smt_lit_iff
-                (smt_lit_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true))
+              native_iff
+                (native_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true))
                 isInter
-          · simpa [smt_lit_ite, hKeep] using hAccCons
-          · simpa [smt_lit_ite, hKeep] using hacc
+          · simpa [native_ite, hKeep] using hAccCons
+          · simpa [native_ite, hKeep] using hacc
         simpa [__smtx_mss_op_internal, hEq, acc'] using
           mss_op_internal_typed isInter (m1 := m1) (m2 := m2) (acc := acc')
             (A := A) hm1' hm2 hacc'
-      · simp [__smtx_typeof_map_value, smt_lit_ite, hEq] at hm1
+      · simp [__smtx_typeof_map_value, native_ite, hEq] at hm1
 
 /-- Shows that evaluating `set_union` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_union
@@ -141,7 +141,7 @@ theorem typeof_value_model_eval_set_union
   rcases set_binop_args_of_non_none (op := SmtTerm.set_union) rfl ht with ⟨A, h1, h2⟩
   rw [show __smtx_typeof (SmtTerm.set_union t1 t2) =
       SmtType.Set A by
-    simp [__smtx_typeof, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2]]
+    simp [__smtx_typeof, __smtx_typeof_sets_op_2, native_ite, native_Teq, h1, h2]]
   change __smtx_typeof_value (__smtx_model_eval_set_union (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Set A
   rcases set_value_canonical (A := A)
@@ -187,7 +187,7 @@ theorem typeof_value_model_eval_set_inter
   rcases set_binop_args_of_non_none (op := SmtTerm.set_inter) rfl ht with ⟨A, h1, h2⟩
   rw [show __smtx_typeof (SmtTerm.set_inter t1 t2) =
       SmtType.Set A by
-    simp [__smtx_typeof, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2]]
+    simp [__smtx_typeof, __smtx_typeof_sets_op_2, native_ite, native_Teq, h1, h2]]
   change __smtx_typeof_value (__smtx_model_eval_set_inter (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Set A
   rcases set_value_canonical (A := A)
@@ -233,7 +233,7 @@ theorem typeof_value_model_eval_set_minus
   rcases set_binop_args_of_non_none (op := SmtTerm.set_minus) rfl ht with ⟨A, h1, h2⟩
   rw [show __smtx_typeof (SmtTerm.set_minus t1 t2) =
       SmtType.Set A by
-    simp [__smtx_typeof, __smtx_typeof_sets_op_2, smt_lit_ite, smt_lit_Teq, h1, h2]]
+    simp [__smtx_typeof, __smtx_typeof_sets_op_2, native_ite, native_Teq, h1, h2]]
   change __smtx_typeof_value (__smtx_model_eval_set_minus (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Set A
   rcases set_value_canonical (A := A)
@@ -279,7 +279,7 @@ theorem typeof_value_model_eval_set_member
   rcases set_member_args_of_non_none ht with ⟨A, h1, h2⟩
   rw [show __smtx_typeof (SmtTerm.set_member t1 t2) =
       SmtType.Bool by
-    simp [__smtx_typeof, __smtx_typeof_set_member, smt_lit_ite, smt_lit_Teq, h1, h2]]
+    simp [__smtx_typeof, __smtx_typeof_set_member, native_ite, native_Teq, h1, h2]]
   change __smtx_typeof_value (__smtx_model_eval_set_member (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
   rcases set_value_canonical (A := A)
@@ -307,7 +307,7 @@ theorem typeof_value_model_eval_set_subset
     ⟨A, h1, h2⟩
   rw [show __smtx_typeof (SmtTerm.set_subset t1 t2) =
       SmtType.Bool by
-    simp [__smtx_typeof, __smtx_typeof_sets_op_2_ret, smt_lit_ite, smt_lit_Teq, h1, h2]]
+    simp [__smtx_typeof, __smtx_typeof_sets_op_2_ret, native_ite, native_Teq, h1, h2]]
   simpa [__smtx_model_eval_set_subset] using
     typeof_value_model_eval_eq_value
       (__smtx_model_eval_set_inter (__smtx_model_eval M t1) (__smtx_model_eval M t2))

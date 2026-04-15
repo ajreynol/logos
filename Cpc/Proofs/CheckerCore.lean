@@ -159,7 +159,7 @@ by
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
         case Boolean.Boolean a b =>
-          cases a <;> cases b <;> simp [SmtEval.smt_lit_and] at hEval
+          cases a <;> cases b <;> simp [SmtEval.native_and] at hEval
           simp
       exact smt_interprets.intro_true M (__eo_to_smt A) htyA hEvalA
 
@@ -188,7 +188,7 @@ by
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
         case Boolean.Boolean a b =>
-          cases a <;> cases b <;> simp [SmtEval.smt_lit_and] at hEval
+          cases a <;> cases b <;> simp [SmtEval.native_and] at hEval
           simp
       exact smt_interprets.intro_true M (__eo_to_smt B) htyB hEvalB
 
@@ -206,16 +206,16 @@ by
       cases hB with
       | intro_true htyB hEvalB =>
           apply smt_interprets.intro_true
-          · change smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
-                (smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
+          · change native_ite (native_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
+                (native_ite (native_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
                   SmtType.Bool SmtType.None)
                 SmtType.None = SmtType.Bool
-            simp [htyA, htyB, smt_lit_Teq, smt_lit_ite]
+            simp [htyA, htyB, native_Teq, native_ite]
           · change __smtx_model_eval_and
                 (__smtx_model_eval M (__eo_to_smt A))
                 (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true
             rw [hEvalA, hEvalB]
-            simp [__smtx_model_eval_and, SmtEval.smt_lit_and]
+            simp [__smtx_model_eval_and, SmtEval.native_and]
 
 /-- Elimination lemma for `eo_interprets_imp`. -/
 theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
@@ -243,7 +243,7 @@ by
                 (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true at hEvalImp
             cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
               simp [hEvalA, hBeval, __smtx_model_eval_imp, __smtx_model_eval_or,
-                __smtx_model_eval_not, SmtEval.smt_lit_or, SmtEval.smt_lit_not] at hEvalImp
+                __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not] at hEvalImp
             case Boolean a =>
               cases a <;> simp at hEvalImp
               simp
@@ -263,17 +263,17 @@ by
       cases hB with
       | intro_true htyB hEvalB =>
           apply smt_interprets.intro_true
-          · change smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
-                (smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
+          · change native_ite (native_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
+                (native_ite (native_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
                   SmtType.Bool SmtType.None)
                 SmtType.None = SmtType.Bool
-            simp [htyA, htyB, smt_lit_Teq, smt_lit_ite]
+            simp [htyA, htyB, native_Teq, native_ite]
           · change __smtx_model_eval_imp
                 (__smtx_model_eval M (__eo_to_smt A))
                 (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true
             rw [hEvalA, hEvalB]
             simp [__smtx_model_eval_imp, __smtx_model_eval_or,
-              __smtx_model_eval_not, SmtEval.smt_lit_or, SmtEval.smt_lit_not]
+              __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not]
 
 /-- Left-projection lemma for `eo_interprets_imp_false`. -/
 theorem eo_interprets_imp_false_left (M : SmtModel) (A B : Term) :
@@ -299,7 +299,7 @@ by
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_imp, __smtx_model_eval_or,
-            __smtx_model_eval_not, SmtEval.smt_lit_or, SmtEval.smt_lit_not] at hEvalImp
+            __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not] at hEvalImp
         case Boolean.Boolean a b =>
           cases a <;> cases b <;> simp at hEvalImp
           simp
@@ -329,7 +329,7 @@ by
         cases hAeval : __smtx_model_eval M (__eo_to_smt A) <;>
           cases hBeval : __smtx_model_eval M (__eo_to_smt B) <;>
           simp [hAeval, hBeval, __smtx_model_eval_imp, __smtx_model_eval_or,
-            __smtx_model_eval_not, SmtEval.smt_lit_or, SmtEval.smt_lit_not] at hEvalImp
+            __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not] at hEvalImp
         case Boolean.Boolean a b =>
           cases a <;> cases b <;> simp at hEvalImp
           simp
@@ -349,17 +349,17 @@ by
       cases hB with
       | intro_false htyB hEvalB =>
           apply smt_interprets.intro_false
-          · change smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
-                (smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
+          · change native_ite (native_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
+                (native_ite (native_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
                   SmtType.Bool SmtType.None)
                 SmtType.None = SmtType.Bool
-            simp [htyA, htyB, smt_lit_Teq, smt_lit_ite]
+            simp [htyA, htyB, native_Teq, native_ite]
           · change __smtx_model_eval_imp
                 (__smtx_model_eval M (__eo_to_smt A))
                 (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean false
             rw [hEvalA, hEvalB]
             simp [__smtx_model_eval_imp, __smtx_model_eval_or,
-              __smtx_model_eval_not, SmtEval.smt_lit_or, SmtEval.smt_lit_not]
+              __smtx_model_eval_not, SmtEval.native_or, SmtEval.native_not]
 
 /-- Derives `eo_interprets_and_false_left` from `right_not_false`. -/
 theorem eo_interprets_and_false_left_of_right_not_false (M : SmtModel) (A B : Term) :
@@ -395,17 +395,17 @@ by
           simp [hAeval, hBeval, __smtx_model_eval_and] at hEval
         case Boolean.Boolean a b =>
           cases a <;> cases b
-          · simp [SmtEval.smt_lit_and] at hEval
+          · simp [SmtEval.native_and] at hEval
             have hBFalse : smt_interprets M (__eo_to_smt B) false :=
               smt_interprets.intro_false M (__eo_to_smt B) htyB hBeval
             exact False.elim (hBNotFalse hBFalse)
-          · simp [SmtEval.smt_lit_and] at hEval
+          · simp [SmtEval.native_and] at hEval
             simp
-          · simp [SmtEval.smt_lit_and] at hEval
+          · simp [SmtEval.native_and] at hEval
             have hBFalse : smt_interprets M (__eo_to_smt B) false :=
               smt_interprets.intro_false M (__eo_to_smt B) htyB hBeval
             exact False.elim (hBNotFalse hBFalse)
-          · simp [SmtEval.smt_lit_and] at hEval
+          · simp [SmtEval.native_and] at hEval
       exact smt_interprets.intro_false M (__eo_to_smt A) htyA hEvalA
 
 /-- Derives `eo_interprets_and_false_right_true` from `left_false_and_right_not_false`. -/
@@ -584,7 +584,7 @@ by
 @[simp] theorem eo_eq_bool_true_iff (t : Term) :
   __eo_eq t Term.Bool = Term.Boolean true ↔ t = Term.Bool :=
 by
-  cases t <;> simp [__eo_eq, eo_lit_teq]
+  cases t <;> simp [__eo_eq, native_teq]
 
 /-- Lemma about `typeof_stuck_ne_bool`. -/
 theorem typeof_stuck_ne_bool :
@@ -763,7 +763,7 @@ by
 def checkerTruthInvariant (M : SmtModel) : CState -> Prop
   | CState.Stuck => True
   | s =>
-      ∀ n : eo_lit_Int,
+      ∀ n : native_Int,
         eo_interprets M (stateAssumes s) true ->
         eo_interprets M (statePushes s) true ->
         eo_interprets M (__eo_state_proven_nth s n) true
@@ -885,7 +885,7 @@ by
 theorem checkerTypeInvariant_at :
   forall {s : CState},
     checkerTypeInvariant s ->
-    forall n : eo_lit_Int,
+    forall n : native_Int,
       __eo_state_proven_nth s n ≠ Term.Stuck ∧
       __eo_typeof (__eo_state_proven_nth s n) = Term.Bool
 :=
@@ -918,13 +918,13 @@ by
       · cases so with
         | assume A =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih (checkerTypeInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
+              ih (checkerTypeInvariant_tail hs) (native_zplus n (native_zneg 1))
         | assume_push A =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih (checkerTypeInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
+              ih (checkerTypeInvariant_tail hs) (native_zplus n (native_zneg 1))
         | proven P =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih (checkerTypeInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
+              ih (checkerTypeInvariant_tail hs) (native_zplus n (native_zneg 1))
 
 /-- Shows how `checkerTranslationInvariant` behaves on suffix tails. -/
 theorem checkerTranslationInvariant_tail :
@@ -967,7 +967,7 @@ by
 theorem checkerTranslationInvariant_at :
   forall {s : CState},
     checkerTranslationInvariant s ->
-    forall n : eo_lit_Int,
+    forall n : native_Int,
       RuleProofs.eo_has_smt_translation (__eo_state_proven_nth s n)
 :=
 by
@@ -993,20 +993,20 @@ by
       · cases so with
         | assume A =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih (checkerTranslationInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
+              ih (checkerTranslationInvariant_tail hs) (native_zplus n (native_zneg 1))
         | assume_push A =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih (checkerTranslationInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
+              ih (checkerTranslationInvariant_tail hs) (native_zplus n (native_zneg 1))
         | proven P =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih (checkerTranslationInvariant_tail hs) (eo_lit_zplus n (eo_lit_zneg 1))
+              ih (checkerTranslationInvariant_tail hs) (native_zplus n (native_zneg 1))
 
 /-- Retrieves the `checkerEntry_has_bool_type` fact at a given index. -/
 theorem checkerEntry_has_bool_type_at :
   forall {s : CState},
     checkerTypeInvariant s ->
     checkerTranslationInvariant s ->
-    forall n : eo_lit_Int,
+    forall n : native_Int,
       RuleProofs.eo_has_bool_type (__eo_state_proven_nth s n)
 :=
 by
@@ -1082,7 +1082,7 @@ by
 theorem checkerLocalTruthInvariant_at (M : SmtModel) :
   forall {s : CState},
     checkerLocalTruthInvariant M s ->
-    forall n : eo_lit_Int,
+    forall n : native_Int,
       eo_interprets M (stateAssumes s) true ->
       eo_interprets M (statePushes s) true ->
       eo_interprets M (__eo_state_proven_nth s n) true
@@ -1119,16 +1119,16 @@ by
               eo_interprets_and_right M A (stateAssumes s) hAss
             simpa [__eo_state_proven_nth, hZero] using
               ih (by simpa [checkerLocalTruthInvariant] using hs)
-                (eo_lit_zplus n (eo_lit_zneg 1)) hAssTail hPush
+                (native_zplus n (native_zneg 1)) hAssTail hPush
         | assume_push A =>
             have hPushTail : eo_interprets M (statePushes s) true :=
               eo_interprets_and_right M A (statePushes s) hPush
             simpa [__eo_state_proven_nth, hZero] using
               ih (by simpa [checkerLocalTruthInvariant] using hs)
-                (eo_lit_zplus n (eo_lit_zneg 1)) hAss hPushTail
+                (native_zplus n (native_zneg 1)) hAss hPushTail
         | proven P =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih hs.2 (eo_lit_zplus n (eo_lit_zneg 1))
+              ih hs.2 (native_zplus n (native_zneg 1))
                 (by simpa [stateAssumes] using hAss)
                 (by simpa [statePushes] using hPush)
 
@@ -1348,7 +1348,7 @@ by
 
 /-- Derives `state_proven_nth_true` from `context`. -/
 theorem state_proven_nth_true_of_context (M : SmtModel) :
-  forall (s : CState) (n : eo_lit_Int),
+  forall (s : CState) (n : native_Int),
     eo_interprets M (stateAssumes s) true ->
     eo_interprets M (statePushes s) true ->
     eo_interprets M (stateProvens s) true ->
@@ -1380,22 +1380,22 @@ by
             have hAssTail : eo_interprets M (stateAssumes s) true :=
               eo_interprets_and_right M A (stateAssumes s) hAss
             simpa [__eo_state_proven_nth, hZero] using
-              ih (eo_lit_zplus n (eo_lit_zneg 1)) hAssTail hPush hProv
+              ih (native_zplus n (native_zneg 1)) hAssTail hPush hProv
         | assume_push A =>
             have hPushTail : eo_interprets M (statePushes s) true :=
               eo_interprets_and_right M A (statePushes s) hPush
             simpa [__eo_state_proven_nth, hZero] using
-              ih (eo_lit_zplus n (eo_lit_zneg 1)) hAss hPushTail hProv
+              ih (native_zplus n (native_zneg 1)) hAss hPushTail hProv
         | proven A =>
             have hProvTail : eo_interprets M (stateProvens s) true :=
               eo_interprets_and_right M A (stateProvens s) hProv
             simpa [__eo_state_proven_nth, hZero] using
-              ih (eo_lit_zplus n (eo_lit_zneg 1)) hAss hPush hProvTail
+              ih (native_zplus n (native_zneg 1)) hAss hPush hProvTail
 
 /-- Retrieves the `checkerTruthInvariant` fact at a given index. -/
 theorem checkerTruthInvariant_at (M : SmtModel) {s : CState} :
   checkerTruthInvariant M s ->
-  ∀ n : eo_lit_Int,
+  ∀ n : native_Int,
     eo_interprets M (stateAssumes s) true ->
     eo_interprets M (statePushes s) true ->
     eo_interprets M (__eo_state_proven_nth s n) true
@@ -1406,14 +1406,14 @@ by
   | Stuck =>
       exact False.elim (eo_interprets_stuck_true_absurd M (by simpa [stateAssumes] using hAss))
   | nil =>
-      have hs' : ∀ n : eo_lit_Int,
+      have hs' : ∀ n : native_Int,
           eo_interprets M (stateAssumes CState.nil) true ->
           eo_interprets M (statePushes CState.nil) true ->
           eo_interprets M (__eo_state_proven_nth CState.nil n) true := by
         simpa [checkerTruthInvariant] using hs
       exact hs' n hAss hPush
   | cons so s =>
-      have hs' : ∀ n : eo_lit_Int,
+      have hs' : ∀ n : native_Int,
           eo_interprets M (stateAssumes (CState.cons so s)) true ->
           eo_interprets M (statePushes (CState.cons so s)) true ->
           eo_interprets M (__eo_state_proven_nth (CState.cons so s) n) true := by
@@ -1448,7 +1448,7 @@ by
         eo_interprets_and_right M A (statePushes s) hPush'
       simpa [push_assume_eq_cons_of_typeof_bool, hTy, __eo_state_proven_nth, hZero] using
         checkerTruthInvariant_at M hs
-          (eo_lit_zplus n (eo_lit_zneg 1)) hAss' hPushTail
+          (native_zplus n (native_zneg 1)) hAss' hPushTail
   · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerTruthInvariant_stuck M
 
 /-- Shows that `push_proven` preserves `truthInvariant_of_contextual_true`. -/
@@ -1474,7 +1474,7 @@ by
       simpa [statePushes] using hPush
     simpa [__eo_state_proven_nth, hZero] using
       checkerTruthInvariant_at M hs
-        (eo_lit_zplus n (eo_lit_zneg 1)) hAss' hPush'
+        (native_zplus n (native_zneg 1)) hAss' hPush'
 
 /-- Describes `stateAssumptionTail` after `invoke_assume_list`. -/
 theorem stateAssumptionTail_invoke_assume_list :
@@ -2130,7 +2130,7 @@ theorem eo_eq_false_true_implies_eq_false (t : Term) :
   t = Term.Boolean false :=
 by
   intro hEq
-  cases t <;> simp [__eo_eq, eo_lit_teq] at hEq ⊢ <;> assumption
+  cases t <;> simp [__eo_eq, native_teq] at hEq ⊢ <;> assumption
 
 /-- Derives `final_state_shape` from `checker_true`. -/
 theorem final_state_shape_of_checker_true (F : Term) (pf : CCmdList) :

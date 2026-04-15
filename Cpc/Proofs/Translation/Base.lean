@@ -11,7 +11,7 @@ attribute [local reducible] __smtx_typeof
 namespace TranslationProofs
 
 /-- Computes `__eo_typeof` for `boolean`. -/
-@[simp] theorem eo_typeof_boolean (b : eo_lit_Bool) :
+@[simp] theorem eo_typeof_boolean (b : native_Bool) :
     __eo_typeof (Term.Boolean b) = Term.Bool := by
   cases b <;> native_decide
 
@@ -31,7 +31,7 @@ namespace TranslationProofs
   native_decide
 
 /-- Simplifies EO-to-SMT translation for `boolean`. -/
-@[simp] theorem eo_to_smt_boolean (b : eo_lit_Bool) :
+@[simp] theorem eo_to_smt_boolean (b : native_Bool) :
     __eo_to_smt (Term.Boolean b) = SmtTerm.Boolean b := by
   simp [__eo_to_smt.eq_def]
 
@@ -51,13 +51,13 @@ namespace TranslationProofs
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `var`. -/
-@[simp] theorem eo_to_smt_var (s : eo_lit_String) (T : Term) :
+@[simp] theorem eo_to_smt_var (s : native_String) (T : Term) :
     __eo_to_smt (Term.Var (Term.String s) T) = SmtTerm.Var s (__eo_to_smt_type T) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `uconst`. -/
-@[simp] theorem eo_to_smt_uconst (i : eo_lit_Nat) (T : Term) :
-    __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T) := by
+@[simp] theorem eo_to_smt_uconst (i : native_Nat) (T : Term) :
+    __eo_to_smt (Term.UConst i T) = SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T) := by
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `set_empty`. -/
@@ -86,9 +86,9 @@ namespace TranslationProofs
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `bitvec`. -/
-@[simp] theorem eo_to_smt_type_bitvec (n : eo_lit_Int) :
+@[simp] theorem eo_to_smt_type_bitvec (n : native_Int) :
     __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) =
-      smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None := by
+      native_ite (native_zleq 0 n) (SmtType.BitVec (native_int_to_nat n)) SmtType.None := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `char`. -/
@@ -126,11 +126,11 @@ theorem smtx_typeof_guard_inhabited_of_non_none
     __smtx_typeof_guard_inhabited T U = U := by
   intro h
   unfold __smtx_typeof_guard_inhabited at h ⊢
-  cases hInh : smt_lit_inhabited_type T <;> simp [smt_lit_ite, hInh] at h ⊢
+  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h ⊢
 
 /-- Computes `__smtx_typeof` for `var_of_non_none`. -/
 theorem smtx_typeof_var_of_non_none
-    (s : smt_lit_String) (T : SmtType) :
+    (s : native_String) (T : SmtType) :
     __smtx_typeof (SmtTerm.Var s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.Var s T) = T := by
   intro h
@@ -139,7 +139,7 @@ theorem smtx_typeof_var_of_non_none
 
 /-- Computes `__smtx_typeof` for `uconst_of_non_none`. -/
 theorem smtx_typeof_uconst_of_non_none
-    (s : smt_lit_String) (T : SmtType) :
+    (s : native_String) (T : SmtType) :
     __smtx_typeof (SmtTerm.UConst s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.UConst s T) = T := by
   intro h
@@ -169,37 +169,37 @@ theorem smtx_typeof_set_empty_of_non_none
 
 /-- Derives `smtx_binary_well_formed` from `non_none`. -/
 theorem smtx_binary_well_formed_of_non_none
-    (w n : smt_lit_Int) :
+    (w n : native_Int) :
     __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None ->
-    smt_lit_zleq 0 w = true ∧
-      smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)) = true := by
+    native_zleq 0 w = true ∧
+      native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
   intro h
   let g :=
-    smt_lit_and (smt_lit_zleq 0 w)
-      (smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)))
+    native_and (native_zleq 0 w)
+      (native_zeq n (native_mod_total n (native_int_pow2 w)))
   have hg : g = true := by
     by_cases h' : g = true
     · exact h'
     · exfalso
       apply h
-      change smt_lit_ite g (SmtType.BitVec (smt_lit_int_to_nat w)) SmtType.None = SmtType.None
-      simp [smt_lit_ite, h']
-  have hWidth : smt_lit_zleq 0 w = true := by
-    cases hw : smt_lit_zleq 0 w <;> simp [g, SmtEval.smt_lit_and, hw] at hg
+      change native_ite g (SmtType.BitVec (native_int_to_nat w)) SmtType.None = SmtType.None
+      simp [native_ite, h']
+  have hWidth : native_zleq 0 w = true := by
+    cases hw : native_zleq 0 w <;> simp [g, SmtEval.native_and, hw] at hg
     rfl
-  have hMod : smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)) = true := by
-    cases hm : smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)) <;>
-      simp [g, SmtEval.smt_lit_and, hWidth, hm] at hg
+  have hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
+    cases hm : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+      simp [g, SmtEval.native_and, hWidth, hm] at hg
     rfl
   exact ⟨hWidth, hMod⟩
 
 /-- Computes `__smtx_typeof` for `binary_of_non_none`. -/
 theorem smtx_typeof_binary_of_non_none
-    (w n : smt_lit_Int) :
+    (w n : native_Int) :
     __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None ->
-    __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (smt_lit_int_to_nat w) := by
+    __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
   intro h
   obtain ⟨hWidth, hMod⟩ := smtx_binary_well_formed_of_non_none w n h
-  simp [__smtx_typeof, smt_lit_ite, SmtEval.smt_lit_and, hWidth, hMod]
+  simp [__smtx_typeof, native_ite, SmtEval.native_and, hWidth, hMod]
 
 end TranslationProofs

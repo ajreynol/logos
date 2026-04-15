@@ -8,7 +8,7 @@ namespace Smtm
 theorem model_total_typed_lookup
     {M : SmtModel}
     (hM : model_total_typed M)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_lookup M s T) = T :=
@@ -18,7 +18,7 @@ theorem model_total_typed_lookup
 theorem model_total_typed_lookup_uninhabited
     {M : SmtModel}
     (hM : model_total_typed M)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (hT : ¬ type_inhabited T) :
     __smtx_model_lookup M s T = SmtValue.NotValue :=
@@ -27,7 +27,7 @@ theorem model_total_typed_lookup_uninhabited
 /-- Describes how `model_typed_at` behaves under `push`. -/
 theorem model_typed_at_push
     {M : SmtModel}
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     {v : SmtValue}
     (hv : __smtx_typeof_value v = T) :
@@ -43,7 +43,7 @@ theorem model_typed_at_push
 theorem model_total_typed_push
     {M : SmtModel}
     (hM : model_total_typed M)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (v : SmtValue)
     (hv : __smtx_typeof_value v = T) :

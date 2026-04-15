@@ -7,9 +7,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-/- compatability helper, we use smt_lit, but may need eo_lit -/
-abbrev smt_lit_teq := eo_lit_teq
-
 /- Definitions for theorems -/
 
 /- Definition of refutation -/
@@ -41,25 +38,25 @@ noncomputable section
 
 mutual
 
-def __eo_to_smt_is_var (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
-  | (SmtTerm.Var s2 T2) => (smt_lit_and (smt_lit_streq s1 s2) (smt_lit_Teq T1 T2))
+def __eo_to_smt_is_var (s1 : native_String) (T1 : SmtType) : SmtTerm -> native_Bool
+  | (SmtTerm.Var s2 T2) => (native_and (native_streq s1 s2) (native_Teq T1 T2))
   | x => false
 
 
-def __eo_to_smt_is_binder_x (s1 : smt_lit_String) (T1 : SmtType) : SmtTerm -> smt_lit_Bool
+def __eo_to_smt_is_binder_x (s1 : native_String) (T1 : SmtType) : SmtTerm -> native_Bool
   | (SmtTerm.exists s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
   | (SmtTerm.forall s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
   | (SmtTerm.choice s2 T2) => (__eo_to_smt_is_var s1 T1 (SmtTerm.Var s2 T2))
   | x => false
 
 
-def __eo_to_smt_substitute (s : smt_lit_String) (T : SmtType) (u : SmtTerm) : SmtTerm -> SmtTerm
-  | (SmtTerm.Apply f a) => (smt_lit_ite (__eo_to_smt_is_binder_x s T f) (SmtTerm.Apply f a) (SmtTerm.Apply (__eo_to_smt_substitute s T u f) (__eo_to_smt_substitute s T u a)))
-  | z => (smt_lit_ite (__eo_to_smt_is_var s T z) u z)
+def __eo_to_smt_substitute (s : native_String) (T : SmtType) (u : SmtTerm) : SmtTerm -> SmtTerm
+  | (SmtTerm.Apply f a) => (native_ite (__eo_to_smt_is_binder_x s T f) (SmtTerm.Apply f a) (SmtTerm.Apply (__eo_to_smt_substitute s T u f) (__eo_to_smt_substitute s T u a)))
+  | z => (native_ite (__eo_to_smt_is_var s T z) u z)
 
 
 def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (smt_lit_ite (smt_lit_zleq 0 x2) (SmtTerm.Binary x2 (smt_lit_mod_total x1 (smt_lit_int_pow2 x2))) SmtTerm.None)
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (native_ite (native_zleq 0 x2) (SmtTerm.Binary x2 (native_mod_total x1 (native_int_pow2 x2))) SmtTerm.None)
   | t1, t2 => SmtTerm.None
 
 
@@ -68,15 +65,15 @@ def __eo_to_smt_seq_empty : SmtType -> SmtTerm
   | T => SmtTerm.None
 
 
-def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> smt_lit_Nat -> SmtTerm
-  | (SmtTerm.re_concat r1 r2), smt_lit_nat_zero => 
+def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> native_Nat -> SmtTerm
+  | (SmtTerm.re_concat r1 r2), native_nat_zero => 
     let _v0 := (SmtType.Seq SmtType.Char)
     let _v2 := (SmtTerm.Var "_at_x" _v0)
     let _v3 := (SmtTerm.str_len _v2)
     let _v4 := (SmtTerm.str_substr s _v3 (SmtTerm.neg (SmtTerm.str_len s) _v3))
     (SmtTerm.Apply (SmtTerm.choice "_at_x" _v0) (SmtTerm.and (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq s) (SmtTerm.str_concat _v2 _v4)) (SmtTerm.and (SmtTerm.str_in_re _v2 r1) (SmtTerm.str_in_re _v4 r2))))
-  | (SmtTerm.re_concat r1 r2), (smt_lit_nat_succ n) => 
-    let _v0 := (SmtTerm.str_len (__eo_to_smt_re_unfold_pos_component s (SmtTerm.re_concat r1 r2) smt_lit_nat_zero))
+  | (SmtTerm.re_concat r1 r2), (native_nat_succ n) => 
+    let _v0 := (SmtTerm.str_len (__eo_to_smt_re_unfold_pos_component s (SmtTerm.re_concat r1 r2) native_nat_zero))
     (__eo_to_smt_re_unfold_pos_component (SmtTerm.str_substr s _v0 (SmtTerm.neg (SmtTerm.str_len s) _v0)) r2 n)
   | r1, n => SmtTerm.None
 
@@ -86,9 +83,9 @@ def __eo_to_smt_set_empty : SmtType -> SmtTerm
   | T => SmtTerm.None
 
 
-def __eo_to_smt_quantifiers_skolemize : SmtTerm -> smt_lit_Nat -> SmtTerm
-  | (SmtTerm.Apply (SmtTerm.exists s T) F), smt_lit_nat_zero => (SmtTerm.Apply (SmtTerm.choice s T) F)
-  | (SmtTerm.Apply (SmtTerm.exists s T) F), (smt_lit_nat_succ n) => (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_substitute s T (__eo_to_smt_quantifiers_skolemize (SmtTerm.Apply (SmtTerm.exists s T) F) smt_lit_nat_zero) F) n)
+def __eo_to_smt_quantifiers_skolemize : SmtTerm -> native_Nat -> SmtTerm
+  | (SmtTerm.Apply (SmtTerm.exists s T) F), native_nat_zero => (SmtTerm.Apply (SmtTerm.choice s T) F)
+  | (SmtTerm.Apply (SmtTerm.exists s T) F), (native_nat_succ n) => (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_substitute s T (__eo_to_smt_quantifiers_skolemize (SmtTerm.Apply (SmtTerm.exists s T) F) native_nat_zero) F) n)
   | F, t => SmtTerm.None
 
 
@@ -97,9 +94,9 @@ def __eo_to_smt_type_tuple (U : SmtType) : SmtType -> SmtType
   | T => SmtType.None
 
 
-def __eo_to_smt_nat : Term -> smt_lit_Nat
-  | (Term.Numeral n) => (smt_lit_int_to_nat n)
-  | t => smt_lit_nat_zero
+def __eo_to_smt_nat : Term -> native_Nat
+  | (Term.Numeral n) => (native_int_to_nat n)
+  | t => native_nat_zero
 
 
 def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
@@ -123,7 +120,7 @@ def __eo_to_smt_type : Term -> SmtType
     (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
   | Term.Int => SmtType.Int
   | Term.Real => SmtType.Real
-  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (smt_lit_ite (smt_lit_zleq 0 n1) (SmtType.BitVec (smt_lit_int_to_nat n1)) SmtType.None)
+  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (native_ite (native_zleq 0 n1) (SmtType.BitVec (native_int_to_nat n1)) SmtType.None)
   | Term.Char => SmtType.Char
   | (Term.Apply Term.Seq x1) => 
     let _v0 := (__eo_to_smt_type x1)
@@ -143,12 +140,12 @@ def __eo_to_smt_type : Term -> SmtType
 
 def __eo_to_smt_tuple_app_extend : SmtTerm -> SmtType -> SmtTerm
   | (SmtTerm.Apply f a), T => (SmtTerm.Apply (__eo_to_smt_tuple_app_extend f T) a)
-  | (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum c SmtDatatype.null) smt_lit_nat_zero), T => (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum (__smtx_dtc_concat c (SmtDatatypeCons.cons T SmtDatatypeCons.unit)) SmtDatatype.null) smt_lit_nat_zero)
+  | (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum c SmtDatatype.null) native_nat_zero), T => (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum (__smtx_dtc_concat c (SmtDatatypeCons.cons T SmtDatatypeCons.unit)) SmtDatatype.null) native_nat_zero)
   | s, T => SmtTerm.None
 
 
 def __eo_to_smt_tuple_select : SmtType -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype "_at_Tuple" d), (SmtTerm.Numeral n), t => (smt_lit_ite (smt_lit_zleq 0 n) (SmtTerm.Apply (SmtTerm.DtSel "_at_Tuple" d smt_lit_nat_zero (smt_lit_int_to_nat n)) t) SmtTerm.None)
+  | (SmtType.Datatype "_at_Tuple" d), (SmtTerm.Numeral n), t => (native_ite (native_zleq 0 n) (SmtTerm.Apply (SmtTerm.DtSel "_at_Tuple" d native_nat_zero (native_int_to_nat n)) t) SmtTerm.None)
   | T, n, t => SmtTerm.None
 
 
@@ -157,11 +154,11 @@ def __eo_to_smt_tester : SmtTerm -> SmtTerm
   | t => SmtTerm.None
 
 
-def __eo_to_smt_updater_rec : SmtTerm -> smt_lit_Nat -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.DtSel s d n m), smt_lit_nat_zero, t, u, acc => acc
-  | (SmtTerm.DtSel s d n m), (smt_lit_nat_succ k), t, u, acc => 
+def __eo_to_smt_updater_rec : SmtTerm -> native_Nat -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | (SmtTerm.DtSel s d n m), native_nat_zero, t, u, acc => acc
+  | (SmtTerm.DtSel s d n m), (native_nat_succ k), t, u, acc => 
     let _v0 := (SmtTerm.DtSel s d n m)
-    (__eo_to_smt_updater_rec _v0 k t u (SmtTerm.Apply acc (smt_lit_ite (smt_lit_nateq m k) u (SmtTerm.Apply _v0 t))))
+    (__eo_to_smt_updater_rec _v0 k t u (SmtTerm.Apply acc (native_ite (native_nateq m k) u (SmtTerm.Apply _v0 t))))
   | v, k, t, u, acc => SmtTerm.None
 
 
@@ -171,7 +168,7 @@ def __eo_to_smt_updater : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
 
 
 def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype "_at_Tuple" d), (SmtTerm.Numeral n), t, u => (smt_lit_ite (smt_lit_zleq 0 n) (__eo_to_smt_updater (SmtTerm.DtSel "_at_Tuple" d smt_lit_nat_zero (smt_lit_int_to_nat n)) t u) SmtTerm.None)
+  | (SmtType.Datatype "_at_Tuple" d), (SmtTerm.Numeral n), t, u => (native_ite (native_zleq 0 n) (__eo_to_smt_updater (SmtTerm.DtSel "_at_Tuple" d native_nat_zero (native_int_to_nat n)) t u) SmtTerm.None)
   | T, n, t, u => SmtTerm.None
 
 
@@ -190,7 +187,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
   | (Term.DtCons s d i) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)
   | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
-  | (Term.UConst i T) => (SmtTerm.UConst (smt_lit_uconst_id i) (__eo_to_smt_type T))
+  | (Term.UConst i T) => (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
   | (Term.Apply (Term.Apply (Term.Apply Term.ite x1) x2) x3) => (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite (__eo_to_smt x1)) (__eo_to_smt x2)) (__eo_to_smt x3))
   | (Term.Apply Term.not x1) => (SmtTerm.not (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.or x1) x2) => (SmtTerm.or (__eo_to_smt x1) (__eo_to_smt x2))
@@ -333,7 +330,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term.str_in_re x1) x2) => (SmtTerm.str_in_re (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply Term.seq_unit x1) => (SmtTerm.seq_unit (__eo_to_smt x1))
   | (Term.Apply (Term.Apply Term.seq_nth x1) x2) => (SmtTerm.seq_nth (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply (Term.Apply Term._at_re_unfold_pos_component x1) x2) x3) => (smt_lit_ite (smt_lit_teq (__eo_is_neg x3) (Term.Boolean false)) (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt_nat x3)) SmtTerm.None)
+  | (Term.Apply (Term.Apply (Term.Apply Term._at_re_unfold_pos_component x1) x2) x3) => (native_ite (native_teq (__eo_is_neg x3) (Term.Boolean false)) (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt_nat x3)) SmtTerm.None)
   | (Term.Apply (Term.Apply Term._at_strings_deq_diff x1) x2) => 
     let _v0 := (SmtTerm.Numeral 1)
     let _v2 := (SmtTerm.Var "_at_x" SmtType.Int)
@@ -350,7 +347,7 @@ def __eo_to_smt : Term -> SmtTerm
     (SmtTerm.Apply (SmtTerm.choice "_at_x" _v0) (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.str_len (SmtTerm.Var "_at_x" _v0))) (__eo_to_smt x2)))
   | (Term.Apply Term.is x1) => (__eo_to_smt_tester (__eo_to_smt x1))
   | (Term.Apply (Term.Apply (Term.Apply Term.update x1) x2) x3) => (__eo_to_smt_updater (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
-  | Term.tuple_unit => (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) smt_lit_nat_zero)
+  | Term.tuple_unit => (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) native_nat_zero)
   | (Term.Apply (Term.Apply Term.tuple x1) x2) => (SmtTerm.Apply (__eo_to_smt_tuple_app_extend (__eo_to_smt x1) (__eo_to_smt_type (__eo_typeof x2))) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.tuple_select x1) x2) => (__eo_to_smt_tuple_select (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply Term.tuple_update x1) x2) x3) => (__eo_to_smt_tuple_update (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
@@ -378,10 +375,10 @@ def __eo_to_smt : Term -> SmtTerm
     (SmtTerm.Apply (SmtTerm.choice "_at_x" _v0) (SmtTerm.not (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (SmtTerm.set_member _v2 (__eo_to_smt x1))) (SmtTerm.set_member _v2 (__eo_to_smt x2)))))
   | (Term.Apply (Term.Apply Term.qdiv x1) x2) => (SmtTerm.qdiv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.qdiv_total x1) x2) => (SmtTerm.qdiv_total (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply Term._at_div_by_zero x1) => (SmtTerm.qdiv (__eo_to_smt x1) (SmtTerm.Rational (smt_lit_mk_rational 0 1)))
+  | (Term.Apply Term._at_div_by_zero x1) => (SmtTerm.qdiv (__eo_to_smt x1) (SmtTerm.Rational (native_mk_rational 0 1)))
   | (Term.Apply (Term.Apply Term.forall x1) x2) => (SmtTerm.not (__eo_to_smt_exists x1 (SmtTerm.not (__eo_to_smt x2))))
   | (Term.Apply (Term.Apply Term.exists x1) x2) => (__eo_to_smt_exists x1 (__eo_to_smt x2))
-  | (Term._at_quantifiers_skolemize (Term.Apply (Term.Apply Term.forall x1) x2) x3) => (smt_lit_ite (smt_lit_teq (__eo_is_neg x3) (Term.Boolean false)) (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists x1 (SmtTerm.not (__eo_to_smt x2))) (__eo_to_smt_nat x3)) SmtTerm.None)
+  | (Term._at_quantifiers_skolemize (Term.Apply (Term.Apply Term.forall x1) x2) x3) => (native_ite (native_teq (__eo_is_neg x3) (Term.Boolean false)) (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists x1 (SmtTerm.not (__eo_to_smt x2))) (__eo_to_smt_nat x3)) SmtTerm.None)
   | (Term.Apply (Term.Apply Term.int_to_bv x1) x2) => (SmtTerm.int_to_bv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply Term.ubv_to_int x1) => (SmtTerm.ubv_to_int (__eo_to_smt x1))
   | (Term.Apply Term.sbv_to_int x1) => (SmtTerm.sbv_to_int (__eo_to_smt x1))
