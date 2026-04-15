@@ -1,6 +1,7 @@
 import CpcMicro.Proofs.RuleLemmas
 
 open Eo
+open SmtEval
 open Smtm
 
 /-- Shows that `invoke_step` preserves `localTruthInvariant_of_stuck`. -/

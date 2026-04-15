@@ -2,6 +2,7 @@ import Cpc.Spec
 import Cpc.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false

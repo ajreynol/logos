@@ -1,6 +1,7 @@
 import CpcMicro.Proofs.Checker
 
 open Eo
+open SmtEval
 open Smtm
 
 namespace CpcMicro.Examples.TestSimpleCheckerAssumptions

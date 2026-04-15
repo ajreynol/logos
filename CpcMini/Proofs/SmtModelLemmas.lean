@@ -1,5 +1,6 @@
 import CpcMini.SmtModel
 
+open SmtEval
 open Smtm
 
 /-- Predicate asserting that an SMT type has at least one value. -/

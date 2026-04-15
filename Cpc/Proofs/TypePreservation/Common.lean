@@ -1,5 +1,6 @@
 import Cpc.SmtModel
 
+open SmtEval
 open Smtm
 
 namespace Smtm

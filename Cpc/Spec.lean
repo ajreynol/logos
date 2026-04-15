@@ -1,6 +1,7 @@
 import Cpc.SmtModel
 import Cpc.Logos
 
+open SmtEval
 open Eo
 open Smtm
 

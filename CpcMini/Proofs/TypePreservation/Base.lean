@@ -1,5 +1,6 @@
 import CpcMini.Proofs.TypePreservation.Model
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false

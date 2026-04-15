@@ -1,5 +1,6 @@
 import CpcMini.Proofs.TypePreservation.Support
 
+open SmtEval
 open Smtm
 
 namespace Smtm

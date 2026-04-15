@@ -4,6 +4,7 @@ import Cpc.Proofs.TypePreservation.Helpers
 import Cpc.Proofs.Unproven
 
 open Eo
+open SmtEval
 open Smtm
 
 namespace RuleProofs

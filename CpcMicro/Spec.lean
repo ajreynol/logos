@@ -1,14 +1,12 @@
 import CpcMicro.SmtModel
 import CpcMicro.Logos
 
+open SmtEval
 open Eo
 open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-/- compatability helper, we use smt_lit, but may need eo_lit -/
-abbrev native_teq := native_teq
 
 /- Definitions for theorems -/
 

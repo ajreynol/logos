@@ -3,6 +3,7 @@ import Cpc.Proofs.Translation
 import Cpc.Proofs.TypePreservation
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false

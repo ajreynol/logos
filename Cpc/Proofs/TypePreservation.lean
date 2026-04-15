@@ -4,6 +4,7 @@ import Cpc.Proofs.TypePreservation.Datatypes
 import Cpc.Proofs.TypePreservation.Sets
 import Cpc.Proofs.TypePreservation.SeqStringRegex
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false

@@ -3,6 +3,7 @@ import CpcMicro.Proofs.TypePreservation.CoreArith
 import CpcMicro.Proofs.TypePreservation.Datatypes
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -212,8 +213,6 @@ theorem eo_to_smt_typeof_matches_translation_apply_generic
         by_cases hStuck : T1 = Term.Stuck
         · exact False.elim (hT1NotStuck hStuck)
         · simp [hStuck, __eo_requires.eq_def, native_teq, native_ite, native_not]
-          intro hFalse
-          cases hFalse
       rw [hSmt, hTypeof, hFunTy, hArgTy, hTypeApply, hT2]
 
 /-- Handles the application case of `eo_to_smt_typeof_matches_translation`. -/

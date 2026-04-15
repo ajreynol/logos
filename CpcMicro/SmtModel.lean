@@ -4,12 +4,10 @@ set_option linter.unusedVariables false
 
 namespace Smtm
 
+open SmtEval
+
 /- SMT literal evaluation defined -/
 
-abbrev native_Bool := SmtEval.native_Bool
-abbrev native_Int := SmtEval.native_Int
-abbrev native_Rat := SmtEval.native_Rat
-abbrev native_String := SmtEval.native_String
 abbrev native_Char := Char
 
 inductive SmtRegLan : Type where
@@ -25,54 +23,6 @@ inductive SmtRegLan : Type where
   | comp : SmtRegLan -> SmtRegLan
 deriving Repr, DecidableEq, Inhabited
 abbrev native_RegLan := SmtRegLan
-
-def native_ite {T : Type} (c : native_Bool) (t e : T) : T :=
-  if c then t else e
-abbrev native_not := SmtEval.native_not
-abbrev native_and := SmtEval.native_and
-abbrev native_iff := SmtEval.native_iff
-abbrev native_or := SmtEval.native_or
-abbrev native_xor := SmtEval.native_xor
-abbrev native_zplus := SmtEval.native_zplus
-abbrev native_zmult := SmtEval.native_zmult
-abbrev native_zneg := SmtEval.native_zneg
-abbrev native_zeq := SmtEval.native_zeq
-abbrev native_zleq := SmtEval.native_zleq
-abbrev native_zlt := SmtEval.native_zlt
-abbrev native_div_total := SmtEval.native_div_total
-abbrev native_mod_total := SmtEval.native_mod_total
-abbrev native_zexp_total := SmtEval.native_zexp_total
-abbrev native_int_pow2 := SmtEval.native_int_pow2
-abbrev native_piand := SmtEval.native_piand
-abbrev native_mk_rational := SmtEval.native_mk_rational
-abbrev native_qplus := SmtEval.native_qplus
-abbrev native_qmult := SmtEval.native_qmult
-abbrev native_qneg := SmtEval.native_qneg
-abbrev native_qeq := SmtEval.native_qeq
-abbrev native_qleq := SmtEval.native_qleq
-abbrev native_qlt := SmtEval.native_qlt
-abbrev native_qdiv_total := SmtEval.native_qdiv_total
-abbrev native_to_int := SmtEval.native_to_int
-abbrev native_to_real := SmtEval.native_to_real
-abbrev native_str_to_code := SmtEval.native_str_to_code
-abbrev native_str_from_code := SmtEval.native_str_from_code
-abbrev native_streq := SmtEval.native_streq
-
-abbrev native_bit := SmtEval.native_bit
-abbrev native_msb := SmtEval.native_msb
-abbrev native_binary_and := SmtEval.native_binary_and
-abbrev native_binary_or := SmtEval.native_binary_or
-abbrev native_binary_xor := SmtEval.native_binary_xor
-abbrev native_binary_not := SmtEval.native_binary_not
-abbrev native_binary_max := SmtEval.native_binary_max
-abbrev native_binary_uts := SmtEval.native_binary_uts
-abbrev native_binary_concat := SmtEval.native_binary_concat
-abbrev native_binary_extract := SmtEval.native_binary_extract
-
-abbrev native_Nat := SmtEval.native_Nat
-abbrev native_int_to_nat := SmtEval.native_int_to_nat
-abbrev native_nat_to_int := SmtEval.native_nat_to_int
-abbrev native_nateq := SmtEval.native_nateq
 
 -- SMT Beyond Eunoia
 

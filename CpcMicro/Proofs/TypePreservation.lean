@@ -2,6 +2,7 @@ import CpcMicro.Proofs.TypePreservation.Support
 import CpcMicro.Proofs.TypePreservation.CoreArith
 import CpcMicro.Proofs.TypePreservation.Datatypes
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false

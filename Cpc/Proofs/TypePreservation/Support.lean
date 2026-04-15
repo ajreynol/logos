@@ -1,5 +1,6 @@
 import Cpc.Proofs.TypePreservation.Common
 
+open SmtEval
 open Smtm
 
 namespace Smtm

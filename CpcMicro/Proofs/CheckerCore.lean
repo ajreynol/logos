@@ -2,6 +2,7 @@ import CpcMicro.Spec
 import CpcMicro.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 /-- Inductive predicate for assumption terms that are well-formed `and`-chains ending in `true`. -/

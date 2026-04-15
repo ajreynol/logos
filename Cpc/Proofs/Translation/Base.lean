@@ -1,6 +1,7 @@
 import Cpc.Spec
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false

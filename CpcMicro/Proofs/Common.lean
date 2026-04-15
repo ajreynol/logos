@@ -2,6 +2,7 @@ import CpcMicro.Proofs.TypePreservation
 import CpcMicro.Proofs.Translation
 
 open Eo
+open SmtEval
 open Smtm
 
 namespace RuleProofs

@@ -1,6 +1,7 @@
 import CpcMini.Proofs.Unproven
 
 open Eo
+open SmtEval
 open Smtm
 
 namespace RuleProofs

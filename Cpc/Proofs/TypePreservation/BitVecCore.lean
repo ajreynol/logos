@@ -1,5 +1,6 @@
 import Cpc.Proofs.TypePreservation.BitVecPrep
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
