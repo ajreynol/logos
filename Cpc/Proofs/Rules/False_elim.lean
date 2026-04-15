@@ -4,17 +4,13 @@ open Eo
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
-
-private theorem eo_to_smt_false_eq :
-  __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
-  rw [__eo_to_smt.eq_def]
 
 private theorem eo_has_bool_type_false :
   RuleProofs.eo_has_bool_type (Term.Boolean false) := by
   change __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool
-  rw [eo_to_smt_false_eq]
+  rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
+    rw [__eo_to_smt.eq_def]]
   rfl
 
 private theorem eo_has_bool_type_eq_left (A B : Term) :
@@ -47,15 +43,15 @@ theorem typed___eo_prog_false_elim_impl (x1 : Term) :
                           (eo_has_bool_type_eq_left b (Term.Boolean false)
                             eo_has_bool_type_false hX1Bool))
                   | _ =>
-                      exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+                      simp [__eo_prog_false_elim] at hProg
               | _ =>
-                  exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+                  simp [__eo_prog_false_elim] at hProg
           | true =>
-              exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+              simp [__eo_prog_false_elim] at hProg
       | _ =>
-          exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+          simp [__eo_prog_false_elim] at hProg
   | _ =>
-      exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+      simp [__eo_prog_false_elim] at hProg
 
 /-- Derives the checker facts exposed by the EO program for `false_elim`. -/
 theorem facts___eo_prog_false_elim_impl
@@ -89,10 +85,8 @@ theorem facts___eo_prog_false_elim_impl
                         by
                           have hRel' :=
                             RuleProofs.eo_interprets_eq_rel M b (Term.Boolean false) hX1True
-                          rw [show __smtx_model_eval M (__eo_to_smt (Term.Boolean false)) =
-                              SmtValue.Boolean false by
-                                rw [eo_to_smt_false_eq]
-                                rfl] at hRel'
+                          rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
+                            rw [__eo_to_smt.eq_def]] at hRel'
                           exact hRel'
                       cases bv with
                       | false =>
@@ -105,15 +99,15 @@ theorem facts___eo_prog_false_elim_impl
                           rw [hEvalB] at hRel
                           simp [__smtx_model_eval_eq, smt_lit_veq] at hRel
                   | _ =>
-                      exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+                      simp [__eo_prog_false_elim] at hProg
               | _ =>
-                  exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+                  simp [__eo_prog_false_elim] at hProg
           | true =>
-              exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+              simp [__eo_prog_false_elim] at hProg
       | _ =>
-          exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+          simp [__eo_prog_false_elim] at hProg
   | _ =>
-      exact False.elim (by simpa [__eo_prog_false_elim] using hProg)
+      simp [__eo_prog_false_elim] at hProg
 
 theorem cmd_step_false_elim_properties
     (M : SmtModel) (hM : model_total_typed M)

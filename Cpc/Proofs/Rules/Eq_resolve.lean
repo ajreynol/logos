@@ -5,12 +5,7 @@ open Eo
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
-
-private theorem eo_to_smt_true_eq :
-  __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
-  rw [__eo_to_smt.eq_def]
 
 private theorem eo_has_bool_type_eq_right (A B : Term) :
   RuleProofs.eo_has_bool_type A ->
@@ -121,14 +116,16 @@ theorem facts___eo_prog_eq_resolve_impl
                   calc
                     __smtx_typeof (__eo_to_smt B) = SmtType.Bool := hBBool
                     _ = __smtx_typeof (__eo_to_smt (Term.Boolean true)) := by
-                      rw [eo_to_smt_true_eq]
+                      rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
+                        rw [__eo_to_smt.eq_def]]
                       rfl
                 exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
                   B (Term.Boolean true) hTyEq hBTrans
               have hRelBTrue :
                   RuleProofs.smt_value_rel (__smtx_model_eval M (__eo_to_smt B))
                     (__smtx_model_eval M (__eo_to_smt (Term.Boolean true))) := by
-                rw [eo_to_smt_true_eq]
+                rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
+                  rw [__eo_to_smt.eq_def]]
                 exact RuleProofs.smt_value_rel_symm _ _ hRel
               have hEqBTrue :
                   eo_interprets M
