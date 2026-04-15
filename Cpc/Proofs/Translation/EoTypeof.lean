@@ -47,10 +47,13 @@ theorem eo_to_smt_type_typeof_string
 
 /-- Simplifies EO-to-SMT type translation for `typeof_binary`. -/
 theorem eo_to_smt_type_typeof_binary
-    (w n : eo_lit_Int) :
-    __eo_to_smt_type (__eo_typeof (Term.Binary w n)) = SmtType.BitVec w := by
-  change __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral w)) = SmtType.BitVec w
-  rfl
+    (w n : eo_lit_Int)
+    (hWidth : smt_lit_zleq 0 w = true) :
+    __eo_to_smt_type (__eo_typeof (Term.Binary w n)) =
+      SmtType.BitVec (smt_lit_int_to_nat w) := by
+  change __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral w)) =
+    SmtType.BitVec (smt_lit_int_to_nat w)
+  simp [__eo_to_smt_type, smt_lit_ite, hWidth]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_var`. -/
 theorem eo_to_smt_type_typeof_var
@@ -524,44 +527,56 @@ theorem eo_to_smt_type_typeof_apply_re_comp_of_reglan
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvnot_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvnot_of_bitvec
-    (x : Term) (w : eo_lit_Int)
-    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    (x : Term) (w : smt_lit_Nat)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvnot x)) = SmtType.BitVec w := by
   change __eo_to_smt_type (__eo_typeof_bvnot (__eo_typeof x)) = SmtType.BitVec w
   rw [hx]
-  rfl
+  change __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) =
+    SmtType.BitVec w
+  simp [__eo_to_smt_type, smt_lit_ite, smt_lit_zleq, SmtEval.smt_lit_zleq,
+    smt_lit_nat_to_int, smt_lit_int_to_nat, SmtEval.smt_lit_nat_to_int,
+    SmtEval.smt_lit_int_to_nat]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvneg_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvneg_of_bitvec
-    (x : Term) (w : eo_lit_Int)
-    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    (x : Term) (w : smt_lit_Nat)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvneg x)) = SmtType.BitVec w := by
   change __eo_to_smt_type (__eo_typeof_bvnot (__eo_typeof x)) = SmtType.BitVec w
   rw [hx]
-  rfl
+  change __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) =
+    SmtType.BitVec w
+  simp [__eo_to_smt_type, smt_lit_ite, smt_lit_zleq, SmtEval.smt_lit_zleq,
+    smt_lit_nat_to_int, smt_lit_int_to_nat, SmtEval.smt_lit_nat_to_int,
+    SmtEval.smt_lit_int_to_nat]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvredand_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvredand_of_bitvec
-    (x : Term) (w : eo_lit_Int)
-    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    (x : Term) (w : smt_lit_Nat)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvredand x)) = SmtType.BitVec 1 := by
   change __eo_to_smt_type (__eo_typeof_bvredand (__eo_typeof x)) = SmtType.BitVec 1
   rw [hx]
-  rfl
+  change __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral 1)) = SmtType.BitVec 1
+  simp [__eo_to_smt_type, smt_lit_ite, smt_lit_zleq, SmtEval.smt_lit_zleq, smt_lit_int_to_nat,
+    SmtEval.smt_lit_int_to_nat]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvredor_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvredor_of_bitvec
-    (x : Term) (w : eo_lit_Int)
-    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    (x : Term) (w : smt_lit_Nat)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvredor x)) = SmtType.BitVec 1 := by
   change __eo_to_smt_type (__eo_typeof_bvredand (__eo_typeof x)) = SmtType.BitVec 1
   rw [hx]
-  rfl
+  change __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral 1)) = SmtType.BitVec 1
+  simp [__eo_to_smt_type, smt_lit_ite, smt_lit_zleq, SmtEval.smt_lit_zleq, smt_lit_int_to_nat,
+    SmtEval.smt_lit_int_to_nat]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_ubv_to_int_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec
-    (x : Term) (w : eo_lit_Int)
-    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    (x : Term) (w : smt_lit_Nat)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.ubv_to_int x)) = SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof__at_bvsize (__eo_typeof x)) = SmtType.Int
   rw [hx]
@@ -569,8 +584,8 @@ theorem eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_sbv_to_int_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec
-    (x : Term) (w : eo_lit_Int)
-    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    (x : Term) (w : smt_lit_Nat)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.sbv_to_int x)) = SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof__at_bvsize (__eo_typeof x)) = SmtType.Int
   rw [hx]
@@ -876,16 +891,16 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_concat_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_concat_of_smt_bitvec
-    (x y : Term) (w1 w2 : smt_lit_Int)
+    (x y : Term) (w1 w2 : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w1)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w2) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.concat y) x)) =
-      SmtType.BitVec (smt_lit_zplus w1 w2) := by
+      SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_nat_to_int w1) (smt_lit_nat_to_int w2))) := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvand_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvand_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvand y) x)) =
@@ -894,7 +909,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvand_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvor_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvor_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvor y) x)) =
@@ -903,7 +918,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvor_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvnand_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvnand_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvnand y) x)) =
@@ -912,7 +927,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvnand_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvnor_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvnor_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvnor y) x)) =
@@ -921,7 +936,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvnor_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvxor_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvxor_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvxor y) x)) =
@@ -930,7 +945,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvxor_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvxnor_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvxnor_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvxnor y) x)) =
@@ -939,7 +954,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvxnor_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvcomp_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvcomp_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvcomp y) x)) =
@@ -948,7 +963,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvcomp_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvadd_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvadd_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvadd y) x)) =
@@ -957,7 +972,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvadd_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvmul_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvmul_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvmul y) x)) =
@@ -966,7 +981,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvmul_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvudiv_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvudiv_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvudiv y) x)) =
@@ -975,7 +990,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvudiv_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvurem_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvurem_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvurem y) x)) =
@@ -984,7 +999,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvurem_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsub_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsub_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsub y) x)) =
@@ -993,7 +1008,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsub_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsdiv_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsdiv_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsdiv y) x)) =
@@ -1002,7 +1017,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsdiv_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsrem_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsrem_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsrem y) x)) =
@@ -1011,7 +1026,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsrem_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsmod_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsmod_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsmod y) x)) =
@@ -1020,7 +1035,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsmod_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvult_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvult_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvult y) x)) =
@@ -1029,7 +1044,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvult_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvule_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvule_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvule y) x)) =
@@ -1038,7 +1053,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvule_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvugt_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvugt_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvugt y) x)) =
@@ -1047,7 +1062,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvugt_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvuge_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvuge_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvuge y) x)) =
@@ -1056,7 +1071,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvuge_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvslt_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvslt_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvslt y) x)) =
@@ -1065,7 +1080,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvslt_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsle_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsle_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsle y) x)) =
@@ -1074,7 +1089,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsle_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsgt_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsgt_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsgt y) x)) =
@@ -1083,7 +1098,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsgt_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsge_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsge_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsge y) x)) =
@@ -1092,7 +1107,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsge_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvshl_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvshl_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvshl y) x)) =
@@ -1101,7 +1116,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvshl_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvlshr_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvlshr_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvlshr y) x)) =
@@ -1110,7 +1125,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvlshr_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvashr_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvashr_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvashr y) x)) =
@@ -1119,7 +1134,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvashr_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvuaddo_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvuaddo_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvuaddo y) x)) =
@@ -1128,7 +1143,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvuaddo_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsaddo_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsaddo_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsaddo y) x)) =
@@ -1137,7 +1152,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsaddo_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvumulo_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvumulo_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvumulo y) x)) =
@@ -1146,7 +1161,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvumulo_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsmulo_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsmulo_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsmulo y) x)) =
@@ -1155,7 +1170,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsmulo_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvusubo_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvusubo_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvusubo y) x)) =
@@ -1164,7 +1179,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvusubo_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvssubo_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvssubo_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvssubo y) x)) =
@@ -1173,7 +1188,7 @@ theorem eo_to_smt_type_typeof_apply_apply_bvssubo_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_bvsdivo_of_smt_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_bvsdivo_of_smt_bitvec
-    (x y : Term) (w : smt_lit_Int)
+    (x y : Term) (w : smt_lit_Nat)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.BitVec w)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.bvsdivo y) x)) =
@@ -1182,37 +1197,37 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsdivo_of_smt_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_repeat_of_smt_numeral_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_repeat_of_smt_numeral_bitvec
-    (x y : Term) (i w : smt_lit_Int)
+    (x y : Term) (i : smt_lit_Int) (w : smt_lit_Nat)
     (hy : __eo_to_smt y = SmtTerm.Numeral i)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
     (hi : smt_lit_zleq 1 i = true) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.repeat y) x)) =
-      SmtType.BitVec (smt_lit_zmult i w) := by
+      SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zmult i (smt_lit_nat_to_int w))) := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_zero_extend_of_smt_numeral_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_zero_extend_of_smt_numeral_bitvec
-    (x y : Term) (i w : smt_lit_Int)
+    (x y : Term) (i : smt_lit_Int) (w : smt_lit_Nat)
     (hy : __eo_to_smt y = SmtTerm.Numeral i)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
     (hi : smt_lit_zleq 0 i = true) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.zero_extend y) x)) =
-      SmtType.BitVec (smt_lit_zplus i w) := by
+      SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus i (smt_lit_nat_to_int w))) := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_sign_extend_of_smt_numeral_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_sign_extend_of_smt_numeral_bitvec
-    (x y : Term) (i w : smt_lit_Int)
+    (x y : Term) (i : smt_lit_Int) (w : smt_lit_Nat)
     (hy : __eo_to_smt y = SmtTerm.Numeral i)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
     (hi : smt_lit_zleq 0 i = true) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.sign_extend y) x)) =
-      SmtType.BitVec (smt_lit_zplus i w) := by
+      SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus i (smt_lit_nat_to_int w))) := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_rotate_left_of_smt_numeral_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_rotate_left_of_smt_numeral_bitvec
-    (x y : Term) (i w : smt_lit_Int)
+    (x y : Term) (i : smt_lit_Int) (w : smt_lit_Nat)
     (hy : __eo_to_smt y = SmtTerm.Numeral i)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
     (hi : smt_lit_zleq 0 i = true) :
@@ -1222,7 +1237,7 @@ theorem eo_to_smt_type_typeof_apply_apply_rotate_left_of_smt_numeral_bitvec
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_rotate_right_of_smt_numeral_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_rotate_right_of_smt_numeral_bitvec
-    (x y : Term) (i w : smt_lit_Int)
+    (x y : Term) (i : smt_lit_Int) (w : smt_lit_Nat)
     (hy : __eo_to_smt y = SmtTerm.Numeral i)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
     (hi : smt_lit_zleq 0 i = true) :
@@ -1237,13 +1252,13 @@ theorem eo_to_smt_type_typeof_apply_apply_int_to_bv_of_smt_numeral_int
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
     (hi : smt_lit_zleq 0 i = true) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply Term.int_to_bv y) x)) =
-      SmtType.BitVec i := by
+      SmtType.BitVec (smt_lit_int_to_nat i) := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvnego_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvnego_of_bitvec
-    (x : Term) (w : smt_lit_Int)
-    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral w)) :
+    (x : Term) (w : smt_lit_Nat)
+    (hx : __eo_typeof x = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply Term.bvnego x)) = SmtType.Bool := by
   sorry
 
@@ -1267,15 +1282,15 @@ theorem eo_to_smt_type_typeof_apply_apply_str_at_of_smt_seq_int
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_extract_of_smt_numeral_numeral_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_smt_numeral_numeral_bitvec
-    (x y z : Term) (i j w : smt_lit_Int)
+    (x y z : Term) (i j : smt_lit_Int) (w : smt_lit_Nat)
     (hz : __eo_to_smt z = SmtTerm.Numeral i)
     (hy : __eo_to_smt y = SmtTerm.Numeral j)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
     (hj0 : smt_lit_zleq 0 j = true)
     (hji : smt_lit_zleq j i = true)
-    (hiw : smt_lit_zlt i w = true) :
+    (hiw : smt_lit_zlt i (smt_lit_nat_to_int w) = true) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.extract z) y) x)) =
-      SmtType.BitVec (smt_lit_zplus (smt_lit_zplus i (smt_lit_zneg j)) 1) := by
+      SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_zplus i (smt_lit_zneg j)) 1)) := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_str_substr_of_smt_seq_int_int`. -/

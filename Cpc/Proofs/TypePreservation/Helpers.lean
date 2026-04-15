@@ -441,7 +441,7 @@ theorem no_value_of_dt_cons_type_set
 /-- Derives `no_value` from `dt_cons_type_bitvec`. -/
 theorem no_value_of_dt_cons_type_bitvec
     (T : SmtType)
-    (w : smt_lit_Int) :
+    (w : smt_lit_Nat) :
     ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.BitVec w) := by
   exact no_value_of_dt_cons_type_of_non_chain T (SmtType.BitVec w) (by
     simp [dt_cons_chain_result])
@@ -449,14 +449,25 @@ theorem no_value_of_dt_cons_type_bitvec
 /-- Canonical-form lemma for `bitvec_value`. -/
 theorem bitvec_value_canonical
     {v : SmtValue}
-    {w : smt_lit_Int}
+    {w : smt_lit_Nat}
     (h : __smtx_typeof_value v = SmtType.BitVec w) :
-    ∃ n : smt_lit_Int, v = SmtValue.Binary w n := by
+    ∃ n : smt_lit_Int, v = SmtValue.Binary (smt_lit_nat_to_int w) n := by
   cases v with
   | Binary w' n =>
       cases hWidth : smt_lit_zleq 0 w' <;>
         simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
-      cases h
+      have hw' : w' = smt_lit_nat_to_int w := by
+        have hNonneg : 0 <= w' := by
+          simpa [smt_lit_zleq, SmtEval.smt_lit_zleq] using hWidth
+        have hNat : smt_lit_int_to_nat w' = w := by
+          cases h
+          rfl
+        have hInt : (Int.ofNat (Int.toNat w') : Int) = w' :=
+          Int.toNat_of_nonneg hNonneg
+        simp [smt_lit_int_to_nat, SmtEval.smt_lit_int_to_nat] at hNat
+        simp [hNat] at hInt
+        exact hInt.symm
+      subst hw'
       exact ⟨n, rfl⟩
   | NotValue =>
       simp [__smtx_typeof_value] at h
@@ -505,8 +516,8 @@ theorem bitvec_value_canonical
 
 /-- Lemma about `bitvec_width_nonneg`. -/
 theorem bitvec_width_nonneg
-    {w n : smt_lit_Int}
-    (h : __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec w) :
+    {w n : smt_lit_Int} {u : smt_lit_Nat}
+    (h : __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec u) :
     smt_lit_zleq 0 w = true := by
   cases hWidth : smt_lit_zleq 0 w <;>
     simp [__smtx_typeof_value, smt_lit_ite, hWidth] at h
@@ -516,7 +527,7 @@ theorem bitvec_width_nonneg
 theorem typeof_value_binary_of_nonneg
     (w n : smt_lit_Int)
     (hWidth : smt_lit_zleq 0 w = true) :
-    __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec w := by
+    __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec (smt_lit_int_to_nat w) := by
   simp [__smtx_typeof_value, smt_lit_ite, hWidth]
 
 /-- Canonical-form lemma for `map_value`. -/

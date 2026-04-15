@@ -10,6 +10,66 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_bool
+    (n : eo_lit_Int) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.Bool := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_int
+    (n : eo_lit_Int) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.Int := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_real
+    (n : eo_lit_Int) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.Real := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_reglan
+    (n : eo_lit_Int) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.RegLan := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_char
+    (n : eo_lit_Int) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.Char := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_seq
+    (n : eo_lit_Int) (A : SmtType) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.Seq A := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_set
+    (n : eo_lit_Int) (A : SmtType) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.Set A := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_map
+    (n : eo_lit_Int) (A B : SmtType) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.Map A B := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_fun
+    (n : eo_lit_Int) (A B : SmtType) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.FunType A B := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
+@[simp] private theorem eo_to_smt_type_bitvec_lit_ne_usort
+    (n : eo_lit_Int) (i : eo_lit_Nat) :
+    smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec (smt_lit_int_to_nat n)) SmtType.None ≠
+      SmtType.USort i := by
+  by_cases hn : smt_lit_zleq 0 n = true <;> simp [smt_lit_ite, hn]
+
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_bool`. -/
 theorem eo_to_smt_type_tuple_ne_bool
     (U V : SmtType) :
@@ -88,7 +148,7 @@ theorem eo_to_smt_type_tuple_ne_reglan
 
 /-- Simplifies EO-to-SMT type translation for `tuple_ne_bitvec`. -/
 theorem eo_to_smt_type_tuple_ne_bitvec
-    (U V : SmtType) (w : smt_lit_Int) :
+    (U V : SmtType) (w : smt_lit_Nat) :
     __eo_to_smt_type_tuple U V ≠ SmtType.BitVec w := by
   cases V <;> try simp [__eo_to_smt_type_tuple]
   case Datatype s d =>
@@ -180,7 +240,7 @@ private theorem eo_to_smt_type_fun_ne_char
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_bitvec`. -/
 private theorem eo_to_smt_type_fun_ne_bitvec
-    (T U : Term) (w : smt_lit_Int) :
+    (T U : Term) (w : smt_lit_Nat) :
     __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.BitVec w := by
   cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
     simp [eo_to_smt_type_fun, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hT, hU]
@@ -343,9 +403,9 @@ theorem eo_to_smt_type_eq_char
 
 /-- Simplifies EO-to-SMT type translation for `eq_bitvec`. -/
 theorem eo_to_smt_type_eq_bitvec
-    {T : Term} {w : smt_lit_Int}
+    {T : Term} {w : smt_lit_Nat}
     (h : __eo_to_smt_type T = SmtType.BitVec w) :
-    T = Term.Apply Term.BitVec (Term.Numeral w) := by
+    T = Term.Apply Term.BitVec (Term.Numeral (smt_lit_nat_to_int w)) := by
   cases T <;> try simp [__eo_to_smt_type] at h
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
@@ -358,8 +418,15 @@ theorem eo_to_smt_type_eq_bitvec
     case BitVec =>
       cases x <;> simp [__eo_to_smt_type] at h
       case Numeral n =>
-        cases h
-        rfl
+        by_cases hn : smt_lit_zleq 0 n = true
+        · simp [smt_lit_ite, hn] at h
+          cases h
+          have hnNonneg : 0 <= n := by
+            simpa [smt_lit_zleq, SmtEval.smt_lit_zleq] using hn
+          simp [smt_lit_nat_to_int, smt_lit_int_to_nat,
+            SmtEval.smt_lit_nat_to_int, SmtEval.smt_lit_int_to_nat,
+            Int.toNat_of_nonneg hnNonneg]
+        · simp [smt_lit_ite, hn] at h
     case Apply f y =>
       cases f <;> try simp [__eo_to_smt_type] at h
       case FunType =>
