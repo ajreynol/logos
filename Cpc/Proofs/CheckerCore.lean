@@ -2305,8 +2305,8 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
     eo_interprets M (stateAssumes s) true ->
     eo_interprets M (statePushes s) true ->
     eo_interprets M P true
-  has_bool_type :
-    RuleProofs.eo_has_bool_type P
+  has_smt_translation :
+    RuleProofs.eo_has_smt_translation P
 
 /-- Packages rule-level step properties into the checker facts required for a single step. -/
 theorem cmd_step_facts_of_rule_properties
@@ -2320,7 +2320,7 @@ by
   · intro hAss hPush
     exact hProps.facts_of_true
       (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
-  · exact hProps.has_bool_type
+  · exact hProps.has_smt_translation
 
 /-- Packages rule-level step-pop properties into the checker facts required for a pop step. -/
 theorem cmd_step_pop_facts_of_rule_properties
@@ -2332,7 +2332,7 @@ theorem cmd_step_pop_facts_of_rule_properties
   CmdStepFacts M tail P :=
 by
   intro hsRoot hSuffix hProps
-  rcases hProps with ⟨X, hXMem, hFactsOfImp, hPopBool⟩
+  rcases hProps with ⟨X, hXMem, hFactsOfImp, hPopTrans⟩
   refine ⟨?_, ?_⟩
   · intro hAss hPush
     have hAssRoot : eo_interprets M (stateAssumes root) true := by
@@ -2347,4 +2347,4 @@ by
       exact (premiseTermList_true_of_truthInvariant M root premises hsRoot hAssRoot hPushRoot)
         X hXMem
     exact hFactsOfImp M hM hScoped
-  · exact hPopBool
+  · exact hPopTrans

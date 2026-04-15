@@ -123,7 +123,8 @@ by
               refine ⟨?_, ?_⟩
               · intro _hTrue
                 exact facts___eo_prog_refl_impl M hM a1 hATrans hProgRefl
-              · exact typed___eo_prog_refl_impl a1 hATrans hProgRefl
+              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (typed___eo_prog_refl_impl a1 hATrans hProgRefl)
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

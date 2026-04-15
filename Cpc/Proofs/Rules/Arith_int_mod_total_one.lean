@@ -156,8 +156,10 @@ by
               · intro _hTrue
                 change eo_interprets M (__eo_prog_arith_int_mod_total_one T1) true
                 exact facts___eo_prog_arith_int_mod_total_one_impl M hM T1 hT1Trans hResultTy
-              · change RuleProofs.eo_has_bool_type (__eo_prog_arith_int_mod_total_one T1)
-                exact typed___eo_prog_arith_int_mod_total_one_impl T1 hT1Trans hResultTy
+              · change RuleProofs.eo_has_smt_translation (__eo_prog_arith_int_mod_total_one T1)
+                exact RuleProofs.eo_has_smt_translation_of_has_bool_type
+                  (__eo_prog_arith_int_mod_total_one T1)
+                  (typed___eo_prog_arith_int_mod_total_one_impl T1 hT1Trans hResultTy)
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

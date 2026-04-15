@@ -147,10 +147,12 @@ by
                 exact facts___eo_prog_false_elim_impl M hM X1
                   (hTrue X1 (by simp [X1, premiseTermList]))
                   hProgFalseElim
-              · change RuleProofs.eo_has_bool_type (__eo_prog_false_elim (Proof.pf X1))
-                exact typed___eo_prog_false_elim_impl X1
-                  (hPremisesBool X1 (by simp [X1, premiseTermList]))
-                  hProgFalseElim
+              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (by
+                    change RuleProofs.eo_has_bool_type (__eo_prog_false_elim (Proof.pf X1))
+                    exact typed___eo_prog_false_elim_impl X1
+                      (hPremisesBool X1 (by simp [X1, premiseTermList]))
+                      hProgFalseElim)
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

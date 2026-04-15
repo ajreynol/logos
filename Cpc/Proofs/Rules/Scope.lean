@@ -173,8 +173,10 @@ theorem cmd_step_pop_scope_properties
                 change eo_interprets M (__eo_prog_scope x1 (Proof.pf x2)) true
                 exact facts___eo_prog_scope_impl M hM x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2
                   hProgScope
-              · change RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2))
-                exact typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2 hProgScope
+              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (by
+                    change RuleProofs.eo_has_bool_type (__eo_prog_scope x1 (Proof.pf x2))
+                    exact typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2 hProgScope)
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

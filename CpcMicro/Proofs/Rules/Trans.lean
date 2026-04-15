@@ -418,11 +418,12 @@ by
             (by
               simpa [premisesL, __eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList]
                 using hProg)
-        · exact typed___eo_prog_trans_impl (premiseAndFormulaList premisesL)
-            (premiseAndFormulaList_has_bool_type premisesL (by simpa [premisesL] using hPremises))
-            (by
-              simpa [premisesL, __eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList]
-                using hProg)
+        · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+            (typed___eo_prog_trans_impl (premiseAndFormulaList premisesL)
+              (premiseAndFormulaList_has_bool_type premisesL (by simpa [premisesL] using hPremises))
+              (by
+                simpa [premisesL, __eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList]
+                  using hProg))
       simpa [premisesL, __eo_cmd_step_proven, mk_premise_list_and_eq_premiseAndFormulaList] using hProps
   | cons a args =>
       exact False.elim (hProg (by simp [__eo_cmd_step_proven]))

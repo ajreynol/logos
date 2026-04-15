@@ -105,8 +105,9 @@ by
               · intro _hTrue
                 exact facts___eo_prog_refl_impl M hM a1 hATrans
                   (by simpa [__eo_cmd_step_proven] using hProg)
-              · exact typed___eo_prog_refl_impl a1 hATrans
-                  (by simpa [__eo_cmd_step_proven] using hProg)
+              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (typed___eo_prog_refl_impl a1 hATrans
+                    (by simpa [__eo_cmd_step_proven] using hProg))
           | cons n premises =>
               exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
       | cons a2 args =>

@@ -145,13 +145,9 @@ by
         CmdStepFacts M s (__eo_cmd_step_proven s r args premises) :=
       cmd_step_proven_facts_of_invariants M _hM s hNotStuck r args premises
         hTruth hsTy hsTrans hCmdTrans hTy
-    have hPBool :
-        RuleProofs.eo_has_bool_type (__eo_cmd_step_proven s r args premises) :=
-      hFacts.has_bool_type
     have hPTrans :
         RuleProofs.eo_has_smt_translation (__eo_cmd_step_proven s r args premises) :=
-      RuleProofs.eo_has_smt_translation_of_has_bool_type
-        (__eo_cmd_step_proven s r args premises) hPBool
+      hFacts.has_smt_translation
     have hPost :
           __eo_invoke_cmd s (CCmd.step r args premises) =
             CState.cons (CStateObj.proven (__eo_cmd_step_proven s r args premises)) s :=
@@ -350,13 +346,9 @@ by
                       (__eo_cmd_step_pop_proven root r args A premises) :=
                   cmd_step_pop_proven_facts_of_invariants M hM root cur A r args premises
                     hTruth hsRootTy hsRootTrans hCurSuffix hTy
-                have hPBool :
-                    RuleProofs.eo_has_bool_type (__eo_cmd_step_pop_proven root r args A premises) :=
-                  hFacts.has_bool_type
                 have hPTrans :
                     RuleProofs.eo_has_smt_translation (__eo_cmd_step_pop_proven root r args A premises) :=
-                  RuleProofs.eo_has_smt_translation_of_has_bool_type
-                    (__eo_cmd_step_pop_proven root r args A premises) hPBool
+                  hFacts.has_smt_translation
                 have hPush :
                     checkerTranslationInvariant
                       (__eo_push_proven (__eo_cmd_step_pop_proven root r args A premises) cur) :=
