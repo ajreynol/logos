@@ -452,11 +452,8 @@ def __smtx_type_wf (T : SmtType) : native_Bool :=
 def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
   (native_ite (native_Teq T SmtType.None) SmtType.None U)
 
-def __smtx_typeof_guard_inhabited (T : SmtType) (U : SmtType) : SmtType :=
-  (native_ite (native_inhabited_type T) U SmtType.None)
-
 def __smtx_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
-  (native_ite (__smtx_type_wf T) U SmtType.None)
+  (native_ite (native_inhabited_type T) (native_ite (__smtx_type_wf T) U SmtType.None) SmtType.None)
 
 def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
   | (SmtMap.cons j e m), i => (native_ite (native_veq j i) e (__smtx_msm_lookup m i))
@@ -635,15 +632,17 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply (SmtTerm.exists s T) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.Apply (SmtTerm.forall s T) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
-  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_guard_inhabited T T) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.choice s T) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_guard_wf T T) SmtType.None)
   | (SmtTerm.DtCons s d i) => 
     let _v0 := (SmtType.Datatype s d)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
-  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)) (__smtx_typeof x1))
+  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => 
+    let _v0 := (SmtType.Datatype s d)
+    (__smtx_typeof_guard_wf _v0 (__smtx_typeof_apply (SmtType.FunType _v0 (__smtx_ret_typeof_sel s d i j)) (__smtx_typeof x1)))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) SmtType.Bool) (__smtx_typeof x1))
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
-  | (SmtTerm.Var s T) => (__smtx_typeof_guard_inhabited T T)
-  | (SmtTerm.UConst s T) => (__smtx_typeof_guard_inhabited T T)
+  | (SmtTerm.Var s T) => (__smtx_typeof_guard_wf T T)
+  | (SmtTerm.UConst s T) => (__smtx_typeof_guard_wf T T)
   | x1 => SmtType.None
 
 
