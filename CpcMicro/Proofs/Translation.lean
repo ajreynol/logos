@@ -2,6 +2,7 @@ import CpcMicro.Proofs.Translation.Datatypes
 import CpcMicro.Proofs.Translation.Apply
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -30,8 +31,8 @@ private theorem eo_typeof_eq_self_of_not_stuck
     (hA : A ≠ Term.Stuck) :
     __eo_typeof_eq A A = Term.Bool := by
   cases A <;>
-    try simp [__eo_typeof_eq, __eo_requires, __eo_eq, eo_lit_teq, eo_lit_ite, eo_lit_not,
-      SmtEval.smt_lit_not]
+    try simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_teq, native_ite, native_not,
+      SmtEval.native_not]
   exact False.elim (hA rfl)
 
 /-- Derives `eo_typeof_bool` from `smt_bool`. -/
@@ -162,25 +163,25 @@ private theorem eo_to_smt_typeof_matches_translation :
   | Term.Boolean b, _ => by
       simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof]
   | Term.Numeral n, _ => by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_Numeral]
+      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __native_type_Numeral]
   | Term.Rational r, _ => by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_Rational]
+      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __native_type_Rational]
   | Term.String s, _ => by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_String,
-        __eo_to_smt_type, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq]
+      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __native_type_String,
+        __eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq]
   | Term.Binary w n, hNN => by
-      have hWidth : smt_lit_zleq 0 w = true := by
-        by_cases hw : smt_lit_zleq 0 w = true
+      have hWidth : native_zleq 0 w = true := by
+        by_cases hw : native_zleq 0 w = true
         · exact hw
         · exfalso
           apply hNN
-          simp [__eo_to_smt.eq_def, smt_lit_ite, SmtEval.smt_lit_and, hw]
+          simp [__eo_to_smt.eq_def, native_ite, SmtEval.native_and, hw]
       have hSmt := smtx_typeof_binary_of_non_none w n hNN
       have hEo :
           __eo_to_smt_type (__eo_typeof (Term.Binary w n)) =
-            SmtType.BitVec (smt_lit_int_to_nat w) := by
-        simp [__eo_typeof, __eo_lit_type_Binary, __eo_mk_apply, __eo_len,
-          __eo_to_smt_type, smt_lit_ite, hWidth]
+            SmtType.BitVec (native_int_to_nat w) := by
+        simp [__eo_typeof, __native_type_Binary, __eo_mk_apply, __eo_len,
+          __eo_to_smt_type, native_ite, hWidth]
       simpa [__eo_to_smt.eq_def] using hSmt.trans hEo.symm
   | Term.Type, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
@@ -199,7 +200,7 @@ private theorem eo_to_smt_typeof_matches_translation :
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.UConst i T, hNN => by
       simpa [__eo_to_smt.eq_def, __eo_typeof] using
-        smtx_typeof_uconst_of_non_none (smt_lit_uconst_id i) (__eo_to_smt_type T) hNN
+        smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T) hNN
   | Term.not, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.or, hNN => by
@@ -413,7 +414,7 @@ private theorem eo_to_smt_typeof_matches_translation :
                   have hNN' := hNN
                   rw [hTranslate] at hNN'
                   cases h : __smtx_typeof (__eo_to_smt x) <;>
-                    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at hNN'
+                    simp [__smtx_typeof, native_ite, native_Teq, h] at hNN'
                   simp
                 have hArgNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
                   rw [hArgSmtTy]

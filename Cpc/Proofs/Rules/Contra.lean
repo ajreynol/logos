@@ -1,6 +1,7 @@
 import Cpc.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -16,7 +17,7 @@ private theorem eo_eq_ne_true_of_ne (x y : Term) :
   · by_cases hYStuck : y = Term.Stuck
     · subst hYStuck
       simp [__eo_eq] at hEqTerm
-    · simp [__eo_eq, eo_lit_teq] at hEqTerm
+    · simp [__eo_eq, native_teq] at hEqTerm
       exact hNe hEqTerm.symm
 
 /-- Shows that the EO program for `contra_impl` is well typed. -/
@@ -37,12 +38,12 @@ theorem typed___eo_prog_contra_impl (x1 x2 : Term) :
             have hEqTerm : __eo_eq x1 x1 = Term.Boolean true := by
               by_cases hStuck : x1 = Term.Stuck
               · exact False.elim (hX1NotStuck hStuck)
-              · simp [__eo_eq, eo_lit_teq]
+              · simp [__eo_eq, native_teq]
             have hContraFalse :
                 __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not x1)) =
                   Term.Boolean false := by
               rw [__eo_prog_contra, hEqTerm]
-              simp [__eo_requires, eo_lit_teq, eo_lit_ite, eo_lit_not, SmtEval.smt_lit_not]
+              simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
             rw [hContraFalse]
             unfold RuleProofs.eo_has_bool_type
             rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
@@ -53,7 +54,7 @@ theorem typed___eo_prog_contra_impl (x1 x2 : Term) :
             have hContraStuck :
                 __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
               rw [__eo_prog_contra]
-              simp [__eo_requires, eo_lit_teq, eo_lit_ite, hEqNe]
+              simp [__eo_requires, native_teq, native_ite, hEqNe]
             exact False.elim (hProg hContraStuck)
       | _ =>
           change Term.Stuck ≠ Term.Stuck at hProg
@@ -90,7 +91,7 @@ theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
             have hContraStuck :
                 __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
               rw [__eo_prog_contra]
-              simp [__eo_requires, eo_lit_teq, eo_lit_ite, hEqNe]
+              simp [__eo_requires, native_teq, native_ite, hEqNe]
             exact hProgNotStuck hContraStuck
       | _ =>
           change Term.Stuck ≠ Term.Stuck at hProgNotStuck

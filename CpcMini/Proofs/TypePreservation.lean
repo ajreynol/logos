@@ -1,6 +1,7 @@
 import CpcMini.Proofs.TypePreservation.CoreArith
 import CpcMini.Proofs.TypePreservation.Datatypes
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false

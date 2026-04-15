@@ -1,5 +1,6 @@
 import CpcMini.Proofs.TypePreservation.Model
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -12,95 +13,95 @@ namespace Smtm
 /-- Shows that evaluating `boolean` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_boolean
     (M : SmtModel)
-    (b : smt_lit_Bool) :
+    (b : native_Bool) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Boolean b)) =
       __smtx_typeof (SmtTerm.Boolean b) := rfl
 
 /-- Shows that evaluating `numeral` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_numeral
     (M : SmtModel)
-    (n : smt_lit_Int) :
+    (n : native_Int) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Numeral n)) =
       __smtx_typeof (SmtTerm.Numeral n) := rfl
 
 /-- Shows that evaluating `rational` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_rational
     (M : SmtModel)
-    (q : smt_lit_Rat) :
+    (q : native_Rat) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Rational q)) =
       __smtx_typeof (SmtTerm.Rational q) := rfl
 
 /-- Shows that evaluating `binary` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_binary
     (M : SmtModel)
-    (w n : smt_lit_Int)
+    (w n : native_Int)
     (ht : term_has_non_none_type (SmtTerm.Binary w n)) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Binary w n)) =
       __smtx_typeof (SmtTerm.Binary w n) := by
   unfold term_has_non_none_type at ht
   let g :=
-    smt_lit_and (smt_lit_zleq 0 w)
-      (smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)))
+    native_and (native_zleq 0 w)
+      (native_zeq n (native_mod_total n (native_int_pow2 w)))
   have hg : g = true := by
     by_cases h : g = true
     · exact h
     · exfalso
       apply ht
-      change smt_lit_ite g (SmtType.BitVec (smt_lit_int_to_nat w)) SmtType.None = SmtType.None
-      simp [smt_lit_ite, h]
-  have hWidth : smt_lit_zleq 0 w = true := by
-    cases h1 : smt_lit_zleq 0 w
-    · simp [g, SmtEval.smt_lit_and, h1] at hg
+      change native_ite g (SmtType.BitVec (native_int_to_nat w)) SmtType.None = SmtType.None
+      simp [native_ite, h]
+  have hWidth : native_zleq 0 w = true := by
+    cases h1 : native_zleq 0 w
+    · simp [g, SmtEval.native_and, h1] at hg
     · rfl
   have hMod :
-      smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w)) = true := by
-    cases h2 : smt_lit_zeq n (smt_lit_mod_total n (smt_lit_int_pow2 w))
-    · simp [g, SmtEval.smt_lit_and, hWidth, h2] at hg
+      native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
+    cases h2 : native_zeq n (native_mod_total n (native_int_pow2 w))
+    · simp [g, SmtEval.native_and, hWidth, h2] at hg
     · rfl
-  change smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec (smt_lit_int_to_nat w)) SmtType.None =
+  change native_ite (native_zleq 0 w) (SmtType.BitVec (native_int_to_nat w)) SmtType.None =
     __smtx_typeof (SmtTerm.Binary w n)
-  rw [show smt_lit_ite (smt_lit_zleq 0 w) (SmtType.BitVec (smt_lit_int_to_nat w)) SmtType.None = SmtType.BitVec (smt_lit_int_to_nat w) by
-    simp [smt_lit_ite, hWidth]]
-  rw [show __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (smt_lit_int_to_nat w) by
-    simp [__smtx_typeof, smt_lit_ite, SmtEval.smt_lit_and, hWidth, hMod]]
+  rw [show native_ite (native_zleq 0 w) (SmtType.BitVec (native_int_to_nat w)) SmtType.None = SmtType.BitVec (native_int_to_nat w) by
+    simp [native_ite, hWidth]]
+  rw [show __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (native_int_to_nat w) by
+    simp [__smtx_typeof, native_ite, SmtEval.native_and, hWidth, hMod]]
 
 /-- Shows that evaluating `var` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_var
     (M : SmtModel)
     (hM : model_total_typed M)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Var s T)) =
       __smtx_typeof (SmtTerm.Var s T) := by
-  have hInh : smt_lit_inhabited_type T = true :=
+  have hInh : native_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hT
   change __smtx_typeof_value (__smtx_model_lookup M s T) =
     __smtx_typeof_guard_inhabited T T
   rw [model_total_typed_lookup hM s T hT]
-  simp [__smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+  simp [__smtx_typeof_guard_inhabited, native_ite, hInh]
 
 /-- Shows that evaluating `uconst` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_uconst
     (M : SmtModel)
     (hM : model_total_typed M)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (hT : type_inhabited T) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.UConst s T)) =
       __smtx_typeof (SmtTerm.UConst s T) := by
-  have hInh : smt_lit_inhabited_type T = true :=
+  have hInh : native_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hT
   change __smtx_typeof_value (__smtx_model_lookup M s T) =
     __smtx_typeof_guard_inhabited T T
   rw [model_total_typed_lookup hM s T hT]
-  simp [__smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+  simp [__smtx_typeof_guard_inhabited, native_ite, hInh]
 
 /-- Derives `model_eval_var` from `uninhabited`. -/
 theorem model_eval_var_of_uninhabited
     (M : SmtModel)
     (hM : model_total_typed M)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (hT : ¬ type_inhabited T) :
     __smtx_model_eval M (SmtTerm.Var s T) = SmtValue.NotValue := by
@@ -111,7 +112,7 @@ theorem model_eval_var_of_uninhabited
 theorem model_eval_uconst_of_uninhabited
     (M : SmtModel)
     (hM : model_total_typed M)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (hT : ¬ type_inhabited T) :
     __smtx_model_eval M (SmtTerm.UConst s T) = SmtValue.NotValue := by
@@ -120,29 +121,29 @@ theorem model_eval_uconst_of_uninhabited
 
 /-- Derives `exists_body_bool` from `non_none`. -/
 theorem exists_body_bool_of_non_none
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.exists s T) body)) :
     __smtx_typeof body = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
+    simp [__smtx_typeof, native_ite, native_Teq, h] at ht
   rfl
 
 /-- Derives `exists_term_typeof` from `non_none`. -/
 theorem exists_term_typeof_of_non_none
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.exists s T) body)) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.exists s T) body) = SmtType.Bool := by
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, exists_body_bool_of_non_none ht]
+  simp [__smtx_typeof, native_ite, native_Teq, exists_body_bool_of_non_none ht]
 
 /-- Shows that evaluating `exists` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_exists
     (M : SmtModel)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (body : SmtTerm)
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.exists s T) body)) :
@@ -168,29 +169,29 @@ theorem typeof_value_model_eval_exists
 
 /-- Derives `forall_body_bool` from `non_none`. -/
 theorem forall_body_bool_of_non_none
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.forall s T) body)) :
     __smtx_typeof body = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
+    simp [__smtx_typeof, native_ite, native_Teq, h] at ht
   rfl
 
 /-- Derives `forall_term_typeof` from `non_none`. -/
 theorem forall_term_typeof_of_non_none
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.forall s T) body)) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.forall s T) body) = SmtType.Bool := by
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, forall_body_bool_of_non_none ht]
+  simp [__smtx_typeof, native_ite, native_Teq, forall_body_bool_of_non_none ht]
 
 /-- Shows that evaluating `forall` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_forall
     (M : SmtModel)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (body : SmtTerm)
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.forall s T) body)) :
@@ -246,36 +247,36 @@ theorem typeof_value_model_eval_forall
 
 /-- Provides a witness for `choice_term_has`. -/
 theorem choice_term_has_witness
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.choice s T) body)) :
     ∃ v : SmtValue, __smtx_typeof_value v = T := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq,
+    simp [__smtx_typeof, native_ite, native_Teq,
       __smtx_typeof_guard_inhabited, h, smtx_inhabited_type_eq_true_iff] at ht
   exact ht.1
 
 /-- Derives `choice_term_typeof` from `non_none`. -/
 theorem choice_term_typeof_of_non_none
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.choice s T) body)) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.choice s T) body) = T := by
   have hTy := choice_term_has_witness ht
-  have hInh : smt_lit_inhabited_type T = true :=
+  have hInh : native_inhabited_type T = true :=
     (smtx_inhabited_type_eq_true_iff T).2 hTy
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq,
+    simp [__smtx_typeof, native_ite, native_Teq,
       __smtx_typeof_guard_inhabited, h, hInh] at ht ⊢
 
 /-- Shows that evaluating `choice` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_choice
     (M : SmtModel)
-    (s : smt_lit_String)
+    (s : native_String)
     (T : SmtType)
     (body : SmtTerm)
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.choice s T) body)) :

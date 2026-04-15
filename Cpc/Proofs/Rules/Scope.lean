@@ -1,6 +1,7 @@
 import Cpc.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -25,11 +26,11 @@ theorem typed___eo_prog_scope_of_bool_args (x1 x2 : Term) :
     cases x1 <;> simp [__eo_prog_scope] at hX1NotStuck ⊢
   unfold RuleProofs.eo_has_bool_type at hTy1 hTy2 ⊢
   rw [hScopeEq, eo_to_smt_imp_eq_scope]
-  change smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt x1)) SmtType.Bool)
-      (smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt x2)) SmtType.Bool)
+  change native_ite (native_Teq (__smtx_typeof (__eo_to_smt x1)) SmtType.Bool)
+      (native_ite (native_Teq (__smtx_typeof (__eo_to_smt x2)) SmtType.Bool)
         SmtType.Bool SmtType.None)
       SmtType.None = SmtType.Bool
-  simp [hTy1, hTy2, smt_lit_ite, smt_lit_Teq]
+  simp [hTy1, hTy2, native_ite, native_Teq]
 
 /-- Shows that the EO program for `scope_impl` is well typed. -/
 theorem typed___eo_prog_scope_impl (M : SmtModel) (x1 x2 : Term) :
@@ -72,22 +73,22 @@ theorem correct___eo_prog_scope
     by_cases hBool : __smtx_typeof (__eo_to_smt x1) = SmtType.Bool
     · simpa [eo_has_bool_type] using hBool
     · have : False := by
-        change smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt x1)) SmtType.Bool)
-            (smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt x2)) SmtType.Bool)
+        change native_ite (native_Teq (__smtx_typeof (__eo_to_smt x1)) SmtType.Bool)
+            (native_ite (native_Teq (__smtx_typeof (__eo_to_smt x2)) SmtType.Bool)
               SmtType.Bool SmtType.None)
             SmtType.None = SmtType.Bool at hScopeTy'
-        simp [hBool, smt_lit_ite, smt_lit_Teq] at hScopeTy'
+        simp [hBool, native_ite, native_Teq] at hScopeTy'
       exact False.elim this
   have hTy2 : eo_has_bool_type x2 := by
     have hBool1 : __smtx_typeof (__eo_to_smt x1) = SmtType.Bool := hTy1
     by_cases hBool : __smtx_typeof (__eo_to_smt x2) = SmtType.Bool
     · simpa [eo_has_bool_type] using hBool
     · have : False := by
-        change smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt x1)) SmtType.Bool)
-            (smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt x2)) SmtType.Bool)
+        change native_ite (native_Teq (__smtx_typeof (__eo_to_smt x1)) SmtType.Bool)
+            (native_ite (native_Teq (__smtx_typeof (__eo_to_smt x2)) SmtType.Bool)
               SmtType.Bool SmtType.None)
             SmtType.None = SmtType.Bool at hScopeTy'
-        simp [hBool1, hBool, smt_lit_ite, smt_lit_Teq] at hScopeTy'
+        simp [hBool1, hBool, native_ite, native_Teq] at hScopeTy'
       exact False.elim this
   rw [hScopeEq]
   rcases eo_eval_is_boolean_of_has_bool_type M hM x1 hTy1 with ⟨b1, hEval1⟩
@@ -103,7 +104,7 @@ theorem correct___eo_prog_scope
             (__smtx_model_eval M (__eo_to_smt x2)) = SmtValue.Boolean true <;>
         rw [hEval1, hEval2] <;>
         simp [__smtx_model_eval_imp, __smtx_model_eval_or,
-          __smtx_model_eval_not, SmtEval.smt_lit_not, SmtEval.smt_lit_or]
+          __smtx_model_eval_not, SmtEval.native_not, SmtEval.native_or]
   | true =>
       have hX1True : eo_interprets M x1 true :=
         eo_interprets_of_bool_eval M x1 true hTy1 hEval1

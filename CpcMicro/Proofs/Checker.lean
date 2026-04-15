@@ -1,6 +1,7 @@
 import CpcMicro.Proofs.RuleLemmas
 
 open Eo
+open SmtEval
 open Smtm
 
 /-- Shows that `invoke_step` preserves `localTruthInvariant_of_stuck`. -/
@@ -191,7 +192,7 @@ by
       intro r args premises hsRoot hCur hsRootTy hsRootTrans hSuffix hCurSuffix
       cases so with
       | assume_push A =>
-          cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
+          cases hStep : native_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
           | false =>
               have hTruth : checkerTruthInvariant M root :=
                 checkerLocalTruthInvariant_implies_truthInvariant M hsRoot
@@ -223,7 +224,7 @@ by
                 simpa [hPost] using checkerLocalTruthInvariant_stuck M
           | true =>
               have hEq : __eo_cmd_step_pop_proven root r args A premises = Term.Stuck := by
-                simpa [eo_lit_teq] using hStep
+                simpa [native_teq] using hStep
               simpa [__eo_invoke_cmd_step_pop, hEq, push_proven_eq_stuck_of_eq_stuck] using
                 checkerLocalTruthInvariant_stuck M
       | assume A =>
@@ -330,7 +331,7 @@ by
       intro r args premises hsRoot hsRootTy hsCurTy hsRootTrans hsCurTrans hSuffix hCurSuffix
       cases so with
       | assume_push A =>
-          cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
+          cases hStep : native_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
           | false =>
               have hTruth : checkerTruthInvariant M root :=
                 checkerLocalTruthInvariant_implies_truthInvariant M hsRoot
@@ -363,7 +364,7 @@ by
                 simpa [hPost] using checkerTranslationInvariant_stuck
           | true =>
               have hEq : __eo_cmd_step_pop_proven root r args A premises = Term.Stuck := by
-                simpa [eo_lit_teq] using hStep
+                simpa [native_teq] using hStep
               simpa [__eo_invoke_cmd_step_pop, hEq, push_proven_eq_stuck_of_eq_stuck] using
                 checkerTranslationInvariant_stuck
       | assume A =>
@@ -417,7 +418,7 @@ by
       intro r args premises hSuffix
       cases so with
       | assume_push A =>
-          cases hStep : eo_lit_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
+          cases hStep : native_teq (__eo_cmd_step_pop_proven root r args A premises) Term.Stuck with
           | false =>
               have hTailSuffix : stateAssumptionSuffix cur := by
                 simpa [stateAssumptionSuffix] using hSuffix
@@ -434,7 +435,7 @@ by
                 simp [hPost, checkerShapeInvariant]
           | true =>
               have hEq : __eo_cmd_step_pop_proven root r args A premises = Term.Stuck := by
-                simp [eo_lit_teq] at hStep
+                simp [native_teq] at hStep
                 exact hStep
               simp [__eo_invoke_cmd_step_pop, hEq, push_proven_eq_stuck_of_eq_stuck, checkerShapeInvariant]
       | assume A =>

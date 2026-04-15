@@ -1,21 +1,22 @@
 import Cpc.SmtModel
 
+open SmtEval
 open Smtm
 
 namespace Smtm
 
 /-- Establishes an equality relating `smtx_inhabited_type` and `true_iff`. -/
 theorem smtx_inhabited_type_eq_true_iff (T : SmtType) :
-    smt_lit_inhabited_type T = true ↔ type_inhabited T := by
+    native_inhabited_type T = true ↔ type_inhabited T := by
   classical
-  unfold smt_lit_inhabited_type type_inhabited
+  unfold native_inhabited_type type_inhabited
   simp
 
 /-- Establishes an equality relating `smtx_inhabited_type` and `false_iff`. -/
 theorem smtx_inhabited_type_eq_false_iff (T : SmtType) :
-    smt_lit_inhabited_type T = false ↔ ¬ type_inhabited T := by
+    native_inhabited_type T = false ↔ ¬ type_inhabited T := by
   classical
-  unfold smt_lit_inhabited_type type_inhabited
+  unfold native_inhabited_type type_inhabited
   by_cases h : ∃ v : SmtValue, __smtx_typeof_value v = T
   · simp [h]
   · simp [h]
@@ -40,7 +41,7 @@ def generic_apply_eval (f x : SmtTerm) : Prop :=
       __smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x)
 
 /-- Predicate asserting that a model returns a correctly typed value, or `NotValue`, at a given symbol and type. -/
-def model_typed_at (M : SmtModel) (s : smt_lit_String) (T : SmtType) : Prop :=
+def model_typed_at (M : SmtModel) (s : native_String) (T : SmtType) : Prop :=
   (type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
   (¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
 
@@ -54,7 +55,7 @@ theorem type_inhabited_int : type_inhabited SmtType.Int :=
 
 /-- Shows that the SMT type `real` is inhabited. -/
 theorem type_inhabited_real : type_inhabited SmtType.Real :=
-  ⟨SmtValue.Rational (smt_lit_mk_rational 0 1), rfl⟩
+  ⟨SmtValue.Rational (native_mk_rational 0 1), rfl⟩
 
 /-- Shows that the SMT type `seq` is inhabited. -/
 theorem type_inhabited_seq (T : SmtType) : type_inhabited (SmtType.Seq T) :=

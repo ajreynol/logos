@@ -1,6 +1,7 @@
 import CpcMini.Proofs.Common
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -116,12 +117,12 @@ by
         unfold __eo_get_nil_rec
         unfold __eo_requires
         unfold __eo_is_list_nil
-        simp [eo_lit_ite, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not]
+        simp [native_ite, native_teq, native_not, SmtEval.native_not]
     | cons p premises ih =>
         unfold premiseAndFormulaList
         unfold __eo_get_nil_rec
         unfold __eo_requires
-        simpa [eo_lit_ite, eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using ih
+        simpa [native_ite, native_teq, native_not, SmtEval.native_not] using ih
   intro premises
   have hNotStuck :
       __eo_get_nil_rec Term.and (premiseAndFormulaList premises) ≠ Term.Stuck :=
@@ -135,7 +136,7 @@ by
           simp [premiseAndFormulaList]
   unfold __eo_is_list
   unfold __eo_is_ok
-  simpa [eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] using hNotStuck
+  simpa [native_teq, native_not, SmtEval.native_not] using hNotStuck
 
 /-- Establishes an equality relating `mk_premise_list_and` and `premiseAndFormulaList`. -/
 theorem mk_premise_list_and_eq_premiseAndFormulaList :
@@ -150,8 +151,8 @@ by
       simp [__eo_mk_premise_list, premiseAndFormulaList, premiseTermList, __eo_nil]
   | cons n premises ih =>
       simp [__eo_mk_premise_list, premiseAndFormulaList, premiseTermList, __eo_cons,
-        __eo_requires, eo_lit_ite, eo_lit_teq, eo_lit_not, ih,
-        premiseAndFormulaList_is_and_list, SmtEval.smt_lit_not]
+        __eo_requires, native_ite, native_teq, native_not, ih,
+        premiseAndFormulaList_is_and_list, SmtEval.native_not]
 
 /-- Structure bundling the correctness and translation obligations for rules that only add a proven fact. -/
 structure StepRuleProperties

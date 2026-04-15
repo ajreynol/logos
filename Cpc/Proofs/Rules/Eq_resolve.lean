@@ -2,6 +2,7 @@ import Cpc.Proofs.Support
 import Cpc.Proofs.Rules.True_elim
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -21,8 +22,8 @@ private theorem eq_of_requires_eq_true_not_stuck (x1 A B : Term) :
   A = x1 := by
   intro hProg
   have hProg' := hProg
-  simp [__eo_requires, __eo_eq, eo_lit_ite, eo_lit_teq, eo_lit_not,
-    SmtEval.smt_lit_not] at hProg'
+  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
+    SmtEval.native_not] at hProg'
   have hReq : __eo_eq x1 A = Term.Boolean true := hProg'.1
   by_cases hx : x1 = Term.Stuck
   · subst hx
@@ -30,16 +31,16 @@ private theorem eq_of_requires_eq_true_not_stuck (x1 A B : Term) :
   · by_cases hA : A = Term.Stuck
     · subst hA
       simp [__eo_eq] at hReq
-    · have hDec : eo_lit_teq A x1 = true := by
+    · have hDec : native_teq A x1 = true := by
         simpa [__eo_eq, hx, hA] using hReq
-      simpa [eo_lit_teq] using hDec
+      simpa [native_teq] using hDec
 
 private theorem prog_eq_resolve_eq_rhs_of_not_stuck (x B : Term) :
   x ≠ Term.Stuck ->
   __eo_prog_eq_resolve (Proof.pf x) (Proof.pf (Term.Apply (Term.Apply Term.eq x) B)) = B := by
   intro hX
-  cases x <;> simp [__eo_prog_eq_resolve, __eo_requires, __eo_eq, eo_lit_ite,
-    eo_lit_teq, eo_lit_not, SmtEval.smt_lit_not] at hX ⊢
+  cases x <;> simp [__eo_prog_eq_resolve, __eo_requires, __eo_eq, native_ite,
+    native_teq, native_not, SmtEval.native_not] at hX ⊢
 
 /-- Shows that the EO program for `eq_resolve` is well typed. -/
 theorem typed___eo_prog_eq_resolve_impl (x1 x2 : Term) :

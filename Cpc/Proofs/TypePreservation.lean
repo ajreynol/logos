@@ -4,6 +4,7 @@ import Cpc.Proofs.TypePreservation.Datatypes
 import Cpc.Proofs.TypePreservation.Sets
 import Cpc.Proofs.TypePreservation.SeqStringRegex
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -559,7 +560,7 @@ def universal_counterexample_datatype_type : SmtType :=
 
 /-- Witness value used in the universal counterexample construction. -/
 def universal_counterexample_value : SmtValue :=
-  SmtValue.DtCons "D" universal_counterexample_dt smt_lit_nat_zero
+  SmtValue.DtCons "D" universal_counterexample_dt native_nat_zero
 
 /-- Model used to witness failure of universal type preservation. -/
 noncomputable def universal_counterexample_model : SmtModel :=
@@ -570,7 +571,7 @@ noncomputable def universal_counterexample_model : SmtModel :=
 def universal_counterexample_sel : SmtTerm :=
   SmtTerm.Apply
     (SmtTerm.DtSel "D" universal_counterexample_dt
-      (smt_lit_nat_succ smt_lit_nat_zero) smt_lit_nat_zero)
+      (native_nat_succ native_nat_zero) native_nat_zero)
     (SmtTerm.Var "x" universal_counterexample_datatype_type)
 
 /-- Full SMT term used in the universal counterexample construction. -/
@@ -606,22 +607,22 @@ theorem universal_counterexample_model_typed :
 theorem universal_counterexample_var_typeof :
     __smtx_typeof (SmtTerm.Var "x" universal_counterexample_datatype_type) =
       universal_counterexample_datatype_type := by
-  have hInh : smt_lit_inhabited_type universal_counterexample_datatype_type = true :=
+  have hInh : native_inhabited_type universal_counterexample_datatype_type = true :=
     (smtx_inhabited_type_eq_true_iff universal_counterexample_datatype_type).2
       universal_counterexample_datatype_inhabited
   change __smtx_typeof_guard_inhabited
       universal_counterexample_datatype_type universal_counterexample_datatype_type =
     universal_counterexample_datatype_type
-  simp [__smtx_typeof_guard_inhabited, smt_lit_ite, hInh]
+  simp [__smtx_typeof_guard_inhabited, native_ite, hInh]
 
 /-- Computes the selector result type used in the counterexample. -/
 theorem universal_counterexample_sel_result_type :
     __smtx_ret_typeof_sel "D" universal_counterexample_dt
-      (smt_lit_nat_succ smt_lit_nat_zero) smt_lit_nat_zero =
+      (native_nat_succ native_nat_zero) native_nat_zero =
         SmtType.Map SmtType.Int (SmtType.TypeRef "D") := by
   simp [universal_counterexample_dt, __smtx_ret_typeof_sel,
     __smtx_ret_typeof_sel_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
-    smt_lit_ite, smt_lit_Teq]
+    native_ite, native_Teq]
 
 /-- Computes the type of the counterexample selector term. -/
 theorem universal_counterexample_sel_typeof :
@@ -633,11 +634,11 @@ theorem universal_counterexample_sel_typeof :
       __smtx_typeof_apply
           (SmtType.Map universal_counterexample_datatype_type
             (__smtx_ret_typeof_sel "D" universal_counterexample_dt
-              (smt_lit_nat_succ smt_lit_nat_zero) smt_lit_nat_zero))
+              (native_nat_succ native_nat_zero) native_nat_zero))
           (__smtx_typeof (SmtTerm.Var "x" universal_counterexample_datatype_type)) ≠
         SmtType.None
     rw [universal_counterexample_var_typeof, universal_counterexample_sel_result_type]
-    simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq,
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq,
       universal_counterexample_datatype_type]
   simpa [universal_counterexample_sel_result_type, universal_counterexample_sel] using
     dt_sel_term_typeof_of_non_none hNN
@@ -649,10 +650,10 @@ theorem universal_counterexample_term_typeof :
   unfold universal_counterexample_term
   change
     (let _v0 := __smtx_typeof universal_counterexample_sel;
-      smt_lit_ite (smt_lit_Teq _v0 SmtType.None) SmtType.None (SmtType.Seq _v0)) =
+      native_ite (native_Teq _v0 SmtType.None) SmtType.None (SmtType.Seq _v0)) =
       SmtType.Seq (SmtType.Map SmtType.Int (SmtType.TypeRef "D"))
   rw [universal_counterexample_sel_typeof]
-  simp [smt_lit_ite, smt_lit_Teq]
+  simp [native_ite, native_Teq]
 
 /-- Shows that the universal counterexample term has non-`None` type. -/
 theorem universal_counterexample_term_non_none :
@@ -679,10 +680,10 @@ theorem universal_counterexample_wrong_sel_type_uninhabited :
 
 /-- Computes the failed selector lookup in the counterexample model. -/
 theorem universal_counterexample_wrong_sel_lookup :
-    __smtx_model_lookup universal_counterexample_model smt_lit_wrong_apply_sel_id
+    __smtx_model_lookup universal_counterexample_model native_wrong_apply_sel_id
       universal_counterexample_wrong_sel_type = SmtValue.NotValue := by
   exact model_total_typed_lookup_uninhabited universal_counterexample_model_typed
-    smt_lit_wrong_apply_sel_id universal_counterexample_wrong_sel_type
+    native_wrong_apply_sel_id universal_counterexample_wrong_sel_type
     universal_counterexample_wrong_sel_type_uninhabited
 
 /-- Computes evaluation of the counterexample variable. -/
@@ -701,22 +702,22 @@ theorem universal_counterexample_sel_eval :
       SmtValue.NotValue := by
   change
     __smtx_model_eval_dt_sel universal_counterexample_model "D"
-      universal_counterexample_dt (smt_lit_nat_succ smt_lit_nat_zero)
-      smt_lit_nat_zero
+      universal_counterexample_dt (native_nat_succ native_nat_zero)
+      native_nat_zero
       (__smtx_model_eval universal_counterexample_model
         (SmtTerm.Var "x" universal_counterexample_datatype_type)) = SmtValue.NotValue
   rw [universal_counterexample_var_eval]
   have hHead :
-      smt_lit_veq (__vsm_apply_head universal_counterexample_value)
+      native_veq (__vsm_apply_head universal_counterexample_value)
         (SmtValue.DtCons "D" universal_counterexample_dt
-          (smt_lit_nat_succ smt_lit_nat_zero)) = false := by
-    simp [universal_counterexample_value, __vsm_apply_head, smt_lit_veq]
+          (native_nat_succ native_nat_zero)) = false := by
+    simp [universal_counterexample_value, __vsm_apply_head, native_veq]
   unfold __smtx_model_eval_dt_sel
   rw [universal_counterexample_sel_result_type]
   rw [hHead]
-  simp [smt_lit_ite]
+  simp [native_ite]
   have hLookup :
-      __smtx_model_lookup universal_counterexample_model smt_lit_wrong_apply_sel_id
+      __smtx_model_lookup universal_counterexample_model native_wrong_apply_sel_id
         (SmtType.Map SmtType.Int
           (SmtType.Map SmtType.Int
             (SmtType.Map (SmtType.Datatype "D" universal_counterexample_dt)
@@ -744,7 +745,7 @@ theorem universal_counterexample_term_value_typeof :
       (__smtx_model_eval universal_counterexample_model universal_counterexample_term) =
         SmtType.Seq SmtType.None := by
   rw [universal_counterexample_term_eval]
-  simp [__smtx_typeof_value, __smtx_typeof_seq_value, smt_lit_ite, smt_lit_Teq]
+  simp [__smtx_typeof_value, __smtx_typeof_seq_value, native_ite, native_Teq]
 
 /-- Shows that the universal counterexample violates type preservation. -/
 theorem universal_counterexample_not_preserved :

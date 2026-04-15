@@ -2,6 +2,7 @@ import CpcMicro.Proofs.TypePreservation.Support
 import CpcMicro.Proofs.TypePreservation.CoreArith
 import CpcMicro.Proofs.TypePreservation.Datatypes
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -14,13 +15,13 @@ theorem inhabited_type_of_guard_inhabited_self_non_none
     {T : SmtType}
     (ht : __smtx_typeof_guard_inhabited T T ≠ SmtType.None) :
     type_inhabited T := by
-  cases h : smt_lit_inhabited_type T
-  · simp [__smtx_typeof_guard_inhabited, smt_lit_ite, h] at ht
+  cases h : native_inhabited_type T
+  · simp [__smtx_typeof_guard_inhabited, native_ite, h] at ht
   · exact (smtx_inhabited_type_eq_true_iff T).mp h
 
 /-- Derives `var_type_inhabited` from `non_none`. -/
 theorem var_type_inhabited_of_non_none
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     (ht : term_has_non_none_type (SmtTerm.Var s T)) :
     type_inhabited T := by
@@ -29,7 +30,7 @@ theorem var_type_inhabited_of_non_none
 
 /-- Derives `uconst_type_inhabited` from `non_none`. -/
 theorem uconst_type_inhabited_of_non_none
-    {s : smt_lit_String}
+    {s : native_String}
     {T : SmtType}
     (ht : term_has_non_none_type (SmtTerm.UConst s T)) :
     type_inhabited T := by
@@ -43,7 +44,7 @@ theorem not_arg_bool_of_non_none
     __smtx_typeof t = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof t <;>
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at ht
+    simp [__smtx_typeof, native_ite, native_Teq, h] at ht
   rfl
 
 /-- Shows that a well-typed generic application has well-typed children. -/

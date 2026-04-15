@@ -1,6 +1,7 @@
 import Cpc.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -84,7 +85,7 @@ theorem facts___eo_prog_true_elim_impl
                       | false =>
                           rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
                           rw [hEvalB] at hRel
-                          simp [__smtx_model_eval_eq, smt_lit_veq] at hRel
+                          simp [__smtx_model_eval_eq, native_veq] at hRel
                       | true =>
                           simpa [__eo_prog_true_elim] using
                             (RuleProofs.eo_interprets_of_bool_eval M b true hBBool hEvalB)

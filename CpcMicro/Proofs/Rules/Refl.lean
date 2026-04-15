@@ -1,6 +1,7 @@
 import CpcMicro.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -52,7 +53,7 @@ theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
   cases h with
   | intro_true hTy hEval =>
       simp [__eo_prog_refl, __eo_to_smt, __smtx_typeof, __smtx_typeof_eq,
-        __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at hTy
+        __smtx_typeof_guard, native_ite, native_Teq] at hTy
 
 end RuleProofs
 

@@ -1,20 +1,21 @@
 import CpcMicro.Proofs.TypePreservation.Common
 
+open SmtEval
 open Smtm
 
 namespace Smtm
 
 /-- Inductive predicate describing the SMT terms covered by the type-preservation proof. -/
 inductive supported_preservation_term : SmtTerm -> Prop
-  | boolean (b : smt_lit_Bool) : supported_preservation_term (SmtTerm.Boolean b)
-  | numeral (n : smt_lit_Int) : supported_preservation_term (SmtTerm.Numeral n)
-  | rational (q : smt_lit_Rat) : supported_preservation_term (SmtTerm.Rational q)
-  | string (s : smt_lit_String) : supported_preservation_term (SmtTerm.String s)
-  | binary (w n : smt_lit_Int) : supported_preservation_term (SmtTerm.Binary w n)
-  | var (s : smt_lit_String) (T : SmtType)
+  | boolean (b : native_Bool) : supported_preservation_term (SmtTerm.Boolean b)
+  | numeral (n : native_Int) : supported_preservation_term (SmtTerm.Numeral n)
+  | rational (q : native_Rat) : supported_preservation_term (SmtTerm.Rational q)
+  | string (s : native_String) : supported_preservation_term (SmtTerm.String s)
+  | binary (w n : native_Int) : supported_preservation_term (SmtTerm.Binary w n)
+  | var (s : native_String) (T : SmtType)
       (hT : type_inhabited T) :
       supported_preservation_term (SmtTerm.Var s T)
-  | uconst (s : smt_lit_String) (T : SmtType)
+  | uconst (s : native_String) (T : SmtType)
       (hT : type_inhabited T) :
       supported_preservation_term (SmtTerm.UConst s T)
   | ite {c t1 t2 : SmtTerm}
@@ -26,11 +27,11 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term
         (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)
-  | exists (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+  | exists (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.exists s T) body)
-  | forall (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+  | forall (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.forall s T) body)
-  | choice (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+  | choice (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.choice s T) body)
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
@@ -71,11 +72,11 @@ inductive supported_preservation_apply_case : SmtTerm -> SmtTerm -> Prop where
       supported_preservation_apply_case (SmtTerm.Apply SmtTerm.eq t1) t2
   | ite_case (c t1 t2 : SmtTerm) :
       supported_preservation_apply_case (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2
-  | exists_case (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+  | exists_case (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_apply_case (SmtTerm.exists s T) body
-  | forall_case (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+  | forall_case (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_apply_case (SmtTerm.forall s T) body
-  | choice_case (s : smt_lit_String) (T : SmtType) (body : SmtTerm) :
+  | choice_case (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_apply_case (SmtTerm.choice s T) body
   | generic {f x : SmtTerm}
       (hTy : generic_apply_type f x)

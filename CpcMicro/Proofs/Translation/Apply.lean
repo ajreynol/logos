@@ -3,6 +3,7 @@ import CpcMicro.Proofs.TypePreservation.CoreArith
 import CpcMicro.Proofs.TypePreservation.Datatypes
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -63,9 +64,9 @@ theorem smtx_typeof_translation_not_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hArg : __smtx_typeof (__eo_to_smt x) = SmtType.Bool := by
     cases h : __smtx_typeof (__eo_to_smt x) <;>
-      simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at hNonNone
+      simp [__smtx_typeof, native_ite, native_Teq, h] at hNonNone
     simp
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]
+  simp [__smtx_typeof, native_ite, native_Teq, hArg]
 
 /-- Derives `smtx_typeof_translation_or` from `non_none`. -/
 theorem smtx_typeof_translation_or_of_non_none
@@ -80,7 +81,7 @@ theorem smtx_typeof_translation_or_of_non_none
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hApplyNN
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
+  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Derives `smtx_typeof_translation_and` from `non_none`. -/
 theorem smtx_typeof_translation_and_of_non_none
@@ -95,7 +96,7 @@ theorem smtx_typeof_translation_and_of_non_none
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hApplyNN
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
+  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Derives `smtx_typeof_translation_imp` from `non_none`. -/
 theorem smtx_typeof_translation_imp_of_non_none
@@ -110,7 +111,7 @@ theorem smtx_typeof_translation_imp_of_non_none
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hApplyNN
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
+  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Derives `smtx_typeof_translation_eq` from `non_none`. -/
 theorem smtx_typeof_translation_eq_of_non_none
@@ -135,12 +136,12 @@ theorem smtx_typeof_eq_non_none
   by_cases hNone : T = SmtType.None
   · subst hNone
     exfalso
-    exact h (by simp [__smtx_typeof_eq, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq])
+    exact h (by simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq])
   · by_cases hEq : T = U
     · exact ⟨hEq, hNone⟩
     · exfalso
       exact h (by
-        simp [__smtx_typeof_eq, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hNone, hEq])
+        simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq, hNone, hEq])
 
 /-- Transfers generic application typing from EO terms to their SMT translations. -/
 theorem eo_to_smt_typeof_matches_translation_apply_generic
@@ -205,15 +206,13 @@ theorem eo_to_smt_typeof_matches_translation_apply_generic
       have hSmt :
           __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
         rw [hTranslate, hGeneric, hFun, hX]
-        simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
       have hTypeApply :
           __eo_typeof_apply (Term.Apply (Term.Apply Term.FunType T1) T2) T1 = T2 := by
         rw [__eo_typeof_apply.eq_def]
         by_cases hStuck : T1 = Term.Stuck
         · exact False.elim (hT1NotStuck hStuck)
-        · simp [hStuck, __eo_requires.eq_def, eo_lit_teq, eo_lit_ite, eo_lit_not]
-          intro hFalse
-          cases hFalse
+        · simp [hStuck, __eo_requires.eq_def, native_teq, native_ite, native_not]
       rw [hSmt, hTypeof, hFunTy, hArgTy, hTypeApply, hT2]
 
 /-- Handles the application case of `eo_to_smt_typeof_matches_translation`. -/

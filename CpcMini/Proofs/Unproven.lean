@@ -3,6 +3,7 @@ import CpcMini.Proofs.SmtModelLemmas
 import CpcMini.Proofs.TypePreservation
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false

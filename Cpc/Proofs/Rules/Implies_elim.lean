@@ -1,6 +1,7 @@
 import Cpc.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -25,11 +26,11 @@ private theorem eo_has_bool_type_or_of_bool_args (A B : Term) :
   intro hA hB
   unfold RuleProofs.eo_has_bool_type at hA hB ⊢
   rw [eo_to_smt_or_eq A B]
-  change smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
-      (smt_lit_ite (smt_lit_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
+  change native_ite (native_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
+      (native_ite (native_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
         SmtType.Bool SmtType.None)
       SmtType.None = SmtType.Bool
-  simp [hA, hB, smt_lit_ite, smt_lit_Teq]
+  simp [hA, hB, native_ite, native_Teq]
 
 private theorem eo_has_bool_type_imp_left (A B : Term) :
   RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.imp A) B) ->
@@ -76,7 +77,7 @@ private theorem eo_interprets_or_left_intro
             (__smtx_model_eval M (__eo_to_smt A))
             (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true
         rw [hEvalA, hEvalB]
-        simp [__smtx_model_eval_or, SmtEval.smt_lit_or]
+        simp [__smtx_model_eval_or, SmtEval.native_or]
 
 private theorem eo_interprets_or_right_intro
     (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
@@ -99,7 +100,7 @@ private theorem eo_interprets_or_right_intro
             (__smtx_model_eval M (__eo_to_smt A))
             (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true
         rw [hEvalA, hEvalB]
-        cases a <;> simp [__smtx_model_eval_or, SmtEval.smt_lit_or]
+        cases a <;> simp [__smtx_model_eval_or, SmtEval.native_or]
 
 /-- Shows that the EO program for `implies_elim` is well typed. -/
 theorem typed___eo_prog_implies_elim_impl (x1 : Term) :

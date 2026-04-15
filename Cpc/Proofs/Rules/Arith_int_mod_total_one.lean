@@ -1,6 +1,7 @@
 import Cpc.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -39,7 +40,7 @@ private theorem typeof_arg_of_prog_arith_int_mod_total_one_bool
   rw [hNum1Ty, hNum0Ty] at h
   cases hTy : __eo_typeof t1 <;>
     simp [__eo_typeof_eq, __eo_typeof_div, __eo_requires,
-      eo_lit_ite, eo_lit_teq, eo_lit_not, hTy] at h ⊢
+      native_ite, native_teq, native_not, hTy] at h ⊢
 
 private theorem eval_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral n)) = SmtValue.Numeral n := by
@@ -66,7 +67,7 @@ private theorem typed___eo_prog_arith_int_mod_total_one_impl
     have hNumTy : __smtx_typeof (__eo_to_smt (Term.Numeral 1)) = SmtType.Int := by
       simp [__eo_to_smt.eq_def, __smtx_typeof]
     rw [eo_to_smt_mod_total_eq]
-    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hSmtT1, hNumTy]
+    simp [__smtx_typeof, native_ite, native_Teq, hSmtT1, hNumTy]
   have hLhsTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 1)) := by
@@ -116,7 +117,7 @@ private theorem facts___eo_prog_arith_int_mod_total_one_impl
         SmtValue.Numeral 0 := by
     rw [eo_to_smt_mod_total_eq]
     simp [__smtx_model_eval, hEvalT1, hEval1, __smtx_model_eval_mod_total]
-    simp [SmtEval.smt_lit_mod_total]
+    simp [SmtEval.native_mod_total]
   rw [hProgEq]
   exact RuleProofs.eo_interprets_eq_of_rel M
     (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 1)) (Term.Numeral 0)

@@ -8,6 +8,7 @@ import CpcMini.Proofs.Rules.Trans
 
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -102,3 +103,4 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
+

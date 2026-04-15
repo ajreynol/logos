@@ -1,5 +1,6 @@
 import CpcMicro.Proofs.TypePreservation.Helpers
 
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -30,13 +31,13 @@ theorem typeof_apply_non_none_cases
   | Char => simp [__smtx_typeof_apply] at h
   | USort n => simp [__smtx_typeof_apply] at h
   | Map A B =>
-      cases X <;> simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h
+      cases X <;> simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq] at h
       all_goals
         first
           | contradiction
           | exact ⟨A, B, Or.inl rfl, h.2.1.symm, h.1, h.2.2⟩
   | FunType A B =>
-      cases X <;> simp [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq] at h
+      cases X <;> simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq] at h
       all_goals
         first
           | contradiction
@@ -94,7 +95,7 @@ theorem typeof_value_model_eval_apply_generic
       rw [hMap, hX]
       have hFun : __smtx_typeof_value (__smtx_model_eval M f) = SmtType.Map A B := by
         simpa [hMap] using hpresf
-      simpa [__smtx_typeof_apply, __smtx_typeof_guard, smt_lit_ite, smt_lit_Teq, hA] using
+      simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA] using
         typeof_value_model_eval_apply_map hA hFun hArg
   | inr hFunType =>
       have hFunVal : __smtx_typeof_value (__smtx_model_eval M f) = SmtType.FunType A B := by

@@ -1,6 +1,7 @@
 import CpcMicro.Proofs.Support
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -57,7 +58,7 @@ by
                           (__smtx_typeof (__eo_to_smt b2))).mpr ⟨hTy.symm, hNonNone'⟩
                       exact by
                         simp [RuleProofs.eo_has_bool_type, __eo_prog_symm, __mk_symm, __eo_to_smt,
-                          __smtx_typeof, hEqTy, smt_lit_ite, smt_lit_Teq]
+                          __smtx_typeof, hEqTy, native_ite, native_Teq]
                   | _ =>
                       exact False.elim (hProg (by simp [__eo_prog_symm, __mk_symm]))
               | _ =>
@@ -77,12 +78,12 @@ private theorem eo_interprets_not_false_implies_true (M : SmtModel) (t : Term) :
   cases h with
   | intro_false hty hEval =>
       have htyt : __smtx_typeof (__eo_to_smt t) = SmtType.Bool := by
-        simp [__eo_to_smt, __smtx_typeof, smt_lit_Teq, smt_lit_ite] at hty
+        simp [__eo_to_smt, __smtx_typeof, native_Teq, native_ite] at hty
         exact hty
       cases ht : __smtx_model_eval M (__eo_to_smt t) <;>
         simp [__eo_to_smt, __smtx_model_eval, __smtx_model_eval_not, ht] at hEval
       case Boolean b =>
-        cases b <;> simp [SmtEval.smt_lit_not] at hEval
+        cases b <;> simp [SmtEval.native_not] at hEval
         exact smt_interprets.intro_true M (__eo_to_smt t) htyt ht
 
 /-- Establishes an equality relating `eo_interprets` and `symm_true`. -/

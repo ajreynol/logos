@@ -2,6 +2,7 @@ import CpcMini.Proofs.Translation.Datatypes
 import CpcMini.Proofs.Translation.Apply
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -27,7 +28,7 @@ translation semantics on purpose. The current staging area therefore focuses on:
 
 /-- Inductive predicate describing the boolean and equality EO terms handled by the mini translation proof. -/
 inductive supported_bool_translation_term : Term -> Prop where
-  | boolean (b : eo_lit_Bool) :
+  | boolean (b : native_Bool) :
       supported_bool_translation_term (Term.Boolean b)
   | «not» (x : Term) :
       supported_bool_translation_term (Term.Apply Term.not x)

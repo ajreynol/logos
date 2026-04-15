@@ -593,6 +593,7 @@ import Cpc.Proofs.Rules.Distinct_card_conflict
 
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -4197,3 +4198,4 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | distinct_card_conflict =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
+

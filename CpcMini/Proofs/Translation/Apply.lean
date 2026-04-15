@@ -2,6 +2,7 @@ import CpcMini.Proofs.Translation.Datatypes
 import CpcMini.Proofs.TypePreservation.CoreArith
 
 open Eo
+open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
@@ -20,9 +21,9 @@ theorem smtx_typeof_translation_not_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hArg : __smtx_typeof (__eo_to_smt x) = SmtType.Bool := by
     cases h : __smtx_typeof (__eo_to_smt x) <;>
-      simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, h] at hNonNone
+      simp [__smtx_typeof, native_ite, native_Teq, h] at hNonNone
     simp
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArg]
+  simp [__smtx_typeof, native_ite, native_Teq, hArg]
 
 /-- Computes `__smtx_typeof` for `translation_or_of_non_none`. -/
 theorem smtx_typeof_translation_or_of_non_none
@@ -37,7 +38,7 @@ theorem smtx_typeof_translation_or_of_non_none
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hApplyNN
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
+  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_and_of_non_none`. -/
 theorem smtx_typeof_translation_and_of_non_none
@@ -52,7 +53,7 @@ theorem smtx_typeof_translation_and_of_non_none
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hApplyNN
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
+  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_imp_of_non_none`. -/
 theorem smtx_typeof_translation_imp_of_non_none
@@ -67,7 +68,7 @@ theorem smtx_typeof_translation_imp_of_non_none
     unfold term_has_non_none_type
     exact hNonNone
   have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hApplyNN
-  simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hArgs.1, hArgs.2]
+  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_eq_of_non_none`. -/
 theorem smtx_typeof_translation_eq_of_non_none
