@@ -819,7 +819,7 @@ def __smtx_seq_nth (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_bv_sizeof_type : SmtType -> smt_lit_Int
-  | (SmtType.BitVec x1) => x1
+  | (SmtType.BitVec x1) => (smt_lit_nat_to_int x1)
   | t1 => (smt_lit_zneg 1)
 
 
@@ -1538,27 +1538,27 @@ def __smtx_typeof_store : SmtType -> SmtType -> SmtType -> SmtType
 
 
 def __smtx_typeof_concat : SmtType -> SmtType -> SmtType
-  | (SmtType.BitVec x1), (SmtType.BitVec x2) => (SmtType.BitVec (smt_lit_nat_plus x1 x2))
+  | (SmtType.BitVec x1), (SmtType.BitVec x2) => (SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_nat_to_int x1) (smt_lit_nat_to_int x2))))
   | x3, x4 => SmtType.None
 
 
 def __smtx_typeof_extract : SmtTerm -> SmtTerm -> SmtType -> SmtType
-  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2), (SmtType.BitVec x3) => (smt_lit_ite (smt_lit_zleq 0 x2) (smt_lit_ite (smt_lit_zleq x2 x1) (smt_lit_ite (smt_lit_zlt x1 x3) (SmtType.BitVec (smt_lit_zplus (smt_lit_zplus x1 (smt_lit_zneg x2)) 1)) SmtType.None) SmtType.None) SmtType.None)
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2), (SmtType.BitVec x3) => (smt_lit_ite (smt_lit_zleq 0 x2) (smt_lit_ite (smt_lit_zleq x2 x1) (smt_lit_ite (smt_lit_zlt x1 (smt_lit_nat_to_int x3)) (SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_zplus x1 (smt_lit_zneg x2)) 1))) SmtType.None) SmtType.None) SmtType.None)
   | x4, x5, x6 => SmtType.None
 
 
 def __smtx_typeof_repeat : SmtTerm -> SmtType -> SmtType
-  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 1 x1) (SmtType.BitVec (smt_lit_zmult x1 x2)) SmtType.None)
+  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 1 x1) (SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zmult x1 (smt_lit_nat_to_int x2)))) SmtType.None)
   | x3, x4 => SmtType.None
 
 
 def __smtx_typeof_zero_extend : SmtTerm -> SmtType -> SmtType
-  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_zplus x1 x2)) SmtType.None)
+  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_nat_to_int x1) (smt_lit_nat_to_int x2)))) SmtType.None)
   | x3, x4 => SmtType.None
 
 
 def __smtx_typeof_sign_extend : SmtTerm -> SmtType -> SmtType
-  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_zplus x1 x2)) SmtType.None)
+  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus x1 (smt_lit_nat_to_int x2)))) SmtType.None)
   | x3, x4 => SmtType.None
 
 
@@ -1664,7 +1664,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.bvnor x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.bvxor x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.bvxnor x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvcomp x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) (SmtType.BitVec 1))
+  | (SmtTerm.bvcomp x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) (SmtType.BitVec (smt_lit_nat_succ smt_lit_nat_zero)))
   | (SmtTerm.bvneg x1) => (__smtx_typeof_bv_op_1 (__smtx_typeof x1))
   | (SmtTerm.bvadd x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.bvmul x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
