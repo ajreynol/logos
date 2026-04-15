@@ -11,12 +11,33 @@ private theorem eo_to_smt_mod_total_eq (x y : Term) :
       SmtTerm.mod_total (__eo_to_smt x) (__eo_to_smt y) := by
   rw [__eo_to_smt.eq_def]
 
+private theorem prog_arith_int_mod_total_zero_eq
+    (t1 : Term)
+    (hT1NotStuck : t1 ≠ Term.Stuck) :
+    __eo_prog_arith_int_mod_total_zero t1 =
+      (Term.Apply
+        (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)))
+        t1) := by
+  cases hTy : t1 <;> simp [__eo_prog_arith_int_mod_total_zero, hTy] at hT1NotStuck ⊢
+
 private theorem typeof_arg_of_prog_arith_int_mod_total_zero_bool
     (t1 : Term)
+    (hT1Trans : RuleProofs.eo_has_smt_translation t1)
     (h : __eo_typeof (__eo_prog_arith_int_mod_total_zero t1) = Term.Bool) :
     __eo_typeof t1 = Term.Int := by
-  cases hT1 : __eo_typeof t1 <;>
-    simp [__eo_prog_arith_int_mod_total_zero, hT1] at h
+  have hT1NotStuck : t1 ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation t1 hT1Trans
+  rw [prog_arith_int_mod_total_zero_eq t1 hT1NotStuck] at h
+  change __eo_typeof_eq (__eo_typeof (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)))
+    (__eo_typeof t1) = Term.Bool at h
+  change __eo_typeof_eq (__eo_typeof_div (__eo_typeof t1) (__eo_typeof (Term.Numeral 0)))
+    (__eo_typeof t1) = Term.Bool at h
+  have hNumTy : __eo_typeof (Term.Numeral 0) = Term.Int := by
+    native_decide
+  rw [hNumTy] at h
+  cases hTy : __eo_typeof t1 <;>
+    simp [__eo_typeof_eq, __eo_typeof_div, __eo_requires,
+      eo_lit_ite, eo_lit_teq, eo_lit_not, hTy] at h ⊢
 
 private theorem eval_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral n)) = SmtValue.Numeral n := by
@@ -30,7 +51,9 @@ private theorem typed___eo_prog_arith_int_mod_total_zero_impl
   RuleProofs.eo_has_bool_type (__eo_prog_arith_int_mod_total_zero t1) := by
   intro hT1Trans hResultTy
   have hT1Ty : __eo_typeof t1 = Term.Int :=
-    typeof_arg_of_prog_arith_int_mod_total_zero_bool t1 hResultTy
+    typeof_arg_of_prog_arith_int_mod_total_zero_bool t1 hT1Trans hResultTy
+  have hT1NotStuck : t1 ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation t1 hT1Trans
   have hSmtT1 : __smtx_typeof (__eo_to_smt t1) = SmtType.Int :=
     TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
       t1 Term.Int (__eo_to_smt t1) rfl hT1Trans hT1Ty
@@ -38,18 +61,15 @@ private theorem typed___eo_prog_arith_int_mod_total_zero_impl
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0))) =
         SmtType.Int := by
+    have hNumTy : __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
+      simp [__eo_to_smt.eq_def, __smtx_typeof]
     rw [eo_to_smt_mod_total_eq]
-    simp [__smtx_typeof, hSmtT1]
+    simp [__smtx_typeof, smt_lit_ite, smt_lit_Teq, hSmtT1, hNumTy]
   have hLhsTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)) := by
-    unfold RuleProofs.eo_has_smt_translation
-    rw [hLhsTy]
-    simp
-  change RuleProofs.eo_has_bool_type
-    (Term.Apply
-      (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)))
-      t1)
+    simpa [RuleProofs.eo_has_smt_translation, hLhsTy]
+  rw [prog_arith_int_mod_total_zero_eq t1 hT1NotStuck]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)) t1
     (by rw [hLhsTy, hSmtT1]) hLhsTrans
@@ -64,7 +84,16 @@ private theorem facts___eo_prog_arith_int_mod_total_zero_impl
       RuleProofs.eo_has_bool_type (__eo_prog_arith_int_mod_total_zero t1) :=
     typed___eo_prog_arith_int_mod_total_zero_impl t1 hT1Trans hResultTy
   have hT1Ty : __eo_typeof t1 = Term.Int :=
-    typeof_arg_of_prog_arith_int_mod_total_zero_bool t1 hResultTy
+    typeof_arg_of_prog_arith_int_mod_total_zero_bool t1 hT1Trans hResultTy
+  have hT1NotStuck : t1 ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation t1 hT1Trans
+  have hProgEq := prog_arith_int_mod_total_zero_eq t1 hT1NotStuck
+  have hProgBool' :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply
+          (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)))
+          t1) := by
+    simpa [hProgEq] using hProgBool
   have hSmtT1 : __smtx_typeof (__eo_to_smt t1) = SmtType.Int :=
     TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
       t1 Term.Int (__eo_to_smt t1) rfl hT1Trans hT1Ty
@@ -83,14 +112,10 @@ private theorem facts___eo_prog_arith_int_mod_total_zero_impl
     rw [eo_to_smt_mod_total_eq]
     simp [__smtx_model_eval, hEvalT1, hEval0, __smtx_model_eval_mod_total]
     simp [SmtEval.smt_lit_mod_total]
-  change eo_interprets M
-    (Term.Apply
-      (Term.Apply Term.eq (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)))
-      t1)
-    true
+  rw [hProgEq]
   exact RuleProofs.eo_interprets_eq_of_rel M
     (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)) t1
-    hProgBool <| by
+    hProgBool' <| by
       rw [hEvalLhs, hEvalT1]
       exact RuleProofs.smt_value_rel_refl (SmtValue.Numeral n)
 

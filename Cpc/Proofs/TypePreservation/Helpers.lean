@@ -57,6 +57,23 @@ theorem typeof_dt_cons_value_rec_chain_result
       simpa [__smtx_typeof_dt_cons_value_rec] using
         typeof_dt_cons_value_rec_chain_result s d0 d n
 
+/-- Lemma about `dt_cons_chain_result_of_dt_cons_value_type`. -/
+theorem dt_cons_chain_result_of_dt_cons_value_type
+    {s : smt_lit_String}
+    {d : SmtDatatype}
+    {i : smt_lit_Nat}
+    {T : SmtType}
+    (h : __smtx_typeof_value (SmtValue.DtCons s d i) = T) :
+    dt_cons_chain_result T := by
+  have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+  by_cases hWf : __smtx_type_wf (SmtType.Datatype s d)
+  · simp [__smtx_typeof_value, hWf] at h
+    cases h
+    simpa using hShape
+  · simp [__smtx_typeof_value, hWf] at h
+    cases h
+    simpa [dt_cons_chain_result] using True.intro
+
 /-- Lemma about `typeof_value_dt_cons_type_chain_result`. -/
 theorem typeof_value_dt_cons_type_chain_result :
     ∀ v : SmtValue, ∀ T U : SmtType,
@@ -98,10 +115,7 @@ theorem typeof_value_dt_cons_type_chain_result :
   | SmtValue.RegLan _, T, U, h => by
       simp [__smtx_typeof_value] at h
   | SmtValue.DtCons s d i, T, U, h => by
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simpa [dt_cons_chain_result] using hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | SmtValue.Apply f v, T, U, h => by
       cases hf : __smtx_typeof_value f <;>
         simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
@@ -194,10 +208,7 @@ theorem typeof_value_ne_type_ref
       simp [__smtx_typeof_value]
   | SmtValue.DtCons s' d i => by
       intro h
-      have hShape := typeof_dt_cons_value_rec_chain_result s' d (__smtx_dt_substitute s' d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | SmtValue.Apply f v => by
       intro h
       cases hf : __smtx_typeof_value f <;>
@@ -263,10 +274,7 @@ theorem bool_value_canonical
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       exfalso
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
       cases hf : __smtx_typeof_value f <;>
@@ -324,10 +332,7 @@ theorem int_value_canonical
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       exfalso
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
       cases hf : __smtx_typeof_value f <;>
@@ -385,10 +390,7 @@ theorem real_value_canonical
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       exfalso
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
       cases hf : __smtx_typeof_value f <;>
@@ -490,10 +492,7 @@ theorem bitvec_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
       cases hf : __smtx_typeof_value f <;>
@@ -559,10 +558,7 @@ theorem map_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
       cases hf : __smtx_typeof_value f <;>
@@ -612,10 +608,7 @@ theorem set_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
       cases hf : __smtx_typeof_value f <;>
@@ -715,10 +708,7 @@ theorem seq_value_canonical
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
       cases hf : __smtx_typeof_value f <;>
@@ -1054,10 +1044,7 @@ theorem reglan_value_canonical
   | Char _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
-      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
-      rw [__smtx_typeof_value] at h
-      rw [h] at hShape
-      simp [dt_cons_chain_result] at hShape
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
       cases hf : __smtx_typeof_value f <;>

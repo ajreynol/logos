@@ -549,7 +549,8 @@ def universal_counterexample_dt : SmtDatatype :=
   SmtDatatype.sum
     SmtDatatypeCons.unit
     (SmtDatatype.sum
-      (SmtDatatypeCons.cons (SmtType.TypeRef "A") SmtDatatypeCons.unit)
+      (SmtDatatypeCons.cons
+        (SmtType.Map SmtType.Int (SmtType.TypeRef "D")) SmtDatatypeCons.unit)
       SmtDatatype.null)
 
 /-- Datatype type used in the universal counterexample construction. -/
@@ -580,15 +581,14 @@ def universal_counterexample_term : SmtTerm :=
 def universal_counterexample_wrong_sel_type : SmtType :=
   SmtType.Map SmtType.Int
     (SmtType.Map SmtType.Int
-      (SmtType.Map universal_counterexample_datatype_type (SmtType.TypeRef "A")))
+      (SmtType.Map universal_counterexample_datatype_type
+        (SmtType.Map SmtType.Int (SmtType.TypeRef "D"))))
 
 /-- Computes the type of the universal counterexample value. -/
 theorem universal_counterexample_value_typeof :
     __smtx_typeof_value universal_counterexample_value =
       universal_counterexample_datatype_type := by
-  simp [universal_counterexample_value, universal_counterexample_datatype_type,
-    universal_counterexample_dt, __smtx_typeof_value, __smtx_typeof_dt_cons_value_rec,
-    __smtx_dt_substitute, __smtx_dtc_substitute]
+  native_decide
 
 /-- Shows that the counterexample datatype is inhabited. -/
 theorem universal_counterexample_datatype_inhabited :
@@ -618,14 +618,15 @@ theorem universal_counterexample_var_typeof :
 theorem universal_counterexample_sel_result_type :
     __smtx_ret_typeof_sel "D" universal_counterexample_dt
       (smt_lit_nat_succ smt_lit_nat_zero) smt_lit_nat_zero =
-        SmtType.TypeRef "A" := by
+        SmtType.Map SmtType.Int (SmtType.TypeRef "D") := by
   simp [universal_counterexample_dt, __smtx_ret_typeof_sel,
     __smtx_ret_typeof_sel_rec, __smtx_dt_substitute, __smtx_dtc_substitute,
     smt_lit_ite, smt_lit_Teq]
 
 /-- Computes the type of the counterexample selector term. -/
 theorem universal_counterexample_sel_typeof :
-    __smtx_typeof universal_counterexample_sel = SmtType.TypeRef "A" := by
+    __smtx_typeof universal_counterexample_sel =
+      SmtType.Map SmtType.Int (SmtType.TypeRef "D") := by
   have hNN : term_has_non_none_type universal_counterexample_sel := by
     unfold term_has_non_none_type universal_counterexample_sel
     change
@@ -643,12 +644,13 @@ theorem universal_counterexample_sel_typeof :
 
 /-- Computes the type of the full universal counterexample term. -/
 theorem universal_counterexample_term_typeof :
-    __smtx_typeof universal_counterexample_term = SmtType.Seq (SmtType.TypeRef "A") := by
+    __smtx_typeof universal_counterexample_term =
+      SmtType.Seq (SmtType.Map SmtType.Int (SmtType.TypeRef "D")) := by
   unfold universal_counterexample_term
   change
     (let _v0 := __smtx_typeof universal_counterexample_sel;
       smt_lit_ite (smt_lit_Teq _v0 SmtType.None) SmtType.None (SmtType.Seq _v0)) =
-      SmtType.Seq (SmtType.TypeRef "A")
+      SmtType.Seq (SmtType.Map SmtType.Int (SmtType.TypeRef "D"))
   rw [universal_counterexample_sel_typeof]
   simp [smt_lit_ite, smt_lit_Teq]
 
@@ -664,7 +666,7 @@ theorem universal_counterexample_term_inhabited :
     term_has_inhabited_type universal_counterexample_term := by
   unfold term_has_inhabited_type
   rw [universal_counterexample_term_typeof]
-  exact type_inhabited_seq (SmtType.TypeRef "A")
+  exact type_inhabited_seq (SmtType.Map SmtType.Int (SmtType.TypeRef "D"))
 
 /-- Shows that the counterexample selector lookup type is uninhabited. -/
 theorem universal_counterexample_wrong_sel_type_uninhabited :
@@ -672,7 +674,8 @@ theorem universal_counterexample_wrong_sel_type_uninhabited :
   apply not_type_inhabited_map
   apply not_type_inhabited_map
   apply not_type_inhabited_map
-  simpa [type_inhabited] using no_value_of_type_ref "A"
+  apply not_type_inhabited_map
+  simpa [type_inhabited] using no_value_of_type_ref "D"
 
 /-- Computes the failed selector lookup in the counterexample model. -/
 theorem universal_counterexample_wrong_sel_lookup :
@@ -717,7 +720,7 @@ theorem universal_counterexample_sel_eval :
         (SmtType.Map SmtType.Int
           (SmtType.Map SmtType.Int
             (SmtType.Map (SmtType.Datatype "D" universal_counterexample_dt)
-              (SmtType.TypeRef "A")))) = SmtValue.NotValue := by
+              (SmtType.Map SmtType.Int (SmtType.TypeRef "D"))))) = SmtValue.NotValue := by
     simpa [universal_counterexample_wrong_sel_type, universal_counterexample_datatype_type] using
       universal_counterexample_wrong_sel_lookup
   rw [hLookup]
