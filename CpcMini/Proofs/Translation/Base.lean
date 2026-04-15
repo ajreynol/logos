@@ -47,7 +47,8 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT type translation for `bitvec`. -/
 @[simp] theorem eo_to_smt_type_bitvec (n : eo_lit_Int) :
-    __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) = SmtType.BitVec n := by
+    __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) =
+      smt_lit_ite (smt_lit_zleq 0 n) (SmtType.BitVec n) SmtType.None := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `char`. -/
