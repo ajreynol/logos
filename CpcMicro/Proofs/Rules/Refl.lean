@@ -1,4 +1,4 @@
-import CpcMicro.Proofs.Rules.Support
+import CpcMicro.Proofs.Support
 
 open Eo
 open Smtm

@@ -1,5 +1,5 @@
 import CpcMini.Spec
-import CpcMini.Proofs.Rules.Support
+import CpcMini.Proofs.Support
 
 open Eo
 open Smtm

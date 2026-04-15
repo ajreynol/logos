@@ -1,5 +1,5 @@
 import CpcMicro.Proofs.CheckerCore
-import CpcMicro.Proofs.Rules.Support
+import CpcMicro.Proofs.Support
 import CpcMicro.Proofs.Rules.Scope
 import CpcMicro.Proofs.Rules.Contra
 import CpcMicro.Proofs.Rules.Refl
