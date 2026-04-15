@@ -1553,7 +1553,7 @@ def __smtx_typeof_repeat : SmtTerm -> SmtType -> SmtType
 
 
 def __smtx_typeof_zero_extend : SmtTerm -> SmtType -> SmtType
-  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus (smt_lit_nat_to_int x1) (smt_lit_nat_to_int x2)))) SmtType.None)
+  | (SmtTerm.Numeral x1), (SmtType.BitVec x2) => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_int_to_nat (smt_lit_zplus x1 (smt_lit_nat_to_int x2)))) SmtType.None)
   | x3, x4 => SmtType.None
 
 
@@ -1613,7 +1613,7 @@ def __smtx_typeof_set_member : SmtType -> SmtType -> SmtType
 
 
 def __smtx_typeof_int_to_bv : SmtTerm -> SmtType -> SmtType
-  | (SmtTerm.Numeral x1), SmtType.Int => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec x1) SmtType.None)
+  | (SmtTerm.Numeral x1), SmtType.Int => (smt_lit_ite (smt_lit_zleq 0 x1) (SmtType.BitVec (smt_lit_int_to_nat x1)) SmtType.None)
   | x2, x3 => SmtType.None
 
 
