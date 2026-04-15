@@ -193,10 +193,12 @@ theorem cmd_step_symm_properties
                 exact facts___eo_prog_symm_impl M hM X
                   (hTrue X (by simp [X, premiseTermList]))
                   hProgSymm
-              · change RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf X))
-                exact typed___eo_prog_symm_impl X
-                  (hPremisesBool X (by simp [X, premiseTermList]))
-                  hProgSymm
+              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (by
+                    change RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf X))
+                    exact typed___eo_prog_symm_impl X
+                      (hPremisesBool X (by simp [X, premiseTermList]))
+                      hProgSymm)
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

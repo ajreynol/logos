@@ -153,16 +153,16 @@ by
         __eo_requires, eo_lit_ite, eo_lit_teq, eo_lit_not, ih,
         premiseAndFormulaList_is_and_list, SmtEval.smt_lit_not]
 
-/-- Structure bundling the correctness and typing obligations for rules that only add a proven fact. -/
+/-- Structure bundling the correctness and translation obligations for rules that only add a proven fact. -/
 structure StepRuleProperties
     (M : SmtModel) (premises : List Term) (P : Term) : Prop where
   facts_of_true :
     AllInterpretedTrue M premises ->
     eo_interprets M P true
-  has_bool_type :
-    RuleProofs.eo_has_bool_type P
+  has_smt_translation :
+    RuleProofs.eo_has_smt_translation P
 
-/-- Predicate packaging the correctness and typing obligations for rules that also pop assumptions. -/
+/-- Predicate packaging the correctness and translation obligations for rules that also pop assumptions. -/
 def StepPopRuleProperties
     (x1 : Term) (premises : List Term) (P : Term) : Prop :=
   ∃ x2,
@@ -170,4 +170,4 @@ def StepPopRuleProperties
     (forall (M : SmtModel), model_total_typed M ->
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
       eo_interprets M P true) ∧
-    RuleProofs.eo_has_bool_type P
+    RuleProofs.eo_has_smt_translation P

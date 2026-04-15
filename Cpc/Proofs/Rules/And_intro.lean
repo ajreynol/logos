@@ -26,10 +26,12 @@ by
         rw [mk_premise_list_and_eq_premiseAndFormulaList]
         exact premiseAndFormulaList_true_of_all_true M
           (premiseTermList s premises) hTrue
-      · change RuleProofs.eo_has_bool_type (__eo_mk_premise_list Term.and premises s)
-        rw [mk_premise_list_and_eq_premiseAndFormulaList]
-        exact premiseAndFormulaList_has_bool_type
-          (premiseTermList s premises) hPremisesBool
+      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+          (by
+            change RuleProofs.eo_has_bool_type (__eo_mk_premise_list Term.and premises s)
+            rw [mk_premise_list_and_eq_premiseAndFormulaList]
+            exact premiseAndFormulaList_has_bool_type
+              (premiseTermList s premises) hPremisesBool)
   | cons _ _ =>
       change Term.Stuck ≠ Term.Stuck at hProg
       exact False.elim (hProg rfl)

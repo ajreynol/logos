@@ -211,9 +211,10 @@ by
                 exact facts___eo_prog_symm_impl M hM X
                   (hTrue X (by simp [X, premiseTermList]))
                   (by simpa [X, premiseTermList, __eo_cmd_step_proven] using hProg)
-              · exact typed___eo_prog_symm_impl X
-                  (hPremisesBool X (by simp [X, premiseTermList]))
-                  (by simpa [X, premiseTermList, __eo_cmd_step_proven] using hProg)
+              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (typed___eo_prog_symm_impl X
+                    (hPremisesBool X (by simp [X, premiseTermList]))
+                    (by simpa [X, premiseTermList, __eo_cmd_step_proven] using hProg))
           | cons n2 premises =>
               exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
   | cons a args =>

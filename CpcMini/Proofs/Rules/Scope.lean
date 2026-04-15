@@ -167,9 +167,11 @@ by
                 simpa [x2, __eo_cmd_step_pop_proven] using
                   facts___eo_prog_scope_impl M hM x1 x2 hImp hTrans1 hTrans2 hTy1 hTy2
                     (by simpa [x2, __eo_cmd_step_pop_proven] using hProg)
-              · simpa [x2, __eo_cmd_step_pop_proven] using
-                  typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2
-                    (by simpa [x2, __eo_cmd_step_pop_proven] using hProg)
+              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (by
+                    simpa [x2, __eo_cmd_step_pop_proven] using
+                      typed___eo_prog_scope_of_bool_args x1 x2 hBool1 hBool2
+                        (by simpa [x2, __eo_cmd_step_pop_proven] using hProg))
           | cons _ _ =>
               exact False.elim (hProg (by simp [__eo_cmd_step_pop_proven]))
   | cons _ _ =>

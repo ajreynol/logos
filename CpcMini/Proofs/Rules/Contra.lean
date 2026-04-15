@@ -153,10 +153,11 @@ by
                       (hTrue X1 (by simp [X1, premiseTermList]))
                       (hTrue X2 (by simp [X2, premiseTermList]))
                       (by simpa [X1, X2, premiseTermList, __eo_cmd_step_proven] using hProg)
-                  · exact typed___eo_prog_contra_impl X1 X2
-                      (hPremisesBool X1 (by simp [X1, premiseTermList]))
-                      (hPremisesBool X2 (by simp [X2, premiseTermList]))
-                      (by simpa [X1, X2, premiseTermList, __eo_cmd_step_proven] using hProg)
+                  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                      (typed___eo_prog_contra_impl X1 X2
+                        (hPremisesBool X1 (by simp [X1, premiseTermList]))
+                        (hPremisesBool X2 (by simp [X2, premiseTermList]))
+                        (by simpa [X1, X2, premiseTermList, __eo_cmd_step_proven] using hProg))
               | cons n3 premises =>
                   exact False.elim (hProg (by simp [__eo_cmd_step_proven]))
   | cons a args =>

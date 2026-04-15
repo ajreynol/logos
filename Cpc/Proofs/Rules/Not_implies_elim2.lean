@@ -122,11 +122,13 @@ by
                 exact facts___eo_prog_not_implies_elim2_impl M X1
                   (hTrue X1 (by simp [X1, premiseTermList]))
                   hProgNotImplies
-              · change RuleProofs.eo_has_bool_type
-                  (__eo_prog_not_implies_elim2 (Proof.pf X1))
-                exact typed___eo_prog_not_implies_elim2_impl X1
-                  (hPremisesBool X1 (by simp [X1, premiseTermList]))
-                  hProgNotImplies
+              · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (by
+                    change RuleProofs.eo_has_bool_type
+                      (__eo_prog_not_implies_elim2 (Proof.pf X1))
+                    exact typed___eo_prog_not_implies_elim2_impl X1
+                      (hPremisesBool X1 (by simp [X1, premiseTermList]))
+                      hProgNotImplies)
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

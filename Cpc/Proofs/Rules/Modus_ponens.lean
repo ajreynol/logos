@@ -157,11 +157,13 @@ by
                       (hTrue X1 (by simp [X1, premiseTermList]))
                       (hTrue X2 (by simp [X2, premiseTermList]))
                       hProgModusPonens
-                  · change RuleProofs.eo_has_bool_type
-                      (__eo_prog_modus_ponens (Proof.pf X1) (Proof.pf X2))
-                    exact typed___eo_prog_modus_ponens_impl X1 X2
-                      (hPremisesBool X2 (by simp [X2, premiseTermList]))
-                      hProgModusPonens
+                  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                      (by
+                        change RuleProofs.eo_has_bool_type
+                          (__eo_prog_modus_ponens (Proof.pf X1) (Proof.pf X2))
+                        exact typed___eo_prog_modus_ponens_impl X1 X2
+                          (hPremisesBool X2 (by simp [X2, premiseTermList]))
+                          hProgModusPonens)
               | cons _ _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)
