@@ -553,7 +553,10 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.DtCons s d i) => 
     let _v0 := (SmtType.Datatype s d)
     (native_ite (__smtx_type_wf _v0) (__smtx_typeof_dt_cons_value_rec _v0 (__smtx_dt_substitute s d d) i) SmtType.None)
-  | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
+  | (SmtValue.Apply f v) =>
+    match __vsm_apply_head f with
+    | SmtValue.DtCons _ _ _ => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
+    | _ => SmtType.None
   | v => SmtType.None
 
 
