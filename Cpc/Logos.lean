@@ -5612,6 +5612,7 @@ def __eo_typeof_dt_sel_return : Datatype -> native_Nat -> native_Nat -> Term
 def __eo_typeof_apply : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply Term.FunType T) U), V => (__eo_requires T V U)
+  | (Term.DtcAppType T U), V => (__eo_requires T V U)
   | _, _ => Term.Stuck
 
 
