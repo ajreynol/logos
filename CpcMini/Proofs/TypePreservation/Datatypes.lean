@@ -840,18 +840,13 @@ theorem typeof_value_model_eval_apply_dt
       rw [hDtConsApply hiNN, hOuter, hf, hi]
       simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, native_Teq, hA]
   | Apply f v =>
-      cases hHeadF : __vsm_apply_head f <;>
-        simp [__smtx_typeof_value, hHeadF] at hf
-      case DtCons s d n =>
-        have hfApply : __smtx_typeof_value (SmtValue.Apply f v) = SmtType.FunType A B := by
-          simpa [__smtx_typeof_value, hHeadF] using hf
-        have hOuter :
-            __smtx_typeof_value (SmtValue.Apply (SmtValue.Apply f v) i) =
-              __smtx_typeof_apply_value
-                (__smtx_typeof_value (SmtValue.Apply f v)) (__smtx_typeof_value i) := by
-          simp [__smtx_typeof_value, __vsm_apply_head, hHeadF]
-        rw [hApplyApply hiNN, hOuter, hfApply, hi]
-        simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      have hOuter :
+          __smtx_typeof_value (SmtValue.Apply (SmtValue.Apply f v) i) =
+            __smtx_typeof_apply_value
+              (__smtx_typeof_value (SmtValue.Apply f v)) (__smtx_typeof_value i) := by
+        rfl
+      rw [hApplyApply hiNN, hOuter, hf, hi]
+      simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, native_Teq, hA]
 
 /-- Shows that evaluating `apply_generic` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_generic
