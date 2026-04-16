@@ -1,4 +1,4 @@
-import CpcMini.Proofs.Translation.Datatypes
+import CpcMini.Proofs.Translation.EoTypeof
 import CpcMini.Proofs.Translation.Apply
 
 open Eo
