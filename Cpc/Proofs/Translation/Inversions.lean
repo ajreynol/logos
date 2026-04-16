@@ -253,6 +253,55 @@ private theorem eo_to_smt_type_fun_ne_seq
   cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
     simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+private theorem eo_to_smt_type_dtc_app_ne_bool
+    (T U : Term) :
+    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Bool := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+private theorem eo_to_smt_type_dtc_app_ne_int
+    (T U : Term) :
+    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Int := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+private theorem eo_to_smt_type_dtc_app_ne_real
+    (T U : Term) :
+    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Real := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+private theorem eo_to_smt_type_dtc_app_ne_reglan
+    (T U : Term) :
+    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.RegLan := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+private theorem eo_to_smt_type_dtc_app_ne_char
+    (T U : Term) :
+    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Char := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+private theorem eo_to_smt_type_dtc_app_ne_bitvec
+    (T U : Term) (w : native_Nat) :
+    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.BitVec w := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+private theorem eo_to_smt_type_dtc_app_ne_seq
+    (T U : Term) (V : SmtType) :
+    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Seq V := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
 /-- Simplifies EO-to-SMT type translation for `seq_inner`. -/
 private theorem eo_to_smt_type_seq_inner
     (T : Term) {U : SmtType}
@@ -268,6 +317,8 @@ theorem eo_to_smt_type_eq_bool
     (h : __eo_to_smt_type T = SmtType.Bool) :
     T = Term.Bool := by
   cases T <;> try simp [__eo_to_smt_type] at h
+  case DtcAppType T U =>
+    exact (eo_to_smt_type_dtc_app_ne_bool T U h).elim
   case Bool =>
     rfl
   case Apply f x =>
@@ -296,6 +347,8 @@ theorem eo_to_smt_type_eq_int
     (h : __eo_to_smt_type T = SmtType.Int) :
     T = Term.Int := by
   cases T <;> try simp [__eo_to_smt_type] at h
+  case DtcAppType T U =>
+    exact (eo_to_smt_type_dtc_app_ne_int T U h).elim
   case Int =>
     rfl
   case Apply f x =>
@@ -324,6 +377,8 @@ theorem eo_to_smt_type_eq_real
     (h : __eo_to_smt_type T = SmtType.Real) :
     T = Term.Real := by
   cases T <;> try simp [__eo_to_smt_type] at h
+  case DtcAppType T U =>
+    exact (eo_to_smt_type_dtc_app_ne_real T U h).elim
   case Real =>
     rfl
   case Apply f x =>
@@ -352,6 +407,8 @@ theorem eo_to_smt_type_eq_reglan
     (h : __eo_to_smt_type T = SmtType.RegLan) :
     T = Term.RegLan := by
   cases T <;> try simp [__eo_to_smt_type] at h
+  case DtcAppType T U =>
+    exact (eo_to_smt_type_dtc_app_ne_reglan T U h).elim
   case RegLan =>
     rfl
   case Apply f x =>
@@ -380,6 +437,8 @@ theorem eo_to_smt_type_eq_char
     (h : __eo_to_smt_type T = SmtType.Char) :
     T = Term.Char := by
   cases T <;> try simp [__eo_to_smt_type] at h
+  case DtcAppType T U =>
+    exact (eo_to_smt_type_dtc_app_ne_char T U h).elim
   case Char =>
     rfl
   case Apply f x =>
@@ -408,6 +467,8 @@ theorem eo_to_smt_type_eq_bitvec
     (h : __eo_to_smt_type T = SmtType.BitVec w) :
     T = Term.Apply Term.BitVec (Term.Numeral (native_nat_to_int w)) := by
   cases T <;> try simp [__eo_to_smt_type] at h
+  case DtcAppType T U =>
+    exact (eo_to_smt_type_dtc_app_ne_bitvec T U w h).elim
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
     case Seq =>
@@ -444,6 +505,8 @@ theorem eo_to_smt_type_eq_seq
     (h : __eo_to_smt_type T = SmtType.Seq U) :
     ∃ V, T = Term.Apply Term.Seq V ∧ __eo_to_smt_type V = U := by
   cases T <;> try simp [__eo_to_smt_type] at h
+  case DtcAppType T U =>
+    exact (eo_to_smt_type_dtc_app_ne_seq T U _ h).elim
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
     case Seq =>
