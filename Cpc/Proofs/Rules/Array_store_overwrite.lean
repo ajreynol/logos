@@ -76,14 +76,19 @@ private theorem typeof_args_of_prog_array_store_overwrite_bool
               (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1)) i1) f1) ≠
         Term.Stuck :=
     hTypesNotStuck.1
-  have hInnerNotStuck :
-      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) ≠ Term.Stuck := by
-    intro hInnerStuck
+  have hInnerTyF :
+      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) =
+        Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1) := by
     change __eo_typeof_store
         (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
         (__eo_typeof i1) (__eo_typeof f1) ≠ Term.Stuck at hLhsNotStuck
-    rw [hInnerStuck] at hLhsNotStuck
-    simp [__eo_typeof_store] at hLhsNotStuck
+    exact RuleProofs.eo_typeof_store_not_stuck_implies_array
+      (__eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
+      (__eo_typeof i1) (__eo_typeof f1) hLhsNotStuck
+  have hInnerNotStuck :
+      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) ≠ Term.Stuck := by
+    rw [hInnerTyF]
+    simp
   have hT1TyF :
       __eo_typeof t1 =
         Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1) := by
@@ -104,7 +109,6 @@ private theorem typeof_args_of_prog_array_store_overwrite_bool
     hT1TyE.symm.trans hT1TyF
   have hEF : __eo_typeof e1 = __eo_typeof f1 := by
     injection hArrayEq with _ hEF
-    exact hEF
   exact ⟨hT1TyF, hEF⟩
 
 private theorem typed___eo_prog_array_store_overwrite_impl
@@ -127,11 +131,24 @@ private theorem typed___eo_prog_array_store_overwrite_impl
     RuleProofs.term_ne_stuck_of_has_smt_translation e1 hE1Trans
   have hF1NotStuck : f1 ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation f1 hF1Trans
-  have hSmtT1 :
+  have hSmtT1Raw :
       __smtx_typeof (__eo_to_smt t1) =
-        SmtType.Map (__eo_to_smt_type (__eo_typeof i1)) (__eo_to_smt_type (__eo_typeof f1)) :=
+        __eo_to_smt_type
+          (Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1)) :=
     TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
       t1 _ (__eo_to_smt t1) rfl hT1Trans hT1Ty
+  have hT1TyNonNone :
+      __eo_to_smt_type
+          (Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1)) ≠
+        SmtType.None := by
+    rw [← hSmtT1Raw]
+    exact hT1Trans
+  have hSmtT1 :
+      __smtx_typeof (__eo_to_smt t1) =
+        SmtType.Map (__eo_to_smt_type (__eo_typeof i1)) (__eo_to_smt_type (__eo_typeof f1)) := by
+    exact hSmtT1Raw.trans
+      (RuleProofs.eo_to_smt_type_array_of_non_none
+        (__eo_typeof i1) (__eo_typeof f1) hT1TyNonNone)
   have hSmtI1 :
       __smtx_typeof (__eo_to_smt i1) = __eo_to_smt_type (__eo_typeof i1) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation i1 hI1Trans

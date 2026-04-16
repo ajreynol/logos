@@ -537,6 +537,12 @@ private theorem smtx_model_eval_eq_true_symm
     intro v
     symm
     exact h v
+  case Fun.Fun m1 m2 =>
+    classical
+    simp [__smtx_model_eval_eq] at h ⊢
+    intro v
+    symm
+    exact h v
   case Set.Set m1 m2 =>
     classical
     simp [__smtx_model_eval_eq] at h ⊢
@@ -584,6 +590,13 @@ private theorem smtx_model_eval_eq_true_trans
     __smtx_model_eval_eq v1 v3 = SmtValue.Boolean true := by
   cases v1 <;> cases v2 <;> cases v3
   case Map.Map.Map m1 m2 m3 =>
+    classical
+    simp [__smtx_model_eval_eq] at h12 h23 ⊢
+    intro v
+    calc
+      __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v := h12 v
+      _ = __smtx_msm_lookup m3 v := h23 v
+  case Fun.Fun.Fun m1 m2 m3 =>
     classical
     simp [__smtx_model_eval_eq] at h12 h23 ⊢
     intro v
