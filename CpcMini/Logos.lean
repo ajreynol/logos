@@ -72,6 +72,7 @@ inductive Term : Type where
   | Var : Term -> Term -> Term
   | DatatypeType : native_String -> Datatype -> Term
   | DatatypeTypeRef : native_String -> Term
+  | DtcAppType : Term -> Term -> Term
   | DtCons : native_String -> Datatype -> native_Nat -> Term
   | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
   | USort : native_Nat -> Term
@@ -246,7 +247,7 @@ def __eo_is_list_nil : Term -> Term -> Term
 def __eo_typeof_dt_cons_rec : Term -> Datatype -> native_Nat -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | T, (Datatype.sum DatatypeCons.unit d), native_nat_zero => T
-  | T, (Datatype.sum (DatatypeCons.cons U c) d), native_nat_zero => (Term.Apply (Term.Apply Term.FunType U) (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero))
+  | T, (Datatype.sum (DatatypeCons.cons U c) d), native_nat_zero => (Term.DtcAppType U (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero))
   | T, (Datatype.sum c d), (native_nat_succ n) => (__eo_typeof_dt_cons_rec T d n)
   | _, _, _ => Term.Stuck
 
