@@ -79,7 +79,7 @@ theorem smtx_typeof_translation_eq_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hApplyNN :
       term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x)) (__eo_to_smt y)) := by
+        (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
   simpa using

@@ -48,7 +48,7 @@ private theorem eo_to_smt_imp_eq (A B : Term) :
 /-- Simplifies EO-to-SMT translation for `eq`. -/
 private theorem eo_to_smt_eq_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.eq x) y) =
-      SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x)) (__eo_to_smt y) := by
+      SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
@@ -485,6 +485,8 @@ private theorem smtx_model_eval_eq_refl_aux :
     (v : SmtValue) -> __smtx_model_eval_eq v v = SmtValue.Boolean true
   | SmtValue.Map _ => by
       simp [__smtx_model_eval_eq]
+  | SmtValue.Fun _ => by
+      simp [__smtx_model_eval_eq, native_veq]
   | SmtValue.Set _ => by
       simp [__smtx_model_eval_eq]
   | SmtValue.Seq s => by
@@ -503,6 +505,8 @@ private theorem smtx_model_eval_eq_refl_aux :
   | SmtValue.Binary _ _ => by
       simp [__smtx_model_eval_eq, native_veq]
   | SmtValue.Char _ => by
+      simp [__smtx_model_eval_eq, native_veq]
+  | SmtValue.UValue _ _ => by
       simp [__smtx_model_eval_eq, native_veq]
   | SmtValue.DtCons _ _ _ => by
       simp [__smtx_model_eval_eq, native_veq]
@@ -833,11 +837,11 @@ theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
   rw [eo_interprets_iff_smt_interprets]
   rw [eo_to_smt_eq_eq x y]
   have hTy' :
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x)) (__eo_to_smt y)) =
+      __smtx_typeof (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) =
         SmtType.Bool := by
     simpa [eo_has_bool_type, eo_to_smt_eq_eq x y] using hTy
   refine smt_interprets.intro_true M
-      (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x)) (__eo_to_smt y)) ?_ ?_
+      (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) ?_ ?_
   · exact hTy'
   · have hEvalEq :
         __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt x))
@@ -946,6 +950,9 @@ theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
       | Map m =>
           exfalso
           simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+      | Fun m =>
+          exfalso
+          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
       | Set m =>
           exfalso
           simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
@@ -953,6 +960,9 @@ theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
           exfalso
           simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
       | Char c =>
+          exfalso
+          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+      | UValue s i =>
           exfalso
           simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
       | RegLan r =>

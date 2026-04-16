@@ -13,7 +13,7 @@ namespace Smtm
 /-- Derives `ite_args` from `non_none`. -/
 theorem ite_args_of_non_none
     {c t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)) :
+    (ht : term_has_non_none_type (SmtTerm.ite c t1 t2)) :
     ∃ T : SmtType,
       __smtx_typeof c = SmtType.Bool ∧
         __smtx_typeof t1 = T ∧
@@ -40,16 +40,16 @@ theorem ite_args_of_non_none
 theorem typeof_value_model_eval_ite
     (M : SmtModel)
     (c t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2))
+    (ht : term_has_non_none_type (SmtTerm.ite c t1 t2))
     (hpresc : __smtx_typeof_value (__smtx_model_eval M c) = __smtx_typeof c)
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2) := by
+      (SmtTerm.ite c t1 t2)) =
+      __smtx_typeof (SmtTerm.ite c t1 t2) := by
   rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, hT⟩
   rw [show __smtx_typeof
-      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2) = T by
+      (SmtTerm.ite c t1 t2) = T by
     simp [__smtx_typeof, __smtx_typeof_ite, native_ite, native_Teq, hc, h1, h2]]
   change __smtx_typeof_value
       (__smtx_model_eval_ite (__smtx_model_eval M c) (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = T
@@ -153,18 +153,20 @@ theorem typeof_value_model_eval_store
         (__smtx_model_eval M t3)) = SmtType.Map A B
   rcases map_value_canonical (A := A) (B := B) (by simpa [h1] using hpres1) with ⟨m, hm⟩
   rw [hm]
-  simpa [__smtx_model_eval_store, __smtx_map_store] using
-    map_store_typed (m := m) (A := A) (B := B)
-      (i := __smtx_model_eval M t2) (e := __smtx_model_eval M t3)
-      (by simpa [hm, h1] using hpres1)
-      (by simpa [h2] using hpres2)
-      (by simpa [h3] using hpres3)
+  have hMap : __smtx_typeof_map_value m = SmtType.Map A B := by
+    simpa [hm, h1, __smtx_typeof_value] using hpres1
+  have hi : __smtx_typeof_value (__smtx_model_eval M t2) = A := by
+    simpa [h2] using hpres2
+  have he : __smtx_typeof_value (__smtx_model_eval M t3) = B := by
+    simpa [h3] using hpres3
+  simp [__smtx_model_eval_store, __smtx_map_store, __smtx_typeof_value,
+    __smtx_typeof_map_value, hMap, hi, he, native_ite, native_Teq]
 
 /-- Derives `eq_term_typeof` from `non_none`. -/
 theorem eq_term_typeof_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)) :
-    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2) = SmtType.Bool := by
+    (ht : term_has_non_none_type (SmtTerm.eq t1 t2)) :
+    __smtx_typeof (SmtTerm.eq t1 t2) = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
     simp [__smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq, h1, h2] at ht ⊢
@@ -252,9 +254,9 @@ theorem typeof_value_model_eval_imp
 theorem typeof_value_model_eval_eq
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2) := by
+    (ht : term_has_non_none_type (SmtTerm.eq t1 t2)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.eq t1 t2)) =
+      __smtx_typeof (SmtTerm.eq t1 t2) := by
   rw [eq_term_typeof_of_non_none ht]
   simpa using typeof_value_model_eval_eq_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
