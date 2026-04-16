@@ -75,94 +75,97 @@ theorem dt_cons_chain_result_of_dt_cons_value_type
     cases h
     simpa [dt_cons_chain_result] using True.intro
 
-/-- Lemma about `typeof_value_dt_cons_type_chain_result`. -/
-theorem typeof_value_dt_cons_type_chain_result :
+/-- Lemma about function-typed datatype-constructor application chains. -/
+theorem typeof_value_dt_cons_head_type_chain_result :
     ∀ v : SmtValue, ∀ T U : SmtType,
+      (∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i) ->
       __smtx_typeof_value v = SmtType.FunType T U -> dt_cons_chain_result U
-  | SmtValue.NotValue, T, U, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Boolean _, T, U, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Numeral _, T, U, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Rational _, T, U, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Binary w _, T, U, h => by
-      cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
-  | SmtValue.Map m, T, U, h => by
-      cases typeof_map_value_shape m with
-      | inl hMap =>
-          rcases hMap with ⟨A, B, hMap⟩
-          simp [__smtx_typeof_value, hMap] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, hNone] at h
-  | SmtValue.Set m, T, U, h => by
-      cases typeof_map_value_shape m with
-      | inl hMap =>
-          rcases hMap with ⟨A, B, hMap⟩
-          cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
-  | SmtValue.Seq ss, T, U, h => by
-      cases typeof_seq_value_shape ss with
-      | inl hSeq =>
-          rcases hSeq with ⟨A, hSeq⟩
-          simp [__smtx_typeof_value, hSeq] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, hNone] at h
-  | SmtValue.Char _, T, U, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.RegLan _, T, U, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.DtCons s d i, T, U, h => by
+  | SmtValue.NotValue, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Boolean _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Numeral _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Rational _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Binary _ _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Map _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Fun _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Set _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Seq _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Char _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.UValue _ _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.RegLan _, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.DtCons s d i, T, U, hHead, h => by
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
-  | SmtValue.Apply f v, T, U, h => by
+  | SmtValue.Apply f v, T, U, hHead, h => by
+      rcases hHead with ⟨s, d, i, hHead⟩
+      have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
+        simpa [__vsm_apply_head] using hHead
       cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hHeadF, hf] at h
       case FunType A B =>
         cases hNone : native_Teq A SmtType.None <;>
         cases hEq : native_Teq A (__smtx_typeof_value v) <;>
           simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        have hShape := typeof_value_dt_cons_type_chain_result f A B hf
+        have hShape :=
+          typeof_value_dt_cons_head_type_chain_result f A B ⟨s, d, i, hHeadF⟩ hf
         simpa [h, dt_cons_chain_result] using hShape
 
-/-- Derives `no_value` from `dt_cons_type_bool`. -/
-theorem no_value_of_dt_cons_type_bool
-    (T : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.Bool := by
-  intro h
-  rcases h with ⟨v, hv⟩
-  have hShape := typeof_value_dt_cons_type_chain_result v T SmtType.Bool hv
-  simp [dt_cons_chain_result] at hShape
-
-/-- Derives `no_value` from `dt_cons_type_int`. -/
-theorem no_value_of_dt_cons_type_int
-    (T : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.Int := by
-  intro h
-  rcases h with ⟨v, hv⟩
-  have hShape := typeof_value_dt_cons_type_chain_result v T SmtType.Int hv
-  simp [dt_cons_chain_result] at hShape
-
-/-- Derives `no_value` from `dt_cons_type_real`. -/
-theorem no_value_of_dt_cons_type_real
-    (T : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.Real := by
-  intro h
-  rcases h with ⟨v, hv⟩
-  have hShape := typeof_value_dt_cons_type_chain_result v T SmtType.Real hv
-  simp [dt_cons_chain_result] at hShape
-
-/-- Derives `no_value` from `dt_cons_type_type_ref`. -/
-theorem no_value_of_dt_cons_type_type_ref
-    (T : SmtType)
-    (s : native_String) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.TypeRef s) := by
-  intro h
-  rcases h with ⟨v, hv⟩
-  have hShape := typeof_value_dt_cons_type_chain_result v T (SmtType.TypeRef s) hv
-  simp [dt_cons_chain_result] at hShape
+/-- Typed value applications can only return datatype-constructor-chain result types. -/
+theorem apply_value_non_chain_result_impossible
+    {f x : SmtValue}
+    {U : SmtType}
+    (hU : ¬ dt_cons_chain_result U)
+    (h : __smtx_typeof_value (SmtValue.Apply f x) = U) :
+    False := by
+  have hUNone : U ≠ SmtType.None := by
+    intro hEq
+    exact hU (by simp [dt_cons_chain_result, hEq])
+  cases hHead : __vsm_apply_head f <;>
+    simp [__smtx_typeof_value, hHead] at h
+  case DtCons s d i =>
+    cases hf : __smtx_typeof_value f
+    case FunType A B =>
+      simp [__smtx_typeof_apply_value, hf] at h
+      cases hNone : native_Teq A SmtType.None
+      · cases hEq : native_Teq A (__smtx_typeof_value x)
+        · simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
+          exact hUNone h.symm
+        · simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
+          have hShape :=
+            typeof_value_dt_cons_head_type_chain_result f A B ⟨s, d, i, hHead⟩ hf
+          rw [h] at hShape
+          exact hU hShape
+      · cases hEq : native_Teq A (__smtx_typeof_value x) <;>
+          simp [__smtx_typeof_guard, native_ite, hNone] at h
+        exact hUNone h.symm
+        exact hUNone h.symm
+    all_goals
+      simp [__smtx_typeof_apply_value, hf] at h
+      exact hUNone h.symm
+  all_goals
+    exact hUNone h.symm
 
 /-- Lemma about `typeof_value_ne_type_ref`. -/
 theorem typeof_value_ne_type_ref
@@ -187,6 +190,14 @@ theorem typeof_value_ne_type_ref
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | SmtValue.Fun m => by
+      intro h
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | SmtValue.Set m => by
       intro h
       cases typeof_map_value_shape m with
@@ -205,6 +216,8 @@ theorem typeof_value_ne_type_ref
           simp [__smtx_typeof_value, hNone] at h
   | SmtValue.Char _ => by
       simp [__smtx_typeof_value]
+  | SmtValue.UValue _ _ => by
+      simp [__smtx_typeof_value]
   | SmtValue.RegLan _ => by
       simp [__smtx_typeof_value]
   | SmtValue.DtCons s' d i => by
@@ -212,13 +225,8 @@ theorem typeof_value_ne_type_ref
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | SmtValue.Apply f v => by
       intro h
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType T U =>
-        cases hNone : native_Teq T SmtType.None <;>
-        cases hEq : native_Teq T (__smtx_typeof_value v) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_type_ref T s ⟨f, by simpa [h] using hf⟩
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.TypeRef s) (by simp [dt_cons_chain_result]) h
 
 /-- Derives `no_value` from `type_ref`. -/
 theorem no_value_of_type_ref
@@ -253,6 +261,14 @@ theorem bool_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Fun m =>
+      exfalso
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | Set m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -271,6 +287,8 @@ theorem bool_value_canonical
           simp [__smtx_typeof_value, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
@@ -278,13 +296,8 @@ theorem bool_value_canonical
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType T U =>
-        cases hNone : native_Teq T SmtType.None <;>
-        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_bool T ⟨f, by simpa [h] using hf⟩
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.Bool) (by simp [dt_cons_chain_result]) h
 
 /-- Canonical-form lemma for `int_value`. -/
 theorem int_value_canonical
@@ -311,6 +324,14 @@ theorem int_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Fun m =>
+      exfalso
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | Set m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -329,6 +350,8 @@ theorem int_value_canonical
           simp [__smtx_typeof_value, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
@@ -336,13 +359,8 @@ theorem int_value_canonical
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType T U =>
-        cases hNone : native_Teq T SmtType.None <;>
-        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_int T ⟨f, by simpa [h] using hf⟩
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.Int) (by simp [dt_cons_chain_result]) h
 
 /-- Canonical-form lemma for `real_value`. -/
 theorem real_value_canonical
@@ -369,6 +387,14 @@ theorem real_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Fun m =>
+      exfalso
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | Set m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -387,6 +413,8 @@ theorem real_value_canonical
           simp [__smtx_typeof_value, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
@@ -394,58 +422,8 @@ theorem real_value_canonical
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType T U =>
-        cases hNone : native_Teq T SmtType.None <;>
-        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_real T ⟨f, by simpa [h] using hf⟩
-
-/-- Derives `no_value` from `dt_cons_type_of_non_chain`. -/
-theorem no_value_of_dt_cons_type_of_non_chain
-    (T U : SmtType)
-    (hU : ¬ dt_cons_chain_result U) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T U := by
-  intro h
-  rcases h with ⟨v, hv⟩
-  exact hU (typeof_value_dt_cons_type_chain_result v T U hv)
-
-/-- Derives `no_value` from `dt_cons_type_seq`. -/
-theorem no_value_of_dt_cons_type_seq
-    (T U : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.Seq U) := by
-  exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Seq U) (by
-    simp [dt_cons_chain_result])
-
-/-- Derives `no_value` from `dt_cons_type_reglan`. -/
-theorem no_value_of_dt_cons_type_reglan
-    (T : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T SmtType.RegLan := by
-  exact no_value_of_dt_cons_type_of_non_chain T SmtType.RegLan (by
-    simp [dt_cons_chain_result])
-
-/-- Derives `no_value` from `dt_cons_type_map`. -/
-theorem no_value_of_dt_cons_type_map
-    (T A B : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.Map A B) := by
-  exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Map A B) (by
-    simp [dt_cons_chain_result])
-
-/-- Derives `no_value` from `dt_cons_type_set`. -/
-theorem no_value_of_dt_cons_type_set
-    (T A : SmtType) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.Set A) := by
-  exact no_value_of_dt_cons_type_of_non_chain T (SmtType.Set A) (by
-    simp [dt_cons_chain_result])
-
-/-- Derives `no_value` from `dt_cons_type_bitvec`. -/
-theorem no_value_of_dt_cons_type_bitvec
-    (T : SmtType)
-    (w : native_Nat) :
-    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.FunType T (SmtType.BitVec w) := by
-  exact no_value_of_dt_cons_type_of_non_chain T (SmtType.BitVec w) (by
-    simp [dt_cons_chain_result])
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.Real) (by simp [dt_cons_chain_result]) h
 
 /-- Canonical-form lemma for `bitvec_value`. -/
 theorem bitvec_value_canonical
@@ -485,6 +463,13 @@ theorem bitvec_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Fun m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | Set m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -501,19 +486,16 @@ theorem bitvec_value_canonical
           simp [__smtx_typeof_value, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType T U =>
-        cases hNone : native_Teq T SmtType.None <;>
-        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_bitvec T w ⟨f, by simpa [h] using hf⟩
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.BitVec w) (by simp [dt_cons_chain_result]) h
 
 /-- Lemma about `bitvec_width_nonneg`. -/
 theorem bitvec_width_nonneg
@@ -551,6 +533,13 @@ theorem map_value_canonical
   | Binary w _ =>
       cases hWidth : native_zleq 0 w <;>
         simp [__smtx_typeof_value, native_ite, hWidth] at h
+  | Fun m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A', B', hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | Seq ss =>
       cases typeof_seq_value_shape ss with
       | inl hSeq =>
@@ -567,19 +556,16 @@ theorem map_value_canonical
           simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType T U =>
-        cases hNone : native_Teq T SmtType.None <;>
-        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_map T A B ⟨f, by simpa [h] using hf⟩
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.Map A B) (by simp [dt_cons_chain_result]) h
 
 /-- Canonical-form lemma for `set_value`. -/
 theorem set_value_canonical
@@ -608,6 +594,13 @@ theorem set_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Fun m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A', B', hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | Seq ss =>
       cases typeof_seq_value_shape ss with
       | inl hSeq =>
@@ -617,19 +610,16 @@ theorem set_value_canonical
           simp [__smtx_typeof_value, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType T U =>
-        cases hNone : native_Teq T SmtType.None <;>
-        cases hEq : native_Teq T (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_set T A ⟨f, by simpa [h] using hf⟩
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.Set A) (by simp [dt_cons_chain_result]) h
 
 /-- Lemma about `set_map_value_typed`. -/
 theorem set_map_value_typed
@@ -708,6 +698,13 @@ theorem seq_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Fun m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | Set m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -717,19 +714,16 @@ theorem seq_value_canonical
           simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
   | RegLan _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType A B =>
-        cases hNone : native_Teq A SmtType.None <;>
-        cases hEq : native_Teq A (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_seq A T ⟨f, by simpa [h] using hf⟩
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.Seq T) (by simp [dt_cons_chain_result]) h
 
 /-- Predicate asserting that every value in a list has the given SMT type. -/
 def list_typed (T : SmtType) : List SmtValue -> Prop
@@ -1039,6 +1033,13 @@ theorem reglan_value_canonical
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
+  | Fun m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
   | Set m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -1055,17 +1056,14 @@ theorem reglan_value_canonical
           simp [__smtx_typeof_value, hNone] at h
   | Char _ =>
       simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
   | DtCons s d i =>
       simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
   | Apply f x =>
       exfalso
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
-      case FunType A B =>
-        cases hNone : native_Teq A SmtType.None <;>
-        cases hEq : native_Teq A (__smtx_typeof_value x) <;>
-          simp [__smtx_typeof_guard, native_ite, hNone, hEq] at h
-        exact no_value_of_dt_cons_type_reglan A ⟨f, by simpa [h] using hf⟩
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.RegLan) (by simp [dt_cons_chain_result]) h
 
 /-- Derives `bool_binop_args_bool` from `non_none`. -/
 theorem bool_binop_args_bool_of_non_none
