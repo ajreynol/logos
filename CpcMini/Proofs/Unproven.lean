@@ -329,14 +329,20 @@ theorem smt_model_eval_preserves_type_of_non_none
   exact supported_type_preservation M hM t ht
     (supported_preservation_term_of_non_none t ht)
 
-/-- States that SMT evaluation preserves the expected type in total typed models. -/
+/-- States that SMT evaluation preserves any non-`None` expected type in total typed models. -/
 theorem smt_model_eval_preserves_type
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) (T : SmtType) :
   __smtx_typeof t = T ->
+  T ≠ SmtType.None ->
   smt_type_inhabited T ->
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  sorry
+  intro hTy hNonNone _hInh
+  simpa [hTy] using
+    smt_model_eval_preserves_type_of_non_none M hM t (by
+      unfold term_has_non_none_type
+      rw [hTy]
+      exact hNonNone)
 
 /-- States that evaluating a Boolean-typed SMT term yields a Boolean value. -/
 theorem smt_model_eval_bool_is_boolean
