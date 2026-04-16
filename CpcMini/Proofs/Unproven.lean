@@ -424,6 +424,42 @@ private theorem smtx_typeof_guard_dtc_app_ne_bool
     __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.DtcAppType T U)) ≠ SmtType.Bool := by
   cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
 
+/-- A translated datatype-constructor application type is never an SMT function type. -/
+private theorem smtx_typeof_guard_dtc_app_ne_fun
+    (T U A B : SmtType) :
+    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.DtcAppType T U)) ≠ SmtType.FunType A B := by
+  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
+/-- A translated function type is never an SMT constructor-application type. -/
+private theorem smtx_typeof_guard_fun_ne_dtc_app
+    (T U A B : SmtType) :
+    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.FunType T U)) ≠ SmtType.DtcAppType A B := by
+  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
+/-- A translated sequence type is never an SMT constructor-application type. -/
+private theorem smtx_typeof_guard_seq_ne_dtc_app
+    (T A B : SmtType) :
+    __smtx_typeof_guard T (SmtType.Seq T) ≠ SmtType.DtcAppType A B := by
+  cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
+/-- A translated sequence type is never an SMT bit-vector type. -/
+private theorem smtx_typeof_guard_seq_ne_bitvec
+    (T : SmtType) (w : native_Nat) :
+    __smtx_typeof_guard T (SmtType.Seq T) ≠ SmtType.BitVec w := by
+  cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
+/-- A translated function type is never an SMT bit-vector type. -/
+private theorem smtx_typeof_guard_fun_ne_bitvec
+    (T U : SmtType) (w : native_Nat) :
+    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.FunType T U)) ≠ SmtType.BitVec w := by
+  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
+/-- A translated datatype-constructor application type is never an SMT bit-vector type. -/
+private theorem smtx_typeof_guard_dtc_app_ne_bitvec
+    (T U : SmtType) (w : native_Nat) :
+    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.DtcAppType T U)) ≠ SmtType.BitVec w := by
+  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
 /-- Derives `eo_typeof_bool` from `smt_bool`. -/
 private theorem eo_to_smt_type_eq_bool
     {T : Term} :
@@ -467,6 +503,248 @@ private theorem eo_typeof_bool_of_smt_bool
   have hTy : __eo_to_smt_type (__eo_typeof t) = SmtType.Bool := by
     rw [← hRec, hBool]
   exact eo_to_smt_type_eq_bool hTy
+
+/-- Characterizes `__smtx_typeof_guard` producing a function type. -/
+private theorem smtx_typeof_guard_eq_fun_iff
+    {T U A B : SmtType} :
+    __smtx_typeof_guard T U = SmtType.FunType A B ↔
+      T ≠ SmtType.None ∧ U = SmtType.FunType A B := by
+  unfold __smtx_typeof_guard
+  by_cases hT : T = SmtType.None
+  · simp [hT, native_ite, native_Teq]
+  · simp [hT, native_ite, native_Teq]
+
+/-- Characterizes translated EO types equal to an SMT function type. -/
+private theorem eo_to_smt_type_eq_fun_iff
+    {T : Term} {A B : SmtType} :
+    __eo_to_smt_type T = SmtType.FunType A B ↔
+      ∃ T1 T2,
+        T = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
+        __eo_to_smt_type T1 = A ∧
+        __eo_to_smt_type T2 = B ∧
+        __eo_to_smt_type T1 ≠ SmtType.None ∧
+        __eo_to_smt_type T2 ≠ SmtType.None := by
+  constructor
+  · intro h
+    cases T with
+    | Apply f x =>
+        cases f with
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                have hOuter :
+                    __smtx_typeof_guard (__eo_to_smt_type y)
+                      (__smtx_typeof_guard (__eo_to_smt_type x)
+                        (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))) =
+                      SmtType.FunType A B := by
+                  simpa [__eo_to_smt_type] using h
+                rcases smtx_typeof_guard_eq_fun_iff.mp hOuter with ⟨hyNN, hInner⟩
+                rcases smtx_typeof_guard_eq_fun_iff.mp hInner with ⟨hxNN, hFun⟩
+                injection hFun with hA hB
+                exact ⟨y, x, rfl, hA, hB, hyNN, hxNN⟩
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | BitVec =>
+            cases x with
+            | Numeral n =>
+                by_cases hz : native_zleq 0 n = true <;>
+                  simp [__eo_to_smt_type, native_ite, hz] at h
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | Seq =>
+            by_cases hx : __eo_to_smt_type x = SmtType.None
+            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
+            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
+        | _ =>
+            simp [__eo_to_smt_type] at h
+    | DtcAppType T1 T2 =>
+        exact False.elim
+          ((smtx_typeof_guard_dtc_app_ne_fun
+              (__eo_to_smt_type T1) (__eo_to_smt_type T2) A B)
+            (by simpa [__eo_to_smt_type] using h))
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
+    have hANN : A ≠ SmtType.None := by
+      rwa [← hT1]
+    have hBNN : B ≠ SmtType.None := by
+      rwa [← hT2]
+    simp [__eo_to_smt_type, hT1, hT2, hANN, hBNN,
+      __smtx_typeof_guard, native_ite, native_Teq]
+
+/-- Characterizes `__smtx_typeof_guard` producing a constructor-application type. -/
+private theorem smtx_typeof_guard_eq_dtc_app_iff
+    {T U A B : SmtType} :
+    __smtx_typeof_guard T U = SmtType.DtcAppType A B ↔
+      T ≠ SmtType.None ∧ U = SmtType.DtcAppType A B := by
+  unfold __smtx_typeof_guard
+  by_cases hT : T = SmtType.None
+  · simp [hT, native_ite, native_Teq]
+  · simp [hT, native_ite, native_Teq]
+
+/-- Characterizes translated EO types equal to an SMT constructor-application type. -/
+private theorem eo_to_smt_type_eq_dtc_app_iff
+    {T : Term} {A B : SmtType} :
+    __eo_to_smt_type T = SmtType.DtcAppType A B ↔
+      ∃ T1 T2,
+        T = Term.DtcAppType T1 T2 ∧
+        __eo_to_smt_type T1 = A ∧
+        __eo_to_smt_type T2 = B ∧
+        __eo_to_smt_type T1 ≠ SmtType.None ∧
+        __eo_to_smt_type T2 ≠ SmtType.None := by
+  constructor
+  · intro h
+    cases T with
+    | DtcAppType T1 T2 =>
+        have hOuter :
+            __smtx_typeof_guard (__eo_to_smt_type T1)
+              (__smtx_typeof_guard (__eo_to_smt_type T2)
+                (SmtType.DtcAppType (__eo_to_smt_type T1) (__eo_to_smt_type T2))) =
+              SmtType.DtcAppType A B := by
+          simpa [__eo_to_smt_type] using h
+        rcases smtx_typeof_guard_eq_dtc_app_iff.mp hOuter with ⟨hT1NN, hInner⟩
+        rcases smtx_typeof_guard_eq_dtc_app_iff.mp hInner with ⟨hT2NN, hDtc⟩
+        injection hDtc with hA hB
+        exact ⟨T1, T2, rfl, hA, hB, hT1NN, hT2NN⟩
+    | Apply f x =>
+        cases f with
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                exact False.elim
+                  ((smtx_typeof_guard_fun_ne_dtc_app
+                      (__eo_to_smt_type y) (__eo_to_smt_type x) A B)
+                    (by simpa [__eo_to_smt_type] using h))
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | BitVec =>
+            cases x with
+            | Numeral n =>
+                by_cases hz : native_zleq 0 n = true <;>
+                  simp [__eo_to_smt_type, native_ite, hz] at h
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | Seq =>
+            exact False.elim
+              ((smtx_typeof_guard_seq_ne_dtc_app (__eo_to_smt_type x) A B)
+                (by simpa [__eo_to_smt_type] using h))
+        | _ =>
+            simp [__eo_to_smt_type] at h
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
+    have hANN : A ≠ SmtType.None := by
+      rwa [← hT1]
+    have hBNN : B ≠ SmtType.None := by
+      rwa [← hT2]
+    simp [__eo_to_smt_type, hT1, hT2, hANN, hBNN,
+      __smtx_typeof_guard, native_ite, native_Teq]
+
+/-- Characterizes translated EO types equal to an SMT datatype. -/
+private theorem eo_to_smt_type_eq_datatype_iff
+    {T : Term} {s : native_String} {d : SmtDatatype} :
+    __eo_to_smt_type T = SmtType.Datatype s d ↔
+      ∃ d0,
+        T = Term.DatatypeType s d0 ∧
+        __eo_to_smt_datatype d0 = d := by
+  constructor
+  · intro h
+    cases T with
+    | DatatypeType s0 d0 =>
+        injection h with hs hd
+        subst hs
+        exact ⟨d0, rfl, hd⟩
+    | Apply f x =>
+        exact False.elim (TranslationProofs.eo_to_smt_type_apply_ne_datatype f x s d h)
+    | DtcAppType T1 T2 =>
+        exact False.elim (TranslationProofs.eo_to_smt_type_dtc_app_ne_datatype T1 T2 s d h)
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · rintro ⟨d0, rfl, hd⟩
+    simp [__eo_to_smt_type, hd]
+
+/-- Characterizes translated EO types equal to an SMT type reference. -/
+private theorem eo_to_smt_type_eq_typeref_iff
+    {T : Term} {s : native_String} :
+    __eo_to_smt_type T = SmtType.TypeRef s ↔
+      T = Term.DatatypeTypeRef s := by
+  constructor
+  · intro h
+    cases T with
+    | DatatypeTypeRef s0 =>
+        simpa [__eo_to_smt_type] using h
+    | Apply f x =>
+        exact False.elim (TranslationProofs.eo_to_smt_type_apply_ne_typeref f x s h)
+    | DtcAppType T1 T2 =>
+        exact False.elim
+          ((TranslationProofs.smtx_typeof_guard_dtc_app_ne_typeref
+              (__eo_to_smt_type T1) (__eo_to_smt_type T2) s)
+            (by simpa [__eo_to_smt_type] using h))
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · intro h
+    simpa [h, __eo_to_smt_type]
+
+/-- Characterizes translated EO types equal to an SMT bit-vector type. -/
+private theorem eo_to_smt_type_eq_bitvec_iff
+    {T : Term} {w : native_Nat} :
+    __eo_to_smt_type T = SmtType.BitVec w ↔
+      ∃ n : native_Int,
+        T = Term.Apply Term.BitVec (Term.Numeral n) ∧
+        native_zleq 0 n = true ∧
+        native_int_to_nat n = w := by
+  constructor
+  · intro h
+    cases T with
+    | Apply f x =>
+        cases f with
+        | BitVec =>
+            cases x with
+            | Numeral n =>
+                by_cases hz : native_zleq 0 n = true
+                · simp [__eo_to_smt_type, native_ite, hz] at h
+                  exact ⟨n, rfl, hz, h⟩
+                · simp [__eo_to_smt_type, native_ite, hz] at h
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                exact False.elim
+                  ((smtx_typeof_guard_fun_ne_bitvec
+                      (__eo_to_smt_type y) (__eo_to_smt_type x) w)
+                    (by simpa [__eo_to_smt_type] using h))
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | Seq =>
+            exact False.elim
+              ((smtx_typeof_guard_seq_ne_bitvec (__eo_to_smt_type x) w)
+                (by simpa [__eo_to_smt_type] using h))
+        | _ =>
+            simp [__eo_to_smt_type] at h
+    | DtcAppType T1 T2 =>
+        exact False.elim
+          ((smtx_typeof_guard_dtc_app_ne_bitvec (__eo_to_smt_type T1) (__eo_to_smt_type T2) w)
+            (by simpa [__eo_to_smt_type] using h))
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · rintro ⟨n, rfl, hz, hw⟩
+    simp [__eo_to_smt_type, native_ite, hz, hw]
+
+/-- Extracts operand SMT typing information from a non-`None` equality term. -/
+private theorem smtx_typeof_eq_operands_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.eq t1 t2)) :
+    __smtx_typeof t1 = __smtx_typeof t2 ∧
+      __smtx_typeof t1 ≠ SmtType.None := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
+    simp [__smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
+      native_ite, native_Teq, h1, h2] at ht
+  all_goals
+    refine ⟨?_, ?_⟩
+    · simpa [h1, h2] using ht
+    · simp [h1]
 
 /-- Computes EO typing for generic double applications. -/
 private theorem eo_typeof_double_apply_generic
