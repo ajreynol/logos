@@ -34,6 +34,21 @@ def stateOk : CState -> Prop
   | CState.cons _ s => stateOk s
   | CState.Stuck => False
 
+/-- Simplifies EO-to-SMT translation for `true_eq`. -/
+private theorem eo_to_smt_true_eq :
+    __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
+  rw [__eo_to_smt.eq_def]
+
+/-- Simplifies EO-to-SMT translation for `false_eq`. -/
+private theorem eo_to_smt_false_eq :
+    __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
+  rw [__eo_to_smt.eq_def]
+
+/-- Simplifies EO-to-SMT translation for `stuck_eq`. -/
+private theorem eo_to_smt_stuck_eq :
+    __eo_to_smt Term.Stuck = SmtTerm.None := by
+  rw [__eo_to_smt.eq_def]
+
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
   eo_interprets M t b ↔ smt_interprets M (__eo_to_smt t) b :=
@@ -50,14 +65,14 @@ by
 theorem eo_interprets_true (M : SmtModel) :
   eo_interprets M (Term.Boolean true) true :=
 by
-  rw [eo_interprets_iff_smt_interprets]
-  exact smt_interprets.intro_true M (__eo_to_smt (Term.Boolean true)) rfl rfl
+  rw [eo_interprets_iff_smt_interprets, eo_to_smt_true_eq]
+  exact smt_interprets.intro_true M (SmtTerm.Boolean true) rfl rfl
 
 /-- Shows that `eo_interprets_false_true` cannot occur. -/
 theorem eo_interprets_false_true_absurd (M : SmtModel) :
   ¬ eo_interprets M (Term.Boolean false) true :=
 by
-  rw [eo_interprets_iff_smt_interprets]
+  rw [eo_interprets_iff_smt_interprets, eo_to_smt_false_eq]
   intro h
   cases h with
   | intro_true _ hEval =>
@@ -67,21 +82,21 @@ by
 theorem eo_interprets_stuck_false_absurd (M : SmtModel) :
   ¬ eo_interprets M Term.Stuck false :=
 by
-  rw [eo_interprets_iff_smt_interprets]
+  rw [eo_interprets_iff_smt_interprets, eo_to_smt_stuck_eq]
   intro h
   cases h with
   | intro_false hty _ =>
-      simp [__eo_to_smt, __smtx_typeof] at hty
+      cases hty
 
 /-- Shows that `eo_interprets_stuck_true` cannot occur. -/
 theorem eo_interprets_stuck_true_absurd (M : SmtModel) :
   ¬ eo_interprets M Term.Stuck true :=
 by
-  rw [eo_interprets_iff_smt_interprets]
+  rw [eo_interprets_iff_smt_interprets, eo_to_smt_stuck_eq]
   intro h
   cases h with
   | intro_true hty _ =>
-      simp [__eo_to_smt, __smtx_typeof] at hty
+      cases hty
 
 /-- Shows that an EO term cannot be interpreted as both `true` and `false`. -/
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :

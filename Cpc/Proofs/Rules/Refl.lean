@@ -15,7 +15,7 @@ private theorem eo_to_smt_stuck_eq :
 /-- Simplifies EO-to-SMT translation for `eq`. -/
 private theorem eo_to_smt_eq_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.eq x) y) =
-      SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x)) (__eo_to_smt y) := by
+      SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Expands `__eo_prog_refl` on non-stuck inputs. -/
@@ -63,7 +63,7 @@ theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
   rw [eo_interprets_iff_smt_interprets]
   rw [eo_prog_refl_eq_of_ne_stuck x1 hNotEqStuck, eo_to_smt_eq_eq x1 x1]
   refine smt_interprets.intro_true M
-      (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x1)) ?_ ?_
+      (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt x1)) ?_ ?_
   · change __smtx_typeof_eq (__smtx_typeof (__eo_to_smt x1))
         (__smtx_typeof (__eo_to_smt x1)) = SmtType.Bool
     exact smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTy

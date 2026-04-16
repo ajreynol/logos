@@ -139,32 +139,30 @@ private theorem supported_preservation_term_of_non_none :
         (supported_preservation_term_of_non_none t1 ht1)
         ht2
         (supported_preservation_term_of_non_none t2 ht2)
+  | SmtTerm.ite c t1 t2, ht => by
+      rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, hT⟩
+      have htc : term_has_non_none_type c := by
+        unfold term_has_non_none_type
+        rw [hc]
+        simp
+      have ht1 : term_has_non_none_type t1 := by
+        unfold term_has_non_none_type
+        rw [h1]
+        exact hT
+      have ht2 : term_has_non_none_type t2 := by
+        unfold term_has_non_none_type
+        rw [h2]
+        exact hT
+      exact supported_preservation_term.ite htc
+        (supported_preservation_term_of_non_none c htc)
+        ht1
+        (supported_preservation_term_of_non_none t1 ht1)
+        ht2
+        (supported_preservation_term_of_non_none t2 ht2)
+  | SmtTerm.eq t1 t2, _ => by
+      exact supported_preservation_term.eq t1 t2
   | SmtTerm.Apply f x, ht => by
       cases supported_preservation_apply_cases f x with
-      | eq_case t1 =>
-          subst_vars
-          exact supported_preservation_term.eq t1 x
-      | ite_case c t1 =>
-          subst_vars
-          rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, hT⟩
-          have htc : term_has_non_none_type c := by
-            unfold term_has_non_none_type
-            rw [hc]
-            simp
-          have ht1 : term_has_non_none_type t1 := by
-            unfold term_has_non_none_type
-            rw [h1]
-            exact hT
-          have ht2 : term_has_non_none_type x := by
-            unfold term_has_non_none_type
-            rw [h2]
-            exact hT
-          exact supported_preservation_term.ite htc
-            (supported_preservation_term_of_non_none c htc)
-            ht1
-            (supported_preservation_term_of_non_none t1 ht1)
-            ht2
-            (supported_preservation_term_of_non_none x ht2)
       | exists_case s T =>
           subst_vars
           exact supported_preservation_term.exists s T x
@@ -184,10 +182,6 @@ private theorem supported_preservation_term_of_non_none :
   | SmtTerm.Var s T, ht => by
       exact supported_preservation_term.var s T
         (var_type_inhabited_of_non_none ht)
-  | SmtTerm.ite, ht => by
-      exact False.elim (ht rfl)
-  | SmtTerm.eq, ht => by
-      exact False.elim (ht rfl)
   | SmtTerm.exists s T, ht => by
       exact False.elim (ht rfl)
   | SmtTerm.forall s T, ht => by

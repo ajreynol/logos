@@ -9,36 +9,19 @@ set_option maxHeartbeats 10000000
 
 private theorem eq_of_eo_eq_true (x y : Term)
     (h : __eo_eq x y = Term.Boolean true) :
-    y = x := by
-  by_cases hx : x = Term.Stuck
-  · subst x
-    simp [__eo_eq] at h
-  · by_cases hy : y = Term.Stuck
-    · subst y
-      simp [__eo_eq] at h
-    · have hDec : native_teq y x = true := by
-        simpa [__eo_eq, hx, hy] using h
-      simpa [native_teq] using hDec
+    y = x :=
+  RuleProofs.eq_of_eo_eq_true x y h
 
 private theorem eq_of_requires_eq_true_not_stuck (x y B : Term) :
     __eo_requires (__eo_eq x y) (Term.Boolean true) B ≠ Term.Stuck ->
-    y = x := by
-  intro hProg
-  have hProg' := hProg
-  simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
-    SmtEval.native_not] at hProg'
-  exact eq_of_eo_eq_true x y hProg'.1
+    y = x :=
+  RuleProofs.eq_of_requires_eq_true_not_stuck x y B
 
 private theorem eqs_of_requires_and_eq_true_not_stuck (x1 y1 x2 y2 B : Term) :
     __eo_requires (__eo_and (__eo_eq x1 x2) (__eo_eq y1 y2))
       (Term.Boolean true) B ≠ Term.Stuck ->
-    x2 = x1 ∧ y2 = y1 := by
-  intro hProg
-  have hProg' := hProg
-  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hProg'
-  have hAnd : __eo_and (__eo_eq x1 x2) (__eo_eq y1 y2) = Term.Boolean true := hProg'.1
-  simp [__eo_and] at hAnd
-  exact ⟨eq_of_eo_eq_true x1 x2 hAnd.1, eq_of_eo_eq_true y1 y2 hAnd.2⟩
+    x2 = x1 ∧ y2 = y1 :=
+  RuleProofs.eqs_of_requires_and_eq_true_not_stuck x1 y1 x2 y2 B
 
 private theorem array_index_eq_of_eq
     (I1 E1 I2 E2 : Term)
@@ -177,26 +160,38 @@ private theorem typeof_args_of_prog_array_store_swap_bool
                                     hTypesNotStuck.1
                                   have hRhsNotStuck : __eo_typeof rhs ≠ Term.Stuck :=
                                     hTypesNotStuck.2
-                                  have hInnerINotStuck :
-                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) ≠
-                                        Term.Stuck := by
-                                    intro hInnerStuck
+                                  have hInnerITy :
+                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) =
+                                        Term.Apply (Term.Apply Term.Array (__eo_typeof j1)) (__eo_typeof f1) := by
                                     change __eo_typeof_store
                                         (__eo_typeof
                                           (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
                                         (__eo_typeof j1) (__eo_typeof f1) ≠ Term.Stuck at hLhsNotStuck
-                                    rw [hInnerStuck] at hLhsNotStuck
-                                    simp [__eo_typeof_store] at hLhsNotStuck
-                                  have hInnerJNotStuck :
-                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1) ≠
+                                    exact RuleProofs.eo_typeof_store_not_stuck_implies_array
+                                      (__eo_typeof
+                                        (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
+                                      (__eo_typeof j1) (__eo_typeof f1) hLhsNotStuck
+                                  have hInnerINotStuck :
+                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) ≠
                                         Term.Stuck := by
-                                    intro hInnerStuck
+                                    rw [hInnerITy]
+                                    simp
+                                  have hInnerJTy :
+                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1) =
+                                        Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof e1) := by
                                     change __eo_typeof_store
                                         (__eo_typeof
                                           (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
                                         (__eo_typeof i1) (__eo_typeof e1) ≠ Term.Stuck at hRhsNotStuck
-                                    rw [hInnerStuck] at hRhsNotStuck
-                                    simp [__eo_typeof_store] at hRhsNotStuck
+                                    exact RuleProofs.eo_typeof_store_not_stuck_implies_array
+                                      (__eo_typeof
+                                        (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
+                                      (__eo_typeof i1) (__eo_typeof e1) hRhsNotStuck
+                                  have hInnerJNotStuck :
+                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1) ≠
+                                        Term.Stuck := by
+                                    rw [hInnerJTy]
+                                    simp
                                   have hT1TyIE :
                                       __eo_typeof t1 =
                                         Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof e1) := by
@@ -295,11 +290,24 @@ private theorem typed___eo_prog_array_store_swap_impl
     RuleProofs.term_ne_stuck_of_has_smt_translation e1 hE1Trans
   have hF1NotStuck : f1 ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation f1 hF1Trans
-  have hSmtT1 :
+  have hSmtT1Raw :
       __smtx_typeof (__eo_to_smt t1) =
-        SmtType.Map (__eo_to_smt_type (__eo_typeof i1)) (__eo_to_smt_type (__eo_typeof f1)) :=
+        __eo_to_smt_type
+          (Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1)) :=
     TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
       t1 _ (__eo_to_smt t1) rfl hT1Trans hT1Ty
+  have hT1TyNonNone :
+      __eo_to_smt_type
+          (Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1)) ≠
+        SmtType.None := by
+    rw [← hSmtT1Raw]
+    exact hT1Trans
+  have hSmtT1 :
+      __smtx_typeof (__eo_to_smt t1) =
+        SmtType.Map (__eo_to_smt_type (__eo_typeof i1)) (__eo_to_smt_type (__eo_typeof f1)) := by
+    exact hSmtT1Raw.trans
+      (RuleProofs.eo_to_smt_type_array_of_non_none
+        (__eo_typeof i1) (__eo_typeof f1) hT1TyNonNone)
   have hSmtI1 :
       __smtx_typeof (__eo_to_smt i1) = __eo_to_smt_type (__eo_typeof i1) :=
     TranslationProofs.eo_to_smt_typeof_matches_translation i1 hI1Trans
@@ -354,6 +362,9 @@ private theorem typed___eo_prog_array_store_swap_impl
             (Term.Apply Term.store
               (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1)) j1) f1) := by
     simpa [RuleProofs.eo_has_smt_translation, hLhsTy]
+  have hProg :
+      __eo_prog_array_store_swap t1 i1 j1 e1 f1 (Proof.pf p1) ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
   cases p1 with
   | Apply f pRhs =>
       cases f with
@@ -370,60 +381,71 @@ private theorem typed___eo_prog_array_store_swap_impl
                           | Boolean b =>
                               cases b with
                               | false =>
+                                  let lhs :=
+                                    Term.Apply
+                                      (Term.Apply
+                                        (Term.Apply Term.store
+                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
+                                        j1) f1
+                                  let rhs :=
+                                    Term.Apply
+                                      (Term.Apply
+                                        (Term.Apply Term.store
+                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
+                                        i1) e1
+                                  let body := Term.Apply (Term.Apply Term.eq lhs) rhs
+                                  have hProgEq :=
+                                    prog_array_store_swap_eq
+                                      t1 i1 j1 e1 f1 i2 j2
+                                      hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck
+                                  rw [hProgEq] at hProg
+                                  have hAlign :
+                                      i2 = i1 ∧ j2 = j1 :=
+                                    eqs_of_requires_and_eq_true_not_stuck
+                                      i1 j1 i2 j2 body hProg
+                                  have hi2 : i2 = i1 := hAlign.1
+                                  have hj2 : j2 = j1 := hAlign.2
+                                  subst i2
+                                  subst j2
                                   rw [prog_array_store_swap_eq
-                                        t1 i1 j1 e1 f1 i2 j2
+                                        t1 i1 j1 e1 f1 i1 j1
                                         hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck]
-                                  simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+                                  simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
                                     native_teq, native_not, SmtEval.native_not]
                                   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
-                                    (Term.Apply
-                                      (Term.Apply
-                                        (Term.Apply Term.store
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1)) j1) f1)
-                                    (Term.Apply
-                                      (Term.Apply
-                                        (Term.Apply Term.store
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1)) i1) e1)
+                                    lhs rhs
                                     (by rw [hLhsTy, hRhsTy]) hLhsTrans
                               | true =>
                                   have : False := by
-                                    simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                                      hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hResultTy
+                                    simp [__eo_prog_array_store_swap] at hProg
                                   exact False.elim this
                           | _ =>
                               have : False := by
-                                simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                                  hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hResultTy
+                                simp [__eo_prog_array_store_swap] at hProg
                               exact False.elim this
                       | _ =>
                           have : False := by
-                            simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                              hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hResultTy
+                            simp [__eo_prog_array_store_swap] at hProg
                           exact False.elim this
                   | _ =>
                       have : False := by
-                        simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                          hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hResultTy
+                        simp [__eo_prog_array_store_swap] at hProg
                       exact False.elim this
               | _ =>
                   have : False := by
-                    simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                      hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hResultTy
+                    simp [__eo_prog_array_store_swap] at hProg
                   exact False.elim this
           | _ =>
               have : False := by
-                simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                  hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hResultTy
+                simp [__eo_prog_array_store_swap] at hProg
               exact False.elim this
       | _ =>
           have : False := by
-            simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-              hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hResultTy
+            simp [__eo_prog_array_store_swap] at hProg
           exact False.elim this
   | _ =>
       have : False := by
-        simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-          hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hResultTy
+        simp [__eo_prog_array_store_swap] at hProg
       exact False.elim this
 
 private theorem facts___eo_prog_array_store_swap_impl
@@ -524,43 +546,35 @@ private theorem facts___eo_prog_array_store_swap_impl
                                         hij)
                               | true =>
                                   have : False := by
-                                    simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                                      hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+                                    simp [__eo_prog_array_store_swap] at hProg
                                   exact False.elim this
                           | _ =>
                               have : False := by
-                                simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                                  hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+                                simp [__eo_prog_array_store_swap] at hProg
                               exact False.elim this
                       | _ =>
                           have : False := by
-                            simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                              hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+                            simp [__eo_prog_array_store_swap] at hProg
                           exact False.elim this
                   | _ =>
                       have : False := by
-                        simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                          hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+                        simp [__eo_prog_array_store_swap] at hProg
                       exact False.elim this
               | _ =>
                   have : False := by
-                    simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                      hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+                    simp [__eo_prog_array_store_swap] at hProg
                   exact False.elim this
           | _ =>
               have : False := by
-                simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-                  hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+                simp [__eo_prog_array_store_swap] at hProg
               exact False.elim this
       | _ =>
           have : False := by
-            simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-              hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+            simp [__eo_prog_array_store_swap] at hProg
           exact False.elim this
   | _ =>
       have : False := by
-        simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
-          hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+        simp [__eo_prog_array_store_swap] at hProg
       exact False.elim this
 
 theorem cmd_step_array_store_swap_properties

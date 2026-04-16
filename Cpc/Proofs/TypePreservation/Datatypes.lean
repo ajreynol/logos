@@ -1,3 +1,4 @@
+import Cpc.Proofs.TypePreservation.Common
 import Cpc.Proofs.TypePreservation.Helpers
 
 open SmtEval

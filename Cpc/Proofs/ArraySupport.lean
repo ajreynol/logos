@@ -23,7 +23,7 @@ theorem eo_to_smt_not_eq (t : Term) :
 
 theorem eo_to_smt_eq_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.eq x) y) =
-      SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x)) (__eo_to_smt y) := by
+      SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
   rw [__eo_to_smt.eq_def]
 
 theorem eo_to_smt_select_eq (a i : Term) :
@@ -227,6 +227,10 @@ theorem smt_value_rel_store_overwrite
           native_ite, hix]
       · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
           native_ite, hix]
+  | Fun m =>
+      rw [smt_value_rel_iff_model_eval_eq_true]
+      simpa [__smtx_model_eval_store, __smtx_map_store] using
+        smtx_model_eval_eq_refl SmtValue.NotValue
   | Set m =>
       apply smt_value_rel_set_of_lookup_eq
       intro x
@@ -256,6 +260,10 @@ theorem smt_value_rel_store_overwrite
       simpa [__smtx_model_eval_store, __smtx_map_store] using
         smtx_model_eval_eq_refl SmtValue.NotValue
   | Seq s =>
+      rw [smt_value_rel_iff_model_eval_eq_true]
+      simpa [__smtx_model_eval_store, __smtx_map_store] using
+        smtx_model_eval_eq_refl SmtValue.NotValue
+  | UValue s i =>
       rw [smt_value_rel_iff_model_eval_eq_true]
       simpa [__smtx_model_eval_store, __smtx_map_store] using
         smtx_model_eval_eq_refl SmtValue.NotValue
@@ -302,6 +310,10 @@ theorem smt_value_rel_store_swap_of_native_veq_false
             native_ite, hix, hjx]
         · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
             native_ite, hix, hjx]
+  | Fun m =>
+      rw [smt_value_rel_iff_model_eval_eq_true]
+      simpa [__smtx_model_eval_store, __smtx_map_store] using
+        smtx_model_eval_eq_refl SmtValue.NotValue
   | Set m =>
       apply smt_value_rel_set_of_lookup_eq
       intro x
@@ -342,6 +354,10 @@ theorem smt_value_rel_store_swap_of_native_veq_false
       simpa [__smtx_model_eval_store, __smtx_map_store] using
         smtx_model_eval_eq_refl SmtValue.NotValue
   | Seq s =>
+      rw [smt_value_rel_iff_model_eval_eq_true]
+      simpa [__smtx_model_eval_store, __smtx_map_store] using
+        smtx_model_eval_eq_refl SmtValue.NotValue
+  | UValue s i =>
       rw [smt_value_rel_iff_model_eval_eq_true]
       simpa [__smtx_model_eval_store, __smtx_map_store] using
         smtx_model_eval_eq_refl SmtValue.NotValue

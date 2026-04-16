@@ -96,7 +96,7 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term
-        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)
+        (SmtTerm.ite c t1 t2)
   | exists (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.exists s T) body)
   | forall (s : native_String) (T : SmtType) (body : SmtTerm) :
@@ -126,7 +126,7 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.imp t1 t2)
   | eq (t1 t2 : SmtTerm) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)
+      supported_preservation_term (SmtTerm.eq t1 t2)
   | xor (t1 t2 : SmtTerm) :
       supported_preservation_term (SmtTerm.xor t1 t2)
   | distinct (t1 t2 : SmtTerm) :

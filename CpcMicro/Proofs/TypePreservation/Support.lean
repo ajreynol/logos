@@ -26,7 +26,7 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term
-        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2)
+        (SmtTerm.ite c t1 t2)
   | exists (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.exists s T) body)
   | forall (s : native_String) (T : SmtType) (body : SmtTerm) :
@@ -56,7 +56,7 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (hs2 : supported_preservation_term t2) :
       supported_preservation_term (SmtTerm.imp t1 t2)
   | eq (t1 t2 : SmtTerm) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq t1) t2)
+      supported_preservation_term (SmtTerm.eq t1 t2)
   | apply {f x : SmtTerm}
       (hTy : generic_apply_type f x)
       (hEval : generic_apply_eval f x)
@@ -68,10 +68,6 @@ inductive supported_preservation_term : SmtTerm -> Prop
 
 /-- Inductive classification of application heads used in the supported type-preservation case split. -/
 inductive supported_preservation_apply_case : SmtTerm -> SmtTerm -> Prop where
-  | eq_case (t1 t2 : SmtTerm) :
-      supported_preservation_apply_case (SmtTerm.Apply SmtTerm.eq t1) t2
-  | ite_case (c t1 t2 : SmtTerm) :
-      supported_preservation_apply_case (SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) t1) t2
   | exists_case (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_apply_case (SmtTerm.exists s T) body
   | forall_case (s : native_String) (T : SmtType) (body : SmtTerm) :
@@ -94,13 +90,5 @@ theorem supported_preservation_apply_cases
     exact supported_preservation_apply_case.forall_case s T x
   case choice s T =>
     exact supported_preservation_apply_case.choice_case s T x
-  case Apply f y =>
-    cases f <;> try exact supported_preservation_apply_case.generic rfl (by intro M; rfl)
-    case eq =>
-      exact supported_preservation_apply_case.eq_case y x
-    case Apply g c =>
-      cases g <;> try exact supported_preservation_apply_case.generic rfl (by intro M; rfl)
-      case ite =>
-        exact supported_preservation_apply_case.ite_case c y x
 
 end Smtm
