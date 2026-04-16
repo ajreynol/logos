@@ -727,6 +727,7 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
 def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m1), (SmtValue.Map m2) => (SmtValue.Boolean (native_veq_ext m1 m2))
   | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Boolean (native_veq_ext m1 m2))
+  | (SmtValue.Fun m1), (SmtValue.Fun m2) => (SmtValue.Boolean (native_veq_ext m1 m2))
   | (SmtValue.Seq (SmtSeq.empty T1)), (SmtValue.Seq (SmtSeq.empty T2)) => (SmtValue.Boolean true)
   | (SmtValue.Seq (SmtSeq.cons v1 vs1)), (SmtValue.Seq (SmtSeq.cons v2 vs2)) => 
     let _v0 := (SmtValue.Boolean true)
