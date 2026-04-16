@@ -322,7 +322,7 @@ private theorem eo_to_smt_typeof_matches_translation :
                 · subst hEq
                   have hTranslate :
                       __eo_to_smt (Term.Apply (Term.Apply Term.eq y) x) =
-                        SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt y)) (__eo_to_smt x) := by
+                        SmtTerm.eq (__eo_to_smt y) (__eo_to_smt x) := by
                     rw [__eo_to_smt.eq_def]
                   have hNN' := hNN
                   rw [hTranslate] at hNN'

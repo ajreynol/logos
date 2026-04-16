@@ -16,8 +16,6 @@ namespace TranslationProofs
 /-- Derives `smtx_typeof_apply_generic` from `head_not_special`. -/
 private theorem smtx_typeof_apply_generic_of_head_not_special
     (f x : SmtTerm)
-    (hEq : ∀ u, f ≠ SmtTerm.Apply SmtTerm.eq u)
-    (hIte2 : ∀ c u, f ≠ SmtTerm.Apply (SmtTerm.Apply SmtTerm.ite c) u)
     (hExists : ∀ s T, f ≠ SmtTerm.exists s T)
     (hForall : ∀ s T, f ≠ SmtTerm.forall s T)
     (hChoice : ∀ s T, f ≠ SmtTerm.choice s T) :
@@ -30,24 +28,12 @@ private theorem smtx_typeof_apply_generic_of_head_not_special
       exact False.elim (hForall s T rfl)
   case choice s T =>
       exact False.elim (hChoice s T rfl)
-  case Apply f y =>
-      cases f <;> try rfl
-      case eq =>
-          exact False.elim (hEq y rfl)
-      case Apply g c =>
-          cases g <;> try rfl
-          case ite =>
-              exact False.elim (hIte2 c y rfl)
 
 /-- Shows that generic EO application translation satisfies `generic_apply_type`. -/
 theorem eo_to_smt_apply_generic_type
     (f x : Term) :
     generic_apply_type (__eo_to_smt f) (__eo_to_smt x) := by
   apply smtx_typeof_apply_generic_of_head_not_special
-  · intro u
-    exact eo_to_smt_ne_eq_partial f u
-  · intro c u
-    exact eo_to_smt_ne_ite_partial2 f c u
   · intro s T
     exact eo_to_smt_ne_exists f s T
   · intro s T
@@ -121,8 +107,7 @@ theorem smtx_typeof_translation_eq_of_non_none
   intro hNonNone
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x)) (__eo_to_smt y)) := by
+      term_has_non_none_type (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
   simpa using
