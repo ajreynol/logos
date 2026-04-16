@@ -46,6 +46,14 @@ namespace TranslationProofs
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
   simp [__eo_to_smt_type]
 
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+@[simp] theorem eo_to_smt_type_dtc_app (T U : Term) :
+    __eo_to_smt_type (Term.DtcAppType T U) =
+      __smtx_typeof_guard (__eo_to_smt_type T)
+        (__smtx_typeof_guard (__eo_to_smt_type U)
+          (SmtType.DtcAppType (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
+  simp [__eo_to_smt_type]
+
 /-- Simplifies EO-to-SMT type translation for `bitvec`. -/
 @[simp] theorem eo_to_smt_type_bitvec (n : native_Int) :
     __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) =
