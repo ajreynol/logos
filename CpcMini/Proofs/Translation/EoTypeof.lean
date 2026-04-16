@@ -57,6 +57,26 @@ theorem smtx_typeof_guard_dtc_app_ne_datatype
       SmtType.Datatype s d := by
   cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
 
+/-- A translated datatype-constructor application type is never an SMT function type. -/
+theorem smtx_typeof_guard_dtc_app_ne_fun
+    (T U A B : SmtType) :
+    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.DtcAppType T U)) ≠
+      SmtType.FunType A B := by
+  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
+/-- A translated function type is never an SMT constructor-application type. -/
+theorem smtx_typeof_guard_fun_ne_dtc_app
+    (T U A B : SmtType) :
+    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.FunType T U)) ≠
+      SmtType.DtcAppType A B := by
+  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
+/-- A translated sequence type is never an SMT constructor-application type. -/
+theorem smtx_typeof_guard_seq_ne_dtc_app
+    (T A B : SmtType) :
+    __smtx_typeof_guard T (SmtType.Seq T) ≠ SmtType.DtcAppType A B := by
+  cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
+
 /-- An EO application never translates to an SMT type reference. -/
 theorem eo_to_smt_type_apply_ne_typeref
     (f x : Term) (s : native_String) :
@@ -107,6 +127,238 @@ theorem eo_to_smt_type_dtc_app_ne_datatype
     __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Datatype s d := by
   simpa [__eo_to_smt_type] using
     smtx_typeof_guard_dtc_app_ne_datatype (__eo_to_smt_type T) (__eo_to_smt_type U) s d
+
+/-- Characterizes `__smtx_typeof_guard` producing a function type. -/
+private theorem smtx_typeof_guard_eq_fun_iff
+    {T U A B : SmtType} :
+    __smtx_typeof_guard T U = SmtType.FunType A B ↔
+      T ≠ SmtType.None ∧ U = SmtType.FunType A B := by
+  unfold __smtx_typeof_guard
+  by_cases hT : T = SmtType.None
+  · simp [hT, native_ite, native_Teq]
+  · simp [hT, native_ite, native_Teq]
+
+/-- Characterizes translated EO types equal to an SMT function type. -/
+theorem eo_to_smt_type_eq_fun_iff
+    {T : Term} {A B : SmtType} :
+    __eo_to_smt_type T = SmtType.FunType A B ↔
+      ∃ T1 T2,
+        T = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
+        __eo_to_smt_type T1 = A ∧
+        __eo_to_smt_type T2 = B ∧
+        __eo_to_smt_type T1 ≠ SmtType.None ∧
+        __eo_to_smt_type T2 ≠ SmtType.None := by
+  constructor
+  · intro h
+    cases T with
+    | Apply f x =>
+        cases f with
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                have hOuter :
+                    __smtx_typeof_guard (__eo_to_smt_type y)
+                      (__smtx_typeof_guard (__eo_to_smt_type x)
+                        (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))) =
+                      SmtType.FunType A B := by
+                  simpa [__eo_to_smt_type] using h
+                rcases smtx_typeof_guard_eq_fun_iff.mp hOuter with ⟨hyNN, hInner⟩
+                rcases smtx_typeof_guard_eq_fun_iff.mp hInner with ⟨hxNN, hFun⟩
+                injection hFun with hA hB
+                exact ⟨y, x, rfl, hA, hB, hyNN, hxNN⟩
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | BitVec =>
+            cases x with
+            | Numeral n =>
+                by_cases hz : native_zleq 0 n = true <;>
+                  simp [__eo_to_smt_type, native_ite, hz] at h
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | Seq =>
+            by_cases hx : __eo_to_smt_type x = SmtType.None
+            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
+            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
+        | _ =>
+            simp [__eo_to_smt_type] at h
+    | DtcAppType T1 T2 =>
+        exact False.elim
+          ((smtx_typeof_guard_dtc_app_ne_fun
+              (__eo_to_smt_type T1) (__eo_to_smt_type T2) A B)
+            (by simpa [__eo_to_smt_type] using h))
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
+    have hANN : A ≠ SmtType.None := by
+      rwa [← hT1]
+    have hBNN : B ≠ SmtType.None := by
+      rwa [← hT2]
+    simp [eo_to_smt_type_fun, hT1, hT2, hANN, hBNN,
+      __smtx_typeof_guard, native_ite, native_Teq]
+
+/-- Characterizes `__smtx_typeof_guard` producing a constructor-application type. -/
+private theorem smtx_typeof_guard_eq_dtc_app_iff
+    {T U A B : SmtType} :
+    __smtx_typeof_guard T U = SmtType.DtcAppType A B ↔
+      T ≠ SmtType.None ∧ U = SmtType.DtcAppType A B := by
+  unfold __smtx_typeof_guard
+  by_cases hT : T = SmtType.None
+  · simp [hT, native_ite, native_Teq]
+  · simp [hT, native_ite, native_Teq]
+
+/-- Characterizes translated EO types equal to an SMT constructor-application type. -/
+theorem eo_to_smt_type_eq_dtc_app_iff
+    {T : Term} {A B : SmtType} :
+    __eo_to_smt_type T = SmtType.DtcAppType A B ↔
+      ∃ T1 T2,
+        T = Term.DtcAppType T1 T2 ∧
+        __eo_to_smt_type T1 = A ∧
+        __eo_to_smt_type T2 = B ∧
+        __eo_to_smt_type T1 ≠ SmtType.None ∧
+        __eo_to_smt_type T2 ≠ SmtType.None := by
+  constructor
+  · intro h
+    cases T with
+    | DtcAppType T1 T2 =>
+        have hOuter :
+            __smtx_typeof_guard (__eo_to_smt_type T1)
+              (__smtx_typeof_guard (__eo_to_smt_type T2)
+                (SmtType.DtcAppType (__eo_to_smt_type T1) (__eo_to_smt_type T2))) =
+              SmtType.DtcAppType A B := by
+          simpa [__eo_to_smt_type] using h
+        rcases smtx_typeof_guard_eq_dtc_app_iff.mp hOuter with ⟨hT1NN, hInner⟩
+        rcases smtx_typeof_guard_eq_dtc_app_iff.mp hInner with ⟨hT2NN, hDtc⟩
+        injection hDtc with hA hB
+        exact ⟨T1, T2, rfl, hA, hB, hT1NN, hT2NN⟩
+    | Apply f x =>
+        cases f with
+        | Apply g y =>
+            cases g with
+            | FunType =>
+                exact False.elim
+                  ((smtx_typeof_guard_fun_ne_dtc_app
+                      (__eo_to_smt_type y) (__eo_to_smt_type x) A B)
+                    (by simpa [__eo_to_smt_type] using h))
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | BitVec =>
+            cases x with
+            | Numeral n =>
+                by_cases hz : native_zleq 0 n = true <;>
+                  simp [__eo_to_smt_type, native_ite, hz] at h
+            | _ =>
+                simp [__eo_to_smt_type] at h
+        | Seq =>
+            exact False.elim
+              ((smtx_typeof_guard_seq_ne_dtc_app (__eo_to_smt_type x) A B)
+                (by simpa [__eo_to_smt_type] using h))
+        | _ =>
+            simp [__eo_to_smt_type] at h
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
+    have hANN : A ≠ SmtType.None := by
+      rwa [← hT1]
+    have hBNN : B ≠ SmtType.None := by
+      rwa [← hT2]
+    simp [__eo_to_smt_type, hT1, hT2, hANN, hBNN,
+      __smtx_typeof_guard, native_ite, native_Teq]
+
+/-- Characterizes translated EO types equal to an SMT datatype. -/
+theorem eo_to_smt_type_eq_datatype_iff
+    {T : Term} {s : native_String} {d : SmtDatatype} :
+    __eo_to_smt_type T = SmtType.Datatype s d ↔
+      ∃ d0,
+        T = Term.DatatypeType s d0 ∧
+        __eo_to_smt_datatype d0 = d := by
+  constructor
+  · intro h
+    cases T with
+    | DatatypeType s0 d0 =>
+        injection h with hs hd
+        subst hs
+        exact ⟨d0, rfl, hd⟩
+    | Apply f x =>
+        exact False.elim (eo_to_smt_type_apply_ne_datatype f x s d h)
+    | DtcAppType T1 T2 =>
+        exact False.elim (eo_to_smt_type_dtc_app_ne_datatype T1 T2 s d h)
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · rintro ⟨d0, rfl, hd⟩
+    simp [__eo_to_smt_type, hd]
+
+/-- Characterizes translated EO types equal to an SMT type reference. -/
+theorem eo_to_smt_type_eq_typeref_iff
+    {T : Term} {s : native_String} :
+    __eo_to_smt_type T = SmtType.TypeRef s ↔
+      T = Term.DatatypeTypeRef s := by
+  constructor
+  · intro h
+    cases T with
+    | DatatypeTypeRef s0 =>
+        simpa [__eo_to_smt_type] using h
+    | Apply f x =>
+        exact False.elim (eo_to_smt_type_apply_ne_typeref f x s h)
+    | DtcAppType T1 T2 =>
+        exact False.elim
+          ((smtx_typeof_guard_dtc_app_ne_typeref
+              (__eo_to_smt_type T1) (__eo_to_smt_type T2) s)
+            (by simpa [__eo_to_smt_type] using h))
+    | _ =>
+        simp [__eo_to_smt_type] at h
+  · intro h
+    simpa [h, __eo_to_smt_type]
+
+/--
+Extracts the EO datatype witness carried by a translated SMT datatype typing
+equality.
+-/
+theorem eo_typeof_eq_translated_eo_datatype_of_smt_datatype
+    {x : Term} {s : native_String} {d : SmtDatatype}
+    (hRec : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s d) :
+    ∃ d0,
+      __eo_typeof x = Term.DatatypeType s d0 ∧
+      __eo_to_smt_datatype d0 = d := by
+  have hTy : __eo_to_smt_type (__eo_typeof x) = SmtType.Datatype s d := by
+    rw [← hRec, hx]
+  exact eo_to_smt_type_eq_datatype_iff.mp hTy
+
+/--
+Extracts the EO function-type witness carried by a translated SMT function
+typing equality.
+-/
+theorem eo_typeof_eq_translated_eo_fun_of_smt_fun
+    {x : Term} {A B : SmtType}
+    (hRec : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.FunType A B) :
+    ∃ T1 T2,
+      __eo_typeof x = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
+      __eo_to_smt_type T1 = A ∧
+      __eo_to_smt_type T2 = B ∧
+      __eo_to_smt_type T1 ≠ SmtType.None ∧
+      __eo_to_smt_type T2 ≠ SmtType.None := by
+  have hTy : __eo_to_smt_type (__eo_typeof x) = SmtType.FunType A B := by
+    rw [← hRec, hx]
+  exact eo_to_smt_type_eq_fun_iff.mp hTy
+
+/--
+Extracts the EO constructor-application-type witness carried by a translated
+SMT constructor-application typing equality.
+-/
+theorem eo_typeof_eq_translated_eo_dtc_app_of_smt_dtc_app
+    {x : Term} {A B : SmtType}
+    (hRec : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.DtcAppType A B) :
+    ∃ T1 T2,
+      __eo_typeof x = Term.DtcAppType T1 T2 ∧
+      __eo_to_smt_type T1 = A ∧
+      __eo_to_smt_type T2 = B ∧
+      __eo_to_smt_type T1 ≠ SmtType.None ∧
+      __eo_to_smt_type T2 ≠ SmtType.None := by
+  have hTy : __eo_to_smt_type (__eo_typeof x) = SmtType.DtcAppType A B := by
+    rw [← hRec, hx]
+  exact eo_to_smt_type_eq_dtc_app_iff.mp hTy
 
 /-- Translating EO type-reference substitution matches the corresponding SMT substitution step. -/
 theorem eo_to_smt_type_substitute_typeref
