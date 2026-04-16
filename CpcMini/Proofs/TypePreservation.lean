@@ -29,9 +29,9 @@ theorem supported_type_preservation
   | binary w n =>
       exact typeof_value_model_eval_binary M w n ht
   | var s T hT =>
-      exact typeof_value_model_eval_var M hM s T hT
+      exact typeof_value_model_eval_var M hM s T hT ht
   | uconst s T hT =>
-      exact typeof_value_model_eval_uconst M hM s T hT
+      exact typeof_value_model_eval_uconst M hM s T hT ht
   | ite htc hsc ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_ite M _ _ _ ht
         (supported_type_preservation M hM _ htc hsc)
@@ -61,7 +61,7 @@ theorem supported_type_preservation
   | eq t1 t2 =>
       exact typeof_value_model_eval_eq M t1 t2 ht
   | dt_cons s d i =>
-      exact typeof_value_model_eval_dt_cons M s d i
+      exact typeof_value_model_eval_dt_cons M s d i ht
   | dt_sel ht1 hT htx hsx =>
       exact typeof_value_model_eval_dt_sel M hM _ _ _ _ _ ht1 hT
         (supported_type_preservation M hM _ htx hsx)

@@ -1,4 +1,4 @@
-import Cpc.Proofs.TypePreservation.Helpers
+import Cpc.Proofs.TypePreservation.Datatypes
 
 open SmtEval
 open Smtm
@@ -577,8 +577,8 @@ theorem int_binop_args_of_non_none
     simp [hTy, native_ite, native_Teq, h1, h2] at ht
   simp
 
-/-- Shows that evaluating `apply_lookup_map` terms produces values of the expected type. -/
-theorem typeof_value_model_eval_apply_lookup_map
+/-- Shows that evaluating `apply_lookup_fun` terms produces values of the expected type. -/
+theorem typeof_value_model_eval_apply_lookup_fun
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : native_String)
@@ -588,41 +588,12 @@ theorem typeof_value_model_eval_apply_lookup_map
     (i : SmtValue)
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value
-        (__smtx_model_eval_apply (__smtx_model_lookup M s (SmtType.Map A B)) i) = B := by
-  have hiNN : i ≠ SmtValue.NotValue := by
-    intro h
-    cases h
-    simp [__smtx_typeof_value] at hi
-    exact hA hi.symm
-  have hMapApply :
-      ∀ {m : SmtMap} {j : SmtValue},
-        j ≠ SmtValue.NotValue ->
-        __smtx_model_eval_apply (SmtValue.Map m) j =
-          __smtx_map_select (SmtValue.Map m) j := by
-    intro m j hj
-    cases j with
-    | NotValue => exact (hj rfl).elim
-    | Boolean b
-    | Numeral b
-    | Rational b
-    | Binary _ b
-    | RegLan b
-    | Map b
-    | Set b
-    | Seq b
-    | Char b
-    | DtCons _ _ b
-    | Apply _ b =>
-        simp [__smtx_model_eval_apply, __smtx_map_select]
+        (__smtx_model_eval_apply (__smtx_model_lookup M s (SmtType.FunType A B)) i) = B := by
   have hLookup :
-      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.Map A B)) = SmtType.Map A B :=
-    model_total_typed_lookup hM s (SmtType.Map A B) (type_inhabited_map hB)
-  rcases map_value_canonical (A := A) (B := B) hLookup with ⟨m, hm⟩
-  rw [hm]
-  rw [hMapApply hiNN]
-  simpa [__smtx_map_select] using
-    map_lookup_typed (m := m) (A := A) (B := B) (i := i)
-      (by simpa [hm] using hLookup) hi
+      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
+        SmtType.FunType A B :=
+    model_total_typed_lookup hM s (SmtType.FunType A B) (type_inhabited_fun hB)
+  exact typeof_value_model_eval_apply_dt hA hLookup hi
 
 /-- Shows that evaluating `div_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_div_total
@@ -760,7 +731,7 @@ theorem typeof_value_model_eval_div
       (__smtx_model_eval_ite
         (__smtx_model_eval_eq (__smtx_model_eval M t2) (SmtValue.Numeral 0))
         (__smtx_model_eval_apply
-          (__smtx_model_lookup M native_div_by_zero_id (SmtType.Map SmtType.Int SmtType.Int))
+          (__smtx_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int))
           (__smtx_model_eval M t1))
         (__smtx_model_eval_div_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))) =
       SmtType.Int
@@ -770,7 +741,7 @@ theorem typeof_value_model_eval_div
   by_cases hZero : n2 = 0
   · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_div_total,
       native_veq, hZero] using
-      typeof_value_model_eval_apply_lookup_map M hM
+      typeof_value_model_eval_apply_lookup_fun M hM
         native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
         (SmtValue.Numeral n1) rfl
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_div_total,
@@ -794,7 +765,7 @@ theorem typeof_value_model_eval_mod
       (__smtx_model_eval_ite
         (__smtx_model_eval_eq (__smtx_model_eval M t2) (SmtValue.Numeral 0))
         (__smtx_model_eval_apply
-          (__smtx_model_lookup M native_mod_by_zero_id (SmtType.Map SmtType.Int SmtType.Int))
+          (__smtx_model_lookup M native_mod_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int))
           (__smtx_model_eval M t1))
         (__smtx_model_eval_mod_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))) =
       SmtType.Int
@@ -804,7 +775,7 @@ theorem typeof_value_model_eval_mod
   by_cases hZero : n2 = 0
   · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_mod_total,
       native_veq, hZero] using
-      typeof_value_model_eval_apply_lookup_map M hM
+      typeof_value_model_eval_apply_lookup_fun M hM
         native_mod_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
         (SmtValue.Numeral n1) rfl
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_mod_total,
@@ -831,7 +802,7 @@ theorem typeof_value_model_eval_multmult
         (__smtx_model_eval_ite
           (__smtx_model_eval_eq (__smtx_model_eval M t1) (SmtValue.Numeral 0))
           (__smtx_model_eval_apply
-            (__smtx_model_lookup M native_div_by_zero_id (SmtType.Map SmtType.Int SmtType.Int))
+            (__smtx_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int))
             (SmtValue.Numeral 1))
           (__smtx_model_eval_div_total (SmtValue.Numeral 1)
             (__smtx_model_eval_multmult_total (__smtx_model_eval M t1)
@@ -847,7 +818,7 @@ theorem typeof_value_model_eval_multmult
     · simpa [__smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_ite,
         __smtx_model_eval_eq, __smtx_model_eval_div_total, __smtx_model_eval_multmult_total,
         __smtx_model_eval__, native_veq, hNonneg, hZero] using
-        typeof_value_model_eval_apply_lookup_map M hM
+        typeof_value_model_eval_apply_lookup_fun M hM
           native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
           (SmtValue.Numeral 1) rfl
     · simp [__smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_ite,
@@ -901,7 +872,7 @@ theorem typeof_value_model_eval_qdiv
           (__smtx_model_eval_eq (__smtx_model_eval M t2)
             (SmtValue.Rational (native_mk_rational 0 1)))
           (__smtx_model_eval_apply
-            (__smtx_model_lookup M native_qdiv_by_zero_id (SmtType.Map SmtType.Real SmtType.Real))
+            (__smtx_model_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real))
             (__smtx_model_eval M t1))
           (__smtx_model_eval_qdiv_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))) =
         SmtType.Real
@@ -917,7 +888,7 @@ theorem typeof_value_model_eval_qdiv
           (__smtx_model_eval_eq (__smtx_model_eval M t2)
             (SmtValue.Rational (native_mk_rational 0 1)))
           (__smtx_model_eval_apply
-            (__smtx_model_lookup M native_qdiv_by_zero_id (SmtType.Map SmtType.Real SmtType.Real))
+            (__smtx_model_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real))
             (__smtx_model_eval M t1))
           (__smtx_model_eval_qdiv_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))) =
         SmtType.Real
@@ -927,7 +898,7 @@ theorem typeof_value_model_eval_qdiv
     by_cases hZero : q2 = native_mk_rational 0 1
     · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
         native_veq, hZero] using
-        typeof_value_model_eval_apply_lookup_map M hM
+        typeof_value_model_eval_apply_lookup_fun M hM
           native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real
           (SmtValue.Rational q1) rfl
     · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,

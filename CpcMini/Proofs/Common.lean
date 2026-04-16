@@ -301,11 +301,15 @@ theorem smt_value_rel_refl : (v : SmtValue) -> smt_value_rel v v
       exact smt_value_rel.base rfl
   | SmtValue.Map _ => by
       exact smt_value_rel.map (fun _ => rfl)
+  | SmtValue.Fun _ => by
+      exact smt_value_rel.base rfl
   | SmtValue.Set _ => by
       exact smt_value_rel.set (fun _ => rfl)
   | SmtValue.Seq s => by
       exact smt_value_rel.seq (smt_seq_rel_refl s)
   | SmtValue.Char _ => by
+      exact smt_value_rel.base rfl
+  | SmtValue.UValue _ _ => by
       exact smt_value_rel.base rfl
   | SmtValue.RegLan _ => by
       exact smt_value_rel.base rfl
@@ -423,6 +427,8 @@ private theorem smtx_model_eval_eq_refl_aux :
     (v : SmtValue) -> __smtx_model_eval_eq v v = SmtValue.Boolean true
   | SmtValue.Map _ => by
       simp [__smtx_model_eval_eq]
+  | SmtValue.Fun _ => by
+      simp [__smtx_model_eval_eq, native_veq]
   | SmtValue.Set _ => by
       simp [__smtx_model_eval_eq]
   | SmtValue.Seq s => by
@@ -441,6 +447,8 @@ private theorem smtx_model_eval_eq_refl_aux :
   | SmtValue.Binary _ _ => by
       simp [__smtx_model_eval_eq, native_veq]
   | SmtValue.Char _ => by
+      simp [__smtx_model_eval_eq, native_veq]
+  | SmtValue.UValue _ _ => by
       simp [__smtx_model_eval_eq, native_veq]
   | SmtValue.RegLan _ => by
       simp [__smtx_model_eval_eq, native_veq]
@@ -485,6 +493,10 @@ theorem smt_value_rel_iff_model_eval_eq_true :
           classical
           simp [__smtx_model_eval_eq] at h
           exact smt_value_rel.map h
+        case Fun.Fun m1 m2 =>
+          simp [__smtx_model_eval_eq, native_veq] at h
+          subst h
+          exact smt_value_rel.base rfl
         case Set.Set m1 m2 =>
           classical
           simp [__smtx_model_eval_eq] at h
@@ -518,6 +530,10 @@ theorem smt_value_rel_iff_model_eval_eq_true :
         case Char.Char c1 c2 =>
           simp [__smtx_model_eval_eq, native_veq] at h
           subst h
+          exact smt_value_rel.base rfl
+        case UValue.UValue i1 j1 i2 j2 =>
+          simp [__smtx_model_eval_eq, native_veq] at h
+          rcases h with ⟨rfl, rfl⟩
           exact smt_value_rel.base rfl
         case RegLan.RegLan r1 r2 =>
           simp [__smtx_model_eval_eq, native_veq] at h

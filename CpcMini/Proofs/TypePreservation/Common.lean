@@ -21,6 +21,26 @@ theorem smtx_inhabited_type_eq_false_iff (T : SmtType) :
   · simp [h]
   · simp [h]
 
+/-- Computes the well-formedness/inhabitation guard from a non-`None` result. -/
+theorem smtx_typeof_guard_wf_of_non_none
+    (T U : SmtType) :
+    __smtx_typeof_guard_wf T U ≠ SmtType.None ->
+    __smtx_typeof_guard_wf T U = U := by
+  intro h
+  unfold __smtx_typeof_guard_wf at h ⊢
+  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h ⊢
+  cases hWf : __smtx_type_wf T <;> simp [hWf] at h ⊢
+
+/-- Extracts semantic inhabitation from a non-`None` guarded type. -/
+theorem smtx_typeof_guard_wf_inhabited_of_non_none
+    (T U : SmtType) :
+    __smtx_typeof_guard_wf T U ≠ SmtType.None ->
+    type_inhabited T := by
+  intro h
+  unfold __smtx_typeof_guard_wf at h
+  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h
+  exact (smtx_inhabited_type_eq_true_iff T).1 hInh
+
 /-- Predicate asserting that an SMT term does not have type `None`. -/
 def term_has_non_none_type (t : SmtTerm) : Prop :=
   __smtx_typeof t ≠ SmtType.None

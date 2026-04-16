@@ -62,32 +62,33 @@ namespace TranslationProofs
       __smtx_typeof_guard (__eo_to_smt_type T) (SmtType.Seq (__eo_to_smt_type T)) := by
   simp [__eo_to_smt_type]
 
-/-- Computes `__smtx_typeof` for `guard_inhabited_of_non_none`. -/
-theorem smtx_typeof_guard_inhabited_of_non_none
+/-- Computes `__smtx_typeof` for `guard_wf_of_non_none`. -/
+theorem smtx_typeof_guard_wf_of_non_none
     (T U : SmtType) :
-    __smtx_typeof_guard_inhabited T U ≠ SmtType.None ->
-    __smtx_typeof_guard_inhabited T U = U := by
+    __smtx_typeof_guard_wf T U ≠ SmtType.None ->
+    __smtx_typeof_guard_wf T U = U := by
   intro h
-  unfold __smtx_typeof_guard_inhabited at h ⊢
+  unfold __smtx_typeof_guard_wf at h ⊢
   cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h ⊢
+  cases hWf : __smtx_type_wf T <;> simp [hWf] at h ⊢
 
 /-- Computes `__smtx_typeof` for `var_of_non_none`. -/
 theorem smtx_typeof_var_of_non_none
     (s : native_String) (T : SmtType) :
-    __smtx_typeof (SmtTerm.Var s T) ≠ SmtType.None ->
+  __smtx_typeof (SmtTerm.Var s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.Var s T) = T := by
   intro h
-  change __smtx_typeof_guard_inhabited T T = T
-  exact smtx_typeof_guard_inhabited_of_non_none T T (by simpa [__smtx_typeof] using h)
+  change __smtx_typeof_guard_wf T T = T
+  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof] using h)
 
 /-- Computes `__smtx_typeof` for `uconst_of_non_none`. -/
 theorem smtx_typeof_uconst_of_non_none
     (s : native_String) (T : SmtType) :
-    __smtx_typeof (SmtTerm.UConst s T) ≠ SmtType.None ->
+  __smtx_typeof (SmtTerm.UConst s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.UConst s T) = T := by
   intro h
-  change __smtx_typeof_guard_inhabited T T = T
-  exact smtx_typeof_guard_inhabited_of_non_none T T (by simpa [__smtx_typeof] using h)
+  change __smtx_typeof_guard_wf T T = T
+  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof] using h)
 
 /-- Derives `smtx_binary_well_formed` from `non_none`. -/
 theorem smtx_binary_well_formed_of_non_none

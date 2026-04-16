@@ -81,13 +81,26 @@ theorem smtx_typeof_tuple_unit_translation :
     __smtx_typeof
         (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) =
       SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
+  let tupleTy :=
+    SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+  have hInh : native_inhabited_type tupleTy = true := by
+    classical
+    unfold native_inhabited_type
+    apply decide_eq_true
+    refine ⟨SmtValue.DtCons "_at_Tuple"
+      (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0, ?_⟩
+    simp [tupleTy, __smtx_typeof_value, __smtx_type_wf, __smtx_type_wf_rec,
+      __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, native_ite,
+      __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute]
+  have hWf : __smtx_type_wf tupleTy = true := by native_decide
   change
-    __smtx_typeof_dt_cons_rec
-        (SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
+    __smtx_typeof_guard_wf tupleTy
+      (__smtx_typeof_dt_cons_rec tupleTy
         (__smtx_dt_substitute "_at_Tuple"
           (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
-          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0 =
+          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) =
       SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
-  simp [__smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec]
+  simp [tupleTy, __smtx_typeof_guard_wf, hInh, hWf, native_ite,
+    __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec]
 
 end TranslationProofs

@@ -21,6 +21,26 @@ theorem smtx_inhabited_type_eq_false_iff (T : SmtType) :
   · simp [h]
   · simp [h]
 
+/-- Computes the well-formedness/inhabitation guard from a non-`None` result. -/
+theorem smtx_typeof_guard_wf_of_non_none
+    (T U : SmtType) :
+    __smtx_typeof_guard_wf T U ≠ SmtType.None ->
+    __smtx_typeof_guard_wf T U = U := by
+  intro h
+  unfold __smtx_typeof_guard_wf at h ⊢
+  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h ⊢
+  cases hWf : __smtx_type_wf T <;> simp [hWf] at h ⊢
+
+/-- Extracts semantic inhabitation from a non-`None` guarded type. -/
+theorem smtx_typeof_guard_wf_inhabited_of_non_none
+    (T U : SmtType) :
+    __smtx_typeof_guard_wf T U ≠ SmtType.None ->
+    type_inhabited T := by
+  intro h
+  unfold __smtx_typeof_guard_wf at h
+  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h
+  exact (smtx_inhabited_type_eq_true_iff T).1 hInh
+
 /-- Predicate asserting that an SMT term does not have type `None`. -/
 def term_has_non_none_type (t : SmtTerm) : Prop :=
   __smtx_typeof t ≠ SmtType.None
@@ -66,6 +86,13 @@ theorem type_inhabited_map {A B : SmtType} (hB : type_inhabited B) :
     type_inhabited (SmtType.Map A B) := by
   rcases hB with ⟨v, hv⟩
   exact ⟨SmtValue.Map (SmtMap.default A v), by simp [__smtx_typeof_value, __smtx_typeof_map_value, hv]⟩
+
+/-- Shows that the SMT type `fun` is inhabited when its result type is inhabited. -/
+theorem type_inhabited_fun {A B : SmtType} (hB : type_inhabited B) :
+    type_inhabited (SmtType.FunType A B) := by
+  rcases hB with ⟨v, hv⟩
+  exact ⟨SmtValue.Fun (SmtMap.default A v), by
+    simp [__smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_fun_type, hv]⟩
 
 /-- Choice-based model that returns a canonical inhabitant for every inhabited SMT type. -/
 noncomputable def default_typed_model : SmtModel := by
