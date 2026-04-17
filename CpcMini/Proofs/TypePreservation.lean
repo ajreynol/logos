@@ -9,8 +9,8 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
-/-- Main type-preservation theorem for evaluation of supported SMT terms in total typed models. -/
-theorem supported_type_preservation
+/-- Induction lemma proving type preservation for supported SMT terms in total typed models. -/
+private theorem supported_type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
     (t : SmtTerm)
@@ -433,14 +433,14 @@ theorem smt_model_eval_preserves_type_of_supported
     (t : SmtTerm) (T : SmtType)
     (hTy : __smtx_typeof t = T)
     (hNonNone : T ≠ SmtType.None)
-    (hs : supported_preservation_term t) :
+    (_hs : supported_preservation_term t) :
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
   have hNN : term_has_non_none_type t := by
     unfold term_has_non_none_type
     rw [hTy]
     exact hNonNone
   simpa [hTy] using
-    supported_type_preservation M hM t hNN hs
+    type_preservation M hM t hNN
 
 /-- Derives Boolean-value evaluation for supported Boolean-typed SMT terms. -/
 theorem smt_model_eval_bool_is_boolean_of_supported
