@@ -530,8 +530,21 @@ macro_rules
             else
               SmtValue.NotValue)
   | `(native_eval_tchoice_nth $M $s $T $body $n) => do
-      let evalChoiceNthId := Lean.mkIdent `__smtx_model_eval_choice_nth
-      `($evalChoiceNthId $M $s $T $body $n)
+      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
+      let pushId := Lean.mkIdent `__smtx_model_push
+      `(by
+          classical
+          let rec evalChoiceNth (M' : SmtModel)
+              (s' : native_String) (T' : SmtType) (body' : SmtTerm) : native_Nat -> SmtValue
+            | native_nat_zero =>
+                $evalChoiceId M' s' T' body'
+            | native_nat_succ n' =>
+                let v := $evalChoiceId M' s' T' body'
+                match body' with
+                | SmtTerm.exists s'' T'' body'' =>
+                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
+                | _ => SmtValue.NotValue
+          exact evalChoiceNth $M $s $T $body $n)
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -1889,8 +1902,6 @@ end
 
 end
 
-mutual
-
 noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
@@ -2051,47 +2062,6 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Var s T) => (__smtx_model_lookup M s T)
   | (SmtTerm.UConst s T) => (__smtx_model_lookup M s T)
   | x1 => SmtValue.NotValue
-termination_by t => (2 * sizeOf t + 1)
-decreasing_by
-  all_goals (try simp_wf)
-  all_goals (try omega)
-
-noncomputable def __smtx_model_eval_choice_nth
-    (M : SmtModel) (s : native_String) (T : SmtType) : SmtTerm -> native_Nat -> SmtValue
-  | body, native_nat_zero => by
-      classical
-      exact
-        if hSat :
-            ∃ v : SmtValue,
-              __smtx_typeof_value v = T ∧
-                __smtx_model_eval (__smtx_model_push M s T v) body = (SmtValue.Boolean true) then
-          Classical.choose hSat
-        else if hTy : ∃ v : SmtValue, __smtx_typeof_value v = T then
-          Classical.choose hTy
-        else
-          SmtValue.NotValue
-  | body, (native_nat_succ n) => by
-      classical
-      let v :=
-        if hSat :
-            ∃ v : SmtValue,
-              __smtx_typeof_value v = T ∧
-                __smtx_model_eval (__smtx_model_push M s T v) body = (SmtValue.Boolean true) then
-          Classical.choose hSat
-        else if hTy : ∃ v : SmtValue, __smtx_typeof_value v = T then
-          Classical.choose hTy
-        else
-          SmtValue.NotValue
-      exact
-        match body with
-        | (SmtTerm.exists s' U F) => (__smtx_model_eval_choice_nth (__smtx_model_push M s T v) s' U F n)
-        | _ => SmtValue.NotValue
-termination_by body n => (2 * sizeOf body + n + 2)
-decreasing_by
-  all_goals (try simp_wf)
-  all_goals (try omega)
-
-end
 
 
 
