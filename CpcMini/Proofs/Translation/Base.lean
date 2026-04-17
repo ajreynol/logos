@@ -26,45 +26,6 @@ private theorem eo_to_smt_var_ne
       change SmtTerm.None = u at h
       exact hNone h
 
-/-- Shows that EO translation never produces the bare SMT term `exists`. -/
-theorem eo_to_smt_ne_exists (t : Term) (s : native_String) (T : SmtType) :
-    __eo_to_smt t ≠ SmtTerm.exists s T := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name U =>
-    exact eo_to_smt_var_ne name U (SmtTerm.exists s T) (by intro hEq; cases hEq)
-      (by intro s' hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
-
-/-- Shows that EO translation never produces the bare SMT term `forall`. -/
-theorem eo_to_smt_ne_forall (t : Term) (s : native_String) (T : SmtType) :
-    __eo_to_smt t ≠ SmtTerm.forall s T := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name U =>
-    exact eo_to_smt_var_ne name U (SmtTerm.forall s T) (by intro hEq; cases hEq)
-      (by intro s' hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
-
-/-- Shows that EO translation never produces the bare SMT term `choice`. -/
-theorem eo_to_smt_ne_choice (t : Term) (s : native_String) (T : SmtType) :
-    __eo_to_smt t ≠ SmtTerm.choice s T := by
-  intro h
-  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-  case Var name U =>
-    exact eo_to_smt_var_ne name U (SmtTerm.choice s T) (by intro hEq; cases hEq)
-      (by intro s' hEq; cases hEq) h
-  case Apply f x =>
-    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
-    case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
-
 /-- Shows that EO translation never produces a datatype tester. -/
 theorem eo_to_smt_ne_dt_tester (t : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt t ≠ SmtTerm.DtTester s d i := by

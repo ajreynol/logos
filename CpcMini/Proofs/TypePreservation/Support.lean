@@ -28,11 +28,11 @@ inductive supported_preservation_term : SmtTerm -> Prop
       supported_preservation_term
         (SmtTerm.ite c t1 t2)
   | exists (s : native_String) (T : SmtType) (body : SmtTerm) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.exists s T) body)
+      supported_preservation_term (SmtTerm.exists s T body)
   | forall (s : native_String) (T : SmtType) (body : SmtTerm) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.forall s T) body)
+      supported_preservation_term (SmtTerm.forall s T body)
   | choice (s : native_String) (T : SmtType) (body : SmtTerm) :
-      supported_preservation_term (SmtTerm.Apply (SmtTerm.choice s T) body)
+      supported_preservation_term (SmtTerm.choice s T body)
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
