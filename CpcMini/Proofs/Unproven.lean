@@ -822,6 +822,459 @@ private theorem eo_to_smt_single_apply_generic
   case not =>
       exact False.elim (hNot rfl)
 
+/-- Extends a ref-list inclusion witness across a common head element. -/
+private theorem cons_subset
+    {refs refs' : List native_String} {s : native_String}
+    (hsub : ∀ t, t ∈ refs -> t ∈ refs') :
+    ∀ t, t ∈ s :: refs -> t ∈ s :: refs' := by
+  intro t ht
+  simp at ht ⊢
+  rcases ht with rfl | ht
+  · exact Or.inl rfl
+  · exact Or.inr (hsub t ht)
+
+/- Weakening EO validity along ref-list inclusion. -/
+mutual
+
+private theorem eo_type_valid_rec_weaken
+    {refs refs' : List native_String} :
+    ∀ {T : Term},
+      TranslationProofs.eo_type_valid_rec refs T ->
+      (∀ t, t ∈ refs -> t ∈ refs') ->
+      TranslationProofs.eo_type_valid_rec refs' T
+  | Term.__eo_pf t, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Int, _, _ => by
+      simp [TranslationProofs.eo_type_valid_rec]
+  | Term.Real, _, _ => by
+      simp [TranslationProofs.eo_type_valid_rec]
+  | Term.BitVec, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Char, _, _ => by
+      simp [TranslationProofs.eo_type_valid_rec]
+  | Term.Seq, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.__eo_List, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.__eo_List_nil, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.__eo_List_cons, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Bool, _, _ => by
+      simp [TranslationProofs.eo_type_valid_rec]
+  | Term.Boolean b, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Numeral n, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Rational q, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.String s, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Binary w n, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Type, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Stuck, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Apply Term.BitVec (Term.Numeral n), h, _ => by
+      simpa [TranslationProofs.eo_type_valid_rec] using h
+  | Term.Apply Term.Seq x, h, _ => by
+      simpa [TranslationProofs.eo_type_valid_rec] using h
+  | Term.Apply (Term.Apply Term.FunType T1) T2, h, _ => by
+      simpa [TranslationProofs.eo_type_valid_rec] using h
+  | Term.Apply f x, h, _ => by
+      cases f with
+      | BitVec =>
+          cases x with
+          | Numeral n =>
+              simpa [TranslationProofs.eo_type_valid_rec] using h
+          | _ =>
+              simp [TranslationProofs.eo_type_valid_rec] at h
+      | Seq =>
+          simpa [TranslationProofs.eo_type_valid_rec] using h
+      | Apply g y =>
+          cases g with
+          | FunType =>
+              simpa [TranslationProofs.eo_type_valid_rec] using h
+          | _ =>
+              simp [TranslationProofs.eo_type_valid_rec] at h
+      | _ =>
+          simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.FunType, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.Var name T, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.DatatypeType s d, h, hsub => by
+      simpa [TranslationProofs.eo_type_valid_rec] using
+        eo_datatype_valid_rec_weaken h (cons_subset hsub)
+  | Term.DatatypeTypeRef s, h, hsub => by
+      exact hsub s (by simpa [TranslationProofs.eo_type_valid_rec] using h)
+  | Term.DtcAppType T U, h, _ => by
+      simpa [TranslationProofs.eo_type_valid_rec] using h
+  | Term.DtCons s d i, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.DtSel s d i j, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.USort i, _, _ => by
+      simp [TranslationProofs.eo_type_valid_rec]
+  | Term.UConst i T, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.not, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.or, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.and, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.imp, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+  | Term.eq, h, _ => by
+      simp [TranslationProofs.eo_type_valid_rec] at h
+
+private theorem eo_datatype_cons_valid_rec_weaken
+    {refs refs' : List native_String} :
+    ∀ {c : DatatypeCons},
+      TranslationProofs.eo_datatype_cons_valid_rec refs c ->
+      (∀ t, t ∈ refs -> t ∈ refs') ->
+      TranslationProofs.eo_datatype_cons_valid_rec refs' c
+  | DatatypeCons.unit, _, _ => by
+      simp [TranslationProofs.eo_datatype_cons_valid_rec]
+  | DatatypeCons.cons T c, h, hsub => by
+      rcases h with ⟨hT, hC⟩
+      exact ⟨eo_type_valid_rec_weaken hT hsub, eo_datatype_cons_valid_rec_weaken hC hsub⟩
+
+private theorem eo_datatype_valid_rec_weaken
+    {refs refs' : List native_String} :
+    ∀ {d : Datatype},
+      TranslationProofs.eo_datatype_valid_rec refs d ->
+      (∀ t, t ∈ refs -> t ∈ refs') ->
+      TranslationProofs.eo_datatype_valid_rec refs' d
+  | Datatype.null, _, _ => by
+      simp [TranslationProofs.eo_datatype_valid_rec]
+  | Datatype.sum c d, h, hsub => by
+      rcases h with ⟨hC, hD⟩
+      exact ⟨eo_datatype_cons_valid_rec_weaken hC hsub, eo_datatype_valid_rec_weaken hD hsub⟩
+
+end
+
+/- Substituting a valid datatype for a valid type-reference preserves datatype validity. -/
+mutual
+
+private theorem eo_datatype_cons_valid_rec_substitute
+    (s : native_String) (dsub : Datatype) (refs : List native_String)
+    (hSub : TranslationProofs.eo_datatype_valid_rec (s :: refs) dsub) :
+    ∀ {c : DatatypeCons},
+      TranslationProofs.eo_datatype_cons_valid_rec (s :: refs) c ->
+      TranslationProofs.eo_datatype_cons_valid_rec refs (__eo_dtc_substitute s dsub c)
+  | DatatypeCons.unit, _ => by
+      simp [TranslationProofs.eo_datatype_cons_valid_rec, __eo_dtc_substitute]
+  | DatatypeCons.cons T c, h => by
+      rcases h with ⟨hT, hC⟩
+      have hC' := eo_datatype_cons_valid_rec_substitute s dsub refs hSub hC
+      cases T with
+      | DatatypeType s2 d2 =>
+          by_cases hs : s = s2
+          · subst s2
+            have hD2 : TranslationProofs.eo_datatype_valid_rec (s :: s :: refs) d2 := by
+              simpa [TranslationProofs.eo_type_valid_rec] using hT
+            have hD2' : TranslationProofs.eo_datatype_valid_rec (s :: refs) d2 := by
+              apply eo_datatype_valid_rec_weaken hD2
+              intro t ht
+              simpa using ht
+            have hT' : TranslationProofs.eo_type_valid_rec refs (Term.DatatypeType s d2) := by
+              simpa [TranslationProofs.eo_type_valid_rec] using hD2'
+            simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+              TranslationProofs.eo_type_valid_rec, native_ite, native_streq] using
+              And.intro hT' hC'
+          · have hD2 : TranslationProofs.eo_datatype_valid_rec (s2 :: s :: refs) d2 := by
+              simpa [TranslationProofs.eo_type_valid_rec] using hT
+            have hSub' : TranslationProofs.eo_datatype_valid_rec (s :: s2 :: refs) dsub := by
+              apply eo_datatype_valid_rec_weaken hSub
+              intro t ht
+              simp at ht ⊢
+              rcases ht with rfl | ht
+              · exact Or.inl rfl
+              · exact Or.inr (Or.inr ht)
+            have hD2swap : TranslationProofs.eo_datatype_valid_rec (s :: s2 :: refs) d2 := by
+              apply eo_datatype_valid_rec_weaken hD2
+              intro t ht
+              simp at ht ⊢
+              rcases ht with rfl | rfl | ht
+              · exact Or.inr (Or.inl rfl)
+              · exact Or.inl rfl
+              · exact Or.inr (Or.inr ht)
+            have hD2' :=
+              eo_datatype_valid_rec_substitute s dsub (s2 :: refs) hSub' hD2swap
+            have hT' :
+                TranslationProofs.eo_type_valid_rec refs
+                  (Term.DatatypeType s2 (__eo_dt_substitute s dsub d2)) := by
+              simpa [TranslationProofs.eo_type_valid_rec] using hD2'
+            simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+              TranslationProofs.eo_type_valid_rec, hs, native_ite, native_streq] using
+              And.intro hT' hC'
+      | DatatypeTypeRef s2 =>
+          by_cases hs : s2 = s
+          · subst s2
+            have hT' : TranslationProofs.eo_type_valid_rec refs (Term.DatatypeType s dsub) := by
+              simpa [TranslationProofs.eo_type_valid_rec] using hSub
+            simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+              TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+              And.intro hT' hC'
+          · have hMem : s2 ∈ s :: refs := by
+              simpa [TranslationProofs.eo_type_valid_rec] using hT
+            have hMem' : s2 ∈ refs := by
+              simpa [hs] using hMem
+            have hT' : TranslationProofs.eo_type_valid_rec refs (Term.DatatypeTypeRef s2) := by
+              simpa [TranslationProofs.eo_type_valid_rec] using hMem'
+            simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+              TranslationProofs.eo_type_valid_rec, native_ite, native_teq, hs] using
+              And.intro hT' hC'
+      | Bool =>
+          simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+            TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+            And.intro trivial hC'
+      | Int =>
+          simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+            TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+            And.intro trivial hC'
+      | Real =>
+          simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+            TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+            And.intro trivial hC'
+      | Char =>
+          simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+            TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+            And.intro trivial hC'
+      | USort i =>
+          simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+            TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+            And.intro trivial hC'
+      | DtcAppType T1 T2 =>
+          simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+            TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+            And.intro hT hC'
+      | Apply f x =>
+          cases f with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+                    TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+                    And.intro hT hC'
+              | _ =>
+                  simp [TranslationProofs.eo_type_valid_rec] at hT
+          | Seq =>
+              simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+                TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+                And.intro hT hC'
+          | Apply g y =>
+              cases g with
+              | FunType =>
+                  simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
+                    TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
+                    And.intro hT hC'
+              | _ =>
+                  simp [TranslationProofs.eo_type_valid_rec] at hT
+          | _ =>
+              simp [TranslationProofs.eo_type_valid_rec] at hT
+      | __eo_pf t =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | BitVec =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | Seq =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | __eo_List =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | __eo_List_nil =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | __eo_List_cons =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | Boolean b =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | Numeral n =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | Rational q =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | String str =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | Binary w n =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | «Type» =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | Stuck =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | FunType =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | Var name ty =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | DtCons s0 d0 i0 =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | DtSel s0 d0 i0 j0 =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | UConst i0 ty =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | «not» =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | «or» =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | «and» =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | «imp» =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+      | «eq» =>
+          simp [TranslationProofs.eo_type_valid_rec] at hT
+
+private theorem eo_datatype_valid_rec_substitute
+    (s : native_String) (dsub : Datatype) (refs : List native_String)
+    (hSub : TranslationProofs.eo_datatype_valid_rec (s :: refs) dsub) :
+    ∀ {d : Datatype},
+      TranslationProofs.eo_datatype_valid_rec (s :: refs) d ->
+      TranslationProofs.eo_datatype_valid_rec refs (__eo_dt_substitute s dsub d)
+  | Datatype.null, _ => by
+      simp [TranslationProofs.eo_datatype_valid_rec, __eo_dt_substitute]
+  | Datatype.sum c d, h => by
+      rcases h with ⟨hC, hD⟩
+      exact ⟨eo_datatype_cons_valid_rec_substitute s dsub refs hSub hC,
+        eo_datatype_valid_rec_substitute s dsub refs hSub hD⟩
+
+end
+
+/-- Computes translated EO constructor typing at index zero on valid constructor chains. -/
+private theorem eo_to_smt_type_typeof_dt_cons_rec_zero_of_valid
+    {T : Term}
+    (hT : TranslationProofs.eo_type_valid_rec [] T) :
+    ∀ {c : DatatypeCons} {d : Datatype},
+      TranslationProofs.eo_datatype_cons_valid_rec [] c ->
+      TranslationProofs.eo_datatype_valid_rec [] d ->
+      __eo_to_smt_type (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero) =
+        __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
+          (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
+          native_nat_zero ∧
+      TranslationProofs.eo_type_valid_rec []
+        (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero)
+  | DatatypeCons.unit, d, _, _ => by
+      have hEq :
+          __eo_typeof_dt_cons_rec T (Datatype.sum DatatypeCons.unit d) native_nat_zero = T := by
+        cases T <;> simp [__eo_typeof_dt_cons_rec, TranslationProofs.eo_type_valid_rec] at hT ⊢
+      refine ⟨?_, ?_⟩
+      · rw [hEq]
+        simp [__smtx_typeof_dt_cons_rec]
+      · rw [hEq]
+        exact hT
+  | DatatypeCons.cons U c, d, hC, hD => by
+      rcases hC with ⟨hU, hC⟩
+      have hRec :=
+        eo_to_smt_type_typeof_dt_cons_rec_zero_of_valid (T := T) hT hC hD
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+        TranslationProofs.eo_type_valid_rec_non_none hU
+      have hRecNN :
+          __eo_to_smt_type
+              (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero) ≠
+            SmtType.None :=
+        TranslationProofs.eo_type_valid_rec_non_none hRec.2
+      have hEq :
+          __eo_typeof_dt_cons_rec T (Datatype.sum (DatatypeCons.cons U c) d) native_nat_zero =
+            Term.DtcAppType U (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero) := by
+        cases T <;> simp [__eo_typeof_dt_cons_rec, TranslationProofs.eo_type_valid_rec] at hT ⊢
+      have hRecTyNN :
+          __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
+              (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
+              native_nat_zero ≠
+            SmtType.None := by
+        rw [← hRec.1]
+        exact hRecNN
+      refine ⟨?_, ?_⟩
+      · rw [hEq, TranslationProofs.eo_to_smt_type_dtc_app, hRec.1]
+        simp [__smtx_typeof_dt_cons_rec, __eo_to_smt_datatype_cons, __eo_to_smt_datatype,
+          hUNN, hRecTyNN, __smtx_typeof_guard, native_ite, native_Teq]
+      · rw [hEq]
+        exact ⟨hU, hRec.2⟩
+
+/-- Computes translated EO constructor typing at valid datatype indices where the SMT type is defined. -/
+private theorem eo_to_smt_type_typeof_dt_cons_rec_of_valid
+    {T : Term}
+    (hT : TranslationProofs.eo_type_valid_rec [] T) :
+    ∀ {d : Datatype} {i : native_Nat},
+      TranslationProofs.eo_datatype_valid_rec [] d ->
+      __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) (__eo_to_smt_datatype d) i ≠ SmtType.None ->
+      __eo_to_smt_type (__eo_typeof_dt_cons_rec T d i) =
+        __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) (__eo_to_smt_datatype d) i ∧
+      TranslationProofs.eo_type_valid_rec [] (__eo_typeof_dt_cons_rec T d i)
+  | Datatype.null, i, hD, hNN => by
+      exfalso
+      exact hNN (by simp [__smtx_typeof_dt_cons_rec])
+  | Datatype.sum c d, native_nat_zero, hD, _ => by
+      exact eo_to_smt_type_typeof_dt_cons_rec_zero_of_valid (T := T) hT hD.1 hD.2
+  | Datatype.sum c d, native_nat_succ i, hD, hNN => by
+      have hNN' :
+          __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) (__eo_to_smt_datatype d) i ≠
+            SmtType.None := by
+        simpa [__eo_to_smt_datatype, __smtx_typeof_dt_cons_rec] using hNN
+      have hEq :
+          __eo_typeof_dt_cons_rec T (Datatype.sum c d) (native_nat_succ i) =
+            __eo_typeof_dt_cons_rec T d i := by
+        cases T <;> cases c <;> simp [__eo_typeof_dt_cons_rec]
+      have hSmtEq :
+          __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
+              (__eo_to_smt_datatype (Datatype.sum c d)) (native_nat_succ i) =
+            __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) (__eo_to_smt_datatype d) i := by
+        simp [__eo_to_smt_datatype, __smtx_typeof_dt_cons_rec]
+      rw [hEq, hSmtEq]
+      exact eo_to_smt_type_typeof_dt_cons_rec_of_valid (T := T) hT hD.2 hNN'
+
+/-- Computes translated EO typing for datatype constructors on valid datatypes. -/
+private theorem eo_to_smt_type_typeof_dt_cons_of_valid
+    (s : native_String) (d : Datatype) (i : native_Nat)
+    (hValid : TranslationProofs.eo_datatype_valid_rec [s] d)
+    (hNN : __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =
+      __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ∧
+    TranslationProofs.eo_type_valid_rec [] (__eo_typeof (Term.DtCons s d i)) := by
+  let D : SmtType := SmtType.Datatype s (__eo_to_smt_datatype d)
+  let inner : SmtType :=
+    __smtx_typeof_dt_cons_rec D
+      (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d)) i
+  have hInnerEq :
+      __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = inner := by
+    simpa [D, inner, __smtx_typeof] using
+      (TranslationProofs.smtx_typeof_guard_wf_of_non_none D inner hNN)
+  have hInnerNN : inner ≠ SmtType.None := by
+    rw [← hInnerEq]
+    exact hNN
+  have hTyValid : TranslationProofs.eo_type_valid_rec [] (Term.DatatypeType s d) := by
+    simpa [TranslationProofs.eo_type_valid_rec] using hValid
+  have hSubValid : TranslationProofs.eo_datatype_valid_rec [] (__eo_dt_substitute s d d) := by
+    exact eo_datatype_valid_rec_substitute s d [] hValid hValid
+  have hRec :=
+    eo_to_smt_type_typeof_dt_cons_rec_of_valid (T := Term.DatatypeType s d) hTyValid hSubValid
+      (by simpa [D, inner, TranslationProofs.eo_to_smt_datatype_substitute] using hInnerNN)
+  have hSubEq :
+      __eo_to_smt_datatype (__eo_dt_substitute s d d) =
+        __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
+    TranslationProofs.eo_to_smt_datatype_substitute s d d
+  refine ⟨?_, ?_⟩
+  · have hRec' :
+        __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = inner := by
+      simpa [__eo_typeof, D, inner, hSubEq] using hRec.1
+    exact hRec'.trans hInnerEq.symm
+  · simpa [__eo_typeof] using hRec.2
+
+/-- Computes translated EO typing for selector application from exact SMT datatype typing plus validity. -/
+private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_valid
+    (x : Term) (s : native_String) (d : Datatype) (i j : native_Nat)
+    (hRec : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hValid : TranslationProofs.eo_type_valid_rec [] (__eo_typeof x))
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s (__eo_to_smt_datatype d)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) =
+      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
+  have hTyEq :
+      __eo_to_smt_type (__eo_typeof x) =
+        __eo_to_smt_type (Term.DatatypeType s d) := by
+    rw [← hRec]
+    simp [__eo_to_smt_type, hx]
+  have hExact : __eo_typeof x = Term.DatatypeType s d :=
+    TranslationProofs.eo_to_smt_type_eq_of_valid hValid hTyEq
+  exact TranslationProofs.eo_to_smt_type_typeof_apply_dt_sel_of_exact_eo_datatype x s d i j hExact
+
 /-- Valid EO proof-side types are never `Stuck`. -/
 private theorem eo_type_valid_not_stuck
     {refs : List native_String} {T : Term}
@@ -1028,7 +1481,34 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
   | Term.DtcAppType T U, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.DtCons s d i, hNN => by
-      sorry
+      have hGuardNN :
+          __smtx_typeof_guard_wf
+            (SmtType.Datatype s (__eo_to_smt_datatype d))
+            (__smtx_typeof_dt_cons_rec
+              (SmtType.Datatype s (__eo_to_smt_datatype d))
+              (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d))
+              i) ≠
+            SmtType.None := by
+        simpa [__eo_to_smt.eq_def, __smtx_typeof] using hNN
+      have hWf :
+          __smtx_type_wf (SmtType.Datatype s (__eo_to_smt_datatype d)) = true := by
+        unfold __smtx_typeof_guard_wf at hGuardNN
+        cases hInh : native_inhabited_type (SmtType.Datatype s (__eo_to_smt_datatype d)) <;>
+          simp [native_ite, hInh] at hGuardNN
+        by_cases hWf : __smtx_type_wf (SmtType.Datatype s (__eo_to_smt_datatype d)) = true
+        · exact hWf
+        · exfalso
+          simp [native_ite, hWf] at hGuardNN
+      change __smtx_type_wf_rec (SmtType.Datatype s (__eo_to_smt_datatype d)) [] = true at hWf
+      have hTyValid :
+          TranslationProofs.eo_type_valid_rec [] (Term.DatatypeType s d) :=
+        TranslationProofs.eo_type_valid_of_smt_wf_rec [] hWf
+      have hDtValid : TranslationProofs.eo_datatype_valid_rec [s] d := by
+        simpa [TranslationProofs.eo_type_valid_rec] using hTyValid
+      have hCons :=
+        eo_to_smt_type_typeof_dt_cons_of_valid s d i hDtValid
+          (by simpa [__eo_to_smt.eq_def] using hNN)
+      exact ⟨hCons.1.symm, hCons.2⟩
   | Term.DtSel s d i j, hNN => by
       have hNone : __smtx_typeof (__eo_to_smt (Term.DtSel s d i j)) = SmtType.None := by
         simp [__eo_to_smt.eq_def, __smtx_typeof]
@@ -1289,7 +1769,69 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                   simp [TranslationProofs.eo_type_valid_rec]
               · by_cases hDtSel : ∃ s d i j, f = Term.DtSel s d i j
                 · rcases hDtSel with ⟨s, d, i, j, rfl⟩
-                  sorry
+                  let R := __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j
+                  have hTranslate :
+                      __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
+                        SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x) := by
+                    calc
+                      __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
+                          SmtTerm.Apply (__eo_to_smt (Term.DtSel s d i j)) (__eo_to_smt x) := by
+                        exact eo_to_smt_single_apply_generic (Term.DtSel s d i j) x
+                          (by intro g y h; cases h)
+                          (by intro h; cases h)
+                      _ = SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x) := by
+                        rw [TranslationProofs.eo_to_smt_term_dt_sel]
+                  have hApplyNN :
+                      term_has_non_none_type
+                        (SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x)) := by
+                    unfold term_has_non_none_type
+                    simpa [hTranslate] using hNN
+                  have hArgTy :
+                      __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s (__eo_to_smt_datatype d) :=
+                    dt_sel_arg_datatype_of_non_none hApplyNN
+                  have hArgNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+                    rw [hArgTy]
+                    simp
+                  have hIx := eo_to_smt_typeof_matches_translation_and_valid x hArgNN
+                  have hArgExactTy :
+                      __eo_to_smt_type (__eo_typeof x) =
+                        __eo_to_smt_type (Term.DatatypeType s d) := by
+                    rw [← hIx.1]
+                    simpa [__eo_to_smt_type] using hArgTy
+                  have hArgExact : __eo_typeof x = Term.DatatypeType s d :=
+                    TranslationProofs.eo_to_smt_type_eq_of_valid hIx.2 hArgExactTy
+                  have hSmtTy :
+                      __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) = R := by
+                    simpa [hTranslate, R] using dt_sel_term_typeof_of_non_none hApplyNN
+                  have hEoTy :
+                      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) = R := by
+                    simpa [R] using
+                      eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_valid x s d i j
+                        hIx.1 hIx.2 hArgTy
+                  refine ⟨hSmtTy.trans hEoTy.symm, ?_⟩
+                  have hGuardNN :
+                      __smtx_typeof_guard_wf R
+                        (__smtx_typeof_apply
+                          (SmtType.FunType (SmtType.Datatype s (__eo_to_smt_datatype d)) R)
+                          (__smtx_typeof (__eo_to_smt x))) ≠
+                        SmtType.None := by
+                    simpa [term_has_non_none_type, __smtx_typeof, R] using hApplyNN
+                  have hRetWf : __smtx_type_wf R = true := by
+                    unfold __smtx_typeof_guard_wf at hGuardNN
+                    cases hInh : native_inhabited_type R <;> simp [native_ite, hInh] at hGuardNN
+                    by_cases hWf : __smtx_type_wf R = true
+                    · exact hWf
+                    · exfalso
+                      simp [native_ite, hWf] at hGuardNN
+                  change __smtx_type_wf_rec R [] = true at hRetWf
+                  have hSelRetValid :
+                      TranslationProofs.eo_type_valid_rec []
+                        (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) := by
+                    apply TranslationProofs.eo_type_valid_of_smt_wf_rec []
+                    rw [TranslationProofs.eo_to_smt_type_typeof_dt_sel_return_on_substituted_datatype s d i j]
+                    exact hRetWf
+                  simpa [__eo_typeof, __eo_typeof_apply, __eo_requires, hArgExact,
+                    native_ite, native_teq, native_not] using hSelRetValid
                 ·
                   have hNoSel : ∀ s d i j, f ≠ Term.DtSel s d i j := by
                     intro s d i j hSel
