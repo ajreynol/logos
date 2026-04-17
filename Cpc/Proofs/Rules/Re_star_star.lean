@@ -12,6 +12,16 @@ private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
     T = Term.RegLan := by
   cases T <;> simp [__eo_typeof_re_mult] at h ⊢
 
+private theorem smtx_model_eval_re_star_star (v : SmtValue) :
+    __smtx_model_eval_re_mult (__smtx_model_eval_re_mult v) =
+      __smtx_model_eval_re_mult v := by
+  cases v
+  case RegLan r =>
+    cases r <;>
+      simp [__smtx_model_eval_re_mult, native_re_mult, native_re_mk_star]
+  all_goals
+    simp [__smtx_model_eval_re_mult, native_re_mult, native_re_mk_star]
+
 private theorem typed___eo_prog_re_star_star_impl
     (a1 : Term)
     (hA1Trans : RuleProofs.eo_has_smt_translation a1)
@@ -63,7 +73,56 @@ private theorem facts___eo_prog_re_star_star_impl
     (hA1Trans : RuleProofs.eo_has_smt_translation a1)
     (hA1Ty : __eo_typeof a1 = Term.RegLan) :
   eo_interprets M (__eo_prog_re_star_star a1) true := by
-  sorry
+  have hA1NotStuck : a1 ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hA1Ty
+    have hBad : __eo_typeof Term.Stuck ≠ Term.RegLan := by
+      native_decide
+    exact hBad hA1Ty
+  have hProg :
+      __eo_prog_re_star_star a1 =
+        Term.Apply
+          (Term.Apply Term.eq
+            (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1)))
+          (Term.Apply Term.re_mult a1) := by
+    cases a1 <;> simp [__eo_prog_re_star_star] at hA1NotStuck ⊢
+  have hBoolEq :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply
+          (Term.Apply Term.eq
+            (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1)))
+          (Term.Apply Term.re_mult a1)) := by
+    rw [← hProg]
+    exact typed___eo_prog_re_star_star_impl a1 hA1Trans hA1Ty
+  have hOuterTranslate :
+      __eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1)) =
+        SmtTerm.re_mult (__eo_to_smt (Term.Apply Term.re_mult a1)) := by
+    rw [__eo_to_smt.eq_def]
+  have hInnerTranslate :
+      __eo_to_smt (Term.Apply Term.re_mult a1) =
+        SmtTerm.re_mult (__eo_to_smt a1) := by
+    rw [__eo_to_smt.eq_def]
+  have hEvalEq :
+      __smtx_model_eval M
+          (__eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1))) =
+        __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult a1)) := by
+    rw [hOuterTranslate, hInnerTranslate]
+    change
+      __smtx_model_eval_re_mult
+          (__smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt a1))) =
+        __smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1))
+    change
+      __smtx_model_eval_re_mult
+          (__smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1))) =
+        __smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1))
+    exact smtx_model_eval_re_star_star (__smtx_model_eval M (__eo_to_smt a1))
+  rw [hProg]
+  exact RuleProofs.eo_interprets_eq_of_rel M
+    (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1))
+    (Term.Apply Term.re_mult a1) hBoolEq <| by
+    rw [hEvalEq]
+    exact RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult a1)))
 
 theorem cmd_step_re_star_star_properties
     (M : SmtModel) (hM : model_total_typed M)

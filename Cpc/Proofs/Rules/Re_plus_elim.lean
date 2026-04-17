@@ -12,6 +12,28 @@ private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
     T = Term.RegLan := by
   cases T <;> simp [__eo_typeof_re_mult] at h ⊢
 
+private theorem smtx_model_eval_re_plus_elim (v : SmtValue) :
+    __smtx_model_eval_re_plus v =
+      __smtx_model_eval_re_concat v
+        (__smtx_model_eval_re_concat (__smtx_model_eval_re_mult v)
+          (__smtx_model_eval_str_to_re (SmtValue.Seq (native_pack_string "")))) := by
+  cases v
+  case RegLan r =>
+    cases r <;>
+      simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
+        __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_plus,
+        native_re_concat, native_re_mult, native_re_mk_concat, native_re_mk_star,
+        native_str_to_re, native_re_of_list, native_pack_string, native_unpack_string,
+        native_pack_seq, native_unpack_seq, __smtx_ssm_char_values_of_string,
+        __smtx_ssm_string_of_char_values]
+  all_goals
+    simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
+      __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_plus,
+      native_re_concat, native_re_mult, native_re_mk_concat, native_re_mk_star,
+      native_str_to_re, native_re_of_list, native_pack_string, native_unpack_string,
+      native_pack_seq, native_unpack_seq, __smtx_ssm_char_values_of_string,
+      __smtx_ssm_string_of_char_values]
+
 private theorem typed___eo_prog_re_plus_elim_impl
     (a1 : Term)
     (hA1Trans : RuleProofs.eo_has_smt_translation a1)
@@ -92,7 +114,96 @@ private theorem facts___eo_prog_re_plus_elim_impl
     (hA1Trans : RuleProofs.eo_has_smt_translation a1)
     (hA1Ty : __eo_typeof a1 = Term.RegLan) :
   eo_interprets M (__eo_prog_re_plus_elim a1) true := by
-  sorry
+  have hA1NotStuck : a1 ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hA1Ty
+    have hBad : __eo_typeof Term.Stuck ≠ Term.RegLan := by
+      native_decide
+    exact hBad hA1Ty
+  have hProg :
+      __eo_prog_re_plus_elim a1 =
+        Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_plus a1))
+          (Term.Apply (Term.Apply Term.re_concat a1)
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String "")))) := by
+    cases a1 <;> simp [__eo_prog_re_plus_elim] at hA1NotStuck ⊢
+  have hBoolEq :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_plus a1))
+          (Term.Apply (Term.Apply Term.re_concat a1)
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String ""))))) := by
+    rw [← hProg]
+    exact typed___eo_prog_re_plus_elim_impl a1 hA1Trans hA1Ty
+  have hLhsTranslate :
+      __eo_to_smt (Term.Apply Term.re_plus a1) =
+        SmtTerm.re_plus (__eo_to_smt a1) := by
+    rw [__eo_to_smt.eq_def]
+  have hRhsTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat a1)
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String "")))) =
+        SmtTerm.re_concat (__eo_to_smt a1)
+          (__eo_to_smt
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String "")))) := by
+    rw [__eo_to_smt.eq_def]
+  have hInnerConcatTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+            (Term.Apply Term.str_to_re (Term.String ""))) =
+        SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
+          (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
+    rw [__eo_to_smt.eq_def]
+  have hStarTranslate :
+      __eo_to_smt (Term.Apply Term.re_mult a1) =
+        SmtTerm.re_mult (__eo_to_smt a1) := by
+    rw [__eo_to_smt.eq_def]
+  have hEmpTranslate :
+      __eo_to_smt (Term.Apply Term.str_to_re (Term.String "")) =
+        SmtTerm.str_to_re (__eo_to_smt (Term.String "")) := by
+    rw [__eo_to_smt.eq_def]
+  have hEmptyStringEval :
+      __smtx_model_eval M (__eo_to_smt (Term.String "")) =
+        SmtValue.Seq (native_pack_string "") := by
+    rw [__eo_to_smt.eq_def]
+    rfl
+  have hEvalEq :
+      __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_plus a1)) =
+        __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply Term.re_concat a1)
+              (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+                (Term.Apply Term.str_to_re (Term.String ""))))) := by
+    rw [hLhsTranslate, hRhsTranslate, hInnerConcatTranslate, hStarTranslate, hEmpTranslate]
+    change
+      __smtx_model_eval_re_plus (__smtx_model_eval M (__eo_to_smt a1)) =
+        __smtx_model_eval_re_concat (__smtx_model_eval M (__eo_to_smt a1))
+          (__smtx_model_eval_re_concat
+            (__smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt a1)))
+            (__smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt (Term.String "")))))
+    change
+      __smtx_model_eval_re_plus (__smtx_model_eval M (__eo_to_smt a1)) =
+        __smtx_model_eval_re_concat (__smtx_model_eval M (__eo_to_smt a1))
+          (__smtx_model_eval_re_concat
+            (__smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1)))
+            (__smtx_model_eval_str_to_re (__smtx_model_eval M (__eo_to_smt (Term.String "")))))
+    rw [hEmptyStringEval]
+    exact smtx_model_eval_re_plus_elim (__smtx_model_eval M (__eo_to_smt a1))
+  rw [hProg]
+  exact RuleProofs.eo_interprets_eq_of_rel M
+    (Term.Apply Term.re_plus a1)
+    (Term.Apply (Term.Apply Term.re_concat a1)
+      (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+        (Term.Apply Term.str_to_re (Term.String "")))) hBoolEq <| by
+    rw [hEvalEq]
+    exact RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat a1)
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String ""))))))
 
 theorem cmd_step_re_plus_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
