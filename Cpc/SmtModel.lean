@@ -243,7 +243,7 @@ inductive SmtTerm : Type where
   | eq : SmtTerm -> SmtTerm -> SmtTerm
   | exists : native_String -> SmtType -> SmtTerm -> SmtTerm
   | forall : native_String -> SmtType -> SmtTerm -> SmtTerm
-  | choice_nth : SmtTerm -> native_Nat -> SmtTerm
+  | choice_nth : native_String -> SmtType -> SmtTerm -> native_Nat -> SmtTerm
   | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtTerm
   | DtSel : native_String -> SmtDatatype -> native_Nat -> native_Nat -> SmtTerm
   | DtTester : native_String -> SmtDatatype -> native_Nat -> SmtTerm
@@ -436,7 +436,7 @@ end
 namespace SmtTerm
 
 @[simp] def choice (s : native_String) (T : SmtType) (x1 : SmtTerm) : SmtTerm :=
-  SmtTerm.choice_nth (SmtTerm.exists s T x1) native_nat_zero
+  SmtTerm.choice_nth s T x1 native_nat_zero
 
 end SmtTerm
 
@@ -537,23 +537,22 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
-  | `(native_eval_choice_nth $M $x1 $n) => do
+  | `(native_eval_choice_nth $M $s $T $body $n) => do
       let evalChoiceId := Lean.mkIdent `native_eval_tchoice
       let pushId := Lean.mkIdent `__smtx_model_push
       `(by
           classical
-          let rec evalChoiceNth (M' : SmtModel) (t : SmtTerm) : native_Nat -> SmtValue
+          let rec evalChoiceNth (M' : SmtModel)
+              (s' : native_String) (T' : SmtType) (body' : SmtTerm) : native_Nat -> SmtValue
             | native_nat_zero =>
-                match t with
-                | SmtTerm.exists s T body => $evalChoiceId M' s T body
-                | _ => SmtValue.NotValue
+                $evalChoiceId M' s' T' body'
             | native_nat_succ n' =>
-                match t with
-                | SmtTerm.exists s T body =>
-                    let v := $evalChoiceId M' s T body
-                    evalChoiceNth ($pushId M' s T v) body n'
+                let v := $evalChoiceId M' s' T' body'
+                match body' with
+                | SmtTerm.exists s'' T'' body'' =>
+                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
                 | _ => SmtValue.NotValue
-          exact evalChoiceNth $M $x1 $n)
+          exact evalChoiceNth $M $s $T $body $n)
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -1600,12 +1599,15 @@ def __smtx_typeof_int_to_bv : SmtTerm -> SmtType -> SmtType
   | x2, x3 => SmtType.None
 
 
-def __smtx_typeof_choice_nth : SmtTerm -> native_Nat -> SmtType
-  | (SmtTerm.exists _ T x1), native_nat_zero =>
+def __smtx_typeof_choice_nth : native_String -> SmtType -> SmtTerm -> native_Nat -> SmtType
+  | _, T, x1, native_nat_zero =>
       (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_guard_wf T T) SmtType.None)
-  | (SmtTerm.exists _ _ x1), (native_nat_succ n) =>
-      (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_choice_nth x1 n) SmtType.None)
-  | _, _ => SmtType.None
+  | _, _, x1, (native_nat_succ n) =>
+      (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool)
+        (match x1 with
+        | SmtTerm.exists s T body => __smtx_typeof_choice_nth s T body n
+        | _ => SmtType.None)
+        SmtType.None)
 
 
 def __smtx_typeof : SmtTerm -> SmtType
@@ -1769,7 +1771,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.eq x1 x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.exists s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.forall s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
-  | (SmtTerm.choice_nth x1 n) => (__smtx_typeof_choice_nth x1 n)
+  | (SmtTerm.choice_nth s T x1 n) => (__smtx_typeof_choice_nth s T x1 n)
   | (SmtTerm.DtCons s d i) => 
     let _v0 := (SmtType.Datatype s d)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
@@ -2070,7 +2072,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
   | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
-  | (SmtTerm.choice_nth x1 n) => (native_eval_choice_nth M x1 n)
+  | (SmtTerm.choice_nth s T x1 n) => (native_eval_choice_nth M s T x1 n)
   | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))

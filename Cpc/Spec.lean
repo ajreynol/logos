@@ -78,7 +78,8 @@ def __eo_to_smt_set_empty : SmtType -> SmtTerm
 
 
 def __eo_to_smt_quantifiers_skolemize : SmtTerm -> native_Nat -> SmtTerm
-  | F, n => (SmtTerm.choice_nth F n)
+  | (SmtTerm.exists s T F), n => (SmtTerm.choice_nth s T F n)
+  | _, _ => SmtTerm.None
 
 
 def __eo_to_smt_type_tuple (U : SmtType) : SmtType -> SmtType
