@@ -27,9 +27,14 @@ private theorem facts___eo_prog_re_all_elim (M : SmtModel) :
   apply RuleProofs.eo_interprets_eq_of_rel M
     Term.re_all (Term.Apply Term.re_mult Term.re_allchar)
   · exact typed___eo_prog_re_all_elim
-  · simp [RuleProofs.smt_value_rel, __eo_to_smt.eq_def, __smtx_model_eval,
-      __smtx_model_eval_re_mult, native_re_mult, native_re_all, native_re_allchar,
-      native_re_mk_star, native_veq]
+  · have hEvalEq :
+        __smtx_model_eval M (__eo_to_smt Term.re_all) =
+          __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult Term.re_allchar)) := by
+      simp [__eo_to_smt.eq_def, __smtx_model_eval, __smtx_model_eval_re_mult,
+        native_re_all, native_re_allchar, native_re_mult, native_re_mk_star]
+    rw [hEvalEq]
+    exact RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult Term.re_allchar)))
 
 theorem cmd_step_re_all_elim_properties
     (M : SmtModel) (hM : model_total_typed M)

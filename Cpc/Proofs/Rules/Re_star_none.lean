@@ -27,12 +27,16 @@ private theorem facts___eo_prog_re_star_none (M : SmtModel) :
   apply RuleProofs.eo_interprets_eq_of_rel M
     (Term.Apply Term.re_mult Term.re_none) (Term.Apply Term.str_to_re (Term.String ""))
   · exact typed___eo_prog_re_star_none
-  · simp [RuleProofs.smt_value_rel, __eo_to_smt.eq_def, __smtx_model_eval,
-      __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_mult,
-      native_re_none, native_re_mk_star, native_str_to_re, native_re_of_list, native_veq,
-      native_pack_string, native_pack_seq, native_unpack_string,
-      __smtx_ssm_string_of_char_values, __smtx_ssm_char_values_of_string,
-      native_unpack_seq]
+  · have hEvalEq :
+        __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult Term.re_none)) =
+          __smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
+      simp [__eo_to_smt.eq_def, __smtx_model_eval, __smtx_model_eval_re_mult,
+        __smtx_model_eval_str_to_re, native_re_none, native_re_mult, native_re_mk_star,
+        native_str_to_re, native_re_of_list, native_pack_string, native_unpack_string, native_pack_seq,
+        native_unpack_seq, __smtx_ssm_char_values_of_string, __smtx_ssm_string_of_char_values]
+    rw [hEvalEq]
+    exact RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))))
 
 theorem cmd_step_re_star_none_properties
     (M : SmtModel) (hM : model_total_typed M)
