@@ -49,6 +49,18 @@ def __eo_to_smt_substitute (s : native_String) (T : SmtType) (u : SmtTerm) : Smt
   | z => (native_ite (__eo_to_smt_is_var s T z) u z)
 
 
+def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
+  | (Term.Apply (Term.Apply Term._at__at_TypedList_cons x) xs) => (SmtTerm.and (SmtTerm.not (SmtTerm.eq s x)) (__eo_to_smt_distinct_pairs s xs))
+  | (Term.Apply Term._at__at_TypedList_nil T) => (SmtTerm.Boolean true)
+  | xs => SmtTerm.None
+
+
+def __eo_to_smt_distinct : Term -> SmtTerm
+  | (Term.Apply (Term.Apply Term._at__at_TypedList_cons x) xs) => (SmtTerm.and (__eo_to_smt_distinct_pairs (__eo_to_smt x) xs) (__eo_to_smt_distinct xs))
+  | (Term.Apply Term._at__at_TypedList_nil T) => (SmtTerm.Boolean true)
+  | xs => SmtTerm.None
+
+
 def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
   | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (native_ite (native_zleq 0 x2) (SmtTerm.Binary x2 (native_mod_total x1 (native_int_pow2 x2))) SmtTerm.None)
   | t1, t2 => SmtTerm.None
@@ -193,7 +205,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply Term.imp x1) x2) => (SmtTerm.imp (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.xor x1) x2) => (SmtTerm.xor (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply Term.distinct x1) x2) => (SmtTerm.distinct (__eo_to_smt x1) (__eo_to_smt x2))
+  | (Term.Apply Term.distinct x1) => (__eo_to_smt_distinct x1)
   | (Term._at_purify x1) => (__eo_to_smt x1)
   | (Term.Apply (Term.Apply Term.plus x1) x2) => (SmtTerm.plus (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply Term.neg x1) x2) => (SmtTerm.neg (__eo_to_smt x1) (__eo_to_smt x2))
