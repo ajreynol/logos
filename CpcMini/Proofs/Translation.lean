@@ -1,5 +1,6 @@
 import CpcMini.Proofs.Translation.EoTypeof
 import CpcMini.Proofs.Translation.Apply
+import CpcMini.Proofs.Translation.Typeof
 
 open Eo
 open SmtEval

@@ -307,7 +307,7 @@ theorem eo_to_smt_type_eq_typeref_iff
     | _ =>
         simp [__eo_to_smt_type] at h
   · intro h
-    simpa [h, __eo_to_smt_type]
+    simp [h, __eo_to_smt_type]
 
 /-- A translated function type is never an SMT sequence type. -/
 private theorem smtx_typeof_guard_fun_ne_seq
@@ -865,7 +865,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
       have hT1NN : __eo_to_smt_type T1 ≠ SmtType.None := eo_type_valid_rec_non_none hValid
       have hU : __eo_to_smt_type U = SmtType.Seq (__eo_to_smt_type T1) := by
         simp [__eo_to_smt_type, hT1NN, __smtx_typeof_guard, native_ite, native_Teq] at hEq
-        simpa [hEq]
+        simp [hEq]
       rcases eo_to_smt_type_eq_seq_iff.mp hU with ⟨U1, hU', hU1, _⟩
       subst hU'
       have hSub : T1 = U1 :=
@@ -881,7 +881,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
             SmtType.FunType (__eo_to_smt_type T1) (__eo_to_smt_type T2) := by
         simp [eo_to_smt_type_fun, hT1NN, hT2NN, __smtx_typeof_guard,
           native_ite, native_Teq] at hEq
-        simpa [hEq]
+        simp [hEq]
       rcases eo_to_smt_type_eq_fun_iff.mp hU with
         ⟨U1, U2, hU', hU1, hU2, _, _⟩
       subst hU'
@@ -901,7 +901,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
             SmtType.DtcAppType (__eo_to_smt_type T1) (__eo_to_smt_type T2) := by
         simp [__eo_to_smt_type, hT1NN, hT2NN, __smtx_typeof_guard,
           native_ite, native_Teq] at hEq
-        simpa [hEq]
+        simp [hEq]
       rcases eo_to_smt_type_eq_dtc_app_iff.mp hU with
         ⟨U1, U2, hU', hU1, hU2, _, _⟩
       subst hU'
@@ -1096,28 +1096,28 @@ theorem eo_type_valid_of_smt_wf_rec
   | T, h => by
       cases T with
       | Bool =>
-          simp [eo_type_valid_rec, __eo_to_smt_type, __smtx_type_wf_rec]
+          simp [eo_type_valid_rec]
       | Int =>
-          simp [eo_type_valid_rec, __eo_to_smt_type, __smtx_type_wf_rec]
+          simp [eo_type_valid_rec]
       | Real =>
-          simp [eo_type_valid_rec, __eo_to_smt_type, __smtx_type_wf_rec]
+          simp [eo_type_valid_rec]
       | Char =>
-          simp [eo_type_valid_rec, __eo_to_smt_type, __smtx_type_wf_rec]
+          simp [eo_type_valid_rec]
       | USort i =>
-          simp [eo_type_valid_rec, __eo_to_smt_type, __smtx_type_wf_rec]
+          simp [eo_type_valid_rec]
       | DatatypeType s d =>
           simpa [eo_type_valid_rec, __eo_to_smt_type, __smtx_type_wf_rec] using
             eo_datatype_valid_of_smt_wf_rec (s :: refs) h
       | DatatypeTypeRef s =>
           have : False := by
-            simpa [__eo_to_smt_type, __smtx_type_wf_rec] using h
+            simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
           exact False.elim this
       | DtcAppType T U =>
           have : False := by
             cases hT : __eo_to_smt_type T <;>
             cases hU : __eo_to_smt_type U <;>
-              simpa [__eo_to_smt_type, __smtx_type_wf_rec, __smtx_typeof_guard, native_ite,
-                native_Teq, hT, hU] using h
+              simp [__eo_to_smt_type, __smtx_type_wf_rec, __smtx_typeof_guard, native_ite,
+                native_Teq, hT, hU] at h
           exact False.elim this
       | Apply f x =>
           cases f with
@@ -1133,11 +1133,11 @@ theorem eo_type_valid_of_smt_wf_rec
                     by_cases hz : native_zleq 0 n = true
                     · exact hz
                     · exfalso
-                      simpa [__eo_to_smt_type, __smtx_type_wf_rec, native_ite, hz] using h
+                      simp [__eo_to_smt_type, __smtx_type_wf_rec, native_ite, hz] at h
                   simpa [eo_type_valid_rec, native_zleq] using hz
               | _ =>
                   have : False := by
-                    simpa [__eo_to_smt_type, __smtx_type_wf_rec] using h
+                    simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
                   exact False.elim this
           | Apply g y =>
               cases g with
@@ -1150,15 +1150,15 @@ theorem eo_type_valid_of_smt_wf_rec
                   exact ⟨eo_type_valid_of_smt_wf_rec [] hPair.1, eo_type_valid_of_smt_wf_rec [] hPair.2⟩
               | _ =>
                   have : False := by
-                    simpa [__eo_to_smt_type, __smtx_type_wf_rec] using h
+                    simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
                   exact False.elim this
           | _ =>
               have : False := by
-                simpa [__eo_to_smt_type, __smtx_type_wf_rec] using h
+                simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
               exact False.elim this
       | _ =>
           have : False := by
-            simpa [__eo_to_smt_type, __smtx_type_wf_rec] using h
+            simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
           exact False.elim this
 
 theorem eo_datatype_cons_valid_of_smt_wf_rec
@@ -1167,13 +1167,13 @@ theorem eo_datatype_cons_valid_of_smt_wf_rec
       __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true ->
       eo_datatype_cons_valid_rec refs c
   | DatatypeCons.unit, _ => by
-      simp [__eo_to_smt_datatype_cons, eo_datatype_cons_valid_rec, __smtx_dt_cons_wf_rec]
+      simp [eo_datatype_cons_valid_rec]
   | DatatypeCons.cons T c, h => by
       cases hTy : __eo_to_smt_type T
       case None =>
         have : False := by
-          simpa [__eo_to_smt_datatype_cons, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
-            native_ite, hTy] using h
+          simp [__eo_to_smt_datatype_cons, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+            native_ite, hTy] at h
         exact False.elim this
       case TypeRef s =>
         have hT : T = Term.DatatypeTypeRef s :=
@@ -1199,7 +1199,7 @@ theorem eo_datatype_valid_of_smt_wf_rec
       __smtx_dt_wf_rec (__eo_to_smt_datatype d) refs = true ->
       eo_datatype_valid_rec refs d
   | Datatype.null, _ => by
-      simp [__eo_to_smt_datatype, eo_datatype_valid_rec, __smtx_dt_wf_rec]
+      simp [eo_datatype_valid_rec]
   | Datatype.sum c d, h => by
       have h' :
           native_ite (__smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs)
@@ -1222,7 +1222,7 @@ theorem eo_type_valid_of_guard_wf_non_none
     by_cases h1 : __smtx_type_wf (__eo_to_smt_type T) = true
     · exact h1
     · exfalso
-      simp [native_ite, h1] at h
+      simp [h1] at h
   change __smtx_type_wf_rec (__eo_to_smt_type T) [] = true at hWf
   exact eo_type_valid_of_smt_wf_rec [] hWf
 
