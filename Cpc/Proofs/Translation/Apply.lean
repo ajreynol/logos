@@ -178,11 +178,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
         rw [hHead]
         simp
   have hHeadEo :
-      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.Map A B ∨
-        (__eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.FunType A B ∨
-          __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.DtcAppType A B) := by
+      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.FunType A B ∨
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.DtcAppType A B := by
     rw [← ihF hHeadNN]
-    exact Or.inr hHead
+    exact hHead
   have hSmt :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) = B := by
     rw [hTranslate]
@@ -238,11 +237,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
         rw [hHead]
         simp
   have hHeadEo :
-      __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.Map A B ∨
-        (__eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.FunType A B ∨
-          __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.DtcAppType A B) := by
+      __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.FunType A B ∨
+        __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.DtcAppType A B := by
     rw [← ihF hHeadNN]
-    exact Or.inr hHead
+    exact hHead
   have hSmt :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g y) x)) = B := by
     rw [hTranslate]
@@ -463,11 +461,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
             __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) = __eo_to_smt_type T := by
           simpa using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hVarNN
         have hT :
-            __eo_to_smt_type T = SmtType.Map A B ∨
-              (__eo_to_smt_type T = SmtType.FunType A B ∨
-                __eo_to_smt_type T = SmtType.DtcAppType A B) := by
+            __eo_to_smt_type T = SmtType.FunType A B ∨
+              __eo_to_smt_type T = SmtType.DtcAppType A B := by
           rw [← hHeadTy]
-          exact Or.inr hHead
+          exact hHead
         have hSmt :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x)) = B := by
           rw [hTranslate]
@@ -508,11 +505,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
       simpa [hTranslate, __smtx_typeof] using hNonNone
     rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
     have hHeadEo :
-        __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.Map A B ∨
-          (__eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.FunType A B ∨
-            __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.DtcAppType A B) := by
+        __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.FunType A B ∨
+          __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.DtcAppType A B := by
       rw [eo_to_smt_type_typeof_dt_cons s d i]
-      exact Or.inr hHead
+      exact hHead
     have hSmt :
         __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtCons s d i) x)) = B := by
       rw [hTranslate]
@@ -582,11 +578,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
       simpa using
         smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T) hUConstNN
     have hT :
-        __eo_to_smt_type T = SmtType.Map A B ∨
-          (__eo_to_smt_type T = SmtType.FunType A B ∨
-            __eo_to_smt_type T = SmtType.DtcAppType A B) := by
+        __eo_to_smt_type T = SmtType.FunType A B ∨
+          __eo_to_smt_type T = SmtType.DtcAppType A B := by
       rw [← hHeadTy]
-      exact Or.inr hHead
+      exact hHead
     have hSmt :
         __smtx_typeof (__eo_to_smt (Term.Apply (Term.UConst i T) x)) = B := by
       rw [hTranslate]
@@ -3264,11 +3259,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
           rw [hHead]
           simp
     have hHeadEo :
-      __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.Map A B ∨
-          (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.FunType A B ∨
-            __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.DtcAppType A B) := by
+      __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.FunType A B ∨
+          __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.DtcAppType A B := by
       rw [← ihF hHeadNN]
-      exact Or.inr hHead
+      exact hHead
     have hSmt :
         __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_array_deq_diff x1 x2) x)) = B := by
       rw [hTranslate]
@@ -4091,11 +4085,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
           rw [hHead]
           simp
     have hHeadEo :
-      __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.Map A B ∨
-          (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.FunType A B ∨
-            __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.DtcAppType A B) := by
+      __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.FunType A B ∨
+          __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.DtcAppType A B := by
       rw [← ihF hHeadNN]
-      exact Or.inr hHead
+      exact hHead
     have hSmt :
         __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_sets_deq_diff x1 x2) x)) = B := by
       rw [hTranslate]
