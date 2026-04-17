@@ -41,8 +41,8 @@ private theorem supported_type_preservation
       exact typeof_value_model_eval_exists M s T body ht
   | «forall» s T body =>
       exact typeof_value_model_eval_forall M s T body ht
-  | choice s T body =>
-      exact typeof_value_model_eval_choice M s T body ht
+  | choice_nth s T body n =>
+      exact typeof_value_model_eval_choice_nth M s T body n ht
   | «not» ht1 hs1 =>
       exact typeof_value_model_eval_not M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -194,8 +194,8 @@ theorem supported_preservation_term_of_non_none :
       exact supported_preservation_term.exists s T body
     case «forall» s T body =>
       exact supported_preservation_term.forall s T body
-    case choice s T body =>
-      exact supported_preservation_term.choice s T body
+    case choice_nth s T body n =>
+      exact supported_preservation_term.choice_nth s T body n
     case DtCons s d i =>
       exact supported_preservation_term.dt_cons s d i
     case DtSel s d i j =>
@@ -269,12 +269,12 @@ theorem supported_preservation_term_of_non_none :
         exact supported_generic_apply_of_non_none hTy hEval ht
           (go (SmtTerm.forall s T body) hArgs.1)
           (go x hArgs.2)
-      case choice s T body =>
-        have hTy : generic_apply_type (SmtTerm.choice s T body) x := rfl
-        have hEval : generic_apply_eval (SmtTerm.choice s T body) x := by intro M; rfl
+      case choice_nth s T body n =>
+        have hTy : generic_apply_type (SmtTerm.choice_nth s T body n) x := rfl
+        have hEval : generic_apply_eval (SmtTerm.choice_nth s T body n) x := by intro M; rfl
         have hArgs := generic_apply_subterms_non_none hTy ht
         exact supported_generic_apply_of_non_none hTy hEval ht
-          (go (SmtTerm.choice s T body) hArgs.1)
+          (go (SmtTerm.choice_nth s T body n) hArgs.1)
           (go x hArgs.2)
       case DtSel s d i j =>
         have htx : term_has_non_none_type x := by

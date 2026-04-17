@@ -6,7 +6,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 set_option allowUnsafeReducibility true
-attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
@@ -633,9 +632,9 @@ theorem typeof_value_model_eval_dt_sel
   have hResInh : type_inhabited (__smtx_ret_typeof_sel s d i j) := by
     rw [← hResTy]
     exact hT
-  change
-    __smtx_typeof_value (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)
+  rw [show __smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) =
+      __smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x) by
+    simp [__smtx_model_eval]]
   rw [hResTy]
   let v := __smtx_model_eval M x
   have hv : __smtx_typeof_value v = SmtType.Datatype s d := by
@@ -710,9 +709,9 @@ theorem typeof_value_model_eval_dt_tester
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) =
       __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) := by
   rw [dt_tester_term_typeof_of_non_none ht]
-  change
-    __smtx_typeof_value (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x)) =
-      SmtType.Bool
+  rw [show __smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtTester s d i) x) =
+      __smtx_model_eval_dt_tester s d i (__smtx_model_eval M x) by
+    simp [__smtx_model_eval]]
   simp [__smtx_model_eval_dt_tester, __smtx_typeof_value]
 
 /-- Enumerates the cases for `typeof_apply_non_none`. -/
