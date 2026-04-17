@@ -275,12 +275,11 @@ theorem eo_to_smt_type_typeof_apply_seq_unit_of_non_none
   change __eo_to_smt_type (__eo_typeof_seq_unit (__eo_typeof x)) =
     SmtType.Seq (__eo_to_smt_type (__eo_typeof x))
   cases hTy : __eo_typeof x <;> simp [__eo_typeof_seq_unit, __eo_to_smt_type, hTy] at hx ⊢
-  case DtcAppType T U =>
-    have hNN : __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.None := by
-      simpa [eo_to_smt_type_dtc_app] using hx
-    exact smtx_typeof_guard_of_non_none _ _ hNN
   case Apply =>
     exact smtx_typeof_guard_of_non_none _ _ hx
+  case DtcAppType a b =>
+    cases hA : __eo_to_smt_type a <;> cases hB : __eo_to_smt_type b <;>
+      simp [__smtx_typeof_guard, native_ite, native_Teq, hA, hB] at hx ⊢
   all_goals simp [__smtx_typeof_guard, native_ite, native_Teq]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_set_singleton_of_non_none`. -/
@@ -292,12 +291,11 @@ theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
   change __eo_to_smt_type (__eo_typeof_set_singleton (__eo_typeof x)) =
     SmtType.Set (__eo_to_smt_type (__eo_typeof x))
   cases hTy : __eo_typeof x <;> simp [__eo_typeof_set_singleton, __eo_to_smt_type, hTy] at hx ⊢
-  case DtcAppType T U =>
-    have hNN : __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.None := by
-      simpa [eo_to_smt_type_dtc_app] using hx
-    exact smtx_typeof_guard_of_non_none _ _ hNN
   case Apply =>
     exact smtx_typeof_guard_of_non_none _ _ hx
+  case DtcAppType a b =>
+    cases hA : __eo_to_smt_type a <;> cases hB : __eo_to_smt_type b <;>
+      simp [__smtx_typeof_guard, native_ite, native_Teq, hA, hB] at hx ⊢
   all_goals simp [__smtx_typeof_guard, native_ite, native_Teq]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_set_is_singleton_of_smt_set`. -/

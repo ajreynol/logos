@@ -115,6 +115,29 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
     simp [__smtx_typeof_bv_op_2_ret, native_ite, native_nateq, SmtEval.native_nateq]
   exact hSmt.trans (hEo w hy hx).symm
 
+/-- Extracts non-`none` from a function-like apply head. -/
+private theorem smtx_head_non_none_of_apply_cases
+    {T A B : SmtType}
+    (hHead : T = SmtType.FunType A B ∨ T = SmtType.DtcAppType A B) :
+    T ≠ SmtType.None := by
+  intro hNone
+  rcases hHead with hHead | hHead
+  · cases hNone.symm.trans hHead
+  · cases hNone.symm.trans hHead
+
+/-- Computes `__smtx_typeof_apply` for function-like apply heads. -/
+private theorem smtx_typeof_apply_of_head_cases
+    {F X A B : SmtType}
+    (hHead : F = SmtType.FunType A B ∨ F = SmtType.DtcAppType A B)
+    (hX : X = A)
+    (hA : A ≠ SmtType.None) :
+    __smtx_typeof_apply F X = B := by
+  rcases hHead with hHead | hHead
+  · rw [hHead, hX]
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+  · rw [hHead, hX]
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_apply_generic`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
     (g z y x : Term)

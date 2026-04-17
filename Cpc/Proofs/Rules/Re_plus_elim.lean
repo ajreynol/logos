@@ -1,4 +1,4 @@
-import Cpc.Proofs.Support
+import Cpc.Proofs.ArraySupport
 
 open Eo
 open SmtEval
@@ -6,6 +6,204 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
+
+private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
+    (h : __eo_typeof_re_mult T ≠ Term.Stuck) :
+    T = Term.RegLan := by
+  cases T <;> simp [__eo_typeof_re_mult] at h ⊢
+
+private theorem smtx_model_eval_re_plus_elim (v : SmtValue) :
+    __smtx_model_eval_re_plus v =
+      __smtx_model_eval_re_concat v
+        (__smtx_model_eval_re_concat (__smtx_model_eval_re_mult v)
+          (__smtx_model_eval_str_to_re (SmtValue.Seq (native_pack_string "")))) := by
+  cases v
+  case RegLan r =>
+    cases r <;>
+      simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
+        __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_plus,
+        native_re_concat, native_re_mult, native_re_mk_concat, native_re_mk_star,
+        native_str_to_re, native_re_of_list, native_pack_string, native_unpack_string,
+        native_pack_seq, native_unpack_seq, __smtx_ssm_char_values_of_string,
+        __smtx_ssm_string_of_char_values]
+  all_goals
+    simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
+      __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_plus,
+      native_re_concat, native_re_mult, native_re_mk_concat, native_re_mk_star,
+      native_str_to_re, native_re_of_list, native_pack_string, native_unpack_string,
+      native_pack_seq, native_unpack_seq, __smtx_ssm_char_values_of_string,
+      __smtx_ssm_string_of_char_values]
+
+private theorem typed___eo_prog_re_plus_elim_impl
+    (a1 : Term)
+    (hA1Trans : RuleProofs.eo_has_smt_translation a1)
+    (hA1Ty : __eo_typeof a1 = Term.RegLan) :
+  RuleProofs.eo_has_bool_type (__eo_prog_re_plus_elim a1) := by
+  let lhs := Term.Apply Term.re_plus a1
+  let rhs :=
+    Term.Apply (Term.Apply Term.re_concat a1)
+      (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+        (Term.Apply Term.str_to_re (Term.String "")))
+  have hA1SmtTy : __smtx_typeof (__eo_to_smt a1) = SmtType.RegLan := by
+    have hTyRaw :
+        __smtx_typeof (__eo_to_smt a1) = __eo_to_smt_type (__eo_typeof a1) :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation a1 hA1Trans
+    rw [hA1Ty, TranslationProofs.eo_to_smt_type_reglan] at hTyRaw
+    exact hTyRaw
+  have hLhsTranslate :
+      __eo_to_smt (Term.Apply Term.re_plus a1) =
+        SmtTerm.re_plus (__eo_to_smt a1) := by
+    rw [__eo_to_smt.eq_def]
+  have hLhsTyRaw :
+      __smtx_typeof (__eo_to_smt (Term.Apply Term.re_plus a1)) = SmtType.RegLan := by
+    rw [hLhsTranslate]
+    simp [__smtx_typeof, hA1SmtTy, native_ite, native_Teq]
+  have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.RegLan := by
+    simpa [lhs] using hLhsTyRaw
+  have hStarTranslate :
+      __eo_to_smt (Term.Apply Term.re_mult a1) =
+        SmtTerm.re_mult (__eo_to_smt a1) := by
+    rw [__eo_to_smt.eq_def]
+  have hStarTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.re_mult a1)) = SmtType.RegLan := by
+    rw [hStarTranslate]
+    simp [__smtx_typeof, hA1SmtTy, native_ite, native_Teq]
+  have hEmpTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) = SmtType.RegLan := by
+    simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, native_Teq]
+  have hInnerConcatTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+            (Term.Apply Term.str_to_re (Term.String ""))) =
+        SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
+          (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
+    rw [__eo_to_smt.eq_def]
+  have hInnerConcatTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String "")))) = SmtType.RegLan := by
+    rw [hInnerConcatTranslate]
+    simp [__smtx_typeof, hStarTy, hEmpTy, native_ite, native_Teq]
+  have hRhsTyRaw :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply Term.re_concat a1)
+              (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+                (Term.Apply Term.str_to_re (Term.String ""))))) = SmtType.RegLan := by
+    rw [__eo_to_smt.eq_def]
+    simp [__smtx_typeof, hA1SmtTy, hInnerConcatTy, native_ite, native_Teq]
+  have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.RegLan := by
+    simpa [rhs] using hRhsTyRaw
+  have hBoolEq :
+      RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq lhs) rhs) := by
+    exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type lhs rhs
+      (by rw [hLhsTy, hRhsTy]) (by rw [hLhsTy]; simp)
+  have hA1NotStuck : a1 ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hA1Ty
+    have hBad : __eo_typeof Term.Stuck ≠ Term.RegLan := by
+      native_decide
+    exact hBad hA1Ty
+  have hProg :
+      __eo_prog_re_plus_elim a1 = Term.Apply (Term.Apply Term.eq lhs) rhs := by
+    cases a1 <;> simp [__eo_prog_re_plus_elim, lhs, rhs] at hA1NotStuck ⊢
+  rw [hProg]
+  exact hBoolEq
+
+private theorem facts___eo_prog_re_plus_elim_impl
+    (M : SmtModel) (a1 : Term)
+    (hA1Trans : RuleProofs.eo_has_smt_translation a1)
+    (hA1Ty : __eo_typeof a1 = Term.RegLan) :
+  eo_interprets M (__eo_prog_re_plus_elim a1) true := by
+  have hA1NotStuck : a1 ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hA1Ty
+    have hBad : __eo_typeof Term.Stuck ≠ Term.RegLan := by
+      native_decide
+    exact hBad hA1Ty
+  have hProg :
+      __eo_prog_re_plus_elim a1 =
+        Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_plus a1))
+          (Term.Apply (Term.Apply Term.re_concat a1)
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String "")))) := by
+    cases a1 <;> simp [__eo_prog_re_plus_elim] at hA1NotStuck ⊢
+  have hBoolEq :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_plus a1))
+          (Term.Apply (Term.Apply Term.re_concat a1)
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String ""))))) := by
+    rw [← hProg]
+    exact typed___eo_prog_re_plus_elim_impl a1 hA1Trans hA1Ty
+  have hLhsTranslate :
+      __eo_to_smt (Term.Apply Term.re_plus a1) =
+        SmtTerm.re_plus (__eo_to_smt a1) := by
+    rw [__eo_to_smt.eq_def]
+  have hRhsTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat a1)
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String "")))) =
+        SmtTerm.re_concat (__eo_to_smt a1)
+          (__eo_to_smt
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String "")))) := by
+    rw [__eo_to_smt.eq_def]
+  have hInnerConcatTranslate :
+      __eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+            (Term.Apply Term.str_to_re (Term.String ""))) =
+        SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
+          (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
+    rw [__eo_to_smt.eq_def]
+  have hStarTranslate :
+      __eo_to_smt (Term.Apply Term.re_mult a1) =
+        SmtTerm.re_mult (__eo_to_smt a1) := by
+    rw [__eo_to_smt.eq_def]
+  have hEmpTranslate :
+      __eo_to_smt (Term.Apply Term.str_to_re (Term.String "")) =
+        SmtTerm.str_to_re (__eo_to_smt (Term.String "")) := by
+    rw [__eo_to_smt.eq_def]
+  have hEmptyStringEval :
+      __smtx_model_eval M (__eo_to_smt (Term.String "")) =
+        SmtValue.Seq (native_pack_string "") := by
+    rw [__eo_to_smt.eq_def]
+    rfl
+  have hEvalEq :
+      __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_plus a1)) =
+        __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply Term.re_concat a1)
+              (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+                (Term.Apply Term.str_to_re (Term.String ""))))) := by
+    rw [hLhsTranslate, hRhsTranslate, hInnerConcatTranslate, hStarTranslate, hEmpTranslate]
+    change
+      __smtx_model_eval_re_plus (__smtx_model_eval M (__eo_to_smt a1)) =
+        __smtx_model_eval_re_concat (__smtx_model_eval M (__eo_to_smt a1))
+          (__smtx_model_eval_re_concat
+            (__smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt a1)))
+            (__smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt (Term.String "")))))
+    change
+      __smtx_model_eval_re_plus (__smtx_model_eval M (__eo_to_smt a1)) =
+        __smtx_model_eval_re_concat (__smtx_model_eval M (__eo_to_smt a1))
+          (__smtx_model_eval_re_concat
+            (__smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1)))
+            (__smtx_model_eval_str_to_re (__smtx_model_eval M (__eo_to_smt (Term.String "")))))
+    rw [hEmptyStringEval]
+    exact smtx_model_eval_re_plus_elim (__smtx_model_eval M (__eo_to_smt a1))
+  rw [hProg]
+  exact RuleProofs.eo_interprets_eq_of_rel M
+    (Term.Apply Term.re_plus a1)
+    (Term.Apply (Term.Apply Term.re_concat a1)
+      (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+        (Term.Apply Term.str_to_re (Term.String "")))) hBoolEq <| by
+    rw [hEvalEq]
+    exact RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat a1)
+            (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+              (Term.Apply Term.str_to_re (Term.String ""))))))
 
 theorem cmd_step_re_plus_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
@@ -16,4 +214,65 @@ theorem cmd_step_re_plus_elim_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.re_plus_elim args premises) :=
 by
-  sorry
+  intro hCmdTrans _hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.re_plus_elim args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              have hA1Trans : RuleProofs.eo_has_smt_translation a1 := by
+                simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans.1
+              have hA1NotStuck : a1 ≠ Term.Stuck := by
+                intro hStuck
+                subst a1
+                apply hProg
+                rfl
+              have hProgEq :
+                  __eo_cmd_step_proven s CRule.re_plus_elim (CArgList.cons a1 CArgList.nil)
+                    CIndexList.nil =
+                    Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_plus a1))
+                      (Term.Apply (Term.Apply Term.re_concat a1)
+                        (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+                          (Term.Apply Term.str_to_re (Term.String "")))) := by
+                cases hA1 : a1 <;> first | exact False.elim (hA1NotStuck hA1) | rfl
+              rw [hProgEq] at hResultTy
+              change __eo_typeof_eq
+                  (__eo_typeof (Term.Apply Term.re_plus a1))
+                  (__eo_typeof
+                    (Term.Apply (Term.Apply Term.re_concat a1)
+                      (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+                        (Term.Apply Term.str_to_re (Term.String ""))))) = Term.Bool at hResultTy
+              have hLhsNotStuck :
+                  __eo_typeof (Term.Apply Term.re_plus a1) ≠ Term.Stuck :=
+                (RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+                  (__eo_typeof (Term.Apply Term.re_plus a1))
+                  (__eo_typeof
+                    (Term.Apply (Term.Apply Term.re_concat a1)
+                      (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+                        (Term.Apply Term.str_to_re (Term.String ""))))) hResultTy).1
+              have hA1Ty : __eo_typeof a1 = Term.RegLan := by
+                have hTypeNotStuck : __eo_typeof_re_mult (__eo_typeof a1) ≠ Term.Stuck := by
+                  change __eo_typeof (Term.Apply Term.re_plus a1) ≠ Term.Stuck
+                  exact hLhsNotStuck
+                exact eo_typeof_re_mult_eq_reglan_of_ne_stuck (__eo_typeof a1) hTypeNotStuck
+              have hProps :
+                  StepRuleProperties M (premiseTermList s CIndexList.nil)
+                    (__eo_prog_re_plus_elim a1) := by
+                refine ⟨?_, RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (typed___eo_prog_re_plus_elim_impl a1 hA1Trans hA1Ty)⟩
+                intro _hTrue
+                exact facts___eo_prog_re_plus_elim_impl M a1 hA1Trans hA1Ty
+              change StepRuleProperties M [] (__eo_prog_re_plus_elim a1)
+              simpa [premiseTermList] using hProps
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+      | cons _ _ =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)

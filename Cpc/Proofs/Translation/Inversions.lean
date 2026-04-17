@@ -317,10 +317,12 @@ theorem eo_to_smt_type_eq_bool
     (h : __eo_to_smt_type T = SmtType.Bool) :
     T = Term.Bool := by
   cases T <;> try simp [__eo_to_smt_type] at h
-  case DtcAppType T U =>
-    exact (eo_to_smt_type_dtc_app_ne_bool T U h).elim
   case Bool =>
     rfl
+  case DtcAppType a b =>
+    cases ha : __eo_to_smt_type a <;> cases hb : __eo_to_smt_type b <;>
+      simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq,
+        ha, hb] at h
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
     case Seq =>
@@ -347,10 +349,12 @@ theorem eo_to_smt_type_eq_int
     (h : __eo_to_smt_type T = SmtType.Int) :
     T = Term.Int := by
   cases T <;> try simp [__eo_to_smt_type] at h
-  case DtcAppType T U =>
-    exact (eo_to_smt_type_dtc_app_ne_int T U h).elim
   case Int =>
     rfl
+  case DtcAppType a b =>
+    cases ha : __eo_to_smt_type a <;> cases hb : __eo_to_smt_type b <;>
+      simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq,
+        ha, hb] at h
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
     case Seq =>
@@ -377,10 +381,12 @@ theorem eo_to_smt_type_eq_real
     (h : __eo_to_smt_type T = SmtType.Real) :
     T = Term.Real := by
   cases T <;> try simp [__eo_to_smt_type] at h
-  case DtcAppType T U =>
-    exact (eo_to_smt_type_dtc_app_ne_real T U h).elim
   case Real =>
     rfl
+  case DtcAppType a b =>
+    cases ha : __eo_to_smt_type a <;> cases hb : __eo_to_smt_type b <;>
+      simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq,
+        ha, hb] at h
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
     case Seq =>
@@ -407,10 +413,12 @@ theorem eo_to_smt_type_eq_reglan
     (h : __eo_to_smt_type T = SmtType.RegLan) :
     T = Term.RegLan := by
   cases T <;> try simp [__eo_to_smt_type] at h
-  case DtcAppType T U =>
-    exact (eo_to_smt_type_dtc_app_ne_reglan T U h).elim
   case RegLan =>
     rfl
+  case DtcAppType a b =>
+    cases ha : __eo_to_smt_type a <;> cases hb : __eo_to_smt_type b <;>
+      simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq,
+        ha, hb] at h
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
     case Seq =>
@@ -437,10 +445,12 @@ theorem eo_to_smt_type_eq_char
     (h : __eo_to_smt_type T = SmtType.Char) :
     T = Term.Char := by
   cases T <;> try simp [__eo_to_smt_type] at h
-  case DtcAppType T U =>
-    exact (eo_to_smt_type_dtc_app_ne_char T U h).elim
   case Char =>
     rfl
+  case DtcAppType a b =>
+    cases ha : __eo_to_smt_type a <;> cases hb : __eo_to_smt_type b <;>
+      simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq,
+        ha, hb] at h
   case Apply f x =>
     cases f <;> try simp [__eo_to_smt_type] at h
     case Seq =>
