@@ -1058,10 +1058,15 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rw [← hTranslate]
         exact hNonNone
       rcases seq_nth_args_of_non_none hApplyNN with ⟨T, hY, hX⟩
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        simpa [term_has_non_none_type, __smtx_typeof, __smtx_typeof_seq_nth, hY, hX] using
+          hApplyNN
       have hSmt :
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.seq_nth y) x)) = T := by
         rw [hTranslate]
-        simpa [__smtx_typeof, __smtx_typeof_seq_nth, hY, hX]
+        have hTy' : __smtx_typeof_guard_wf T T = T :=
+          smtx_typeof_guard_wf_of_non_none T T hGuardNN
+        simpa [__smtx_typeof, __smtx_typeof_seq_nth, hY, hX] using hTy'
       exact hSmt.trans
         (eo_to_smt_type_typeof_apply_apply_seq_nth_of_smt_seq_int x y T hY hX).symm
     case or =>
