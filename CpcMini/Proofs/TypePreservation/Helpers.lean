@@ -6,7 +6,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 set_option allowUnsafeReducibility true
-attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
@@ -826,8 +825,7 @@ theorem typeof_value_model_eval_string
     (s : native_String) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.String s)) =
       __smtx_typeof (SmtTerm.String s) := by
-  change __smtx_typeof_seq_value (native_pack_string s) = SmtType.Seq SmtType.Char
-  exact typeof_pack_string s
+  simpa [__smtx_model_eval, __smtx_typeof, __smtx_typeof_value] using typeof_pack_string s
 
 /-- Lemma about `map_lookup_typed`. -/
 theorem map_lookup_typed :

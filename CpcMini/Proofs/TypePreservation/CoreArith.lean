@@ -6,7 +6,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 set_option allowUnsafeReducibility true
-attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
@@ -67,13 +66,14 @@ theorem typeof_value_model_eval_ite
   rw [show __smtx_typeof
       (SmtTerm.ite c t1 t2) = T by
     simp [__smtx_typeof, __smtx_typeof_ite, native_ite, native_Teq, hc, h1, h2]]
-  change __smtx_typeof_value
-      (__smtx_model_eval_ite (__smtx_model_eval M c) (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = T
+  rw [show __smtx_model_eval M (SmtTerm.ite c t1 t2) =
+      __smtx_model_eval_ite (__smtx_model_eval M c) (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+    simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hc] using hpresc) with ⟨b, hb⟩
   rw [hb]
   cases b
-  · simpa [__smtx_model_eval_ite, h1, h2] using hpres2
-  · simpa [__smtx_model_eval_ite, h1, h2] using hpres1
+  · simpa [__smtx_model_eval_ite, __smtx_typeof_value, h1, h2] using hpres2
+  · simpa [__smtx_model_eval_ite, __smtx_typeof_value, h1, h2] using hpres1
 
 /-- Derives `eq_term_typeof` from `non_none`. -/
 theorem eq_term_typeof_of_non_none
@@ -101,10 +101,12 @@ theorem typeof_value_model_eval_not
     simp
   rw [show __smtx_typeof (SmtTerm.not t) = SmtType.Bool by
     simp [__smtx_typeof, native_ite, native_Teq, hArg]]
-  change __smtx_typeof_value (__smtx_model_eval_not (__smtx_model_eval M t)) = SmtType.Bool
+  rw [show __smtx_model_eval M (SmtTerm.not t) =
+      __smtx_model_eval_not (__smtx_model_eval M t) by
+    simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hArg] using hpres) with ⟨b, hb⟩
   rw [hb]
-  rfl
+  simp [__smtx_model_eval_not, __smtx_typeof_value]
 
 /-- Shows that evaluating `or` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_or
@@ -115,15 +117,22 @@ theorem typeof_value_model_eval_or
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.or t1 t2)) =
       __smtx_typeof (SmtTerm.or t1 t2) := by
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl ht
+  have hTy :
+      __smtx_typeof (SmtTerm.or t1 t2) =
+        native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
+          (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
+          SmtType.None := by
+    simp [__smtx_typeof]
+  have hArgs := bool_binop_args_bool_of_non_none hTy ht
   rw [show __smtx_typeof (SmtTerm.or t1 t2) = SmtType.Bool by
     simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
-  change __smtx_typeof_value (__smtx_model_eval_or (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
-    SmtType.Bool
+  rw [show __smtx_model_eval M (SmtTerm.or t1 t2) =
+      __smtx_model_eval_or (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+    simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩
   rcases bool_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨b2, hb2⟩
   rw [hb1, hb2]
-  rfl
+  simp [__smtx_model_eval_or, __smtx_typeof_value]
 
 /-- Shows that evaluating `and` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_and
@@ -134,15 +143,22 @@ theorem typeof_value_model_eval_and
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.and t1 t2)) =
       __smtx_typeof (SmtTerm.and t1 t2) := by
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl ht
+  have hTy :
+      __smtx_typeof (SmtTerm.and t1 t2) =
+        native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
+          (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
+          SmtType.None := by
+    simp [__smtx_typeof]
+  have hArgs := bool_binop_args_bool_of_non_none hTy ht
   rw [show __smtx_typeof (SmtTerm.and t1 t2) = SmtType.Bool by
     simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
-  change __smtx_typeof_value (__smtx_model_eval_and (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
-    SmtType.Bool
+  rw [show __smtx_model_eval M (SmtTerm.and t1 t2) =
+      __smtx_model_eval_and (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+    simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩
   rcases bool_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨b2, hb2⟩
   rw [hb1, hb2]
-  rfl
+  simp [__smtx_model_eval_and, __smtx_typeof_value]
 
 /-- Shows that evaluating `imp` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_imp
@@ -153,15 +169,22 @@ theorem typeof_value_model_eval_imp
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.imp t1 t2)) =
       __smtx_typeof (SmtTerm.imp t1 t2) := by
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl ht
+  have hTy :
+      __smtx_typeof (SmtTerm.imp t1 t2) =
+        native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
+          (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
+          SmtType.None := by
+    simp [__smtx_typeof]
+  have hArgs := bool_binop_args_bool_of_non_none hTy ht
   rw [show __smtx_typeof (SmtTerm.imp t1 t2) = SmtType.Bool by
     simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
-  change __smtx_typeof_value (__smtx_model_eval_imp (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
-    SmtType.Bool
+  rw [show __smtx_model_eval M (SmtTerm.imp t1 t2) =
+      __smtx_model_eval_imp (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+    simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩
   rcases bool_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨b2, hb2⟩
   rw [hb1, hb2]
-  rfl
+  simp [__smtx_model_eval_imp, __smtx_model_eval_or, __smtx_model_eval_not, __smtx_typeof_value]
 
 /-- Shows that evaluating `eq` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_eq
@@ -171,6 +194,9 @@ theorem typeof_value_model_eval_eq
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.eq t1 t2)) =
       __smtx_typeof (SmtTerm.eq t1 t2) := by
   rw [eq_term_typeof_of_non_none ht]
+  rw [show __smtx_model_eval M (SmtTerm.eq t1 t2) =
+      __smtx_model_eval_eq (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+    simp [__smtx_model_eval]]
   simpa using typeof_value_model_eval_eq_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
 end Smtm

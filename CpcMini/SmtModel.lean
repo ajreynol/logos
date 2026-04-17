@@ -310,13 +310,6 @@ deriving Repr, DecidableEq, Inhabited
 
 end
 
-namespace SmtTerm
-
-@[simp] def choice (s : native_String) (T : SmtType) (x1 : SmtTerm) : SmtTerm :=
-  SmtTerm.choice_nth s T x1 native_nat_zero
-
-end SmtTerm
-
 
 /- SMT-LIB model -/
 structure SmtModelKey where
@@ -820,8 +813,6 @@ def native_seq_contains (xs pat : List SmtValue) : native_Bool :=
 
 end
 
-end
-
 noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
@@ -844,6 +835,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Var s T) => (__smtx_model_lookup M s T)
   | (SmtTerm.UConst s T) => (__smtx_model_lookup M s T)
   | x1 => SmtValue.NotValue
+end
 
 
 
