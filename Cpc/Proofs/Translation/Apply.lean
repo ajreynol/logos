@@ -323,6 +323,104 @@ private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
         simp [__eo_to_smt_set_empty, __smtx_typeof_apply,
           __smtx_typeof_guard_wf, native_ite, hInh, hWf]
 
+/-- Computes `__smtx_typeof` for `not` terms. -/
+private theorem smtx_typeof_not_bool_or_none
+    (t : SmtTerm) :
+    __smtx_typeof (SmtTerm.not t) = SmtType.Bool ∨
+      __smtx_typeof (SmtTerm.not t) = SmtType.None := by
+  cases hT : __smtx_typeof t <;>
+    simp [__smtx_typeof, hT, native_ite, native_Teq]
+
+/-- Computes `__smtx_typeof` for `and` terms. -/
+private theorem smtx_typeof_and_bool_or_none
+    (s t : SmtTerm) :
+    __smtx_typeof (SmtTerm.and s t) = SmtType.Bool ∨
+      __smtx_typeof (SmtTerm.and s t) = SmtType.None := by
+  cases hs : __smtx_typeof s <;>
+    cases ht : __smtx_typeof t <;>
+      simp [__smtx_typeof, hs, ht, native_ite, native_Teq]
+
+/-- Computes `__smtx_typeof` for `__eo_to_smt_distinct_pairs`. -/
+private theorem smtx_typeof_eo_to_smt_distinct_pairs_bool_or_none
+    (s : SmtTerm) (xs : Term) :
+    __smtx_typeof (__eo_to_smt_distinct_pairs s xs) = SmtType.Bool ∨
+      __smtx_typeof (__eo_to_smt_distinct_pairs s xs) = SmtType.None := by
+  cases xs
+  case Apply f a =>
+    cases f
+    case _at__at_TypedList_nil =>
+      left
+      simp [__eo_to_smt_distinct_pairs, __smtx_typeof]
+    case Apply g b =>
+      cases g
+      case _at__at_TypedList_cons =>
+        simpa [__eo_to_smt_distinct_pairs] using
+          smtx_typeof_and_bool_or_none
+            (SmtTerm.not (SmtTerm.eq s (__eo_to_smt b)))
+            (__eo_to_smt_distinct_pairs s a)
+      all_goals
+        right
+        simp [__eo_to_smt_distinct_pairs, __smtx_typeof]
+    all_goals
+      right
+      simp [__eo_to_smt_distinct_pairs, __smtx_typeof]
+  all_goals
+    right
+    simp [__eo_to_smt_distinct_pairs, __smtx_typeof]
+
+/-- Computes `__smtx_typeof` for `__eo_to_smt_distinct`. -/
+private theorem smtx_typeof_eo_to_smt_distinct_bool_or_none
+    (xs : Term) :
+    __smtx_typeof (__eo_to_smt_distinct xs) = SmtType.Bool ∨
+      __smtx_typeof (__eo_to_smt_distinct xs) = SmtType.None := by
+  cases xs
+  case Apply f a =>
+    cases f
+    case _at__at_TypedList_nil =>
+      left
+      simp [__eo_to_smt_distinct, __smtx_typeof]
+    case Apply g b =>
+      cases g
+      case _at__at_TypedList_cons =>
+        simpa [__eo_to_smt_distinct] using
+          smtx_typeof_and_bool_or_none
+            (__eo_to_smt_distinct_pairs (__eo_to_smt b) a)
+            (__eo_to_smt_distinct a)
+      all_goals
+        right
+        simp [__eo_to_smt_distinct, __smtx_typeof]
+    all_goals
+      right
+      simp [__eo_to_smt_distinct, __smtx_typeof]
+  all_goals
+    right
+    simp [__eo_to_smt_distinct, __smtx_typeof]
+
+/-- Computes `__smtx_typeof_apply` for translated `distinct`. -/
+private theorem smtx_typeof_apply_eo_to_smt_distinct_eq_none
+    (xs : Term) (X : SmtType) :
+    __smtx_typeof_apply (__smtx_typeof (__eo_to_smt_distinct xs)) X = SmtType.None := by
+  rcases smtx_typeof_eo_to_smt_distinct_bool_or_none xs with hBool | hNone
+  · rw [hBool]
+    simp [__smtx_typeof_apply]
+  · rw [hNone]
+    simp [__smtx_typeof_apply]
+
+/-- Computes `__smtx_typeof` for applying translated `distinct`. -/
+private theorem smtx_typeof_eo_to_smt_distinct_apply_eq_none
+    (xs : Term) (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (__eo_to_smt_distinct xs) x) = SmtType.None := by
+  cases xs <;> try (simp [__eo_to_smt_distinct, __smtx_typeof_apply])
+  case Apply f a =>
+    cases f <;> try (simp [__eo_to_smt_distinct, __smtx_typeof_apply])
+    case Apply g b =>
+      cases g <;> try (simp [__eo_to_smt_distinct, __smtx_typeof_apply])
+      case _at__at_TypedList_cons =>
+        simpa [__eo_to_smt_distinct, __smtx_typeof] using
+          smtx_typeof_apply_eo_to_smt_distinct_eq_none
+            (Term.Apply (Term.Apply Term._at__at_TypedList_cons b) a)
+            (__smtx_typeof x)
+
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply`. -/
 theorem eo_to_smt_typeof_matches_translation_apply
     (f x : Term)
@@ -534,39 +632,17 @@ theorem eo_to_smt_typeof_matches_translation_apply
           rfl
           hXNotNone).symm
     case distinct =>
+      exfalso
+      apply hNonNone
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.Apply Term.distinct y) x) =
-            SmtTerm.distinct (__eo_to_smt y) (__eo_to_smt x) := by
+            SmtTerm.Apply (__eo_to_smt (Term.Apply Term.distinct y)) (__eo_to_smt x) := by
         rw [__eo_to_smt.eq_def]
-      have hEqNN :
-          __smtx_typeof_eq
-              (__smtx_typeof (__eo_to_smt y))
-              (__smtx_typeof (__eo_to_smt x)) ≠
-            SmtType.None := by
-        simpa [hTranslate, __smtx_typeof] using hNonNone
-      have hArgs := smtx_typeof_eq_non_none hEqNN
-      have hSmt :
-          __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.distinct y) x)) =
-            SmtType.Bool := by
-        rw [hTranslate]
-        change
-          __smtx_typeof_eq
-            (__smtx_typeof (__eo_to_smt y))
-            (__smtx_typeof (__eo_to_smt x)) = SmtType.Bool
-        rw [hArgs.1]
-        cases hT : __smtx_typeof (__eo_to_smt x) <;>
-          simp [__smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq,
-            hT] at hArgs ⊢
-      have hXNotNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-        rw [← hArgs.1]
-        exact hArgs.2
-      exact hSmt.trans
-        (eo_to_smt_type_typeof_apply_apply_distinct_of_smt_same_non_none
-          x y
-          (__smtx_typeof (__eo_to_smt x))
-          hArgs.1
-          rfl
-          hXNotNone).symm
+      have hHeadTranslate :
+          __eo_to_smt (Term.Apply Term.distinct y) = __eo_to_smt_distinct y := by
+        rw [__eo_to_smt.eq_def]
+      rw [hTranslate, hHeadTranslate]
+      exact smtx_typeof_eo_to_smt_distinct_apply_eq_none y (__eo_to_smt x)
     case not =>
       have hHeadTranslate :
           __eo_to_smt (Term.Apply Term.not y) =

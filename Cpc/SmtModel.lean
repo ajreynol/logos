@@ -253,7 +253,6 @@ inductive SmtTerm : Type where
   | and : SmtTerm -> SmtTerm -> SmtTerm
   | imp : SmtTerm -> SmtTerm -> SmtTerm
   | xor : SmtTerm -> SmtTerm -> SmtTerm
-  | distinct : SmtTerm -> SmtTerm -> SmtTerm
   | plus : SmtTerm -> SmtTerm -> SmtTerm
   | neg : SmtTerm -> SmtTerm -> SmtTerm
   | mult : SmtTerm -> SmtTerm -> SmtTerm
@@ -843,9 +842,6 @@ def __smtx_model_eval_imp (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_model_eval_or (__smtx_model_eval_not x1) x2)
 
 def __smtx_model_eval_xor (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
-  (__smtx_model_eval_not (__smtx_model_eval_eq x1 x2))
-
-def __smtx_model_eval_distinct (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_model_eval_not (__smtx_model_eval_eq x1 x2))
 
 def __smtx_model_eval_plus : SmtValue -> SmtValue -> SmtValue
@@ -1621,7 +1617,6 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.and x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.imp x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.xor x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.distinct x1 x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.plus x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.neg x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.mult x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
@@ -1930,7 +1925,6 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.and x1 x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.imp x1 x2) => (__smtx_model_eval_imp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.xor x1 x2) => (__smtx_model_eval_xor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.distinct x1 x2) => (__smtx_model_eval_distinct (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.plus x1 x2) => (__smtx_model_eval_plus (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.neg x1 x2) => (__smtx_model_eval__ (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.mult x1 x2) => (__smtx_model_eval_mult (__smtx_model_eval M x1) (__smtx_model_eval M x2))

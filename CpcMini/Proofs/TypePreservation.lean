@@ -9,8 +9,8 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
-/-- Main type-preservation theorem for evaluation of supported SMT terms in total typed models. -/
-theorem supported_type_preservation
+/-- Induction lemma proving type preservation for supported SMT terms in total typed models. -/
+private theorem supported_type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
     (t : SmtTerm)
@@ -404,15 +404,24 @@ theorem supported_preservation_term_of_non_none :
           (go x hArgs.2)
   exact go
 
-/-- Type preservation for non-`None` SMT terms in total typed models. -/
+/-- Main type-preservation theorem for evaluation of non-`None` SMT terms in total typed models. -/
+theorem type_preservation
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type t) :
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
+  exact supported_type_preservation M hM t ht
+    (supported_preservation_term_of_non_none t ht)
+
+/-- Backwards-compatible wrapper for `type_preservation`. -/
 theorem smt_model_eval_preserves_type_of_non_none
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) :
     term_has_non_none_type t ->
     __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
   intro ht
-  exact supported_type_preservation M hM t ht
-    (supported_preservation_term_of_non_none t ht)
+  exact type_preservation M hM t ht
 
 /-- States that evaluating a Boolean-typed SMT term yields a Boolean value. -/
 theorem smt_model_eval_bool_is_boolean
@@ -436,14 +445,14 @@ theorem smt_model_eval_preserves_type_of_supported
     (t : SmtTerm) (T : SmtType)
     (hTy : __smtx_typeof t = T)
     (hNonNone : T ≠ SmtType.None)
-    (hs : supported_preservation_term t) :
+    (_hs : supported_preservation_term t) :
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
   have hNN : term_has_non_none_type t := by
     unfold term_has_non_none_type
     rw [hTy]
     exact hNonNone
   simpa [hTy] using
-    supported_type_preservation M hM t hNN hs
+    type_preservation M hM t hNN
 
 /-- Derives Boolean-value evaluation for supported Boolean-typed SMT terms. -/
 theorem smt_model_eval_bool_is_boolean_of_supported

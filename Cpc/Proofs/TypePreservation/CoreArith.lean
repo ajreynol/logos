@@ -272,16 +272,6 @@ theorem typeof_value_model_eval_xor
     simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
   simpa using typeof_value_model_eval_xor_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
-/-- Shows that evaluating `distinct` terms produces values of the expected type. -/
-theorem typeof_value_model_eval_distinct
-    (M : SmtModel)
-    (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.distinct t1 t2)) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.distinct t1 t2)) =
-      __smtx_typeof (SmtTerm.distinct t1 t2) := by
-  rw [eq_term_typeof_of_non_none ht]
-  simpa using typeof_value_model_eval_distinct_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
-
 /-- Shows that evaluating `plus` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_plus
     (M : SmtModel)

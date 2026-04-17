@@ -114,8 +114,6 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_eq M t1 t2 ht
   | xor t1 t2 =>
       exact typeof_value_model_eval_xor M t1 t2 ht
-  | distinct t1 t2 =>
-      exact typeof_value_model_eval_distinct M t1 t2 ht
   | plus ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_plus M _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
