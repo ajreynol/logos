@@ -310,6 +310,13 @@ deriving Repr, DecidableEq, Inhabited
 
 end
 
+namespace SmtTerm
+
+@[simp] def choice (s : native_String) (T : SmtType) (x1 : SmtTerm) : SmtTerm :=
+  SmtTerm.choice_nth s T x1 native_nat_zero
+
+end SmtTerm
+
 
 /- SMT-LIB model -/
 structure SmtModelKey where
