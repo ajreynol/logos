@@ -77,14 +77,6 @@ theorem type_inhabited_int : type_inhabited SmtType.Int :=
 theorem type_inhabited_real : type_inhabited SmtType.Real :=
   ⟨SmtValue.Rational (native_mk_rational 0 1), rfl⟩
 
-/-- Shows that the SMT type `char` is inhabited. -/
-theorem type_inhabited_char : type_inhabited SmtType.Char :=
-  ⟨SmtValue.Char (Char.ofNat 0), rfl⟩
-
-/-- Shows that the SMT type `reglan` is inhabited. -/
-theorem type_inhabited_reglan : type_inhabited SmtType.RegLan :=
-  ⟨SmtValue.RegLan native_re_none, rfl⟩
-
 /-- Shows that the SMT type `seq` is inhabited. -/
 theorem type_inhabited_seq (T : SmtType) : type_inhabited (SmtType.Seq T) :=
   ⟨SmtValue.Seq (SmtSeq.empty T), rfl⟩
