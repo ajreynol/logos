@@ -304,13 +304,13 @@ theorem dt_cons_chain_type_of_non_none :
       have hFunNN : __smtx_typeof_value f ≠ SmtType.None := by
         intro hNone
         apply hNN
-        simp [__smtx_typeof_value, hHeadF, hNone, __smtx_typeof_apply_value]
+        simp [__smtx_typeof_value, hNone, __smtx_typeof_apply_value]
       have ihEq := dt_cons_chain_type_of_non_none hHeadF hFunNN
       have hApplyNN :
           __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value x) ≠ SmtType.None := by
         intro hNone
         apply hNN
-        simp [__smtx_typeof_value, hHeadF, hNone]
+        simp [__smtx_typeof_value, hNone]
       rcases typeof_apply_value_non_none_cases hApplyNN with ⟨A, B, hF, hX, hA, hB⟩
       have hFunEq :
           dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i (vsm_num_apply_args f) =
@@ -344,7 +344,7 @@ theorem dt_cons_chain_type_of_non_none :
                   (dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i (Nat.succ (vsm_num_apply_args f))) := hStep
         injection hCmp with _ hB''
       simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, native_Teq,
-        __smtx_typeof_value, hHeadF, hF, hX, hA, vsm_num_apply_args, hB']
+        __smtx_typeof_value, hF, hX, hA, vsm_num_apply_args, hB']
 
 /-- Derives `vsm_num_apply_args_eq_dt_num_sels` from `datatype`. -/
 theorem vsm_num_apply_args_eq_dt_num_sels_of_datatype
@@ -406,7 +406,7 @@ theorem apply_arg_nth_type_of_non_none :
       have hFunNN : __smtx_typeof_value f ≠ SmtType.None := by
         intro hfNone
         apply hNN
-        simp [__smtx_typeof_value, hHeadF, __smtx_typeof_apply_value, hfNone]
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hfNone]
       have hChainF := dt_cons_chain_type_of_non_none hHeadF hFunNN
       have hChainV := dt_cons_chain_type_of_non_none hHead hNN
       have hSuccNN :
@@ -443,7 +443,7 @@ theorem apply_arg_nth_type_of_non_none :
               __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value a) := by
                 rw [hChainF, hStepF]
             _ = __smtx_typeof_value (SmtValue.Apply f a) := by
-                simp [__smtx_typeof_value, hHeadF]
+                simp [__smtx_typeof_value]
             _ = dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i (Nat.succ (vsm_num_apply_args f)) := by
                 simpa [vsm_num_apply_args] using hChainV
         have hArgTy :
@@ -855,7 +855,7 @@ theorem typeof_value_model_eval_apply_dt
           __smtx_typeof_value (SmtValue.Apply (SmtValue.DtCons s d n) i) =
             __smtx_typeof_apply_value
               (__smtx_typeof_value (SmtValue.DtCons s d n)) (__smtx_typeof_value i) := by
-        simp [__smtx_typeof_value, __vsm_apply_head]
+        simp [__smtx_typeof_value]
       rw [hDtConsApply hiNN, hOuter, hf, hi]
       simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, native_Teq, hA]
   | Apply f v =>
