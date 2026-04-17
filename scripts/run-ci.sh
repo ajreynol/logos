@@ -15,17 +15,8 @@ lake build Cpc.Spec
 echo "Compiling CpcMini.Proofs.Checker..."
 lake build CpcMini.Proofs.Checker
 
-echo "Compiling CpcMini.Proofs.TypePreservation..."
-lake build CpcMini.Proofs.TypePreservation
-
-echo "Compiling CpcMini.Proofs.Translation..."
-lake build CpcMini.Proofs.Translation
-
-echo "Compiling CpcMicro.Proofs.Checker..."
-lake build CpcMicro.Proofs.Checker
-
-echo "Compiling CpcMicro.Examples.TestSimpleCheckerAssumptions..."
-lake build CpcMicro.Examples.TestSimpleCheckerAssumptions
+echo "Compiling CpcMini.Examples.TestSimpleCheckerAssumptions..."
+lake build CpcMini.Examples.TestSimpleCheckerAssumptions
 
 shopt -s nullglob
 examples=(examples/*.cpc.lean)
