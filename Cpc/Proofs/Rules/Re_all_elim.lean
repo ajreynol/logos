@@ -7,6 +7,30 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+private theorem typed___eo_prog_re_all_elim :
+  RuleProofs.eo_has_bool_type __eo_prog_re_all_elim := by
+  change RuleProofs.eo_has_bool_type
+    (Term.Apply (Term.Apply Term.eq Term.re_all)
+      (Term.Apply Term.re_mult Term.re_allchar))
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+    Term.re_all (Term.Apply Term.re_mult Term.re_allchar)
+    (by
+      simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, native_Teq])
+    (by
+      simp [__eo_to_smt.eq_def, __smtx_typeof])
+
+private theorem facts___eo_prog_re_all_elim (M : SmtModel) :
+  eo_interprets M __eo_prog_re_all_elim true := by
+  change eo_interprets M
+    (Term.Apply (Term.Apply Term.eq Term.re_all)
+      (Term.Apply Term.re_mult Term.re_allchar)) true
+  apply RuleProofs.eo_interprets_eq_of_rel M
+    Term.re_all (Term.Apply Term.re_mult Term.re_allchar)
+  · exact typed___eo_prog_re_all_elim
+  · simp [RuleProofs.smt_value_rel, __eo_to_smt.eq_def, __smtx_model_eval,
+      __smtx_model_eval_re_mult, native_re_mult, native_re_all, native_re_allchar,
+      native_re_mk_star, native_veq]
+
 theorem cmd_step_re_all_elim_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
@@ -16,4 +40,20 @@ theorem cmd_step_re_all_elim_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.re_all_elim args premises) :=
 by
-  sorry
+  intro _hCmdTrans _hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.re_all_elim args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          refine ⟨?_, RuleProofs.eo_has_smt_translation_of_has_bool_type _
+            typed___eo_prog_re_all_elim⟩
+          intro _hTrue
+          exact facts___eo_prog_re_all_elim M
+      | cons _ _ =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+  | cons _ _ =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
