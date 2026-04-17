@@ -50,7 +50,8 @@ def __eo_to_smt_substitute (s : native_String) (T : SmtType) (u : SmtTerm) : Smt
 
 
 def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
-  | (Term.Apply (Term.Apply Term._at__at_TypedList_cons x) xs) => (SmtTerm.and (SmtTerm.not (SmtTerm.eq s x)) (__eo_to_smt_distinct_pairs s xs))
+  | (Term.Apply (Term.Apply Term._at__at_TypedList_cons x) xs) =>
+      (SmtTerm.and (SmtTerm.not (SmtTerm.eq s (__eo_to_smt x))) (__eo_to_smt_distinct_pairs s xs))
   | (Term.Apply Term._at__at_TypedList_nil T) => (SmtTerm.Boolean true)
   | xs => SmtTerm.None
 

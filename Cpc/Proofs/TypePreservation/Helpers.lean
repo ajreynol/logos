@@ -1487,13 +1487,4 @@ theorem typeof_value_model_eval_xor_value
   rw [hb]
   rfl
 
-/-- Shows that evaluating `distinct_value` terms produces values of the expected type. -/
-theorem typeof_value_model_eval_distinct_value
-    (v1 v2 : SmtValue) :
-    __smtx_typeof_value (__smtx_model_eval_distinct v1 v2) = SmtType.Bool := by
-  unfold __smtx_model_eval_distinct
-  rcases bool_value_canonical (typeof_value_model_eval_eq_value v1 v2) with ⟨b, hb⟩
-  rw [hb]
-  rfl
-
 end Smtm

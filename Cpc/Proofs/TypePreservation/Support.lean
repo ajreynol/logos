@@ -129,8 +129,6 @@ inductive supported_preservation_term : SmtTerm -> Prop
       supported_preservation_term (SmtTerm.eq t1 t2)
   | xor (t1 t2 : SmtTerm) :
       supported_preservation_term (SmtTerm.xor t1 t2)
-  | distinct (t1 t2 : SmtTerm) :
-      supported_preservation_term (SmtTerm.distinct t1 t2)
   | plus {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
       (hs1 : supported_preservation_term t1)
