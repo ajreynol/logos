@@ -214,7 +214,7 @@ theorem exists_body_bool_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.exists s T) body)) :
+    (ht : term_has_non_none_type (SmtTerm.exists s T body)) :
     __smtx_typeof body = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
@@ -226,8 +226,8 @@ theorem exists_term_typeof_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.exists s T) body)) :
-    __smtx_typeof (SmtTerm.Apply (SmtTerm.exists s T) body) = SmtType.Bool := by
+    (ht : term_has_non_none_type (SmtTerm.exists s T body)) :
+    __smtx_typeof (SmtTerm.exists s T body) = SmtType.Bool := by
   simp [__smtx_typeof, native_ite, native_Teq, exists_body_bool_of_non_none ht]
 
 /-- Shows that evaluating `exists` terms produces values of the expected type. -/
@@ -236,9 +236,9 @@ theorem typeof_value_model_eval_exists
     (s : native_String)
     (T : SmtType)
     (body : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.exists s T) body)) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.exists s T) body)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.exists s T) body) := by
+    (ht : term_has_non_none_type (SmtTerm.exists s T body)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.exists s T body)) =
+      __smtx_typeof (SmtTerm.exists s T body) := by
   classical
   rw [exists_term_typeof_of_non_none ht]
   change
@@ -262,7 +262,7 @@ theorem forall_body_bool_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.forall s T) body)) :
+    (ht : term_has_non_none_type (SmtTerm.forall s T body)) :
     __smtx_typeof body = SmtType.Bool := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
@@ -274,8 +274,8 @@ theorem forall_term_typeof_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.forall s T) body)) :
-    __smtx_typeof (SmtTerm.Apply (SmtTerm.forall s T) body) = SmtType.Bool := by
+    (ht : term_has_non_none_type (SmtTerm.forall s T body)) :
+    __smtx_typeof (SmtTerm.forall s T body) = SmtType.Bool := by
   simp [__smtx_typeof, native_ite, native_Teq, forall_body_bool_of_non_none ht]
 
 /-- Shows that evaluating `forall` terms produces values of the expected type. -/
@@ -284,9 +284,9 @@ theorem typeof_value_model_eval_forall
     (s : native_String)
     (T : SmtType)
     (body : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.forall s T) body)) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.forall s T) body)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.forall s T) body) := by
+    (ht : term_has_non_none_type (SmtTerm.forall s T body)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.forall s T body)) =
+      __smtx_typeof (SmtTerm.forall s T body) := by
   classical
   rw [forall_term_typeof_of_non_none ht]
   change
@@ -340,7 +340,7 @@ theorem choice_term_has_witness
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.choice s T) body)) :
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
     ∃ v : SmtValue, __smtx_typeof_value v = T := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
@@ -352,8 +352,8 @@ theorem choice_term_typeof_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.choice s T) body)) :
-    __smtx_typeof (SmtTerm.Apply (SmtTerm.choice s T) body) = T := by
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
+    __smtx_typeof (SmtTerm.choice s T body) = T := by
   have hTy := choice_term_has_witness ht
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
@@ -366,9 +366,9 @@ theorem typeof_value_model_eval_choice
     (s : native_String)
     (T : SmtType)
     (body : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.choice s T) body)) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.choice s T) body)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.choice s T) body) := by
+    (ht : term_has_non_none_type (SmtTerm.choice s T body)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.choice s T body)) =
+      __smtx_typeof (SmtTerm.choice s T body) := by
   classical
   have hTy : ∃ v : SmtValue, __smtx_typeof_value v = T :=
     choice_term_has_witness ht

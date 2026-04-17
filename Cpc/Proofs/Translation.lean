@@ -31,8 +31,6 @@ theorem eo_to_smt_typeof_matches_translation
       __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
     cases t <;> intro hNonNone
-    case __eo_pf t =>
-      simp [__eo_to_smt.eq_def] at hNonNone
     case Int =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case Real =>

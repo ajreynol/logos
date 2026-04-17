@@ -704,7 +704,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       let T := __eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose y))
       have hHeadTranslate :
           __eo_to_smt (Term.Apply Term.set_is_singleton y) =
-            SmtTerm.Apply (SmtTerm.exists "_at_x" T)
+            SmtTerm.exists "_at_x" T
               (SmtTerm.eq (__eo_to_smt y)
                 (SmtTerm.set_singleton (SmtTerm.Var "_at_x" T))) := by
         rw [__eo_to_smt.eq_def]
@@ -2199,7 +2199,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             __eo_to_smt (Term.Apply (Term.Apply Term._at_strings_deq_diff z) y) =
               let _v0 := SmtTerm.Numeral 1
               let _v2 := SmtTerm.Var "_at_x" SmtType.Int
-              SmtTerm.Apply (SmtTerm.choice "_at_x" SmtType.Int)
+              SmtTerm.choice "_at_x" SmtType.Int
                 (SmtTerm.not
                   (SmtTerm.eq
                     (SmtTerm.str_substr (__eo_to_smt z) _v2 _v0)
@@ -2575,7 +2575,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         have hHeadTranslate :
             __eo_to_smt (Term.Apply (Term.Apply Term.set_choose z) y) =
               let _v0 := __eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose z))
-              SmtTerm.Apply (SmtTerm.choice "_at_x" _v0)
+              SmtTerm.choice "_at_x" _v0
                 (SmtTerm.set_member (SmtTerm.Var "_at_x" _v0) (__eo_to_smt z)) := by
           rw [__eo_to_smt.eq_def]
         have hGeneric :
@@ -3143,7 +3143,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term._at_array_deq_diff x1 x2) =
       let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
       let _v2 := SmtTerm.Var "_at_x" _v0
-      SmtTerm.Apply (SmtTerm.choice "_at_x" _v0)
+      SmtTerm.choice "_at_x" _v0
         (SmtTerm.not
           (SmtTerm.eq
             (SmtTerm.select (__eo_to_smt x1) _v2)
@@ -3912,13 +3912,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
     let T := __eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose x))
     have hTranslate :
         __eo_to_smt (Term.Apply Term.set_is_singleton x) =
-          SmtTerm.Apply (SmtTerm.exists "_at_x" T)
+          SmtTerm.exists "_at_x" T
             (SmtTerm.eq (__eo_to_smt x)
               (SmtTerm.set_singleton (SmtTerm.Var "_at_x" T))) := by
       rw [__eo_to_smt.eq_def]
     have hExistsNN :
         term_has_non_none_type
-          (SmtTerm.Apply (SmtTerm.exists "_at_x" T)
+          (SmtTerm.exists "_at_x" T
             (SmtTerm.eq (__eo_to_smt x)
               (SmtTerm.set_singleton (SmtTerm.Var "_at_x" T)))) := by
       unfold term_has_non_none_type
@@ -3970,7 +3970,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term._at_sets_deq_diff x1 x2) =
           let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))
           let _v2 := SmtTerm.Var "_at_x" _v0
-          SmtTerm.Apply (SmtTerm.choice "_at_x" _v0)
+          SmtTerm.choice "_at_x" _v0
             (SmtTerm.not
               (SmtTerm.eq
                 (SmtTerm.set_member _v2 (__eo_to_smt x1))
