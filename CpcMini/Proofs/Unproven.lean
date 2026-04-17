@@ -822,11 +822,130 @@ private theorem eo_to_smt_single_apply_generic
   case not =>
       exact False.elim (hNot rfl)
 
+/-- Valid EO proof-side types are never `Stuck`. -/
+private theorem eo_type_valid_not_stuck
+    {refs : List native_String} {T : Term}
+    (h : TranslationProofs.eo_type_valid_rec refs T) :
+    T ≠ Term.Stuck := by
+  intro hStuck
+  subst hStuck
+  simp [TranslationProofs.eo_type_valid_rec] at h
+
+/-- Transfers generic application typing and validity from EO terms to their SMT translations. -/
+private theorem eo_to_smt_typeof_matches_translation_apply_generic
+    (f x : Term)
+    (ihF :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f) ∧
+        TranslationProofs.eo_type_valid_rec [] (__eo_typeof f))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        TranslationProofs.eo_type_valid_rec [] (__eo_typeof x))
+    (hGeneric :
+      generic_apply_type (__eo_to_smt f) (__eo_to_smt x))
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) = SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hTypeof :
+      __eo_typeof (Term.Apply f x) = __eo_typeof_apply (__eo_typeof f) (__eo_typeof x))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+      __eo_to_smt_type (__eo_typeof (Term.Apply f x)) ∧
+      TranslationProofs.eo_type_valid_rec [] (__eo_typeof (Term.Apply f x)) := by
+  have hApplyNN :
+      __smtx_typeof_apply (__smtx_typeof (__eo_to_smt f)) (__smtx_typeof (__eo_to_smt x)) ≠
+        SmtType.None := by
+    have hApplyNN' :
+        __smtx_typeof (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) ≠
+          SmtType.None := by
+      simpa [hTranslate] using hNonNone
+    rw [hGeneric] at hApplyNN'
+    exact hApplyNN'
+  rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hF, hX, hA, _hB⟩
+  have hFNN : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None := by
+    cases hF with
+    | inl hFun =>
+        rw [hFun]
+        simp
+    | inr hDtc =>
+        rw [hDtc]
+        simp
+  have hXNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+    rw [hX]
+    exact hA
+  have hFAll := ihF hFNN
+  have hXAll := ihX hXNN
+  have hXEo : __eo_to_smt_type (__eo_typeof x) = A := by
+    simpa [hXAll.1] using hX
+  cases hF with
+  | inl hFun =>
+      rcases TranslationProofs.eo_typeof_eq_translated_eo_fun_of_smt_fun hFAll.1 hFun with
+        ⟨T1, T2, hFunTy, hT1, hT2, _hT1NN, _hT2NN⟩
+      have hFValid' := hFAll.2
+      rw [hFunTy] at hFValid'
+      rcases (by
+        simpa [TranslationProofs.eo_type_valid_rec] using hFValid' :
+          TranslationProofs.eo_type_valid_rec [] T1 ∧
+            TranslationProofs.eo_type_valid_rec [] T2) with ⟨hT1Valid, hT2Valid⟩
+      have hArgTy : __eo_typeof x = T1 := by
+        have hArgTy' : T1 = __eo_typeof x := by
+          apply TranslationProofs.eo_to_smt_type_eq_of_valid hT1Valid
+          rw [hT1, ← hXEo]
+        exact hArgTy'.symm
+      have hT1NotStuck : T1 ≠ Term.Stuck :=
+        eo_type_valid_not_stuck hT1Valid
+      have hTypeApply :
+          __eo_typeof_apply (Term.Apply (Term.Apply Term.FunType T1) T2) T1 = T2 := by
+        rw [__eo_typeof_apply.eq_def]
+        by_cases hStuck : T1 = Term.Stuck
+        · exact False.elim (hT1NotStuck hStuck)
+        · simp [hStuck, __eo_requires.eq_def, native_teq, native_ite, native_not]
+      have hSmt :
+          __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
+        rw [hTranslate, hGeneric, hFun, hX]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      refine ⟨?_, ?_⟩
+      · rw [hSmt, hTypeof, hFunTy, hArgTy, hTypeApply, hT2]
+      · rw [hTypeof, hFunTy, hArgTy, hTypeApply]
+        exact hT2Valid
+  | inr hDtc =>
+      rcases TranslationProofs.eo_typeof_eq_translated_eo_dtc_app_of_smt_dtc_app hFAll.1 hDtc with
+        ⟨T1, T2, hDtcTy, hT1, hT2, _hT1NN, _hT2NN⟩
+      have hFValid' := hFAll.2
+      rw [hDtcTy] at hFValid'
+      rcases (by
+        simpa [TranslationProofs.eo_type_valid_rec] using hFValid' :
+          TranslationProofs.eo_type_valid_rec [] T1 ∧
+            TranslationProofs.eo_type_valid_rec [] T2) with ⟨hT1Valid, hT2Valid⟩
+      have hArgTy : __eo_typeof x = T1 := by
+        have hArgTy' : T1 = __eo_typeof x := by
+          apply TranslationProofs.eo_to_smt_type_eq_of_valid hT1Valid
+          rw [hT1, ← hXEo]
+        exact hArgTy'.symm
+      have hT1NotStuck : T1 ≠ Term.Stuck :=
+        eo_type_valid_not_stuck hT1Valid
+      have hTypeApply :
+          __eo_typeof_apply (Term.DtcAppType T1 T2) T1 = T2 := by
+        rw [__eo_typeof_apply.eq_def]
+        by_cases hStuck : T1 = Term.Stuck
+        · exact False.elim (hT1NotStuck hStuck)
+        · simp [hStuck, __eo_requires.eq_def, native_teq, native_ite, native_not]
+      have hSmt :
+          __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
+        rw [hTranslate, hGeneric, hDtc, hX]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      refine ⟨?_, ?_⟩
+      · rw [hSmt, hTypeof, hDtcTy, hArgTy, hTypeApply, hT2]
+      · rw [hTypeof, hDtcTy, hArgTy, hTypeApply]
+        exact hT2Valid
+
 /-- Shows that translated SMT terms carry the type predicted by EO typing when the translation is defined. -/
-private theorem eo_to_smt_typeof_matches_translation :
+private theorem eo_to_smt_typeof_matches_translation_and_valid :
     ∀ (t : Term),
       __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t)
+      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) ∧
+        TranslationProofs.eo_type_valid_rec [] (__eo_typeof t)
   | Term.__eo_pf p, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.Int, hNN => by
@@ -848,16 +967,24 @@ private theorem eo_to_smt_typeof_matches_translation :
   | Term.Bool, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.Boolean b, _ => by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof]
+      refine ⟨?_, ?_⟩
+      · simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof]
+      · simp [TranslationProofs.eo_type_valid_rec, __eo_typeof]
   | Term.Numeral n, _ => by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_Numeral,
-        __eo_to_smt_type]
+      refine ⟨?_, ?_⟩
+      · simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_Numeral,
+          __eo_to_smt_type]
+      · simp [TranslationProofs.eo_type_valid_rec, __eo_typeof, __eo_lit_type_Numeral]
   | Term.Rational r, _ => by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_Rational,
-        __eo_to_smt_type]
+      refine ⟨?_, ?_⟩
+      · simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_Rational,
+          __eo_to_smt_type]
+      · simp [TranslationProofs.eo_type_valid_rec, __eo_typeof, __eo_lit_type_Rational]
   | Term.String s, _ => by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_String,
-        __eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq]
+      refine ⟨?_, ?_⟩
+      · simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_String,
+          __eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq]
+      · simp [TranslationProofs.eo_type_valid_rec, __eo_typeof, __eo_lit_type_String]
   | Term.Binary w n, hNN => by
       have hWidth : native_zleq 0 w = true := by
         by_cases hw : native_zleq 0 w = true
@@ -872,7 +999,10 @@ private theorem eo_to_smt_typeof_matches_translation :
             SmtType.BitVec (native_int_to_nat w) := by
         simp [__eo_typeof, __eo_lit_type_Binary, __eo_mk_apply, __eo_len, __eo_to_smt_type,
           native_ite, hWidth]
-      simpa [__eo_to_smt.eq_def] using hSmt.trans hEo.symm
+      refine ⟨?_, ?_⟩
+      · simpa [__eo_to_smt.eq_def] using hSmt.trans hEo.symm
+      · simpa [TranslationProofs.eo_type_valid_rec, __eo_typeof, __eo_lit_type_Binary,
+          __eo_mk_apply, __eo_len, native_zleq] using hWidth
   | Term.Type, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.Stuck, hNN => by
@@ -882,8 +1012,13 @@ private theorem eo_to_smt_typeof_matches_translation :
   | Term.Var name T, hNN => by
       cases name with
       | String s =>
-          simpa [__eo_to_smt.eq_def, __eo_typeof] using
-            TranslationProofs.smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hNN
+          refine ⟨?_, ?_⟩
+          · simpa [__eo_to_smt.eq_def, __eo_typeof] using
+              TranslationProofs.smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hNN
+          · simpa [__eo_typeof] using
+              (TranslationProofs.eo_type_valid_of_guard_wf_non_none
+                (T := T) (U := T)
+                (by simpa [__eo_to_smt.eq_def, __smtx_typeof] using hNN))
       | _ =>
           exact False.elim (hNN (by simp [__eo_to_smt.eq_def, __smtx_typeof]))
   | Term.DatatypeType s d, hNN => by
@@ -901,8 +1036,13 @@ private theorem eo_to_smt_typeof_matches_translation :
   | Term.USort i, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.UConst i T, hNN => by
-      simpa [__eo_to_smt.eq_def, __eo_typeof] using
-        TranslationProofs.smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T) hNN
+      refine ⟨?_, ?_⟩
+      · simpa [__eo_to_smt.eq_def, __eo_typeof] using
+          TranslationProofs.smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T) hNN
+      · simpa [__eo_typeof] using
+          (TranslationProofs.eo_type_valid_of_guard_wf_non_none
+            (T := T) (U := T)
+            (by simpa [__eo_to_smt.eq_def, __smtx_typeof] using hNN))
   | Term.not, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.or, hNN => by
@@ -951,17 +1091,20 @@ private theorem eo_to_smt_typeof_matches_translation :
             have h2NN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
               rw [hArgs.2]
               simp
-            have hIy := eo_to_smt_typeof_matches_translation y h1NN
-            have hIx := eo_to_smt_typeof_matches_translation x h2NN
+            have hIy := eo_to_smt_typeof_matches_translation_and_valid y h1NN
+            have hIx := eo_to_smt_typeof_matches_translation_and_valid x h2NN
             have hTyY : __eo_typeof y = Term.Bool :=
-              eo_typeof_bool_of_smt_bool hIy hArgs.1
+              eo_typeof_bool_of_smt_bool hIy.1 hArgs.1
             have hTyX : __eo_typeof x = Term.Bool :=
-              eo_typeof_bool_of_smt_bool hIx hArgs.2
+              eo_typeof_bool_of_smt_bool hIx.1 hArgs.2
             have hTy :
                 __eo_typeof (Term.Apply (Term.Apply Term.or y) x) = Term.Bool := by
               simp [__eo_typeof, __eo_typeof_or, hTyY, hTyX]
-            rw [hTy]
-            exact TranslationProofs.smtx_typeof_translation_or_of_non_none y x hNN
+            refine ⟨?_, ?_⟩
+            · rw [hTy]
+              exact TranslationProofs.smtx_typeof_translation_or_of_non_none y x hNN
+            · rw [hTy]
+              simp [TranslationProofs.eo_type_valid_rec]
           · by_cases hAnd : g = Term.and
             · subst hAnd
               have hTranslate :
@@ -980,17 +1123,20 @@ private theorem eo_to_smt_typeof_matches_translation :
               have h2NN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
                 rw [hArgs.2]
                 simp
-              have hIy := eo_to_smt_typeof_matches_translation y h1NN
-              have hIx := eo_to_smt_typeof_matches_translation x h2NN
+              have hIy := eo_to_smt_typeof_matches_translation_and_valid y h1NN
+              have hIx := eo_to_smt_typeof_matches_translation_and_valid x h2NN
               have hTyY : __eo_typeof y = Term.Bool :=
-                eo_typeof_bool_of_smt_bool hIy hArgs.1
+                eo_typeof_bool_of_smt_bool hIy.1 hArgs.1
               have hTyX : __eo_typeof x = Term.Bool :=
-                eo_typeof_bool_of_smt_bool hIx hArgs.2
+                eo_typeof_bool_of_smt_bool hIx.1 hArgs.2
               have hTy :
                   __eo_typeof (Term.Apply (Term.Apply Term.and y) x) = Term.Bool := by
                 simp [__eo_typeof, __eo_typeof_or, hTyY, hTyX]
-              rw [hTy]
-              exact TranslationProofs.smtx_typeof_translation_and_of_non_none y x hNN
+              refine ⟨?_, ?_⟩
+              · rw [hTy]
+                exact TranslationProofs.smtx_typeof_translation_and_of_non_none y x hNN
+              · rw [hTy]
+                simp [TranslationProofs.eo_type_valid_rec]
             · by_cases hImp : g = Term.imp
               · subst hImp
                 have hTranslate :
@@ -1009,21 +1155,73 @@ private theorem eo_to_smt_typeof_matches_translation :
                 have h2NN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
                   rw [hArgs.2]
                   simp
-                have hIy := eo_to_smt_typeof_matches_translation y h1NN
-                have hIx := eo_to_smt_typeof_matches_translation x h2NN
+                have hIy := eo_to_smt_typeof_matches_translation_and_valid y h1NN
+                have hIx := eo_to_smt_typeof_matches_translation_and_valid x h2NN
                 have hTyY : __eo_typeof y = Term.Bool :=
-                  eo_typeof_bool_of_smt_bool hIy hArgs.1
+                  eo_typeof_bool_of_smt_bool hIy.1 hArgs.1
                 have hTyX : __eo_typeof x = Term.Bool :=
-                  eo_typeof_bool_of_smt_bool hIx hArgs.2
+                  eo_typeof_bool_of_smt_bool hIx.1 hArgs.2
                 have hTy :
                     __eo_typeof (Term.Apply (Term.Apply Term.imp y) x) = Term.Bool := by
                   simp [__eo_typeof, __eo_typeof_or, hTyY, hTyX]
-                rw [hTy]
-                exact TranslationProofs.smtx_typeof_translation_imp_of_non_none y x hNN
+                refine ⟨?_, ?_⟩
+                · rw [hTy]
+                  exact TranslationProofs.smtx_typeof_translation_imp_of_non_none y x hNN
+                · rw [hTy]
+                  simp [TranslationProofs.eo_type_valid_rec]
               · by_cases hEq : g = Term.eq
                 · subst hEq
-                  sorry
-                · sorry
+                  have hTranslate :
+                      __eo_to_smt (Term.Apply (Term.Apply Term.eq y) x) =
+                        SmtTerm.eq (__eo_to_smt y) (__eo_to_smt x) := by
+                    rw [__eo_to_smt.eq_def]
+                  have hApplyNN :
+                      term_has_non_none_type
+                        (SmtTerm.eq (__eo_to_smt y) (__eo_to_smt x)) := by
+                    unfold term_has_non_none_type
+                    simpa [hTranslate] using hNN
+                  have hArgs :=
+                      smtx_typeof_eq_operands_of_non_none
+                        (t1 := __eo_to_smt y) (t2 := __eo_to_smt x) hApplyNN
+                  have h1NN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := hArgs.2
+                  have h2NN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+                    rw [← hArgs.1]
+                    exact hArgs.2
+                  have hIy := eo_to_smt_typeof_matches_translation_and_valid y h1NN
+                  have hIx := eo_to_smt_typeof_matches_translation_and_valid x h2NN
+                  have hTyEqTrans :
+                      __eo_to_smt_type (__eo_typeof y) =
+                        __eo_to_smt_type (__eo_typeof x) := by
+                    rw [← hIy.1, hArgs.1, hIx.1]
+                  have hTyEq : __eo_typeof y = __eo_typeof x := by
+                    exact TranslationProofs.eo_to_smt_type_eq_of_valid hIy.2 hTyEqTrans
+                  have hTyYNotStuck : __eo_typeof y ≠ Term.Stuck :=
+                    eo_type_valid_not_stuck hIy.2
+                  have hTyXNotStuck : __eo_typeof x ≠ Term.Stuck := by
+                    intro hStuck
+                    apply hTyYNotStuck
+                    rw [hTyEq, hStuck]
+                  have hEqSelf :
+                      __eo_typeof_eq (__eo_typeof x) (__eo_typeof x) = Term.Bool :=
+                    eo_typeof_eq_self_of_not_stuck (__eo_typeof x) hTyXNotStuck
+                  have hTy :
+                      __eo_typeof (Term.Apply (Term.Apply Term.eq y) x) = Term.Bool := by
+                    simp [__eo_typeof, hTyEq, hEqSelf]
+                  refine ⟨?_, ?_⟩
+                  · rw [hTy]
+                    exact TranslationProofs.smtx_typeof_translation_eq_of_non_none y x hNN
+                  · rw [hTy]
+                    simp [TranslationProofs.eo_type_valid_rec]
+                ·
+                  exact eo_to_smt_typeof_matches_translation_apply_generic
+                    (Term.Apply g y) x
+                    (eo_to_smt_typeof_matches_translation_and_valid (Term.Apply g y))
+                    (eo_to_smt_typeof_matches_translation_and_valid x)
+                    (TranslationProofs.eo_to_smt_apply_generic_type (Term.Apply g y) x
+                      (by intro s d i j h; cases h))
+                    (eo_to_smt_double_apply_generic g y x hOr hAnd hImp hEq)
+                    (eo_typeof_double_apply_generic g y x hFun hOr hAnd hImp hEq)
+                    hNN
       · by_cases hBitVec : f = Term.BitVec
         · subst hBitVec
           have hTranslate :
@@ -1078,18 +1276,35 @@ private theorem eo_to_smt_typeof_matches_translation :
                 have hArgNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
                   rw [hArgSmtTy]
                   simp
-                have hIx := eo_to_smt_typeof_matches_translation x hArgNN
+                have hIx := eo_to_smt_typeof_matches_translation_and_valid x hArgNN
                 have hTyX : __eo_typeof x = Term.Bool :=
-                  eo_typeof_bool_of_smt_bool hIx hArgSmtTy
+                  eo_typeof_bool_of_smt_bool hIx.1 hArgSmtTy
                 have hTy :
                     __eo_typeof (Term.Apply Term.not x) = Term.Bool := by
                   simp [__eo_typeof, __eo_typeof_not, hTyX]
-                rw [hTy]
-                exact TranslationProofs.smtx_typeof_translation_not_of_non_none x hNN
+                refine ⟨?_, ?_⟩
+                · rw [hTy]
+                  exact TranslationProofs.smtx_typeof_translation_not_of_non_none x hNN
+                · rw [hTy]
+                  simp [TranslationProofs.eo_type_valid_rec]
               · by_cases hDtSel : ∃ s d i j, f = Term.DtSel s d i j
                 · rcases hDtSel with ⟨s, d, i, j, rfl⟩
                   sorry
-                · sorry
+                ·
+                  have hNoSel : ∀ s d i j, f ≠ Term.DtSel s d i j := by
+                    intro s d i j hSel
+                    exact hDtSel ⟨s, d, i, j, hSel⟩
+                  have hApplyAll : ∀ g y, f ≠ Term.Apply g y := by
+                    intro g y hEq
+                    exact hApply ⟨g, y, hEq⟩
+                  exact eo_to_smt_typeof_matches_translation_apply_generic
+                    f x
+                    (eo_to_smt_typeof_matches_translation_and_valid f)
+                    (eo_to_smt_typeof_matches_translation_and_valid x)
+                    (TranslationProofs.eo_to_smt_apply_generic_type f x hNoSel)
+                    (eo_to_smt_single_apply_generic f x hApplyAll hNot)
+                    (eo_typeof_single_apply_generic f x hApplyAll hBitVec hSeq hListCons hNot)
+                    hNN
 termination_by t _ => sizeOf t
 decreasing_by
   all_goals
@@ -1097,6 +1312,13 @@ decreasing_by
     simp_wf
   all_goals
     omega
+
+/-- Shows that translated SMT terms carry the type predicted by EO typing when the translation is defined. -/
+private theorem eo_to_smt_typeof_matches_translation
+    (t : Term)
+    (hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) :=
+  (eo_to_smt_typeof_matches_translation_and_valid t hNN).1
 
 /-- Transfers EO typing information to the translated SMT term when the translation is defined. -/
 theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
