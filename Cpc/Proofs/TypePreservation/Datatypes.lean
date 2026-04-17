@@ -37,6 +37,30 @@ theorem typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec
       simpa [__smtx_typeof_dt_cons_value_rec, __smtx_typeof_dt_cons_rec] using
         typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec T d n
 
+/-- If a constructor-value chain returns a datatype, it returns its own base datatype. -/
+theorem typeof_dt_cons_value_rec_eq_base_datatype
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    ∀ d i s' d',
+      __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d i =
+        SmtType.Datatype s' d' ->
+      s = s' ∧ d0 = d'
+  | SmtDatatype.null, i, s', d', h => by
+      cases i <;> simp [__smtx_typeof_dt_cons_value_rec] at h
+  | SmtDatatype.sum SmtDatatypeCons.unit d, 0, s', d', h => by
+      have h' : SmtType.Datatype s d0 = SmtType.Datatype s' d' := by
+        simpa [__smtx_typeof_dt_cons_value_rec] using h
+      injection h' with hs hd
+      exact ⟨hs, hd⟩
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, 0, s', d', h => by
+      simp [__smtx_typeof_dt_cons_value_rec] at h
+  | SmtDatatype.sum c d, Nat.succ i, s', d', h => by
+      have h' :
+          __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d i =
+            SmtType.Datatype s' d' := by
+        simpa [__smtx_typeof_dt_cons_value_rec] using h
+      exact typeof_dt_cons_value_rec_eq_base_datatype s d0 d i s' d' h'
+
 /-- Shows that evaluating `dt_cons` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_cons
     (M : SmtModel)
@@ -68,6 +92,29 @@ def dt_cons_applied_type_rec
   | SmtDatatype.sum c d, Nat.succ i, n =>
       dt_cons_applied_type_rec s d0 d i n
   | _, _, _ => SmtType.None
+
+/-- Rewrites constructor-type lookup past an outer constructor when the index is positive. -/
+theorem dt_cons_applied_type_rec_succ
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (c : SmtDatatypeCons)
+    (d : SmtDatatype)
+    (i n : Nat) :
+    dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d) (Nat.succ i) n =
+      dt_cons_applied_type_rec s d0 d i n := by
+  cases n <;> simp [dt_cons_applied_type_rec, __smtx_typeof_dt_cons_value_rec]
+
+/-- `dt_cons_applied_type_rec_succ` in the `i + 1` normal form Lean often chooses. -/
+theorem dt_cons_applied_type_rec_add_one
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (c : SmtDatatypeCons)
+    (d : SmtDatatype)
+    (i n : Nat) :
+    dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d) (i + 1) n =
+      dt_cons_applied_type_rec s d0 d i n := by
+  simpa [Nat.succ_eq_add_one] using
+    dt_cons_applied_type_rec_succ s d0 c d i n
 
 /-- Lemma about `dt_cons_type_num_args_typeof_dt_cons_value_rec`. -/
 theorem dt_cons_type_num_args_typeof_dt_cons_value_rec
@@ -176,6 +223,39 @@ theorem dt_cons_applied_type_rec_non_none_implies_le
             simpa [dt_cons_applied_type_rec] using h
           have hle : Nat.succ n ≤ __smtx_dt_num_sels d i := ih h'
           simpa [__smtx_dt_num_sels] using hle
+
+/-- Fully applying a well-typed datatype constructor chain yields its base datatype. -/
+theorem dt_cons_applied_type_rec_full_arity
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    ∀ d i,
+      dt_cons_applied_type_rec s d0 d i (__smtx_dt_num_sels d i) ≠ SmtType.None ->
+      dt_cons_applied_type_rec s d0 d i (__smtx_dt_num_sels d i) = SmtType.Datatype s d0
+  | SmtDatatype.null, i, h => by
+      cases i <;>
+        simp [dt_cons_applied_type_rec, __smtx_dt_num_sels, __smtx_typeof_dt_cons_value_rec] at h ⊢
+  | SmtDatatype.sum SmtDatatypeCons.unit d, 0, h => by
+      simp [dt_cons_applied_type_rec, __smtx_dt_num_sels, __smtx_dtc_num_sels,
+        __smtx_typeof_dt_cons_value_rec]
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, 0, h => by
+      have h' :
+          dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d) 0
+              (__smtx_dt_num_sels (SmtDatatype.sum c d) 0) ≠
+            SmtType.None := by
+        simpa [dt_cons_applied_type_rec, __smtx_dt_num_sels, __smtx_dtc_num_sels] using h
+      simpa [dt_cons_applied_type_rec, __smtx_dt_num_sels, __smtx_dtc_num_sels] using
+        dt_cons_applied_type_rec_full_arity s d0 (SmtDatatype.sum c d) 0 h'
+  | SmtDatatype.sum c d, Nat.succ i, h => by
+      have h1 := h
+      rw [show __smtx_dt_num_sels (SmtDatatype.sum c d) (Nat.succ i) = __smtx_dt_num_sels d i by
+        rfl] at h1
+      have h' : dt_cons_applied_type_rec s d0 d i (__smtx_dt_num_sels d i) ≠ SmtType.None := by
+        rw [dt_cons_applied_type_rec_add_one s d0 c d i (__smtx_dt_num_sels d i)] at h1
+        exact h1
+      rw [show __smtx_dt_num_sels (SmtDatatype.sum c d) (Nat.succ i) = __smtx_dt_num_sels d i by
+        rfl]
+      rw [dt_cons_applied_type_rec_add_one s d0 c d i (__smtx_dt_num_sels d i)]
+      exact dt_cons_applied_type_rec_full_arity s d0 d i h'
 
 /-- Shows that `dt_cons_applied_type_rec_eq_bare_type` implies `zero`. -/
 theorem dt_cons_applied_type_rec_eq_bare_type_implies_zero
@@ -372,6 +452,156 @@ theorem vsm_num_apply_args_eq_dt_num_sels_of_datatype
     dt_cons_applied_type_rec_non_none_implies_le s d (__smtx_dt_substitute s d d) i
       (vsm_num_apply_args v) (by rw [hEq]; simp)
   omega
+
+/-- Empty datatypes have no semantic values. -/
+theorem no_value_of_empty_datatype
+    (s : native_String) :
+    ¬ ∃ v : SmtValue, __smtx_typeof_value v = SmtType.Datatype s SmtDatatype.null := by
+  intro h
+  rcases h with ⟨v, hv⟩
+  cases v with
+  | NotValue =>
+      simp [__smtx_typeof_value] at hv
+  | Boolean _ =>
+      simp [__smtx_typeof_value] at hv
+  | Numeral _ =>
+      simp [__smtx_typeof_value] at hv
+  | Rational _ =>
+      simp [__smtx_typeof_value] at hv
+  | Binary w _ =>
+      cases hWidth : native_zleq 0 w <;>
+        simp [__smtx_typeof_value, native_ite, hWidth] at hv
+  | Map m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, hMap] at hv
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at hv
+  | Fun m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at hv
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at hv
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at hv
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at hv
+  | Seq ss =>
+      cases typeof_seq_value_shape ss with
+      | inl hSeq =>
+          rcases hSeq with ⟨A, hSeq⟩
+          simp [__smtx_typeof_value, hSeq] at hv
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at hv
+  | Char _ =>
+      simp [__smtx_typeof_value] at hv
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at hv
+  | RegLan _ =>
+      simp [__smtx_typeof_value] at hv
+  | DtCons s' d i =>
+      cases hWf : __smtx_type_wf (SmtType.Datatype s' d) with
+      | false =>
+          simp [__smtx_typeof_value, native_ite, hWf] at hv
+      | true =>
+          have hBase :
+              s' = s ∧ d = SmtDatatype.null :=
+            typeof_dt_cons_value_rec_eq_base_datatype s' d (__smtx_dt_substitute s' d d) i
+              s SmtDatatype.null (by simpa [__smtx_typeof_value, native_ite, hWf] using hv)
+          rcases hBase with ⟨hs, hd⟩
+          subst hs
+          subst hd
+          simp [__smtx_typeof_value, native_ite, hWf, __smtx_typeof_dt_cons_value_rec,
+            __smtx_dt_substitute] at hv
+  | Apply f x =>
+      have hNN : __smtx_typeof_value (SmtValue.Apply f x) ≠ SmtType.None := by
+        intro hNone
+        rw [hNone] at hv
+        simp at hv
+      by_cases hFun : ∃ m, __vsm_apply_head f = SmtValue.Fun m
+      · exact hNN (typeof_value_apply_of_head_fun f x hFun)
+      · by_cases hDt : ∃ s0 d0 i, __vsm_apply_head f = SmtValue.DtCons s0 d0 i
+        · rcases hDt with ⟨s0, d0, i, hHead⟩
+          have hHeadApply : __vsm_apply_head (SmtValue.Apply f x) = SmtValue.DtCons s0 d0 i := by
+            simpa [__vsm_apply_head] using hHead
+          have hRes :
+              dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i
+                  (vsm_num_apply_args (SmtValue.Apply f x)) =
+                SmtType.Datatype s SmtDatatype.null := by
+            exact (dt_cons_chain_type_of_non_none hHeadApply hNN).symm.trans hv
+          have hArgs :
+              __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i -
+                vsm_num_apply_args (SmtValue.Apply f x) =
+              0 := by
+            have hArgs := congrArg dt_cons_type_num_args hRes
+            rw [dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+            simpa [dt_cons_type_num_args] using hArgs
+          have hle :
+              vsm_num_apply_args (SmtValue.Apply f x) ≤
+                __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i :=
+            dt_cons_applied_type_rec_non_none_implies_le s0 d0 (__smtx_dt_substitute s0 d0 d0) i
+              (vsm_num_apply_args (SmtValue.Apply f x)) (by rw [hRes]; simp)
+          have hCount :
+              vsm_num_apply_args (SmtValue.Apply f x) =
+                __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i := by
+            have hge :
+                __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i ≤
+                  vsm_num_apply_args (SmtValue.Apply f x) :=
+              (Nat.sub_eq_zero_iff_le).1 hArgs
+            exact Nat.le_antisymm hge hle |> Eq.symm
+          have hFull :
+              dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i
+                  (__smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i) =
+                SmtType.Datatype s0 d0 :=
+            dt_cons_applied_type_rec_full_arity s0 d0 (__smtx_dt_substitute s0 d0 d0) i
+              (by rw [← hCount, hRes]; simp)
+          have hBase :
+              SmtType.Datatype s0 d0 = SmtType.Datatype s SmtDatatype.null := by
+            calc
+              SmtType.Datatype s0 d0 =
+                  dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i
+                    (__smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i) := by
+                symm
+                exact hFull
+              _ =
+                  dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i
+                    (vsm_num_apply_args (SmtValue.Apply f x)) := by rw [hCount]
+              _ = SmtType.Datatype s SmtDatatype.null := hRes
+          injection hBase with hs hd
+          subst hs
+          subst hd
+          have hCount0 : vsm_num_apply_args (SmtValue.Apply f x) = 0 := by
+            simpa [__smtx_dt_substitute, __smtx_dt_num_sels] using hCount
+          have hNone :
+              dt_cons_applied_type_rec s0 SmtDatatype.null
+                  (__smtx_dt_substitute s0 SmtDatatype.null SmtDatatype.null) i
+                  (vsm_num_apply_args (SmtValue.Apply f x)) =
+                SmtType.None := by
+            simp [hCount0, dt_cons_applied_type_rec, __smtx_dt_substitute,
+              __smtx_typeof_dt_cons_value_rec]
+          rw [hNone] at hRes
+          simp at hRes
+        · exact hNN <|
+            typeof_value_apply_of_head_ne_fun_ne_dt_cons f x
+              (by
+                intro m hm
+                exact hFun ⟨m, hm⟩)
+              (by
+                intro s0 d0 i hm
+                exact hDt ⟨s0, d0, i, hm⟩)
+
+/-- Empty datatypes are uninhabited. -/
+theorem not_type_inhabited_empty_datatype
+    (s : native_String) :
+    ¬ type_inhabited (SmtType.Datatype s SmtDatatype.null) := by
+  intro h
+  exact no_value_of_empty_datatype s h
 
 /-- Derives `apply_arg_nth_type` from `non_none`. -/
 theorem apply_arg_nth_type_of_non_none :

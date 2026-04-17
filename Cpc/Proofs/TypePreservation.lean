@@ -52,7 +52,7 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_set_singleton M _ ht1
         (supported_type_preservation M hM _ ht1 hs1)
   | seq_nth ht1 hs1 ht2 hs2 hT =>
-      exact typeof_value_model_eval_seq_nth M hM _ _ ht hT
+      exact typeof_value_model_eval_seq_nth M hM _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
   | set_union ht1 hs1 ht2 hs2 =>
@@ -153,6 +153,9 @@ theorem supported_type_preservation
         (supported_type_preservation M hM _ ht1 hs1)
   | abs ht1 hs1 =>
       exact typeof_value_model_eval_abs M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
+  | uneg ht1 hs1 =>
+      exact typeof_value_model_eval_uneg M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
   | div ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_div M hM _ _ ht

@@ -14,11 +14,12 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_purify`. -/
 theorem eo_to_smt_typeof_matches_translation_purify
-    (x : Term) :
-    __smtx_typeof (__eo_to_smt (Term._at_purify x)) ≠ SmtType.None ->
+    (x : Term)
+    (hx : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
     __smtx_typeof (__eo_to_smt (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof (Term._at_purify x)) := by
-  sorry
+  rw [__eo_to_smt.eq_def, hx]
+  exact (eo_to_smt_type_typeof_purify x).symm
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_array_deq_diff`. -/
 theorem eo_to_smt_typeof_matches_translation_array_deq_diff

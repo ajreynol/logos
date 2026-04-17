@@ -121,6 +121,29 @@ theorem seq_cons_typed_of_typeof_seq_value
     exact ⟨hv, hvs⟩
   · simp [__smtx_typeof_seq_value, native_ite, hEq] at h
 
+/-- A typed sequence over an uninhabited element type must be empty. -/
+theorem seq_value_of_uninhabited_elem_empty :
+    ∀ {ss : SmtSeq} {T : SmtType},
+      __smtx_typeof_seq_value ss = SmtType.Seq T ->
+      ¬ type_inhabited T ->
+      ss = SmtSeq.empty T
+  | SmtSeq.empty U, T, hss, hT => by
+      cases hss
+      rfl
+  | SmtSeq.cons v vs, T, hss, hT => by
+      rcases seq_cons_typed_of_typeof_seq_value hss with ⟨hv, _⟩
+      exact False.elim (hT ⟨v, hv⟩)
+
+/-- A value of sequence type over an uninhabited element type must be the empty sequence. -/
+theorem seq_value_canonical_empty_of_uninhabited
+    {v : SmtValue}
+    {T : SmtType}
+    (hv : __smtx_typeof_value v = SmtType.Seq T)
+    (hT : ¬ type_inhabited T) :
+    v = SmtValue.Seq (SmtSeq.empty T) := by
+  rcases seq_value_canonical hv with ⟨ss, rfl⟩
+  simp [seq_value_of_uninhabited_elem_empty hv hT]
+
 /-- Lemma about `ssm_seq_nth_typed`. -/
 theorem ssm_seq_nth_typed :
     ∀ {ss : SmtSeq} {n : native_Int} {d : SmtValue} {T : SmtType},
@@ -1471,15 +1494,20 @@ theorem typeof_value_model_eval_seq_nth
     (hM : model_total_typed M)
     (t1 t2 : SmtTerm)
     (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2))
-    (hT : type_inhabited (__smtx_typeof (SmtTerm.seq_nth t1 t2)))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
       (SmtTerm.seq_nth t1 t2)) =
       __smtx_typeof (SmtTerm.seq_nth t1 t2) := by
   rcases seq_nth_args_of_non_none ht with ⟨T, h1, h2⟩
-  rw [show __smtx_typeof (SmtTerm.seq_nth t1 t2) = T by
-    simp [__smtx_typeof, __smtx_typeof_seq_nth, h1, h2]]
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    simpa [term_has_non_none_type, __smtx_typeof, __smtx_typeof_seq_nth, h1, h2] using ht
+  have hTy :
+      __smtx_typeof (SmtTerm.seq_nth t1 t2) = T := by
+    have hTy' : __smtx_typeof_guard_wf T T = T :=
+      smtx_typeof_guard_wf_of_non_none T T hGuardNN
+    simpa [__smtx_typeof, __smtx_typeof_seq_nth, h1, h2] using hTy'
+  rw [hTy]
   change __smtx_typeof_value (__smtx_seq_nth M (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = T
   rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss, hss⟩
   rcases int_value_canonical (by simpa [h2] using hpres2) with ⟨n, hn⟩
@@ -1488,7 +1516,7 @@ theorem typeof_value_model_eval_seq_nth
   have hssTy : __smtx_typeof_seq_value ss = SmtType.Seq T := by
     simpa [hss, h1, __smtx_typeof_value] using hpres1
   have hT' : type_inhabited T := by
-    simpa [h1, h2, __smtx_typeof, __smtx_typeof_seq_nth] using hT
+    exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
   have hd :
       __smtx_typeof_value
         (__smtx_seq_nth_wrong M ss n (__smtx_typeof_seq_value ss)) = T := by

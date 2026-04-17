@@ -1558,7 +1558,7 @@ def __smtx_typeof_re_loop : SmtTerm -> SmtTerm -> SmtType -> SmtType
 
 
 def __smtx_typeof_seq_nth : SmtType -> SmtType -> SmtType
-  | (SmtType.Seq x1), SmtType.Int => x1
+  | (SmtType.Seq x1), SmtType.Int => (__smtx_typeof_guard_wf x1 x1)
   | x2, x3 => SmtType.None
 
 
