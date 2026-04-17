@@ -12,6 +12,45 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
+/-- Derives `smtx_typeof_apply_generic` from `head_not_special`. -/
+private theorem smtx_typeof_apply_generic_of_head_not_special
+    (f x : SmtTerm)
+    (hExists : ∀ s T, f ≠ SmtTerm.exists s T)
+    (hForall : ∀ s T, f ≠ SmtTerm.forall s T)
+    (hChoice : ∀ s T, f ≠ SmtTerm.choice s T)
+    (hDtSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hDtTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
+    generic_apply_type f x := by
+  unfold generic_apply_type
+  cases f <;> try rfl
+  case «exists» s T =>
+      exact False.elim (hExists s T rfl)
+  case «forall» s T =>
+      exact False.elim (hForall s T rfl)
+  case choice s T =>
+      exact False.elim (hChoice s T rfl)
+  case DtSel s d i j =>
+      exact False.elim (hDtSel s d i j rfl)
+  case DtTester s d i =>
+      exact False.elim (hDtTester s d i rfl)
+
+/-- Shows that generic EO application translation satisfies `generic_apply_type`. -/
+theorem eo_to_smt_apply_generic_type
+    (f x : Term)
+    (hNoSel : ∀ s d i j, f ≠ Term.DtSel s d i j) :
+    generic_apply_type (__eo_to_smt f) (__eo_to_smt x) := by
+  apply smtx_typeof_apply_generic_of_head_not_special
+  · intro s T
+    exact eo_to_smt_ne_exists f s T
+  · intro s T
+    exact eo_to_smt_ne_forall f s T
+  · intro s T
+    exact eo_to_smt_ne_choice f s T
+  · intro s d i j
+    exact eo_to_smt_ne_dt_sel f hNoSel s d i j
+  · intro s d i
+    exact eo_to_smt_ne_dt_tester f s d i
+
 /-- Computes `__smtx_typeof` for `translation_not_of_non_none`. -/
 theorem smtx_typeof_translation_not_of_non_none
     (x : Term) :
@@ -84,5 +123,20 @@ theorem smtx_typeof_translation_eq_of_non_none
     exact hNonNone
   simpa using
     eq_term_typeof_of_non_none (t1 := __eo_to_smt x) (t2 := __eo_to_smt y) hApplyNN
+
+/-- Extracts the common non-`None` operand type from a non-`None` SMT equality type. -/
+theorem smtx_typeof_eq_non_none
+    {T U : SmtType}
+    (h : __smtx_typeof_eq T U ≠ SmtType.None) :
+    T = U ∧ T ≠ SmtType.None := by
+  by_cases hNone : T = SmtType.None
+  · subst hNone
+    exfalso
+    exact h (by simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq])
+  · by_cases hEq : T = U
+    · exact ⟨hEq, hNone⟩
+    · exfalso
+      exact h (by
+        simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq, hNone, hEq])
 
 end TranslationProofs

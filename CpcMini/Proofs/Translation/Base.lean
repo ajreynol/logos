@@ -11,6 +11,91 @@ attribute [local reducible] __smtx_typeof
 
 namespace TranslationProofs
 
+/-- Helper for ruling out impossible bare translations in the `var` case. -/
+private theorem eo_to_smt_var_ne
+    (name T : Term) (u : SmtTerm)
+    (hNone : SmtTerm.None ≠ u)
+    (hString : ∀ s, SmtTerm.Var s (__eo_to_smt_type T) ≠ u) :
+    __eo_to_smt (Term.Var name T) ≠ u := by
+  intro h
+  cases name with
+  | String s =>
+      change SmtTerm.Var s (__eo_to_smt_type T) = u at h
+      exact hString s h
+  | _ =>
+      change SmtTerm.None = u at h
+      exact hNone h
+
+/-- Shows that EO translation never produces the bare SMT term `exists`. -/
+theorem eo_to_smt_ne_exists (t : Term) (s : native_String) (T : SmtType) :
+    __eo_to_smt t ≠ SmtTerm.exists s T := by
+  intro h
+  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name U =>
+    exact eo_to_smt_var_ne name U (SmtTerm.exists s T) (by intro hEq; cases hEq)
+      (by intro s' hEq; cases hEq) h
+  case Apply f x =>
+    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Apply g y =>
+      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
+
+/-- Shows that EO translation never produces the bare SMT term `forall`. -/
+theorem eo_to_smt_ne_forall (t : Term) (s : native_String) (T : SmtType) :
+    __eo_to_smt t ≠ SmtTerm.forall s T := by
+  intro h
+  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name U =>
+    exact eo_to_smt_var_ne name U (SmtTerm.forall s T) (by intro hEq; cases hEq)
+      (by intro s' hEq; cases hEq) h
+  case Apply f x =>
+    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Apply g y =>
+      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
+
+/-- Shows that EO translation never produces the bare SMT term `choice`. -/
+theorem eo_to_smt_ne_choice (t : Term) (s : native_String) (T : SmtType) :
+    __eo_to_smt t ≠ SmtTerm.choice s T := by
+  intro h
+  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name U =>
+    exact eo_to_smt_var_ne name U (SmtTerm.choice s T) (by intro hEq; cases hEq)
+      (by intro s' hEq; cases hEq) h
+  case Apply f x =>
+    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Apply g y =>
+      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
+
+/-- Shows that EO translation never produces a datatype tester. -/
+theorem eo_to_smt_ne_dt_tester (t : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    __eo_to_smt t ≠ SmtTerm.DtTester s d i := by
+  intro h
+  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name U =>
+    exact eo_to_smt_var_ne name U (SmtTerm.DtTester s d i) (by intro hEq; cases hEq)
+      (by intro s' hEq; cases hEq) h
+  case Apply f x =>
+    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Apply g y =>
+      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
+
+/-- If the EO head is not a selector, its translation is not a bare SMT selector. -/
+theorem eo_to_smt_ne_dt_sel
+    (t : Term)
+    (hNoSel : ∀ s d i j, t ≠ Term.DtSel s d i j)
+    (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
+    __eo_to_smt t ≠ SmtTerm.DtSel s d i j := by
+  intro h
+  cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case Var name U =>
+    exact eo_to_smt_var_ne name U (SmtTerm.DtSel s d i j) (by intro hEq; cases hEq)
+      (by intro s' hEq; cases hEq) h
+  case DtSel =>
+    exact hNoSel _ _ _ _ rfl
+  case Apply f x =>
+    cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case Apply g y =>
+      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
+
 /-- Simplifies EO-to-SMT translation for `boolean`. -/
 @[simp] theorem eo_to_smt_boolean (b : native_Bool) :
     __eo_to_smt (Term.Boolean b) = SmtTerm.Boolean b := by

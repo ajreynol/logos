@@ -595,7 +595,7 @@ theorem typeof_value_model_eval_apply_lookup_fun
       __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
         SmtType.FunType A B :=
     model_total_typed_lookup hM s (SmtType.FunType A B) (type_inhabited_fun hB)
-  exact typeof_value_model_eval_apply_dt hA hLookup hi
+  exact typeof_value_model_eval_apply_dt hA (Or.inl hLookup) hi
 
 /-- Shows that evaluating `div_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_div_total

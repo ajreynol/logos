@@ -170,18 +170,30 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
   rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
   have hHeadNN :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) ≠ SmtType.None := by
-    exact smtx_head_non_none_of_apply_cases hHead
+    cases hHead with
+    | inl hHead =>
+        rw [hHead]
+        simp
+    | inr hHead =>
+        rw [hHead]
+        simp
   have hHeadEo :
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.Map A B ∨
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.FunType A B ∨
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.DtcAppType A B := by
+        (__eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.FunType A B ∨
+          __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) = SmtType.DtcAppType A B) := by
     rw [← ihF hHeadNN]
     exact Or.inr hHead
   have hSmt :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) = B := by
     rw [hTranslate]
     rw [hGeneric]
-    exact smtx_typeof_apply_of_head_cases hHead hX hA
+    cases hHead with
+    | inl hHead =>
+        rw [hHead, hX]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+    | inr hHead =>
+        rw [hHead, hX]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
   exact hSmt.trans
     (eo_to_smt_type_typeof_apply_of_smt_apply
       x (Term.Apply (Term.Apply g z) y) A B hHeadEo hX).symm
@@ -218,18 +230,30 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
   rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
   have hHeadNN :
       __smtx_typeof (__eo_to_smt (Term.Apply g y)) ≠ SmtType.None := by
-    exact smtx_head_non_none_of_apply_cases hHead
+    cases hHead with
+    | inl hHead =>
+        rw [hHead]
+        simp
+    | inr hHead =>
+        rw [hHead]
+        simp
   have hHeadEo :
       __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.Map A B ∨
-        __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.FunType A B ∨
-        __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.DtcAppType A B := by
+        (__eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.FunType A B ∨
+          __eo_to_smt_type (__eo_typeof (Term.Apply g y)) = SmtType.DtcAppType A B) := by
     rw [← ihF hHeadNN]
     exact Or.inr hHead
   have hSmt :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g y) x)) = B := by
     rw [hTranslate]
     rw [hGeneric]
-    exact smtx_typeof_apply_of_head_cases hHead hX hA
+    cases hHead with
+    | inl hHead =>
+        rw [hHead, hX]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+    | inr hHead =>
+        rw [hHead, hX]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
   exact hSmt.trans
     (eo_to_smt_type_typeof_apply_of_smt_apply
       x (Term.Apply g y) A B hHeadEo hX).symm
@@ -340,8 +364,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
           simpa using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hVarNN
         have hT :
             __eo_to_smt_type T = SmtType.Map A B ∨
-              __eo_to_smt_type T = SmtType.FunType A B ∨
-              __eo_to_smt_type T = SmtType.DtcAppType A B := by
+              (__eo_to_smt_type T = SmtType.FunType A B ∨
+                __eo_to_smt_type T = SmtType.DtcAppType A B) := by
           rw [← hHeadTy]
           exact Or.inr hHead
         have hSmt :
@@ -351,7 +375,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
             __smtx_typeof_apply
                 (__smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)))
                 (__smtx_typeof (__eo_to_smt x)) = B
-          exact smtx_typeof_apply_of_head_cases hHead hX hA
+          cases hHead with
+          | inl hHead =>
+              rw [hHead, hX]
+              simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+          | inr hHead =>
+              rw [hHead, hX]
+              simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
         exact hSmt.trans (eo_to_smt_type_typeof_apply_var_of_smt_apply x T s A B hT hX).symm
     all_goals
       sorry
@@ -373,8 +403,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
     rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
     have hHeadEo :
         __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.Map A B ∨
-          __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.FunType A B ∨
-          __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.DtcAppType A B := by
+          (__eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.FunType A B ∨
+            __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.DtcAppType A B) := by
       rw [eo_to_smt_type_typeof_dt_cons s d i]
       exact Or.inr hHead
     have hSmt :
@@ -384,7 +414,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
             (__smtx_typeof (__eo_to_smt x)) = B
-      exact smtx_typeof_apply_of_head_cases hHead hX hA
+      cases hHead with
+      | inl hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      | inr hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
     exact hSmt.trans
       (eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply x s d i A B hHeadEo hX).symm
   case DtSel s d i j =>
@@ -441,8 +477,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
         smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T) hUConstNN
     have hT :
         __eo_to_smt_type T = SmtType.Map A B ∨
-          __eo_to_smt_type T = SmtType.FunType A B ∨
-          __eo_to_smt_type T = SmtType.DtcAppType A B := by
+          (__eo_to_smt_type T = SmtType.FunType A B ∨
+            __eo_to_smt_type T = SmtType.DtcAppType A B) := by
       rw [← hHeadTy]
       exact Or.inr hHead
     have hSmt :
@@ -452,7 +488,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)))
             (__smtx_typeof (__eo_to_smt x)) = B
-      exact smtx_typeof_apply_of_head_cases hHead hX hA
+      cases hHead with
+      | inl hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      | inr hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
     exact hSmt.trans
       (eo_to_smt_type_typeof_apply_uconst_of_smt_apply x T i A B hT hX).symm
   case Apply f y =>
@@ -2228,7 +2270,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
           simpa [hTranslate, head, __smtx_typeof] using hNonNone
         rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
         have hHeadNN : __smtx_typeof head ≠ SmtType.None := by
-          exact smtx_head_non_none_of_apply_cases hHead
+          cases hHead with
+          | inl hHead =>
+              rw [hHead]
+              simp
+          | inr hHead =>
+              rw [hHead]
+              simp
         have hIteNN : term_has_non_none_type head := by
           unfold term_has_non_none_type
           exact hHeadNN
@@ -2256,7 +2304,11 @@ theorem eo_to_smt_typeof_matches_translation_apply
               (__smtx_typeof (SmtTerm.Binary 1 0)) = T
           rw [hCond, hThen, hElse]
           simp [__smtx_typeof_ite, native_ite, native_Teq]
-        rcases hHead with hHead | hHead <;> cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
+        cases hHead with
+        | inl hHead =>
+            cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
+        | inr hHead =>
+            cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
       case bvsltbv =>
         let head :=
           SmtTerm.ite
@@ -2277,7 +2329,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
           simpa [hTranslate, head, __smtx_typeof] using hNonNone
         rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
         have hHeadNN : __smtx_typeof head ≠ SmtType.None := by
-          exact smtx_head_non_none_of_apply_cases hHead
+          cases hHead with
+          | inl hHead =>
+              rw [hHead]
+              simp
+          | inr hHead =>
+              rw [hHead]
+              simp
         have hIteNN : term_has_non_none_type head := by
           unfold term_has_non_none_type
           exact hHeadNN
@@ -2305,7 +2363,11 @@ theorem eo_to_smt_typeof_matches_translation_apply
               (__smtx_typeof (SmtTerm.Binary 1 0)) = T
           rw [hCond, hThen, hElse]
           simp [__smtx_typeof_ite, native_ite, native_Teq]
-        rcases hHead with hHead | hHead <;> cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
+        cases hHead with
+        | inl hHead =>
+            cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
+        | inr hHead =>
+            cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
       case _at_re_unfold_pos_component =>
         sorry
       case _at_witness_string_length =>
@@ -2558,7 +2620,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
               (SmtTerm.set_member (__eo_to_smt z) (__eo_to_smt y)) := by
           unfold term_has_non_none_type
           rw [← hHeadTranslate]
-          exact smtx_head_non_none_of_apply_cases hHead
+          cases hHead with
+          | inl hHead =>
+              rw [hHead]
+              simp
+          | inr hHead =>
+              rw [hHead]
+              simp
         have hHeadTy :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.set_member z) y)) =
               SmtType.Bool := by
@@ -2566,7 +2634,11 @@ theorem eo_to_smt_typeof_matches_translation_apply
           rw [hHeadTranslate]
           simp [__smtx_typeof, __smtx_typeof_set_member, hzTy, hyTy,
             native_ite, native_Teq]
-        rcases hHead with hHead | hHead <;> cases (hHeadTy.symm.trans hHead)
+        cases hHead with
+        | inl hHead =>
+            cases (hHeadTy.symm.trans hHead)
+        | inr hHead =>
+            cases (hHeadTy.symm.trans hHead)
       case set_subset =>
         have hHeadTranslate :
             __eo_to_smt (Term.Apply (Term.Apply Term.set_subset z) y) =
@@ -2602,7 +2674,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
               (SmtTerm.set_subset (__eo_to_smt z) (__eo_to_smt y)) := by
           unfold term_has_non_none_type
           rw [← hHeadTranslate]
-          exact smtx_head_non_none_of_apply_cases hHead
+          cases hHead with
+          | inl hHead =>
+              rw [hHead]
+              simp
+          | inr hHead =>
+              rw [hHead]
+              simp
         have hHeadTy :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.set_subset z) y)) =
               SmtType.Bool := by
@@ -2612,7 +2690,11 @@ theorem eo_to_smt_typeof_matches_translation_apply
           rw [hHeadTranslate]
           simp [__smtx_typeof, __smtx_typeof_sets_op_2_ret, hzTy, hyTy,
             native_ite, native_Teq]
-        rcases hHead with hHead | hHead <;> cases (hHeadTy.symm.trans hHead)
+        cases hHead with
+        | inl hHead =>
+            cases (hHeadTy.symm.trans hHead)
+        | inr hHead =>
+            cases (hHeadTy.symm.trans hHead)
       case qdiv_total =>
         have hHeadTranslate :
             __eo_to_smt (Term.Apply (Term.Apply Term.qdiv_total z) y) =
@@ -2648,7 +2730,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
               (SmtTerm.qdiv_total (__eo_to_smt z) (__eo_to_smt y)) := by
           unfold term_has_non_none_type
           rw [← hHeadTranslate]
-          exact smtx_head_non_none_of_apply_cases hHead
+          cases hHead with
+          | inl hHead =>
+              rw [hHead]
+              simp
+          | inr hHead =>
+              rw [hHead]
+              simp
         rcases arith_binop_ret_args_of_non_none
             (op := SmtTerm.qdiv_total) (R := SmtType.Real) rfl hHeadNN with hArgs | hArgs
         · have hHeadTy :
@@ -2656,13 +2744,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
                 SmtType.Real := by
             rw [hHeadTranslate]
             simp [__smtx_typeof, __smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-          rcases hHead with hHead | hHead <;> cases (hHeadTy.symm.trans hHead)
+          cases hHead with
+          | inl hHead =>
+              cases (hHeadTy.symm.trans hHead)
+          | inr hHead =>
+              cases (hHeadTy.symm.trans hHead)
         · have hHeadTy :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.qdiv_total z) y)) =
                 SmtType.Real := by
             rw [hHeadTranslate]
             simp [__smtx_typeof, __smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-          rcases hHead with hHead | hHead <;> cases (hHeadTy.symm.trans hHead)
+          cases hHead with
+          | inl hHead =>
+              cases (hHeadTy.symm.trans hHead)
+          | inr hHead =>
+              cases (hHeadTy.symm.trans hHead)
       case int_to_bv =>
         have hHeadTranslate :
             __eo_to_smt (Term.Apply (Term.Apply Term.int_to_bv z) y) =
@@ -2698,14 +2794,24 @@ theorem eo_to_smt_typeof_matches_translation_apply
               (SmtTerm.int_to_bv (__eo_to_smt z) (__eo_to_smt y)) := by
           unfold term_has_non_none_type
           rw [← hHeadTranslate]
-          exact smtx_head_non_none_of_apply_cases hHead
+          cases hHead with
+          | inl hHead =>
+              rw [hHead]
+              simp
+          | inr hHead =>
+              rw [hHead]
+              simp
         rcases int_to_bv_args_of_non_none hHeadNN with ⟨i, hz', hy', hi⟩
         have hHeadTy :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.int_to_bv z) y)) =
               SmtType.BitVec (native_int_to_nat i) := by
           rw [hHeadTranslate, typeof_int_to_bv_eq, hz', hy']
           simp [__smtx_typeof_int_to_bv, native_ite, hi]
-        rcases hHead with hHead | hHead <;> cases (hHeadTy.symm.trans hHead)
+        cases hHead with
+        | inl hHead =>
+            cases (hHeadTy.symm.trans hHead)
+        | inr hHead =>
+            cases (hHeadTy.symm.trans hHead)
       all_goals sorry
     all_goals sorry
   case not =>
@@ -3066,18 +3172,30 @@ theorem eo_to_smt_typeof_matches_translation_apply
     rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
     have hHeadNN :
         __smtx_typeof (__eo_to_smt (Term._at_array_deq_diff x1 x2)) ≠ SmtType.None := by
-      exact smtx_head_non_none_of_apply_cases hHead
+      cases hHead with
+      | inl hHead =>
+          rw [hHead]
+          simp
+      | inr hHead =>
+          rw [hHead]
+          simp
     have hHeadEo :
       __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.Map A B ∨
-          __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.FunType A B ∨
-          __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.DtcAppType A B := by
+          (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.FunType A B ∨
+            __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)) = SmtType.DtcAppType A B) := by
       rw [← ihF hHeadNN]
       exact Or.inr hHead
     have hSmt :
         __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_array_deq_diff x1 x2) x)) = B := by
       rw [hTranslate]
       rw [hGeneric]
-      exact smtx_typeof_apply_of_head_cases hHead hX hA
+      cases hHead with
+      | inl hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      | inr hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
     exact hSmt.trans
       (eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply x x1 x2 A B hHeadEo hX).symm
   case _at_bvsize =>
@@ -3735,6 +3853,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
         cases hWf : __smtx_type_wf U <;>
           simp [__eo_to_smt_set_empty, __smtx_typeof_apply,
             __smtx_typeof_guard_wf, hInh, hWf, native_ite]
+    | DtcAppType _ _ =>
+        simp [__eo_to_smt_set_empty, __smtx_typeof_apply]
     | None
     | Bool
     | Int
@@ -3747,8 +3867,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
     | TypeRef _
     | USort _
     | Map _ _
-    | FunType _ _
-    | DtcAppType _ _ =>
+    | FunType _ _ =>
         simp [__eo_to_smt_set_empty, __smtx_typeof_apply]
   case set_singleton =>
     have hTranslate :
@@ -3880,18 +3999,30 @@ theorem eo_to_smt_typeof_matches_translation_apply
     rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
     have hHeadNN :
         __smtx_typeof (__eo_to_smt (Term._at_sets_deq_diff x1 x2)) ≠ SmtType.None := by
-      exact smtx_head_non_none_of_apply_cases hHead
+      cases hHead with
+      | inl hHead =>
+          rw [hHead]
+          simp
+      | inr hHead =>
+          rw [hHead]
+          simp
     have hHeadEo :
       __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.Map A B ∨
-          __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.FunType A B ∨
-          __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.DtcAppType A B := by
+          (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.FunType A B ∨
+            __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) = SmtType.DtcAppType A B) := by
       rw [← ihF hHeadNN]
       exact Or.inr hHead
     have hSmt :
         __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_sets_deq_diff x1 x2) x)) = B := by
       rw [hTranslate]
       rw [hGeneric]
-      exact smtx_typeof_apply_of_head_cases hHead hX hA
+      cases hHead with
+      | inl hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      | inr hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
     exact hSmt.trans
       (eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply x x1 x2 A B hHeadEo hX).symm
   case _at_div_by_zero =>
