@@ -1426,7 +1426,7 @@ def __smtx_typeof_apply : SmtType -> SmtType -> SmtType
 
 
 def __smtx_typeof_choice_nth (T : SmtType) : SmtTerm -> native_Nat -> SmtType
-  | F, native_nat_zero => T
+  | F, native_nat_zero => (native_ite (native_Teq (__smtx_typeof F) SmtType.Bool) (__smtx_typeof_guard_wf T T) SmtType.None)
   | (SmtTerm.exists s U F), (native_nat_succ n) => (__smtx_typeof_choice_nth U F n)
   | F, n => SmtType.None
 
