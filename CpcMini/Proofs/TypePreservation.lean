@@ -392,15 +392,24 @@ theorem supported_preservation_term_of_non_none :
           (go x hArgs.2)
   exact go
 
-/-- Type preservation for non-`None` SMT terms in total typed models. -/
+/-- Main type-preservation theorem for evaluation of non-`None` SMT terms in total typed models. -/
+theorem type_preservation
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type t) :
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
+  exact supported_type_preservation M hM t ht
+    (supported_preservation_term_of_non_none t ht)
+
+/-- Backwards-compatible wrapper for `type_preservation`. -/
 theorem smt_model_eval_preserves_type_of_non_none
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) :
     term_has_non_none_type t ->
     __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
   intro ht
-  exact supported_type_preservation M hM t ht
-    (supported_preservation_term_of_non_none t ht)
+  exact type_preservation M hM t ht
 
 /-- States that evaluating a Boolean-typed SMT term yields a Boolean value. -/
 theorem smt_model_eval_bool_is_boolean
