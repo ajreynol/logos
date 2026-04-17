@@ -435,15 +435,17 @@ theorem eo_to_smt_typeof_matches_translation_apply
       __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
   cases f <;> intro hNonNone
   case Var name T =>
-    cases name
+    have hGeneric :
+        __eo_to_smt (Term.Apply (Term.Var name T) x) =
+          SmtTerm.Apply (__eo_to_smt (Term.Var name T)) (__eo_to_smt x) := by
+      rw [__eo_to_smt.eq_def]
+    cases hName : name
     case String s =>
+        rw [hName] at hGeneric
+        rw [hName] at hNonNone
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x) =
               SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x) := by
-          have hGeneric :
-              __eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x) =
-                SmtTerm.Apply (__eo_to_smt (Term.Var (Term.String s) T)) (__eo_to_smt x) := by
-            rw [__eo_to_smt.eq_def]
           rw [eo_to_smt_var] at hGeneric
           exact hGeneric
         have hApplyNN :
@@ -482,7 +484,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
               simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
         exact hSmt.trans (eo_to_smt_type_typeof_apply_var_of_smt_apply x T s A B hT hX).symm
     all_goals
-      sorry
+      have hVarNone : __eo_to_smt (Term.Var name T) = SmtTerm.None := by
+        rw [hName]
+        rw [__eo_to_smt.eq_def]
+      apply False.elim
+      apply hNonNone
+      rw [hGeneric, hVarNone]
+      simp [__smtx_typeof, __smtx_typeof_apply]
   case DtCons s d i =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.DtCons s d i) x) =
