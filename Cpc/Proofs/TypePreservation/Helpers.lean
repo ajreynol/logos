@@ -1429,6 +1429,21 @@ theorem arith_binop_ret_args_of_non_none
   · simp
   · simp
 
+/-- Derives `arith_unop_arg` from `non_none`. -/
+theorem arith_unop_arg_of_non_none
+    {op : SmtTerm -> SmtTerm}
+    {t : SmtTerm}
+    (hTy :
+      __smtx_typeof (op t) =
+        __smtx_typeof_arith_overload_op_1 (__smtx_typeof t))
+    (ht : term_has_non_none_type (op t)) :
+    __smtx_typeof t = SmtType.Int ∨ __smtx_typeof t = SmtType.Real := by
+  unfold term_has_non_none_type at ht
+  cases h : __smtx_typeof t <;>
+    simp [hTy, __smtx_typeof_arith_overload_op_1, h] at ht
+  · simp
+  · simp
+
 /-- Derives `to_real_arg` from `non_none`. -/
 theorem to_real_arg_of_non_none
     {t : SmtTerm}

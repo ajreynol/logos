@@ -154,6 +154,9 @@ theorem supported_type_preservation
   | abs ht1 hs1 =>
       exact typeof_value_model_eval_abs M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
+  | uneg ht1 hs1 =>
+      exact typeof_value_model_eval_uneg M _ ht
+        (supported_type_preservation M hM _ ht1 hs1)
   | div ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_div M hM _ _ ht
         (supported_type_preservation M hM _ ht1 hs1)
