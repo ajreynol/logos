@@ -407,7 +407,7 @@ macro_rules
               Classical.choose hTy
             else
               SmtValue.NotValue)
-  | `(native_eval_choice_nth $M $s $T $body $n) => do
+  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
       let evalChoiceId := Lean.mkIdent `native_eval_tchoice
       let pushId := Lean.mkIdent `__smtx_model_push
       `(by
