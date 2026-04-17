@@ -456,8 +456,6 @@ private theorem eo_type_valid_rec_weaken
       TranslationProofs.eo_type_valid_rec refs T ->
       (∀ t, t ∈ refs -> t ∈ refs') ->
       TranslationProofs.eo_type_valid_rec refs' T
-  | Term.__eo_pf t, h, _ => by
-      simp [TranslationProofs.eo_type_valid_rec] at h
   | Term.Int, _, _ => by
       simp [TranslationProofs.eo_type_valid_rec]
   | Term.Real, _, _ => by
@@ -690,8 +688,6 @@ private theorem eo_datatype_cons_valid_rec_substitute
                   simp [TranslationProofs.eo_type_valid_rec] at hT
           | _ =>
               simp [TranslationProofs.eo_type_valid_rec] at hT
-      | __eo_pf t =>
-          simp [TranslationProofs.eo_type_valid_rec] at hT
       | BitVec =>
           simp [TranslationProofs.eo_type_valid_rec] at hT
       | Seq =>
@@ -1013,8 +1009,6 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
       __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) ∧
         TranslationProofs.eo_type_valid_rec [] (__eo_typeof t)
-  | Term.__eo_pf p, hNN => by
-      simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.Int, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.Real, hNN => by

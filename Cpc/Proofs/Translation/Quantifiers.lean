@@ -17,21 +17,6 @@ namespace TranslationProofs
   simp [__eo_to_smt_is_var, native_and, native_Teq, SmtEval.native_and,
     SmtEval.native_streq]
 
-/-- Simplifies EO-to-SMT translation for `is_binder_x_exists`. -/
-@[simp] theorem eo_to_smt_is_binder_x_exists (s : native_String) (T : SmtType) :
-    __eo_to_smt_is_binder_x s T (SmtTerm.exists s T) = true := by
-  simp [__eo_to_smt_is_binder_x]
-
-/-- Simplifies EO-to-SMT translation for `is_binder_x_forall`. -/
-@[simp] theorem eo_to_smt_is_binder_x_forall (s : native_String) (T : SmtType) :
-    __eo_to_smt_is_binder_x s T (SmtTerm.forall s T) = true := by
-  simp [__eo_to_smt_is_binder_x]
-
-/-- Simplifies EO-to-SMT translation for `is_binder_x_choice`. -/
-@[simp] theorem eo_to_smt_is_binder_x_choice (s : native_String) (T : SmtType) :
-    __eo_to_smt_is_binder_x s T (SmtTerm.choice s T) = true := by
-  simp [__eo_to_smt_is_binder_x]
-
 /-- Simplifies EO-to-SMT translation for `substitute_var_hit`. -/
 @[simp] theorem eo_to_smt_substitute_var_hit
     (s : native_String) (T : SmtType) (u : SmtTerm) :
@@ -65,13 +50,13 @@ theorem eo_to_smt_substitute_var_miss
     (s : native_String) (T vs : Term) (F : SmtTerm) :
     __eo_to_smt_exists
         (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs) F =
-      SmtTerm.Apply (SmtTerm.exists s (__eo_to_smt_type T)) (__eo_to_smt_exists vs F) := rfl
+      SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F) := rfl
 
 /-- Simplifies EO-to-SMT translation for `quantifiers_skolemize_zero`. -/
 @[simp] theorem eo_to_smt_quantifiers_skolemize_zero
     (s : native_String) (T : SmtType) (F : SmtTerm) :
-    __eo_to_smt_quantifiers_skolemize (SmtTerm.Apply (SmtTerm.exists s T) F) 0 =
-      SmtTerm.Apply (SmtTerm.choice s T) F := by
+    __eo_to_smt_quantifiers_skolemize (SmtTerm.exists s T F) 0 =
+      SmtTerm.choice s T F := by
   simp [__eo_to_smt_quantifiers_skolemize]
 
 end TranslationProofs

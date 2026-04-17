@@ -190,15 +190,12 @@ theorem supported_preservation_term_of_non_none :
         htc (go c htc) ht1 (go t1 ht1) ht2 (go t2 ht2)
     case eq t1 t2 =>
       exact supported_preservation_term.eq t1 t2
-    case «exists» s T =>
-      exfalso
-      exact ht rfl
-    case «forall» s T =>
-      exfalso
-      exact ht rfl
-    case choice s T =>
-      exfalso
-      exact ht rfl
+    case «exists» s T body =>
+      exact supported_preservation_term.exists s T body
+    case «forall» s T body =>
+      exact supported_preservation_term.forall s T body
+    case choice s T body =>
+      exact supported_preservation_term.choice s T body
     case DtCons s d i =>
       exact supported_preservation_term.dt_cons s d i
     case DtSel s d i j =>
@@ -258,12 +255,27 @@ theorem supported_preservation_term_of_non_none :
       exact supported_preservation_term.imp ht1 (go t1 ht1) ht2 (go t2 ht2)
     case Apply f x =>
       cases f
-      case «exists» s T =>
-        exact supported_preservation_term.exists s T x
-      case «forall» s T =>
-        exact supported_preservation_term.forall s T x
-      case choice s T =>
-        exact supported_preservation_term.choice s T x
+      case «exists» s T body =>
+        have hTy : generic_apply_type (SmtTerm.exists s T body) x := rfl
+        have hEval : generic_apply_eval (SmtTerm.exists s T body) x := by intro M; rfl
+        have hArgs := generic_apply_subterms_non_none hTy ht
+        exact supported_generic_apply_of_non_none hTy hEval ht
+          (go (SmtTerm.exists s T body) hArgs.1)
+          (go x hArgs.2)
+      case «forall» s T body =>
+        have hTy : generic_apply_type (SmtTerm.forall s T body) x := rfl
+        have hEval : generic_apply_eval (SmtTerm.forall s T body) x := by intro M; rfl
+        have hArgs := generic_apply_subterms_non_none hTy ht
+        exact supported_generic_apply_of_non_none hTy hEval ht
+          (go (SmtTerm.forall s T body) hArgs.1)
+          (go x hArgs.2)
+      case choice s T body =>
+        have hTy : generic_apply_type (SmtTerm.choice s T body) x := rfl
+        have hEval : generic_apply_eval (SmtTerm.choice s T body) x := by intro M; rfl
+        have hArgs := generic_apply_subterms_non_none hTy ht
+        exact supported_generic_apply_of_non_none hTy hEval ht
+          (go (SmtTerm.choice s T body) hArgs.1)
+          (go x hArgs.2)
       case DtSel s d i j =>
         have htx : term_has_non_none_type x := by
           have hx : __smtx_typeof x = SmtType.Datatype s d :=

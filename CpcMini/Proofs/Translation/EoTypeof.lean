@@ -661,8 +661,6 @@ end
 theorem eo_type_valid_rec_non_none :
     ∀ {refs : List native_String} {T : Term},
       eo_type_valid_rec refs T -> __eo_to_smt_type T ≠ SmtType.None
-  | refs, Term.__eo_pf t, h => by
-      simp [eo_type_valid_rec] at h
   | refs, Term.Int, _ => by
       simp [__eo_to_smt_type]
   | refs, Term.Real, _ => by
@@ -785,8 +783,6 @@ private theorem eo_to_smt_type_unique_of_valid_rec
       eo_type_valid_rec refs T ->
       __eo_to_smt_type T = __eo_to_smt_type U ->
       T = U
-  | Term.__eo_pf t, U, hValid, hEq => by
-      simp [eo_type_valid_rec] at hValid
   | Term.Int, U, _, hEq => by
       have hU : __eo_to_smt_type U = SmtType.Int := by
         simpa using hEq.symm
@@ -1236,8 +1232,6 @@ theorem eo_to_smt_type_substitute_typeref
         native_ite (native_Teq (__eo_to_smt_type T) (SmtType.TypeRef s))
           (SmtType.Datatype s (__eo_to_smt_datatype d))
           (__eo_to_smt_type T)
-  | Term.__eo_pf t => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.Int => by
       simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.Real => by
