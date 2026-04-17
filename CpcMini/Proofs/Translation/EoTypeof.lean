@@ -577,21 +577,6 @@ theorem eo_to_smt_type_eq_bitvec_iff
     simp [__eo_to_smt_type, native_ite, hz, hw]
 
 /--
-Extracts the EO datatype witness carried by a translated SMT datatype typing
-equality.
--/
-theorem eo_typeof_eq_translated_eo_datatype_of_smt_datatype
-    {x : Term} {s : native_String} {d : SmtDatatype}
-    (hRec : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s d) :
-    ∃ d0,
-      __eo_typeof x = Term.DatatypeType s d0 ∧
-      __eo_to_smt_datatype d0 = d := by
-  have hTy : __eo_to_smt_type (__eo_typeof x) = SmtType.Datatype s d := by
-    rw [← hRec, hx]
-  exact eo_to_smt_type_eq_datatype_iff.mp hTy
-
-/--
 Extracts the EO function-type witness carried by a translated SMT function
 typing equality.
 -/
@@ -1433,13 +1418,6 @@ decreasing_by
     | exact sum_size_inr_lt_datatype_cons _ _ _
     | exact sum_size_inl_lt_sum _ _
     | exact sum_size_inr_lt_sum _ _
-
-/-- EO datatype-constructor substitution commutes with type translation. -/
-theorem eo_to_smt_datatype_cons_substitute
-    (s : native_String) (d : Datatype) (c : DatatypeCons) :
-    __eo_to_smt_datatype_cons (__eo_dtc_substitute s d c) =
-      __smtx_dtc_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype_cons c) := by
-  simpa using eo_to_smt_substitute_aux s d (.inl c)
 
 /-- EO datatype substitution commutes with type translation. -/
 theorem eo_to_smt_datatype_substitute
