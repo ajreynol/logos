@@ -432,13 +432,6 @@ deriving Repr, DecidableEq, Inhabited
 
 end
 
-namespace SmtTerm
-
-@[simp] def choice (s : native_String) (T : SmtType) (x1 : SmtTerm) : SmtTerm :=
-  SmtTerm.choice_nth s T x1 native_nat_zero
-
-end SmtTerm
-
 
 /- SMT-LIB model -/
 structure SmtModelKey where
@@ -1432,6 +1425,12 @@ def __smtx_typeof_apply : SmtType -> SmtType -> SmtType
   | T, U => SmtType.None
 
 
+def __smtx_typeof_choice_nth (T : SmtType) : SmtTerm -> native_Nat -> SmtType
+  | F, native_nat_zero => T
+  | (SmtTerm.exists s U F), (native_nat_succ n) => (__smtx_typeof_choice_nth U F n)
+  | F, n => SmtType.None
+
+
 def __smtx_typeof_bv_op_2 : SmtType -> SmtType -> SmtType
   | (SmtType.BitVec n1), (SmtType.BitVec n2) => (native_ite (native_nateq n1 n2) (SmtType.BitVec n1) SmtType.None)
   | T, U => SmtType.None
@@ -1595,17 +1594,6 @@ def __smtx_typeof_int_to_bv : SmtTerm -> SmtType -> SmtType
   | x2, x3 => SmtType.None
 
 
-def __smtx_typeof_choice_nth : native_String -> SmtType -> SmtTerm -> native_Nat -> SmtType
-  | _, T, x1, native_nat_zero =>
-      (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (__smtx_typeof_guard_wf T T) SmtType.None)
-  | _, _, x1, (native_nat_succ n) =>
-      (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool)
-        (match x1 with
-        | SmtTerm.exists s T body => __smtx_typeof_choice_nth s T body n
-        | _ => SmtType.None)
-        SmtType.None)
-
-
 def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
   | (SmtTerm.Numeral n) => SmtType.Int
@@ -1766,7 +1754,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.eq x1 x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.exists s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.forall s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
-  | (SmtTerm.choice_nth s T x1 n) => (__smtx_typeof_choice_nth s T x1 n)
+  | (SmtTerm.choice_nth s T x1 n) => (__smtx_typeof_choice_nth T x1 n)
   | (SmtTerm.DtCons s d i) => 
     let _v0 := (SmtType.Datatype s d)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
@@ -2066,7 +2054,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
   | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
-  | (SmtTerm.choice_nth s T x1 n) => (native_eval_choice_nth M s T x1 n)
+  | (SmtTerm.choice_nth s T x1 i) => (native_eval_tchoice_nth M s T x1 i)
   | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
