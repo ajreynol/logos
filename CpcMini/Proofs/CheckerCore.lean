@@ -5,9 +5,6 @@ open Eo
 open SmtEval
 open Smtm
 
-set_option allowUnsafeReducibility true
-attribute [local reducible] __smtx_typeof __smtx_model_eval
-
 /-- Inductive predicate for assumption terms that are well-formed `and`-chains ending in `true`. -/
 inductive ValidAssumptionList : Term -> Prop
   | base : ValidAssumptionList (Term.Boolean true)

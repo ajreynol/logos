@@ -1,4 +1,4 @@
-import Lean.Elab.Term
+import Lean
 import CpcMini.Proofs.TypePreservation.Model
 
 open SmtEval
@@ -6,27 +6,26 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-set_option allowUnsafeReducibility true
 
 namespace Smtm
 
-syntax "smtx_model_eval_choice_nth_eq_def" : term
+syntax "smtx_model_eval_choice_nth_eq_1" : term
+syntax "smtx_model_eval_choice_nth_eq_2" : term
+
+open Lean Elab Term Meta in
+private def choiceNthEvalEqThm (idx : Nat) : TermElabM Expr := do
+  let eqTy ← inferType (mkConst ``Smtm.__smtx_model_eval.eq_14)
+  forallTelescopeReducing eqTy fun _ body => do
+    let some (_, _, rhs) := body.eq? | throwError "unexpected __smtx_model_eval.eq_14 shape"
+    let .const fnName _ := rhs.getAppFn | throwError "unexpected choice_nth evaluator shape"
+    let some eqns ← Lean.Meta.getEqnsFor? fnName | throwError "missing choice_nth evaluator equations"
+    let some eqThm := eqns[idx]? | throwError "choice_nth evaluator equation index out of bounds"
+    pure (mkConst eqThm)
 
 open Lean Elab Term Meta in
 elab_rules : term
-  | `(smtx_model_eval_choice_nth_eq_def) => do
-      let env ← getEnv
-      let some hiddenName :=
-          env.constants.toList.findSome? fun (n, _) =>
-            let s := toString n
-            if s.contains "Smtm.__smtx_model_eval.evalChoiceNth" &&
-                s.endsWith ".eq_def" &&
-                !s.contains "._mutual." then
-              some n
-            else
-              none
-        | throwError "could not find __smtx_model_eval choice_nth equation theorem"
-      return mkConst hiddenName
+  | `(smtx_model_eval_choice_nth_eq_1) => choiceNthEvalEqThm 0
+  | `(smtx_model_eval_choice_nth_eq_2) => choiceNthEvalEqThm 1
 
 /-- Shows that evaluating `boolean` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_boolean
@@ -298,10 +297,10 @@ theorem typeof_value_model_eval_choice_nth
           ∃ v : SmtValue,
             __smtx_typeof_value v = T ∧
               __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
-      · rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_def]
+      · rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_1]
         simp [hSat]
         exact (Classical.choose_spec hSat).1
-      · rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_def]
+      · rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_1]
         simp [hSat, hWitness]
         exact Classical.choose_spec hWitness
   | succ n ih =>
@@ -321,8 +320,9 @@ theorem typeof_value_model_eval_choice_nth
             else
               SmtValue.NotValue
           have ih' := ih (__smtx_model_push M s T v) s' U F hRec
-          rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_def]
-          simpa [__smtx_model_eval.eq_14, __smtx_typeof, __smtx_typeof_choice_nth, v] using ih'
+          rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_2]
+          simpa [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_2,
+            __smtx_typeof, __smtx_typeof_choice_nth, v] using ih'
       | _ =>
           exfalso
           simpa [term_has_non_none_type, __smtx_typeof, __smtx_typeof_choice_nth] using ht
