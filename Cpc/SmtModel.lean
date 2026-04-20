@@ -357,7 +357,7 @@ inductive SmtTheoryOp : Type where
   | ubv_to_int : SmtTheoryOp
   | sbv_to_int : SmtTheoryOp
 
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, Inhabited
 
 /- 
 SMT-LIB terms.
