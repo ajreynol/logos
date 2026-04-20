@@ -1,6 +1,7 @@
 import Cpc.SmtEval
 
 set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
 
 namespace Smtm
 
