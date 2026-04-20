@@ -102,7 +102,7 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | forall (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_term (SmtTerm.forall s T body)
   | choice (s : native_String) (T : SmtType) (body : SmtTerm) :
-      supported_preservation_term (SmtTerm.choice s T body)
+      supported_preservation_term (SmtTerm.choice_nth s T body 0)
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :

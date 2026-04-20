@@ -1258,8 +1258,8 @@ theorem typeof_value_model_eval_string
     (s : native_String) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.String s)) =
       __smtx_typeof (SmtTerm.String s) := by
-  change __smtx_typeof_seq_value (native_pack_string s) = SmtType.Seq SmtType.Char
-  exact typeof_pack_string s
+  rw [__smtx_model_eval.eq_4, __smtx_typeof.eq_4]
+  simpa [__smtx_typeof_value] using typeof_pack_string s
 
 /-- Lemma about `map_lookup_typed`. -/
 theorem map_lookup_typed :
@@ -1450,10 +1450,11 @@ theorem to_real_arg_of_non_none
     (ht : term_has_non_none_type (SmtTerm.to_real t)) :
     __smtx_typeof t = SmtType.Int ∨ __smtx_typeof t = SmtType.Real := by
   unfold term_has_non_none_type at ht
+  rw [__smtx_typeof.eq_18] at ht
   cases h : __smtx_typeof t <;>
     simp [__smtx_typeof, native_ite, native_Teq, h] at ht
-  · simp
-  · simp
+  · exact Or.inl rfl
+  · exact Or.inr rfl
 
 /-- Derives `real_arg` from `non_none`. -/
 theorem real_arg_of_non_none
@@ -1477,9 +1478,10 @@ theorem int_arg_of_non_none
     (ht : term_has_non_none_type (SmtTerm.abs t)) :
     __smtx_typeof t = SmtType.Int := by
   unfold term_has_non_none_type at ht
+  rw [__smtx_typeof.eq_21] at ht
   cases h : __smtx_typeof t <;>
     simp [__smtx_typeof, native_ite, native_Teq, h] at ht
-  simp
+  rfl
 
 /-- Shows that evaluating `eq_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_eq_value

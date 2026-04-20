@@ -32,21 +32,21 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
       __eo_to_smt (Term._at_array_deq_diff x1 x2) =
         let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
         let _v2 := SmtTerm.Var "_at_x" _v0
-        SmtTerm.choice "_at_x" _v0
+        SmtTerm.choice_nth "_at_x" _v0
           (SmtTerm.not
             (SmtTerm.eq
               (SmtTerm.select (__eo_to_smt x1) _v2)
-              (SmtTerm.select (__eo_to_smt x2) _v2))) := by
+              (SmtTerm.select (__eo_to_smt x2) _v2))) 0 := by
     rw [__eo_to_smt.eq_def]
   have hApplyNN :
       term_has_non_none_type
         (let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
          let _v2 := SmtTerm.Var "_at_x" _v0
-         SmtTerm.choice "_at_x" _v0
+         SmtTerm.choice_nth "_at_x" _v0
            (SmtTerm.not
              (SmtTerm.eq
                (SmtTerm.select (__eo_to_smt x1) _v2)
-               (SmtTerm.select (__eo_to_smt x2) _v2)))) := by
+               (SmtTerm.select (__eo_to_smt x2) _v2))) 0) := by
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
@@ -79,21 +79,21 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
       __eo_to_smt (Term._at_sets_deq_diff x1 x2) =
         let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))
         let _v2 := SmtTerm.Var "_at_x" _v0
-        SmtTerm.choice "_at_x" _v0
+        SmtTerm.choice_nth "_at_x" _v0
           (SmtTerm.not
             (SmtTerm.eq
               (SmtTerm.set_member _v2 (__eo_to_smt x1))
-              (SmtTerm.set_member _v2 (__eo_to_smt x2)))) := by
+              (SmtTerm.set_member _v2 (__eo_to_smt x2)))) 0 := by
     rw [__eo_to_smt.eq_def]
   have hApplyNN :
       term_has_non_none_type
         (let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))
          let _v2 := SmtTerm.Var "_at_x" _v0
-         SmtTerm.choice "_at_x" _v0
+         SmtTerm.choice_nth "_at_x" _v0
            (SmtTerm.not
              (SmtTerm.eq
                (SmtTerm.set_member _v2 (__eo_to_smt x1))
-               (SmtTerm.set_member _v2 (__eo_to_smt x2))))) := by
+               (SmtTerm.set_member _v2 (__eo_to_smt x2)))) 0) := by
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
