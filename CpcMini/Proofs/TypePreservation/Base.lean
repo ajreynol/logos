@@ -149,7 +149,7 @@ theorem exists_term_typeof_of_non_none
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.exists s T body)) :
     __smtx_typeof (SmtTerm.exists s T body) = SmtType.Bool := by
-  simpa [__smtx_typeof, native_ite, native_Teq, exists_body_bool_of_non_none ht]
+  simp [__smtx_typeof, native_ite, native_Teq, exists_body_bool_of_non_none ht]
 
 /-- Shows that evaluating `exists` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_exists
@@ -187,7 +187,7 @@ theorem forall_term_typeof_of_non_none
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.forall s T body)) :
     __smtx_typeof (SmtTerm.forall s T body) = SmtType.Bool := by
-  simpa [__smtx_typeof, native_ite, native_Teq, forall_body_bool_of_non_none ht]
+  simp [__smtx_typeof, native_ite, native_Teq, forall_body_bool_of_non_none ht]
 
 /-- Shows that evaluating `forall` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_forall
@@ -325,6 +325,6 @@ theorem typeof_value_model_eval_choice_nth
             __smtx_typeof, __smtx_typeof_choice_nth, v] using ih'
       | _ =>
           exfalso
-          simpa [term_has_non_none_type, __smtx_typeof, __smtx_typeof_choice_nth] using ht
+          simp [term_has_non_none_type, __smtx_typeof, __smtx_typeof_choice_nth] at ht
 
 end Smtm

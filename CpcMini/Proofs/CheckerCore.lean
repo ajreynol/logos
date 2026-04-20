@@ -102,7 +102,7 @@ by
   cases h with
   | intro_false hty _ =>
       have : SmtType.None = SmtType.Bool := by
-        simpa [Smtm.__smtx_typeof.eq_def] using hty
+        simp [Smtm.__smtx_typeof.eq_def] at hty
       cases this
 
 /-- Lemma about `eo_interprets_stuck_true_absurd`. -/
@@ -114,7 +114,7 @@ by
   cases h with
   | intro_true hty _ =>
       have : SmtType.None = SmtType.Bool := by
-        simpa [Smtm.__smtx_typeof.eq_def] using hty
+        simp [Smtm.__smtx_typeof.eq_def] at hty
       cases this
 
 /-- Lemma about `eo_interprets_true_not_false`. -/
@@ -203,8 +203,8 @@ by
       cases hB with
       | intro_true htyB hEvalB =>
           apply smt_interprets.intro_true
-          · simpa [Smtm.__smtx_typeof.eq_8, htyA, htyB, native_Teq, native_ite]
-          · simpa [Smtm.__smtx_model_eval.eq_8, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
+          · simp [Smtm.__smtx_typeof.eq_8, htyA, htyB, native_Teq, native_ite]
+          · simp [Smtm.__smtx_model_eval.eq_8, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
 
 /-- Elimination lemma for `eo_interprets_imp`. -/
 theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
@@ -252,8 +252,8 @@ by
       cases hB with
       | intro_true htyB hEvalB =>
           apply smt_interprets.intro_true
-          · simpa [Smtm.__smtx_typeof.eq_9, htyA, htyB, native_Teq, native_ite]
-          · simpa [Smtm.__smtx_model_eval.eq_9, __smtx_model_eval_imp, __smtx_model_eval_or,
+          · simp [Smtm.__smtx_typeof.eq_9, htyA, htyB, native_Teq, native_ite]
+          · simp [Smtm.__smtx_model_eval.eq_9, __smtx_model_eval_imp, __smtx_model_eval_or,
               __smtx_model_eval_not, hEvalA, hEvalB, SmtEval.native_or, SmtEval.native_not]
 
 /-- Left-projection lemma for `eo_interprets_imp_false`. -/
@@ -330,8 +330,8 @@ by
       cases hB with
       | intro_false htyB hEvalB =>
           apply smt_interprets.intro_false
-          · simpa [Smtm.__smtx_typeof.eq_9, htyA, htyB, native_Teq, native_ite]
-          · simpa [Smtm.__smtx_model_eval.eq_9, __smtx_model_eval_imp, __smtx_model_eval_or,
+          · simp [Smtm.__smtx_typeof.eq_9, htyA, htyB, native_Teq, native_ite]
+          · simp [Smtm.__smtx_model_eval.eq_9, __smtx_model_eval_imp, __smtx_model_eval_or,
               __smtx_model_eval_not, hEvalA, hEvalB, SmtEval.native_or, SmtEval.native_not]
 
 /-- Derives `eo_interprets_and_false_left` from `right_not_false`. -/

@@ -145,7 +145,7 @@ theorem eo_has_bool_type_and_of_bool_args (A B : Term) :
   intro hA hB
   unfold eo_has_bool_type at hA hB ⊢
   rw [eo_to_smt_and_eq A B]
-  simpa [Smtm.__smtx_typeof.eq_8, hA, hB, native_ite, native_Teq]
+  simp [Smtm.__smtx_typeof.eq_8, hA, hB, native_ite, native_Teq]
 
 /-- Left-projection lemma for `eo_has_bool_type_and`. -/
 theorem eo_has_bool_type_and_left (A B : Term) :
@@ -186,7 +186,7 @@ theorem eo_has_bool_type_not_of_bool_arg (t : Term) :
   intro hTy
   unfold eo_has_bool_type at hTy ⊢
   rw [eo_to_smt_not_eq t]
-  simpa [Smtm.__smtx_typeof.eq_6, hTy, native_ite, native_Teq]
+  simp [Smtm.__smtx_typeof.eq_6, hTy, native_ite, native_Teq]
 
 /-- Lemma about `eo_has_bool_type_not_arg`. -/
 theorem eo_has_bool_type_not_arg (t : Term) :
@@ -305,8 +305,8 @@ theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
       cases hB with
       | intro_true htyB hEvalB =>
           apply smt_interprets.intro_true
-          · simpa [Smtm.__smtx_typeof.eq_8, htyA, htyB, native_Teq, native_ite]
-          · simpa [Smtm.__smtx_model_eval.eq_8, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
+          · simp [Smtm.__smtx_typeof.eq_8, htyA, htyB, native_Teq, native_ite]
+          · simp [Smtm.__smtx_model_eval.eq_8, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
 
 mutual
 
@@ -829,8 +829,8 @@ theorem eo_interprets_not_of_false (M : SmtModel) (t : Term) :
   | intro_false hTy hEval =>
       refine smt_interprets.intro_true M
           (SmtTerm.not (__eo_to_smt t)) ?_ ?_
-      · simpa [Smtm.__smtx_typeof.eq_6, hTy, native_Teq, native_ite]
-      · simpa [Smtm.__smtx_model_eval.eq_6, __smtx_model_eval_not, SmtEval.native_not, hEval]
+      · simp [Smtm.__smtx_typeof.eq_6, hTy, native_Teq, native_ite]
+      · simp [Smtm.__smtx_model_eval.eq_6, __smtx_model_eval_not, SmtEval.native_not, hEval]
 
 /-- Derives `term_ne_stuck` from `interprets_true`. -/
 theorem term_ne_stuck_of_interprets_true (M : SmtModel) (t : Term) :
@@ -841,7 +841,7 @@ theorem term_ne_stuck_of_interprets_true (M : SmtModel) (t : Term) :
   cases h with
   | intro_true hTy _ =>
       have : SmtType.None = SmtType.Bool := by
-        simpa [Smtm.__smtx_typeof.eq_def] using hTy
+        simp [Smtm.__smtx_typeof.eq_def] at hTy
       cases this
 
 /-- Derives `term_ne_stuck` from `interprets_false`. -/
@@ -853,7 +853,7 @@ theorem term_ne_stuck_of_interprets_false (M : SmtModel) (t : Term) :
   cases h with
   | intro_false hTy _ =>
       have : SmtType.None = SmtType.Bool := by
-        simpa [Smtm.__smtx_typeof.eq_def] using hTy
+        simp [Smtm.__smtx_typeof.eq_def] at hTy
       cases this
 
 /-- Derives `term_ne_stuck` from `has_bool_type`. -/
@@ -863,7 +863,7 @@ theorem term_ne_stuck_of_has_bool_type (t : Term) :
   subst hStuck
   rw [eo_has_bool_type, eo_to_smt_stuck_eq] at hTy
   have : SmtType.None = SmtType.Bool := by
-    simpa [Smtm.__smtx_typeof.eq_def] using hTy
+    simp [Smtm.__smtx_typeof.eq_def] at hTy
   cases this
 
 set_option linter.unusedSimpArgs false in

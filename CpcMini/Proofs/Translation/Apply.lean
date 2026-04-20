@@ -45,7 +45,7 @@ theorem smtx_typeof_translation_not_of_non_none
     cases h : __smtx_typeof (__eo_to_smt x) <;>
       simp [__smtx_typeof.eq_6, native_ite, native_Teq, h] at hNonNone
     simp
-  simpa [__smtx_typeof.eq_6, native_ite, native_Teq, hArg]
+  simp [__smtx_typeof.eq_6, native_ite, native_Teq, hArg]
 
 /-- Computes `__smtx_typeof` for `translation_or_of_non_none`. -/
 theorem smtx_typeof_translation_or_of_non_none
