@@ -19,11 +19,9 @@ private theorem smtx_typeof_apply_generic_of_head_not_special
     (hDtTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x := by
   unfold generic_apply_type
-  cases f <;> try rfl
-  case DtSel s d i j =>
-      exact False.elim (hDtSel s d i j rfl)
-  case DtTester s d i =>
-      exact False.elim (hDtTester s d i rfl)
+  exact __smtx_typeof.eq_18 f x
+    (by intro s d i j hEq; exact hDtSel s d i j hEq)
+    (by intro s d i hEq; exact hDtTester s d i hEq)
 
 /-- Shows that generic EO application translation satisfies `generic_apply_type`. -/
 theorem eo_to_smt_apply_generic_type
@@ -45,9 +43,9 @@ theorem smtx_typeof_translation_not_of_non_none
   rw [__eo_to_smt.eq_def] at hNonNone ⊢
   have hArg : __smtx_typeof (__eo_to_smt x) = SmtType.Bool := by
     cases h : __smtx_typeof (__eo_to_smt x) <;>
-      simp [__smtx_typeof, native_ite, native_Teq, h] at hNonNone
+      simp [__smtx_typeof.eq_6, native_ite, native_Teq, h] at hNonNone
     simp
-  simp [__smtx_typeof, native_ite, native_Teq, hArg]
+  simp [__smtx_typeof.eq_6, native_ite, native_Teq, hArg]
 
 /-- Computes `__smtx_typeof` for `translation_or_of_non_none`. -/
 theorem smtx_typeof_translation_or_of_non_none
@@ -61,8 +59,9 @@ theorem smtx_typeof_translation_or_of_non_none
         (SmtTerm.or (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hApplyNN
-  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
+  have hArgs := bool_binop_args_bool_of_non_none
+    (op := SmtTerm.or) (__smtx_typeof.eq_7 (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
+  simp [__smtx_typeof.eq_7, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_and_of_non_none`. -/
 theorem smtx_typeof_translation_and_of_non_none
@@ -76,8 +75,9 @@ theorem smtx_typeof_translation_and_of_non_none
         (SmtTerm.and (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) rfl hApplyNN
-  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
+  have hArgs := bool_binop_args_bool_of_non_none
+    (op := SmtTerm.and) (__smtx_typeof.eq_8 (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
+  simp [__smtx_typeof.eq_8, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_imp_of_non_none`. -/
 theorem smtx_typeof_translation_imp_of_non_none
@@ -91,8 +91,9 @@ theorem smtx_typeof_translation_imp_of_non_none
         (SmtTerm.imp (__eo_to_smt x) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     exact hNonNone
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hApplyNN
-  simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]
+  have hArgs := bool_binop_args_bool_of_non_none
+    (op := SmtTerm.imp) (__smtx_typeof.eq_9 (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
+  simp [__smtx_typeof.eq_9, native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_eq_of_non_none`. -/
 theorem smtx_typeof_translation_eq_of_non_none

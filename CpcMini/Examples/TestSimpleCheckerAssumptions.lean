@@ -68,7 +68,9 @@ private theorem t4_has_bool_type : RuleProofs.eo_has_bool_type t4 := by
   · simp [h2]
 
 private theorem t7_has_bool_type : RuleProofs.eo_has_bool_type t7 := by
-  exact RuleProofs.eo_has_bool_type_not_of_bool_arg t4 t4_has_bool_type
+  have t6_has_bool_type : RuleProofs.eo_has_bool_type t6 := by
+    simpa [t4, t6] using RuleProofs.eo_has_bool_type_eq_symm t2 t1 t4_has_bool_type
+  simpa [t7] using RuleProofs.eo_has_bool_type_not_of_bool_arg t6 t6_has_bool_type
 
 example : TypedAssumptionList assumptions := by
   apply TypedAssumptionList.step

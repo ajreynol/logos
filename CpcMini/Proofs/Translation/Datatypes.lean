@@ -39,6 +39,7 @@ namespace TranslationProofs
 /-- Computes `__smtx_typeof` for `dt_sel_head_none`. -/
 @[simp] theorem smtx_typeof_dt_sel_head_none
     (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
-    __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := rfl
+    __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := by
+  simp [__smtx_typeof.eq_def]
 
 end TranslationProofs

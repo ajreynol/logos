@@ -344,7 +344,7 @@ theorem choice_term_has_witness
     ∃ v : SmtValue, __smtx_typeof_value v = T := by
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
-    simp [__smtx_typeof, native_ite, native_Teq, h] at ht
+    simp [SmtTerm.choice, __smtx_typeof_choice_nth, native_ite, native_Teq, h] at ht
   · exact smtx_typeof_guard_wf_inhabited_of_non_none T T ht
 
 /-- Derives `choice_term_typeof` from `non_none`. -/
@@ -357,7 +357,7 @@ theorem choice_term_typeof_of_non_none
   have hTy := choice_term_has_witness ht
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
-    simp [__smtx_typeof, native_ite, native_Teq, h] at ht ⊢
+    simp [SmtTerm.choice, __smtx_typeof_choice_nth, native_ite, native_Teq, h] at ht ⊢
   · exact smtx_typeof_guard_wf_of_non_none T T ht
 
 /-- Shows that evaluating `choice` terms produces values of the expected type. -/
