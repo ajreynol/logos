@@ -537,6 +537,30 @@ theorem typeof_value_model_eval_abs
     simp [__smtx_model_eval_abs, __smtx_model_eval_lt, __smtx_model_eval_ite,
       __smtx_model_eval__, __smtx_typeof_value, hlt]
 
+/-- Shows that evaluating `uneg` terms produces values of the expected type. -/
+theorem typeof_value_model_eval_uneg
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.uneg t))
+    (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.uneg t)) =
+      __smtx_typeof (SmtTerm.uneg t) := by
+  rcases arith_unop_arg_of_non_none (op := SmtTerm.uneg) rfl ht with hArg | hArg
+  · rw [show __smtx_typeof (SmtTerm.uneg t) = SmtType.Int by
+      simp [__smtx_typeof, __smtx_typeof_arith_overload_op_1, hArg]]
+    change __smtx_typeof_value (__smtx_model_eval_uneg (__smtx_model_eval M t)) =
+      SmtType.Int
+    rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
+    rw [hn]
+    rfl
+  · rw [show __smtx_typeof (SmtTerm.uneg t) = SmtType.Real by
+      simp [__smtx_typeof, __smtx_typeof_arith_overload_op_1, hArg]]
+    change __smtx_typeof_value (__smtx_model_eval_uneg (__smtx_model_eval M t)) =
+      SmtType.Real
+    rcases real_value_canonical (by simpa [hArg] using hpres) with ⟨q, hq⟩
+    rw [hq]
+    rfl
+
 /-- Derives `int_ret_arg` from `non_none`. -/
 theorem int_ret_arg_of_non_none
     {op : SmtTerm -> SmtTerm}
