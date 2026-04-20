@@ -363,6 +363,7 @@ deriving Repr, Inhabited
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
+  | TheoryOp : SmtTheoryOp -> SmtTerm
   | None : SmtTerm
   | Boolean : native_Bool -> SmtTerm
   | Numeral : native_Int -> SmtTerm
@@ -370,7 +371,6 @@ inductive SmtTerm : Type where
   | String : native_String -> SmtTerm
   | Binary : native_Int -> native_Int -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
-  | TheoryOp : SmtTheoryOp -> SmtTerm
   | Var : native_String -> SmtType -> SmtTerm
   | ite : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | eq : SmtTerm -> SmtTerm -> SmtTerm

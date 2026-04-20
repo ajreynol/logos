@@ -243,6 +243,7 @@ deriving Repr, Inhabited
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
+  | TheoryOp : SmtTheoryOp -> SmtTerm
   | None : SmtTerm
   | Boolean : native_Bool -> SmtTerm
   | Numeral : native_Int -> SmtTerm
