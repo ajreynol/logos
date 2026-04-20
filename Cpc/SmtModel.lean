@@ -229,6 +229,137 @@ inductive SmtType : Type where
 deriving Repr, DecidableEq, Inhabited
 
 /- 
+Ordinary SMT-LIB theory operators.
+-/
+inductive SmtTheoryOp : Type where
+  | not : SmtTheoryOp
+  | or : SmtTheoryOp
+  | and : SmtTheoryOp
+  | imp : SmtTheoryOp
+  | xor : SmtTheoryOp
+  | plus : SmtTheoryOp
+  | neg : SmtTheoryOp
+  | mult : SmtTheoryOp
+  | lt : SmtTheoryOp
+  | leq : SmtTheoryOp
+  | gt : SmtTheoryOp
+  | geq : SmtTheoryOp
+  | to_real : SmtTheoryOp
+  | to_int : SmtTheoryOp
+  | is_int : SmtTheoryOp
+  | abs : SmtTheoryOp
+  | uneg : SmtTheoryOp
+  | div : SmtTheoryOp
+  | mod : SmtTheoryOp
+  | multmult : SmtTheoryOp
+  | divisible : SmtTheoryOp
+  | int_pow2 : SmtTheoryOp
+  | int_log2 : SmtTheoryOp
+  | div_total : SmtTheoryOp
+  | mod_total : SmtTheoryOp
+  | multmult_total : SmtTheoryOp
+  | select : SmtTheoryOp
+  | store : SmtTheoryOp
+  | concat : SmtTheoryOp
+  | extract : SmtTheoryOp
+  | repeat : SmtTheoryOp
+  | bvnot : SmtTheoryOp
+  | bvand : SmtTheoryOp
+  | bvor : SmtTheoryOp
+  | bvnand : SmtTheoryOp
+  | bvnor : SmtTheoryOp
+  | bvxor : SmtTheoryOp
+  | bvxnor : SmtTheoryOp
+  | bvcomp : SmtTheoryOp
+  | bvneg : SmtTheoryOp
+  | bvadd : SmtTheoryOp
+  | bvmul : SmtTheoryOp
+  | bvudiv : SmtTheoryOp
+  | bvurem : SmtTheoryOp
+  | bvsub : SmtTheoryOp
+  | bvsdiv : SmtTheoryOp
+  | bvsrem : SmtTheoryOp
+  | bvsmod : SmtTheoryOp
+  | bvult : SmtTheoryOp
+  | bvule : SmtTheoryOp
+  | bvugt : SmtTheoryOp
+  | bvuge : SmtTheoryOp
+  | bvslt : SmtTheoryOp
+  | bvsle : SmtTheoryOp
+  | bvsgt : SmtTheoryOp
+  | bvsge : SmtTheoryOp
+  | bvshl : SmtTheoryOp
+  | bvlshr : SmtTheoryOp
+  | bvashr : SmtTheoryOp
+  | zero_extend : SmtTheoryOp
+  | sign_extend : SmtTheoryOp
+  | rotate_left : SmtTheoryOp
+  | rotate_right : SmtTheoryOp
+  | bvuaddo : SmtTheoryOp
+  | bvnego : SmtTheoryOp
+  | bvsaddo : SmtTheoryOp
+  | bvumulo : SmtTheoryOp
+  | bvsmulo : SmtTheoryOp
+  | bvusubo : SmtTheoryOp
+  | bvssubo : SmtTheoryOp
+  | bvsdivo : SmtTheoryOp
+  | str_len : SmtTheoryOp
+  | str_concat : SmtTheoryOp
+  | str_substr : SmtTheoryOp
+  | str_contains : SmtTheoryOp
+  | str_replace : SmtTheoryOp
+  | str_indexof : SmtTheoryOp
+  | str_at : SmtTheoryOp
+  | str_prefixof : SmtTheoryOp
+  | str_suffixof : SmtTheoryOp
+  | str_rev : SmtTheoryOp
+  | str_update : SmtTheoryOp
+  | str_to_lower : SmtTheoryOp
+  | str_to_upper : SmtTheoryOp
+  | str_to_code : SmtTheoryOp
+  | str_from_code : SmtTheoryOp
+  | str_is_digit : SmtTheoryOp
+  | str_to_int : SmtTheoryOp
+  | str_from_int : SmtTheoryOp
+  | str_lt : SmtTheoryOp
+  | str_leq : SmtTheoryOp
+  | str_replace_all : SmtTheoryOp
+  | str_replace_re : SmtTheoryOp
+  | str_replace_re_all : SmtTheoryOp
+  | str_indexof_re : SmtTheoryOp
+  | re_allchar : SmtTheoryOp
+  | re_none : SmtTheoryOp
+  | re_all : SmtTheoryOp
+  | str_to_re : SmtTheoryOp
+  | re_mult : SmtTheoryOp
+  | re_plus : SmtTheoryOp
+  | re_exp : SmtTheoryOp
+  | re_opt : SmtTheoryOp
+  | re_comp : SmtTheoryOp
+  | re_range : SmtTheoryOp
+  | re_concat : SmtTheoryOp
+  | re_inter : SmtTheoryOp
+  | re_union : SmtTheoryOp
+  | re_diff : SmtTheoryOp
+  | re_loop : SmtTheoryOp
+  | str_in_re : SmtTheoryOp
+  | seq_unit : SmtTheoryOp
+  | seq_nth : SmtTheoryOp
+  | set_singleton : SmtTheoryOp
+  | set_union : SmtTheoryOp
+  | set_inter : SmtTheoryOp
+  | set_minus : SmtTheoryOp
+  | set_member : SmtTheoryOp
+  | set_subset : SmtTheoryOp
+  | qdiv : SmtTheoryOp
+  | qdiv_total : SmtTheoryOp
+  | int_to_bv : SmtTheoryOp
+  | ubv_to_int : SmtTheoryOp
+  | sbv_to_int : SmtTheoryOp
+
+deriving Repr, DecidableEq, Inhabited
+
+/- 
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
@@ -239,6 +370,7 @@ inductive SmtTerm : Type where
   | String : native_String -> SmtTerm
   | Binary : native_Int -> native_Int -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
+  | TheoryOp : SmtTheoryOp -> SmtTerm
   | Var : native_String -> SmtType -> SmtTerm
   | ite : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | eq : SmtTerm -> SmtTerm -> SmtTerm
@@ -249,132 +381,8 @@ inductive SmtTerm : Type where
   | DtSel : native_String -> SmtDatatype -> native_Nat -> native_Nat -> SmtTerm
   | DtTester : native_String -> SmtDatatype -> native_Nat -> SmtTerm
   | UConst : native_String -> SmtType -> SmtTerm
-  | not : SmtTerm -> SmtTerm
-  | or : SmtTerm -> SmtTerm -> SmtTerm
-  | and : SmtTerm -> SmtTerm -> SmtTerm
-  | imp : SmtTerm -> SmtTerm -> SmtTerm
-  | xor : SmtTerm -> SmtTerm -> SmtTerm
-  | plus : SmtTerm -> SmtTerm -> SmtTerm
-  | neg : SmtTerm -> SmtTerm -> SmtTerm
-  | mult : SmtTerm -> SmtTerm -> SmtTerm
-  | lt : SmtTerm -> SmtTerm -> SmtTerm
-  | leq : SmtTerm -> SmtTerm -> SmtTerm
-  | gt : SmtTerm -> SmtTerm -> SmtTerm
-  | geq : SmtTerm -> SmtTerm -> SmtTerm
-  | to_real : SmtTerm -> SmtTerm
-  | to_int : SmtTerm -> SmtTerm
-  | is_int : SmtTerm -> SmtTerm
-  | abs : SmtTerm -> SmtTerm
-  | uneg : SmtTerm -> SmtTerm
-  | div : SmtTerm -> SmtTerm -> SmtTerm
-  | mod : SmtTerm -> SmtTerm -> SmtTerm
-  | multmult : SmtTerm -> SmtTerm -> SmtTerm
-  | divisible : SmtTerm -> SmtTerm -> SmtTerm
-  | int_pow2 : SmtTerm -> SmtTerm
-  | int_log2 : SmtTerm -> SmtTerm
-  | div_total : SmtTerm -> SmtTerm -> SmtTerm
-  | mod_total : SmtTerm -> SmtTerm -> SmtTerm
-  | multmult_total : SmtTerm -> SmtTerm -> SmtTerm
-  | select : SmtTerm -> SmtTerm -> SmtTerm
-  | store : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | concat : SmtTerm -> SmtTerm -> SmtTerm
-  | extract : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | repeat : SmtTerm -> SmtTerm -> SmtTerm
-  | bvnot : SmtTerm -> SmtTerm
-  | bvand : SmtTerm -> SmtTerm -> SmtTerm
-  | bvor : SmtTerm -> SmtTerm -> SmtTerm
-  | bvnand : SmtTerm -> SmtTerm -> SmtTerm
-  | bvnor : SmtTerm -> SmtTerm -> SmtTerm
-  | bvxor : SmtTerm -> SmtTerm -> SmtTerm
-  | bvxnor : SmtTerm -> SmtTerm -> SmtTerm
-  | bvcomp : SmtTerm -> SmtTerm -> SmtTerm
-  | bvneg : SmtTerm -> SmtTerm
-  | bvadd : SmtTerm -> SmtTerm -> SmtTerm
-  | bvmul : SmtTerm -> SmtTerm -> SmtTerm
-  | bvudiv : SmtTerm -> SmtTerm -> SmtTerm
-  | bvurem : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsub : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsdiv : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsrem : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsmod : SmtTerm -> SmtTerm -> SmtTerm
-  | bvult : SmtTerm -> SmtTerm -> SmtTerm
-  | bvule : SmtTerm -> SmtTerm -> SmtTerm
-  | bvugt : SmtTerm -> SmtTerm -> SmtTerm
-  | bvuge : SmtTerm -> SmtTerm -> SmtTerm
-  | bvslt : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsle : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsgt : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsge : SmtTerm -> SmtTerm -> SmtTerm
-  | bvshl : SmtTerm -> SmtTerm -> SmtTerm
-  | bvlshr : SmtTerm -> SmtTerm -> SmtTerm
-  | bvashr : SmtTerm -> SmtTerm -> SmtTerm
-  | zero_extend : SmtTerm -> SmtTerm -> SmtTerm
-  | sign_extend : SmtTerm -> SmtTerm -> SmtTerm
-  | rotate_left : SmtTerm -> SmtTerm -> SmtTerm
-  | rotate_right : SmtTerm -> SmtTerm -> SmtTerm
-  | bvuaddo : SmtTerm -> SmtTerm -> SmtTerm
-  | bvnego : SmtTerm -> SmtTerm
-  | bvsaddo : SmtTerm -> SmtTerm -> SmtTerm
-  | bvumulo : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsmulo : SmtTerm -> SmtTerm -> SmtTerm
-  | bvusubo : SmtTerm -> SmtTerm -> SmtTerm
-  | bvssubo : SmtTerm -> SmtTerm -> SmtTerm
-  | bvsdivo : SmtTerm -> SmtTerm -> SmtTerm
   | seq_empty : SmtType -> SmtTerm
-  | str_len : SmtTerm -> SmtTerm
-  | str_concat : SmtTerm -> SmtTerm -> SmtTerm
-  | str_substr : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_contains : SmtTerm -> SmtTerm -> SmtTerm
-  | str_replace : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_indexof : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_at : SmtTerm -> SmtTerm -> SmtTerm
-  | str_prefixof : SmtTerm -> SmtTerm -> SmtTerm
-  | str_suffixof : SmtTerm -> SmtTerm -> SmtTerm
-  | str_rev : SmtTerm -> SmtTerm
-  | str_update : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_to_lower : SmtTerm -> SmtTerm
-  | str_to_upper : SmtTerm -> SmtTerm
-  | str_to_code : SmtTerm -> SmtTerm
-  | str_from_code : SmtTerm -> SmtTerm
-  | str_is_digit : SmtTerm -> SmtTerm
-  | str_to_int : SmtTerm -> SmtTerm
-  | str_from_int : SmtTerm -> SmtTerm
-  | str_lt : SmtTerm -> SmtTerm -> SmtTerm
-  | str_leq : SmtTerm -> SmtTerm -> SmtTerm
-  | str_replace_all : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_replace_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_replace_re_all : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_indexof_re : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | re_allchar : SmtTerm
-  | re_none : SmtTerm
-  | re_all : SmtTerm
-  | str_to_re : SmtTerm -> SmtTerm
-  | re_mult : SmtTerm -> SmtTerm
-  | re_plus : SmtTerm -> SmtTerm
-  | re_exp : SmtTerm -> SmtTerm -> SmtTerm
-  | re_opt : SmtTerm -> SmtTerm
-  | re_comp : SmtTerm -> SmtTerm
-  | re_range : SmtTerm -> SmtTerm -> SmtTerm
-  | re_concat : SmtTerm -> SmtTerm -> SmtTerm
-  | re_inter : SmtTerm -> SmtTerm -> SmtTerm
-  | re_union : SmtTerm -> SmtTerm -> SmtTerm
-  | re_diff : SmtTerm -> SmtTerm -> SmtTerm
-  | re_loop : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
-  | str_in_re : SmtTerm -> SmtTerm -> SmtTerm
-  | seq_unit : SmtTerm -> SmtTerm
-  | seq_nth : SmtTerm -> SmtTerm -> SmtTerm
   | set_empty : SmtType -> SmtTerm
-  | set_singleton : SmtTerm -> SmtTerm
-  | set_union : SmtTerm -> SmtTerm -> SmtTerm
-  | set_inter : SmtTerm -> SmtTerm -> SmtTerm
-  | set_minus : SmtTerm -> SmtTerm -> SmtTerm
-  | set_member : SmtTerm -> SmtTerm -> SmtTerm
-  | set_subset : SmtTerm -> SmtTerm -> SmtTerm
-  | qdiv : SmtTerm -> SmtTerm -> SmtTerm
-  | qdiv_total : SmtTerm -> SmtTerm -> SmtTerm
-  | int_to_bv : SmtTerm -> SmtTerm -> SmtTerm
-  | ubv_to_int : SmtTerm -> SmtTerm
-  | sbv_to_int : SmtTerm -> SmtTerm
 
 deriving Repr, DecidableEq, Inhabited
 
@@ -1601,156 +1609,156 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Rational r) => SmtType.Real
   | (SmtTerm.String s) => (SmtType.Seq SmtType.Char)
   | (SmtTerm.Binary w n) => (native_ite (native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w)))) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
-  | (SmtTerm.not x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
-  | (SmtTerm.or x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.and x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.imp x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.xor x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.plus x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.neg x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.mult x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.lt x1 x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.leq x1 x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.gt x1 x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.geq x1 x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.to_real x1) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.xor) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.plus) x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.neg) x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mult) x1) x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.lt) x1) x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.leq) x1) x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.gt) x1) x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.geq) x1) x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.to_real) x1) => 
     let _v0 := (__smtx_typeof x1)
     (native_ite (native_Teq _v0 SmtType.Int) SmtType.Real (native_ite (native_Teq _v0 SmtType.Real) SmtType.Real SmtType.None))
-  | (SmtTerm.to_int x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Int SmtType.None)
-  | (SmtTerm.is_int x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Bool SmtType.None)
-  | (SmtTerm.abs x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
-  | (SmtTerm.uneg x1) => (__smtx_typeof_arith_overload_op_1 (__smtx_typeof x1))
-  | (SmtTerm.div x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
-  | (SmtTerm.mod x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
-  | (SmtTerm.multmult x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
-  | (SmtTerm.divisible x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.int_pow2 x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
-  | (SmtTerm.int_log2 x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
-  | (SmtTerm.div_total x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
-  | (SmtTerm.mod_total x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
-  | (SmtTerm.multmult_total x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
-  | (SmtTerm.select x1 x2) => (__smtx_typeof_select (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.store x1 x2 x3) => (__smtx_typeof_store (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
-  | (SmtTerm.concat x1 x2) => (__smtx_typeof_concat (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.extract x1 x2 x3) => (__smtx_typeof_extract x1 x2 (__smtx_typeof x3))
-  | (SmtTerm.repeat x1 x2) => (__smtx_typeof_repeat x1 (__smtx_typeof x2))
-  | (SmtTerm.bvnot x1) => (__smtx_typeof_bv_op_1 (__smtx_typeof x1))
-  | (SmtTerm.bvand x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvor x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvnand x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvnor x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvxor x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvxnor x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvcomp x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) (SmtType.BitVec (native_nat_succ native_nat_zero)))
-  | (SmtTerm.bvneg x1) => (__smtx_typeof_bv_op_1 (__smtx_typeof x1))
-  | (SmtTerm.bvadd x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvmul x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvudiv x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvurem x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvsub x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvsdiv x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvsrem x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvsmod x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvult x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvule x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvugt x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvuge x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvslt x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvsle x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvsgt x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvsge x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvshl x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvlshr x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.bvashr x1 x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.zero_extend x1 x2) => (__smtx_typeof_zero_extend x1 (__smtx_typeof x2))
-  | (SmtTerm.sign_extend x1 x2) => (__smtx_typeof_sign_extend x1 (__smtx_typeof x2))
-  | (SmtTerm.rotate_left x1 x2) => (__smtx_typeof_rotate_left x1 (__smtx_typeof x2))
-  | (SmtTerm.rotate_right x1 x2) => (__smtx_typeof_rotate_right x1 (__smtx_typeof x2))
-  | (SmtTerm.bvuaddo x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvnego x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Bool)
-  | (SmtTerm.bvsaddo x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvumulo x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvsmulo x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvusubo x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvssubo x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.bvsdivo x1 x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.to_int) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Int SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.is_int) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Real) SmtType.Bool SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.abs) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.uneg) x1) => (__smtx_typeof_arith_overload_op_1 (__smtx_typeof x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.div) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mod) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.multmult) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.divisible) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_pow2) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_log2) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) SmtType.Int SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.div_total) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mod_total) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.multmult_total) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Int) SmtType.Int SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.select) x1) x2) => (__smtx_typeof_select (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.store) x1) x2) x3) => (__smtx_typeof_store (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.concat) x1) x2) => (__smtx_typeof_concat (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.extract) x1) x2) x3) => (__smtx_typeof_extract x1 x2 (__smtx_typeof x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.repeat) x1) x2) => (__smtx_typeof_repeat x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvnot) x1) => (__smtx_typeof_bv_op_1 (__smtx_typeof x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvand) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvor) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvnand) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvnor) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvxor) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvxnor) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvcomp) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) (SmtType.BitVec (native_nat_succ native_nat_zero)))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvneg) x1) => (__smtx_typeof_bv_op_1 (__smtx_typeof x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvadd) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvmul) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvudiv) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvurem) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsub) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsdiv) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsrem) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsmod) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvult) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvule) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvugt) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvuge) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvslt) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsle) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsgt) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsge) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvshl) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvlshr) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvashr) x1) x2) => (__smtx_typeof_bv_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.zero_extend) x1) x2) => (__smtx_typeof_zero_extend x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.sign_extend) x1) x2) => (__smtx_typeof_sign_extend x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.rotate_left) x1) x2) => (__smtx_typeof_rotate_left x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.rotate_right) x1) x2) => (__smtx_typeof_rotate_right x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvuaddo) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvnego) x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsaddo) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvumulo) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsmulo) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvusubo) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvssubo) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsdivo) x1) x2) => (__smtx_typeof_bv_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
   | (SmtTerm.seq_empty x1) => (__smtx_typeof_guard_wf x1 (SmtType.Seq x1))
-  | (SmtTerm.str_len x1) => (__smtx_typeof_seq_op_1_ret (__smtx_typeof x1) SmtType.Int)
-  | (SmtTerm.str_concat x1 x2) => (__smtx_typeof_seq_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.str_substr x1 x2 x3) => (__smtx_typeof_str_substr (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
-  | (SmtTerm.str_contains x1 x2) => (__smtx_typeof_seq_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.str_replace x1 x2 x3) => (__smtx_typeof_seq_op_3 (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
-  | (SmtTerm.str_indexof x1 x2 x3) => (__smtx_typeof_str_indexof (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
-  | (SmtTerm.str_at x1 x2) => (__smtx_typeof_str_at (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.str_prefixof x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_len) x1) => (__smtx_typeof_seq_op_1_ret (__smtx_typeof x1) SmtType.Int)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_concat) x1) x2) => (__smtx_typeof_seq_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_substr) x1) x2) x3) => (__smtx_typeof_str_substr (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_contains) x1) x2) => (__smtx_typeof_seq_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_replace) x1) x2) x3) => (__smtx_typeof_seq_op_3 (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_indexof) x1) x2) x3) => (__smtx_typeof_str_indexof (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_at) x1) x2) => (__smtx_typeof_str_at (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_prefixof) x1) x2) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) _v0) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.str_suffixof x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_suffixof) x1) x2) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) _v0) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.str_rev x1) => (__smtx_typeof_seq_op_1 (__smtx_typeof x1))
-  | (SmtTerm.str_update x1 x2 x3) => (__smtx_typeof_str_update (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
-  | (SmtTerm.str_to_lower x1) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_rev) x1) => (__smtx_typeof_seq_op_1 (__smtx_typeof x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_update) x1) x2) x3) => (__smtx_typeof_str_update (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_lower) x1) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) _v0 SmtType.None)
-  | (SmtTerm.str_to_upper x1) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_upper) x1) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) _v0 SmtType.None)
-  | (SmtTerm.str_to_code x1) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.Int SmtType.None)
-  | (SmtTerm.str_from_code x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (SmtType.Seq SmtType.Char) SmtType.None)
-  | (SmtTerm.str_is_digit x1) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.Bool SmtType.None)
-  | (SmtTerm.str_to_int x1) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.Int SmtType.None)
-  | (SmtTerm.str_from_int x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (SmtType.Seq SmtType.Char) SmtType.None)
-  | (SmtTerm.str_lt x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_code) x1) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.Int SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_from_code) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (SmtType.Seq SmtType.Char) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_is_digit) x1) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.Bool SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_int) x1) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.Int SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_from_int) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Int) (SmtType.Seq SmtType.Char) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_lt) x1) x2) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) _v0) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.str_leq x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_leq) x1) x2) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) _v0) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.str_replace_all x1 x2 x3) => (__smtx_typeof_seq_op_3 (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
-  | (SmtTerm.str_replace_re x1 x2 x3) => 
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_replace_all) x1) x2) x3) => (__smtx_typeof_seq_op_3 (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_replace_re) x1) x2) x3) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) _v0) _v0 SmtType.None) SmtType.None) SmtType.None)
-  | (SmtTerm.str_replace_re_all x1 x2 x3) => 
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_replace_re_all) x1) x2) x3) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) _v0) _v0 SmtType.None) SmtType.None) SmtType.None)
-  | (SmtTerm.str_indexof_re x1 x2 x3) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) SmtType.Int) SmtType.Int SmtType.None) SmtType.None) SmtType.None)
-  | SmtTerm.re_allchar => SmtType.RegLan
-  | SmtTerm.re_none => SmtType.RegLan
-  | SmtTerm.re_all => SmtType.RegLan
-  | (SmtTerm.str_to_re x1) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.RegLan SmtType.None)
-  | (SmtTerm.re_mult x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) SmtType.RegLan SmtType.None)
-  | (SmtTerm.re_plus x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) SmtType.RegLan SmtType.None)
-  | (SmtTerm.re_exp x1 x2) => (__smtx_typeof_re_exp x1 (__smtx_typeof x2))
-  | (SmtTerm.re_opt x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) SmtType.RegLan SmtType.None)
-  | (SmtTerm.re_comp x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) SmtType.RegLan SmtType.None)
-  | (SmtTerm.re_range x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_indexof_re) x1) x2) x3) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x3) SmtType.Int) SmtType.Int SmtType.None) SmtType.None) SmtType.None)
+  | (SmtTerm.TheoryOp SmtTheoryOp.re_allchar) => SmtType.RegLan
+  | (SmtTerm.TheoryOp SmtTheoryOp.re_none) => SmtType.RegLan
+  | (SmtTerm.TheoryOp SmtTheoryOp.re_all) => SmtType.RegLan
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_re) x1) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) SmtType.RegLan SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_mult) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) SmtType.RegLan SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_plus) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) SmtType.RegLan SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_exp) x1) x2) => (__smtx_typeof_re_exp x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_opt) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) SmtType.RegLan SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_comp) x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) SmtType.RegLan SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_range) x1) x2) => 
     let _v0 := (SmtType.Seq SmtType.Char)
     (native_ite (native_Teq (__smtx_typeof x1) _v0) (native_ite (native_Teq (__smtx_typeof x2) _v0) SmtType.RegLan SmtType.None) SmtType.None)
-  | (SmtTerm.re_concat x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
-  | (SmtTerm.re_inter x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
-  | (SmtTerm.re_union x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
-  | (SmtTerm.re_diff x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
-  | (SmtTerm.re_loop x1 x2 x3) => (__smtx_typeof_re_loop x1 x2 (__smtx_typeof x3))
-  | (SmtTerm.str_in_re x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.Bool SmtType.None) SmtType.None)
-  | (SmtTerm.seq_unit x1) => 
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_concat) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_inter) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_union) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_diff) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.RegLan) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.RegLan SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_loop) x1) x2) x3) => (__smtx_typeof_re_loop x1 x2 (__smtx_typeof x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_in_re) x1) x2) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.seq_unit) x1) => 
     let _v0 := (__smtx_typeof x1)
     (native_ite (native_Teq _v0 SmtType.None) SmtType.None (SmtType.Seq _v0))
-  | (SmtTerm.seq_nth x1 x2) => (__smtx_typeof_seq_nth (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.seq_nth) x1) x2) => (__smtx_typeof_seq_nth (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.set_empty x1) => (__smtx_typeof_guard_wf x1 (SmtType.Set x1))
-  | (SmtTerm.set_singleton x1) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_singleton) x1) => 
     let _v0 := (__smtx_typeof x1)
     (native_ite (native_Teq _v0 SmtType.None) SmtType.None (SmtType.Set _v0))
-  | (SmtTerm.set_union x1 x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.set_inter x1 x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.set_minus x1 x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.set_member x1 x2) => (__smtx_typeof_set_member (__smtx_typeof x1) (__smtx_typeof x2))
-  | (SmtTerm.set_subset x1 x2) => (__smtx_typeof_sets_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
-  | (SmtTerm.qdiv x1 x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Real)
-  | (SmtTerm.qdiv_total x1 x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Real)
-  | (SmtTerm.int_to_bv x1 x2) => (__smtx_typeof_int_to_bv x1 (__smtx_typeof x2))
-  | (SmtTerm.ubv_to_int x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
-  | (SmtTerm.sbv_to_int x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_union) x1) x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_inter) x1) x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_minus) x1) x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_member) x1) x2) => (__smtx_typeof_set_member (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_subset) x1) x2) => (__smtx_typeof_sets_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Bool)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.qdiv) x1) x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Real)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.qdiv_total) x1) x2) => (__smtx_typeof_arith_overload_op_2_ret (__smtx_typeof x1) (__smtx_typeof x2) SmtType.Real)
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_to_bv) x1) x2) => (__smtx_typeof_int_to_bv x1 (__smtx_typeof x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.ubv_to_int) x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.sbv_to_int) x1) => (__smtx_typeof_bv_op_1_ret (__smtx_typeof x1) SmtType.Int)
   | (SmtTerm.ite x1 x2 x3) => (__smtx_typeof_ite (__smtx_typeof x1) (__smtx_typeof x2) (__smtx_typeof x3))
   | (SmtTerm.eq x1 x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.exists s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
@@ -1909,148 +1917,148 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
   | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
   | (SmtTerm.Binary w n) => (SmtValue.Binary w n)
-  | (SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
-  | (SmtTerm.or x1 x2) => (__smtx_model_eval_or (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.and x1 x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.imp x1 x2) => (__smtx_model_eval_imp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.xor x1 x2) => (__smtx_model_eval_xor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.plus x1 x2) => (__smtx_model_eval_plus (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.neg x1 x2) => (__smtx_model_eval__ (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.mult x1 x2) => (__smtx_model_eval_mult (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.lt x1 x2) => (__smtx_model_eval_lt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.leq x1 x2) => (__smtx_model_eval_leq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.gt x1 x2) => (__smtx_model_eval_gt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.geq x1 x2) => (__smtx_model_eval_geq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.to_real x1) => (__smtx_model_eval_to_real (__smtx_model_eval M x1))
-  | (SmtTerm.to_int x1) => (__smtx_model_eval_to_int (__smtx_model_eval M x1))
-  | (SmtTerm.is_int x1) => (__smtx_model_eval_is_int (__smtx_model_eval M x1))
-  | (SmtTerm.abs x1) => (__smtx_model_eval_abs (__smtx_model_eval M x1))
-  | (SmtTerm.uneg x1) => (__smtx_model_eval_uneg (__smtx_model_eval M x1))
-  | (SmtTerm.div x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) x1) x2) => (__smtx_model_eval_or (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) x1) x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) x1) x2) => (__smtx_model_eval_imp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.xor) x1) x2) => (__smtx_model_eval_xor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.plus) x1) x2) => (__smtx_model_eval_plus (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.neg) x1) x2) => (__smtx_model_eval__ (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mult) x1) x2) => (__smtx_model_eval_mult (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.lt) x1) x2) => (__smtx_model_eval_lt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.leq) x1) x2) => (__smtx_model_eval_leq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.gt) x1) x2) => (__smtx_model_eval_gt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.geq) x1) x2) => (__smtx_model_eval_geq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.to_real) x1) => (__smtx_model_eval_to_real (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.to_int) x1) => (__smtx_model_eval_to_int (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.is_int) x1) => (__smtx_model_eval_is_int (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.abs) x1) => (__smtx_model_eval_abs (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.uneg) x1) => (__smtx_model_eval_uneg (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.div) x1) x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
     (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply (__smtx_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_div_total _v1 _v0))
-  | (SmtTerm.mod x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mod) x1) x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
     (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply (__smtx_model_lookup M native_mod_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_mod_total _v1 _v0))
-  | (SmtTerm.multmult x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.multmult) x1) x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (SmtValue.Numeral 0)
     let _v2 := (__smtx_model_eval M x1)
     let _v3 := (SmtValue.Numeral 1)
     (__smtx_model_eval_ite (__smtx_model_eval_geq _v0 _v1) (__smtx_model_eval_multmult_total _v2 _v0) (__smtx_model_eval_ite (__smtx_model_eval_eq _v2 _v1) (__smtx_model_eval_apply (__smtx_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v3) (__smtx_model_eval_div_total _v3 (__smtx_model_eval_multmult_total _v2 (__smtx_model_eval__ _v1 _v0)))))
-  | (SmtTerm.divisible x1 x2) => (__smtx_model_eval_divisible (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.int_pow2 x1) => (__smtx_model_eval_int_pow2 (__smtx_model_eval M x1))
-  | (SmtTerm.int_log2 x1) => (__smtx_model_eval_int_log2 (__smtx_model_eval M x1))
-  | (SmtTerm.div_total x1 x2) => (__smtx_model_eval_div_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.mod_total x1 x2) => (__smtx_model_eval_mod_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.multmult_total x1 x2) => (__smtx_model_eval_multmult_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.select x1 x2) => (__smtx_model_eval_select (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.store x1 x2 x3) => (__smtx_model_eval_store (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.concat x1 x2) => (__smtx_model_eval_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.extract x1 x2 x3) => (__smtx_model_eval_extract (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.repeat x1 x2) => (__smtx_model_eval_repeat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvnot x1) => (__smtx_model_eval_bvnot (__smtx_model_eval M x1))
-  | (SmtTerm.bvand x1 x2) => (__smtx_model_eval_bvand (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvor x1 x2) => (__smtx_model_eval_bvor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvnand x1 x2) => (__smtx_model_eval_bvnand (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvnor x1 x2) => (__smtx_model_eval_bvnor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvxor x1 x2) => (__smtx_model_eval_bvxor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvxnor x1 x2) => (__smtx_model_eval_bvxnor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvcomp x1 x2) => (__smtx_model_eval_bvcomp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvneg x1) => (__smtx_model_eval_bvneg (__smtx_model_eval M x1))
-  | (SmtTerm.bvadd x1 x2) => (__smtx_model_eval_bvadd (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvmul x1 x2) => (__smtx_model_eval_bvmul (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvudiv x1 x2) => (__smtx_model_eval_bvudiv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvurem x1 x2) => (__smtx_model_eval_bvurem (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsub x1 x2) => (__smtx_model_eval_bvsub (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsdiv x1 x2) => (__smtx_model_eval_bvsdiv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsrem x1 x2) => (__smtx_model_eval_bvsrem (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsmod x1 x2) => (__smtx_model_eval_bvsmod (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvult x1 x2) => (__smtx_model_eval_bvult (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvule x1 x2) => (__smtx_model_eval_bvule (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvugt x1 x2) => (__smtx_model_eval_bvugt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvuge x1 x2) => (__smtx_model_eval_bvuge (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvslt x1 x2) => (__smtx_model_eval_bvslt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsle x1 x2) => (__smtx_model_eval_bvsle (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsgt x1 x2) => (__smtx_model_eval_bvsgt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsge x1 x2) => (__smtx_model_eval_bvsge (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvshl x1 x2) => (__smtx_model_eval_bvshl (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvlshr x1 x2) => (__smtx_model_eval_bvlshr (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvashr x1 x2) => (__smtx_model_eval_bvashr (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.zero_extend x1 x2) => (__smtx_model_eval_zero_extend (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.sign_extend x1 x2) => (__smtx_model_eval_sign_extend (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.rotate_left x1 x2) => (__smtx_model_eval_rotate_left (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.rotate_right x1 x2) => (__smtx_model_eval_rotate_right (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvuaddo x1 x2) => (__smtx_model_eval_bvuaddo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvnego x1) => (__smtx_model_eval_bvnego (__smtx_model_eval M x1))
-  | (SmtTerm.bvsaddo x1 x2) => (__smtx_model_eval_bvsaddo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvumulo x1 x2) => (__smtx_model_eval_bvumulo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsmulo x1 x2) => (__smtx_model_eval_bvsmulo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvusubo x1 x2) => (__smtx_model_eval_bvusubo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvssubo x1 x2) => (__smtx_model_eval_bvssubo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.bvsdivo x1 x2) => (__smtx_model_eval_bvsdivo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.divisible) x1) x2) => (__smtx_model_eval_divisible (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_pow2) x1) => (__smtx_model_eval_int_pow2 (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_log2) x1) => (__smtx_model_eval_int_log2 (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.div_total) x1) x2) => (__smtx_model_eval_div_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mod_total) x1) x2) => (__smtx_model_eval_mod_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.multmult_total) x1) x2) => (__smtx_model_eval_multmult_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.select) x1) x2) => (__smtx_model_eval_select (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.store) x1) x2) x3) => (__smtx_model_eval_store (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.concat) x1) x2) => (__smtx_model_eval_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.extract) x1) x2) x3) => (__smtx_model_eval_extract (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.repeat) x1) x2) => (__smtx_model_eval_repeat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvnot) x1) => (__smtx_model_eval_bvnot (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvand) x1) x2) => (__smtx_model_eval_bvand (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvor) x1) x2) => (__smtx_model_eval_bvor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvnand) x1) x2) => (__smtx_model_eval_bvnand (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvnor) x1) x2) => (__smtx_model_eval_bvnor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvxor) x1) x2) => (__smtx_model_eval_bvxor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvxnor) x1) x2) => (__smtx_model_eval_bvxnor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvcomp) x1) x2) => (__smtx_model_eval_bvcomp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvneg) x1) => (__smtx_model_eval_bvneg (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvadd) x1) x2) => (__smtx_model_eval_bvadd (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvmul) x1) x2) => (__smtx_model_eval_bvmul (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvudiv) x1) x2) => (__smtx_model_eval_bvudiv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvurem) x1) x2) => (__smtx_model_eval_bvurem (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsub) x1) x2) => (__smtx_model_eval_bvsub (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsdiv) x1) x2) => (__smtx_model_eval_bvsdiv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsrem) x1) x2) => (__smtx_model_eval_bvsrem (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsmod) x1) x2) => (__smtx_model_eval_bvsmod (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvult) x1) x2) => (__smtx_model_eval_bvult (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvule) x1) x2) => (__smtx_model_eval_bvule (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvugt) x1) x2) => (__smtx_model_eval_bvugt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvuge) x1) x2) => (__smtx_model_eval_bvuge (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvslt) x1) x2) => (__smtx_model_eval_bvslt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsle) x1) x2) => (__smtx_model_eval_bvsle (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsgt) x1) x2) => (__smtx_model_eval_bvsgt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsge) x1) x2) => (__smtx_model_eval_bvsge (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvshl) x1) x2) => (__smtx_model_eval_bvshl (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvlshr) x1) x2) => (__smtx_model_eval_bvlshr (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvashr) x1) x2) => (__smtx_model_eval_bvashr (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.zero_extend) x1) x2) => (__smtx_model_eval_zero_extend (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.sign_extend) x1) x2) => (__smtx_model_eval_sign_extend (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.rotate_left) x1) x2) => (__smtx_model_eval_rotate_left (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.rotate_right) x1) x2) => (__smtx_model_eval_rotate_right (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvuaddo) x1) x2) => (__smtx_model_eval_bvuaddo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvnego) x1) => (__smtx_model_eval_bvnego (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsaddo) x1) x2) => (__smtx_model_eval_bvsaddo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvumulo) x1) x2) => (__smtx_model_eval_bvumulo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsmulo) x1) x2) => (__smtx_model_eval_bvsmulo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvusubo) x1) x2) => (__smtx_model_eval_bvusubo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvssubo) x1) x2) => (__smtx_model_eval_bvssubo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.bvsdivo) x1) x2) => (__smtx_model_eval_bvsdivo (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.seq_empty x1) => (SmtValue.Seq (SmtSeq.empty x1))
-  | (SmtTerm.str_len x1) => (__smtx_model_eval_str_len (__smtx_model_eval M x1))
-  | (SmtTerm.str_concat x1 x2) => (__smtx_model_eval_str_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.str_substr x1 x2 x3) => (__smtx_model_eval_str_substr (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_contains x1 x2) => (__smtx_model_eval_str_contains (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.str_replace x1 x2 x3) => (__smtx_model_eval_str_replace (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_indexof x1 x2 x3) => (__smtx_model_eval_str_indexof (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_at x1 x2) => (__smtx_model_eval_str_at (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.str_prefixof x1 x2) => (__smtx_model_eval_str_prefixof (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.str_suffixof x1 x2) => (__smtx_model_eval_str_suffixof (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.str_rev x1) => (__smtx_model_eval_str_rev (__smtx_model_eval M x1))
-  | (SmtTerm.str_update x1 x2 x3) => (__smtx_model_eval_str_update (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_to_lower x1) => (__smtx_model_eval_str_to_lower (__smtx_model_eval M x1))
-  | (SmtTerm.str_to_upper x1) => (__smtx_model_eval_str_to_upper (__smtx_model_eval M x1))
-  | (SmtTerm.str_to_code x1) => (__smtx_model_eval_str_to_code (__smtx_model_eval M x1))
-  | (SmtTerm.str_from_code x1) => (__smtx_model_eval_str_from_code (__smtx_model_eval M x1))
-  | (SmtTerm.str_is_digit x1) => (__smtx_model_eval_str_is_digit (__smtx_model_eval M x1))
-  | (SmtTerm.str_to_int x1) => (__smtx_model_eval_str_to_int (__smtx_model_eval M x1))
-  | (SmtTerm.str_from_int x1) => (__smtx_model_eval_str_from_int (__smtx_model_eval M x1))
-  | (SmtTerm.str_lt x1 x2) => (__smtx_model_eval_str_lt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.str_leq x1 x2) => (__smtx_model_eval_str_leq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.str_replace_all x1 x2 x3) => (__smtx_model_eval_str_replace_all (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_replace_re x1 x2 x3) => (__smtx_model_eval_str_replace_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_replace_re_all x1 x2 x3) => (__smtx_model_eval_str_replace_re_all (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_indexof_re x1 x2 x3) => (__smtx_model_eval_str_indexof_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | SmtTerm.re_allchar => (SmtValue.RegLan native_re_allchar)
-  | SmtTerm.re_none => (SmtValue.RegLan native_re_none)
-  | SmtTerm.re_all => (SmtValue.RegLan native_re_all)
-  | (SmtTerm.str_to_re x1) => (__smtx_model_eval_str_to_re (__smtx_model_eval M x1))
-  | (SmtTerm.re_mult x1) => (__smtx_model_eval_re_mult (__smtx_model_eval M x1))
-  | (SmtTerm.re_plus x1) => (__smtx_model_eval_re_plus (__smtx_model_eval M x1))
-  | (SmtTerm.re_exp x1 x2) => (__smtx_model_eval_re_exp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.re_opt x1) => (__smtx_model_eval_re_opt (__smtx_model_eval M x1))
-  | (SmtTerm.re_comp x1) => (__smtx_model_eval_re_comp (__smtx_model_eval M x1))
-  | (SmtTerm.re_range x1 x2) => (__smtx_model_eval_re_range (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.re_concat x1 x2) => (__smtx_model_eval_re_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.re_inter x1 x2) => (__smtx_model_eval_re_inter (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.re_union x1 x2) => (__smtx_model_eval_re_union (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.re_diff x1 x2) => (__smtx_model_eval_re_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.re_loop x1 x2 x3) => (__smtx_model_eval_re_loop (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.str_in_re x1 x2) => (__smtx_model_eval_str_in_re (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.seq_unit x1) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_len) x1) => (__smtx_model_eval_str_len (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_concat) x1) x2) => (__smtx_model_eval_str_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_substr) x1) x2) x3) => (__smtx_model_eval_str_substr (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_contains) x1) x2) => (__smtx_model_eval_str_contains (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_replace) x1) x2) x3) => (__smtx_model_eval_str_replace (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_indexof) x1) x2) x3) => (__smtx_model_eval_str_indexof (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_at) x1) x2) => (__smtx_model_eval_str_at (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_prefixof) x1) x2) => (__smtx_model_eval_str_prefixof (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_suffixof) x1) x2) => (__smtx_model_eval_str_suffixof (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_rev) x1) => (__smtx_model_eval_str_rev (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_update) x1) x2) x3) => (__smtx_model_eval_str_update (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_lower) x1) => (__smtx_model_eval_str_to_lower (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_upper) x1) => (__smtx_model_eval_str_to_upper (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_code) x1) => (__smtx_model_eval_str_to_code (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_from_code) x1) => (__smtx_model_eval_str_from_code (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_is_digit) x1) => (__smtx_model_eval_str_is_digit (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_int) x1) => (__smtx_model_eval_str_to_int (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_from_int) x1) => (__smtx_model_eval_str_from_int (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_lt) x1) x2) => (__smtx_model_eval_str_lt (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_leq) x1) x2) => (__smtx_model_eval_str_leq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_replace_all) x1) x2) x3) => (__smtx_model_eval_str_replace_all (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_replace_re) x1) x2) x3) => (__smtx_model_eval_str_replace_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_replace_re_all) x1) x2) x3) => (__smtx_model_eval_str_replace_re_all (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_indexof_re) x1) x2) x3) => (__smtx_model_eval_str_indexof_re (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.TheoryOp SmtTheoryOp.re_allchar) => (SmtValue.RegLan native_re_allchar)
+  | (SmtTerm.TheoryOp SmtTheoryOp.re_none) => (SmtValue.RegLan native_re_none)
+  | (SmtTerm.TheoryOp SmtTheoryOp.re_all) => (SmtValue.RegLan native_re_all)
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_to_re) x1) => (__smtx_model_eval_str_to_re (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_mult) x1) => (__smtx_model_eval_re_mult (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_plus) x1) => (__smtx_model_eval_re_plus (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_exp) x1) x2) => (__smtx_model_eval_re_exp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_opt) x1) => (__smtx_model_eval_re_opt (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_comp) x1) => (__smtx_model_eval_re_comp (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_range) x1) x2) => (__smtx_model_eval_re_range (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_concat) x1) x2) => (__smtx_model_eval_re_concat (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_inter) x1) x2) => (__smtx_model_eval_re_inter (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_union) x1) x2) => (__smtx_model_eval_re_union (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_diff) x1) x2) => (__smtx_model_eval_re_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.re_loop) x1) x2) x3) => (__smtx_model_eval_re_loop (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.str_in_re) x1) x2) => (__smtx_model_eval_str_in_re (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.seq_unit) x1) => 
     let _v0 := (__smtx_model_eval M x1)
     (SmtValue.Seq (SmtSeq.cons _v0 (SmtSeq.empty (__smtx_typeof_value _v0))))
-  | (SmtTerm.seq_nth x1 x2) => (__smtx_seq_nth M (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.seq_nth) x1) x2) => (__smtx_seq_nth M (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.set_empty x1) => (SmtValue.Set (SmtMap.default x1 (SmtValue.Boolean false)))
-  | (SmtTerm.set_singleton x1) => (__smtx_model_eval_set_singleton (__smtx_model_eval M x1))
-  | (SmtTerm.set_union x1 x2) => (__smtx_model_eval_set_union (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.set_inter x1 x2) => (__smtx_model_eval_set_inter (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.set_minus x1 x2) => (__smtx_model_eval_set_minus (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.set_member x1 x2) => (__smtx_model_eval_set_member (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.set_subset x1 x2) => (__smtx_model_eval_set_subset (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.qdiv x1 x2) => 
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_singleton) x1) => (__smtx_model_eval_set_singleton (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_union) x1) x2) => (__smtx_model_eval_set_union (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_inter) x1) x2) => (__smtx_model_eval_set_inter (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_minus) x1) x2) => (__smtx_model_eval_set_minus (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_member) x1) x2) => (__smtx_model_eval_set_member (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_subset) x1) x2) => (__smtx_model_eval_set_subset (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.qdiv) x1) x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
     (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Rational (native_mk_rational 0 1))) (__smtx_model_eval_apply (__smtx_model_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real)) _v1) (__smtx_model_eval_qdiv_total _v1 _v0))
-  | (SmtTerm.qdiv_total x1 x2) => (__smtx_model_eval_qdiv_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.int_to_bv x1 x2) => (__smtx_model_eval_int_to_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
-  | (SmtTerm.ubv_to_int x1) => (__smtx_model_eval_ubv_to_int (__smtx_model_eval M x1))
-  | (SmtTerm.sbv_to_int x1) => (__smtx_model_eval_sbv_to_int (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.qdiv_total) x1) x2) => (__smtx_model_eval_qdiv_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_to_bv) x1) x2) => (__smtx_model_eval_int_to_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.ubv_to_int) x1) => (__smtx_model_eval_ubv_to_int (__smtx_model_eval M x1))
+  | (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.sbv_to_int) x1) => (__smtx_model_eval_sbv_to_int (__smtx_model_eval M x1))
   | (SmtTerm.ite x1 x2 x3) => (__smtx_model_eval_ite (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
