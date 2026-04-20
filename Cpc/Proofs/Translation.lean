@@ -50,7 +50,9 @@ theorem eo_to_smt_typeof_matches_translation
     case Bool =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case Boolean b =>
-      simp [__eo_to_smt.eq_def]
+      rw [__eo_to_smt.eq_def, eo_typeof_boolean, eo_to_smt_type_bool]
+      unfold __smtx_typeof
+      rfl
     case «Type» =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case Stuck =>
@@ -72,11 +74,17 @@ theorem eo_to_smt_typeof_matches_translation
     case _at__at_result_invalid =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case re_allchar =>
-      simp [__eo_to_smt.eq_def]
+      rw [__eo_to_smt.eq_def, eo_typeof_re_allchar, eo_to_smt_type_reglan]
+      unfold __smtx_typeof
+      rfl
     case re_none =>
-      simp [__eo_to_smt.eq_def]
+      rw [__eo_to_smt.eq_def, eo_typeof_re_none, eo_to_smt_type_reglan]
+      unfold __smtx_typeof
+      rfl
     case re_all =>
-      simp [__eo_to_smt.eq_def]
+      rw [__eo_to_smt.eq_def, eo_typeof_re_all, eo_to_smt_type_reglan]
+      unfold __smtx_typeof
+      rfl
     case RegLan =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case UnitTuple =>
@@ -88,14 +96,29 @@ theorem eo_to_smt_typeof_matches_translation
     case Set =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case Numeral n =>
+      rw [show __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int by
+        simpa [__eo_to_smt.eq_def] using
+          (show __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int by
+            unfold __smtx_typeof
+            rfl)]
       symm
-      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_numeral n
+      exact eo_to_smt_type_typeof_numeral n
     case Rational r =>
+      rw [show __smtx_typeof (__eo_to_smt (Term.Rational r)) = SmtType.Real by
+        simpa [__eo_to_smt.eq_def] using
+          (show __smtx_typeof (SmtTerm.Rational r) = SmtType.Real by
+            unfold __smtx_typeof
+            rfl)]
       symm
-      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_rational r
+      exact eo_to_smt_type_typeof_rational r
     case String s =>
+      rw [show __smtx_typeof (__eo_to_smt (Term.String s)) = SmtType.Seq SmtType.Char by
+        simpa [__eo_to_smt.eq_def] using
+          (show __smtx_typeof (SmtTerm.String s) = SmtType.Seq SmtType.Char by
+            unfold __smtx_typeof
+            rfl)]
       symm
-      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_string s
+      exact eo_to_smt_type_typeof_string s
     case Binary w n =>
       have hTy : __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None := by
         simpa [__eo_to_smt.eq_def] using hNonNone
@@ -123,7 +146,8 @@ theorem eo_to_smt_typeof_matches_translation
       simpa [eo_to_smt_term_dt_cons] using eo_to_smt_type_typeof_dt_cons s d i
     case DtSel s d i j =>
       have hNone : __smtx_typeof (__eo_to_smt (Term.DtSel s d i j)) = SmtType.None := by
-        rw [__eo_to_smt.eq_def]
+        simpa [__eo_to_smt.eq_def] using
+          smtx_typeof_dt_sel_head_none s (__eo_to_smt_datatype d) i j
       exact (hNonNone hNone).elim
     case UConst i T =>
       have hTy :
