@@ -18,7 +18,7 @@ theorem eo_has_bool_type_false :
   unfold eo_has_bool_type
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
     rw [__eo_to_smt.eq_def]]
-  rfl
+  rw [__smtx_typeof.eq_1]
 
 /-- Derives `eo_has_bool_type_or` from `bool_args`. -/
 theorem eo_has_bool_type_or_of_bool_args (A B : Term) :
@@ -27,11 +27,7 @@ theorem eo_has_bool_type_or_of_bool_args (A B : Term) :
     eo_has_bool_type (Term.Apply (Term.Apply Term.or A) B) := by
   intro hA hB
   unfold eo_has_bool_type at hA hB ⊢
-  rw [eo_to_smt_or_eq A B]
-  change native_ite (native_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
-      (native_ite (native_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
-        SmtType.Bool SmtType.None)
-      SmtType.None = SmtType.Bool
+  rw [eo_to_smt_or_eq A B, typeof_or_eq]
   simp [hA, hB, native_ite, native_Teq]
 
 /-- Left-projection lemma for `eo_has_bool_type_or`. -/
@@ -46,7 +42,8 @@ theorem eo_has_bool_type_or_left (A B : Term) :
     unfold term_has_non_none_type
     rw [hTy]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hNN).1
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.or)
+    (typeof_or_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
 
 /-- Right-projection lemma for `eo_has_bool_type_or`. -/
 theorem eo_has_bool_type_or_right (A B : Term) :
@@ -60,7 +57,8 @@ theorem eo_has_bool_type_or_right (A B : Term) :
     unfold term_has_non_none_type
     rw [hTy]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.or) rfl hNN).2
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.or)
+    (typeof_or_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
 
 /-- Introduces the left side of a Boolean `or`. -/
 theorem eo_interprets_or_left_intro
@@ -78,9 +76,7 @@ theorem eo_interprets_or_left_intro
       refine smt_interprets.intro_true M _ ?_ ?_
       · simpa [eo_has_bool_type, eo_to_smt_or_eq] using
           eo_has_bool_type_or_of_bool_args A B hABool hBBool
-      · change __smtx_model_eval_or
-            (__smtx_model_eval M (__eo_to_smt A))
-            (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true
+      · rw [__smtx_model_eval.eq_7]
         rcases eo_eval_is_boolean_of_has_bool_type M hM B hBBool with ⟨b, hEvalB⟩
         rw [hEvalA, hEvalB]
         cases b <;> simp [__smtx_model_eval_or, SmtEval.native_or]
@@ -101,9 +97,7 @@ theorem eo_interprets_or_right_intro
       refine smt_interprets.intro_true M _ ?_ ?_
       · simpa [eo_has_bool_type, eo_to_smt_or_eq] using
           eo_has_bool_type_or_of_bool_args A B hABool hBBool
-      · change __smtx_model_eval_or
-            (__smtx_model_eval M (__eo_to_smt A))
-            (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true
+      · rw [__smtx_model_eval.eq_7]
         rcases eo_eval_is_boolean_of_has_bool_type M hM A hABool with ⟨a, hEvalA⟩
         rw [hEvalA, hEvalB]
         cases a <;> simp [__smtx_model_eval_or, SmtEval.native_or]
