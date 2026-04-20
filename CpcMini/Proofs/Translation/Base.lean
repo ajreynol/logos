@@ -132,8 +132,8 @@ theorem smtx_typeof_var_of_non_none
   __smtx_typeof (SmtTerm.Var s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.Var s T) = T := by
   intro h
-  change __smtx_typeof_guard_wf T T = T
-  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof] using h)
+  rw [__smtx_typeof.eq_19]
+  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof.eq_19] using h)
 
 /-- Computes `__smtx_typeof` for `uconst_of_non_none`. -/
 theorem smtx_typeof_uconst_of_non_none
@@ -141,8 +141,8 @@ theorem smtx_typeof_uconst_of_non_none
   __smtx_typeof (SmtTerm.UConst s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.UConst s T) = T := by
   intro h
-  change __smtx_typeof_guard_wf T T = T
-  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof] using h)
+  rw [__smtx_typeof.eq_20]
+  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof.eq_20] using h)
 
 /-- Derives `smtx_binary_well_formed` from `non_none`. -/
 theorem smtx_binary_well_formed_of_non_none
@@ -159,8 +159,12 @@ theorem smtx_binary_well_formed_of_non_none
     · exact h'
     · exfalso
       apply h
-      change native_ite g (SmtType.BitVec (native_int_to_nat w)) SmtType.None = SmtType.None
-      simp [native_ite, h']
+      rw [__smtx_typeof.eq_5]
+      cases hg : g with
+      | false =>
+          simpa [native_ite, hg]
+      | true =>
+          exact False.elim (h' hg)
   have hWidth : native_zleq 0 w = true := by
     cases hw : native_zleq 0 w <;> simp [g, SmtEval.native_and, hw] at hg
     rfl
@@ -177,6 +181,7 @@ theorem smtx_typeof_binary_of_non_none
     __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
   intro h
   obtain ⟨hWidth, hMod⟩ := smtx_binary_well_formed_of_non_none w n h
-  simp [__smtx_typeof, native_ite, SmtEval.native_and, hWidth, hMod]
+  rw [__smtx_typeof.eq_5]
+  simp [native_ite, SmtEval.native_and, hWidth, hMod]
 
 end TranslationProofs
