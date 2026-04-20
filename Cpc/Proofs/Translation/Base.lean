@@ -144,8 +144,8 @@ theorem smtx_typeof_var_of_non_none
     __smtx_typeof (SmtTerm.Var s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.Var s T) = T := by
   intro h
-  change __smtx_typeof_guard_wf T T = T
-  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof] using h)
+  unfold __smtx_typeof at h ⊢
+  exact smtx_typeof_guard_wf_of_non_none T T h
 
 /-- Computes `__smtx_typeof` for `uconst_of_non_none`. -/
 theorem smtx_typeof_uconst_of_non_none
@@ -153,8 +153,8 @@ theorem smtx_typeof_uconst_of_non_none
     __smtx_typeof (SmtTerm.UConst s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.UConst s T) = T := by
   intro h
-  change __smtx_typeof_guard_wf T T = T
-  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof] using h)
+  unfold __smtx_typeof at h ⊢
+  exact smtx_typeof_guard_wf_of_non_none T T h
 
 /-- Computes `__smtx_typeof` for `seq_empty_of_non_none`. -/
 theorem smtx_typeof_seq_empty_of_non_none
@@ -162,9 +162,8 @@ theorem smtx_typeof_seq_empty_of_non_none
     __smtx_typeof (SmtTerm.seq_empty T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.seq_empty T) = SmtType.Seq T := by
   intro h
-  change __smtx_typeof_guard_wf T (SmtType.Seq T) = SmtType.Seq T
-  exact smtx_typeof_guard_wf_of_non_none T (SmtType.Seq T)
-    (by simpa [__smtx_typeof] using h)
+  unfold __smtx_typeof at h ⊢
+  exact smtx_typeof_guard_wf_of_non_none T (SmtType.Seq T) h
 
 /-- Computes `__smtx_typeof` for `set_empty_of_non_none`. -/
 theorem smtx_typeof_set_empty_of_non_none
@@ -172,10 +171,8 @@ theorem smtx_typeof_set_empty_of_non_none
     __smtx_typeof (SmtTerm.set_empty T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.set_empty T) = SmtType.Set T := by
   intro h
-  change __smtx_typeof_guard_wf T (SmtType.Set T) =
-    SmtType.Set T
-  exact smtx_typeof_guard_wf_of_non_none T (SmtType.Set T)
-    (by simpa [__smtx_typeof] using h)
+  unfold __smtx_typeof at h ⊢
+  exact smtx_typeof_guard_wf_of_non_none T (SmtType.Set T) h
 
 /-- Derives `smtx_binary_well_formed` from `non_none`. -/
 theorem smtx_binary_well_formed_of_non_none
@@ -188,12 +185,14 @@ theorem smtx_binary_well_formed_of_non_none
     native_and (native_zleq 0 w)
       (native_zeq n (native_mod_total n (native_int_pow2 w)))
   have hg : g = true := by
-    by_cases h' : g = true
-    · exact h'
-    · exfalso
-      apply h
-      change native_ite g (SmtType.BitVec (native_int_to_nat w)) SmtType.None = SmtType.None
-      simp [native_ite, h']
+    cases h' : g with
+    | false =>
+        exfalso
+        apply h
+        unfold __smtx_typeof
+        simp [g, native_ite, h']
+    | true =>
+        rfl
   have hWidth : native_zleq 0 w = true := by
     cases hw : native_zleq 0 w <;> simp [g, SmtEval.native_and, hw] at hg
     rfl
@@ -210,6 +209,11 @@ theorem smtx_typeof_binary_of_non_none
     __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
   intro h
   obtain ⟨hWidth, hMod⟩ := smtx_binary_well_formed_of_non_none w n h
-  simp [__smtx_typeof, native_ite, SmtEval.native_and, hWidth, hMod]
+  have hAnd :
+      native_and (native_zleq 0 w)
+        (native_zeq n (native_mod_total n (native_int_pow2 w))) = true := by
+    simp [SmtEval.native_and, hWidth, hMod]
+  unfold __smtx_typeof
+  simp [hAnd, native_ite]
 
 end TranslationProofs

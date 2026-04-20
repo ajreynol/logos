@@ -11,6 +11,40 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
+/-- Rewrites the typing equation for `DtCons`. -/
+theorem typeof_dt_cons_eq
+    (s : native_String)
+    (d : SmtDatatype)
+    (i : native_Nat) :
+    __smtx_typeof (SmtTerm.DtCons s d i) =
+      __smtx_typeof_guard_wf (SmtType.Datatype s d)
+        (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i) := by
+  rw [__smtx_typeof.eq_137]
+
+/-- Rewrites the typing equation for `DtSel` application. -/
+theorem typeof_dt_sel_apply_eq
+    (s : native_String)
+    (d : SmtDatatype)
+    (i j : native_Nat)
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) =
+      __smtx_typeof_guard_wf (__smtx_ret_typeof_sel s d i j)
+        (__smtx_typeof_apply
+          (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))
+          (__smtx_typeof x)) := by
+  rw [__smtx_typeof.eq_138]
+
+/-- Rewrites the typing equation for `DtTester` application. -/
+theorem typeof_dt_tester_apply_eq
+    (s : native_String)
+    (d : SmtDatatype)
+    (i : native_Nat)
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) =
+      __smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) SmtType.Bool)
+        (__smtx_typeof x) := by
+  rw [__smtx_typeof.eq_139]
+
 /-- Establishes an equality relating `typeof_dt_cons_value_rec` and `typeof_dt_cons_rec_zero`. -/
 theorem typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec_zero
     (T : SmtType) :
@@ -70,9 +104,12 @@ theorem typeof_value_model_eval_dt_cons
     (ht : term_has_non_none_type (SmtTerm.DtCons s d i)) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.DtCons s d i)) =
       __smtx_typeof (SmtTerm.DtCons s d i) := by
+  rw [__smtx_model_eval.eq_137, typeof_dt_cons_eq]
+  unfold term_has_non_none_type at ht
+  rw [typeof_dt_cons_eq] at ht
   cases hInh : native_inhabited_type (SmtType.Datatype s d) <;>
   cases hwf : __smtx_type_wf (SmtType.Datatype s d) <;>
-    simp [__smtx_model_eval, __smtx_typeof_value, __smtx_typeof, __smtx_typeof_guard_wf,
+    simp [__smtx_typeof_value, __smtx_typeof_guard_wf,
       term_has_non_none_type, native_ite, hInh, hwf, typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec] at ht ⊢
 
 /-- Definition used in the proof development for `dt_cons_type_num_args`. -/
@@ -729,7 +766,9 @@ theorem dt_sel_arg_datatype_of_non_none
   let R := __smtx_ret_typeof_sel s d i j
   let inner := __smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) R) (__smtx_typeof x)
   have hGuardNN : __smtx_typeof_guard_wf R inner ≠ SmtType.None := by
-    simpa [term_has_non_none_type, __smtx_typeof, R, inner] using ht
+    unfold term_has_non_none_type at ht
+    rw [typeof_dt_sel_apply_eq] at ht
+    simpa [R, inner] using ht
   have hGuard : __smtx_typeof_guard_wf R inner = inner :=
     smtx_typeof_guard_wf_of_non_none R inner hGuardNN
   have hInnerNN : inner ≠ SmtType.None := by
@@ -754,13 +793,16 @@ theorem dt_sel_term_typeof_of_non_none
   let R := __smtx_ret_typeof_sel s d i j
   let inner := __smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) R) (__smtx_typeof x)
   have hGuardNN : __smtx_typeof_guard_wf R inner ≠ SmtType.None := by
-    simpa [term_has_non_none_type, __smtx_typeof, R, inner] using ht
+    unfold term_has_non_none_type at ht
+    rw [typeof_dt_sel_apply_eq] at ht
+    simpa [R, inner] using ht
   have hGuard : __smtx_typeof_guard_wf R inner = inner :=
     smtx_typeof_guard_wf_of_non_none R inner hGuardNN
   calc
     __smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) =
         inner := by
-      simpa [__smtx_typeof, R, inner] using hGuard
+      rw [typeof_dt_sel_apply_eq]
+      simpa [R, inner] using hGuard
     _ = __smtx_ret_typeof_sel s d i j := by
       simp [inner, R, __smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hx]
 
@@ -868,9 +910,7 @@ theorem typeof_value_model_eval_dt_sel
   have hResInh : type_inhabited (__smtx_ret_typeof_sel s d i j) := by
     rw [← hResTy]
     exact hT
-  change
-    __smtx_typeof_value (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x)) =
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)
+  rw [__smtx_model_eval.eq_138]
   rw [hResTy]
   let v := __smtx_model_eval M x
   have hv : __smtx_typeof_value v = SmtType.Datatype s d := by
@@ -917,8 +957,9 @@ theorem dt_tester_arg_datatype_of_non_none
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) :
     __smtx_typeof x = SmtType.Datatype s d := by
   unfold term_has_non_none_type at ht
+  rw [typeof_dt_tester_apply_eq] at ht
   cases h : __smtx_typeof x <;>
-    simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
       native_Teq, h] at ht ⊢
   rcases ht with ⟨rfl, rfl⟩
   simp
@@ -932,7 +973,8 @@ theorem dt_tester_term_typeof_of_non_none
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) = SmtType.Bool := by
   have hx : __smtx_typeof x = SmtType.Datatype s d := dt_tester_arg_datatype_of_non_none ht
-  simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hx]
+  rw [typeof_dt_tester_apply_eq]
+  simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hx]
 
 /-- Shows that evaluating `dt_tester` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_tester
@@ -945,9 +987,7 @@ theorem typeof_value_model_eval_dt_tester
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) =
       __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) := by
   rw [dt_tester_term_typeof_of_non_none ht]
-  change
-    __smtx_typeof_value (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x)) =
-      SmtType.Bool
+  rw [__smtx_model_eval.eq_139]
   simp [__smtx_model_eval_dt_tester, __smtx_typeof_value]
 
 /-- Enumerates the cases for `typeof_apply_non_none`. -/

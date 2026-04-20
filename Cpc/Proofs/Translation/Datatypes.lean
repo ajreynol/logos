@@ -66,15 +66,30 @@ namespace TranslationProofs
     __eo_to_smt_tester (SmtTerm.DtCons s d n) = SmtTerm.DtTester s d n := rfl
 
 /-- Computes `__smtx_typeof` for `dt_sel_head_none`. -/
+@[simp] theorem smtx_typeof_none :
+    __smtx_typeof SmtTerm.None = SmtType.None := by
+  unfold __smtx_typeof
+  rfl
+
+/-- Computes `__smtx_typeof` for `dt_sel_head_none`. -/
 @[simp] theorem smtx_typeof_dt_sel_head_none
     (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
-    __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := rfl
+    __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := by
+  unfold __smtx_typeof
+  rfl
+
+/-- Computes `__smtx_typeof` for `dt_tester_head_none`. -/
+@[simp] theorem smtx_typeof_dt_tester_head_none
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    __smtx_typeof (SmtTerm.DtTester s d i) = SmtType.None := by
+  unfold __smtx_typeof
+  rfl
 
 /-- Computes `__smtx_typeof` for `eo_to_smt_tester_none`. -/
 @[simp] theorem smtx_typeof_eo_to_smt_tester_none
     (t : SmtTerm) :
     __smtx_typeof (__eo_to_smt_tester t) = SmtType.None := by
-  cases t <;> simp [__eo_to_smt_tester, __smtx_typeof]
+  cases t <;> simp [__eo_to_smt_tester]
 
 /-- Computes `__smtx_typeof` for `tuple_unit_translation`. -/
 theorem smtx_typeof_tuple_unit_translation :
@@ -93,13 +108,7 @@ theorem smtx_typeof_tuple_unit_translation :
       __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, native_ite,
       __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute]
   have hWf : __smtx_type_wf tupleTy = true := by native_decide
-  change
-    __smtx_typeof_guard_wf tupleTy
-      (__smtx_typeof_dt_cons_rec tupleTy
-        (__smtx_dt_substitute "_at_Tuple"
-          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
-          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0) =
-      SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+  unfold __smtx_typeof
   simp [tupleTy, __smtx_typeof_guard_wf, hInh, hWf, native_ite,
     __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec]
 
