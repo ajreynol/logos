@@ -1,4 +1,4 @@
-import Cpc.Proofs.Support
+import Cpc.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
@@ -417,7 +417,8 @@ theorem model_eval_eq_false_of_eo_eq_false
   rw [eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
   cases h with
   | intro_false _ hEval =>
-      simpa using hEval
+      rw [__smtx_model_eval.eq_133] at hEval
+      exact hEval
 
 theorem native_veq_false_of_model_eval_eq_false
     {v1 v2 : SmtValue}
