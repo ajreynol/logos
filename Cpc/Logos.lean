@@ -48,6 +48,14 @@ instance : Ord Rat where
 
 mutual
 
+/- 
+Ordinary user operators
+-/
+inductive UserOp : Type where
+  | None : UserOp
+
+deriving Repr, Inhabited
+
 /- Term definition -/
 inductive Term : Type where
   | Int : Term
@@ -376,7 +384,7 @@ def __eo_xor : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_xor b1 b2))
   | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
     let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_binary_or w1 n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
+    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_binary_xor w1 n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
   | _, _ => Term.Stuck
 
 
