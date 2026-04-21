@@ -9,7 +9,7 @@ open Smtm
 inductive ValidAssumptionList : Term -> Prop
   | base : ValidAssumptionList (Term.Boolean true)
   | step (A rest : Term) : ValidAssumptionList rest ->
-      ValidAssumptionList (Term.Apply (Term.Apply Term.and A) rest)
+      ValidAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
 /-- Inductive predicate for valid assumption lists whose entries are non-stuck EO Boolean terms. -/
 inductive TypedAssumptionList : Term -> Prop
@@ -18,7 +18,7 @@ inductive TypedAssumptionList : Term -> Prop
       A ≠ Term.Stuck ->
       __eo_typeof A = Term.Bool ->
       TypedAssumptionList rest ->
-      TypedAssumptionList (Term.Apply (Term.Apply Term.and A) rest)
+      TypedAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
 /-- Inductive predicate for valid assumption lists whose entries all admit SMT translations. -/
 inductive TranslatableAssumptionList : Term -> Prop
@@ -26,7 +26,7 @@ inductive TranslatableAssumptionList : Term -> Prop
   | step (A rest : Term) :
       RuleProofs.eo_has_smt_translation A ->
       TranslatableAssumptionList rest ->
-      TranslatableAssumptionList (Term.Apply (Term.Apply Term.and A) rest)
+      TranslatableAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
 /-- Predicate asserting that a checker state is structurally well-formed and not `Stuck`. -/
 def stateOk : CState -> Prop
@@ -51,13 +51,13 @@ private theorem eo_to_smt_stuck_eq :
 
 /-- Simplifies EO-to-SMT translation for `and_eq`. -/
 private theorem eo_to_smt_and_eq (A B : Term) :
-    __eo_to_smt (Term.Apply (Term.Apply Term.and A) B) =
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) =
       SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `imp_eq`. -/
 private theorem eo_to_smt_imp_eq (A B : Term) :
-    __eo_to_smt (Term.Apply (Term.Apply Term.imp A) B) =
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) =
       SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B) := by
   rw [__eo_to_smt.eq_def]
 
@@ -133,7 +133,7 @@ by
 
 /-- Left-projection lemma for `eo_interprets_and`. -/
 theorem eo_interprets_and_left (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) true ->
   eo_interprets M A true :=
 by
   intro h
@@ -162,7 +162,7 @@ by
 
 /-- Right-projection lemma for `eo_interprets_and`. -/
 theorem eo_interprets_and_right (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) true ->
   eo_interprets M B true :=
 by
   intro h
@@ -193,7 +193,7 @@ by
 theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
   eo_interprets M A true ->
   eo_interprets M B true ->
-  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) true :=
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) true :=
 by
   intro hA hB
   rw [eo_interprets_iff_smt_interprets] at hA hB ⊢
@@ -208,7 +208,7 @@ by
 
 /-- Elimination lemma for `eo_interprets_imp`. -/
 theorem eo_interprets_imp_elim (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) true ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) true ->
   eo_interprets M A true ->
   eo_interprets M B true :=
 by
@@ -242,7 +242,7 @@ by
 theorem eo_interprets_imp_intro (M : SmtModel) (A B : Term) :
   eo_interprets M A true ->
   eo_interprets M B true ->
-  eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) true :=
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) true :=
 by
   intro hA hB
   rw [eo_interprets_iff_smt_interprets] at hA hB ⊢
@@ -258,7 +258,7 @@ by
 
 /-- Left-projection lemma for `eo_interprets_imp_false`. -/
 theorem eo_interprets_imp_false_left (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) false ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) false ->
   eo_interprets M A true :=
 by
   intro hImp
@@ -288,7 +288,7 @@ by
 
 /-- Right-projection lemma for `eo_interprets_imp_false`. -/
 theorem eo_interprets_imp_false_right (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) false ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) false ->
   eo_interprets M B false :=
 by
   intro hImp
@@ -320,7 +320,7 @@ by
 theorem eo_interprets_imp_false_intro (M : SmtModel) (A B : Term) :
   eo_interprets M A true ->
   eo_interprets M B false ->
-  eo_interprets M (Term.Apply (Term.Apply Term.imp A) B) false :=
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) false :=
 by
   intro hA hB
   rw [eo_interprets_iff_smt_interprets] at hA hB ⊢
@@ -336,7 +336,7 @@ by
 
 /-- Derives `eo_interprets_and_false_left` from `right_not_false`. -/
 theorem eo_interprets_and_false_left_of_right_not_false (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) false ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) false ->
   ¬ eo_interprets M B false ->
   eo_interprets M A false :=
 by
@@ -386,7 +386,7 @@ by
 /-- Derives `eo_interprets_and_false_right_true` from `left_false_and_right_not_false`. -/
 theorem eo_interprets_and_false_right_true_of_left_false_and_right_not_false
     (M : SmtModel) (A B : Term) :
-  eo_interprets M (Term.Apply (Term.Apply Term.and A) B) false ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) false ->
   eo_interprets M A false ->
   ¬ eo_interprets M B false ->
   eo_interprets M B true :=
@@ -424,21 +424,24 @@ by
 /-- Extracts the conjunction of active assumptions from a checker state. -/
 def stateAssumes : CState -> Term
   | CState.nil => Term.Boolean true
-  | CState.cons (CStateObj.assume F) s => Term.Apply (Term.Apply Term.and F) (stateAssumes s)
+  | CState.cons (CStateObj.assume F) s =>
+      Term.Apply (Term.Apply (Term.UOp UserOp.and) F) (stateAssumes s)
   | CState.cons _ s => stateAssumes s
   | CState.Stuck => Term.Stuck
 
 /-- Extracts the list of assumptions introduced by `assume_push` commands in a checker state. -/
 def statePushes : CState -> Term
   | CState.nil => Term.Boolean true
-  | CState.cons (CStateObj.assume_push F) s => Term.Apply (Term.Apply Term.and F) (statePushes s)
+  | CState.cons (CStateObj.assume_push F) s =>
+      Term.Apply (Term.Apply (Term.UOp UserOp.and) F) (statePushes s)
   | CState.cons _ s => statePushes s
   | CState.Stuck => Term.Stuck
 
 /-- Extracts the list of proven terms stored in a checker state. -/
 def stateProvens : CState -> Term
   | CState.nil => Term.Boolean true
-  | CState.cons (CStateObj.proven F) s => Term.Apply (Term.Apply Term.and F) (stateProvens s)
+  | CState.cons (CStateObj.proven F) s =>
+      Term.Apply (Term.Apply (Term.UOp UserOp.and) F) (stateProvens s)
   | CState.cons _ s => stateProvens s
   | CState.Stuck => Term.Stuck
 
@@ -542,7 +545,7 @@ by
 theorem statePushes_eq_of_stateStepPopSuffix_assume_push
     {root tail : CState} {A : Term} :
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
-  statePushes root = Term.Apply (Term.Apply Term.and A) (statePushes tail) :=
+  statePushes root = Term.Apply (Term.Apply (Term.UOp UserOp.and) A) (statePushes tail) :=
 by
   intro hSuffix
   simpa [statePushes] using statePushes_eq_of_stateStepPopSuffix hSuffix
@@ -1409,7 +1412,7 @@ by
     · subst hZero
       have hPush' :
           eo_interprets M
-            (Term.Apply (Term.Apply Term.and A) (statePushes s)) true := by
+            (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) (statePushes s)) true := by
         simpa [push_assume_eq_cons_of_typeof_bool, hTy, statePushes] using hPush
       simpa [push_assume_eq_cons_of_typeof_bool, hTy, __eo_state_proven_nth] using
         eo_interprets_and_left M A (statePushes s) hPush'
@@ -1417,7 +1420,7 @@ by
         simpa [push_assume_eq_cons_of_typeof_bool, hTy, stateAssumes] using hAss
       have hPush' :
           eo_interprets M
-            (Term.Apply (Term.Apply Term.and A) (statePushes s)) true := by
+            (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) (statePushes s)) true := by
         simpa [push_assume_eq_cons_of_typeof_bool, hTy, statePushes] using hPush
       have hPushTail : eo_interprets M (statePushes s) true :=
         eo_interprets_and_right M A (statePushes s) hPush'
@@ -1633,10 +1636,14 @@ by
       cases f with
       | Apply g lhs =>
           cases g with
-          | and =>
-              exact ValidAssumptionList.step lhs a
-                (validAssumptionList_of_stateOk_assume_list
-                  (by simpa [__eo_invoke_assume_list, stateOk] using hOk))
+          | UOp op =>
+              cases op with
+              | and =>
+                  exact ValidAssumptionList.step lhs a
+                    (validAssumptionList_of_stateOk_assume_list
+                      (by simpa [__eo_invoke_assume_list, stateOk] using hOk))
+              | _ =>
+                  simp [__eo_invoke_assume_list, stateOk] at hOk
           | _ =>
               simp [__eo_invoke_assume_list, stateOk] at hOk
       | _ =>

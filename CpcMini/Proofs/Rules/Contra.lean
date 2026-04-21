@@ -20,7 +20,9 @@ by
   cases x2 with
   | Apply f a =>
       cases f with
-      | not =>
+      | UOp op =>
+          cases op with
+          | not =>
           by_cases hEq : x1 = a
           · subst hEq
             have hEqTerm : __eo_eq x1 x1 = Term.Boolean true := by
@@ -28,7 +30,7 @@ by
               · exact False.elim (hX1NotStuck hStuck)
               · simp [__eo_eq, native_teq]
             have hContraFalse :
-                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not x1)) =
+                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply (Term.UOp UserOp.not) x1)) =
                   Term.Boolean false := by
               rw [__eo_prog_contra, hEqTerm]
               simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
@@ -44,10 +46,13 @@ by
                 · simp [__eo_eq, native_teq] at hEqTerm
                   exact hEq hEqTerm.symm
             have hContraStuck :
-                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
+                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply (Term.UOp UserOp.not) a)) =
+                  Term.Stuck := by
               rw [__eo_prog_contra]
               simp [__eo_requires, native_teq, native_ite, hEqNe]
             exact False.elim (hProg hContraStuck)
+          | _ =>
+              exact False.elim (hProg (by simp [__eo_prog_contra]))
       | _ =>
           exact False.elim (hProg (by simp [__eo_prog_contra]))
   | _ =>
@@ -68,7 +73,9 @@ theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
   cases x2 with
   | Apply f a =>
       cases f with
-      | not =>
+      | UOp op =>
+          cases op with
+          | not =>
           by_cases hEq : x1 = a
           · subst hEq
             have hX1False : eo_interprets M x1 false :=
@@ -84,9 +91,12 @@ theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
             have hANotStuck : a ≠ Term.Stuck :=
               term_ne_stuck_of_interprets_false M a hAFalse
             have hContraStuck :
-                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
+                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply (Term.UOp UserOp.not) a)) =
+                  Term.Stuck := by
               simp [__eo_prog_contra, __eo_requires, __eo_eq, native_teq, hEq', native_ite]
             exact hProgNotStuck hContraStuck
+          | _ =>
+              exact False.elim (hProgNotStuck (by simp [__eo_prog_contra]))
       | _ =>
           exact False.elim (hProgNotStuck (by simp [__eo_prog_contra]))
   | _ =>

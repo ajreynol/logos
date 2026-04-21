@@ -497,19 +497,16 @@ by
           | assume_push A =>
               simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, checkerLocalTruthInvariant]
           | proven F =>
-              cases hEq : __eo_eq F proven <;>
-                try
-                  (simp [__eo_invoke_cmd, __eo_push_proven_check,
-                    hEq, checkerLocalTruthInvariant])
-              case Boolean b =>
-                cases b with
-                | false =>
-                    simp [__eo_invoke_cmd, __eo_push_proven_check,
-                      hEq, checkerLocalTruthInvariant]
-                | true =>
-                    simp [__eo_invoke_cmd, __eo_push_proven_check,
-                      hEq, checkerLocalTruthInvariant] at hs ⊢
-                    exact hs
+              have hFNotStuck : F ≠ Term.Stuck :=
+                (checkerTypeInvariant_head_proven F s hsTy).1
+              by_cases hEq : proven = F
+              · subst proven
+                simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                  __eo_eq, checkerLocalTruthInvariant, native_teq, hFNotStuck] at hs ⊢
+                exact hs
+              · cases proven <;>
+                  simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    __eo_eq, checkerLocalTruthInvariant, native_teq, hEq, hFNotStuck]
   | step r args premises =>
       exact invoke_step_preserves_localTruthInvariant M hM s hNotStuck r args premises
         hs hsTy hsTrans hCmdTrans
@@ -565,19 +562,17 @@ by
           | proven F =>
               have hSuffixTail : stateAssumptionSuffix s := by
                 simpa [stateAssumptionSuffix] using hSuffix
-              cases hEq : __eo_eq F proven <;>
-                try
-                  (simp [__eo_invoke_cmd, __eo_push_proven_check,
-                    hEq, checkerShapeInvariant])
-              case Boolean b =>
-                cases b with
-                | false =>
-                    simp [__eo_invoke_cmd, __eo_push_proven_check,
-                      hEq, checkerShapeInvariant]
-                | true =>
-                    simpa [__eo_invoke_cmd, __eo_push_proven_check,
-                      hEq, checkerShapeInvariant, stateAssumptionSuffix] using
-                      hSuffixTail
+              by_cases hFStuck : F = Term.Stuck
+              · simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                  __eo_eq, checkerShapeInvariant, stateAssumptionSuffix, native_teq, hFStuck]
+              · by_cases hEq : proven = F
+                · subst proven
+                  simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                    __eo_eq, checkerShapeInvariant, stateAssumptionSuffix, native_teq, hFStuck]
+                    using hSuffixTail
+                · cases proven <;>
+                    simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
+                      __eo_eq, checkerShapeInvariant, stateAssumptionSuffix, native_teq, hEq, hFStuck]
   | step r args premises =>
       cases s with
       | nil =>
