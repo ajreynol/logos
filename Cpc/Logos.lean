@@ -548,9 +548,9 @@ def __eo_hash : Term -> Term
 
 
 def __eo_gt : Term -> Term -> Term
-  | (Term.Numeral n1), (Term.Numeral n2) => (native_zlt n2 n1)
-  | (Term.Rational r1), (Term.Rational r2) => (native_qlt r2 r1)
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (native_zlt n2 n1))
+  | (Term.Numeral n1), (Term.Numeral n2) => (Term.Boolean (native_zlt n2 n1))
+  | (Term.Rational r1), (Term.Rational r2) => (Term.Boolean (native_qlt r2 r1))
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Boolean (native_zlt n2 n1)))
   | _, _ => Term.Stuck
 
 
