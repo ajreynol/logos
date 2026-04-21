@@ -1,5 +1,5 @@
 import CpcMini.Proofs.CheckerCore
-import CpcMini.Proofs.Support
+import CpcMini.Proofs.RuleSupport.Support
 import CpcMini.Proofs.Rules.Scope
 import CpcMini.Proofs.Rules.Contra
 import CpcMini.Proofs.Rules.Refl
@@ -103,4 +103,3 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-
