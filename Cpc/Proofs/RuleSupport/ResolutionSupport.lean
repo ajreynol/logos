@@ -52,14 +52,20 @@ private theorem orClause_of_is_list_true {c : Term} :
       cases f with
       | Apply g x =>
           cases g with
-          | or =>
-              unfold __eo_is_list at hList
-              unfold __eo_is_ok at hList
-              unfold __eo_get_nil_rec at hList
-              unfold __eo_requires at hList
-              simp [native_ite, native_teq, native_not, SmtEval.native_not] at hList
-              exact OrClause.cons x a
-                (orClause_of_is_list_true (is_list_true_of_get_nil_rec_ne_stuck hList))
+          | UOp op =>
+              cases op with
+              | or =>
+                  unfold __eo_is_list at hList
+                  unfold __eo_is_ok at hList
+                  unfold __eo_get_nil_rec at hList
+                  unfold __eo_requires at hList
+                  simp [native_ite, native_teq, native_not, SmtEval.native_not] at hList
+                  exact OrClause.cons x a
+                    (orClause_of_is_list_true (is_list_true_of_get_nil_rec_ne_stuck hList))
+              | _ =>
+                  simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
+                    __eo_is_list_nil, native_ite, native_teq, native_not,
+                    SmtEval.native_not] at hList
           | _ =>
               simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
                 __eo_is_list_nil, native_ite, native_teq, native_not,
@@ -266,10 +272,17 @@ private theorem to_clause_has_bool_type {c : Term} :
       | Apply g x =>
           rw [hf] at hCBool
           cases hg : g with
-          | or =>
-              simpa [__to_clause, hg] using hCBool
+          | UOp op =>
+              cases op with
+              | or =>
+                  simpa [__to_clause, hf, hg] using hCBool
+              | _ =>
+                  simpa [__to_clause, hf, hg] using
+                    RuleProofs.eo_has_bool_type_or_of_bool_args
+                      (Term.Apply (Term.Apply g x) a) (Term.Boolean false)
+                      hCBool RuleProofs.eo_has_bool_type_false
           | _ =>
-              simpa [__to_clause, hg] using
+              simpa [__to_clause, hf, hg] using
                 RuleProofs.eo_has_bool_type_or_of_bool_args
                   (Term.Apply (Term.Apply g x) a) (Term.Boolean false)
                   hCBool RuleProofs.eo_has_bool_type_false
@@ -306,10 +319,17 @@ private theorem to_clause_interprets_true
       | Apply g x =>
           rw [hf] at hCTrue
           cases hg : g with
-          | or =>
-              simpa [__to_clause, hg] using hCTrue
+          | UOp op =>
+              cases op with
+              | or =>
+                  simpa [__to_clause, hf, hg] using hCTrue
+              | _ =>
+                  simpa [__to_clause, hf, hg] using
+                    RuleProofs.eo_interprets_or_left_intro M hM
+                      (Term.Apply (Term.Apply g x) a) (Term.Boolean false) hCTrue
+                      RuleProofs.eo_has_bool_type_false
           | _ =>
-              simpa [__to_clause, hg] using
+              simpa [__to_clause, hf, hg] using
                 RuleProofs.eo_interprets_or_left_intro M hM
                   (Term.Apply (Term.Apply g x) a) (Term.Boolean false) hCTrue
                   RuleProofs.eo_has_bool_type_false

@@ -11,22 +11,14 @@ private theorem set_singleton_arg_non_none (x : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
   intro hSingleton hNone
-  rw [__eo_to_smt.eq_def] at hSingleton
-  change
-    native_ite (native_Teq (__smtx_typeof (__eo_to_smt x)) SmtType.None)
-      SmtType.None (SmtType.Set (__smtx_typeof (__eo_to_smt x))) ≠
-      SmtType.None at hSingleton
+  rw [__eo_to_smt.eq_def, __smtx_typeof.eq_121] at hSingleton
   simpa [hNone, native_ite, native_Teq] using hSingleton
 
 private theorem set_singleton_type_of_non_none (x : Term)
     (h : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None) :
     __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton x)) =
       SmtType.Set (__smtx_typeof (__eo_to_smt x)) := by
-  rw [__eo_to_smt.eq_def]
-  change
-    native_ite (native_Teq (__smtx_typeof (__eo_to_smt x)) SmtType.None)
-      SmtType.None (SmtType.Set (__smtx_typeof (__eo_to_smt x))) =
-      SmtType.Set (__smtx_typeof (__eo_to_smt x))
+  rw [__eo_to_smt.eq_def, __smtx_typeof.eq_121]
   simpa [h, native_ite, native_Teq]
 
 private theorem singleton_rel_implies_eq
@@ -51,55 +43,67 @@ private theorem typed___eo_prog_sets_singleton_inj_impl (x1 : Term) :
       cases f with
       | Apply g lhs =>
           cases g with
-          | eq =>
-              cases lhs with
-              | Apply f1 a =>
-                  cases f1 with
-                  | set_singleton =>
-                      cases rhs with
-                      | Apply f2 b =>
-                          cases f2 with
+          | UOp op =>
+              cases op with
+              | eq =>
+                  cases lhs with
+                  | Apply f1 a =>
+                      cases f1 with
+                      | UOp op1 =>
+                          cases op1 with
                           | set_singleton =>
-                              have hPremBool :
-                                  RuleProofs.eo_has_bool_type
-                                    (Term.Apply
-                                      (Term.Apply Term.eq (Term.Apply Term.set_singleton a))
-                                      (Term.Apply Term.set_singleton b)) := by
-                                simpa using hXBool
-                              rcases
-                                  RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-                                    (Term.Apply Term.set_singleton a)
-                                    (Term.Apply Term.set_singleton b)
-                                    hPremBool with
-                                ⟨hSingletonTyEq, hSingletonNN⟩
-                              have hSingletonNNB :
-                                  __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton b)) ≠
-                                    SmtType.None := by
-                                rwa [← hSingletonTyEq]
-                              have hATrans : RuleProofs.eo_has_smt_translation a :=
-                                set_singleton_arg_non_none a hSingletonNN
-                              have hBTrans : RuleProofs.eo_has_smt_translation b :=
-                                set_singleton_arg_non_none b hSingletonNNB
-                              have hSingletonATy :
-                                  __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton a)) =
-                                    SmtType.Set (__smtx_typeof (__eo_to_smt a)) :=
-                                set_singleton_type_of_non_none a hATrans
-                              have hSingletonBTy :
-                                  __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton b)) =
-                                    SmtType.Set (__smtx_typeof (__eo_to_smt b)) :=
-                                set_singleton_type_of_non_none b hBTrans
-                              have hABTy :
-                                  __smtx_typeof (__eo_to_smt a) =
-                                    __smtx_typeof (__eo_to_smt b) := by
-                                have hSetTy :
-                                    SmtType.Set (__smtx_typeof (__eo_to_smt a)) =
-                                      SmtType.Set (__smtx_typeof (__eo_to_smt b)) := by
-                                  rw [← hSingletonATy, ← hSingletonBTy]
-                                  exact hSingletonTyEq
-                                injection hSetTy with hABTy
-                              simpa [__eo_prog_sets_singleton_inj] using
-                                RuleProofs.eo_has_bool_type_eq_of_same_smt_type
-                                  a b hABTy hATrans
+                              cases rhs with
+                              | Apply f2 b =>
+                                  cases f2 with
+                                  | UOp op2 =>
+                                      cases op2 with
+                                      | set_singleton =>
+                                          have hPremBool :
+                                              RuleProofs.eo_has_bool_type
+                                                (Term.Apply
+                                                  (Term.Apply Term.eq (Term.Apply Term.set_singleton a))
+                                                  (Term.Apply Term.set_singleton b)) := by
+                                            simpa using hXBool
+                                          rcases
+                                              RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                                (Term.Apply Term.set_singleton a)
+                                                (Term.Apply Term.set_singleton b)
+                                                hPremBool with
+                                            ⟨hSingletonTyEq, hSingletonNN⟩
+                                          have hSingletonNNB :
+                                              __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton b)) ≠
+                                                SmtType.None := by
+                                            rwa [← hSingletonTyEq]
+                                          have hATrans : RuleProofs.eo_has_smt_translation a :=
+                                            set_singleton_arg_non_none a hSingletonNN
+                                          have hBTrans : RuleProofs.eo_has_smt_translation b :=
+                                            set_singleton_arg_non_none b hSingletonNNB
+                                          have hSingletonATy :
+                                              __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton a)) =
+                                                SmtType.Set (__smtx_typeof (__eo_to_smt a)) :=
+                                            set_singleton_type_of_non_none a hATrans
+                                          have hSingletonBTy :
+                                              __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton b)) =
+                                                SmtType.Set (__smtx_typeof (__eo_to_smt b)) :=
+                                            set_singleton_type_of_non_none b hBTrans
+                                          have hABTy :
+                                              __smtx_typeof (__eo_to_smt a) =
+                                                __smtx_typeof (__eo_to_smt b) := by
+                                            have hSetTy :
+                                                SmtType.Set (__smtx_typeof (__eo_to_smt a)) =
+                                                  SmtType.Set (__smtx_typeof (__eo_to_smt b)) := by
+                                              rw [← hSingletonATy, ← hSingletonBTy]
+                                              exact hSingletonTyEq
+                                            injection hSetTy with hABTy
+                                          simpa [__eo_prog_sets_singleton_inj] using
+                                            RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+                                              a b hABTy hATrans
+                                      | _ =>
+                                          simp [__eo_prog_sets_singleton_inj] at hProg
+                                  | _ =>
+                                      simp [__eo_prog_sets_singleton_inj] at hProg
+                              | _ =>
+                                  simp [__eo_prog_sets_singleton_inj] at hProg
                           | _ =>
                               simp [__eo_prog_sets_singleton_inj] at hProg
                       | _ =>
@@ -124,10 +128,7 @@ private theorem singleton_term_rel_implies_eq
     __smtx_model_eval M (__eo_to_smt b) =
       __smtx_model_eval M (__eo_to_smt a) := by
   rw [__eo_to_smt.eq_def, __eo_to_smt.eq_def] at h
-  change
-    RuleProofs.smt_value_rel
-      (__smtx_model_eval_set_singleton (__smtx_model_eval M (__eo_to_smt a)))
-      (__smtx_model_eval_set_singleton (__smtx_model_eval M (__eo_to_smt b))) at h
+  rw [__smtx_model_eval.eq_121, __smtx_model_eval.eq_121] at h
   exact singleton_rel_implies_eq h
 
 private theorem facts___eo_prog_sets_singleton_inj_impl
@@ -146,40 +147,52 @@ private theorem facts___eo_prog_sets_singleton_inj_impl
       cases f with
       | Apply g lhs =>
           cases g with
-          | eq =>
-              cases lhs with
-              | Apply f1 a =>
-                  cases f1 with
-                  | set_singleton =>
-                      cases rhs with
-                      | Apply f2 b =>
-                          cases f2 with
+          | UOp op =>
+              cases op with
+              | eq =>
+                  cases lhs with
+                  | Apply f1 a =>
+                      cases f1 with
+                      | UOp op1 =>
+                          cases op1 with
                           | set_singleton =>
-                              have hPremTrue :
-                                  eo_interprets M
-                                    (Term.Apply
-                                      (Term.Apply Term.eq (Term.Apply Term.set_singleton a))
-                                      (Term.Apply Term.set_singleton b)) true := by
-                                simpa using hXTrue
-                              have hSetRel :
-                                  RuleProofs.smt_value_rel
-                                    (__smtx_model_eval M
-                                      (__eo_to_smt (Term.Apply Term.set_singleton a)))
-                                    (__smtx_model_eval M
-                                      (__eo_to_smt (Term.Apply Term.set_singleton b))) :=
-                                RuleProofs.eo_interprets_eq_rel M
-                                  (Term.Apply Term.set_singleton a)
-                                  (Term.Apply Term.set_singleton b)
-                                  hPremTrue
-                              have hEvalEq :
-                                  __smtx_model_eval M (__eo_to_smt b) =
-                                    __smtx_model_eval M (__eo_to_smt a) :=
-                                singleton_term_rel_implies_eq M a b hSetRel
-                              simpa [__eo_prog_sets_singleton_inj] using
-                                RuleProofs.eo_interprets_eq_of_rel M a b hOutBool <| by
-                                  rw [hEvalEq]
-                                  exact RuleProofs.smt_value_rel_refl
-                                    (__smtx_model_eval M (__eo_to_smt a))
+                              cases rhs with
+                              | Apply f2 b =>
+                                  cases f2 with
+                                  | UOp op2 =>
+                                      cases op2 with
+                                      | set_singleton =>
+                                          have hPremTrue :
+                                              eo_interprets M
+                                                (Term.Apply
+                                                  (Term.Apply Term.eq (Term.Apply Term.set_singleton a))
+                                                  (Term.Apply Term.set_singleton b)) true := by
+                                            simpa using hXTrue
+                                          have hSetRel :
+                                              RuleProofs.smt_value_rel
+                                                (__smtx_model_eval M
+                                                  (__eo_to_smt (Term.Apply Term.set_singleton a)))
+                                                (__smtx_model_eval M
+                                                  (__eo_to_smt (Term.Apply Term.set_singleton b))) :=
+                                            RuleProofs.eo_interprets_eq_rel M
+                                              (Term.Apply Term.set_singleton a)
+                                              (Term.Apply Term.set_singleton b)
+                                              hPremTrue
+                                          have hEvalEq :
+                                              __smtx_model_eval M (__eo_to_smt b) =
+                                                __smtx_model_eval M (__eo_to_smt a) :=
+                                            singleton_term_rel_implies_eq M a b hSetRel
+                                          simpa [__eo_prog_sets_singleton_inj] using
+                                            RuleProofs.eo_interprets_eq_of_rel M a b hOutBool <| by
+                                              rw [hEvalEq]
+                                              exact RuleProofs.smt_value_rel_refl
+                                                (__smtx_model_eval M (__eo_to_smt a))
+                                      | _ =>
+                                          simp [__eo_prog_sets_singleton_inj] at hProg
+                                  | _ =>
+                                      simp [__eo_prog_sets_singleton_inj] at hProg
+                              | _ =>
+                                  simp [__eo_prog_sets_singleton_inj] at hProg
                           | _ =>
                               simp [__eo_prog_sets_singleton_inj] at hProg
                       | _ =>

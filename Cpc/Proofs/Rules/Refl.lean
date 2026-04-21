@@ -37,13 +37,11 @@ by
     apply hTrans
     subst hStuck
     change __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None
-    rw [eo_to_smt_stuck_eq]
-    decide
+    simpa [eo_to_smt_stuck_eq] using TranslationProofs.smtx_typeof_none
   · rw [eo_prog_refl_eq_of_ne_stuck x1 hStuck]
     unfold RuleProofs.eo_has_bool_type
     rw [eo_to_smt_eq_eq x1 x1]
-    change __smtx_typeof_eq (__smtx_typeof (__eo_to_smt x1))
-        (__smtx_typeof (__eo_to_smt x1)) = SmtType.Bool
+    rw [__smtx_typeof.eq_133]
     exact RuleProofs.smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTrans
 
 namespace RuleProofs
@@ -58,17 +56,15 @@ theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
     intro hStuck
     subst hStuck
     change __smtx_typeof (__eo_to_smt Term.Stuck) ≠ SmtType.None at hTy
-    rw [eo_to_smt_stuck_eq] at hTy
+    rw [eo_to_smt_stuck_eq, TranslationProofs.smtx_typeof_none] at hTy
     exact hTy rfl
   rw [eo_interprets_iff_smt_interprets]
   rw [eo_prog_refl_eq_of_ne_stuck x1 hNotEqStuck, eo_to_smt_eq_eq x1 x1]
   refine smt_interprets.intro_true M
       (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt x1)) ?_ ?_
-  · change __smtx_typeof_eq (__smtx_typeof (__eo_to_smt x1))
-        (__smtx_typeof (__eo_to_smt x1)) = SmtType.Bool
+  · rw [__smtx_typeof.eq_133]
     exact smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTy
-  · change __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt x1))
-        (__smtx_model_eval M (__eo_to_smt x1)) = SmtValue.Boolean true
+  · rw [__smtx_model_eval.eq_133]
     exact smtx_model_eval_eq_refl (__smtx_model_eval M (__eo_to_smt x1))
 
 end RuleProofs

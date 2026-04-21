@@ -10,7 +10,11 @@ set_option maxHeartbeats 10000000
 private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
     (h : __eo_typeof_re_mult T ≠ Term.Stuck) :
     T = Term.RegLan := by
-  cases T <;> simp [__eo_typeof_re_mult] at h ⊢
+  cases T with
+  | UOp op =>
+      cases op <;> simp [__eo_typeof_re_mult] at h ⊢
+  | _ =>
+      simp [__eo_typeof_re_mult] at h
 
 private theorem smtx_model_eval_re_plus_elim (v : SmtValue) :
     __smtx_model_eval_re_plus v =
@@ -167,8 +171,10 @@ private theorem facts___eo_prog_re_plus_elim_impl
   have hEmptyStringEval :
       __smtx_model_eval M (__eo_to_smt (Term.String "")) =
         SmtValue.Seq (native_pack_string "") := by
-    rw [__eo_to_smt.eq_def]
-    rfl
+    simpa [__eo_to_smt.eq_def] using
+      (show __smtx_model_eval M (SmtTerm.String "") =
+          SmtValue.Seq (native_pack_string "") by
+        rw [__smtx_model_eval.eq_4])
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_plus a1)) =
         __smtx_model_eval M
@@ -177,20 +183,10 @@ private theorem facts___eo_prog_re_plus_elim_impl
               (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
                 (Term.Apply Term.str_to_re (Term.String ""))))) := by
     rw [hLhsTranslate, hRhsTranslate, hInnerConcatTranslate, hStarTranslate, hEmpTranslate]
-    change
-      __smtx_model_eval_re_plus (__smtx_model_eval M (__eo_to_smt a1)) =
-        __smtx_model_eval_re_concat (__smtx_model_eval M (__eo_to_smt a1))
-          (__smtx_model_eval_re_concat
-            (__smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt a1)))
-            (__smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt (Term.String "")))))
-    change
-      __smtx_model_eval_re_plus (__smtx_model_eval M (__eo_to_smt a1)) =
-        __smtx_model_eval_re_concat (__smtx_model_eval M (__eo_to_smt a1))
-          (__smtx_model_eval_re_concat
-            (__smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1)))
-            (__smtx_model_eval_str_to_re (__smtx_model_eval M (__eo_to_smt (Term.String "")))))
-    rw [hEmptyStringEval]
-    exact smtx_model_eval_re_plus_elim (__smtx_model_eval M (__eo_to_smt a1))
+    rw [__smtx_model_eval.eq_107, __smtx_model_eval.eq_112,
+      __smtx_model_eval.eq_112, __smtx_model_eval.eq_106, __smtx_model_eval.eq_105]
+    simpa [hEmptyStringEval] using
+      smtx_model_eval_re_plus_elim (__smtx_model_eval M (__eo_to_smt a1))
   rw [hProg]
   exact RuleProofs.eo_interprets_eq_of_rel M
     (Term.Apply Term.re_plus a1)

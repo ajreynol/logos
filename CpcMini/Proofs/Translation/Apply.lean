@@ -37,78 +37,82 @@ theorem eo_to_smt_apply_generic_type
 /-- Computes `__smtx_typeof` for `translation_not_of_non_none`. -/
 theorem smtx_typeof_translation_not_of_non_none
     (x : Term) :
-    __smtx_typeof (__eo_to_smt (Term.Apply Term.not x)) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt (Term.Apply Term.not x)) = SmtType.Bool := by
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.not) x)) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.not) x)) = SmtType.Bool := by
   intro hNonNone
-  rw [__eo_to_smt.eq_def] at hNonNone ⊢
+  rw [__eo_to_smt.eq_def] at hNonNone
+  have hApplyNN : term_has_non_none_type (SmtTerm.not (__eo_to_smt x)) := by
+    simpa [term_has_non_none_type] using hNonNone
   have hArg : __smtx_typeof (__eo_to_smt x) = SmtType.Bool := by
+    unfold term_has_non_none_type at hApplyNN
+    rw [typeof_not_eq] at hApplyNN
     cases h : __smtx_typeof (__eo_to_smt x) <;>
-      simp [__smtx_typeof.eq_6, native_ite, native_Teq, h] at hNonNone
+      simp [native_ite, native_Teq, h] at hApplyNN
     simp
-  simp [__smtx_typeof.eq_6, native_ite, native_Teq, hArg]
+  rw [__eo_to_smt.eq_def, typeof_not_eq]
+  simp [native_ite, native_Teq, hArg]
 
 /-- Computes `__smtx_typeof` for `translation_or_of_non_none`. -/
 theorem smtx_typeof_translation_or_of_non_none
     (x y : Term) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.or x) y)) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.or x) y)) = SmtType.Bool := by
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y)) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y)) = SmtType.Bool := by
   intro hNonNone
-  rw [__eo_to_smt.eq_def] at hNonNone ⊢
+  rw [__eo_to_smt.eq_def] at hNonNone
   have hApplyNN :
       term_has_non_none_type
         (SmtTerm.or (__eo_to_smt x) (__eo_to_smt y)) := by
-    unfold term_has_non_none_type
-    exact hNonNone
+    simpa [term_has_non_none_type] using hNonNone
   have hArgs := bool_binop_args_bool_of_non_none
-    (op := SmtTerm.or) (__smtx_typeof.eq_7 (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
-  simp [__smtx_typeof.eq_7, native_ite, native_Teq, hArgs.1, hArgs.2]
+    (op := SmtTerm.or) (typeof_or_eq (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
+  rw [__eo_to_smt.eq_def, typeof_or_eq]
+  simp [native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_and_of_non_none`. -/
 theorem smtx_typeof_translation_and_of_non_none
     (x y : Term) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.and x) y)) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.and x) y)) = SmtType.Bool := by
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y)) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y)) = SmtType.Bool := by
   intro hNonNone
-  rw [__eo_to_smt.eq_def] at hNonNone ⊢
+  rw [__eo_to_smt.eq_def] at hNonNone
   have hApplyNN :
       term_has_non_none_type
         (SmtTerm.and (__eo_to_smt x) (__eo_to_smt y)) := by
-    unfold term_has_non_none_type
-    exact hNonNone
+    simpa [term_has_non_none_type] using hNonNone
   have hArgs := bool_binop_args_bool_of_non_none
-    (op := SmtTerm.and) (__smtx_typeof.eq_8 (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
-  simp [__smtx_typeof.eq_8, native_ite, native_Teq, hArgs.1, hArgs.2]
+    (op := SmtTerm.and) (typeof_and_eq (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
+  rw [__eo_to_smt.eq_def, typeof_and_eq]
+  simp [native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_imp_of_non_none`. -/
 theorem smtx_typeof_translation_imp_of_non_none
     (x y : Term) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.imp x) y)) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.imp x) y)) = SmtType.Bool := by
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x) y)) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x) y)) = SmtType.Bool := by
   intro hNonNone
-  rw [__eo_to_smt.eq_def] at hNonNone ⊢
+  rw [__eo_to_smt.eq_def] at hNonNone
   have hApplyNN :
       term_has_non_none_type
         (SmtTerm.imp (__eo_to_smt x) (__eo_to_smt y)) := by
-    unfold term_has_non_none_type
-    exact hNonNone
+    simpa [term_has_non_none_type] using hNonNone
   have hArgs := bool_binop_args_bool_of_non_none
-    (op := SmtTerm.imp) (__smtx_typeof.eq_9 (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
-  simp [__smtx_typeof.eq_9, native_ite, native_Teq, hArgs.1, hArgs.2]
+    (op := SmtTerm.imp) (typeof_imp_eq (__eo_to_smt x) (__eo_to_smt y)) hApplyNN
+  rw [__eo_to_smt.eq_def, typeof_imp_eq]
+  simp [native_ite, native_Teq, hArgs.1, hArgs.2]
 
 /-- Computes `__smtx_typeof` for `translation_eq_of_non_none`. -/
 theorem smtx_typeof_translation_eq_of_non_none
     (x y : Term) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.eq x) y)) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.eq x) y)) = SmtType.Bool := by
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y)) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y)) = SmtType.Bool := by
   intro hNonNone
-  rw [__eo_to_smt.eq_def] at hNonNone ⊢
+  rw [__eo_to_smt.eq_def] at hNonNone
   have hApplyNN :
       term_has_non_none_type
         (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) := by
-    unfold term_has_non_none_type
-    exact hNonNone
-  simpa using
-    eq_term_typeof_of_non_none (t1 := __eo_to_smt x) (t2 := __eo_to_smt y) hApplyNN
+    simpa [term_has_non_none_type] using hNonNone
+  rw [__eo_to_smt.eq_def]
+  exact eq_term_typeof_of_non_none (t1 := __eo_to_smt x) (t2 := __eo_to_smt y) hApplyNN
 
 /-- Extracts the common non-`None` operand type from a non-`None` SMT equality type. -/
 theorem smtx_typeof_eq_non_none

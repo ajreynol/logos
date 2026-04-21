@@ -13,12 +13,12 @@ namespace TranslationProofs
 
 /-- Computes `__eo_typeof` for `tuple_unit`. -/
 @[simp] theorem eo_typeof_tuple_unit :
-    __eo_typeof Term.tuple_unit = Term.UnitTuple := by
+    __eo_typeof (Term.UOp UserOp.tuple_unit) = (Term.UOp UserOp.UnitTuple) := by
   native_decide
 
 /-- Simplifies EO-to-SMT translation for `term_tuple_unit`. -/
 @[simp] theorem eo_to_smt_term_tuple_unit :
-    __eo_to_smt Term.tuple_unit =
+    __eo_to_smt (Term.UOp UserOp.tuple_unit) =
       SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := by
   simp [__eo_to_smt.eq_def]
 
@@ -50,13 +50,13 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT type translation for `unit_tuple`. -/
 @[simp] theorem eo_to_smt_type_unit_tuple :
-    __eo_to_smt_type Term.UnitTuple =
+    __eo_to_smt_type (Term.UOp UserOp.UnitTuple) =
       SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_step`. -/
 @[simp] theorem eo_to_smt_type_tuple_step (T U : Term) :
-    __eo_to_smt_type (Term.Apply (Term.Apply Term.Tuple T) U) =
+    __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U) =
       __eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U) := by
   simp [__eo_to_smt_type]
 

@@ -82,17 +82,21 @@ theorem eo_to_smt_type_apply_ne_typeref
     (f x : Term) (s : native_String) :
     __eo_to_smt_type (Term.Apply f x) ≠ SmtType.TypeRef s := by
   cases f with
-  | BitVec =>
-      cases x with
-      | Numeral n =>
-          by_cases hz : native_zleq 0 n = true
-          · simp [__eo_to_smt_type, native_ite, hz]
-          · simp [__eo_to_smt_type, native_ite, hz]
+  | UOp op =>
+      cases op with
+      | BitVec =>
+          cases x with
+          | Numeral n =>
+              by_cases hz : native_zleq 0 n = true
+              · simp [__eo_to_smt_type, native_ite, hz]
+              · simp [__eo_to_smt_type, native_ite, hz]
+          | _ =>
+              simp [__eo_to_smt_type]
+      | Seq =>
+          simpa [__eo_to_smt_type] using
+            smtx_typeof_guard_seq_ne_typeref (__eo_to_smt_type x) s
       | _ =>
           simp [__eo_to_smt_type]
-  | Seq =>
-      simpa [__eo_to_smt_type] using
-        smtx_typeof_guard_seq_ne_typeref (__eo_to_smt_type x) s
   | Apply f1 x1 =>
       cases f1 <;>
         simp [__eo_to_smt_type, smtx_typeof_guard_fun_ne_typeref]
@@ -104,17 +108,21 @@ theorem eo_to_smt_type_apply_ne_datatype
     (f x : Term) (s : native_String) (d : SmtDatatype) :
     __eo_to_smt_type (Term.Apply f x) ≠ SmtType.Datatype s d := by
   cases f with
-  | BitVec =>
-      cases x with
-      | Numeral n =>
-          by_cases hz : native_zleq 0 n = true
-          · simp [__eo_to_smt_type, native_ite, hz]
-          · simp [__eo_to_smt_type, native_ite, hz]
+  | UOp op =>
+      cases op with
+      | BitVec =>
+          cases x with
+          | Numeral n =>
+              by_cases hz : native_zleq 0 n = true
+              · simp [__eo_to_smt_type, native_ite, hz]
+              · simp [__eo_to_smt_type, native_ite, hz]
+          | _ =>
+              simp [__eo_to_smt_type]
+      | Seq =>
+          simpa [__eo_to_smt_type] using
+            smtx_typeof_guard_seq_ne_datatype (__eo_to_smt_type x) s d
       | _ =>
           simp [__eo_to_smt_type]
-  | Seq =>
-      simpa [__eo_to_smt_type] using
-        smtx_typeof_guard_seq_ne_datatype (__eo_to_smt_type x) s d
   | Apply f1 x1 =>
       cases f1 <;>
         simp [__eo_to_smt_type, smtx_typeof_guard_fun_ne_datatype]
@@ -153,6 +161,21 @@ theorem eo_to_smt_type_eq_fun_iff
     cases T with
     | Apply f x =>
         cases f with
+        | UOp op =>
+            cases op with
+            | BitVec =>
+                cases x with
+                | Numeral n =>
+                    by_cases hz : native_zleq 0 n = true <;>
+                      simp [__eo_to_smt_type, native_ite, hz] at h
+                | _ =>
+                    simp [__eo_to_smt_type] at h
+            | Seq =>
+                by_cases hx : __eo_to_smt_type x = SmtType.None
+                · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
+                · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
+            | _ =>
+                simp [__eo_to_smt_type] at h
         | Apply g y =>
             cases g with
             | FunType =>
@@ -168,17 +191,6 @@ theorem eo_to_smt_type_eq_fun_iff
                 exact ⟨y, x, rfl, hA, hB, hyNN, hxNN⟩
             | _ =>
                 simp [__eo_to_smt_type] at h
-        | BitVec =>
-            cases x with
-            | Numeral n =>
-                by_cases hz : native_zleq 0 n = true <;>
-                  simp [__eo_to_smt_type, native_ite, hz] at h
-            | _ =>
-                simp [__eo_to_smt_type] at h
-        | Seq =>
-            by_cases hx : __eo_to_smt_type x = SmtType.None
-            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
-            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
         | _ =>
             simp [__eo_to_smt_type] at h
     | DtcAppType T1 T2 =>
@@ -186,6 +198,8 @@ theorem eo_to_smt_type_eq_fun_iff
           ((smtx_typeof_guard_dtc_app_ne_fun
               (__eo_to_smt_type T1) (__eo_to_smt_type T2) A B)
             (by simpa [__eo_to_smt_type] using h))
+    | UOp op =>
+        cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
   · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
@@ -232,6 +246,21 @@ theorem eo_to_smt_type_eq_dtc_app_iff
         exact ⟨T1, T2, rfl, hA, hB, hT1NN, hT2NN⟩
     | Apply f x =>
         cases f with
+        | UOp op =>
+            cases op with
+            | BitVec =>
+                cases x with
+                | Numeral n =>
+                    by_cases hz : native_zleq 0 n = true <;>
+                      simp [__eo_to_smt_type, native_ite, hz] at h
+                | _ =>
+                    simp [__eo_to_smt_type] at h
+            | Seq =>
+                exact False.elim
+                  ((smtx_typeof_guard_seq_ne_dtc_app (__eo_to_smt_type x) A B)
+                    (by simpa [__eo_to_smt_type] using h))
+            | _ =>
+                simp [__eo_to_smt_type] at h
         | Apply g y =>
             cases g with
             | FunType =>
@@ -241,19 +270,10 @@ theorem eo_to_smt_type_eq_dtc_app_iff
                     (by simpa [__eo_to_smt_type] using h))
             | _ =>
                 simp [__eo_to_smt_type] at h
-        | BitVec =>
-            cases x with
-            | Numeral n =>
-                by_cases hz : native_zleq 0 n = true <;>
-                  simp [__eo_to_smt_type, native_ite, hz] at h
-            | _ =>
-                simp [__eo_to_smt_type] at h
-        | Seq =>
-            exact False.elim
-              ((smtx_typeof_guard_seq_ne_dtc_app (__eo_to_smt_type x) A B)
-                (by simpa [__eo_to_smt_type] using h))
         | _ =>
             simp [__eo_to_smt_type] at h
+    | UOp op =>
+        cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
   · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
@@ -282,6 +302,8 @@ theorem eo_to_smt_type_eq_datatype_iff
         exact False.elim (eo_to_smt_type_apply_ne_datatype f x s d h)
     | DtcAppType T1 T2 =>
         exact False.elim (eo_to_smt_type_dtc_app_ne_datatype T1 T2 s d h)
+    | UOp op =>
+        cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
   · rintro ⟨d0, rfl, hd⟩
@@ -304,6 +326,8 @@ theorem eo_to_smt_type_eq_typeref_iff
           ((smtx_typeof_guard_dtc_app_ne_typeref
               (__eo_to_smt_type T1) (__eo_to_smt_type T2) s)
             (by simpa [__eo_to_smt_type] using h))
+    | UOp op =>
+        cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
   · intro h
@@ -326,7 +350,7 @@ theorem eo_to_smt_type_eq_seq_iff
     {T : Term} {A : SmtType} :
     __eo_to_smt_type T = SmtType.Seq A ↔
       ∃ U,
-        T = Term.Apply Term.Seq U ∧
+        T = Term.Apply (Term.UOp UserOp.Seq) U ∧
         __eo_to_smt_type U = A ∧
         __eo_to_smt_type U ≠ SmtType.None := by
   constructor
@@ -334,11 +358,22 @@ theorem eo_to_smt_type_eq_seq_iff
     cases T with
     | Apply f x =>
         cases f with
-        | Seq =>
-            by_cases hx : __eo_to_smt_type x = SmtType.None
-            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
-            · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
-              exact ⟨x, rfl, h, hx⟩
+        | UOp op =>
+            cases op with
+            | Seq =>
+                by_cases hx : __eo_to_smt_type x = SmtType.None
+                · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
+                · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
+                  exact ⟨x, rfl, h, hx⟩
+            | BitVec =>
+                cases x with
+                | Numeral n =>
+                    by_cases hz : native_zleq 0 n = true <;>
+                      simp [__eo_to_smt_type, native_ite, hz] at h
+                | _ =>
+                    simp [__eo_to_smt_type] at h
+            | _ =>
+                simp [__eo_to_smt_type] at h
         | Apply g y =>
             cases g with
             | FunType =>
@@ -347,19 +382,14 @@ theorem eo_to_smt_type_eq_seq_iff
                     (by simpa [__eo_to_smt_type] using h))
             | _ =>
                 simp [__eo_to_smt_type] at h
-        | BitVec =>
-            cases x with
-            | Numeral n =>
-                by_cases hz : native_zleq 0 n = true <;>
-                  simp [__eo_to_smt_type, native_ite, hz] at h
-            | _ =>
-                simp [__eo_to_smt_type] at h
         | _ =>
             simp [__eo_to_smt_type] at h
     | DtcAppType T1 T2 =>
         exact False.elim
           ((smtx_typeof_guard_dtc_app_ne_seq (__eo_to_smt_type T1) (__eo_to_smt_type T2) A)
             (by simpa [__eo_to_smt_type] using h))
+    | UOp op =>
+        cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
   · rintro ⟨U, rfl, hU, hUNN⟩
@@ -373,8 +403,24 @@ theorem eo_to_smt_type_eq_bool
     __eo_to_smt_type T = SmtType.Bool ->
     T = Term.Bool := by
   cases T with
+  | UOp op =>
+      cases op <;> simp [__eo_to_smt_type]
   | Apply f x =>
       cases f with
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  by_cases hz : native_zleq 0 n = true <;>
+                    simp [__eo_to_smt_type, native_ite, hz]
+              | _ =>
+                  simp [__eo_to_smt_type]
+          | Seq =>
+              cases hX : __eo_to_smt_type x <;>
+                simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
+          | _ =>
+              simp [__eo_to_smt_type]
       | Apply g y =>
           cases g with
           | FunType =>
@@ -382,16 +428,6 @@ theorem eo_to_smt_type_eq_bool
                 simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hY, hX]
           | _ =>
               simp [__eo_to_smt_type]
-      | BitVec =>
-          cases x with
-          | Numeral n =>
-              by_cases hz : native_zleq 0 n = true <;>
-                simp [__eo_to_smt_type, native_ite, hz]
-          | _ =>
-              simp [__eo_to_smt_type]
-      | Seq =>
-          cases hX : __eo_to_smt_type x <;>
-            simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
       | _ =>
           simp [__eo_to_smt_type]
   | DtcAppType T U =>
@@ -404,10 +440,26 @@ theorem eo_to_smt_type_eq_bool
 theorem eo_to_smt_type_eq_int
     {T : Term} :
     __eo_to_smt_type T = SmtType.Int ->
-    T = Term.Int := by
+    T = Term.UOp UserOp.Int := by
   cases T with
+  | UOp op =>
+      cases op <;> simp [__eo_to_smt_type]
   | Apply f x =>
       cases f with
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  by_cases hz : native_zleq 0 n = true <;>
+                    simp [__eo_to_smt_type, native_ite, hz]
+              | _ =>
+                  simp [__eo_to_smt_type]
+          | Seq =>
+              cases hX : __eo_to_smt_type x <;>
+                simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
+          | _ =>
+              simp [__eo_to_smt_type]
       | Apply g y =>
           cases g with
           | FunType =>
@@ -415,16 +467,6 @@ theorem eo_to_smt_type_eq_int
                 simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hY, hX]
           | _ =>
               simp [__eo_to_smt_type]
-      | BitVec =>
-          cases x with
-          | Numeral n =>
-              by_cases hz : native_zleq 0 n = true <;>
-                simp [__eo_to_smt_type, native_ite, hz]
-          | _ =>
-              simp [__eo_to_smt_type]
-      | Seq =>
-          cases hX : __eo_to_smt_type x <;>
-            simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
       | _ =>
           simp [__eo_to_smt_type]
   | DtcAppType T U =>
@@ -437,10 +479,26 @@ theorem eo_to_smt_type_eq_int
 theorem eo_to_smt_type_eq_real
     {T : Term} :
     __eo_to_smt_type T = SmtType.Real ->
-    T = Term.Real := by
+    T = Term.UOp UserOp.Real := by
   cases T with
+  | UOp op =>
+      cases op <;> simp [__eo_to_smt_type]
   | Apply f x =>
       cases f with
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  by_cases hz : native_zleq 0 n = true <;>
+                    simp [__eo_to_smt_type, native_ite, hz]
+              | _ =>
+                  simp [__eo_to_smt_type]
+          | Seq =>
+              cases hX : __eo_to_smt_type x <;>
+                simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
+          | _ =>
+              simp [__eo_to_smt_type]
       | Apply g y =>
           cases g with
           | FunType =>
@@ -448,16 +506,6 @@ theorem eo_to_smt_type_eq_real
                 simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hY, hX]
           | _ =>
               simp [__eo_to_smt_type]
-      | BitVec =>
-          cases x with
-          | Numeral n =>
-              by_cases hz : native_zleq 0 n = true <;>
-                simp [__eo_to_smt_type, native_ite, hz]
-          | _ =>
-              simp [__eo_to_smt_type]
-      | Seq =>
-          cases hX : __eo_to_smt_type x <;>
-            simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
       | _ =>
           simp [__eo_to_smt_type]
   | DtcAppType T U =>
@@ -470,10 +518,26 @@ theorem eo_to_smt_type_eq_real
 theorem eo_to_smt_type_eq_char
     {T : Term} :
     __eo_to_smt_type T = SmtType.Char ->
-    T = Term.Char := by
+    T = Term.UOp UserOp.Char := by
   cases T with
+  | UOp op =>
+      cases op <;> simp [__eo_to_smt_type]
   | Apply f x =>
       cases f with
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  by_cases hz : native_zleq 0 n = true <;>
+                    simp [__eo_to_smt_type, native_ite, hz]
+              | _ =>
+                  simp [__eo_to_smt_type]
+          | Seq =>
+              cases hX : __eo_to_smt_type x <;>
+                simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
+          | _ =>
+              simp [__eo_to_smt_type]
       | Apply g y =>
           cases g with
           | FunType =>
@@ -481,16 +545,6 @@ theorem eo_to_smt_type_eq_char
                 simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hY, hX]
           | _ =>
               simp [__eo_to_smt_type]
-      | BitVec =>
-          cases x with
-          | Numeral n =>
-              by_cases hz : native_zleq 0 n = true <;>
-                simp [__eo_to_smt_type, native_ite, hz]
-          | _ =>
-              simp [__eo_to_smt_type]
-      | Seq =>
-          cases hX : __eo_to_smt_type x <;>
-            simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
       | _ =>
           simp [__eo_to_smt_type]
   | DtcAppType T U =>
@@ -505,8 +559,24 @@ theorem eo_to_smt_type_eq_usort
     __eo_to_smt_type T = SmtType.USort i ->
     T = Term.USort i := by
   cases T with
+  | UOp op =>
+      cases op <;> simp [__eo_to_smt_type]
   | Apply f x =>
       cases f with
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  by_cases hz : native_zleq 0 n = true <;>
+                    simp [__eo_to_smt_type, native_ite, hz]
+              | _ =>
+                  simp [__eo_to_smt_type]
+          | Seq =>
+              cases hX : __eo_to_smt_type x <;>
+                simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
+          | _ =>
+              simp [__eo_to_smt_type]
       | Apply g y =>
           cases g with
           | FunType =>
@@ -514,16 +584,6 @@ theorem eo_to_smt_type_eq_usort
                 simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hY, hX]
           | _ =>
               simp [__eo_to_smt_type]
-      | BitVec =>
-          cases x with
-          | Numeral n =>
-              by_cases hz : native_zleq 0 n = true <;>
-                simp [__eo_to_smt_type, native_ite, hz]
-          | _ =>
-              simp [__eo_to_smt_type]
-      | Seq =>
-          cases hX : __eo_to_smt_type x <;>
-            simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX]
       | _ =>
           simp [__eo_to_smt_type]
   | DtcAppType T U =>
@@ -537,7 +597,7 @@ theorem eo_to_smt_type_eq_bitvec_iff
     {T : Term} {w : native_Nat} :
     __eo_to_smt_type T = SmtType.BitVec w ↔
       ∃ n : native_Int,
-        T = Term.Apply Term.BitVec (Term.Numeral n) ∧
+        T = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) ∧
         native_zleq 0 n = true ∧
         native_int_to_nat n = w := by
   constructor
@@ -545,13 +605,20 @@ theorem eo_to_smt_type_eq_bitvec_iff
     cases T with
     | Apply f x =>
         cases f with
-        | BitVec =>
-            cases x with
-            | Numeral n =>
-                by_cases hz : native_zleq 0 n = true
-                · simp [__eo_to_smt_type, native_ite, hz] at h
-                  exact ⟨n, rfl, hz, h⟩
-                · simp [__eo_to_smt_type, native_ite, hz] at h
+        | UOp op =>
+            cases op with
+            | BitVec =>
+                cases x with
+                | Numeral n =>
+                    by_cases hz : native_zleq 0 n = true
+                    · simp [__eo_to_smt_type, native_ite, hz] at h
+                      exact ⟨n, rfl, hz, h⟩
+                    · simp [__eo_to_smt_type, native_ite, hz] at h
+                | _ =>
+                    simp [__eo_to_smt_type] at h
+            | Seq =>
+                cases hX : __eo_to_smt_type x <;>
+                  simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX] at h
             | _ =>
                 simp [__eo_to_smt_type] at h
         | Apply g y =>
@@ -563,14 +630,13 @@ theorem eo_to_smt_type_eq_bitvec_iff
                       simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hY, hX] at h)
             | _ =>
                 simp [__eo_to_smt_type] at h
-        | Seq =>
-            cases hX : __eo_to_smt_type x <;>
-              simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hX] at h
         | _ =>
             simp [__eo_to_smt_type] at h
     | DtcAppType T1 T2 =>
         cases hT : __eo_to_smt_type T1 <;> cases hU : __eo_to_smt_type T2 <;>
           simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hT, hU] at h
+    | UOp op =>
+        cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
   · rintro ⟨n, rfl, hz, hw⟩
@@ -623,11 +689,11 @@ def eo_type_valid_rec (refs : List native_String) : Term -> Prop
   | Term.USort _ => True
   | Term.Apply (Term.Apply Term.FunType T1) T2 =>
       eo_type_valid_rec [] T1 ∧ eo_type_valid_rec [] T2
-  | Term.Int => True
-  | Term.Real => True
-  | Term.Apply Term.BitVec (Term.Numeral n) => 0 <= n
-  | Term.Char => True
-  | Term.Apply Term.Seq x => eo_type_valid_rec [] x
+  | Term.UOp UserOp.Int => True
+  | Term.UOp UserOp.Real => True
+  | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) => 0 <= n
+  | Term.UOp UserOp.Char => True
+  | Term.Apply (Term.UOp UserOp.Seq) x => eo_type_valid_rec [] x
   | _ => False
 
 def eo_datatype_cons_valid_rec (refs : List native_String) : DatatypeCons -> Prop
@@ -646,16 +712,16 @@ end
 theorem eo_type_valid_rec_non_none :
     ∀ {refs : List native_String} {T : Term},
       eo_type_valid_rec refs T -> __eo_to_smt_type T ≠ SmtType.None
-  | refs, Term.Int, _ => by
-      simp [__eo_to_smt_type]
-  | refs, Term.Real, _ => by
-      simp [__eo_to_smt_type]
-  | refs, Term.BitVec, h => by
-      simp [eo_type_valid_rec] at h
-  | refs, Term.Char, _ => by
-      simp [__eo_to_smt_type]
-  | refs, Term.Seq, h => by
-      simp [eo_type_valid_rec] at h
+  | refs, Term.UOp op, h => by
+      cases op with
+      | Int =>
+          simp [eo_type_valid_rec, __eo_to_smt_type]
+      | Real =>
+          simp [eo_type_valid_rec, __eo_to_smt_type]
+      | Char =>
+          simp [eo_type_valid_rec, __eo_to_smt_type]
+      | _ =>
+          simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List, h => by
       simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List_nil, h => by
@@ -698,29 +764,33 @@ theorem eo_type_valid_rec_non_none :
       have hT1NN : __eo_to_smt_type T1 ≠ SmtType.None := eo_type_valid_rec_non_none hT1
       have hT2NN : __eo_to_smt_type T2 ≠ SmtType.None := eo_type_valid_rec_non_none hT2
       simp [eo_to_smt_type_fun, hT1NN, hT2NN, __smtx_typeof_guard, native_ite, native_Teq]
-  | refs, Term.Apply Term.BitVec (Term.Numeral n), h => by
+  | refs, Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h => by
       have hz : native_zleq 0 n = true := by
         simpa [native_zleq] using h
       simp [__eo_to_smt_type, native_ite, hz]
-  | refs, Term.Apply Term.Seq x, h => by
+  | refs, Term.Apply (Term.UOp UserOp.Seq) x, h => by
       have hxNN : __eo_to_smt_type x ≠ SmtType.None := eo_type_valid_rec_non_none h
       simp [__eo_to_smt_type, hxNN, __smtx_typeof_guard, native_ite, native_Teq]
   | refs, Term.Apply f x, h => by
       cases f with
-      | BitVec =>
-          cases x with
-          | Numeral n =>
-              have hz : native_zleq 0 n = true := by
-                simpa [eo_type_valid_rec, native_zleq] using h
-              simp [__eo_to_smt_type, native_ite, hz]
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  have hz : native_zleq 0 n = true := by
+                    simpa [eo_type_valid_rec, native_zleq] using h
+                  simp [__eo_to_smt_type, native_ite, hz]
+              | _ =>
+                  simp [eo_type_valid_rec] at h
+          | Seq =>
+              have hxNN : __eo_to_smt_type x ≠ SmtType.None := by
+                have hx : eo_type_valid_rec [] x := by
+                  simpa [eo_type_valid_rec] using h
+                exact eo_type_valid_rec_non_none hx
+              simp [__eo_to_smt_type, hxNN, __smtx_typeof_guard, native_ite, native_Teq]
           | _ =>
               simp [eo_type_valid_rec] at h
-      | Seq =>
-          have hxNN : __eo_to_smt_type x ≠ SmtType.None := by
-            have hx : eo_type_valid_rec [] x := by
-              simpa [eo_type_valid_rec] using h
-            exact eo_type_valid_rec_non_none hx
-          simp [__eo_to_smt_type, hxNN, __smtx_typeof_guard, native_ite, native_Teq]
       | Apply g y =>
           cases g with
           | FunType =>
@@ -738,16 +808,6 @@ theorem eo_type_valid_rec_non_none :
   | refs, Term.DtSel s d i j, h => by
       simp [eo_type_valid_rec] at h
   | refs, Term.UConst i T, h => by
-      simp [eo_type_valid_rec] at h
-  | refs, Term.not, h => by
-      simp [eo_type_valid_rec] at h
-  | refs, Term.or, h => by
-      simp [eo_type_valid_rec] at h
-  | refs, Term.and, h => by
-      simp [eo_type_valid_rec] at h
-  | refs, Term.imp, h => by
-      simp [eo_type_valid_rec] at h
-  | refs, Term.eq, h => by
       simp [eo_type_valid_rec] at h
 
 /-- `native_int_to_nat` is injective on nonnegative integers. -/
@@ -768,22 +828,22 @@ private theorem eo_to_smt_type_unique_of_valid_rec
       eo_type_valid_rec refs T ->
       __eo_to_smt_type T = __eo_to_smt_type U ->
       T = U
-  | Term.Int, U, _, hEq => by
-      have hU : __eo_to_smt_type U = SmtType.Int := by
-        simpa using hEq.symm
-      exact (eo_to_smt_type_eq_int hU).symm
-  | Term.Real, U, _, hEq => by
-      have hU : __eo_to_smt_type U = SmtType.Real := by
-        simpa using hEq.symm
-      exact (eo_to_smt_type_eq_real hU).symm
-  | Term.BitVec, U, hValid, hEq => by
-      simp [eo_type_valid_rec] at hValid
-  | Term.Char, U, _, hEq => by
-      have hU : __eo_to_smt_type U = SmtType.Char := by
-        simpa using hEq.symm
-      exact (eo_to_smt_type_eq_char hU).symm
-  | Term.Seq, U, hValid, hEq => by
-      simp [eo_type_valid_rec] at hValid
+  | Term.UOp op, U, hValid, hEq => by
+      cases op with
+      | Int =>
+          have hU : __eo_to_smt_type U = SmtType.Int := by
+            simpa using hEq.symm
+          exact (eo_to_smt_type_eq_int hU).symm
+      | Real =>
+          have hU : __eo_to_smt_type U = SmtType.Real := by
+            simpa using hEq.symm
+          exact (eo_to_smt_type_eq_real hU).symm
+      | Char =>
+          have hU : __eo_to_smt_type U = SmtType.Char := by
+            simpa using hEq.symm
+          exact (eo_to_smt_type_eq_char hU).symm
+      | _ =>
+          simp [eo_type_valid_rec] at hValid
   | Term.__eo_List, U, hValid, hEq => by
       simp [eo_type_valid_rec] at hValid
   | Term.__eo_List_nil, U, hValid, hEq => by
@@ -829,7 +889,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
       have hU : __eo_to_smt_type U = SmtType.TypeRef s := by
         simpa [__eo_to_smt_type] using hEq.symm
       exact (eo_to_smt_type_eq_typeref_iff.mp hU).symm
-  | Term.Apply Term.BitVec (Term.Numeral n), U, hValid, hEq => by
+  | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), U, hValid, hEq => by
       have hz : native_zleq 0 n = true := by
         simpa [native_zleq] using hValid
       have hU : __eo_to_smt_type U = SmtType.BitVec (native_int_to_nat n) := by
@@ -842,7 +902,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
         native_int_to_nat_injective_of_nonneg hm' hValid hmn
       cases hmn'
       rfl
-  | Term.Apply Term.Seq T1, U, hValid, hEq => by
+  | Term.Apply (Term.UOp UserOp.Seq) T1, U, hValid, hEq => by
       have hT1NN : __eo_to_smt_type T1 ≠ SmtType.None := eo_type_valid_rec_non_none hValid
       have hU : __eo_to_smt_type U = SmtType.Seq (__eo_to_smt_type T1) := by
         simp [__eo_to_smt_type, hT1NN, __smtx_typeof_guard, native_ite, native_Teq] at hEq
@@ -895,35 +955,39 @@ private theorem eo_to_smt_type_unique_of_valid_rec
       rfl
   | Term.Apply f x, U, hValid, hEq => by
       cases f with
-      | BitVec =>
-          cases x with
-          | Numeral n =>
-              have hz : native_zleq 0 n = true := by
-                simpa [eo_type_valid_rec, native_zleq] using hValid
-              have hU : __eo_to_smt_type U = SmtType.BitVec (native_int_to_nat n) := by
-                simpa [__eo_to_smt_type, native_ite, hz] using hEq.symm
-              rcases eo_to_smt_type_eq_bitvec_iff.mp hU with ⟨m, hU', hm, hmn⟩
+      | UOp op =>
+          cases op with
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  have hz : native_zleq 0 n = true := by
+                    simpa [eo_type_valid_rec, native_zleq] using hValid
+                  have hU : __eo_to_smt_type U = SmtType.BitVec (native_int_to_nat n) := by
+                    simpa [__eo_to_smt_type, native_ite, hz] using hEq.symm
+                  rcases eo_to_smt_type_eq_bitvec_iff.mp hU with ⟨m, hU', hm, hmn⟩
+                  subst hU'
+                  have hm' : 0 <= m := by
+                    simpa [native_zleq] using hm
+                  have hmn' : m = n :=
+                    native_int_to_nat_injective_of_nonneg hm'
+                      (by simpa [eo_type_valid_rec] using hValid) hmn
+                  cases hmn'
+                  rfl
+              | _ =>
+                  simp [eo_type_valid_rec] at hValid
+          | Seq =>
+              have hx : eo_type_valid_rec [] x := by
+                simpa [eo_type_valid_rec] using hValid
+              have hxNN : __eo_to_smt_type x ≠ SmtType.None := eo_type_valid_rec_non_none hx
+              have hU : __eo_to_smt_type U = SmtType.Seq (__eo_to_smt_type x) := by
+                simpa [__eo_to_smt_type, hxNN, __smtx_typeof_guard, native_ite, native_Teq] using hEq.symm
+              rcases eo_to_smt_type_eq_seq_iff.mp hU with ⟨U1, hU', hU1, _⟩
               subst hU'
-              have hm' : 0 <= m := by
-                simpa [native_zleq] using hm
-              have hmn' : m = n :=
-                native_int_to_nat_injective_of_nonneg hm'
-                  (by simpa [eo_type_valid_rec] using hValid) hmn
-              cases hmn'
+              have hSub : x = U1 := eo_to_smt_type_unique_of_valid_rec [] hx hU1.symm
+              cases hSub
               rfl
           | _ =>
               simp [eo_type_valid_rec] at hValid
-      | Seq =>
-          have hx : eo_type_valid_rec [] x := by
-            simpa [eo_type_valid_rec] using hValid
-          have hxNN : __eo_to_smt_type x ≠ SmtType.None := eo_type_valid_rec_non_none hx
-          have hU : __eo_to_smt_type U = SmtType.Seq (__eo_to_smt_type x) := by
-            simpa [__eo_to_smt_type, hxNN, __smtx_typeof_guard, native_ite, native_Teq] using hEq.symm
-          rcases eo_to_smt_type_eq_seq_iff.mp hU with ⟨U1, hU', hU1, _⟩
-          subst hU'
-          have hSub : x = U1 := eo_to_smt_type_unique_of_valid_rec [] hx hU1.symm
-          cases hSub
-          rfl
       | Apply g y =>
           cases g with
           | FunType =>
@@ -953,16 +1017,6 @@ private theorem eo_to_smt_type_unique_of_valid_rec
   | Term.DtSel s d i j, U, hValid, hEq => by
       simp [eo_type_valid_rec] at hValid
   | Term.UConst i T, U, hValid, hEq => by
-      simp [eo_type_valid_rec] at hValid
-  | Term.not, U, hValid, hEq => by
-      simp [eo_type_valid_rec] at hValid
-  | Term.or, U, hValid, hEq => by
-      simp [eo_type_valid_rec] at hValid
-  | Term.and, U, hValid, hEq => by
-      simp [eo_type_valid_rec] at hValid
-  | Term.imp, U, hValid, hEq => by
-      simp [eo_type_valid_rec] at hValid
-  | Term.eq, U, hValid, hEq => by
       simp [eo_type_valid_rec] at hValid
 
 private theorem eo_to_smt_datatype_cons_unique_of_valid_rec
@@ -1078,12 +1132,18 @@ theorem eo_type_valid_of_smt_wf_rec
       cases T with
       | Bool =>
           simp [eo_type_valid_rec]
-      | Int =>
-          simp [eo_type_valid_rec]
-      | Real =>
-          simp [eo_type_valid_rec]
-      | Char =>
-          simp [eo_type_valid_rec]
+      | UOp op =>
+          cases op with
+          | Int =>
+              simp [eo_type_valid_rec]
+          | Real =>
+              simp [eo_type_valid_rec]
+          | Char =>
+              simp [eo_type_valid_rec]
+          | _ =>
+              have : False := by
+                simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+              exact False.elim this
       | USort i =>
           simp [eo_type_valid_rec]
       | DatatypeType s d =>
@@ -1102,20 +1162,26 @@ theorem eo_type_valid_of_smt_wf_rec
           exact False.elim this
       | Apply f x =>
           cases f with
-          | Seq =>
-              have hx : __smtx_type_wf_rec (__eo_to_smt_type x) [] = true := by
-                exact smtx_type_wf_rec_guard_seq_true refs (__eo_to_smt_type x)
-                  (by simpa [__eo_to_smt_type] using h)
-              exact eo_type_valid_of_smt_wf_rec [] hx
-          | BitVec =>
-              cases x with
-              | Numeral n =>
-                  have hz : native_zleq 0 n = true := by
-                    by_cases hz : native_zleq 0 n = true
-                    · exact hz
-                    · exfalso
-                      simp [__eo_to_smt_type, __smtx_type_wf_rec, native_ite, hz] at h
-                  simpa [eo_type_valid_rec, native_zleq] using hz
+          | UOp op =>
+              cases op with
+              | Seq =>
+                  have hx : __smtx_type_wf_rec (__eo_to_smt_type x) [] = true := by
+                    exact smtx_type_wf_rec_guard_seq_true refs (__eo_to_smt_type x)
+                      (by simpa [__eo_to_smt_type] using h)
+                  exact eo_type_valid_of_smt_wf_rec [] hx
+              | BitVec =>
+                  cases x with
+                  | Numeral n =>
+                      have hz : native_zleq 0 n = true := by
+                        by_cases hz : native_zleq 0 n = true
+                        · exact hz
+                        · exfalso
+                          simp [__eo_to_smt_type, __smtx_type_wf_rec, native_ite, hz] at h
+                      simpa [eo_type_valid_rec, native_zleq] using hz
+                  | _ =>
+                      have : False := by
+                        simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+                      exact False.elim this
               | _ =>
                   have : False := by
                     simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
@@ -1217,16 +1283,8 @@ theorem eo_to_smt_type_substitute_typeref
         native_ite (native_Teq (__eo_to_smt_type T) (SmtType.TypeRef s))
           (SmtType.Datatype s (__eo_to_smt_datatype d))
           (__eo_to_smt_type T)
-  | Term.Int => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.Real => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.BitVec => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.Char => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.Seq => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term.UOp op => by
+      cases op <;> simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.__eo_List => by
       simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.__eo_List_nil => by
@@ -1281,16 +1339,6 @@ theorem eo_to_smt_type_substitute_typeref
   | Term.USort u => by
       simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UConst i T => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.not => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.or => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.and => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.imp => by
-      simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.eq => by
       simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
 
 /-- Constructor congruence for SMT datatype constructors. -/
@@ -1391,6 +1439,13 @@ private theorem eo_to_smt_substitute_aux
             (by simpa using hc)
         · intro s2 d2
           exact eo_to_smt_type_dtc_app_ne_datatype T1 T2 s2 d2
+      case UOp op =>
+        cases op <;>
+          (have hc := eo_to_smt_substitute_aux s d (.inl c)
+           dsimp [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute]
+           exact smt_datatype_cons_congr
+             (eo_to_smt_type_substitute_typeref s d _)
+             (by simpa using hc))
       all_goals
         have hc := eo_to_smt_substitute_aux s d (.inl c)
         dsimp [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute]

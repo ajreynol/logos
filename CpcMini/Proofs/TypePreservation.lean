@@ -6,6 +6,8 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
+set_option allowUnsafeReducibility true
+attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
@@ -155,288 +157,303 @@ theorem generic_apply_facts_of_not_special
     (hNoTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x ∧ generic_apply_eval f x := by
   constructor
-  · unfold generic_apply_type
-    exact __smtx_typeof.eq_18 f x
+  · exact __smtx_typeof.eq_18 f x
       (by intro s d i j hEq; exact hNoSel s d i j hEq)
       (by intro s d i hEq; exact hNoTester s d i hEq)
   · intro M
-    exact __smtx_model_eval.eq_18 M f x
-      (by intro s d i j hEq; exact hNoSel s d i j hEq)
-      (by intro s d i hEq; exact hNoTester s d i hEq)
+    cases f with
+    | DtSel s d i j =>
+        exact False.elim (hNoSel s d i j rfl)
+    | DtTester s d i =>
+        exact False.elim (hNoTester s d i rfl)
+    | _ =>
+        simp [__smtx_model_eval]
 
 /-- Every non-`None` SMT term lies in the supported preservation fragment. -/
 theorem supported_preservation_term_of_non_none :
     ∀ t : SmtTerm, term_has_non_none_type t -> supported_preservation_term t := by
-  let rec go (t : SmtTerm) :
-      term_has_non_none_type t -> supported_preservation_term t := by
-    cases t <;> intro ht
-    case None =>
-      exfalso
-      exact ht (by simp [__smtx_typeof.eq_def])
-    case Boolean b =>
-      exact supported_preservation_term.boolean b
-    case Numeral n =>
-      exact supported_preservation_term.numeral n
-    case Rational q =>
-      exact supported_preservation_term.rational q
-    case String s =>
-      exact supported_preservation_term.string s
-    case Binary w n =>
-      exact supported_preservation_term.binary w n
-    case Var s T =>
-      have hT : type_inhabited T :=
-        smtx_typeof_guard_wf_inhabited_of_non_none T T (by
-          simpa [term_has_non_none_type, __smtx_typeof] using ht)
-      exact supported_preservation_term.var s T hT
-    case ite c t1 t2 =>
-      rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, hT⟩
-      have htc : term_has_non_none_type c := by
-        unfold term_has_non_none_type
-        rw [hc]
-        simp
-      have ht1 : term_has_non_none_type t1 := by
-        unfold term_has_non_none_type
-        rw [h1]
-        exact hT
-      have ht2 : term_has_non_none_type t2 := by
-        unfold term_has_non_none_type
-        rw [h2]
-        exact hT
-      exact supported_preservation_term.ite
-        htc (go c htc) ht1 (go t1 ht1) ht2 (go t2 ht2)
-    case eq t1 t2 =>
-      exact supported_preservation_term.eq t1 t2
-    case «exists» s T body =>
-      exact supported_preservation_term.exists s T body
-    case «forall» s T body =>
-      exact supported_preservation_term.forall s T body
-    case choice_nth s T body n =>
-      exact supported_preservation_term.choice_nth s T body n
-    case DtCons s d i =>
-      exact supported_preservation_term.dt_cons s d i
-    case DtSel s d i j =>
-      exfalso
-      exact ht (by simp [__smtx_typeof.eq_def])
-    case DtTester s d i =>
-      exfalso
-      exact ht (by simp [__smtx_typeof.eq_def])
-    case UConst s T =>
-      have hT : type_inhabited T :=
-        smtx_typeof_guard_wf_inhabited_of_non_none T T (by
-          simpa [term_has_non_none_type, __smtx_typeof] using ht)
-      exact supported_preservation_term.uconst s T hT
-    case not t =>
-      have hArg : __smtx_typeof t = SmtType.Bool := by
-        unfold term_has_non_none_type at ht
-        cases h : __smtx_typeof t <;>
-          simp [__smtx_typeof, native_ite, native_Teq, h] at ht
-        simp
-      have hArgNN : term_has_non_none_type t := by
-        unfold term_has_non_none_type
-        rw [hArg]
-        simp
-      exact supported_preservation_term.not hArgNN (go t hArgNN)
-    case or t1 t2 =>
-      have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) (__smtx_typeof.eq_7 t1 t2) ht
-      have ht1 : term_has_non_none_type t1 := by
-        unfold term_has_non_none_type
-        rw [hArgs.1]
-        simp
-      have ht2 : term_has_non_none_type t2 := by
-        unfold term_has_non_none_type
-        rw [hArgs.2]
-        simp
-      exact supported_preservation_term.or ht1 (go t1 ht1) ht2 (go t2 ht2)
-    case and t1 t2 =>
-      have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) (__smtx_typeof.eq_8 t1 t2) ht
-      have ht1 : term_has_non_none_type t1 := by
-        unfold term_has_non_none_type
-        rw [hArgs.1]
-        simp
-      have ht2 : term_has_non_none_type t2 := by
-        unfold term_has_non_none_type
-        rw [hArgs.2]
-        simp
-      exact supported_preservation_term.and ht1 (go t1 ht1) ht2 (go t2 ht2)
-    case imp t1 t2 =>
-      have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) (__smtx_typeof.eq_9 t1 t2) ht
-      have ht1 : term_has_non_none_type t1 := by
-        unfold term_has_non_none_type
-        rw [hArgs.1]
-        simp
-      have ht2 : term_has_non_none_type t2 := by
-        unfold term_has_non_none_type
-        rw [hArgs.2]
-        simp
-      exact supported_preservation_term.imp ht1 (go t1 ht1) ht2 (go t2 ht2)
-    case Apply f x =>
-      cases f
-      case «exists» s T body =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.exists s T body) (x := x)
-          (by intro s' d i j hEq; cases hEq)
-          (by intro s' d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.exists s T body) hArgs.1)
-          (go x hArgs.2)
-      case «forall» s T body =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.forall s T body) (x := x)
-          (by intro s' d i j hEq; cases hEq)
-          (by intro s' d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.forall s T body) hArgs.1)
-          (go x hArgs.2)
-      case choice_nth s T body n =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.choice_nth s T body n) (x := x)
-          (by intro s' d i j hEq; cases hEq)
-          (by intro s' d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.choice_nth s T body n) hArgs.1)
-          (go x hArgs.2)
-      case DtSel s d i j =>
-        have htx : term_has_non_none_type x := by
-          have hx : __smtx_typeof x = SmtType.Datatype s d :=
-            dt_sel_arg_datatype_of_non_none (s := s) (d := d) (i := i) (j := j) (x := x) ht
+  let rec go (t : SmtTerm) (ht : term_has_non_none_type t) : supported_preservation_term t := by
+    match t with
+    | SmtTerm.None =>
+        have hNone : __smtx_typeof SmtTerm.None = SmtType.None := by
+          rw [__smtx_typeof.eq_def]
+        exact False.elim (ht hNone)
+    | SmtTerm.Boolean b =>
+        exact supported_preservation_term.boolean b
+    | SmtTerm.Numeral n =>
+        exact supported_preservation_term.numeral n
+    | SmtTerm.Rational q =>
+        exact supported_preservation_term.rational q
+    | SmtTerm.String s =>
+        exact supported_preservation_term.string s
+    | SmtTerm.Binary w n =>
+        exact supported_preservation_term.binary w n
+    | SmtTerm.Var s T =>
+        have hTNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+          intro hNone
+          apply ht
+          rw [__smtx_typeof.eq_19]
+          exact hNone
+        exact supported_preservation_term.var s T
+          (smtx_typeof_guard_wf_inhabited_of_non_none T T hTNN)
+    | SmtTerm.ite c t1 t2 =>
+        rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, hT⟩
+        have htc : term_has_non_none_type c := by
           unfold term_has_non_none_type
-          rw [hx]
+          rw [hc]
           simp
-        exact supported_preservation_term.dt_sel
-          ht
-          (dt_sel_term_inhabited_of_non_none (s := s) (d := d) (i := i) (j := j) (x := x) ht)
-          htx
-          (go x htx)
-      case DtTester s d i =>
-        exact supported_preservation_term.dt_tester s d i x
-      case None =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.None) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go SmtTerm.None hArgs.1)
-          (go x hArgs.2)
-      case Boolean b =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Boolean b) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.Boolean b) hArgs.1)
-          (go x hArgs.2)
-      case Numeral n =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Numeral n) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.Numeral n) hArgs.1)
-          (go x hArgs.2)
-      case Rational q =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Rational q) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.Rational q) hArgs.1)
-          (go x hArgs.2)
-      case String s =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.String s) (x := x)
-          (by intro s' d i j hEq; cases hEq)
-          (by intro s' d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.String s) hArgs.1)
-          (go x hArgs.2)
-      case Binary w n =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Binary w n) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.Binary w n) hArgs.1)
-          (go x hArgs.2)
-      case Apply f1 x1 =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Apply f1 x1) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.Apply f1 x1) hArgs.1)
-          (go x hArgs.2)
-      case Var s T =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Var s T) (x := x)
-          (by intro s' d i j hEq; cases hEq)
-          (by intro s' d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.Var s T) hArgs.1)
-          (go x hArgs.2)
-      case ite c t1 t2 =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.ite c t1 t2) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.ite c t1 t2) hArgs.1)
-          (go x hArgs.2)
-      case eq t1 t2 =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.eq t1 t2) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.eq t1 t2) hArgs.1)
-          (go x hArgs.2)
-      case DtCons s d i =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.DtCons s d i) (x := x)
-          (by intro s' d' i' j hEq; cases hEq)
-          (by intro s' d' i' hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.DtCons s d i) hArgs.1)
-          (go x hArgs.2)
-      case UConst s T =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.UConst s T) (x := x)
-          (by intro s' d i j hEq; cases hEq)
-          (by intro s' d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.UConst s T) hArgs.1)
-          (go x hArgs.2)
-      case not t =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.not t) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.not t) hArgs.1)
-          (go x hArgs.2)
-      case or t1 t2 =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.or t1 t2) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.or t1 t2) hArgs.1)
-          (go x hArgs.2)
-      case and t1 t2 =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.and t1 t2) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.and t1 t2) hArgs.1)
-          (go x hArgs.2)
-      case imp t1 t2 =>
-        have hApp := generic_apply_facts_of_not_special (f := SmtTerm.imp t1 t2) (x := x)
-          (by intro s d i j hEq; cases hEq)
-          (by intro s d i hEq; cases hEq)
-        have hArgs := generic_apply_subterms_non_none hApp.1 ht
-        exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
-          (go (SmtTerm.imp t1 t2) hArgs.1)
-          (go x hArgs.2)
+        have ht1 : term_has_non_none_type t1 := by
+          unfold term_has_non_none_type
+          rw [h1]
+          exact hT
+        have ht2 : term_has_non_none_type t2 := by
+          unfold term_has_non_none_type
+          rw [h2]
+          exact hT
+        exact supported_preservation_term.ite
+          htc (go c htc) ht1 (go t1 ht1) ht2 (go t2 ht2)
+    | SmtTerm.eq t1 t2 =>
+        exact supported_preservation_term.eq t1 t2
+    | SmtTerm.exists s T body =>
+        exact supported_preservation_term.exists s T body
+    | SmtTerm.forall s T body =>
+        exact supported_preservation_term.forall s T body
+    | SmtTerm.choice_nth s T body n =>
+        exact supported_preservation_term.choice_nth s T body n
+    | SmtTerm.DtCons s d i =>
+        exact supported_preservation_term.dt_cons s d i
+    | SmtTerm.DtSel s d i j =>
+        have hNone : __smtx_typeof (SmtTerm.DtSel s d i j) = SmtType.None := by
+          rw [__smtx_typeof.eq_def]
+        exact False.elim (ht hNone)
+    | SmtTerm.DtTester s d i =>
+        have hNone : __smtx_typeof (SmtTerm.DtTester s d i) = SmtType.None := by
+          rw [__smtx_typeof.eq_def]
+        exact False.elim (ht hNone)
+    | SmtTerm.UConst s T =>
+        have hTNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+          intro hNone
+          apply ht
+          rw [__smtx_typeof.eq_20]
+          exact hNone
+        exact supported_preservation_term.uconst s T
+          (smtx_typeof_guard_wf_inhabited_of_non_none T T hTNN)
+    | SmtTerm.not t =>
+        have hArg : __smtx_typeof t = SmtType.Bool := by
+          unfold term_has_non_none_type at ht
+          rw [typeof_not_eq] at ht
+          cases h : __smtx_typeof t <;>
+            simp [native_ite, native_Teq, h] at ht
+          rfl
+        have hArgNN : term_has_non_none_type t := by
+          unfold term_has_non_none_type
+          rw [hArg]
+          simp
+        exact supported_preservation_term.not hArgNN (go t hArgNN)
+    | SmtTerm.or t1 t2 =>
+        have hArgs :=
+          bool_binop_args_bool_of_non_none (op := SmtTerm.or) (typeof_or_eq t1 t2) ht
+        have ht1 : term_has_non_none_type t1 := by
+          unfold term_has_non_none_type
+          rw [hArgs.1]
+          simp
+        have ht2 : term_has_non_none_type t2 := by
+          unfold term_has_non_none_type
+          rw [hArgs.2]
+          simp
+        exact supported_preservation_term.or ht1 (go t1 ht1) ht2 (go t2 ht2)
+    | SmtTerm.and t1 t2 =>
+        have hArgs :=
+          bool_binop_args_bool_of_non_none (op := SmtTerm.and) (typeof_and_eq t1 t2) ht
+        have ht1 : term_has_non_none_type t1 := by
+          unfold term_has_non_none_type
+          rw [hArgs.1]
+          simp
+        have ht2 : term_has_non_none_type t2 := by
+          unfold term_has_non_none_type
+          rw [hArgs.2]
+          simp
+        exact supported_preservation_term.and ht1 (go t1 ht1) ht2 (go t2 ht2)
+    | SmtTerm.imp t1 t2 =>
+        have hArgs :=
+          bool_binop_args_bool_of_non_none (op := SmtTerm.imp) (typeof_imp_eq t1 t2) ht
+        have ht1 : term_has_non_none_type t1 := by
+          unfold term_has_non_none_type
+          rw [hArgs.1]
+          simp
+        have ht2 : term_has_non_none_type t2 := by
+          unfold term_has_non_none_type
+          rw [hArgs.2]
+          simp
+        exact supported_preservation_term.imp ht1 (go t1 ht1) ht2 (go t2 ht2)
+    | SmtTerm.Apply f x =>
+        cases f with
+        | «exists» s T body =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.exists s T body) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.exists s T body) hArgs.1)
+              (go x hArgs.2)
+        | «forall» s T body =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.forall s T body) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.forall s T body) hArgs.1)
+              (go x hArgs.2)
+        | choice_nth s T body n =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.choice_nth s T body n) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.choice_nth s T body n) hArgs.1)
+              (go x hArgs.2)
+        | DtSel s d i j =>
+            have htx : term_has_non_none_type x := by
+              have hx : __smtx_typeof x = SmtType.Datatype s d :=
+                dt_sel_arg_datatype_of_non_none (s := s) (d := d) (i := i) (j := j) (x := x) ht
+              unfold term_has_non_none_type
+              rw [hx]
+              simp
+            exact supported_preservation_term.dt_sel
+              ht
+              (dt_sel_term_inhabited_of_non_none (s := s) (d := d) (i := i) (j := j) (x := x) ht)
+              htx
+              (go x htx)
+        | DtTester s d i =>
+            exact supported_preservation_term.dt_tester s d i x
+        | None =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.None) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go SmtTerm.None hArgs.1)
+              (go x hArgs.2)
+        | Boolean b =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Boolean b) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.Boolean b) hArgs.1)
+              (go x hArgs.2)
+        | Numeral n =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Numeral n) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.Numeral n) hArgs.1)
+              (go x hArgs.2)
+        | Rational q =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Rational q) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.Rational q) hArgs.1)
+              (go x hArgs.2)
+        | String s =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.String s) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.String s) hArgs.1)
+              (go x hArgs.2)
+        | Binary w n =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Binary w n) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.Binary w n) hArgs.1)
+              (go x hArgs.2)
+        | Apply f1 x1 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Apply f1 x1) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.Apply f1 x1) hArgs.1)
+              (go x hArgs.2)
+        | Var s T =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.Var s T) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.Var s T) hArgs.1)
+              (go x hArgs.2)
+        | ite c t1 t2 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.ite c t1 t2) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.ite c t1 t2) hArgs.1)
+              (go x hArgs.2)
+        | eq t1 t2 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.eq t1 t2) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.eq t1 t2) hArgs.1)
+              (go x hArgs.2)
+        | DtCons s d i =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.DtCons s d i) (x := x)
+              (by intro s' d' i' j hEq; cases hEq)
+              (by intro s' d' i' hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.DtCons s d i) hArgs.1)
+              (go x hArgs.2)
+        | UConst s T =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.UConst s T) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.UConst s T) hArgs.1)
+              (go x hArgs.2)
+        | not t =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.not t) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.not t) hArgs.1)
+              (go x hArgs.2)
+        | or t1 t2 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.or t1 t2) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.or t1 t2) hArgs.1)
+              (go x hArgs.2)
+        | and t1 t2 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.and t1 t2) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.and t1 t2) hArgs.1)
+              (go x hArgs.2)
+        | imp t1 t2 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.imp t1 t2) (x := x)
+              (by intro s d i j hEq; cases hEq)
+              (by intro s d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.imp t1 t2) hArgs.1)
+              (go x hArgs.2)
   exact go
 
 /-- Main type-preservation theorem for evaluation of non-`None` SMT terms in total typed models. -/

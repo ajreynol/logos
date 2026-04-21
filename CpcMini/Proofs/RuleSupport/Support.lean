@@ -29,7 +29,7 @@ inductive CmdListTranslationOk : CCmdList -> Prop
 /-- Builds the right-associated conjunction of a list of premise terms, using `true` as the empty case. -/
 def premiseAndFormulaList : List Term -> Term
   | [] => Term.Boolean true
-  | p :: ps => Term.Apply (Term.Apply Term.and p) (premiseAndFormulaList ps)
+  | p :: ps => Term.Apply (Term.Apply (Term.UOp UserOp.and) p) (premiseAndFormulaList ps)
 
 /-- Collects the proven terms referenced by a premise index list in a checker state. -/
 def premiseTermList (s : CState) : CIndexList -> List Term
@@ -102,12 +102,12 @@ by
 /-- Lemma about `premiseAndFormulaList_is_and_list`. -/
 theorem premiseAndFormulaList_is_and_list :
   ∀ premises : List Term,
-    __eo_is_list Term.and (premiseAndFormulaList premises) = Term.Boolean true
+    __eo_is_list (Term.UOp UserOp.and) (premiseAndFormulaList premises) = Term.Boolean true
 :=
 by
   have hGetNil :
       ∀ premises : List Term,
-        __eo_get_nil_rec Term.and (premiseAndFormulaList premises) ≠ Term.Stuck
+        __eo_get_nil_rec (Term.UOp UserOp.and) (premiseAndFormulaList premises) ≠ Term.Stuck
   :=
   by
     intro premises
@@ -125,7 +125,7 @@ by
         simpa [native_ite, native_teq, native_not, SmtEval.native_not] using ih
   intro premises
   have hNotStuck :
-      __eo_get_nil_rec Term.and (premiseAndFormulaList premises) ≠ Term.Stuck :=
+      __eo_get_nil_rec (Term.UOp UserOp.and) (premiseAndFormulaList premises) ≠ Term.Stuck :=
     hGetNil premises
   have hPremNotStuck : premiseAndFormulaList premises ≠ Term.Stuck :=
     by
@@ -141,7 +141,7 @@ by
 /-- Establishes an equality relating `mk_premise_list_and` and `premiseAndFormulaList`. -/
 theorem mk_premise_list_and_eq_premiseAndFormulaList :
   ∀ (s : CState) (premises : CIndexList),
-    __eo_mk_premise_list Term.and premises s =
+    __eo_mk_premise_list (Term.UOp UserOp.and) premises s =
       premiseAndFormulaList (premiseTermList s premises)
 :=
 by

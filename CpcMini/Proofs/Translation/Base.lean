@@ -36,8 +36,12 @@ theorem eo_to_smt_ne_dt_tester (t : Term) (s : native_String) (d : SmtDatatype) 
       (by intro s' hEq; cases hEq) h
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case UOp op =>
+      cases op <;> rw [__eo_to_smt.eq_def] at h <;> cases h
     case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
+      cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+      case UOp op =>
+        cases op <;> rw [__eo_to_smt.eq_def] at h <;> cases h
 
 /-- If the EO head is not a selector, its translation is not a bare SMT selector. -/
 theorem eo_to_smt_ne_dt_sel
@@ -54,8 +58,12 @@ theorem eo_to_smt_ne_dt_sel
     exact hNoSel _ _ _ _ rfl
   case Apply f x =>
     cases f <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+    case UOp op =>
+      cases op <;> rw [__eo_to_smt.eq_def] at h <;> cases h
     case Apply g y =>
-      cases g <;> rw [__eo_to_smt.eq_def] at h <;> cases h
+      cases g <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+      case UOp op =>
+        cases op <;> rw [__eo_to_smt.eq_def] at h <;> cases h
 
 /-- Simplifies EO-to-SMT translation for `boolean`. -/
 @[simp] theorem eo_to_smt_boolean (b : native_Bool) :
@@ -78,11 +86,11 @@ theorem eo_to_smt_ne_dt_sel
 
 /-- Simplifies EO-to-SMT type translation for `int`. -/
 @[simp] theorem eo_to_smt_type_int :
-    __eo_to_smt_type Term.Int = SmtType.Int := rfl
+    __eo_to_smt_type (Term.UOp UserOp.Int) = SmtType.Int := rfl
 
 /-- Simplifies EO-to-SMT type translation for `real`. -/
 @[simp] theorem eo_to_smt_type_real :
-    __eo_to_smt_type Term.Real = SmtType.Real := rfl
+    __eo_to_smt_type (Term.UOp UserOp.Real) = SmtType.Real := rfl
 
 /-- Simplifies EO-to-SMT type translation for `fun`. -/
 @[simp] theorem eo_to_smt_type_fun (T U : Term) :
@@ -102,17 +110,17 @@ theorem eo_to_smt_ne_dt_sel
 
 /-- Simplifies EO-to-SMT type translation for `bitvec`. -/
 @[simp] theorem eo_to_smt_type_bitvec (n : native_Int) :
-    __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n)) =
       native_ite (native_zleq 0 n) (SmtType.BitVec (native_int_to_nat n)) SmtType.None := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `char`. -/
 @[simp] theorem eo_to_smt_type_char :
-    __eo_to_smt_type Term.Char = SmtType.Char := rfl
+    __eo_to_smt_type (Term.UOp UserOp.Char) = SmtType.Char := rfl
 
 /-- Simplifies EO-to-SMT type translation for `seq`. -/
 @[simp] theorem eo_to_smt_type_seq (T : Term) :
-    __eo_to_smt_type (Term.Apply Term.Seq T) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) =
       __smtx_typeof_guard (__eo_to_smt_type T) (SmtType.Seq (__eo_to_smt_type T)) := by
   simp [__eo_to_smt_type]
 
@@ -132,8 +140,8 @@ theorem smtx_typeof_var_of_non_none
   __smtx_typeof (SmtTerm.Var s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.Var s T) = T := by
   intro h
-  rw [__smtx_typeof.eq_19]
-  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof.eq_19] using h)
+  rw [__smtx_typeof.eq_19] at h ⊢
+  exact smtx_typeof_guard_wf_of_non_none T T h
 
 /-- Computes `__smtx_typeof` for `uconst_of_non_none`. -/
 theorem smtx_typeof_uconst_of_non_none
@@ -141,8 +149,8 @@ theorem smtx_typeof_uconst_of_non_none
   __smtx_typeof (SmtTerm.UConst s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.UConst s T) = T := by
   intro h
-  rw [__smtx_typeof.eq_20]
-  exact smtx_typeof_guard_wf_of_non_none T T (by simpa [__smtx_typeof.eq_20] using h)
+  rw [__smtx_typeof.eq_20] at h ⊢
+  exact smtx_typeof_guard_wf_of_non_none T T h
 
 /-- Derives `smtx_binary_well_formed` from `non_none`. -/
 theorem smtx_binary_well_formed_of_non_none

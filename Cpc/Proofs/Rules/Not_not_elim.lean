@@ -19,8 +19,7 @@ private theorem eo_interprets_of_not_false (M : SmtModel) (F : Term) :
   rw [__eo_to_smt.eq_def] at hNotFalse
   cases hNotFalse with
   | intro_false _ hEvalNot =>
-      change __smtx_model_eval_not (__smtx_model_eval M (__eo_to_smt F)) =
-          SmtValue.Boolean false at hEvalNot
+      rw [__smtx_model_eval.eq_6] at hEvalNot
       cases hEvalF : __smtx_model_eval M (__eo_to_smt F) with
       | NotValue =>
           exfalso
@@ -78,26 +77,30 @@ theorem typed___eo_prog_not_not_elim_impl (x1 : Term) :
   cases x1 with
   | Apply f a =>
       cases f with
-      | not =>
-          cases a with
-          | Apply g F =>
-              cases g with
-              | not =>
-                  have hNotFBool : RuleProofs.eo_has_bool_type (Term.Apply Term.not F) :=
-                    RuleProofs.eo_has_bool_type_not_arg _ hX1Bool
-                  exact RuleProofs.eo_has_bool_type_not_arg F hNotFBool
+      | UOp op =>
+          cases op with
+          | not =>
+              cases a with
+              | Apply g F =>
+                  cases g with
+                  | UOp op' =>
+                      cases op' with
+                      | not =>
+                          have hNotFBool : RuleProofs.eo_has_bool_type (Term.Apply Term.not F) :=
+                            RuleProofs.eo_has_bool_type_not_arg _ hX1Bool
+                          exact RuleProofs.eo_has_bool_type_not_arg F hNotFBool
+                      | _ =>
+                          simp [__eo_prog_not_not_elim] at hProg
+                  | _ =>
+                      simp [__eo_prog_not_not_elim] at hProg
               | _ =>
-                  change Term.Stuck ≠ Term.Stuck at hProg
-                  exact False.elim (hProg rfl)
+                  simp [__eo_prog_not_not_elim] at hProg
           | _ =>
-              change Term.Stuck ≠ Term.Stuck at hProg
-              exact False.elim (hProg rfl)
+              simp [__eo_prog_not_not_elim] at hProg
       | _ =>
-          change Term.Stuck ≠ Term.Stuck at hProg
-          exact False.elim (hProg rfl)
+          simp [__eo_prog_not_not_elim] at hProg
   | _ =>
-      change Term.Stuck ≠ Term.Stuck at hProg
-      exact False.elim (hProg rfl)
+      simp [__eo_prog_not_not_elim] at hProg
 
 /-- Derives the checker facts exposed by the EO program for `not_not_elim`. -/
 theorem facts___eo_prog_not_not_elim_impl (M : SmtModel) (x1 : Term) :
@@ -108,26 +111,30 @@ theorem facts___eo_prog_not_not_elim_impl (M : SmtModel) (x1 : Term) :
   cases x1 with
   | Apply f a =>
       cases f with
-      | not =>
-          cases a with
-          | Apply g F =>
-              cases g with
-              | not =>
-                  exact eo_interprets_of_not_false M F
-                    (RuleProofs.eo_interprets_not_true_implies_false M
-                      (Term.Apply Term.not F) hX1True)
+      | UOp op =>
+          cases op with
+          | not =>
+              cases a with
+              | Apply g F =>
+                  cases g with
+                  | UOp op' =>
+                      cases op' with
+                      | not =>
+                          exact eo_interprets_of_not_false M F
+                            (RuleProofs.eo_interprets_not_true_implies_false M
+                              (Term.Apply Term.not F) hX1True)
+                      | _ =>
+                          simp [__eo_prog_not_not_elim] at hProg
+                  | _ =>
+                      simp [__eo_prog_not_not_elim] at hProg
               | _ =>
-                  change Term.Stuck ≠ Term.Stuck at hProg
-                  exact False.elim (hProg rfl)
+                  simp [__eo_prog_not_not_elim] at hProg
           | _ =>
-              change Term.Stuck ≠ Term.Stuck at hProg
-              exact False.elim (hProg rfl)
+              simp [__eo_prog_not_not_elim] at hProg
       | _ =>
-          change Term.Stuck ≠ Term.Stuck at hProg
-          exact False.elim (hProg rfl)
+          simp [__eo_prog_not_not_elim] at hProg
   | _ =>
-      change Term.Stuck ≠ Term.Stuck at hProg
-      exact False.elim (hProg rfl)
+      simp [__eo_prog_not_not_elim] at hProg
 
 theorem cmd_step_not_not_elim_properties
     (M : SmtModel) (hM : model_total_typed M)

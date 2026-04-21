@@ -6,8 +6,53 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 set_option allowUnsafeReducibility true
+attribute [local reducible] __smtx_typeof
 
 namespace Smtm
+
+/-- Rewrites the typing equation for `ite`. -/
+theorem typeof_ite_eq
+    (c t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.ite c t1 t2) =
+      __smtx_typeof_ite (__smtx_typeof c) (__smtx_typeof t1) (__smtx_typeof t2) := by
+  rw [__smtx_typeof.eq_10]
+
+/-- Rewrites the typing equation for `eq`. -/
+theorem typeof_eq_eq
+    (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.eq t1 t2) =
+      __smtx_typeof_eq (__smtx_typeof t1) (__smtx_typeof t2) := by
+  rw [__smtx_typeof.eq_11]
+
+/-- Rewrites the typing equation for `not`. -/
+theorem typeof_not_eq (t : SmtTerm) :
+    __smtx_typeof (SmtTerm.not t) =
+      native_ite (native_Teq (__smtx_typeof t) SmtType.Bool) SmtType.Bool SmtType.None := by
+  rw [__smtx_typeof.eq_6]
+
+/-- Rewrites the typing equation for `or`. -/
+theorem typeof_or_eq (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.or t1 t2) =
+      native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
+        (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
+        SmtType.None := by
+  rw [__smtx_typeof.eq_7]
+
+/-- Rewrites the typing equation for `and`. -/
+theorem typeof_and_eq (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.and t1 t2) =
+      native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
+        (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
+        SmtType.None := by
+  rw [__smtx_typeof.eq_8]
+
+/-- Rewrites the typing equation for `imp`. -/
+theorem typeof_imp_eq (t1 t2 : SmtTerm) :
+    __smtx_typeof (SmtTerm.imp t1 t2) =
+      native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
+        (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
+        SmtType.None := by
+  rw [__smtx_typeof.eq_9]
 
 /-- Derives `bool_binop_args_bool` from `non_none`. -/
 theorem bool_binop_args_bool_of_non_none
@@ -35,21 +80,22 @@ theorem ite_args_of_non_none
         __smtx_typeof t2 = T ∧
         T ≠ SmtType.None := by
   unfold term_has_non_none_type at ht
+  rw [typeof_ite_eq] at ht
   let T1 := __smtx_typeof t1
   let T2 := __smtx_typeof t2
   have hBool : __smtx_typeof c = SmtType.Bool := by
     cases hc : __smtx_typeof c <;>
-      simp [__smtx_typeof, __smtx_typeof_ite, native_ite, hc] at ht
+      simp [__smtx_typeof_ite, native_ite, hc, T1, T2] at ht
     simp
   by_cases hEq : native_Teq T1 T2 = true
   · have hT : T1 = T2 := by
       simpa [native_Teq] using hEq
     have hNN : T1 ≠ SmtType.None := by
-      simpa [__smtx_typeof, __smtx_typeof_ite, native_ite, hBool, T1, T2, hEq] using ht
+      simpa [__smtx_typeof_ite, native_ite, hBool, T1, T2, hEq] using ht
     exact ⟨T1, hBool, rfl, by simpa [T1, T2] using hT.symm, hNN⟩
   · exfalso
     apply ht
-    simp [__smtx_typeof, __smtx_typeof_ite, native_ite, hBool, T1, T2, hEq]
+    simp [__smtx_typeof_ite, native_ite, hBool, T1, T2, hEq]
 
 /-- Shows that evaluating `ite` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_ite
@@ -65,7 +111,8 @@ theorem typeof_value_model_eval_ite
   rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, hT⟩
   rw [show __smtx_typeof
       (SmtTerm.ite c t1 t2) = T by
-    simp [__smtx_typeof, __smtx_typeof_ite, native_ite, native_Teq, hc, h1, h2]]
+    rw [typeof_ite_eq]
+    simp [__smtx_typeof_ite, native_ite, native_Teq, hc, h1, h2]]
   rw [show __smtx_model_eval M (SmtTerm.ite c t1 t2) =
       __smtx_model_eval_ite (__smtx_model_eval M c) (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
     simp [__smtx_model_eval]]
@@ -81,8 +128,9 @@ theorem eq_term_typeof_of_non_none
     (ht : term_has_non_none_type (SmtTerm.eq t1 t2)) :
     __smtx_typeof (SmtTerm.eq t1 t2) = SmtType.Bool := by
   unfold term_has_non_none_type at ht
+  rw [typeof_eq_eq] at ht ⊢
   cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
-    simp [__smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq, h1, h2] at ht ⊢
+    simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq, h1, h2] at ht ⊢
   all_goals
     first | exact ht
 
@@ -96,11 +144,13 @@ theorem typeof_value_model_eval_not
       __smtx_typeof (SmtTerm.not t) := by
   have hArg : __smtx_typeof t = SmtType.Bool := by
     unfold term_has_non_none_type at ht
+    rw [typeof_not_eq] at ht
     cases h : __smtx_typeof t <;>
-      simp [__smtx_typeof, native_ite, native_Teq, h] at ht
-    simp
+      simp [native_ite, native_Teq, h] at ht
+    rfl
   rw [show __smtx_typeof (SmtTerm.not t) = SmtType.Bool by
-    simp [__smtx_typeof, native_ite, native_Teq, hArg]]
+    rw [typeof_not_eq]
+    simp [native_ite, native_Teq, hArg]]
   rw [show __smtx_model_eval M (SmtTerm.not t) =
       __smtx_model_eval_not (__smtx_model_eval M t) by
     simp [__smtx_model_eval]]
@@ -121,11 +171,11 @@ theorem typeof_value_model_eval_or
       __smtx_typeof (SmtTerm.or t1 t2) =
         native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
           (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
-          SmtType.None := by
-    simp [__smtx_typeof]
+          SmtType.None := typeof_or_eq t1 t2
   have hArgs := bool_binop_args_bool_of_non_none hTy ht
   rw [show __smtx_typeof (SmtTerm.or t1 t2) = SmtType.Bool by
-    simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
+    rw [typeof_or_eq]
+    simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
   rw [show __smtx_model_eval M (SmtTerm.or t1 t2) =
       __smtx_model_eval_or (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
     simp [__smtx_model_eval]]
@@ -147,11 +197,11 @@ theorem typeof_value_model_eval_and
       __smtx_typeof (SmtTerm.and t1 t2) =
         native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
           (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
-          SmtType.None := by
-    simp [__smtx_typeof]
+          SmtType.None := typeof_and_eq t1 t2
   have hArgs := bool_binop_args_bool_of_non_none hTy ht
   rw [show __smtx_typeof (SmtTerm.and t1 t2) = SmtType.Bool by
-    simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
+    rw [typeof_and_eq]
+    simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
   rw [show __smtx_model_eval M (SmtTerm.and t1 t2) =
       __smtx_model_eval_and (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
     simp [__smtx_model_eval]]
@@ -173,11 +223,11 @@ theorem typeof_value_model_eval_imp
       __smtx_typeof (SmtTerm.imp t1 t2) =
         native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
           (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
-          SmtType.None := by
-    simp [__smtx_typeof]
+          SmtType.None := typeof_imp_eq t1 t2
   have hArgs := bool_binop_args_bool_of_non_none hTy ht
   rw [show __smtx_typeof (SmtTerm.imp t1 t2) = SmtType.Bool by
-    simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
+    rw [typeof_imp_eq]
+    simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
   rw [show __smtx_model_eval M (SmtTerm.imp t1 t2) =
       __smtx_model_eval_imp (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
     simp [__smtx_model_eval]]

@@ -39,7 +39,11 @@ theorem eo_requires_eq_of_eq_not_stuck (x1 x2 x3 : Term) :
 theorem mk_trans_step_eq (t1 t2 t3 t4 tail : Term) :
   t1 ≠ Term.Stuck ->
   t2 ≠ Term.Stuck ->
-  __mk_trans t1 t2 (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail) =
+  __mk_trans t1 t2
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
+        tail) =
     __eo_requires t2 t3 (__mk_trans t1 t4 tail) := by
   intro _ _
   simp [__mk_trans]
@@ -48,7 +52,8 @@ theorem mk_trans_step_eq (t1 t2 t3 t4 tail : Term) :
 theorem mk_trans_base_eq (t1 t2 : Term) :
   t1 ≠ Term.Stuck ->
   t2 ≠ Term.Stuck ->
-  __mk_trans t1 t2 (Term.Boolean true) = Term.Apply (Term.Apply Term.eq t1) t2 := by
+  __mk_trans t1 t2 (Term.Boolean true) =
+    Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2 := by
   intro _ _
   simp [__mk_trans]
 
@@ -66,21 +71,34 @@ private theorem mk_trans_shape_of_not_stuck (t1 t2 tail : Term) :
   t2 ≠ Term.Stuck ->
   __mk_trans t1 t2 tail ≠ Term.Stuck ->
   tail = Term.Boolean true ∨
-    ∃ t3 t4 tail', tail = Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail' := by
+    ∃ t3 t4 tail',
+      tail =
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp.and)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
+          tail' := by
   intro hT1 hT2 hProg
   cases tail with
   | Apply f tail' =>
       cases f with
       | Apply g eq34 =>
           cases g with
-          | and =>
-              cases eq34 with
-              | Apply g2 t4 =>
-                  cases g2 with
-                  | Apply g3 t3 =>
-                      cases g3 with
-                      | eq =>
-                          exact Or.inr ⟨t3, t4, tail', rfl⟩
+          | UOp op =>
+              cases op with
+              | and =>
+                  cases eq34 with
+                  | Apply g2 t4 =>
+                      cases g2 with
+                      | Apply g3 t3 =>
+                          cases g3 with
+                          | UOp op2 =>
+                              cases op2 with
+                              | eq =>
+                                  exact Or.inr ⟨t3, t4, tail', rfl⟩
+                              | _ =>
+                                  exact False.elim (hProg (by simp [__mk_trans]))
+                          | _ =>
+                              exact False.elim (hProg (by simp [__mk_trans]))
                       | _ =>
                           exact False.elim (hProg (by simp [__mk_trans]))
                   | _ =>
@@ -103,7 +121,11 @@ private theorem mk_trans_shape_of_not_stuck (t1 t2 tail : Term) :
 /-- Lemma about `sizeOf_lt_trans_tail`. -/
 private theorem sizeOf_lt_trans_tail (t3 t4 tail : Term) :
   sizeOf tail <
-    sizeOf (Term.Apply (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t3) t4)) tail) := by
+    sizeOf
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
+        tail) := by
   simp
   omega
 
@@ -111,12 +133,13 @@ private theorem sizeOf_lt_trans_tail (t3 t4 tail : Term) :
 private theorem typed_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
     eo_interprets M
       (Term.Apply
-        (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2))
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
         tail) true ->
     __mk_trans t1 t2 tail ≠ Term.Stuck ->
     RuleProofs.eo_has_bool_type (__mk_trans t1 t2 tail) := by
   intro hChainTrue hProg
-  let eq12 := Term.Apply (Term.Apply Term.eq t1) t2
+  let eq12 := Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2
   have hEq12True : eo_interprets M eq12 true := by
     simpa [eq12] using RuleProofs.eo_interprets_and_left M eq12 tail hChainTrue
   rcases RuleProofs.eo_eq_operands_same_smt_type M t1 t2 hEq12True with ⟨hTy12, hT1Ty⟩
@@ -135,12 +158,12 @@ private theorem typed_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
   | inr hStep =>
       rcases hStep with ⟨t3, t4, tail', hTail⟩
       subst hTail
-      let eq34 := Term.Apply (Term.Apply Term.eq t3) t4
+      let eq34 := Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4
       have hTailTrue :
-          eo_interprets M (Term.Apply (Term.Apply Term.and eq34) tail') true := by
+          eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) eq34) tail') true := by
         simpa [eq12, eq34] using
           RuleProofs.eo_interprets_and_right M eq12
-            (Term.Apply (Term.Apply Term.and eq34) tail') hChainTrue
+            (Term.Apply (Term.Apply (Term.UOp UserOp.and) eq34) tail') hChainTrue
       have hEq34True : eo_interprets M eq34 true := by
         simpa [eq34] using
           RuleProofs.eo_interprets_and_left M eq34 tail' hTailTrue
@@ -154,18 +177,19 @@ private theorem typed_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
       rcases eo_requires_not_stuck t2 t3 (__mk_trans t1 t4 tail') hReqNotStuck with
         ⟨h23, _hT2NotStuck, hRecNotStuck⟩
       have hEq24True :
-          eo_interprets M (Term.Apply (Term.Apply Term.eq t2) t4) true := by
+          eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t2) t4) true := by
         simpa [eq34, h23] using hEq34True
       have hEq14True :
-          eo_interprets M (Term.Apply (Term.Apply Term.eq t1) t4) true :=
+          eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4) true :=
         RuleProofs.eo_interprets_eq_trans M t1 t2 t4 hEq12True hEq24True
       have hCompressedTrue :
           eo_interprets M
             (Term.Apply
-              (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t4))
+              (Term.Apply (Term.UOp UserOp.and)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4))
               tail') true :=
         RuleProofs.eo_interprets_and_intro M
-          (Term.Apply (Term.Apply Term.eq t1) t4) tail'
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4) tail'
           hEq14True hRestTrue
       rw [mk_trans_step_eq t1 t2 t3 t4 tail' hT1NotStuck hT2NotStuck]
       rw [eo_requires_eq_of_eq_not_stuck t2 t3 (__mk_trans t1 t4 tail') h23 hT2NotStuck]
@@ -178,12 +202,13 @@ decreasing_by
 private theorem typed_mk_trans_of_bool_chain (t1 t2 tail : Term) :
     RuleProofs.eo_has_bool_type
       (Term.Apply
-        (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2))
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
         tail) ->
     __mk_trans t1 t2 tail ≠ Term.Stuck ->
     RuleProofs.eo_has_bool_type (__mk_trans t1 t2 tail) := by
   intro hChainBool hProg
-  let eq12 := Term.Apply (Term.Apply Term.eq t1) t2
+  let eq12 := Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2
   have hEq12Bool : RuleProofs.eo_has_bool_type eq12 := by
     simpa [eq12] using RuleProofs.eo_has_bool_type_and_left eq12 tail hChainBool
   rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type t1 t2 hEq12Bool with
@@ -203,12 +228,13 @@ private theorem typed_mk_trans_of_bool_chain (t1 t2 tail : Term) :
   | inr hStep =>
       rcases hStep with ⟨t3, t4, tail', hTail⟩
       subst hTail
-      let eq34 := Term.Apply (Term.Apply Term.eq t3) t4
+      let eq34 := Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4
       have hTailBool :
-          RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.and eq34) tail') := by
+          RuleProofs.eo_has_bool_type
+            (Term.Apply (Term.Apply (Term.UOp UserOp.and) eq34) tail') := by
         simpa [eq12, eq34] using
           RuleProofs.eo_has_bool_type_and_right eq12
-            (Term.Apply (Term.Apply Term.and eq34) tail') hChainBool
+            (Term.Apply (Term.Apply (Term.UOp UserOp.and) eq34) tail') hChainBool
       have hEq34Bool : RuleProofs.eo_has_bool_type eq34 := by
         simpa [eq34] using
           RuleProofs.eo_has_bool_type_and_left eq34 tail' hTailBool
@@ -222,18 +248,21 @@ private theorem typed_mk_trans_of_bool_chain (t1 t2 tail : Term) :
       rcases eo_requires_not_stuck t2 t3 (__mk_trans t1 t4 tail') hReqNotStuck with
         ⟨h23, _hT2NotStuck, hRecNotStuck⟩
       have hEq24Bool :
-          RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq t2) t4) := by
+          RuleProofs.eo_has_bool_type
+            (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t2) t4) := by
         simpa [eq34, h23] using hEq34Bool
       have hEq14Bool :
-          RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq t1) t4) :=
+          RuleProofs.eo_has_bool_type
+            (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4) :=
         RuleProofs.eo_has_bool_type_eq_of_bool_chain t1 t2 t4 hEq12Bool hEq24Bool
       have hCompressedBool :
           RuleProofs.eo_has_bool_type
             (Term.Apply
-              (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t4))
+              (Term.Apply (Term.UOp UserOp.and)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4))
               tail') :=
         RuleProofs.eo_has_bool_type_and_of_bool_args
-          (Term.Apply (Term.Apply Term.eq t1) t4) tail' hEq14Bool hRestBool
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4) tail' hEq14Bool hRestBool
       rw [mk_trans_step_eq t1 t2 t3 t4 tail' hT1NotStuck hT2NotStuck]
       rw [eo_requires_eq_of_eq_not_stuck t2 t3 (__mk_trans t1 t4 tail') h23 hT2NotStuck]
       exact typed_mk_trans_of_bool_chain t1 t4 tail' hCompressedBool hRecNotStuck
@@ -245,12 +274,13 @@ decreasing_by
 private theorem correct_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
     eo_interprets M
       (Term.Apply
-        (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t2))
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
         tail) true ->
     __mk_trans t1 t2 tail ≠ Term.Stuck ->
     eo_interprets M (__mk_trans t1 t2 tail) true := by
   intro hChainTrue hProg
-  let eq12 := Term.Apply (Term.Apply Term.eq t1) t2
+  let eq12 := Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2
   have hEq12True : eo_interprets M eq12 true := by
     simpa [eq12] using RuleProofs.eo_interprets_and_left M eq12 tail hChainTrue
   rcases RuleProofs.eo_eq_operands_same_smt_type M t1 t2 hEq12True with ⟨hTy12, hT1Ty⟩
@@ -269,12 +299,12 @@ private theorem correct_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
   | inr hStep =>
       rcases hStep with ⟨t3, t4, tail', hTail⟩
       subst hTail
-      let eq34 := Term.Apply (Term.Apply Term.eq t3) t4
+      let eq34 := Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4
       have hTailTrue :
-          eo_interprets M (Term.Apply (Term.Apply Term.and eq34) tail') true := by
+          eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) eq34) tail') true := by
         simpa [eq12, eq34] using
           RuleProofs.eo_interprets_and_right M eq12
-            (Term.Apply (Term.Apply Term.and eq34) tail') hChainTrue
+            (Term.Apply (Term.Apply (Term.UOp UserOp.and) eq34) tail') hChainTrue
       have hEq34True : eo_interprets M eq34 true := by
         simpa [eq34] using
           RuleProofs.eo_interprets_and_left M eq34 tail' hTailTrue
@@ -288,18 +318,19 @@ private theorem correct_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
       rcases eo_requires_not_stuck t2 t3 (__mk_trans t1 t4 tail') hReqNotStuck with
         ⟨h23, _hT2NotStuck, hRecNotStuck⟩
       have hEq24True :
-          eo_interprets M (Term.Apply (Term.Apply Term.eq t2) t4) true := by
+          eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t2) t4) true := by
         simpa [eq34, h23] using hEq34True
       have hEq14True :
-          eo_interprets M (Term.Apply (Term.Apply Term.eq t1) t4) true :=
+          eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4) true :=
         RuleProofs.eo_interprets_eq_trans M t1 t2 t4 hEq12True hEq24True
       have hCompressedTrue :
           eo_interprets M
             (Term.Apply
-              (Term.Apply Term.and (Term.Apply (Term.Apply Term.eq t1) t4))
+              (Term.Apply (Term.UOp UserOp.and)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4))
               tail') true :=
         RuleProofs.eo_interprets_and_intro M
-          (Term.Apply (Term.Apply Term.eq t1) t4) tail'
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4) tail'
           hEq14True hRestTrue
       rw [mk_trans_step_eq t1 t2 t3 t4 tail' hT1NotStuck hT2NotStuck]
       rw [eo_requires_eq_of_eq_not_stuck t2 t3 (__mk_trans t1 t4 tail') h23 hT2NotStuck]
@@ -320,15 +351,23 @@ by
       cases f with
       | Apply g eq12 =>
           cases g with
-          | and =>
-              cases eq12 with
-              | Apply g2 t2 =>
-                  cases g2 with
-                  | Apply g3 t1 =>
-                      cases g3 with
-                      | eq =>
-                          simpa [__eo_prog_trans] using
-                            typed_mk_trans_of_bool_chain t1 t2 tail hX1Bool hProg
+          | UOp op =>
+              cases op with
+              | and =>
+                  cases eq12 with
+                  | Apply g2 t2 =>
+                      cases g2 with
+                      | Apply g3 t1 =>
+                          cases g3 with
+                          | UOp op2 =>
+                              cases op2 with
+                              | eq =>
+                                  simpa [__eo_prog_trans] using
+                                    typed_mk_trans_of_bool_chain t1 t2 tail hX1Bool hProg
+                              | _ =>
+                                  exact False.elim (hProg (by simp [__eo_prog_trans]))
+                          | _ =>
+                              exact False.elim (hProg (by simp [__eo_prog_trans]))
                       | _ =>
                           exact False.elim (hProg (by simp [__eo_prog_trans]))
                   | _ =>
@@ -357,15 +396,23 @@ by
       cases f with
       | Apply g eq12 =>
           cases g with
-          | and =>
-              cases eq12 with
-              | Apply g2 t2 =>
-                  cases g2 with
-                  | Apply g3 t1 =>
-                      cases g3 with
-                      | eq =>
-                          simpa [__eo_prog_trans] using
-                            correct_mk_trans M t1 t2 tail hX1True hProg
+          | UOp op =>
+              cases op with
+              | and =>
+                  cases eq12 with
+                  | Apply g2 t2 =>
+                      cases g2 with
+                      | Apply g3 t1 =>
+                          cases g3 with
+                          | UOp op2 =>
+                              cases op2 with
+                              | eq =>
+                                  simpa [__eo_prog_trans] using
+                                    correct_mk_trans M t1 t2 tail hX1True hProg
+                              | _ =>
+                                  exact False.elim (hProg (by simp [__eo_prog_trans]))
+                          | _ =>
+                              exact False.elim (hProg (by simp [__eo_prog_trans]))
                       | _ =>
                           exact False.elim (hProg (by simp [__eo_prog_trans]))
                   | _ =>

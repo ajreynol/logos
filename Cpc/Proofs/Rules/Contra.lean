@@ -32,36 +32,39 @@ theorem typed___eo_prog_contra_impl (x1 x2 : Term) :
   cases x2 with
   | Apply f a =>
       cases f with
-      | not =>
-          by_cases hEq : x1 = a
-          · subst hEq
-            have hEqTerm : __eo_eq x1 x1 = Term.Boolean true := by
-              by_cases hStuck : x1 = Term.Stuck
-              · exact False.elim (hX1NotStuck hStuck)
-              · simp [__eo_eq, native_teq]
-            have hContraFalse :
-                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not x1)) =
-                  Term.Boolean false := by
-              rw [__eo_prog_contra, hEqTerm]
-              simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
-            rw [hContraFalse]
-            unfold RuleProofs.eo_has_bool_type
-            rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-              rw [__eo_to_smt.eq_def]]
-            rfl
-          · have hEqNe : __eo_eq x1 a ≠ Term.Boolean true :=
-              eo_eq_ne_true_of_ne x1 a hEq
-            have hContraStuck :
-                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
-              rw [__eo_prog_contra]
-              simp [__eo_requires, native_teq, native_ite, hEqNe]
-            exact False.elim (hProg hContraStuck)
+      | UOp op =>
+          cases op with
+          | not =>
+              by_cases hEq : x1 = a
+              · subst hEq
+                have hEqTerm : __eo_eq x1 x1 = Term.Boolean true := by
+                  by_cases hStuck : x1 = Term.Stuck
+                  · exact False.elim (hX1NotStuck hStuck)
+                  · simp [__eo_eq, native_teq]
+                have hContraFalse :
+                    __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not x1)) =
+                      Term.Boolean false := by
+                  rw [__eo_prog_contra, hEqTerm]
+                  simp [__eo_requires, native_teq, native_ite, native_not, SmtEval.native_not]
+                rw [hContraFalse]
+                unfold RuleProofs.eo_has_bool_type
+                rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
+                  rw [__eo_to_smt.eq_def]]
+                rw [__smtx_typeof.eq_1]
+              · have hEqNe : __eo_eq x1 a ≠ Term.Boolean true :=
+                  eo_eq_ne_true_of_ne x1 a hEq
+                have hContraStuck :
+                    __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) =
+                      Term.Stuck := by
+                  rw [__eo_prog_contra]
+                  simp [__eo_requires, native_teq, native_ite, hEqNe]
+                exact False.elim (hProg hContraStuck)
+          | _ =>
+              simp [__eo_prog_contra] at hProg
       | _ =>
-          change Term.Stuck ≠ Term.Stuck at hProg
-          exact False.elim (hProg rfl)
+          simp [__eo_prog_contra] at hProg
   | _ =>
-      change Term.Stuck ≠ Term.Stuck at hProg
-      exact False.elim (hProg rfl)
+      simp [__eo_prog_contra] at hProg
 
 namespace RuleProofs
 
@@ -77,28 +80,31 @@ theorem correct___eo_prog_contra (M : SmtModel) (x1 x2 : Term) :
   cases x2 with
   | Apply f a =>
       cases f with
-      | not =>
-          by_cases hEq : x1 = a
-          · subst hEq
-            have hX1False : eo_interprets M x1 false :=
-              eo_interprets_not_true_implies_false M x1 hX2True
-            exact False.elim ((eo_interprets_true_not_false M x1 hX1True) hX1False)
-          · exfalso
-            have hEq' : a ≠ x1 := by
-              simpa [eq_comm] using hEq
-            have hEqNe : __eo_eq x1 a ≠ Term.Boolean true :=
-              eo_eq_ne_true_of_ne x1 a hEq
-            have hContraStuck :
-                __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) = Term.Stuck := by
-              rw [__eo_prog_contra]
-              simp [__eo_requires, native_teq, native_ite, hEqNe]
-            exact hProgNotStuck hContraStuck
+      | UOp op =>
+          cases op with
+          | not =>
+              by_cases hEq : x1 = a
+              · subst hEq
+                have hX1False : eo_interprets M x1 false :=
+                  eo_interprets_not_true_implies_false M x1 hX2True
+                exact False.elim ((eo_interprets_true_not_false M x1 hX1True) hX1False)
+              · exfalso
+                have hEq' : a ≠ x1 := by
+                  simpa [eq_comm] using hEq
+                have hEqNe : __eo_eq x1 a ≠ Term.Boolean true :=
+                  eo_eq_ne_true_of_ne x1 a hEq
+                have hContraStuck :
+                    __eo_prog_contra (Proof.pf x1) (Proof.pf (Term.Apply Term.not a)) =
+                      Term.Stuck := by
+                  rw [__eo_prog_contra]
+                  simp [__eo_requires, native_teq, native_ite, hEqNe]
+                exact hProgNotStuck hContraStuck
+          | _ =>
+              simp [__eo_prog_contra] at hProgNotStuck
       | _ =>
-          change Term.Stuck ≠ Term.Stuck at hProgNotStuck
-          exact False.elim (hProgNotStuck rfl)
+          simp [__eo_prog_contra] at hProgNotStuck
   | _ =>
-      change Term.Stuck ≠ Term.Stuck at hProgNotStuck
-      exact False.elim (hProgNotStuck rfl)
+      simp [__eo_prog_contra] at hProgNotStuck
 
 end RuleProofs
 

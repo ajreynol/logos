@@ -19,7 +19,7 @@ by
     apply hTrans
     simp [hStuck, __eo_to_smt, __smtx_typeof]
   · have hRefl :
-        __eo_prog_refl x1 = Term.Apply (Term.Apply Term.eq x1) x1 := by
+        __eo_prog_refl x1 = Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) x1 := by
       simp [__eo_prog_refl]
     rw [hRefl]
     unfold RuleProofs.eo_has_bool_type
@@ -47,7 +47,7 @@ theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
 
 /-- Lemma about `not_eo_interprets_prog_refl_or_true`. -/
 theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :
-  ¬ eo_interprets M (__eo_prog_refl Term.or) true := by
+  ¬ eo_interprets M (__eo_prog_refl (Term.UOp UserOp.or)) true := by
   rw [eo_interprets_iff_smt_interprets]
   intro h
   cases h with
