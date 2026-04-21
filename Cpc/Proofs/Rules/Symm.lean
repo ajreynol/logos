@@ -18,32 +18,47 @@ theorem typed___eo_prog_symm_impl (x1 : Term) :
       cases f with
       | Apply g b =>
           cases g with
-          | eq =>
-              change RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq a) b)
-              exact RuleProofs.eo_has_bool_type_eq_symm b a hXBool
+          | UOp op =>
+              cases op with
+              | eq =>
+                  change RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq a) b)
+                  exact RuleProofs.eo_has_bool_type_eq_symm b a hXBool
+              | _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
           | _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)
-      | not =>
-          cases a with
-          | Apply f2 a2 =>
-              cases f2 with
-              | Apply g2 b2 =>
-                  cases g2 with
-                  | eq =>
-                      have hEqBool :
-                          RuleProofs.eo_has_bool_type
-                            (Term.Apply (Term.Apply Term.eq b2) a2) :=
-                        RuleProofs.eo_has_bool_type_not_arg
-                          (Term.Apply (Term.Apply Term.eq b2) a2) hXBool
-                      have hSymmEqBool :
-                          RuleProofs.eo_has_bool_type
-                            (Term.Apply (Term.Apply Term.eq a2) b2) :=
-                        RuleProofs.eo_has_bool_type_eq_symm b2 a2 hEqBool
-                      change RuleProofs.eo_has_bool_type
-                        (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq a2) b2))
-                      exact RuleProofs.eo_has_bool_type_not_of_bool_arg
-                        (Term.Apply (Term.Apply Term.eq a2) b2) hSymmEqBool
+      | UOp op =>
+          cases op with
+          | not =>
+              cases a with
+              | Apply f2 a2 =>
+                  cases f2 with
+                  | Apply g2 b2 =>
+                      cases g2 with
+                      | UOp op' =>
+                          cases op' with
+                          | eq =>
+                              have hEqBool :
+                                  RuleProofs.eo_has_bool_type
+                                    (Term.Apply (Term.Apply Term.eq b2) a2) :=
+                                RuleProofs.eo_has_bool_type_not_arg
+                                  (Term.Apply (Term.Apply Term.eq b2) a2) hXBool
+                              have hSymmEqBool :
+                                  RuleProofs.eo_has_bool_type
+                                    (Term.Apply (Term.Apply Term.eq a2) b2) :=
+                                RuleProofs.eo_has_bool_type_eq_symm b2 a2 hEqBool
+                              change RuleProofs.eo_has_bool_type
+                                (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq a2) b2))
+                              exact RuleProofs.eo_has_bool_type_not_of_bool_arg
+                                (Term.Apply (Term.Apply Term.eq a2) b2) hSymmEqBool
+                          | _ =>
+                              change Term.Stuck ≠ Term.Stuck at hProg
+                              exact False.elim (hProg rfl)
+                      | _ =>
+                          change Term.Stuck ≠ Term.Stuck at hProg
+                          exact False.elim (hProg rfl)
                   | _ =>
                       change Term.Stuck ≠ Term.Stuck at hProg
                       exact False.elim (hProg rfl)
@@ -87,54 +102,75 @@ theorem correct___eo_prog_symm_impl
       cases f with
       | Apply g b =>
           cases g with
-          | eq =>
-              change eo_interprets M (Term.Apply (Term.Apply Term.eq a) b) true
-              exact eo_interprets_eq_symm_true M b a hXTrue
+          | UOp op =>
+              cases op with
+              | eq =>
+                  change eo_interprets M (Term.Apply (Term.Apply Term.eq a) b) true
+                  exact eo_interprets_eq_symm_true M b a hXTrue
+              | _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProgNotStuck
+                  exact False.elim (hProgNotStuck rfl)
           | _ =>
               change Term.Stuck ≠ Term.Stuck at hProgNotStuck
               exact False.elim (hProgNotStuck rfl)
-      | not =>
-          cases a with
-          | Apply f2 a2 =>
-              cases f2 with
-              | Apply g2 b2 =>
-                  cases g2 with
-                  | eq =>
-                      have hOrigEqFalse :
-                          eo_interprets M (Term.Apply (Term.Apply Term.eq b2) a2) false :=
-                        RuleProofs.eo_interprets_not_true_implies_false M _ hXTrue
-                      have hOrigEqBool :
-                          RuleProofs.eo_has_bool_type
-                            (Term.Apply (Term.Apply Term.eq b2) a2) :=
-                        RuleProofs.eo_has_bool_type_of_interprets_false M _ hOrigEqFalse
-                      have hSymmEqBool :
-                          RuleProofs.eo_has_bool_type
-                            (Term.Apply (Term.Apply Term.eq a2) b2) :=
-                        RuleProofs.eo_has_bool_type_eq_symm b2 a2 hOrigEqBool
-                      rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM
-                          (Term.Apply (Term.Apply Term.eq a2) b2) hSymmEqBool with
-                        ⟨b, hEval⟩
-                      cases b with
-                      | false =>
-                          have hSymmEqFalse :
-                              eo_interprets M (Term.Apply (Term.Apply Term.eq a2) b2) false :=
-                            RuleProofs.eo_interprets_of_bool_eval M
-                              (Term.Apply (Term.Apply Term.eq a2) b2) false hSymmEqBool hEval
-                          change eo_interprets M
-                            (Term.Apply Term.not (Term.Apply (Term.Apply Term.eq a2) b2)) true
-                          exact RuleProofs.eo_interprets_not_of_false M
-                            (Term.Apply (Term.Apply Term.eq a2) b2) hSymmEqFalse
-                      | true =>
-                          have hSymmEqTrue :
-                              eo_interprets M (Term.Apply (Term.Apply Term.eq a2) b2) true :=
-                            RuleProofs.eo_interprets_of_bool_eval M
-                              (Term.Apply (Term.Apply Term.eq a2) b2) true hSymmEqBool hEval
-                          have hOrigEqTrue :
-                              eo_interprets M (Term.Apply (Term.Apply Term.eq b2) a2) true :=
-                            eo_interprets_eq_symm_true M a2 b2 hSymmEqTrue
-                          exact False.elim
-                            ((RuleProofs.eo_interprets_true_not_false M _ hOrigEqTrue)
-                              hOrigEqFalse)
+      | UOp op =>
+          cases op with
+          | not =>
+              cases a with
+              | Apply f2 a2 =>
+                  cases f2 with
+                  | Apply g2 b2 =>
+                      cases g2 with
+                      | UOp op' =>
+                          cases op' with
+                          | eq =>
+                              have hOrigEqFalse :
+                                  eo_interprets M (Term.Apply (Term.Apply Term.eq b2) a2) false :=
+                                RuleProofs.eo_interprets_not_true_implies_false M _ hXTrue
+                              have hOrigEqBool :
+                                  RuleProofs.eo_has_bool_type
+                                    (Term.Apply (Term.Apply Term.eq b2) a2) :=
+                                RuleProofs.eo_has_bool_type_of_interprets_false M _ hOrigEqFalse
+                              have hSymmEqBool :
+                                  RuleProofs.eo_has_bool_type
+                                    (Term.Apply (Term.Apply Term.eq a2) b2) :=
+                                RuleProofs.eo_has_bool_type_eq_symm b2 a2 hOrigEqBool
+                              rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM
+                                  (Term.Apply (Term.Apply Term.eq a2) b2) hSymmEqBool with
+                                ⟨b, hEval⟩
+                              cases b with
+                              | false =>
+                                  have hSymmEqFalse :
+                                      eo_interprets M
+                                        (Term.Apply (Term.Apply Term.eq a2) b2) false :=
+                                    RuleProofs.eo_interprets_of_bool_eval M
+                                      (Term.Apply (Term.Apply Term.eq a2) b2) false
+                                      hSymmEqBool hEval
+                                  change eo_interprets M
+                                    (Term.Apply Term.not
+                                      (Term.Apply (Term.Apply Term.eq a2) b2)) true
+                                  exact RuleProofs.eo_interprets_not_of_false M
+                                    (Term.Apply (Term.Apply Term.eq a2) b2) hSymmEqFalse
+                              | true =>
+                                  have hSymmEqTrue :
+                                      eo_interprets M
+                                        (Term.Apply (Term.Apply Term.eq a2) b2) true :=
+                                    RuleProofs.eo_interprets_of_bool_eval M
+                                      (Term.Apply (Term.Apply Term.eq a2) b2) true
+                                      hSymmEqBool hEval
+                                  have hOrigEqTrue :
+                                      eo_interprets M
+                                        (Term.Apply (Term.Apply Term.eq b2) a2) true :=
+                                    eo_interprets_eq_symm_true M a2 b2 hSymmEqTrue
+                                  exact False.elim
+                                    ((RuleProofs.eo_interprets_true_not_false M _ hOrigEqTrue)
+                                      hOrigEqFalse)
+                          | _ =>
+                              change Term.Stuck ≠ Term.Stuck at hProgNotStuck
+                              exact False.elim (hProgNotStuck rfl)
+                      | _ =>
+                          change Term.Stuck ≠ Term.Stuck at hProgNotStuck
+                          exact False.elim (hProgNotStuck rfl)
                   | _ =>
                       change Term.Stuck ≠ Term.Stuck at hProgNotStuck
                       exact False.elim (hProgNotStuck rfl)

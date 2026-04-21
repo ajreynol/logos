@@ -114,118 +114,132 @@ private theorem typeof_args_of_prog_array_store_swap_bool
       cases f with
       | Apply g pLhs =>
           cases g with
-          | eq =>
-              cases pLhs with
-              | Apply f2 j2 =>
-                  cases f2 with
-                  | Apply g2 i2 =>
-                      cases g2 with
-                      | eq =>
-                          cases pRhs with
-                          | Boolean b =>
-                              cases b with
-                              | false =>
-                                  rw [prog_array_store_swap_eq
-                                        t1 i1 j1 e1 f1 i2 j2
-                                        hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck]
-                                    at hProg h
-                                  let lhs :=
-                                    Term.Apply
-                                      (Term.Apply
-                                        (Term.Apply Term.store
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
-                                        j1) f1
-                                  let rhs :=
-                                    Term.Apply
-                                      (Term.Apply
-                                        (Term.Apply Term.store
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
-                                        i1) e1
-                                  let body := Term.Apply (Term.Apply Term.eq lhs) rhs
-                                  have hAlign :
-                                      i2 = i1 ∧ j2 = j1 :=
-                                    eqs_of_requires_and_eq_true_not_stuck
-                                      i1 j1 i2 j2 body hProg
-                                  have hi2 : i2 = i1 := hAlign.1
-                                  have hj2 : j2 = j1 := hAlign.2
-                                  subst i2
-                                  subst j2
-                                  simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
-                                    native_ite, native_teq, native_not,
-                                    SmtEval.native_not] at h
-                                  have hTypesNotStuck :=
-                                    RuleProofs.eo_typeof_eq_bool_operands_not_stuck
-                                      (__eo_typeof lhs) (__eo_typeof rhs) h
-                                  have hLhsNotStuck : __eo_typeof lhs ≠ Term.Stuck :=
-                                    hTypesNotStuck.1
-                                  have hRhsNotStuck : __eo_typeof rhs ≠ Term.Stuck :=
-                                    hTypesNotStuck.2
-                                  have hInnerITy :
-                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) =
-                                        Term.Apply (Term.Apply Term.Array (__eo_typeof j1)) (__eo_typeof f1) := by
-                                    change __eo_typeof_store
-                                        (__eo_typeof
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
-                                        (__eo_typeof j1) (__eo_typeof f1) ≠ Term.Stuck at hLhsNotStuck
-                                    exact RuleProofs.eo_typeof_store_not_stuck_implies_array
-                                      (__eo_typeof
-                                        (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
-                                      (__eo_typeof j1) (__eo_typeof f1) hLhsNotStuck
-                                  have hInnerINotStuck :
-                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) ≠
-                                        Term.Stuck := by
-                                    rw [hInnerITy]
-                                    simp
-                                  have hInnerJTy :
-                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1) =
-                                        Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof e1) := by
-                                    change __eo_typeof_store
-                                        (__eo_typeof
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
-                                        (__eo_typeof i1) (__eo_typeof e1) ≠ Term.Stuck at hRhsNotStuck
-                                    exact RuleProofs.eo_typeof_store_not_stuck_implies_array
-                                      (__eo_typeof
-                                        (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
-                                      (__eo_typeof i1) (__eo_typeof e1) hRhsNotStuck
-                                  have hInnerJNotStuck :
-                                      __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1) ≠
-                                        Term.Stuck := by
-                                    rw [hInnerJTy]
-                                    simp
-                                  have hT1TyIE :
-                                      __eo_typeof t1 =
-                                        Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof e1) := by
-                                    change __eo_typeof_store (__eo_typeof t1) (__eo_typeof i1)
-                                        (__eo_typeof e1) ≠ Term.Stuck at hInnerINotStuck
-                                    exact RuleProofs.eo_typeof_store_not_stuck_implies_array
-                                      (__eo_typeof t1) (__eo_typeof i1) (__eo_typeof e1)
-                                      hInnerINotStuck
-                                  have hT1TyJF :
-                                      __eo_typeof t1 =
-                                        Term.Apply (Term.Apply Term.Array (__eo_typeof j1)) (__eo_typeof f1) := by
-                                    change __eo_typeof_store (__eo_typeof t1) (__eo_typeof j1)
-                                        (__eo_typeof f1) ≠ Term.Stuck at hInnerJNotStuck
-                                    exact RuleProofs.eo_typeof_store_not_stuck_implies_array
-                                      (__eo_typeof t1) (__eo_typeof j1) (__eo_typeof f1)
-                                      hInnerJNotStuck
-                                  have hArrayEq :
-                                      Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof e1) =
-                                        Term.Apply (Term.Apply Term.Array (__eo_typeof j1)) (__eo_typeof f1) :=
-                                    hT1TyIE.symm.trans hT1TyJF
-                                  have hIJ : __eo_typeof i1 = __eo_typeof j1 :=
-                                    array_index_eq_of_eq
-                                      (__eo_typeof i1) (__eo_typeof e1)
-                                      (__eo_typeof j1) (__eo_typeof f1) hArrayEq
-                                  have hEF : __eo_typeof e1 = __eo_typeof f1 :=
-                                    array_value_eq_of_eq
-                                      (__eo_typeof i1) (__eo_typeof e1)
-                                      (__eo_typeof j1) (__eo_typeof f1) hArrayEq
-                                  have hT1Ty :
-                                      __eo_typeof t1 =
-                                        Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1) := by
-                                    simpa [hEF] using hT1TyIE
-                                  exact ⟨hT1Ty, hIJ.symm, hEF⟩
-                              | true =>
+          | UOp op =>
+              cases op with
+              | eq =>
+                  cases pLhs with
+                  | Apply f2 j2 =>
+                      cases f2 with
+                      | Apply g2 i2 =>
+                          cases g2 with
+                          | UOp op2 =>
+                              cases op2 with
+                              | eq =>
+                                  cases pRhs with
+                                  | Boolean b =>
+                                      cases b with
+                                      | false =>
+                                          rw [prog_array_store_swap_eq
+                                                t1 i1 j1 e1 f1 i2 j2
+                                                hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck]
+                                            at hProg h
+                                          let lhs :=
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.Apply Term.store
+                                                  (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
+                                                j1) f1
+                                          let rhs :=
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.Apply Term.store
+                                                  (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
+                                                i1) e1
+                                          let body := Term.Apply (Term.Apply Term.eq lhs) rhs
+                                          have hAlign :
+                                              i2 = i1 ∧ j2 = j1 :=
+                                            eqs_of_requires_and_eq_true_not_stuck
+                                              i1 j1 i2 j2 body hProg
+                                          have hi2 : i2 = i1 := hAlign.1
+                                          have hj2 : j2 = j1 := hAlign.2
+                                          subst i2
+                                          subst j2
+                                          simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
+                                            native_ite, native_teq, native_not,
+                                            SmtEval.native_not] at h
+                                          have hTypesNotStuck :=
+                                            RuleProofs.eo_typeof_eq_bool_operands_not_stuck
+                                              (__eo_typeof lhs) (__eo_typeof rhs) h
+                                          have hLhsNotStuck : __eo_typeof lhs ≠ Term.Stuck :=
+                                            hTypesNotStuck.1
+                                          have hRhsNotStuck : __eo_typeof rhs ≠ Term.Stuck :=
+                                            hTypesNotStuck.2
+                                          have hInnerITy :
+                                              __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) =
+                                                Term.Apply (Term.Apply Term.Array (__eo_typeof j1)) (__eo_typeof f1) := by
+                                            change __eo_typeof_store
+                                                (__eo_typeof
+                                                  (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
+                                                (__eo_typeof j1) (__eo_typeof f1) ≠ Term.Stuck at hLhsNotStuck
+                                            exact RuleProofs.eo_typeof_store_not_stuck_implies_array
+                                              (__eo_typeof
+                                                (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
+                                              (__eo_typeof j1) (__eo_typeof f1) hLhsNotStuck
+                                          have hInnerINotStuck :
+                                              __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1) ≠
+                                                Term.Stuck := by
+                                            rw [hInnerITy]
+                                            simp
+                                          have hInnerJTy :
+                                              __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1) =
+                                                Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof e1) := by
+                                            change __eo_typeof_store
+                                                (__eo_typeof
+                                                  (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
+                                                (__eo_typeof i1) (__eo_typeof e1) ≠ Term.Stuck at hRhsNotStuck
+                                            exact RuleProofs.eo_typeof_store_not_stuck_implies_array
+                                              (__eo_typeof
+                                                (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
+                                              (__eo_typeof i1) (__eo_typeof e1) hRhsNotStuck
+                                          have hInnerJNotStuck :
+                                              __eo_typeof (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1) ≠
+                                                Term.Stuck := by
+                                            rw [hInnerJTy]
+                                            simp
+                                          have hT1TyIE :
+                                              __eo_typeof t1 =
+                                                Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof e1) := by
+                                            change __eo_typeof_store (__eo_typeof t1) (__eo_typeof i1)
+                                                (__eo_typeof e1) ≠ Term.Stuck at hInnerINotStuck
+                                            exact RuleProofs.eo_typeof_store_not_stuck_implies_array
+                                              (__eo_typeof t1) (__eo_typeof i1) (__eo_typeof e1)
+                                              hInnerINotStuck
+                                          have hT1TyJF :
+                                              __eo_typeof t1 =
+                                                Term.Apply (Term.Apply Term.Array (__eo_typeof j1)) (__eo_typeof f1) := by
+                                            change __eo_typeof_store (__eo_typeof t1) (__eo_typeof j1)
+                                                (__eo_typeof f1) ≠ Term.Stuck at hInnerJNotStuck
+                                            exact RuleProofs.eo_typeof_store_not_stuck_implies_array
+                                              (__eo_typeof t1) (__eo_typeof j1) (__eo_typeof f1)
+                                              hInnerJNotStuck
+                                          have hArrayEq :
+                                              Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof e1) =
+                                                Term.Apply (Term.Apply Term.Array (__eo_typeof j1)) (__eo_typeof f1) :=
+                                            hT1TyIE.symm.trans hT1TyJF
+                                          have hIJ : __eo_typeof i1 = __eo_typeof j1 :=
+                                            array_index_eq_of_eq
+                                              (__eo_typeof i1) (__eo_typeof e1)
+                                              (__eo_typeof j1) (__eo_typeof f1) hArrayEq
+                                          have hEF : __eo_typeof e1 = __eo_typeof f1 :=
+                                            array_value_eq_of_eq
+                                              (__eo_typeof i1) (__eo_typeof e1)
+                                              (__eo_typeof j1) (__eo_typeof f1) hArrayEq
+                                          have hT1Ty :
+                                              __eo_typeof t1 =
+                                                Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1) := by
+                                            simpa [hEF] using hT1TyIE
+                                          exact ⟨hT1Ty, hIJ.symm, hEF⟩
+                                      | true =>
+                                          have : False := by
+                                            simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
+                                              hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+                                          exact False.elim this
+                                  | _ =>
+                                      have : False := by
+                                        simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
+                                          hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
+                                      exact False.elim this
+                              | _ =>
                                   have : False := by
                                     simp [__eo_prog_array_store_swap, hT1NotStuck, hI1NotStuck,
                                       hJ1NotStuck, hE1NotStuck, hF1NotStuck] at hProg
@@ -370,52 +384,64 @@ private theorem typed___eo_prog_array_store_swap_impl
       cases f with
       | Apply g pLhs =>
           cases g with
-          | eq =>
-              cases pLhs with
-              | Apply f2 j2 =>
-                  cases f2 with
-                  | Apply g2 i2 =>
-                      cases g2 with
-                      | eq =>
-                          cases pRhs with
-                          | Boolean b =>
-                              cases b with
-                              | false =>
-                                  let lhs :=
-                                    Term.Apply
-                                      (Term.Apply
-                                        (Term.Apply Term.store
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
-                                        j1) f1
-                                  let rhs :=
-                                    Term.Apply
-                                      (Term.Apply
-                                        (Term.Apply Term.store
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
-                                        i1) e1
-                                  let body := Term.Apply (Term.Apply Term.eq lhs) rhs
-                                  have hProgEq :=
-                                    prog_array_store_swap_eq
-                                      t1 i1 j1 e1 f1 i2 j2
-                                      hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck
-                                  rw [hProgEq] at hProg
-                                  have hAlign :
-                                      i2 = i1 ∧ j2 = j1 :=
-                                    eqs_of_requires_and_eq_true_not_stuck
-                                      i1 j1 i2 j2 body hProg
-                                  have hi2 : i2 = i1 := hAlign.1
-                                  have hj2 : j2 = j1 := hAlign.2
-                                  subst i2
-                                  subst j2
-                                  rw [prog_array_store_swap_eq
-                                        t1 i1 j1 e1 f1 i1 j1
-                                        hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck]
-                                  simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-                                    native_teq, native_not, SmtEval.native_not]
-                                  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
-                                    lhs rhs
-                                    (by rw [hLhsTy, hRhsTy]) hLhsTrans
-                              | true =>
+          | UOp op =>
+              cases op with
+              | eq =>
+                  cases pLhs with
+                  | Apply f2 j2 =>
+                      cases f2 with
+                      | Apply g2 i2 =>
+                          cases g2 with
+                          | UOp op2 =>
+                              cases op2 with
+                              | eq =>
+                                  cases pRhs with
+                                  | Boolean b =>
+                                      cases b with
+                                      | false =>
+                                          let lhs :=
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.Apply Term.store
+                                                  (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
+                                                j1) f1
+                                          let rhs :=
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.Apply Term.store
+                                                  (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
+                                                i1) e1
+                                          let body := Term.Apply (Term.Apply Term.eq lhs) rhs
+                                          have hProgEq :=
+                                            prog_array_store_swap_eq
+                                              t1 i1 j1 e1 f1 i2 j2
+                                              hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck
+                                          rw [hProgEq] at hProg
+                                          have hAlign :
+                                              i2 = i1 ∧ j2 = j1 :=
+                                            eqs_of_requires_and_eq_true_not_stuck
+                                              i1 j1 i2 j2 body hProg
+                                          have hi2 : i2 = i1 := hAlign.1
+                                          have hj2 : j2 = j1 := hAlign.2
+                                          subst i2
+                                          subst j2
+                                          rw [prog_array_store_swap_eq
+                                                t1 i1 j1 e1 f1 i1 j1
+                                                hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck]
+                                          simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
+                                            native_teq, native_not, SmtEval.native_not]
+                                          exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+                                            lhs rhs
+                                            (by rw [hLhsTy, hRhsTy]) hLhsTrans
+                                      | true =>
+                                          have : False := by
+                                            simp [__eo_prog_array_store_swap] at hProg
+                                          exact False.elim this
+                                  | _ =>
+                                      have : False := by
+                                        simp [__eo_prog_array_store_swap] at hProg
+                                      exact False.elim this
+                              | _ =>
                                   have : False := by
                                     simp [__eo_prog_array_store_swap] at hProg
                                   exact False.elim this
@@ -483,68 +509,80 @@ private theorem facts___eo_prog_array_store_swap_impl
       cases f with
       | Apply g pLhs =>
           cases g with
-          | eq =>
-              cases pLhs with
-              | Apply f2 j2 =>
-                  cases f2 with
-                  | Apply g2 i2 =>
-                      cases g2 with
-                      | eq =>
-                          cases pRhs with
-                          | Boolean b =>
-                              cases b with
-                              | false =>
-                                  have hProgEq :=
-                                    prog_array_store_swap_eq
-                                      t1 i1 j1 e1 f1 i2 j2
-                                      hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck
-                                  rw [hProgEq] at hProg
-                                  let lhs :=
-                                    Term.Apply
-                                      (Term.Apply
-                                        (Term.Apply Term.store
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
-                                        j1) f1
-                                  let rhs :=
-                                    Term.Apply
-                                      (Term.Apply
-                                        (Term.Apply Term.store
-                                          (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
-                                        i1) e1
-                                  let body := Term.Apply (Term.Apply Term.eq lhs) rhs
-                                  have hAlign :
-                                      i2 = i1 ∧ j2 = j1 :=
-                                    eqs_of_requires_and_eq_true_not_stuck
-                                      i1 j1 i2 j2 body hProg
-                                  have hi2 : i2 = i1 := hAlign.1
-                                  have hj2 : j2 = j1 := hAlign.2
-                                  subst i2
-                                  subst j2
-                                  have hij :
-                                      native_veq
-                                        (__smtx_model_eval M (__eo_to_smt i1))
-                                        (__smtx_model_eval M (__eo_to_smt j1)) = false := by
-                                    exact RuleProofs.native_veq_false_of_model_eval_eq_false
-                                      (RuleProofs.model_eval_eq_false_of_eq_false_eq_true M i1 j1 hP1True)
-                                  have hBodyBool :
-                                      RuleProofs.eo_has_bool_type body := by
-                                    rw [hProgEq] at hProgBool
-                                    simpa [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
-                                      native_ite, native_teq, native_not,
-                                      SmtEval.native_not] using hProgBool
-                                  rw [hProgEq]
-                                  simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
-                                    native_ite, native_teq, native_not, SmtEval.native_not]
-                                  exact RuleProofs.eo_interprets_eq_of_rel M lhs rhs hBodyBool <| by
-                                    simpa [lhs, rhs, RuleProofs.eo_to_smt_store_eq, __smtx_model_eval] using
-                                      (RuleProofs.smt_value_rel_store_swap_of_native_veq_false
-                                        (__smtx_model_eval M (__eo_to_smt t1))
-                                        (__smtx_model_eval M (__eo_to_smt i1))
-                                        (__smtx_model_eval M (__eo_to_smt j1))
-                                        (__smtx_model_eval M (__eo_to_smt e1))
-                                        (__smtx_model_eval M (__eo_to_smt f1))
-                                        hij)
-                              | true =>
+          | UOp op =>
+              cases op with
+              | eq =>
+                  cases pLhs with
+                  | Apply f2 j2 =>
+                      cases f2 with
+                      | Apply g2 i2 =>
+                          cases g2 with
+                          | UOp op2 =>
+                              cases op2 with
+                              | eq =>
+                                  cases pRhs with
+                                  | Boolean b =>
+                                      cases b with
+                                      | false =>
+                                          have hProgEq :=
+                                            prog_array_store_swap_eq
+                                              t1 i1 j1 e1 f1 i2 j2
+                                              hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck hF1NotStuck
+                                          rw [hProgEq] at hProg
+                                          let lhs :=
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.Apply Term.store
+                                                  (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1))
+                                                j1) f1
+                                          let rhs :=
+                                            Term.Apply
+                                              (Term.Apply
+                                                (Term.Apply Term.store
+                                                  (Term.Apply (Term.Apply (Term.Apply Term.store t1) j1) f1))
+                                                i1) e1
+                                          let body := Term.Apply (Term.Apply Term.eq lhs) rhs
+                                          have hAlign :
+                                              i2 = i1 ∧ j2 = j1 :=
+                                            eqs_of_requires_and_eq_true_not_stuck
+                                              i1 j1 i2 j2 body hProg
+                                          have hi2 : i2 = i1 := hAlign.1
+                                          have hj2 : j2 = j1 := hAlign.2
+                                          subst i2
+                                          subst j2
+                                          have hij :
+                                              native_veq
+                                                (__smtx_model_eval M (__eo_to_smt i1))
+                                                (__smtx_model_eval M (__eo_to_smt j1)) = false := by
+                                            exact RuleProofs.native_veq_false_of_model_eval_eq_false
+                                              (RuleProofs.model_eval_eq_false_of_eq_false_eq_true M i1 j1 hP1True)
+                                          have hBodyBool :
+                                              RuleProofs.eo_has_bool_type body := by
+                                            rw [hProgEq] at hProgBool
+                                            simpa [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
+                                              native_ite, native_teq, native_not,
+                                              SmtEval.native_not] using hProgBool
+                                          rw [hProgEq]
+                                          simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
+                                            native_ite, native_teq, native_not, SmtEval.native_not]
+                                          exact RuleProofs.eo_interprets_eq_of_rel M lhs rhs hBodyBool <| by
+                                            simpa [lhs, rhs, RuleProofs.eo_to_smt_store_eq, __smtx_model_eval] using
+                                              (RuleProofs.smt_value_rel_store_swap_of_native_veq_false
+                                                (__smtx_model_eval M (__eo_to_smt t1))
+                                                (__smtx_model_eval M (__eo_to_smt i1))
+                                                (__smtx_model_eval M (__eo_to_smt j1))
+                                                (__smtx_model_eval M (__eo_to_smt e1))
+                                                (__smtx_model_eval M (__eo_to_smt f1))
+                                                hij)
+                                      | true =>
+                                          have : False := by
+                                            simp [__eo_prog_array_store_swap] at hProg
+                                          exact False.elim this
+                                  | _ =>
+                                      have : False := by
+                                        simp [__eo_prog_array_store_swap] at hProg
+                                      exact False.elim this
+                              | _ =>
                                   have : False := by
                                     simp [__eo_prog_array_store_swap] at hProg
                                   exact False.elim this

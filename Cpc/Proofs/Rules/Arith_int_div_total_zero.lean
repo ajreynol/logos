@@ -36,9 +36,14 @@ private theorem typeof_arg_of_prog_arith_int_div_total_zero_bool
   have hNumTy : __eo_typeof (Term.Numeral 0) = Term.Int := by
     native_decide
   rw [hNumTy] at h
-  cases hTy : __eo_typeof t1 <;>
-    simp [__eo_typeof_eq, __eo_typeof_div, __eo_requires,
-      native_ite, native_teq, native_not, hTy] at h ⊢
+  cases hTy : __eo_typeof t1 with
+  | UOp op =>
+      cases op <;>
+        simp [__eo_typeof_eq, __eo_typeof_div, __eo_requires,
+          native_ite, native_teq, native_not, hTy] at h ⊢
+  | _ =>
+      simp [__eo_typeof_eq, __eo_typeof_div, __eo_requires,
+        native_ite, native_teq, native_not, hTy] at h
 
 private theorem eval_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral n)) = SmtValue.Numeral n := by

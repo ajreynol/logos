@@ -29,72 +29,77 @@ private theorem typed___eo_prog_string_seq_unit_inj_impl (x1 : Term) :
       cases f with
       | Apply g a =>
           cases g with
-          | eq =>
-              cases a with
-              | Apply f1 a1 =>
-                  cases f1 with
-                  | seq_unit =>
-                      cases b with
-                      | Apply f2 b1 =>
-                          cases f2 with
+          | UOp op =>
+              cases op with
+              | eq =>
+                  cases a with
+                  | Apply f1 a1 =>
+                      cases f1 with
+                      | UOp op1 =>
+                          cases op1 with
                           | seq_unit =>
-                              rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-                                  (Term.Apply Term.seq_unit a1)
-                                  (Term.Apply Term.seq_unit b1) hXBool with
-                                ⟨hSeqTy, hSeqANonNone⟩
-                              have hSeqBNonNone :
-                                  __smtx_typeof (__eo_to_smt (Term.Apply Term.seq_unit b1)) ≠
-                                    SmtType.None := by
-                                rwa [← hSeqTy]
-                              have hANonNone :
-                                  __smtx_typeof (__eo_to_smt a1) ≠ SmtType.None :=
-                                seq_unit_arg_non_none a1 hSeqANonNone
-                              have hBNonNone :
-                                  __smtx_typeof (__eo_to_smt b1) ≠ SmtType.None :=
-                                seq_unit_arg_non_none b1 hSeqBNonNone
-                              have hArgTy :
-                                  __smtx_typeof (__eo_to_smt a1) =
-                                    __smtx_typeof (__eo_to_smt b1) := by
-                                have hSeqATy :
-                                    __smtx_typeof (__eo_to_smt (Term.Apply Term.seq_unit a1)) =
-                                      SmtType.Seq (__smtx_typeof (__eo_to_smt a1)) := by
-                                  rw [__eo_to_smt.eq_def]
-                                  simp [__smtx_typeof, hANonNone, native_ite, native_Teq]
-                                have hSeqBTy :
-                                    __smtx_typeof (__eo_to_smt (Term.Apply Term.seq_unit b1)) =
-                                      SmtType.Seq (__smtx_typeof (__eo_to_smt b1)) := by
-                                  rw [__eo_to_smt.eq_def]
-                                  simp [__smtx_typeof, hBNonNone, native_ite, native_Teq]
-                                have hSeqTy' :
-                                    SmtType.Seq (__smtx_typeof (__eo_to_smt a1)) =
-                                      SmtType.Seq (__smtx_typeof (__eo_to_smt b1)) := by
-                                  rw [← hSeqATy, ← hSeqBTy]
-                                  exact hSeqTy
-                                injection hSeqTy' with hArgTy
-                              simpa [__eo_prog_string_seq_unit_inj] using
-                                RuleProofs.eo_has_bool_type_eq_of_same_smt_type a1 b1
-                                  hArgTy hANonNone
+                              cases b with
+                              | Apply f2 b1 =>
+                                  cases f2 with
+                                  | UOp op2 =>
+                                      cases op2 with
+                                      | seq_unit =>
+                                          rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                              (Term.Apply Term.seq_unit a1)
+                                              (Term.Apply Term.seq_unit b1) hXBool with
+                                            ⟨hSeqTy, hSeqANonNone⟩
+                                          have hSeqBNonNone :
+                                              __smtx_typeof (__eo_to_smt (Term.Apply Term.seq_unit b1)) ≠
+                                                SmtType.None := by
+                                            rwa [← hSeqTy]
+                                          have hANonNone :
+                                              __smtx_typeof (__eo_to_smt a1) ≠ SmtType.None :=
+                                            seq_unit_arg_non_none a1 hSeqANonNone
+                                          have hBNonNone :
+                                              __smtx_typeof (__eo_to_smt b1) ≠ SmtType.None :=
+                                            seq_unit_arg_non_none b1 hSeqBNonNone
+                                          have hArgTy :
+                                              __smtx_typeof (__eo_to_smt a1) =
+                                                __smtx_typeof (__eo_to_smt b1) := by
+                                            have hSeqATy :
+                                                __smtx_typeof (__eo_to_smt (Term.Apply Term.seq_unit a1)) =
+                                                  SmtType.Seq (__smtx_typeof (__eo_to_smt a1)) := by
+                                              rw [__eo_to_smt.eq_def]
+                                              simp [__smtx_typeof, hANonNone, native_ite, native_Teq]
+                                            have hSeqBTy :
+                                                __smtx_typeof (__eo_to_smt (Term.Apply Term.seq_unit b1)) =
+                                                  SmtType.Seq (__smtx_typeof (__eo_to_smt b1)) := by
+                                              rw [__eo_to_smt.eq_def]
+                                              simp [__smtx_typeof, hBNonNone, native_ite, native_Teq]
+                                            have hSeqTy' :
+                                                SmtType.Seq (__smtx_typeof (__eo_to_smt a1)) =
+                                                  SmtType.Seq (__smtx_typeof (__eo_to_smt b1)) := by
+                                              rw [← hSeqATy, ← hSeqBTy]
+                                              exact hSeqTy
+                                            injection hSeqTy' with hArgTy
+                                          simpa [__eo_prog_string_seq_unit_inj] using
+                                            RuleProofs.eo_has_bool_type_eq_of_same_smt_type a1 b1
+                                              hArgTy hANonNone
+                                      | _ =>
+                                          simp [__eo_prog_string_seq_unit_inj] at hProg
+                                  | _ =>
+                                      simp [__eo_prog_string_seq_unit_inj] at hProg
+                              | _ =>
+                                  simp [__eo_prog_string_seq_unit_inj] at hProg
                           | _ =>
-                              change Term.Stuck ≠ Term.Stuck at hProg
-                              exact False.elim (hProg rfl)
+                              simp [__eo_prog_string_seq_unit_inj] at hProg
                       | _ =>
-                          change Term.Stuck ≠ Term.Stuck at hProg
-                          exact False.elim (hProg rfl)
+                          simp [__eo_prog_string_seq_unit_inj] at hProg
                   | _ =>
-                      change Term.Stuck ≠ Term.Stuck at hProg
-                      exact False.elim (hProg rfl)
+                      simp [__eo_prog_string_seq_unit_inj] at hProg
               | _ =>
-                  change Term.Stuck ≠ Term.Stuck at hProg
-                  exact False.elim (hProg rfl)
+                  simp [__eo_prog_string_seq_unit_inj] at hProg
           | _ =>
-              change Term.Stuck ≠ Term.Stuck at hProg
-              exact False.elim (hProg rfl)
+              simp [__eo_prog_string_seq_unit_inj] at hProg
       | _ =>
-          change Term.Stuck ≠ Term.Stuck at hProg
-          exact False.elim (hProg rfl)
+          simp [__eo_prog_string_seq_unit_inj] at hProg
   | _ =>
-      change Term.Stuck ≠ Term.Stuck at hProg
-      exact False.elim (hProg rfl)
+      simp [__eo_prog_string_seq_unit_inj] at hProg
 
 /-- Extracts head equality from equality of two `seq_unit` evaluations. -/
 private theorem smt_value_rel_of_seq_unit_rel (M : SmtModel) (a b : Term) :
@@ -129,52 +134,57 @@ private theorem facts___eo_prog_string_seq_unit_inj_impl (M : SmtModel) (x1 : Te
       cases f with
       | Apply g a =>
           cases g with
-          | eq =>
-              cases a with
-              | Apply f1 a1 =>
-                  cases f1 with
-                  | seq_unit =>
-                      cases b with
-                      | Apply f2 b1 =>
-                          cases f2 with
+          | UOp op =>
+              cases op with
+              | eq =>
+                  cases a with
+                  | Apply f1 a1 =>
+                      cases f1 with
+                      | UOp op1 =>
+                          cases op1 with
                           | seq_unit =>
-                              have hRelSeq :
-                                  RuleProofs.smt_value_rel
-                                    (__smtx_model_eval M
-                                      (__eo_to_smt (Term.Apply Term.seq_unit a1)))
-                                    (__smtx_model_eval M
-                                      (__eo_to_smt (Term.Apply Term.seq_unit b1))) :=
-                                RuleProofs.eo_interprets_eq_rel M
-                                  (Term.Apply Term.seq_unit a1)
-                                  (Term.Apply Term.seq_unit b1) hXTrue
-                              have hRelArgs :
-                                  RuleProofs.smt_value_rel
-                                    (__smtx_model_eval M (__eo_to_smt a1))
-                                    (__smtx_model_eval M (__eo_to_smt b1)) :=
-                                smt_value_rel_of_seq_unit_rel M a1 b1 hRelSeq
-                              simpa [__eo_prog_string_seq_unit_inj] using
-                                RuleProofs.eo_interprets_eq_of_rel M a1 b1 hOutBool hRelArgs
+                              cases b with
+                              | Apply f2 b1 =>
+                                  cases f2 with
+                                  | UOp op2 =>
+                                      cases op2 with
+                                      | seq_unit =>
+                                          have hRelSeq :
+                                              RuleProofs.smt_value_rel
+                                                (__smtx_model_eval M
+                                                  (__eo_to_smt (Term.Apply Term.seq_unit a1)))
+                                                (__smtx_model_eval M
+                                                  (__eo_to_smt (Term.Apply Term.seq_unit b1))) :=
+                                            RuleProofs.eo_interprets_eq_rel M
+                                              (Term.Apply Term.seq_unit a1)
+                                              (Term.Apply Term.seq_unit b1) hXTrue
+                                          have hRelArgs :
+                                              RuleProofs.smt_value_rel
+                                                (__smtx_model_eval M (__eo_to_smt a1))
+                                                (__smtx_model_eval M (__eo_to_smt b1)) :=
+                                            smt_value_rel_of_seq_unit_rel M a1 b1 hRelSeq
+                                          simpa [__eo_prog_string_seq_unit_inj] using
+                                            RuleProofs.eo_interprets_eq_of_rel M a1 b1 hOutBool hRelArgs
+                                      | _ =>
+                                          simp [__eo_prog_string_seq_unit_inj] at hProg
+                                  | _ =>
+                                      simp [__eo_prog_string_seq_unit_inj] at hProg
+                              | _ =>
+                                  simp [__eo_prog_string_seq_unit_inj] at hProg
                           | _ =>
-                              change Term.Stuck ≠ Term.Stuck at hProg
-                              exact False.elim (hProg rfl)
+                              simp [__eo_prog_string_seq_unit_inj] at hProg
                       | _ =>
-                          change Term.Stuck ≠ Term.Stuck at hProg
-                          exact False.elim (hProg rfl)
+                          simp [__eo_prog_string_seq_unit_inj] at hProg
                   | _ =>
-                      change Term.Stuck ≠ Term.Stuck at hProg
-                      exact False.elim (hProg rfl)
+                      simp [__eo_prog_string_seq_unit_inj] at hProg
               | _ =>
-                  change Term.Stuck ≠ Term.Stuck at hProg
-                  exact False.elim (hProg rfl)
+                  simp [__eo_prog_string_seq_unit_inj] at hProg
           | _ =>
-              change Term.Stuck ≠ Term.Stuck at hProg
-              exact False.elim (hProg rfl)
+              simp [__eo_prog_string_seq_unit_inj] at hProg
       | _ =>
-          change Term.Stuck ≠ Term.Stuck at hProg
-          exact False.elim (hProg rfl)
+          simp [__eo_prog_string_seq_unit_inj] at hProg
   | _ =>
-      change Term.Stuck ≠ Term.Stuck at hProg
-      exact False.elim (hProg rfl)
+      simp [__eo_prog_string_seq_unit_inj] at hProg
 
 theorem cmd_step_string_seq_unit_inj_properties
     (M : SmtModel) (hM : model_total_typed M)

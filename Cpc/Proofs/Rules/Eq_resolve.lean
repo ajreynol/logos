@@ -54,23 +54,24 @@ theorem typed___eo_prog_eq_resolve_impl (x1 x2 : Term) :
       cases f with
       | Apply g A =>
           cases g with
-          | eq =>
-              change __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck at hProg
-              have hEq : A = x1 := eq_of_requires_eq_true_not_stuck x1 A B hProg
-              subst A
-              have hX1NotStuck : x1 ≠ Term.Stuck :=
-                RuleProofs.term_ne_stuck_of_has_bool_type x1 hX1Bool
-              rw [prog_eq_resolve_eq_rhs_of_not_stuck x1 B hX1NotStuck]
-              exact eo_has_bool_type_eq_right x1 B hX1Bool hX2Bool
+          | UOp op =>
+              cases op with
+              | eq =>
+                  change __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck at hProg
+                  have hEq : A = x1 := eq_of_requires_eq_true_not_stuck x1 A B hProg
+                  subst A
+                  have hX1NotStuck : x1 ≠ Term.Stuck :=
+                    RuleProofs.term_ne_stuck_of_has_bool_type x1 hX1Bool
+                  rw [prog_eq_resolve_eq_rhs_of_not_stuck x1 B hX1NotStuck]
+                  exact eo_has_bool_type_eq_right x1 B hX1Bool hX2Bool
+              | _ =>
+                  simp [__eo_prog_eq_resolve] at hProg
           | _ =>
-              change Term.Stuck ≠ Term.Stuck at hProg
-              exact False.elim (hProg rfl)
+              simp [__eo_prog_eq_resolve] at hProg
       | _ =>
-          change Term.Stuck ≠ Term.Stuck at hProg
-          exact False.elim (hProg rfl)
+          simp [__eo_prog_eq_resolve] at hProg
   | _ =>
-      change Term.Stuck ≠ Term.Stuck at hProg
-      exact False.elim (hProg rfl)
+      simp [__eo_prog_eq_resolve] at hProg
 
 /-- Derives the checker facts exposed by the EO program for `eq_resolve`. -/
 theorem facts___eo_prog_eq_resolve_impl
@@ -85,78 +86,80 @@ theorem facts___eo_prog_eq_resolve_impl
       cases f with
       | Apply g A =>
           cases g with
-          | eq =>
-              change __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck at hProg
-              have hEq : A = x1 := eq_of_requires_eq_true_not_stuck x1 A B hProg
-              subst A
-              have hX1Bool : RuleProofs.eo_has_bool_type x1 :=
-                RuleProofs.eo_has_bool_type_of_interprets_true M x1 hX1True
-              have hEqBool :
-                  RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq x1) B) :=
-                RuleProofs.eo_has_bool_type_of_interprets_true M _ hX2True
-              have hBBool : RuleProofs.eo_has_bool_type B :=
-                eo_has_bool_type_eq_right x1 B hX1Bool hEqBool
-              have hX1NotStuck : x1 ≠ Term.Stuck :=
-                RuleProofs.term_ne_stuck_of_interprets_true M x1 hX1True
-              have hEvalX1 : __smtx_model_eval M (__eo_to_smt x1) = SmtValue.Boolean true := by
-                have hX1True' := hX1True
-                rw [RuleProofs.eo_interprets_iff_smt_interprets] at hX1True'
-                cases hX1True' with
-                | intro_true _ hEval => exact hEval
-              have hRel :=
-                RuleProofs.eo_interprets_eq_rel M x1 B hX2True
-              rw [hEvalX1] at hRel
-              have hBTrans : RuleProofs.eo_has_smt_translation B :=
-                RuleProofs.eo_has_smt_translation_of_has_bool_type B hBBool
-              have hEqBTrueBool :
-                  RuleProofs.eo_has_bool_type
-                    (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true)) := by
-                have hTyEq :
-                    __smtx_typeof (__eo_to_smt B) =
-                      __smtx_typeof (__eo_to_smt (Term.Boolean true)) := by
-                  calc
-                    __smtx_typeof (__eo_to_smt B) = SmtType.Bool := hBBool
-                    _ = __smtx_typeof (__eo_to_smt (Term.Boolean true)) := by
-                      rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
-                        rw [__eo_to_smt.eq_def]]
-                      rfl
-                exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
-                  B (Term.Boolean true) hTyEq hBTrans
-              have hRelBTrue :
-                  RuleProofs.smt_value_rel (__smtx_model_eval M (__eo_to_smt B))
-                    (__smtx_model_eval M (__eo_to_smt (Term.Boolean true))) := by
-                rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
-                  rw [__eo_to_smt.eq_def]]
-                exact RuleProofs.smt_value_rel_symm _ _ hRel
-              have hEqBTrue :
-                  eo_interprets M
-                    (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true)) true :=
-                RuleProofs.eo_interprets_eq_of_rel M B (Term.Boolean true)
-                  hEqBTrueBool
-                  hRelBTrue
-              have hBNotStuck : B ≠ Term.Stuck :=
-                RuleProofs.term_ne_stuck_of_has_bool_type B hBBool
-              have hProgTrueElim :
-                  __eo_prog_true_elim
-                    (Proof.pf (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true))) ≠
-                    Term.Stuck := by
-                simpa [__eo_prog_true_elim] using hBNotStuck
-              have hBTrue : eo_interprets M B true := by
-                simpa [__eo_prog_true_elim] using
-                  facts___eo_prog_true_elim_impl M hM
-                    (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true))
-                    hEqBTrue hProgTrueElim
-              rw [prog_eq_resolve_eq_rhs_of_not_stuck x1 B hX1NotStuck]
-              exact hBTrue
+          | UOp op =>
+              cases op with
+              | eq =>
+                  change __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck at hProg
+                  have hEq : A = x1 := eq_of_requires_eq_true_not_stuck x1 A B hProg
+                  subst A
+                  have hX1Bool : RuleProofs.eo_has_bool_type x1 :=
+                    RuleProofs.eo_has_bool_type_of_interprets_true M x1 hX1True
+                  have hEqBool :
+                      RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq x1) B) :=
+                    RuleProofs.eo_has_bool_type_of_interprets_true M _ hX2True
+                  have hBBool : RuleProofs.eo_has_bool_type B :=
+                    eo_has_bool_type_eq_right x1 B hX1Bool hEqBool
+                  have hX1NotStuck : x1 ≠ Term.Stuck :=
+                    RuleProofs.term_ne_stuck_of_interprets_true M x1 hX1True
+                  have hEvalX1 : __smtx_model_eval M (__eo_to_smt x1) = SmtValue.Boolean true := by
+                    have hX1True' := hX1True
+                    rw [RuleProofs.eo_interprets_iff_smt_interprets] at hX1True'
+                    cases hX1True' with
+                    | intro_true _ hEval => exact hEval
+                  have hRel :=
+                    RuleProofs.eo_interprets_eq_rel M x1 B hX2True
+                  rw [hEvalX1] at hRel
+                  have hBTrans : RuleProofs.eo_has_smt_translation B :=
+                    RuleProofs.eo_has_smt_translation_of_has_bool_type B hBBool
+                  have hEqBTrueBool :
+                      RuleProofs.eo_has_bool_type
+                        (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true)) := by
+                    have hTyEq :
+                        __smtx_typeof (__eo_to_smt B) =
+                          __smtx_typeof (__eo_to_smt (Term.Boolean true)) := by
+                      calc
+                        __smtx_typeof (__eo_to_smt B) = SmtType.Bool := hBBool
+                        _ = __smtx_typeof (__eo_to_smt (Term.Boolean true)) := by
+                          rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
+                            rw [__eo_to_smt.eq_def]]
+                          rw [__smtx_typeof.eq_1]
+                    exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+                      B (Term.Boolean true) hTyEq hBTrans
+                  have hRelBTrue :
+                      RuleProofs.smt_value_rel (__smtx_model_eval M (__eo_to_smt B))
+                        (__smtx_model_eval M (__eo_to_smt (Term.Boolean true))) := by
+                    rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
+                      rw [__eo_to_smt.eq_def]]
+                    rw [__smtx_model_eval.eq_1]
+                    exact RuleProofs.smt_value_rel_symm _ _ hRel
+                  have hEqBTrue :
+                      eo_interprets M
+                        (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true)) true :=
+                    RuleProofs.eo_interprets_eq_of_rel M B (Term.Boolean true)
+                      hEqBTrueBool
+                      hRelBTrue
+                  have hBNotStuck : B ≠ Term.Stuck :=
+                    RuleProofs.term_ne_stuck_of_has_bool_type B hBBool
+                  have hProgTrueElim :
+                      __eo_prog_true_elim
+                        (Proof.pf (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true))) ≠
+                        Term.Stuck := by
+                    simpa [__eo_prog_true_elim] using hBNotStuck
+                  have hBTrue : eo_interprets M B true := by
+                    simpa [__eo_prog_true_elim] using
+                      facts___eo_prog_true_elim_impl M hM
+                        (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true))
+                        hEqBTrue hProgTrueElim
+                  rw [prog_eq_resolve_eq_rhs_of_not_stuck x1 B hX1NotStuck]
+                  exact hBTrue
+              | _ =>
+                  simp [__eo_prog_eq_resolve] at hProg
           | _ =>
-              change Term.Stuck ≠ Term.Stuck at hProg
-              exact False.elim (hProg rfl)
+              simp [__eo_prog_eq_resolve] at hProg
       | _ =>
-          change Term.Stuck ≠ Term.Stuck at hProg
-          exact False.elim (hProg rfl)
+          simp [__eo_prog_eq_resolve] at hProg
   | _ =>
-      change Term.Stuck ≠ Term.Stuck at hProg
-      exact False.elim (hProg rfl)
+      simp [__eo_prog_eq_resolve] at hProg
 
 theorem cmd_step_eq_resolve_properties
     (M : SmtModel) (hM : model_total_typed M)

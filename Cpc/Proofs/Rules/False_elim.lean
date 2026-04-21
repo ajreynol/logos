@@ -12,7 +12,7 @@ private theorem eo_has_bool_type_false :
   change __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
     rw [__eo_to_smt.eq_def]]
-  rfl
+  rw [__smtx_typeof.eq_1]
 
 private theorem eo_has_bool_type_eq_left (A B : Term) :
   RuleProofs.eo_has_bool_type B ->
@@ -38,11 +38,15 @@ theorem typed___eo_prog_false_elim_impl (x1 : Term) :
               cases f with
               | Apply g b =>
                   cases g with
-                  | eq =>
-                      simpa [__eo_prog_false_elim] using
-                        (RuleProofs.eo_has_bool_type_not_of_bool_arg b
-                          (eo_has_bool_type_eq_left b (Term.Boolean false)
-                            eo_has_bool_type_false hX1Bool))
+                  | UOp op =>
+                      cases op with
+                      | eq =>
+                          simpa [__eo_prog_false_elim] using
+                            (RuleProofs.eo_has_bool_type_not_of_bool_arg b
+                              (eo_has_bool_type_eq_left b (Term.Boolean false)
+                                eo_has_bool_type_false hX1Bool))
+                      | _ =>
+                          simp [__eo_prog_false_elim] at hProg
                   | _ =>
                       simp [__eo_prog_false_elim] at hProg
               | _ =>
@@ -70,35 +74,40 @@ theorem facts___eo_prog_false_elim_impl
               cases f with
               | Apply g b =>
                   cases g with
-                  | eq =>
-                      have hEqBool :
-                          RuleProofs.eo_has_bool_type
-                            (Term.Apply (Term.Apply Term.eq b) (Term.Boolean false)) :=
-                        RuleProofs.eo_has_bool_type_of_interprets_true M _ hX1True
-                      have hBBool : RuleProofs.eo_has_bool_type b :=
-                        eo_has_bool_type_eq_left b (Term.Boolean false)
-                          eo_has_bool_type_false hEqBool
-                      rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM b hBBool with
-                        ⟨bv, hEvalB⟩
-                      have hRel :
-                          RuleProofs.smt_value_rel (__smtx_model_eval M (__eo_to_smt b))
-                            (SmtValue.Boolean false) :=
-                        by
-                          have hRel' :=
-                            RuleProofs.eo_interprets_eq_rel M b (Term.Boolean false) hX1True
-                          rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-                            rw [__eo_to_smt.eq_def]] at hRel'
-                          exact hRel'
-                      cases bv with
-                      | false =>
-                          have hBFalse : eo_interprets M b false :=
-                            RuleProofs.eo_interprets_of_bool_eval M b false hBBool hEvalB
-                          simpa [__eo_prog_false_elim] using
-                            (RuleProofs.eo_interprets_not_of_false M b hBFalse)
-                      | true =>
-                          rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
-                          rw [hEvalB] at hRel
-                          simp [__smtx_model_eval_eq, native_veq] at hRel
+                  | UOp op =>
+                      cases op with
+                      | eq =>
+                          have hEqBool :
+                              RuleProofs.eo_has_bool_type
+                                (Term.Apply (Term.Apply Term.eq b) (Term.Boolean false)) :=
+                            RuleProofs.eo_has_bool_type_of_interprets_true M _ hX1True
+                          have hBBool : RuleProofs.eo_has_bool_type b :=
+                            eo_has_bool_type_eq_left b (Term.Boolean false)
+                              eo_has_bool_type_false hEqBool
+                          rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM b hBBool with
+                            ⟨bv, hEvalB⟩
+                          have hRel :
+                              RuleProofs.smt_value_rel (__smtx_model_eval M (__eo_to_smt b))
+                                (SmtValue.Boolean false) :=
+                            by
+                              have hRel' :=
+                                RuleProofs.eo_interprets_eq_rel M b (Term.Boolean false) hX1True
+                              rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
+                                rw [__eo_to_smt.eq_def]] at hRel'
+                              rw [__smtx_model_eval.eq_1] at hRel'
+                              exact hRel'
+                          cases bv with
+                          | false =>
+                              have hBFalse : eo_interprets M b false :=
+                                RuleProofs.eo_interprets_of_bool_eval M b false hBBool hEvalB
+                              simpa [__eo_prog_false_elim] using
+                                (RuleProofs.eo_interprets_not_of_false M b hBFalse)
+                          | true =>
+                              rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
+                              rw [hEvalB] at hRel
+                              simp [__smtx_model_eval_eq, native_veq] at hRel
+                      | _ =>
+                          simp [__eo_prog_false_elim] at hProg
                   | _ =>
                       simp [__eo_prog_false_elim] at hProg
               | _ =>

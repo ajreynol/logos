@@ -31,16 +31,24 @@ theorem eo_to_smt_typeof_matches_translation
       __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
     cases t <;> intro hNonNone
-    case Int =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case Real =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case BitVec =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case Char =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case Seq =>
-      simp [__eo_to_smt.eq_def] at hNonNone
+    case UOp op =>
+      cases op
+      all_goals
+        try simp [__eo_to_smt.eq_def] at hNonNone
+      case re_allchar =>
+          rw [__eo_to_smt.eq_def, eo_typeof_re_allchar, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+      case re_none =>
+          rw [__eo_to_smt.eq_def, eo_typeof_re_none, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+      case re_all =>
+          rw [__eo_to_smt.eq_def, eo_typeof_re_all, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+      case tuple_unit =>
+          simpa [__eo_to_smt.eq_def] using smtx_typeof_tuple_unit_translation
     case __eo_List =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case __eo_List_nil =>
@@ -64,36 +72,6 @@ theorem eo_to_smt_typeof_matches_translation
     case DatatypeTypeRef s =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case USort i =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case _at__at_Pair =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case _at__at_pair =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case _at__at_result_null =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case _at__at_result_invalid =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case re_allchar =>
-      rw [__eo_to_smt.eq_def, eo_typeof_re_allchar, eo_to_smt_type_reglan]
-      unfold __smtx_typeof
-      rfl
-    case re_none =>
-      rw [__eo_to_smt.eq_def, eo_typeof_re_none, eo_to_smt_type_reglan]
-      unfold __smtx_typeof
-      rfl
-    case re_all =>
-      rw [__eo_to_smt.eq_def, eo_typeof_re_all, eo_to_smt_type_reglan]
-      unfold __smtx_typeof
-      rfl
-    case RegLan =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case UnitTuple =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case Tuple =>
-      simp [__eo_to_smt.eq_def] at hNonNone
-    case tuple_unit =>
-      simpa [__eo_to_smt.eq_def] using smtx_typeof_tuple_unit_translation
-    case Set =>
       simp [__eo_to_smt.eq_def] at hNonNone
     case Numeral n =>
       rw [show __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int by

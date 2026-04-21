@@ -17,7 +17,8 @@ private theorem eo_has_bool_type_imp_right (A B : Term) :
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).2
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
+    (typeof_imp_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
 
 private theorem eo_has_bool_type_imp_left (A B : Term) :
   RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.imp A) B) ->
@@ -29,7 +30,8 @@ private theorem eo_has_bool_type_imp_left (A B : Term) :
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).1
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
+    (typeof_imp_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
 
 private theorem eq_of_requires_eq_true_not_stuck (x1 A B : Term) :
   __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck ->
@@ -67,16 +69,21 @@ theorem typed___eo_prog_modus_ponens_impl (x1 x2 : Term) :
       cases f with
       | Apply g A =>
           cases g with
-          | imp =>
-              change __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck at hProg
-              have hEq : A = x1 := eq_of_requires_eq_true_not_stuck x1 A B hProg
-              subst A
-              have hX1Bool : RuleProofs.eo_has_bool_type x1 :=
-                eo_has_bool_type_imp_left x1 B hX2Bool
-              have hX1NotStuck : x1 ≠ Term.Stuck :=
-                RuleProofs.term_ne_stuck_of_has_bool_type x1 hX1Bool
-              rw [prog_modus_ponens_eq_rhs_of_not_stuck x1 B hX1NotStuck]
-              exact eo_has_bool_type_imp_right x1 B hX2Bool
+          | UOp op =>
+              cases op with
+              | imp =>
+                  change __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck at hProg
+                  have hEq : A = x1 := eq_of_requires_eq_true_not_stuck x1 A B hProg
+                  subst A
+                  have hX1Bool : RuleProofs.eo_has_bool_type x1 :=
+                    eo_has_bool_type_imp_left x1 B hX2Bool
+                  have hX1NotStuck : x1 ≠ Term.Stuck :=
+                    RuleProofs.term_ne_stuck_of_has_bool_type x1 hX1Bool
+                  rw [prog_modus_ponens_eq_rhs_of_not_stuck x1 B hX1NotStuck]
+                  exact eo_has_bool_type_imp_right x1 B hX2Bool
+              | _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
           | _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)
@@ -99,14 +106,19 @@ theorem facts___eo_prog_modus_ponens_impl (M : SmtModel) (x1 x2 : Term) :
       cases f with
       | Apply g A =>
           cases g with
-          | imp =>
-              change __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck at hProg
-              have hEq : A = x1 := eq_of_requires_eq_true_not_stuck x1 A B hProg
-              subst A
-              have hX1NotStuck : x1 ≠ Term.Stuck :=
-                RuleProofs.term_ne_stuck_of_interprets_true M x1 hX1True
-              rw [prog_modus_ponens_eq_rhs_of_not_stuck x1 B hX1NotStuck]
-              exact RuleProofs.eo_interprets_imp_elim M x1 B hX2True hX1True
+          | UOp op =>
+              cases op with
+              | imp =>
+                  change __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck at hProg
+                  have hEq : A = x1 := eq_of_requires_eq_true_not_stuck x1 A B hProg
+                  subst A
+                  have hX1NotStuck : x1 ≠ Term.Stuck :=
+                    RuleProofs.term_ne_stuck_of_interprets_true M x1 hX1True
+                  rw [prog_modus_ponens_eq_rhs_of_not_stuck x1 B hX1NotStuck]
+                  exact RuleProofs.eo_interprets_imp_elim M x1 B hX2True hX1True
+              | _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
           | _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

@@ -10,7 +10,11 @@ set_option maxHeartbeats 10000000
 private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
     (h : __eo_typeof_re_mult T ≠ Term.Stuck) :
     T = Term.RegLan := by
-  cases T <;> simp [__eo_typeof_re_mult] at h ⊢
+  cases T with
+  | UOp op =>
+      cases op <;> simp [__eo_typeof_re_mult] at h ⊢
+  | _ =>
+      simp [__eo_typeof_re_mult] at h
 
 private theorem smtx_model_eval_re_star_star (v : SmtValue) :
     __smtx_model_eval_re_mult (__smtx_model_eval_re_mult v) =
@@ -107,14 +111,7 @@ private theorem facts___eo_prog_re_star_star_impl
           (__eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1))) =
         __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult a1)) := by
     rw [hOuterTranslate, hInnerTranslate]
-    change
-      __smtx_model_eval_re_mult
-          (__smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt a1))) =
-        __smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1))
-    change
-      __smtx_model_eval_re_mult
-          (__smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1))) =
-        __smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1))
+    rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_106]
     exact smtx_model_eval_re_star_star (__smtx_model_eval M (__eo_to_smt a1))
   rw [hProg]
   exact RuleProofs.eo_interprets_eq_of_rel M

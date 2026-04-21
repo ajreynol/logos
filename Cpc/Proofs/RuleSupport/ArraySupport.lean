@@ -132,17 +132,21 @@ theorem eo_typeof_store_not_stuck_implies_array (A I E : Term)
           cases f with
           | Apply g y =>
               cases g with
-              | Array =>
-                  have hReq :
-                      __eo_requires (__eo_and (__eo_eq y I) (__eo_eq x E))
-                        (Term.Boolean true) (Term.Apply (Term.Apply Term.Array y) x) ≠
-                        Term.Stuck := by
-                    simpa [__eo_typeof_store, hI, hE] using h
-                  have hEqs :
-                      I = y ∧ E = x :=
-                    eqs_of_requires_and_eq_true_not_stuck y x I E
-                      (Term.Apply (Term.Apply Term.Array y) x) hReq
-                  simpa [hEqs.1, hEqs.2]
+              | UOp op =>
+                  cases op with
+                  | Array =>
+                      have hReq :
+                          __eo_requires (__eo_and (__eo_eq y I) (__eo_eq x E))
+                            (Term.Boolean true) (Term.Apply (Term.Apply Term.Array y) x) ≠
+                            Term.Stuck := by
+                        simpa [__eo_typeof_store, hI, hE] using h
+                      have hEqs :
+                          I = y ∧ E = x :=
+                        eqs_of_requires_and_eq_true_not_stuck y x I E
+                          (Term.Apply (Term.Apply Term.Array y) x) hReq
+                      simpa [hEqs.1, hEqs.2]
+                  | _ =>
+                      simp [__eo_typeof_store, hI, hE] at h
               | _ =>
                   simp [__eo_typeof_store, hI, hE] at h
           | _ =>
@@ -161,13 +165,17 @@ theorem eo_typeof_select_not_stuck_implies_array (A I : Term)
         cases f with
         | Apply g y =>
             cases g with
-            | Array =>
-                have hReq :
-                    __eo_requires (__eo_eq y I) (Term.Boolean true) x ≠ Term.Stuck := by
-                  simpa [__eo_typeof_select, hI] using h
-                have hEq : I = y :=
-                  eq_of_requires_eq_true_not_stuck y I x hReq
-                exact ⟨x, by simpa [hEq]⟩
+            | UOp op =>
+                cases op with
+                | Array =>
+                    have hReq :
+                        __eo_requires (__eo_eq y I) (Term.Boolean true) x ≠ Term.Stuck := by
+                      simpa [__eo_typeof_select, hI] using h
+                    have hEq : I = y :=
+                      eq_of_requires_eq_true_not_stuck y I x hReq
+                    exact ⟨x, by simpa [hEq]⟩
+                | _ =>
+                    simp [__eo_typeof_select, hI] at h
             | _ =>
                 simp [__eo_typeof_select, hI] at h
         | _ =>

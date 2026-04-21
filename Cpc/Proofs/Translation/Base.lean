@@ -18,17 +18,17 @@ namespace TranslationProofs
 
 /-- Computes `__eo_typeof` for `re_allchar`. -/
 @[simp] theorem eo_typeof_re_allchar :
-    __eo_typeof Term.re_allchar = Term.RegLan := by
+    __eo_typeof (Term.UOp UserOp.re_allchar) = Term.UOp UserOp.RegLan := by
   native_decide
 
 /-- Computes `__eo_typeof` for `re_none`. -/
 @[simp] theorem eo_typeof_re_none :
-    __eo_typeof Term.re_none = Term.RegLan := by
+    __eo_typeof (Term.UOp UserOp.re_none) = Term.UOp UserOp.RegLan := by
   native_decide
 
 /-- Computes `__eo_typeof` for `re_all`. -/
 @[simp] theorem eo_typeof_re_all :
-    __eo_typeof Term.re_all = Term.RegLan := by
+    __eo_typeof (Term.UOp UserOp.re_all) = Term.UOp UserOp.RegLan := by
   native_decide
 
 /-- Simplifies EO-to-SMT translation for `boolean`. -/
@@ -38,17 +38,17 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT translation for `re_allchar`. -/
 @[simp] theorem eo_to_smt_re_allchar :
-    __eo_to_smt Term.re_allchar = SmtTerm.re_allchar := by
+    __eo_to_smt (Term.UOp UserOp.re_allchar) = SmtTerm.re_allchar := by
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `re_none`. -/
 @[simp] theorem eo_to_smt_re_none :
-    __eo_to_smt Term.re_none = SmtTerm.re_none := by
+    __eo_to_smt (Term.UOp UserOp.re_none) = SmtTerm.re_none := by
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `re_all`. -/
 @[simp] theorem eo_to_smt_re_all :
-    __eo_to_smt Term.re_all = SmtTerm.re_all := by
+    __eo_to_smt (Term.UOp UserOp.re_all) = SmtTerm.re_all := by
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `var`. -/
@@ -72,11 +72,11 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT type translation for `int`. -/
 @[simp] theorem eo_to_smt_type_int :
-    __eo_to_smt_type Term.Int = SmtType.Int := rfl
+    __eo_to_smt_type (Term.UOp UserOp.Int) = SmtType.Int := rfl
 
 /-- Simplifies EO-to-SMT type translation for `real`. -/
 @[simp] theorem eo_to_smt_type_real :
-    __eo_to_smt_type Term.Real = SmtType.Real := rfl
+    __eo_to_smt_type (Term.UOp UserOp.Real) = SmtType.Real := rfl
 
 /-- Simplifies EO-to-SMT type translation for `fun`. -/
 @[simp] theorem eo_to_smt_type_fun (T U : Term) :
@@ -96,27 +96,27 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT type translation for `bitvec`. -/
 @[simp] theorem eo_to_smt_type_bitvec (n : native_Int) :
-    __eo_to_smt_type (Term.Apply Term.BitVec (Term.Numeral n)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n)) =
       native_ite (native_zleq 0 n) (SmtType.BitVec (native_int_to_nat n)) SmtType.None := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `char`. -/
 @[simp] theorem eo_to_smt_type_char :
-    __eo_to_smt_type Term.Char = SmtType.Char := rfl
+    __eo_to_smt_type (Term.UOp UserOp.Char) = SmtType.Char := rfl
 
 /-- Simplifies EO-to-SMT type translation for `reglan`. -/
 @[simp] theorem eo_to_smt_type_reglan :
-    __eo_to_smt_type Term.RegLan = SmtType.RegLan := rfl
+    __eo_to_smt_type (Term.UOp UserOp.RegLan) = SmtType.RegLan := rfl
 
 /-- Simplifies EO-to-SMT type translation for `seq`. -/
 @[simp] theorem eo_to_smt_type_seq (T : Term) :
-    __eo_to_smt_type (Term.Apply Term.Seq T) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) T) =
       __smtx_typeof_guard (__eo_to_smt_type T) (SmtType.Seq (__eo_to_smt_type T)) := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `array`. -/
 @[simp] theorem eo_to_smt_type_array (A B : Term) :
-    __eo_to_smt_type (Term.Apply (Term.Apply Term.Array A) B) =
+    __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Array) A) B) =
       __smtx_typeof_guard (__eo_to_smt_type A)
         (__smtx_typeof_guard (__eo_to_smt_type B)
           (SmtType.Map (__eo_to_smt_type A) (__eo_to_smt_type B))) := by
@@ -124,7 +124,7 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT type translation for `set`. -/
 @[simp] theorem eo_to_smt_type_set (T : Term) :
-    __eo_to_smt_type (Term.Apply Term.Set T) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Set) T) =
       __smtx_typeof_guard (__eo_to_smt_type T) (SmtType.Set (__eo_to_smt_type T)) := by
   simp [__eo_to_smt_type]
 

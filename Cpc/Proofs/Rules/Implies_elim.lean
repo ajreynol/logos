@@ -17,7 +17,7 @@ private theorem eo_has_bool_type_false :
   unfold RuleProofs.eo_has_bool_type
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
     rw [__eo_to_smt.eq_def]]
-  rfl
+  rw [__smtx_typeof.eq_1]
 
 private theorem eo_has_bool_type_or_of_bool_args (A B : Term) :
   RuleProofs.eo_has_bool_type A ->
@@ -25,11 +25,7 @@ private theorem eo_has_bool_type_or_of_bool_args (A B : Term) :
   RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.or A) B) := by
   intro hA hB
   unfold RuleProofs.eo_has_bool_type at hA hB ⊢
-  rw [eo_to_smt_or_eq A B]
-  change native_ite (native_Teq (__smtx_typeof (__eo_to_smt A)) SmtType.Bool)
-      (native_ite (native_Teq (__smtx_typeof (__eo_to_smt B)) SmtType.Bool)
-        SmtType.Bool SmtType.None)
-      SmtType.None = SmtType.Bool
+  rw [eo_to_smt_or_eq A B, typeof_or_eq]
   simp [hA, hB, native_ite, native_Teq]
 
 private theorem eo_has_bool_type_imp_left (A B : Term) :
@@ -42,7 +38,8 @@ private theorem eo_has_bool_type_imp_left (A B : Term) :
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).1
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
+    (typeof_imp_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
 
 private theorem eo_has_bool_type_imp_right (A B : Term) :
   RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.imp A) B) ->
@@ -54,7 +51,8 @@ private theorem eo_has_bool_type_imp_right (A B : Term) :
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).2
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
+    (typeof_imp_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
 
 private theorem eo_interprets_or_left_intro
     (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
@@ -73,9 +71,7 @@ private theorem eo_interprets_or_left_intro
         (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_or_eq] using
           (eo_has_bool_type_or_of_bool_args A B hABool hBBool)
-      · change __smtx_model_eval_or
-            (__smtx_model_eval M (__eo_to_smt A))
-            (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true
+      · rw [__smtx_model_eval.eq_7]
         rw [hEvalA, hEvalB]
         simp [__smtx_model_eval_or, SmtEval.native_or]
 
@@ -96,9 +92,7 @@ private theorem eo_interprets_or_right_intro
         (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_or_eq] using
           (eo_has_bool_type_or_of_bool_args A B hABool hBBool)
-      · change __smtx_model_eval_or
-            (__smtx_model_eval M (__eo_to_smt A))
-            (__smtx_model_eval M (__eo_to_smt B)) = SmtValue.Boolean true
+      · rw [__smtx_model_eval.eq_7]
         rw [hEvalA, hEvalB]
         cases a <;> simp [__smtx_model_eval_or, SmtEval.native_or]
 
@@ -113,21 +107,26 @@ theorem typed___eo_prog_implies_elim_impl (x1 : Term) :
       cases f with
       | Apply g F1 =>
           cases g with
-          | imp =>
-              have hF1Bool : RuleProofs.eo_has_bool_type F1 :=
-                eo_has_bool_type_imp_left F1 F2 hX1Bool
-              have hF2Bool : RuleProofs.eo_has_bool_type F2 :=
-                eo_has_bool_type_imp_right F1 F2 hX1Bool
-              have hInnerBool :
-                  RuleProofs.eo_has_bool_type
-                    (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false)) :=
-                eo_has_bool_type_or_of_bool_args F2 (Term.Boolean false)
-                  hF2Bool eo_has_bool_type_false
-              exact eo_has_bool_type_or_of_bool_args
-                (Term.Apply Term.not F1)
-                (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false))
-                (RuleProofs.eo_has_bool_type_not_of_bool_arg F1 hF1Bool)
-                hInnerBool
+          | UOp op =>
+              cases op with
+              | imp =>
+                  have hF1Bool : RuleProofs.eo_has_bool_type F1 :=
+                    eo_has_bool_type_imp_left F1 F2 hX1Bool
+                  have hF2Bool : RuleProofs.eo_has_bool_type F2 :=
+                    eo_has_bool_type_imp_right F1 F2 hX1Bool
+                  have hInnerBool :
+                      RuleProofs.eo_has_bool_type
+                        (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false)) :=
+                    eo_has_bool_type_or_of_bool_args F2 (Term.Boolean false)
+                      hF2Bool eo_has_bool_type_false
+                  exact eo_has_bool_type_or_of_bool_args
+                    (Term.Apply Term.not F1)
+                    (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false))
+                    (RuleProofs.eo_has_bool_type_not_of_bool_arg F1 hF1Bool)
+                    hInnerBool
+              | _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
           | _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)
@@ -150,46 +149,51 @@ theorem facts___eo_prog_implies_elim_impl
       cases f with
       | Apply g F1 =>
           cases g with
-          | imp =>
-              have hImpBool : RuleProofs.eo_has_bool_type
-                  (Term.Apply (Term.Apply Term.imp F1) F2) :=
-                RuleProofs.eo_has_bool_type_of_interprets_true M
-                  (Term.Apply (Term.Apply Term.imp F1) F2) hX1True
-              have hF1Bool : RuleProofs.eo_has_bool_type F1 :=
-                eo_has_bool_type_imp_left F1 F2 hImpBool
-              rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM F1 hF1Bool with
-                ⟨b, hEvalF1⟩
-              cases b with
-              | false =>
-                  have hF1False : eo_interprets M F1 false :=
-                    RuleProofs.eo_interprets_of_bool_eval M F1 false hF1Bool hEvalF1
-                  have hInnerBool :
-                      RuleProofs.eo_has_bool_type
-                        (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false)) := by
-                    have hF2Bool : RuleProofs.eo_has_bool_type F2 :=
-                      eo_has_bool_type_imp_right F1 F2 hImpBool
-                    exact eo_has_bool_type_or_of_bool_args F2 (Term.Boolean false)
-                      hF2Bool eo_has_bool_type_false
-                  exact eo_interprets_or_left_intro M hM
-                    (Term.Apply Term.not F1)
-                    (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false))
-                    (RuleProofs.eo_interprets_not_of_false M F1 hF1False)
-                    hInnerBool
-              | true =>
-                  have hF1True : eo_interprets M F1 true :=
-                    RuleProofs.eo_interprets_of_bool_eval M F1 true hF1Bool hEvalF1
-                  have hF2True : eo_interprets M F2 true :=
-                    RuleProofs.eo_interprets_imp_elim M F1 F2 hX1True hF1True
-                  have hInnerTrue :
-                      eo_interprets M
-                        (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false)) true :=
-                    eo_interprets_or_left_intro M hM F2 (Term.Boolean false)
-                      hF2True eo_has_bool_type_false
-                  exact eo_interprets_or_right_intro M hM
-                    (Term.Apply Term.not F1)
-                    (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false))
-                    (RuleProofs.eo_has_bool_type_not_of_bool_arg F1 hF1Bool)
-                    hInnerTrue
+          | UOp op =>
+              cases op with
+              | imp =>
+                  have hImpBool : RuleProofs.eo_has_bool_type
+                      (Term.Apply (Term.Apply Term.imp F1) F2) :=
+                    RuleProofs.eo_has_bool_type_of_interprets_true M
+                      (Term.Apply (Term.Apply Term.imp F1) F2) hX1True
+                  have hF1Bool : RuleProofs.eo_has_bool_type F1 :=
+                    eo_has_bool_type_imp_left F1 F2 hImpBool
+                  rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM F1 hF1Bool with
+                    ⟨b, hEvalF1⟩
+                  cases b with
+                  | false =>
+                      have hF1False : eo_interprets M F1 false :=
+                        RuleProofs.eo_interprets_of_bool_eval M F1 false hF1Bool hEvalF1
+                      have hInnerBool :
+                          RuleProofs.eo_has_bool_type
+                            (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false)) := by
+                        have hF2Bool : RuleProofs.eo_has_bool_type F2 :=
+                          eo_has_bool_type_imp_right F1 F2 hImpBool
+                        exact eo_has_bool_type_or_of_bool_args F2 (Term.Boolean false)
+                          hF2Bool eo_has_bool_type_false
+                      exact eo_interprets_or_left_intro M hM
+                        (Term.Apply Term.not F1)
+                        (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false))
+                        (RuleProofs.eo_interprets_not_of_false M F1 hF1False)
+                        hInnerBool
+                  | true =>
+                      have hF1True : eo_interprets M F1 true :=
+                        RuleProofs.eo_interprets_of_bool_eval M F1 true hF1Bool hEvalF1
+                      have hF2True : eo_interprets M F2 true :=
+                        RuleProofs.eo_interprets_imp_elim M F1 F2 hX1True hF1True
+                      have hInnerTrue :
+                          eo_interprets M
+                            (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false)) true :=
+                        eo_interprets_or_left_intro M hM F2 (Term.Boolean false)
+                          hF2True eo_has_bool_type_false
+                      exact eo_interprets_or_right_intro M hM
+                        (Term.Apply Term.not F1)
+                        (Term.Apply (Term.Apply Term.or F2) (Term.Boolean false))
+                        (RuleProofs.eo_has_bool_type_not_of_bool_arg F1 hF1Bool)
+                        hInnerTrue
+              | _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
           | _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)

@@ -17,7 +17,8 @@ private theorem eo_has_bool_type_imp_left (A B : Term) :
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).1
+  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
+    (typeof_imp_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
 
 /-- Shows that the EO program for `not_implies_elim1` is well typed. -/
 theorem typed___eo_prog_not_implies_elim1_impl (x1 : Term) :
@@ -28,15 +29,25 @@ theorem typed___eo_prog_not_implies_elim1_impl (x1 : Term) :
   cases x1 with
   | Apply f a =>
       cases f with
-      | not =>
-          cases a with
-          | Apply g F2 =>
-              cases g with
-              | Apply h F1 =>
-                  cases h with
-                  | imp =>
-                      exact eo_has_bool_type_imp_left F1 F2
-                        (RuleProofs.eo_has_bool_type_not_arg _ hX1Bool)
+      | UOp op =>
+          cases op with
+          | not =>
+              cases a with
+              | Apply g F2 =>
+                  cases g with
+                  | Apply h F1 =>
+                      cases h with
+                      | UOp op' =>
+                          cases op' with
+                          | imp =>
+                              exact eo_has_bool_type_imp_left F1 F2
+                                (RuleProofs.eo_has_bool_type_not_arg _ hX1Bool)
+                          | _ =>
+                              change Term.Stuck ≠ Term.Stuck at hProg
+                              exact False.elim (hProg rfl)
+                      | _ =>
+                          change Term.Stuck ≠ Term.Stuck at hProg
+                          exact False.elim (hProg rfl)
                   | _ =>
                       change Term.Stuck ≠ Term.Stuck at hProg
                       exact False.elim (hProg rfl)
@@ -62,16 +73,26 @@ theorem facts___eo_prog_not_implies_elim1_impl (M : SmtModel) (x1 : Term) :
   cases x1 with
   | Apply f a =>
       cases f with
-      | not =>
-          cases a with
-          | Apply g F2 =>
-              cases g with
-              | Apply h F1 =>
-                  cases h with
-                  | imp =>
-                      exact RuleProofs.eo_interprets_imp_false_left M F1 F2
-                        (RuleProofs.eo_interprets_not_true_implies_false M
-                          (Term.Apply (Term.Apply Term.imp F1) F2) hX1True)
+      | UOp op =>
+          cases op with
+          | not =>
+              cases a with
+              | Apply g F2 =>
+                  cases g with
+                  | Apply h F1 =>
+                      cases h with
+                      | UOp op' =>
+                          cases op' with
+                          | imp =>
+                              exact RuleProofs.eo_interprets_imp_false_left M F1 F2
+                                (RuleProofs.eo_interprets_not_true_implies_false M
+                                  (Term.Apply (Term.Apply Term.imp F1) F2) hX1True)
+                          | _ =>
+                              change Term.Stuck ≠ Term.Stuck at hProg
+                              exact False.elim (hProg rfl)
+                      | _ =>
+                          change Term.Stuck ≠ Term.Stuck at hProg
+                          exact False.elim (hProg rfl)
                   | _ =>
                       change Term.Stuck ≠ Term.Stuck at hProg
                       exact False.elim (hProg rfl)
