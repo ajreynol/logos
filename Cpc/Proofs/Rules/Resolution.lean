@@ -1,5 +1,5 @@
-import Cpc.Proofs.Support
-import Cpc.Proofs.ResolutionSupport
+import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.ResolutionSupport
 
 open Eo
 open SmtEval

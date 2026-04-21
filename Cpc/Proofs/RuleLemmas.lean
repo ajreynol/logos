@@ -1,5 +1,5 @@
 import Cpc.Proofs.CheckerCore
-import Cpc.Proofs.Support
+import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.Rules.Scope
 import Cpc.Proofs.Rules.Process_scope
 import Cpc.Proofs.Rules.Ite_eq

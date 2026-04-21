@@ -1,4 +1,4 @@
-import Cpc.Proofs.Support
+import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.Rules.True_elim
 
 open Eo
