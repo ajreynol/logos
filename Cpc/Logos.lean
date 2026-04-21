@@ -275,7 +275,6 @@ inductive Term : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
-
 /-
 Eunoia datatypes.
 -/
@@ -297,6 +296,14 @@ end
 /- Term equality -/
 def native_teq : Term -> Term -> native_Bool
   | x, y => decide (x = y)
+
+/- Term ITE -/
+abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
+  (native_ite (native_teq x1 (Term.Boolean true))
+    x2
+    (native_ite (native_teq x1 (Term.Boolean false))
+      x3
+      Term.Stuck))
 
 /- Term less than, based on arbitrary ordering -/
 def native_tcmp (a b : Term) : native_Bool :=
@@ -351,10 +358,6 @@ def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (native_not (native_teq x Term.Stuck)))
 
 
-abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
-  (native_ite (native_teq x1 (Term.Boolean true)) x2 (native_ite (native_teq x1 (Term.Boolean false)) x3 Term.Stuck))
-
-
 def __eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 => (native_ite (native_teq x1 x2) (native_ite (native_not (native_teq x1 Term.Stuck)) x3 Term.Stuck) Term.Stuck)
 
@@ -367,43 +370,33 @@ def __eo_not : Term -> Term
 
 def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_and b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_binary_and w1 n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_binary_and w1 n1 n2) (native_int_pow2 w1))))
   | _, _ => Term.Stuck
 
 
 def __eo_or : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_or b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_binary_or w1 n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_binary_or w1 n1 n2) (native_int_pow2 w1))))
   | _, _ => Term.Stuck
 
 
 def __eo_xor : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_xor b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_binary_xor w1 n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_binary_xor w1 n1 n2) (native_int_pow2 w1))))
   | _, _ => Term.Stuck
 
 
 def __eo_add : Term -> Term -> Term
   | (Term.Numeral n1), (Term.Numeral n2) => (Term.Numeral (native_zplus n1 n2))
   | (Term.Rational r1), (Term.Rational r2) => (Term.Rational (native_qplus r1 r2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_zplus n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_zplus n1 n2) (native_int_pow2 w1))))
   | _, _ => Term.Stuck
 
 
 def __eo_mul : Term -> Term -> Term
   | (Term.Numeral n1), (Term.Numeral n2) => (Term.Numeral (native_zmult n1 n2))
   | (Term.Rational r1), (Term.Rational r2) => (Term.Rational (native_qmult r1 r2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (Term.Binary w1 (native_mod_total (native_zmult n1 n2) (native_int_pow2 w1))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_zmult n1 n2) (native_int_pow2 w1))))
   | _, _ => Term.Stuck
 
 
@@ -415,17 +408,13 @@ def __eo_qdiv : Term -> Term -> Term
 
 def __eo_zdiv : Term -> Term -> Term
   | (Term.Numeral n1), (Term.Numeral n2) => (native_ite (native_zeq 0 n2) Term.Stuck (Term.Numeral (native_div_total n1 n2)))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (native_ite (native_zeq 0 n2) (Term.Binary w1 (native_binary_max w1)) (Term.Binary w1 (native_mod_total (native_div_total n1 n2) (native_int_pow2 w1)))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (native_ite (native_zeq 0 n2) (Term.Binary w1 (native_binary_max w1)) (Term.Binary w1 (native_mod_total (native_div_total n1 n2) (native_int_pow2 w1)))))
   | _, _ => Term.Stuck
 
 
 def __eo_zmod : Term -> Term -> Term
   | (Term.Numeral n1), (Term.Numeral n2) => (native_ite (native_zeq 0 n2) Term.Stuck (Term.Numeral (native_mod_total n1 n2)))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => 
-    let _v0 := (Term.Numeral w1)
-    (native_ite (native_teq _v0 (Term.Numeral w2)) (native_ite (native_not (native_teq _v0 Term.Stuck)) (native_ite (native_zeq 0 n2) (Term.Binary w1 n1) (Term.Binary w1 (native_mod_total (native_mod_total n1 n2) (native_int_pow2 w1)))) Term.Stuck) Term.Stuck)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (native_ite (native_zeq 0 n2) (Term.Binary w1 n1) (Term.Binary w1 (native_mod_total (native_mod_total n1 n2) (native_int_pow2 w1)))))
   | _, _ => Term.Stuck
 
 
@@ -559,7 +548,10 @@ def __eo_hash : Term -> Term
 
 
 def __eo_gt : Term -> Term -> Term
-  | x, y => (__eo_is_neg (__eo_add (__eo_neg x) y))
+  | (Term.Numeral n1), (Term.Numeral n2) => (native_zlt n2 n1)
+  | (Term.Rational r1), (Term.Rational r2) => (native_qlt r2 r1)
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (native_zlt n2 n1))
+  | _, _ => Term.Stuck
 
 
 def __eo_cmp : Term -> Term -> Term
