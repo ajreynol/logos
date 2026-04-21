@@ -80,6 +80,12 @@ private theorem generic_apply_type_uconst
     generic_apply_type (SmtTerm.UConst s T) x := by
   rw [generic_apply_type, __smtx_typeof.eq_def]
 
+/-- Computes `generic_apply_type` for `choice_nth` heads. -/
+private theorem generic_apply_type_choice_nth
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) (x : SmtTerm) :
+    generic_apply_type (SmtTerm.choice_nth s T body n) x := by
+  rw [generic_apply_type, __smtx_typeof.eq_def]
+
 /-- Computes `generic_apply_type` for partially-applied `and`. -/
 private theorem generic_apply_type_and
     (t1 t2 x : SmtTerm) :
@@ -114,6 +120,12 @@ private theorem generic_apply_type_is_int
 private theorem generic_apply_type_abs
     (t x : SmtTerm) :
     generic_apply_type (theory1 SmtTheoryOp.abs t) x := by
+  rw [generic_apply_type, theory1, theory0, __smtx_typeof.eq_def]
+
+/-- Computes `generic_apply_type` for partially-applied `str_from_int`. -/
+private theorem generic_apply_type_str_from_int
+    (t x : SmtTerm) :
+    generic_apply_type (theory1 SmtTheoryOp.str_from_int t) x := by
   rw [generic_apply_type, theory1, theory0, __smtx_typeof.eq_def]
 
 /-- Computes `generic_apply_type` for partially-applied `str_to_re`. -/
@@ -186,6 +198,12 @@ private theorem generic_apply_type_set_member
 private theorem generic_apply_type_set_subset
     (t1 t2 x : SmtTerm) :
     generic_apply_type (theory2 SmtTheoryOp.set_subset t1 t2) x := by
+  rw [generic_apply_type, theory2, theory1, theory0, __smtx_typeof.eq_def]
+
+/-- Computes `generic_apply_type` for partially-applied `qdiv_total`. -/
+private theorem generic_apply_type_div
+    (t1 t2 x : SmtTerm) :
+    generic_apply_type (theory2 SmtTheoryOp.div t1 t2) x := by
   rw [generic_apply_type, theory2, theory1, theory0, __smtx_typeof.eq_def]
 
 /-- Computes `generic_apply_type` for partially-applied `qdiv_total`. -/
@@ -2856,11 +2874,19 @@ theorem eo_to_smt_typeof_matches_translation_apply
                     (theory3 SmtTheoryOp.str_substr (__eo_to_smt z) _v2 _v0)
                     (theory3 SmtTheoryOp.str_substr (__eo_to_smt y) _v2 _v0))) 0 := by
           rw [__eo_to_smt.eq_def]
+          rfl
         have hGeneric :
             generic_apply_type (__eo_to_smt (Term.Apply (Term.Apply Term._at_strings_deq_diff z) y))
               (__eo_to_smt x) := by
-          simpa [hHeadTranslate, generic_apply_type, theory1, theory2, theory3, theory0,
-            __smtx_typeof.eq_def]
+          simpa [hHeadTranslate] using
+            (generic_apply_type_choice_nth "_at_x" SmtType.Int
+              (theory1 SmtTheoryOp.not
+                (SmtTerm.eq
+                  (theory3 SmtTheoryOp.str_substr (__eo_to_smt z)
+                    (SmtTerm.Var "_at_x" SmtType.Int) (SmtTerm.Numeral 1))
+                  (theory3 SmtTheoryOp.str_substr (__eo_to_smt y)
+                    (SmtTerm.Var "_at_x" SmtType.Int) (SmtTerm.Numeral 1))))
+              0 (__eo_to_smt x))
         exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
           Term._at_strings_deq_diff z y x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
       case _at_strings_itos_result =>
@@ -2875,8 +2901,11 @@ theorem eo_to_smt_typeof_matches_translation_apply
             generic_apply_type
               (__eo_to_smt (Term.Apply (Term.Apply Term._at_strings_itos_result z) y))
               (__eo_to_smt x) := by
-          simpa [hHeadTranslate, generic_apply_type, theory1, theory2, theory0,
-            __smtx_typeof.eq_def]
+          simpa [hHeadTranslate] using
+            (generic_apply_type_str_from_int
+              (theory2 SmtTheoryOp.mod (__eo_to_smt z)
+                (theory2 SmtTheoryOp.multmult (SmtTerm.Numeral 10) (__eo_to_smt y)))
+              (__eo_to_smt x))
         exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
           Term._at_strings_itos_result z y x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
       case _at_strings_num_occur =>
@@ -2894,12 +2923,22 @@ theorem eo_to_smt_typeof_matches_translation_apply
                       (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
                 (theory1 SmtTheoryOp.str_len _v0) := by
           rw [__eo_to_smt.eq_def]
+          rfl
         have hGeneric :
             generic_apply_type
               (__eo_to_smt (Term.Apply (Term.Apply Term._at_strings_num_occur z) y))
               (__eo_to_smt x) := by
-          simpa [hHeadTranslate, generic_apply_type, theory1, theory2, theory3, theory0,
-            __smtx_typeof.eq_def]
+          simpa [hHeadTranslate] using
+            (generic_apply_type_div
+              (theory2 SmtTheoryOp.neg
+                (theory1 SmtTheoryOp.str_len (__eo_to_smt z))
+                (theory1 SmtTheoryOp.str_len
+                  (theory3 SmtTheoryOp.str_replace_all
+                    (__eo_to_smt z)
+                    (__eo_to_smt y)
+                    (SmtTerm.seq_empty (SmtType.Seq SmtType.Char)))))
+              (theory1 SmtTheoryOp.str_len (__eo_to_smt y))
+              (__eo_to_smt x))
         exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
           Term._at_strings_num_occur z y x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
       case bvultbv =>
@@ -2911,6 +2950,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         have hHeadTranslate :
             __eo_to_smt (Term.Apply (Term.Apply Term.bvultbv z) y) = head := by
           rw [__eo_to_smt.eq_def]
+          rfl
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.bvultbv z) y) x) =
               SmtTerm.Apply head (__eo_to_smt x) := by
@@ -2974,6 +3014,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         have hHeadTranslate :
             __eo_to_smt (Term.Apply (Term.Apply Term.bvsltbv z) y) = head := by
           rw [__eo_to_smt.eq_def]
+          rfl
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.bvsltbv z) y) x) =
               SmtTerm.Apply head (__eo_to_smt x) := by
@@ -3227,8 +3268,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
         have hGeneric :
             generic_apply_type (__eo_to_smt (Term.Apply (Term.Apply Term.set_choose z) y))
               (__eo_to_smt x) := by
-          simpa [hHeadTranslate, generic_apply_type, theory2, theory1, theory0,
-            __smtx_typeof.eq_def]
+          simpa [hHeadTranslate] using
+            (generic_apply_type_choice_nth "_at_x"
+              (__eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose z)))
+              (theory2 SmtTheoryOp.set_member
+                (SmtTerm.Var "_at_x"
+                  (__eo_to_smt_type (__eo_typeof (Term.Apply Term.set_choose z))))
+                (__eo_to_smt z))
+              0 (__eo_to_smt x))
         exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
           Term.set_choose z y x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
       case set_member =>
@@ -3292,6 +3339,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             __eo_to_smt (Term.Apply (Term.Apply Term.set_subset z) y) =
               theory2 SmtTheoryOp.set_subset (__eo_to_smt z) (__eo_to_smt y) := by
           rw [__eo_to_smt.eq_def]
+          rfl
         have hOuterTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.set_subset z) y) x) =
               SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply Term.set_subset z) y))
@@ -3350,6 +3398,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             __eo_to_smt (Term.Apply (Term.Apply Term.qdiv_total z) y) =
               theory2 SmtTheoryOp.qdiv_total (__eo_to_smt z) (__eo_to_smt y) := by
           rw [__eo_to_smt.eq_def]
+          rfl
         have hOuterTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.qdiv_total z) y) x) =
               SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply Term.qdiv_total z) y))
@@ -3416,6 +3465,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             __eo_to_smt (Term.Apply (Term.Apply Term.int_to_bv z) y) =
               theory2 SmtTheoryOp.int_to_bv (__eo_to_smt z) (__eo_to_smt y) := by
           rw [__eo_to_smt.eq_def]
+          rfl
         have hOuterTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.int_to_bv z) y) x) =
               SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply Term.int_to_bv z) y))
@@ -3472,6 +3522,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.not x) =
           theory1 SmtTheoryOp.not (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.not (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3505,6 +3556,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.to_real x) =
           theory1 SmtTheoryOp.to_real (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.to_real (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3544,6 +3596,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.to_int x) =
           theory1 SmtTheoryOp.to_int (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.to_int (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3568,6 +3621,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.is_int x) =
           theory1 SmtTheoryOp.is_int (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.is_int (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3592,6 +3646,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.abs x) =
           theory1 SmtTheoryOp.abs (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.abs (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3615,6 +3670,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.int_pow2 x) =
           theory1 SmtTheoryOp.int_pow2 (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.int_pow2 (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3639,6 +3695,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.int_log2 x) =
           theory1 SmtTheoryOp.int_log2 (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.int_log2 (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3668,6 +3725,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.int_ispow2 x) =
           theory2 SmtTheoryOp.and geqTerm eqTerm := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN :
         term_has_non_none_type (theory2 SmtTheoryOp.and geqTerm eqTerm) := by
       unfold term_has_non_none_type
@@ -3714,6 +3772,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term._at_int_div_by_zero x) =
           theory2 SmtTheoryOp.div (__eo_to_smt x) (SmtTerm.Numeral 0) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN :
         term_has_non_none_type
           (theory2 SmtTheoryOp.div (__eo_to_smt x) (SmtTerm.Numeral 0)) := by
@@ -3741,6 +3800,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term._at_mod_by_zero x) =
           theory2 SmtTheoryOp.mod (__eo_to_smt x) (SmtTerm.Numeral 0) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN :
         term_has_non_none_type
           (theory2 SmtTheoryOp.mod (__eo_to_smt x) (SmtTerm.Numeral 0)) := by
@@ -3781,8 +3841,18 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rw [__eo_to_smt.eq_def]
     have hGeneric :
         generic_apply_type (__eo_to_smt (Term._at_array_deq_diff x1 x2)) (__eo_to_smt x) := by
-      simpa [hHeadTranslate, generic_apply_type, theory1, theory2, theory0,
-        __smtx_typeof.eq_def]
+      simpa [hHeadTranslate] using
+        (generic_apply_type_choice_nth "_at_x"
+          (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))
+          (theory1 SmtTheoryOp.not
+            (SmtTerm.eq
+              (theory2 SmtTheoryOp.select (__eo_to_smt x1)
+                (SmtTerm.Var "_at_x"
+                  (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))))
+              (theory2 SmtTheoryOp.select (__eo_to_smt x2)
+                (SmtTerm.Var "_at_x"
+                  (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))))))
+          0 (__eo_to_smt x))
     have hApplyNN :
         __smtx_typeof_apply
             (__smtx_typeof (__eo_to_smt (Term._at_array_deq_diff x1 x2)))
@@ -3836,6 +3906,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.bvnot x) =
           theory1 SmtTheoryOp.bvnot (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.bvnot (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3860,6 +3931,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.bvneg x) =
           theory1 SmtTheoryOp.bvneg (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.bvneg (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3884,6 +3956,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.bvnego x) =
           theory1 SmtTheoryOp.bvnego (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.bvnego (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -3912,6 +3985,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             (theory1 SmtTheoryOp.bvnot
               (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN :
         term_has_non_none_type
           (let _v0 := __eo_to_smt x
@@ -3958,6 +4032,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             (theory2 SmtTheoryOp.bvcomp _v0
               (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN :
         term_has_non_none_type
           (let _v0 := __eo_to_smt x
@@ -4030,6 +4105,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_len x) =
           theory1 SmtTheoryOp.str_len (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_len (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4055,6 +4131,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_rev x) =
           theory1 SmtTheoryOp.str_rev (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_rev (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4083,6 +4160,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_to_lower x) =
           theory1 SmtTheoryOp.str_to_lower (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_to_lower (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4109,6 +4187,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_to_upper x) =
           theory1 SmtTheoryOp.str_to_upper (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_to_upper (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4135,6 +4214,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_to_code x) =
           theory1 SmtTheoryOp.str_to_code (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_to_code (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4159,6 +4239,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_from_code x) =
           theory1 SmtTheoryOp.str_from_code (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_from_code (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4185,6 +4266,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_is_digit x) =
           theory1 SmtTheoryOp.str_is_digit (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_is_digit (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4209,6 +4291,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_to_int x) =
           theory1 SmtTheoryOp.str_to_int (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_to_int (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4233,6 +4316,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_from_int x) =
           theory1 SmtTheoryOp.str_from_int (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_from_int (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4263,6 +4347,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
               (theory2 SmtTheoryOp.re_range (SmtTerm.String "0") (SmtTerm.String "9")))
             (SmtTerm.Numeral 0) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN :
         term_has_non_none_type
           (theory3 SmtTheoryOp.str_indexof_re
@@ -4296,6 +4381,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.str_to_re x) =
           theory1 SmtTheoryOp.str_to_re (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.str_to_re (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4320,6 +4406,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.re_mult x) =
           theory1 SmtTheoryOp.re_mult (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.re_mult (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4344,6 +4431,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.re_plus x) =
           theory1 SmtTheoryOp.re_plus (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.re_plus (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4368,6 +4456,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.re_opt x) =
           theory1 SmtTheoryOp.re_opt (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.re_opt (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4392,6 +4481,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.re_comp x) =
           theory1 SmtTheoryOp.re_comp (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.re_comp (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4416,6 +4506,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.seq_unit x) =
           theory1 SmtTheoryOp.seq_unit (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
       intro hXNone
       apply hNonNone
@@ -4459,6 +4550,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.set_singleton x) =
           theory1 SmtTheoryOp.set_singleton (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
       intro hXNone
       apply hNonNone
@@ -4501,6 +4593,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             (SmtTerm.eq (__eo_to_smt x)
               (theory1 SmtTheoryOp.set_singleton (SmtTerm.Var "_at_x" T))) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hExistsNN :
         term_has_non_none_type
           (SmtTerm.exists "_at_x" T
@@ -4560,18 +4653,31 @@ theorem eo_to_smt_typeof_matches_translation_apply
           let _v2 := SmtTerm.Var "_at_x" _v0
           SmtTerm.choice_nth "_at_x" _v0
             (theory1 SmtTheoryOp.not
-              (SmtTerm.eq
-                (theory2 SmtTheoryOp.set_member _v2 (__eo_to_smt x1))
-                (theory2 SmtTheoryOp.set_member _v2 (__eo_to_smt x2)))) 0 := by
+            (SmtTerm.eq
+              (theory2 SmtTheoryOp.set_member _v2 (__eo_to_smt x1))
+              (theory2 SmtTheoryOp.set_member _v2 (__eo_to_smt x2)))) 0 := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hTranslate :
         __eo_to_smt (Term.Apply (Term._at_sets_deq_diff x1 x2) x) =
           SmtTerm.Apply (__eo_to_smt (Term._at_sets_deq_diff x1 x2)) (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
     have hGeneric :
         generic_apply_type (__eo_to_smt (Term._at_sets_deq_diff x1 x2)) (__eo_to_smt x) := by
-      simpa [hHeadTranslate, generic_apply_type, theory1, theory2, theory0,
-        __smtx_typeof.eq_def]
+      simpa [hHeadTranslate] using
+        (generic_apply_type_choice_nth "_at_x"
+          (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)))
+          (theory1 SmtTheoryOp.not
+            (SmtTerm.eq
+              (theory2 SmtTheoryOp.set_member
+                (SmtTerm.Var "_at_x"
+                  (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))))
+                (__eo_to_smt x1))
+              (theory2 SmtTheoryOp.set_member
+                (SmtTerm.Var "_at_x"
+                  (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))))
+                (__eo_to_smt x2))))
+          0 (__eo_to_smt x))
     have hApplyNN :
         __smtx_typeof_apply
             (__smtx_typeof (__eo_to_smt (Term._at_sets_deq_diff x1 x2)))
@@ -4617,6 +4723,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term._at_div_by_zero x) =
           theory2 SmtTheoryOp.qdiv (__eo_to_smt x) (SmtTerm.Rational (native_mk_rational 0 1)) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN :
         term_has_non_none_type
           (theory2 SmtTheoryOp.qdiv (__eo_to_smt x) (SmtTerm.Rational (native_mk_rational 0 1))) := by
@@ -4657,6 +4764,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.ubv_to_int x) =
           theory1 SmtTheoryOp.ubv_to_int (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.ubv_to_int (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
@@ -4690,6 +4798,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         __eo_to_smt (Term.Apply Term.sbv_to_int x) =
           theory1 SmtTheoryOp.sbv_to_int (__eo_to_smt x) := by
       rw [__eo_to_smt.eq_def]
+      rfl
     have hApplyNN : term_has_non_none_type (theory1 SmtTheoryOp.sbv_to_int (__eo_to_smt x)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
