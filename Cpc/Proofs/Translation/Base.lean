@@ -1,3 +1,4 @@
+import Cpc.Proofs.TermCompat
 import Cpc.Spec
 
 open Eo

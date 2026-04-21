@@ -1,3 +1,4 @@
+import Cpc.Proofs.TermCompat
 import Cpc.Proofs.Translation
 import Cpc.Proofs.TypePreservation
 import Cpc.Proofs.TypePreservation.Helpers

@@ -1,3 +1,4 @@
+import Cpc.Proofs.TermCompat
 import Cpc.SmtModel
 
 open SmtEval

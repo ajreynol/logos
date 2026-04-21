@@ -36,15 +36,15 @@ def assumptions : Term :=
 def proof : CCmdList :=
   CCmdList.cons symmStep (CCmdList.cons contraStep CCmdList.nil)
 
-#eval! decide (__eo_invoke_assume_list CState.nil assumptions = s2)
-#eval! decide (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil assumptions) proof = s4)
-#eval! __eo_typeof t7
-#eval! __eo_to_smt_type (__eo_typeof t7)
-#eval! __eo_to_smt t7
-#eval! __eo_typeof t4
-#eval! __eo_to_smt_type (__eo_typeof t4)
-#eval! __eo_to_smt t4
-#eval! __eo_checker_is_refutation assumptions proof
+#eval decide (__eo_invoke_assume_list CState.nil assumptions = s2)
+#eval decide (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil assumptions) proof = s4)
+#eval __eo_typeof t7
+#eval __eo_to_smt_type (__eo_typeof t7)
+#eval __eo_to_smt t7
+#eval __eo_typeof t4
+#eval __eo_to_smt_type (__eo_typeof t4)
+#eval __eo_to_smt t4
+#eval __eo_checker_is_refutation assumptions proof
 
 private theorem uconst_int_smt_type (i : native_Nat) :
     __smtx_typeof (__eo_to_smt (Term.UConst i Term.Int)) = SmtType.Int := by
@@ -69,7 +69,6 @@ private theorem t7_has_bool_type : RuleProofs.eo_has_bool_type t7 := by
   exact RuleProofs.eo_has_bool_type_not_of_bool_arg t4 t4_has_bool_type
 
 example : TypedAssumptionList assumptions := by
-  unfold assumptions
   apply TypedAssumptionList.step
   · native_decide
   · native_decide
@@ -79,7 +78,6 @@ example : TypedAssumptionList assumptions := by
     · exact TypedAssumptionList.base
 
 example : TranslatableAssumptionList assumptions := by
-  unfold assumptions
   apply TranslatableAssumptionList.step
   · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ t7_has_bool_type
   · apply TranslatableAssumptionList.step
