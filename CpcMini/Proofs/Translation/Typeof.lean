@@ -1167,15 +1167,18 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
           · subst hOr
             have hTranslate :
                 __eo_to_smt (Term.Apply (Term.Apply Term.or y) x) =
-                  SmtTerm.or (__eo_to_smt y) (__eo_to_smt x) := by
+                  SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) (__eo_to_smt y))
+                    (__eo_to_smt x) := by
               rw [__eo_to_smt.eq_def]
             have hApplyNN :
                 term_has_non_none_type
-                  (SmtTerm.or (__eo_to_smt y) (__eo_to_smt x)) := by
+                  (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) (__eo_to_smt y))
+                    (__eo_to_smt x)) := by
               unfold term_has_non_none_type
               simpa [hTranslate] using hNN
             have hArgs := bool_binop_args_bool_of_non_none
-              (op := SmtTerm.or) (__smtx_typeof.eq_7 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
+              (op := fun t1 t2 => SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) t1) t2)
+              (__smtx_typeof.eq_7 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
             have h1NN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
               rw [hArgs.1]
               simp
@@ -1200,15 +1203,18 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
             · subst hAnd
               have hTranslate :
                   __eo_to_smt (Term.Apply (Term.Apply Term.and y) x) =
-                    SmtTerm.and (__eo_to_smt y) (__eo_to_smt x) := by
+                    SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) (__eo_to_smt y))
+                      (__eo_to_smt x) := by
                 rw [__eo_to_smt.eq_def]
               have hApplyNN :
                   term_has_non_none_type
-                    (SmtTerm.and (__eo_to_smt y) (__eo_to_smt x)) := by
+                    (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) (__eo_to_smt y))
+                      (__eo_to_smt x)) := by
                 unfold term_has_non_none_type
                 simpa [hTranslate] using hNN
               have hArgs := bool_binop_args_bool_of_non_none
-                (op := SmtTerm.and) (__smtx_typeof.eq_8 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
+                (op := fun t1 t2 => SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) t1) t2)
+                (__smtx_typeof.eq_8 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
               have h1NN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
                 rw [hArgs.1]
                 simp
@@ -1233,15 +1239,18 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
               · subst hImp
                 have hTranslate :
                     __eo_to_smt (Term.Apply (Term.Apply Term.imp y) x) =
-                      SmtTerm.imp (__eo_to_smt y) (__eo_to_smt x) := by
+                      SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) (__eo_to_smt y))
+                        (__eo_to_smt x) := by
                   rw [__eo_to_smt.eq_def]
                 have hApplyNN :
                     term_has_non_none_type
-                      (SmtTerm.imp (__eo_to_smt y) (__eo_to_smt x)) := by
+                      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) (__eo_to_smt y))
+                        (__eo_to_smt x)) := by
                   unfold term_has_non_none_type
                   simpa [hTranslate] using hNN
                 have hArgs := bool_binop_args_bool_of_non_none
-                  (op := SmtTerm.imp) (__smtx_typeof.eq_9 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
+                  (op := fun t1 t2 => SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) t1) t2)
+                  (__smtx_typeof.eq_9 (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
                 have h1NN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
                   rw [hArgs.1]
                   simp
@@ -1358,7 +1367,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
               · subst hNot
                 have hTranslate :
                     __eo_to_smt (Term.Apply Term.not x) =
-                      SmtTerm.not (__eo_to_smt x) := by
+                      SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) (__eo_to_smt x) := by
                   rw [__eo_to_smt.eq_def]
                 have hArgSmtTy : __smtx_typeof (__eo_to_smt x) = SmtType.Bool := by
                   have hNN' := hNN

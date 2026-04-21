@@ -18,7 +18,7 @@ theorem eo_to_smt_false_eq :
   rw [__eo_to_smt.eq_def]
 
 theorem eo_to_smt_not_eq (t : Term) :
-    __eo_to_smt (Term.Apply Term.not t) = SmtTerm.not (__eo_to_smt t) := by
+    __eo_to_smt (Term.Apply Term.not t) = theory1 SmtTheoryOp.not (__eo_to_smt t) := by
   rw [__eo_to_smt.eq_def]
 
 theorem eo_to_smt_eq_eq (x y : Term) :

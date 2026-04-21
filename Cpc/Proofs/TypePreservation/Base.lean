@@ -160,24 +160,27 @@ theorem model_eval_uconst_of_uninhabited
 /-- Shows that evaluating `re_allchar` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_allchar
     (M : SmtModel) :
-    __smtx_typeof_value (__smtx_model_eval M SmtTerm.re_allchar) =
-      __smtx_typeof SmtTerm.re_allchar := by
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.TheoryOp SmtTheoryOp.re_allchar)) =
+      __smtx_typeof (SmtTerm.TheoryOp SmtTheoryOp.re_allchar) := by
   unfold __smtx_model_eval __smtx_typeof __smtx_typeof_value
   rfl
 
 /-- Shows that evaluating `re_none` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_none
     (M : SmtModel) :
-    __smtx_typeof_value (__smtx_model_eval M SmtTerm.re_none) =
-      __smtx_typeof SmtTerm.re_none := by
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.TheoryOp SmtTheoryOp.re_none)) =
+      __smtx_typeof (SmtTerm.TheoryOp SmtTheoryOp.re_none) := by
   unfold __smtx_model_eval __smtx_typeof __smtx_typeof_value
   rfl
 
 /-- Shows that evaluating `re_all` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_all
     (M : SmtModel) :
-    __smtx_typeof_value (__smtx_model_eval M SmtTerm.re_all) =
-      __smtx_typeof SmtTerm.re_all := by
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.TheoryOp SmtTheoryOp.re_all)) =
+      __smtx_typeof (SmtTerm.TheoryOp SmtTheoryOp.re_all) := by
   unfold __smtx_model_eval __smtx_typeof __smtx_typeof_value
   rfl
 
@@ -220,8 +223,8 @@ theorem typeof_value_model_eval_seq_unit
     (t : SmtTerm)
     (ht : term_has_non_none_type t)
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.seq_unit t)) =
-      __smtx_typeof (SmtTerm.seq_unit t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.seq_unit t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.seq_unit t) := by
   unfold term_has_non_none_type at ht
   unfold __smtx_model_eval __smtx_typeof
   simp [__smtx_typeof_value, __smtx_typeof_seq_value, native_ite, native_Teq,
@@ -233,8 +236,8 @@ theorem typeof_value_model_eval_set_singleton
     (t : SmtTerm)
     (ht : term_has_non_none_type t)
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.set_singleton t)) =
-      __smtx_typeof (SmtTerm.set_singleton t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.set_singleton t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.set_singleton t) := by
   unfold term_has_non_none_type at ht
   unfold __smtx_model_eval __smtx_typeof
   simp [__smtx_model_eval_set_singleton, __smtx_typeof_value, __smtx_typeof_map_value,

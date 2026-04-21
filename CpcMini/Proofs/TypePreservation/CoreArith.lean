@@ -90,18 +90,20 @@ theorem eq_term_typeof_of_non_none
 theorem typeof_value_model_eval_not
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.not t))
+    (ht : term_has_non_none_type
+      (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.not t)) =
-      __smtx_typeof (SmtTerm.not t) := by
+    __smtx_typeof_value
+        (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) t)) =
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) t) := by
   have hArg : __smtx_typeof t = SmtType.Bool := by
     unfold term_has_non_none_type at ht
     cases h : __smtx_typeof t <;>
       simp [__smtx_typeof, native_ite, native_Teq, h] at ht
     simp
-  rw [show __smtx_typeof (SmtTerm.not t) = SmtType.Bool by
+  rw [show __smtx_typeof (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) t) = SmtType.Bool by
     simp [__smtx_typeof, native_ite, native_Teq, hArg]]
-  rw [show __smtx_model_eval M (SmtTerm.not t) =
+  rw [show __smtx_model_eval M (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) t) =
       __smtx_model_eval_not (__smtx_model_eval M t) by
     simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hArg] using hpres) with ⟨b, hb⟩
@@ -112,21 +114,30 @@ theorem typeof_value_model_eval_not
 theorem typeof_value_model_eval_or
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.or t1 t2))
+    (ht : term_has_non_none_type
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) t1) t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.or t1 t2)) =
-      __smtx_typeof (SmtTerm.or t1 t2) := by
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) t1) t2)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) t1) t2) := by
   have hTy :
-      __smtx_typeof (SmtTerm.or t1 t2) =
+      __smtx_typeof
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) t1) t2) =
         native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
           (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
           SmtType.None := by
     simp [__smtx_typeof]
-  have hArgs := bool_binop_args_bool_of_non_none hTy ht
-  rw [show __smtx_typeof (SmtTerm.or t1 t2) = SmtType.Bool by
+  have hArgs := bool_binop_args_bool_of_non_none
+    (op := fun x y => SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) x) y)
+    hTy ht
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) t1) t2) = SmtType.Bool by
     simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [show __smtx_model_eval M (SmtTerm.or t1 t2) =
+  rw [show __smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) t1) t2) =
       __smtx_model_eval_or (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
     simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩
@@ -138,21 +149,30 @@ theorem typeof_value_model_eval_or
 theorem typeof_value_model_eval_and
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.and t1 t2))
+    (ht : term_has_non_none_type
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) t1) t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.and t1 t2)) =
-      __smtx_typeof (SmtTerm.and t1 t2) := by
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) t1) t2)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) t1) t2) := by
   have hTy :
-      __smtx_typeof (SmtTerm.and t1 t2) =
+      __smtx_typeof
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) t1) t2) =
         native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
           (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
           SmtType.None := by
     simp [__smtx_typeof]
-  have hArgs := bool_binop_args_bool_of_non_none hTy ht
-  rw [show __smtx_typeof (SmtTerm.and t1 t2) = SmtType.Bool by
+  have hArgs := bool_binop_args_bool_of_non_none
+    (op := fun x y => SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) x) y)
+    hTy ht
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) t1) t2) = SmtType.Bool by
     simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [show __smtx_model_eval M (SmtTerm.and t1 t2) =
+  rw [show __smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) t1) t2) =
       __smtx_model_eval_and (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
     simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩
@@ -164,21 +184,30 @@ theorem typeof_value_model_eval_and
 theorem typeof_value_model_eval_imp
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.imp t1 t2))
+    (ht : term_has_non_none_type
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) t1) t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.imp t1 t2)) =
-      __smtx_typeof (SmtTerm.imp t1 t2) := by
+    __smtx_typeof_value
+        (__smtx_model_eval M
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) t1) t2)) =
+      __smtx_typeof
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) t1) t2) := by
   have hTy :
-      __smtx_typeof (SmtTerm.imp t1 t2) =
+      __smtx_typeof
+          (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) t1) t2) =
         native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
           (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
           SmtType.None := by
     simp [__smtx_typeof]
-  have hArgs := bool_binop_args_bool_of_non_none hTy ht
-  rw [show __smtx_typeof (SmtTerm.imp t1 t2) = SmtType.Bool by
+  have hArgs := bool_binop_args_bool_of_non_none
+    (op := fun x y => SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) x) y)
+    hTy ht
+  rw [show __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) t1) t2) = SmtType.Bool by
     simp [__smtx_typeof, native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [show __smtx_model_eval M (SmtTerm.imp t1 t2) =
+  rw [show __smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) t1) t2) =
       __smtx_model_eval_imp (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
     simp [__smtx_model_eval]]
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩

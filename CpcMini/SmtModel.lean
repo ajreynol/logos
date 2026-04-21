@@ -319,6 +319,22 @@ deriving Repr, DecidableEq, Inhabited
 
 end
 
+/-- A bare SMT theory operator viewed as a term. -/
+def theory0 (op : SmtTheoryOp) : SmtTerm :=
+  SmtTerm.TheoryOp op
+
+/-- Applies a unary SMT theory operator to one argument. -/
+def theory1 (op : SmtTheoryOp) (t : SmtTerm) : SmtTerm :=
+  SmtTerm.Apply (theory0 op) t
+
+/-- Applies a binary SMT theory operator to two arguments. -/
+def theory2 (op : SmtTheoryOp) (t1 t2 : SmtTerm) : SmtTerm :=
+  SmtTerm.Apply (theory1 op t1) t2
+
+/-- Applies a ternary SMT theory operator to three arguments. -/
+def theory3 (op : SmtTheoryOp) (t1 t2 t3 : SmtTerm) : SmtTerm :=
+  SmtTerm.Apply (theory2 op t1 t2) t3
+
 
 /- SMT-LIB model -/
 structure SmtModelKey where

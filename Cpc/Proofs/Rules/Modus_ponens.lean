@@ -13,11 +13,11 @@ private theorem eo_has_bool_type_imp_right (A B : Term) :
   intro hImp
   unfold RuleProofs.eo_has_bool_type at hImp ⊢
   rw [__eo_to_smt.eq_def] at hImp
-  have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
+  have hNN : term_has_non_none_type (theory2 SmtTheoryOp.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).2
+  exact (bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.imp) rfl hNN).2
 
 private theorem eo_has_bool_type_imp_left (A B : Term) :
   RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.imp A) B) ->
@@ -25,11 +25,11 @@ private theorem eo_has_bool_type_imp_left (A B : Term) :
   intro hImp
   unfold RuleProofs.eo_has_bool_type at hImp ⊢
   rw [__eo_to_smt.eq_def] at hImp
-  have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
+  have hNN : term_has_non_none_type (theory2 SmtTheoryOp.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).1
+  exact (bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.imp) rfl hNN).1
 
 private theorem eq_of_requires_eq_true_not_stuck (x1 A B : Term) :
   __eo_requires (__eo_eq x1 A) (Term.Boolean true) B ≠ Term.Stuck ->

@@ -9,7 +9,7 @@ namespace RuleProofs
 /-- Simplifies EO-to-SMT translation for `or`. -/
 theorem eo_to_smt_or_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.or A) B) =
-      SmtTerm.or (__eo_to_smt A) (__eo_to_smt B) := by
+      theory2 SmtTheoryOp.or (__eo_to_smt A) (__eo_to_smt B) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Shows that `false` has translated SMT Boolean type. -/
@@ -38,11 +38,11 @@ theorem eo_has_bool_type_or_left (A B : Term) :
   unfold eo_has_bool_type at hTy ⊢
   rw [eo_to_smt_or_eq A B] at hTy
   have hNN : term_has_non_none_type
-      (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) := by
+      (theory2 SmtTheoryOp.or (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hTy]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.or)
+  exact (bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.or)
     (typeof_or_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).1
 
 /-- Right-projection lemma for `eo_has_bool_type_or`. -/
@@ -53,11 +53,11 @@ theorem eo_has_bool_type_or_right (A B : Term) :
   unfold eo_has_bool_type at hTy ⊢
   rw [eo_to_smt_or_eq A B] at hTy
   have hNN : term_has_non_none_type
-      (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) := by
+      (theory2 SmtTheoryOp.or (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hTy]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.or)
+  exact (bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.or)
     (typeof_or_eq (__eo_to_smt A) (__eo_to_smt B)) hNN).2
 
 /-- Introduces the left side of a Boolean `or`. -/

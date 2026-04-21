@@ -9,7 +9,7 @@ set_option maxHeartbeats 10000000
 
 private theorem eo_to_smt_imp_eq_scope (x1 x2 : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.imp x1) x2) =
-      SmtTerm.imp (__eo_to_smt x1) (__eo_to_smt x2) := by
+      theory2 SmtTheoryOp.imp (__eo_to_smt x1) (__eo_to_smt x2) := by
   rw [__eo_to_smt.eq_def]
 
 /-- Shows that the EO program for `scope_impl` is well typed. -/
@@ -67,7 +67,7 @@ theorem correct___eo_prog_scope
   have hScopeTy : eo_has_bool_type (Term.Apply (Term.Apply Term.imp x1) x2) := by
     simpa [hScopeEq] using hTy
   have hScopeTy' :
-      __smtx_typeof (SmtTerm.imp (__eo_to_smt x1) (__eo_to_smt x2)) = SmtType.Bool := by
+      __smtx_typeof (theory2 SmtTheoryOp.imp (__eo_to_smt x1) (__eo_to_smt x2)) = SmtType.Bool := by
     simpa [eo_has_bool_type, eo_to_smt_imp_eq_scope] using hScopeTy
   have hTy1 : eo_has_bool_type x1 := by
     by_cases hBool : __smtx_typeof (__eo_to_smt x1) = SmtType.Bool
@@ -97,7 +97,7 @@ theorem correct___eo_prog_scope
       rcases eo_eval_is_boolean_of_has_bool_type M hM x2 hTy2 with ⟨b2, hEval2⟩
       rw [eo_interprets_iff_smt_interprets, eo_to_smt_imp_eq_scope]
       refine smt_interprets.intro_true M
-        (SmtTerm.imp (__eo_to_smt x1) (__eo_to_smt x2)) hScopeTy' ?_
+        (theory2 SmtTheoryOp.imp (__eo_to_smt x1) (__eo_to_smt x2)) hScopeTy' ?_
       cases b2 <;>
         change __smtx_model_eval_imp
             (__smtx_model_eval M (__eo_to_smt x1))

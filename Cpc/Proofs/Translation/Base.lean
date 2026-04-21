@@ -38,17 +38,17 @@ namespace TranslationProofs
 
 /-- Simplifies EO-to-SMT translation for `re_allchar`. -/
 @[simp] theorem eo_to_smt_re_allchar :
-    __eo_to_smt Term.re_allchar = SmtTerm.re_allchar := by
+    __eo_to_smt Term.re_allchar = SmtTerm.TheoryOp SmtTheoryOp.re_allchar := by
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `re_none`. -/
 @[simp] theorem eo_to_smt_re_none :
-    __eo_to_smt Term.re_none = SmtTerm.re_none := by
+    __eo_to_smt Term.re_none = SmtTerm.TheoryOp SmtTheoryOp.re_none := by
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `re_all`. -/
 @[simp] theorem eo_to_smt_re_all :
-    __eo_to_smt Term.re_all = SmtTerm.re_all := by
+    __eo_to_smt Term.re_all = SmtTerm.TheoryOp SmtTheoryOp.re_all := by
   simp [__eo_to_smt.eq_def]
 
 /-- Simplifies EO-to-SMT translation for `var`. -/

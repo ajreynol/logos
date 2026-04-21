@@ -9,7 +9,7 @@ set_option maxHeartbeats 10000000
 
 private theorem eo_to_smt_or_eq (A B : Term) :
   __eo_to_smt (Term.Apply (Term.Apply Term.or A) B) =
-    SmtTerm.or (__eo_to_smt A) (__eo_to_smt B) := by
+    theory2 SmtTheoryOp.or (__eo_to_smt A) (__eo_to_smt B) := by
   rw [__eo_to_smt.eq_def]
 
 private theorem eo_has_bool_type_false :
@@ -38,11 +38,11 @@ private theorem eo_has_bool_type_imp_left (A B : Term) :
   intro hImp
   unfold RuleProofs.eo_has_bool_type at hImp ⊢
   rw [__eo_to_smt.eq_def] at hImp
-  have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
+  have hNN : term_has_non_none_type (theory2 SmtTheoryOp.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).1
+  exact (bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.imp) rfl hNN).1
 
 private theorem eo_has_bool_type_imp_right (A B : Term) :
   RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.imp A) B) ->
@@ -50,11 +50,11 @@ private theorem eo_has_bool_type_imp_right (A B : Term) :
   intro hImp
   unfold RuleProofs.eo_has_bool_type at hImp ⊢
   rw [__eo_to_smt.eq_def] at hImp
-  have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
+  have hNN : term_has_non_none_type (theory2 SmtTheoryOp.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hImp]
     simp
-  exact (bool_binop_args_bool_of_non_none (op := SmtTerm.imp) rfl hNN).2
+  exact (bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.imp) rfl hNN).2
 
 private theorem eo_interprets_or_left_intro
     (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
@@ -70,7 +70,7 @@ private theorem eo_interprets_or_left_intro
   cases hATrue with
   | intro_true _ hEvalA =>
       refine smt_interprets.intro_true M
-        (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
+        (theory2 SmtTheoryOp.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_or_eq] using
           (eo_has_bool_type_or_of_bool_args A B hABool hBBool)
       · change __smtx_model_eval_or
@@ -93,7 +93,7 @@ private theorem eo_interprets_or_right_intro
   cases hBTrue with
   | intro_true _ hEvalB =>
       refine smt_interprets.intro_true M
-        (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
+        (theory2 SmtTheoryOp.or (__eo_to_smt A) (__eo_to_smt B)) ?_ ?_
       · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_or_eq] using
           (eo_has_bool_type_or_of_bool_args A B hABool hBBool)
       · change __smtx_model_eval_or
