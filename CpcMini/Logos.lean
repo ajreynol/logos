@@ -146,8 +146,8 @@ def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (native_not (native_teq x Term.Stuck)))
 
 
-def __eo_ite : Term -> Term -> Term -> Term
-  | x1, x2, x3 => (native_ite (native_teq x1 (Term.Boolean true)) x2 (native_ite (native_teq x1 (Term.Boolean false)) x3 Term.Stuck))
+abbrev __eo_ite (x1 : Term) (x2 : Term) (x3 : Term) : Term :=
+  (native_ite (native_teq x1 (Term.Boolean true)) x2 (native_ite (native_teq x1 (Term.Boolean false)) x3 Term.Stuck))
 
 
 def __eo_requires : Term -> Term -> Term -> Term
