@@ -1,4 +1,5 @@
 import Cpc.Proofs.Support
+import Cpc.Proofs.ResolutionSupport
 
 open Eo
 open SmtEval
@@ -16,4 +17,4 @@ theorem cmd_step_resolution_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.resolution args premises) :=
 by
-  sorry
+  exact cmd_step_resolution_properties_aux M hM s args premises
