@@ -1,4 +1,4 @@
-import CpcMini.Proofs.Support
+import CpcMini.Proofs.RuleSupport.Support
 
 open Eo
 open SmtEval
