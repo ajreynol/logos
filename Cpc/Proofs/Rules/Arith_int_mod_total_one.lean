@@ -9,7 +9,7 @@ set_option maxHeartbeats 10000000
 
 private theorem eo_to_smt_mod_total_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.mod_total x) y) =
-      SmtTerm.mod_total (__eo_to_smt x) (__eo_to_smt y) := by
+      theory2 SmtTheoryOp.mod_total (__eo_to_smt x) (__eo_to_smt y) := by
   rw [__eo_to_smt.eq_def]
 
 private theorem prog_arith_int_mod_total_one_eq

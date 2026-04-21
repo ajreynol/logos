@@ -2079,7 +2079,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
   | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
-  | (SmtTerm.choice_nth s T x1 i) => (native_eval_tchoice_nth M s T x1 i)
+  | (SmtTerm.choice_nth s T x1 i) => (__smtx_model_eval.evalChoiceNth M s T x1 i)
   | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
@@ -2087,6 +2087,31 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Var s T) => (__smtx_model_lookup M s T)
   | (SmtTerm.UConst s T) => (__smtx_model_lookup M s T)
   | x1 => SmtValue.NotValue
+where
+  evalChoice (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm) :
+      SmtValue := by
+    classical
+    exact
+      if hSat :
+          ∃ v : SmtValue,
+            __smtx_typeof_value v = T ∧
+              __smtx_model_eval (__smtx_model_push M s T v) body = (SmtValue.Boolean true) then
+        Classical.choose hSat
+      else if hTy : ∃ v : SmtValue, __smtx_typeof_value v = T then
+        Classical.choose hTy
+      else
+        SmtValue.NotValue
+
+  evalChoiceNth (M : SmtModel) (s : native_String) (T : SmtType) (body : SmtTerm) :
+      native_Nat -> SmtValue
+    | Nat.zero =>
+        evalChoice M s T body
+    | Nat.succ n' =>
+        let v := evalChoice M s T body
+        match body with
+        | SmtTerm.exists s'' T'' body'' =>
+            evalChoiceNth (__smtx_model_push M s T v) s'' T'' body'' n'
+        | _ => SmtValue.NotValue
 
 
 

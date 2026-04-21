@@ -15,191 +15,213 @@ theorem typeof_ite_eq
     (c t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.ite c t1 t2) =
       __smtx_typeof_ite (__smtx_typeof c) (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_132]
+  simpa using (__smtx_typeof.eq_def (SmtTerm.ite c t1 t2))
 
 /-- Rewrites the typing equation for `select`. -/
 theorem typeof_select_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.select t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.select t1 t2) =
       __smtx_typeof_select (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_32]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.select t1 t2))
 
 /-- Rewrites the typing equation for `store`. -/
 theorem typeof_store_eq
     (t1 t2 t3 : SmtTerm) :
-    __smtx_typeof (SmtTerm.store t1 t2 t3) =
+    __smtx_typeof (theory3 SmtTheoryOp.store t1 t2 t3) =
       __smtx_typeof_store (__smtx_typeof t1) (__smtx_typeof t2) (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_33]
+  simpa [theory3, theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory3 SmtTheoryOp.store t1 t2 t3))
 
 /-- Rewrites the typing equation for `eq`. -/
 theorem typeof_eq_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.eq t1 t2) =
       __smtx_typeof_eq (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_133]
+  simpa using (__smtx_typeof.eq_def (SmtTerm.eq t1 t2))
 
 theorem typeof_not_eq (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.not t) =
+    __smtx_typeof (theory1 SmtTheoryOp.not t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Bool) SmtType.Bool SmtType.None := by
-  rw [__smtx_typeof.eq_6]
+  simpa [theory1, theory0] using (__smtx_typeof.eq_def (theory1 SmtTheoryOp.not t))
 
 theorem typeof_or_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.or t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.or t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_7]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.or t1 t2))
 
 theorem typeof_and_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.and t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.and t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_8]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.and t1 t2))
 
 theorem typeof_imp_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.imp t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.imp t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_9]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.imp t1 t2))
 
 theorem typeof_xor_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.xor t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.xor t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_10]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.xor t1 t2))
 
 theorem typeof_plus_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.plus t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.plus t1 t2) =
       __smtx_typeof_arith_overload_op_2 (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_11]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.plus t1 t2))
 
 theorem typeof_neg_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.neg t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.neg t1 t2) =
       __smtx_typeof_arith_overload_op_2 (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_12]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.neg t1 t2))
 
 theorem typeof_mult_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.mult t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.mult t1 t2) =
       __smtx_typeof_arith_overload_op_2 (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_13]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.mult t1 t2))
 
 theorem typeof_lt_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.lt t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.lt t1 t2) =
       __smtx_typeof_arith_overload_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool := by
-  rw [__smtx_typeof.eq_14]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.lt t1 t2))
 
 theorem typeof_leq_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.leq t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.leq t1 t2) =
       __smtx_typeof_arith_overload_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool := by
-  rw [__smtx_typeof.eq_15]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.leq t1 t2))
 
 theorem typeof_gt_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.gt t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.gt t1 t2) =
       __smtx_typeof_arith_overload_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool := by
-  rw [__smtx_typeof.eq_16]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.gt t1 t2))
 
 theorem typeof_geq_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.geq t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.geq t1 t2) =
       __smtx_typeof_arith_overload_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool := by
-  rw [__smtx_typeof.eq_17]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.geq t1 t2))
 
 theorem typeof_to_real_eq (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.to_real t) =
+    __smtx_typeof (theory1 SmtTheoryOp.to_real t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Int) SmtType.Real
         (native_ite (native_Teq (__smtx_typeof t) SmtType.Real) SmtType.Real SmtType.None) := by
-  rw [__smtx_typeof.eq_18]
+  simpa [theory1, theory0] using (__smtx_typeof.eq_def (theory1 SmtTheoryOp.to_real t))
 
 theorem typeof_to_int_eq (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.to_int t) =
+    __smtx_typeof (theory1 SmtTheoryOp.to_int t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Real) SmtType.Int SmtType.None := by
-  rw [__smtx_typeof.eq_19]
+  simpa [theory1, theory0] using (__smtx_typeof.eq_def (theory1 SmtTheoryOp.to_int t))
 
 theorem typeof_is_int_eq (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.is_int t) =
+    __smtx_typeof (theory1 SmtTheoryOp.is_int t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Real) SmtType.Bool SmtType.None := by
-  rw [__smtx_typeof.eq_20]
+  simpa [theory1, theory0] using (__smtx_typeof.eq_def (theory1 SmtTheoryOp.is_int t))
 
 theorem typeof_abs_eq (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.abs t) =
+    __smtx_typeof (theory1 SmtTheoryOp.abs t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Int) SmtType.Int SmtType.None := by
-  rw [__smtx_typeof.eq_21]
+  simpa [theory1, theory0] using (__smtx_typeof.eq_def (theory1 SmtTheoryOp.abs t))
 
 theorem typeof_uneg_eq (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.uneg t) =
+    __smtx_typeof (theory1 SmtTheoryOp.uneg t) =
       __smtx_typeof_arith_overload_op_1 (__smtx_typeof t) := by
-  rw [__smtx_typeof.eq_22]
+  simpa [theory1, theory0] using (__smtx_typeof.eq_def (theory1 SmtTheoryOp.uneg t))
 
 theorem typeof_div_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.div t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.div t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_23]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.div t1 t2))
 
 theorem typeof_mod_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.mod t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.mod t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_24]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.mod t1 t2))
 
 theorem typeof_multmult_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.multmult t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.multmult t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_25]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.multmult t1 t2))
 
 theorem typeof_divisible_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.divisible t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.divisible t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Bool SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_26]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.divisible t1 t2))
 
 theorem typeof_int_pow2_eq (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.int_pow2 t) =
+    __smtx_typeof (theory1 SmtTheoryOp.int_pow2 t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Int) SmtType.Int SmtType.None := by
-  rw [__smtx_typeof.eq_27]
+  simpa [theory1, theory0] using (__smtx_typeof.eq_def (theory1 SmtTheoryOp.int_pow2 t))
 
 theorem typeof_int_log2_eq (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.int_log2 t) =
+    __smtx_typeof (theory1 SmtTheoryOp.int_log2 t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Int) SmtType.Int SmtType.None := by
-  rw [__smtx_typeof.eq_28]
+  simpa [theory1, theory0] using (__smtx_typeof.eq_def (theory1 SmtTheoryOp.int_log2 t))
 
 theorem typeof_div_total_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.div_total t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.div_total t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_29]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.div_total t1 t2))
 
 theorem typeof_mod_total_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.mod_total t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.mod_total t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_30]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.mod_total t1 t2))
 
 theorem typeof_multmult_total_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.multmult_total t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.multmult_total t1 t2) =
       native_ite (native_Teq (__smtx_typeof t1) SmtType.Int)
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.Int) SmtType.Int SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_31]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.multmult_total t1 t2))
 
 theorem typeof_qdiv_total_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.qdiv_total t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.qdiv_total t1 t2) =
       __smtx_typeof_arith_overload_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Real := by
-  rw [__smtx_typeof.eq_128]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.qdiv_total t1 t2))
 
 theorem typeof_qdiv_eq (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.qdiv t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.qdiv t1 t2) =
       __smtx_typeof_arith_overload_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Real := by
-  rw [__smtx_typeof.eq_127]
+  simpa [theory2, theory1, theory0] using
+    (__smtx_typeof.eq_def (theory2 SmtTheoryOp.qdiv t1 t2))
 
 /-- Derives `ite_args` from `non_none`. -/
 theorem ite_args_of_non_none
@@ -244,7 +266,10 @@ theorem typeof_value_model_eval_ite
       (SmtTerm.ite c t1 t2) = T by
     rw [typeof_ite_eq]
     simp [__smtx_typeof_ite, native_ite, native_Teq, hc, h1, h2]]
-  rw [__smtx_model_eval.eq_132]
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_ite (__smtx_model_eval M c) (__smtx_model_eval M t1)
+        (__smtx_model_eval M t2)) = T
   rcases bool_value_canonical (by simpa [hc] using hpresc) with ⟨b, hb⟩
   rw [hb]
   cases b
@@ -254,7 +279,7 @@ theorem typeof_value_model_eval_ite
 /-- Derives `select_args` from `non_none`. -/
 theorem select_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.select t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.select t1 t2)) :
     ∃ A B : SmtType,
       __smtx_typeof t1 = SmtType.Map A B ∧
         __smtx_typeof t2 = A := by
@@ -276,7 +301,7 @@ theorem select_args_of_non_none
 theorem store_args_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht : term_has_non_none_type
-      (SmtTerm.store t1 t2 t3)) :
+      (theory3 SmtTheoryOp.store t1 t2 t3)) :
     ∃ A B : SmtType,
       __smtx_typeof t1 = SmtType.Map A B ∧
         __smtx_typeof t2 = A ∧
@@ -306,16 +331,20 @@ theorem store_args_of_non_none
 theorem typeof_value_model_eval_select
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.select t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.select t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.select t1 t2)) =
-      __smtx_typeof (SmtTerm.select t1 t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.select t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.select t1 t2) := by
   rcases select_args_of_non_none ht with ⟨A, B, h1, h2⟩
-  rw [show __smtx_typeof (SmtTerm.select t1 t2) = B by
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.select t1 t2) = B by
     rw [typeof_select_eq]
     simp [__smtx_typeof_select, native_ite, native_Teq, h1, h2]]
-  rw [__smtx_model_eval.eq_32]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.select) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_select (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = B
   rcases map_value_canonical (A := A) (B := B) (by simpa [h1] using hpres1) with ⟨m, hm⟩
   rw [hm]
   simpa [__smtx_model_eval_select, __smtx_map_select] using
@@ -328,20 +357,26 @@ theorem typeof_value_model_eval_store
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
     (ht : term_has_non_none_type
-      (SmtTerm.store t1 t2 t3))
+      (theory3 SmtTheoryOp.store t1 t2 t3))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2)
     (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
     __smtx_typeof_value
-        (__smtx_model_eval M (SmtTerm.store t1 t2 t3)) =
-      __smtx_typeof (SmtTerm.store t1 t2 t3) := by
+        (__smtx_model_eval M (theory3 SmtTheoryOp.store t1 t2 t3)) =
+      __smtx_typeof (theory3 SmtTheoryOp.store t1 t2 t3) := by
   rcases store_args_of_non_none ht with ⟨A, B, h1, h2, h3⟩
   rw [show __smtx_typeof
-      (SmtTerm.store t1 t2 t3) =
+      (theory3 SmtTheoryOp.store t1 t2 t3) =
         SmtType.Map A B by
     rw [typeof_store_eq]
     simp [__smtx_typeof_store, native_ite, native_Teq, h1, h2, h3]]
-  rw [__smtx_model_eval.eq_33]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.store) t1) t2) t3)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_store (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+        (__smtx_model_eval M t3)) = SmtType.Map A B
   rcases map_value_canonical (A := A) (B := B) (by simpa [h1] using hpres1) with ⟨m, hm⟩
   rw [hm]
   have hMap : __smtx_typeof_map_value m = SmtType.Map A B := by
@@ -370,20 +405,23 @@ theorem eq_term_typeof_of_non_none
 theorem typeof_value_model_eval_not
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.not t))
+    (ht : term_has_non_none_type (theory1 SmtTheoryOp.not t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.not t)) =
-      __smtx_typeof (SmtTerm.not t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.not t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.not t) := by
   have hArg : __smtx_typeof t = SmtType.Bool := by
     unfold term_has_non_none_type at ht
     rw [typeof_not_eq] at ht
     cases h : __smtx_typeof t <;>
       simp [native_ite, native_Teq, h] at ht
     simp
-  rw [show __smtx_typeof (SmtTerm.not t) = SmtType.Bool by
+  rw [show __smtx_typeof (theory1 SmtTheoryOp.not t) = SmtType.Bool by
     rw [typeof_not_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_6]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.not) t)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value (__smtx_model_eval_not (__smtx_model_eval M t)) = SmtType.Bool
   rcases bool_value_canonical (by simpa [hArg] using hpres) with ⟨b, hb⟩
   rw [hb]
   simp [__smtx_model_eval_not, __smtx_typeof_value]
@@ -392,16 +430,20 @@ theorem typeof_value_model_eval_not
 theorem typeof_value_model_eval_or
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.or t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.or t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.or t1 t2)) =
-      __smtx_typeof (SmtTerm.or t1 t2) := by
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or) (typeof_or_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.or t1 t2) = SmtType.Bool by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.or t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.or t1 t2) := by
+  have hArgs := bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.or) (typeof_or_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.or t1 t2) = SmtType.Bool by
     rw [typeof_or_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_7]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.or) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_or (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩
   rcases bool_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨b2, hb2⟩
   rw [hb1, hb2]
@@ -411,16 +453,20 @@ theorem typeof_value_model_eval_or
 theorem typeof_value_model_eval_and
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.and t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.and t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.and t1 t2)) =
-      __smtx_typeof (SmtTerm.and t1 t2) := by
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and) (typeof_and_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.and t1 t2) = SmtType.Bool by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.and t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.and t1 t2) := by
+  have hArgs := bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.and) (typeof_and_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.and t1 t2) = SmtType.Bool by
     rw [typeof_and_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_8]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.and) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_and (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩
   rcases bool_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨b2, hb2⟩
   rw [hb1, hb2]
@@ -430,16 +476,20 @@ theorem typeof_value_model_eval_and
 theorem typeof_value_model_eval_imp
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.imp t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.imp t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.imp t1 t2)) =
-      __smtx_typeof (SmtTerm.imp t1 t2) := by
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp) (typeof_imp_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.imp t1 t2) = SmtType.Bool by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.imp t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.imp t1 t2) := by
+  have hArgs := bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.imp) (typeof_imp_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.imp t1 t2) = SmtType.Bool by
     rw [typeof_imp_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_9]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.imp) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_imp (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
   rcases bool_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨b1, hb1⟩
   rcases bool_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨b2, hb2⟩
   rw [hb1, hb2]
@@ -453,45 +503,60 @@ theorem typeof_value_model_eval_eq
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.eq t1 t2)) =
       __smtx_typeof (SmtTerm.eq t1 t2) := by
   rw [eq_term_typeof_of_non_none ht]
-  rw [__smtx_model_eval.eq_133]
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_eq (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
   simpa using typeof_value_model_eval_eq_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
 /-- Shows that evaluating `xor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_xor
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.xor t1 t2)) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.xor t1 t2)) =
-      __smtx_typeof (SmtTerm.xor t1 t2) := by
-  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.xor) (typeof_xor_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.xor t1 t2) = SmtType.Bool by
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.xor t1 t2)) :
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.xor t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.xor t1 t2) := by
+  have hArgs := bool_binop_args_bool_of_non_none (op := theory2 SmtTheoryOp.xor) (typeof_xor_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.xor t1 t2) = SmtType.Bool by
     rw [typeof_xor_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_10]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.xor) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_xor (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
   simpa using typeof_value_model_eval_xor_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
 /-- Shows that evaluating `plus` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_plus
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.plus t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.plus t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.plus t1 t2)) =
-      __smtx_typeof (SmtTerm.plus t1 t2) := by
-  rcases arith_binop_args_of_non_none (op := SmtTerm.plus) (typeof_plus_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.plus t1 t2) = SmtType.Int by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.plus t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.plus t1 t2) := by
+  rcases arith_binop_args_of_non_none (op := theory2 SmtTheoryOp.plus) (typeof_plus_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.plus t1 t2) = SmtType.Int by
       rw [typeof_plus_eq]
       simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_11]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.plus) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_plus (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Int
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.plus t1 t2) = SmtType.Real by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.plus t1 t2) = SmtType.Real by
       rw [typeof_plus_eq]
       simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_11]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.plus) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_plus (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+      SmtType.Real
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
@@ -501,24 +566,33 @@ theorem typeof_value_model_eval_plus
 theorem typeof_value_model_eval_neg
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.neg t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.neg t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.neg t1 t2)) =
-      __smtx_typeof (SmtTerm.neg t1 t2) := by
-  rcases arith_binop_args_of_non_none (op := SmtTerm.neg) (typeof_neg_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.neg t1 t2) = SmtType.Int by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.neg t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.neg t1 t2) := by
+  rcases arith_binop_args_of_non_none (op := theory2 SmtTheoryOp.neg) (typeof_neg_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.neg t1 t2) = SmtType.Int by
       rw [typeof_neg_eq]
       simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_12]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.neg) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval__ (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Int
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.neg t1 t2) = SmtType.Real by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.neg t1 t2) = SmtType.Real by
       rw [typeof_neg_eq]
       simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_12]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.neg) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval__ (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+      SmtType.Real
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
@@ -528,24 +602,33 @@ theorem typeof_value_model_eval_neg
 theorem typeof_value_model_eval_mult
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.mult t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.mult t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.mult t1 t2)) =
-      __smtx_typeof (SmtTerm.mult t1 t2) := by
-  rcases arith_binop_args_of_non_none (op := SmtTerm.mult) (typeof_mult_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.mult t1 t2) = SmtType.Int by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.mult t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.mult t1 t2) := by
+  rcases arith_binop_args_of_non_none (op := theory2 SmtTheoryOp.mult) (typeof_mult_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.mult t1 t2) = SmtType.Int by
       rw [typeof_mult_eq]
       simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_13]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mult) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_mult (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Int
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.mult t1 t2) = SmtType.Real by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.mult t1 t2) = SmtType.Real by
       rw [typeof_mult_eq]
       simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_13]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mult) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_mult (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+      SmtType.Real
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
@@ -555,24 +638,32 @@ theorem typeof_value_model_eval_mult
 theorem typeof_value_model_eval_lt
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.lt t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.lt t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.lt t1 t2)) =
-      __smtx_typeof (SmtTerm.lt t1 t2) := by
-  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.lt) (typeof_lt_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.lt t1 t2) = SmtType.Bool by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.lt t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.lt t1 t2) := by
+  rcases arith_binop_ret_bool_args_of_non_none (op := theory2 SmtTheoryOp.lt) (typeof_lt_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.lt t1 t2) = SmtType.Bool by
       rw [typeof_lt_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_14]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.lt) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_lt (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.lt t1 t2) = SmtType.Bool by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.lt t1 t2) = SmtType.Bool by
       rw [typeof_lt_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_14]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.lt) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_lt (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
@@ -582,24 +673,32 @@ theorem typeof_value_model_eval_lt
 theorem typeof_value_model_eval_leq
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.leq t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.leq t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.leq t1 t2)) =
-      __smtx_typeof (SmtTerm.leq t1 t2) := by
-  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.leq) (typeof_leq_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.leq t1 t2) = SmtType.Bool by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.leq t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.leq t1 t2) := by
+  rcases arith_binop_ret_bool_args_of_non_none (op := theory2 SmtTheoryOp.leq) (typeof_leq_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.leq t1 t2) = SmtType.Bool by
       rw [typeof_leq_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_15]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.leq) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_leq (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.leq t1 t2) = SmtType.Bool by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.leq t1 t2) = SmtType.Bool by
       rw [typeof_leq_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_15]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.leq) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_leq (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
@@ -609,24 +708,32 @@ theorem typeof_value_model_eval_leq
 theorem typeof_value_model_eval_gt
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.gt t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.gt t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.gt t1 t2)) =
-      __smtx_typeof (SmtTerm.gt t1 t2) := by
-  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.gt) (typeof_gt_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.gt t1 t2) = SmtType.Bool by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.gt t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.gt t1 t2) := by
+  rcases arith_binop_ret_bool_args_of_non_none (op := theory2 SmtTheoryOp.gt) (typeof_gt_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.gt t1 t2) = SmtType.Bool by
       rw [typeof_gt_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_16]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.gt) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_gt (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.gt t1 t2) = SmtType.Bool by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.gt t1 t2) = SmtType.Bool by
       rw [typeof_gt_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_16]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.gt) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_gt (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
@@ -636,24 +743,32 @@ theorem typeof_value_model_eval_gt
 theorem typeof_value_model_eval_geq
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.geq t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.geq t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.geq t1 t2)) =
-      __smtx_typeof (SmtTerm.geq t1 t2) := by
-  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.geq) (typeof_geq_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.geq t1 t2) = SmtType.Bool by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.geq t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.geq t1 t2) := by
+  rcases arith_binop_ret_bool_args_of_non_none (op := theory2 SmtTheoryOp.geq) (typeof_geq_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.geq t1 t2) = SmtType.Bool by
       rw [typeof_geq_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_17]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.geq) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_geq (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.geq t1 t2) = SmtType.Bool by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.geq t1 t2) = SmtType.Bool by
       rw [typeof_geq_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_17]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.geq) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_geq (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Bool
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
@@ -663,22 +778,28 @@ theorem typeof_value_model_eval_geq
 theorem typeof_value_model_eval_to_real
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.to_real t))
+    (ht : term_has_non_none_type (theory1 SmtTheoryOp.to_real t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.to_real t)) =
-      __smtx_typeof (SmtTerm.to_real t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.to_real t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.to_real t) := by
   rcases to_real_arg_of_non_none ht with hArg | hArg
-  · rw [show __smtx_typeof (SmtTerm.to_real t) = SmtType.Real by
+  · rw [show __smtx_typeof (theory1 SmtTheoryOp.to_real t) = SmtType.Real by
       rw [typeof_to_real_eq]
       simp [native_ite, native_Teq, hArg]]
-    rw [__smtx_model_eval.eq_18]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.to_real) t)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value (__smtx_model_eval_to_real (__smtx_model_eval M t)) = SmtType.Real
     rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
     rw [hn]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.to_real t) = SmtType.Real by
+  · rw [show __smtx_typeof (theory1 SmtTheoryOp.to_real t) = SmtType.Real by
       rw [typeof_to_real_eq]
       simp [native_ite, native_Teq, hArg]]
-    rw [__smtx_model_eval.eq_18]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.to_real) t)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value (__smtx_model_eval_to_real (__smtx_model_eval M t)) = SmtType.Real
     rcases real_value_canonical (by simpa [hArg] using hpres) with ⟨q, hq⟩
     rw [hq]
     rfl
@@ -687,16 +808,19 @@ theorem typeof_value_model_eval_to_real
 theorem typeof_value_model_eval_to_int
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.to_int t))
+    (ht : term_has_non_none_type (theory1 SmtTheoryOp.to_int t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.to_int t)) =
-      __smtx_typeof (SmtTerm.to_int t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.to_int t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.to_int t) := by
   have hArg : __smtx_typeof t = SmtType.Real :=
-    real_arg_of_non_none (op := SmtTerm.to_int) (typeof_to_int_eq t) ht
-  rw [show __smtx_typeof (SmtTerm.to_int t) = SmtType.Int by
+    real_arg_of_non_none (op := theory1 SmtTheoryOp.to_int) (typeof_to_int_eq t) ht
+  rw [show __smtx_typeof (theory1 SmtTheoryOp.to_int t) = SmtType.Int by
     rw [typeof_to_int_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_19]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.to_int) t)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value (__smtx_model_eval_to_int (__smtx_model_eval M t)) = SmtType.Int
   rcases real_value_canonical (by simpa [hArg] using hpres) with ⟨q, hq⟩
   rw [hq]
   rfl
@@ -705,16 +829,19 @@ theorem typeof_value_model_eval_to_int
 theorem typeof_value_model_eval_is_int
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.is_int t))
+    (ht : term_has_non_none_type (theory1 SmtTheoryOp.is_int t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.is_int t)) =
-      __smtx_typeof (SmtTerm.is_int t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.is_int t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.is_int t) := by
   have hArg : __smtx_typeof t = SmtType.Real :=
-    real_arg_of_non_none (op := SmtTerm.is_int) (typeof_is_int_eq t) ht
-  rw [show __smtx_typeof (SmtTerm.is_int t) = SmtType.Bool by
+    real_arg_of_non_none (op := theory1 SmtTheoryOp.is_int) (typeof_is_int_eq t) ht
+  rw [show __smtx_typeof (theory1 SmtTheoryOp.is_int t) = SmtType.Bool by
     rw [typeof_is_int_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_20]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.is_int) t)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value (__smtx_model_eval_is_int (__smtx_model_eval M t)) = SmtType.Bool
   rcases real_value_canonical (by simpa [hArg] using hpres) with ⟨q, hq⟩
   rw [hq]
   simpa [__smtx_model_eval_is_int, __smtx_model_eval_to_int, __smtx_model_eval_to_real] using
@@ -725,15 +852,18 @@ theorem typeof_value_model_eval_is_int
 theorem typeof_value_model_eval_abs
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.abs t))
+    (ht : term_has_non_none_type (theory1 SmtTheoryOp.abs t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.abs t)) =
-      __smtx_typeof (SmtTerm.abs t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.abs t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.abs t) := by
   have hArg : __smtx_typeof t = SmtType.Int := int_arg_of_non_none ht
-  rw [show __smtx_typeof (SmtTerm.abs t) = SmtType.Int by
+  rw [show __smtx_typeof (theory1 SmtTheoryOp.abs t) = SmtType.Int by
     rw [typeof_abs_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_21]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.abs) t)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value (__smtx_model_eval_abs (__smtx_model_eval M t)) = SmtType.Int
   rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
   rw [hn]
   cases hlt : native_zlt n 0 <;>
@@ -744,22 +874,28 @@ theorem typeof_value_model_eval_abs
 theorem typeof_value_model_eval_uneg
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.uneg t))
+    (ht : term_has_non_none_type (theory1 SmtTheoryOp.uneg t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.uneg t)) =
-      __smtx_typeof (SmtTerm.uneg t) := by
-  rcases arith_unop_arg_of_non_none (op := SmtTerm.uneg) (typeof_uneg_eq t) ht with hArg | hArg
-  · rw [show __smtx_typeof (SmtTerm.uneg t) = SmtType.Int by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.uneg t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.uneg t) := by
+  rcases arith_unop_arg_of_non_none (op := theory1 SmtTheoryOp.uneg) (typeof_uneg_eq t) ht with hArg | hArg
+  · rw [show __smtx_typeof (theory1 SmtTheoryOp.uneg t) = SmtType.Int by
       rw [typeof_uneg_eq]
       simp [__smtx_typeof_arith_overload_op_1, hArg]]
-    rw [__smtx_model_eval.eq_22]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.uneg) t)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value (__smtx_model_eval_uneg (__smtx_model_eval M t)) = SmtType.Int
     rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
     rw [hn]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.uneg t) = SmtType.Real by
+  · rw [show __smtx_typeof (theory1 SmtTheoryOp.uneg t) = SmtType.Real by
       rw [typeof_uneg_eq]
       simp [__smtx_typeof_arith_overload_op_1, hArg]]
-    rw [__smtx_model_eval.eq_22]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.uneg) t)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value (__smtx_model_eval_uneg (__smtx_model_eval M t)) = SmtType.Real
     rcases real_value_canonical (by simpa [hArg] using hpres) with ⟨q, hq⟩
     rw [hq]
     rfl
@@ -818,17 +954,21 @@ theorem typeof_value_model_eval_apply_lookup_fun
 theorem typeof_value_model_eval_div_total
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.div_total t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.div_total t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.div_total t1 t2)) =
-      __smtx_typeof (SmtTerm.div_total t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.div_total) (typeof_div_total_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.div_total t1 t2) = SmtType.Int by
+      (theory2 SmtTheoryOp.div_total t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.div_total t1 t2) := by
+  have hArgs := int_binop_args_of_non_none (op := theory2 SmtTheoryOp.div_total) (typeof_div_total_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.div_total t1 t2) = SmtType.Int by
     rw [typeof_div_total_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_29]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.div_total) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_div_total (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Int
   rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
   rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
   rw [hn1, hn2]
@@ -838,17 +978,21 @@ theorem typeof_value_model_eval_div_total
 theorem typeof_value_model_eval_mod_total
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.mod_total t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.mod_total t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.mod_total t1 t2)) =
-      __smtx_typeof (SmtTerm.mod_total t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.mod_total) (typeof_mod_total_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.mod_total t1 t2) = SmtType.Int by
+      (theory2 SmtTheoryOp.mod_total t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.mod_total t1 t2) := by
+  have hArgs := int_binop_args_of_non_none (op := theory2 SmtTheoryOp.mod_total) (typeof_mod_total_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.mod_total t1 t2) = SmtType.Int by
     rw [typeof_mod_total_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_30]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mod_total) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_mod_total (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = SmtType.Int
   rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
   rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
   rw [hn1, hn2]
@@ -858,18 +1002,23 @@ theorem typeof_value_model_eval_mod_total
 theorem typeof_value_model_eval_multmult_total
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.multmult_total t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.multmult_total t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.multmult_total t1 t2)) =
-      __smtx_typeof (SmtTerm.multmult_total t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.multmult_total) (typeof_multmult_total_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.multmult_total t1 t2) =
+      (theory2 SmtTheoryOp.multmult_total t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.multmult_total t1 t2) := by
+  have hArgs := int_binop_args_of_non_none (op := theory2 SmtTheoryOp.multmult_total) (typeof_multmult_total_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.multmult_total t1 t2) =
       SmtType.Int by
     rw [typeof_multmult_total_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_31]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.multmult_total) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_multmult_total (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+    SmtType.Int
   rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
   rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
   rw [hn1, hn2]
@@ -879,17 +1028,22 @@ theorem typeof_value_model_eval_multmult_total
 theorem typeof_value_model_eval_divisible
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.divisible t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.divisible t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.divisible t1 t2)) =
-      __smtx_typeof (SmtTerm.divisible t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.divisible) (typeof_divisible_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.divisible t1 t2) = SmtType.Bool by
+      (theory2 SmtTheoryOp.divisible t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.divisible t1 t2) := by
+  have hArgs := int_binop_args_of_non_none (op := theory2 SmtTheoryOp.divisible) (typeof_divisible_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.divisible t1 t2) = SmtType.Bool by
     rw [typeof_divisible_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_26]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.divisible) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_divisible (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+    SmtType.Bool
   rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
   rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
   rw [hn1, hn2]
@@ -902,16 +1056,19 @@ theorem typeof_value_model_eval_divisible
 theorem typeof_value_model_eval_int_pow2
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.int_pow2 t))
+    (ht : term_has_non_none_type (theory1 SmtTheoryOp.int_pow2 t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.int_pow2 t)) =
-      __smtx_typeof (SmtTerm.int_pow2 t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.int_pow2 t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.int_pow2 t) := by
   have hArg : __smtx_typeof t = SmtType.Int :=
-    int_ret_arg_of_non_none (op := SmtTerm.int_pow2) (typeof_int_pow2_eq t) ht
-  rw [show __smtx_typeof (SmtTerm.int_pow2 t) = SmtType.Int by
+    int_ret_arg_of_non_none (op := theory1 SmtTheoryOp.int_pow2) (typeof_int_pow2_eq t) ht
+  rw [show __smtx_typeof (theory1 SmtTheoryOp.int_pow2 t) = SmtType.Int by
     rw [typeof_int_pow2_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_27]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_pow2) t)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value (__smtx_model_eval_int_pow2 (__smtx_model_eval M t)) = SmtType.Int
   rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
   rw [hn]
   rfl
@@ -920,16 +1077,19 @@ theorem typeof_value_model_eval_int_pow2
 theorem typeof_value_model_eval_int_log2
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.int_log2 t))
+    (ht : term_has_non_none_type (theory1 SmtTheoryOp.int_log2 t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.int_log2 t)) =
-      __smtx_typeof (SmtTerm.int_log2 t) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory1 SmtTheoryOp.int_log2 t)) =
+      __smtx_typeof (theory1 SmtTheoryOp.int_log2 t) := by
   have hArg : __smtx_typeof t = SmtType.Int :=
-    int_ret_arg_of_non_none (op := SmtTerm.int_log2) (typeof_int_log2_eq t) ht
-  rw [show __smtx_typeof (SmtTerm.int_log2 t) = SmtType.Int by
+    int_ret_arg_of_non_none (op := theory1 SmtTheoryOp.int_log2) (typeof_int_log2_eq t) ht
+  rw [show __smtx_typeof (theory1 SmtTheoryOp.int_log2 t) = SmtType.Int by
     rw [typeof_int_log2_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_28]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_log2) t)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value (__smtx_model_eval_int_log2 (__smtx_model_eval M t)) = SmtType.Int
   rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
   rw [hn]
   rfl
@@ -939,17 +1099,27 @@ theorem typeof_value_model_eval_div
     (M : SmtModel)
     (hM : model_total_typed M)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.div t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.div t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.div t1 t2)) =
-      __smtx_typeof (SmtTerm.div t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.div) (typeof_div_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.div t1 t2) = SmtType.Int by
+      (theory2 SmtTheoryOp.div t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.div t1 t2) := by
+  have hArgs := int_binop_args_of_non_none (op := theory2 SmtTheoryOp.div) (typeof_div_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.div t1 t2) = SmtType.Int by
     rw [typeof_div_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_23]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.div) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_ite
+        (__smtx_model_eval_eq (__smtx_model_eval M t2) (SmtValue.Numeral 0))
+        (__smtx_model_eval_apply
+          (__smtx_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int))
+          (__smtx_model_eval M t1))
+        (__smtx_model_eval_div_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))) =
+    SmtType.Int
   rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
   rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
   rw [hn1, hn2]
@@ -967,17 +1137,27 @@ theorem typeof_value_model_eval_mod
     (M : SmtModel)
     (hM : model_total_typed M)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.mod t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.mod t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.mod t1 t2)) =
-      __smtx_typeof (SmtTerm.mod t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.mod) (typeof_mod_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.mod t1 t2) = SmtType.Int by
+      (theory2 SmtTheoryOp.mod t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.mod t1 t2) := by
+  have hArgs := int_binop_args_of_non_none (op := theory2 SmtTheoryOp.mod) (typeof_mod_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.mod t1 t2) = SmtType.Int by
     rw [typeof_mod_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_24]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.mod) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_ite
+        (__smtx_model_eval_eq (__smtx_model_eval M t2) (SmtValue.Numeral 0))
+        (__smtx_model_eval_apply
+          (__smtx_model_lookup M native_mod_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int))
+          (__smtx_model_eval M t1))
+        (__smtx_model_eval_mod_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))) =
+    SmtType.Int
   rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
   rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
   rw [hn1, hn2]
@@ -995,17 +1175,32 @@ theorem typeof_value_model_eval_multmult
     (M : SmtModel)
     (hM : model_total_typed M)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.multmult t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.multmult t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.multmult t1 t2)) =
-      __smtx_typeof (SmtTerm.multmult t1 t2) := by
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.multmult) (typeof_multmult_eq t1 t2) ht
-  rw [show __smtx_typeof (SmtTerm.multmult t1 t2) = SmtType.Int by
+      (theory2 SmtTheoryOp.multmult t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.multmult t1 t2) := by
+  have hArgs := int_binop_args_of_non_none (op := theory2 SmtTheoryOp.multmult) (typeof_multmult_eq t1 t2) ht
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.multmult t1 t2) = SmtType.Int by
     rw [typeof_multmult_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_25]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.multmult) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
+  change __smtx_typeof_value
+      (__smtx_model_eval_ite
+        (__smtx_model_eval_geq (__smtx_model_eval M t2) (SmtValue.Numeral 0))
+        (__smtx_model_eval_multmult_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))
+        (__smtx_model_eval_ite
+          (__smtx_model_eval_eq (__smtx_model_eval M t1) (SmtValue.Numeral 0))
+          (__smtx_model_eval_apply
+            (__smtx_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int))
+            (SmtValue.Numeral 1))
+          (__smtx_model_eval_div_total (SmtValue.Numeral 1)
+            (__smtx_model_eval_multmult_total (__smtx_model_eval M t1)
+              (__smtx_model_eval__ (SmtValue.Numeral 0) (__smtx_model_eval M t2)))))) =
+    SmtType.Int
   rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
   rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
   rw [hn1, hn2]
@@ -1027,25 +1222,35 @@ theorem typeof_value_model_eval_multmult
 theorem typeof_value_model_eval_qdiv_total
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.qdiv_total t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.qdiv_total t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.qdiv_total t1 t2)) =
-      __smtx_typeof (SmtTerm.qdiv_total t1 t2) := by
-  rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv_total) (typeof_qdiv_total_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.qdiv_total t1 t2) = SmtType.Real by
+      (theory2 SmtTheoryOp.qdiv_total t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.qdiv_total t1 t2) := by
+  rcases arith_binop_ret_args_of_non_none (op := theory2 SmtTheoryOp.qdiv_total) (typeof_qdiv_total_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.qdiv_total t1 t2) = SmtType.Real by
       rw [typeof_qdiv_total_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_128]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.qdiv_total) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_qdiv_total (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+      SmtType.Real
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     rfl
-  · rw [show __smtx_typeof (SmtTerm.qdiv_total t1 t2) = SmtType.Real by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.qdiv_total t1 t2) = SmtType.Real by
       rw [typeof_qdiv_total_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_128]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.qdiv_total) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_qdiv_total (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
+      SmtType.Real
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
@@ -1056,26 +1261,50 @@ theorem typeof_value_model_eval_qdiv
     (M : SmtModel)
     (hM : model_total_typed M)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.qdiv t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.qdiv t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.qdiv t1 t2)) =
-      __smtx_typeof (SmtTerm.qdiv t1 t2) := by
-  rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv) (typeof_qdiv_eq t1 t2) ht with hArgs | hArgs
-  · rw [show __smtx_typeof (SmtTerm.qdiv t1 t2) = SmtType.Real by
+      (theory2 SmtTheoryOp.qdiv t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.qdiv t1 t2) := by
+  rcases arith_binop_ret_args_of_non_none (op := theory2 SmtTheoryOp.qdiv) (typeof_qdiv_eq t1 t2) ht with hArgs | hArgs
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.qdiv t1 t2) = SmtType.Real by
       rw [typeof_qdiv_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_127]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.qdiv) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_ite
+          (__smtx_model_eval_eq (__smtx_model_eval M t2)
+            (SmtValue.Rational (native_mk_rational 0 1)))
+          (__smtx_model_eval_apply
+            (__smtx_model_lookup M native_qdiv_by_zero_id
+              (SmtType.FunType SmtType.Real SmtType.Real))
+            (__smtx_model_eval M t1))
+          (__smtx_model_eval_qdiv_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))) =
+      SmtType.Real
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
       __smtx_typeof_value, native_veq]
-  · rw [show __smtx_typeof (SmtTerm.qdiv t1 t2) = SmtType.Real by
+  · rw [show __smtx_typeof (theory2 SmtTheoryOp.qdiv t1 t2) = SmtType.Real by
       rw [typeof_qdiv_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
-    rw [__smtx_model_eval.eq_127]
+    change __smtx_typeof_value (__smtx_model_eval M
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.qdiv) t1) t2)) = _
+    rw [__smtx_model_eval.eq_def]
+    change __smtx_typeof_value
+        (__smtx_model_eval_ite
+          (__smtx_model_eval_eq (__smtx_model_eval M t2)
+            (SmtValue.Rational (native_mk_rational 0 1)))
+          (__smtx_model_eval_apply
+            (__smtx_model_lookup M native_qdiv_by_zero_id
+              (SmtType.FunType SmtType.Real SmtType.Real))
+            (__smtx_model_eval M t1))
+          (__smtx_model_eval_qdiv_total (__smtx_model_eval M t1) (__smtx_model_eval M t2))) =
+      SmtType.Real
     rcases real_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨q1, hq1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]

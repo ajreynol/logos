@@ -13,37 +13,42 @@ namespace Smtm
 /-- Rewrites the typing equation for `set_union`. -/
 theorem typeof_set_union_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.set_union t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.set_union t1 t2) =
       __smtx_typeof_sets_op_2 (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_122]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_union) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Rewrites the typing equation for `set_inter`. -/
 theorem typeof_set_inter_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.set_inter t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.set_inter t1 t2) =
       __smtx_typeof_sets_op_2 (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_123]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_inter) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Rewrites the typing equation for `set_minus`. -/
 theorem typeof_set_minus_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.set_minus t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.set_minus t1 t2) =
       __smtx_typeof_sets_op_2 (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_124]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_minus) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Rewrites the typing equation for `set_member`. -/
 theorem typeof_set_member_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.set_member t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.set_member t1 t2) =
       __smtx_typeof_set_member (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_125]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_member) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Rewrites the typing equation for `set_subset`. -/
 theorem typeof_set_subset_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.set_subset t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.set_subset t1 t2) =
       __smtx_typeof_sets_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool := by
-  rw [__smtx_typeof.eq_126]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_subset) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Derives `set_binop_args` from `non_none`. -/
 theorem set_binop_args_of_non_none
@@ -99,7 +104,7 @@ theorem set_binop_ret_args_of_non_none
 /-- Derives `set_member_args` from `non_none`. -/
 theorem set_member_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.set_member t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.set_member t1 t2)) :
     ∃ A : SmtType,
       __smtx_typeof t1 = A ∧
         __smtx_typeof t2 = SmtType.Set A := by
@@ -169,19 +174,21 @@ theorem mss_op_internal_typed
 theorem typeof_value_model_eval_set_union
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.set_union t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.set_union t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.set_union t1 t2)) =
-      __smtx_typeof (SmtTerm.set_union t1 t2) := by
-  rcases set_binop_args_of_non_none (op := SmtTerm.set_union) (typeof_set_union_eq t1 t2) ht with
+      (theory2 SmtTheoryOp.set_union t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.set_union t1 t2) := by
+  rcases set_binop_args_of_non_none (op := theory2 SmtTheoryOp.set_union) (typeof_set_union_eq t1 t2) ht with
     ⟨A, h1, h2⟩
-  rw [show __smtx_typeof (SmtTerm.set_union t1 t2) =
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.set_union t1 t2) =
       SmtType.Set A by
     rw [typeof_set_union_eq]
     simp [__smtx_typeof_sets_op_2, native_ite, native_Teq, h1, h2]]
-  rw [__smtx_model_eval.eq_122]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_union) t1) t2)) = SmtType.Set A
+  rw [__smtx_model_eval.eq_def]
   change __smtx_typeof_value (__smtx_model_eval_set_union (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Set A
   rcases set_value_canonical (A := A)
@@ -218,19 +225,21 @@ theorem typeof_value_model_eval_set_union
 theorem typeof_value_model_eval_set_inter
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.set_inter t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.set_inter t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.set_inter t1 t2)) =
-      __smtx_typeof (SmtTerm.set_inter t1 t2) := by
-  rcases set_binop_args_of_non_none (op := SmtTerm.set_inter) (typeof_set_inter_eq t1 t2) ht with
+      (theory2 SmtTheoryOp.set_inter t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.set_inter t1 t2) := by
+  rcases set_binop_args_of_non_none (op := theory2 SmtTheoryOp.set_inter) (typeof_set_inter_eq t1 t2) ht with
     ⟨A, h1, h2⟩
-  rw [show __smtx_typeof (SmtTerm.set_inter t1 t2) =
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.set_inter t1 t2) =
       SmtType.Set A by
     rw [typeof_set_inter_eq]
     simp [__smtx_typeof_sets_op_2, native_ite, native_Teq, h1, h2]]
-  rw [__smtx_model_eval.eq_123]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_inter) t1) t2)) = SmtType.Set A
+  rw [__smtx_model_eval.eq_def]
   change __smtx_typeof_value (__smtx_model_eval_set_inter (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Set A
   rcases set_value_canonical (A := A)
@@ -267,19 +276,21 @@ theorem typeof_value_model_eval_set_inter
 theorem typeof_value_model_eval_set_minus
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.set_minus t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.set_minus t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.set_minus t1 t2)) =
-      __smtx_typeof (SmtTerm.set_minus t1 t2) := by
-  rcases set_binop_args_of_non_none (op := SmtTerm.set_minus) (typeof_set_minus_eq t1 t2) ht with
+      (theory2 SmtTheoryOp.set_minus t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.set_minus t1 t2) := by
+  rcases set_binop_args_of_non_none (op := theory2 SmtTheoryOp.set_minus) (typeof_set_minus_eq t1 t2) ht with
     ⟨A, h1, h2⟩
-  rw [show __smtx_typeof (SmtTerm.set_minus t1 t2) =
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.set_minus t1 t2) =
       SmtType.Set A by
     rw [typeof_set_minus_eq]
     simp [__smtx_typeof_sets_op_2, native_ite, native_Teq, h1, h2]]
-  rw [__smtx_model_eval.eq_124]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_minus) t1) t2)) = SmtType.Set A
+  rw [__smtx_model_eval.eq_def]
   change __smtx_typeof_value (__smtx_model_eval_set_minus (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Set A
   rcases set_value_canonical (A := A)
@@ -316,18 +327,20 @@ theorem typeof_value_model_eval_set_minus
 theorem typeof_value_model_eval_set_member
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.set_member t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.set_member t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.set_member t1 t2)) =
-      __smtx_typeof (SmtTerm.set_member t1 t2) := by
+      (theory2 SmtTheoryOp.set_member t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.set_member t1 t2) := by
   rcases set_member_args_of_non_none ht with ⟨A, h1, h2⟩
-  rw [show __smtx_typeof (SmtTerm.set_member t1 t2) =
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.set_member t1 t2) =
       SmtType.Bool by
     rw [typeof_set_member_eq]
     simp [__smtx_typeof_set_member, native_ite, native_Teq, h1, h2]]
-  rw [__smtx_model_eval.eq_125]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_member) t1) t2)) = SmtType.Bool
+  rw [__smtx_model_eval.eq_def]
   change __smtx_typeof_value
       (__smtx_model_eval_set_member (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
     SmtType.Bool
@@ -346,20 +359,22 @@ theorem typeof_value_model_eval_set_member
 theorem typeof_value_model_eval_set_subset
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.set_subset t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.set_subset t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
-      (SmtTerm.set_subset t1 t2)) =
-      __smtx_typeof (SmtTerm.set_subset t1 t2) := by
+      (theory2 SmtTheoryOp.set_subset t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.set_subset t1 t2) := by
   rcases set_binop_ret_args_of_non_none
-      (op := SmtTerm.set_subset) (T := SmtType.Bool) (typeof_set_subset_eq t1 t2) ht with
+      (op := theory2 SmtTheoryOp.set_subset) (T := SmtType.Bool) (typeof_set_subset_eq t1 t2) ht with
     ⟨A, h1, h2⟩
-  rw [show __smtx_typeof (SmtTerm.set_subset t1 t2) =
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.set_subset t1 t2) =
       SmtType.Bool by
     rw [typeof_set_subset_eq]
     simp [__smtx_typeof_sets_op_2_ret, native_ite, native_Teq, h1, h2]]
-  rw [__smtx_model_eval.eq_126]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.set_subset) t1) t2)) = SmtType.Bool
+  rw [__smtx_model_eval.eq_def]
   simpa [__smtx_model_eval_set_subset] using
     typeof_value_model_eval_eq_value
       (__smtx_model_eval_set_inter (__smtx_model_eval M t1) (__smtx_model_eval M t2))

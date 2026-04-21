@@ -52,7 +52,7 @@ private theorem typed___eo_prog_re_plus_elim_impl
     exact hTyRaw
   have hLhsTranslate :
       __eo_to_smt (Term.Apply Term.re_plus a1) =
-        SmtTerm.re_plus (__eo_to_smt a1) := by
+        theory1 SmtTheoryOp.re_plus (__eo_to_smt a1) := by
     rw [__eo_to_smt.eq_def]
   have hLhsTyRaw :
       __smtx_typeof (__eo_to_smt (Term.Apply Term.re_plus a1)) = SmtType.RegLan := by
@@ -62,7 +62,7 @@ private theorem typed___eo_prog_re_plus_elim_impl
     simpa [lhs] using hLhsTyRaw
   have hStarTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
-        SmtTerm.re_mult (__eo_to_smt a1) := by
+        theory1 SmtTheoryOp.re_mult (__eo_to_smt a1) := by
     rw [__eo_to_smt.eq_def]
   have hStarTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.re_mult a1)) = SmtType.RegLan := by
     rw [hStarTranslate]
@@ -73,7 +73,7 @@ private theorem typed___eo_prog_re_plus_elim_impl
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
             (Term.Apply Term.str_to_re (Term.String ""))) =
-        SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
+        theory2 SmtTheoryOp.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
           (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
     rw [__eo_to_smt.eq_def]
   have hInnerConcatTy :
@@ -137,14 +137,14 @@ private theorem facts___eo_prog_re_plus_elim_impl
     exact typed___eo_prog_re_plus_elim_impl a1 hA1Trans hA1Ty
   have hLhsTranslate :
       __eo_to_smt (Term.Apply Term.re_plus a1) =
-        SmtTerm.re_plus (__eo_to_smt a1) := by
+        theory1 SmtTheoryOp.re_plus (__eo_to_smt a1) := by
     rw [__eo_to_smt.eq_def]
   have hRhsTranslate :
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat a1)
             (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
               (Term.Apply Term.str_to_re (Term.String "")))) =
-        SmtTerm.re_concat (__eo_to_smt a1)
+        theory2 SmtTheoryOp.re_concat (__eo_to_smt a1)
           (__eo_to_smt
             (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
               (Term.Apply Term.str_to_re (Term.String "")))) := by
@@ -153,16 +153,16 @@ private theorem facts___eo_prog_re_plus_elim_impl
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
             (Term.Apply Term.str_to_re (Term.String ""))) =
-        SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
+        theory2 SmtTheoryOp.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
           (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
     rw [__eo_to_smt.eq_def]
   have hStarTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
-        SmtTerm.re_mult (__eo_to_smt a1) := by
+        theory1 SmtTheoryOp.re_mult (__eo_to_smt a1) := by
     rw [__eo_to_smt.eq_def]
   have hEmpTranslate :
       __eo_to_smt (Term.Apply Term.str_to_re (Term.String "")) =
-        SmtTerm.str_to_re (__eo_to_smt (Term.String "")) := by
+        theory1 SmtTheoryOp.str_to_re (__eo_to_smt (Term.String "")) := by
     rw [__eo_to_smt.eq_def]
   have hEmptyStringEval :
       __smtx_model_eval M (__eo_to_smt (Term.String "")) =
@@ -181,8 +181,8 @@ private theorem facts___eo_prog_re_plus_elim_impl
       __smtx_model_eval_re_plus (__smtx_model_eval M (__eo_to_smt a1)) =
         __smtx_model_eval_re_concat (__smtx_model_eval M (__eo_to_smt a1))
           (__smtx_model_eval_re_concat
-            (__smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt a1)))
-            (__smtx_model_eval M (SmtTerm.str_to_re (__eo_to_smt (Term.String "")))))
+            (__smtx_model_eval M (theory1 SmtTheoryOp.re_mult (__eo_to_smt a1)))
+            (__smtx_model_eval M (theory1 SmtTheoryOp.str_to_re (__eo_to_smt (Term.String "")))))
     change
       __smtx_model_eval_re_plus (__smtx_model_eval M (__eo_to_smt a1)) =
         __smtx_model_eval_re_concat (__smtx_model_eval M (__eo_to_smt a1))

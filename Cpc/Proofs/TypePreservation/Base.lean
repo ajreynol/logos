@@ -1,6 +1,9 @@
 import Lean
 import Cpc.Proofs.TypePreservation.Model
 
+open Lean
+open Lean.Elab.Term
+
 open SmtEval
 open Smtm
 
@@ -11,23 +14,26 @@ attribute [local reducible] __smtx_typeof
 
 namespace Smtm
 
-syntax "smtx_model_eval_choice_nth_eq_1" : term
-syntax "smtx_model_eval_choice_nth_eq_2" : term
+private def hiddenDeclBySuffix (suffix : String) : TermElabM Expr := do
+  let env ← getEnv
+  let decls := env.constants.fold (init := ([] : List Name)) fun acc name _ =>
+    if name.toString.endsWith suffix then
+      name :: acc
+    else
+      acc
+  match decls.reverse with
+  | [name] => return (← mkConstWithLevelParams name)
+  | [] => throwError "Could not find declaration ending with {suffix}"
+  | names => throwError
+      m!"Ambiguous declaration suffix {suffix}; candidates: {String.intercalate ", " (names.map toString)}"
 
-open Lean Elab Term Meta in
-private def choiceNthEvalEqThm (idx : Nat) : TermElabM Expr := do
-  let eqTy ← inferType (mkConst ``Smtm.__smtx_model_eval.eq_136)
-  forallTelescopeReducing eqTy fun _ body => do
-    let some (_, _, rhs) := body.eq? | throwError "unexpected __smtx_model_eval.eq_136 shape"
-    let .const fnName _ := rhs.getAppFn | throwError "unexpected choice_nth evaluator shape"
-    let some eqns ← Lean.Meta.getEqnsFor? fnName | throwError "missing choice_nth evaluator equations"
-    let some eqThm := eqns[idx]? | throwError "choice_nth evaluator equation index out of bounds"
-    pure (mkConst eqThm)
+/-- Resolves the hidden equation theorem generated for `__smtx_typeof` clause `n`. -/
+syntax "smtx_typeof_eq%" num : term
 
-open Lean Elab Term Meta in
 elab_rules : term
-  | `(smtx_model_eval_choice_nth_eq_1) => choiceNthEvalEqThm 0
-  | `(smtx_model_eval_choice_nth_eq_2) => choiceNthEvalEqThm 1
+  | `(smtx_typeof_eq%$n:num) => do
+      let k := n.getNat
+      hiddenDeclBySuffix s!"__smtx_typeof.match_1.eq_{k}"
 
 /-- Shows that evaluating `boolean` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_boolean
@@ -227,8 +233,8 @@ theorem typeof_value_model_eval_seq_unit
       __smtx_typeof (theory1 SmtTheoryOp.seq_unit t) := by
   unfold term_has_non_none_type at ht
   unfold __smtx_model_eval __smtx_typeof
-  simp [__smtx_typeof_value, __smtx_typeof_seq_value, native_ite, native_Teq,
-    ht, hpres]
+  simp [theory1, theory0, __smtx_typeof_value, __smtx_typeof_seq_value,
+    native_ite, native_Teq, ht, hpres]
 
 /-- Shows that evaluating `set_singleton` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_singleton
@@ -240,8 +246,9 @@ theorem typeof_value_model_eval_set_singleton
       __smtx_typeof (theory1 SmtTheoryOp.set_singleton t) := by
   unfold term_has_non_none_type at ht
   unfold __smtx_model_eval __smtx_typeof
-  simp [__smtx_model_eval_set_singleton, __smtx_typeof_value, __smtx_typeof_map_value,
-    __smtx_map_to_set_type, native_ite, native_Teq, ht, hpres]
+  simp [theory1, theory0, __smtx_model_eval_set_singleton, __smtx_typeof_value,
+    __smtx_typeof_map_value, __smtx_map_to_set_type, native_ite, native_Teq,
+    ht, hpres]
 
 /-- Derives `exists_body_bool` from `non_none`. -/
 theorem exists_body_bool_of_non_none
@@ -462,10 +469,14 @@ theorem typeof_value_model_eval_choice
       ∃ v : SmtValue,
         __smtx_typeof_value v = T ∧
           __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
-  · rw [__smtx_model_eval.eq_136, smtx_model_eval_choice_nth_eq_1]
+  · unfold __smtx_model_eval
+    rw [__smtx_model_eval.evalChoiceNth.eq_1]
+    unfold __smtx_model_eval.evalChoice
     simp [hSat]
     exact (Classical.choose_spec hSat).1
-  · rw [__smtx_model_eval.eq_136, smtx_model_eval_choice_nth_eq_1]
+  · unfold __smtx_model_eval
+    rw [__smtx_model_eval.evalChoiceNth.eq_1]
+    unfold __smtx_model_eval.evalChoice
     simp [hSat, hTy]
     exact Classical.choose_spec hTy
 

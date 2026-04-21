@@ -12,63 +12,72 @@ namespace Smtm
 /-- Lemma about `typeof_concat_eq`. -/
 theorem typeof_concat_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.concat t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.concat t1 t2) =
       __smtx_typeof_concat (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_34]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.concat) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Lemma about `typeof_extract_eq`. -/
 theorem typeof_extract_eq
     (t1 t2 t3 : SmtTerm) :
-    __smtx_typeof (SmtTerm.extract t1 t2 t3) =
+    __smtx_typeof (theory3 SmtTheoryOp.extract t1 t2 t3) =
       __smtx_typeof_extract t1 t2 (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_35]
+  change __smtx_typeof
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.extract) t1) t2) t3) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Lemma about `typeof_repeat_eq`. -/
 theorem typeof_repeat_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.repeat t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.repeat t1 t2) =
       __smtx_typeof_repeat t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_36]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.repeat) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Lemma about `typeof_zero_extend_eq`. -/
 theorem typeof_zero_extend_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.zero_extend t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.zero_extend t1 t2) =
       __smtx_typeof_zero_extend t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_65]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.zero_extend) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Lemma about `typeof_sign_extend_eq`. -/
 theorem typeof_sign_extend_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.sign_extend t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.sign_extend t1 t2) =
       __smtx_typeof_sign_extend t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_66]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.sign_extend) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Lemma about `typeof_rotate_left_eq`. -/
 theorem typeof_rotate_left_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.rotate_left t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.rotate_left t1 t2) =
       __smtx_typeof_rotate_left t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_67]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.rotate_left) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Lemma about `typeof_rotate_right_eq`. -/
 theorem typeof_rotate_right_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.rotate_right t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.rotate_right t1 t2) =
       __smtx_typeof_rotate_right t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_68]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.rotate_right) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Lemma about `typeof_int_to_bv_eq`. -/
 theorem typeof_int_to_bv_eq
     (t1 t2 : SmtTerm) :
-    __smtx_typeof (SmtTerm.int_to_bv t1 t2) =
+    __smtx_typeof (theory2 SmtTheoryOp.int_to_bv t1 t2) =
       __smtx_typeof_int_to_bv t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_129]
+  change __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.int_to_bv) t1) t2) = _
+  rw [__smtx_typeof.eq_def]
 
 /-- Derives `bv_concat_args` from `non_none`. -/
 theorem bv_concat_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.concat t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.concat t1 t2)) :
     ∃ w1 w2 : native_Nat,
       __smtx_typeof t1 = SmtType.BitVec w1 ∧
         __smtx_typeof t2 = SmtType.BitVec w2 := by
@@ -90,7 +99,7 @@ theorem bv_concat_args_of_non_none
 theorem extract_args_of_non_none
     {t1 t2 t3 : SmtTerm}
     (ht : term_has_non_none_type
-      (SmtTerm.extract t1 t2 t3)) :
+      (theory3 SmtTheoryOp.extract t1 t2 t3)) :
     ∃ i j : native_Int, ∃ w : native_Nat,
       t1 = SmtTerm.Numeral i ∧
         t2 = SmtTerm.Numeral j ∧
@@ -130,7 +139,7 @@ theorem extract_args_of_non_none
 /-- Derives `repeat_args` from `non_none`. -/
 theorem repeat_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.repeat t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.repeat t1 t2)) :
     ∃ i : native_Int, ∃ w : native_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
@@ -156,7 +165,7 @@ theorem repeat_args_of_non_none
 /-- Derives `zero_extend_args` from `non_none`. -/
 theorem zero_extend_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.zero_extend t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.zero_extend t1 t2)) :
     ∃ i : native_Int, ∃ w : native_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
@@ -182,7 +191,7 @@ theorem zero_extend_args_of_non_none
 /-- Derives `sign_extend_args` from `non_none`. -/
 theorem sign_extend_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.sign_extend t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.sign_extend t1 t2)) :
     ∃ i : native_Int, ∃ w : native_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
@@ -208,7 +217,7 @@ theorem sign_extend_args_of_non_none
 /-- Derives `rotate_left_args` from `non_none`. -/
 theorem rotate_left_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.rotate_left t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.rotate_left t1 t2)) :
     ∃ i : native_Int, ∃ w : native_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
@@ -234,7 +243,7 @@ theorem rotate_left_args_of_non_none
 /-- Derives `rotate_right_args` from `non_none`. -/
 theorem rotate_right_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.rotate_right t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.rotate_right t1 t2)) :
     ∃ i : native_Int, ∃ w : native_Nat,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.BitVec w ∧
@@ -260,7 +269,7 @@ theorem rotate_right_args_of_non_none
 /-- Derives `int_to_bv_args` from `non_none`. -/
 theorem int_to_bv_args_of_non_none
     {t1 t2 : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.int_to_bv t1 t2)) :
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.int_to_bv t1 t2)) :
     ∃ i : native_Int,
       t1 = SmtTerm.Numeral i ∧
         __smtx_typeof t2 = SmtType.Int ∧

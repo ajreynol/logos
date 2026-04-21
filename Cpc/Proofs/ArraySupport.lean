@@ -28,12 +28,12 @@ theorem eo_to_smt_eq_eq (x y : Term) :
 
 theorem eo_to_smt_select_eq (a i : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.select a) i) =
-      SmtTerm.select (__eo_to_smt a) (__eo_to_smt i) := by
+      theory2 SmtTheoryOp.select (__eo_to_smt a) (__eo_to_smt i) := by
   rw [__eo_to_smt.eq_def]
 
 theorem eo_to_smt_store_eq (a i e : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.store a) i) e) =
-      SmtTerm.store (__eo_to_smt a) (__eo_to_smt i) (__eo_to_smt e) := by
+      theory3 SmtTheoryOp.store (__eo_to_smt a) (__eo_to_smt i) (__eo_to_smt e) := by
   rw [__eo_to_smt.eq_def]
 
 theorem eo_to_smt_type_array_of_non_none (A B : Term)

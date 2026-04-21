@@ -14,18 +14,20 @@ namespace Smtm
 theorem typeof_value_model_eval_concat
     (M : SmtModel)
     (t1 t2 : SmtTerm)
-    (ht : term_has_non_none_type (SmtTerm.concat t1 t2))
+    (ht : term_has_non_none_type (theory2 SmtTheoryOp.concat t1 t2))
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.concat t1 t2)) =
-      __smtx_typeof (SmtTerm.concat t1 t2) := by
+    __smtx_typeof_value (__smtx_model_eval M (theory2 SmtTheoryOp.concat t1 t2)) =
+      __smtx_typeof (theory2 SmtTheoryOp.concat t1 t2) := by
   rcases bv_concat_args_of_non_none ht with ⟨w1, w2, h1, h2⟩
-  rw [show __smtx_typeof (SmtTerm.concat t1 t2) =
+  rw [show __smtx_typeof (theory2 SmtTheoryOp.concat t1 t2) =
       SmtType.BitVec
         (native_int_to_nat (native_zplus (native_nat_to_int w1) (native_nat_to_int w2))) by
     rw [typeof_concat_eq]
     simp [__smtx_typeof_concat, h1, h2]]
-  rw [__smtx_model_eval.eq_34]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.concat) t1) t2)) = _
+  rw [__smtx_model_eval.eq_def]
   change __smtx_typeof_value
       (__smtx_model_eval_concat (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
     SmtType.BitVec
@@ -57,29 +59,35 @@ theorem typeof_value_model_eval_extract
     (M : SmtModel)
     (t1 t2 t3 : SmtTerm)
     (ht : term_has_non_none_type
-      (SmtTerm.extract t1 t2 t3))
+      (theory3 SmtTheoryOp.extract t1 t2 t3))
     (hpres3 : __smtx_typeof_value (__smtx_model_eval M t3) = __smtx_typeof t3) :
     __smtx_typeof_value
-        (__smtx_model_eval M (SmtTerm.extract t1 t2 t3)) =
-      __smtx_typeof (SmtTerm.extract t1 t2 t3) := by
+        (__smtx_model_eval M (theory3 SmtTheoryOp.extract t1 t2 t3)) =
+      __smtx_typeof (theory3 SmtTheoryOp.extract t1 t2 t3) := by
   rcases extract_args_of_non_none ht with ⟨i, j, w, h1, h2, h3, hj0, hji, hiw⟩
   have hWidthEq :
       native_zplus (native_zplus i (native_zneg j)) 1 =
         native_zplus (native_zplus i 1) (native_zneg j) := by
     simp [SmtEval.native_zplus, SmtEval.native_zneg, Int.add_assoc, Int.add_comm, Int.add_left_comm]
   rw [show __smtx_typeof
-      (SmtTerm.extract t1 t2 t3) =
+      (theory3 SmtTheoryOp.extract t1 t2 t3) =
         SmtType.BitVec
           (native_int_to_nat (native_zplus (native_zplus i 1) (native_zneg j))) by
     rw [typeof_extract_eq, h1, h2, h3]
     simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw, hWidthEq]]
-  rw [__smtx_model_eval.eq_35]
+  change __smtx_typeof_value (__smtx_model_eval M
+      (SmtTerm.Apply
+        (SmtTerm.Apply (SmtTerm.Apply (SmtTerm.TheoryOp SmtTheoryOp.extract) t1) t2) t3)) = _
+  rw [__smtx_model_eval.eq_def]
   change __smtx_typeof_value
       (__smtx_model_eval_extract (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) =
     SmtType.BitVec (native_int_to_nat (native_zplus (native_zplus i 1) (native_zneg j)))
   rw [h1, h2]
-  rw [__smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
+  rw [show __smtx_model_eval M (SmtTerm.Numeral i) = SmtValue.Numeral i by
+    rw [__smtx_model_eval.eq_def]]
+  rw [show __smtx_model_eval M (SmtTerm.Numeral j) = SmtValue.Numeral j by
+    rw [__smtx_model_eval.eq_def]]
   rcases bitvec_value_canonical (by simpa [h3] using hpres3) with ⟨n, hv⟩
   rw [hv]
   have hji' : j <= i := by

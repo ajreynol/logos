@@ -19,7 +19,7 @@ theorem typeof_dt_cons_eq
     __smtx_typeof (SmtTerm.DtCons s d i) =
       __smtx_typeof_guard_wf (SmtType.Datatype s d)
         (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i) := by
-  rw [__smtx_typeof.eq_137]
+  rw [__smtx_typeof.eq_def]
 
 /-- Rewrites the typing equation for `DtSel` application. -/
 theorem typeof_dt_sel_apply_eq
@@ -32,7 +32,7 @@ theorem typeof_dt_sel_apply_eq
         (__smtx_typeof_apply
           (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))
           (__smtx_typeof x)) := by
-  rw [__smtx_typeof.eq_138]
+  rw [__smtx_typeof.eq_def]
 
 /-- Rewrites the typing equation for `DtTester` application. -/
 theorem typeof_dt_tester_apply_eq
@@ -43,7 +43,7 @@ theorem typeof_dt_tester_apply_eq
     __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) =
       __smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) SmtType.Bool)
         (__smtx_typeof x) := by
-  rw [__smtx_typeof.eq_139]
+  rw [__smtx_typeof.eq_def]
 
 /-- Establishes an equality relating `typeof_dt_cons_value_rec` and `typeof_dt_cons_rec_zero`. -/
 theorem typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec_zero
@@ -104,7 +104,7 @@ theorem typeof_value_model_eval_dt_cons
     (ht : term_has_non_none_type (SmtTerm.DtCons s d i)) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.DtCons s d i)) =
       __smtx_typeof (SmtTerm.DtCons s d i) := by
-  rw [__smtx_model_eval.eq_137, typeof_dt_cons_eq]
+  rw [__smtx_model_eval.eq_def, typeof_dt_cons_eq]
   unfold term_has_non_none_type at ht
   rw [typeof_dt_cons_eq] at ht
   cases hInh : native_inhabited_type (SmtType.Datatype s d) <;>
@@ -910,7 +910,7 @@ theorem typeof_value_model_eval_dt_sel
   have hResInh : type_inhabited (__smtx_ret_typeof_sel s d i j) := by
     rw [← hResTy]
     exact hT
-  rw [__smtx_model_eval.eq_138]
+  rw [__smtx_model_eval.eq_def]
   rw [hResTy]
   let v := __smtx_model_eval M x
   have hv : __smtx_typeof_value v = SmtType.Datatype s d := by
@@ -987,7 +987,7 @@ theorem typeof_value_model_eval_dt_tester
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) =
       __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) := by
   rw [dt_tester_term_typeof_of_non_none ht]
-  rw [__smtx_model_eval.eq_139]
+  rw [__smtx_model_eval.eq_def]
   simp [__smtx_model_eval_dt_tester, __smtx_typeof_value]
 
 /-- Enumerates the cases for `typeof_apply_non_none`. -/

@@ -37,7 +37,7 @@ private theorem typed___eo_prog_re_star_star_impl
     exact hTyRaw
   have hInnerTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
-        SmtTerm.re_mult (__eo_to_smt a1) := by
+        theory1 SmtTheoryOp.re_mult (__eo_to_smt a1) := by
     rw [__eo_to_smt.eq_def]
   have hInnerTyRaw :
       __smtx_typeof (__eo_to_smt (Term.Apply Term.re_mult a1)) = SmtType.RegLan := by
@@ -96,11 +96,11 @@ private theorem facts___eo_prog_re_star_star_impl
     exact typed___eo_prog_re_star_star_impl a1 hA1Trans hA1Ty
   have hOuterTranslate :
       __eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1)) =
-        SmtTerm.re_mult (__eo_to_smt (Term.Apply Term.re_mult a1)) := by
+        theory1 SmtTheoryOp.re_mult (__eo_to_smt (Term.Apply Term.re_mult a1)) := by
     rw [__eo_to_smt.eq_def]
   have hInnerTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
-        SmtTerm.re_mult (__eo_to_smt a1) := by
+        theory1 SmtTheoryOp.re_mult (__eo_to_smt a1) := by
     rw [__eo_to_smt.eq_def]
   have hEvalEq :
       __smtx_model_eval M
@@ -109,7 +109,7 @@ private theorem facts___eo_prog_re_star_star_impl
     rw [hOuterTranslate, hInnerTranslate]
     change
       __smtx_model_eval_re_mult
-          (__smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt a1))) =
+          (__smtx_model_eval M (theory1 SmtTheoryOp.re_mult (__eo_to_smt a1))) =
         __smtx_model_eval_re_mult (__smtx_model_eval M (__eo_to_smt a1))
     change
       __smtx_model_eval_re_mult
