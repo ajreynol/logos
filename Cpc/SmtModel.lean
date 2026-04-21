@@ -522,38 +522,6 @@ macro_rules
               SmtValue.Boolean true
             else
               SmtValue.Boolean false)
-  | `(native_eval_tchoice $M $s $T $body) => do
-      let evalId := Lean.mkIdent `__smtx_model_eval
-      let pushId := Lean.mkIdent `__smtx_model_push
-      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
-      `(by
-          classical
-          exact
-            if hSat :
-                ∃ v : SmtValue,
-                  $typeofValueId v = $T ∧
-                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
-              Classical.choose hSat
-            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T then
-              Classical.choose hTy
-            else
-              SmtValue.NotValue)
-  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
-      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
-      let pushId := Lean.mkIdent `__smtx_model_push
-      `(by
-          classical
-          let rec evalChoiceNth (M' : SmtModel)
-              (s' : native_String) (T' : SmtType) (body' : SmtTerm) : native_Nat -> SmtValue
-            | native_nat_zero =>
-                $evalChoiceId M' s' T' body'
-            | native_nat_succ n' =>
-                let v := $evalChoiceId M' s' T' body'
-                match body' with
-                | SmtTerm.exists s'' T'' body'' =>
-                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
-                | _ => SmtValue.NotValue
-          exact evalChoiceNth $M $s $T $body $n)
 
 /- Definition of SMT-LIB model semantics -/
 
