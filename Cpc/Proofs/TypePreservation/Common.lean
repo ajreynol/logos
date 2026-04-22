@@ -42,13 +42,23 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
   cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h
   exact (smtx_inhabited_type_eq_true_iff T).1 hInh
 
+/-- Extracts well-formedness of the guarded source type from a non-`None` guarded type. -/
+theorem smtx_typeof_guard_wf_wf_of_non_none
+    (T U : SmtType) :
+    __smtx_typeof_guard_wf T U ≠ SmtType.None ->
+    __smtx_type_wf T = true := by
+  intro h
+  unfold __smtx_typeof_guard_wf at h
+  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h
+  cases hWf : __smtx_type_wf T <;> simp [hWf] at h ⊢
+
 /-- Any well-formed SMT type is different from `None`. -/
 theorem type_wf_non_none
     {T : SmtType}
     (h : __smtx_type_wf T = true) :
     T ≠ SmtType.None := by
   intro hNone
-  simpa [__smtx_type_wf, __smtx_type_wf_rec, hNone] using h
+  simp [__smtx_type_wf, __smtx_type_wf_rec, hNone] at h
 
 /-- Extracts well-formedness of the element type of a well-formed sequence type. -/
 theorem seq_type_wf_component_of_wf
@@ -107,6 +117,70 @@ theorem fun_type_components_non_none_of_wf
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
   rcases fun_type_wf_components_of_wf h with ⟨hA, hB⟩
   exact ⟨type_wf_non_none hA, type_wf_non_none hB⟩
+
+/-- A self-guarded sequence type equal to `Seq A` has a non-`None` element type. -/
+theorem smtx_typeof_guard_wf_self_eq_seq_component_non_none
+    {T A : SmtType}
+    (h : __smtx_typeof_guard_wf T T = SmtType.Seq A) :
+    A ≠ SmtType.None := by
+  have hNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hT : T = SmtType.Seq A := by
+    have hGuard := smtx_typeof_guard_wf_of_non_none T T hNN
+    simpa [hGuard] using h
+  subst hT
+  exact seq_type_component_non_none_of_wf
+    (smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq A) (SmtType.Seq A) hNN)
+
+/-- A self-guarded set type equal to `Set A` has a non-`None` element type. -/
+theorem smtx_typeof_guard_wf_self_eq_set_component_non_none
+    {T A : SmtType}
+    (h : __smtx_typeof_guard_wf T T = SmtType.Set A) :
+    A ≠ SmtType.None := by
+  have hNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hT : T = SmtType.Set A := by
+    have hGuard := smtx_typeof_guard_wf_of_non_none T T hNN
+    simpa [hGuard] using h
+  subst hT
+  exact set_type_component_non_none_of_wf
+    (smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set A) (SmtType.Set A) hNN)
+
+/-- A self-guarded map type equal to `Map A B` has non-`None` components. -/
+theorem smtx_typeof_guard_wf_self_eq_map_components_non_none
+    {T A B : SmtType}
+    (h : __smtx_typeof_guard_wf T T = SmtType.Map A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  have hNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hT : T = SmtType.Map A B := by
+    have hGuard := smtx_typeof_guard_wf_of_non_none T T hNN
+    simpa [hGuard] using h
+  subst hT
+  exact map_type_components_non_none_of_wf
+    (smtx_typeof_guard_wf_wf_of_non_none (SmtType.Map A B) (SmtType.Map A B) hNN)
+
+/-- A self-guarded function type equal to `FunType A B` has non-`None` components. -/
+theorem smtx_typeof_guard_wf_self_eq_fun_components_non_none
+    {T A B : SmtType}
+    (h : __smtx_typeof_guard_wf T T = SmtType.FunType A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  have hNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hT : T = SmtType.FunType A B := by
+    have hGuard := smtx_typeof_guard_wf_of_non_none T T hNN
+    simpa [hGuard] using h
+  subst hT
+  exact fun_type_components_non_none_of_wf
+    (smtx_typeof_guard_wf_wf_of_non_none (SmtType.FunType A B) (SmtType.FunType A B) hNN)
 
 /-- Predicate asserting that an SMT term does not have type `None`. -/
 def term_has_non_none_type (t : SmtTerm) : Prop :=
