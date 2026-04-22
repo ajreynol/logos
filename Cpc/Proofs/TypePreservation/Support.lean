@@ -101,8 +101,9 @@ inductive supported_preservation_term : SmtTerm -> Prop
       supported_preservation_term (SmtTerm.exists s T body)
   | forall (s : native_String) (T : SmtType) (body : SmtTerm) :
       supported_preservation_term (SmtTerm.forall s T body)
-  | choice (s : native_String) (T : SmtType) (body : SmtTerm) :
-      supported_preservation_term (SmtTerm.choice_nth s T body 0)
+  | choice (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
+      (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
+      supported_preservation_term (SmtTerm.choice_nth s T body n)
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
       (hs : supported_preservation_term t) :
@@ -755,5 +756,121 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (htx : term_has_non_none_type x)
       (hsx : supported_preservation_term x) :
       supported_preservation_term (SmtTerm.Apply f x)
+
+/-- Extracts inhabitation of the declared variable type from a non-`None` typing judgment. -/
+theorem var_type_inhabited_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.Var s T)) :
+    type_inhabited T := by
+  have hGuard : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [__smtx_typeof] using ht
+  exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuard
+
+/-- Extracts inhabitation of the declared uninterpreted-constant type from a non-`None` typing judgment. -/
+theorem uconst_type_inhabited_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.UConst s T)) :
+    type_inhabited T := by
+  have hGuard : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [__smtx_typeof] using ht
+  exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuard
+
+/-- Extracts inhabitation of the element type of `seq_empty` from a non-`None` typing judgment. -/
+theorem seq_empty_type_inhabited_of_non_none
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.seq_empty T)) :
+    type_inhabited T := by
+  have hGuard : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [__smtx_typeof] using ht
+  exact smtx_typeof_guard_wf_inhabited_of_non_none T (SmtType.Seq T) hGuard
+
+/-- Extracts inhabitation of the element type of `set_empty` from a non-`None` typing judgment. -/
+theorem set_empty_type_inhabited_of_non_none
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.set_empty T)) :
+    type_inhabited T := by
+  have hGuard : __smtx_typeof_guard_wf T (SmtType.Set T) ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [__smtx_typeof] using ht
+  exact smtx_typeof_guard_wf_inhabited_of_non_none T (SmtType.Set T) hGuard
+
+/-- Builds support for variables directly from a non-`None` typing judgment. -/
+theorem supported_var_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.Var s T)) :
+    supported_preservation_term (SmtTerm.Var s T) :=
+  supported_preservation_term.var s T (var_type_inhabited_of_non_none ht)
+
+/-- Builds support for uninterpreted constants directly from a non-`None` typing judgment. -/
+theorem supported_uconst_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.UConst s T)) :
+    supported_preservation_term (SmtTerm.UConst s T) :=
+  supported_preservation_term.uconst s T (uconst_type_inhabited_of_non_none ht)
+
+/-- Builds support for `seq_empty` directly from a non-`None` typing judgment. -/
+theorem supported_seq_empty_of_non_none
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.seq_empty T)) :
+    supported_preservation_term (SmtTerm.seq_empty T) :=
+  supported_preservation_term.seq_empty T (seq_empty_type_inhabited_of_non_none ht)
+
+/-- Builds support for `set_empty` directly from a non-`None` typing judgment. -/
+theorem supported_set_empty_of_non_none
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.set_empty T)) :
+    supported_preservation_term (SmtTerm.set_empty T) :=
+  supported_preservation_term.set_empty T (set_empty_type_inhabited_of_non_none ht)
+
+/-- Builds support for `choice_nth` directly from a non-`None` typing judgment. -/
+theorem supported_choice_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    {n : native_Nat}
+    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
+    supported_preservation_term (SmtTerm.choice_nth s T body n) :=
+  supported_preservation_term.choice s T body n ht
+
+/-- Computes generic application typing for application heads that are not datatype selectors or testers. -/
+theorem generic_apply_type_of_non_datatype_head
+    {f x : SmtTerm}
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
+    generic_apply_type f x := by
+  unfold generic_apply_type
+  cases f <;> simp [__smtx_typeof]
+
+/-- Computes generic application evaluation for application heads that are not datatype selectors or testers. -/
+theorem generic_apply_eval_of_non_datatype_head
+    {f x : SmtTerm}
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
+    generic_apply_eval f x := by
+  unfold generic_apply_eval
+  intro M
+  cases f <;> simp [__smtx_model_eval]
+
+/-- Builds support for generic applications whose heads are not datatype selectors or testers. -/
+theorem supported_apply_of_non_datatype_head
+    {f x : SmtTerm}
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (htf : term_has_non_none_type f)
+    (hsf : supported_preservation_term f)
+    (htx : term_has_non_none_type x)
+    (hsx : supported_preservation_term x) :
+    supported_preservation_term (SmtTerm.Apply f x) :=
+  supported_preservation_term.apply
+    (generic_apply_type_of_non_datatype_head hSel hTester)
+    (generic_apply_eval_of_non_datatype_head hSel hTester)
+    htf hsf htx hsx
 
 end Smtm
