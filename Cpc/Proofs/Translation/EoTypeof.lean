@@ -254,10 +254,14 @@ theorem eo_to_smt_type_typeof_apply_str_len_of_seq
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_rev_of_seq`. -/
 theorem eo_to_smt_type_typeof_apply_str_rev_of_seq
     (x V : Term)
-    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.Seq) V) :
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.Seq) V)
+    (hV : __eo_to_smt_type V ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.str_rev) x)) =
       SmtType.Seq (__eo_to_smt_type V) := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_rev (__eo_typeof x)) =
+    SmtType.Seq (__eo_to_smt_type V)
+  rw [hx]
+  exact smtx_typeof_guard_of_non_none _ _ hV
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_seq_unit_of_non_none`. -/
 theorem eo_to_smt_type_typeof_apply_seq_unit_of_non_none
@@ -1271,7 +1275,9 @@ theorem eo_to_smt_type_typeof_apply_bvnego_of_bitvec
     (x : Term) (w : native_Nat)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w))) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.bvnego) x)) = SmtType.Bool := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_bvnego (__eo_typeof x)) = SmtType.Bool
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_concat_of_smt_seq`. -/
 theorem eo_to_smt_type_typeof_apply_apply_str_concat_of_smt_seq
