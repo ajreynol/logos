@@ -947,6 +947,64 @@ private theorem supported_apply_term_of_non_none
       exact supported_preservation_term.apply
         hTy hEval htf (ihf htf) htx (ihx htx)
 
+
+/-- Builds support for `ite` directly from support of its subterms and a non-`None` typing judgment. -/
+theorem supported_ite_of_non_none
+    {c t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.ite c t1 t2))
+    (hsc : supported_preservation_term c)
+    (hs1 : supported_preservation_term t1)
+    (hs2 : supported_preservation_term t2) :
+    supported_preservation_term (SmtTerm.ite c t1 t2) := by
+  rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, _hT⟩
+  have htc : term_has_non_none_type c :=
+    term_has_non_none_of_type_eq hc (by simp)
+  have ht1 : term_has_non_none_type t1 :=
+    term_has_non_none_of_type_eq h1 _hT
+  have ht2 : term_has_non_none_type t2 :=
+    term_has_non_none_of_type_eq h2 _hT
+  exact supported_preservation_term.ite htc hsc ht1 hs1 ht2 hs2
+
+/-- Builds support for `select` directly from support of its subterms and a non-`None` typing judgment. -/
+private theorem supported_select_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.select t1 t2))
+    (hMapTy : type_has_no_none_components (__smtx_typeof t1))
+    (hs1 : supported_preservation_term t1)
+    (hs2 : supported_preservation_term t2) :
+    supported_preservation_term (SmtTerm.select t1 t2) := by
+  rcases select_args_of_non_none ht with ⟨A, B, h1, h2⟩
+  have hMapTy' : type_has_no_none_components (SmtType.Map A B) := by
+    simpa [h1] using hMapTy
+  have hMapNN : A ≠ SmtType.None ∧ B ≠ SmtType.None :=
+    type_has_no_none_components_map_components_non_none hMapTy'
+  have ht1 : term_has_non_none_type t1 :=
+    term_has_non_none_of_type_eq h1 (by simp)
+  have ht2 : term_has_non_none_type t2 :=
+    term_has_non_none_of_type_eq h2 hMapNN.1
+  exact supported_preservation_term.select ht1 hs1 ht2 hs2
+
+/-- Builds support for `store` directly from support of its subterms and a non-`None` typing judgment. -/
+private theorem supported_store_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.store t1 t2 t3))
+    (hMapTy : type_has_no_none_components (__smtx_typeof t1))
+    (hs1 : supported_preservation_term t1)
+    (hs2 : supported_preservation_term t2)
+    (hs3 : supported_preservation_term t3) :
+    supported_preservation_term (SmtTerm.store t1 t2 t3) := by
+  rcases store_args_of_non_none ht with ⟨A, B, h1, h2, h3⟩
+  have hMapTy' : type_has_no_none_components (SmtType.Map A B) := by
+    simpa [h1] using hMapTy
+  have hMapNN : A ≠ SmtType.None ∧ B ≠ SmtType.None :=
+    type_has_no_none_components_map_components_non_none hMapTy'
+  have ht1 : term_has_non_none_type t1 :=
+    term_has_non_none_of_type_eq h1 (by simp)
+  have ht2 : term_has_non_none_type t2 :=
+    term_has_non_none_of_type_eq h2 hMapNN.1
+  have ht3 : term_has_non_none_type t3 :=
+    term_has_non_none_of_type_eq h3 hMapNN.2
+  exact supported_preservation_term.store ht1 hs1 ht2 hs2 ht3 hs3
 /-- Restates supported type preservation using an inhabited-type hypothesis. -/
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)
