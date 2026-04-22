@@ -54,30 +54,33 @@ theorem typeof_value_model_eval_rational
 /-- Shows that evaluating `binary` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_binary
     (M : SmtModel)
-    (w n : native_Int)
+    (w : native_Nat) (n : native_Int)
     (ht : term_has_non_none_type (SmtTerm.Binary w n)) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Binary w n)) =
       __smtx_typeof (SmtTerm.Binary w n) := by
   unfold term_has_non_none_type at ht
-  let g :=
-    native_and (native_zleq 0 w)
-      (native_zeq n (native_mod_total n (native_int_pow2 w)))
+  let g := native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w)))
   have hg : g = true := by
-    by_cases h : g = true
-    · exact h
-    · exfalso
-      apply ht
-      simp [__smtx_typeof, g, native_ite, h]
-  have hWidth : native_zleq 0 w = true := by
-    cases h1 : native_zleq 0 w
-    · simp [g, SmtEval.native_and, h1] at hg
-    · rfl
+    cases h : g with
+    | false =>
+        exfalso
+        apply ht
+        unfold __smtx_typeof
+        simp [g, native_ite, h]
+    | true =>
+        rfl
   have hMod :
-      native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
-    cases h2 : native_zeq n (native_mod_total n (native_int_pow2 w))
-    · simp [g, SmtEval.native_and, hWidth, h2] at hg
+      native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true := by
+    cases h2 : native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w)))
+    · simp [g, h2] at hg
     · rfl
-  simp [__smtx_model_eval, __smtx_typeof_value, __smtx_typeof, native_ite, SmtEval.native_and, hWidth, hMod]
+  have hType :
+      __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec w := by
+    unfold __smtx_typeof
+    simp [hMod, native_ite]
+  rw [hType]
+  unfold __smtx_model_eval __smtx_typeof_value
+  simp
 
 /-- Shows that evaluating `var` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_var

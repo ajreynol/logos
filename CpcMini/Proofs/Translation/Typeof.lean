@@ -852,23 +852,24 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
           __eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq]
       · simp [TranslationProofs.eo_type_valid_rec, __eo_typeof, __eo_lit_type_String]
   | Term.Binary w n, hNN => by
-      have hWidth : native_zleq 0 w = true := by
-        by_cases hw : native_zleq 0 w = true
-        · exact hw
-        · exfalso
-          apply hNN
-          simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, SmtEval.native_and, hw]
       have hSmt := TranslationProofs.smtx_typeof_binary_of_non_none w n
         (by simpa [__eo_to_smt.eq_def] using hNN)
+      have hWidth : native_zleq 0 (native_nat_to_int w) = true := by
+        simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w
+      have hNat : Int.toNat (native_nat_to_int w) = w := by
+        simp [SmtEval.native_nat_to_int]
       have hEo :
           __eo_to_smt_type (__eo_typeof (Term.Binary w n)) =
-            SmtType.BitVec (native_int_to_nat w) := by
-        simp [__eo_typeof, __eo_lit_type_Binary, __eo_mk_apply, __eo_len,
-          native_ite, hWidth]
+            SmtType.BitVec w := by
+        change __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w))) =
+          SmtType.BitVec w
+        simp [__eo_to_smt_type, native_ite, hWidth, SmtEval.native_int_to_nat, hNat]
+      have hwNat : 0 <= native_nat_to_int w := by
+        simpa [SmtEval.native_nat_to_int] using Int.natCast_nonneg w
       refine ⟨?_, ?_⟩
       · simpa [__eo_to_smt.eq_def] using hSmt.trans hEo.symm
       · simpa [TranslationProofs.eo_type_valid_rec, __eo_typeof, __eo_lit_type_Binary,
-          __eo_mk_apply, __eo_len, native_zleq] using hWidth
+          __eo_mk_apply, __eo_len] using hwNat
   | Term.Type, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.Stuck, hNN => by
