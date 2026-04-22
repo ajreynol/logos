@@ -3569,11 +3569,44 @@ theorem eo_to_smt_typeof_matches_translation_apply
     case _at_bvsize =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x) =
-            SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) := by
+            let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
+            native_ite (native_zleq 0 _v0) (SmtTerm.Numeral _v0) SmtTerm.None := by
         rw [__eo_to_smt.eq_def]
+      have hApplyNN :
+          term_has_non_none_type
+            (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
+             native_ite (native_zleq 0 _v0) (SmtTerm.Numeral _v0) SmtTerm.None) := by
+        unfold term_has_non_none_type
+        rw [← hTranslate]
+        exact hNonNone
+      have hArgExists : ∃ w : native_Nat, __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w := by
+        cases hTy : __smtx_typeof (__eo_to_smt x) with
+        | BitVec w =>
+            exact ⟨w, rfl⟩
+        | _ =>
+            exfalso
+            unfold term_has_non_none_type at hApplyNN
+            rw [hTy] at hApplyNN
+            have : False := by
+              simpa [__smtx_bv_sizeof_type, __smtx_typeof, native_ite, native_zleq,
+                SmtEval.native_zleq] using hApplyNN
+            exact this
+      rcases hArgExists with ⟨w, hArg⟩
+      have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+        rw [hArg]
+        simp
+      have hXTyped := ihX hXNonNone
+      have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.BitVec w := by
+        rw [← hXTyped]
+        exact hArg
+      have hxEo : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w)) :=
+        eo_to_smt_type_eq_bitvec hxSmt
       have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x)) = SmtType.Int := by
-        rw [hTranslate, __smtx_typeof.eq_2]
-      exact hSmt.trans (eo_to_smt_type_typeof_apply_at_bvsize x).symm
+        have hWNonneg : native_zleq 0 (native_nat_to_int w) = true := by
+          simp [native_zleq, SmtEval.native_zleq, native_nat_to_int, SmtEval.native_nat_to_int]
+        rw [hTranslate, hArg]
+        simp [__smtx_bv_sizeof_type, __smtx_typeof, native_ite, hWNonneg]
+      exact hSmt.trans (eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec x w hxEo).symm
     case bvnot =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp.bvnot) x) =
@@ -4273,6 +4306,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
           __smtx_typeof (__eo_to_smt x) = SmtType.Set T := by
         rw [hEqArgs.1, typeof_set_singleton_eq, hVarTy]
         simp [native_ite, native_Teq, hTNonNone]
+      have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+        rw [hXTy]
+        simp [hTNonNone]
+      have hXTyped := ihX hXNonNone
+      have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Set T := by
+        rw [← hXTyped]
+        exact hXTy
+      rcases TranslationProofs.eo_to_smt_type_eq_set hxSmt with ⟨U, hxEo, hU⟩
       have hSmt :
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) = SmtType.Bool := by
         rw [hTranslate, typeof_exists_eq]
@@ -4280,7 +4321,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq,
           hXTy, hTNonNone]
       exact hSmt.trans
-        (eo_to_smt_type_typeof_apply_set_is_singleton_of_smt_set x hXTy).symm
+        (eo_to_smt_type_typeof_apply_set_is_singleton_of_set x U hxEo).symm
     case _at_div_by_zero =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp._at_div_by_zero) x) =
