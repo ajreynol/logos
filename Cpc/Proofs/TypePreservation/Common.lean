@@ -42,6 +42,72 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
   cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h
   exact (smtx_inhabited_type_eq_true_iff T).1 hInh
 
+/-- Any well-formed SMT type is different from `None`. -/
+theorem type_wf_non_none
+    {T : SmtType}
+    (h : __smtx_type_wf T = true) :
+    T ≠ SmtType.None := by
+  intro hNone
+  simpa [__smtx_type_wf, __smtx_type_wf_rec, hNone] using h
+
+/-- Extracts well-formedness of the element type of a well-formed sequence type. -/
+theorem seq_type_wf_component_of_wf
+    {A : SmtType}
+    (h : __smtx_type_wf (SmtType.Seq A) = true) :
+    __smtx_type_wf A = true := by
+  simpa [__smtx_type_wf, __smtx_type_wf_rec] using h
+
+/-- Extracts well-formedness of the element type of a well-formed set type. -/
+theorem set_type_wf_component_of_wf
+    {A : SmtType}
+    (h : __smtx_type_wf (SmtType.Set A) = true) :
+    __smtx_type_wf A = true := by
+  simpa [__smtx_type_wf, __smtx_type_wf_rec] using h
+
+/-- Extracts well-formedness of the domain and codomain of a well-formed map type. -/
+theorem map_type_wf_components_of_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.Map A B) = true) :
+    __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
+  simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+
+/-- Extracts well-formedness of the domain and codomain of a well-formed function type. -/
+theorem fun_type_wf_components_of_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
+  simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+
+/-- A well-formed sequence type has a non-`None` element type. -/
+theorem seq_type_component_non_none_of_wf
+    {A : SmtType}
+    (h : __smtx_type_wf (SmtType.Seq A) = true) :
+    A ≠ SmtType.None :=
+  type_wf_non_none (seq_type_wf_component_of_wf h)
+
+/-- A well-formed set type has a non-`None` element type. -/
+theorem set_type_component_non_none_of_wf
+    {A : SmtType}
+    (h : __smtx_type_wf (SmtType.Set A) = true) :
+    A ≠ SmtType.None :=
+  type_wf_non_none (set_type_wf_component_of_wf h)
+
+/-- A well-formed map type has non-`None` domain and codomain types. -/
+theorem map_type_components_non_none_of_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.Map A B) = true) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  rcases map_type_wf_components_of_wf h with ⟨hA, hB⟩
+  exact ⟨type_wf_non_none hA, type_wf_non_none hB⟩
+
+/-- A well-formed function type has non-`None` domain and codomain types. -/
+theorem fun_type_components_non_none_of_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  rcases fun_type_wf_components_of_wf h with ⟨hA, hB⟩
+  exact ⟨type_wf_non_none hA, type_wf_non_none hB⟩
+
 /-- Predicate asserting that an SMT term does not have type `None`. -/
 def term_has_non_none_type (t : SmtTerm) : Prop :=
   __smtx_typeof t ≠ SmtType.None
