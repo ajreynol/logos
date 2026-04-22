@@ -52,7 +52,10 @@ def __eo_to_smt_distinct : Term -> SmtTerm
 
 
 def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
-  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (native_ite (native_zleq 0 x2) (SmtTerm.Binary x2 (native_mod_total x1 (native_int_pow2 x2))) SmtTerm.None)
+  | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) =>
+    (native_ite (native_zleq 0 x2)
+      (SmtTerm.Binary (native_int_to_nat x2) (native_mod_total x1 (native_int_pow2 x2)))
+      SmtTerm.None)
   | t1, t2 => SmtTerm.None
 
 
@@ -277,10 +280,10 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.bvsltbv) x1) x2) => (SmtTerm.ite (SmtTerm.bvslt (__eo_to_smt x1) (__eo_to_smt x2)) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
   | (Term.Apply (Term.UOp UserOp.bvredand) x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.bvcomp _v0 (SmtTerm.bvnot (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)))
+    (SmtTerm.bvcomp _v0 (SmtTerm.bvnot (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof _v0))) 0)))
   | (Term.Apply (Term.UOp UserOp.bvredor) x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.bvnot (SmtTerm.bvcomp _v0 (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)))
+    (SmtTerm.bvnot (SmtTerm.bvcomp _v0 (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof _v0))) 0)))
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_bit) x1) x2) => 
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.extract _v0 _v0 (__eo_to_smt x2))

@@ -3653,14 +3653,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
             let _v0 := __eo_to_smt x
             SmtTerm.bvcomp _v0
               (SmtTerm.bvnot
-                (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)) := by
+                (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof _v0))) 0)) := by
         rw [__eo_to_smt.eq_def]
       have hApplyNN :
           term_has_non_none_type
             (let _v0 := __eo_to_smt x
              SmtTerm.bvcomp _v0
                (SmtTerm.bvnot
-                 (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0))) := by
+                 (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof _v0))) 0))) := by
         unfold term_has_non_none_type
         rw [← hTranslate]
         exact hNonNone
@@ -3668,7 +3668,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
           (op := SmtTerm.bvcomp) (ret := SmtType.BitVec 1)
           (typeof_bvcomp_eq
             (__eo_to_smt x)
-            (SmtTerm.bvnot (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)))
+            (SmtTerm.bvnot
+              (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))) 0)))
           hApplyNN with
         ⟨w, hArgX, hArgY⟩
       have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
@@ -3683,7 +3684,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       have hArgY' :
           __smtx_typeof
               (SmtTerm.bvnot
-                (SmtTerm.Binary (__smtx_bv_sizeof_type (SmtType.BitVec w)) 0)) =
+                (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (SmtType.BitVec w))) 0)) =
             SmtType.BitVec w := by
         simpa [hArgX] using hArgY
       have hSmt :
@@ -3699,14 +3700,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
             let _v0 := __eo_to_smt x
             SmtTerm.bvnot
               (SmtTerm.bvcomp _v0
-                (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)) := by
+                (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof _v0))) 0)) := by
         rw [__eo_to_smt.eq_def]
       have hApplyNN :
           term_has_non_none_type
             (let _v0 := __eo_to_smt x
              SmtTerm.bvnot
                (SmtTerm.bvcomp _v0
-                 (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0))) := by
+                 (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof _v0))) 0))) := by
         unfold term_has_non_none_type
         rw [← hTranslate]
         exact hNonNone
@@ -3715,13 +3716,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
             __smtx_typeof
                 (SmtTerm.bvcomp
                   (__eo_to_smt x)
-                  (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)) =
+                  (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))) 0)) =
               SmtType.BitVec w := by
         rcases bv_unop_arg_of_non_none (op := SmtTerm.bvnot)
             (typeof_bvnot_eq
               (SmtTerm.bvcomp
                 (__eo_to_smt x)
-                (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)))
+                (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))) 0)))
             hApplyNN with ⟨w, hInner⟩
         exact ⟨w, hInner⟩
       rcases hInner with ⟨_, hInnerTy⟩
@@ -3729,7 +3730,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           term_has_non_none_type
             (SmtTerm.bvcomp
               (__eo_to_smt x)
-              (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)) := by
+              (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))) 0)) := by
         unfold term_has_non_none_type
         rw [hInnerTy]
         simp
@@ -3737,7 +3738,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           (op := SmtTerm.bvcomp) (ret := SmtType.BitVec 1)
           (typeof_bvcomp_eq
             (__eo_to_smt x)
-            (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0))
+            (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))) 0))
           hInnerNN with
         ⟨w, hArgX, hArgY⟩
       have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
@@ -3750,14 +3751,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
       have hxEo : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w)) :=
         eo_to_smt_type_eq_bitvec hxSmt
       have hArgY' :
-          __smtx_typeof (SmtTerm.Binary (__smtx_bv_sizeof_type (SmtType.BitVec w)) 0) =
+          __smtx_typeof (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (SmtType.BitVec w))) 0) =
             SmtType.BitVec w := by
         simpa [hArgX] using hArgY
       have hInnerOne :
           __smtx_typeof
               (SmtTerm.bvcomp
                 (__eo_to_smt x)
-                (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) 0)) =
+                (SmtTerm.Binary (native_int_to_nat (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))) 0)) =
             SmtType.BitVec 1 := by
         rw [typeof_bvcomp_eq]
         rw [hArgX, hArgY']

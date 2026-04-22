@@ -76,7 +76,7 @@ inductive Term : Type where
   | Numeral : native_Int -> Term
   | Rational : native_Rat -> Term
   | String : native_String -> Term
-  | Binary : native_Int -> native_Int -> Term
+  | Binary : native_Nat -> native_Int -> Term
   | Type : Term
   | Stuck : Term
   | Apply : Term -> Term -> Term
@@ -148,7 +148,7 @@ def __eo_mk_apply : Term -> Term -> Term
 
 
 def __eo_binary_mod_w (w : native_Int) (n : native_Int) : Term :=
-  (Term.Binary w (native_mod_total n (native_int_pow2 w)))
+  (Term.Binary (native_int_to_nat w) (native_mod_total n (native_int_pow2 w)))
 
 def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (native_not (native_teq x Term.Stuck)))

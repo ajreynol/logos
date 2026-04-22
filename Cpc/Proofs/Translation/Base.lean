@@ -175,14 +175,11 @@ theorem smtx_typeof_set_empty_of_non_none
 
 /-- Derives `smtx_binary_well_formed` from `non_none`. -/
 theorem smtx_binary_well_formed_of_non_none
-    (w n : native_Int) :
+    (w : native_Nat) (n : native_Int) :
     __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None ->
-    native_zleq 0 w = true ∧
       native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
   intro h
-  let g :=
-    native_and (native_zleq 0 w)
-      (native_zeq n (native_mod_total n (native_int_pow2 w)))
+  let g := native_zeq n (native_mod_total n (native_int_pow2 w))
   have hg : g = true := by
     cases h' : g with
     | false =>
@@ -192,27 +189,20 @@ theorem smtx_binary_well_formed_of_non_none
         simp [g, native_ite, h']
     | true =>
         rfl
-  have hWidth : native_zleq 0 w = true := by
-    cases hw : native_zleq 0 w <;> simp [g, SmtEval.native_and, hw] at hg
-    rfl
   have hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
     cases hm : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
-      simp [g, SmtEval.native_and, hWidth, hm] at hg
+      simp [g, hm] at hg
     rfl
-  exact ⟨hWidth, hMod⟩
+  exact hMod
 
 /-- Computes `__smtx_typeof` for `binary_of_non_none`. -/
 theorem smtx_typeof_binary_of_non_none
-    (w n : native_Int) :
+    (w : native_Nat) (n : native_Int) :
     __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None ->
-    __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
+    __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec w := by
   intro h
-  obtain ⟨hWidth, hMod⟩ := smtx_binary_well_formed_of_non_none w n h
-  have hAnd :
-      native_and (native_zleq 0 w)
-        (native_zeq n (native_mod_total n (native_int_pow2 w))) = true := by
-    simp [SmtEval.native_and, hWidth, hMod]
+  have hMod := smtx_binary_well_formed_of_non_none w n h
   unfold __smtx_typeof
-  simp [hAnd, native_ite]
+  simp [hMod, native_ite]
 
 end TranslationProofs

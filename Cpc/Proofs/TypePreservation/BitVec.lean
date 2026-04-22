@@ -17,7 +17,7 @@ theorem typeof_value_model_eval_ubv_to_int
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.ubv_to_int t)) =
       __smtx_typeof (SmtTerm.ubv_to_int t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.ubv_to_int __smtx_model_eval_ubv_to_int
-    SmtType.Int t (by rw [__smtx_typeof.eq_130]) (by rw [__smtx_model_eval.eq_130]) ht hpres (fun w n hWidth => by
+    SmtType.Int t (by rw [__smtx_typeof.eq_130]) (by rw [__smtx_model_eval.eq_130]) ht hpres (fun w n => by
       simp [__smtx_model_eval_ubv_to_int, __smtx_typeof_value])
 
 /-- Shows that evaluating `sbv_to_int` terms produces values of the expected type. -/
@@ -29,7 +29,7 @@ theorem typeof_value_model_eval_sbv_to_int
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.sbv_to_int t)) =
       __smtx_typeof (SmtTerm.sbv_to_int t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.sbv_to_int __smtx_model_eval_sbv_to_int
-    SmtType.Int t (by rw [__smtx_typeof.eq_131]) (by rw [__smtx_model_eval.eq_131]) ht hpres (fun w n hWidth => by
+    SmtType.Int t (by rw [__smtx_typeof.eq_131]) (by rw [__smtx_model_eval.eq_131]) ht hpres (fun w n => by
       simp [__smtx_model_eval_sbv_to_int, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvshl` terms produces values of the expected type. -/
@@ -42,10 +42,8 @@ theorem typeof_value_model_eval_bvshl
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvshl t1 t2)) =
       __smtx_typeof (SmtTerm.bvshl t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvshl __smtx_model_eval_bvshl t1 t2
-    (by rw [__smtx_typeof.eq_62]) (by rw [__smtx_model_eval.eq_62]) ht hpres1 hpres2 (fun w n1 n2 hWidth => by
-      simpa [__smtx_model_eval_bvshl] using
-        typeof_value_binary_of_nonneg w
-          (native_mod_total (native_zmult n1 (native_int_pow2 n2)) (native_int_pow2 w)) hWidth)
+    (by rw [__smtx_typeof.eq_62]) (by rw [__smtx_model_eval.eq_62]) ht hpres1 hpres2 (fun w n1 n2 => by
+      simp [__smtx_model_eval_bvshl, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvlshr` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvlshr
@@ -57,10 +55,8 @@ theorem typeof_value_model_eval_bvlshr
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvlshr t1 t2)) =
       __smtx_typeof (SmtTerm.bvlshr t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvlshr __smtx_model_eval_bvlshr t1 t2
-    (by rw [__smtx_typeof.eq_63]) (by rw [__smtx_model_eval.eq_63]) ht hpres1 hpres2 (fun w n1 n2 hWidth => by
-      simpa [__smtx_model_eval_bvlshr] using
-        typeof_value_binary_of_nonneg w
-          (native_mod_total (native_div_total n1 (native_int_pow2 n2)) (native_int_pow2 w)) hWidth)
+    (by rw [__smtx_typeof.eq_63]) (by rw [__smtx_model_eval.eq_63]) ht hpres1 hpres2
+    typeof_value_model_eval_bvlshr_value
 
 /-- Shows that evaluating `bvsge_of_bitvec` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsge_of_bitvec
@@ -72,14 +68,13 @@ theorem typeof_value_model_eval_bvsge_of_bitvec
   rcases bitvec_value_canonical h1 with ⟨n1, hv1⟩
   rcases bitvec_value_canonical h2 with ⟨n2, hv2⟩
   rw [hv1, hv2]
-  exact typeof_value_model_eval_bvsge_value (native_nat_to_int w) n1 n2
+  exact typeof_value_model_eval_bvsge_value w n1 n2
 
 /-- Shows that evaluating `bvsdiv_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsdiv_value
-    (w n1 n2 : native_Int)
-    (hWidth : native_zleq 0 w = true) :
+    (w : native_Nat) (n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsdiv (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
-      SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
   let v0 := __smtx_model_eval_bvneg (SmtValue.Binary w n2)
   let v1 := __smtx_model_eval_bvneg (SmtValue.Binary w n1)
   let v3 := SmtValue.Binary 1 1
@@ -90,14 +85,14 @@ theorem typeof_value_model_eval_bvsdiv_value
   let v6 := __smtx_model_eval_eq (__smtx_model_eval_extract v4 v4 (SmtValue.Binary w n1)) v3
   let v7 := __smtx_model_eval_not v6
   let v8 := __smtx_model_eval_not v5
-  have hBin1 : __smtx_typeof_value (SmtValue.Binary w n1) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_binary_of_nonneg w n1 hWidth
-  have hBin2 : __smtx_typeof_value (SmtValue.Binary w n2) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_binary_of_nonneg w n2 hWidth
-  have hv0 : __smtx_typeof_value v0 = SmtType.BitVec (native_int_to_nat w) := by
-    simpa [v0] using typeof_value_model_eval_bvneg_value w n2 hWidth
-  have hv1 : __smtx_typeof_value v1 = SmtType.BitVec (native_int_to_nat w) := by
-    simpa [v1] using typeof_value_model_eval_bvneg_value w n1 hWidth
+  have hBin1 : __smtx_typeof_value (SmtValue.Binary w n1) = SmtType.BitVec w := by
+    simp [__smtx_typeof_value]
+  have hBin2 : __smtx_typeof_value (SmtValue.Binary w n2) = SmtType.BitVec w := by
+    simp [__smtx_typeof_value]
+  have hv0 : __smtx_typeof_value v0 = SmtType.BitVec w := by
+    simpa [v0] using typeof_value_model_eval_bvneg_value w n2
+  have hv1 : __smtx_typeof_value v1 = SmtType.BitVec w := by
+    simpa [v1] using typeof_value_model_eval_bvneg_value w n1
   have h5 : __smtx_typeof_value v5 = SmtType.Bool := by
     unfold v5
     exact typeof_value_model_eval_eq_value _ _
@@ -115,19 +110,19 @@ theorem typeof_value_model_eval_bvsdiv_value
   have h75 : __smtx_typeof_value (__smtx_model_eval_and v7 v5) = SmtType.Bool := by
     exact typeof_value_model_eval_and_of_bool h7 h5
   have hu0 : __smtx_typeof_value (__smtx_model_eval_bvudiv (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
-      SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_bvudiv_value w n1 n2 hWidth
-  have hu1 : __smtx_typeof_value (__smtx_model_eval_bvudiv v1 (SmtValue.Binary w n2)) = SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
+    exact typeof_value_model_eval_bvudiv_value w n1 n2
+  have hu1 : __smtx_typeof_value (__smtx_model_eval_bvudiv v1 (SmtValue.Binary w n2)) = SmtType.BitVec w := by
     exact typeof_value_model_eval_bvudiv_of_bitvec hv1 hBin2
-  have hu2 : __smtx_typeof_value (__smtx_model_eval_bvudiv (SmtValue.Binary w n1) v0) = SmtType.BitVec (native_int_to_nat w) := by
+  have hu2 : __smtx_typeof_value (__smtx_model_eval_bvudiv (SmtValue.Binary w n1) v0) = SmtType.BitVec w := by
     exact typeof_value_model_eval_bvudiv_of_bitvec hBin1 hv0
-  have hu3 : __smtx_typeof_value (__smtx_model_eval_bvudiv v1 v0) = SmtType.BitVec (native_int_to_nat w) := by
+  have hu3 : __smtx_typeof_value (__smtx_model_eval_bvudiv v1 v0) = SmtType.BitVec w := by
     exact typeof_value_model_eval_bvudiv_of_bitvec hv1 hv0
   have hn1 : __smtx_typeof_value (__smtx_model_eval_bvneg (__smtx_model_eval_bvudiv v1 (SmtValue.Binary w n2))) =
-      SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
     exact typeof_value_model_eval_bvneg_of_bitvec hu1
   have hn2 : __smtx_typeof_value (__smtx_model_eval_bvneg (__smtx_model_eval_bvudiv (SmtValue.Binary w n1) v0)) =
-      SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
     exact typeof_value_model_eval_bvneg_of_bitvec hu2
   unfold __smtx_model_eval_bvsdiv
   simpa [v0, v1, v3, v4, v5, v6, v7, v8] using
@@ -149,10 +144,9 @@ theorem typeof_value_model_eval_bvsdiv
 
 /-- Shows that evaluating `bvsrem_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsrem_value
-    (w n1 n2 : native_Int)
-    (hWidth : native_zleq 0 w = true) :
+    (w : native_Nat) (n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsrem (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
-      SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
   let v0 := __smtx_model_eval_bvneg (SmtValue.Binary w n2)
   let v1 := __smtx_model_eval_bvneg (SmtValue.Binary w n1)
   let v3 := SmtValue.Binary 1 1
@@ -163,14 +157,14 @@ theorem typeof_value_model_eval_bvsrem_value
   let v6 := __smtx_model_eval_eq (__smtx_model_eval_extract v4 v4 (SmtValue.Binary w n1)) v3
   let v7 := __smtx_model_eval_not v6
   let v8 := __smtx_model_eval_not v5
-  have hBin1 : __smtx_typeof_value (SmtValue.Binary w n1) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_binary_of_nonneg w n1 hWidth
-  have hBin2 : __smtx_typeof_value (SmtValue.Binary w n2) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_binary_of_nonneg w n2 hWidth
-  have hv0 : __smtx_typeof_value v0 = SmtType.BitVec (native_int_to_nat w) := by
-    simpa [v0] using typeof_value_model_eval_bvneg_value w n2 hWidth
-  have hv1 : __smtx_typeof_value v1 = SmtType.BitVec (native_int_to_nat w) := by
-    simpa [v1] using typeof_value_model_eval_bvneg_value w n1 hWidth
+  have hBin1 : __smtx_typeof_value (SmtValue.Binary w n1) = SmtType.BitVec w := by
+    simp [__smtx_typeof_value]
+  have hBin2 : __smtx_typeof_value (SmtValue.Binary w n2) = SmtType.BitVec w := by
+    simp [__smtx_typeof_value]
+  have hv0 : __smtx_typeof_value v0 = SmtType.BitVec w := by
+    simpa [v0] using typeof_value_model_eval_bvneg_value w n2
+  have hv1 : __smtx_typeof_value v1 = SmtType.BitVec w := by
+    simpa [v1] using typeof_value_model_eval_bvneg_value w n1
   have h5 : __smtx_typeof_value v5 = SmtType.Bool := by
     unfold v5
     exact typeof_value_model_eval_eq_value _ _
@@ -188,19 +182,19 @@ theorem typeof_value_model_eval_bvsrem_value
   have h75 : __smtx_typeof_value (__smtx_model_eval_and v7 v5) = SmtType.Bool := by
     exact typeof_value_model_eval_and_of_bool h7 h5
   have hu0 : __smtx_typeof_value (__smtx_model_eval_bvurem (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
-      SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_bvurem_value w n1 n2 hWidth
-  have hu1 : __smtx_typeof_value (__smtx_model_eval_bvurem v1 (SmtValue.Binary w n2)) = SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
+    exact typeof_value_model_eval_bvurem_value w n1 n2
+  have hu1 : __smtx_typeof_value (__smtx_model_eval_bvurem v1 (SmtValue.Binary w n2)) = SmtType.BitVec w := by
     exact typeof_value_model_eval_bvurem_of_bitvec hv1 hBin2
-  have hu2 : __smtx_typeof_value (__smtx_model_eval_bvurem (SmtValue.Binary w n1) v0) = SmtType.BitVec (native_int_to_nat w) := by
+  have hu2 : __smtx_typeof_value (__smtx_model_eval_bvurem (SmtValue.Binary w n1) v0) = SmtType.BitVec w := by
     exact typeof_value_model_eval_bvurem_of_bitvec hBin1 hv0
-  have hu3 : __smtx_typeof_value (__smtx_model_eval_bvurem v1 v0) = SmtType.BitVec (native_int_to_nat w) := by
+  have hu3 : __smtx_typeof_value (__smtx_model_eval_bvurem v1 v0) = SmtType.BitVec w := by
     exact typeof_value_model_eval_bvurem_of_bitvec hv1 hv0
   have hn1 : __smtx_typeof_value (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem v1 (SmtValue.Binary w n2))) =
-      SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
     exact typeof_value_model_eval_bvneg_of_bitvec hu1
   have hn2 : __smtx_typeof_value (__smtx_model_eval_bvneg (__smtx_model_eval_bvurem (SmtValue.Binary w n1) v0)) =
-      SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
     exact typeof_value_model_eval_bvneg_of_bitvec hu2
   unfold __smtx_model_eval_bvsrem
   simpa [v0, v1, v3, v4, v5, v6, v7, v8] using
@@ -222,10 +216,9 @@ theorem typeof_value_model_eval_bvsrem
 
 /-- Shows that evaluating `bvsmod_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsmod_value
-    (w n1 n2 : native_Int)
-    (hWidth : native_zleq 0 w = true) :
+    (w : native_Nat) (n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsmod (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
-      SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
   let v1 := SmtValue.Binary 1 1
   let v2 := __smtx_bv_sizeof_value (SmtValue.Binary w n1)
   let v3 := __smtx_model_eval__ (SmtValue.Numeral v2) (SmtValue.Numeral 1)
@@ -238,14 +231,14 @@ theorem typeof_value_model_eval_bvsmod_value
   let v7 := __smtx_model_eval_bvneg v6
   let v8 := __smtx_model_eval_not v5
   let v9 := __smtx_model_eval_not v4
-  have hBin1 : __smtx_typeof_value (SmtValue.Binary w n1) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_binary_of_nonneg w n1 hWidth
-  have hBin2 : __smtx_typeof_value (SmtValue.Binary w n2) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_binary_of_nonneg w n2 hWidth
-  have hNeg1 : __smtx_typeof_value (__smtx_model_eval_bvneg (SmtValue.Binary w n1)) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_bvneg_value w n1 hWidth
-  have hNeg2 : __smtx_typeof_value (__smtx_model_eval_bvneg (SmtValue.Binary w n2)) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_bvneg_value w n2 hWidth
+  have hBin1 : __smtx_typeof_value (SmtValue.Binary w n1) = SmtType.BitVec w := by
+    simp [__smtx_typeof_value]
+  have hBin2 : __smtx_typeof_value (SmtValue.Binary w n2) = SmtType.BitVec w := by
+    simp [__smtx_typeof_value]
+  have hNeg1 : __smtx_typeof_value (__smtx_model_eval_bvneg (SmtValue.Binary w n1)) = SmtType.BitVec w := by
+    exact typeof_value_model_eval_bvneg_value w n1
+  have hNeg2 : __smtx_typeof_value (__smtx_model_eval_bvneg (SmtValue.Binary w n2)) = SmtType.BitVec w := by
+    exact typeof_value_model_eval_bvneg_value w n2
   have h4 : __smtx_typeof_value v4 = SmtType.Bool := by
     unfold v4
     exact typeof_value_model_eval_eq_value _ _
@@ -255,24 +248,24 @@ theorem typeof_value_model_eval_bvsmod_value
   have hAbs1 :
       __smtx_typeof_value
           (__smtx_model_eval_ite v5 (SmtValue.Binary w n1) (__smtx_model_eval_bvneg (SmtValue.Binary w n1))) =
-        SmtType.BitVec (native_int_to_nat w) := by
+        SmtType.BitVec w := by
     exact typeof_value_model_eval_ite_of_bool h5 hBin1 hNeg1
   have hAbs2 :
       __smtx_typeof_value
           (__smtx_model_eval_ite v4 (SmtValue.Binary w n2) (__smtx_model_eval_bvneg (SmtValue.Binary w n2))) =
-        SmtType.BitVec (native_int_to_nat w) := by
+        SmtType.BitVec w := by
     exact typeof_value_model_eval_ite_of_bool h4 hBin2 hNeg2
-  have h6 : __smtx_typeof_value v6 = SmtType.BitVec (native_int_to_nat w) := by
+  have h6 : __smtx_typeof_value v6 = SmtType.BitVec w := by
     unfold v6
     exact typeof_value_model_eval_bvurem_of_bitvec hAbs1 hAbs2
-  have h7 : __smtx_typeof_value v7 = SmtType.BitVec (native_int_to_nat w) := by
+  have h7 : __smtx_typeof_value v7 = SmtType.BitVec w := by
     unfold v7
     exact typeof_value_model_eval_bvneg_of_bitvec h6
   have h8 : __smtx_typeof_value v8 = SmtType.Bool := by
     simpa [v8] using typeof_value_model_eval_not_of_bool h5
   have h9 : __smtx_typeof_value v9 = SmtType.Bool := by
     simpa [v9] using typeof_value_model_eval_not_of_bool h4
-  have hEq0 : __smtx_typeof_value (__smtx_model_eval_eq v6 (SmtValue.Binary v2 0)) = SmtType.Bool := by
+  have hEq0 : __smtx_typeof_value (__smtx_model_eval_eq v6 (__smtx_mk_binary_value v2 0)) = SmtType.Bool := by
     exact typeof_value_model_eval_eq_value _ _
   have h89 : __smtx_typeof_value (__smtx_model_eval_and v8 v9) = SmtType.Bool := by
     exact typeof_value_model_eval_and_of_bool h8 h9
@@ -280,9 +273,9 @@ theorem typeof_value_model_eval_bvsmod_value
     exact typeof_value_model_eval_and_of_bool h5 h9
   have h84 : __smtx_typeof_value (__smtx_model_eval_and v8 v4) = SmtType.Bool := by
     exact typeof_value_model_eval_and_of_bool h8 h4
-  have hAdd1 : __smtx_typeof_value (__smtx_model_eval_bvadd v7 (SmtValue.Binary w n2)) = SmtType.BitVec (native_int_to_nat w) := by
+  have hAdd1 : __smtx_typeof_value (__smtx_model_eval_bvadd v7 (SmtValue.Binary w n2)) = SmtType.BitVec w := by
     exact typeof_value_model_eval_bvadd_of_bitvec h7 hBin2
-  have hAdd2 : __smtx_typeof_value (__smtx_model_eval_bvadd v6 (SmtValue.Binary w n2)) = SmtType.BitVec (native_int_to_nat w) := by
+  have hAdd2 : __smtx_typeof_value (__smtx_model_eval_bvadd v6 (SmtValue.Binary w n2)) = SmtType.BitVec w := by
     exact typeof_value_model_eval_bvadd_of_bitvec h6 hBin2
   unfold __smtx_model_eval_bvsmod
   simpa [v1, v2, v3, v4, v5, v6, v7, v8, v9] using
@@ -305,35 +298,34 @@ theorem typeof_value_model_eval_bvsmod
 
 /-- Shows that evaluating `bvashr_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvashr_value
-    (w n1 n2 : native_Int)
-    (hWidth : native_zleq 0 w = true) :
+    (w : native_Nat) (n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvashr (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
-      SmtType.BitVec (native_int_to_nat w) := by
+      SmtType.BitVec w := by
   let v1 :=
     __smtx_model_eval__ (SmtValue.Numeral (__smtx_bv_sizeof_value (SmtValue.Binary w n1)))
       (SmtValue.Numeral 1)
-  have hBin2 : __smtx_typeof_value (SmtValue.Binary w n2) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_binary_of_nonneg w n2 hWidth
+  have hBin2 : __smtx_typeof_value (SmtValue.Binary w n2) = SmtType.BitVec w := by
+    simp [__smtx_typeof_value]
   have hCond :
       __smtx_typeof_value
           (__smtx_model_eval_eq (__smtx_model_eval_extract v1 v1 (SmtValue.Binary w n1)) (SmtValue.Binary 1 0)) =
         SmtType.Bool := by
     exact typeof_value_model_eval_eq_value _ _
   have hL : __smtx_typeof_value (__smtx_model_eval_bvlshr (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
-      SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_bvlshr_value w n1 n2 hWidth
-  have hNot : __smtx_typeof_value (__smtx_model_eval_bvnot (SmtValue.Binary w n1)) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_bvnot_value w n1 hWidth
+      SmtType.BitVec w := by
+    exact typeof_value_model_eval_bvlshr_value w n1 n2
+  have hNot : __smtx_typeof_value (__smtx_model_eval_bvnot (SmtValue.Binary w n1)) = SmtType.BitVec w := by
+    exact typeof_value_model_eval_bvnot_value w n1
   have hR0 :
       __smtx_typeof_value
           (__smtx_model_eval_bvlshr (__smtx_model_eval_bvnot (SmtValue.Binary w n1)) (SmtValue.Binary w n2)) =
-        SmtType.BitVec (native_int_to_nat w) := by
+        SmtType.BitVec w := by
     exact typeof_value_model_eval_bvlshr_of_bitvec hNot hBin2
   have hR :
       __smtx_typeof_value
           (__smtx_model_eval_bvnot
             (__smtx_model_eval_bvlshr (__smtx_model_eval_bvnot (SmtValue.Binary w n1)) (SmtValue.Binary w n2))) =
-        SmtType.BitVec (native_int_to_nat w) := by
+        SmtType.BitVec w := by
     exact typeof_value_model_eval_bvnot_of_bitvec hR0
   unfold __smtx_model_eval_bvashr
   simpa [v1] using typeof_value_model_eval_ite_of_bool hCond hL hR
@@ -352,22 +344,24 @@ theorem typeof_value_model_eval_bvashr
 
 /-- Shows that evaluating `bvssubo_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvssubo_value
-    (w n1 n2 : native_Int)
-    (hWidth : native_zleq 0 w = true) :
+    (w : native_Nat) (n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvssubo (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
-  have hBin1 : __smtx_typeof_value (SmtValue.Binary w n1) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_binary_of_nonneg w n1 hWidth
+  have hBin1 : __smtx_typeof_value (SmtValue.Binary w n1) = SmtType.BitVec w := by
+    simp [__smtx_typeof_value]
   have hCond : __smtx_typeof_value (__smtx_model_eval_bvnego (SmtValue.Binary w n2)) = SmtType.Bool := by
     exact typeof_value_model_eval_bvnego_value w n2
+  have hw0 : native_zleq 0 (native_nat_to_int w) = true := by
+    simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w
   have hThen :
       __smtx_typeof_value
           (__smtx_model_eval_bvsge (SmtValue.Binary w n1)
-            (SmtValue.Binary (__smtx_bv_sizeof_value (SmtValue.Binary w n1)) 0)) =
+            (__smtx_mk_binary_value (__smtx_bv_sizeof_value (SmtValue.Binary w n1)) 0)) =
         SmtType.Bool := by
-    simpa [__smtx_bv_sizeof_value] using typeof_value_model_eval_bvsge_value w n1 0
-  have hNeg2 : __smtx_typeof_value (__smtx_model_eval_bvneg (SmtValue.Binary w n2)) = SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_bvneg_value w n2 hWidth
+    simpa [__smtx_bv_sizeof_value, __smtx_mk_binary_value, hw0, native_ite] using
+      typeof_value_model_eval_bvsge_value w n1 0
+  have hNeg2 : __smtx_typeof_value (__smtx_model_eval_bvneg (SmtValue.Binary w n2)) = SmtType.BitVec w := by
+    exact typeof_value_model_eval_bvneg_value w n2
   have hElse :
       __smtx_typeof_value
           (__smtx_model_eval_bvsaddo (SmtValue.Binary w n1) (__smtx_model_eval_bvneg (SmtValue.Binary w n2))) =
@@ -390,8 +384,7 @@ theorem typeof_value_model_eval_bvssubo
 
 /-- Shows that evaluating `bvsdivo_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsdivo_value
-    (w n1 n2 : native_Int)
-    (hWidth : native_zleq 0 w = true) :
+    (w : native_Nat) (n1 n2 : native_Int) :
     __smtx_typeof_value (__smtx_model_eval_bvsdivo (SmtValue.Binary w n1) (SmtValue.Binary w n2)) =
       SmtType.Bool := by
   have hCond : __smtx_typeof_value (__smtx_model_eval_bvnego (SmtValue.Binary w n1)) = SmtType.Bool := by
@@ -400,12 +393,9 @@ theorem typeof_value_model_eval_bvsdivo_value
       __smtx_typeof_value
           (__smtx_model_eval_eq (SmtValue.Binary w n2)
             (__smtx_model_eval_bvnot
-              (SmtValue.Binary (__smtx_bv_sizeof_value (SmtValue.Binary w n1)) 0))) =
+              (__smtx_mk_binary_value (__smtx_bv_sizeof_value (SmtValue.Binary w n1)) 0))) =
         SmtType.Bool := by
-    simpa [__smtx_bv_sizeof_value] using
-      (typeof_value_model_eval_eq_value
-        (SmtValue.Binary w n2)
-        (__smtx_model_eval_bvnot (SmtValue.Binary w 0)))
+    exact typeof_value_model_eval_eq_value _ _
   unfold __smtx_model_eval_bvsdivo
   exact typeof_value_model_eval_and_of_bool hCond hEq
 
@@ -423,35 +413,28 @@ theorem typeof_value_model_eval_bvsdivo
 
 /-- Lemma about `model_eval_repeat_rec_binary`. -/
 theorem model_eval_repeat_rec_binary :
-    ∀ n : native_Nat, ∀ w x : native_Int,
+    ∀ n : native_Nat, ∀ w : native_Nat, ∀ x : native_Int,
       ∃ m : native_Int,
         __smtx_model_eval_repeat_rec n (SmtValue.Binary w x) =
-          SmtValue.Binary (native_zmult (native_nat_to_int n) w) m
+          SmtValue.Binary (n * w) m
   | native_nat_zero, w, x => by
       refine ⟨0, ?_⟩
-      simp [__smtx_model_eval_repeat_rec, SmtEval.native_zmult, SmtEval.native_nat_to_int]
+      simp [__smtx_model_eval_repeat_rec]
   | native_nat_succ n, w, x => by
       rcases model_eval_repeat_rec_binary n w x with ⟨m, hm⟩
       refine ⟨native_mod_total
-        (native_binary_concat w x (native_zmult (native_nat_to_int n) w) m)
-        (native_int_pow2 (native_zmult (native_nat_to_int (native_nat_succ n)) w)), ?_⟩
+        (native_binary_concat w x (n * w) m)
+        (native_int_pow2 (((native_nat_succ n) * w))), ?_⟩
       rw [__smtx_model_eval_repeat_rec, hm, __smtx_model_eval_concat]
-      have hWidthEq : w + ↑n * w = (↑n + 1) * w := by
-        calc
-          w + ↑n * w = 1 * w + ↑n * w := by simp
-          _ = (1 + ↑n) * w := by rw [Int.add_mul]
-          _ = (↑n + 1) * w := by simp [Int.add_comm]
-      have hWidthEq' :
-          native_zplus w (native_zmult (native_nat_to_int n) w) =
-            native_zmult (native_nat_to_int (native_nat_succ n)) w := by
-        simpa [SmtEval.native_zplus, SmtEval.native_zmult, SmtEval.native_nat_to_int] using hWidthEq
+      have hWidthEq : native_nat_plus w (n * w) = ((native_nat_succ n) * w) := by
+        simp [native_nat_plus, Nat.succ_mul, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm]
       exact congrArg
         (fun z =>
           SmtValue.Binary z
             (native_mod_total
-              (native_binary_concat w x (native_zmult (native_nat_to_int n) w) m)
+              (native_binary_concat w x (n * w) m)
               (native_int_pow2 z)))
-        hWidthEq'
+        hWidthEq
 
 /-- Shows that evaluating `repeat` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_repeat
@@ -477,74 +460,122 @@ theorem typeof_value_model_eval_repeat
     calc
       (0 : Int) <= 1 := by decide
       _ <= i := hi'
-  have hw0 : native_zleq 0 (native_nat_to_int w) = true := by
-    exact bitvec_width_nonneg (by simpa [h2, hv] using hpres2)
-  have hw : 0 <= native_nat_to_int w := by
-    simpa [SmtEval.native_zleq] using hw0
-  have hMult : native_zleq 0 (native_zmult i (native_nat_to_int w)) = true := by
-    have hMultInt : 0 <= i * native_nat_to_int w := Int.mul_nonneg hi hw
-    simpa [SmtEval.native_zleq, SmtEval.native_zmult] using hMultInt
-  rcases model_eval_repeat_rec_binary (native_int_to_nat i) (native_nat_to_int w) n with ⟨m, hm⟩
+  rcases model_eval_repeat_rec_binary (native_int_to_nat i) w n with ⟨m, hm⟩
   rw [hm]
   have hNat :
-      native_zmult (native_nat_to_int (native_int_to_nat i)) (native_nat_to_int w) =
-        native_zmult i (native_nat_to_int w) := by
-    simp [SmtEval.native_zmult, SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
-      Int.toNat_of_nonneg hi]
+      native_int_to_nat (native_zmult i (native_nat_to_int w)) =
+        native_int_to_nat i * w := by
+    exact Int.toNat_mul hi (Int.natCast_nonneg w)
   rw [hNat]
-  exact typeof_value_binary_of_nonneg (native_zmult i (native_nat_to_int w)) m hMult
+  simp [__smtx_typeof_value]
 
 /-- Lemma about `model_eval_rotate_left_step_binary`. -/
 theorem model_eval_rotate_left_step_binary
-    (w x : native_Int) :
+    (w : native_Nat) (x : native_Int) :
     ∃ y : native_Int,
       __smtx_model_eval_concat
           (__smtx_model_eval_extract
-            (SmtValue.Numeral (native_zplus (native_zplus w (native_zneg 1)) (native_zneg 1)))
+            (SmtValue.Numeral
+              (native_zplus
+                (native_zplus (native_nat_succ w) (native_zneg 1))
+                (native_zneg 1)))
             (SmtValue.Numeral 0)
-            (SmtValue.Binary w x))
+            (SmtValue.Binary (native_nat_succ w) x))
           (__smtx_model_eval_extract
-            (SmtValue.Numeral (native_zplus w (native_zneg 1)))
-            (SmtValue.Numeral (native_zplus w (native_zneg 1)))
-            (SmtValue.Binary w x)) =
-        SmtValue.Binary w y := by
-  let hi := native_zplus w (native_zneg 1)
-  let w1 := native_zplus (native_zplus (native_zplus hi (native_zneg 1)) 1) (native_zneg 0)
-  let w2 := native_zplus (native_zplus hi 1) (native_zneg hi)
-  refine ⟨native_mod_total
-      (native_binary_concat w1
-        (native_mod_total
-          (native_binary_extract w x (native_zplus hi (native_zneg 1)) 0)
-          (native_int_pow2 w1))
-        w2
-        (native_mod_total (native_binary_extract w x hi hi) (native_int_pow2 w2)))
-      (native_int_pow2 w), ?_⟩
-  simp [__smtx_model_eval_concat, __smtx_model_eval_extract, w1, w2, hi,
-    SmtEval.native_zplus, SmtEval.native_zneg]
-  have hWidthEq : w + -1 + -1 + 1 + (w + -1 + 1 + -(w + -1)) = w := by
-    rw [Int.neg_add]
+            (SmtValue.Numeral (native_zplus (native_nat_succ w) (native_zneg 1)))
+            (SmtValue.Numeral (native_zplus (native_nat_succ w) (native_zneg 1)))
+            (SmtValue.Binary (native_nat_succ w) x)) =
+        SmtValue.Binary (native_nat_succ w) y := by
+  let hi := native_zplus (native_nat_succ w) (native_zneg 1)
+  have hHiEq : hi = native_nat_to_int w := by
+    simp [hi, SmtEval.native_zplus, SmtEval.native_zneg, SmtEval.native_nat_to_int, Int.add_assoc]
+  have hHi : native_zleq 0 hi = true := by
+    simpa [hHiEq, SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w
+  have hWidth1Eq :
+      native_zplus (native_zplus (native_zplus hi (native_zneg 1)) 1) (native_zneg 0) =
+        native_nat_to_int w := by
+    rw [hHiEq]
+    simp [SmtEval.native_zplus, SmtEval.native_zneg, SmtEval.native_nat_to_int, Int.add_assoc]
+  have hWidth1 :
+      native_zleq 0 (native_zplus (native_zplus (native_zplus hi (native_zneg 1)) 1) (native_zneg 0)) = true := by
+    simpa [hWidth1Eq, SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w
+  have hWidth2Eq :
+      native_zplus (native_zplus hi 1) (native_zneg hi) = 1 := by
+    have hCancel : hi + -hi = 0 := by
+      simpa using Int.add_right_neg hi
     calc
-      w + -1 + -1 + 1 + (w + -1 + 1 + (-w + 1)) = w + (w + -w) := by
-        simp [Int.add_assoc, Int.add_left_comm, Int.add_comm]
-      _ = w := by
-        simpa [Int.add_assoc] using (Int.add_neg_cancel_right w w)
-  constructor
-  · exact hWidthEq
-  · simp [hWidthEq]
+      native_zplus (native_zplus hi 1) (native_zneg hi) = 1 + (hi + -hi) := by
+        simp [SmtEval.native_zplus, SmtEval.native_zneg, Int.add_assoc, Int.add_left_comm, Int.add_comm]
+      _ = 1 := by simp [hCancel]
+  have hWidth2 : native_zleq 0 (native_zplus (native_zplus hi 1) (native_zneg hi)) = true := by
+    simpa [hWidth2Eq, SmtEval.native_zleq] using (show (0 : Int) <= 1 by decide)
+  have hExtract1 :
+      __smtx_model_eval_extract
+          (SmtValue.Numeral (native_zplus hi (native_zneg 1)))
+          (SmtValue.Numeral 0)
+          (SmtValue.Binary (native_nat_succ w) x) =
+        SmtValue.Binary w
+          (native_mod_total
+            (native_binary_extract (native_nat_succ w) x (native_zplus hi (native_zneg 1)) 0)
+            (native_int_pow2 w)) := by
+    rw [__smtx_model_eval_extract, hWidth1Eq, __smtx_mk_binary_value]
+    rw [show native_zleq 0 (native_nat_to_int w) = true by
+      simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w]
+    simp [native_ite, SmtEval.native_int_to_nat, SmtEval.native_nat_to_int]
+  have hExtract2 :
+      __smtx_model_eval_extract
+          (SmtValue.Numeral hi)
+          (SmtValue.Numeral hi)
+          (SmtValue.Binary (native_nat_succ w) x) =
+        SmtValue.Binary 1
+          (native_mod_total
+            (native_binary_extract (native_nat_succ w) x hi hi)
+            (native_int_pow2 1)) := by
+    rw [__smtx_model_eval_extract, hWidth2Eq, __smtx_mk_binary_value]
+    rw [show native_zleq 0 (1 : native_Int) = true by simp [SmtEval.native_zleq]]
+    simp [native_ite, SmtEval.native_int_to_nat, SmtEval.native_nat_to_int]
+  refine ⟨native_mod_total
+      (native_binary_concat w
+        (native_mod_total
+          (native_binary_extract (native_nat_succ w) x
+            (native_zplus hi (native_zneg 1)) 0)
+          (native_int_pow2 w))
+        1
+        (native_mod_total (native_binary_extract (native_nat_succ w) x hi hi) (native_int_pow2 1)))
+      (native_int_pow2 (native_nat_succ w)), ?_⟩
+  rw [hExtract1, hExtract2, __smtx_model_eval_concat]
+  have hWidthEq : native_nat_plus w 1 = native_nat_succ w := by
+    simp [native_nat_plus]
+  exact congrArg
+    (fun z =>
+      SmtValue.Binary z
+        (native_mod_total
+          (native_binary_concat w
+            (native_mod_total
+              (native_binary_extract (native_nat_succ w) x (native_zplus hi (native_zneg 1)) 0)
+              (native_int_pow2 w))
+            1
+            (native_mod_total (native_binary_extract (native_nat_succ w) x hi hi) (native_int_pow2 1)))
+          (native_int_pow2 z)))
+    hWidthEq
 
 /-- Lemma about `model_eval_rotate_left_rec_binary`. -/
 theorem model_eval_rotate_left_rec_binary :
-    ∀ n : native_Nat, ∀ w x : native_Int,
+    ∀ n : native_Nat, ∀ w : native_Nat, ∀ x : native_Int,
       ∃ m : native_Int,
         __smtx_model_eval_rotate_left_rec n (SmtValue.Binary w x) =
           SmtValue.Binary w m
   | native_nat_zero, w, x => by
       refine ⟨x, ?_⟩
       simp [__smtx_model_eval_rotate_left_rec]
-  | native_nat_succ n, w, x => by
+  | native_nat_succ n, native_nat_zero, x => by
+      refine ⟨x, ?_⟩
+      simp [__smtx_model_eval_rotate_left_rec]
+  | native_nat_succ n, native_nat_succ w, x => by
       rcases model_eval_rotate_left_step_binary w x with ⟨y, hy⟩
-      rw [__smtx_model_eval_rotate_left_rec, hy]
-      exact model_eval_rotate_left_rec_binary n w y
+      rw [__smtx_model_eval_rotate_left_rec]
+      rw [hy]
+      exact model_eval_rotate_left_rec_binary n (native_nat_succ w) y
 
 /-- Shows that evaluating `rotate_left` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_rotate_left
@@ -564,58 +595,98 @@ theorem typeof_value_model_eval_rotate_left
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
   rw [hv, __smtx_model_eval_rotate_left]
-  rcases model_eval_rotate_left_rec_binary (native_int_to_nat i) (native_nat_to_int w) n with ⟨m, hm⟩
+  rcases model_eval_rotate_left_rec_binary (native_int_to_nat i) w n with ⟨m, hm⟩
   rw [hm]
-  have hw0 : native_zleq 0 (native_nat_to_int w) = true := by
-    exact bitvec_width_nonneg (by simpa [h2, hv] using hpres2)
-  simpa [native_nat_to_int, native_int_to_nat, SmtEval.native_nat_to_int,
-    SmtEval.native_int_to_nat] using
-      typeof_value_binary_of_nonneg (native_nat_to_int w) m hw0
+  simp [__smtx_typeof_value]
 
 /-- Lemma about `model_eval_rotate_right_step_binary`. -/
 theorem model_eval_rotate_right_step_binary
-    (w x : native_Int) :
+    (w : native_Nat) (x : native_Int) :
     ∃ y : native_Int,
       __smtx_model_eval_concat
           (__smtx_model_eval_extract
             (SmtValue.Numeral 0)
             (SmtValue.Numeral 0)
-            (SmtValue.Binary w x))
+            (SmtValue.Binary (native_nat_succ w) x))
           (__smtx_model_eval_extract
-            (SmtValue.Numeral (native_zplus w (native_zneg 1)))
+            (SmtValue.Numeral (native_zplus (native_nat_succ w) (native_zneg 1)))
             (SmtValue.Numeral 1)
-            (SmtValue.Binary w x)) =
-        SmtValue.Binary w y := by
-  let hi := native_zplus w (native_zneg 1)
-  let w1 := native_zplus (native_zplus 0 1) (native_zneg 0)
-  let w2 := native_zplus (native_zplus hi 1) (native_zneg 1)
+            (SmtValue.Binary (native_nat_succ w) x)) =
+        SmtValue.Binary (native_nat_succ w) y := by
+  let hi := native_zplus (native_nat_succ w) (native_zneg 1)
+  have hHiEq : hi = native_nat_to_int w := by
+    simp [hi, SmtEval.native_zplus, SmtEval.native_zneg, SmtEval.native_nat_to_int, Int.add_assoc]
+  have hHi : native_zleq 0 hi = true := by
+    simpa [hHiEq, SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w
+  have hWidth2Eq :
+      native_zplus (native_zplus hi 1) (native_zneg 1) = native_nat_to_int w := by
+    rw [hHiEq]
+    simp [SmtEval.native_zplus, SmtEval.native_zneg, SmtEval.native_nat_to_int, Int.add_assoc]
+  have hWidth2 :
+      native_zleq 0 (native_zplus (native_zplus hi 1) (native_zneg 1)) = true := by
+    simpa [hWidth2Eq, SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w
+  have hExtract1 :
+      __smtx_model_eval_extract
+          (SmtValue.Numeral 0)
+          (SmtValue.Numeral 0)
+          (SmtValue.Binary (native_nat_succ w) x) =
+        SmtValue.Binary 1
+          (native_mod_total
+            (native_binary_extract (native_nat_succ w) x 0 0)
+            (native_int_pow2 1)) := by
+    simp [__smtx_model_eval_extract, __smtx_mk_binary_value, native_ite,
+      SmtEval.native_zplus, SmtEval.native_zneg, SmtEval.native_zleq,
+      SmtEval.native_int_to_nat]
+  have hExtract2 :
+      __smtx_model_eval_extract
+          (SmtValue.Numeral hi)
+          (SmtValue.Numeral 1)
+          (SmtValue.Binary (native_nat_succ w) x) =
+        SmtValue.Binary w
+          (native_mod_total
+            (native_binary_extract (native_nat_succ w) x hi 1)
+            (native_int_pow2 w)) := by
+    rw [__smtx_model_eval_extract, hWidth2Eq, __smtx_mk_binary_value]
+    rw [show native_zleq 0 (native_nat_to_int w) = true by
+      simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w]
+    simp [native_ite, SmtEval.native_int_to_nat, SmtEval.native_nat_to_int]
   refine ⟨native_mod_total
-      (native_binary_concat w1
-        (native_mod_total (native_binary_extract w x 0 0) (native_int_pow2 w1))
-        w2
-        (native_mod_total (native_binary_extract w x hi 1) (native_int_pow2 w2)))
-      (native_int_pow2 w), ?_⟩
-  simp [__smtx_model_eval_concat, __smtx_model_eval_extract, w1, w2, hi,
-    SmtEval.native_zplus, SmtEval.native_zneg]
-  have hWidthEq : 1 + (w + -1 + 1 + -1) = w := by
-    simp [Int.add_left_comm, Int.add_comm]
-  constructor
-  · exact hWidthEq
-  · simp [hWidthEq]
+      (native_binary_concat 1
+        (native_mod_total (native_binary_extract (native_nat_succ w) x 0 0) (native_int_pow2 1))
+        w
+        (native_mod_total (native_binary_extract (native_nat_succ w) x hi 1) (native_int_pow2 w)))
+      (native_int_pow2 (native_nat_succ w)), ?_⟩
+  rw [hExtract1, hExtract2, __smtx_model_eval_concat]
+  have hWidthEq : native_nat_plus 1 w = native_nat_succ w := by
+    simp [native_nat_plus, Nat.add_comm]
+  exact congrArg
+    (fun z =>
+      SmtValue.Binary z
+        (native_mod_total
+          (native_binary_concat 1
+            (native_mod_total (native_binary_extract (native_nat_succ w) x 0 0) (native_int_pow2 1))
+            w
+            (native_mod_total (native_binary_extract (native_nat_succ w) x hi 1) (native_int_pow2 w)))
+          (native_int_pow2 z)))
+    hWidthEq
 
 /-- Lemma about `model_eval_rotate_right_rec_binary`. -/
 theorem model_eval_rotate_right_rec_binary :
-    ∀ n : native_Nat, ∀ w x : native_Int,
+    ∀ n : native_Nat, ∀ w : native_Nat, ∀ x : native_Int,
       ∃ m : native_Int,
         __smtx_model_eval_rotate_right_rec n (SmtValue.Binary w x) =
           SmtValue.Binary w m
   | native_nat_zero, w, x => by
       refine ⟨x, ?_⟩
       simp [__smtx_model_eval_rotate_right_rec]
-  | native_nat_succ n, w, x => by
+  | native_nat_succ n, native_nat_zero, x => by
+      refine ⟨x, ?_⟩
+      simp [__smtx_model_eval_rotate_right_rec]
+  | native_nat_succ n, native_nat_succ w, x => by
       rcases model_eval_rotate_right_step_binary w x with ⟨y, hy⟩
-      rw [__smtx_model_eval_rotate_right_rec, hy]
-      exact model_eval_rotate_right_rec_binary n w y
+      rw [__smtx_model_eval_rotate_right_rec]
+      rw [hy]
+      exact model_eval_rotate_right_rec_binary n (native_nat_succ w) y
 
 /-- Shows that evaluating `rotate_right` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_rotate_right
@@ -635,13 +706,9 @@ theorem typeof_value_model_eval_rotate_right
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
   rw [hv, __smtx_model_eval_rotate_right]
-  rcases model_eval_rotate_right_rec_binary (native_int_to_nat i) (native_nat_to_int w) n with ⟨m, hm⟩
+  rcases model_eval_rotate_right_rec_binary (native_int_to_nat i) w n with ⟨m, hm⟩
   rw [hm]
-  have hw0 : native_zleq 0 (native_nat_to_int w) = true := by
-    exact bitvec_width_nonneg (by simpa [h2, hv] using hpres2)
-  simpa [native_nat_to_int, native_int_to_nat, SmtEval.native_nat_to_int,
-    SmtEval.native_int_to_nat] using
-      typeof_value_binary_of_nonneg (native_nat_to_int w) m hw0
+  simp [__smtx_typeof_value]
 
 /-- Shows that evaluating `bvuaddo` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvuaddo
@@ -653,7 +720,7 @@ theorem typeof_value_model_eval_bvuaddo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvuaddo t1 t2)) =
       __smtx_typeof (SmtTerm.bvuaddo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvuaddo __smtx_model_eval_bvuaddo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_69]) (by rw [__smtx_model_eval.eq_69]) ht hpres1 hpres2 (fun _ _ _ _ => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_69]) (by rw [__smtx_model_eval.eq_69]) ht hpres1 hpres2 (fun _ _ _ => by
       simp [__smtx_model_eval_bvuaddo, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvnego` terms produces values of the expected type. -/
@@ -665,7 +732,7 @@ theorem typeof_value_model_eval_bvnego
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvnego t)) =
       __smtx_typeof (SmtTerm.bvnego t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.bvnego __smtx_model_eval_bvnego
-    SmtType.Bool t (by rw [__smtx_typeof.eq_70]) (by rw [__smtx_model_eval.eq_70]) ht hpres (fun _ _ _ => by
+    SmtType.Bool t (by rw [__smtx_typeof.eq_70]) (by rw [__smtx_model_eval.eq_70]) ht hpres (fun _ _ => by
       simp [__smtx_model_eval_bvnego, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvsaddo` terms produces values of the expected type. -/
@@ -678,7 +745,7 @@ theorem typeof_value_model_eval_bvsaddo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsaddo t1 t2)) =
       __smtx_typeof (SmtTerm.bvsaddo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvsaddo __smtx_model_eval_bvsaddo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_71]) (by rw [__smtx_model_eval.eq_71]) ht hpres1 hpres2 (fun _ _ _ _ => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_71]) (by rw [__smtx_model_eval.eq_71]) ht hpres1 hpres2 (fun _ _ _ => by
       simp [__smtx_model_eval_bvsaddo, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvumulo` terms produces values of the expected type. -/
@@ -691,7 +758,7 @@ theorem typeof_value_model_eval_bvumulo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvumulo t1 t2)) =
       __smtx_typeof (SmtTerm.bvumulo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvumulo __smtx_model_eval_bvumulo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_72]) (by rw [__smtx_model_eval.eq_72]) ht hpres1 hpres2 (fun _ _ _ _ => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_72]) (by rw [__smtx_model_eval.eq_72]) ht hpres1 hpres2 (fun _ _ _ => by
       simp [__smtx_model_eval_bvumulo, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvsmulo` terms produces values of the expected type. -/
@@ -704,7 +771,7 @@ theorem typeof_value_model_eval_bvsmulo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsmulo t1 t2)) =
       __smtx_typeof (SmtTerm.bvsmulo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvsmulo __smtx_model_eval_bvsmulo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_73]) (by rw [__smtx_model_eval.eq_73]) ht hpres1 hpres2 (fun _ _ _ _ => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_73]) (by rw [__smtx_model_eval.eq_73]) ht hpres1 hpres2 (fun _ _ _ => by
       simp [__smtx_model_eval_bvsmulo, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvusubo` terms produces values of the expected type. -/
@@ -717,9 +784,9 @@ theorem typeof_value_model_eval_bvusubo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvusubo t1 t2)) =
       __smtx_typeof (SmtTerm.bvusubo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvusubo __smtx_model_eval_bvusubo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_74]) (by rw [__smtx_model_eval.eq_74]) ht hpres1 hpres2 (fun w n1 n2 hWidth => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_74]) (by rw [__smtx_model_eval.eq_74]) ht hpres1 hpres2 (fun w n1 n2 => by
       simpa [__smtx_model_eval_bvusubo, __smtx_model_eval_bvult] using
-        typeof_value_model_eval_bvugt_value w n2 n1 hWidth)
+        typeof_value_model_eval_bvugt_value w n2 n1)
 
 /-- Shows that evaluating `zero_extend` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_zero_extend
@@ -748,8 +815,12 @@ theorem typeof_value_model_eval_zero_extend
   have hWidth : native_zleq 0 (native_zplus i (native_nat_to_int w)) = true := by
     have hAdd : 0 <= i + native_nat_to_int w := Int.add_nonneg hi hw
     simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
-  simpa [__smtx_model_eval_zero_extend] using
-    typeof_value_binary_of_nonneg (native_zplus i (native_nat_to_int w)) n hWidth
+  have hWidth' : native_zleq 0 (native_zplus i (w : native_Int)) = true := by
+    simpa [SmtEval.native_nat_to_int] using hWidth
+  rw [__smtx_model_eval_zero_extend, __smtx_mk_binary_value, hWidth']
+  simpa [native_ite] using
+    typeof_value_binary_of_nonneg (native_zplus i (native_nat_to_int w))
+      (native_mod_total n (native_int_pow2 (native_zplus i (native_nat_to_int w)))) hWidth
 
 /-- Shows that evaluating `sign_extend` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_sign_extend
@@ -778,7 +849,10 @@ theorem typeof_value_model_eval_sign_extend
   have hWidth : native_zleq 0 (native_zplus i (native_nat_to_int w)) = true := by
     have hAdd : 0 <= i + native_nat_to_int w := Int.add_nonneg hi hw
     simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
-  simpa [__smtx_model_eval_sign_extend] using
+  have hWidth' : native_zleq 0 (native_zplus i (w : native_Int)) = true := by
+    simpa [SmtEval.native_nat_to_int] using hWidth
+  rw [__smtx_model_eval_sign_extend, __smtx_mk_binary_value, hWidth']
+  simpa [native_ite] using
     typeof_value_binary_of_nonneg (native_zplus i (native_nat_to_int w))
       (native_mod_total (native_binary_uts (native_nat_to_int w) n)
         (native_int_pow2 (native_zplus i (native_nat_to_int w)))) hWidth
@@ -801,7 +875,8 @@ theorem typeof_value_model_eval_int_to_bv
   rw [__smtx_model_eval.eq_2]
   rcases int_value_canonical (by simpa [h2] using hpres2) with ⟨n, hn⟩
   rw [hn]
-  simpa [__smtx_model_eval_int_to_bv] using
+  rw [__smtx_model_eval_int_to_bv, __smtx_mk_binary_value, hi0]
+  simpa [native_ite] using
     typeof_value_binary_of_nonneg i (native_mod_total n (native_int_pow2 i)) hi0
 
 end Smtm

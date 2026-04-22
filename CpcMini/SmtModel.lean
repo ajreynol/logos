@@ -265,7 +265,7 @@ inductive SmtTerm : Type where
   | Numeral : native_Int -> SmtTerm
   | Rational : native_Rat -> SmtTerm
   | String : native_String -> SmtTerm
-  | Binary : native_Int -> native_Int -> SmtTerm
+  | Binary : native_Nat -> native_Int -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | Var : native_String -> SmtType -> SmtTerm
   | ite : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
@@ -292,7 +292,7 @@ inductive SmtValue : Type where
   | Boolean : native_Bool -> SmtValue
   | Numeral : native_Int -> SmtValue
   | Rational : native_Rat -> SmtValue
-  | Binary : native_Int -> native_Int -> SmtValue
+  | Binary : native_Nat -> native_Int -> SmtValue
   | Map : SmtMap -> SmtValue
   | Fun : SmtMap -> SmtValue
   | Set : SmtMap -> SmtValue
@@ -589,7 +589,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Numeral n) => SmtType.Int
   | (SmtValue.Rational q) => SmtType.Real
-  | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
+  | (SmtValue.Binary w n) => SmtType.BitVec w
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
   | (SmtValue.Set m) => (__smtx_map_to_set_type (__smtx_typeof_map_value m))
@@ -687,7 +687,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Numeral n) => SmtType.Int
   | (SmtTerm.Rational r) => SmtType.Real
   | (SmtTerm.String s) => (SmtType.Seq SmtType.Char)
-  | (SmtTerm.Binary w n) => (native_ite (native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w)))) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
+  | (SmtTerm.Binary w n) => (native_ite (native_zeq n (native_mod_total n (native_int_pow2 w))) (SmtType.BitVec w) SmtType.None)
   | (SmtTerm.not x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.or x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.and x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)

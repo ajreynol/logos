@@ -46,13 +46,16 @@ theorem eo_to_smt_type_typeof_string
 
 /-- Simplifies EO-to-SMT type translation for `typeof_binary`. -/
 theorem eo_to_smt_type_typeof_binary
-    (w n : native_Int)
-    (hWidth : native_zleq 0 w = true) :
+    (w : native_Nat) (n : native_Int) :
     __eo_to_smt_type (__eo_typeof (Term.Binary w n)) =
-      SmtType.BitVec (native_int_to_nat w) := by
-  change __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w)) =
-    SmtType.BitVec (native_int_to_nat w)
-  simp [__eo_to_smt_type, native_ite, hWidth]
+      SmtType.BitVec w := by
+  change __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w))) =
+    SmtType.BitVec w
+  have hw : native_zleq 0 (native_nat_to_int w) = true := by
+    simpa [SmtEval.native_zleq, SmtEval.native_nat_to_int] using Int.natCast_nonneg w
+  have hNat : Int.toNat (native_nat_to_int w) = w := by
+    simp [SmtEval.native_nat_to_int]
+  simp [__eo_to_smt_type, native_ite, hw, SmtEval.native_int_to_nat, hNat]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_var`. -/
 theorem eo_to_smt_type_typeof_var

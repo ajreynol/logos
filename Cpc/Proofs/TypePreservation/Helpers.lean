@@ -727,22 +727,12 @@ theorem bitvec_value_canonical
     {v : SmtValue}
     {w : native_Nat}
     (h : __smtx_typeof_value v = SmtType.BitVec w) :
-    ∃ n : native_Int, v = SmtValue.Binary (native_nat_to_int w) n := by
+    ∃ n : native_Int, v = SmtValue.Binary w n := by
   cases v with
   | Binary w' n =>
-      cases hWidth : native_zleq 0 w' <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
-      have hw' : w' = native_nat_to_int w := by
-        have hNonneg : 0 <= w' := by
-          simpa [native_zleq, SmtEval.native_zleq] using hWidth
-        have hNat : native_int_to_nat w' = w := by
-          cases h
-          rfl
-        have hInt : (Int.ofNat (Int.toNat w') : Int) = w' :=
-          Int.toNat_of_nonneg hNonneg
-        simp [native_int_to_nat, SmtEval.native_int_to_nat] at hNat
-        simp [hNat] at hInt
-        exact hInt.symm
+      have hw' : w' = w := by
+        cases h
+        rfl
       subst hw'
       exact ⟨n, rfl⟩
   | NotValue =>
@@ -796,19 +786,19 @@ theorem bitvec_value_canonical
 
 /-- Lemma about `bitvec_width_nonneg`. -/
 theorem bitvec_width_nonneg
-    {w n : native_Int} {u : native_Nat}
+    {w : native_Nat} {n : native_Int} {u : native_Nat}
     (h : __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec u) :
-    native_zleq 0 w = true := by
-  cases hWidth : native_zleq 0 w <;>
-    simp [__smtx_typeof_value, native_ite, hWidth] at h
-  simp
+    native_zleq 0 (native_nat_to_int w) = true := by
+  have hw : (0 : Int) <= native_nat_to_int w := by
+    exact Int.ofNat_nonneg w
+  simpa [native_zleq, SmtEval.native_zleq] using hw
 
 /-- Derives `typeof_value_binary` from `nonneg`. -/
 theorem typeof_value_binary_of_nonneg
     (w n : native_Int)
     (hWidth : native_zleq 0 w = true) :
-    __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
-  simp [__smtx_typeof_value, native_ite, hWidth]
+    __smtx_typeof_value (SmtValue.Binary (native_int_to_nat w) n) = SmtType.BitVec (native_int_to_nat w) := by
+  simp [__smtx_typeof_value]
 
 /-- Canonical-form lemma for `map_value`. -/
 theorem map_value_canonical
