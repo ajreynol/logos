@@ -11,9 +11,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-set_option allowUnsafeReducibility true
-attribute [local reducible] __smtx_typeof
-attribute [local reducible] __eo_to_smt
 
 namespace TranslationProofs
 

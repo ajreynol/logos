@@ -12,10 +12,6 @@ namespace RuleProofs
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-set_option allowUnsafeReducibility true
-attribute [local reducible] __smtx_typeof
-attribute [local reducible] __smtx_model_eval
-attribute [local reducible] __eo_to_smt
 
 /-- Simplifies EO-to-SMT translation for `true`. -/
 private theorem eo_to_smt_true_eq :
