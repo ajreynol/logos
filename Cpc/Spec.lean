@@ -282,8 +282,8 @@ def __eo_to_smt : Term -> SmtTerm
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.bvnot (SmtTerm.bvcomp _v0 (SmtTerm.Binary (__smtx_bv_sizeof_type (__smtx_typeof _v0)) 0)))
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_bit) x1) x2) => 
-    let _v0 := (__eo_to_smt x1)
-    (SmtTerm.extract _v0 _v0 (__eo_to_smt x2))
+    let _v1 := (__eo_to_smt x1)
+    (SmtTerm.eq (SmtTerm.extract _v1 _v1 (__eo_to_smt x2)) (SmtTerm.Binary 1 1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_from_bools) x1) x2) => (SmtTerm.concat (SmtTerm.ite (__eo_to_smt x1) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_bv) x1) x2) => (__eo_to_smt__at_bv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.seq_empty x1) => (__eo_to_smt_seq_empty (__eo_to_smt_type x1))
@@ -336,7 +336,7 @@ def __eo_to_smt : Term -> SmtTerm
     (SmtTerm.choice_nth "_at_x" SmtType.Int (SmtTerm.not (SmtTerm.eq (SmtTerm.str_substr (__eo_to_smt x1) _v2 _v0) (SmtTerm.str_substr (__eo_to_smt x2) _v2 _v0))) native_nat_zero)
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x1) x2) => (SmtTerm.str_to_int (SmtTerm.str_substr (__eo_to_smt x1) (SmtTerm.Numeral 0) (__eo_to_smt x2)))
   | (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x1) => (SmtTerm.str_indexof_re (__eo_to_smt x1) (SmtTerm.re_comp (SmtTerm.re_range (SmtTerm.String "0") (SmtTerm.String "9"))) (SmtTerm.Numeral 0))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x1) x2) => (SmtTerm.str_from_int (SmtTerm.mod (__eo_to_smt x1) (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x2))))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x1) x2) => (SmtTerm.mod (__eo_to_smt x1) (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x2)))
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x1) x2) => 
     let _v0 := (__eo_to_smt x2)
     let _v1 := (__eo_to_smt x1)
