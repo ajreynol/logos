@@ -93,8 +93,8 @@ theorem supported_type_preservation
       exact typeof_value_model_eval_exists M s T body ht
   | «forall» s T body =>
       exact typeof_value_model_eval_forall M s T body ht
-  | choice s T body =>
-      exact typeof_value_model_eval_choice M s T body ht
+  | choice s T body n hChoice =>
+      exact typeof_value_model_eval_choice_nth M s T body n ht
   | «not» ht1 hs1 =>
       exact typeof_value_model_eval_not M _ ht
         (supported_type_preservation M hM _ ht1 hs1)

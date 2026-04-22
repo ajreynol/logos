@@ -9,11 +9,12 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-/-- States that SMT evaluation preserves the expected type in total typed models. -/
+/-- States that SMT evaluation preserves any non-`None` expected type in total typed models. -/
 theorem smt_model_eval_preserves_type
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) (T : SmtType) :
   __smtx_typeof t = T ->
+  T ≠ SmtType.None ->
   type_inhabited T ->
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
   sorry
@@ -24,7 +25,11 @@ theorem smt_model_eval_bool_is_boolean
     (t : SmtTerm) :
   __smtx_typeof t = SmtType.Bool ->
   ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
-  sorry
+  intro hTy
+  have hPres :
+      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
+    smt_model_eval_preserves_type M hM t SmtType.Bool hTy (by simp) type_inhabited_bool
+  exact bool_value_canonical hPres
 
 /-- Derives SMT evaluation type preservation for terms in the supported fragment. -/
 theorem smt_model_eval_preserves_type_of_supported

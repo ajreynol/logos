@@ -466,5 +466,64 @@ theorem typeof_value_model_eval_choice
     simp [hSat, hTy]
     exact Classical.choose_spec hTy
 
+/-- Shows that evaluating `choice_nth` terms preserves the computed choice type for any index. -/
+theorem typeof_value_model_eval_choice_nth
+    (M : SmtModel)
+    (s : native_String)
+    (T : SmtType)
+    (body : SmtTerm)
+    (n : native_Nat)
+    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.choice_nth s T body n)) =
+      __smtx_typeof (SmtTerm.choice_nth s T body n) := by
+  classical
+  induction n generalizing M s T body with
+  | zero =>
+      simpa using typeof_value_model_eval_choice M s T body ht
+  | succ n ih =>
+      cases body with
+      | «exists» s' U body' =>
+          have hTyEq :
+              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
+                __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
+            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            simp [__smtx_typeof_choice_nth]
+          have ht' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
+            unfold term_has_non_none_type
+            rw [← hTyEq]
+            exact ht
+          rw [__smtx_model_eval.eq_136, smtx_model_eval_choice_nth_eq_2]
+          rw [hTyEq]
+          simpa [__smtx_model_eval.eq_136,
+            smtx_model_eval_choice_nth_eq_1, smtx_model_eval_choice_nth_eq_2] using
+            ih (__smtx_model_push M s T
+              (if hSat :
+                  ∃ v : SmtValue,
+                    __smtx_typeof_value v = T ∧
+                      __smtx_model_eval (__smtx_model_push M s T v)
+                        (SmtTerm.exists s' U body') = SmtValue.Boolean true then
+                Classical.choose hSat
+              else
+                if hTy : ∃ v : SmtValue, __smtx_typeof_value v = T then
+                  Classical.choose hTy
+                else
+                  SmtValue.NotValue)) s' U body' ht'
+      | _ =>
+          exfalso
+          apply ht
+          rw [__smtx_typeof.eq_136]
+          simp [__smtx_typeof_choice_nth]
+
+/-- Extracts inhabitation of the computed `choice_nth` type from a non-`None` typing judgment. -/
+theorem choice_term_inhabited_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    {n : native_Nat}
+    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
+    type_inhabited (__smtx_typeof (SmtTerm.choice_nth s T body n)) := by
+  refine ⟨__smtx_model_eval default_typed_model (SmtTerm.choice_nth s T body n), ?_⟩
+  simpa using typeof_value_model_eval_choice_nth default_typed_model s T body n ht
+
 
 end Smtm

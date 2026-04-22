@@ -78,6 +78,18 @@ theorem type_inhabited_int : type_inhabited SmtType.Int :=
 theorem type_inhabited_real : type_inhabited SmtType.Real :=
   ⟨SmtValue.Rational (native_mk_rational 0 1), rfl⟩
 
+/-- Shows that the SMT type `reglan` is inhabited. -/
+theorem type_inhabited_reglan : type_inhabited SmtType.RegLan :=
+  ⟨SmtValue.RegLan native_re_none, rfl⟩
+
+/-- Shows that the SMT type `char` is inhabited. -/
+theorem type_inhabited_char : type_inhabited SmtType.Char :=
+  ⟨SmtValue.Char 'a', rfl⟩
+
+/-- Shows that every uninterpreted sort is inhabited. -/
+theorem type_inhabited_usort (i : native_Nat) : type_inhabited (SmtType.USort i) :=
+  ⟨SmtValue.UValue i 0, rfl⟩
+
 /-- Shows that the SMT type `seq` is inhabited. -/
 theorem type_inhabited_seq (T : SmtType) : type_inhabited (SmtType.Seq T) :=
   ⟨SmtValue.Seq (SmtSeq.empty T), rfl⟩
@@ -94,6 +106,11 @@ theorem type_inhabited_fun {A B : SmtType} (hB : type_inhabited B) :
   rcases hB with ⟨v, hv⟩
   exact ⟨SmtValue.Fun (SmtMap.default A v), by
     simp [__smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_fun_type, hv]⟩
+
+/-- Shows that the SMT type `set` is inhabited. -/
+theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
+  ⟨SmtValue.Set (SmtMap.default A (SmtValue.Boolean false)), by
+    simp [__smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_set_type]⟩
 
 /-- Choice-based model that returns a canonical inhabitant for every inhabited SMT type. -/
 noncomputable def default_typed_model : SmtModel := by
