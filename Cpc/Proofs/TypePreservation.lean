@@ -701,6 +701,205 @@ private theorem bool_unop_arg_of_non_none
     simp [hTy, native_ite, native_Teq, h] at ht
   simp
 
+private def type_has_no_none_components : SmtType -> Prop
+  | SmtType.None => False
+  | SmtType.TypeRef _ => False
+  | SmtType.Seq A => type_has_no_none_components A
+  | SmtType.Set A => type_has_no_none_components A
+  | SmtType.Map A B => type_has_no_none_components A ∧
+      type_has_no_none_components B
+  | SmtType.FunType A B => type_has_no_none_components A ∧
+      type_has_no_none_components B
+  | SmtType.DtcAppType A B => type_has_no_none_components A ∧
+      type_has_no_none_components B
+  | _ => True
+
+private theorem type_has_no_none_components_of_wf :
+    {T : SmtType} ->
+    __smtx_type_wf T = true ->
+    type_has_no_none_components T
+  | SmtType.None, h => by
+      simp [__smtx_type_wf, __smtx_type_wf_rec] at h
+  | SmtType.Bool, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Int, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Real, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.RegLan, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.BitVec _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Map A B, h => by
+      rcases map_type_wf_components_of_wf h with ⟨hA, hB⟩
+      exact ⟨type_has_no_none_components_of_wf (T := A) hA,
+        type_has_no_none_components_of_wf (T := B) hB⟩
+  | SmtType.Set A, h => by
+      exact type_has_no_none_components_of_wf (T := A) (set_type_wf_component_of_wf h)
+  | SmtType.Seq A, h => by
+      exact type_has_no_none_components_of_wf (T := A) (seq_type_wf_component_of_wf h)
+  | SmtType.Char, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Datatype _ _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.TypeRef _, h => by
+      simp [__smtx_type_wf, __smtx_type_wf_rec] at h
+  | SmtType.USort _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.FunType A B, h => by
+      rcases fun_type_wf_components_of_wf h with ⟨hA, hB⟩
+      exact ⟨type_has_no_none_components_of_wf (T := A) hA,
+        type_has_no_none_components_of_wf (T := B) hB⟩
+  | SmtType.DtcAppType _ _, h => by
+      simp [__smtx_type_wf, __smtx_type_wf_rec] at h
+termination_by T => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals simp [sizeOf]
+  all_goals omega
+
+private theorem type_has_no_none_components_non_none
+    {T : SmtType}
+    (h : type_has_no_none_components T) :
+    T ≠ SmtType.None := by
+  cases T <;> simp [type_has_no_none_components] at h ⊢
+
+private theorem type_has_no_none_components_seq_component_non_none
+    {A : SmtType}
+    (h : type_has_no_none_components (SmtType.Seq A)) :
+    A ≠ SmtType.None :=
+  type_has_no_none_components_non_none h
+
+private theorem type_has_no_none_components_set_component_non_none
+    {A : SmtType}
+    (h : type_has_no_none_components (SmtType.Set A)) :
+    A ≠ SmtType.None :=
+  type_has_no_none_components_non_none h
+
+private theorem type_has_no_none_components_map_components_non_none
+    {A B : SmtType}
+    (h : type_has_no_none_components (SmtType.Map A B)) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  exact ⟨type_has_no_none_components_non_none h.1,
+    type_has_no_none_components_non_none h.2⟩
+
+private theorem type_has_no_none_components_fun_components_non_none
+    {A B : SmtType}
+    (h : type_has_no_none_components (SmtType.FunType A B)) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  exact ⟨type_has_no_none_components_non_none h.1,
+    type_has_no_none_components_non_none h.2⟩
+
+private theorem guard_wf_type_has_no_none_components_of_non_none
+    {T U : SmtType}
+    (hU : type_has_no_none_components U)
+    (hNN : __smtx_typeof_guard_wf T U ≠ SmtType.None) :
+    type_has_no_none_components (__smtx_typeof_guard_wf T U) := by
+  have hGuard : __smtx_typeof_guard_wf T U = U :=
+    smtx_typeof_guard_wf_of_non_none T U hNN
+  simpa [hGuard] using hU
+
+private theorem var_type_has_no_none_components_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.Var s T)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.Var s T)) := by
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [__smtx_typeof] using ht
+  have hWf : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+  simpa [__smtx_typeof] using
+    guard_wf_type_has_no_none_components_of_non_none
+      (type_has_no_none_components_of_wf hWf) hGuardNN
+
+private theorem uconst_type_has_no_none_components_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.UConst s T)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.UConst s T)) := by
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [__smtx_typeof] using ht
+  have hWf : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+  simpa [__smtx_typeof] using
+    guard_wf_type_has_no_none_components_of_non_none
+      (type_has_no_none_components_of_wf hWf) hGuardNN
+
+private theorem seq_empty_type_has_no_none_components_of_non_none
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.seq_empty T)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.seq_empty T)) := by
+  have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [__smtx_typeof] using ht
+  have hWf : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Seq T) hGuardNN
+  simpa [__smtx_typeof] using
+    guard_wf_type_has_no_none_components_of_non_none
+      (by
+        have hGoodT : type_has_no_none_components T :=
+          type_has_no_none_components_of_wf hWf
+        simpa [type_has_no_none_components] using hGoodT) hGuardNN
+
+private theorem set_empty_type_has_no_none_components_of_non_none
+    {T : SmtType}
+    (ht : term_has_non_none_type (SmtTerm.set_empty T)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.set_empty T)) := by
+  have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Set T) ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [__smtx_typeof] using ht
+  have hWf : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Set T) hGuardNN
+  simpa [__smtx_typeof] using
+    guard_wf_type_has_no_none_components_of_non_none
+      (by
+        have hGoodT : type_has_no_none_components T :=
+          type_has_no_none_components_of_wf hWf
+        simpa [type_has_no_none_components] using hGoodT) hGuardNN
+
+private theorem choice_type_has_no_none_components_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    {n : native_Nat}
+    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.choice_nth s T body n)) := by
+  induction n generalizing s T body with
+  | zero =>
+      have hTy : __smtx_typeof (SmtTerm.choice_nth s T body 0) = T :=
+        choice_term_typeof_of_non_none ht
+      have hGuardTy :
+          __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T :=
+        choice_term_guard_type_of_non_none ht
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        rw [← hGuardTy]
+        exact ht
+      have hWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+      rw [hTy]
+      exact type_has_no_none_components_of_wf hWf
+  | succ n ih =>
+      cases body with
+      | «exists» s' U body' =>
+          have hTyEq :
+              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body')
+                (Nat.succ n)) =
+                __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
+            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            simp [__smtx_typeof_choice_nth]
+          have ht' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
+            unfold term_has_non_none_type
+            rw [← hTyEq]
+            exact ht
+          simpa [hTyEq] using ih (s := s') (T := U) (body := body') ht'
+      | _ =>
+          exfalso
+          apply ht
+          rw [__smtx_typeof.eq_136]
+          simp [__smtx_typeof_choice_nth]
+
 private theorem supported_apply_term_of_non_none
     {f x : SmtTerm}
     (ihf : term_has_non_none_type f -> supported_preservation_term f)
