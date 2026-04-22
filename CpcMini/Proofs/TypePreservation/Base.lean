@@ -77,7 +77,11 @@ theorem typeof_value_model_eval_binary
     cases h2 : native_zeq n (native_mod_total n (native_int_pow2 w))
     · simp [g, SmtEval.native_and, hWidth, h2] at hg
     · rfl
-  simp [__smtx_model_eval, __smtx_typeof_value, __smtx_typeof, native_ite, SmtEval.native_and, hWidth, hMod]
+  have hType :
+      __smtx_typeof (SmtTerm.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
+    simp [__smtx_typeof, native_ite, SmtEval.native_and, hWidth, hMod]
+  rw [hType]
+  simp [__smtx_model_eval, __smtx_bv_literal, __smtx_typeof_value]
 
 /-- Shows that evaluating `var` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_var

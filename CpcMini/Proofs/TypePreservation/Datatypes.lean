@@ -815,8 +815,7 @@ theorem typeof_value_model_eval_apply_dt
   | Numeral n => simp [__smtx_typeof_value] at hf
   | Rational q => simp [__smtx_typeof_value] at hf
   | Binary w n =>
-      cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at hf
+      simp [__smtx_typeof_value] at hf
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>

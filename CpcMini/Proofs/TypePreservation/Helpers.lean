@@ -299,8 +299,7 @@ theorem typeof_value_apply_of_head_ne_fun_ne_dt_cons :
   | SmtValue.Rational _, i, hFun, hDt => by
       simp [__smtx_typeof_value, __smtx_typeof_apply_value]
   | SmtValue.Binary w n, i, hFun, hDt => by
-      cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite, hWidth]
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
   | SmtValue.Map m, i, hFun, hDt => by
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -480,8 +479,7 @@ theorem no_value_of_type_ref
   | Rational _ =>
       simp [__smtx_typeof_value] at hv
   | Binary w _ =>
-      cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at hv
+      simp [__smtx_typeof_value] at hv
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -544,8 +542,7 @@ theorem bool_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+      simp [__smtx_typeof_value] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -612,8 +609,7 @@ theorem fun_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+      simp [__smtx_typeof_value] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -673,8 +669,7 @@ theorem map_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+      simp [__smtx_typeof_value] at h
   | Fun m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -734,8 +729,7 @@ theorem seq_value_canonical
   | Rational _ =>
       simp [__smtx_typeof_value] at h
   | Binary w _ =>
-      cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+      simp [__smtx_typeof_value] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
