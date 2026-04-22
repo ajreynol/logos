@@ -3818,7 +3818,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
       have hEo :
           __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.str_rev) x)) =
             SmtType.Seq (__eo_to_smt_type V) :=
-        eo_to_smt_type_typeof_apply_str_rev_of_seq x V hxEo
+        eo_to_smt_type_typeof_apply_str_rev_of_seq x V hxEo (by
+          intro hNone
+          rw [hxEo] at hxSmt
+          simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hNone] at hxSmt)
       rw [hV] at hEo
       exact hSmt.trans hEo.symm
     case str_to_lower =>
