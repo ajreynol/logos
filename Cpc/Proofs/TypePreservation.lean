@@ -1483,6 +1483,123 @@ private theorem apply_type_has_no_none_components_of_non_none
       rw [hTyEq]
       simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hFun, hX, hA]
         using hFunTy'.2
+
+private theorem seq_op_1_type_has_no_none_components_of_non_none
+    {op : SmtTerm -> SmtTerm}
+    {t : SmtTerm}
+    (hTy :
+      __smtx_typeof (op t) =
+        __smtx_typeof_seq_op_1 (__smtx_typeof t))
+    (ht : term_has_non_none_type (op t))
+    (hSeqTy : type_has_no_none_components (__smtx_typeof t)) :
+    type_has_no_none_components (__smtx_typeof (op t)) := by
+  rcases seq_arg_of_non_none (op := op) hTy ht with ⟨T, hArg⟩
+  have hSeqTy' : type_has_no_none_components (SmtType.Seq T) := by
+    simpa [hArg] using hSeqTy
+  rw [hTy]
+  simpa [__smtx_typeof_seq_op_1, native_ite, native_Teq, hArg, type_has_no_none_components]
+    using hSeqTy'
+
+private theorem seq_op_2_type_has_no_none_components_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 : SmtTerm}
+    (hTy :
+      __smtx_typeof (op t1 t2) =
+        __smtx_typeof_seq_op_2 (__smtx_typeof t1) (__smtx_typeof t2))
+    (ht : term_has_non_none_type (op t1 t2))
+    (hSeqTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (op t1 t2)) := by
+  rcases seq_binop_args_of_non_none (op := op) hTy ht with ⟨T, h1, h2⟩
+  have hSeqTy' : type_has_no_none_components (SmtType.Seq T) := by
+    simpa [h1] using hSeqTy
+  rw [hTy]
+  simpa [__smtx_typeof_seq_op_2, native_ite, native_Teq, h1, h2, type_has_no_none_components]
+    using hSeqTy'
+
+private theorem seq_op_3_type_has_no_none_components_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 t3 : SmtTerm}
+    (hTy :
+      __smtx_typeof (op t1 t2 t3) =
+        __smtx_typeof_seq_op_3 (__smtx_typeof t1) (__smtx_typeof t2)
+          (__smtx_typeof t3))
+    (ht : term_has_non_none_type (op t1 t2 t3))
+    (hSeqTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (op t1 t2 t3)) := by
+  rcases seq_triop_args_of_non_none (op := op) hTy ht with ⟨T, h1, h2, h3⟩
+  have hSeqTy' : type_has_no_none_components (SmtType.Seq T) := by
+    simpa [h1] using hSeqTy
+  rw [hTy]
+  simpa [__smtx_typeof_seq_op_3, native_ite, native_Teq, h1, h2, h3,
+    type_has_no_none_components] using hSeqTy'
+
+private theorem set_binop_type_has_no_none_components_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 : SmtTerm}
+    (hTy :
+      __smtx_typeof (op t1 t2) =
+        __smtx_typeof_sets_op_2 (__smtx_typeof t1) (__smtx_typeof t2))
+    (ht : term_has_non_none_type (op t1 t2))
+    (hSetTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (op t1 t2)) := by
+  rcases set_binop_args_of_non_none (op := op) hTy ht with ⟨A, h1, h2⟩
+  have hSetTy' : type_has_no_none_components (SmtType.Set A) := by
+    simpa [h1] using hSetTy
+  rw [hTy]
+  simpa [__smtx_typeof_sets_op_2, native_ite, native_Teq, h1, h2, type_has_no_none_components]
+    using hSetTy'
+
+private theorem str_substr_type_has_no_none_components_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.str_substr t1 t2 t3))
+    (hSeqTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.str_substr t1 t2 t3)) := by
+  rcases str_substr_args_of_non_none ht with ⟨T, h1, h2, h3⟩
+  have hSeqTy' : type_has_no_none_components (SmtType.Seq T) := by
+    simpa [h1] using hSeqTy
+  rw [typeof_str_substr_eq]
+  simpa [__smtx_typeof_str_substr, h1, h2, h3, type_has_no_none_components] using hSeqTy'
+
+private theorem str_at_type_has_no_none_components_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.str_at t1 t2))
+    (hSeqTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.str_at t1 t2)) := by
+  rcases str_at_args_of_non_none ht with ⟨T, h1, h2⟩
+  have hSeqTy' : type_has_no_none_components (SmtType.Seq T) := by
+    simpa [h1] using hSeqTy
+  rw [typeof_str_at_eq]
+  simpa [__smtx_typeof_str_at, h1, h2, type_has_no_none_components] using hSeqTy'
+
+private theorem str_update_type_has_no_none_components_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.str_update t1 t2 t3))
+    (hSeqTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.str_update t1 t2 t3)) := by
+  rcases str_update_args_of_non_none ht with ⟨T, h1, h2, h3⟩
+  have hSeqTy' : type_has_no_none_components (SmtType.Seq T) := by
+    simpa [h1] using hSeqTy
+  rw [typeof_str_update_eq]
+  simpa [__smtx_typeof_str_update, native_ite, native_Teq, h1, h2, h3,
+    type_has_no_none_components] using hSeqTy'
+
+private theorem str_replace_re_type_has_no_none_components_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 t3 : SmtTerm}
+    (hTy :
+      __smtx_typeof (op t1 t2 t3) =
+        native_ite (native_Teq (__smtx_typeof t1) (SmtType.Seq SmtType.Char))
+          (native_ite (native_Teq (__smtx_typeof t2) SmtType.RegLan)
+            (native_ite (native_Teq (__smtx_typeof t3) (SmtType.Seq SmtType.Char))
+              (SmtType.Seq SmtType.Char) SmtType.None)
+            SmtType.None)
+          SmtType.None)
+    (ht : term_has_non_none_type (op t1 t2 t3)) :
+    type_has_no_none_components (__smtx_typeof (op t1 t2 t3)) := by
+  have hArgs := str_replace_re_args_of_non_none (op := op) hTy ht
+  rw [hTy]
+  simpa [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2, type_has_no_none_components]
+
 /-- Restates supported type preservation using an inhabited-type hypothesis. -/
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)
