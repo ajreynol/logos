@@ -157,6 +157,156 @@ theorem model_eval_uconst_of_uninhabited
   unfold __smtx_model_eval
   simpa using model_total_typed_lookup_uninhabited hM s T hT
 
+/-- If a variable has sequence type `Seq A`, then `A` is non-`None`. -/
+theorem var_type_eq_seq_component_non_none
+    {s : native_String}
+    {T A : SmtType}
+    (h : __smtx_typeof (SmtTerm.Var s T) = SmtType.Seq A) :
+    A ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_141] at h
+  exact smtx_typeof_guard_wf_self_eq_seq_component_non_none h
+
+/-- If a variable has set type `Set A`, then `A` is non-`None`. -/
+theorem var_type_eq_set_component_non_none
+    {s : native_String}
+    {T A : SmtType}
+    (h : __smtx_typeof (SmtTerm.Var s T) = SmtType.Set A) :
+    A ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_141] at h
+  exact smtx_typeof_guard_wf_self_eq_set_component_non_none h
+
+/-- If a variable has map type `Map A B`, then both components are non-`None`. -/
+theorem var_type_eq_map_components_non_none
+    {s : native_String}
+    {T A B : SmtType}
+    (h : __smtx_typeof (SmtTerm.Var s T) = SmtType.Map A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_141] at h
+  exact smtx_typeof_guard_wf_self_eq_map_components_non_none h
+
+/-- If a variable has function type `FunType A B`, then both components are non-`None`. -/
+theorem var_type_eq_fun_components_non_none
+    {s : native_String}
+    {T A B : SmtType}
+    (h : __smtx_typeof (SmtTerm.Var s T) = SmtType.FunType A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_141] at h
+  exact smtx_typeof_guard_wf_self_eq_fun_components_non_none h
+
+/-- If a uconst has sequence type `Seq A`, then `A` is non-`None`. -/
+theorem uconst_type_eq_seq_component_non_none
+    {s : native_String}
+    {T A : SmtType}
+    (h : __smtx_typeof (SmtTerm.UConst s T) = SmtType.Seq A) :
+    A ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_142] at h
+  exact smtx_typeof_guard_wf_self_eq_seq_component_non_none h
+
+/-- If a uconst has set type `Set A`, then `A` is non-`None`. -/
+theorem uconst_type_eq_set_component_non_none
+    {s : native_String}
+    {T A : SmtType}
+    (h : __smtx_typeof (SmtTerm.UConst s T) = SmtType.Set A) :
+    A ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_142] at h
+  exact smtx_typeof_guard_wf_self_eq_set_component_non_none h
+
+/-- If a uconst has map type `Map A B`, then both components are non-`None`. -/
+theorem uconst_type_eq_map_components_non_none
+    {s : native_String}
+    {T A B : SmtType}
+    (h : __smtx_typeof (SmtTerm.UConst s T) = SmtType.Map A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_142] at h
+  exact smtx_typeof_guard_wf_self_eq_map_components_non_none h
+
+/-- If a uconst has function type `FunType A B`, then both components are non-`None`. -/
+theorem uconst_type_eq_fun_components_non_none
+    {s : native_String}
+    {T A B : SmtType}
+    (h : __smtx_typeof (SmtTerm.UConst s T) = SmtType.FunType A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_142] at h
+  exact smtx_typeof_guard_wf_self_eq_fun_components_non_none h
+
+/-- If `seq_empty` has type `Seq A`, then `A` is non-`None`. -/
+theorem seq_empty_type_eq_component_non_none
+    {T A : SmtType}
+    (h : __smtx_typeof (SmtTerm.seq_empty T) = SmtType.Seq A) :
+    A ≠ SmtType.None := by
+  have hNN : term_has_non_none_type (SmtTerm.seq_empty T) := by
+    unfold term_has_non_none_type
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠ SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    rw [__smtx_typeof.eq_77] at hNN
+    exact hNN
+  have hGuardEq : __smtx_typeof_guard_wf T (SmtType.Seq T) = SmtType.Seq A := by
+    rw [__smtx_typeof.eq_77] at h
+    exact h
+  have hGuard : __smtx_typeof_guard_wf T (SmtType.Seq T) = SmtType.Seq T :=
+    smtx_typeof_guard_wf_of_non_none T (SmtType.Seq T) hGuardNN
+  have hEq : T = A := by
+    have hSeq : SmtType.Seq T = SmtType.Seq A := hGuard.symm.trans hGuardEq
+    injection hSeq with hEq
+  cases hEq
+  exact type_wf_non_none (smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Seq T) hGuardNN)
+
+/-- If `set_empty` has type `Set A`, then `A` is non-`None`. -/
+theorem set_empty_type_eq_component_non_none
+    {T A : SmtType}
+    (h : __smtx_typeof (SmtTerm.set_empty T) = SmtType.Set A) :
+    A ≠ SmtType.None := by
+  have hNN : term_has_non_none_type (SmtTerm.set_empty T) := by
+    unfold term_has_non_none_type
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Set T) ≠ SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    rw [__smtx_typeof.eq_120] at hNN
+    exact hNN
+  have hGuardEq : __smtx_typeof_guard_wf T (SmtType.Set T) = SmtType.Set A := by
+    rw [__smtx_typeof.eq_120] at h
+    exact h
+  have hGuard : __smtx_typeof_guard_wf T (SmtType.Set T) = SmtType.Set T :=
+    smtx_typeof_guard_wf_of_non_none T (SmtType.Set T) hGuardNN
+  have hEq : T = A := by
+    have hSet : SmtType.Set T = SmtType.Set A := hGuard.symm.trans hGuardEq
+    injection hSet with hEq
+  cases hEq
+  exact type_wf_non_none (smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Set T) hGuardNN)
+
+/-- If `seq_unit t` has type `Seq A`, then `t` has type `A` and `A` is non-`None`. -/
+theorem seq_unit_type_eq_arg_of_eq
+    {t : SmtTerm}
+    {A : SmtType}
+    (h : __smtx_typeof (SmtTerm.seq_unit t) = SmtType.Seq A) :
+    __smtx_typeof t = A ∧ A ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_118] at h
+  by_cases hNone : __smtx_typeof t = SmtType.None
+  · simp [native_ite, native_Teq, hNone] at h
+  · have hSeq : SmtType.Seq (__smtx_typeof t) = SmtType.Seq A := by
+      simpa [native_ite, native_Teq, hNone] using h
+    injection hSeq with hEq
+    exact ⟨hEq, by simpa [hEq] using hNone⟩
+
+/-- If `set_singleton t` has type `Set A`, then `t` has type `A` and `A` is non-`None`. -/
+theorem set_singleton_type_eq_arg_of_eq
+    {t : SmtTerm}
+    {A : SmtType}
+    (h : __smtx_typeof (SmtTerm.set_singleton t) = SmtType.Set A) :
+    __smtx_typeof t = A ∧ A ≠ SmtType.None := by
+  rw [__smtx_typeof.eq_121] at h
+  by_cases hNone : __smtx_typeof t = SmtType.None
+  · simp [native_ite, native_Teq, hNone] at h
+  · have hSet : SmtType.Set (__smtx_typeof t) = SmtType.Set A := by
+      simpa [native_ite, native_Teq, hNone] using h
+    injection hSet with hEq
+    exact ⟨hEq, by simpa [hEq] using hNone⟩
+
 /-- Shows that evaluating `re_allchar` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_allchar
     (M : SmtModel) :
@@ -410,13 +560,13 @@ theorem choice_term_has_witness
     simpa [__smtx_typeof_choice_nth, hEqMatch, native_ite] using ht
   exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
 
-/-- Derives `choice_term_typeof` from `non_none`. -/
-theorem choice_term_typeof_of_non_none
+/-- Derives the zero-index `choice_nth` type as the self-guarded choice type from `non_none`. -/
+theorem choice_term_guard_type_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
-    __smtx_typeof (SmtTerm.choice_nth s T body 0) = T := by
+    __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T := by
   unfold term_has_non_none_type at ht
   have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
     by_cases hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true
@@ -433,14 +583,172 @@ theorem choice_term_typeof_of_non_none
   have hEqMatch :
       native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = true := by
     simpa using hEq
+  unfold __smtx_typeof
+  simp [__smtx_typeof_choice_nth, hEqMatch, native_ite]
+
+/-- Derives `choice_term_typeof` from `non_none`. -/
+theorem choice_term_typeof_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
+    __smtx_typeof (SmtTerm.choice_nth s T body 0) = T := by
+  have hGuard : __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T :=
+    choice_term_guard_type_of_non_none ht
   have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
-    unfold __smtx_typeof at ht
-    simpa [__smtx_typeof_choice_nth, hEqMatch, native_ite] using ht
-  have hChoice :
-      __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T := by
-    unfold __smtx_typeof
-    simp [__smtx_typeof_choice_nth, hEqMatch, native_ite]
-  exact hChoice.trans (smtx_typeof_guard_wf_of_non_none T T hGuardNN)
+    intro hNone
+    unfold term_has_non_none_type at ht
+    apply ht
+    rw [hGuard, hNone]
+  exact hGuard.trans (smtx_typeof_guard_wf_of_non_none T T hGuardNN)
+
+/-- If a `choice_nth` term has sequence type `Seq A`, then `A` is non-`None`. -/
+theorem choice_term_seq_component_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    {n : native_Nat}
+    {A : SmtType}
+    (h : __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.Seq A) :
+    A ≠ SmtType.None := by
+  induction n generalizing s T body with
+  | zero =>
+      have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
+        unfold term_has_non_none_type
+        intro hNone
+        rw [hNone] at h
+        simp at h
+      have hGuard : __smtx_typeof_guard_wf T T = SmtType.Seq A := by
+        calc
+          __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
+            symm
+            exact choice_term_guard_type_of_non_none hNN
+          _ = SmtType.Seq A := h
+      exact smtx_typeof_guard_wf_self_eq_seq_component_non_none hGuard
+  | succ n ih =>
+      cases body with
+      | «exists» s' U body' =>
+          have hTyEq :
+              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
+                __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
+            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            simp [__smtx_typeof_choice_nth]
+          exact ih (s := s') (T := U) (body := body') (by simpa [hTyEq] using h)
+      | _ =>
+          exfalso
+          rw [__smtx_typeof.eq_136] at h
+          simp [__smtx_typeof_choice_nth] at h
+
+/-- If a `choice_nth` term has set type `Set A`, then `A` is non-`None`. -/
+theorem choice_term_set_component_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    {n : native_Nat}
+    {A : SmtType}
+    (h : __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.Set A) :
+    A ≠ SmtType.None := by
+  induction n generalizing s T body with
+  | zero =>
+      have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
+        unfold term_has_non_none_type
+        intro hNone
+        rw [hNone] at h
+        simp at h
+      have hGuard : __smtx_typeof_guard_wf T T = SmtType.Set A := by
+        calc
+          __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
+            symm
+            exact choice_term_guard_type_of_non_none hNN
+          _ = SmtType.Set A := h
+      exact smtx_typeof_guard_wf_self_eq_set_component_non_none hGuard
+  | succ n ih =>
+      cases body with
+      | «exists» s' U body' =>
+          have hTyEq :
+              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
+                __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
+            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            simp [__smtx_typeof_choice_nth]
+          exact ih (s := s') (T := U) (body := body') (by simpa [hTyEq] using h)
+      | _ =>
+          exfalso
+          rw [__smtx_typeof.eq_136] at h
+          simp [__smtx_typeof_choice_nth] at h
+
+/-- If a `choice_nth` term has map type `Map A B`, then both components are non-`None`. -/
+theorem choice_term_map_components_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    {n : native_Nat}
+    {A B : SmtType}
+    (h : __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.Map A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  induction n generalizing s T body with
+  | zero =>
+      have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
+        unfold term_has_non_none_type
+        intro hNone
+        rw [hNone] at h
+        simp at h
+      have hGuard : __smtx_typeof_guard_wf T T = SmtType.Map A B := by
+        calc
+          __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
+            symm
+            exact choice_term_guard_type_of_non_none hNN
+          _ = SmtType.Map A B := h
+      exact smtx_typeof_guard_wf_self_eq_map_components_non_none hGuard
+  | succ n ih =>
+      cases body with
+      | «exists» s' U body' =>
+          have hTyEq :
+              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
+                __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
+            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            simp [__smtx_typeof_choice_nth]
+          exact ih (s := s') (T := U) (body := body') (by simpa [hTyEq] using h)
+      | _ =>
+          exfalso
+          rw [__smtx_typeof.eq_136] at h
+          simp [__smtx_typeof_choice_nth] at h
+
+/-- If a `choice_nth` term has function type `FunType A B`, then both components are non-`None`. -/
+theorem choice_term_fun_components_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    {n : native_Nat}
+    {A B : SmtType}
+    (h : __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.FunType A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  induction n generalizing s T body with
+  | zero =>
+      have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
+        unfold term_has_non_none_type
+        intro hNone
+        rw [hNone] at h
+        simp at h
+      have hGuard : __smtx_typeof_guard_wf T T = SmtType.FunType A B := by
+        calc
+          __smtx_typeof_guard_wf T T = __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
+            symm
+            exact choice_term_guard_type_of_non_none hNN
+          _ = SmtType.FunType A B := h
+      exact smtx_typeof_guard_wf_self_eq_fun_components_non_none hGuard
+  | succ n ih =>
+      cases body with
+      | «exists» s' U body' =>
+          have hTyEq :
+              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
+                __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
+            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            simp [__smtx_typeof_choice_nth]
+          exact ih (s := s') (T := U) (body := body') (by simpa [hTyEq] using h)
+      | _ =>
+          exfalso
+          rw [__smtx_typeof.eq_136] at h
+          simp [__smtx_typeof_choice_nth] at h
 
 /-- Shows that evaluating `choice` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_choice

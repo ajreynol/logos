@@ -535,6 +535,159 @@ theorem supported_type_preservation
         (supported_type_preservation M hM f htf hsf)
         (supported_type_preservation M hM x htx hsx)
 
+private theorem term_has_non_none_of_type_eq
+    {t : SmtTerm}
+    {T : SmtType}
+    (h : __smtx_typeof t = T)
+    (hT : T ≠ SmtType.None) :
+    term_has_non_none_type t := by
+  unfold term_has_non_none_type
+  rw [h]
+  exact hT
+
+/-- Extracts inhabitation of the `seq_nth` result type from a non-`None` typing judgment. -/
+theorem seq_nth_term_inhabited_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2)) :
+    type_inhabited (__smtx_typeof (SmtTerm.seq_nth t1 t2)) := by
+  rcases seq_nth_args_of_non_none ht with ⟨T, h1, h2⟩
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    rw [typeof_seq_nth_eq t1 t2] at ht
+    simpa [__smtx_typeof_seq_nth, h1, h2] using ht
+  have hTy :
+      __smtx_typeof (SmtTerm.seq_nth t1 t2) = T := by
+    have hGuard : __smtx_typeof_guard_wf T T = T :=
+      smtx_typeof_guard_wf_of_non_none T T hGuardNN
+    rw [typeof_seq_nth_eq t1 t2]
+    simpa [__smtx_typeof_seq_nth, h1, h2] using hGuard
+  rw [hTy]
+  exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
+
+/-- Extracts inhabitation of the `dt_sel` result type from a non-`None` typing judgment. -/
+theorem dt_sel_term_inhabited_of_non_none
+    {s : native_String}
+    {d : SmtDatatype}
+    {i j : native_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :
+    type_inhabited (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) := by
+  let R := __smtx_ret_typeof_sel s d i j
+  let inner :=
+    __smtx_typeof_apply
+      (SmtType.FunType (SmtType.Datatype s d) R)
+      (__smtx_typeof x)
+  have hGuardNN : __smtx_typeof_guard_wf R inner ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    rw [typeof_dt_sel_apply_eq] at ht
+    simpa [R, inner] using ht
+  have hInh : type_inhabited R :=
+    smtx_typeof_guard_wf_inhabited_of_non_none R inner hGuardNN
+  rw [dt_sel_term_typeof_of_non_none ht]
+  exact hInh
+
+/-- Builds support for `seq_unit` directly from support of its argument and a non-`None` typing judgment. -/
+theorem supported_seq_unit_of_non_none
+    {t : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.seq_unit t))
+    (hs : supported_preservation_term t) :
+    supported_preservation_term (SmtTerm.seq_unit t) := by
+  have htArg : term_has_non_none_type t := by
+    unfold term_has_non_none_type at ht ⊢
+    by_cases hNone : __smtx_typeof t = SmtType.None
+    · rw [__smtx_typeof.eq_118, hNone] at ht
+      simp [native_ite, native_Teq] at ht
+    · exact hNone
+  exact supported_preservation_term.seq_unit htArg hs
+
+/-- Builds support for `set_singleton` directly from support of its argument and a non-`None` typing judgment. -/
+theorem supported_set_singleton_of_non_none
+    {t : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.set_singleton t))
+    (hs : supported_preservation_term t) :
+    supported_preservation_term (SmtTerm.set_singleton t) := by
+  have htArg : term_has_non_none_type t := by
+    unfold term_has_non_none_type at ht ⊢
+    by_cases hNone : __smtx_typeof t = SmtType.None
+    · rw [__smtx_typeof.eq_121, hNone] at ht
+      simp [native_ite, native_Teq] at ht
+    · exact hNone
+  exact supported_preservation_term.set_singleton htArg hs
+
+/-- Builds support for `seq_nth` directly from support of its arguments and a non-`None` typing judgment. -/
+theorem supported_seq_nth_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2))
+    (hs1 : supported_preservation_term t1)
+    (hs2 : supported_preservation_term t2) :
+    supported_preservation_term (SmtTerm.seq_nth t1 t2) := by
+  rcases seq_nth_args_of_non_none ht with ⟨T, h1, h2⟩
+  have ht1 : term_has_non_none_type t1 :=
+    term_has_non_none_of_type_eq h1 (by simp)
+  have ht2 : term_has_non_none_type t2 :=
+    term_has_non_none_of_type_eq h2 (by simp)
+  exact supported_preservation_term.seq_nth
+    ht1 hs1 ht2 hs2 (seq_nth_term_inhabited_of_non_none ht)
+
+/-- Builds support for datatype-selector applications directly from support of the argument. -/
+theorem supported_dt_sel_of_non_none
+    {s : native_String}
+    {d : SmtDatatype}
+    {i j : native_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
+    (hsx : supported_preservation_term x) :
+    supported_preservation_term (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) := by
+  have htx : term_has_non_none_type x :=
+    term_has_non_none_of_type_eq (dt_sel_arg_datatype_of_non_none ht) (by simp)
+  exact supported_preservation_term.dt_sel
+    ht (dt_sel_term_inhabited_of_non_none ht) htx hsx
+
+/-- Builds support for applications directly from support of their subterms and a non-`None` typing judgment. -/
+theorem supported_apply_of_non_none
+    {f x : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply f x))
+    (hsf : supported_preservation_term f)
+    (hsx : supported_preservation_term x) :
+    supported_preservation_term (SmtTerm.Apply f x) := by
+  by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
+  · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
+    exact supported_dt_sel_of_non_none ht hsx
+  · by_cases hTesterWitness : ∃ s d i, f = SmtTerm.DtTester s d i
+    · rcases hTesterWitness with ⟨s, d, i, rfl⟩
+      exact supported_preservation_term.dt_tester s d i x
+    · have hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j := by
+        intro s d i j hEq
+        exact hSelWitness ⟨s, d, i, j, hEq⟩
+      have hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i := by
+        intro s d i hEq
+        exact hTesterWitness ⟨s, d, i, hEq⟩
+      have hTy : generic_apply_type f x :=
+        generic_apply_type_of_non_datatype_head hSel hTester
+      have hEval : generic_apply_eval f x :=
+        generic_apply_eval_of_non_datatype_head hSel hTester
+      have hTyEq :
+          __smtx_typeof (SmtTerm.Apply f x) =
+            __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) := by
+        unfold generic_apply_type at hTy
+        exact hTy
+      have hApplyNN :
+          __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+        intro hNone
+        apply ht
+        rw [hTyEq]
+        exact hNone
+      rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hF, hX, hA, hB⟩
+      have htf : term_has_non_none_type f := by
+        cases hF with
+        | inl hFun =>
+            exact term_has_non_none_of_type_eq hFun (by simp)
+        | inr hFun =>
+            exact term_has_non_none_of_type_eq hFun (by simp)
+      have htx : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hX hA
+      exact supported_preservation_term.apply hTy hEval htf hsf htx hsx
+
 /-- Restates supported type preservation using an inhabited-type hypothesis. -/
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)
