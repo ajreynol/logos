@@ -17,7 +17,19 @@ theorem smt_model_eval_preserves_type
   T ≠ SmtType.None ->
   type_inhabited T ->
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  sorry
+  intro hTy hNonNone hInh
+  have hNN : term_has_non_none_type t := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    exact hNonNone
+  have hTermInh : term_has_inhabited_type t := by
+    unfold term_has_inhabited_type type_inhabited
+    rw [hTy]
+    simpa using hInh
+  have hs : supported_preservation_term t :=
+    supported_preservation_term_of_non_none t hNN
+  simpa [hTy] using
+    supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
 
 /-- States that evaluating a Boolean-typed SMT term yields a Boolean value. -/
 theorem smt_model_eval_bool_is_boolean
