@@ -1005,6 +1005,162 @@ private theorem supported_store_of_non_none
   have ht3 : term_has_non_none_type t3 :=
     term_has_non_none_of_type_eq h3 hMapNN.2
   exact supported_preservation_term.store ht1 hs1 ht2 hs2 ht3 hs3
+
+private theorem binary_type_has_no_none_components_of_non_none
+    {w n : native_Int}
+    (ht : term_has_non_none_type (SmtTerm.Binary w n)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.Binary w n)) := by
+  unfold term_has_non_none_type at ht
+  unfold __smtx_typeof at ht ⊢
+  cases hWidth : native_zleq 0 w <;>
+    simp [native_ite, SmtEval.native_and, hWidth] at ht ⊢
+  cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+    simp [native_ite, SmtEval.native_and, hWidth, hMod, type_has_no_none_components] at ht ⊢
+
+private theorem seq_unit_type_has_no_none_components_of_non_none
+    {t : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.seq_unit t))
+    (hTy : type_has_no_none_components (__smtx_typeof t)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.seq_unit t)) := by
+  have htArg : __smtx_typeof t ≠ SmtType.None := by
+    intro hNone
+    unfold term_has_non_none_type at ht
+    rw [__smtx_typeof.eq_118, hNone] at ht
+    simp [native_ite, native_Teq] at ht
+  cases h : __smtx_typeof t <;>
+    first
+    | exact False.elim (htArg h)
+    | simpa [__smtx_typeof.eq_118, native_ite, native_Teq, h, type_has_no_none_components] using hTy
+
+private theorem set_singleton_type_has_no_none_components_of_non_none
+    {t : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.set_singleton t))
+    (hTy : type_has_no_none_components (__smtx_typeof t)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.set_singleton t)) := by
+  have htArg : __smtx_typeof t ≠ SmtType.None := by
+    intro hNone
+    unfold term_has_non_none_type at ht
+    rw [__smtx_typeof.eq_121, hNone] at ht
+    simp [native_ite, native_Teq] at ht
+  cases h : __smtx_typeof t <;>
+    first
+    | exact False.elim (htArg h)
+    | simpa [__smtx_typeof.eq_121, native_ite, native_Teq, h, type_has_no_none_components] using hTy
+
+private theorem seq_nth_type_has_no_none_components_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2))
+    (hSeqTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.seq_nth t1 t2)) := by
+  rcases seq_nth_args_of_non_none ht with ⟨T, h1, h2⟩
+  have hSeqTy' : type_has_no_none_components (SmtType.Seq T) := by
+    simpa [h1] using hSeqTy
+  have hT : type_has_no_none_components T := by
+    simpa [type_has_no_none_components] using hSeqTy'
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    rw [typeof_seq_nth_eq t1 t2] at ht
+    simpa [__smtx_typeof_seq_nth, h1, h2] using ht
+  have hGuard : __smtx_typeof_guard_wf T T = T :=
+    smtx_typeof_guard_wf_of_non_none T T hGuardNN
+  rw [typeof_seq_nth_eq]
+  simpa [__smtx_typeof_seq_nth, h1, h2, hGuard] using hT
+
+private theorem ite_type_has_no_none_components_of_non_none
+    {c t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.ite c t1 t2))
+    (hTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.ite c t1 t2)) := by
+  rcases ite_args_of_non_none ht with ⟨T, hc, h1, h2, _hT⟩
+  have hT : type_has_no_none_components T := by
+    simpa [h1] using hTy
+  rw [typeof_ite_eq]
+  simpa [__smtx_typeof_ite, native_ite, native_Teq, hc, h1, h2] using hT
+
+private theorem select_type_has_no_none_components_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.select t1 t2))
+    (hMapTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.select t1 t2)) := by
+  rcases select_args_of_non_none ht with ⟨A, B, h1, h2⟩
+  have hMapTy' : type_has_no_none_components (SmtType.Map A B) := by
+    simpa [h1] using hMapTy
+  rw [typeof_select_eq]
+  simpa [__smtx_typeof_select, native_ite, native_Teq, h1, h2] using hMapTy'.2
+
+private theorem store_type_has_no_none_components_of_non_none
+    {t1 t2 t3 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.store t1 t2 t3))
+    (hMapTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.store t1 t2 t3)) := by
+  rcases store_args_of_non_none ht with ⟨A, B, h1, h2, h3⟩
+  have hMapTy' : type_has_no_none_components (SmtType.Map A B) := by
+    simpa [h1] using hMapTy
+  rw [typeof_store_eq]
+  simpa [__smtx_typeof_store, native_ite, native_Teq, h1, h2, h3] using hMapTy'
+
+private theorem dt_sel_type_has_no_none_components_of_non_none
+    {s : native_String}
+    {d : SmtDatatype}
+    {i j : native_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type ((SmtTerm.DtSel s d i j).Apply x)) :
+    type_has_no_none_components (__smtx_typeof ((SmtTerm.DtSel s d i j).Apply x)) := by
+  let R := __smtx_ret_typeof_sel s d i j
+  let inner :=
+    __smtx_typeof_apply
+      (SmtType.FunType (SmtType.Datatype s d) R)
+      (__smtx_typeof x)
+  have hGuardNN : __smtx_typeof_guard_wf R inner ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    rw [typeof_dt_sel_apply_eq] at ht
+    simpa [R, inner] using ht
+  have hWf : __smtx_type_wf R = true :=
+    smtx_typeof_guard_wf_wf_of_non_none R inner hGuardNN
+  rw [dt_sel_term_typeof_of_non_none ht]
+  exact type_has_no_none_components_of_wf hWf
+
+private theorem dt_tester_type_has_no_none_components_of_non_none
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type ((SmtTerm.DtTester s d i).Apply x)) :
+    type_has_no_none_components (__smtx_typeof ((SmtTerm.DtTester s d i).Apply x)) := by
+  rw [dt_tester_term_typeof_of_non_none ht]
+  simp [type_has_no_none_components]
+
+private theorem apply_type_has_no_none_components_of_non_none
+    {f x : SmtTerm}
+    (hTy : generic_apply_type f x)
+    (ht : term_has_non_none_type (SmtTerm.Apply f x))
+    (hFunTy : type_has_no_none_components (__smtx_typeof f)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.Apply f x)) := by
+  have hTyEq :
+      __smtx_typeof (SmtTerm.Apply f x) =
+        __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) := by
+    unfold generic_apply_type at hTy
+    exact hTy
+  have hApplyNN :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+    intro hNone
+    apply ht
+    rw [hTyEq]
+    exact hNone
+  rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hF, hX, hA, hB⟩
+  cases hF with
+  | inl hFun =>
+      have hFunTy' : type_has_no_none_components (SmtType.FunType A B) := by
+        simpa [hFun] using hFunTy
+      rw [hTyEq]
+      simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hFun, hX, hA]
+        using hFunTy'.2
+  | inr hFun =>
+      have hFunTy' : type_has_no_none_components (SmtType.DtcAppType A B) := by
+        simpa [hFun] using hFunTy
+      rw [hTyEq]
+      simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hFun, hX, hA]
+        using hFunTy'.2
 /-- Restates supported type preservation using an inhabited-type hypothesis. -/
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)
