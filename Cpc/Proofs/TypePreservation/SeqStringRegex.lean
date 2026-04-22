@@ -937,7 +937,7 @@ theorem typeof_value_model_eval_str_len
     ⟨T, hArg⟩
   rw [show __smtx_typeof (SmtTerm.str_len t) = SmtType.Int by
     rw [typeof_str_len_eq]
-    simp [__smtx_typeof_seq_op_1_ret, native_ite, native_Teq, hArg]]
+    simp [__smtx_typeof_seq_op_1_ret, hArg]]
   rw [__smtx_model_eval.eq_78]
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
   rw [hss]

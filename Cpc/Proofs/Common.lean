@@ -112,17 +112,6 @@ theorem eo_has_bool_type_of_interprets_false (M : SmtModel) (t : Term) :
   | intro_false hTy _ =>
       simpa [eo_has_bool_type] using hTy
 
-/-- Shows that `eo_to_smt_non_none_and_typeof_bool` implies `smt_bool`. -/
-theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
-    (t : Term) (s : SmtTerm) :
-  __eo_to_smt t = s ->
-  __smtx_typeof s ≠ SmtType.None ->
-  __eo_typeof t = Term.Bool ->
-  __smtx_typeof s = SmtType.Bool := by
-  intro hs hS hTy
-  exact TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
-    t Term.Bool s hs hS hTy
-
 /-- Shows that `eo_typeof_bool` implies `has_bool_type`. -/
 theorem eo_typeof_bool_implies_has_bool_type
     (t : Term) :

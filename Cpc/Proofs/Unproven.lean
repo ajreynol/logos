@@ -1,6 +1,5 @@
 import Cpc.Spec
 import Cpc.Proofs.Translation
-import Cpc.Proofs.TypePreservation
 
 open Eo
 open SmtEval
@@ -9,72 +8,186 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-/-- States that SMT evaluation preserves any non-`None` expected type in total typed models. -/
-theorem smt_model_eval_preserves_type
-    (M : SmtModel) (hM : model_total_typed M)
-    (t : SmtTerm) (T : SmtType) :
-  __smtx_typeof t = T ->
-  T ≠ SmtType.None ->
-  type_inhabited T ->
-  __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  intro hTy hNonNone hInh
-  have hNN : term_has_non_none_type t := by
-    unfold term_has_non_none_type
-    rw [hTy]
-    exact hNonNone
-  have hTermInh : term_has_inhabited_type t := by
-    unfold term_has_inhabited_type type_inhabited
-    rw [hTy]
-    simpa using hInh
-  have hs : supported_preservation_term t :=
-    supported_preservation_term_of_non_none t hNN
-  simpa [hTy] using
-    supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
+namespace TranslationProofs
 
-/-- States that evaluating a Boolean-typed SMT term yields a Boolean value. -/
-theorem smt_model_eval_bool_is_boolean
-    (M : SmtModel) (hM : model_total_typed M)
-    (t : SmtTerm) :
-  __smtx_typeof t = SmtType.Bool ->
-  ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
-  intro hTy
-  have hPres :
-      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
-    smt_model_eval_preserves_type M hM t SmtType.Bool hTy (by simp) type_inhabited_bool
-  exact bool_value_canonical hPres
+/-!
+This file houses externally used translation theorems that still rely on
+unfinished translation proofs.
+-/
 
-/-- Derives SMT evaluation type preservation for terms in the supported fragment. -/
-theorem smt_model_eval_preserves_type_of_supported
-    (M : SmtModel) (hM : model_total_typed M)
-    (t : SmtTerm) (T : SmtType)
-    (hTy : __smtx_typeof t = T)
-    (hNonNone : T ≠ SmtType.None)
-    (hInh : type_inhabited T)
-    (hs : supported_preservation_term t) :
-  __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  have hNN : term_has_non_none_type t := by
-    unfold term_has_non_none_type
-    rw [hTy]
-    exact hNonNone
-  have hTermInh : term_has_inhabited_type t := by
-    unfold term_has_inhabited_type type_inhabited
-    rw [hTy]
-    simpa using hInh
-  simpa [hTy] using
-    supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
+/-- Direct form of the translation typing theorem. -/
+theorem eo_to_smt_typeof_matches_translation
+    (t : Term) :
+    __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
+  let rec go (t : Term) :
+      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
+    cases t <;> intro hNonNone
+    case UOp op =>
+      cases op
+      all_goals
+        try simp [__eo_to_smt.eq_def] at hNonNone
+      case re_allchar =>
+          rw [__eo_to_smt.eq_def, eo_typeof_re_allchar, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+      case re_none =>
+          rw [__eo_to_smt.eq_def, eo_typeof_re_none, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+      case re_all =>
+          rw [__eo_to_smt.eq_def, eo_typeof_re_all, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+      case tuple_unit =>
+          simpa [__eo_to_smt.eq_def] using smtx_typeof_tuple_unit_translation
+    case __eo_List =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case __eo_List_nil =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case __eo_List_cons =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Bool =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Boolean b =>
+      rw [__eo_to_smt.eq_def, eo_typeof_boolean, eo_to_smt_type_bool]
+      unfold __smtx_typeof
+      rfl
+    case «Type» =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Stuck =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case FunType =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case DatatypeType s d =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case DatatypeTypeRef s =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case USort i =>
+      simp [__eo_to_smt.eq_def] at hNonNone
+    case Numeral n =>
+      rw [show __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int by
+        simpa [__eo_to_smt.eq_def] using
+          (show __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int by
+            unfold __smtx_typeof
+            rfl)]
+      symm
+      exact eo_to_smt_type_typeof_numeral n
+    case Rational r =>
+      rw [show __smtx_typeof (__eo_to_smt (Term.Rational r)) = SmtType.Real by
+        simpa [__eo_to_smt.eq_def] using
+          (show __smtx_typeof (SmtTerm.Rational r) = SmtType.Real by
+            unfold __smtx_typeof
+            rfl)]
+      symm
+      exact eo_to_smt_type_typeof_rational r
+    case String s =>
+      rw [show __smtx_typeof (__eo_to_smt (Term.String s)) = SmtType.Seq SmtType.Char by
+        simpa [__eo_to_smt.eq_def] using
+          (show __smtx_typeof (SmtTerm.String s) = SmtType.Seq SmtType.Char by
+            unfold __smtx_typeof
+            rfl)]
+      symm
+      exact eo_to_smt_type_typeof_string s
+    case Binary w n =>
+      have hTy : __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None := by
+        simpa [__eo_to_smt.eq_def] using hNonNone
+      have hWidth : native_zleq 0 w = true :=
+        (smtx_binary_well_formed_of_non_none w n hTy).1
+      rw [show __smtx_typeof (__eo_to_smt (Term.Binary w n)) =
+        SmtType.BitVec (native_int_to_nat w) by
+        simpa [__eo_to_smt.eq_def] using smtx_typeof_binary_of_non_none w n hTy]
+      symm
+      simpa using eo_to_smt_type_typeof_binary w n hWidth
+    case Var name T =>
+      cases name
+      case String s =>
+          have hTy : __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠ SmtType.None := by
+            simpa [__eo_to_smt.eq_def] using hNonNone
+          rw [show __smtx_typeof (__eo_to_smt (Term.Var (Term.String s) T)) = __eo_to_smt_type T by
+            simpa [__eo_to_smt.eq_def] using
+              smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hTy]
+          symm
+          simpa using eo_to_smt_type_typeof_var s T
+      all_goals
+        exact False.elim (hNonNone (by simp [__eo_to_smt.eq_def]))
+    case DtCons s d i =>
+      symm
+      simpa [eo_to_smt_term_dt_cons] using eo_to_smt_type_typeof_dt_cons s d i
+    case DtSel s d i j =>
+      have hNone : __smtx_typeof (__eo_to_smt (Term.DtSel s d i j)) = SmtType.None := by
+        simpa [__eo_to_smt.eq_def] using
+          smtx_typeof_dt_sel_head_none s (__eo_to_smt_datatype d) i j
+      exact (hNonNone hNone).elim
+    case UConst i T =>
+      have hTy :
+          __smtx_typeof (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)) ≠
+            SmtType.None := by
+        simpa [__eo_to_smt.eq_def] using hNonNone
+      rw [show __smtx_typeof (__eo_to_smt (Term.UConst i T)) = __eo_to_smt_type T by
+        simpa [__eo_to_smt.eq_def] using
+          smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T) hTy]
+      symm
+      simpa using eo_to_smt_type_typeof_uconst i T
+    case Apply f x =>
+      simpa using eo_to_smt_typeof_matches_translation_apply f x (go f) (go x) hNonNone
+    case _at_purify x =>
+      have hTranslatePurify : __eo_to_smt (Term._at_purify x) = __eo_to_smt x := by
+        rw [__eo_to_smt.eq_def]
+      have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+        intro hNone
+        apply hNonNone
+        rwa [hTranslatePurify]
+      have hX := go x hXNonNone
+      rw [hTranslatePurify, hX]
+      exact (eo_to_smt_type_typeof_purify x).symm
+    case _at_array_deq_diff x1 x2 =>
+      simpa using eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2 hNonNone
+    case seq_empty x =>
+      symm
+      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_seq_empty x
+        (by simpa [__eo_to_smt.eq_def] using hNonNone)
+    case set_empty x =>
+      symm
+      simpa [__eo_to_smt.eq_def] using eo_to_smt_type_typeof_set_empty x
+        (by simpa [__eo_to_smt.eq_def] using hNonNone)
+    case _at_sets_deq_diff x1 x2 =>
+      simpa using eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2 hNonNone
+    case _at_quantifiers_skolemize x1 x2 =>
+      simpa using eo_to_smt_typeof_matches_translation_quantifiers_skolemize x1 x2 hNonNone
+    all_goals
+      first
+        | exact False.elim (hNonNone (by simp [__eo_to_smt.eq_def]))
+        | native_decide
+  exact go t
 
-/-- Derives Boolean-value evaluation for supported Boolean-typed SMT terms. -/
-theorem smt_model_eval_bool_is_boolean_of_supported
-    (M : SmtModel) (hM : model_total_typed M)
-    (t : SmtTerm)
-    (hTy : __smtx_typeof t = SmtType.Bool)
-    (hs : supported_preservation_term t) :
-  ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
-  have hPres :
-      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
-    smt_model_eval_preserves_type_of_supported M hM t SmtType.Bool hTy (by simp)
-      type_inhabited_bool hs
-  exact bool_value_canonical hPres
+/--
+Compatibility wrapper matching the more explicit theorem shape we used in the
+`CpcMini` development.
+-/
+theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
+    (t T : Term) (s : SmtTerm) :
+    __eo_to_smt t = s ->
+    __smtx_typeof s ≠ SmtType.None ->
+    __eo_typeof t = T ->
+    __smtx_typeof s = __eo_to_smt_type T := by
+  intro hs hNonNone hTy
+  subst s
+  simpa [hTy] using eo_to_smt_typeof_matches_translation t hNonNone
+
+/-- Transfers EO Boolean typing to the translated SMT term under a defined translation. -/
+theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
+    (t : Term) (s : SmtTerm) :
+    __eo_to_smt t = s ->
+    __smtx_typeof s ≠ SmtType.None ->
+    __eo_typeof t = Term.Bool ->
+    __smtx_typeof s = SmtType.Bool := by
+  intro hs hNonNone hTy
+  exact eo_to_smt_well_typed_and_typeof_implies_smt_type
+    t Term.Bool s hs hNonNone hTy
+
+end TranslationProofs
 
 namespace RuleProofs
 
@@ -87,5 +200,15 @@ theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
   __smtx_typeof s = __eo_to_smt_type T := by
   exact TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
     t T s
+
+/-- Shows that `eo_to_smt_non_none_and_typeof_bool` implies `smt_bool`. -/
+theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
+    (t : Term) (s : SmtTerm) :
+  __eo_to_smt t = s ->
+  __smtx_typeof s ≠ SmtType.None ->
+  __eo_typeof t = Term.Bool ->
+  __smtx_typeof s = SmtType.Bool := by
+  exact TranslationProofs.eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
+    t s
 
 end RuleProofs

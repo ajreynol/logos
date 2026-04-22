@@ -108,7 +108,7 @@ theorem set_member_args_of_non_none
       by_cases hEq : __smtx_typeof t1 = A
       · refine ⟨A, hEq, ?_⟩
         rfl
-      · simp [__smtx_typeof, __smtx_typeof_set_member, native_ite, native_Teq, h2, hEq] at ht
+      · simp [__smtx_typeof_set_member, native_ite, native_Teq, h2, hEq] at ht
   | _ =>
       simp [__smtx_typeof_set_member, h2] at ht
 
