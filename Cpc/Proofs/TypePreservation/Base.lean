@@ -402,12 +402,9 @@ theorem exists_body_bool_of_non_none
     · exfalso
       have hEqFalse : native_Teq (__smtx_typeof body) SmtType.Bool = false := by
         cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
-      have hEqMatch :
-          native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = false := by
-        simpa using hEqFalse
       apply ht
       unfold __smtx_typeof
-      simp [hEqMatch, native_ite]
+      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
   simpa [native_Teq] using hEq
 
 /-- Derives `exists_term_typeof` from `non_none`. -/
@@ -419,11 +416,8 @@ theorem exists_term_typeof_of_non_none
     __smtx_typeof (SmtTerm.exists s T body) = SmtType.Bool := by
   have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
     simpa [native_Teq] using exists_body_bool_of_non_none ht
-  have hEqMatch :
-      native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = true := by
-    simpa using hEq
   unfold __smtx_typeof
-  simp [hEqMatch, native_ite]
+  simp [__smtx_typeof_choice_nth, hEq, native_ite]
 
 /-- Shows that evaluating `exists` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_exists
@@ -458,12 +452,9 @@ theorem forall_body_bool_of_non_none
     · exfalso
       have hEqFalse : native_Teq (__smtx_typeof body) SmtType.Bool = false := by
         cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
-      have hEqMatch :
-          native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = false := by
-        simpa using hEqFalse
       apply ht
       unfold __smtx_typeof
-      simp [hEqMatch, native_ite]
+      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
   simpa [native_Teq] using hEq
 
 /-- Derives `forall_term_typeof` from `non_none`. -/
@@ -475,11 +466,8 @@ theorem forall_term_typeof_of_non_none
     __smtx_typeof (SmtTerm.forall s T body) = SmtType.Bool := by
   have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
     simpa [native_Teq] using forall_body_bool_of_non_none ht
-  have hEqMatch :
-      native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = true := by
-    simpa using hEq
   unfold __smtx_typeof
-  simp [hEqMatch, native_ite]
+  simp [__smtx_typeof_choice_nth, hEq, native_ite]
 
 /-- Shows that evaluating `forall` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_forall
@@ -544,18 +532,12 @@ theorem choice_term_has_witness
     · exfalso
       have hEqFalse : native_Teq (__smtx_typeof body) SmtType.Bool = false := by
         cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
-      have hEqMatch :
-          native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = false := by
-        simpa using hEqFalse
       apply ht
       unfold __smtx_typeof
-      simp [__smtx_typeof_choice_nth, hEqMatch, native_ite]
-  have hEqMatch :
-      native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = true := by
-    simpa using hEq
+      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
   have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
     unfold __smtx_typeof at ht
-    simpa [__smtx_typeof_choice_nth, hEqMatch, native_ite] using ht
+    simpa [__smtx_typeof_choice_nth, hEq, native_ite] using ht
   exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
 
 /-- Derives the zero-index `choice_nth` type as the self-guarded choice type from `non_none`. -/
@@ -572,17 +554,11 @@ theorem choice_term_guard_type_of_non_none
     · exfalso
       have hEqFalse : native_Teq (__smtx_typeof body) SmtType.Bool = false := by
         cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
-      have hEqMatch :
-          native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = false := by
-        simpa using hEqFalse
       apply ht
       unfold __smtx_typeof
-      simp [__smtx_typeof_choice_nth, hEqMatch, native_ite]
-  have hEqMatch :
-      native_Teq (__smtx_typeof_choice_nth._mutual (PSum.inr body)) SmtType.Bool = true := by
-    simpa using hEq
+      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
   unfold __smtx_typeof
-  simp [__smtx_typeof_choice_nth, hEqMatch, native_ite]
+  simp [__smtx_typeof_choice_nth, hEq, native_ite]
 
 /-- Derives `choice_term_typeof` from `non_none`. -/
 theorem choice_term_typeof_of_non_none

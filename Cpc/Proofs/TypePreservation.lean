@@ -3426,6 +3426,73 @@ theorem supported_type_preservation_of_inhabited_type
     __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t :=
   supported_type_preservation M hM t ht hs
 
+/-- Derives SMT evaluation type preservation for terms in the supported fragment. -/
+theorem smt_model_eval_preserves_type_of_supported
+    (M : SmtModel) (hM : model_total_typed M)
+    (t : SmtTerm) (T : SmtType)
+    (hTy : __smtx_typeof t = T)
+    (hNonNone : T ≠ SmtType.None)
+    (hInh : type_inhabited T)
+    (hs : supported_preservation_term t) :
+  __smtx_typeof_value (__smtx_model_eval M t) = T := by
+  have hNN : term_has_non_none_type t := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    exact hNonNone
+  have hTermInh : term_has_inhabited_type t := by
+    unfold term_has_inhabited_type type_inhabited
+    rw [hTy]
+    simpa using hInh
+  simpa [hTy] using
+    supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
+
+/-- Derives Boolean-value evaluation for supported Boolean-typed SMT terms. -/
+theorem smt_model_eval_bool_is_boolean_of_supported
+    (M : SmtModel) (hM : model_total_typed M)
+    (t : SmtTerm)
+    (hTy : __smtx_typeof t = SmtType.Bool)
+    (hs : supported_preservation_term t) :
+  ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
+  have hPres :
+      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
+    smt_model_eval_preserves_type_of_supported M hM t SmtType.Bool hTy (by simp)
+      type_inhabited_bool hs
+  exact bool_value_canonical hPres
+
+/-- States that SMT evaluation preserves any non-`None` expected type in total typed models. -/
+theorem smt_model_eval_preserves_type
+    (M : SmtModel) (hM : model_total_typed M)
+    (t : SmtTerm) (T : SmtType) :
+  __smtx_typeof t = T ->
+  T ≠ SmtType.None ->
+  type_inhabited T ->
+  __smtx_typeof_value (__smtx_model_eval M t) = T := by
+  intro hTy hNonNone hInh
+  have hNN : term_has_non_none_type t := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    exact hNonNone
+  have hTermInh : term_has_inhabited_type t := by
+    unfold term_has_inhabited_type type_inhabited
+    rw [hTy]
+    simpa using hInh
+  have hs : supported_preservation_term t :=
+    supported_preservation_term_of_non_none t hNN
+  simpa [hTy] using
+    supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
+
+/-- States that evaluating a Boolean-typed SMT term yields a Boolean value. -/
+theorem smt_model_eval_bool_is_boolean
+    (M : SmtModel) (hM : model_total_typed M)
+    (t : SmtTerm) :
+  __smtx_typeof t = SmtType.Bool ->
+  ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
+  intro hTy
+  have hPres :
+      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
+    smt_model_eval_preserves_type M hM t SmtType.Bool hTy (by simp) type_inhabited_bool
+  exact bool_value_canonical hPres
+
 /-- Shows that total typed SMT models exist. -/
 theorem total_typed_model_nonvacuous :
     ∃ M : SmtModel, model_total_typed M :=
