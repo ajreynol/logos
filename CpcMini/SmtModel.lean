@@ -687,7 +687,8 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Numeral n) => SmtType.Int
   | (SmtTerm.Rational r) => SmtType.Real
   | (SmtTerm.String s) => (SmtType.Seq SmtType.Char)
-  | (SmtTerm.Binary w n) => (native_ite (native_zeq n (native_mod_total n (native_int_pow2 w))) (SmtType.BitVec w) SmtType.None)
+  | (SmtTerm.Binary w n) =>
+    (native_ite (native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w)))) (SmtType.BitVec w) SmtType.None)
   | (SmtTerm.not x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.or x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.and x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)

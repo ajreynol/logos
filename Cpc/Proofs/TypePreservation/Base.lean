@@ -62,7 +62,7 @@ theorem typeof_value_model_eval_binary
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Binary w n)) =
       __smtx_typeof (SmtTerm.Binary w n) := by
   unfold term_has_non_none_type at ht
-  let g := native_zeq n (native_mod_total n (native_int_pow2 w))
+  let g := native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w)))
   have hg : g = true := by
     cases h : g with
     | false =>
@@ -73,8 +73,8 @@ theorem typeof_value_model_eval_binary
     | true =>
         rfl
   have hMod :
-      native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
-    cases h2 : native_zeq n (native_mod_total n (native_int_pow2 w))
+      native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true := by
+    cases h2 : native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w)))
     · simp [g, h2] at hg
     · rfl
   have hType :

@@ -160,13 +160,15 @@ def __eo_requires : Term -> Term -> Term -> Term
 
 def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_and b1 b2))
-  | (Term.Binary w1 n1), (Term.Binary w2 n2) => (__eo_requires (Term.Numeral w1) (Term.Numeral w2) (Term.Binary w1 (native_mod_total (native_binary_and w1 n1 n2) (native_int_pow2 w1))))
+  | (Term.Binary w1 n1), (Term.Binary w2 n2) =>
+    (__eo_requires (Term.Numeral (native_nat_to_int w1)) (Term.Numeral (native_nat_to_int w2))
+      (Term.Binary w1 (native_mod_total (native_binary_and (native_nat_to_int w1) n1 n2) (native_int_pow2 (native_nat_to_int w1)))))
   | _, _ => Term.Stuck
 
 
 def __eo_len : Term -> Term
   | (Term.String s1) => (Term.Numeral (native_str_len s1))
-  | (Term.Binary w n1) => (Term.Numeral w)
+  | (Term.Binary w n1) => (Term.Numeral (native_nat_to_int w))
   | _ => Term.Stuck
 
 

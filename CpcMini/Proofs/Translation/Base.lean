@@ -154,9 +154,9 @@ theorem smtx_typeof_uconst_of_non_none
 theorem smtx_binary_well_formed_of_non_none
     (w : native_Nat) (n : native_Int) :
     __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None ->
-      native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
+      native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true := by
   intro h
-  let g := native_zeq n (native_mod_total n (native_int_pow2 w))
+  let g := native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w)))
   have hg : g = true := by
     by_cases h' : g = true
     · exact h'
@@ -168,8 +168,8 @@ theorem smtx_binary_well_formed_of_non_none
           simpa [native_ite, hg]
       | true =>
           exact False.elim (h' hg)
-  have hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
-    cases hm : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+  have hMod : native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true := by
+    cases hm : native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w))) <;>
       simp [g, hm] at hg
     rfl
   exact hMod
