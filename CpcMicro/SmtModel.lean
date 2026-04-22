@@ -145,27 +145,6 @@ def native_re_find_nonempty_idx_from (r : native_RegLan) (xs : List Char) (start
     Option (Nat × Nat) :=
   native_re_find_nonempty_idx_aux r (xs.drop start) start
 
-def native_re_replace_all_list_aux (fuel : Nat) (r : native_RegLan) (replacement : List Char) :
-    List Char -> List Char
-  | xs =>
-      match fuel with
-      | 0 => xs
-      | fuel + 1 =>
-          match native_re_prefix_match_len? r xs with
-          | some 0 =>
-              match xs with
-              | [] => replacement
-              | c :: cs => replacement ++ (c :: native_re_replace_all_list_aux fuel r replacement cs)
-          | some (n + 1) =>
-              replacement ++ native_re_replace_all_list_aux fuel r replacement (xs.drop (n + 1))
-          | none =>
-              match xs with
-              | [] => []
-              | c :: cs => c :: native_re_replace_all_list_aux fuel r replacement cs
-
-def native_re_replace_all_list (r : native_RegLan) (replacement xs : List Char) : List Char :=
-  native_re_replace_all_list_aux (xs.length + 1) r replacement xs
-
 def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : native_RegLan)
     (replacement : List Char) : List Char -> List Char
   | xs =>
