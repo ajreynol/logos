@@ -5,7 +5,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-set_option allowUnsafeReducibility true
 
 namespace Smtm
 

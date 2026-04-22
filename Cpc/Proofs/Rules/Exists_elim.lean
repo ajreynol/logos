@@ -8,8 +8,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-set_option allowUnsafeReducibility true
-attribute [local reducible] __eo_to_smt
 
 private theorem eo_to_smt_not_eq (t : Term) :
     __eo_to_smt (Term.Apply (Term.UOp UserOp.not) t) =
