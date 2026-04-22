@@ -758,6 +758,67 @@ decreasing_by
   all_goals simp [sizeOf]
   all_goals omega
 
+private theorem type_has_no_none_components_of_wf_rec :
+    {T : SmtType} ->
+    {refs : RefList} ->
+    __smtx_type_wf_rec T refs = true ->
+    type_has_no_none_components T
+  | SmtType.None, _, h => by
+      simp [__smtx_type_wf_rec] at h
+  | SmtType.Bool, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Int, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Real, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.RegLan, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.BitVec _, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Map A B, _, h => by
+      have h' :
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      exact ⟨type_has_no_none_components_of_wf_rec (T := A)
+          (refs := native_reflist_nil) h'.1,
+        type_has_no_none_components_of_wf_rec (T := B)
+          (refs := native_reflist_nil) h'.2⟩
+  | SmtType.Set A, _, h => by
+      have hA : __smtx_type_wf_rec A native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec] using h
+      exact type_has_no_none_components_of_wf_rec
+        (T := A) (refs := native_reflist_nil) hA
+  | SmtType.Seq A, _, h => by
+      have hA : __smtx_type_wf_rec A native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec] using h
+      exact type_has_no_none_components_of_wf_rec
+        (T := A) (refs := native_reflist_nil) hA
+  | SmtType.Char, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Datatype _ _, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.TypeRef _, _, h => by
+      simp [__smtx_type_wf_rec] at h
+  | SmtType.USort _, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.FunType A B, _, h => by
+      have h' :
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      exact ⟨type_has_no_none_components_of_wf_rec (T := A)
+          (refs := native_reflist_nil) h'.1,
+        type_has_no_none_components_of_wf_rec (T := B)
+          (refs := native_reflist_nil) h'.2⟩
+  | SmtType.DtcAppType _ _, _, h => by
+      simp [__smtx_type_wf_rec] at h
+termination_by T => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals simp [sizeOf]
+  all_goals omega
+
 private theorem type_has_no_none_components_non_none
     {T : SmtType}
     (h : type_has_no_none_components T) :
@@ -1098,6 +1159,267 @@ private theorem store_type_has_no_none_components_of_non_none
     simpa [h1] using hMapTy
   rw [typeof_store_eq]
   simpa [__smtx_typeof_store, native_ite, native_Teq, h1, h2, h3] using hMapTy'
+
+private theorem dt_wf_cons_of_wf
+    {c : SmtDatatypeCons}
+    {d : SmtDatatype}
+    {refs : RefList}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
+    __smtx_dt_cons_wf_rec c refs = true := by
+  by_cases hc : __smtx_dt_cons_wf_rec c refs = true
+  · exact hc
+  · have hFalse : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = false := by
+      simp [__smtx_dt_wf_rec, native_ite, hc]
+    rw [hFalse] at h
+    simp at h
+
+private theorem dt_wf_tail_of_wf
+    {c : SmtDatatypeCons}
+    {d : SmtDatatype}
+    {refs : RefList}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
+    __smtx_dt_wf_rec d refs = true := by
+  by_cases hd : __smtx_dt_wf_rec d refs = true
+  · exact hd
+  · have hFalse : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = false := by
+      simp [__smtx_dt_wf_rec, native_ite, hd]
+    rw [hFalse] at h
+    simp at h
+
+private theorem dt_cons_wf_tail_of_wf
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    {refs : RefList}
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
+    __smtx_dt_cons_wf_rec c refs = true := by
+  by_cases hc : __smtx_dt_cons_wf_rec c refs = true
+  · exact hc
+  · have hFalse : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = false := by
+      cases T <;> simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, hc]
+    rw [hFalse] at h
+    simp at h
+
+private theorem typeof_dt_cons_value_rec_zero_has_no_none_components_of_cons_wf
+    {s : native_String}
+    {d0 : SmtDatatype}
+    (hBaseWf : __smtx_dt_wf_rec d0 (native_reflist_insert native_reflist_nil s) = true) :
+    ∀ {c : SmtDatatypeCons} {d : SmtDatatype},
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true ->
+      type_has_no_none_components
+        (__smtx_typeof_dt_cons_value_rec
+          (SmtType.Datatype s d0)
+          (SmtDatatype.sum (__smtx_dtc_substitute s d0 c) (__smtx_dt_substitute s d0 d))
+          0)
+  | SmtDatatypeCons.unit, d, _ => by
+      simp [__smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec, type_has_no_none_components]
+  | SmtDatatypeCons.cons T c, d, h => by
+      have hTail : __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true :=
+        dt_cons_wf_tail_of_wf h
+      let tailTy :=
+        __smtx_typeof_dt_cons_value_rec
+          (SmtType.Datatype s d0)
+          (SmtDatatype.sum (__smtx_dtc_substitute s d0 c) (__smtx_dt_substitute s d0 d))
+          0
+      have hTailTy : type_has_no_none_components tailTy :=
+        typeof_dt_cons_value_rec_zero_has_no_none_components_of_cons_wf hBaseWf (d := d) hTail
+      cases T with
+      | None =>
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at h
+      | DtcAppType A B =>
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at h
+      | Bool =>
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components SmtType.Bool ∧ type_has_no_none_components tailTy from
+              ⟨by simp [type_has_no_none_components], hTailTy⟩)
+      | Int =>
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components SmtType.Int ∧ type_has_no_none_components tailTy from
+              ⟨by simp [type_has_no_none_components], hTailTy⟩)
+      | Real =>
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components SmtType.Real ∧ type_has_no_none_components tailTy from
+              ⟨by simp [type_has_no_none_components], hTailTy⟩)
+      | RegLan =>
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components SmtType.RegLan ∧ type_has_no_none_components tailTy from
+              ⟨by simp [type_has_no_none_components], hTailTy⟩)
+      | BitVec w =>
+          have hHead : type_has_no_none_components (SmtType.BitVec w) := by
+            exact type_has_no_none_components_of_wf_rec
+              (T := SmtType.BitVec w)
+              (refs := native_reflist_insert native_reflist_nil s)
+              (by simp [__smtx_type_wf_rec])
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components (SmtType.BitVec w) ∧ type_has_no_none_components tailTy from
+              ⟨hHead, hTailTy⟩)
+      | Map A B =>
+          have hPair :
+              __smtx_type_wf_rec (SmtType.Map A B) (native_reflist_insert native_reflist_nil s) = true ∧
+                __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true := by
+            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, native_and] using h
+          have hHead : type_has_no_none_components (SmtType.Map A B) :=
+            type_has_no_none_components_of_wf_rec
+              (T := SmtType.Map A B)
+              (refs := native_reflist_insert native_reflist_nil s) hPair.1
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components (SmtType.Map A B) ∧ type_has_no_none_components tailTy from
+              ⟨hHead, hTailTy⟩)
+      | Set A =>
+          have hPair :
+              __smtx_type_wf_rec (SmtType.Set A) (native_reflist_insert native_reflist_nil s) = true ∧
+                __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true := by
+            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using h
+          have hHead : type_has_no_none_components (SmtType.Set A) :=
+            type_has_no_none_components_of_wf_rec
+              (T := SmtType.Set A)
+              (refs := native_reflist_insert native_reflist_nil s) hPair.1
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components (SmtType.Set A) ∧ type_has_no_none_components tailTy from
+              ⟨hHead, hTailTy⟩)
+      | Seq A =>
+          have hPair :
+              __smtx_type_wf_rec (SmtType.Seq A) (native_reflist_insert native_reflist_nil s) = true ∧
+                __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true := by
+            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using h
+          have hHead : type_has_no_none_components (SmtType.Seq A) :=
+            type_has_no_none_components_of_wf_rec
+              (T := SmtType.Seq A)
+              (refs := native_reflist_insert native_reflist_nil s) hPair.1
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components (SmtType.Seq A) ∧ type_has_no_none_components tailTy from
+              ⟨hHead, hTailTy⟩)
+      | Char =>
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components SmtType.Char ∧ type_has_no_none_components tailTy from
+              ⟨by simp [type_has_no_none_components], hTailTy⟩)
+      | Datatype s' d' =>
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_streq] using
+            (show
+              type_has_no_none_components
+                (SmtType.Datatype s' (native_ite (native_streq s s') d' (__smtx_dt_substitute s d0 d'))) ∧
+                type_has_no_none_components tailTy from
+              ⟨by simp [type_has_no_none_components], hTailTy⟩)
+      | TypeRef s' =>
+          have hPair :
+              (s' = s ∨ s' ∈ native_reflist_nil) ∧
+                __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true := by
+            simpa [native_reflist_insert, native_reflist_contains,
+              __smtx_dt_cons_wf_rec, native_ite] using h
+          have hs' : s' = s := by
+            simpa [native_reflist_nil] using hPair.1
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq, hs'] using
+            (show type_has_no_none_components (SmtType.Datatype s' d0) ∧ type_has_no_none_components tailTy from
+              ⟨by simp [type_has_no_none_components], hTailTy⟩)
+      | USort n =>
+          have hHead : type_has_no_none_components (SmtType.USort n) := by
+            exact type_has_no_none_components_of_wf_rec
+              (T := SmtType.USort n)
+              (refs := native_reflist_insert native_reflist_nil s)
+              (by simp [__smtx_type_wf_rec])
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components (SmtType.USort n) ∧ type_has_no_none_components tailTy from
+              ⟨hHead, hTailTy⟩)
+      | FunType A B =>
+          have hPair :
+              __smtx_type_wf_rec (SmtType.FunType A B) (native_reflist_insert native_reflist_nil s) = true ∧
+                __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true := by
+            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, native_and] using h
+          have hHead : type_has_no_none_components (SmtType.FunType A B) :=
+            type_has_no_none_components_of_wf_rec
+              (T := SmtType.FunType A B)
+              (refs := native_reflist_insert native_reflist_nil s) hPair.1
+          simpa [tailTy, __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+            type_has_no_none_components, native_ite, native_Teq] using
+            (show type_has_no_none_components (SmtType.FunType A B) ∧ type_has_no_none_components tailTy from
+              ⟨hHead, hTailTy⟩)
+
+private theorem typeof_dt_cons_value_rec_has_no_none_components_of_non_none
+    {s : native_String}
+    {d0 : SmtDatatype}
+    (hBaseWf : __smtx_dt_wf_rec d0 (native_reflist_insert native_reflist_nil s) = true) :
+    ∀ {d : SmtDatatype} {i : Nat},
+      __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true ->
+      __smtx_typeof_dt_cons_value_rec
+          (SmtType.Datatype s d0)
+          (__smtx_dt_substitute s d0 d) i ≠ SmtType.None ->
+      type_has_no_none_components
+        (__smtx_typeof_dt_cons_value_rec
+          (SmtType.Datatype s d0)
+          (__smtx_dt_substitute s d0 d) i)
+  | SmtDatatype.null, i, _, hNN => by
+      cases i <;> simp [__smtx_dt_substitute, __smtx_typeof_dt_cons_value_rec,
+        type_has_no_none_components] at hNN ⊢
+  | SmtDatatype.sum c d, 0, hWf, _ => by
+      have hc : __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true :=
+        dt_wf_cons_of_wf hWf
+      simpa [__smtx_dt_substitute] using
+        typeof_dt_cons_value_rec_zero_has_no_none_components_of_cons_wf
+          hBaseWf (d := d) hc
+  | SmtDatatype.sum c d, Nat.succ i, hWf, hNN => by
+      have hd : __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true :=
+        dt_wf_tail_of_wf hWf
+      have hNN' :
+          __smtx_typeof_dt_cons_value_rec
+              (SmtType.Datatype s d0)
+              (__smtx_dt_substitute s d0 d) i ≠
+            SmtType.None := by
+        simpa [__smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute] using hNN
+      simpa [__smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute] using
+        typeof_dt_cons_value_rec_has_no_none_components_of_non_none
+          hBaseWf (d := d) (i := i) hd hNN'
+
+private theorem dt_cons_type_has_no_none_components_of_non_none
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    (ht : term_has_non_none_type (SmtTerm.DtCons s d i)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.DtCons s d i)) := by
+  have hGuardNN :
+      __smtx_typeof_guard_wf (SmtType.Datatype s d)
+        (__smtx_typeof_dt_cons_rec
+          (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i) ≠
+        SmtType.None := by
+    unfold term_has_non_none_type at ht
+    simpa [typeof_dt_cons_eq] using ht
+  have hBaseWf : __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+    have hWf : __smtx_type_wf (SmtType.Datatype s d) = true :=
+      smtx_typeof_guard_wf_wf_of_non_none
+        (SmtType.Datatype s d)
+        (__smtx_typeof_dt_cons_rec
+          (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i) hGuardNN
+    simpa [__smtx_type_wf, __smtx_type_wf_rec] using hWf
+  have hInnerNN :
+      __smtx_typeof_dt_cons_value_rec
+          (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i ≠
+        SmtType.None := by
+    rw [typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec]
+    intro hNone
+    apply hGuardNN
+    rw [smtx_typeof_guard_wf_of_non_none
+      (SmtType.Datatype s d)
+      (__smtx_typeof_dt_cons_rec
+        (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i) hGuardNN, hNone]
+  have hInnerTy :
+      type_has_no_none_components
+        (__smtx_typeof_dt_cons_rec
+          (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i) := by
+    rw [← typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec]
+    exact typeof_dt_cons_value_rec_has_no_none_components_of_non_none
+      hBaseWf hBaseWf hInnerNN
+  rw [typeof_dt_cons_eq]
+  exact guard_wf_type_has_no_none_components_of_non_none hInnerTy hGuardNN
 
 private theorem dt_sel_type_has_no_none_components_of_non_none
     {s : native_String}
