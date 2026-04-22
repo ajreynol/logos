@@ -23,6 +23,38 @@ theorem smtx_typeof_guard_of_non_none
     __smtx_typeof_guard T U = U := by
   cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq] at h ⊢
 
+/-- A translated EO type cannot be non-`None` if the EO term is `Stuck`. -/
+theorem eo_term_ne_stuck_of_smt_type_non_none
+    (T : Term) (h : __eo_to_smt_type T ≠ SmtType.None) :
+    T ≠ Term.Stuck := by
+  intro hStuck
+  subst hStuck
+  exact h rfl
+
+/-- Reduces `__eo_requires` when the compared EO types are definitionally equal. -/
+theorem eo_requires_self_of_non_stuck
+    (T U : Term) (h : T ≠ Term.Stuck) :
+    __eo_requires T T U = U := by
+  sorry
+
+/-- Computes EO self-equality for non-`Stuck` terms. -/
+theorem eo_eq_self_of_non_stuck
+    (T : Term) (h : T ≠ Term.Stuck) :
+    __eo_eq T T = Term.Boolean true := by
+  sorry
+
+/-- Reduces `__eo_requires` after discharging an EO self-equality check. -/
+theorem eo_requires_eo_eq_self_of_non_stuck
+    (T U : Term) (h : T ≠ Term.Stuck) :
+    __eo_requires (__eo_eq T T) (Term.Boolean true) U = U := by
+  sorry
+
+/-- Reduces `__eo_requires` after discharging two EO self-equality checks. -/
+theorem eo_requires_eo_and_eq_self_of_non_stuck
+    (T U V : Term) (hT : T ≠ Term.Stuck) (hU : U ≠ Term.Stuck) :
+    __eo_requires (__eo_and (__eo_eq T T) (__eo_eq U U)) (Term.Boolean true) V = V := by
+  sorry
+
 /-- Simplifies EO-to-SMT type translation for `typeof_numeral`. -/
 theorem eo_to_smt_type_typeof_numeral
     (n : native_Int) :
@@ -98,6 +130,17 @@ theorem eo_to_smt_type_typeof_apply_of_smt_apply
     __eo_to_smt_type (__eo_typeof (Term.Apply f x)) = B := by
   sorry
 
+/-- Stronger EO-side helper for successful function-like application. -/
+theorem eo_to_smt_type_typeof_apply_of_fun_like
+    (x f T U : Term)
+    (hf :
+      __eo_typeof f = Term.Apply (Term.Apply Term.FunType T) U ∨
+        __eo_typeof f = Term.DtcAppType T U)
+    (hx : __eo_typeof x = T)
+    (hT : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply f x)) = __eo_to_smt_type U := by
+  sorry
+
 /-- Simplifies EO-to-SMT type translation for `typeof_dt_cons`. -/
 theorem eo_to_smt_type_typeof_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat) :
@@ -123,12 +166,30 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype
       __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
   sorry
 
+/-- Stronger EO-side helper for `typeof_apply_dt_sel`. -/
+theorem eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type
+    (x : Term) (s : native_String) (d : Datatype) (i j : native_Nat)
+    (hx : __eo_typeof x = Term.DatatypeType s d) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) =
+      __eo_to_smt_type (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) := by
+  sorry
+
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_select_of_smt_map`. -/
 theorem eo_to_smt_type_typeof_apply_apply_select_of_smt_map
     (x y : Term) (A B : SmtType)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Map A B)
     (hx : __smtx_typeof (__eo_to_smt x) = A) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.select) y) x)) = B := by
+  sorry
+
+/-- Stronger EO-side helper for `typeof_apply_apply_select`. -/
+theorem eo_to_smt_type_typeof_apply_apply_select_of_array
+    (x y U T : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.Apply (Term.UOp UserOp.Array) U) T)
+    (hx : __eo_typeof x = U)
+    (hU : __eo_to_smt_type U ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.select) y) x)) =
+      __eo_to_smt_type T := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_store_of_smt_map`. -/
@@ -139,6 +200,18 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_smt_map
     (hx : __smtx_typeof (__eo_to_smt x) = B) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x)) =
       SmtType.Map A B := by
+  sorry
+
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_store`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_array
+    (x y z U T : Term)
+    (hz : __eo_typeof z = Term.Apply (Term.Apply (Term.UOp UserOp.Array) U) T)
+    (hy : __eo_typeof y = U)
+    (hx : __eo_typeof x = T)
+    (hU : __eo_to_smt_type U ≠ SmtType.None)
+    (hT : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x)) =
+      SmtType.Map (__eo_to_smt_type U) (__eo_to_smt_type T) := by
   sorry
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_update_of_smt_dt_sel`. -/
