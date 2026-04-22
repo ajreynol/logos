@@ -404,7 +404,7 @@ theorem exists_body_bool_of_non_none
         cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
       apply ht
       unfold __smtx_typeof
-      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
+      simp [hEqFalse, native_ite]
   simpa [native_Teq] using hEq
 
 /-- Derives `exists_term_typeof` from `non_none`. -/
@@ -417,7 +417,7 @@ theorem exists_term_typeof_of_non_none
   have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
     simpa [native_Teq] using exists_body_bool_of_non_none ht
   unfold __smtx_typeof
-  simp [__smtx_typeof_choice_nth, hEq, native_ite]
+  simp [hEq, native_ite]
 
 /-- Shows that evaluating `exists` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_exists
@@ -454,7 +454,7 @@ theorem forall_body_bool_of_non_none
         cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
       apply ht
       unfold __smtx_typeof
-      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
+      simp [hEqFalse, native_ite]
   simpa [native_Teq] using hEq
 
 /-- Derives `forall_term_typeof` from `non_none`. -/
@@ -467,7 +467,7 @@ theorem forall_term_typeof_of_non_none
   have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
     simpa [native_Teq] using forall_body_bool_of_non_none ht
   unfold __smtx_typeof
-  simp [__smtx_typeof_choice_nth, hEq, native_ite]
+  simp [hEq, native_ite]
 
 /-- Shows that evaluating `forall` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_forall

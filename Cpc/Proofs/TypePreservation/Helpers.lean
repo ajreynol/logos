@@ -83,7 +83,7 @@ theorem dt_cons_chain_result_of_dt_cons_value_type
     (h : __smtx_typeof_value (SmtValue.DtCons s d i) = T) :
     dt_cons_chain_result T := by
   by_cases hT : T = SmtType.None
-  · simpa [dt_cons_chain_result, hT]
+  · simp [dt_cons_chain_result, hT]
   · have hShape :=
       typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
     have hInner :
@@ -148,7 +148,7 @@ theorem typeof_value_dt_cons_head_type_chain_result :
       have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
         simpa [__vsm_apply_head] using hHead
       cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hHeadF, hf] at h
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, hf] at h
       case DtcAppType A B =>
         cases hNone : native_Teq A SmtType.None <;>
         cases hEq : native_Teq A (__smtx_typeof_value v) <;>
@@ -367,7 +367,7 @@ theorem apply_value_non_chain_result_implies_fun_head
     ∃ m, __vsm_apply_head v = SmtValue.Fun m := by
   have hUNone : U ≠ SmtType.None := by
     intro hEq
-    exact hU (by simpa [dt_cons_chain_result, hEq])
+    exact hU (by simp [dt_cons_chain_result, hEq])
   by_cases hFun : ∃ m, __vsm_apply_head v = SmtValue.Fun m
   · exact hFun
   · by_cases hDt : ∃ s d n, __vsm_apply_head v = SmtValue.DtCons s d n
@@ -458,7 +458,7 @@ theorem apply_value_non_chain_result_impossible
     False := by
   have hUNone : U ≠ SmtType.None := by
     intro hEq
-    exact hU (by simpa [dt_cons_chain_result, hEq])
+    exact hU (by simp [dt_cons_chain_result, hEq])
   rcases apply_value_non_chain_result_implies_fun_head hU h with ⟨m, hHead⟩
   have hNone : __smtx_typeof_value (SmtValue.Apply f x) = SmtType.None :=
     typeof_value_apply_of_head_fun f x ⟨m, hHead⟩
@@ -1450,7 +1450,7 @@ theorem to_real_arg_of_non_none
   unfold term_has_non_none_type at ht
   rw [__smtx_typeof.eq_18] at ht
   cases h : __smtx_typeof t <;>
-    simp [__smtx_typeof, native_ite, native_Teq, h] at ht
+    simp [native_ite, native_Teq, h] at ht
   · exact Or.inl rfl
   · exact Or.inr rfl
 
@@ -1478,7 +1478,7 @@ theorem int_arg_of_non_none
   unfold term_has_non_none_type at ht
   rw [__smtx_typeof.eq_21] at ht
   cases h : __smtx_typeof t <;>
-    simp [__smtx_typeof, native_ite, native_Teq, h] at ht
+    simp [native_ite, native_Teq, h] at ht
   rfl
 
 /-- Shows that evaluating `eq_value` terms produces values of the expected type. -/

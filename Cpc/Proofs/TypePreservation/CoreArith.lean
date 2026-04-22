@@ -214,7 +214,7 @@ theorem ite_args_of_non_none
   let T2 := __smtx_typeof t2
   have hBool : __smtx_typeof c = SmtType.Bool := by
     cases hc : __smtx_typeof c <;>
-      simp [__smtx_typeof_ite, native_ite, hc, T1, T2] at ht
+      simp [__smtx_typeof_ite, native_ite, hc] at ht
     simp
   by_cases hEq : native_Teq T1 T2 = true
   · have hT : T1 = T2 := by

@@ -12,8 +12,8 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
-/-- Main type-preservation theorem for evaluation of supported SMT terms in total typed models. -/
-theorem supported_type_preservation
+/-- Induction lemma proving type preservation for supported SMT terms in total typed models. -/
+private theorem supported_type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
     (t : SmtTerm)
@@ -1076,37 +1076,27 @@ private theorem binary_type_has_no_none_components_of_non_none
   cases hWidth : native_zleq 0 w <;>
     simp [native_ite, SmtEval.native_and, hWidth] at ht ⊢
   cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
-    simp [native_ite, SmtEval.native_and, hWidth, hMod, type_has_no_none_components] at ht ⊢
+    simp [hMod, type_has_no_none_components] at ht ⊢
 
 private theorem seq_unit_type_has_no_none_components_of_non_none
     {t : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.seq_unit t))
+    (_ht : term_has_non_none_type (SmtTerm.seq_unit t))
     (hTy : type_has_no_none_components (__smtx_typeof t)) :
     type_has_no_none_components (__smtx_typeof (SmtTerm.seq_unit t)) := by
-  have htArg : __smtx_typeof t ≠ SmtType.None := by
-    intro hNone
-    unfold term_has_non_none_type at ht
-    rw [__smtx_typeof.eq_118, hNone] at ht
-    simp [native_ite, native_Teq] at ht
-  cases h : __smtx_typeof t <;>
-    first
-    | exact False.elim (htArg h)
-    | simpa [__smtx_typeof.eq_118, native_ite, native_Teq, h, type_has_no_none_components] using hTy
+  rw [__smtx_typeof.eq_118]
+  have hArgNN : __smtx_typeof t ≠ SmtType.None :=
+    type_has_no_none_components_non_none hTy
+  simpa [native_ite, native_Teq, type_has_no_none_components, hArgNN] using hTy
 
 private theorem set_singleton_type_has_no_none_components_of_non_none
     {t : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.set_singleton t))
+    (_ht : term_has_non_none_type (SmtTerm.set_singleton t))
     (hTy : type_has_no_none_components (__smtx_typeof t)) :
     type_has_no_none_components (__smtx_typeof (SmtTerm.set_singleton t)) := by
-  have htArg : __smtx_typeof t ≠ SmtType.None := by
-    intro hNone
-    unfold term_has_non_none_type at ht
-    rw [__smtx_typeof.eq_121, hNone] at ht
-    simp [native_ite, native_Teq] at ht
-  cases h : __smtx_typeof t <;>
-    first
-    | exact False.elim (htArg h)
-    | simpa [__smtx_typeof.eq_121, native_ite, native_Teq, h, type_has_no_none_components] using hTy
+  rw [__smtx_typeof.eq_121]
+  have hArgNN : __smtx_typeof t ≠ SmtType.None :=
+    type_has_no_none_components_non_none hTy
+  simpa [native_ite, native_Teq, type_has_no_none_components, hArgNN] using hTy
 
 private theorem seq_nth_type_has_no_none_components_of_non_none
     {t1 t2 : SmtTerm}
@@ -1360,7 +1350,7 @@ private theorem typeof_dt_cons_value_rec_has_no_none_components_of_non_none
           (__smtx_dt_substitute s d0 d) i)
   | SmtDatatype.null, i, _, hNN => by
       cases i <;> simp [__smtx_dt_substitute, __smtx_typeof_dt_cons_value_rec,
-        type_has_no_none_components] at hNN ⊢
+        __smtx_typeof_dt_cons_value_rec] at hNN ⊢
   | SmtDatatype.sum c d, 0, hWf, _ => by
       have hc : __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) = true :=
         dt_wf_cons_of_wf hWf
@@ -1598,7 +1588,7 @@ private theorem str_replace_re_type_has_no_none_components_of_non_none
     type_has_no_none_components (__smtx_typeof (op t1 t2 t3)) := by
   have hArgs := str_replace_re_args_of_non_none (op := op) hTy ht
   rw [hTy]
-  simpa [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2, type_has_no_none_components]
+  simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2, type_has_no_none_components]
 
 private theorem bool_unop_type_has_no_none_components_of_non_none
     {op : SmtTerm -> SmtTerm}
@@ -2075,7 +2065,7 @@ private theorem term_type_has_no_none_components_of_non_none :
       type_has_no_none_components (__smtx_typeof t) := by
     match t with
     | SmtTerm.None =>
-        exact False.elim (ht (by simp [term_has_non_none_type, __smtx_typeof]))
+        exact False.elim (ht (by simp [__smtx_typeof]))
     | SmtTerm.Boolean _ =>
         simp [__smtx_typeof, type_has_no_none_components]
     | SmtTerm.Numeral _ =>
@@ -2106,9 +2096,9 @@ private theorem term_type_has_no_none_components_of_non_none :
     | SmtTerm.DtCons _ _ _ =>
         exact dt_cons_type_has_no_none_components_of_non_none ht
     | SmtTerm.DtSel _ _ _ _ =>
-        exact False.elim (ht (by simp [term_has_non_none_type, __smtx_typeof]))
+        exact False.elim (ht (by simp [__smtx_typeof]))
     | SmtTerm.DtTester _ _ _ =>
-        exact False.elim (ht (by simp [term_has_non_none_type, __smtx_typeof]))
+        exact False.elim (ht (by simp [__smtx_typeof]))
     | SmtTerm.UConst _ _ =>
         exact uconst_type_has_no_none_components_of_non_none ht
     | SmtTerm.not t1 =>
@@ -3415,16 +3405,24 @@ theorem supported_preservation_term_of_non_none :
         exact supported_preservation_term.sbv_to_int ht1 (go t1 ht1)
   exact go
 
-/-- Restates supported type preservation using an inhabited-type hypothesis. -/
-theorem supported_type_preservation_of_inhabited_type
+/-- Main type-preservation theorem for evaluation of non-`None` SMT terms in total typed models. -/
+theorem type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
     (t : SmtTerm)
-    (ht : term_has_non_none_type t)
-    (hti : term_has_inhabited_type t)
-    (hs : supported_preservation_term t) :
-    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t :=
-  supported_type_preservation M hM t ht hs
+    (ht : term_has_non_none_type t) :
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
+  exact supported_type_preservation M hM t ht
+    (supported_preservation_term_of_non_none t ht)
+
+/-- Backwards-compatible wrapper for `type_preservation`. -/
+theorem smt_model_eval_preserves_type_of_non_none
+    (M : SmtModel) (hM : model_total_typed M)
+    (t : SmtTerm) :
+    term_has_non_none_type t ->
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
+  intro ht
+  exact type_preservation M hM t ht
 
 /-- Derives SMT evaluation type preservation for terms in the supported fragment. -/
 theorem smt_model_eval_preserves_type_of_supported
@@ -3432,19 +3430,14 @@ theorem smt_model_eval_preserves_type_of_supported
     (t : SmtTerm) (T : SmtType)
     (hTy : __smtx_typeof t = T)
     (hNonNone : T ≠ SmtType.None)
-    (hInh : type_inhabited T)
-    (hs : supported_preservation_term t) :
+    (_hs : supported_preservation_term t) :
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
   have hNN : term_has_non_none_type t := by
     unfold term_has_non_none_type
     rw [hTy]
     exact hNonNone
-  have hTermInh : term_has_inhabited_type t := by
-    unfold term_has_inhabited_type type_inhabited
-    rw [hTy]
-    simpa using hInh
   simpa [hTy] using
-    supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
+    type_preservation M hM t hNN
 
 /-- Derives Boolean-value evaluation for supported Boolean-typed SMT terms. -/
 theorem smt_model_eval_bool_is_boolean_of_supported
@@ -3455,11 +3448,10 @@ theorem smt_model_eval_bool_is_boolean_of_supported
   ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
   have hPres :
       __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
-    smt_model_eval_preserves_type_of_supported M hM t SmtType.Bool hTy (by simp)
-      type_inhabited_bool hs
+    smt_model_eval_preserves_type_of_supported M hM t SmtType.Bool hTy (by simp) hs
   exact bool_value_canonical hPres
 
-/-- States that SMT evaluation preserves any non-`None` expected type in total typed models. -/
+/-- Backwards-compatible wrapper around `type_preservation` for explicit type equalities. -/
 theorem smt_model_eval_preserves_type
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) (T : SmtType) :
@@ -3467,19 +3459,13 @@ theorem smt_model_eval_preserves_type
   T ≠ SmtType.None ->
   type_inhabited T ->
   __smtx_typeof_value (__smtx_model_eval M t) = T := by
-  intro hTy hNonNone hInh
+  intro hTy hNonNone _hInh
   have hNN : term_has_non_none_type t := by
     unfold term_has_non_none_type
     rw [hTy]
     exact hNonNone
-  have hTermInh : term_has_inhabited_type t := by
-    unfold term_has_inhabited_type type_inhabited
-    rw [hTy]
-    simpa using hInh
-  have hs : supported_preservation_term t :=
-    supported_preservation_term_of_non_none t hNN
   simpa [hTy] using
-    supported_type_preservation_of_inhabited_type M hM t hNN hTermInh hs
+    smt_model_eval_preserves_type_of_non_none M hM t hNN
 
 /-- States that evaluating a Boolean-typed SMT term yields a Boolean value. -/
 theorem smt_model_eval_bool_is_boolean
@@ -3489,8 +3475,12 @@ theorem smt_model_eval_bool_is_boolean
   ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
   intro hTy
   have hPres :
-      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool :=
-    smt_model_eval_preserves_type M hM t SmtType.Bool hTy (by simp) type_inhabited_bool
+      __smtx_typeof_value (__smtx_model_eval M t) = SmtType.Bool := by
+    simpa [hTy] using
+      smt_model_eval_preserves_type_of_non_none M hM t (by
+        unfold term_has_non_none_type
+        rw [hTy]
+        simp)
   exact bool_value_canonical hPres
 
 /-- Shows that total typed SMT models exist. -/
