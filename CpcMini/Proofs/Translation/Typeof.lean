@@ -924,8 +924,8 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
       exact ⟨hCons.1.symm, hCons.2⟩
   | Term.DtSel s d i j, hNN => by
       have hNone : __smtx_typeof (__eo_to_smt (Term.DtSel s d i j)) = SmtType.None := by
-        simpa [__eo_to_smt.eq_def] using
-          (TranslationProofs.smtx_typeof_dt_sel_head_none s (__eo_to_smt_datatype d) i j)
+        rw [__eo_to_smt.eq_def]
+        exact TranslationProofs.smtx_typeof_dt_sel_head_none s (__eo_to_smt_datatype d) i j
       exact (hNN hNone).elim
   | Term.USort i, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN

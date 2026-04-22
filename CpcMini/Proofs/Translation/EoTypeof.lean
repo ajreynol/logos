@@ -713,11 +713,11 @@ theorem eo_type_valid_rec_non_none :
   | refs, Term.UOp op, h => by
       cases op with
       | Int =>
-          simp [eo_type_valid_rec, __eo_to_smt_type]
+          simp [__eo_to_smt_type]
       | Real =>
-          simp [eo_type_valid_rec, __eo_to_smt_type]
+          simp [__eo_to_smt_type]
       | Char =>
-          simp [eo_type_valid_rec, __eo_to_smt_type]
+          simp [__eo_to_smt_type]
       | _ =>
           simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List, h => by
