@@ -147,8 +147,8 @@ def __eo_mk_apply : Term -> Term -> Term
   | x1, x2 => (Term.Apply x1 x2)
 
 
-def __eo_binary_mod_w (w : native_Int) (n : native_Int) : Term :=
-  (Term.Binary (native_int_to_nat w) (native_mod_total n (native_int_pow2 w)))
+def __eo_binary_mod_w (w : native_Nat) (n : native_Int) : Term :=
+  (Term.Binary w (native_mod_total n (native_int_pow2 (native_nat_to_int w))))
 
 def __eo_is_ok : Term -> Term
   | x => (Term.Boolean (native_not (native_teq x Term.Stuck)))
@@ -162,7 +162,7 @@ def __eo_and : Term -> Term -> Term
   | (Term.Boolean b1), (Term.Boolean b2) => (Term.Boolean (native_and b1 b2))
   | (Term.Binary w1 n1), (Term.Binary w2 n2) =>
     (__eo_requires (Term.Numeral (native_nat_to_int w1)) (Term.Numeral (native_nat_to_int w2))
-      (Term.Binary w1 (native_mod_total (native_binary_and (native_nat_to_int w1) n1 n2) (native_int_pow2 (native_nat_to_int w1)))))
+      (Term.Binary w1 (native_mod_total (native_binary_and w1 n1 n2) (native_int_pow2 (native_nat_to_int w1)))))
   | _, _ => Term.Stuck
 
 

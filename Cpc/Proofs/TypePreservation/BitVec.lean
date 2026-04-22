@@ -423,7 +423,7 @@ theorem model_eval_repeat_rec_binary :
   | native_nat_succ n, w, x => by
       rcases model_eval_repeat_rec_binary n w x with ⟨m, hm⟩
       refine ⟨native_mod_total
-        (native_binary_concat (native_nat_to_int w) x (native_nat_to_int (n * w)) m)
+        (native_binary_concat w x (n * w) m)
         (native_int_pow2 (native_nat_to_int ((native_nat_succ n) * w))), ?_⟩
       rw [__smtx_model_eval_repeat_rec, hm, __smtx_model_eval_concat]
       have hWidthEq : native_nat_plus w (n * w) = ((native_nat_succ n) * w) := by
@@ -432,7 +432,7 @@ theorem model_eval_repeat_rec_binary :
         (fun z =>
           SmtValue.Binary z
             (native_mod_total
-              (native_binary_concat (native_nat_to_int w) x (native_nat_to_int (n * w)) m)
+              (native_binary_concat w x (n * w) m)
               (native_int_pow2 (native_nat_to_int z))))
         hWidthEq
 
@@ -516,7 +516,7 @@ theorem model_eval_rotate_left_step_binary
           (SmtValue.Binary (native_nat_succ w) x) =
         SmtValue.Binary w
           (native_mod_total
-            (native_binary_extract (native_nat_to_int (native_nat_succ w)) x (native_zplus hi (native_zneg 1)) 0)
+            (native_binary_extract (native_nat_succ w) x (native_zplus hi (native_zneg 1)) 0)
             (native_int_pow2 (native_nat_to_int w))) := by
     rw [__smtx_model_eval_extract, hWidth1Eq, __smtx_mk_binary_value]
     rw [show native_zleq 0 (native_nat_to_int w) = true by
@@ -529,33 +529,33 @@ theorem model_eval_rotate_left_step_binary
           (SmtValue.Binary (native_nat_succ w) x) =
         SmtValue.Binary 1
           (native_mod_total
-            (native_binary_extract (native_nat_to_int (native_nat_succ w)) x hi hi)
+            (native_binary_extract (native_nat_succ w) x hi hi)
             (native_int_pow2 1)) := by
     rw [__smtx_model_eval_extract, hWidth2Eq, __smtx_mk_binary_value]
     rw [show native_zleq 0 (1 : native_Int) = true by simp [SmtEval.native_zleq]]
     simp [native_ite, SmtEval.native_int_to_nat, SmtEval.native_nat_to_int]
   refine ⟨native_mod_total
-      (native_binary_concat (native_nat_to_int w)
+      (native_binary_concat w
         (native_mod_total
-          (native_binary_extract (native_nat_to_int (native_nat_succ w)) x
+          (native_binary_extract (native_nat_succ w) x
             (native_zplus hi (native_zneg 1)) 0)
           (native_int_pow2 (native_nat_to_int w)))
         1
-        (native_mod_total (native_binary_extract (native_nat_to_int (native_nat_succ w)) x hi hi) (native_int_pow2 1)))
+        (native_mod_total (native_binary_extract (native_nat_succ w) x hi hi) (native_int_pow2 1)))
       (native_int_pow2 (native_nat_to_int (native_nat_succ w))), ?_⟩
   rw [hExtract1, hExtract2, __smtx_model_eval_concat]
   have hWidthEq : native_nat_plus w 1 = native_nat_succ w := by
     simp [native_nat_plus]
   exact congrArg
     (fun z =>
-      SmtValue.Binary z
+        SmtValue.Binary z
         (native_mod_total
-          (native_binary_concat (native_nat_to_int w)
+          (native_binary_concat w
             (native_mod_total
-              (native_binary_extract (native_nat_to_int (native_nat_succ w)) x (native_zplus hi (native_zneg 1)) 0)
+              (native_binary_extract (native_nat_succ w) x (native_zplus hi (native_zneg 1)) 0)
               (native_int_pow2 (native_nat_to_int w)))
             1
-            (native_mod_total (native_binary_extract (native_nat_to_int (native_nat_succ w)) x hi hi) (native_int_pow2 1)))
+            (native_mod_total (native_binary_extract (native_nat_succ w) x hi hi) (native_int_pow2 1)))
           (native_int_pow2 (native_nat_to_int z))))
     hWidthEq
 
@@ -632,7 +632,7 @@ theorem model_eval_rotate_right_step_binary
           (SmtValue.Binary (native_nat_succ w) x) =
         SmtValue.Binary 1
           (native_mod_total
-            (native_binary_extract (native_nat_to_int (native_nat_succ w)) x 0 0)
+            (native_binary_extract (native_nat_succ w) x 0 0)
             (native_int_pow2 1)) := by
     simp [__smtx_model_eval_extract, __smtx_mk_binary_value, native_ite,
       SmtEval.native_zplus, SmtEval.native_zneg, SmtEval.native_zleq,
@@ -644,7 +644,7 @@ theorem model_eval_rotate_right_step_binary
           (SmtValue.Binary (native_nat_succ w) x) =
         SmtValue.Binary w
           (native_mod_total
-            (native_binary_extract (native_nat_to_int (native_nat_succ w)) x hi 1)
+            (native_binary_extract (native_nat_succ w) x hi 1)
             (native_int_pow2 (native_nat_to_int w))) := by
     rw [__smtx_model_eval_extract, hWidth2Eq, __smtx_mk_binary_value]
     rw [show native_zleq 0 (native_nat_to_int w) = true by
@@ -652,21 +652,21 @@ theorem model_eval_rotate_right_step_binary
     simp [native_ite, SmtEval.native_int_to_nat, SmtEval.native_nat_to_int]
   refine ⟨native_mod_total
       (native_binary_concat 1
-        (native_mod_total (native_binary_extract (native_nat_to_int (native_nat_succ w)) x 0 0) (native_int_pow2 1))
-        (native_nat_to_int w)
-        (native_mod_total (native_binary_extract (native_nat_to_int (native_nat_succ w)) x hi 1) (native_int_pow2 (native_nat_to_int w))))
+        (native_mod_total (native_binary_extract (native_nat_succ w) x 0 0) (native_int_pow2 1))
+        w
+        (native_mod_total (native_binary_extract (native_nat_succ w) x hi 1) (native_int_pow2 (native_nat_to_int w))))
       (native_int_pow2 (native_nat_to_int (native_nat_succ w))), ?_⟩
   rw [hExtract1, hExtract2, __smtx_model_eval_concat]
   have hWidthEq : native_nat_plus 1 w = native_nat_succ w := by
     simp [native_nat_plus, Nat.add_comm]
   exact congrArg
     (fun z =>
-      SmtValue.Binary z
-        (native_mod_total
-          (native_binary_concat 1
-            (native_mod_total (native_binary_extract (native_nat_to_int (native_nat_succ w)) x 0 0) (native_int_pow2 1))
-            (native_nat_to_int w)
-            (native_mod_total (native_binary_extract (native_nat_to_int (native_nat_succ w)) x hi 1) (native_int_pow2 (native_nat_to_int w))))
+        SmtValue.Binary z
+          (native_mod_total
+            (native_binary_concat 1
+            (native_mod_total (native_binary_extract (native_nat_succ w) x 0 0) (native_int_pow2 1))
+            w
+            (native_mod_total (native_binary_extract (native_nat_succ w) x hi 1) (native_int_pow2 (native_nat_to_int w))))
           (native_int_pow2 (native_nat_to_int z))))
     hWidthEq
 
@@ -850,7 +850,7 @@ theorem typeof_value_model_eval_sign_extend
   rw [__smtx_model_eval_sign_extend, __smtx_mk_binary_value, hWidth]
   simpa [native_ite] using
     typeof_value_binary_of_nonneg (native_zplus i (native_nat_to_int w))
-      (native_mod_total (native_binary_uts (native_nat_to_int w) n)
+      (native_mod_total (native_binary_uts w n)
         (native_int_pow2 (native_zplus i (native_nat_to_int w)))) hWidth
 
 /-- Shows that evaluating `int_to_bv` terms produces values of the expected type. -/

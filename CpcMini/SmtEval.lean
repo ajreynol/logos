@@ -43,8 +43,27 @@ def native_zexp_total (x : native_Int) (y : native_Int) : native_Int :=
   if y < 0 then 0 else (x ^ (Int.toNat y))
 def native_int_pow2 (n : native_Int) : native_Int :=
   (native_zexp_total 2 n)
-def native_piand : native_Int -> native_Int -> native_Int -> native_Int
-  | w, x, y => ((BitVec.ofInt (Int.toNat w) x) &&& (BitVec.ofInt (Int.toNat w) y)).toInt
+
+-- Natural numbers
+
+abbrev native_Nat := Nat
+def native_int_to_nat (x : native_Int) : native_Nat :=
+  (Int.toNat x)
+def native_nat_to_int (x : native_Nat) : native_Int :=
+  (Int.ofNat x)
+def native_nateq : native_Nat -> native_Nat -> native_Bool
+  | x, y => decide (x = y)
+def native_nat_plus : native_Nat -> native_Nat -> native_Nat
+  | x, y => (x+y)
+syntax "native_nat_zero" : term
+macro_rules
+  | `(native_nat_zero) => `(Nat.zero)
+syntax "native_nat_succ " term : term
+macro_rules
+  | `(native_nat_succ $x) => `(Nat.succ $x)
+
+def native_piand : native_Nat -> native_Int -> native_Int -> native_Int
+  | w, x, y => ((BitVec.ofInt w x) &&& (BitVec.ofInt w y)).toInt
 
 -- Rational arithmetic
 def native_mk_rational : native_Int -> native_Int -> native_Rat
@@ -86,49 +105,31 @@ def native_streq : native_String -> native_String -> native_Bool
 def native_bit : native_Int -> native_Int -> native_Bool
   | x, i => (native_zeq 1 (native_mod_total (native_div_total x (native_int_pow2 i)) 2))
 
-def native_msb : native_Int -> native_Int -> native_Bool
-  | w, n => (native_bit n (native_zplus w (native_zneg 1)))
+def native_msb : native_Nat -> native_Int -> native_Bool
+  | w, n => (native_bit n (native_zplus (native_nat_to_int w) (native_zneg 1)))
 
-def native_binary_and : native_Int -> native_Int -> native_Int -> native_Int
-  | w, n1, n2 => (native_ite (native_zeq w 0) 0 (native_piand w n1 n2))
+def native_binary_and : native_Nat -> native_Int -> native_Int -> native_Int
+  | w, n1, n2 => (native_ite (decide (w = 0)) 0 (native_piand w n1 n2))
 
-def native_binary_or : native_Int -> native_Int -> native_Int -> native_Int
-  | w, n1, n2 => (native_zplus n1 (native_zplus n2 (native_zneg (native_ite (native_zeq w 0) 0 (native_piand w n1 n2)))))
+def native_binary_or : native_Nat -> native_Int -> native_Int -> native_Int
+  | w, n1, n2 => (native_zplus n1 (native_zplus n2 (native_zneg (native_ite (decide (w = 0)) 0 (native_piand w n1 n2)))))
 
-def native_binary_xor : native_Int -> native_Int -> native_Int -> native_Int
-  | w, n1, n2 => (native_zplus n1 (native_zplus n2 (native_zneg (native_zmult 2 (native_ite (native_zeq w 0) 0 (native_piand w n1 n2))))))
+def native_binary_xor : native_Nat -> native_Int -> native_Int -> native_Int
+  | w, n1, n2 => (native_zplus n1 (native_zplus n2 (native_zneg (native_zmult 2 (native_ite (decide (w = 0)) 0 (native_piand w n1 n2))))))
 
-def native_binary_not : native_Int -> native_Int -> native_Int
-  | w, n => (native_zplus (native_int_pow2 w) (native_zneg (native_zplus n 1)))
+def native_binary_not : native_Nat -> native_Int -> native_Int
+  | w, n => (native_zplus (native_int_pow2 (native_nat_to_int w)) (native_zneg (native_zplus n 1)))
 
-def native_binary_max : native_Int -> native_Int
-  | w => (native_zplus (native_int_pow2 w) (native_zneg 1))
+def native_binary_max : native_Nat -> native_Int
+  | w => (native_zplus (native_int_pow2 (native_nat_to_int w)) (native_zneg 1))
 
-def native_binary_uts : native_Int -> native_Int -> native_Int
-  | w, n => (native_zplus (native_zmult 2 (native_mod_total n (native_int_pow2 (native_zplus w (native_zneg 1))))) (native_zneg n))
+def native_binary_uts : native_Nat -> native_Int -> native_Int
+  | w, n => (native_zplus (native_zmult 2 (native_mod_total n (native_int_pow2 (native_zplus (native_nat_to_int w) (native_zneg 1))))) (native_zneg n))
 
-def native_binary_concat : native_Int -> native_Int -> native_Int -> native_Int -> native_Int
-  | w1, n1, w2, n2 => (native_zplus (native_zmult n1 (native_int_pow2 w2)) n2)
+def native_binary_concat : native_Nat -> native_Int -> native_Nat -> native_Int -> native_Int
+  | w1, n1, w2, n2 => (native_zplus (native_zmult n1 (native_int_pow2 (native_nat_to_int w2))) n2)
 
-def native_binary_extract : native_Int -> native_Int -> native_Int -> native_Int -> native_Int
+def native_binary_extract : native_Nat -> native_Int -> native_Int -> native_Int -> native_Int
   | w, n, x1, x2 => (native_div_total n (native_int_pow2 x2))
-
--- Natural numbers
-
-abbrev native_Nat := Nat
-def native_int_to_nat (x : native_Int) : native_Nat :=
-  (Int.toNat x)
-def native_nat_to_int (x : native_Nat) : native_Int :=
-  (Int.ofNat x)
-def native_nateq : native_Nat -> native_Nat -> native_Bool
-  | x, y => decide (x = y)
-def native_nat_plus : native_Nat -> native_Nat -> native_Nat
-  | x, y => (x+y)
-syntax "native_nat_zero" : term
-macro_rules
-  | `(native_nat_zero) => `(Nat.zero)
-syntax "native_nat_succ " term : term
-macro_rules
-  | `(native_nat_succ $x) => `(Nat.succ $x)
   
 end SmtEval

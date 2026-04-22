@@ -47,7 +47,7 @@ theorem typeof_value_model_eval_concat
     typeof_value_binary_of_nonneg
       (native_zplus (native_nat_to_int w1) (native_nat_to_int w2))
       (native_mod_total
-        (native_binary_concat (native_nat_to_int w1) n1 (native_nat_to_int w2) n2)
+        (native_binary_concat w1 n1 w2 n2)
         (native_int_pow2 (native_zplus (native_nat_to_int w1) (native_nat_to_int w2)))) hWidth
 
 /-- Shows that evaluating `extract` terms produces values of the expected type. -/
@@ -92,7 +92,7 @@ theorem typeof_value_model_eval_extract
     simpa [SmtEval.native_zleq] using hWidthInt'
   simpa [__smtx_model_eval_extract, __smtx_mk_binary_value, native_ite, hWidth] using
     typeof_value_binary_of_nonneg (native_zplus (native_zplus i 1) (native_zneg j))
-      (native_mod_total (native_binary_extract (native_nat_to_int w) n i j)
+      (native_mod_total (native_binary_extract w n i j)
         (native_int_pow2 (native_zplus (native_zplus i 1) (native_zneg j)))) hWidth
 
 /-- Shows that evaluating `bv_unop` terms produces values of the expected type. -/
