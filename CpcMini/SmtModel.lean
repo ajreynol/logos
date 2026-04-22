@@ -292,7 +292,7 @@ inductive SmtValue : Type where
   | Boolean : native_Bool -> SmtValue
   | Numeral : native_Int -> SmtValue
   | Rational : native_Rat -> SmtValue
-  | Binary : native_Int -> native_Int -> SmtValue
+  | Binary : (w : native_Nat) -> BitVec w -> SmtValue
   | Map : SmtMap -> SmtValue
   | Fun : SmtMap -> SmtValue
   | Set : SmtMap -> SmtValue
@@ -585,11 +585,16 @@ def __smtx_typeof_apply_value : SmtType -> SmtType -> SmtType
   | T, U => SmtType.None
 
 
+def __smtx_bv_literal (w : native_Int) (n : native_Int) : SmtValue :=
+  let width := native_int_to_nat w
+  SmtValue.Binary width (BitVec.ofInt width n)
+
+
 def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
   | (SmtValue.Numeral n) => SmtType.Int
   | (SmtValue.Rational q) => SmtType.Real
-  | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
+  | (SmtValue.Binary w _) => (SmtType.BitVec w)
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
   | (SmtValue.Set m) => (__smtx_map_to_set_type (__smtx_typeof_map_value m))
@@ -849,7 +854,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
   | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
-  | (SmtTerm.Binary w n) => (SmtValue.Binary w n)
+  | (SmtTerm.Binary w n) => (__smtx_bv_literal w n)
   | (SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
   | (SmtTerm.or x1 x2) => (__smtx_model_eval_or (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.and x1 x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
