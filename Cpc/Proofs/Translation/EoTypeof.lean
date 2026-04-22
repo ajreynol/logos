@@ -306,6 +306,33 @@ theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_smt_set
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) = SmtType.Bool := by
   sorry
 
+/-- Stronger EO-side helper for `typeof_apply_at_bvsize`. -/
+theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec
+    (x : Term) (w : native_Nat)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w))) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp._at_bvsize) x)) = SmtType.Int := by
+  change __eo_to_smt_type (__eo_typeof__at_bvsize (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
+
+/-- Stronger EO-side helper for `typeof_apply_set_choose`. -/
+theorem eo_to_smt_type_typeof_apply_set_choose_of_set
+    (x T : Term)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.Set) T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x)) = __eo_to_smt_type T := by
+  change __eo_to_smt_type (__eo_typeof_set_choose (__eo_typeof x)) = __eo_to_smt_type T
+  rw [hx]
+  rfl
+
+/-- Stronger EO-side helper for `typeof_apply_set_is_singleton`. -/
+theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_set
+    (x T : Term)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.Set) T) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) = SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_set_is_empty (__eo_typeof x)) = SmtType.Bool
+  rw [hx]
+  rfl
+
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_sets_deq_diff_of_smt_apply`. -/
 theorem eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply
     (x x1 x2 : Term) (A B : SmtType)
