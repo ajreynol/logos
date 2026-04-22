@@ -106,7 +106,7 @@ private theorem facts___eo_prog_arith_int_mod_total_zero_impl
   have hEvalT1Ty :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) = SmtType.Int :=
     smt_model_eval_preserves_type M hM (__eo_to_smt t1) SmtType.Int hSmtT1
-      type_inhabited_int
+      (by simp) type_inhabited_int
   rcases int_value_canonical hEvalT1Ty with ⟨n, hEvalT1⟩
   have hEval0 :
       __smtx_model_eval M (__eo_to_smt (Term.Numeral 0)) = SmtValue.Numeral 0 :=

@@ -223,7 +223,7 @@ private theorem facts___eo_prog_string_length_non_empty_impl
                                   __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt s)) =
                                     SmtType.Seq T :=
                                 smt_model_eval_preserves_type M hM (__eo_to_smt s) (SmtType.Seq T)
-                                  hSTySeq (type_inhabited_seq T)
+                                  hSTySeq (by simp) (type_inhabited_seq T)
                               rcases seq_value_canonical hEvalSTy with ⟨ss, hEvalS⟩
                               cases ss with
                               | empty T0 =>
