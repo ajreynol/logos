@@ -688,6 +688,66 @@ theorem supported_apply_of_non_none
         term_has_non_none_of_type_eq hX hA
       exact supported_preservation_term.apply hTy hEval htf hsf htx hsx
 
+private theorem bool_unop_arg_of_non_none
+    {op : SmtTerm -> SmtTerm}
+    {t : SmtTerm}
+    (hTy :
+      __smtx_typeof (op t) =
+        native_ite (native_Teq (__smtx_typeof t) SmtType.Bool) SmtType.Bool SmtType.None)
+    (ht : term_has_non_none_type (op t)) :
+    __smtx_typeof t = SmtType.Bool := by
+  unfold term_has_non_none_type at ht
+  cases h : __smtx_typeof t <;>
+    simp [hTy, native_ite, native_Teq, h] at ht
+  simp
+
+private theorem supported_apply_term_of_non_none
+    {f x : SmtTerm}
+    (ihf : term_has_non_none_type f -> supported_preservation_term f)
+    (ihx : term_has_non_none_type x -> supported_preservation_term x)
+    (ht : term_has_non_none_type (SmtTerm.Apply f x)) :
+    supported_preservation_term (SmtTerm.Apply f x) := by
+  by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
+  · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
+    have htx : term_has_non_none_type x :=
+      term_has_non_none_of_type_eq (dt_sel_arg_datatype_of_non_none ht) (by simp)
+    exact supported_dt_sel_of_non_none ht (ihx htx)
+  · by_cases hTesterWitness : ∃ s d i, f = SmtTerm.DtTester s d i
+    · rcases hTesterWitness with ⟨s, d, i, rfl⟩
+      exact supported_preservation_term.dt_tester s d i x
+    · have hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j := by
+        intro s d i j hEq
+        exact hSelWitness ⟨s, d, i, j, hEq⟩
+      have hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i := by
+        intro s d i hEq
+        exact hTesterWitness ⟨s, d, i, hEq⟩
+      have hTy : generic_apply_type f x :=
+        generic_apply_type_of_non_datatype_head hSel hTester
+      have hEval : generic_apply_eval f x :=
+        generic_apply_eval_of_non_datatype_head hSel hTester
+      have hTyEq :
+          __smtx_typeof (SmtTerm.Apply f x) =
+            __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) := by
+        unfold generic_apply_type at hTy
+        exact hTy
+      have hApplyNN :
+          __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+        intro hNone
+        apply ht
+        rw [hTyEq]
+        exact hNone
+      rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hF, hX, hA, hB⟩
+      have htf : term_has_non_none_type f := by
+        cases hF with
+        | inl hFun =>
+            exact term_has_non_none_of_type_eq hFun (by simp)
+        | inr hFun =>
+            exact term_has_non_none_of_type_eq hFun (by simp)
+      have htx : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hX hA
+      exact supported_preservation_term.apply
+        hTy hEval htf (ihf htf) htx (ihx htx)
+
 /-- Restates supported type preservation using an inhabited-type hypothesis. -/
 theorem supported_type_preservation_of_inhabited_type
     (M : SmtModel)
