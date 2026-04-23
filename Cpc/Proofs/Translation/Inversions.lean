@@ -240,6 +240,44 @@ theorem eo_to_smt_type_tuple_ne_map
         | sum c' d'' =>
             simp
 
+/-- Simplifies EO-to-SMT type translation for `tuple_ne_fun`. -/
+theorem eo_to_smt_type_tuple_ne_fun
+    (U V A B : SmtType) :
+    __eo_to_smt_type_tuple U V ≠ SmtType.FunType A B := by
+  cases V <;> try simp [__eo_to_smt_type_tuple]
+  case Datatype s d =>
+    cases d with
+    | null =>
+        simp
+    | sum c d' =>
+        cases d' with
+        | null =>
+            by_cases hs : s = "_at_Tuple"
+            · subst hs
+              simp
+            · simp [hs]
+        | sum c' d'' =>
+            simp
+
+/-- Simplifies EO-to-SMT type translation for `tuple_ne_dtc_app`. -/
+theorem eo_to_smt_type_tuple_ne_dtc_app
+    (U V A B : SmtType) :
+    __eo_to_smt_type_tuple U V ≠ SmtType.DtcAppType A B := by
+  cases V <;> try simp [__eo_to_smt_type_tuple]
+  case Datatype s d =>
+    cases d with
+    | null =>
+        simp
+    | sum c d' =>
+        cases d' with
+        | null =>
+            by_cases hs : s = "_at_Tuple"
+            · subst hs
+              simp
+            · simp [hs]
+        | sum c' d'' =>
+            simp
+
 /-- Simplifies EO-to-SMT type translation for `fun_ne_bool`. -/
 private theorem eo_to_smt_type_fun_ne_bool
     (T U : Term) :
@@ -303,6 +341,13 @@ private theorem eo_to_smt_type_fun_ne_map
   cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
     simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
+/-- Simplifies EO-to-SMT type translation for `fun_ne_dtc_app`. -/
+private theorem eo_to_smt_type_fun_ne_dtc_app
+    (T U : Term) (V W : SmtType) :
+    __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) ≠ SmtType.DtcAppType V W := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
 /-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
 private theorem eo_to_smt_type_dtc_app_ne_bool
     (T U : Term) :
@@ -363,6 +408,13 @@ private theorem eo_to_smt_type_dtc_app_ne_set
 private theorem eo_to_smt_type_dtc_app_ne_map
     (T U : Term) (V W : SmtType) :
     __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Map V W := by
+  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
+    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
+
+/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
+private theorem eo_to_smt_type_dtc_app_ne_fun
+    (T U : Term) (V W : SmtType) :
+    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.FunType V W := by
   cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
     simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
@@ -808,6 +860,106 @@ theorem eo_to_smt_type_eq_map
               case Array =>
                   exact ⟨y, x, rfl, (eo_to_smt_type_array_inners y x h).1,
                     (eo_to_smt_type_array_inners y x h).2⟩
+          | _ =>
+              simp [__eo_to_smt_type] at h
+      | _ =>
+          simp [__eo_to_smt_type] at h
+  | _ =>
+      simp [__eo_to_smt_type] at h
+
+/-- Simplifies EO-to-SMT type translation for `eq_fun`. -/
+theorem eo_to_smt_type_eq_fun
+    {T : Term} {A B : SmtType}
+    (h : __eo_to_smt_type T = SmtType.FunType A B) :
+    ∃ U V, T = Term.Apply (Term.Apply Term.FunType U) V ∧
+      __eo_to_smt_type U = A ∧ __eo_to_smt_type V = B := by
+  cases T with
+  | Bool =>
+      simp [__eo_to_smt_type] at h
+  | UOp op =>
+      cases op <;> simp [__eo_to_smt_type] at h
+  | DtcAppType T U =>
+      exact (eo_to_smt_type_dtc_app_ne_fun T U A B h).elim
+  | Apply f x =>
+      cases f with
+      | UOp op =>
+          cases op <;> try simp [__eo_to_smt_type] at h
+          case Seq =>
+              cases hx : __eo_to_smt_type x <;>
+                simp [__smtx_typeof_guard, native_ite, native_Teq, hx] at h
+          case Set =>
+              cases hx : __eo_to_smt_type x <;>
+                simp [__smtx_typeof_guard, native_ite, native_Teq, hx] at h
+          case BitVec =>
+              cases x <;> simp [__eo_to_smt_type] at h
+      | Apply f y =>
+          cases f with
+          | FunType =>
+              have hParts : __eo_to_smt_type y = A ∧ __eo_to_smt_type x = B := by
+                cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+                  simpa [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq,
+                    hy, hx] using h
+              exact ⟨y, x, rfl, hParts.1, hParts.2⟩
+          | UOp op =>
+              cases op <;> try simp [__eo_to_smt_type] at h
+              case Tuple =>
+                  exact
+                    (eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type y) (__eo_to_smt_type x) A B h).elim
+              case Array =>
+                  cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+                    simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
+          | _ =>
+              simp [__eo_to_smt_type] at h
+      | _ =>
+          simp [__eo_to_smt_type] at h
+  | _ =>
+      simp [__eo_to_smt_type] at h
+
+/-- Simplifies EO-to-SMT type translation for `eq_dtc_app`. -/
+theorem eo_to_smt_type_eq_dtc_app
+    {T : Term} {A B : SmtType}
+    (h : __eo_to_smt_type T = SmtType.DtcAppType A B) :
+    ∃ U V, T = Term.DtcAppType U V ∧
+      __eo_to_smt_type U = A ∧ __eo_to_smt_type V = B := by
+  cases T with
+  | Bool =>
+      simp [__eo_to_smt_type] at h
+  | UOp op =>
+      cases op <;> simp [__eo_to_smt_type] at h
+  | DtcAppType U V =>
+      have hParts : __eo_to_smt_type U = A ∧ __eo_to_smt_type V = B := by
+        cases hU : __eo_to_smt_type U <;> cases hV : __eo_to_smt_type V <;>
+          simpa [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq,
+            hU, hV] using h
+      exact ⟨U, V, rfl, hParts.1, hParts.2⟩
+  | Apply f x =>
+      cases f with
+      | UOp op =>
+          cases op <;> try simp [__eo_to_smt_type] at h
+          case Seq =>
+              cases hx : __eo_to_smt_type x <;>
+                simp [__smtx_typeof_guard, native_ite, native_Teq, hx] at h
+          case Set =>
+              cases hx : __eo_to_smt_type x <;>
+                simp [__smtx_typeof_guard, native_ite, native_Teq, hx] at h
+          case BitVec =>
+              cases x <;> try simp [__eo_to_smt_type] at h
+              case Numeral n =>
+                  by_cases hn : native_zleq 0 n = true
+                  · simp [__eo_to_smt_type, native_ite, hn] at h
+                  · simp [__eo_to_smt_type, native_ite, hn] at h
+      | Apply f y =>
+          cases f with
+          | FunType =>
+              exact (eo_to_smt_type_fun_ne_dtc_app y x A B h).elim
+          | UOp op =>
+              cases op <;> try simp [__eo_to_smt_type] at h
+              case Tuple =>
+                  exact
+                    (eo_to_smt_type_tuple_ne_dtc_app (__eo_to_smt_type y) (__eo_to_smt_type x) A B h).elim
+              case Array =>
+                  cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
+                    simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
           | _ =>
               simp [__eo_to_smt_type] at h
       | _ =>

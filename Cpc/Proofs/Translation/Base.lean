@@ -215,4 +215,31 @@ theorem smtx_typeof_binary_of_non_none
   unfold __smtx_typeof
   simp [hAnd, native_ite]
 
+/-- A non-`None` BV-size witness must come from a bitvector SMT type. -/
+theorem smtx_bv_sizeof_term_non_none
+    (t : SmtTerm)
+    (h :
+      __smtx_typeof
+          (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof t)
+           native_ite (native_zleq 0 _v0) (SmtTerm.Numeral _v0) SmtTerm.None) ≠
+        SmtType.None) :
+    ∃ w : native_Nat, __smtx_typeof t = SmtType.BitVec w := by
+  cases hTy : __smtx_typeof t with
+  | BitVec w =>
+      exact ⟨w, by simp [hTy]⟩
+  | _ =>
+      exfalso
+      have hNone :
+          __smtx_typeof
+              (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof t)
+               native_ite (native_zleq 0 _v0) (SmtTerm.Numeral _v0) SmtTerm.None) =
+            SmtType.None := by
+        have hNeg : native_zleq 0 (native_zneg 1) = false := by
+          native_decide
+        rw [hTy]
+        simp [__smtx_bv_sizeof_type, hNeg, native_ite]
+        unfold __smtx_typeof
+        rfl
+      exact h hNone
+
 end TranslationProofs
