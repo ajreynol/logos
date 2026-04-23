@@ -403,13 +403,55 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
       x (Term.Apply g y) A B hHeadEo hX).symm
 
 /-- Purified selector heads keep the selector result EO type. -/
+private theorem eo_to_smt_eq_dt_sel_cases
+    (y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
+    (hy : __eo_to_smt y = SmtTerm.DtSel s d i j) :
+    (∃ d0, d = __eo_to_smt_datatype d0 ∧ y = Term.DtSel s d0 i j) ∨
+      (∃ z, y = Term._at_purify z ∧ __eo_to_smt z = SmtTerm.DtSel s d i j) := by
+  sorry
+
+/-- Purified selector heads keep the selector result EO type. -/
 private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
     (x y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
     (hy : __eo_to_smt y = SmtTerm.DtSel s d i j)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s d) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) =
       __smtx_ret_typeof_sel s d i j := by
-  sorry
+  rcases eo_to_smt_eq_dt_sel_cases y s d i j hy with hSel | hPurify
+  · rcases hSel with ⟨d0, hd, rfl⟩
+    have hx' : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s (__eo_to_smt_datatype d0) := by
+      simpa [hd] using hx
+    have hHeadEq :
+        __eo_typeof (Term._at_purify (Term.DtSel s d0 i j)) =
+          __eo_typeof (Term.DtSel s d0 i j) := by
+      rfl
+    have hApplyEq :
+        __eo_typeof (Term.Apply (Term._at_purify (Term.DtSel s d0 i j)) x) =
+          __eo_typeof (Term.Apply (Term.DtSel s d0 i j) x) := by
+      change
+        __eo_typeof_apply (__eo_typeof (Term._at_purify (Term.DtSel s d0 i j))) (__eo_typeof x) =
+          __eo_typeof_apply (__eo_typeof (Term.DtSel s d0 i j)) (__eo_typeof x)
+      rw [hHeadEq]
+    rw [hApplyEq]
+    simpa [hd] using
+      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype x s d0 i j hx')
+  · rcases hPurify with ⟨z, rfl, hz⟩
+    have hHeadEq :
+        __eo_typeof (Term._at_purify (Term._at_purify z)) =
+          __eo_typeof (Term._at_purify z) := by
+      change
+        __eo_typeof__at_purify (__eo_typeof (Term._at_purify z)) =
+          __eo_typeof (Term._at_purify z)
+      cases hTy : __eo_typeof (Term._at_purify z) <;> rfl
+    have hApplyEq :
+        __eo_typeof (Term.Apply (Term._at_purify (Term._at_purify z)) x) =
+          __eo_typeof (Term.Apply (Term._at_purify z) x) := by
+      change
+        __eo_typeof_apply (__eo_typeof (Term._at_purify (Term._at_purify z))) (__eo_typeof x) =
+          __eo_typeof_apply (__eo_typeof (Term._at_purify z)) (__eo_typeof x)
+      rw [hHeadEq]
+    rw [hApplyEq]
+    exact eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation x z s d i j hz hx
 
 /-- Purified tester heads still have stuck EO application type. -/
 private theorem eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation
