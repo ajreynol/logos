@@ -239,6 +239,52 @@ private theorem typeof_binary_one_eq :
   simpa using smtx_typeof_binary_of_non_none 1 1 hNN
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_apply_generic`. -/
+private theorem eo_to_smt_typeof_matches_translation_apply_generic
+    (f x : Term)
+    (ihF :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
+    (hGeneric :
+      generic_apply_type (__eo_to_smt f) (__eo_to_smt x))
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+      __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
+  have hApplyNN :
+      __smtx_typeof_apply
+          (__smtx_typeof (__eo_to_smt f))
+          (__smtx_typeof (__eo_to_smt x)) ≠
+        SmtType.None := by
+    have hApplyNN' :
+        __smtx_typeof
+            (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) ≠
+          SmtType.None := by
+      simpa [hTranslate] using hNonNone
+    rw [hGeneric] at hApplyNN'
+    exact hApplyNN'
+  rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
+  have hHeadNN :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None := by
+    exact smtx_head_non_none_of_apply_cases hHead
+  have hHeadEo :
+      __eo_to_smt_type (__eo_typeof f) = SmtType.FunType A B ∨
+        __eo_to_smt_type (__eo_typeof f) = SmtType.DtcAppType A B := by
+    rw [← ihF hHeadNN]
+    exact hHead
+  have hSmt :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
+    rw [hTranslate]
+    rw [hGeneric]
+    exact smtx_typeof_apply_of_head_cases hHead hX hA
+  exact hSmt.trans
+    (eo_to_smt_type_typeof_apply_of_smt_apply
+      x f A B hHeadEo hX).symm
+
+/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_apply_generic`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
     (g z y x : Term)
     (ihF :
@@ -1385,29 +1431,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
           exact hNonNone
         have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or)
           (typeof_or_eq (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
-        have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-          rw [hArgs.1]
-          simp
-        have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-          rw [hArgs.2]
-          simp
-        have hYTyped := ihY hYNonNone
-        have hXTyped := ihX hXNonNone
-        have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Bool := by
-          rw [← hYTyped]
-          exact hArgs.1
-        have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Bool := by
-          rw [← hXTyped]
-          exact hArgs.2
-        have hyEo : __eo_typeof y = Term.Bool := eo_to_smt_type_eq_bool hySmt
-        have hxEo : __eo_typeof x = Term.Bool := eo_to_smt_type_eq_bool hxSmt
         have hSmt :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x)) =
               SmtType.Bool := by
           rw [hTranslate]
           rw [typeof_or_eq (__eo_to_smt y) (__eo_to_smt x)]
           simp [hArgs.1, hArgs.2, native_ite, native_Teq]
-        exact hSmt.trans (eo_to_smt_type_typeof_apply_apply_or_of_bool x y hyEo hxEo).symm
+        exact hSmt.trans
+          (eo_to_smt_type_typeof_apply_apply_or_of_smt_bool x y hArgs.1 hArgs.2).symm
       case and =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) =
@@ -1421,22 +1452,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
           exact hNonNone
         have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and)
           (typeof_and_eq (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
-        have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-          rw [hArgs.1]
-          simp
-        have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-          rw [hArgs.2]
-          simp
-        have hYTyped := ihY hYNonNone
-        have hXTyped := ihX hXNonNone
-        have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Bool := by
-          rw [← hYTyped]
-          exact hArgs.1
-        have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Bool := by
-          rw [← hXTyped]
-          exact hArgs.2
-        have hyEo : __eo_typeof y = Term.Bool := eo_to_smt_type_eq_bool hySmt
-        have hxEo : __eo_typeof x = Term.Bool := eo_to_smt_type_eq_bool hxSmt
         have hSmt :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x)) =
               SmtType.Bool := by
@@ -1444,7 +1459,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           rw [typeof_and_eq (__eo_to_smt y) (__eo_to_smt x)]
           simp [hArgs.1, hArgs.2, native_ite, native_Teq]
         exact hSmt.trans
-          (eo_to_smt_type_typeof_apply_apply_and_of_bool x y hyEo hxEo).symm
+          (eo_to_smt_type_typeof_apply_apply_and_of_smt_bool x y hArgs.1 hArgs.2).symm
       case imp =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) y) x) =
@@ -1458,22 +1473,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
           exact hNonNone
         have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.imp)
           (typeof_imp_eq (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
-        have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-          rw [hArgs.1]
-          simp
-        have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-          rw [hArgs.2]
-          simp
-        have hYTyped := ihY hYNonNone
-        have hXTyped := ihX hXNonNone
-        have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Bool := by
-          rw [← hYTyped]
-          exact hArgs.1
-        have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Bool := by
-          rw [← hXTyped]
-          exact hArgs.2
-        have hyEo : __eo_typeof y = Term.Bool := eo_to_smt_type_eq_bool hySmt
-        have hxEo : __eo_typeof x = Term.Bool := eo_to_smt_type_eq_bool hxSmt
         have hSmt :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) y) x)) =
               SmtType.Bool := by
@@ -1481,7 +1480,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           rw [typeof_imp_eq (__eo_to_smt y) (__eo_to_smt x)]
           simp [hArgs.1, hArgs.2, native_ite, native_Teq]
         exact hSmt.trans
-          (eo_to_smt_type_typeof_apply_apply_imp_of_bool x y hyEo hxEo).symm
+          (eo_to_smt_type_typeof_apply_apply_imp_of_smt_bool x y hArgs.1 hArgs.2).symm
       case xor =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.xor) y) x) =
@@ -1495,22 +1494,6 @@ theorem eo_to_smt_typeof_matches_translation_apply
           exact hNonNone
         have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.xor)
           (typeof_xor_eq (__eo_to_smt y) (__eo_to_smt x)) hApplyNN
-        have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-          rw [hArgs.1]
-          simp
-        have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-          rw [hArgs.2]
-          simp
-        have hYTyped := ihY hYNonNone
-        have hXTyped := ihX hXNonNone
-        have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Bool := by
-          rw [← hYTyped]
-          exact hArgs.1
-        have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Bool := by
-          rw [← hXTyped]
-          exact hArgs.2
-        have hyEo : __eo_typeof y = Term.Bool := eo_to_smt_type_eq_bool hySmt
-        have hxEo : __eo_typeof x = Term.Bool := eo_to_smt_type_eq_bool hxSmt
         have hSmt :
             __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.xor) y) x)) =
               SmtType.Bool := by
@@ -1518,7 +1501,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           rw [typeof_xor_eq (__eo_to_smt y) (__eo_to_smt x)]
           simp [hArgs.1, hArgs.2, native_ite, native_Teq]
         exact hSmt.trans
-          (eo_to_smt_type_typeof_apply_apply_xor_of_bool x y hyEo hxEo).symm
+          (eo_to_smt_type_typeof_apply_apply_xor_of_smt_bool x y hArgs.1 hArgs.2).symm
       case plus =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) y) x) =
@@ -1532,59 +1515,24 @@ theorem eo_to_smt_typeof_matches_translation_apply
           exact hNonNone
         rcases arith_binop_args_of_non_none (op := SmtTerm.plus)
             (typeof_plus_eq (__eo_to_smt y) (__eo_to_smt x)) hApplyNN with hArgs | hArgs
-        · have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-            rw [hArgs.1]
-            simp
-          have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-            rw [hArgs.2]
-            simp
-          have hYTyped := ihY hYNonNone
-          have hXTyped := ihX hXNonNone
-          have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Int := by
-            rw [← hYTyped]
-            exact hArgs.1
-          have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-            rw [← hXTyped]
-            exact hArgs.2
-          have hyEo : __eo_typeof y = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hySmt
-          have hxEo : __eo_typeof x = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hxSmt
-          have hSmt :
+        · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) y) x)) =
                 SmtType.Int := by
             rw [hTranslate]
             rw [typeof_plus_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
           exact hSmt.trans
-            (eo_to_smt_type_typeof_apply_apply_plus_of_arith_type
-              x y (Term.UOp UserOp.Int) hyEo hxEo (Or.inl rfl)).symm
+            (eo_to_smt_type_typeof_apply_apply_plus_of_smt_arith
+              x y SmtType.Int hArgs.1 hArgs.2 (Or.inl rfl)).symm
         · have hSmt :
-              __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) y) x)) =
-                SmtType.Real := by
-          have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-            rw [hArgs.1]
-            simp
-          have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-            rw [hArgs.2]
-            simp
-          have hYTyped := ihY hYNonNone
-          have hXTyped := ihX hXNonNone
-          have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Real := by
-            rw [← hYTyped]
-            exact hArgs.1
-          have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
-            rw [← hXTyped]
-            exact hArgs.2
-          have hyEo : __eo_typeof y = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hySmt
-          have hxEo : __eo_typeof x = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hxSmt
-          have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) y) x)) =
                 SmtType.Real := by
             rw [hTranslate]
             rw [typeof_plus_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
           exact hSmt.trans
-            (eo_to_smt_type_typeof_apply_apply_plus_of_arith_type
-              x y (Term.UOp UserOp.Real) hyEo hxEo (Or.inr rfl)).symm
+            (eo_to_smt_type_typeof_apply_apply_plus_of_smt_arith
+              x y SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
       case neg =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) y) x) =
@@ -1601,53 +1549,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) y) x)) =
                 SmtType.Int := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Int := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hxSmt
             rw [hTranslate]
             rw [typeof_neg_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_neg_of_arith_type
-                x y (Term.UOp UserOp.Int) hyEo hxEo (Or.inl rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_neg_of_smt_arith
+              x y SmtType.Int hArgs.1 hArgs.2 (Or.inl rfl)).symm
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) y) x)) =
                 SmtType.Real := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Real := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hxSmt
             rw [hTranslate]
             rw [typeof_neg_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_neg_of_arith_type
-                x y (Term.UOp UserOp.Real) hyEo hxEo (Or.inr rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_neg_of_smt_arith
+              x y SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
       case mult =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) y) x) =
@@ -1664,53 +1580,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) y) x)) =
                 SmtType.Int := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Int := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hxSmt
             rw [hTranslate]
             rw [typeof_mult_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_mult_of_arith_type
-                x y (Term.UOp UserOp.Int) hyEo hxEo (Or.inl rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_mult_of_smt_arith
+              x y SmtType.Int hArgs.1 hArgs.2 (Or.inl rfl)).symm
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) y) x)) =
                 SmtType.Real := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Real := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hxSmt
             rw [hTranslate]
             rw [typeof_mult_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_mult_of_arith_type
-                x y (Term.UOp UserOp.Real) hyEo hxEo (Or.inr rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_mult_of_smt_arith
+              x y SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
       case lt =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.lt) y) x) =
@@ -1727,53 +1611,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.lt) y) x)) =
                 SmtType.Bool := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Int := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hxSmt
             rw [hTranslate]
             rw [typeof_lt_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_lt_of_arith_type
-                x y (Term.UOp UserOp.Int) hyEo hxEo (Or.inl rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_lt_of_smt_arith
+              x y SmtType.Int hArgs.1 hArgs.2 (Or.inl rfl)).symm
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.lt) y) x)) =
                 SmtType.Bool := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Real := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hxSmt
             rw [hTranslate]
             rw [typeof_lt_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_lt_of_arith_type
-                x y (Term.UOp UserOp.Real) hyEo hxEo (Or.inr rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_lt_of_smt_arith
+              x y SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
       case leq =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.leq) y) x) =
@@ -1790,53 +1642,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.leq) y) x)) =
                 SmtType.Bool := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Int := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hxSmt
             rw [hTranslate]
             rw [typeof_leq_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_leq_of_arith_type
-                x y (Term.UOp UserOp.Int) hyEo hxEo (Or.inl rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_leq_of_smt_arith
+              x y SmtType.Int hArgs.1 hArgs.2 (Or.inl rfl)).symm
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.leq) y) x)) =
                 SmtType.Bool := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Real := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hxSmt
             rw [hTranslate]
             rw [typeof_leq_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_leq_of_arith_type
-                x y (Term.UOp UserOp.Real) hyEo hxEo (Or.inr rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_leq_of_smt_arith
+              x y SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
       case gt =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.gt) y) x) =
@@ -1853,53 +1673,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.gt) y) x)) =
                 SmtType.Bool := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Int := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hxSmt
             rw [hTranslate]
             rw [typeof_gt_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_gt_of_arith_type
-                x y (Term.UOp UserOp.Int) hyEo hxEo (Or.inl rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_gt_of_smt_arith
+              x y SmtType.Int hArgs.1 hArgs.2 (Or.inl rfl)).symm
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.gt) y) x)) =
                 SmtType.Bool := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Real := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hxSmt
             rw [hTranslate]
             rw [typeof_gt_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_gt_of_arith_type
-                x y (Term.UOp UserOp.Real) hyEo hxEo (Or.inr rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_gt_of_smt_arith
+              x y SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
       case geq =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) y) x) =
@@ -1916,53 +1704,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) y) x)) =
                 SmtType.Bool := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Int := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Int := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Int := eo_to_smt_type_eq_int hxSmt
             rw [hTranslate]
             rw [typeof_geq_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_geq_of_arith_type
-                x y (Term.UOp UserOp.Int) hyEo hxEo (Or.inl rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_geq_of_smt_arith
+              x y SmtType.Int hArgs.1 hArgs.2 (Or.inl rfl)).symm
         · have hSmt :
               __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) y) x)) =
                 SmtType.Bool := by
-            have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
-              rw [hArgs.1]
-              simp
-            have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-              rw [hArgs.2]
-              simp
-            have hYTyped := ihY hYNonNone
-            have hXTyped := ihX hXNonNone
-            have hySmt : __eo_to_smt_type (__eo_typeof y) = SmtType.Real := by
-              rw [← hYTyped]
-              exact hArgs.1
-            have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Real := by
-              rw [← hXTyped]
-              exact hArgs.2
-            have hyEo : __eo_typeof y = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hySmt
-            have hxEo : __eo_typeof x = Term.UOp UserOp.Real := eo_to_smt_type_eq_real hxSmt
             rw [hTranslate]
             rw [typeof_geq_eq (__eo_to_smt y) (__eo_to_smt x)]
             simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
-            exact hSmt.trans
-              (eo_to_smt_type_typeof_apply_apply_geq_of_arith_type
-                x y (Term.UOp UserOp.Real) hyEo hxEo (Or.inr rfl)).symm
+          exact hSmt.trans
+            (eo_to_smt_type_typeof_apply_apply_geq_of_smt_arith
+              x y SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
       case div =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.div) y) x) =
@@ -3558,8 +3314,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
               cases (hHeadTy.symm.trans hHead)
         all_goals
           sorry
-      all_goals sorry
-    all_goals sorry
+      all_goals
+        sorry
+    all_goals
+      sorry
   case UOp op =>
     cases op
     case not =>
