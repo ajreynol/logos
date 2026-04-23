@@ -612,6 +612,60 @@ private theorem concat_preserves_bool_type {c1 c2 : Term} :
   simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
   exact concat_rec_preserves_bool_type hC1 hC1Bool hC2Bool
 
+private theorem concat_rec_bool_type_implies_right {c1 c2 : Term} :
+    OrClause c1 ->
+    RuleProofs.eo_has_bool_type (__eo_list_concat_rec c1 c2) ->
+    RuleProofs.eo_has_bool_type c2 := by
+  intro hC1 hConcatBool
+  have concat_rec_false (z : Term) :
+      __eo_list_concat_rec (Term.Boolean false) z = z := by
+    cases z <;> simp [__eo_list_concat_rec]
+  have concat_rec_cons (x xs z : Term) :
+      __eo_list_concat_rec xs z ≠ Term.Stuck ->
+      __eo_list_concat_rec (Term.Apply (Term.Apply Term.or x) xs) z =
+        Term.Apply (Term.Apply Term.or x) (__eo_list_concat_rec xs z) := by
+    intro hTail
+    cases z with
+    | Stuck =>
+        have hStuck : __eo_list_concat_rec xs Term.Stuck = Term.Stuck := by
+          cases xs <;> simp [__eo_list_concat_rec]
+        exact False.elim (hTail hStuck)
+    | _ =>
+        simp [__eo_list_concat_rec, __eo_mk_apply]
+  have concat_rec_cons_tail_ne_stuck (x xs z : Term) :
+      __eo_list_concat_rec (Term.Apply (Term.Apply Term.or x) xs) z ≠ Term.Stuck ->
+      __eo_list_concat_rec xs z ≠ Term.Stuck := by
+    intro hConcat hTail
+    cases z <;> simp [__eo_list_concat_rec, __eo_mk_apply, hTail] at hConcat
+  induction hC1 generalizing c2 with
+  | false =>
+      rw [concat_rec_false c2] at hConcatBool
+      exact hConcatBool
+  | cons x xs hXs ih =>
+      have hConcatNe :
+          __eo_list_concat_rec (Term.Apply (Term.Apply Term.or x) xs) c2 ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type _ hConcatBool
+      have hTailNe : __eo_list_concat_rec xs c2 ≠ Term.Stuck :=
+        concat_rec_cons_tail_ne_stuck x xs c2 hConcatNe
+      rw [concat_rec_cons x xs c2 hTailNe] at hConcatBool
+      have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_concat_rec xs c2) :=
+        RuleProofs.eo_has_bool_type_or_right x (__eo_list_concat_rec xs c2) hConcatBool
+      exact ih hTailBool
+
+private theorem concat_bool_type_implies_right {c1 c2 : Term} :
+    OrClause c1 ->
+    OrClause c2 ->
+    RuleProofs.eo_has_bool_type (__eo_list_concat Term.or c1 c2) ->
+    RuleProofs.eo_has_bool_type c2 := by
+  intro hC1 hC2 hConcatBool
+  change RuleProofs.eo_has_bool_type
+    (__eo_requires (__eo_is_list Term.or c1) (Term.Boolean true)
+      (__eo_requires (__eo_is_list Term.or c2) (Term.Boolean true)
+        (__eo_list_concat_rec c1 c2))) at hConcatBool
+  rw [orClause_is_list_true hC1, orClause_is_list_true hC2] at hConcatBool
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hConcatBool
+  exact concat_rec_bool_type_implies_right hC1 hConcatBool
+
 private theorem concat_rec_true_of_left_true
     (M : SmtModel) (hM : model_total_typed M) {c1 c2 : Term} :
     OrClause c1 ->
@@ -1414,6 +1468,154 @@ private theorem chain_m_resolve_rec_step_false_false_implies_good
   · exact GoodOrClause.cons (Term.Apply Term.not L) rl
       (not_ne_stuck hLNe)
       (Or.inl (not_has_bool_type_of_not_bool hLBool)) hRlGood
+
+private theorem chain_m_resolve_rec_step_true_false_implies_prev_false
+    (M : SmtModel) (hM : model_total_typed M) {Cr rl Cc Cr' L : Term} :
+    OrClause Cr ->
+    GoodOrClause M rl ->
+    OrClause Cc ->
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl)
+      Cc (Term.Boolean true) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr')
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl) ->
+    eo_interprets M Cr' false ->
+    eo_interprets M Cr false := by
+  intro hCr hRlGood hCc hCcBool hLTrans hStep hCr'False
+  have hRlNe : rl ≠ Term.Stuck :=
+    safe_orClause_ne_stuck (safe_orClause_of_good hRlGood)
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  have hCcNe : Cc ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+  by_cases hEq : Term.Apply Term.not L = Cc
+  · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean true :=
+      eo_eq_eq_true_of_eq hEq (not_ne_stuck hLNe) hCcNe
+    have hStep' := hStep
+    unfold __chain_m_resolve_rec_step at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    rw [hStep']
+    exact hCr'False
+  · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hEq (not_ne_stuck hLNe) hCcNe
+    have hDeleteSafe :
+        SafeOrClause (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl) :=
+      safe_orClause_cons (not_ne_stuck hLNe) (safe_orClause_of_good hRlGood)
+    have hDiffClause :
+        OrClause
+          (__eo_list_diff Term.or Cc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl)) :=
+      diff_preserves_orClause hCc hCcBool hDeleteSafe
+    have hDiffBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_diff Term.or Cc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl)) :=
+      diff_preserves_bool_type hCc hCcBool hDeleteSafe
+    have hConcatNe :
+        __eo_list_concat Term.or
+          (__eo_list_diff Term.or Cc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl))
+          Cr ≠ Term.Stuck := by
+      intro hConcat
+      have hStep' := hStep
+      unfold __chain_m_resolve_rec_step at hStep'
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+        at hStep'
+    have hStep' := hStep
+    unfold __chain_m_resolve_rec_step at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+      at hStep'
+    have hConcatFalse :
+        eo_interprets M
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or Cc
+              (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl))
+            Cr) false := by
+      rw [hStep']
+      exact hCr'False
+    have hConcatBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or Cc
+              (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl))
+            Cr) :=
+      RuleProofs.eo_has_bool_type_of_interprets_false M _ hConcatFalse
+    have hCrBool : RuleProofs.eo_has_bool_type Cr :=
+      concat_bool_type_implies_right hDiffClause hCr hConcatBool
+    exact concat_false_implies_right_false M hM hDiffClause hCr hDiffBool hCrBool hConcatFalse
+
+private theorem chain_m_resolve_rec_step_false_false_implies_prev_false
+    (M : SmtModel) (hM : model_total_typed M) {Cr rl Cc Cr' L : Term} :
+    OrClause Cr ->
+    GoodOrClause M rl ->
+    OrClause Cc ->
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl)
+      Cc (Term.Boolean false) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr')
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl) ->
+    eo_interprets M Cr' false ->
+    eo_interprets M Cr false := by
+  intro hCr hRlGood hCc hCcBool hLTrans hStep hCr'False
+  have hRlNe : rl ≠ Term.Stuck :=
+    safe_orClause_ne_stuck (safe_orClause_of_good hRlGood)
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  have hCcNe : Cc ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+  by_cases hEq : L = Cc
+  · have hEqTerm : __eo_eq L Cc = Term.Boolean true :=
+      eo_eq_eq_true_of_eq hEq hLNe hCcNe
+    have hStep' := hStep
+    unfold __chain_m_resolve_rec_step at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    rw [hStep']
+    exact hCr'False
+  · have hEqTerm : __eo_eq L Cc = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hEq hLNe hCcNe
+    have hDeleteSafe :
+        SafeOrClause (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl) :=
+      safe_orClause_cons hLNe (safe_orClause_of_good hRlGood)
+    have hDiffClause :
+        OrClause (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) :=
+      diff_preserves_orClause hCc hCcBool hDeleteSafe
+    have hDiffBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) :=
+      diff_preserves_bool_type hCc hCcBool hDeleteSafe
+    have hConcatNe :
+        __eo_list_concat Term.or
+          (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))
+          Cr ≠ Term.Stuck := by
+      intro hConcat
+      have hStep' := hStep
+      unfold __chain_m_resolve_rec_step at hStep'
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+        at hStep'
+    have hStep' := hStep
+    unfold __chain_m_resolve_rec_step at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+      at hStep'
+    have hConcatFalse :
+        eo_interprets M
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))
+            Cr) false := by
+      rw [hStep']
+      exact hCr'False
+    have hConcatBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))
+            Cr) :=
+      RuleProofs.eo_has_bool_type_of_interprets_false M _ hConcatFalse
+    have hCrBool : RuleProofs.eo_has_bool_type Cr :=
+      concat_bool_type_implies_right hDiffClause hCr hConcatBool
+    exact concat_false_implies_right_false M hM hDiffClause hCr hDiffBool hCrBool hConcatFalse
 
 private theorem from_clause_preserves_bool_type {c : Term} :
     OrClause c ->
