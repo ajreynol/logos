@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.CnfSupport
 import Cpc.Proofs.RuleSupport.StringSupport
 
 open Eo
@@ -240,6 +241,25 @@ private theorem eo_interprets_or_left_of_right_false
           rw [hEvalA, hEvalB, __smtx_model_eval_or, SmtEval.native_or] at hEvalOr
           cases a <;> simp at hEvalOr
           exact hEvalA
+
+private theorem eo_interprets_or_false_intro
+    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    eo_interprets M A false ->
+    eo_interprets M B false ->
+    eo_interprets M (Term.Apply (Term.Apply Term.or A) B) false := by
+  intro hAFalse hBFalse
+  have hABool : RuleProofs.eo_has_bool_type A :=
+    RuleProofs.eo_has_bool_type_of_interprets_false M A hAFalse
+  have hBBool : RuleProofs.eo_has_bool_type B :=
+    RuleProofs.eo_has_bool_type_of_interprets_false M B hBFalse
+  have hOrBool : RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.or A) B) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args A B hABool hBBool
+  rcases CnfSupport.eo_interprets_bool_cases M hM (Term.Apply (Term.Apply Term.or A) B) hOrBool with
+    hOrTrue | hOrFalse
+  · have hATrue : eo_interprets M A true :=
+      eo_interprets_or_left_of_right_false M hM A B hBFalse hOrTrue
+    exact False.elim ((RuleProofs.eo_interprets_true_not_false M _ hATrue) hAFalse)
+  · exact hOrFalse
 
 private theorem eo_interprets_not_false_of_true (M : SmtModel) (t : Term) :
     eo_interprets M t true ->
@@ -773,6 +793,35 @@ private theorem good_orClause_cons {M : SmtModel} {x xs : Term} :
   intro hX hGood hXs
   exact GoodOrClause.cons x xs hX hGood hXs
 
+private theorem good_orClause_false_of_bool
+    (M : SmtModel) (hM : model_total_typed M) {c : Term} :
+    GoodOrClause M c ->
+    RuleProofs.eo_has_bool_type c ->
+    eo_interprets M c false := by
+  intro hGood hCBool
+  induction hGood with
+  | false =>
+      exact eo_interprets_false M
+  | cons x xs hX hHead hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hXFalse : eo_interprets M x false := by
+        cases hHead with
+        | inl hNotBool =>
+            exact False.elim (hNotBool hXBool)
+        | inr hFalse =>
+            exact hFalse
+      have hXsFalse : eo_interprets M xs false := ih hXsBool
+      exact eo_interprets_or_false_intro M hM x xs hXFalse hXsFalse
+
+private theorem eo_list_translation_cons_inv {x xs : Term} :
+    EoListAllHaveSmtTranslation (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) ->
+    RuleProofs.eo_has_smt_translation x ∧ EoListAllHaveSmtTranslation xs := by
+  intro h
+  exact h
+
 private theorem erase_rec_preserves_safe {c e : Term} :
     SafeOrClause c ->
     e ≠ Term.Stuck ->
@@ -1116,6 +1165,88 @@ private theorem pair_eq_components {a b c d : Term} :
   have hA : a = c := by
     injection hPair with hA
   exact ⟨hA, hB⟩
+
+private theorem pair_ne_stuck {a b : Term} :
+    Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) a) b ≠ Term.Stuck := by
+  simp
+
+private theorem premiseAndFormulaList_andList
+    (premises : List Term) :
+    CnfSupport.AndList (premiseAndFormulaList premises) := by
+  induction premises with
+  | nil =>
+      simpa [premiseAndFormulaList] using CnfSupport.AndList.true
+  | cons p premises ih =>
+      simpa [premiseAndFormulaList] using
+        CnfSupport.AndList.cons p (premiseAndFormulaList premises) ih
+
+private theorem premiseAndFormulaList_ne_stuck
+    (premises : List Term) :
+    premiseAndFormulaList premises ≠ Term.Stuck := by
+  exact CnfSupport.andList_ne_stuck (premiseAndFormulaList_andList premises)
+
+private theorem chain_m_resolve_final_true_of_false_good
+    (M : SmtModel) (hM : model_total_typed M) {C1 C2 L rl : Term} :
+    OrClause C1 ->
+    OrClause C2 ->
+    RuleProofs.eo_has_bool_type C1 ->
+    eo_interprets M C1 true ->
+    eo_interprets M C2 false ->
+    GoodOrClause M (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl) ->
+    eo_interprets M
+      (__chain_m_resolve_final C1
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) C2)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))) true := by
+  intro hC1 hC2 hC1Bool hC1True hC2False hPendingGood
+  have hPendingSafe :
+      SafeOrClause (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl) :=
+    safe_orClause_of_good hPendingGood
+  have hC1Ne : C1 ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type C1 hC1Bool
+  have hC2Bool : RuleProofs.eo_has_bool_type C2 :=
+    RuleProofs.eo_has_bool_type_of_interprets_false M C2 hC2False
+  by_cases hEq : C1 = L
+  · cases hPendingGood with
+    | cons x xs hX hHead hTail =>
+        cases hHead with
+        | inl hNotBool =>
+            exact False.elim (hNotBool (by simpa [hEq] using hC1Bool))
+        | inr hLFalse =>
+            have hC1False : eo_interprets M C1 false := by
+              simpa [hEq] using hLFalse
+            exact False.elim
+              ((RuleProofs.eo_interprets_true_not_false M C1 hC1True) hC1False)
+  · have hLNe : L ≠ Term.Stuck := by
+      cases hPendingSafe with
+      | cons x xs hX hXs =>
+          simpa using hX
+    have hEqTerm : __eo_eq C1 L = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hEq hC1Ne hLNe
+    have hDiffClause :
+        OrClause
+          (__eo_list_diff Term.or C1
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) :=
+      diff_preserves_orClause hC1 hC1Bool hPendingSafe
+    have hDiffBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_diff Term.or C1
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) :=
+      diff_preserves_bool_type hC1 hC1Bool hPendingSafe
+    have hDiffTrue :
+        eo_interprets M
+          (__eo_list_diff Term.or C1
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) true :=
+      diff_true_of_good M hM hC1 hC1Bool hC1True hPendingGood
+    have hConcatTrue :
+        eo_interprets M
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or C1
+              (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))
+            C2) true :=
+      concat_true_of_left_true M hM hDiffClause hC2 hDiffBool hC2Bool hDiffTrue
+    unfold __chain_m_resolve_final
+    simp [hEqTerm, __eo_ite, native_ite, native_teq]
+    exact hConcatTrue
 
 private theorem from_clause_preserves_bool_type {c : Term} :
     OrClause c ->
