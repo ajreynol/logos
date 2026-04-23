@@ -355,6 +355,29 @@ theorem eo_to_smt_type_typeof_seq_empty
       __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) := by
   sorry
 
+/-- Stronger EO-side helper for `typeof_seq_empty`. -/
+theorem eo_to_smt_type_typeof_seq_empty_of_seq_type
+    (T : Term)
+    (hType : __eo_typeof T = Term.Type)
+    (hT : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T))) =
+      SmtType.Seq (__eo_to_smt_type T) := by
+  have hSeqType :
+      __eo_typeof (Term.Apply (Term.UOp UserOp.Seq) T) = Term.Type := by
+    change __eo_typeof_Seq (__eo_typeof T) = Term.Type
+    rw [hType]
+    rfl
+  change
+    __eo_to_smt_type
+        (__eo_typeof_seq_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) T))
+          (Term.Apply (Term.UOp UserOp.Seq) T)) =
+      SmtType.Seq (__eo_to_smt_type T)
+  rw [hSeqType]
+  change __eo_to_smt_type (__eo_disamb_type_seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) =
+    SmtType.Seq (__eo_to_smt_type T)
+  simp [__eo_disamb_type_seq_empty]
+  exact smtx_typeof_guard_of_non_none _ _ hT
+
 /-- Simplifies EO-to-SMT type translation for `typeof_set_empty`. -/
 theorem eo_to_smt_type_typeof_set_empty
     (x : Term)
@@ -362,6 +385,29 @@ theorem eo_to_smt_type_typeof_set_empty
     __eo_to_smt_type (__eo_typeof (Term.set_empty x)) =
       __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type x)) := by
   sorry
+
+/-- Stronger EO-side helper for `typeof_set_empty`. -/
+theorem eo_to_smt_type_typeof_set_empty_of_set_type
+    (T : Term)
+    (hType : __eo_typeof T = Term.Type)
+    (hT : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.set_empty (Term.Apply (Term.UOp UserOp.Set) T))) =
+      SmtType.Set (__eo_to_smt_type T) := by
+  have hSetType :
+      __eo_typeof (Term.Apply (Term.UOp UserOp.Set) T) = Term.Type := by
+    change __eo_typeof_Seq (__eo_typeof T) = Term.Type
+    rw [hType]
+    rfl
+  change
+    __eo_to_smt_type
+        (__eo_typeof_set_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.Set) T))
+          (Term.Apply (Term.UOp UserOp.Set) T)) =
+      SmtType.Set (__eo_to_smt_type T)
+  rw [hSetType]
+  change __eo_to_smt_type (__eo_disamb_type_set_empty (Term.Apply (Term.UOp UserOp.Set) T)) =
+    SmtType.Set (__eo_to_smt_type T)
+  simp [__eo_disamb_type_set_empty]
+  exact smtx_typeof_guard_of_non_none _ _ hT
 
 /-- Simplifies EO-to-SMT type translation for `typeof_purify`. -/
 theorem eo_to_smt_type_typeof_purify
@@ -404,6 +450,15 @@ theorem eo_to_smt_type_typeof_apply_at_bvsize
     (x : Term) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp._at_bvsize) x)) = SmtType.Int := by
   sorry
+
+/-- Stronger EO-side helper for `typeof_apply_at_bvsize`. -/
+theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec_type
+    (x w : Term)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp._at_bvsize) x)) = SmtType.Int := by
+  change __eo_to_smt_type (__eo_typeof__at_bvsize (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_not_of_bool`. -/
 theorem eo_to_smt_type_typeof_apply_not_of_bool
