@@ -2175,6 +2175,353 @@ private theorem ite_eq_stuck_of_ne_true_false (c t e : Term) :
   intro hTrue hFalse
   cases c <;> simp [__eo_ite, native_ite, native_teq, hTrue, hFalse]
 
+private theorem chain_m_resolve_rec_step_true_pair_input
+    {r Cc Cr' rl' L : Term} :
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step r Cc (Term.Boolean true) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr') rl' ->
+    ∃ Cr rl, r = Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+  intro hCcBool hLTrans hStep
+  have hCcNe : Cc ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  cases r with
+  | Stuck =>
+      simp [__chain_m_resolve_rec_step] at hStep
+  | Boolean b =>
+      simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+  | Apply f a =>
+      cases f with
+      | Apply g x =>
+          cases g with
+          | UOp op =>
+              cases op with
+              | _at__at_pair =>
+                  exact ⟨x, a, rfl⟩
+              | _ =>
+                  simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+          | _ =>
+              simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+      | _ =>
+          simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+  | _ =>
+      simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+
+private theorem chain_m_resolve_rec_step_false_pair_input
+    {r Cc Cr' rl' L : Term} :
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step r Cc (Term.Boolean false) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr') rl' ->
+    ∃ Cr rl, r = Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+  intro hCcBool hLTrans hStep
+  have hCcNe : Cc ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  cases r with
+  | Stuck =>
+      simp [__chain_m_resolve_rec_step] at hStep
+  | Boolean b =>
+      simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+  | Apply f a =>
+      cases f with
+      | Apply g x =>
+          cases g with
+          | UOp op =>
+              cases op with
+              | _at__at_pair =>
+                  exact ⟨x, a, rfl⟩
+              | _ =>
+                  simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+          | _ =>
+              simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+      | _ =>
+          simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+  | _ =>
+      simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+
+private theorem chain_m_resolve_rec_step_true_pair_pending
+    {Cr rl Cc Cr' rl' L : Term} :
+    SafeOrClause rl ->
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl)
+      Cc (Term.Boolean true) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr') rl' ->
+    rl' = Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl := by
+  intro hRlSafe hCcBool hLTrans hStep
+  have hRlNe : rl ≠ Term.Stuck := safe_orClause_ne_stuck hRlSafe
+  have hCcNe : Cc ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  by_cases hEq : Term.Apply Term.not L = Cc
+  · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean true :=
+      eo_eq_eq_true_of_eq hEq (not_ne_stuck hLNe) hCcNe
+    have hStep' := hStep
+    unfold __chain_m_resolve_rec_step at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    exact hStep'.2.symm
+  · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hEq (not_ne_stuck hLNe) hCcNe
+    have hConcatNe :
+        __eo_list_concat Term.or
+          (__eo_list_diff Term.or Cc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl))
+          Cr ≠ Term.Stuck := by
+      intro hConcat
+      have hStep' := hStep
+      unfold __chain_m_resolve_rec_step at hStep'
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+        at hStep'
+    have hStep' := hStep
+    unfold __chain_m_resolve_rec_step at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+      at hStep'
+    exact hStep'.2.symm
+
+private theorem chain_m_resolve_rec_step_false_pair_pending
+    {Cr rl Cc Cr' rl' L : Term} :
+    SafeOrClause rl ->
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl)
+      Cc (Term.Boolean false) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr') rl' ->
+    rl' = Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl := by
+  intro hRlSafe hCcBool hLTrans hStep
+  have hRlNe : rl ≠ Term.Stuck := safe_orClause_ne_stuck hRlSafe
+  have hCcNe : Cc ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  by_cases hEq : L = Cc
+  · have hEqTerm : __eo_eq L Cc = Term.Boolean true :=
+      eo_eq_eq_true_of_eq hEq hLNe hCcNe
+    have hStep' := hStep
+    unfold __chain_m_resolve_rec_step at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    exact hStep'.2.symm
+  · have hEqTerm : __eo_eq L Cc = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hEq hLNe hCcNe
+    have hConcatNe :
+        __eo_list_concat Term.or
+          (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))
+          Cr ≠ Term.Stuck := by
+      intro hConcat
+      have hStep' := hStep
+      unfold __chain_m_resolve_rec_step at hStep'
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+        at hStep'
+    have hStep' := hStep
+    unfold __chain_m_resolve_rec_step at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+      at hStep'
+    exact hStep'.2.symm
+
+private theorem chain_m_resolve_rec_step_true_pair_residual
+    {Cr0 rl0 Cc Cr rl L : Term} :
+    OrClause Cr0 ->
+    RuleProofs.eo_has_bool_type Cr0 ->
+    SafeOrClause rl0 ->
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0) rl0)
+      Cc (Term.Boolean true) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl ->
+    OrClause Cr ∧ RuleProofs.eo_has_bool_type Cr := by
+  intro hCr0 hCr0Bool hRl0Safe hCcBool hLTrans hStep
+  have hRlNe : rl0 ≠ Term.Stuck := safe_orClause_ne_stuck hRl0Safe
+  have hCcNe : Cc ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  by_cases hEq : Term.Apply Term.not L = Cc
+  · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean true :=
+      eo_eq_eq_true_of_eq hEq (not_ne_stuck hLNe) hCcNe
+    have hStep' :
+        Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0) =
+        Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+      simpa [__chain_m_resolve_rec_step, __eo_mk_apply, __eo_ite, native_ite, native_teq,
+        hEqTerm, hLNe, hRlNe] using hStep
+    have hComps := pair_eq_components hStep'
+    exact ⟨by simpa [hComps.1] using hCr0, by simpa [hComps.1] using hCr0Bool⟩
+  · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hEq (not_ne_stuck hLNe) hCcNe
+    have hDeleteSafe :
+        SafeOrClause (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0) :=
+      safe_orClause_cons (not_ne_stuck hLNe) hRl0Safe
+    have hConcatNe :
+        __eo_list_concat Term.or
+          (__eo_list_diff Term.or Cc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0))
+          Cr0 ≠ Term.Stuck := by
+      intro hConcat
+      have hStep' := hStep
+      unfold __chain_m_resolve_rec_step at hStep'
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+        at hStep'
+    have hDiffClause :
+        OrClause
+          (__eo_list_diff Term.or Cc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0)) :=
+      list_concat_nonstuck_left_orClause hConcatNe
+    have hCcClause : OrClause Cc :=
+      list_diff_nonstuck_input_orClause (orClause_ne_stuck hDiffClause)
+    have hDiffBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_diff Term.or Cc
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0)) :=
+      diff_preserves_bool_type hCcClause hCcBool hDeleteSafe
+    have hResidualClause :
+        OrClause
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or Cc
+              (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0))
+            Cr0) :=
+      concat_preserves_orClause hDiffClause hCr0
+    have hResidualBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or Cc
+              (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0))
+            Cr0) :=
+      concat_preserves_bool_type hDiffClause hCr0 hDiffBool hCr0Bool
+    have hStep' :
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_pair)
+            (__eo_list_concat Term.or
+              (__eo_list_diff Term.or Cc
+                (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0))
+              Cr0))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0) =
+        Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+      simpa [__chain_m_resolve_rec_step, __eo_mk_apply, __eo_ite, native_ite, native_teq,
+        hEqTerm, hLNe, hRlNe, hConcatNe] using hStep
+    have hComps := pair_eq_components hStep'
+    exact ⟨by simpa [hComps.1] using hResidualClause, by simpa [hComps.1] using hResidualBool⟩
+
+private theorem chain_m_resolve_rec_step_false_pair_residual
+    {Cr0 rl0 Cc Cr rl L : Term} :
+    OrClause Cr0 ->
+    RuleProofs.eo_has_bool_type Cr0 ->
+    SafeOrClause rl0 ->
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0) rl0)
+      Cc (Term.Boolean false) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl ->
+    OrClause Cr ∧ RuleProofs.eo_has_bool_type Cr := by
+  intro hCr0 hCr0Bool hRl0Safe hCcBool hLTrans hStep
+  have hRlNe : rl0 ≠ Term.Stuck := safe_orClause_ne_stuck hRl0Safe
+  have hCcNe : Cc ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  by_cases hEq : L = Cc
+  · have hEqTerm : __eo_eq L Cc = Term.Boolean true :=
+      eo_eq_eq_true_of_eq hEq hLNe hCcNe
+    have hStep' :
+        Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0) =
+        Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+      simpa [__chain_m_resolve_rec_step, __eo_mk_apply, __eo_ite, native_ite, native_teq,
+        hEqTerm, hLNe, hRlNe] using hStep
+    have hComps := pair_eq_components hStep'
+    exact ⟨by simpa [hComps.1] using hCr0, by simpa [hComps.1] using hCr0Bool⟩
+  · have hEqTerm : __eo_eq L Cc = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hEq hLNe hCcNe
+    have hDeleteSafe :
+        SafeOrClause (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0) :=
+      safe_orClause_cons hLNe hRl0Safe
+    have hConcatNe :
+        __eo_list_concat Term.or
+          (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0))
+          Cr0 ≠ Term.Stuck := by
+      intro hConcat
+      have hStep' := hStep
+      unfold __chain_m_resolve_rec_step at hStep'
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+        at hStep'
+    have hDiffClause :
+        OrClause (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0)) :=
+      list_concat_nonstuck_left_orClause hConcatNe
+    have hCcClause : OrClause Cc :=
+      list_diff_nonstuck_input_orClause (orClause_ne_stuck hDiffClause)
+    have hDiffBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0)) :=
+      diff_preserves_bool_type hCcClause hCcBool hDeleteSafe
+    have hResidualClause :
+        OrClause
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0))
+            Cr0) :=
+      concat_preserves_orClause hDiffClause hCr0
+    have hResidualBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_concat Term.or
+            (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0))
+            Cr0) :=
+      concat_preserves_bool_type hDiffClause hCr0 hDiffBool hCr0Bool
+    have hStep' :
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_pair)
+            (__eo_list_concat Term.or
+              (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0))
+              Cr0))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0) =
+        Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+      simpa [__chain_m_resolve_rec_step, __eo_mk_apply, __eo_ite, native_ite, native_teq,
+        hEqTerm, hLNe, hRlNe, hConcatNe] using hStep
+    have hComps := pair_eq_components hStep'
+    exact ⟨by simpa [hComps.1] using hResidualClause, by simpa [hComps.1] using hResidualBool⟩
+
+private theorem chain_m_resolve_rec_step_true_pair_safe
+    {Cr0 rl0 Cc Cr rl L : Term} :
+    SafeOrClause rl0 ->
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0) rl0)
+      Cc (Term.Boolean true) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl ->
+    SafeOrClause rl := by
+  intro hRl0Safe hCcBool hLTrans hStep
+  have hRlEq :
+      rl = Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0 :=
+    chain_m_resolve_rec_step_true_pair_pending hRl0Safe hCcBool hLTrans hStep
+  rw [hRlEq]
+  exact safe_orClause_cons
+    (RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans) hRl0Safe
+
+private theorem chain_m_resolve_rec_step_false_pair_safe
+    {Cr0 rl0 Cc Cr rl L : Term} :
+    SafeOrClause rl0 ->
+    RuleProofs.eo_has_bool_type Cc ->
+    RuleProofs.eo_has_smt_translation L ->
+    __chain_m_resolve_rec_step
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0) rl0)
+      Cc (Term.Boolean false) L =
+      Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl ->
+    SafeOrClause rl := by
+  intro hRl0Safe hCcBool hLTrans hStep
+  have hLNe : L ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+  have hRlEq :
+      rl = Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0 :=
+    chain_m_resolve_rec_step_false_pair_pending hRl0Safe hCcBool hLTrans hStep
+  rw [hRlEq]
+  exact safe_orClause_cons (not_ne_stuck hLNe) hRl0Safe
+
 private theorem from_clause_preserves_bool_type {c : Term} :
     OrClause c ->
     RuleProofs.eo_has_bool_type c ->
