@@ -1379,6 +1379,49 @@ private theorem chain_m_resolve_final_true_of_false_good
     simp [hEqTerm, __eo_ite, native_ite, native_teq]
     exact hConcatTrue
 
+private theorem chain_m_resolve_final_false_implies_residual_false
+    (M : SmtModel) (hM : model_total_typed M) {C1 C2 L rl : Term} :
+    OrClause C1 ->
+    OrClause C2 ->
+    RuleProofs.eo_has_bool_type C1 ->
+    RuleProofs.eo_has_bool_type C2 ->
+    SafeOrClause (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl) ->
+    eo_interprets M
+      (__chain_m_resolve_final C1
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) C2)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))) false ->
+    eo_interprets M C2 false := by
+  intro hC1 hC2 hC1Bool hC2Bool hPendingSafe hFinalFalse
+  have hC1Ne : C1 ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type C1 hC1Bool
+  by_cases hEq : C1 = L
+  · have hLNe : L ≠ Term.Stuck := by
+      simpa [hEq] using hC1Ne
+    have hEqTerm : __eo_eq C1 L = Term.Boolean true :=
+      eo_eq_eq_true_of_eq hEq hC1Ne hLNe
+    unfold __chain_m_resolve_final at hFinalFalse
+    simp [hEqTerm, __eo_ite, native_ite, native_teq] at hFinalFalse
+    exact hFinalFalse
+  · have hLNe : L ≠ Term.Stuck := by
+      cases hPendingSafe with
+      | cons x xs hX hXs =>
+          simpa using hX
+    have hEqTerm : __eo_eq C1 L = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hEq hC1Ne hLNe
+    have hDiffClause :
+        OrClause
+          (__eo_list_diff Term.or C1
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) :=
+      diff_preserves_orClause hC1 hC1Bool hPendingSafe
+    have hDiffBool :
+        RuleProofs.eo_has_bool_type
+          (__eo_list_diff Term.or C1
+            (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) :=
+      diff_preserves_bool_type hC1 hC1Bool hPendingSafe
+    unfold __chain_m_resolve_final at hFinalFalse
+    simp [hEqTerm, __eo_ite, native_ite, native_teq] at hFinalFalse
+    exact concat_false_implies_right_false M hM hDiffClause hC2 hDiffBool hC2Bool hFinalFalse
+
 private theorem not_has_bool_type_of_not_bool {t : Term} :
     ¬ RuleProofs.eo_has_bool_type t ->
     ¬ RuleProofs.eo_has_bool_type (Term.Apply Term.not t) := by
@@ -2175,6 +2218,33 @@ private theorem ite_eq_stuck_of_ne_true_false (c t e : Term) :
   intro hTrue hFalse
   cases c <;> simp [__eo_ite, native_ite, native_teq, hTrue, hFalse]
 
+private theorem chain_m_resolve_rec_step_stuck_of_pol_ne_true_false
+    {r Cc pol L : Term} :
+    Cc ≠ Term.Stuck ->
+    L ≠ Term.Stuck ->
+    pol ≠ Term.Boolean true ->
+    pol ≠ Term.Boolean false ->
+    __chain_m_resolve_rec_step r Cc pol L = Term.Stuck := by
+  intro hCc hL hPolTrue hPolFalse
+  cases r with
+  | Stuck =>
+      simp [__chain_m_resolve_rec_step]
+  | Boolean _ =>
+      simp [__chain_m_resolve_rec_step, hCc, hL]
+  | Apply f a =>
+      cases f with
+      | Apply g x =>
+          cases g with
+          | UOp op =>
+              cases op <;> unfold __chain_m_resolve_rec_step <;> simp [__eo_mk_apply,
+                __eo_ite, native_ite, native_teq, hCc, hL, hPolTrue, hPolFalse]
+          | _ =>
+              simp [__chain_m_resolve_rec_step, hCc, hL]
+      | _ =>
+          simp [__chain_m_resolve_rec_step, hCc, hL]
+  | _ =>
+      simp [__chain_m_resolve_rec_step, hCc, hL]
+
 private theorem chain_m_resolve_rec_step_true_pair_input
     {r Cc Cr' rl' L : Term} :
     RuleProofs.eo_has_bool_type Cc ->
@@ -2521,6 +2591,199 @@ private theorem chain_m_resolve_rec_step_false_pair_safe
     chain_m_resolve_rec_step_false_pair_pending hRl0Safe hCcBool hLTrans hStep
   rw [hRlEq]
   exact safe_orClause_cons (not_ne_stuck hLNe) hRl0Safe
+
+private theorem chain_m_resolve_rec_pair_false_implies_good
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ premises pols lits Cr rl,
+      AllHaveBoolType premises ->
+      AllInterpretedTrue M premises ->
+      EoListAllHaveSmtTranslation pols ->
+      EoListAllHaveSmtTranslation lits ->
+      __chain_m_resolve_rec (premiseAndFormulaList premises) pols lits =
+        Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl ->
+      OrClause Cr ∧
+      RuleProofs.eo_has_bool_type Cr ∧
+      SafeOrClause rl ∧
+      (eo_interprets M Cr false -> GoodOrClause M rl) := by
+  intro premises
+  induction premises with
+  | nil =>
+      intro pols lits Cr rl _ _ hPols hLits hRec
+      rcases eo_list_translation_cases hPols with hPolsNil | ⟨pol, pols', hPolsCons⟩
+      · subst hPolsNil
+        rcases eo_list_translation_cases hLits with hLitsNil | ⟨L, lits', hLitsCons⟩
+        · subst hLitsNil
+          have hBase' := hRec
+          simp [premiseAndFormulaList] at hBase'
+          have hBase :
+              Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) (Term.Boolean false))
+                (Term.Boolean false) =
+              Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+            simpa [__chain_m_resolve_rec] using hBase'
+          have hComps := pair_eq_components hBase
+          refine ⟨?_, ?_, ?_, ?_⟩
+          · simpa [hComps.1.symm] using (OrClause.false : OrClause (Term.Boolean false))
+          · simpa [hComps.1.symm] using RuleProofs.eo_has_bool_type_false
+          · simpa [hComps.2.symm] using (SafeOrClause.false : SafeOrClause (Term.Boolean false))
+          · intro _
+            simpa [hComps.2.symm] using (GoodOrClause.false : GoodOrClause M (Term.Boolean false))
+        · subst hLitsCons
+          have hRec' := hRec
+          simp [premiseAndFormulaList] at hRec'
+          have hStuck :
+              Term.Stuck =
+                Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+            simpa [__chain_m_resolve_rec] using hRec'
+          exact False.elim (pair_ne_stuck hStuck.symm)
+      · subst hPolsCons
+        rcases eo_list_translation_cases hLits with hLitsNil | ⟨L, lits', hLitsCons⟩
+        · subst hLitsNil
+          have hRec' := hRec
+          simp [premiseAndFormulaList] at hRec'
+          have hStuck :
+              Term.Stuck =
+                Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+            simpa [__chain_m_resolve_rec] using hRec'
+          exact False.elim (pair_ne_stuck hStuck.symm)
+        · subst hLitsCons
+          have hRec' := hRec
+          simp [premiseAndFormulaList] at hRec'
+          have hStuck :
+              Term.Stuck =
+                Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+            simpa [__chain_m_resolve_rec] using hRec'
+          exact False.elim (pair_ne_stuck hStuck.symm)
+  | cons Cc premises ih =>
+      intro pols lits Cr rl hPremBool hPremTrue hPols hLits hRec
+      have hCcBool : RuleProofs.eo_has_bool_type Cc := hPremBool Cc (by simp)
+      have hCcTrue : eo_interprets M Cc true := hPremTrue Cc (by simp)
+      have hPremisesBool : AllHaveBoolType premises := by
+        intro t ht
+        exact hPremBool t (by simp [ht])
+      have hPremisesTrue : AllInterpretedTrue M premises := by
+        intro t ht
+        exact hPremTrue t (by simp [ht])
+      rcases eo_list_translation_cases hPols with hPolsNil | ⟨pol, pols', hPolsCons⟩
+      · subst hPolsNil
+        have hRec' := hRec
+        simp [premiseAndFormulaList] at hRec'
+        have hStuck :
+            Term.Stuck =
+              Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+          simpa [__chain_m_resolve_rec] using hRec'
+        exact False.elim (pair_ne_stuck hStuck.symm)
+      · subst hPolsCons
+        rcases eo_list_translation_cons_inv hPols with ⟨hPolTrans, hPols'⟩
+        rcases eo_list_translation_cases hLits with hLitsNil | ⟨L, lits', hLitsCons⟩
+        · subst hLitsNil
+          have hRec' := hRec
+          simp [premiseAndFormulaList] at hRec'
+          have hStuck :
+              Term.Stuck =
+                Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+            simpa [__chain_m_resolve_rec] using hRec'
+          exact False.elim (pair_ne_stuck hStuck.symm)
+        · subst hLitsCons
+          rcases eo_list_translation_cons_inv hLits with ⟨hLTrans, hLits'⟩
+          have hStep0 := hRec
+          simp [premiseAndFormulaList] at hStep0
+          have hStep :
+              __chain_m_resolve_rec_step
+                (__chain_m_resolve_rec (premiseAndFormulaList premises) pols' lits')
+                Cc pol L =
+              Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+            simpa [__chain_m_resolve_rec] using hStep0
+          by_cases hPolTrue : pol = Term.Boolean true
+          · subst hPolTrue
+            rcases chain_m_resolve_rec_step_true_pair_input hCcBool hLTrans hStep with
+              ⟨Cr0, rl0, hTailEq⟩
+            rcases ih pols' lits' Cr0 rl0 hPremisesBool hPremisesTrue hPols' hLits' hTailEq with
+              ⟨hCr0Clause, hCr0Bool, hRl0Safe, hTailGood⟩
+            have hStepPair :
+                __chain_m_resolve_rec_step
+                  (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0) rl0)
+                  Cc (Term.Boolean true) L =
+                Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+              simpa [hTailEq] using hStep
+            have hResidual :=
+              chain_m_resolve_rec_step_true_pair_residual
+                hCr0Clause hCr0Bool hRl0Safe hCcBool hLTrans hStepPair
+            have hRlSafe :=
+              chain_m_resolve_rec_step_true_pair_safe hRl0Safe hCcBool hLTrans hStepPair
+            have hRlEq :
+                rl = Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0 :=
+              chain_m_resolve_rec_step_true_pair_pending hRl0Safe hCcBool hLTrans hStepPair
+            refine ⟨hResidual.1, hResidual.2, hRlSafe, ?_⟩
+            intro hCrFalse
+            have hStep' :
+                __chain_m_resolve_rec_step
+                  (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0) rl0)
+                  Cc (Term.Boolean true) L =
+                Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0) := by
+              simpa [hRlEq] using hStepPair
+            have hCr0False :
+                eo_interprets M Cr0 false :=
+              chain_m_resolve_rec_step_true_false_implies_prev_false_of_safe_bool M hM
+                hCr0Clause hCr0Bool hRl0Safe hCcBool hLTrans hStep' hCrFalse
+            have hRl0Good : GoodOrClause M rl0 := hTailGood hCr0False
+            have hRlGood :
+                GoodOrClause M (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0) :=
+              chain_m_resolve_rec_step_true_false_implies_good_of_bool M hM
+                hCr0Clause hCr0False hRl0Good hCcBool hCcTrue hLTrans hStep' hCrFalse
+            simpa [hRlEq] using hRlGood
+          · by_cases hPolFalse : pol = Term.Boolean false
+            · subst hPolFalse
+              rcases chain_m_resolve_rec_step_false_pair_input hCcBool hLTrans hStep with
+                ⟨Cr0, rl0, hTailEq⟩
+              rcases ih pols' lits' Cr0 rl0 hPremisesBool hPremisesTrue hPols' hLits' hTailEq with
+                ⟨hCr0Clause, hCr0Bool, hRl0Safe, hTailGood⟩
+              have hStepPair :
+                  __chain_m_resolve_rec_step
+                    (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0) rl0)
+                    Cc (Term.Boolean false) L =
+                  Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr) rl := by
+                simpa [hTailEq] using hStep
+              have hResidual :=
+                chain_m_resolve_rec_step_false_pair_residual
+                  hCr0Clause hCr0Bool hRl0Safe hCcBool hLTrans hStepPair
+              have hRlSafe :=
+                chain_m_resolve_rec_step_false_pair_safe hRl0Safe hCcBool hLTrans hStepPair
+              have hRlEq :
+                  rl = Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0 :=
+                chain_m_resolve_rec_step_false_pair_pending hRl0Safe hCcBool hLTrans hStepPair
+              refine ⟨hResidual.1, hResidual.2, hRlSafe, ?_⟩
+              intro hCrFalse
+              have hStep' :
+                  __chain_m_resolve_rec_step
+                    (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr0) rl0)
+                    Cc (Term.Boolean false) L =
+                  Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) Cr)
+                    (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0) := by
+                simpa [hRlEq] using hStepPair
+              have hCr0False :
+                  eo_interprets M Cr0 false :=
+                chain_m_resolve_rec_step_false_false_implies_prev_false_of_safe_bool M hM
+                  hCr0Clause hCr0Bool hRl0Safe hCcBool hLTrans hStep' hCrFalse
+              have hRl0Good : GoodOrClause M rl0 := hTailGood hCr0False
+              have hRlGood :
+                  GoodOrClause M
+                    (Term.Apply (Term.Apply (Term.UOp UserOp.or) (Term.Apply Term.not L)) rl0) :=
+                chain_m_resolve_rec_step_false_false_implies_good_of_bool M hM
+                  hCr0Clause hCr0False hRl0Good hCcBool hCcTrue hLTrans hStep' hCrFalse
+              simpa [hRlEq] using hRlGood
+            · have hCcNe : Cc ≠ Term.Stuck :=
+                RuleProofs.term_ne_stuck_of_has_bool_type Cc hCcBool
+              have hLNe : L ≠ Term.Stuck :=
+                RuleProofs.term_ne_stuck_of_has_smt_translation L hLTrans
+              have hStuck :
+                  __chain_m_resolve_rec_step
+                    (__chain_m_resolve_rec (premiseAndFormulaList premises) pols' lits')
+                    Cc pol L = Term.Stuck :=
+                chain_m_resolve_rec_step_stuck_of_pol_ne_true_false
+                  hCcNe hLNe hPolTrue hPolFalse
+              rw [hStuck] at hStep
+              exact False.elim (pair_ne_stuck hStep.symm)
 
 private theorem from_clause_preserves_bool_type {c : Term} :
     OrClause c ->
