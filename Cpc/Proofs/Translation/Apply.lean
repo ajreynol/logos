@@ -402,6 +402,22 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
     (eo_to_smt_type_typeof_apply_of_smt_apply
       x (Term.Apply g y) A B hHeadEo hX).symm
 
+/-- Purified selector heads keep the selector result EO type. -/
+private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
+    (x y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
+    (hy : __eo_to_smt y = SmtTerm.DtSel s d i j)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s d) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) =
+      __smtx_ret_typeof_sel s d i j := by
+  sorry
+
+/-- Purified tester heads still have stuck EO application type. -/
+private theorem eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation
+    (x y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat)
+    (hy : __eo_to_smt y = SmtTerm.DtTester s d i) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) = SmtType.None := by
+  sorry
+
 /-- Computes `__smtx_typeof` for `eq_non_none`. -/
 private theorem smtx_typeof_eq_non_none
     {T U : SmtType}
@@ -4455,7 +4471,63 @@ theorem eo_to_smt_typeof_matches_translation_apply
     all_goals
       sorry
   case _at_purify y =>
-    sorry
+    by_cases hSelCase : ∃ s d i j, __eo_to_smt y = SmtTerm.DtSel s d i j
+    · rcases hSelCase with ⟨s, d, i, j, hSel⟩
+      have hHeadTranslate :
+          __eo_to_smt (Term._at_purify y) = SmtTerm.DtSel s d i j := by
+        have hPurify :
+            __eo_to_smt (Term._at_purify y) = __eo_to_smt y := by
+          rw [__eo_to_smt.eq_def]
+        exact hPurify.trans hSel
+      have hTranslate :
+          __eo_to_smt (Term.Apply (Term._at_purify y) x) =
+            SmtTerm.Apply (SmtTerm.DtSel s d i j) (__eo_to_smt x) := by
+        have hGeneric :
+            __eo_to_smt (Term.Apply (Term._at_purify y) x) =
+              SmtTerm.Apply (__eo_to_smt (Term._at_purify y)) (__eo_to_smt x) := by
+          rw [__eo_to_smt.eq_def]
+        rw [hGeneric, hHeadTranslate]
+      have hApplyNN :
+          term_has_non_none_type
+            (SmtTerm.Apply (SmtTerm.DtSel s d i j) (__eo_to_smt x)) := by
+        unfold term_has_non_none_type
+        rw [← hTranslate]
+        exact hNonNone
+      have hArg :
+          __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s d :=
+        dt_sel_arg_datatype_of_non_none hApplyNN
+      have hSmt :
+          __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_purify y) x)) =
+            __smtx_ret_typeof_sel s d i j := by
+        rw [hTranslate]
+        exact dt_sel_term_typeof_of_non_none hApplyNN
+      exact hSmt.trans
+        (eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation x y s d i j hSel hArg).symm
+    · by_cases hTesterCase : ∃ s d i, __eo_to_smt y = SmtTerm.DtTester s d i
+      · rcases hTesterCase with ⟨s, d, i, hTester⟩
+        have hEoNone :
+            __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) = SmtType.None := by
+          exact eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation x y s d i hTester
+        -- Needs a spec/typing fix: `_at_purify` erases the tester shape in EO typing,
+        -- so this branch can be SMT-typed while the EO side remains `None`.
+        sorry
+      · have hPurifyHead : __eo_to_smt (Term._at_purify y) = __eo_to_smt y := by
+          rw [__eo_to_smt.eq_def]
+        have hNonSel :
+            ∀ s d i j, __eo_to_smt (Term._at_purify y) ≠ SmtTerm.DtSel s d i j := by
+          intro s d i j h
+          apply hSelCase
+          exact ⟨s, d, i, j, by rw [← hPurifyHead]; exact h⟩
+        have hNonTester :
+            ∀ s d i, __eo_to_smt (Term._at_purify y) ≠ SmtTerm.DtTester s d i := by
+          intro s d i h
+          apply hTesterCase
+          exact ⟨s, d, i, by rw [← hPurifyHead]; exact h⟩
+        have hGeneric :
+            generic_apply_type (__eo_to_smt (Term._at_purify y)) (__eo_to_smt x) := by
+          exact generic_apply_type_of_non_special_head _ _ hNonSel hNonTester
+        exact eo_to_smt_typeof_matches_translation_apply_generic
+          (Term._at_purify y) x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
   case _at_array_deq_diff x1 x2 =>
     have hHeadTranslate :
         __eo_to_smt (Term._at_array_deq_diff x1 x2) =
