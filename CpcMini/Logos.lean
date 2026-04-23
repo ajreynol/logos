@@ -236,6 +236,19 @@ def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
+def __mk_trans : Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _  => Term.Stuck
+  | _ , Term.Stuck , _  => Term.Stuck
+  | t1, t2, (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4)) tail) => (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
+  | t1, t2, (Term.Boolean true) => (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)
+  | _, _, _ => Term.Stuck
+
+
+def __eo_prog_trans : Proof -> Term
+  | (Proof.pf (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)) tail)) => (__mk_trans t1 t2 tail)
+  | _ => Term.Stuck
+
+
 def __eo_nil : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.UOp UserOp.or), T => (Term.Boolean false)
@@ -362,23 +375,6 @@ def __eo_typeof : Term -> Term
 end
 
 
-
-mutual
-
-def __mk_trans : Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _  => Term.Stuck
-  | t1, t2, (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4)) tail) => (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
-  | t1, t2, (Term.Boolean true) => (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)
-  | _, _, _ => Term.Stuck
-
-
-def __eo_prog_trans : Proof -> Term
-  | (Proof.pf (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)) tail)) => (__mk_trans t1 t2 tail)
-  | _ => Term.Stuck
-
-
-end
 
 
 
