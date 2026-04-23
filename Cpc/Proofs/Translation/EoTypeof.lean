@@ -10,8 +10,8 @@ set_option maxHeartbeats 10000000
 namespace TranslationProofs
 
 /-!
-These lemmas isolate the EO-side `__eo_typeof` facts that are awkward to
-reduce directly because `__eo_typeof` is compiled as an opaque definition.
+These lemmas isolate EO-side `__eo_typeof` facts that are awkward to reduce
+directly inside the translation proofs.
 
 They let the main translation theorem make progress on the direct constructor
 cases while we continue filling in the EO typing story separately.
@@ -324,6 +324,124 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_array
   rw [hz, hy, hx]
   simpa [__eo_typeof_store, hUNS, hTNS, hReq] using hArrayTy
 
+/-- Private EO-side helper for `is`. -/
+private theorem eo_typeof_is_of_non_stuck
+    (C D : Term)
+    (hC : C ≠ Term.Stuck)
+    (hD : D ≠ Term.Stuck) :
+    __eo_typeof_is C D = Term.Bool := by
+  cases C <;> cases D <;> simp [__eo_typeof_is] at hC hD ⊢
+
+/-- Private EO-side helper for `update`. -/
+private theorem eo_typeof_update_of_non_stuck
+    (S D T : Term)
+    (hS : S ≠ Term.Stuck)
+    (hT : T ≠ Term.Stuck) :
+    __eo_typeof_update S D T = D := by
+  cases S <;> cases D <;> cases T <;> simp [__eo_typeof_update] at hS hT ⊢
+
+/-- Private EO-side helper for `tuple_select`. -/
+private theorem eo_typeof_tuple_select_of_non_stuck
+    (i T : Term)
+    (hi : i ≠ Term.Stuck)
+    (hT : T ≠ Term.Stuck) :
+    __eo_typeof_tuple_select (Term.UOp UserOp.Int) i T =
+      __eo_list_nth (Term.UOp UserOp.Tuple) T i := by
+  cases i <;> cases T <;> simp [__eo_typeof_tuple_select] at hi hT ⊢
+
+/-- Private EO-side helper for `tuple_update`. -/
+private theorem eo_typeof_tuple_update_of_non_stuck
+    (i T U : Term)
+    (hi : i ≠ Term.Stuck)
+    (hT : T ≠ Term.Stuck)
+    (hU : U ≠ Term.Stuck) :
+    __eo_typeof_tuple_update (Term.UOp UserOp.Int) i T U =
+      __eo_requires U (__eo_list_nth (Term.UOp UserOp.Tuple) T i) T := by
+  cases i <;> cases T <;> cases U <;>
+    simp [__eo_typeof_tuple_update] at hi hT hU ⊢
+
+/-- Private EO-side helper for `_at_witness_string_length`. -/
+private theorem eo_typeof_at_witness_string_length_of_non_stuck
+    (T : Term)
+    (hT : T ≠ Term.Stuck) :
+    __eo_typeof__at_witness_string_length Term.Type T (Term.UOp UserOp.Int) (Term.UOp UserOp.Int) = T := by
+  cases T <;> simp [__eo_typeof__at_witness_string_length] at hT ⊢
+
+/-- Stronger EO-side helper for `typeof_apply_apply_is`. -/
+theorem eo_to_smt_type_typeof_apply_apply_is_of_non_stuck
+    (x y : Term)
+    (hy : __eo_typeof y ≠ Term.Stuck)
+    (hx : __eo_typeof x ≠ Term.Stuck) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.is) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_is (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_is_of_non_stuck (__eo_typeof y) (__eo_typeof x) hy hx]
+  rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_update`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_middle_type
+    (x y z D : Term)
+    (hz : __eo_typeof z ≠ Term.Stuck)
+    (hy : __eo_typeof y = D)
+    (hx : __eo_typeof x ≠ Term.Stuck) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x)) =
+      __eo_to_smt_type D := by
+  change __eo_to_smt_type (__eo_typeof_update (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type D
+  rw [hy]
+  rw [eo_typeof_update_of_non_stuck (__eo_typeof z) D (__eo_typeof x) hz hx]
+
+/-- Stronger EO-side helper for `typeof_apply_apply_tuple_select`. -/
+theorem eo_to_smt_type_typeof_apply_apply_tuple_select_of_int
+    (x y T : Term)
+    (hx : __eo_typeof x = Term.UOp UserOp.Int)
+    (hy : __eo_typeof y = T)
+    (hT : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_select) x) y)) =
+      __eo_to_smt_type (__eo_list_nth (Term.UOp UserOp.Tuple) T x) := by
+  have hXNS : x ≠ Term.Stuck := by
+    intro hX
+    subst x
+    have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+      rfl
+    rw [hStuckTy] at hx
+    cases hx
+  have hTNS : T ≠ Term.Stuck := eo_term_ne_stuck_of_smt_type_non_none T hT
+  change __eo_to_smt_type (__eo_typeof_tuple_select (__eo_typeof x) x (__eo_typeof y)) =
+    __eo_to_smt_type (__eo_list_nth (Term.UOp UserOp.Tuple) T x)
+  rw [hx, hy]
+  rw [eo_typeof_tuple_select_of_non_stuck x T hXNS hTNS]
+
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_tuple_update`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_int_list_nth_type
+    (x y z T : Term)
+    (hz : __eo_typeof z = Term.UOp UserOp.Int)
+    (hy : __eo_typeof y = T)
+    (hx : __eo_typeof x = __eo_list_nth (Term.UOp UserOp.Tuple) T z)
+    (hT : __eo_to_smt_type T ≠ SmtType.None)
+    (hNth : __eo_to_smt_type (__eo_list_nth (Term.UOp UserOp.Tuple) T z) ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x)) =
+      __eo_to_smt_type T := by
+  have hZNS : z ≠ Term.Stuck := by
+    intro hZ
+    subst z
+    have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+      rfl
+    rw [hStuckTy] at hz
+    cases hz
+  have hTNS : T ≠ Term.Stuck := eo_term_ne_stuck_of_smt_type_non_none T hT
+  have hNthNS : __eo_list_nth (Term.UOp UserOp.Tuple) T z ≠ Term.Stuck :=
+    eo_term_ne_stuck_of_smt_type_non_none
+      (__eo_list_nth (Term.UOp UserOp.Tuple) T z) hNth
+  change
+    __eo_to_smt_type (__eo_typeof_tuple_update (__eo_typeof z) z (__eo_typeof y) (__eo_typeof x)) =
+      __eo_to_smt_type T
+  rw [hz, hy, hx]
+  rw [eo_typeof_tuple_update_of_non_stuck z T (__eo_list_nth (Term.UOp UserOp.Tuple) T z) hZNS hTNS hNthNS]
+  simpa using
+    congrArg __eo_to_smt_type
+      (eo_requires_self_of_non_stuck (__eo_list_nth (Term.UOp UserOp.Tuple) T z) T hNthNS)
+
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_update_of_smt_dt_sel`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
     (x y z : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
@@ -355,6 +473,29 @@ theorem eo_to_smt_type_typeof_seq_empty
       __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) := by
   sorry
 
+/-- Stronger EO-side helper for `typeof_seq_empty`. -/
+theorem eo_to_smt_type_typeof_seq_empty_of_seq_type
+    (T : Term)
+    (hType : __eo_typeof T = Term.Type)
+    (hT : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T))) =
+      SmtType.Seq (__eo_to_smt_type T) := by
+  have hSeqType :
+      __eo_typeof (Term.Apply (Term.UOp UserOp.Seq) T) = Term.Type := by
+    change __eo_typeof_Seq (__eo_typeof T) = Term.Type
+    rw [hType]
+    rfl
+  change
+    __eo_to_smt_type
+        (__eo_typeof_seq_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.Seq) T))
+          (Term.Apply (Term.UOp UserOp.Seq) T)) =
+      SmtType.Seq (__eo_to_smt_type T)
+  rw [hSeqType]
+  change __eo_to_smt_type (__eo_disamb_type_seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) =
+    SmtType.Seq (__eo_to_smt_type T)
+  simp [__eo_disamb_type_seq_empty]
+  exact smtx_typeof_guard_of_non_none _ _ hT
+
 /-- Simplifies EO-to-SMT type translation for `typeof_set_empty`. -/
 theorem eo_to_smt_type_typeof_set_empty
     (x : Term)
@@ -362,6 +503,29 @@ theorem eo_to_smt_type_typeof_set_empty
     __eo_to_smt_type (__eo_typeof (Term.set_empty x)) =
       __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type x)) := by
   sorry
+
+/-- Stronger EO-side helper for `typeof_set_empty`. -/
+theorem eo_to_smt_type_typeof_set_empty_of_set_type
+    (T : Term)
+    (hType : __eo_typeof T = Term.Type)
+    (hT : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.set_empty (Term.Apply (Term.UOp UserOp.Set) T))) =
+      SmtType.Set (__eo_to_smt_type T) := by
+  have hSetType :
+      __eo_typeof (Term.Apply (Term.UOp UserOp.Set) T) = Term.Type := by
+    change __eo_typeof_Seq (__eo_typeof T) = Term.Type
+    rw [hType]
+    rfl
+  change
+    __eo_to_smt_type
+        (__eo_typeof_set_empty (__eo_typeof (Term.Apply (Term.UOp UserOp.Set) T))
+          (Term.Apply (Term.UOp UserOp.Set) T)) =
+      SmtType.Set (__eo_to_smt_type T)
+  rw [hSetType]
+  change __eo_to_smt_type (__eo_disamb_type_set_empty (Term.Apply (Term.UOp UserOp.Set) T)) =
+    SmtType.Set (__eo_to_smt_type T)
+  simp [__eo_disamb_type_set_empty]
+  exact smtx_typeof_guard_of_non_none _ _ hT
 
 /-- Simplifies EO-to-SMT type translation for `typeof_purify`. -/
 theorem eo_to_smt_type_typeof_purify
@@ -404,6 +568,15 @@ theorem eo_to_smt_type_typeof_apply_at_bvsize
     (x : Term) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp._at_bvsize) x)) = SmtType.Int := by
   sorry
+
+/-- Stronger EO-side helper for `typeof_apply_at_bvsize`. -/
+theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec_type
+    (x w : Term)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp._at_bvsize) x)) = SmtType.Int := by
+  change __eo_to_smt_type (__eo_typeof__at_bvsize (__eo_typeof x)) = SmtType.Int
+  rw [hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_not_of_bool`. -/
 theorem eo_to_smt_type_typeof_apply_not_of_bool
@@ -1704,6 +1877,29 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
   rw [hz, hy, hx]
   rfl
 
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_at_witness_string_length`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_at_witness_string_length_of_type_int_int
+    (x y z : Term)
+    (hz : __eo_typeof z = Term.Type)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.UOp UserOp.Int) :
+    __eo_to_smt_type
+        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_witness_string_length) z) y) x)) =
+      __eo_to_smt_type z := by
+  change
+    __eo_to_smt_type
+        (__eo_typeof__at_witness_string_length (__eo_typeof z) z (__eo_typeof y) (__eo_typeof x)) =
+      __eo_to_smt_type z
+  have hZNS : z ≠ Term.Stuck := by
+    intro hZ
+    subst z
+    have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+      rfl
+    rw [hStuckTy] at hz
+    cases hz
+  rw [hz, hy, hx]
+  rw [eo_typeof_at_witness_string_length_of_non_stuck z hZNS]
+
 /-- Private EO-side helper for same-width bitvector operators returning a bitvector. -/
 private theorem eo_to_smt_type_typeof_bv_same_width_ret_bitvec
     (x y w : Term)
@@ -1824,6 +2020,475 @@ theorem eo_to_smt_type_typeof_apply_apply_bvcomp_of_bitvec_type
       SmtType.BitVec 1 := by
   change __eo_to_smt_type (__eo_typeof_bvcomp (__eo_typeof y) (__eo_typeof x)) = SmtType.BitVec 1
   exact eo_to_smt_type_typeof_bv_same_width_ret_bv1 x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvnand`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvnand_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvnand) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvnor`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvnor_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvnor) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvxnor`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvxnor_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvxnor) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvmul`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvmul_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvudiv`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvudiv_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvudiv) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvurem`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvurem_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvurem) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsub`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsub_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsub) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsdiv`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsdiv_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsdiv) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsrem`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsrem_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsrem) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsmod`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsmod_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsmod) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvule`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvule_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvule) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvugt`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvugt_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvugt) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvuge`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvuge_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvuge) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvslt`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvslt_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvslt) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsle`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsle_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsle) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsgt`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsgt_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsgt) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsge`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsge_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsge) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvshl`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvshl_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvshl) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvlshr`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvlshr_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvlshr) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvashr`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvashr_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvashr) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w) := by
+  change __eo_to_smt_type (__eo_typeof_bvand (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) w)
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bitvec x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvuaddo`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvuaddo_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvuaddo) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsaddo`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsaddo_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsaddo) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvumulo`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvumulo_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvumulo) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsmulo`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsmulo_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsmulo) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvusubo`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvusubo_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvusubo) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvssubo`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvssubo_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvssubo) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsdivo`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsdivo_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsdivo) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_bvult (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bool x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvultbv`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvultbv_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvultbv) y) x)) =
+      SmtType.BitVec 1 := by
+  change __eo_to_smt_type (__eo_typeof_bvcomp (__eo_typeof y) (__eo_typeof x)) = SmtType.BitVec 1
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bv1 x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_bvsltbv`. -/
+theorem eo_to_smt_type_typeof_apply_apply_bvsltbv_of_bitvec_type
+    (x y w : Term)
+    (hy : __eo_typeof y = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) w)
+    (hW : __eo_to_smt_type w ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.bvsltbv) y) x)) =
+      SmtType.BitVec 1 := by
+  change __eo_to_smt_type (__eo_typeof_bvcomp (__eo_typeof y) (__eo_typeof x)) = SmtType.BitVec 1
+  exact eo_to_smt_type_typeof_bv_same_width_ret_bv1 x y w hy hx hW
+
+/-- Stronger EO-side helper for `typeof_apply_apply_repeat`. -/
+theorem eo_to_smt_type_typeof_apply_apply_repeat_of_int_bitvec_type
+    (x y n : Term)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.repeat) y) x)) =
+      __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul y n)) := by
+  change __eo_to_smt_type (__eo_typeof_repeat (__eo_typeof y) y (__eo_typeof x)) =
+    __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_mul y n))
+  rw [hy, hx]
+  apply congrArg __eo_to_smt_type
+  cases y with
+  | _ =>
+      rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_zero_extend`. -/
+theorem eo_to_smt_type_typeof_apply_apply_zero_extend_of_int_bitvec_type
+    (x y n : Term)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.zero_extend) y) x)) =
+      __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y)) := by
+  change __eo_to_smt_type (__eo_typeof_zero_extend (__eo_typeof y) y (__eo_typeof x)) =
+    __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y))
+  rw [hy, hx]
+  apply congrArg __eo_to_smt_type
+  cases y with
+  | Stuck =>
+      have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+        rfl
+      rw [hStuckTy] at hy
+      cases hy
+  | _ =>
+      rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_sign_extend`. -/
+theorem eo_to_smt_type_typeof_apply_apply_sign_extend_of_int_bitvec_type
+    (x y n : Term)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.sign_extend) y) x)) =
+      __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y)) := by
+  change __eo_to_smt_type (__eo_typeof_zero_extend (__eo_typeof y) y (__eo_typeof x)) =
+    __eo_to_smt_type (__eo_mk_apply (Term.UOp UserOp.BitVec) (__eo_add n y))
+  rw [hy, hx]
+  apply congrArg __eo_to_smt_type
+  cases y with
+  | Stuck =>
+      have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+        rfl
+      rw [hStuckTy] at hy
+      cases hy
+  | _ =>
+      rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_rotate_left`. -/
+theorem eo_to_smt_type_typeof_apply_apply_rotate_left_of_int_bitvec_type
+    (x y n : Term)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.rotate_left) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) n) := by
+  change __eo_to_smt_type (__eo_typeof_rotate_left (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) n)
+  rw [hy, hx]
+  rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_rotate_right`. -/
+theorem eo_to_smt_type_typeof_apply_apply_rotate_right_of_int_bitvec_type
+    (x y n : Term)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.rotate_right) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) n) := by
+  change __eo_to_smt_type (__eo_typeof_rotate_left (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) n)
+  rw [hy, hx]
+  rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_int_to_bv`. -/
+theorem eo_to_smt_type_typeof_apply_apply_int_to_bv_of_int_int
+    (x y : Term)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.UOp UserOp.Int) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.int_to_bv) y) x)) =
+      __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) y) := by
+  change __eo_to_smt_type (__eo_typeof_int_to_bv (__eo_typeof y) y (__eo_typeof x)) =
+    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) y)
+  rw [hy, hx]
+  apply congrArg __eo_to_smt_type
+  cases y with
+  | Stuck =>
+      have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+        rfl
+      rw [hStuckTy] at hy
+      cases hy
+  | _ =>
+      rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_extract`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_int_int_bitvec_type
+    (x y z n : Term)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hz : __eo_typeof z = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) n) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.extract) y) z) x)) =
+      __eo_to_smt_type
+        (__eo_mk_apply
+          (Term.UOp UserOp.BitVec)
+          (__eo_requires (__eo_gt (__eo_add z (Term.Numeral 1)) (Term.Numeral 0)) (Term.Boolean true)
+            (__eo_requires (__eo_gt n y) (Term.Boolean true)
+              (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1))))) := by
+  change __eo_to_smt_type (__eo_typeof_extract (__eo_typeof y) y (__eo_typeof z) z (__eo_typeof x)) =
+    __eo_to_smt_type
+      (__eo_mk_apply
+        (Term.UOp UserOp.BitVec)
+        (__eo_requires (__eo_gt (__eo_add z (Term.Numeral 1)) (Term.Numeral 0)) (Term.Boolean true)
+          (__eo_requires (__eo_gt n y) (Term.Boolean true)
+            (__eo_add (__eo_add y (__eo_neg z)) (Term.Numeral 1)))))
+  rw [hy, hz, hx]
+  apply congrArg __eo_to_smt_type
+  cases y with
+  | Stuck =>
+      have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+        rfl
+      rw [hStuckTy] at hy
+      cases hy
+  | _ =>
+      cases z with
+      | Stuck =>
+          have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+            rfl
+          rw [hStuckTy] at hz
+          cases hz
+      | _ =>
+          rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_bvite`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_bvite_of_bitvec1_same_type
