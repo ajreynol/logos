@@ -2882,6 +2882,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
         case _at_re_unfold_pos_component =>
           sorry
         case _at_witness_string_length =>
+          -- Needs a spec/typing fix: the SMT translation currently ignores the
+          -- third EO argument even though EO typing requires it to be `Int`.
           sorry
         case update =>
           cases hz : __eo_to_smt z with
@@ -4595,7 +4597,83 @@ theorem eo_to_smt_typeof_matches_translation_apply
     exact hSmt.trans
       (eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply x x1 x2 A B hHeadEo hX).symm
   case _at_quantifiers_skolemize x1 x2 =>
-    sorry
+    have hNonSel :
+        ∀ s d i j, __eo_to_smt (Term._at_quantifiers_skolemize x1 x2) ≠ SmtTerm.DtSel s d i j := by
+      intro s d i j h
+      cases x1 with
+      | Apply f body =>
+          cases f with
+          | Apply g xs =>
+              cases g with
+              | UOp op =>
+                  cases op <;> first
+                    | rw [__eo_to_smt.eq_def] at h
+                      cases h
+                    | rw [__eo_to_smt.eq_def] at h
+                      cases hz : native_teq (__eo_is_z x2) (Term.Boolean true) <;>
+                        simp [hz] at h
+                      case true =>
+                        cases hn : native_teq (__eo_is_neg x2) (Term.Boolean false) with
+                        | false =>
+                            simp [hz, hn] at h
+                            cases h
+                        | true =>
+                            cases hExists : __eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)) <;>
+                              simp [hz, hn, __eo_to_smt_quantifiers_skolemize, hExists] at h
+                            all_goals
+                              cases h
+                      case false =>
+                        cases h
+              | _ =>
+                  rw [__eo_to_smt.eq_def] at h
+                  cases h
+          | _ =>
+              rw [__eo_to_smt.eq_def] at h
+              cases h
+      | _ =>
+          rw [__eo_to_smt.eq_def] at h
+          cases h
+    have hNonTester :
+        ∀ s d i, __eo_to_smt (Term._at_quantifiers_skolemize x1 x2) ≠ SmtTerm.DtTester s d i := by
+      intro s d i h
+      cases x1 with
+      | Apply f body =>
+          cases f with
+          | Apply g xs =>
+              cases g with
+              | UOp op =>
+                  cases op <;> first
+                    | rw [__eo_to_smt.eq_def] at h
+                      cases h
+                    | rw [__eo_to_smt.eq_def] at h
+                      cases hz : native_teq (__eo_is_z x2) (Term.Boolean true) <;>
+                        simp [hz] at h
+                      case true =>
+                        cases hn : native_teq (__eo_is_neg x2) (Term.Boolean false) with
+                        | false =>
+                            simp [hz, hn] at h
+                            cases h
+                        | true =>
+                            cases hExists : __eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)) <;>
+                              simp [hz, hn, __eo_to_smt_quantifiers_skolemize, hExists] at h
+                            all_goals
+                              cases h
+                      case false =>
+                        cases h
+              | _ =>
+                  rw [__eo_to_smt.eq_def] at h
+                  cases h
+          | _ =>
+              rw [__eo_to_smt.eq_def] at h
+              cases h
+      | _ =>
+          rw [__eo_to_smt.eq_def] at h
+          cases h
+    have hGeneric :
+        generic_apply_type (__eo_to_smt (Term._at_quantifiers_skolemize x1 x2)) (__eo_to_smt x) := by
+      exact generic_apply_type_of_non_special_head _ _ hNonSel hNonTester
+    exact eo_to_smt_typeof_matches_translation_apply_generic
+      (Term._at_quantifiers_skolemize x1 x2) x ihF hGeneric (by rw [__eo_to_smt.eq_def]) hNonNone
   all_goals
     sorry
 

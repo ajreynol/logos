@@ -10,8 +10,8 @@ set_option maxHeartbeats 10000000
 namespace TranslationProofs
 
 /-!
-These lemmas isolate the EO-side `__eo_typeof` facts that are awkward to
-reduce directly because `__eo_typeof` is compiled as an opaque definition.
+These lemmas isolate EO-side `__eo_typeof` facts that are awkward to reduce
+directly inside the translation proofs.
 
 They let the main translation theorem make progress on the direct constructor
 cases while we continue filling in the EO typing story separately.
