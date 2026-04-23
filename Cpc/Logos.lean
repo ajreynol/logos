@@ -2522,20 +2522,6 @@ def __eo_prog_dt_cons_eq : Term -> Term
   | _ => Term.Stuck
 
 
-def __dt_find_cycle : Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply f a), s, (Term.Boolean true), rec => (__eo_ite (__eo_eq a s) (Term.Boolean true) (__eo_ite (__dt_find_cycle a s (__is_cons_app a) (Term.Boolean true)) (Term.Boolean true) (__dt_find_cycle f s (Term.Boolean true) rec)))
-  | c, s, isC, rec => (__eo_and (__eo_eq c s) rec)
-
-
-def __eo_prog_dt_cycle : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) s) t)) (Term.Boolean false)) => (__eo_requires (__dt_find_cycle t s (__is_cons_app t) (Term.Boolean false)) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) s) t)) (Term.Boolean false)))
-  | _ => Term.Stuck
-
-
 def __eo_prog_arith_div_total_zero_real : Term -> Term
   | Term.Stuck  => Term.Stuck
   | t1 => (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Rational (native_mk_rational 0 1)))) (Term.Rational (native_mk_rational 0 1)))
@@ -8870,6 +8856,28 @@ partial def __eo_prog_dt_collapse_selector : Term -> Term
 
 partial def __eo_prog_dt_cons_eq_clash : Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) s)) (Term.Boolean false)) => (__eo_requires (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons t) (Term.Apply (Term.Apply Term.__eo_List_cons s) Term.__eo_List_nil)) (__eo_typeof t))) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) s)) (Term.Boolean false)))
+  | _ => Term.Stuck
+
+
+partial def __eo_l_1___dt_find_cycle : Term -> Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _ , _  => Term.Stuck
+  | _ , Term.Stuck , _ , _  => Term.Stuck
+  | _ , _ , Term.Stuck , _  => Term.Stuck
+  | _ , _ , _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply f a), s, (Term.Boolean true), rec => (__eo_ite (__dt_find_cycle a s (__is_cons_app a) (Term.Boolean true)) (Term.Boolean true) (__dt_find_cycle f s (Term.Boolean true) rec))
+  | c, s, isC, rec => (Term.Boolean false)
+
+
+partial def __dt_find_cycle : Term -> Term -> Term -> Term -> Term
+  | Term.Stuck , _ , _ , _  => Term.Stuck
+  | _ , Term.Stuck , _ , _  => Term.Stuck
+  | _ , _ , Term.Stuck , _  => Term.Stuck
+  | _ , _ , _ , Term.Stuck  => Term.Stuck
+  | c, __eo_lv_c_2, isC, rec => (__eo_ite (__eo_eq c __eo_lv_c_2) rec (__eo_l_1___dt_find_cycle c __eo_lv_c_2 isC rec))
+
+
+partial def __eo_prog_dt_cycle : Term -> Term
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) s) t)) (Term.Boolean false)) => (__eo_requires (__dt_find_cycle t s (__is_cons_app t) (Term.Boolean false)) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) s) t)) (Term.Boolean false)))
   | _ => Term.Stuck
 
 
