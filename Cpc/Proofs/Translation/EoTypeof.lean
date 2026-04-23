@@ -324,6 +324,123 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_array
   rw [hz, hy, hx]
   simpa [__eo_typeof_store, hUNS, hTNS, hReq] using hArrayTy
 
+/-- Private EO-side helper for `is`. -/
+private theorem eo_typeof_is_of_non_stuck
+    (C D : Term)
+    (hC : C ≠ Term.Stuck)
+    (hD : D ≠ Term.Stuck) :
+    __eo_typeof_is C D = Term.Bool := by
+  cases C <;> cases D <;> simp [__eo_typeof_is] at hC hD ⊢
+
+/-- Private EO-side helper for `update`. -/
+private theorem eo_typeof_update_of_non_stuck
+    (S D T : Term)
+    (hS : S ≠ Term.Stuck)
+    (hT : T ≠ Term.Stuck) :
+    __eo_typeof_update S D T = D := by
+  sorry
+
+/-- Private EO-side helper for `tuple_select`. -/
+private theorem eo_typeof_tuple_select_of_non_stuck
+    (i T : Term)
+    (hi : i ≠ Term.Stuck)
+    (hT : T ≠ Term.Stuck) :
+    __eo_typeof_tuple_select (Term.UOp UserOp.Int) i T =
+      __eo_list_nth (Term.UOp UserOp.Tuple) T i := by
+  sorry
+
+/-- Private EO-side helper for `tuple_update`. -/
+private theorem eo_typeof_tuple_update_of_non_stuck
+    (i T U : Term)
+    (hi : i ≠ Term.Stuck)
+    (hT : T ≠ Term.Stuck)
+    (hU : U ≠ Term.Stuck) :
+    __eo_typeof_tuple_update (Term.UOp UserOp.Int) i T U =
+      __eo_requires U (__eo_list_nth (Term.UOp UserOp.Tuple) T i) T := by
+  sorry
+
+/-- Private EO-side helper for `_at_witness_string_length`. -/
+private theorem eo_typeof_at_witness_string_length_of_non_stuck
+    (T : Term)
+    (hT : T ≠ Term.Stuck) :
+    __eo_typeof__at_witness_string_length Term.Type T (Term.UOp UserOp.Int) (Term.UOp UserOp.Int) = T := by
+  sorry
+
+/-- Stronger EO-side helper for `typeof_apply_apply_is`. -/
+theorem eo_to_smt_type_typeof_apply_apply_is_of_non_stuck
+    (x y : Term)
+    (hy : __eo_typeof y ≠ Term.Stuck)
+    (hx : __eo_typeof x ≠ Term.Stuck) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.is) y) x)) =
+      SmtType.Bool := by
+  change __eo_to_smt_type (__eo_typeof_is (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_is_of_non_stuck (__eo_typeof y) (__eo_typeof x) hy hx]
+  rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_update`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_middle_type
+    (x y z D : Term)
+    (hz : __eo_typeof z ≠ Term.Stuck)
+    (hy : __eo_typeof y = D)
+    (hx : __eo_typeof x ≠ Term.Stuck) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x)) =
+      __eo_to_smt_type D := by
+  change __eo_to_smt_type (__eo_typeof_update (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
+    __eo_to_smt_type D
+  rw [hy]
+  rw [eo_typeof_update_of_non_stuck (__eo_typeof z) D (__eo_typeof x) hz hx]
+
+/-- Stronger EO-side helper for `typeof_apply_apply_tuple_select`. -/
+theorem eo_to_smt_type_typeof_apply_apply_tuple_select_of_int
+    (x y T : Term)
+    (hx : __eo_typeof x = Term.UOp UserOp.Int)
+    (hy : __eo_typeof y = T)
+    (hT : __eo_to_smt_type T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_select) x) y)) =
+      __eo_to_smt_type (__eo_list_nth (Term.UOp UserOp.Tuple) T x) := by
+  have hXNS : x ≠ Term.Stuck := by
+    intro hX
+    subst x
+    have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+      rfl
+    rw [hStuckTy] at hx
+    cases hx
+  have hTNS : T ≠ Term.Stuck := eo_term_ne_stuck_of_smt_type_non_none T hT
+  change __eo_to_smt_type (__eo_typeof_tuple_select (__eo_typeof x) x (__eo_typeof y)) =
+    __eo_to_smt_type (__eo_list_nth (Term.UOp UserOp.Tuple) T x)
+  rw [hx, hy]
+  rw [eo_typeof_tuple_select_of_non_stuck x T hXNS hTNS]
+
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_tuple_update`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_int_list_nth_type
+    (x y z T : Term)
+    (hz : __eo_typeof z = Term.UOp UserOp.Int)
+    (hy : __eo_typeof y = T)
+    (hx : __eo_typeof x = __eo_list_nth (Term.UOp UserOp.Tuple) T z)
+    (hT : __eo_to_smt_type T ≠ SmtType.None)
+    (hNth : __eo_to_smt_type (__eo_list_nth (Term.UOp UserOp.Tuple) T z) ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x)) =
+      __eo_to_smt_type T := by
+  have hZNS : z ≠ Term.Stuck := by
+    intro hZ
+    subst z
+    have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+      rfl
+    rw [hStuckTy] at hz
+    cases hz
+  have hTNS : T ≠ Term.Stuck := eo_term_ne_stuck_of_smt_type_non_none T hT
+  have hNthNS : __eo_list_nth (Term.UOp UserOp.Tuple) T z ≠ Term.Stuck :=
+    eo_term_ne_stuck_of_smt_type_non_none
+      (__eo_list_nth (Term.UOp UserOp.Tuple) T z) hNth
+  change
+    __eo_to_smt_type (__eo_typeof_tuple_update (__eo_typeof z) z (__eo_typeof y) (__eo_typeof x)) =
+      __eo_to_smt_type T
+  rw [hz, hy, hx]
+  rw [eo_typeof_tuple_update_of_non_stuck z T (__eo_list_nth (Term.UOp UserOp.Tuple) T z) hZNS hTNS hNthNS]
+  simpa using
+    congrArg __eo_to_smt_type
+      (eo_requires_self_of_non_stuck (__eo_list_nth (Term.UOp UserOp.Tuple) T z) T hNthNS)
+
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_update_of_smt_dt_sel`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
     (x y z : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
@@ -1758,6 +1875,29 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
     SmtType.RegLan
   rw [hz, hy, hx]
   rfl
+
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_at_witness_string_length`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_at_witness_string_length_of_type_int_int
+    (x y z : Term)
+    (hz : __eo_typeof z = Term.Type)
+    (hy : __eo_typeof y = Term.UOp UserOp.Int)
+    (hx : __eo_typeof x = Term.UOp UserOp.Int) :
+    __eo_to_smt_type
+        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_witness_string_length) z) y) x)) =
+      __eo_to_smt_type z := by
+  change
+    __eo_to_smt_type
+        (__eo_typeof__at_witness_string_length (__eo_typeof z) z (__eo_typeof y) (__eo_typeof x)) =
+      __eo_to_smt_type z
+  have hZNS : z ≠ Term.Stuck := by
+    intro hZ
+    subst z
+    have hStuckTy : __eo_typeof Term.Stuck = Term.Stuck := by
+      rfl
+    rw [hStuckTy] at hz
+    cases hz
+  rw [hz, hy, hx]
+  rw [eo_typeof_at_witness_string_length_of_non_stuck z hZNS]
 
 /-- Private EO-side helper for same-width bitvector operators returning a bitvector. -/
 private theorem eo_to_smt_type_typeof_bv_same_width_ret_bitvec
