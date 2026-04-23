@@ -338,7 +338,7 @@ private theorem eo_typeof_update_of_non_stuck
     (hS : S ≠ Term.Stuck)
     (hT : T ≠ Term.Stuck) :
     __eo_typeof_update S D T = D := by
-  sorry
+  cases S <;> cases D <;> cases T <;> simp [__eo_typeof_update] at hS hT ⊢
 
 /-- Private EO-side helper for `tuple_select`. -/
 private theorem eo_typeof_tuple_select_of_non_stuck
@@ -347,7 +347,7 @@ private theorem eo_typeof_tuple_select_of_non_stuck
     (hT : T ≠ Term.Stuck) :
     __eo_typeof_tuple_select (Term.UOp UserOp.Int) i T =
       __eo_list_nth (Term.UOp UserOp.Tuple) T i := by
-  sorry
+  cases i <;> cases T <;> simp [__eo_typeof_tuple_select] at hi hT ⊢
 
 /-- Private EO-side helper for `tuple_update`. -/
 private theorem eo_typeof_tuple_update_of_non_stuck
@@ -357,14 +357,15 @@ private theorem eo_typeof_tuple_update_of_non_stuck
     (hU : U ≠ Term.Stuck) :
     __eo_typeof_tuple_update (Term.UOp UserOp.Int) i T U =
       __eo_requires U (__eo_list_nth (Term.UOp UserOp.Tuple) T i) T := by
-  sorry
+  cases i <;> cases T <;> cases U <;>
+    simp [__eo_typeof_tuple_update] at hi hT hU ⊢
 
 /-- Private EO-side helper for `_at_witness_string_length`. -/
 private theorem eo_typeof_at_witness_string_length_of_non_stuck
     (T : Term)
     (hT : T ≠ Term.Stuck) :
     __eo_typeof__at_witness_string_length Term.Type T (Term.UOp UserOp.Int) (Term.UOp UserOp.Int) = T := by
-  sorry
+  cases T <;> simp [__eo_typeof__at_witness_string_length] at hT ⊢
 
 /-- Stronger EO-side helper for `typeof_apply_apply_is`. -/
 theorem eo_to_smt_type_typeof_apply_apply_is_of_non_stuck
