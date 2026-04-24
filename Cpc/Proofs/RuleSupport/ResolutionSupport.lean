@@ -2910,70 +2910,40 @@ private theorem chain_m_resolve_final_pair_of_nonstuck
       r = Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) C2)
         (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl) := by
   intro hFinal
-  cases r with
-  | Stuck =>
-      have hEq : __chain_m_resolve_final C1 Term.Stuck = Term.Stuck := by
-        cases C1 <;> simp [__chain_m_resolve_final]
-      exact False.elim (hFinal hEq)
-  | Boolean b =>
-      have hEq : __chain_m_resolve_final C1 (Term.Boolean b) = Term.Stuck := by
-        cases C1 <;> simp [__chain_m_resolve_final]
-      exact False.elim (hFinal hEq)
+  cases hR : r with
   | Apply f a =>
-      cases f with
+      cases hF : f with
       | Apply g x =>
-          cases g with
+          cases hG : g with
           | UOp op =>
               cases op with
               | _at__at_pair =>
-                  cases a with
+                  cases hA : a with
                   | Apply f' rl =>
-                      cases f' with
+                      cases hF' : f' with
                       | Apply g' L =>
-                          cases g' with
+                          cases hG' : g' with
                           | UOp op' =>
                               cases op' with
                               | or =>
-                                  exact ⟨x, L, rl, rfl⟩
+                                  refine ⟨x, L, rl, ?_⟩
+                                  simp [hR, hF, hG, hA, hF', hG']
                               | _ =>
-                                  cases C1 <;> simp [__chain_m_resolve_final] at hFinal
+                                  cases C1 <;> simp [__chain_m_resolve_final, hR, hF, hG, hA, hF', hG'] at hFinal
                           | _ =>
-                              have hEq :
-                                  __chain_m_resolve_final C1
-                                    (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) x)
-                                      (Term.Apply (Term.Apply g' L) rl)) =
-                                    Term.Stuck := by
-                                cases C1 <;> simp [__chain_m_resolve_final]
-                              exact False.elim (hFinal hEq)
+                              cases C1 <;> simp [__chain_m_resolve_final, hR, hF, hG, hA, hF', hG'] at hFinal
                       | _ =>
-                          have hEq :
-                              __chain_m_resolve_final C1
-                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) x)
-                                  (Term.Apply f' rl)) =
-                                Term.Stuck := by
-                            cases C1 <;> simp [__chain_m_resolve_final]
-                          exact False.elim (hFinal hEq)
+                          cases C1 <;> simp [__chain_m_resolve_final, hR, hF, hG, hA, hF'] at hFinal
                   | _ =>
-                      have hEq :
-                          __chain_m_resolve_final C1
-                            (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) x) a) =
-                            Term.Stuck := by
-                        cases C1 <;> simp [__chain_m_resolve_final]
-                      exact False.elim (hFinal hEq)
+                      cases C1 <;> simp [__chain_m_resolve_final, hR, hF, hG, hA] at hFinal
               | _ =>
-                  cases C1 <;> simp [__chain_m_resolve_final] at hFinal
+                  cases C1 <;> simp [__chain_m_resolve_final, hR, hF, hG] at hFinal
           | _ =>
-              have hEq : __chain_m_resolve_final C1 (Term.Apply (Term.Apply g x) a) = Term.Stuck := by
-                cases C1 <;> simp [__chain_m_resolve_final]
-              exact False.elim (hFinal hEq)
+              cases C1 <;> simp [__chain_m_resolve_final, hR, hF, hG] at hFinal
       | _ =>
-          have hEq : __chain_m_resolve_final C1 (Term.Apply f a) = Term.Stuck := by
-            cases C1 <;> simp [__chain_m_resolve_final]
-          exact False.elim (hFinal hEq)
+          cases C1 <;> simp [__chain_m_resolve_final, hR, hF] at hFinal
   | _ =>
-      have hEq : __chain_m_resolve_final C1 r = Term.Stuck := by
-        cases C1 <;> simp [__chain_m_resolve_final]
-      exact False.elim (hFinal hEq)
+      cases C1 <;> simp [__chain_m_resolve_final, hR] at hFinal
 
 private theorem chain_m_resolve_final_properties_of_nonstuck
     (M : SmtModel) (hM : model_total_typed M) {C1 C2 L rl : Term} :
@@ -3136,12 +3106,24 @@ private theorem chain_m_resolve_properties_of_nonstuck
       have hPremisesTrue : AllInterpretedTrue M premises := by
         intro t ht
         exact hPremTrue t (by simp [ht])
+      have hChainEq :
+          __chain_m_resolve (premiseAndFormulaList (C1 :: premises)) pols lits =
+          __chain_m_resolve_final C1
+            (__chain_m_resolve_rec (premiseAndFormulaList premises) pols lits) := by
+        rcases eo_list_translation_cases hPols with hPolsNil | ⟨pol, pols', hPolsEq⟩
+        · rcases eo_list_translation_cases hLits with hLitsNil | ⟨L, lits', hLitsEq⟩
+          · simp [premiseAndFormulaList, __chain_m_resolve, hPolsNil, hLitsNil]
+          · simp [premiseAndFormulaList, __chain_m_resolve, hPolsNil, hLitsEq]
+        · rcases eo_list_translation_cases hLits with hLitsNil | ⟨L, lits', hLitsEq⟩
+          · simp [premiseAndFormulaList, __chain_m_resolve, hPolsEq, hLitsNil]
+          · simp [premiseAndFormulaList, __chain_m_resolve, hPolsEq, hLitsEq]
       have hFinalNe :
           __chain_m_resolve_final C1
             (__chain_m_resolve_rec (premiseAndFormulaList premises) pols lits) ≠ Term.Stuck := by
         intro hFinalStuck
         apply hResNe
-        simpa [premiseAndFormulaList, __chain_m_resolve] using hFinalStuck
+        rw [hChainEq]
+        exact hFinalStuck
       rcases chain_m_resolve_final_pair_of_nonstuck hFinalNe with ⟨C2, L, rl, hRecEq⟩
       have hRecProps :=
         chain_m_resolve_rec_pair_false_implies_good M hM premises pols lits C2
@@ -3161,7 +3143,8 @@ private theorem chain_m_resolve_properties_of_nonstuck
           __chain_m_resolve_final C1
             (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) C2)
               (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) := by
-        simp [premiseAndFormulaList, __chain_m_resolve, hRecEq]
+        rw [hChainEq]
+        exact congrArg (__chain_m_resolve_final C1) hRecEq
       refine ⟨?_, ?_, ?_⟩
       · rw [hResEq]
         exact hFinalProps.1
@@ -3437,12 +3420,24 @@ private theorem chain_m_resolve_structural_of_nonstuck
       have hPremisesBool : AllHaveBoolType premises := by
         intro t ht
         exact hPremBool t (by simp [ht])
+      have hChainEq :
+          __chain_m_resolve (premiseAndFormulaList (C1 :: premises)) pols lits =
+          __chain_m_resolve_final C1
+            (__chain_m_resolve_rec (premiseAndFormulaList premises) pols lits) := by
+        rcases eo_list_translation_cases hPols with hPolsNil | ⟨pol, pols', hPolsEq⟩
+        · rcases eo_list_translation_cases hLits with hLitsNil | ⟨L, lits', hLitsEq⟩
+          · simp [premiseAndFormulaList, __chain_m_resolve, hPolsNil, hLitsNil]
+          · simp [premiseAndFormulaList, __chain_m_resolve, hPolsNil, hLitsEq]
+        · rcases eo_list_translation_cases hLits with hLitsNil | ⟨L, lits', hLitsEq⟩
+          · simp [premiseAndFormulaList, __chain_m_resolve, hPolsEq, hLitsNil]
+          · simp [premiseAndFormulaList, __chain_m_resolve, hPolsEq, hLitsEq]
       have hFinalNe :
           __chain_m_resolve_final C1
             (__chain_m_resolve_rec (premiseAndFormulaList premises) pols lits) ≠ Term.Stuck := by
         intro hFinalStuck
         apply hResNe
-        simpa [premiseAndFormulaList, __chain_m_resolve] using hFinalStuck
+        rw [hChainEq]
+        exact hFinalStuck
       rcases chain_m_resolve_final_pair_of_nonstuck hFinalNe with ⟨C2, L, rl, hRecEq⟩
       have hRecProps :=
         chain_m_resolve_rec_pair_structural premises pols lits C2
@@ -3462,7 +3457,8 @@ private theorem chain_m_resolve_structural_of_nonstuck
           __chain_m_resolve_final C1
             (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) C2)
               (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) := by
-        simp [premiseAndFormulaList, __chain_m_resolve, hRecEq]
+        rw [hChainEq]
+        exact congrArg (__chain_m_resolve_final C1) hRecEq
       exact ⟨by rw [hResEq]; exact hFinalProps.1, by rw [hResEq]; exact hFinalProps.2⟩
 
 theorem cmd_step_chain_resolution_properties_aux
@@ -3489,7 +3485,7 @@ theorem cmd_step_chain_resolution_properties_aux
           cases args with
           | nil =>
               have hPols : EoListAllHaveSmtTranslation pols := hCmdTrans.1
-              have hLits : EoListAllHaveSmtTranslation lits := hCmdTrans.2
+              have hLits : EoListAllHaveSmtTranslation lits := hCmdTrans.2.1
               have hPolsNe : pols ≠ Term.Stuck := by
                 intro hStuck
                 subst hStuck
@@ -3499,6 +3495,21 @@ theorem cmd_step_chain_resolution_properties_aux
                 subst hStuck
                 cases hLits
               let ps := premiseTermList s premises
+              have hMkPremises :
+                  __eo_mk_premise_list (Term.UOp UserOp.and) premises s =
+                    premiseAndFormulaList ps := by
+                simpa [ps] using mk_premise_list_and_eq_premiseAndFormulaList s premises
+              have hCmdProgEq :
+                  __eo_cmd_step_proven s CRule.chain_resolution
+                    (CArgList.cons pols (CArgList.cons lits CArgList.nil)) premises =
+                  __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps)) := by
+                change
+                  __eo_prog_chain_resolution pols lits
+                    (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) =
+                  __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps))
+                exact congrArg
+                  (fun t => __eo_prog_chain_resolution pols lits (Proof.pf t))
+                  hMkPremises
               have hProgEq :
                   __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps)) =
                   __from_clause (__chain_m_resolve (premiseAndFormulaList ps) pols lits) := by
@@ -3506,7 +3517,8 @@ theorem cmd_step_chain_resolution_properties_aux
               have hProg' :
                   __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps)) ≠
                     Term.Stuck := by
-                simpa [ps, mk_premise_list_and_eq_premiseAndFormulaList] using hProg
+                rw [← hCmdProgEq]
+                exact hProg
               have hChainNe :
                   __chain_m_resolve (premiseAndFormulaList ps) pols lits ≠ Term.Stuck := by
                 rw [hProgEq] at hProg'
@@ -3516,10 +3528,7 @@ theorem cmd_step_chain_resolution_properties_aux
                 have hChainProps :=
                   chain_m_resolve_properties_of_nonstuck M hM ps pols lits
                     hPremisesBool hTrue hPols hLits hChainNe
-                rw [show __eo_cmd_step_proven s CRule.chain_resolution
-                      (CArgList.cons pols (CArgList.cons lits CArgList.nil)) premises =
-                      __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps)) by
-                        simp [__eo_cmd_step_proven, ps, mk_premise_list_and_eq_premiseAndFormulaList]]
+                rw [hCmdProgEq]
                 rw [hProgEq]
                 exact from_clause_true M hM hChainProps.1 hChainProps.2.1 hChainProps.2.2
               · have hChainStruct :=
@@ -3533,8 +3542,7 @@ theorem cmd_step_chain_resolution_properties_aux
                 have hCmdEq :
                     __eo_cmd_step_proven s CRule.chain_resolution
                       (CArgList.cons pols (CArgList.cons lits CArgList.nil)) premises =
-                    __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps)) := by
-                  simp [__eo_cmd_step_proven, ps, mk_premise_list_and_eq_premiseAndFormulaList]
+                    __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps)) := hCmdProgEq
                 rw [hCmdEq]
                 exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hProgBool
           | cons _ _ =>
