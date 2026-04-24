@@ -953,8 +953,8 @@ def __eo_prog_chain_m_resolution : Term -> Term -> Term -> Proof -> Term
   | _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck , _  => Term.Stuck
   | Cr, pols, lits, (Proof.pf C) => 
-    let _v0 := (__eo_list_setof (Term.UOp UserOp.or) (__chain_m_resolve C pols lits))
-    (__eo_requires (__eo_ite (__eo_eq (__from_clause _v0) Cr) (Term.Boolean true) (__eo_list_minclude (Term.UOp UserOp.or) Cr _v0)) (Term.Boolean true) Cr)
+    let _v0 := (__chain_m_resolve C pols lits)
+    (__eo_requires (__eo_list_minclude (Term.UOp UserOp.or) _v0 (__to_clause Cr)) (Term.Boolean true) Cr)
   | _, _, _, _ => Term.Stuck
 
 
