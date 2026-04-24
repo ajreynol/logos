@@ -8,6 +8,9 @@ lake build logos
 echo "Compiling Cpc.Spec..."
 lake build Cpc.Spec
 
+echo "Compiling Cpc.Proofs.Rules.Chain_resolution..."
+lake build Cpc.Proofs.Rules.Chain_resolution
+
 # expensive to compile and not currently used in CI checks, so skipping for now
 #echo "Compiling Cpc.Proofs.Checker..."
 #lake build Cpc.Proofs.Checker
