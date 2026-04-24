@@ -1,5 +1,4 @@
 import Cpc.Proofs.Common
-import Cpc.Proofs.Unproven
 
 open Eo
 open SmtEval

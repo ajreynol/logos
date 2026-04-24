@@ -1,5 +1,5 @@
 import Cpc.Proofs.Translation.EoTypeof
-import Cpc.Proofs.TypePreservation
+import Cpc.Proofs.TypePreservation.Full
 
 open Eo
 open SmtEval
