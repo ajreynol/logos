@@ -1,5 +1,6 @@
 import Cpc.Spec
-import Cpc.Proofs.Translation
+import Cpc.Proofs.Translation.Datatypes
+import Cpc.Proofs.Translation.Apply
 
 open Eo
 open SmtEval
@@ -11,8 +12,8 @@ set_option maxHeartbeats 10000000
 namespace TranslationProofs
 
 /-!
-This file houses externally used translation theorems that still rely on
-unfinished translation proofs.
+Full translation-proof surface corresponding to the lightweight stub in
+`Cpc.Proofs.Translation`.
 -/
 
 /-- Direct form of the translation typing theorem. -/

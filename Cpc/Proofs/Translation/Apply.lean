@@ -3,7 +3,7 @@ import Cpc.Proofs.Translation.Quantifiers
 import Cpc.Proofs.Translation.Special
 import Cpc.Proofs.Translation.Inversions
 import Cpc.Proofs.Translation.Heads
-import Cpc.Proofs.TypePreservation
+import Cpc.Proofs.TypePreservationFull
 
 open Eo
 open SmtEval
