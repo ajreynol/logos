@@ -965,7 +965,7 @@ def __eo_prog_factoring : Proof -> Term
 
 def __eo_prog_reordering : Term -> Proof -> Term
   | Term.Stuck , _  => Term.Stuck
-  | C2, (Proof.pf C1) => (__eo_requires (__eo_list_minclude (Term.UOp UserOp.or) C1 C2) (Term.Boolean true) C2)
+  | C2, (Proof.pf C1) => (__eo_requires (__eo_list_minclude (Term.UOp UserOp.or) C2 C1) (Term.Boolean true) C2)
   | _, _ => Term.Stuck
 
 
