@@ -3461,6 +3461,853 @@ private theorem chain_m_resolve_structural_of_nonstuck
         exact congrArg (__chain_m_resolve_final C1) hRecEq
       exact ⟨by rw [hResEq]; exact hFinalProps.1, by rw [hResEq]; exact hFinalProps.2⟩
 
+private theorem list_setof_arg_ne_stuck {c : Term} :
+    __eo_list_setof Term.or c ≠ Term.Stuck ->
+    c ≠ Term.Stuck := by
+  intro hSet hC
+  subst hC
+  simp [__eo_list_setof, __eo_is_list, __eo_is_ok, __eo_get_nil_rec, native_teq,
+    native_not, SmtEval.native_not] at hSet
+  exact hSet rfl
+
+private theorem list_minclude_left_arg_ne_stuck {c d : Term} :
+    __eo_list_minclude Term.or c d = Term.Boolean true ->
+    c ≠ Term.Stuck := by
+  intro hIncl hC
+  subst hC
+  cases d <;> simp [__eo_list_minclude, __eo_list_minclude_rec, __eo_get_elements_rec,
+    __eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires, native_ite, native_teq,
+    native_not, SmtEval.native_not] at hIncl
+
+private theorem eq_true_of_requires_true_not_stuck {x B : Term} :
+    __eo_requires x (Term.Boolean true) B ≠ Term.Stuck ->
+    x = Term.Boolean true := by
+  intro hReq
+  cases x <;> cases B <;>
+    simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hReq ⊢
+  all_goals assumption
+
+private theorem eq_of_eo_eq_true_local (x y : Term) :
+    __eo_eq x y = Term.Boolean true ->
+    y = x := by
+  intro h
+  by_cases hx : x = Term.Stuck
+  · subst x
+    simp [__eo_eq] at h
+  · by_cases hy : y = Term.Stuck
+    · subst y
+      simp [__eo_eq] at h
+    · have hDec : native_teq y x = true := by
+        simpa [__eo_eq, hx, hy] using h
+      simpa [native_teq] using hDec
+
+private theorem orClause_right_of_minclude_true {c d : Term} :
+    __eo_list_minclude Term.or c d = Term.Boolean true ->
+    OrClause d := by
+  intro hIncl
+  have hReqD :
+      __eo_requires (__eo_is_list Term.or d) (Term.Boolean true) (__eo_get_elements_rec d) ≠
+        Term.Stuck := by
+    intro hReqD
+    cases hReqC :
+        __eo_requires (__eo_is_list Term.or c) (Term.Boolean true) (__eo_get_elements_rec c) <;>
+      simp [__eo_list_minclude, __eo_list_minclude_rec, hReqD, hReqC] at hIncl
+  have hListD : __eo_is_list Term.or d = Term.Boolean true :=
+    eq_true_of_requires_true_not_stuck hReqD
+  exact orClause_of_is_list_true hListD
+
+private theorem orClause_left_of_minclude_true {c d : Term} :
+    __eo_list_minclude Term.or c d = Term.Boolean true ->
+    OrClause c := by
+  intro hIncl
+  have hReqC :
+      __eo_requires (__eo_is_list Term.or c) (Term.Boolean true) (__eo_get_elements_rec c) ≠
+        Term.Stuck := by
+    intro hReqC
+    cases hReqD :
+        __eo_requires (__eo_is_list Term.or d) (Term.Boolean true) (__eo_get_elements_rec d) <;>
+      simp [__eo_list_minclude, __eo_list_minclude_rec, hReqC, hReqD] at hIncl
+  have hListC : __eo_is_list Term.or c = Term.Boolean true :=
+    eq_true_of_requires_true_not_stuck hReqC
+  exact orClause_of_is_list_true hListC
+
+private theorem to_clause_preserves_bool_type {c : Term} :
+    RuleProofs.eo_has_bool_type c ->
+    RuleProofs.eo_has_bool_type (__to_clause c) := by
+  intro hCBool
+  have hCNe : c ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type _ hCBool
+  by_cases hOr : ∃ F1 F2, c = Term.Apply (Term.Apply (Term.UOp UserOp.or) F1) F2
+  · rcases hOr with ⟨F1, F2, rfl⟩
+    simpa [__to_clause] using hCBool
+  · by_cases hFalse : c = Term.Boolean false
+    · subst hFalse
+      simpa [__to_clause] using RuleProofs.eo_has_bool_type_false
+    · have hToClause :
+          __to_clause c =
+            Term.Apply (Term.Apply (Term.UOp UserOp.or) c) (Term.Boolean false) := by
+          cases c <;> try (simp [__to_clause] at hOr hFalse hCNe ⊢)
+          case Apply f a =>
+            cases f <;> simp [__to_clause] at hOr hFalse hCNe ⊢
+            case Apply g x =>
+              cases g <;> simp [__to_clause] at hOr hFalse hCNe ⊢
+              case UOp op =>
+                cases op <;> simp [__to_clause] at hOr hFalse hCNe ⊢
+      rw [hToClause]
+      exact RuleProofs.eo_has_bool_type_or_of_bool_args
+        c (Term.Boolean false) hCBool RuleProofs.eo_has_bool_type_false
+
+private theorem to_clause_true_implies_original_true
+    (M : SmtModel) (hM : model_total_typed M) {c : Term} :
+    RuleProofs.eo_has_bool_type c ->
+    eo_interprets M (__to_clause c) true ->
+    eo_interprets M c true := by
+  intro hCBool hToClauseTrue
+  have hCNe : c ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_bool_type _ hCBool
+  by_cases hOr : ∃ F1 F2, c = Term.Apply (Term.Apply (Term.UOp UserOp.or) F1) F2
+  · rcases hOr with ⟨F1, F2, rfl⟩
+    simpa [__to_clause] using hToClauseTrue
+  · by_cases hFalse : c = Term.Boolean false
+    · subst hFalse
+      simpa [__to_clause] using hToClauseTrue
+    · have hToClause :
+          __to_clause c =
+            Term.Apply (Term.Apply (Term.UOp UserOp.or) c) (Term.Boolean false) := by
+          cases c <;> try (simp [__to_clause] at hOr hFalse hCNe ⊢)
+          case Apply f a =>
+            cases f <;> simp [__to_clause] at hOr hFalse hCNe ⊢
+            case Apply g x =>
+              cases g <;> simp [__to_clause] at hOr hFalse hCNe ⊢
+              case UOp op =>
+                cases op <;> simp [__to_clause] at hOr hFalse hCNe ⊢
+      rw [hToClause] at hToClauseTrue
+      exact eo_interprets_or_left_of_right_false M hM
+        c (Term.Boolean false) (eo_interprets_false M) hToClauseTrue
+
+private theorem get_elements_rec_ne_stuck {c : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    __eo_get_elements_rec c ≠ Term.Stuck := by
+  intro hClause hCBool
+  induction hClause with
+  | false =>
+      simp [__eo_get_elements_rec]
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      have hXsNe : __eo_get_elements_rec xs ≠ Term.Stuck := ih hXsBool
+      simpa [__eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+
+private theorem get_elements_or_eq {x xs : Term} :
+    x ≠ Term.Stuck ->
+    __eo_get_elements_rec xs ≠ Term.Stuck ->
+    __eo_get_elements_rec (Term.Apply (Term.Apply Term.or x) xs) =
+      Term.Apply (Term.Apply Term.__eo_List_cons x) (__eo_get_elements_rec xs) := by
+  intro hX hXsNe
+  simp [__eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+
+private theorem erase_rec_true_implies_original_true
+    (M : SmtModel) (hM : model_total_typed M) {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    eo_interprets M (__eo_list_erase_rec c e) true ->
+    eo_interprets M c true := by
+  intro hClause hCBool hE hEraseTrue
+  induction hClause generalizing e with
+  | false =>
+      have : eo_interprets M (Term.Boolean false) true := by
+        simpa [__eo_list_erase_rec] using hEraseTrue
+      exact False.elim ((RuleProofs.eo_interprets_true_not_false M _ this) (eo_interprets_false M))
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      by_cases hEq : x = e
+      · rw [list_erase_rec_cons_eq x xs e hEq hX hE] at hEraseTrue
+        exact RuleProofs.eo_interprets_or_right_intro M hM x xs hXBool hEraseTrue
+      · have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_erase_rec xs e) :=
+          erase_rec_preserves_bool_type hXs hXsBool hE
+        have hTailNe : __eo_list_erase_rec xs e ≠ Term.Stuck :=
+          RuleProofs.term_ne_stuck_of_has_bool_type _ hTailBool
+        rw [list_erase_rec_cons_ne x xs e hEq hX hE hTailNe] at hEraseTrue
+        rcases eo_interprets_bool_cases M hM x hXBool with hXTrue | hXFalse
+        · exact RuleProofs.eo_interprets_or_left_intro M hM x xs hXTrue hXsBool
+        · have hTailTrue : eo_interprets M (__eo_list_erase_rec xs e) true :=
+            eo_interprets_or_right_of_left_false M hM x (__eo_list_erase_rec xs e)
+              hXFalse hEraseTrue
+          have hXsTrue : eo_interprets M xs true :=
+            ih hXsBool hE hTailTrue
+          exact RuleProofs.eo_interprets_or_right_intro M hM x xs hXBool hXsTrue
+
+private theorem erase_true_implies_original_true
+    (M : SmtModel) (hM : model_total_typed M) {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    eo_interprets M (__eo_list_erase Term.or c e) true ->
+    eo_interprets M c true := by
+  intro hClause hCBool hE hEraseTrue
+  change eo_interprets M
+    (__eo_requires (__eo_is_list Term.or c) (Term.Boolean true) (__eo_list_erase_rec c e)) true
+    at hEraseTrue
+  rw [orClause_is_list_true hClause] at hEraseTrue
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hEraseTrue
+  exact erase_rec_true_implies_original_true M hM hClause hCBool hE hEraseTrue
+
+private theorem erase_rec_changed_and_lit_true_implies_clause_true
+    (M : SmtModel) (hM : model_total_typed M) {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    RuleProofs.eo_has_bool_type e ->
+    eo_interprets M e true ->
+    __eo_list_erase_rec c e ≠ c ->
+    eo_interprets M c true := by
+  intro hClause hCBool hE hEBool hETrue hChanged
+  induction hClause generalizing e with
+  | false =>
+      exfalso
+      apply hChanged
+      simp [__eo_list_erase_rec]
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      by_cases hEq : x = e
+      · have hXTrue : eo_interprets M x true := by
+          simpa [hEq] using hETrue
+        exact RuleProofs.eo_interprets_or_left_intro M hM x xs hXTrue hXsBool
+      · have hTailChanged : __eo_list_erase_rec xs e ≠ xs := by
+          intro hTailEq
+          have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_erase_rec xs e) :=
+            erase_rec_preserves_bool_type hXs hXsBool hE
+          have hTailNe : __eo_list_erase_rec xs e ≠ Term.Stuck :=
+            RuleProofs.term_ne_stuck_of_has_bool_type _ hTailBool
+          apply hChanged
+          rw [list_erase_rec_cons_ne x xs e hEq hX hE hTailNe, hTailEq]
+        rcases eo_interprets_bool_cases M hM x hXBool with hXTrue | hXFalse
+        · exact RuleProofs.eo_interprets_or_left_intro M hM x xs hXTrue hXsBool
+        · have hXsTrue : eo_interprets M xs true :=
+            ih hXsBool hE hEBool hETrue hTailChanged
+          exact RuleProofs.eo_interprets_or_right_intro M hM x xs hXBool hXsTrue
+
+private theorem erase_changed_and_lit_true_implies_clause_true
+    (M : SmtModel) (hM : model_total_typed M) {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    RuleProofs.eo_has_bool_type e ->
+    eo_interprets M e true ->
+    __eo_list_erase Term.or c e ≠ c ->
+    eo_interprets M c true := by
+  intro hClause hCBool hE hEBool hETrue hChanged
+  have hEraseEq : __eo_list_erase Term.or c e = __eo_list_erase_rec c e := by
+    simp [__eo_list_erase, orClause_is_list_true hClause, __eo_requires, native_ite, native_teq, native_not,
+      SmtEval.native_not]
+  apply erase_rec_changed_and_lit_true_implies_clause_true M hM hClause hCBool hE hEBool hETrue
+  intro hRecEq
+  apply hChanged
+  rw [hEraseEq, hRecEq]
+
+private theorem get_elements_erase_rec_eq {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    __eo_get_elements_rec (__eo_list_erase_rec c e) =
+      __eo_list_erase_rec (__eo_get_elements_rec c) e := by
+  intro hClause hCBool hE
+  induction hClause generalizing e with
+  | false =>
+      simp [__eo_list_erase_rec, __eo_get_elements_rec]
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      have hElemsXsNe : __eo_get_elements_rec xs ≠ Term.Stuck :=
+        get_elements_rec_ne_stuck hXs hXsBool
+      by_cases hEq : x = e
+      · have hEqTerm : __eo_eq x e = Term.Boolean true :=
+          eo_eq_eq_true_of_eq hEq hX hE
+        rw [list_erase_rec_cons_eq x xs e hEq hX hE]
+        rw [get_elements_or_eq hX hElemsXsNe]
+        simp [__eo_list_erase_rec, hEqTerm, __eo_ite, native_ite, native_teq]
+      · have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_erase_rec xs e) :=
+          erase_rec_preserves_bool_type hXs hXsBool hE
+        have hTailNe : __eo_list_erase_rec xs e ≠ Term.Stuck :=
+          RuleProofs.term_ne_stuck_of_has_bool_type _ hTailBool
+        have hTailClause : OrClause (__eo_list_erase_rec xs e) :=
+          erase_rec_preserves_orClause hXs hXsBool hE
+        have hElemsTailNe : __eo_get_elements_rec (__eo_list_erase_rec xs e) ≠ Term.Stuck :=
+          get_elements_rec_ne_stuck hTailClause hTailBool
+        have hErasedElemsNe : __eo_list_erase_rec (__eo_get_elements_rec xs) e ≠ Term.Stuck := by
+          rw [← ih hXsBool hE]
+          exact hElemsTailNe
+        have hNeTerm : __eo_eq x e = Term.Boolean false :=
+          eo_eq_eq_false_of_ne hEq hX hE
+        have hConsFnNe : Term.Apply Term.__eo_List_cons x ≠ Term.Stuck := by
+          intro h
+          cases h
+        rw [list_erase_rec_cons_ne x xs e hEq hX hE hTailNe]
+        rw [get_elements_or_eq hX hElemsTailNe]
+        rw [get_elements_or_eq hX hElemsXsNe]
+        simpa [__eo_list_erase_rec, __eo_mk_apply, hNeTerm, __eo_ite, native_ite, native_teq,
+          hConsFnNe, hErasedElemsNe] using
+          congrArg (Term.Apply (Term.Apply Term.__eo_List_cons x)) (ih hXsBool hE)
+
+private theorem get_elements_erase_eq {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    __eo_get_elements_rec (__eo_list_erase Term.or c e) =
+      __eo_list_erase_rec (__eo_get_elements_rec c) e := by
+  intro hClause hCBool hE
+  have hEraseEq : __eo_list_erase Term.or c e = __eo_list_erase_rec c e := by
+    simp [__eo_list_erase, orClause_is_list_true hClause, __eo_requires, native_ite, native_teq, native_not,
+      SmtEval.native_not]
+  rw [hEraseEq]
+  exact get_elements_erase_rec_eq hClause hCBool hE
+
+private theorem erase_all_rec_preserves_orClause {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    OrClause (__eo_list_erase_all_rec c e) := by
+  intro hClause hCBool hE
+  induction hClause generalizing e with
+  | false =>
+      simpa [__eo_list_erase_all_rec] using OrClause.false
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      have hTail : OrClause (__eo_list_erase_all_rec xs e) :=
+        ih hXsBool hE
+      have hTailNe : __eo_list_erase_all_rec xs e ≠ Term.Stuck :=
+        orClause_ne_stuck hTail
+      by_cases hEq : x = e
+      · have hEqTerm : __eo_eq e x = Term.Boolean true :=
+          eo_eq_eq_true_of_eq hEq.symm hE hX
+        have hStep :
+            __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
+              __eo_list_erase_all_rec xs e := by
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
+            native_teq, hTailNe]
+        rw [hStep]
+        exact hTail
+      · have hEqTerm : __eo_eq e x = Term.Boolean false :=
+          eo_eq_eq_false_of_ne (by
+            intro hEx
+            apply hEq
+            exact hEx.symm) hE hX
+        have hStep :
+            __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
+              Term.Apply (Term.Apply Term.or x) (__eo_list_erase_all_rec xs e) := by
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
+            native_teq, hTailNe]
+        rw [hStep]
+        exact OrClause.cons x (__eo_list_erase_all_rec xs e) hTail
+
+private theorem erase_all_rec_preserves_bool_type {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    RuleProofs.eo_has_bool_type (__eo_list_erase_all_rec c e) := by
+  intro hClause hCBool hE
+  induction hClause generalizing e with
+  | false =>
+      simpa [__eo_list_erase_all_rec] using RuleProofs.eo_has_bool_type_false
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      have hTail : RuleProofs.eo_has_bool_type (__eo_list_erase_all_rec xs e) :=
+        ih hXsBool hE
+      have hTailNe : __eo_list_erase_all_rec xs e ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type _ hTail
+      by_cases hEq : x = e
+      · have hEqTerm : __eo_eq e x = Term.Boolean true :=
+          eo_eq_eq_true_of_eq hEq.symm hE hX
+        have hStep :
+            __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
+              __eo_list_erase_all_rec xs e := by
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
+            native_teq, hTailNe]
+        rw [hStep]
+        exact hTail
+      · have hEqTerm : __eo_eq e x = Term.Boolean false :=
+          eo_eq_eq_false_of_ne (by
+            intro hEx
+            apply hEq
+            exact hEx.symm) hE hX
+        have hStep :
+            __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
+              Term.Apply (Term.Apply Term.or x) (__eo_list_erase_all_rec xs e) := by
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
+            native_teq, hTailNe]
+        rw [hStep]
+        exact RuleProofs.eo_has_bool_type_or_of_bool_args x (__eo_list_erase_all_rec xs e)
+          hXBool hTail
+
+private theorem erase_all_rec_true_of_lit_false
+    (M : SmtModel) (hM : model_total_typed M) {c e : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    e ≠ Term.Stuck ->
+    RuleProofs.eo_has_bool_type e ->
+    eo_interprets M e false ->
+    eo_interprets M c true ->
+    eo_interprets M (__eo_list_erase_all_rec c e) true := by
+  intro hClause hCBool hE hEBool hEFalse hCTrue
+  induction hClause generalizing e with
+  | false =>
+      exact False.elim ((RuleProofs.eo_interprets_true_not_false M _ hCTrue) (eo_interprets_false M))
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      have hOrTrue : eo_interprets M (Term.Apply (Term.Apply Term.or x) xs) true := by
+        simpa using hCTrue
+      have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_erase_all_rec xs e) :=
+        erase_all_rec_preserves_bool_type hXs hXsBool hE
+      have hTailNe : __eo_list_erase_all_rec xs e ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type _ hTailBool
+      by_cases hEq : x = e
+      · have hXFalse : eo_interprets M x false := by
+          simpa [hEq] using hEFalse
+        have hXsTrue : eo_interprets M xs true :=
+          eo_interprets_or_right_of_left_false M hM x xs hXFalse hOrTrue
+        have hTailTrue : eo_interprets M (__eo_list_erase_all_rec xs e) true :=
+          ih hXsBool hE hEBool hEFalse hXsTrue
+        have hEqTerm : __eo_eq e x = Term.Boolean true :=
+          eo_eq_eq_true_of_eq hEq.symm hE hX
+        have hStep :
+            __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
+              __eo_list_erase_all_rec xs e := by
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
+            native_teq, hTailNe]
+        rw [hStep]
+        exact hTailTrue
+      · have hEqTerm : __eo_eq e x = Term.Boolean false :=
+          eo_eq_eq_false_of_ne (by
+            intro hEx
+            apply hEq
+            exact hEx.symm) hE hX
+        rcases eo_interprets_bool_cases M hM x hXBool with hXTrue | hXFalse
+        · have hStep :
+            __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
+              Term.Apply (Term.Apply Term.or x) (__eo_list_erase_all_rec xs e) := by
+            simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
+              native_teq, hTailNe]
+          rw [hStep]
+          exact RuleProofs.eo_interprets_or_left_intro M hM x (__eo_list_erase_all_rec xs e)
+            hXTrue hTailBool
+        · have hXsTrue : eo_interprets M xs true :=
+            eo_interprets_or_right_of_left_false M hM x xs hXFalse hOrTrue
+          have hTailTrue : eo_interprets M (__eo_list_erase_all_rec xs e) true :=
+            ih hXsBool hE hEBool hEFalse hXsTrue
+          have hStep :
+              __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
+                Term.Apply (Term.Apply Term.or x) (__eo_list_erase_all_rec xs e) := by
+            simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
+              native_teq, hTailNe]
+          rw [hStep]
+          exact RuleProofs.eo_interprets_or_right_intro M hM x (__eo_list_erase_all_rec xs e)
+            hXBool hTailTrue
+
+private theorem setof_rec_structural {c : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    OrClause (__eo_list_setof_rec c) ∧
+      RuleProofs.eo_has_bool_type (__eo_list_setof_rec c) := by
+  intro hClause hCBool
+  induction hClause with
+  | false =>
+      exact ⟨by simpa [__eo_list_setof_rec] using OrClause.false,
+        by simpa [__eo_list_setof_rec] using RuleProofs.eo_has_bool_type_false⟩
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      have hTailClause : OrClause (__eo_list_setof_rec xs) := (ih hXsBool).1
+      have hTailBool : RuleProofs.eo_has_bool_type (__eo_list_setof_rec xs) := (ih hXsBool).2
+      have hEraseClause : OrClause (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) :=
+        erase_all_rec_preserves_orClause hTailClause hTailBool hX
+      have hEraseBool : RuleProofs.eo_has_bool_type (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) :=
+        erase_all_rec_preserves_bool_type hTailClause hTailBool hX
+      have hEraseNe : __eo_list_erase_all_rec (__eo_list_setof_rec xs) x ≠ Term.Stuck :=
+        orClause_ne_stuck hEraseClause
+      have hStep :
+          __eo_list_setof_rec (Term.Apply (Term.Apply Term.or x) xs) =
+            Term.Apply (Term.Apply Term.or x)
+              (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
+        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+      rw [hStep]
+      exact ⟨OrClause.cons x (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) hEraseClause,
+        RuleProofs.eo_has_bool_type_or_of_bool_args x
+          (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) hXBool hEraseBool⟩
+
+private theorem setof_rec_true
+    (M : SmtModel) (hM : model_total_typed M) {c : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    eo_interprets M c true ->
+    eo_interprets M (__eo_list_setof_rec c) true := by
+  intro hClause hCBool hCTrue
+  induction hClause with
+  | false =>
+      exact False.elim ((RuleProofs.eo_interprets_true_not_false M _ hCTrue) (eo_interprets_false M))
+  | cons x xs hXs ih =>
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hCBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hCBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      have hOrTrue : eo_interprets M (Term.Apply (Term.Apply Term.or x) xs) true := by
+        simpa using hCTrue
+      have hTailStruct := setof_rec_structural hXs hXsBool
+      have hEraseBool : RuleProofs.eo_has_bool_type (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) :=
+        erase_all_rec_preserves_bool_type hTailStruct.1 hTailStruct.2 hX
+      have hEraseNe : __eo_list_erase_all_rec (__eo_list_setof_rec xs) x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type _ hEraseBool
+      have hStep :
+          __eo_list_setof_rec (Term.Apply (Term.Apply Term.or x) xs) =
+            Term.Apply (Term.Apply Term.or x)
+              (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
+        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+      rcases eo_interprets_bool_cases M hM x hXBool with hXTrue | hXFalse
+      · rw [hStep]
+        exact RuleProofs.eo_interprets_or_left_intro M hM x
+          (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) hXTrue hEraseBool
+      · have hXsTrue : eo_interprets M xs true :=
+          eo_interprets_or_right_of_left_false M hM x xs hXFalse hOrTrue
+        have hSetXsTrue : eo_interprets M (__eo_list_setof_rec xs) true :=
+          ih hXsBool hXsTrue
+        have hEraseTrue : eo_interprets M (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) true :=
+          erase_all_rec_true_of_lit_false M hM hTailStruct.1 hTailStruct.2 hX hXBool hXFalse hSetXsTrue
+        rw [hStep]
+        exact RuleProofs.eo_interprets_or_right_intro M hM x
+          (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) hXBool hEraseTrue
+
+private theorem setof_preserves_orClause {c : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    OrClause (__eo_list_setof Term.or c) := by
+  intro hClause hCBool
+  change OrClause
+    (__eo_requires (__eo_is_list Term.or c) (Term.Boolean true) (__eo_list_setof_rec c))
+  rw [orClause_is_list_true hClause]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact (setof_rec_structural hClause hCBool).1
+
+private theorem setof_preserves_bool_type {c : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    RuleProofs.eo_has_bool_type (__eo_list_setof Term.or c) := by
+  intro hClause hCBool
+  change RuleProofs.eo_has_bool_type
+    (__eo_requires (__eo_is_list Term.or c) (Term.Boolean true) (__eo_list_setof_rec c))
+  rw [orClause_is_list_true hClause]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact (setof_rec_structural hClause hCBool).2
+
+private theorem setof_true
+    (M : SmtModel) (hM : model_total_typed M) {c : Term} :
+    OrClause c ->
+    RuleProofs.eo_has_bool_type c ->
+    eo_interprets M c true ->
+    eo_interprets M (__eo_list_setof Term.or c) true := by
+  intro hClause hCBool hCTrue
+  change eo_interprets M
+    (__eo_requires (__eo_is_list Term.or c) (Term.Boolean true) (__eo_list_setof_rec c)) true
+  rw [orClause_is_list_true hClause]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  exact setof_rec_true M hM hClause hCBool hCTrue
+
+private theorem orClause_true_of_minclude_true
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ {c d : Term},
+      OrClause c ->
+      RuleProofs.eo_has_bool_type c ->
+      OrClause d ->
+      RuleProofs.eo_has_bool_type d ->
+      __eo_list_minclude Term.or c d = Term.Boolean true ->
+      eo_interprets M d true ->
+      eo_interprets M c true := by
+  intro c d hC hCBool hD hDBool hIncl hDTrue
+  induction hD generalizing c with
+  | false =>
+      exfalso
+      exact (RuleProofs.eo_interprets_true_not_false M _ hDTrue) (eo_interprets_false M)
+  | cons x xs hXs ih =>
+      have hDClause : OrClause (Term.Apply (Term.Apply Term.or x) xs) :=
+        OrClause.cons x xs hXs
+      have hXBool : RuleProofs.eo_has_bool_type x :=
+        RuleProofs.eo_has_bool_type_or_left x xs hDBool
+      have hXsBool : RuleProofs.eo_has_bool_type xs :=
+        RuleProofs.eo_has_bool_type_or_right x xs hDBool
+      have hX : x ≠ Term.Stuck :=
+        RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
+      have hElemsCNe : __eo_get_elements_rec c ≠ Term.Stuck :=
+        get_elements_rec_ne_stuck hC hCBool
+      have hElemsXsNe : __eo_get_elements_rec xs ≠ Term.Stuck :=
+        get_elements_rec_ne_stuck hXs hXsBool
+      let z := __eo_list_erase_rec (__eo_get_elements_rec c) x
+      have hInclRec :
+          __eo_list_minclude_rec z (__eo_get_elements_rec xs)
+            (__eo_not (__eo_eq z (__eo_get_elements_rec c))) = Term.Boolean true := by
+        have hIncl' := hIncl
+        rw [show __eo_list_minclude Term.or c (Term.Apply (Term.Apply Term.or x) xs) =
+            __eo_list_minclude_rec
+              (__eo_get_elements_rec c)
+              (Term.Apply (Term.Apply Term.__eo_List_cons x) (__eo_get_elements_rec xs))
+              (Term.Boolean true) by
+              simp [__eo_list_minclude, orClause_is_list_true hC, orClause_is_list_true hDClause,
+                __eo_requires, native_ite, native_teq, native_not, SmtEval.native_not,
+                get_elements_or_eq hX hElemsXsNe]] at hIncl'
+        simpa [__eo_list_minclude_rec, z]
+          using hIncl'
+      have hZNe : z ≠ Term.Stuck := by
+        intro hZ
+        have hInclRec' := hInclRec
+        rw [hZ] at hInclRec'
+        simp [__eo_list_minclude_rec] at hInclRec'
+      have hZChanged : z ≠ __eo_get_elements_rec c := by
+        intro hEq
+        have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
+          eo_eq_eq_true_of_eq hEq hZNe hElemsCNe
+        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not, native_teq] at hInclRec
+      have hNotEqTerm :
+          __eo_not (__eo_eq z (__eo_get_elements_rec c)) = Term.Boolean true := by
+        have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
+          eo_eq_eq_false_of_ne hZChanged hZNe hElemsCNe
+        simp [__eo_not, hEqTerm, native_not]
+      have hTailInclRec :
+          __eo_list_minclude_rec z (__eo_get_elements_rec xs) (Term.Boolean true) =
+            Term.Boolean true := by
+        rw [hNotEqTerm] at hInclRec
+        exact hInclRec
+      have hEraseChanged : __eo_list_erase Term.or c x ≠ c := by
+        intro hEraseEq
+        apply hZChanged
+        rw [show z = __eo_get_elements_rec (__eo_list_erase Term.or c x) by
+            simpa [z] using (get_elements_erase_eq hC hCBool hX).symm]
+        exact congrArg __eo_get_elements_rec hEraseEq
+      have hEraseClause : OrClause (__eo_list_erase Term.or c x) :=
+        erase_preserves_orClause hC hCBool hX
+      have hEraseBool : RuleProofs.eo_has_bool_type (__eo_list_erase Term.or c x) :=
+        erase_preserves_bool_type hC hCBool hX
+      have hTailIncl :
+          __eo_list_minclude Term.or (__eo_list_erase Term.or c x) xs = Term.Boolean true := by
+        have hGetErase :
+            __eo_get_elements_rec (__eo_list_erase Term.or c x) = z := by
+          simpa [z] using get_elements_erase_eq hC hCBool hX
+        simpa [__eo_list_minclude, orClause_is_list_true hEraseClause, orClause_is_list_true hXs,
+          __eo_requires, native_ite, native_teq, native_not, SmtEval.native_not, hGetErase]
+          using hTailInclRec
+      rcases eo_interprets_bool_cases M hM x hXBool with hXTrue | hXFalse
+      · exact erase_changed_and_lit_true_implies_clause_true M hM
+          hC hCBool hX hXBool hXTrue hEraseChanged
+      · have hXsTrue : eo_interprets M xs true :=
+          eo_interprets_or_right_of_left_false M hM x xs hXFalse hDTrue
+        have hEraseTrue : eo_interprets M (__eo_list_erase Term.or c x) true :=
+          ih hEraseClause hEraseBool hXsBool hTailIncl hXsTrue
+        exact erase_true_implies_original_true M hM hC hCBool hX hEraseTrue
+
+theorem cmd_step_chain_m_resolution_properties_aux
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.chain_m_resolution args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.chain_m_resolution args premises) = Term.Bool ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.chain_m_resolution args premises) := by
+  intro hCmdTrans hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.chain_m_resolution args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons Cr args =>
+      cases args with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons pols args =>
+          cases args with
+          | nil =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+          | cons lits args =>
+              cases args with
+              | nil =>
+                  have hCrTrans : RuleProofs.eo_has_smt_translation Cr := hCmdTrans.1
+                  have hPols : EoListAllHaveSmtTranslation pols := hCmdTrans.2.1
+                  have hLits : EoListAllHaveSmtTranslation lits := hCmdTrans.2.2.1
+                  have hPolsNe : pols ≠ Term.Stuck := by
+                    intro hStuck
+                    subst hStuck
+                    cases hPols
+                  have hLitsNe : lits ≠ Term.Stuck := by
+                    intro hStuck
+                    subst hStuck
+                    cases hLits
+                  let ps := premiseTermList s premises
+                  have hMkPremises :
+                      __eo_mk_premise_list (Term.UOp UserOp.and) premises s =
+                        premiseAndFormulaList ps := by
+                    simpa [ps] using mk_premise_list_and_eq_premiseAndFormulaList s premises
+                  have hCmdProgEq :
+                      __eo_cmd_step_proven s CRule.chain_m_resolution
+                        (CArgList.cons Cr (CArgList.cons pols (CArgList.cons lits CArgList.nil)))
+                        premises =
+                      __eo_prog_chain_m_resolution Cr pols lits
+                        (Proof.pf (premiseAndFormulaList ps)) := by
+                    change
+                      __eo_prog_chain_m_resolution Cr pols lits
+                        (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) =
+                      __eo_prog_chain_m_resolution Cr pols lits
+                        (Proof.pf (premiseAndFormulaList ps))
+                    exact congrArg
+                      (fun t => __eo_prog_chain_m_resolution Cr pols lits (Proof.pf t))
+                      hMkPremises
+                  have hProg' :
+                      __eo_prog_chain_m_resolution Cr pols lits
+                        (Proof.pf (premiseAndFormulaList ps)) ≠ Term.Stuck := by
+                    rw [← hCmdProgEq]
+                    exact hProg
+                  have hCrNe : Cr ≠ Term.Stuck := by
+                    intro hStuck
+                    subst hStuck
+                    simp [__eo_prog_chain_m_resolution] at hProg'
+                  have hSetNe :
+                      __eo_list_setof Term.or
+                        (__chain_m_resolve (premiseAndFormulaList ps) pols lits) ≠ Term.Stuck := by
+                    intro hSet
+                    apply hProg'
+                    simp [__eo_prog_chain_m_resolution, hCrNe, hPolsNe, hLitsNe, hSet,
+                      __eo_requires, __eo_ite, __eo_eq, __from_clause, __eo_list_minclude,
+                      native_ite, native_teq, native_not, SmtEval.native_not]
+                  have hChainNe :
+                      __chain_m_resolve (premiseAndFormulaList ps) pols lits ≠ Term.Stuck :=
+                    list_setof_arg_ne_stuck hSetNe
+                  have hReqNe :
+                      __eo_requires
+                        (__eo_ite
+                          (__eo_eq
+                            (__from_clause
+                              (__eo_list_setof Term.or
+                                (__chain_m_resolve (premiseAndFormulaList ps) pols lits))) Cr)
+                          (Term.Boolean true)
+                          (__eo_list_minclude Term.or Cr
+                            (__eo_list_setof Term.or
+                              (__chain_m_resolve (premiseAndFormulaList ps) pols lits))))
+                        (Term.Boolean true) Cr ≠ Term.Stuck := by
+                    simpa [__eo_prog_chain_m_resolution, hCrNe, hPolsNe, hLitsNe] using hProg'
+                  have hCond :
+                      __eo_ite
+                        (__eo_eq
+                          (__from_clause
+                            (__eo_list_setof Term.or
+                              (__chain_m_resolve (premiseAndFormulaList ps) pols lits))) Cr)
+                        (Term.Boolean true)
+                        (__eo_list_minclude Term.or Cr
+                          (__eo_list_setof Term.or
+                            (__chain_m_resolve (premiseAndFormulaList ps) pols lits))) =
+                        Term.Boolean true :=
+                    eq_true_of_requires_true_not_stuck hReqNe
+                  have hProgEqCr :
+                      __eo_prog_chain_m_resolution Cr pols lits
+                        (Proof.pf (premiseAndFormulaList ps)) = Cr := by
+                    simp [__eo_prog_chain_m_resolution, hCrNe, hPolsNe, hLitsNe, hCond,
+                      __eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+                  have hCrType : __eo_typeof Cr = Term.Bool := by
+                    rw [← hProgEqCr, ← hCmdProgEq]
+                    exact hResultTy
+                  have hCrBool : RuleProofs.eo_has_bool_type Cr :=
+                    RuleProofs.eo_typeof_bool_implies_has_bool_type Cr hCrTrans hCrType
+                  refine ⟨?_, ?_⟩
+                  · intro hTrue
+                    have hChainProps :=
+                      chain_m_resolve_properties_of_nonstuck M hM ps pols lits
+                        hPremisesBool hTrue hPols hLits hChainNe
+                    rw [hCmdProgEq, hProgEqCr]
+                    have hSetClause :
+                        OrClause (__eo_list_setof Term.or
+                          (__chain_m_resolve (premiseAndFormulaList ps) pols lits)) :=
+                      setof_preserves_orClause hChainProps.1 hChainProps.2.1
+                    have hSetBool :
+                        RuleProofs.eo_has_bool_type
+                          (__eo_list_setof Term.or
+                            (__chain_m_resolve (premiseAndFormulaList ps) pols lits)) :=
+                      setof_preserves_bool_type hChainProps.1 hChainProps.2.1
+                    have hSetTrue :
+                        eo_interprets M
+                          (__eo_list_setof Term.or
+                            (__chain_m_resolve (premiseAndFormulaList ps) pols lits)) true :=
+                      setof_true M hM hChainProps.1 hChainProps.2.1 hChainProps.2.2
+                    cases hEq :
+                        __eo_eq
+                          (__from_clause
+                            (__eo_list_setof Term.or
+                              (__chain_m_resolve (premiseAndFormulaList ps) pols lits))) Cr with
+                    | Boolean b =>
+                        cases b with
+                        | false =>
+                            have hIncl :
+                                __eo_list_minclude Term.or Cr
+                                  (__eo_list_setof Term.or
+                                    (__chain_m_resolve (premiseAndFormulaList ps) pols lits)) =
+                                  Term.Boolean true := by
+                              simpa [__eo_ite, hEq, native_ite, native_teq] using hCond
+                            have hCrClause : OrClause Cr :=
+                              orClause_left_of_minclude_true hIncl
+                            exact orClause_true_of_minclude_true M hM
+                              hCrClause hCrBool hSetClause hSetBool hIncl hSetTrue
+                        | true =>
+                            have hCrEq : Cr =
+                                __from_clause
+                                  (__eo_list_setof Term.or
+                                    (__chain_m_resolve (premiseAndFormulaList ps) pols lits)) :=
+                              eq_of_eo_eq_true_local _ _ hEq
+                            rw [hCrEq]
+                            exact from_clause_true M hM hSetClause hSetBool hSetTrue
+                    | _ =>
+                        simp [__eo_ite, hEq, native_ite, native_teq] at hCond
+                  · rw [hCmdProgEq, hProgEqCr]
+                    exact hCrTrans
+              | cons _ _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+
 theorem cmd_step_chain_resolution_properties_aux
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :

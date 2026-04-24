@@ -733,10 +733,10 @@ def __eo_list_minclude_rec : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | y, z, (Term.Boolean false) => (Term.Boolean false)
-  | (Term.Apply (Term.Apply Term.__eo_List_cons x) y), z, (Term.Boolean true) => 
-    let _v0 := (__eo_list_erase_rec z x)
-    (__eo_list_minclude_rec y _v0 (__eo_not (__eo_eq _v0 z)))
-  | Term.__eo_List_nil, z, (Term.Boolean true) => (Term.Boolean true)
+  | y, (Term.Apply (Term.Apply Term.__eo_List_cons x) z), (Term.Boolean true) => 
+    let _v0 := (__eo_list_erase_rec y x)
+    (__eo_list_minclude_rec _v0 z (__eo_not (__eo_eq _v0 y)))
+  | y, Term.__eo_List_nil, (Term.Boolean true) => (Term.Boolean true)
   | _, _, _ => Term.Stuck
 
 
