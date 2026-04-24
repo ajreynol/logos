@@ -67,6 +67,55 @@ theorem typeof_imp_eq
         SmtType.None := by
   rw [__smtx_typeof.eq_9]
 
+theorem choice_term_guard_type_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
+    __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T := by
+  unfold term_has_non_none_type at ht
+  have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
+    by_cases hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true
+    · exact hEq
+    · exfalso
+      have hEqFalse : native_Teq (__smtx_typeof body) SmtType.Bool = false := by
+        cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
+      apply ht
+      unfold __smtx_typeof
+      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
+  unfold __smtx_typeof
+  simp [__smtx_typeof_choice_nth, hEq, native_ite]
+
+theorem choice_term_typeof_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
+    __smtx_typeof (SmtTerm.choice_nth s T body 0) = T := by
+  have hGuard : __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T :=
+    choice_term_guard_type_of_non_none ht
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    intro hNone
+    unfold term_has_non_none_type at ht
+    apply ht
+    rw [hGuard, hNone]
+  exact hGuard.trans (smtx_typeof_guard_wf_of_non_none T T hGuardNN)
+
+theorem bool_binop_args_bool_of_non_none
+    {op : SmtTerm -> SmtTerm -> SmtTerm}
+    {t1 t2 : SmtTerm}
+    (hTy :
+      __smtx_typeof (op t1 t2) =
+        native_ite (native_Teq (__smtx_typeof t1) SmtType.Bool)
+          (native_ite (native_Teq (__smtx_typeof t2) SmtType.Bool) SmtType.Bool SmtType.None)
+          SmtType.None)
+    (ht : term_has_non_none_type (op t1 t2)) :
+    __smtx_typeof t1 = SmtType.Bool ∧ __smtx_typeof t2 = SmtType.Bool := by
+  unfold term_has_non_none_type at ht
+  cases h1 : __smtx_typeof t1 <;> cases h2 : __smtx_typeof t2 <;>
+    simp [hTy, native_ite, native_Teq, h1, h2] at ht
+  simp
+
 theorem typeof_str_len_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.str_len t) =
