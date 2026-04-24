@@ -24,24 +24,27 @@ namespace TranslationProofs
     __smtx_typeof SmtTerm.None = SmtType.None := by
   simp [__smtx_typeof.eq_def]
 
-axiom eo_to_smt_typeof_matches_translation
+theorem eo_to_smt_typeof_matches_translation
     (t : Term) :
     __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t)
+    __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
+  sorry
 
-axiom eo_to_smt_well_typed_and_typeof_implies_smt_type
+theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
     (t T : Term) (s : SmtTerm) :
     __eo_to_smt t = s ->
     __smtx_typeof s ≠ SmtType.None ->
     __eo_typeof t = T ->
-    __smtx_typeof s = __eo_to_smt_type T
+    __smtx_typeof s = __eo_to_smt_type T := by
+  sorry
 
-axiom eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
+theorem eo_to_smt_non_none_and_typeof_bool_implies_smt_bool
     (t : Term) (s : SmtTerm) :
     __eo_to_smt t = s ->
     __smtx_typeof s ≠ SmtType.None ->
     __eo_typeof t = Term.Bool ->
-    __smtx_typeof s = SmtType.Bool
+    __smtx_typeof s = SmtType.Bool := by
+  sorry
 
 end TranslationProofs
 

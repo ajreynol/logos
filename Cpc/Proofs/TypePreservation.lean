@@ -122,108 +122,128 @@ theorem typeof_str_len_eq
       __smtx_typeof_seq_op_1_ret (__smtx_typeof t) SmtType.Int := by
   rw [__smtx_typeof.eq_78]
 
-axiom seq_nth_term_inhabited_of_non_none
+theorem seq_nth_term_inhabited_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2)) :
-    type_inhabited (__smtx_typeof (SmtTerm.seq_nth t1 t2))
+    type_inhabited (__smtx_typeof (SmtTerm.seq_nth t1 t2)) := by
+  sorry
 
-axiom dt_sel_term_inhabited_of_non_none
+theorem dt_sel_term_inhabited_of_non_none
     {s : native_String}
     {d : SmtDatatype}
     {i j : native_Nat}
     {x : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :
-    type_inhabited (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
+    type_inhabited (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) := by
+  sorry
 
-axiom supported_seq_unit_of_non_none
+theorem supported_seq_unit_of_non_none
     {t : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.seq_unit t))
     (hs : supported_preservation_term t) :
-    supported_preservation_term (SmtTerm.seq_unit t)
+    supported_preservation_term (SmtTerm.seq_unit t) := by
+  sorry
 
-axiom supported_set_singleton_of_non_none
+theorem supported_set_singleton_of_non_none
     {t : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.set_singleton t))
     (hs : supported_preservation_term t) :
-    supported_preservation_term (SmtTerm.set_singleton t)
+    supported_preservation_term (SmtTerm.set_singleton t) := by
+  sorry
 
-axiom supported_seq_nth_of_non_none
+theorem supported_seq_nth_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2))
     (hs1 : supported_preservation_term t1)
     (hs2 : supported_preservation_term t2) :
-    supported_preservation_term (SmtTerm.seq_nth t1 t2)
+    supported_preservation_term (SmtTerm.seq_nth t1 t2) := by
+  sorry
 
-axiom supported_dt_sel_of_non_none
+theorem supported_dt_sel_of_non_none
     {s : native_String}
     {d : SmtDatatype}
     {i j : native_Nat}
     {x : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
     (hsx : supported_preservation_term x) :
-    supported_preservation_term (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)
+    supported_preservation_term (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) := by
+  sorry
 
-axiom supported_apply_of_non_none
+theorem supported_apply_of_non_none
     {f x : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply f x))
     (hsf : supported_preservation_term f)
     (hsx : supported_preservation_term x) :
-    supported_preservation_term (SmtTerm.Apply f x)
+    supported_preservation_term (SmtTerm.Apply f x) := by
+  sorry
 
-axiom supported_ite_of_non_none
+theorem supported_ite_of_non_none
     {c t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.ite c t1 t2))
     (hsc : supported_preservation_term c)
     (hs1 : supported_preservation_term t1)
     (hs2 : supported_preservation_term t2) :
-    supported_preservation_term (SmtTerm.ite c t1 t2)
+    supported_preservation_term (SmtTerm.ite c t1 t2) := by
+  sorry
 
-axiom supported_preservation_term_of_non_none :
-    ∀ t : SmtTerm, term_has_non_none_type t -> supported_preservation_term t
+theorem supported_preservation_term_of_non_none :
+    ∀ t : SmtTerm, term_has_non_none_type t -> supported_preservation_term t := by
+  intro t ht
+  sorry
 
-axiom type_preservation
+theorem type_preservation
     (M : SmtModel)
     (hM : model_total_typed M)
     (t : SmtTerm)
     (ht : term_has_non_none_type t) :
-    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
+  sorry
 
-axiom smt_model_eval_preserves_type_of_non_none
+theorem smt_model_eval_preserves_type_of_non_none
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) :
     term_has_non_none_type t ->
-    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t := by
+  intro ht
+  sorry
 
-axiom smt_model_eval_preserves_type_of_supported
+theorem smt_model_eval_preserves_type_of_supported
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) (T : SmtType)
     (hTy : __smtx_typeof t = T)
     (hNonNone : T ≠ SmtType.None)
     (hs : supported_preservation_term t) :
-    __smtx_typeof_value (__smtx_model_eval M t) = T
+    __smtx_typeof_value (__smtx_model_eval M t) = T := by
+  sorry
 
-axiom smt_model_eval_bool_is_boolean_of_supported
+theorem smt_model_eval_bool_is_boolean_of_supported
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm)
     (hTy : __smtx_typeof t = SmtType.Bool)
     (hs : supported_preservation_term t) :
-    ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b
+    ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
+  sorry
 
-axiom smt_model_eval_preserves_type
+theorem smt_model_eval_preserves_type
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) (T : SmtType) :
     __smtx_typeof t = T ->
     T ≠ SmtType.None ->
     type_inhabited T ->
-    __smtx_typeof_value (__smtx_model_eval M t) = T
+    __smtx_typeof_value (__smtx_model_eval M t) = T := by
+  intro hTy hNonNone hInhabited
+  sorry
 
-axiom smt_model_eval_bool_is_boolean
+theorem smt_model_eval_bool_is_boolean
     (M : SmtModel) (hM : model_total_typed M)
     (t : SmtTerm) :
     __smtx_typeof t = SmtType.Bool ->
-    ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b
+    ∃ b : Bool, __smtx_model_eval M t = SmtValue.Boolean b := by
+  intro hTy
+  sorry
 
-axiom total_typed_model_nonvacuous :
-    ∃ M : SmtModel, model_total_typed M
+theorem total_typed_model_nonvacuous :
+    ∃ M : SmtModel, model_total_typed M := by
+  sorry
 
 end Smtm
