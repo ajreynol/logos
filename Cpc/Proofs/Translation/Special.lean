@@ -113,12 +113,4 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
               (__eo_to_smt x2))))
       hApplyNN
 
-/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_quantifiers_skolemize`. -/
-theorem eo_to_smt_typeof_matches_translation_quantifiers_skolemize
-    (x1 x2 : Term) :
-    __smtx_typeof (__eo_to_smt (Term._at_quantifiers_skolemize x1 x2)) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt (Term._at_quantifiers_skolemize x1 x2)) =
-      __eo_to_smt_type (__eo_typeof (Term._at_quantifiers_skolemize x1 x2)) := by
-  sorry
-
 end TranslationProofs

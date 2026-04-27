@@ -16,6 +16,334 @@ Full translation-proof surface corresponding to the lightweight stub in
 `Cpc.Proofs.Translation`.
 -/
 
+/-- Recovers Boolean typing of a zero-index `choice_nth` body from `non_none`. -/
+private theorem choice_nth_body_bool_of_non_none
+    {s : native_String}
+    {T : SmtType}
+    {body : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
+    __smtx_typeof body = SmtType.Bool := by
+  unfold term_has_non_none_type at ht
+  have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
+    by_cases hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true
+    · exact hEq
+    · exfalso
+      have hEqFalse : native_Teq (__smtx_typeof body) SmtType.Bool = false := by
+        cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
+      apply ht
+      unfold __smtx_typeof
+      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
+  simpa [native_Teq] using hEq
+
+/-- Pulls the body Boolean fact back through nested `__eo_to_smt_exists`. -/
+private theorem eo_to_smt_exists_body_bool_of_bool
+    (xs : Term) (body : SmtTerm) :
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
+    __smtx_typeof body = SmtType.Bool := by
+  intro hTy
+  cases hxs : xs
+  case __eo_List_nil =>
+    subst hxs
+    simpa [__eo_to_smt_exists] using hTy
+  case Apply f a =>
+    subst hxs
+    cases hf : f
+    case Apply g y =>
+      subst hf
+      cases hg : g
+      case __eo_List_cons =>
+        subst hg
+        cases hy : y
+        case Var name T =>
+          subst hy
+          cases hname : name
+          case String s =>
+            subst hname
+            have hExistsTy :
+                __smtx_typeof (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
+                  SmtType.Bool := by
+              simpa [__eo_to_smt_exists] using hTy
+            have hNN :
+                term_has_non_none_type (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := by
+              unfold term_has_non_none_type
+              rw [hExistsTy]
+              simp
+            have hSub : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool := by
+              simpa using exists_body_bool_of_non_none hNN
+            exact eo_to_smt_exists_body_bool_of_bool a body hSub
+          all_goals
+            subst hname
+            have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+              simpa [__eo_to_smt_exists] using hTy
+            cases hNone
+        all_goals
+          subst hy
+          have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+            simpa [__eo_to_smt_exists] using hTy
+          cases hNone
+      all_goals
+        subst hg
+        have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+          simpa [__eo_to_smt_exists] using hTy
+        cases hNone
+    all_goals
+      subst hf
+      have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+        simpa [__eo_to_smt_exists] using hTy
+      cases hNone
+  all_goals
+    subst hxs
+    have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+      simpa [__eo_to_smt_exists] using hTy
+    cases hNone
+
+/-- Recovers EO list typing from a Boolean SMT existential chain. -/
+private theorem eo_typeof_var_list_of_exists_bool
+    (xs : Term) (body : SmtTerm) :
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
+    __eo_typeof xs = Term.__eo_List := by
+  intro hTy
+  cases hxs : xs
+  case __eo_List_nil =>
+    subst hxs
+    rfl
+  case Apply f a =>
+    subst hxs
+    cases hf : f
+    case Apply g y =>
+      subst hf
+      cases hg : g
+      case __eo_List_cons =>
+        subst hg
+        cases hy : y
+        case Var name T =>
+          subst hy
+          cases hname : name
+          case String s =>
+            subst hname
+            have hExistsTy :
+                __smtx_typeof (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
+                  SmtType.Bool := by
+              simpa [__eo_to_smt_exists] using hTy
+            have hNN :
+                term_has_non_none_type (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := by
+              unfold term_has_non_none_type
+              rw [hExistsTy]
+              simp
+            have hSub : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool := by
+              simpa using exists_body_bool_of_non_none hNN
+            have hTail : __eo_typeof a = Term.__eo_List :=
+              eo_typeof_var_list_of_exists_bool a body hSub
+            simpa [__eo_typeof.eq_def, hTail]
+          all_goals
+            subst hname
+            have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+              simpa [__eo_to_smt_exists] using hTy
+            cases hNone
+        all_goals
+          subst hy
+          have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+            simpa [__eo_to_smt_exists] using hTy
+          cases hNone
+      all_goals
+        subst hg
+        have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+          simpa [__eo_to_smt_exists] using hTy
+        cases hNone
+    all_goals
+      subst hf
+      have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+        simpa [__eo_to_smt_exists] using hTy
+      cases hNone
+  all_goals
+    subst hxs
+    have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
+      simpa [__eo_to_smt_exists] using hTy
+    cases hNone
+
+/-- Any well-typed skolemized choice forces the enclosing existential chain to be Boolean. -/
+private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
+    (xs : Term) (body : SmtTerm) (n : native_Nat) :
+    __smtx_typeof (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists xs body) n) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool := by
+  induction n generalizing xs body with
+  | zero =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          have hChoiceNN :
+                              term_has_non_none_type
+                                (SmtTerm.choice_nth s (__eo_to_smt_type T) (__eo_to_smt_exists a body) 0) := by
+                            unfold term_has_non_none_type
+                            simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+                          have hBodyBool : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool :=
+                            choice_nth_body_bool_of_non_none hChoiceNN
+                          simp [__eo_to_smt_exists, __smtx_typeof_exists, hBodyBool, native_ite, native_Teq]
+                      | _ =>
+                          exfalso
+                          simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+                  | _ =>
+                      exfalso
+                      simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+              | _ =>
+                  exfalso
+                  simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+          | _ =>
+              exfalso
+              simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+      | _ =>
+          exfalso
+          simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+  | succ n ih =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          have hTailNN :
+                              __smtx_typeof (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists a body) n) ≠
+                                SmtType.None := by
+                            simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                              using hNN
+                          have hTailBool : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool :=
+                            ih a body hTailNN
+                          simp [__eo_to_smt_exists, __smtx_typeof_exists, hTailBool, native_ite, native_Teq]
+                      | _ =>
+                          exfalso
+                          simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                            using hNN
+                  | _ =>
+                      exfalso
+                      simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                        using hNN
+              | _ =>
+                  exfalso
+                  simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                    using hNN
+          | _ =>
+              exfalso
+              simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                using hNN
+      | _ =>
+          exfalso
+          simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth] using hNN
+
+/-- Computes the selected binder type for quantifier skolemization. -/
+private theorem eo_to_smt_quantifiers_skolemize_type_of_non_none
+    (xs : Term) (body : SmtTerm) (n : native_Nat) :
+    __smtx_typeof (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists xs body) n) ≠ SmtType.None ->
+    __smtx_typeof (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists xs body) n) =
+      __eo_to_smt_type
+        (__get_var_type (__eo_list_nth Term.__eo_List_cons xs (Term.Numeral (native_nat_to_int n)))) := by
+  induction n generalizing xs body with
+  | zero =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          have hChoiceNN :
+                              term_has_non_none_type
+                                (SmtTerm.choice_nth s (__eo_to_smt_type T) (__eo_to_smt_exists a body) 0) := by
+                            unfold term_has_non_none_type
+                            simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+                          have hTy :
+                              __smtx_typeof
+                                  (__eo_to_smt_quantifiers_skolemize
+                                    (__eo_to_smt_exists
+                                      (Term.Apply (Term.Apply Term.__eo_List_cons
+                                        (Term.Var (Term.String s) T)) a) body) 0) =
+                                __eo_to_smt_type T := by
+                            simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using
+                              (choice_term_typeof_of_non_none
+                                (s := s) (T := __eo_to_smt_type T) (body := __eo_to_smt_exists a body) hChoiceNN)
+                          exact hTy.trans (by
+                            simp [__get_var_type, __eo_list_nth, __eo_list_nth_rec, __eo_requires, __eo_is_list,
+                              __eo_get_nil_rec, __eo_is_ok, __eo_is_list_nil, __eo_typeof.eq_def,
+                              native_ite, native_teq, native_not])
+                      | _ =>
+                          exfalso
+                          simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+                  | _ =>
+                      exfalso
+                      simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+              | _ =>
+                  exfalso
+                  simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+          | _ =>
+              exfalso
+              simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+      | _ =>
+          exfalso
+          simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
+  | succ n ih =>
+      intro hNN
+      cases xs with
+      | Apply f a =>
+          cases f with
+          | Apply g y =>
+              cases g with
+              | __eo_List_cons =>
+                  cases y with
+                  | Var name T =>
+                      cases name with
+                      | String s =>
+                          have hTailNN :
+                              __smtx_typeof (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists a body) n) ≠
+                                SmtType.None := by
+                            simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                              using hNN
+                          have hTailTy :
+                              __smtx_typeof (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists a body) n) =
+                                __eo_to_smt_type
+                                  (__get_var_type
+                                    (__eo_list_nth Term.__eo_List_cons a
+                                      (Term.Numeral (native_nat_to_int n)))) :=
+                            ih a body hTailNN
+                          exact hTailTy.trans (by
+                            simp [__get_var_type, __eo_list_nth, __eo_list_nth_rec, __eo_requires, __eo_is_list,
+                              __eo_get_nil_rec, __eo_is_ok, __eo_is_list_nil, __eo_typeof.eq_def,
+                              __eo_add, native_ite, native_teq, native_not, native_zplus, native_nat_to_int])
+                      | _ =>
+                          exfalso
+                          simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                            using hNN
+                  | _ =>
+                      exfalso
+                      simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                        using hNN
+              | _ =>
+                  exfalso
+                  simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                    using hNN
+          | _ =>
+              exfalso
+              simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth]
+                using hNN
+      | _ =>
+          exfalso
+          simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists, __smtx_typeof_choice_nth] using hNN
+
 /-- Direct form of the translation typing theorem. -/
 theorem eo_to_smt_typeof_matches_translation
     (t : Term) :
@@ -156,7 +484,104 @@ theorem eo_to_smt_typeof_matches_translation
     case _at_sets_deq_diff x1 x2 =>
       simpa using eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2 hNonNone
     case _at_quantifiers_skolemize x1 x2 =>
-      simpa using eo_to_smt_typeof_matches_translation_quantifiers_skolemize x1 x2 hNonNone
+      cases x1 with
+      | Apply f body =>
+          cases f with
+          | Apply g xs =>
+              cases g with
+              | UOp op =>
+                  cases op <;> simp [__eo_to_smt.eq_def] at hNonNone
+                  case forall =>
+                      cases x2 with
+                      | Numeral n =>
+                          by_cases hnNeg : native_zlt n 0 = true
+                          · simp [__eo_to_smt.eq_def, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+                              __eo_to_smt_nat, hnNeg, native_ite] at hNonNone
+                          · have hChoiceNN :
+                                __smtx_typeof
+                                    (__eo_to_smt_quantifiers_skolemize
+                                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                      (native_int_to_nat n)) ≠
+                                  SmtType.None := by
+                              simpa [__eo_to_smt.eq_def, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+                                __eo_to_smt_nat, hnNeg, native_ite] using hNonNone
+                            have hExistsBool :
+                                __smtx_typeof
+                                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) =
+                                  SmtType.Bool :=
+                              eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
+                                xs (SmtTerm.not (__eo_to_smt body)) (native_int_to_nat n) hChoiceNN
+                            have hNotTy :
+                                __smtx_typeof (SmtTerm.not (__eo_to_smt body)) = SmtType.Bool :=
+                              eo_to_smt_exists_body_bool_of_bool xs (SmtTerm.not (__eo_to_smt body))
+                                hExistsBool
+                            have hBodySmt : __smtx_typeof (__eo_to_smt body) = SmtType.Bool := by
+                              rw [typeof_not_eq] at hNotTy
+                              cases hTy : __smtx_typeof (__eo_to_smt body) <;>
+                                simp [native_ite, native_Teq, hTy] at hNotTy
+                              rfl
+                            have hBodyNN : __smtx_typeof (__eo_to_smt body) ≠ SmtType.None := by
+                              rw [hBodySmt]
+                              simp
+                            have hBodyTranslate := go body hBodyNN
+                            have hBodyEO : __eo_typeof body = Term.Bool := by
+                              apply eo_to_smt_type_eq_bool
+                              rw [← hBodyTranslate]
+                              exact hBodySmt
+                            have hXsEO : __eo_typeof xs = Term.__eo_List :=
+                              eo_typeof_var_list_of_exists_bool xs (SmtTerm.not (__eo_to_smt body))
+                                hExistsBool
+                            have hForallEO :
+                                __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) =
+                                  Term.Bool := by
+                              simpa [__eo_typeof.eq_def, __eo_typeof_forall, hXsEO, hBodyEO]
+                            have hNonneg : 0 <= n := by
+                              have hNotLt : ¬ n < 0 := by
+                                simpa [SmtEval.native_zlt] using hnNeg
+                              exact le_of_not_gt hNotLt
+                            have hSmt :
+                                __smtx_typeof
+                                    (__eo_to_smt
+                                      (Term._at_quantifiers_skolemize
+                                        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                                        (Term.Numeral n))) =
+                                  __eo_to_smt_type
+                                    (__get_var_type
+                                      (__eo_list_nth Term.__eo_List_cons xs (Term.Numeral n))) := by
+                              simpa [__eo_to_smt.eq_def, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+                                __eo_to_smt_nat, hnNeg, native_ite, SmtEval.native_nat_to_int,
+                                SmtEval.native_int_to_nat, Int.toNat_of_nonneg hNonneg] using
+                                eo_to_smt_quantifiers_skolemize_type_of_non_none
+                                  xs (SmtTerm.not (__eo_to_smt body)) (native_int_to_nat n) hChoiceNN
+                            have hEo :
+                                __eo_to_smt_type
+                                    (__eo_typeof
+                                      (Term._at_quantifiers_skolemize
+                                        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                                        (Term.Numeral n))) =
+                                  __eo_to_smt_type
+                                    (__get_var_type
+                                      (__eo_list_nth Term.__eo_List_cons xs (Term.Numeral n))) := by
+                              have hRound :
+                                  native_nat_to_int (native_int_to_nat n) = n := by
+                                simp [SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
+                                  Int.toNat_of_nonneg hNonneg]
+                              simpa [__eo_typeof.eq_def, __eo_typeof__at_quantifiers_skolemize, hForallEO,
+                                hRound]
+                            exact hSmt.trans hEo.symm
+                      | _ =>
+                          exfalso
+                          simp [__eo_to_smt.eq_def, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+                            __eo_to_smt_nat, native_ite] at hNonNone
+              | _ =>
+                  exfalso
+                  simp [__eo_to_smt.eq_def] at hNonNone
+          | _ =>
+              exfalso
+              simp [__eo_to_smt.eq_def] at hNonNone
+      | _ =>
+          exfalso
+          simp [__eo_to_smt.eq_def] at hNonNone
     all_goals
       first
         | exact False.elim (hNonNone (by simp [__eo_to_smt.eq_def]))
