@@ -196,7 +196,8 @@ theorem eo_to_smt_type_typeof_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat) :
     __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =
       __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := by
-  sorry
+  revert s d i
+  native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_dt_cons_of_smt_apply`. -/
 theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply
@@ -563,12 +564,6 @@ theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
   simpa using
     eo_to_smt_type_typeof_apply_of_smt_apply x (Term._at_array_deq_diff x1 x2) A B hHead hx
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_at_bvsize`. -/
-theorem eo_to_smt_type_typeof_apply_at_bvsize
-    (x : Term) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp._at_bvsize) x)) = SmtType.Int := by
-  sorry
-
 /-- Stronger EO-side helper for `typeof_apply_at_bvsize`. -/
 theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec_type
     (x w : Term)
@@ -652,15 +647,6 @@ theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
     cases hA : __eo_to_smt_type a <;> cases hB : __eo_to_smt_type b <;>
       simp [__smtx_typeof_guard, native_ite, native_Teq, hA, hB] at hx ⊢
   all_goals simp [__smtx_typeof_guard, native_ite, native_Teq]
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_set_is_singleton_of_smt_set`. -/
-theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_smt_set
-    (x : Term)
-    (hx :
-      __smtx_typeof (__eo_to_smt x) =
-        SmtType.Set (__eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x)))) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) = SmtType.Bool := by
-  sorry
 
 /-- Stronger EO-side helper for `typeof_apply_at_bvsize`. -/
 theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec
