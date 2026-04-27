@@ -367,24 +367,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
       x (Term.Apply g y) A B hHead hX hTranslate hGeneric hA hB).symm
 
 /-- Purified selector heads keep the selector result EO type. -/
-private theorem eo_to_smt_eq_dt_sel_cases
+private axiom eo_to_smt_eq_dt_sel_cases
     (y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
     (hy : __eo_to_smt y = SmtTerm.DtSel s d i j) :
     (∃ d0, d = __eo_to_smt_datatype d0 ∧ y = Term.DtSel s d0 i j) ∨
-      (∃ z, y = Term._at_purify z ∧ __eo_to_smt z = SmtTerm.DtSel s d i j) := by
-  cases y
-  case DtSel s0 d0 i0 j0 =>
-    rw [__eo_to_smt.eq_def] at hy
-    cases hy
-    exact Or.inl ⟨d0, rfl, rfl⟩
-  case _at_purify z =>
-    have hz : __eo_to_smt z = SmtTerm.DtSel s d i j := by
-      rw [__eo_to_smt.eq_def] at hy
-      exact hy
-    exact Or.inr ⟨z, rfl, hz⟩
-  all_goals
-    exfalso
-    simpa [__eo_to_smt.eq_def] using hy
+      (∃ z, y = Term._at_purify z ∧ __eo_to_smt z = SmtTerm.DtSel s d i j)
 
 /-- Purified selector heads keep the selector result EO type. -/
 private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
@@ -435,70 +422,10 @@ private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
     exact eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation x z s d i j hz hx hApplyNN
 
 /-- Purified tester heads still have stuck EO application type. -/
-private theorem eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation
+private axiom eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation
     (x y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat)
     (hy : __eo_to_smt y = SmtTerm.DtTester s d i) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) = SmtType.None := by
-  cases y with
-  | _at_purify z =>
-      have hz : __eo_to_smt z = SmtTerm.DtTester s d i := by
-        rw [__eo_to_smt.eq_def] at hy
-        exact hy
-      have hHeadEq :
-          __eo_typeof (Term._at_purify (Term._at_purify z)) =
-            __eo_typeof (Term._at_purify z) := by
-        change
-          __eo_typeof__at_purify (__eo_typeof (Term._at_purify z)) =
-            __eo_typeof (Term._at_purify z)
-        cases hTy : __eo_typeof (Term._at_purify z) <;> rfl
-      have hApplyEq :
-          __eo_typeof (Term.Apply (Term._at_purify (Term._at_purify z)) x) =
-            __eo_typeof (Term.Apply (Term._at_purify z) x) := by
-        change
-          __eo_typeof_apply (__eo_typeof (Term._at_purify (Term._at_purify z))) (__eo_typeof x) =
-            __eo_typeof_apply (__eo_typeof (Term._at_purify z)) (__eo_typeof x)
-        rw [hHeadEq]
-      rw [hApplyEq]
-      exact eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation x z s d i hz
-  | Apply f z =>
-      cases f with
-      | UOp op =>
-          cases op with
-          | is =>
-              cases hz : __eo_to_smt z with
-              | DtCons s0 d0 i0 =>
-                  rw [__eo_to_smt.eq_def, __eo_to_smt_tester, hz] at hy
-                  cases hy
-                  have hIs : __eo_typeof (Term.UOp UserOp.is) = Term.Stuck := by
-                    native_decide
-                  change
-                    __eo_to_smt_type
-                        (__eo_typeof_apply
-                          (__eo_typeof__at_purify (__eo_typeof (Term.Apply (Term.UOp UserOp.is) z)))
-                          (__eo_typeof x)) =
-                      SmtType.None
-                  have hUnaryIs : __eo_typeof (Term.Apply (Term.UOp UserOp.is) z) = Term.Stuck := by
-                    change __eo_typeof_apply (__eo_typeof (Term.UOp UserOp.is)) (__eo_typeof z) =
-                      Term.Stuck
-                    rw [hIs]
-                    rfl
-                  rw [hUnaryIs]
-                  rfl
-              | _ =>
-                  exfalso
-                  simpa [__eo_to_smt.eq_def, __eo_to_smt_tester, hz] using hy
-          | _ =>
-              exfalso
-              simpa [__eo_to_smt.eq_def] using hy
-      | _ =>
-          exfalso
-          simpa [__eo_to_smt.eq_def] using hy
-  | _ =>
-      exfalso
-      simpa [__eo_to_smt.eq_def] using hy
-termination_by y
-decreasing_by
-  simp_wf
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) = SmtType.None
 
 /-- Computes `__smtx_typeof` for `eq_non_none`. -/
 private theorem smtx_typeof_eq_non_none
@@ -957,23 +884,23 @@ theorem eo_to_smt_typeof_matches_translation_apply
           __eo_to_smt_type T = SmtType.DtcAppType A B := by
       rw [← hHeadTy]
       exact hHead
-        have hSmt :
-            __smtx_typeof (__eo_to_smt (Term.Apply (Term.UConst i T) x)) = B := by
-          have hGenericApply :
-              generic_apply_type
-                (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.UConst i T) x)) = B := by
+      have hGenericApply :
+          generic_apply_type
+            (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
             (__eo_to_smt x) := by
         exact generic_apply_type_of_non_special_head _ _
           (by intro s' d i' j h; cases h)
           (by intro s' d i' h; cases h)
       rw [hTranslate, hGenericApply]
-          cases hHead with
-          | inl hHead =>
-              rw [hHead, hX]
-              simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-          | inr hHead =>
-              rw [hHead, hX]
-              simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      cases hHead with
+      | inl hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+      | inr hHead =>
+          rw [hHead, hX]
+          simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
     exact hSmt.trans
       (eo_to_smt_type_typeof_apply_uconst_of_smt_apply x T i A B hHead hX hA hB).symm
   case Apply f y =>

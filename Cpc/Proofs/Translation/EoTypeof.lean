@@ -696,7 +696,9 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
       __eo_to_smt t =
         __eo_to_smt_updater (SmtTerm.DtSel s d i j) (__eo_to_smt y) (__eo_to_smt x) := by
     rw [__eo_to_smt.eq_def]
-    simp [hz]
+    change __eo_to_smt_updater (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) =
+      __eo_to_smt_updater (SmtTerm.DtSel s d i j) (__eo_to_smt y) (__eo_to_smt x)
+    rw [hz]
   have hUpdaterNN :
       __smtx_typeof
           (__eo_to_smt_updater (SmtTerm.DtSel s d i j) (__eo_to_smt y) (__eo_to_smt x)) ≠
@@ -747,7 +749,11 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tupl
         __eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
           (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x) := by
     rw [__eo_to_smt.eq_def]
-    simp [hy, hz]
+    change __eo_to_smt_tuple_update (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt z)
+      (__eo_to_smt y) (__eo_to_smt x) =
+      __eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
+        (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x)
+    rw [hy, hz]
   have hTupleNN :
       __smtx_typeof
           (__eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
@@ -943,7 +949,7 @@ theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
         let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
         let _v2 := SmtTerm.Var "_at_x" _v0
         SmtTerm.choice_nth "_at_x" _v0
-          (SmtTerm.not (SmtTerm.eq (SmtTerm.Apply (__eo_to_smt x1) _v2) (SmtTerm.Apply (__eo_to_smt x2) _v2))) 0 := by
+          (SmtTerm.not (SmtTerm.eq (SmtTerm.select (__eo_to_smt x1) _v2) (SmtTerm.select (__eo_to_smt x2) _v2))) 0 := by
     rw [__eo_to_smt.eq_def]
   have hTranslate :
       __eo_to_smt (Term.Apply (Term._at_array_deq_diff x1 x2) x) =
@@ -1404,7 +1410,7 @@ theorem eo_to_smt_type_typeof_apply_apply_str_contains_of_smt_seq
   let t := Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) y) x
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Bool := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_str_contains_eq (__eo_to_smt y) (__eo_to_smt x), hy, hx]
+    rw [__smtx_typeof.eq_81, hy, hx]
     simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -1580,7 +1586,8 @@ theorem eo_to_smt_type_typeof_apply_apply_eq_of_smt_same_non_none
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Bool := by
     rw [__eo_to_smt.eq_def]
     rw [typeof_eq_eq (__eo_to_smt y) (__eo_to_smt x), hy, hx]
-    simp [__smtx_typeof_eq, native_ite, native_Teq, hT]
+    simpa [__smtx_typeof_eq, native_ite, native_Teq] using
+      smtx_typeof_guard_of_non_none T SmtType.Bool hT
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_plus_of_smt_arith`. -/
@@ -3435,7 +3442,7 @@ theorem eo_to_smt_type_typeof_apply_apply_repeat_of_smt_numeral_bitvec
       __smtx_typeof (__eo_to_smt t) =
         SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w))) := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_repeat_eq, hy, hx]
+    rw [__smtx_typeof.eq_36, hy, hx]
     simp [__smtx_typeof_repeat, native_ite, hi]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3452,7 +3459,7 @@ theorem eo_to_smt_type_typeof_apply_apply_zero_extend_of_smt_numeral_bitvec
       __smtx_typeof (__eo_to_smt t) =
         SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_zero_extend_eq, hy, hx]
+    rw [__smtx_typeof.eq_65, hy, hx]
     simp [__smtx_typeof_zero_extend, native_ite, hi]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3469,7 +3476,7 @@ theorem eo_to_smt_type_typeof_apply_apply_sign_extend_of_smt_numeral_bitvec
       __smtx_typeof (__eo_to_smt t) =
         SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_sign_extend_eq, hy, hx]
+    rw [__smtx_typeof.eq_66, hy, hx]
     simp [__smtx_typeof_sign_extend, native_ite, hi]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3508,7 +3515,7 @@ theorem eo_to_smt_type_typeof_apply_apply_int_to_bv_of_smt_numeral_int
   let t := Term.Apply (Term.Apply (Term.UOp UserOp.int_to_bv) y) x
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec (native_int_to_nat i) := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_int_to_bv_eq, hy, hx]
+    rw [__smtx_typeof.eq_129, hy, hx]
     simp [__smtx_typeof_int_to_bv, native_ite, hi]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3531,7 +3538,7 @@ theorem eo_to_smt_type_typeof_apply_apply_str_concat_of_smt_seq
   let t := Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) y) x
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_str_concat_eq (__eo_to_smt y) (__eo_to_smt x), hy, hx]
+    rw [__smtx_typeof.eq_79, hy, hx]
     simp [__smtx_typeof_seq_op_2, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3571,7 +3578,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_smt_numeral_numeral_b
       __smtx_typeof (__eo_to_smt t) =
         SmtType.BitVec (native_int_to_nat (native_zplus (native_zplus i (native_zneg j)) 1)) := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_extract_eq, hz, hy, hx]
+    rw [__smtx_typeof.eq_35, hz, hy, hx]
     simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3607,7 +3614,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_str_indexof_of_smt_seq_seq_int
   let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Int := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_str_indexof_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
+    rw [__smtx_typeof.eq_83, hz, hy, hx]
     simp [__smtx_typeof_str_indexof, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3622,7 +3629,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_str_update_of_smt_seq_int_seq
   let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) z) y) x
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_str_update_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
+    rw [__smtx_typeof.eq_88, hz, hy, hx]
     simp [__smtx_typeof_str_update, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3637,7 +3644,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_of_smt_seq
   let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) z) y) x
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_str_replace_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
+    rw [__smtx_typeof.eq_82, hz, hy, hx]
     simp [__smtx_typeof_seq_op_3, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3652,7 +3659,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_all_of_smt_seq
   let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_all) z) y) x
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T := by
     rw [__eo_to_smt.eq_def]
-    rw [typeof_str_replace_all_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
+    rw [__smtx_typeof.eq_98, hz, hy, hx]
     simp [__smtx_typeof_seq_op_3, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
@@ -3730,12 +3737,13 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_bvite_of_smt_bitvec1_same_non_no
   have hCond :
       __smtx_typeof (SmtTerm.eq (__eo_to_smt z) (SmtTerm.Binary 1 1)) = SmtType.Bool := by
     rw [typeof_eq_eq (__eo_to_smt z) (SmtTerm.Binary 1 1), hz, typeof_binary_one_eq]
-    simp [__smtx_typeof_eq, native_ite, native_Teq]
+    simpa [__smtx_typeof_eq, native_ite, native_Teq] using
+      smtx_typeof_guard_of_non_none (SmtType.BitVec 1) SmtType.Bool (by simp)
   have hSmt : __smtx_typeof (__eo_to_smt t) = T := by
     rw [__eo_to_smt.eq_def]
     rw [typeof_ite_eq]
     rw [hCond, hy, hx]
-    simp [__smtx_typeof_ite, native_ite, native_Teq, hT]
+    simp [__smtx_typeof_ite, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt hT
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_ite_of_smt_bool_same_non_none`. -/
@@ -3750,7 +3758,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_ite_of_smt_bool_same_non_none
   have hSmt : __smtx_typeof (__eo_to_smt t) = T := by
     rw [__eo_to_smt.eq_def]
     rw [typeof_ite_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
-    simp [__smtx_typeof_ite, native_ite, native_Teq, hT]
+    simp [__smtx_typeof_ite, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt hT
 
 end TranslationProofs
