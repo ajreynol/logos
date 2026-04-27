@@ -8,6 +8,13 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+private theorem eo_requires_self_of_non_stuck
+    (T U : Term) :
+    T ≠ Term.Stuck ->
+    __eo_requires T T U = U := by
+  intro hT
+  simp [__eo_requires, native_ite, native_not, native_teq, hT]
+
 private theorem prog_dt_cons_eq_condition_of_not_stuck
     (t s B : Term) :
     __eo_prog_dt_cons_eq
@@ -35,7 +42,7 @@ private theorem prog_dt_cons_eq_eq_input_of_not_stuck
   have hCondNe : cond ≠ Term.Stuck := hCond.2
   subst B
   simpa [__eo_prog_dt_cons_eq, cond] using
-    TranslationProofs.eo_requires_self_of_non_stuck
+    eo_requires_self_of_non_stuck
       cond
       (Term.Apply (Term.Apply Term.eq (Term.Apply (Term.Apply Term.eq t) s)) cond)
       hCondNe
