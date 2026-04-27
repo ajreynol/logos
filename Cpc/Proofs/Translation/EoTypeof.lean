@@ -1074,23 +1074,27 @@ theorem eo_to_smt_type_typeof_apply_apply_str_contains_of_smt_seq
       SmtType.Bool := by
   sorry
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_prefixof_of_smt_seq`. -/
+/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_prefixof_of_smt_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_apply_str_prefixof_of_smt_seq
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_prefixof) y) x)) =
       SmtType.Bool := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_contains (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_seq_char_of_smt_seq_char y hy, eo_typeof_eq_seq_char_of_smt_seq_char x hx]
+  rfl
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_suffixof_of_smt_seq`. -/
+/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_suffixof_of_smt_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_apply_str_suffixof_of_smt_seq
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
+    (x y : Term)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) y) x)) =
       SmtType.Bool := by
-  sorry
+  change __eo_to_smt_type (__eo_typeof_str_contains (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_seq_char_of_smt_seq_char y hy, eo_typeof_eq_seq_char_of_smt_seq_char x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_lt_of_smt_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_apply_str_lt_of_smt_seq_char
@@ -1099,11 +1103,9 @@ theorem eo_to_smt_type_typeof_apply_apply_str_lt_of_smt_seq_char
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_lt) y) x)) =
       SmtType.Bool := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_str_lt_of_seq_char
-      x y
-      (eo_typeof_eq_seq_char_of_smt_seq_char y hy)
-      (eo_typeof_eq_seq_char_of_smt_seq_char x hx)
+  change __eo_to_smt_type (__eo_typeof_str_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_seq_char_of_smt_seq_char y hy, eo_typeof_eq_seq_char_of_smt_seq_char x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_leq_of_smt_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_apply_str_leq_of_smt_seq_char
@@ -1112,11 +1114,9 @@ theorem eo_to_smt_type_typeof_apply_apply_str_leq_of_smt_seq_char
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_leq) y) x)) =
       SmtType.Bool := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_str_leq_of_seq_char
-      x y
-      (eo_typeof_eq_seq_char_of_smt_seq_char y hy)
-      (eo_typeof_eq_seq_char_of_smt_seq_char x hx)
+  change __eo_to_smt_type (__eo_typeof_str_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_seq_char_of_smt_seq_char y hy, eo_typeof_eq_seq_char_of_smt_seq_char x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_re_range_of_smt_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_apply_re_range_of_smt_seq_char
@@ -1125,11 +1125,9 @@ theorem eo_to_smt_type_typeof_apply_apply_re_range_of_smt_seq_char
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq SmtType.Char) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) y) x)) =
       SmtType.RegLan := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_re_range_of_seq_char
-      x y
-      (eo_typeof_eq_seq_char_of_smt_seq_char y hy)
-      (eo_typeof_eq_seq_char_of_smt_seq_char x hx)
+  change __eo_to_smt_type (__eo_typeof_re_range (__eo_typeof y) (__eo_typeof x)) = SmtType.RegLan
+  rw [eo_typeof_eq_seq_char_of_smt_seq_char y hy, eo_typeof_eq_seq_char_of_smt_seq_char x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_re_concat_of_smt_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_apply_re_concat_of_smt_reglan
@@ -1138,11 +1136,9 @@ theorem eo_to_smt_type_typeof_apply_apply_re_concat_of_smt_reglan
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) y) x)) =
       SmtType.RegLan := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_re_concat_of_reglan
-      x y
-      (eo_typeof_eq_reglan_of_smt_reglan y hy)
-      (eo_typeof_eq_reglan_of_smt_reglan x hx)
+  change __eo_to_smt_type (__eo_typeof_re_concat (__eo_typeof y) (__eo_typeof x)) = SmtType.RegLan
+  rw [eo_typeof_eq_reglan_of_smt_reglan y hy, eo_typeof_eq_reglan_of_smt_reglan x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_re_inter_of_smt_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_apply_re_inter_of_smt_reglan
@@ -1151,11 +1147,9 @@ theorem eo_to_smt_type_typeof_apply_apply_re_inter_of_smt_reglan
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) y) x)) =
       SmtType.RegLan := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_re_inter_of_reglan
-      x y
-      (eo_typeof_eq_reglan_of_smt_reglan y hy)
-      (eo_typeof_eq_reglan_of_smt_reglan x hx)
+  change __eo_to_smt_type (__eo_typeof_re_concat (__eo_typeof y) (__eo_typeof x)) = SmtType.RegLan
+  rw [eo_typeof_eq_reglan_of_smt_reglan y hy, eo_typeof_eq_reglan_of_smt_reglan x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_re_union_of_smt_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_apply_re_union_of_smt_reglan
@@ -1164,11 +1158,9 @@ theorem eo_to_smt_type_typeof_apply_apply_re_union_of_smt_reglan
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) y) x)) =
       SmtType.RegLan := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_re_union_of_reglan
-      x y
-      (eo_typeof_eq_reglan_of_smt_reglan y hy)
-      (eo_typeof_eq_reglan_of_smt_reglan x hx)
+  change __eo_to_smt_type (__eo_typeof_re_concat (__eo_typeof y) (__eo_typeof x)) = SmtType.RegLan
+  rw [eo_typeof_eq_reglan_of_smt_reglan y hy, eo_typeof_eq_reglan_of_smt_reglan x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_re_diff_of_smt_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_apply_re_diff_of_smt_reglan
@@ -1177,11 +1169,9 @@ theorem eo_to_smt_type_typeof_apply_apply_re_diff_of_smt_reglan
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.re_diff) y) x)) =
       SmtType.RegLan := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_re_diff_of_reglan
-      x y
-      (eo_typeof_eq_reglan_of_smt_reglan y hy)
-      (eo_typeof_eq_reglan_of_smt_reglan x hx)
+  change __eo_to_smt_type (__eo_typeof_re_concat (__eo_typeof y) (__eo_typeof x)) = SmtType.RegLan
+  rw [eo_typeof_eq_reglan_of_smt_reglan y hy, eo_typeof_eq_reglan_of_smt_reglan x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_in_re_of_smt_seq_char_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_apply_str_in_re_of_smt_seq_char_reglan
@@ -1190,11 +1180,9 @@ theorem eo_to_smt_type_typeof_apply_apply_str_in_re_of_smt_seq_char_reglan
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) y) x)) =
       SmtType.Bool := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_str_in_re_of_seq_char_reglan
-      x y
-      (eo_typeof_eq_seq_char_of_smt_seq_char y hy)
-      (eo_typeof_eq_reglan_of_smt_reglan x hx)
+  change __eo_to_smt_type (__eo_typeof_str_in_re (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_seq_char_of_smt_seq_char y hy, eo_typeof_eq_reglan_of_smt_reglan x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_seq_nth_of_smt_seq_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_seq_nth_of_smt_seq_int
@@ -1203,9 +1191,9 @@ theorem eo_to_smt_type_typeof_apply_apply_seq_nth_of_smt_seq_int
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) y) x)) = T := by
   rcases eo_typeof_eq_seq_of_smt_seq y hy with ⟨U, hy', hU⟩
-  simpa [hU] using
-    eo_to_smt_type_typeof_apply_apply_seq_nth_of_seq_int
-      x y U hy' (eo_typeof_eq_int_of_smt_int x hx)
+  change __eo_to_smt_type (__eo_typeof_seq_nth (__eo_typeof y) (__eo_typeof x)) = T
+  rw [hy', eo_typeof_eq_int_of_smt_int x hx]
+  simpa [hU]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_or_of_smt_bool`. -/
 theorem eo_to_smt_type_typeof_apply_apply_or_of_smt_bool
@@ -1213,11 +1201,9 @@ theorem eo_to_smt_type_typeof_apply_apply_or_of_smt_bool
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Bool)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Bool) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x)) = SmtType.Bool := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_or_of_bool
-      x y
-      (eo_typeof_eq_bool_of_smt_bool y hy)
-      (eo_typeof_eq_bool_of_smt_bool x hx)
+  change __eo_to_smt_type (__eo_typeof_or (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_bool_of_smt_bool y hy, eo_typeof_eq_bool_of_smt_bool x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_and_of_smt_bool`. -/
 theorem eo_to_smt_type_typeof_apply_apply_and_of_smt_bool
@@ -1225,11 +1211,9 @@ theorem eo_to_smt_type_typeof_apply_apply_and_of_smt_bool
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Bool)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Bool) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x)) = SmtType.Bool := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_and_of_bool
-      x y
-      (eo_typeof_eq_bool_of_smt_bool y hy)
-      (eo_typeof_eq_bool_of_smt_bool x hx)
+  change __eo_to_smt_type (__eo_typeof_or (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_bool_of_smt_bool y hy, eo_typeof_eq_bool_of_smt_bool x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_imp_of_smt_bool`. -/
 theorem eo_to_smt_type_typeof_apply_apply_imp_of_smt_bool
@@ -1237,11 +1221,9 @@ theorem eo_to_smt_type_typeof_apply_apply_imp_of_smt_bool
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Bool)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Bool) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.imp) y) x)) = SmtType.Bool := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_imp_of_bool
-      x y
-      (eo_typeof_eq_bool_of_smt_bool y hy)
-      (eo_typeof_eq_bool_of_smt_bool x hx)
+  change __eo_to_smt_type (__eo_typeof_or (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_bool_of_smt_bool y hy, eo_typeof_eq_bool_of_smt_bool x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_xor_of_smt_bool`. -/
 theorem eo_to_smt_type_typeof_apply_apply_xor_of_smt_bool
@@ -1249,11 +1231,9 @@ theorem eo_to_smt_type_typeof_apply_apply_xor_of_smt_bool
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Bool)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Bool) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.xor) y) x)) = SmtType.Bool := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_xor_of_bool
-      x y
-      (eo_typeof_eq_bool_of_smt_bool y hy)
-      (eo_typeof_eq_bool_of_smt_bool x hx)
+  change __eo_to_smt_type (__eo_typeof_or (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_bool_of_smt_bool y hy, eo_typeof_eq_bool_of_smt_bool x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_eq_of_smt_same_non_none`. -/
 theorem eo_to_smt_type_typeof_apply_apply_eq_of_smt_same_non_none
@@ -1264,16 +1244,6 @@ theorem eo_to_smt_type_typeof_apply_apply_eq_of_smt_same_non_none
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y) x)) = SmtType.Bool := by
   sorry
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_distinct_of_smt_same_non_none`. -/
-theorem eo_to_smt_type_typeof_apply_apply_distinct_of_smt_same_non_none
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = T)
-    (hx : __smtx_typeof (__eo_to_smt x) = T)
-    (hT : T ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.distinct) y) x)) =
-      SmtType.Bool := by
-  sorry
-
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_plus_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_plus_of_smt_arith
     (x y : Term) (T : SmtType)
@@ -1282,18 +1252,12 @@ theorem eo_to_smt_type_typeof_apply_apply_plus_of_smt_arith
     (hT : T = SmtType.Int ∨ T = SmtType.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.plus) y) x)) = T := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_plus_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_plus_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_neg_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_neg_of_smt_arith
@@ -1303,18 +1267,12 @@ theorem eo_to_smt_type_typeof_apply_apply_neg_of_smt_arith
     (hT : T = SmtType.Int ∨ T = SmtType.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.neg) y) x)) = T := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_neg_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_neg_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_mult_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_mult_of_smt_arith
@@ -1324,18 +1282,12 @@ theorem eo_to_smt_type_typeof_apply_apply_mult_of_smt_arith
     (hT : T = SmtType.Int ∨ T = SmtType.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.mult) y) x)) = T := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_mult_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_mult_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_lt_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_lt_of_smt_arith
@@ -1345,18 +1297,12 @@ theorem eo_to_smt_type_typeof_apply_apply_lt_of_smt_arith
     (hT : T = SmtType.Int ∨ T = SmtType.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.lt) y) x)) = SmtType.Bool := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_lt_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_lt_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_leq_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_leq_of_smt_arith
@@ -1366,18 +1312,12 @@ theorem eo_to_smt_type_typeof_apply_apply_leq_of_smt_arith
     (hT : T = SmtType.Int ∨ T = SmtType.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.leq) y) x)) = SmtType.Bool := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_leq_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_leq_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_gt_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_gt_of_smt_arith
@@ -1387,18 +1327,12 @@ theorem eo_to_smt_type_typeof_apply_apply_gt_of_smt_arith
     (hT : T = SmtType.Int ∨ T = SmtType.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.gt) y) x)) = SmtType.Bool := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_gt_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_gt_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_geq_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_geq_of_smt_arith
@@ -1408,18 +1342,12 @@ theorem eo_to_smt_type_typeof_apply_apply_geq_of_smt_arith
     (hT : T = SmtType.Int ∨ T = SmtType.Real) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.geq) y) x)) = SmtType.Bool := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_geq_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_geq_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_div_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_div_of_smt_int
@@ -1427,11 +1355,9 @@ theorem eo_to_smt_type_typeof_apply_apply_div_of_smt_int
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.div) y) x)) = SmtType.Int := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_div_of_int
-      x y
-      (eo_typeof_eq_int_of_smt_int y hy)
-      (eo_typeof_eq_int_of_smt_int x hx)
+  change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+  rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_mod_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_mod_of_smt_int
@@ -1439,11 +1365,9 @@ theorem eo_to_smt_type_typeof_apply_apply_mod_of_smt_int
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.mod) y) x)) = SmtType.Int := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_mod_of_int
-      x y
-      (eo_typeof_eq_int_of_smt_int y hy)
-      (eo_typeof_eq_int_of_smt_int x hx)
+  change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+  rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_multmult_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_multmult_of_smt_int
@@ -1451,11 +1375,9 @@ theorem eo_to_smt_type_typeof_apply_apply_multmult_of_smt_int
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.multmult) y) x)) = SmtType.Int := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_multmult_of_int
-      x y
-      (eo_typeof_eq_int_of_smt_int y hy)
-      (eo_typeof_eq_int_of_smt_int x hx)
+  change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+  rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_divisible_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_divisible_of_smt_int
@@ -1463,11 +1385,9 @@ theorem eo_to_smt_type_typeof_apply_apply_divisible_of_smt_int
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.divisible) y) x)) = SmtType.Bool := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_divisible_of_int
-      x y
-      (eo_typeof_eq_int_of_smt_int y hy)
-      (eo_typeof_eq_int_of_smt_int x hx)
+  change __eo_to_smt_type (__eo_typeof_divisible (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
+  rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_div_total_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_div_total_of_smt_int
@@ -1475,11 +1395,9 @@ theorem eo_to_smt_type_typeof_apply_apply_div_total_of_smt_int
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) y) x)) = SmtType.Int := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_div_total_of_int
-      x y
-      (eo_typeof_eq_int_of_smt_int y hy)
-      (eo_typeof_eq_int_of_smt_int x hx)
+  change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+  rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_mod_total_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_mod_total_of_smt_int
@@ -1487,11 +1405,9 @@ theorem eo_to_smt_type_typeof_apply_apply_mod_total_of_smt_int
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) y) x)) = SmtType.Int := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_mod_total_of_int
-      x y
-      (eo_typeof_eq_int_of_smt_int y hy)
-      (eo_typeof_eq_int_of_smt_int x hx)
+  change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+  rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_multmult_total_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_multmult_total_of_smt_int
@@ -1500,11 +1416,9 @@ theorem eo_to_smt_type_typeof_apply_apply_multmult_total_of_smt_int
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.multmult_total) y) x)) =
       SmtType.Int := by
-  simpa using
-    eo_to_smt_type_typeof_apply_apply_multmult_total_of_int
-      x y
-      (eo_typeof_eq_int_of_smt_int y hy)
-      (eo_typeof_eq_int_of_smt_int x hx)
+  change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
+  rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_qdiv_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_qdiv_of_smt_arith
@@ -1515,18 +1429,12 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_of_smt_arith
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) x)) =
       SmtType.Real := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_qdiv_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_qdiv_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_qdiv_total_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
@@ -1537,18 +1445,12 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) x)) =
       SmtType.Real := by
   rcases hT with rfl | rfl
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_qdiv_total_of_arith_type
-        x y (Term.UOp UserOp.Int)
-        (eo_typeof_eq_int_of_smt_int y hy)
-        (eo_typeof_eq_int_of_smt_int x hx)
-        (Or.inl rfl)
-  · simpa using
-      eo_to_smt_type_typeof_apply_apply_qdiv_total_of_arith_type
-        x y (Term.UOp UserOp.Real)
-        (eo_typeof_eq_real_of_smt_real y hy)
-        (eo_typeof_eq_real_of_smt_real x hx)
-        (Or.inr rfl)
+  · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
+    rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
+    native_decide
+  · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
+    rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
+    native_decide
 
 /-- Stronger EO-side helper for `typeof_apply_apply_or`. -/
 theorem eo_to_smt_type_typeof_apply_apply_or_of_bool

@@ -1307,7 +1307,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           simp [hArgs.1, hArgs.2, native_ite, native_Teq]
         exact hSmt.trans
           (eo_to_smt_type_typeof_apply_apply_str_prefixof_of_smt_seq
-            x y SmtType.Char hArgs.1 hArgs.2).symm
+            x y hArgs.1 hArgs.2).symm
       case str_suffixof =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_suffixof) y) x) =
@@ -1330,7 +1330,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           simp [hArgs.1, hArgs.2, native_ite, native_Teq]
         exact hSmt.trans
           (eo_to_smt_type_typeof_apply_apply_str_suffixof_of_smt_seq
-            x y SmtType.Char hArgs.1 hArgs.2).symm
+            x y hArgs.1 hArgs.2).symm
       case str_lt =>
         have hTranslate :
             __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_lt) y) x) =
