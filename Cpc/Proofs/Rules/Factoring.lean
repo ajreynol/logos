@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.ResolutionSupport
 
 open Eo
 open SmtEval
@@ -16,4 +17,4 @@ theorem cmd_step_factoring_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.factoring args premises) :=
 by
-  sorry
+  exact cmd_step_factoring_properties_aux M hM s args premises

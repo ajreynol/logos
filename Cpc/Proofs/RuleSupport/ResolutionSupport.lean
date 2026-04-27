@@ -4776,3 +4776,139 @@ by
           | cons _ _ =>
               change Term.Stuck ≠ Term.Stuck at hProg
               exact False.elim (hProg rfl)
+
+theorem cmd_step_factoring_properties_aux
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.factoring args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.factoring args premises) = Term.Bool ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.factoring args premises) := by
+  intro _hCmdTrans hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.factoring args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      cases premises with
+      | nil =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
+      | cons n premises =>
+          cases premises with
+          | nil =>
+              let C := __eo_state_proven_nth s n
+              have hCBool : RuleProofs.eo_has_bool_type C :=
+                hPremisesBool C (by simp [C, premiseTermList])
+              have hProgFactoring : __eo_prog_factoring (Proof.pf C) ≠ Term.Stuck := by
+                change __eo_prog_factoring (Proof.pf (__eo_state_proven_nth s n)) ≠
+                  Term.Stuck at hProg
+                simpa [C] using hProg
+              have hSetNe : __eo_list_setof Term.or C ≠ Term.Stuck :=
+                from_clause_arg_ne_stuck hProgFactoring
+              have hSetReqNe :
+                  __eo_requires (__eo_is_list Term.or C) (Term.Boolean true)
+                    (__eo_list_setof_rec C) ≠ Term.Stuck := by
+                simpa [__eo_list_setof] using hSetNe
+              have hList : __eo_is_list Term.or C = Term.Boolean true :=
+                eq_true_of_requires_true_not_stuck hSetReqNe
+              have hClause : OrClause C :=
+                orClause_of_is_list_true hList
+              have hSetClause : OrClause (__eo_list_setof Term.or C) :=
+                setof_preserves_orClause hClause hCBool
+              have hSetBool : RuleProofs.eo_has_bool_type (__eo_list_setof Term.or C) :=
+                setof_preserves_bool_type hClause hCBool
+              refine ⟨?_, ?_⟩
+              · intro hTrue
+                have hSetTrue : eo_interprets M (__eo_list_setof Term.or C) true :=
+                  setof_true M hM hClause hCBool
+                    (hTrue C (by simp [C, premiseTermList]))
+                change eo_interprets M (__eo_prog_factoring (Proof.pf C)) true
+                simpa [__eo_prog_factoring] using
+                  from_clause_true M hM hSetClause hSetBool hSetTrue
+              · change RuleProofs.eo_has_smt_translation (__eo_prog_factoring (Proof.pf C))
+                exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                  (by
+                    change RuleProofs.eo_has_bool_type (__from_clause (__eo_list_setof Term.or C))
+                    exact from_clause_preserves_bool_type hSetClause hSetBool)
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+  | cons _ _ =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+
+theorem cmd_step_reordering_properties_aux
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.reordering args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.reordering args premises) = Term.Bool ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.reordering args premises) := by
+  intro hCmdTrans hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.reordering args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons C2 args =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+          | cons n premises =>
+              cases premises with
+              | nil =>
+                  let C1 := __eo_state_proven_nth s n
+                  have hC2Trans : RuleProofs.eo_has_smt_translation C2 := hCmdTrans.1
+                  have hC1Bool : RuleProofs.eo_has_bool_type C1 :=
+                    hPremisesBool C1 (by simp [C1, premiseTermList])
+                  have hCmdProgEq :
+                      __eo_cmd_step_proven s CRule.reordering
+                        (CArgList.cons C2 CArgList.nil) (CIndexList.cons n CIndexList.nil) =
+                      __eo_prog_reordering C2 (Proof.pf C1) := by
+                    change __eo_prog_reordering C2 (Proof.pf (__eo_state_proven_nth s n)) =
+                      __eo_prog_reordering C2 (Proof.pf C1)
+                    simp [C1]
+                  have hC2Ne : C2 ≠ Term.Stuck :=
+                    RuleProofs.term_ne_stuck_of_has_smt_translation C2 hC2Trans
+                  have hProgReordering :
+                      __eo_prog_reordering C2 (Proof.pf C1) ≠ Term.Stuck := by
+                    rw [hCmdProgEq] at hProg
+                    exact hProg
+                  have hReqNe :
+                      __eo_requires (__eo_list_minclude Term.or C2 C1) (Term.Boolean true) C2 ≠
+                        Term.Stuck := by
+                    simpa [__eo_prog_reordering, hC2Ne] using hProgReordering
+                  have hIncl : __eo_list_minclude Term.or C2 C1 = Term.Boolean true :=
+                    eq_true_of_requires_true_not_stuck hReqNe
+                  have hProgEqC2 : __eo_prog_reordering C2 (Proof.pf C1) = C2 := by
+                    simp [__eo_prog_reordering, hC2Ne, hIncl, __eo_requires, native_ite,
+                      native_teq, native_not, SmtEval.native_not]
+                  have hC2Ty : __eo_typeof C2 = Term.Bool := by
+                    rw [hCmdProgEq, hProgEqC2] at hResultTy
+                    exact hResultTy
+                  have hC2Bool : RuleProofs.eo_has_bool_type C2 :=
+                    RuleProofs.eo_typeof_bool_implies_has_bool_type C2 hC2Trans hC2Ty
+                  have hC2Clause : OrClause C2 :=
+                    orClause_left_of_minclude_true hIncl
+                  have hC1Clause : OrClause C1 :=
+                    orClause_right_of_minclude_true hIncl
+                  refine ⟨?_, ?_⟩
+                  · intro hTrue
+                    rw [hCmdProgEq, hProgEqC2]
+                    exact orClause_true_of_minclude_true M hM
+                      hC2Clause hC2Bool hC1Clause hC1Bool hIncl
+                      (hTrue C1 (by simp [C1, premiseTermList]))
+                  · rw [hCmdProgEq, hProgEqC2]
+                    exact hC2Trans
+              | cons _ _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+      | cons _ _ =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
