@@ -2514,7 +2514,7 @@ def __mk_dt_cons_eq : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) as), (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) b) bs) => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b)) (__mk_dt_cons_eq as bs))
   | (Term.Apply f a), (Term.Apply g b) => (__eo_list_concat (Term.UOp UserOp.and) (__mk_dt_cons_eq f g) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b)) (Term.Boolean true)))
-  | c, __eo_lv_c_2 => (__eo_requires (__eo_eq c __eo_lv_c_2) (Term.Boolean true) (Term.Boolean true))
+  | c, __eo_lv_c_2 => (__eo_requires (__eo_eq c __eo_lv_c_2) (Term.Boolean true) (__eo_requires (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors c))) (Term.Boolean true) (Term.Boolean true)))
 
 
 def __eo_prog_dt_cons_eq : Term -> Term
