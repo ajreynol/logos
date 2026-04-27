@@ -212,6 +212,180 @@ private theorem eq_operands_eval_same_smt_type_of_eq_has_smt_translation
     _ = __smtx_typeof (__eo_to_smt y) := hTy
     _ = __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt y)) := hYPres.symm
 
+private theorem smt_value_rel_numeral_eq
+    {n1 n2 : native_Int} :
+  RuleProofs.smt_value_rel (SmtValue.Numeral n1) (SmtValue.Numeral n2) ->
+  n1 = n2 := by
+  intro hRel
+  simpa [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq] using hRel
+
+private theorem smt_value_rel_rational_eq
+    {q1 q2 : native_Rat} :
+  RuleProofs.smt_value_rel (SmtValue.Rational q1) (SmtValue.Rational q2) ->
+  q1 = q2 := by
+  intro hRel
+  simpa [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq] using hRel
+
+private theorem smt_value_rel_model_eval_to_real_of_int_rel
+    {n1 n2 : native_Int} :
+  RuleProofs.smt_value_rel (SmtValue.Numeral n1) (SmtValue.Numeral n2) ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_to_real (SmtValue.Numeral n1))
+    (__smtx_model_eval_to_real (SmtValue.Numeral n2)) := by
+  intro hRel
+  have hEq : n1 = n2 := smt_value_rel_numeral_eq hRel
+  simpa [__smtx_model_eval_to_real, hEq] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_to_real (SmtValue.Numeral n1))
+
+private theorem smt_value_rel_model_eval_to_real_of_real_rel
+    {q1 q2 : native_Rat} :
+  RuleProofs.smt_value_rel (SmtValue.Rational q1) (SmtValue.Rational q2) ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_to_real (SmtValue.Rational q1))
+    (__smtx_model_eval_to_real (SmtValue.Rational q2)) := by
+  intro hRel
+  have hEq : q1 = q2 := smt_value_rel_rational_eq hRel
+  simpa [__smtx_model_eval_to_real, hEq] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_to_real (SmtValue.Rational q1))
+
+private theorem smt_value_rel_model_eval_uneg_of_int_rel
+    {n1 n2 : native_Int} :
+  RuleProofs.smt_value_rel (SmtValue.Numeral n1) (SmtValue.Numeral n2) ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_uneg (SmtValue.Numeral n1))
+    (__smtx_model_eval_uneg (SmtValue.Numeral n2)) := by
+  intro hRel
+  have hEq : n1 = n2 := smt_value_rel_numeral_eq hRel
+  simpa [__smtx_model_eval_uneg, hEq] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_uneg (SmtValue.Numeral n1))
+
+private theorem smt_value_rel_model_eval_uneg_of_real_rel
+    {q1 q2 : native_Rat} :
+  RuleProofs.smt_value_rel (SmtValue.Rational q1) (SmtValue.Rational q2) ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_uneg (SmtValue.Rational q1))
+    (__smtx_model_eval_uneg (SmtValue.Rational q2)) := by
+  intro hRel
+  have hEq : q1 = q2 := smt_value_rel_rational_eq hRel
+  simpa [__smtx_model_eval_uneg, hEq] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_uneg (SmtValue.Rational q1))
+
+private theorem smt_value_rel_model_eval_plus_of_int_rel
+    {n1 n1' n2 n2' : native_Int} :
+  RuleProofs.smt_value_rel (SmtValue.Numeral n1) (SmtValue.Numeral n1') ->
+  RuleProofs.smt_value_rel (SmtValue.Numeral n2) (SmtValue.Numeral n2') ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_plus (SmtValue.Numeral n1) (SmtValue.Numeral n2))
+    (__smtx_model_eval_plus (SmtValue.Numeral n1') (SmtValue.Numeral n2')) := by
+  intro hRel1 hRel2
+  have hEq1 : n1 = n1' := smt_value_rel_numeral_eq hRel1
+  have hEq2 : n2 = n2' := smt_value_rel_numeral_eq hRel2
+  simpa [__smtx_model_eval_plus, hEq1, hEq2] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_plus (SmtValue.Numeral n1) (SmtValue.Numeral n2))
+
+private theorem smt_value_rel_model_eval_plus_of_real_rel
+    {q1 q1' q2 q2' : native_Rat} :
+  RuleProofs.smt_value_rel (SmtValue.Rational q1) (SmtValue.Rational q1') ->
+  RuleProofs.smt_value_rel (SmtValue.Rational q2) (SmtValue.Rational q2') ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_plus (SmtValue.Rational q1) (SmtValue.Rational q2))
+    (__smtx_model_eval_plus (SmtValue.Rational q1') (SmtValue.Rational q2')) := by
+  intro hRel1 hRel2
+  have hEq1 : q1 = q1' := smt_value_rel_rational_eq hRel1
+  have hEq2 : q2 = q2' := smt_value_rel_rational_eq hRel2
+  simpa [__smtx_model_eval_plus, hEq1, hEq2] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_plus (SmtValue.Rational q1) (SmtValue.Rational q2))
+
+private theorem smt_value_rel_model_eval_sub_of_int_rel
+    {n1 n1' n2 n2' : native_Int} :
+  RuleProofs.smt_value_rel (SmtValue.Numeral n1) (SmtValue.Numeral n1') ->
+  RuleProofs.smt_value_rel (SmtValue.Numeral n2) (SmtValue.Numeral n2') ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval__ (SmtValue.Numeral n1) (SmtValue.Numeral n2))
+    (__smtx_model_eval__ (SmtValue.Numeral n1') (SmtValue.Numeral n2')) := by
+  intro hRel1 hRel2
+  have hEq1 : n1 = n1' := smt_value_rel_numeral_eq hRel1
+  have hEq2 : n2 = n2' := smt_value_rel_numeral_eq hRel2
+  simpa [__smtx_model_eval__, hEq1, hEq2] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval__ (SmtValue.Numeral n1) (SmtValue.Numeral n2))
+
+private theorem smt_value_rel_model_eval_sub_of_real_rel
+    {q1 q1' q2 q2' : native_Rat} :
+  RuleProofs.smt_value_rel (SmtValue.Rational q1) (SmtValue.Rational q1') ->
+  RuleProofs.smt_value_rel (SmtValue.Rational q2) (SmtValue.Rational q2') ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval__ (SmtValue.Rational q1) (SmtValue.Rational q2))
+    (__smtx_model_eval__ (SmtValue.Rational q1') (SmtValue.Rational q2')) := by
+  intro hRel1 hRel2
+  have hEq1 : q1 = q1' := smt_value_rel_rational_eq hRel1
+  have hEq2 : q2 = q2' := smt_value_rel_rational_eq hRel2
+  simpa [__smtx_model_eval__, hEq1, hEq2] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval__ (SmtValue.Rational q1) (SmtValue.Rational q2))
+
+private theorem smt_value_rel_model_eval_mult_of_int_rel
+    {n1 n1' n2 n2' : native_Int} :
+  RuleProofs.smt_value_rel (SmtValue.Numeral n1) (SmtValue.Numeral n1') ->
+  RuleProofs.smt_value_rel (SmtValue.Numeral n2) (SmtValue.Numeral n2') ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_mult (SmtValue.Numeral n1) (SmtValue.Numeral n2))
+    (__smtx_model_eval_mult (SmtValue.Numeral n1') (SmtValue.Numeral n2')) := by
+  intro hRel1 hRel2
+  have hEq1 : n1 = n1' := smt_value_rel_numeral_eq hRel1
+  have hEq2 : n2 = n2' := smt_value_rel_numeral_eq hRel2
+  simpa [__smtx_model_eval_mult, hEq1, hEq2] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_mult (SmtValue.Numeral n1) (SmtValue.Numeral n2))
+
+private theorem smt_value_rel_model_eval_mult_of_real_rel
+    {q1 q1' q2 q2' : native_Rat} :
+  RuleProofs.smt_value_rel (SmtValue.Rational q1) (SmtValue.Rational q1') ->
+  RuleProofs.smt_value_rel (SmtValue.Rational q2) (SmtValue.Rational q2') ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_mult (SmtValue.Rational q1) (SmtValue.Rational q2))
+    (__smtx_model_eval_mult (SmtValue.Rational q1') (SmtValue.Rational q2')) := by
+  intro hRel1 hRel2
+  have hEq1 : q1 = q1' := smt_value_rel_rational_eq hRel1
+  have hEq2 : q2 = q2' := smt_value_rel_rational_eq hRel2
+  simpa [__smtx_model_eval_mult, hEq1, hEq2] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_mult (SmtValue.Rational q1) (SmtValue.Rational q2))
+
+private theorem smt_value_rel_model_eval_qdiv_total_of_int_rel
+    {n1 n1' n2 n2' : native_Int} :
+  RuleProofs.smt_value_rel (SmtValue.Numeral n1) (SmtValue.Numeral n1') ->
+  RuleProofs.smt_value_rel (SmtValue.Numeral n2) (SmtValue.Numeral n2') ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_qdiv_total (SmtValue.Numeral n1) (SmtValue.Numeral n2))
+    (__smtx_model_eval_qdiv_total (SmtValue.Numeral n1') (SmtValue.Numeral n2')) := by
+  intro hRel1 hRel2
+  have hEq1 : n1 = n1' := smt_value_rel_numeral_eq hRel1
+  have hEq2 : n2 = n2' := smt_value_rel_numeral_eq hRel2
+  simpa [__smtx_model_eval_qdiv_total, hEq1, hEq2] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_qdiv_total (SmtValue.Numeral n1) (SmtValue.Numeral n2))
+
+private theorem smt_value_rel_model_eval_qdiv_total_of_real_rel
+    {q1 q1' q2 q2' : native_Rat} :
+  RuleProofs.smt_value_rel (SmtValue.Rational q1) (SmtValue.Rational q1') ->
+  RuleProofs.smt_value_rel (SmtValue.Rational q2) (SmtValue.Rational q2') ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_qdiv_total (SmtValue.Rational q1) (SmtValue.Rational q2))
+    (__smtx_model_eval_qdiv_total (SmtValue.Rational q1') (SmtValue.Rational q2')) := by
+  intro hRel1 hRel2
+  have hEq1 : q1 = q1' := smt_value_rel_rational_eq hRel1
+  have hEq2 : q2 = q2' := smt_value_rel_rational_eq hRel2
+  simpa [__smtx_model_eval_qdiv_total, hEq1, hEq2] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_qdiv_total (SmtValue.Rational q1) (SmtValue.Rational q2))
+
 private theorem smt_value_rel_of_equal_arith_poly_norm
     (M : SmtModel) (hM : model_total_typed M)
     (a b : Term) :
