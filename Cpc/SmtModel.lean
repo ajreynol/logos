@@ -575,6 +575,77 @@ macro_rules
                 | _ => SmtValue.NotValue
           exact evalChoiceNth $M $s $T $body $n)
 
+def __smtx_msm_get_default : SmtMap -> SmtValue
+  | (SmtMap.cons _ _ m) => (__smtx_msm_get_default m)
+  | (SmtMap.default _ e) => e
+
+mutual
+
+def __smtx_lookup_value_eqb_fuel : Nat -> SmtValue -> SmtValue -> native_Bool
+  | 0, _, _ => false
+  | fuel + 1, (SmtValue.Map m1), (SmtValue.Map m2) =>
+      native_and
+        (__smtx_lookup_value_eqb_fuel fuel (__smtx_msm_get_default m1) (__smtx_msm_get_default m2))
+        (native_and
+          (__smtx_lookup_map_agree_seen_fuel fuel [] m1 m2)
+          (__smtx_lookup_map_agree_seen_fuel fuel [] m2 m1))
+  | fuel + 1, (SmtValue.Set m1), (SmtValue.Set m2) =>
+      native_and
+        (__smtx_lookup_value_eqb_fuel fuel (__smtx_msm_get_default m1) (__smtx_msm_get_default m2))
+        (native_and
+          (__smtx_lookup_map_agree_seen_fuel fuel [] m1 m2)
+          (__smtx_lookup_map_agree_seen_fuel fuel [] m2 m1))
+  | fuel + 1, (SmtValue.Fun m1), (SmtValue.Fun m2) =>
+      native_and
+        (__smtx_lookup_value_eqb_fuel fuel (__smtx_msm_get_default m1) (__smtx_msm_get_default m2))
+        (native_and
+          (__smtx_lookup_map_agree_seen_fuel fuel [] m1 m2)
+          (__smtx_lookup_map_agree_seen_fuel fuel [] m2 m1))
+  | fuel + 1, (SmtValue.Seq (SmtSeq.empty _)), (SmtValue.Seq (SmtSeq.empty _)) => true
+  | fuel + 1, (SmtValue.Seq (SmtSeq.cons v1 vs1)), (SmtValue.Seq (SmtSeq.cons v2 vs2)) =>
+      native_and (__smtx_lookup_value_eqb_fuel fuel v1 v2)
+        (__smtx_lookup_value_eqb_fuel fuel (SmtValue.Seq vs1) (SmtValue.Seq vs2))
+  | fuel + 1, (SmtValue.Apply f1 v1), (SmtValue.Apply f2 v2) =>
+      native_and (__smtx_lookup_value_eqb_fuel fuel f1 f2)
+        (__smtx_lookup_value_eqb_fuel fuel v1 v2)
+  | fuel + 1, v1, v2 => native_veq v1 v2
+
+def __smtx_lookup_msm_lookup_eqb_fuel : Nat -> SmtMap -> SmtValue -> SmtValue
+  | 0, m, _ => __smtx_msm_get_default m
+  | fuel + 1, (SmtMap.cons j e m), i =>
+      (native_ite
+        (__smtx_lookup_value_eqb_fuel fuel j i)
+        e
+        (__smtx_lookup_msm_lookup_eqb_fuel fuel m i))
+  | fuel + 1, (SmtMap.default _ e), _ => e
+
+def __smtx_lookup_seen_contains_eqb_fuel : Nat -> List SmtValue -> SmtValue -> native_Bool
+  | 0, _, _ => false
+  | fuel + 1, [], _ => false
+  | fuel + 1, k :: ks, i =>
+      native_or
+        (__smtx_lookup_value_eqb_fuel fuel k i)
+        (__smtx_lookup_seen_contains_eqb_fuel fuel ks i)
+
+def __smtx_lookup_map_agree_seen_fuel : Nat -> List SmtValue -> SmtMap -> SmtMap -> native_Bool
+  | 0, _, _, _ => false
+  | fuel + 1, _, (SmtMap.default _ _), _ => true
+  | fuel + 1, seen, (SmtMap.cons j e m1), m2 =>
+      native_ite
+        (__smtx_lookup_seen_contains_eqb_fuel fuel seen j)
+        (__smtx_lookup_map_agree_seen_fuel fuel seen m1 m2)
+        (native_and
+          (__smtx_lookup_value_eqb_fuel fuel e (__smtx_lookup_msm_lookup_eqb_fuel fuel m2 j))
+          (__smtx_lookup_map_agree_seen_fuel fuel (j :: seen) m1 m2))
+
+end
+
+noncomputable def __smtx_lookup_value_eqb (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+  __smtx_lookup_value_eqb_fuel (sizeOf v1 + sizeOf v2 + 1) v1 v2
+
+noncomputable def __smtx_lookup_msm_lookup_eqb (m : SmtMap) (i : SmtValue) : SmtValue :=
+  __smtx_lookup_msm_lookup_eqb_fuel (sizeOf m + sizeOf i + 1) m i
+
 /- Definition of SMT-LIB model semantics -/
 
 noncomputable section
@@ -627,14 +698,8 @@ def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
 def __smtx_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
   (native_ite (native_inhabited_type T) (native_ite (__smtx_type_wf T) U SmtType.None) SmtType.None)
 
-def __smtx_msm_get_default : SmtMap -> SmtValue
-  | (SmtMap.cons j e m) => (__smtx_msm_get_default m)
-  | (SmtMap.default T e) => e
-
-
 def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
-  | (SmtMap.cons j e m), i => (native_ite (native_veq j i) e (__smtx_msm_lookup m i))
-  | (SmtMap.default T e), i => e
+  | m, i => (__smtx_lookup_msm_lookup_eqb m i)
 
 
 def __smtx_typeof_map_value : SmtMap -> SmtType
