@@ -386,6 +386,134 @@ private theorem smt_value_rel_model_eval_qdiv_total_of_real_rel
     RuleProofs.smt_value_rel_refl
       (__smtx_model_eval_qdiv_total (SmtValue.Rational q1) (SmtValue.Rational q2))
 
+private theorem smt_value_rel_model_eval_to_int_of_real_rel
+    {q1 q2 : native_Rat} :
+  RuleProofs.smt_value_rel (SmtValue.Rational q1) (SmtValue.Rational q2) ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_to_int (SmtValue.Rational q1))
+    (__smtx_model_eval_to_int (SmtValue.Rational q2)) := by
+  intro hRel
+  have hEq : q1 = q2 := smt_value_rel_rational_eq hRel
+  simpa [__smtx_model_eval_to_int, hEq] using
+    RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval_to_int (SmtValue.Rational q1))
+
+private theorem smtx_model_eval_to_int_to_real_of_numeral
+    (n : native_Int) :
+  __smtx_model_eval_to_int (__smtx_model_eval_to_real (SmtValue.Numeral n)) =
+    SmtValue.Numeral n := by
+  change SmtValue.Numeral (Rat.floor ((n : Rat) / 1)) = SmtValue.Numeral n
+  congr
+  have hDiv : ((n : Rat) / 1 : Rat) = (n : Rat) := by
+    change ((n : Rat) * ((1 : Rat)⁻¹)) = (n : Rat)
+    rw [Rat.inv_def]
+    change (n : Rat) * Rat.divInt 1 1 = (n : Rat)
+    rw [show Rat.divInt 1 1 = (1 : Rat) by rfl]
+    exact Rat.mul_one _
+  rw [hDiv]
+  exact Rat.floor_intCast n
+
+private theorem smt_value_rel_to_int_to_real_of_numeral
+    (n : native_Int) :
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval_to_int (__smtx_model_eval_to_real (SmtValue.Numeral n)))
+    (SmtValue.Numeral n) := by
+  rw [smtx_model_eval_to_int_to_real_of_numeral]
+  exact RuleProofs.smt_value_rel_refl (SmtValue.Numeral n)
+
+private noncomputable def arith_atom_denote_real (M : SmtModel) (t : Term) : SmtValue :=
+  __smtx_model_eval_to_real (__smtx_model_eval M (__eo_to_smt t))
+
+private noncomputable def arith_mvar_denote_real (M : SmtModel) : Term -> SmtValue
+  | Term.__eo_List_nil => SmtValue.Rational (native_mk_rational 1 1)
+  | Term.Apply (Term.Apply Term.__eo_List_cons a) rest =>
+      __smtx_model_eval_mult (arith_atom_denote_real M a)
+        (arith_mvar_denote_real M rest)
+  | _ => SmtValue.NotValue
+
+private noncomputable def arith_mon_denote_real (M : SmtModel) : Term -> SmtValue
+  | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c) =>
+      __smtx_model_eval_mult (SmtValue.Rational c) (arith_mvar_denote_real M vars)
+  | _ => SmtValue.NotValue
+
+private noncomputable def arith_poly_denote_real (M : SmtModel) : Term -> SmtValue
+  | Term.UOp UserOp._at__at_Polynomial => SmtValue.Rational (native_mk_rational 0 1)
+  | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) m) p =>
+      __smtx_model_eval_plus (arith_mon_denote_real M m) (arith_poly_denote_real M p)
+  | _ => SmtValue.NotValue
+
+private theorem arith_poly_denote_real_of_rational
+    (M : SmtModel) (q : native_Rat) :
+  arith_poly_denote_real M (__get_arith_poly_norm (Term.Rational q)) =
+    SmtValue.Rational q := by
+  by_cases hZero : q = native_mk_rational 0 1
+  · subst hZero
+    have hGet :
+        __get_arith_poly_norm (Term.Rational (native_mk_rational 0 1)) =
+          Term.UOp UserOp._at__at_Polynomial := by
+      native_decide
+    rw [hGet]
+    rfl
+  · have hZero' : ¬ native_mk_rational 0 1 = q := by
+      simpa [eq_comm] using hZero
+    have hDec : decide (native_mk_rational 0 1 = q) = false := by
+      simp [hZero']
+    have hGet :
+        __get_arith_poly_norm (Term.Rational q) =
+          __eo_mk_apply
+            (__eo_mk_apply (Term.UOp UserOp._at__at_poly)
+              (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_mon) Term.__eo_List_nil)
+                (Term.Rational q)))
+            (Term.UOp UserOp._at__at_Polynomial) := by
+      simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
+        __eo_ite, native_ite, native_teq, hDec, SmtEval.native_and, SmtEval.native_not]
+    rw [hGet]
+    change SmtValue.Rational (q * native_mk_rational 1 1 + native_mk_rational 0 1) =
+      SmtValue.Rational q
+    congr
+    have hOne : native_mk_rational 1 1 = (1 : Rat) := by
+      native_decide
+    have hZeroRat : native_mk_rational 0 1 = (0 : Rat) := by
+      native_decide
+    rw [hOne, hZeroRat]
+    rw [Rat.mul_one, Rat.add_zero]
+
+private theorem arith_poly_denote_real_of_numeral
+    (M : SmtModel) (n : native_Int) :
+  arith_poly_denote_real M (__get_arith_poly_norm (Term.Numeral n)) =
+    SmtValue.Rational (native_to_real n) := by
+  by_cases hZero : native_to_real n = native_mk_rational 0 1
+  · have hGet :
+        __get_arith_poly_norm (Term.Numeral n) =
+          Term.UOp UserOp._at__at_Polynomial := by
+      simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
+        __eo_ite, native_ite, native_teq, hZero, SmtEval.native_and, SmtEval.native_not]
+    rw [hGet, hZero]
+    rfl
+  · have hZero' : ¬ native_mk_rational 0 1 = native_to_real n := by
+      simpa [eq_comm] using hZero
+    have hDec : decide (native_mk_rational 0 1 = native_to_real n) = false := by
+      simp [hZero']
+    have hGet :
+        __get_arith_poly_norm (Term.Numeral n) =
+          __eo_mk_apply
+            (__eo_mk_apply (Term.UOp UserOp._at__at_poly)
+              (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_mon) Term.__eo_List_nil)
+                (Term.Rational (native_to_real n))))
+            (Term.UOp UserOp._at__at_Polynomial) := by
+      simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
+        __eo_ite, native_ite, native_teq, hDec, SmtEval.native_and, SmtEval.native_not]
+    rw [hGet]
+    change SmtValue.Rational (native_to_real n * native_mk_rational 1 1 + native_mk_rational 0 1) =
+      SmtValue.Rational (native_to_real n)
+    congr
+    have hOne : native_mk_rational 1 1 = (1 : Rat) := by
+      native_decide
+    have hZeroRat : native_mk_rational 0 1 = (0 : Rat) := by
+      native_decide
+    rw [hOne, hZeroRat]
+    rw [Rat.mul_one, Rat.add_zero]
+
 private theorem smt_value_rel_of_equal_arith_poly_norm
     (M : SmtModel) (hM : model_total_typed M)
     (a b : Term) :
