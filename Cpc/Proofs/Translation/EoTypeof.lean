@@ -541,7 +541,45 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
         SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x)) =
       SmtType.Datatype s d := by
-  sorry
+  let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x
+  have hTranslate :
+      __eo_to_smt t =
+        __eo_to_smt_updater (SmtTerm.DtSel s d i j) (__eo_to_smt y) (__eo_to_smt x) := by
+    rw [__eo_to_smt.eq_def]
+    simp [hz]
+  have hUpdaterNN :
+      __smtx_typeof
+          (__eo_to_smt_updater (SmtTerm.DtSel s d i j) (__eo_to_smt y) (__eo_to_smt x)) ≠
+        SmtType.None := by
+    rw [← hTranslate]
+    exact h
+  have hIteNN :
+      term_has_non_none_type
+        (SmtTerm.ite
+          (SmtTerm.Apply (SmtTerm.DtTester s d i) (__eo_to_smt y))
+          (__eo_to_smt_updater_rec
+            (SmtTerm.DtSel s d i j) (__smtx_dt_num_sels d i) (__eo_to_smt y)
+            (__eo_to_smt x) (SmtTerm.DtCons s d i))
+          (__eo_to_smt y)) := by
+    unfold term_has_non_none_type
+    simpa [__eo_to_smt_updater] using hUpdaterNN
+  rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, hT⟩
+  have hCondNN :
+      term_has_non_none_type
+        (SmtTerm.Apply (SmtTerm.DtTester s d i) (__eo_to_smt y)) := by
+    unfold term_has_non_none_type
+    rw [hCond]
+    simp
+  have hYTy : __smtx_typeof (__eo_to_smt y) = SmtType.Datatype s d := by
+    exact dt_tester_arg_datatype_of_non_none hCondNN
+  have hTTy : T = SmtType.Datatype s d := by
+    exact hElse.symm.trans hYTy
+  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype s d := by
+    rw [hTranslate, __eo_to_smt_updater]
+    rw [typeof_ite_eq]
+    rw [hCond, hThen, hElse, hTTy]
+    simp [__smtx_typeof_ite, native_ite, native_Teq]
+  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_tuple_update_of_smt_numeral_tuple`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tuple
