@@ -484,6 +484,31 @@ private theorem arith_atom_denote_real_rational_or_notValue
   cases hEval : __smtx_model_eval M (__eo_to_smt t) <;>
     simp [__smtx_model_eval_to_real]
 
+private theorem arith_atom_denote_real_rational_of_smt_arith_type
+    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
+      __smtx_typeof (__eo_to_smt t) = SmtType.Real) :
+  ∃ q, arith_atom_denote_real M t = SmtValue.Rational q := by
+  have hNonNone : term_has_non_none_type (__eo_to_smt t) := by
+    unfold term_has_non_none_type
+    rcases hTy with hTy | hTy <;> simp [hTy]
+  have hEvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t)) =
+        __smtx_typeof (__eo_to_smt t) := by
+    exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t) hNonNone
+  rcases hTy with hTy | hTy
+  · have hEvalInt :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t)) = SmtType.Int := by
+      simpa [hTy] using hEvalTy
+    rcases int_value_canonical hEvalInt with ⟨n, hEval⟩
+    refine ⟨native_to_real n, ?_⟩
+    simp [arith_atom_denote_real, hEval, __smtx_model_eval_to_real]
+  · have hEvalReal :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t)) = SmtType.Real := by
+      simpa [hTy] using hEvalTy
+    rcases real_value_canonical hEvalReal with ⟨q, hEval⟩
+    exact ⟨q, by simp [arith_atom_denote_real, hEval, __smtx_model_eval_to_real]⟩
+
 private theorem arith_mvar_denote_real_rational_or_notValue
     (M : SmtModel) (vars : Term) :
   (∃ q, arith_mvar_denote_real M vars = SmtValue.Rational q) ∨
@@ -657,6 +682,13 @@ private theorem arith_mon_denote_real_of_eo_neg
   | _ =>
       simp [arith_mon_denote_real, __eo_neg, __smtx_model_eval_uneg]
 
+private theorem arith_mvar_wf_ne_stuck
+    {vars : Term}
+    (hvars : arith_mvar_wf vars) :
+  vars ≠ Term.Stuck := by
+  intro hSt
+  cases hvars <;> cases hSt
+
 private theorem arith_poly_wf_ne_stuck
     {p : Term}
     (hp : arith_poly_wf p) :
@@ -683,6 +715,160 @@ private theorem arith_poly_wf_of_poly_neg
               (__poly_neg p)
               (arith_mon_wf.mk vars (native_qneg c) hvars)
               ih)
+
+private theorem arith_poly_wf_of_poly_add
+    {P1 P2 : Term}
+    (h1 : arith_poly_wf P1)
+    (h2 : arith_poly_wf P2) :
+  arith_poly_wf (__poly_add P1 P2) := by
+  cases h1 with
+  | zero =>
+      cases h2 with
+      | zero =>
+          simpa [__poly_add] using arith_poly_wf.zero
+      | @cons m2 p2 hm2 hp2 =>
+          simpa [__poly_add] using arith_poly_wf.cons m2 p2 hm2 hp2
+  | @cons m1 p1 hm1 hp1 =>
+      cases h2 with
+      | zero =>
+          simpa [__poly_add] using arith_poly_wf.cons m1 p1 hm1 hp1
+      | @cons m2 p2 hm2 hp2 =>
+          cases hm1 with
+          | mk vars1 c1 hvars1 =>
+              cases hm2 with
+              | mk vars2 c2 hvars2 =>
+                  have hVars1 : vars1 ≠ Term.Stuck := arith_mvar_wf_ne_stuck hvars1
+                  have hVars2 : vars2 ≠ Term.Stuck := arith_mvar_wf_ne_stuck hvars2
+                  by_cases hEq : vars1 = vars2
+                  · subst vars2
+                    have hRec : arith_poly_wf (__poly_add p1 p2) :=
+                        arith_poly_wf_of_poly_add hp1 hp2
+                    by_cases hZero : native_qplus c1 c2 = native_mk_rational 0 1
+                    · have hZero' : native_mk_rational 0 1 = native_qplus c1 c2 := by
+                        simpa [eq_comm] using hZero
+                      simpa [__poly_add, __eo_eq, __eo_ite, __eo_add, native_ite, native_teq,
+                        hVars1, hZero']
+                        using hRec
+                    · have hTail : __poly_add p1 p2 ≠ Term.Stuck :=
+                          arith_poly_wf_ne_stuck hRec
+                      have hZero' : native_mk_rational 0 1 ≠ native_qplus c1 c2 := by
+                        simpa [eq_comm] using hZero
+                      simpa [__poly_add, __eo_eq, __eo_ite, __eo_add, native_ite, native_teq,
+                        hVars1, hZero', __eo_mk_apply, hTail] using
+                        (arith_poly_wf.cons
+                          (Term.Apply
+                            (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                            (Term.Rational (native_qplus c1 c2)))
+                          (__poly_add p1 p2)
+                          (arith_mon_wf.mk vars1 (native_qplus c1 c2) hvars1)
+                          hRec)
+                  · have hEq' : vars2 ≠ vars1 := by
+                        simpa [eq_comm] using hEq
+                    by_cases hCmp : native_tcmp vars2 vars1
+                    · have hRec : arith_poly_wf
+                            (__poly_add p1
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                                    (Term.Rational c2)))
+                                p2)) :=
+                          arith_poly_wf_of_poly_add hp1
+                            (arith_poly_wf.cons
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                                (Term.Rational c2))
+                              p2
+                              (arith_mon_wf.mk vars2 c2 hvars2)
+                              hp2)
+                      have hTail :
+                          __poly_add p1
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                                  (Term.Rational c2)))
+                              p2) ≠ Term.Stuck :=
+                        arith_poly_wf_ne_stuck hRec
+                      simpa [__poly_add, __eo_eq, __eo_ite, native_teq, hEq', hVars1, hVars2,
+                        __eo_cmp, hCmp, __eo_mk_apply, hTail] using
+                        (arith_poly_wf.cons
+                          (Term.Apply
+                            (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                            (Term.Rational c1))
+                          (__poly_add p1
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                                  (Term.Rational c2)))
+                              p2))
+                          (arith_mon_wf.mk vars1 c1 hvars1)
+                          hRec)
+                    · have hRec : arith_poly_wf
+                            (__poly_add
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                    (Term.Rational c1)))
+                                p1)
+                              p2) :=
+                          arith_poly_wf_of_poly_add
+                            (arith_poly_wf.cons
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                (Term.Rational c1))
+                              p1
+                              (arith_mon_wf.mk vars1 c1 hvars1)
+                              hp1)
+                            hp2
+                      have hTail :
+                          __poly_add
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                  (Term.Rational c1)))
+                              p1)
+                            p2 ≠ Term.Stuck :=
+                        arith_poly_wf_ne_stuck hRec
+                      simpa [__poly_add, __eo_eq, __eo_ite, native_teq, hEq', hVars1, hVars2,
+                        __eo_cmp, hCmp, __eo_mk_apply, hTail] using
+                        (arith_poly_wf.cons
+                          (Term.Apply
+                            (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                            (Term.Rational c2))
+                          (__poly_add
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                  (Term.Rational c1)))
+                              p1)
+                            p2)
+                          (arith_mon_wf.mk vars2 c2 hvars2)
+                          hRec)
+termination_by sizeOf P1 + sizeOf P2
+decreasing_by
+  simp_wf
+  · omega
+  · have hSize :
+        sizeOf p1 <
+          sizeOf
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                  (Term.Rational c1)))
+              p1) := by
+        simp
+        omega
+    omega
+  · have hSize :
+        sizeOf p2 <
+          sizeOf
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                  (Term.Rational c2)))
+              p2) := by
+        simp
+        omega
+    omega
 
 private theorem arith_poly_denote_real_of_poly_neg_wf
     (M : SmtModel) {p : Term}
@@ -1123,6 +1309,23 @@ private theorem arith_poly_wf_of_get_arith_poly_norm_uneg
     (hRec : arith_poly_wf (__get_arith_poly_norm t)) :
   arith_poly_wf (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t)) := by
   simpa [__get_arith_poly_norm] using arith_poly_wf_of_poly_neg hRec
+
+private theorem arith_poly_wf_of_get_arith_poly_norm_plus
+    (t1 t2 : Term)
+    (hRec1 : arith_poly_wf (__get_arith_poly_norm t1))
+    (hRec2 : arith_poly_wf (__get_arith_poly_norm t2)) :
+  arith_poly_wf
+    (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) := by
+  simpa [__get_arith_poly_norm] using arith_poly_wf_of_poly_add hRec1 hRec2
+
+private theorem arith_poly_wf_of_get_arith_poly_norm_neg
+    (t1 t2 : Term)
+    (hRec1 : arith_poly_wf (__get_arith_poly_norm t1))
+    (hRec2 : arith_poly_wf (__get_arith_poly_norm t2)) :
+  arith_poly_wf
+    (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) := by
+  simpa [__get_arith_poly_norm] using
+    arith_poly_wf_of_poly_add hRec1 (arith_poly_wf_of_poly_neg hRec2)
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_uneg
     (M : SmtModel) (t : Term)
