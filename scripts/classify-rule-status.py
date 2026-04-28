@@ -13,13 +13,6 @@ MAIN_THEOREM_RE = re.compile(
     r"(?m)^(?:private\s+)?theorem\s+(cmd_step_([A-Za-z0-9_]+)_properties)\b"
 )
 
-TOP_LEVEL_DECL_RE = re.compile(
-    r"(?m)^(?:(?:private|protected|unsafe|noncomputable)\s+)*"
-    r"(?:(?:partial\s+)?def|theorem|lemma|axiom|abbrev|instance|example|"
-    r"namespace|section|end|open|set_option|attribute|local|class|structure|"
-    r"inductive|mutual)\b"
-)
-
 PROG_DEF_RE = re.compile(r"(?m)^(partial\s+def|def)\s+__eo_prog_([A-Za-z0-9_]+)\b")
 CRULE_START_RE = re.compile(r"(?m)^inductive\s+CRule\s*:\s*Type\s+where\b")
 CRULE_CONSTRUCTOR_RE = re.compile(r"^\s*\|\s+([A-Za-z0-9_]+)\s*:\s*CRule\b")
@@ -146,12 +139,6 @@ def load_crule_names(root: Path, module: str) -> set[str]:
     return names
 
 
-def theorem_block(text: str, theorem_match: re.Match[str]) -> str:
-    next_decl = TOP_LEVEL_DECL_RE.search(text, theorem_match.end())
-    end = next_decl.start() if next_decl else len(text)
-    return text[theorem_match.start() : end]
-
-
 def classify_file(
     path: Path,
     root: Path,
@@ -171,18 +158,15 @@ def classify_file(
     matches = list(MAIN_THEOREM_RE.finditer(text))
     results: list[RuleStatus] = []
     file_rule = path.stem.lower()
+    file_has_sorry = SORRY_RE.search(text) is not None
 
     if file_rule not in c_rule_cache[module]:
         return results
 
-    for match in matches:
+    for _match in matches:
         rule = file_rule
-        block = theorem_block(text, match)
-        theorem_is_proven = SORRY_RE.search(block) is None
 
-        if theorem_is_proven:
-            status = "Proven"
-        else:
+        if file_has_sorry:
             prog_kind = prog_cache[module].get(rule)
             if prog_kind == "partial def":
                 status = "OutOfScope"
@@ -192,6 +176,8 @@ def classify_file(
                 raise ValueError(
                     f"Could not resolve __eo_prog_{rule} in {root / module / 'Logos.lean'}"
                 )
+        else:
+            status = "Proven"
 
         results.append(RuleStatus(rule=rule, status=status, file=path))
 
