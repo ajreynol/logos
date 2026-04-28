@@ -3058,6 +3058,93 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_of_non_arith_smt_t
   exact arith_poly_denote_real_eq_arith_atom_denote_real_of_norm_eq_atomic M t
     (get_arith_poly_norm_of_non_arith_smt_type t hNotInt hNotReal hNonNone)
 
+private theorem non_none_of_smt_arith_type
+    {t : SmtTerm}
+    (hTy : __smtx_typeof t = SmtType.Int ∨ __smtx_typeof t = SmtType.Real) :
+  term_has_non_none_type t := by
+  unfold term_has_non_none_type
+  intro hNone
+  rcases hTy with hInt | hReal
+  · cases hInt.symm.trans hNone
+  · cases hReal.symm.trans hNone
+
+private theorem arith_poly_rational_of_const_poly
+    (M : SmtModel) (q : native_Rat) :
+  arith_poly_rational M
+    (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) (arith_const_mon q))
+      (Term.UOp UserOp._at__at_Polynomial)) := by
+  exact arith_poly_rational.cons
+    (M := M)
+    (arith_const_mon q)
+    (Term.UOp UserOp._at__at_Polynomial)
+    (arith_mon_rational.mk
+      (M := M)
+      Term.__eo_List_nil
+      q
+      (arith_mvar_rational.nil (M := M)))
+    (arith_poly_rational.zero (M := M))
+
+private theorem arith_poly_rational_of_get_arith_poly_norm_rational
+    (M : SmtModel) (q : native_Rat) :
+  arith_poly_rational M (__get_arith_poly_norm (Term.Rational q)) := by
+  by_cases hZero : q = native_mk_rational 0 1
+  · subst q
+    have hGet :
+        __get_arith_poly_norm (Term.Rational (native_mk_rational 0 1)) =
+          Term.UOp UserOp._at__at_Polynomial := by
+      native_decide
+    rw [hGet]
+    exact arith_poly_rational.zero (M := M)
+  · have hZero' : ¬ native_mk_rational 0 1 = q := by
+      simpa [eq_comm] using hZero
+    have hDec : decide (native_mk_rational 0 1 = q) = false := by
+      simp [hZero']
+    have hGet :
+        __get_arith_poly_norm (Term.Rational q) =
+          Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) (arith_const_mon q))
+            (Term.UOp UserOp._at__at_Polynomial) := by
+      simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
+        __eo_ite, native_ite, native_teq, hDec, SmtEval.native_and, SmtEval.native_not,
+        arith_const_mon, __eo_mk_apply]
+    rw [hGet]
+    exact arith_poly_rational_of_const_poly M q
+
+private theorem arith_poly_rational_of_get_arith_poly_norm_numeral
+    (M : SmtModel) (n : native_Int) :
+  arith_poly_rational M (__get_arith_poly_norm (Term.Numeral n)) := by
+  by_cases hZero : native_to_real n = native_mk_rational 0 1
+  · have hGet :
+        __get_arith_poly_norm (Term.Numeral n) =
+          Term.UOp UserOp._at__at_Polynomial := by
+      simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
+        __eo_ite, native_ite, native_teq, hZero, SmtEval.native_and, SmtEval.native_not]
+    rw [hGet]
+    exact arith_poly_rational.zero (M := M)
+  · have hZero' : ¬ native_mk_rational 0 1 = native_to_real n := by
+      simpa [eq_comm] using hZero
+    have hDec : decide (native_mk_rational 0 1 = native_to_real n) = false := by
+      simp [hZero']
+    have hGet :
+        __get_arith_poly_norm (Term.Numeral n) =
+          Term.Apply
+            (Term.Apply (Term.UOp UserOp._at__at_poly) (arith_const_mon (native_to_real n)))
+            (Term.UOp UserOp._at__at_Polynomial) := by
+      simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_is_eq,
+        __eo_ite, native_ite, native_teq, hDec, SmtEval.native_and, SmtEval.native_not,
+        arith_const_mon, __eo_mk_apply]
+    rw [hGet]
+    exact arith_poly_rational_of_const_poly M (native_to_real n)
+
+private theorem arith_poly_rational_of_get_arith_poly_norm_eq_atomic_of_smt_arith_type
+    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
+      __smtx_typeof (__eo_to_smt t) = SmtType.Real)
+    (hNorm : __get_arith_poly_norm t = arith_atomic_poly t) :
+  arith_poly_rational M (__get_arith_poly_norm t) := by
+  rw [hNorm]
+  exact arith_poly_rational_of_arith_atomic_poly M t
+    (arith_atom_denote_real_rational_of_smt_arith_type M hM t hTy)
+
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_rational
     (M : SmtModel) (q : native_Rat) :
   arith_poly_denote_real M (__get_arith_poly_norm (Term.Rational q)) =
