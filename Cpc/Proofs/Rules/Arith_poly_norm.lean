@@ -1,4 +1,6 @@
 import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.TypePreservation.CoreArith
+import Cpc.Proofs.TypePreservation.Helpers
 
 open Eo
 open SmtEval
@@ -514,6 +516,231 @@ private theorem arith_poly_denote_real_of_numeral
     rw [hOne, hZeroRat]
     rw [Rat.mul_one, Rat.add_zero]
 
+private def arith_atomic_poly (t : Term) : Term :=
+  Term.Apply
+    (Term.Apply (Term.UOp UserOp._at__at_poly)
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp._at__at_mon)
+          (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))
+        (Term.Rational (native_mk_rational 1 1))))
+    (Term.UOp UserOp._at__at_Polynomial)
+
+private theorem arith_atomic_poly_injective
+    {a b : Term} :
+  arith_atomic_poly a = arith_atomic_poly b ->
+  a = b := by
+  intro h
+  simpa [arith_atomic_poly] using h
+
+private theorem eo_to_smt_uneg_eq
+    (x : Term) :
+  __eo_to_smt (Term.Apply (Term.UOp UserOp.__eoo_neg_2) x) =
+    (__eo_to_smt x).uneg := by
+  rw [__eo_to_smt.eq_def]
+
+private theorem eo_to_smt_to_real_eq
+    (x : Term) :
+  __eo_to_smt (Term.Apply (Term.UOp UserOp.to_real) x) =
+    (__eo_to_smt x).to_real := by
+  rw [__eo_to_smt.eq_def]
+
+private theorem eo_to_smt_plus_eq
+    (y x : Term) :
+  __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) y) x) =
+    (__eo_to_smt y).plus (__eo_to_smt x) := by
+  rw [__eo_to_smt.eq_def]
+
+private theorem eo_to_smt_neg_eq
+    (y x : Term) :
+  __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) y) x) =
+    (__eo_to_smt y).neg (__eo_to_smt x) := by
+  rw [__eo_to_smt.eq_def]
+
+private theorem eo_to_smt_mult_eq
+    (y x : Term) :
+  __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) y) x) =
+    (__eo_to_smt y).mult (__eo_to_smt x) := by
+  rw [__eo_to_smt.eq_def]
+
+private theorem eo_to_smt_qdiv_eq
+    (y x : Term) :
+  __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) x) =
+    (__eo_to_smt y).qdiv (__eo_to_smt x) := by
+  rw [__eo_to_smt.eq_def]
+
+private theorem eo_to_smt_qdiv_total_eq
+    (y x : Term) :
+  __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) x) =
+    (__eo_to_smt y).qdiv_total (__eo_to_smt x) := by
+  rw [__eo_to_smt.eq_def]
+
+private theorem get_arith_poly_norm_of_non_arith_smt_type
+    (t : Term)
+    (hNotInt : __smtx_typeof (__eo_to_smt t) ≠ SmtType.Int)
+    (hNotReal : __smtx_typeof (__eo_to_smt t) ≠ SmtType.Real)
+    (hNonNone : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
+  __get_arith_poly_norm t = arith_atomic_poly t := by
+  cases t with
+  | Numeral n =>
+      exfalso
+      exact hNotInt (by simp [__eo_to_smt.eq_def, __smtx_typeof])
+  | Rational q =>
+      exfalso
+      exact hNotReal (by simp [__eo_to_smt.eq_def, __smtx_typeof])
+  | Stuck =>
+      exfalso
+      exact hNonNone (by simp [__eo_to_smt.eq_def])
+  | Apply f x =>
+      cases f with
+      | UOp op =>
+          cases op <;>
+            try
+              simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                SmtEval.native_and, SmtEval.native_not]
+          case __eoo_neg_2 =>
+            exfalso
+            have ht : term_has_non_none_type ((__eo_to_smt x).uneg) := by
+              unfold term_has_non_none_type
+              rw [← eo_to_smt_uneg_eq x]
+              exact hNonNone
+            rcases arith_unop_arg_of_non_none
+                (op := SmtTerm.uneg) (t := __eo_to_smt x)
+                (typeof_uneg_eq (__eo_to_smt x)) ht with hArg | hArg
+            · exact hNotInt <| by
+                rw [eo_to_smt_uneg_eq, typeof_uneg_eq]
+                simp [__smtx_typeof_arith_overload_op_1, hArg]
+            · exact hNotReal <| by
+                rw [eo_to_smt_uneg_eq, typeof_uneg_eq]
+                simp [__smtx_typeof_arith_overload_op_1, hArg]
+          case to_real =>
+            exfalso
+            have ht : term_has_non_none_type ((__eo_to_smt x).to_real) := by
+              unfold term_has_non_none_type
+              rw [← eo_to_smt_to_real_eq x]
+              exact hNonNone
+            rcases to_real_arg_of_non_none (t := __eo_to_smt x) ht with hArg | hArg
+            · exact hNotReal <| by
+                rw [eo_to_smt_to_real_eq, typeof_to_real_eq]
+                simp [native_ite, native_Teq, hArg]
+            · exact hNotReal <| by
+                rw [eo_to_smt_to_real_eq, typeof_to_real_eq]
+                simp [native_ite, native_Teq, hArg]
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              cases op <;>
+                try
+                  simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                    __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                    SmtEval.native_and, SmtEval.native_not]
+              case plus =>
+                exfalso
+                have ht : term_has_non_none_type
+                    (SmtTerm.plus (__eo_to_smt y) (__eo_to_smt x)) := by
+                  unfold term_has_non_none_type
+                  rw [← eo_to_smt_plus_eq y x]
+                  exact hNonNone
+                rcases arith_binop_args_of_non_none (op := SmtTerm.plus)
+                    (typeof_plus_eq (__eo_to_smt y) (__eo_to_smt x)) ht with hArgs | hArgs
+                · exact hNotInt <| by
+                    rw [eo_to_smt_plus_eq, typeof_plus_eq]
+                    simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
+                · exact hNotReal <| by
+                    rw [eo_to_smt_plus_eq, typeof_plus_eq]
+                    simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
+              case neg =>
+                exfalso
+                have ht : term_has_non_none_type
+                    (SmtTerm.neg (__eo_to_smt y) (__eo_to_smt x)) := by
+                  unfold term_has_non_none_type
+                  rw [← eo_to_smt_neg_eq y x]
+                  exact hNonNone
+                rcases arith_binop_args_of_non_none (op := SmtTerm.neg)
+                    (typeof_neg_eq (__eo_to_smt y) (__eo_to_smt x)) ht with hArgs | hArgs
+                · exact hNotInt <| by
+                    rw [eo_to_smt_neg_eq, typeof_neg_eq]
+                    simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
+                · exact hNotReal <| by
+                    rw [eo_to_smt_neg_eq, typeof_neg_eq]
+                    simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
+              case mult =>
+                exfalso
+                have ht : term_has_non_none_type
+                    (SmtTerm.mult (__eo_to_smt y) (__eo_to_smt x)) := by
+                  unfold term_has_non_none_type
+                  rw [← eo_to_smt_mult_eq y x]
+                  exact hNonNone
+                rcases arith_binop_args_of_non_none (op := SmtTerm.mult)
+                    (typeof_mult_eq (__eo_to_smt y) (__eo_to_smt x)) ht with hArgs | hArgs
+                · exact hNotInt <| by
+                    rw [eo_to_smt_mult_eq, typeof_mult_eq]
+                    simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
+                · exact hNotReal <| by
+                    rw [eo_to_smt_mult_eq, typeof_mult_eq]
+                    simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
+              case qdiv =>
+                exfalso
+                have ht : term_has_non_none_type
+                    (SmtTerm.qdiv (__eo_to_smt y) (__eo_to_smt x)) := by
+                  unfold term_has_non_none_type
+                  rw [← eo_to_smt_qdiv_eq y x]
+                  exact hNonNone
+                rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv)
+                    (R := SmtType.Real)
+                    (typeof_qdiv_eq (__eo_to_smt y) (__eo_to_smt x)) ht with hArgs | hArgs
+                · exact hNotReal <| by
+                    rw [eo_to_smt_qdiv_eq, typeof_qdiv_eq]
+                    simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
+                · exact hNotReal <| by
+                    rw [eo_to_smt_qdiv_eq, typeof_qdiv_eq]
+                    simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
+              case qdiv_total =>
+                exfalso
+                have ht : term_has_non_none_type
+                    ((__eo_to_smt y).qdiv_total (__eo_to_smt x)) := by
+                  unfold term_has_non_none_type
+                  rw [← eo_to_smt_qdiv_total_eq y x]
+                  exact hNonNone
+                rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv_total)
+                    (R := SmtType.Real)
+                    (typeof_qdiv_total_eq (__eo_to_smt y) (__eo_to_smt x)) ht with
+                    hArgs | hArgs
+                · exact hNotReal <| by
+                    rw [eo_to_smt_qdiv_total_eq, typeof_qdiv_total_eq]
+                    simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
+                · exact hNotReal <| by
+                    rw [eo_to_smt_qdiv_total_eq, typeof_qdiv_total_eq]
+                    simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
+          | _ =>
+              simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                SmtEval.native_and, SmtEval.native_not]
+      | _ =>
+          simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+            __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+            SmtEval.native_and, SmtEval.native_not]
+  | _ =>
+      simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+        __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+        SmtEval.native_and, SmtEval.native_not]
+
+private theorem smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term) :
+  RuleProofs.eo_has_smt_translation
+    (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) ->
+  (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∨
+    __smtx_typeof (__eo_to_smt a) = SmtType.Real) ->
+  __get_arith_poly_norm a = __get_arith_poly_norm b ->
+  __get_arith_poly_norm a ≠ Term.Stuck ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt a))
+    (__smtx_model_eval M (__eo_to_smt b)) := by
+  intro _hEqTrans _hArithTy _hNormEq _hNormNotStuck
+  -- Remaining gap: arithmetic-type semantic soundness of `__get_arith_poly_norm`.
+  sorry
+
 private theorem smt_value_rel_of_equal_arith_poly_norm
     (M : SmtModel) (hM : model_total_typed M)
     (a b : Term) :
@@ -525,13 +752,35 @@ private theorem smt_value_rel_of_equal_arith_poly_norm
     (__smtx_model_eval M (__eo_to_smt a))
     (__smtx_model_eval M (__eo_to_smt b)) := by
   intro hEqTrans hNormEq _hNormNotStuck
-  have hEvalTy :
-      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a)) =
-        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt b)) :=
-    eq_operands_eval_same_smt_type_of_eq_has_smt_translation M hM a b hEqTrans
-  -- Remaining gap: show that equal arithmetic normal forms force equal numeric
-  -- denotations for the original EO terms.
-  sorry
+  rcases eq_operands_same_smt_type_of_eq_has_smt_translation a b hEqTrans with
+    ⟨hTy, hNonNone⟩
+  by_cases hInt : __smtx_typeof (__eo_to_smt a) = SmtType.Int
+  · exact smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
+      M hM a b hEqTrans (Or.inl hInt) hNormEq _hNormNotStuck
+  · by_cases hReal : __smtx_typeof (__eo_to_smt a) = SmtType.Real
+    · exact smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
+        M hM a b hEqTrans (Or.inr hReal) hNormEq _hNormNotStuck
+    · have hNotIntB : __smtx_typeof (__eo_to_smt b) ≠ SmtType.Int := by
+        intro hIntB
+        exact hInt (hTy.trans hIntB)
+      have hNotRealB : __smtx_typeof (__eo_to_smt b) ≠ SmtType.Real := by
+        intro hRealB
+        exact hReal (hTy.trans hRealB)
+      have hNormA :
+          __get_arith_poly_norm a = arith_atomic_poly a :=
+        get_arith_poly_norm_of_non_arith_smt_type a hInt hReal hNonNone
+      have hNormB :
+          __get_arith_poly_norm b = arith_atomic_poly b := by
+        have hNonNoneB : __smtx_typeof (__eo_to_smt b) ≠ SmtType.None := by
+          rw [← hTy]
+          exact hNonNone
+        exact get_arith_poly_norm_of_non_arith_smt_type b hNotIntB hNotRealB hNonNoneB
+      have hEqTerms : a = b := by
+        apply arith_atomic_poly_injective
+        rw [← hNormA, ← hNormB]
+        exact hNormEq
+      subst a
+      exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt b))
 
 theorem facts___eo_prog_arith_poly_norm_impl
     (M : SmtModel) (hM : model_total_typed M) (a1 : Term) :
