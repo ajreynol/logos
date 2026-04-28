@@ -509,6 +509,255 @@ private theorem arith_atom_denote_real_rational_of_smt_arith_type
     rcases real_value_canonical hEvalReal with ⟨q, hEval⟩
     exact ⟨q, by simp [arith_atom_denote_real, hEval, __smtx_model_eval_to_real]⟩
 
+private inductive arith_mvar_rational (M : SmtModel) : Term -> Prop where
+  | nil : arith_mvar_rational M Term.__eo_List_nil
+  | cons (a rest : Term) :
+      (∃ q, arith_atom_denote_real M a = SmtValue.Rational q) ->
+      arith_mvar_rational M rest ->
+      arith_mvar_rational M (Term.Apply (Term.Apply Term.__eo_List_cons a) rest)
+
+private inductive arith_mon_rational (M : SmtModel) : Term -> Prop where
+  | mk (vars : Term) (c : native_Rat) :
+      arith_mvar_rational M vars ->
+      arith_mon_rational M
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c))
+
+private inductive arith_poly_rational (M : SmtModel) : Term -> Prop where
+  | zero : arith_poly_rational M (Term.UOp UserOp._at__at_Polynomial)
+  | cons (m p : Term) :
+      arith_mon_rational M m ->
+      arith_poly_rational M p ->
+      arith_poly_rational M (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) m) p)
+
+private theorem arith_mvar_rational_ne_stuck
+    {M : SmtModel} {vars : Term}
+    (hvars : arith_mvar_rational M vars) :
+  vars ≠ Term.Stuck := by
+  intro hSt
+  cases hvars <;> cases hSt
+
+private theorem arith_poly_rational_ne_stuck
+    {M : SmtModel} {p : Term}
+    (hp : arith_poly_rational M p) :
+  p ≠ Term.Stuck := by
+  intro hSt
+  cases hp <;> cases hSt
+
+private theorem arith_mvar_denote_real_rational_of_rational_support
+    (M : SmtModel) {vars : Term}
+    (hvars : arith_mvar_rational M vars) :
+  ∃ q, arith_mvar_denote_real M vars = SmtValue.Rational q := by
+  induction hvars with
+  | nil =>
+      exact ⟨native_mk_rational 1 1, rfl⟩
+  | cons a rest hA hRest ih =>
+      rcases hA with ⟨qa, hA⟩
+      rcases ih with ⟨qr, hRest⟩
+      refine ⟨native_qmult qa qr, ?_⟩
+      simp [arith_mvar_denote_real, hA, hRest, __smtx_model_eval_mult, native_qmult]
+
+private theorem arith_mon_denote_real_rational_of_rational_support
+    (M : SmtModel) {m : Term}
+    (hm : arith_mon_rational M m) :
+  ∃ q, arith_mon_denote_real M m = SmtValue.Rational q := by
+  cases hm with
+  | mk vars c hvars =>
+      rcases arith_mvar_denote_real_rational_of_rational_support M hvars with ⟨qv, hVars⟩
+      refine ⟨native_qmult c qv, ?_⟩
+      simp [arith_mon_denote_real, hVars, __smtx_model_eval_mult, native_qmult]
+
+private theorem arith_poly_denote_real_rational_of_rational_support
+    (M : SmtModel) {p : Term}
+    (hp : arith_poly_rational M p) :
+  ∃ q, arith_poly_denote_real M p = SmtValue.Rational q := by
+  induction hp with
+  | zero =>
+      exact ⟨native_mk_rational 0 1, rfl⟩
+  | cons m p hm hp ih =>
+      rcases arith_mon_denote_real_rational_of_rational_support M hm with ⟨qm, hMon⟩
+      rcases ih with ⟨qp, hPoly⟩
+      refine ⟨native_qplus qm qp, ?_⟩
+      simp [arith_poly_denote_real, hMon, hPoly, __smtx_model_eval_plus, native_qplus]
+
+private theorem arith_poly_rational_of_poly_neg
+    (M : SmtModel) {p : Term}
+    (hp : arith_poly_rational M p) :
+  arith_poly_rational M (__poly_neg p) := by
+  induction hp with
+  | zero =>
+      simpa [__poly_neg] using arith_poly_rational.zero (M := M)
+  | @cons m p hm hp ih =>
+      cases hm with
+      | mk vars c hvars =>
+          have hTail : __poly_neg p ≠ Term.Stuck :=
+            arith_poly_rational_ne_stuck ih
+          simpa [__poly_neg, __eo_mk_apply, __eo_neg, hTail] using
+            (arith_poly_rational.cons
+              (M := M)
+              (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
+                (Term.Rational (native_qneg c)))
+              (__poly_neg p)
+              (arith_mon_rational.mk (M := M) vars (native_qneg c) hvars)
+              ih)
+
+private theorem arith_poly_rational_of_poly_add
+    (M : SmtModel) {P1 P2 : Term}
+    (h1 : arith_poly_rational M P1)
+    (h2 : arith_poly_rational M P2) :
+  arith_poly_rational M (__poly_add P1 P2) := by
+  cases h1 with
+  | zero =>
+      cases h2 with
+      | zero =>
+          simpa [__poly_add] using arith_poly_rational.zero (M := M)
+      | @cons m2 p2 hm2 hp2 =>
+          simpa [__poly_add] using arith_poly_rational.cons (M := M) m2 p2 hm2 hp2
+  | @cons m1 p1 hm1 hp1 =>
+      cases h2 with
+      | zero =>
+          simpa [__poly_add] using arith_poly_rational.cons (M := M) m1 p1 hm1 hp1
+      | @cons m2 p2 hm2 hp2 =>
+          cases hm1 with
+          | mk vars1 c1 hvars1 =>
+              cases hm2 with
+              | mk vars2 c2 hvars2 =>
+                  have hVars1 : vars1 ≠ Term.Stuck := arith_mvar_rational_ne_stuck hvars1
+                  have hVars2 : vars2 ≠ Term.Stuck := arith_mvar_rational_ne_stuck hvars2
+                  by_cases hEq : vars1 = vars2
+                  · subst vars2
+                    have hRec : arith_poly_rational M (__poly_add p1 p2) :=
+                      arith_poly_rational_of_poly_add M hp1 hp2
+                    by_cases hZero : native_qplus c1 c2 = native_mk_rational 0 1
+                    · have hZero' : native_mk_rational 0 1 = native_qplus c1 c2 := by
+                        simpa [eq_comm] using hZero
+                      simpa [__poly_add, __eo_eq, __eo_ite, __eo_add, native_ite, native_teq,
+                        hVars1, hZero'] using hRec
+                    · have hTail : __poly_add p1 p2 ≠ Term.Stuck :=
+                        arith_poly_rational_ne_stuck hRec
+                      have hZero' : native_mk_rational 0 1 ≠ native_qplus c1 c2 := by
+                        simpa [eq_comm] using hZero
+                      simpa [__poly_add, __eo_eq, __eo_ite, __eo_add, native_ite, native_teq,
+                        hVars1, hZero', __eo_mk_apply, hTail] using
+                        (arith_poly_rational.cons
+                          (M := M)
+                          (Term.Apply
+                            (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                            (Term.Rational (native_qplus c1 c2)))
+                          (__poly_add p1 p2)
+                          (arith_mon_rational.mk (M := M) vars1 (native_qplus c1 c2) hvars1)
+                          hRec)
+                  · have hEq' : vars2 ≠ vars1 := by
+                        simpa [eq_comm] using hEq
+                    by_cases hCmp : native_tcmp vars2 vars1
+                    · have hRec : arith_poly_rational M
+                            (__poly_add p1
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                                    (Term.Rational c2)))
+                                p2)) :=
+                          arith_poly_rational_of_poly_add M hp1
+                            (arith_poly_rational.cons
+                              (M := M)
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                                (Term.Rational c2))
+                              p2
+                              (arith_mon_rational.mk (M := M) vars2 c2 hvars2)
+                              hp2)
+                      have hTail :
+                          __poly_add p1
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                                  (Term.Rational c2)))
+                              p2) ≠ Term.Stuck :=
+                        arith_poly_rational_ne_stuck hRec
+                      simpa [__poly_add, __eo_eq, __eo_ite, native_teq, hEq', hVars1, hVars2,
+                        __eo_cmp, hCmp, __eo_mk_apply, hTail] using
+                        (arith_poly_rational.cons
+                          (M := M)
+                          (Term.Apply
+                            (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                            (Term.Rational c1))
+                          (__poly_add p1
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                                  (Term.Rational c2)))
+                              p2))
+                          (arith_mon_rational.mk (M := M) vars1 c1 hvars1)
+                          hRec)
+                    · have hRec : arith_poly_rational M
+                            (__poly_add
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                    (Term.Rational c1)))
+                                p1)
+                              p2) :=
+                          arith_poly_rational_of_poly_add M
+                            (arith_poly_rational.cons
+                              (M := M)
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                (Term.Rational c1))
+                              p1
+                              (arith_mon_rational.mk (M := M) vars1 c1 hvars1)
+                              hp1)
+                            hp2
+                      have hTail :
+                          __poly_add
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                  (Term.Rational c1)))
+                              p1)
+                            p2 ≠ Term.Stuck :=
+                        arith_poly_rational_ne_stuck hRec
+                      simpa [__poly_add, __eo_eq, __eo_ite, native_teq, hEq', hVars1, hVars2,
+                        __eo_cmp, hCmp, __eo_mk_apply, hTail] using
+                        (arith_poly_rational.cons
+                          (M := M)
+                          (Term.Apply
+                            (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                            (Term.Rational c2))
+                          (__poly_add
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                  (Term.Rational c1)))
+                              p1)
+                            p2)
+                          (arith_mon_rational.mk (M := M) vars2 c2 hvars2)
+                          hRec)
+termination_by sizeOf P1 + sizeOf P2
+decreasing_by
+  simp_wf
+  · omega
+  · have hSize :
+        sizeOf p1 <
+          sizeOf
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                  (Term.Rational c1)))
+              p1) := by
+        simp
+        omega
+    omega
+  · have hSize :
+        sizeOf p2 <
+          sizeOf
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                  (Term.Rational c2)))
+              p2) := by
+        simp
+        omega
+    omega
+
 private theorem arith_mvar_denote_real_rational_or_notValue
     (M : SmtModel) (vars : Term) :
   (∃ q, arith_mvar_denote_real M vars = SmtValue.Rational q) ∨
@@ -655,6 +904,26 @@ private theorem smtx_model_eval_plus_uneg_of_rational_or_notValue
     simp [__smtx_model_eval_plus, __smtx_model_eval_uneg, native_qplus, native_qneg,
       Rat.neg_add]
 
+private theorem smtx_model_eval_plus_comm_of_rational_or_notValue
+    {v1 v2 : SmtValue}
+    (h1 : (∃ q, v1 = SmtValue.Rational q) ∨ v1 = SmtValue.NotValue)
+    (h2 : (∃ q, v2 = SmtValue.Rational q) ∨ v2 = SmtValue.NotValue) :
+  __smtx_model_eval_plus v1 v2 = __smtx_model_eval_plus v2 v1 := by
+  rcases h1 with ⟨q1, rfl⟩ | rfl <;> rcases h2 with ⟨q2, rfl⟩ | rfl <;>
+    simp [__smtx_model_eval_plus, native_qplus, Rat.add_comm]
+
+private theorem smtx_model_eval_plus_assoc_of_rational_or_notValue
+    {v1 v2 v3 : SmtValue}
+    (h1 : (∃ q, v1 = SmtValue.Rational q) ∨ v1 = SmtValue.NotValue)
+    (h2 : (∃ q, v2 = SmtValue.Rational q) ∨ v2 = SmtValue.NotValue)
+    (h3 : (∃ q, v3 = SmtValue.Rational q) ∨ v3 = SmtValue.NotValue) :
+  __smtx_model_eval_plus (__smtx_model_eval_plus v1 v2) v3 =
+    __smtx_model_eval_plus v1 (__smtx_model_eval_plus v2 v3) := by
+  rcases h1 with ⟨q1, rfl⟩ | rfl <;>
+    rcases h2 with ⟨q2, rfl⟩ | rfl <;>
+    rcases h3 with ⟨q3, rfl⟩ | rfl <;>
+    simp [__smtx_model_eval_plus, native_qplus, Rat.add_assoc]
+
 private theorem smtx_model_eval_mult_neg_left_of_rational_or_notValue
     (q : native_Rat) {v : SmtValue}
     (hv : (∃ qv, v = SmtValue.Rational qv) ∨ v = SmtValue.NotValue) :
@@ -663,6 +932,33 @@ private theorem smtx_model_eval_mult_neg_left_of_rational_or_notValue
   rcases hv with ⟨qv, rfl⟩ | rfl <;>
     simp [__smtx_model_eval_mult, __smtx_model_eval_uneg, native_qmult, native_qneg,
       Rat.neg_mul]
+
+private theorem arith_mon_denote_real_of_coeff_add
+    (M : SmtModel) (vars : Term) (c1 c2 : native_Rat) :
+  arith_mon_denote_real M
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
+        (Term.Rational (native_qplus c1 c2))) =
+    __smtx_model_eval_plus
+      (arith_mon_denote_real M
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c1)))
+      (arith_mon_denote_real M
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c2))) := by
+  rcases arith_mvar_denote_real_rational_or_notValue M vars with hVars | hVars
+  · rcases hVars with ⟨qv, hVars⟩
+    simp [arith_mon_denote_real, hVars, __smtx_model_eval_mult, __smtx_model_eval_plus,
+      native_qmult, native_qplus, Rat.add_mul]
+  · simp [arith_mon_denote_real, hVars, __smtx_model_eval_mult, __smtx_model_eval_plus]
+
+private theorem arith_mon_denote_real_zero_coeff_of_rational
+    (M : SmtModel) (vars : Term)
+    (hVars : ∃ qv, arith_mvar_denote_real M vars = SmtValue.Rational qv) :
+  arith_mon_denote_real M
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
+        (Term.Rational (native_mk_rational 0 1))) =
+    SmtValue.Rational (native_mk_rational 0 1) := by
+  rcases hVars with ⟨qv, hVars⟩
+  simp [arith_mon_denote_real, hVars, __smtx_model_eval_mult, native_qmult,
+    native_mk_rational_zero, Rat.zero_mul]
 
 private theorem arith_mon_denote_real_of_eo_neg
     (M : SmtModel) (vars c : Term) :
@@ -1031,6 +1327,12 @@ private theorem arith_mvar_wf_singleton
   arith_mvar_wf (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil) := by
   exact arith_mvar_wf.cons t Term.__eo_List_nil arith_mvar_wf.nil
 
+private theorem arith_mvar_rational_singleton
+    (M : SmtModel) (t : Term)
+    (hRat : ∃ q, arith_atom_denote_real M t = SmtValue.Rational q) :
+  arith_mvar_rational M (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil) := by
+  exact arith_mvar_rational.cons t Term.__eo_List_nil hRat (arith_mvar_rational.nil (M := M))
+
 private theorem arith_poly_wf_of_arith_atomic_poly
     (t : Term) :
   arith_poly_wf (arith_atomic_poly t) := by
@@ -1046,6 +1348,25 @@ private theorem arith_poly_wf_of_arith_atomic_poly
       (native_mk_rational 1 1)
       (arith_mvar_wf_singleton t))
     arith_poly_wf.zero
+
+private theorem arith_poly_rational_of_arith_atomic_poly
+    (M : SmtModel) (t : Term)
+    (hRat : ∃ q, arith_atom_denote_real M t = SmtValue.Rational q) :
+  arith_poly_rational M (arith_atomic_poly t) := by
+  unfold arith_atomic_poly
+  exact arith_poly_rational.cons
+    (M := M)
+    (Term.Apply
+      (Term.Apply (Term.UOp UserOp._at__at_mon)
+        (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))
+      (Term.Rational (native_mk_rational 1 1)))
+    (Term.UOp UserOp._at__at_Polynomial)
+    (arith_mon_rational.mk
+      (M := M)
+      (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil)
+      (native_mk_rational 1 1)
+      (arith_mvar_rational_singleton M t hRat))
+    (arith_poly_rational.zero (M := M))
 
 private theorem arith_poly_denote_real_of_arith_atomic_poly
     (M : SmtModel) (t : Term) :
@@ -1304,11 +1625,23 @@ private theorem arith_poly_wf_of_get_arith_poly_norm_to_real
   arith_poly_wf (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.to_real) t)) := by
   simpa [__get_arith_poly_norm] using hRec
 
+private theorem arith_poly_rational_of_get_arith_poly_norm_to_real
+    (M : SmtModel) (t : Term)
+    (hRec : arith_poly_rational M (__get_arith_poly_norm t)) :
+  arith_poly_rational M (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.to_real) t)) := by
+  simpa [__get_arith_poly_norm] using hRec
+
 private theorem arith_poly_wf_of_get_arith_poly_norm_uneg
     (t : Term)
     (hRec : arith_poly_wf (__get_arith_poly_norm t)) :
   arith_poly_wf (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t)) := by
   simpa [__get_arith_poly_norm] using arith_poly_wf_of_poly_neg hRec
+
+private theorem arith_poly_rational_of_get_arith_poly_norm_uneg
+    (M : SmtModel) (t : Term)
+    (hRec : arith_poly_rational M (__get_arith_poly_norm t)) :
+  arith_poly_rational M (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t)) := by
+  simpa [__get_arith_poly_norm] using arith_poly_rational_of_poly_neg M hRec
 
 private theorem arith_poly_wf_of_get_arith_poly_norm_plus
     (t1 t2 : Term)
@@ -1318,6 +1651,14 @@ private theorem arith_poly_wf_of_get_arith_poly_norm_plus
     (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) := by
   simpa [__get_arith_poly_norm] using arith_poly_wf_of_poly_add hRec1 hRec2
 
+private theorem arith_poly_rational_of_get_arith_poly_norm_plus
+    (M : SmtModel) (t1 t2 : Term)
+    (hRec1 : arith_poly_rational M (__get_arith_poly_norm t1))
+    (hRec2 : arith_poly_rational M (__get_arith_poly_norm t2)) :
+  arith_poly_rational M
+    (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) := by
+  simpa [__get_arith_poly_norm] using arith_poly_rational_of_poly_add M hRec1 hRec2
+
 private theorem arith_poly_wf_of_get_arith_poly_norm_neg
     (t1 t2 : Term)
     (hRec1 : arith_poly_wf (__get_arith_poly_norm t1))
@@ -1326,6 +1667,15 @@ private theorem arith_poly_wf_of_get_arith_poly_norm_neg
     (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) := by
   simpa [__get_arith_poly_norm] using
     arith_poly_wf_of_poly_add hRec1 (arith_poly_wf_of_poly_neg hRec2)
+
+private theorem arith_poly_rational_of_get_arith_poly_norm_neg
+    (M : SmtModel) (t1 t2 : Term)
+    (hRec1 : arith_poly_rational M (__get_arith_poly_norm t1))
+    (hRec2 : arith_poly_rational M (__get_arith_poly_norm t2)) :
+  arith_poly_rational M
+    (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) := by
+  simpa [__get_arith_poly_norm] using
+    arith_poly_rational_of_poly_add M hRec1 (arith_poly_rational_of_poly_neg M hRec2)
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_uneg
     (M : SmtModel) (t : Term)
