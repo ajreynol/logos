@@ -450,6 +450,24 @@ private noncomputable def arith_poly_denote_real (M : SmtModel) : Term -> SmtVal
       __smtx_model_eval_plus (arith_mon_denote_real M m) (arith_poly_denote_real M p)
   | _ => SmtValue.NotValue
 
+private inductive arith_mvar_wf : Term -> Prop where
+  | nil : arith_mvar_wf Term.__eo_List_nil
+  | cons (a rest : Term) :
+      arith_mvar_wf rest ->
+      arith_mvar_wf (Term.Apply (Term.Apply Term.__eo_List_cons a) rest)
+
+private inductive arith_mon_wf : Term -> Prop where
+  | mk (vars : Term) (c : native_Rat) :
+      arith_mvar_wf vars ->
+      arith_mon_wf (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c))
+
+private inductive arith_poly_wf : Term -> Prop where
+  | zero : arith_poly_wf (Term.UOp UserOp._at__at_Polynomial)
+  | cons (m p : Term) :
+      arith_mon_wf m ->
+      arith_poly_wf p ->
+      arith_poly_wf (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) m) p)
+
 private theorem native_mk_rational_zero :
     native_mk_rational 0 1 = (0 : Rat) := by
   native_decide
@@ -639,6 +657,63 @@ private theorem arith_mon_denote_real_of_eo_neg
   | _ =>
       simp [arith_mon_denote_real, __eo_neg, __smtx_model_eval_uneg]
 
+private theorem arith_poly_wf_ne_stuck
+    {p : Term}
+    (hp : arith_poly_wf p) :
+  p ≠ Term.Stuck := by
+  intro hSt
+  cases hp <;> cases hSt
+
+private theorem arith_poly_wf_of_poly_neg
+    {p : Term}
+    (hp : arith_poly_wf p) :
+  arith_poly_wf (__poly_neg p) := by
+  induction hp with
+  | zero =>
+      simpa [__poly_neg] using arith_poly_wf.zero
+  | @cons m p hm hp ih =>
+      cases hm with
+      | mk vars c hvars =>
+          have hTail : __poly_neg p ≠ Term.Stuck :=
+            arith_poly_wf_ne_stuck ih
+          simpa [__poly_neg, __eo_mk_apply, __eo_neg, hTail] using
+            (arith_poly_wf.cons
+              (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
+                (Term.Rational (native_qneg c)))
+              (__poly_neg p)
+              (arith_mon_wf.mk vars (native_qneg c) hvars)
+              ih)
+
+private theorem arith_poly_denote_real_of_poly_neg_wf
+    (M : SmtModel) {p : Term}
+    (hp : arith_poly_wf p) :
+  arith_poly_denote_real M (__poly_neg p) =
+    __smtx_model_eval_uneg (arith_poly_denote_real M p) := by
+  induction hp with
+  | zero =>
+      simp [__poly_neg, arith_poly_denote_real, __smtx_model_eval_uneg, native_qneg,
+        native_mk_rational_zero]
+  | @cons m p hm hp ih =>
+      cases hm with
+      | mk vars c hvars =>
+          have hTail : __poly_neg p ≠ Term.Stuck :=
+            arith_poly_wf_ne_stuck (arith_poly_wf_of_poly_neg hp)
+          have hMult :
+              __smtx_model_eval_mult (SmtValue.Rational (native_qneg c))
+                  (arith_mvar_denote_real M vars) =
+                __smtx_model_eval_uneg
+                  (__smtx_model_eval_mult (SmtValue.Rational c) (arith_mvar_denote_real M vars)) :=
+            smtx_model_eval_mult_neg_left_of_rational_or_notValue c
+              (arith_mvar_denote_real_rational_or_notValue M vars)
+          simp [__poly_neg, __eo_mk_apply, __eo_neg, hTail, arith_poly_denote_real,
+            arith_mon_denote_real, ih]
+          rw [hMult]
+          exact
+            smtx_model_eval_plus_uneg_of_rational_or_notValue
+              (arith_mon_denote_real_rational_or_notValue M
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c)))
+              (arith_poly_denote_real_rational_or_notValue M p)
+
 private theorem arith_poly_denote_real_of_rational
     (M : SmtModel) (q : native_Rat) :
   arith_poly_denote_real M (__get_arith_poly_norm (Term.Rational q)) =
@@ -730,6 +805,25 @@ private theorem arith_atom_denote_real_of_to_real
   rw [__smtx_model_eval.eq_18]
   exact smtx_model_eval_to_real_idempotent (__smtx_model_eval M (__eo_to_smt t))
 
+private theorem native_to_real_neg
+    (n : native_Int) :
+  native_to_real (native_zneg n) = native_qneg (native_to_real n) := by
+  change (-((n : Rat)) * ((1 : Rat)⁻¹)) = -((n : Rat) * ((1 : Rat)⁻¹))
+  exact Rat.neg_mul _ _
+
+private theorem arith_atom_denote_real_of_uneg
+    (M : SmtModel) (t : Term) :
+  arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t) =
+    __smtx_model_eval_uneg (arith_atom_denote_real M t) := by
+  unfold arith_atom_denote_real
+  rw [__eo_to_smt.eq_def]
+  cases hEval : __smtx_model_eval M (__eo_to_smt t) <;>
+    simp [__smtx_model_eval, __smtx_model_eval_to_real, __smtx_model_eval_uneg, hEval,
+      native_to_real, native_mk_rational, native_zneg, native_qneg]
+  case Numeral n =>
+    change (-((n : Rat)) * ((1 : Rat)⁻¹)) = -((n : Rat) * ((1 : Rat)⁻¹))
+    exact Rat.neg_mul _ _
+
 private def arith_atomic_poly (t : Term) : Term :=
   Term.Apply
     (Term.Apply (Term.UOp UserOp._at__at_poly)
@@ -745,6 +839,27 @@ private theorem arith_atomic_poly_injective
   a = b := by
   intro h
   simpa [arith_atomic_poly] using h
+
+private theorem arith_mvar_wf_singleton
+    (t : Term) :
+  arith_mvar_wf (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil) := by
+  exact arith_mvar_wf.cons t Term.__eo_List_nil arith_mvar_wf.nil
+
+private theorem arith_poly_wf_of_arith_atomic_poly
+    (t : Term) :
+  arith_poly_wf (arith_atomic_poly t) := by
+  unfold arith_atomic_poly
+  exact arith_poly_wf.cons
+    (Term.Apply
+      (Term.Apply (Term.UOp UserOp._at__at_mon)
+        (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil))
+      (Term.Rational (native_mk_rational 1 1)))
+    (Term.UOp UserOp._at__at_Polynomial)
+    (arith_mon_wf.mk
+      (Term.Apply (Term.Apply Term.__eo_List_cons t) Term.__eo_List_nil)
+      (native_mk_rational 1 1)
+      (arith_mvar_wf_singleton t))
+    arith_poly_wf.zero
 
 private theorem arith_poly_denote_real_of_arith_atomic_poly
     (M : SmtModel) (t : Term) :
@@ -987,6 +1102,37 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_to_real
   arith_poly_denote_real M (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.to_real) t)) =
     arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.to_real) t) := by
   simpa [__get_arith_poly_norm, arith_atom_denote_real_of_to_real] using hRec
+
+private theorem arith_poly_wf_of_get_arith_poly_norm_of_non_arith_smt_type
+    (t : Term)
+    (hNotInt : __smtx_typeof (__eo_to_smt t) ≠ SmtType.Int)
+    (hNotReal : __smtx_typeof (__eo_to_smt t) ≠ SmtType.Real)
+    (hNonNone : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
+  arith_poly_wf (__get_arith_poly_norm t) := by
+  rw [get_arith_poly_norm_of_non_arith_smt_type t hNotInt hNotReal hNonNone]
+  exact arith_poly_wf_of_arith_atomic_poly t
+
+private theorem arith_poly_wf_of_get_arith_poly_norm_to_real
+    (t : Term)
+    (hRec : arith_poly_wf (__get_arith_poly_norm t)) :
+  arith_poly_wf (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.to_real) t)) := by
+  simpa [__get_arith_poly_norm] using hRec
+
+private theorem arith_poly_wf_of_get_arith_poly_norm_uneg
+    (t : Term)
+    (hRec : arith_poly_wf (__get_arith_poly_norm t)) :
+  arith_poly_wf (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t)) := by
+  simpa [__get_arith_poly_norm] using arith_poly_wf_of_poly_neg hRec
+
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_uneg
+    (M : SmtModel) (t : Term)
+    (hWf : arith_poly_wf (__get_arith_poly_norm t))
+    (hRec : arith_poly_denote_real M (__get_arith_poly_norm t) = arith_atom_denote_real M t) :
+  arith_poly_denote_real M (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t)) =
+    arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t) := by
+  rw [__get_arith_poly_norm, arith_poly_denote_real_of_poly_neg_wf M hWf,
+    arith_atom_denote_real_of_uneg]
+  simpa [hRec]
 
 private theorem smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
     (M : SmtModel) (hM : model_total_typed M)
