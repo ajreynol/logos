@@ -602,6 +602,43 @@ private theorem smtx_model_eval_mult_one_right_of_rational_or_notValue
   rcases hv with ⟨q, rfl⟩ | rfl <;>
     simp [__smtx_model_eval_mult, native_qmult, native_mk_rational_one]
 
+private theorem smtx_model_eval_plus_uneg_of_rational_or_notValue
+    {v1 v2 : SmtValue}
+    (h1 : (∃ q, v1 = SmtValue.Rational q) ∨ v1 = SmtValue.NotValue)
+    (h2 : (∃ q, v2 = SmtValue.Rational q) ∨ v2 = SmtValue.NotValue) :
+  __smtx_model_eval_plus (__smtx_model_eval_uneg v1) (__smtx_model_eval_uneg v2) =
+    __smtx_model_eval_uneg (__smtx_model_eval_plus v1 v2) := by
+  rcases h1 with ⟨q1, rfl⟩ | rfl <;> rcases h2 with ⟨q2, rfl⟩ | rfl <;>
+    simp [__smtx_model_eval_plus, __smtx_model_eval_uneg, native_qplus, native_qneg,
+      Rat.neg_add]
+
+private theorem smtx_model_eval_mult_neg_left_of_rational_or_notValue
+    (q : native_Rat) {v : SmtValue}
+    (hv : (∃ qv, v = SmtValue.Rational qv) ∨ v = SmtValue.NotValue) :
+  __smtx_model_eval_mult (SmtValue.Rational (native_qneg q)) v =
+    __smtx_model_eval_uneg (__smtx_model_eval_mult (SmtValue.Rational q) v) := by
+  rcases hv with ⟨qv, rfl⟩ | rfl <;>
+    simp [__smtx_model_eval_mult, __smtx_model_eval_uneg, native_qmult, native_qneg,
+      Rat.neg_mul]
+
+private theorem arith_mon_denote_real_of_eo_neg
+    (M : SmtModel) (vars c : Term) :
+  arith_mon_denote_real M
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (__eo_neg c)) =
+    __smtx_model_eval_uneg
+      (arith_mon_denote_real M
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) c)) := by
+  cases c with
+  | Rational q =>
+      rcases arith_mvar_denote_real_rational_or_notValue M vars with hVars | hVars
+      · rcases hVars with ⟨qv, hVars⟩
+        simpa [arith_mon_denote_real, __eo_neg, hVars] using
+          smtx_model_eval_mult_neg_left_of_rational_or_notValue q (Or.inl ⟨qv, rfl⟩)
+      · simpa [arith_mon_denote_real, __eo_neg, hVars] using
+          smtx_model_eval_mult_neg_left_of_rational_or_notValue q (Or.inr rfl)
+  | _ =>
+      simp [arith_mon_denote_real, __eo_neg, __smtx_model_eval_uneg]
+
 private theorem arith_poly_denote_real_of_rational
     (M : SmtModel) (q : native_Rat) :
   arith_poly_denote_real M (__get_arith_poly_norm (Term.Rational q)) =
