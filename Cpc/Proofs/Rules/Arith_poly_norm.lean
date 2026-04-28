@@ -1987,6 +1987,28 @@ private theorem native_to_real_sub
     native_qplus (native_to_real n1) (native_qneg (native_to_real n2)) := by
   rw [native_to_real_add, native_to_real_neg]
 
+private theorem native_to_real_mul
+    (n1 n2 : native_Int) :
+  native_to_real (native_zmult n1 n2) =
+    native_qmult (native_to_real n1) (native_to_real n2) := by
+  rw [native_to_real, native_to_real, native_to_real, native_qmult, native_zmult,
+    native_mk_rational, native_mk_rational, native_mk_rational]
+  simpa [Rat.divInt_eq_div, Int.mul_one, Int.one_mul] using
+    (Rat.divInt_mul_divInt n1 n2 (d₁ := 1) (d₂ := 1)).symm
+
+private theorem native_to_real_qdiv_total
+    (n1 n2 : native_Int) :
+  native_qdiv_total (native_to_real n1) (native_to_real n2) =
+    native_mk_rational n1 n2 := by
+  rw [native_qdiv_total, native_to_real, native_to_real, native_mk_rational, native_mk_rational,
+    native_mk_rational]
+  rw [Rat.div_def]
+  have hInv : ((↑n2 / ↑(1 : Int) : Rat)⁻¹) = ((↑(1 : Int) / ↑n2 : Rat)) := by
+    simpa [Rat.divInt_eq_div] using (Rat.inv_divInt n2 1)
+  rw [hInv]
+  simpa [Rat.divInt_eq_div, Int.mul_one, Int.one_mul] using
+    (Rat.divInt_mul_divInt n1 1 (d₁ := 1) (d₂ := n2))
+
 private theorem arith_atom_denote_real_of_uneg
     (M : SmtModel) (t : Term) :
   arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t) =
@@ -2106,6 +2128,111 @@ private theorem arith_atom_denote_real_of_neg
     rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_12, hEval1, hEval2]
     simp [__smtx_model_eval_to_real, __smtx_model_eval_plus, __smtx_model_eval_uneg,
       __smtx_model_eval__]
+
+private theorem arith_atom_denote_real_of_mult
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
+        SmtType.Int ∨
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
+        SmtType.Real) :
+  arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2) =
+    __smtx_model_eval_mult (arith_atom_denote_real M t1) (arith_atom_denote_real M t2) := by
+  have ht : term_has_non_none_type (SmtTerm.mult (__eo_to_smt t1) (__eo_to_smt t2)) := by
+    unfold term_has_non_none_type
+    intro hNone
+    have hNone' :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.mult) t1) t2)) =
+          SmtType.None := by
+      rw [__eo_to_smt.eq_def]
+      exact hNone
+    rcases hTy with hTy | hTy
+    · cases hTy.symm.trans hNone'
+    · cases hTy.symm.trans hNone'
+  rcases arith_binop_args_of_non_none (op := SmtTerm.mult)
+      (typeof_mult_eq (__eo_to_smt t1) (__eo_to_smt t2)) ht with hArgs | hArgs
+  · have hEval1Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+          __smtx_typeof (__eo_to_smt t1) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+        (by simpa [term_has_non_none_type, hArgs.1])
+    have hEval2Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+          __smtx_typeof (__eo_to_smt t2) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+        (by simpa [term_has_non_none_type, hArgs.2])
+    rcases int_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨n1, hEval1⟩
+    rcases int_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨n2, hEval2⟩
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def]
+    simp [__smtx_model_eval, hEval1, hEval2, __smtx_model_eval_to_real,
+      __smtx_model_eval_mult, native_to_real_mul]
+  · have hEval1Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+          __smtx_typeof (__eo_to_smt t1) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+        (by simpa [term_has_non_none_type, hArgs.1])
+    have hEval2Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+          __smtx_typeof (__eo_to_smt t2) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+        (by simpa [term_has_non_none_type, hArgs.2])
+    rcases real_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨q1, hEval1⟩
+    rcases real_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨q2, hEval2⟩
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def]
+    simp [__smtx_model_eval, hEval1, hEval2, __smtx_model_eval_to_real,
+      __smtx_model_eval_mult]
+
+private theorem arith_atom_denote_real_of_qdiv_total
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hTy :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2)) =
+        SmtType.Real) :
+  arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2) =
+    __smtx_model_eval_qdiv_total (arith_atom_denote_real M t1) (arith_atom_denote_real M t2) := by
+  have ht : term_has_non_none_type ((__eo_to_smt t1).qdiv_total (__eo_to_smt t2)) := by
+    unfold term_has_non_none_type
+    intro hNone
+    have hNone' :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2)) =
+          SmtType.None := by
+      rw [__eo_to_smt.eq_def]
+      exact hNone
+    cases hTy.symm.trans hNone'
+  rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv_total) (R := SmtType.Real)
+      (typeof_qdiv_total_eq (__eo_to_smt t1) (__eo_to_smt t2)) ht with hArgs | hArgs
+  · have hEval1Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+          __smtx_typeof (__eo_to_smt t1) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+        (by simpa [term_has_non_none_type, hArgs.1])
+    have hEval2Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+          __smtx_typeof (__eo_to_smt t2) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+        (by simpa [term_has_non_none_type, hArgs.2])
+    rcases int_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨n1, hEval1⟩
+    rcases int_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨n2, hEval2⟩
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def]
+    simp [__smtx_model_eval, hEval1, hEval2, __smtx_model_eval_to_real,
+      __smtx_model_eval_qdiv_total, arith_atom_denote_real, native_to_real_qdiv_total]
+  · have hEval1Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+          __smtx_typeof (__eo_to_smt t1) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+        (by simpa [term_has_non_none_type, hArgs.1])
+    have hEval2Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+          __smtx_typeof (__eo_to_smt t2) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+        (by simpa [term_has_non_none_type, hArgs.2])
+    rcases real_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨q1, hEval1⟩
+    rcases real_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨q2, hEval2⟩
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def]
+    simp [__smtx_model_eval, hEval1, hEval2, __smtx_model_eval_to_real,
+      __smtx_model_eval_qdiv_total]
 
 private def arith_atomic_poly (t : Term) : Term :=
   Term.Apply
@@ -2528,6 +2655,53 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_neg
       (arith_poly_rational_of_poly_neg M hRat2),
     hRec1, hNegRec]
   exact (arith_atom_denote_real_of_neg M hM t1 t2 hTy).symm
+
+private theorem get_arith_poly_norm_qdiv_of_rational
+    (t1 : Term) (q : native_Rat)
+    (hZero : q ≠ native_mk_rational 0 1) :
+  __get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) (Term.Rational q)) =
+    __poly_mul_mon
+      (arith_const_mon (native_qdiv_total (native_mk_rational 1 1) q))
+      (__get_arith_poly_norm t1) := by
+  have hZero' : native_mk_rational 0 1 ≠ q := by
+    simpa [eq_comm] using hZero
+  simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_ite, native_ite,
+    __eo_eq, native_teq, __eo_not, SmtEval.native_not, SmtEval.native_and, native_qeq, __eo_qdiv,
+    hZero', arith_const_mon, __eo_mk_apply]
+
+private theorem get_arith_poly_norm_qdiv_total_of_rational
+    (t1 : Term) (q : native_Rat)
+    (hZero : q ≠ native_mk_rational 0 1) :
+  __get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Rational q)) =
+    __poly_mul_mon
+      (arith_const_mon (native_qdiv_total (native_mk_rational 1 1) q))
+      (__get_arith_poly_norm t1) := by
+  have hZero' : native_mk_rational 0 1 ≠ q := by
+    simpa [eq_comm] using hZero
+  simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_ite, native_ite,
+    __eo_eq, native_teq, __eo_not, SmtEval.native_not, SmtEval.native_and, native_qeq, __eo_qdiv,
+    hZero', arith_const_mon, __eo_mk_apply]
+
+private theorem arith_poly_rational_of_get_arith_poly_norm_qdiv_of_rational
+    (M : SmtModel) (t1 : Term) (q : native_Rat)
+    (hZero : q ≠ native_mk_rational 0 1)
+    (hRec : arith_poly_rational M (__get_arith_poly_norm t1)) :
+  arith_poly_rational M
+    (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) (Term.Rational q))) := by
+  rw [get_arith_poly_norm_qdiv_of_rational t1 q hZero]
+  exact arith_poly_rational_of_poly_mul_mon_const M
+    (native_qdiv_total (native_mk_rational 1 1) q) hRec
+
+private theorem arith_poly_rational_of_get_arith_poly_norm_qdiv_total_of_rational
+    (M : SmtModel) (t1 : Term) (q : native_Rat)
+    (hZero : q ≠ native_mk_rational 0 1)
+    (hRec : arith_poly_rational M (__get_arith_poly_norm t1)) :
+  arith_poly_rational M
+    (__get_arith_poly_norm
+      (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Rational q))) := by
+  rw [get_arith_poly_norm_qdiv_total_of_rational t1 q hZero]
+  exact arith_poly_rational_of_poly_mul_mon_const M
+    (native_qdiv_total (native_mk_rational 1 1) q) hRec
 
 private theorem smt_value_rel_of_eq_arith_atom_denote_real_of_smt_arith_type
     (M : SmtModel) (hM : model_total_typed M)
