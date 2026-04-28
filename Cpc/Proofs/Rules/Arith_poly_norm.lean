@@ -582,6 +582,54 @@ private theorem arith_poly_denote_real_rational_of_rational_support
 private def arith_const_mon (q : native_Rat) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) Term.__eo_List_nil) (Term.Rational q)
 
+private theorem arith_atom_ne_stuck_of_rational_support
+    {M : SmtModel} {a : Term}
+    (hA : ∃ q, arith_atom_denote_real M a = SmtValue.Rational q) :
+  a ≠ Term.Stuck := by
+  intro hSt
+  subst a
+  rcases hA with ⟨q, hA⟩
+  simpa [arith_atom_denote_real, __eo_to_smt.eq_def, __smtx_model_eval, __smtx_model_eval_to_real]
+    using hA
+
+private theorem mvar_mul_mvar_nil_left
+    (vars : Term) :
+  __mvar_mul_mvar Term.__eo_List_nil vars = vars := by
+  cases vars <;> simp [__mvar_mul_mvar]
+
+private theorem mvar_mul_mvar_nil_right
+    (vars : Term) :
+  __mvar_mul_mvar vars Term.__eo_List_nil = vars := by
+  cases vars <;> simp [__mvar_mul_mvar]
+
+private theorem mvar_mul_mvar_cons_cons_true
+    (a1 rest1 c1 rest2 : Term)
+    (hA1 : a1 ≠ Term.Stuck)
+    (hC1 : c1 ≠ Term.Stuck)
+    (hCmp : native_tcmp c1 a1 = true) :
+  __mvar_mul_mvar
+      (Term.Apply (Term.Apply Term.__eo_List_cons a1) rest1)
+      (Term.Apply (Term.Apply Term.__eo_List_cons c1) rest2) =
+    __eo_mk_apply (Term.Apply Term.__eo_List_cons a1)
+      (__mvar_mul_mvar rest1
+        (Term.Apply (Term.Apply Term.__eo_List_cons c1) rest2)) := by
+  simp [__mvar_mul_mvar, __eo_cmp, hA1, hC1, __eo_ite, native_ite, native_teq, hCmp,
+    __eo_mk_apply]
+
+private theorem mvar_mul_mvar_cons_cons_false
+    (a1 rest1 c1 rest2 : Term)
+    (hA1 : a1 ≠ Term.Stuck)
+    (hC1 : c1 ≠ Term.Stuck)
+    (hCmp : native_tcmp c1 a1 = false) :
+  __mvar_mul_mvar
+      (Term.Apply (Term.Apply Term.__eo_List_cons a1) rest1)
+      (Term.Apply (Term.Apply Term.__eo_List_cons c1) rest2) =
+    __eo_mk_apply (Term.Apply Term.__eo_List_cons c1)
+      (__mvar_mul_mvar
+        (Term.Apply (Term.Apply Term.__eo_List_cons a1) rest1) rest2) := by
+  simp [__mvar_mul_mvar, __eo_cmp, hA1, hC1, __eo_ite, native_ite, native_teq, hCmp,
+    __eo_mk_apply]
+
 private theorem mon_mul_mon_of_const_left
     (q c : native_Rat) (vars : Term)
     (hVars : vars ≠ Term.Stuck) :
@@ -824,6 +872,100 @@ private theorem arith_poly_rational_of_poly_mul_mon_const
               (__poly_mul_mon (arith_const_mon q) p))
           rw [poly_of_mon_mul_mon_const_left q c vars hVars]
           exact arith_poly_rational_of_poly_add M hHead ih
+
+private theorem arith_mvar_rational_of_mvar_mul_mvar
+    (M : SmtModel) {vars1 vars2 : Term}
+    (hvars1 : arith_mvar_rational M vars1)
+    (hvars2 : arith_mvar_rational M vars2) :
+  arith_mvar_rational M (__mvar_mul_mvar vars1 vars2) := by
+  cases hvars1 with
+  | nil =>
+      rw [mvar_mul_mvar_nil_left]
+      exact hvars2
+  | cons a1 rest1 hA1 hRest1 =>
+      cases hvars2 with
+      | nil =>
+          rw [mvar_mul_mvar_nil_right]
+          exact arith_mvar_rational.cons (M := M) a1 rest1 hA1 hRest1
+      | cons c1 rest2 hC1 hRest2 =>
+          have hA1NotStuck : a1 ≠ Term.Stuck :=
+            arith_atom_ne_stuck_of_rational_support hA1
+          have hC1NotStuck : c1 ≠ Term.Stuck :=
+            arith_atom_ne_stuck_of_rational_support hC1
+          by_cases hCmp : native_tcmp c1 a1 = true
+          · have hTail :
+                __mvar_mul_mvar rest1
+                  (Term.Apply (Term.Apply Term.__eo_List_cons c1) rest2) ≠ Term.Stuck :=
+              arith_mvar_rational_ne_stuck
+                (arith_mvar_rational_of_mvar_mul_mvar M hRest1
+                  (arith_mvar_rational.cons (M := M) c1 rest2 hC1 hRest2))
+            rw [mvar_mul_mvar_cons_cons_true a1 rest1 c1 rest2 hA1NotStuck hC1NotStuck hCmp]
+            simpa [__eo_mk_apply, hTail] using
+              (arith_mvar_rational.cons (M := M) a1
+                (__mvar_mul_mvar rest1
+                  (Term.Apply (Term.Apply Term.__eo_List_cons c1) rest2))
+                hA1
+                (arith_mvar_rational_of_mvar_mul_mvar M hRest1
+                  (arith_mvar_rational.cons (M := M) c1 rest2 hC1 hRest2)))
+          · have hCmp' : native_tcmp c1 a1 = false := by
+              cases hT : native_tcmp c1 a1 with
+              | false =>
+                  rfl
+              | true =>
+                  exfalso
+                  exact hCmp hT
+            have hTail :
+                __mvar_mul_mvar
+                  (Term.Apply (Term.Apply Term.__eo_List_cons a1) rest1) rest2 ≠ Term.Stuck :=
+              arith_mvar_rational_ne_stuck
+                (arith_mvar_rational_of_mvar_mul_mvar M
+                  (arith_mvar_rational.cons (M := M) a1 rest1 hA1 hRest1) hRest2)
+            rw [mvar_mul_mvar_cons_cons_false a1 rest1 c1 rest2 hA1NotStuck hC1NotStuck hCmp']
+            simpa [__eo_mk_apply, hTail] using
+              (arith_mvar_rational.cons (M := M) c1
+                (__mvar_mul_mvar
+                  (Term.Apply (Term.Apply Term.__eo_List_cons a1) rest1) rest2)
+                hC1
+                (arith_mvar_rational_of_mvar_mul_mvar M
+                  (arith_mvar_rational.cons (M := M) a1 rest1 hA1 hRest1) hRest2))
+termination_by sizeOf vars1 + sizeOf vars2
+decreasing_by
+  simp_wf
+  · have hSize :
+        sizeOf rest1 <
+          sizeOf (Term.Apply (Term.Apply Term.__eo_List_cons a1) rest1) := by
+        simp
+        omega
+    omega
+  · have hSize :
+        sizeOf rest2 <
+          sizeOf (Term.Apply (Term.Apply Term.__eo_List_cons c1) rest2) := by
+        simp
+        omega
+    omega
+
+private theorem arith_mon_rational_of_mon_mul_mon
+    (M : SmtModel) {m1 m2 : Term}
+    (hm1 : arith_mon_rational M m1)
+    (hm2 : arith_mon_rational M m2) :
+  arith_mon_rational M (__mon_mul_mon m1 m2) := by
+  cases hm1 with
+  | mk vars1 c1 hvars1 =>
+      cases hm2 with
+      | mk vars2 c2 hvars2 =>
+          have hVars :
+              __mvar_mul_mvar vars1 vars2 ≠ Term.Stuck :=
+            arith_mvar_rational_ne_stuck
+              (arith_mvar_rational_of_mvar_mul_mvar M hvars1 hvars2)
+          rw [show __mon_mul_mon
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1) (Term.Rational c1))
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2) (Term.Rational c2)) =
+                  Term.Apply
+                    (Term.Apply (Term.UOp UserOp._at__at_mon) (__mvar_mul_mvar vars1 vars2))
+                    (Term.Rational (native_qmult c1 c2)) by
+                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply, hVars]]
+          exact arith_mon_rational.mk (M := M) (__mvar_mul_mvar vars1 vars2)
+            (native_qmult c1 c2) (arith_mvar_rational_of_mvar_mul_mvar M hvars1 hvars2)
 
 private theorem arith_mvar_denote_real_rational_or_notValue
     (M : SmtModel) (vars : Term) :
