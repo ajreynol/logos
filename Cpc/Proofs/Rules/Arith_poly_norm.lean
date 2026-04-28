@@ -1770,6 +1770,22 @@ private theorem native_to_real_neg
   change (-((n : Rat)) * ((1 : Rat)⁻¹)) = -((n : Rat) * ((1 : Rat)⁻¹))
   exact Rat.neg_mul _ _
 
+private theorem native_to_real_add
+    (n1 n2 : native_Int) :
+  native_to_real (native_zplus n1 n2) =
+    native_qplus (native_to_real n1) (native_to_real n2) := by
+  rw [native_to_real, native_to_real, native_to_real, native_qplus, native_zplus,
+    native_mk_rational, native_mk_rational, native_mk_rational]
+  rw [← Rat.divInt_eq_div, ← Rat.divInt_eq_div, ← Rat.divInt_eq_div]
+  simpa [Int.mul_one, Int.one_mul] using
+    (Rat.divInt_add_divInt n1 n2 (d₁ := 1) (d₂ := 1) (by decide) (by decide)).symm
+
+private theorem native_to_real_sub
+    (n1 n2 : native_Int) :
+  native_to_real (native_zplus n1 (native_zneg n2)) =
+    native_qplus (native_to_real n1) (native_qneg (native_to_real n2)) := by
+  rw [native_to_real_add, native_to_real_neg]
+
 private theorem arith_atom_denote_real_of_uneg
     (M : SmtModel) (t : Term) :
   arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t) =
@@ -1782,6 +1798,113 @@ private theorem arith_atom_denote_real_of_uneg
   case Numeral n =>
     change (-((n : Rat)) * ((1 : Rat)⁻¹)) = -((n : Rat) * ((1 : Rat)⁻¹))
     exact Rat.neg_mul _ _
+
+private theorem arith_atom_denote_real_of_plus
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
+        SmtType.Int ∨
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
+        SmtType.Real) :
+  arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2) =
+    __smtx_model_eval_plus (arith_atom_denote_real M t1) (arith_atom_denote_real M t2) := by
+  have ht : term_has_non_none_type (SmtTerm.plus (__eo_to_smt t1) (__eo_to_smt t2)) := by
+    unfold term_has_non_none_type
+    intro hNone
+    have hNone' :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
+          SmtType.None := by
+      rw [__eo_to_smt.eq_def]
+      exact hNone
+    rcases hTy with hTy | hTy
+    · cases hTy.symm.trans hNone'
+    · cases hTy.symm.trans hNone'
+  rcases arith_binop_args_of_non_none (op := SmtTerm.plus)
+      (typeof_plus_eq (__eo_to_smt t1) (__eo_to_smt t2)) ht with hArgs | hArgs
+  · have hEval1Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+          __smtx_typeof (__eo_to_smt t1) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+        (by simpa [term_has_non_none_type, hArgs.1])
+    have hEval2Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+          __smtx_typeof (__eo_to_smt t2) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+        (by simpa [term_has_non_none_type, hArgs.2])
+    rcases int_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨n1, hEval1⟩
+    rcases int_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨n2, hEval2⟩
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_11, hEval1, hEval2]
+    simp [__smtx_model_eval_to_real, __smtx_model_eval_plus, native_to_real_add]
+  · have hEval1Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+          __smtx_typeof (__eo_to_smt t1) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+        (by simpa [term_has_non_none_type, hArgs.1])
+    have hEval2Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+          __smtx_typeof (__eo_to_smt t2) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+        (by simpa [term_has_non_none_type, hArgs.2])
+    rcases real_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨q1, hEval1⟩
+    rcases real_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨q2, hEval2⟩
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_11, hEval1, hEval2]
+    simp [__smtx_model_eval_to_real, __smtx_model_eval_plus]
+
+private theorem arith_atom_denote_real_of_neg
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
+        SmtType.Int ∨
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
+        SmtType.Real) :
+  arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2) =
+    __smtx_model_eval_plus (arith_atom_denote_real M t1)
+      (__smtx_model_eval_uneg (arith_atom_denote_real M t2)) := by
+  have ht : term_has_non_none_type (SmtTerm.neg (__eo_to_smt t1) (__eo_to_smt t2)) := by
+    unfold term_has_non_none_type
+    intro hNone
+    have hNone' :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
+          SmtType.None := by
+      rw [__eo_to_smt.eq_def]
+      exact hNone
+    rcases hTy with hTy | hTy
+    · cases hTy.symm.trans hNone'
+    · cases hTy.symm.trans hNone'
+  rcases arith_binop_args_of_non_none (op := SmtTerm.neg)
+      (typeof_neg_eq (__eo_to_smt t1) (__eo_to_smt t2)) ht with hArgs | hArgs
+  · have hEval1Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+          __smtx_typeof (__eo_to_smt t1) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+        (by simpa [term_has_non_none_type, hArgs.1])
+    have hEval2Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+          __smtx_typeof (__eo_to_smt t2) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+        (by simpa [term_has_non_none_type, hArgs.2])
+    rcases int_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨n1, hEval1⟩
+    rcases int_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨n2, hEval2⟩
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_12, hEval1, hEval2]
+    simp [__smtx_model_eval_to_real, __smtx_model_eval_plus, __smtx_model_eval_uneg,
+      __smtx_model_eval__, native_to_real_sub]
+  · have hEval1Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+          __smtx_typeof (__eo_to_smt t1) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+        (by simpa [term_has_non_none_type, hArgs.1])
+    have hEval2Ty :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+          __smtx_typeof (__eo_to_smt t2) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+        (by simpa [term_has_non_none_type, hArgs.2])
+    rcases real_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨q1, hEval1⟩
+    rcases real_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨q2, hEval2⟩
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_12, hEval1, hEval2]
+    simp [__smtx_model_eval_to_real, __smtx_model_eval_plus, __smtx_model_eval_uneg,
+      __smtx_model_eval__]
 
 private def arith_atomic_poly (t : Term) : Term :=
   Term.Apply
@@ -2164,6 +2287,112 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_uneg
     arith_atom_denote_real_of_uneg]
   simpa [hRec]
 
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_plus
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
+        SmtType.Int ∨
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
+        SmtType.Real)
+    (hRat1 : arith_poly_rational M (__get_arith_poly_norm t1))
+    (hRat2 : arith_poly_rational M (__get_arith_poly_norm t2))
+    (hRec1 : arith_poly_denote_real M (__get_arith_poly_norm t1) = arith_atom_denote_real M t1)
+    (hRec2 : arith_poly_denote_real M (__get_arith_poly_norm t2) = arith_atom_denote_real M t2) :
+  arith_poly_denote_real M
+      (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2)) =
+    arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2) := by
+  rw [__get_arith_poly_norm, arith_poly_denote_real_of_poly_add_rational M hRat1 hRat2, hRec1,
+    hRec2]
+  exact (arith_atom_denote_real_of_plus M hM t1 t2 hTy).symm
+
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_neg
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
+        SmtType.Int ∨
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
+        SmtType.Real)
+    (hWf2 : arith_poly_wf (__get_arith_poly_norm t2))
+    (hRat1 : arith_poly_rational M (__get_arith_poly_norm t1))
+    (hRat2 : arith_poly_rational M (__get_arith_poly_norm t2))
+    (hRec1 : arith_poly_denote_real M (__get_arith_poly_norm t1) = arith_atom_denote_real M t1)
+    (hRec2 : arith_poly_denote_real M (__get_arith_poly_norm t2) = arith_atom_denote_real M t2) :
+  arith_poly_denote_real M
+      (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2)) =
+    arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2) := by
+  have hNegRec :
+      arith_poly_denote_real M (__poly_neg (__get_arith_poly_norm t2)) =
+        __smtx_model_eval_uneg (arith_atom_denote_real M t2) := by
+    rw [arith_poly_denote_real_of_poly_neg_wf M hWf2, hRec2]
+  rw [__get_arith_poly_norm,
+    arith_poly_denote_real_of_poly_add_rational M hRat1
+      (arith_poly_rational_of_poly_neg M hRat2),
+    hRec1, hNegRec]
+  exact (arith_atom_denote_real_of_neg M hM t1 t2 hTy).symm
+
+private theorem smt_value_rel_of_eq_arith_atom_denote_real_of_smt_arith_type
+    (M : SmtModel) (hM : model_total_typed M)
+    (a b : Term) :
+  RuleProofs.eo_has_smt_translation
+    (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) ->
+  (__smtx_typeof (__eo_to_smt a) = SmtType.Int ∨
+    __smtx_typeof (__eo_to_smt a) = SmtType.Real) ->
+  arith_atom_denote_real M a = arith_atom_denote_real M b ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt a))
+    (__smtx_model_eval M (__eo_to_smt b)) := by
+  intro hEqTrans hArithTy hAtomEq
+  rcases eq_operands_same_smt_type_of_eq_has_smt_translation a b hEqTrans with ⟨hTy, hNonNoneA⟩
+  have hNonNoneB : __smtx_typeof (__eo_to_smt b) ≠ SmtType.None := by
+    rw [← hTy]
+    exact hNonNoneA
+  have hEvalATy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a)) =
+        __smtx_typeof (__eo_to_smt a) := by
+    exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt a)
+      (by simpa [term_has_non_none_type] using hNonNoneA)
+  have hEvalBTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt b)) =
+        __smtx_typeof (__eo_to_smt b) := by
+    exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt b)
+      (by simpa [term_has_non_none_type] using hNonNoneB)
+  rcases hArithTy with hAInt | hAReal
+  · have hBInt : __smtx_typeof (__eo_to_smt b) = SmtType.Int := by
+      exact hTy.symm.trans hAInt
+    have hEvalAInt :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a)) = SmtType.Int := by
+      simpa [hAInt] using hEvalATy
+    have hEvalBInt :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt b)) = SmtType.Int := by
+      simpa [hBInt] using hEvalBTy
+    rcases int_value_canonical hEvalAInt with ⟨nA, hEvalA⟩
+    rcases int_value_canonical hEvalBInt with ⟨nB, hEvalB⟩
+    have hToRealEq :
+        __smtx_model_eval_to_real (SmtValue.Numeral nA) =
+          __smtx_model_eval_to_real (SmtValue.Numeral nB) := by
+      simpa [arith_atom_denote_real, hEvalA, hEvalB] using hAtomEq
+    have hValEq : SmtValue.Numeral nA = SmtValue.Numeral nB := by
+      simpa [smtx_model_eval_to_int_to_real_of_numeral] using
+        congrArg __smtx_model_eval_to_int hToRealEq
+    cases hValEq
+    simpa [hEvalA, hEvalB] using RuleProofs.smt_value_rel_refl (SmtValue.Numeral nA)
+  · have hBReal : __smtx_typeof (__eo_to_smt b) = SmtType.Real := by
+      exact hTy.symm.trans hAReal
+    have hEvalAReal :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a)) = SmtType.Real := by
+      simpa [hAReal] using hEvalATy
+    have hEvalBReal :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt b)) = SmtType.Real := by
+      simpa [hBReal] using hEvalBTy
+    rcases real_value_canonical hEvalAReal with ⟨qA, hEvalA⟩
+    rcases real_value_canonical hEvalBReal with ⟨qB, hEvalB⟩
+    have hToRealEq :
+        __smtx_model_eval_to_real (SmtValue.Rational qA) =
+          __smtx_model_eval_to_real (SmtValue.Rational qB) := by
+      simpa [arith_atom_denote_real, hEvalA, hEvalB] using hAtomEq
+    have hValEq : SmtValue.Rational qA = SmtValue.Rational qB := by
+      simpa [__smtx_model_eval_to_real] using hToRealEq
+    cases hValEq
+    simpa [hEvalA, hEvalB] using RuleProofs.smt_value_rel_refl (SmtValue.Rational qA)
+
 private theorem smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
     (M : SmtModel) (hM : model_total_typed M)
     (a b : Term) :
@@ -2178,6 +2407,8 @@ private theorem smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
     (__smtx_model_eval M (__eo_to_smt b)) := by
   intro _hEqTrans _hArithTy _hNormEq _hNormNotStuck
   -- Remaining gap: arithmetic-type semantic soundness of `__get_arith_poly_norm`.
+  -- Once we can show `arith_atom_denote_real M a = arith_atom_denote_real M b`,
+  -- `smt_value_rel_of_eq_arith_atom_denote_real_of_smt_arith_type` closes this.
   sorry
 
 private theorem smt_value_rel_of_equal_arith_poly_norm
