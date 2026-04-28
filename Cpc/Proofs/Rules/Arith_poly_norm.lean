@@ -3589,6 +3589,86 @@ private theorem smt_typeof_qdiv_of_qdiv_total
   · rw [eo_to_smt_qdiv_eq, typeof_qdiv_eq]
     simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
 
+private theorem arith_atom_denote_real_qdiv_eq_qdiv_total_of_int_args
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hTy1 : __smtx_typeof (__eo_to_smt t1) = SmtType.Int)
+    (hTy2 : __smtx_typeof (__eo_to_smt t2) = SmtType.Int) :
+  arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) t2) =
+    arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2) := by
+  have hEval1Ty :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
+        __smtx_typeof (__eo_to_smt t1) := by
+    exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
+      (by simpa [term_has_non_none_type, hTy1])
+  have hEval2Ty :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
+        __smtx_typeof (__eo_to_smt t2) := by
+    exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
+      (by simpa [term_has_non_none_type, hTy2])
+  rcases int_value_canonical (by simpa [hTy1] using hEval1Ty) with ⟨n1, hEval1⟩
+  rcases int_value_canonical (by simpa [hTy2] using hEval2Ty) with ⟨n2, hEval2⟩
+  have hZeroTest :
+      __smtx_model_eval_eq (SmtValue.Numeral n2)
+        (SmtValue.Rational (native_mk_rational 0 1)) =
+        SmtValue.Boolean false := by
+    simp [__smtx_model_eval_eq, native_veq]
+  have hQdiv :
+      arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) t2) =
+        SmtValue.Rational (native_mk_rational n1 n2) := by
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def]
+    simp [__smtx_model_eval, hEval1, hEval2, hZeroTest, __smtx_model_eval_ite,
+      __smtx_model_eval_to_real, __smtx_model_eval_qdiv_total]
+  have hQdivTotal :
+      arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2) =
+        SmtValue.Rational (native_mk_rational n1 n2) := by
+    unfold arith_atom_denote_real
+    rw [__eo_to_smt.eq_def]
+    simp [__smtx_model_eval, hEval1, hEval2, __smtx_model_eval_to_real,
+      __smtx_model_eval_qdiv_total, native_to_real_qdiv_total]
+  exact hQdiv.trans hQdivTotal.symm
+
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_eq_atomic_qdiv_of_int_args
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hNorm :
+      __get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2) =
+        arith_atomic_poly (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) t2))
+    (hTy1 : __smtx_typeof (__eo_to_smt t1) = SmtType.Int)
+    (hTy2 : __smtx_typeof (__eo_to_smt t2) = SmtType.Int) :
+  arith_poly_denote_real M
+      (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2)) =
+    arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2) := by
+  rw [hNorm, arith_poly_denote_real_of_arith_atomic_poly]
+  exact arith_atom_denote_real_qdiv_eq_qdiv_total_of_int_args M hM t1 t2 hTy1 hTy2
+
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_numeral_zero
+    (M : SmtModel) (hM : model_total_typed M) (t1 : Term) (n : native_Int)
+    (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1)
+        (Term.Numeral n))) = SmtType.Real)
+    (hZero : native_to_real n = native_mk_rational 0 1) :
+  arith_poly_denote_real M
+      (__get_arith_poly_norm
+        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Numeral n))) =
+    arith_atom_denote_real M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Numeral n)) := by
+  have hNorm :
+      __get_arith_poly_norm
+        (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Numeral n)) =
+        arith_atomic_poly (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) (Term.Numeral n)) := by
+    simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_ite, native_ite,
+      __eo_eq, native_teq, __eo_not, SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
+      __eo_mk_apply, arith_atomic_poly]
+  have hQdivTy :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1)
+        (Term.Numeral n))) = SmtType.Real :=
+    smt_typeof_qdiv_of_qdiv_total t1 (Term.Numeral n) hTy
+  have hTy1 : __smtx_typeof (__eo_to_smt t1) = SmtType.Int :=
+    smt_typeof_qdiv_left_of_numeral_right t1 n hQdivTy
+  have hTy2 : __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int := by
+    simp [__eo_to_smt.eq_def, __smtx_typeof]
+  exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_eq_atomic_qdiv_of_int_args
+    M hM t1 (Term.Numeral n) hNorm hTy1 hTy2
+
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
     (M : SmtModel) (hM : model_total_typed M) :
     (t : Term) ->
@@ -3596,9 +3676,11 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
       __smtx_typeof (__eo_to_smt t) = SmtType.Real) ->
     arith_poly_denote_real M (__get_arith_poly_norm t) = arith_atom_denote_real M t := by
   intro t hTy
-  -- Remaining gap: the supported arithmetic branches now all have local semantic lemmas.
-  -- What is left is the `qdiv_total` fallback behavior, where `__get_arith_poly_norm`
-  -- drops to an atomic `qdiv` term instead of an atomic `qdiv_total` term.
+  -- Remaining gap: the supported arithmetic branches, including the `Int`-typed
+  -- `qdiv_total` fallback cases, now all have local semantic lemmas.
+  -- What is left is the real-typed `qdiv_total` fallback behavior, where
+  -- `__get_arith_poly_norm` drops to an atomic `qdiv` term instead of an atomic
+  -- `qdiv_total` term.
   sorry
 
 private theorem smt_value_rel_of_eq_arith_atom_denote_real_of_smt_arith_type
