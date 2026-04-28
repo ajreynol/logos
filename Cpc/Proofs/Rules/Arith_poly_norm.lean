@@ -423,6 +423,12 @@ private theorem smt_value_rel_to_int_to_real_of_numeral
   rw [smtx_model_eval_to_int_to_real_of_numeral]
   exact RuleProofs.smt_value_rel_refl (SmtValue.Numeral n)
 
+private theorem smtx_model_eval_to_real_idempotent
+    (v : SmtValue) :
+  __smtx_model_eval_to_real (__smtx_model_eval_to_real v) =
+    __smtx_model_eval_to_real v := by
+  cases v <;> simp [__smtx_model_eval_to_real]
+
 private noncomputable def arith_atom_denote_real (M : SmtModel) (t : Term) : SmtValue :=
   __smtx_model_eval_to_real (__smtx_model_eval M (__eo_to_smt t))
 
@@ -668,6 +674,25 @@ private theorem arith_poly_denote_real_of_numeral
     rw [hOne, hZeroRat]
     rw [Rat.mul_one, Rat.add_zero]
 
+private theorem arith_atom_denote_real_of_rational
+    (M : SmtModel) (q : native_Rat) :
+  arith_atom_denote_real M (Term.Rational q) = SmtValue.Rational q := by
+  simp [arith_atom_denote_real, __eo_to_smt.eq_def, __smtx_model_eval, __smtx_model_eval_to_real]
+
+private theorem arith_atom_denote_real_of_numeral
+    (M : SmtModel) (n : native_Int) :
+  arith_atom_denote_real M (Term.Numeral n) = SmtValue.Rational (native_to_real n) := by
+  simp [arith_atom_denote_real, __eo_to_smt.eq_def, __smtx_model_eval, __smtx_model_eval_to_real]
+
+private theorem arith_atom_denote_real_of_to_real
+    (M : SmtModel) (t : Term) :
+  arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.to_real) t) =
+    arith_atom_denote_real M t := by
+  unfold arith_atom_denote_real
+  rw [__eo_to_smt.eq_def]
+  rw [__smtx_model_eval.eq_18]
+  exact smtx_model_eval_to_real_idempotent (__smtx_model_eval M (__eo_to_smt t))
+
 private def arith_atomic_poly (t : Term) : Term :=
   Term.Apply
     (Term.Apply (Term.UOp UserOp._at__at_poly)
@@ -697,6 +722,13 @@ private theorem arith_poly_denote_real_of_arith_atomic_poly
   · rw [arith_atomic_poly, arith_poly_denote_real, arith_mon_denote_real, arith_mvar_denote_real,
       hAtom]
     simp [__smtx_model_eval_mult, __smtx_model_eval_plus]
+
+private theorem arith_poly_denote_real_eq_arith_atom_denote_real_of_norm_eq_atomic
+    (M : SmtModel) (t : Term)
+    (hNorm : __get_arith_poly_norm t = arith_atomic_poly t) :
+  arith_poly_denote_real M (__get_arith_poly_norm t) = arith_atom_denote_real M t := by
+  rw [hNorm]
+  exact arith_poly_denote_real_of_arith_atomic_poly M t
 
 private theorem eo_to_smt_uneg_eq
     (x : Term) :
@@ -890,6 +922,34 @@ private theorem get_arith_poly_norm_of_non_arith_smt_type
       simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
         __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
         SmtEval.native_and, SmtEval.native_not]
+
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_of_non_arith_smt_type
+    (M : SmtModel) (t : Term)
+    (hNotInt : __smtx_typeof (__eo_to_smt t) ≠ SmtType.Int)
+    (hNotReal : __smtx_typeof (__eo_to_smt t) ≠ SmtType.Real)
+    (hNonNone : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
+  arith_poly_denote_real M (__get_arith_poly_norm t) = arith_atom_denote_real M t := by
+  exact arith_poly_denote_real_eq_arith_atom_denote_real_of_norm_eq_atomic M t
+    (get_arith_poly_norm_of_non_arith_smt_type t hNotInt hNotReal hNonNone)
+
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_rational
+    (M : SmtModel) (q : native_Rat) :
+  arith_poly_denote_real M (__get_arith_poly_norm (Term.Rational q)) =
+    arith_atom_denote_real M (Term.Rational q) := by
+  rw [arith_poly_denote_real_of_rational, arith_atom_denote_real_of_rational]
+
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_numeral
+    (M : SmtModel) (n : native_Int) :
+  arith_poly_denote_real M (__get_arith_poly_norm (Term.Numeral n)) =
+    arith_atom_denote_real M (Term.Numeral n) := by
+  rw [arith_poly_denote_real_of_numeral, arith_atom_denote_real_of_numeral]
+
+private theorem arith_poly_denote_real_of_get_arith_poly_norm_to_real
+    (M : SmtModel) (t : Term)
+    (hRec : arith_poly_denote_real M (__get_arith_poly_norm t) = arith_atom_denote_real M t) :
+  arith_poly_denote_real M (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.to_real) t)) =
+    arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.to_real) t) := by
+  simpa [__get_arith_poly_norm, arith_atom_denote_real_of_to_real] using hRec
 
 private theorem smt_value_rel_of_equal_arith_poly_norm_of_smt_arith_type
     (M : SmtModel) (hM : model_total_typed M)
