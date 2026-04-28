@@ -1196,6 +1196,483 @@ private theorem arith_poly_denote_real_of_poly_neg_wf
                 (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars) (Term.Rational c)))
               (arith_poly_denote_real_rational_or_notValue M p)
 
+private theorem arith_poly_denote_real_of_poly_add_rational
+    (M : SmtModel) {P1 P2 : Term}
+    (h1 : arith_poly_rational M P1)
+    (h2 : arith_poly_rational M P2) :
+  arith_poly_denote_real M (__poly_add P1 P2) =
+    __smtx_model_eval_plus (arith_poly_denote_real M P1) (arith_poly_denote_real M P2) := by
+  cases h1 with
+  | zero =>
+      cases h2 with
+      | zero =>
+          simp [__poly_add, arith_poly_denote_real, __smtx_model_eval_plus, native_qplus,
+            native_mk_rational_zero, Rat.zero_add]
+      | @cons m2 p2 hm2 hp2 =>
+          have hP2Val :
+              ∃ q, arith_poly_denote_real M
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) m2) p2) =
+                  SmtValue.Rational q :=
+            arith_poly_denote_real_rational_of_rational_support M
+              (arith_poly_rational.cons (M := M) m2 p2 hm2 hp2)
+          simpa [__poly_add, arith_poly_denote_real] using
+            (smtx_model_eval_plus_zero_left_of_rational_or_notValue (Or.inl hP2Val)).symm
+  | @cons m1 p1 hm1 hp1 =>
+      cases h2 with
+      | zero =>
+          have hP1Val :
+              ∃ q, arith_poly_denote_real M
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) m1) p1) =
+                  SmtValue.Rational q :=
+            arith_poly_denote_real_rational_of_rational_support M
+              (arith_poly_rational.cons (M := M) m1 p1 hm1 hp1)
+          simpa [__poly_add, arith_poly_denote_real] using
+            (smtx_model_eval_plus_zero_right_of_rational_or_notValue (Or.inl hP1Val)).symm
+      | @cons m2 p2 hm2 hp2 =>
+          cases hm1 with
+          | mk vars1 c1 hvars1 =>
+              cases hm2 with
+              | mk vars2 c2 hvars2 =>
+                  have hVars1 : vars1 ≠ Term.Stuck := arith_mvar_rational_ne_stuck hvars1
+                  have hVars2 : vars2 ≠ Term.Stuck := arith_mvar_rational_ne_stuck hvars2
+                  let mon1 : Term :=
+                    Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                      (Term.Rational c1)
+                  let mon2 : Term :=
+                    Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                      (Term.Rational c2)
+                  let poly1 : Term :=
+                    Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) mon1) p1
+                  let poly2 : Term :=
+                    Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) mon2) p2
+                  have hMon1Val : ∃ q, arith_mon_denote_real M mon1 = SmtValue.Rational q := by
+                    simpa [mon1] using
+                      arith_mon_denote_real_rational_of_rational_support M
+                        (arith_mon_rational.mk (M := M) vars1 c1 hvars1)
+                  have hMon2Val : ∃ q, arith_mon_denote_real M mon2 = SmtValue.Rational q := by
+                    simpa [mon2] using
+                      arith_mon_denote_real_rational_of_rational_support M
+                        (arith_mon_rational.mk (M := M) vars2 c2 hvars2)
+                  have hP1Val : ∃ q, arith_poly_denote_real M p1 = SmtValue.Rational q :=
+                    arith_poly_denote_real_rational_of_rational_support M hp1
+                  have hP2Val : ∃ q, arith_poly_denote_real M p2 = SmtValue.Rational q :=
+                    arith_poly_denote_real_rational_of_rational_support M hp2
+                  rcases hMon1Val with ⟨qm1, hMon1Eq⟩
+                  rcases hMon2Val with ⟨qm2, hMon2Eq⟩
+                  rcases hP1Val with ⟨qp1, hP1Eq⟩
+                  rcases hP2Val with ⟨qp2, hP2Eq⟩
+                  have hPoly1Val : ∃ q, arith_poly_denote_real M poly1 = SmtValue.Rational q := by
+                    refine ⟨native_qplus qm1 qp1, ?_⟩
+                    simp [poly1, mon1, arith_poly_denote_real, hMon1Eq, hP1Eq,
+                      __smtx_model_eval_plus, native_qplus]
+                  have hPoly2Val : ∃ q, arith_poly_denote_real M poly2 = SmtValue.Rational q := by
+                    refine ⟨native_qplus qm2 qp2, ?_⟩
+                    simp [poly2, mon2, arith_poly_denote_real, hMon2Eq, hP2Eq,
+                      __smtx_model_eval_plus, native_qplus]
+                  have hP12Val :
+                      ∃ q,
+                        __smtx_model_eval_plus
+                          (arith_poly_denote_real M p1)
+                          (arith_poly_denote_real M p2) = SmtValue.Rational q := by
+                    refine ⟨native_qplus qp1 qp2, ?_⟩
+                    simp [hP1Eq, hP2Eq, __smtx_model_eval_plus, native_qplus]
+                  have hM2P1Val :
+                      ∃ q,
+                        __smtx_model_eval_plus
+                          (arith_mon_denote_real M mon2)
+                          (arith_poly_denote_real M p1) = SmtValue.Rational q := by
+                    refine ⟨native_qplus qm2 qp1, ?_⟩
+                    simp [hMon2Eq, hP1Eq, __smtx_model_eval_plus, native_qplus]
+                  by_cases hEq : vars1 = vars2
+                  · subst vars2
+                    have hRec :
+                        arith_poly_denote_real M (__poly_add p1 p2) =
+                          __smtx_model_eval_plus
+                            (arith_poly_denote_real M p1)
+                            (arith_poly_denote_real M p2) :=
+                      arith_poly_denote_real_of_poly_add_rational M hp1 hp2
+                    by_cases hZero : native_qplus c1 c2 = native_mk_rational 0 1
+                    · have hZero' : native_mk_rational 0 1 = native_qplus c1 c2 := by
+                        simpa [eq_comm] using hZero
+                      have hVarsRat :
+                          ∃ qv, arith_mvar_denote_real M vars1 = SmtValue.Rational qv :=
+                        arith_mvar_denote_real_rational_of_rational_support M hvars1
+                      have hMonSum :
+                          __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (arith_mon_denote_real M mon2) =
+                            SmtValue.Rational (native_mk_rational 0 1) := by
+                        have hCoeffZero :
+                            arith_mon_denote_real M
+                                (Term.Apply
+                                  (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                  (Term.Rational (native_qplus c1 c2))) =
+                              SmtValue.Rational (native_mk_rational 0 1) := by
+                          simpa [hZero', mon2] using
+                            arith_mon_denote_real_zero_coeff_of_rational M vars1 hVarsRat
+                        exact (arith_mon_denote_real_of_coeff_add M vars1 c1 c2).symm.trans
+                          hCoeffZero
+                      calc
+                        arith_poly_denote_real M (__poly_add poly1 poly2) =
+                            __smtx_model_eval_plus
+                              (arith_poly_denote_real M p1)
+                              (arith_poly_denote_real M p2) := by
+                          simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
+                            __eo_add, native_ite, native_teq, hVars1, hZero',
+                            arith_poly_denote_real, hRec]
+                        _ =
+                            __smtx_model_eval_plus
+                              (SmtValue.Rational (native_mk_rational 0 1))
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (arith_poly_denote_real M p2)) := by
+                          symm
+                          exact
+                            smtx_model_eval_plus_zero_left_of_rational_or_notValue
+                              (Or.inl hP12Val)
+                        _ =
+                            __smtx_model_eval_plus
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon1)
+                                (arith_mon_denote_real M mon2))
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (arith_poly_denote_real M p2)) := by
+                          rw [← hMonSum]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon2)
+                                (__smtx_model_eval_plus
+                                  (arith_poly_denote_real M p1)
+                                  (arith_poly_denote_real M p2))) := by
+                          exact
+                            smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl ⟨qm1, hMon1Eq⟩)
+                              (Or.inl ⟨qm2, hMon2Eq⟩)
+                              (Or.inl hP12Val)
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (__smtx_model_eval_plus
+                                  (arith_mon_denote_real M mon2)
+                                  (arith_poly_denote_real M p1))
+                                (arith_poly_denote_real M p2)) := by
+                          rw [smtx_model_eval_plus_assoc_of_rational_or_notValue
+                            (Or.inl ⟨qm2, hMon2Eq⟩)
+                            (Or.inl ⟨qp1, hP1Eq⟩)
+                            (Or.inl ⟨qp2, hP2Eq⟩)]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (__smtx_model_eval_plus
+                                  (arith_poly_denote_real M p1)
+                                  (arith_mon_denote_real M mon2))
+                                (arith_poly_denote_real M p2)) := by
+                          rw [smtx_model_eval_plus_comm_of_rational_or_notValue
+                            (Or.inl ⟨qm2, hMon2Eq⟩)
+                            (Or.inl ⟨qp1, hP1Eq⟩)]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (__smtx_model_eval_plus
+                                  (arith_mon_denote_real M mon2)
+                                  (arith_poly_denote_real M p2))) := by
+                          simpa using congrArg
+                            (__smtx_model_eval_plus (arith_mon_denote_real M mon1))
+                            (smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl ⟨qp1, hP1Eq⟩)
+                              (Or.inl ⟨qm2, hMon2Eq⟩)
+                              (Or.inl ⟨qp2, hP2Eq⟩))
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (arith_poly_denote_real M poly2)) := by
+                          simp [poly2, mon2, arith_poly_denote_real]
+                        _ =
+                            __smtx_model_eval_plus
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon1)
+                                (arith_poly_denote_real M p1))
+                              (arith_poly_denote_real M poly2) := by
+                          exact
+                            (smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl ⟨qm1, hMon1Eq⟩)
+                              (Or.inl ⟨qp1, hP1Eq⟩)
+                              (Or.inl hPoly2Val)).symm
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_poly_denote_real M poly1)
+                              (arith_poly_denote_real M poly2) := by
+                          simp [poly1, mon1, arith_poly_denote_real]
+                    · have hZero' : native_mk_rational 0 1 ≠ native_qplus c1 c2 := by
+                        simpa [eq_comm] using hZero
+                      have hTail :
+                          __poly_add p1 p2 ≠ Term.Stuck :=
+                        arith_poly_rational_ne_stuck (arith_poly_rational_of_poly_add M hp1 hp2)
+                      calc
+                        arith_poly_denote_real M (__poly_add poly1 poly2) =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M
+                                (Term.Apply
+                                  (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                                  (Term.Rational (native_qplus c1 c2))))
+                              (arith_poly_denote_real M (__poly_add p1 p2)) := by
+                          simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
+                            __eo_add, native_ite, native_teq, hVars1, hZero', __eo_mk_apply,
+                            hTail, arith_poly_denote_real]
+                        _ =
+                            __smtx_model_eval_plus
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon1)
+                                (arith_mon_denote_real M mon2))
+                              (arith_poly_denote_real M (__poly_add p1 p2)) := by
+                          rw [arith_mon_denote_real_of_coeff_add M vars1 c1 c2]
+                        _ =
+                            __smtx_model_eval_plus
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon1)
+                                (arith_mon_denote_real M mon2))
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (arith_poly_denote_real M p2)) := by
+                          rw [hRec]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon2)
+                                (__smtx_model_eval_plus
+                                  (arith_poly_denote_real M p1)
+                                  (arith_poly_denote_real M p2))) := by
+                          exact
+                            smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl ⟨qm1, hMon1Eq⟩)
+                              (Or.inl ⟨qm2, hMon2Eq⟩)
+                              (Or.inl hP12Val)
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (__smtx_model_eval_plus
+                                  (arith_mon_denote_real M mon2)
+                                  (arith_poly_denote_real M p1))
+                                (arith_poly_denote_real M p2)) := by
+                          rw [smtx_model_eval_plus_assoc_of_rational_or_notValue
+                            (Or.inl ⟨qm2, hMon2Eq⟩)
+                            (Or.inl ⟨qp1, hP1Eq⟩)
+                            (Or.inl ⟨qp2, hP2Eq⟩)]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (__smtx_model_eval_plus
+                                  (arith_poly_denote_real M p1)
+                                  (arith_mon_denote_real M mon2))
+                                (arith_poly_denote_real M p2)) := by
+                          rw [smtx_model_eval_plus_comm_of_rational_or_notValue
+                            (Or.inl ⟨qm2, hMon2Eq⟩)
+                            (Or.inl ⟨qp1, hP1Eq⟩)]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (__smtx_model_eval_plus
+                                  (arith_mon_denote_real M mon2)
+                                  (arith_poly_denote_real M p2))) := by
+                          simpa using congrArg
+                            (__smtx_model_eval_plus (arith_mon_denote_real M mon1))
+                            (smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl ⟨qp1, hP1Eq⟩)
+                              (Or.inl ⟨qm2, hMon2Eq⟩)
+                              (Or.inl ⟨qp2, hP2Eq⟩))
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (arith_poly_denote_real M poly2)) := by
+                          simp [poly2, mon2, arith_poly_denote_real]
+                        _ =
+                            __smtx_model_eval_plus
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon1)
+                                (arith_poly_denote_real M p1))
+                              (arith_poly_denote_real M poly2) := by
+                          exact
+                            (smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl ⟨qm1, hMon1Eq⟩)
+                              (Or.inl ⟨qp1, hP1Eq⟩)
+                              (Or.inl hPoly2Val)).symm
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_poly_denote_real M poly1)
+                              (arith_poly_denote_real M poly2) := by
+                          simp [poly1, mon1, arith_poly_denote_real]
+                  · have hEq' : vars2 ≠ vars1 := by
+                        simpa [eq_comm] using hEq
+                    by_cases hCmp : native_tcmp vars2 vars1
+                    · have hRec :
+                            arith_poly_denote_real M (__poly_add p1 poly2) =
+                              __smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (arith_poly_denote_real M poly2) :=
+                          arith_poly_denote_real_of_poly_add_rational M hp1
+                            (arith_poly_rational.cons
+                              (M := M)
+                              mon2 p2
+                              (arith_mon_rational.mk (M := M) vars2 c2 hvars2)
+                              hp2)
+                      have hTail : __poly_add p1 poly2 ≠ Term.Stuck :=
+                        arith_poly_rational_ne_stuck
+                          (arith_poly_rational_of_poly_add M hp1
+                            (arith_poly_rational.cons
+                              (M := M)
+                              mon2 p2
+                              (arith_mon_rational.mk (M := M) vars2 c2 hvars2)
+                              hp2))
+                      calc
+                        arith_poly_denote_real M (__poly_add poly1 poly2) =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (arith_poly_denote_real M (__poly_add p1 poly2)) := by
+                          simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
+                            native_ite, native_teq, hEq', hVars1, hVars2, __eo_cmp, hCmp,
+                            __eo_mk_apply, hTail, arith_poly_denote_real]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon1)
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M p1)
+                                (arith_poly_denote_real M poly2)) := by
+                          rw [hRec]
+                        _ =
+                            __smtx_model_eval_plus
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon1)
+                                (arith_poly_denote_real M p1))
+                              (arith_poly_denote_real M poly2) := by
+                          exact
+                            (smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl ⟨qm1, hMon1Eq⟩)
+                              (Or.inl ⟨qp1, hP1Eq⟩)
+                              (Or.inl hPoly2Val)).symm
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_poly_denote_real M poly1)
+                              (arith_poly_denote_real M poly2) := by
+                          simp [poly1, mon1, arith_poly_denote_real]
+                    · have hRec :
+                            arith_poly_denote_real M (__poly_add poly1 p2) =
+                              __smtx_model_eval_plus
+                                (arith_poly_denote_real M poly1)
+                                (arith_poly_denote_real M p2) :=
+                          arith_poly_denote_real_of_poly_add_rational M
+                            (arith_poly_rational.cons
+                              (M := M) mon1 p1
+                              (arith_mon_rational.mk (M := M) vars1 c1 hvars1)
+                              hp1)
+                            hp2
+                      have hCmp' : native_tcmp vars2 vars1 = false := by
+                        cases hT : native_tcmp vars2 vars1 with
+                        | false =>
+                            rfl
+                        | true =>
+                            cases (hCmp hT)
+                      have hTail : __poly_add poly1 p2 ≠ Term.Stuck :=
+                        arith_poly_rational_ne_stuck
+                          (arith_poly_rational_of_poly_add M
+                            (arith_poly_rational.cons
+                              (M := M) mon1 p1
+                              (arith_mon_rational.mk (M := M) vars1 c1 hvars1)
+                              hp1)
+                            hp2)
+                      calc
+                        arith_poly_denote_real M (__poly_add poly1 poly2) =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon2)
+                              (arith_poly_denote_real M (__poly_add poly1 p2)) := by
+                          simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
+                            native_ite, native_teq, hEq', hVars1, hVars2, __eo_cmp, hCmp',
+                            __eo_mk_apply, hTail, arith_poly_denote_real]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_mon_denote_real M mon2)
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M poly1)
+                                (arith_poly_denote_real M p2)) := by
+                          rw [hRec]
+                        _ =
+                            __smtx_model_eval_plus
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon2)
+                                (arith_poly_denote_real M poly1))
+                              (arith_poly_denote_real M p2) := by
+                          exact
+                            (smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl ⟨qm2, hMon2Eq⟩)
+                              (Or.inl hPoly1Val)
+                              (Or.inl ⟨qp2, hP2Eq⟩)).symm
+                        _ =
+                            __smtx_model_eval_plus
+                              (__smtx_model_eval_plus
+                                (arith_poly_denote_real M poly1)
+                                (arith_mon_denote_real M mon2))
+                              (arith_poly_denote_real M p2) := by
+                          rw [smtx_model_eval_plus_comm_of_rational_or_notValue
+                            (Or.inl ⟨qm2, hMon2Eq⟩)
+                            (Or.inl hPoly1Val)]
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_poly_denote_real M poly1)
+                              (__smtx_model_eval_plus
+                                (arith_mon_denote_real M mon2)
+                                (arith_poly_denote_real M p2)) := by
+                          exact
+                            smtx_model_eval_plus_assoc_of_rational_or_notValue
+                              (Or.inl hPoly1Val)
+                              (Or.inl ⟨qm2, hMon2Eq⟩)
+                              (Or.inl ⟨qp2, hP2Eq⟩)
+                        _ =
+                            __smtx_model_eval_plus
+                              (arith_poly_denote_real M poly1)
+                              (arith_poly_denote_real M poly2) := by
+                          simp [poly2, mon2, arith_poly_denote_real]
+termination_by sizeOf P1 + sizeOf P2
+decreasing_by
+  simp_wf
+  · omega
+  · have hSize :
+        sizeOf p1 <
+          sizeOf
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars1)
+                  (Term.Rational c1)))
+              p1) := by
+        simp
+        omega
+    omega
+  · have hSize :
+        sizeOf p2 <
+          sizeOf
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp._at__at_poly)
+                (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
+                  (Term.Rational c2)))
+              p2) := by
+        simp
+        omega
+    omega
+
 private theorem arith_poly_denote_real_of_rational
     (M : SmtModel) (q : native_Rat) :
   arith_poly_denote_real M (__get_arith_poly_norm (Term.Rational q)) =
