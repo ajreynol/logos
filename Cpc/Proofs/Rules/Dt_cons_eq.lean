@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.CnfSupport
+import Cpc.Proofs.TypePreservation.Helpers
 
 open Eo
 open SmtEval
@@ -234,49 +235,76 @@ private theorem singleton_elim_eval_eq
 
 private theorem mk_dt_cons_eq_base_andList
     (c c2 : Term) :
-    __eo_requires (__eo_eq c c2) (Term.Boolean true) (Term.Boolean true) ≠ Term.Stuck ->
+    __eo_requires (__eo_eq c c2) (Term.Boolean true)
+      (__eo_requires
+        (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
+          (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
+            (__eo_is_ok (__eo_dt_selectors c))))
+        (Term.Boolean true) (Term.Boolean true)) ≠ Term.Stuck ->
     CnfSupport.AndList
-      (__eo_requires (__eo_eq c c2) (Term.Boolean true) (Term.Boolean true)) := by
+      (__eo_requires (__eo_eq c c2) (Term.Boolean true)
+        (__eo_requires
+          (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
+            (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
+              (__eo_is_ok (__eo_dt_selectors c))))
+          (Term.Boolean true) (Term.Boolean true))) := by
   intro hReq
   have hReq' := hReq
   simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
     SmtEval.native_not] at hReq'
-  rcases hReq' with ⟨hEq, hNe⟩
-  have hEq' : c2 = c := eo_eq_eq_of_true hEq
-  subst c2
-  cases c <;> simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
-    SmtEval.native_not] at hEq hNe ⊢
-  all_goals exact CnfSupport.AndList.true
+  have hBaseTrue :
+      __eo_requires (__eo_eq c c2) (Term.Boolean true)
+        (__eo_requires
+          (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
+            (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
+              (__eo_is_ok (__eo_dt_selectors c))))
+          (Term.Boolean true) (Term.Boolean true)) = Term.Boolean true := by
+    rcases hReq' with ⟨hEq, _hEqNe, hCons, hConsNe⟩
+    simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
+      SmtEval.native_not, hEq, hCons, hConsNe]
+  rw [hBaseTrue]
+  exact CnfSupport.AndList.true
 
 private theorem mk_dt_cons_eq_base_eval_eq
     (M : SmtModel) (c c2 : Term) :
-    __eo_requires (__eo_eq c c2) (Term.Boolean true) (Term.Boolean true) ≠ Term.Stuck ->
+    __eo_requires (__eo_eq c c2) (Term.Boolean true)
+      (__eo_requires
+        (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
+          (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
+            (__eo_is_ok (__eo_dt_selectors c))))
+        (Term.Boolean true) (Term.Boolean true)) ≠ Term.Stuck ->
     __smtx_model_eval M
-        (__eo_to_smt (__eo_requires (__eo_eq c c2) (Term.Boolean true) (Term.Boolean true))) =
+        (__eo_to_smt
+          (__eo_requires (__eo_eq c c2) (Term.Boolean true)
+            (__eo_requires
+              (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
+                (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
+                  (__eo_is_ok (__eo_dt_selectors c))))
+              (Term.Boolean true) (Term.Boolean true)))) =
       __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt c))
         (__smtx_model_eval M (__eo_to_smt c2)) := by
   intro hReq
   have hReq' := hReq
   simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
     SmtEval.native_not] at hReq'
-  rcases hReq' with ⟨hEq, hNe⟩
+  rcases hReq' with ⟨hEq, _hEqNe, hCons, hConsNe⟩
   have hEq' : c2 = c := eo_eq_eq_of_true hEq
-  subst c2
-  by_cases hC : c = Term.Stuck
-  · subst c
+  have hBaseTrue :
+      __eo_requires (__eo_eq c c2) (Term.Boolean true)
+        (__eo_requires
+          (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
+            (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
+              (__eo_is_ok (__eo_dt_selectors c))))
+          (Term.Boolean true) (Term.Boolean true)) = Term.Boolean true := by
     simp [__eo_requires, __eo_eq, native_ite, native_teq, native_not,
-      SmtEval.native_not] at hReq
-  have hEq'' : __eo_eq c c = Term.Boolean true := by
-    cases c <;> simp [__eo_eq, native_teq] at hC ⊢
+      SmtEval.native_not, hEq, hCons, hConsNe]
+  subst c2
   have hRefl :
       __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt c))
         (__smtx_model_eval M (__eo_to_smt c)) = SmtValue.Boolean true :=
     RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt c))
-  rw [__eo_requires, hEq'']
-  simp [native_ite, native_teq, native_not, SmtEval.native_not]
-  change __smtx_model_eval M (SmtTerm.Boolean true) =
-    __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt c))
-      (__smtx_model_eval M (__eo_to_smt c))
+  rw [hBaseTrue]
+  rw [__eo_to_smt.eq_def]
   rw [__smtx_model_eval.eq_1, hRefl]
 
 private theorem mk_apply_and_preserves_andList
@@ -299,59 +327,46 @@ private theorem mk_dt_cons_eq_andList_of_not_stuck
     __mk_dt_cons_eq t s ≠ Term.Stuck ->
     CnfSupport.AndList (__mk_dt_cons_eq t s) := by
   intro h
-  cases t <;> cases s <;> simp [__mk_dt_cons_eq] at h ⊢
-  case Apply.Apply f a g b =>
-      cases f <;> cases g <;> try simp [__mk_dt_cons_eq] at h ⊢
-      case Apply.Apply hf ha hg hb =>
-          cases hf <;> cases hg <;> try simp [__mk_dt_cons_eq] at h ⊢
-          case UOp.UOp opf opg =>
-              let f' := Term.Apply (Term.UOp opf) ha
-              let g' := Term.Apply (Term.UOp opg) hb
-              cases opf <;> cases opg <;> simp [f', g', __mk_dt_cons_eq] at h
-              case tuple.tuple =>
-                  have hTail : __mk_dt_cons_eq a b ≠ Term.Stuck := by
-                    intro hTailStuck
-                    apply h
-                    simp [__mk_dt_cons_eq, __eo_mk_apply, hTailStuck]
-                  simpa [__mk_dt_cons_eq] using
-                    mk_apply_and_preserves_andList
-                      (Term.Apply (Term.Apply Term.eq ha) hb)
-                      (__mk_dt_cons_eq a b)
-                      (mk_dt_cons_eq_andList_of_not_stuck a b hTail)
-              all_goals
-                  let right :=
-                    Term.Apply (Term.Apply (Term.UOp UserOp.and)
-                      (Term.Apply (Term.Apply Term.eq a) b))
-                      (Term.Boolean true)
-                  change CnfSupport.AndList
-                    (__eo_list_concat (Term.UOp UserOp.and) (__mk_dt_cons_eq f' g') right)
-                  have hConcat :
-                      __eo_list_concat (Term.UOp UserOp.and) (__mk_dt_cons_eq f' g') right ≠
-                        Term.Stuck := by
-                    simpa using h
-                  have hLeft : __mk_dt_cons_eq f' g' ≠ Term.Stuck :=
-                    list_concat_nonstuck_left hConcat
-                  have hLeftList :
-                      CnfSupport.AndList
-                        (__mk_dt_cons_eq f' g') :=
-                    mk_dt_cons_eq_andList_of_not_stuck
-                      f' g' hLeft
-                  have hRightList :
-                      CnfSupport.AndList right :=
-                      CnfSupport.AndList.cons
-                      (Term.Apply (Term.Apply Term.eq a) b)
-                      (Term.Boolean true)
-                      CnfSupport.AndList.true
-                  exact concat_preserves_andList hLeftList hRightList
-          case _ =>
-              exact mk_dt_cons_eq_base_andList _ _ h
-      case _ =>
-          exact mk_dt_cons_eq_base_andList _ _ h
-  all_goals
-    exact mk_dt_cons_eq_base_andList _ _ h
+  fun_cases __mk_dt_cons_eq t s
+  · simp [__mk_dt_cons_eq] at h
+  · simp [__mk_dt_cons_eq] at h
+  · rename_i a as b bs
+    subst_vars
+    have hTail : __mk_dt_cons_eq as bs ≠ Term.Stuck := by
+      intro hTailStuck
+      apply h
+      exact by simp [__mk_dt_cons_eq, __eo_mk_apply, hTailStuck]
+    exact mk_apply_and_preserves_andList
+      (Term.Apply (Term.Apply Term.eq a) b)
+      (__mk_dt_cons_eq as bs)
+      (mk_dt_cons_eq_andList_of_not_stuck as bs hTail)
+  · rename_i f a g b _hNotTuple
+    subst_vars
+    let right :=
+      Term.Apply (Term.Apply (Term.UOp UserOp.and)
+        (Term.Apply (Term.Apply Term.eq a) b))
+        (Term.Boolean true)
+    change CnfSupport.AndList
+      (__eo_list_concat (Term.UOp UserOp.and) (__mk_dt_cons_eq f g) right)
+    have hConcat :
+        __eo_list_concat (Term.UOp UserOp.and) (__mk_dt_cons_eq f g) right ≠
+          Term.Stuck := by
+      simpa [__mk_dt_cons_eq] using h
+    have hLeft : __mk_dt_cons_eq f g ≠ Term.Stuck :=
+      list_concat_nonstuck_left hConcat
+    have hLeftList : CnfSupport.AndList (__mk_dt_cons_eq f g) :=
+      mk_dt_cons_eq_andList_of_not_stuck f g hLeft
+    have hRightList : CnfSupport.AndList right :=
+      CnfSupport.AndList.cons
+        (Term.Apply (Term.Apply Term.eq a) b)
+        (Term.Boolean true)
+        CnfSupport.AndList.true
+    exact concat_preserves_andList hLeftList hRightList
+  · subst_vars
+    exact mk_dt_cons_eq_base_andList _ _ (by simpa [__mk_dt_cons_eq] using h)
 termination_by sizeOf t + sizeOf s
 decreasing_by
-  all_goals simp_wf
+  all_goals subst_vars; simp_wf
 
 private theorem mk_dt_cons_eq_eval_eq
     (M : SmtModel) (t s : Term) :
@@ -360,74 +375,77 @@ private theorem mk_dt_cons_eq_eval_eq
       __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt t))
         (__smtx_model_eval M (__eo_to_smt s)) := by
   intro h
-  cases t <;> cases s <;> simp [__mk_dt_cons_eq] at h ⊢
-  case Apply.Apply f a g b =>
-      cases f <;> cases g <;> try simp [__mk_dt_cons_eq] at h ⊢
-      case Apply.Apply hf ha hg hb =>
-          cases hf <;> cases hg <;> try simp [__mk_dt_cons_eq] at h ⊢
-          case UOp.UOp opf opg =>
-              let f' := Term.Apply (Term.UOp opf) ha
-              let g' := Term.Apply (Term.UOp opg) hb
-              cases opf <;> cases opg <;> simp [f', g', __mk_dt_cons_eq] at h
-              case tuple.tuple =>
-                  have hTail : __mk_dt_cons_eq a b ≠ Term.Stuck := by
-                    intro hTailStuck
-                    apply h
-                    simp [__mk_dt_cons_eq, __eo_mk_apply, hTailStuck]
-                  have hTailEval := mk_dt_cons_eq_eval_eq M a b hTail
-                  rcases eval_eo_eq_is_boolean M ha hb with ⟨b1, hEqABEval⟩
-                  rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval, hTailEval]
-                  simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
-                    SmtEval.native_and]
-              all_goals
-                  let left := __mk_dt_cons_eq f' g'
-                  let right :=
-                    Term.Apply (Term.Apply (Term.UOp UserOp.and)
-                      (Term.Apply (Term.Apply Term.eq a) b))
-                      (Term.Boolean true)
-                  change __smtx_model_eval M
-                      (__eo_to_smt (__eo_list_concat (Term.UOp UserOp.and) left right)) =
-                    __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt (Term.Apply f' a)))
-                      (__smtx_model_eval M (__eo_to_smt (Term.Apply g' b)))
-                  have hConcat :
-                      __eo_list_concat (Term.UOp UserOp.and) left right ≠ Term.Stuck := by
-                    simpa using h
-                  have hLeft : left ≠ Term.Stuck :=
-                    list_concat_nonstuck_left hConcat
-                  have hLeftList : CnfSupport.AndList left :=
-                    mk_dt_cons_eq_andList_of_not_stuck
-                      f' g' hLeft
-                  have hRightList : CnfSupport.AndList right :=
-                    CnfSupport.AndList.cons
-                      (Term.Apply (Term.Apply Term.eq a) b)
-                      (Term.Boolean true)
-                      CnfSupport.AndList.true
-                  have hLeftEval := mk_dt_cons_eq_eval_eq M f' g' hLeft
-                  have hLeftEvalBool :
-                      ∃ bl : Bool, __smtx_model_eval M (__eo_to_smt left) = SmtValue.Boolean bl := by
-                    rw [hLeftEval]
-                    exact model_eval_eq_is_boolean
-                      (__smtx_model_eval M (__eo_to_smt f'))
-                      (__smtx_model_eval M (__eo_to_smt g'))
-                  rcases eval_eo_eq_is_boolean M a b with ⟨br, hEqABEval⟩
-                  have hRightEvalBool :
-                      ∃ br' : Bool, __smtx_model_eval M (__eo_to_smt right) = SmtValue.Boolean br' := by
-                    refine ⟨br, ?_⟩
-                    rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval]
-                    simp [__smtx_model_eval_and, SmtEval.native_and]
-                  rw [concat_eval_eq_and M hLeftList hRightList hLeftEvalBool hRightEvalBool]
-                  rw [hLeftEval, __eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval]
-                  simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
-                    SmtEval.native_and]
-          case _ =>
-              simpa using mk_dt_cons_eq_base_eval_eq M _ _ h
-      case _ =>
-          simpa using mk_dt_cons_eq_base_eval_eq M _ _ h
-  all_goals
-    simpa using mk_dt_cons_eq_base_eval_eq M _ _ h
+  fun_cases __mk_dt_cons_eq t s
+  · simp [__mk_dt_cons_eq] at h
+  · simp [__mk_dt_cons_eq] at h
+  · rename_i a as b bs
+    subst_vars
+    have hTail : __mk_dt_cons_eq as bs ≠ Term.Stuck := by
+      intro hTailStuck
+      apply h
+      exact by simp [__mk_dt_cons_eq, __eo_mk_apply, hTailStuck]
+    have hTailEval := mk_dt_cons_eq_eval_eq M as bs hTail
+    rcases eval_eo_eq_is_boolean M a b with ⟨b1, hEqABEval⟩
+    have hMkApply :
+        __eo_mk_apply (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b))
+          (__mk_dt_cons_eq as bs) =
+        Term.Apply (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b))
+          (__mk_dt_cons_eq as bs) := by
+      cases hTailEq : __mk_dt_cons_eq as bs
+      · exact False.elim (hTail hTailEq)
+      all_goals simp [__eo_mk_apply]
+    rw [hMkApply]
+    rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval, hTailEval]
+    simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
+      SmtEval.native_and]
+  · rename_i f a g b _hNotTuple
+    subst_vars
+    let left := __mk_dt_cons_eq f g
+    let right :=
+      Term.Apply (Term.Apply (Term.UOp UserOp.and)
+        (Term.Apply (Term.Apply Term.eq a) b))
+        (Term.Boolean true)
+    change __smtx_model_eval M
+        (__eo_to_smt (__eo_list_concat (Term.UOp UserOp.and) left right)) =
+      __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt (Term.Apply f a)))
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply g b)))
+    have hConcat :
+        __eo_list_concat (Term.UOp UserOp.and) left right ≠ Term.Stuck := by
+      simpa [left, right, __mk_dt_cons_eq] using h
+    have hLeft : left ≠ Term.Stuck :=
+      list_concat_nonstuck_left hConcat
+    have hLeftList : CnfSupport.AndList left :=
+      mk_dt_cons_eq_andList_of_not_stuck f g hLeft
+    have hRightList : CnfSupport.AndList right :=
+      CnfSupport.AndList.cons
+        (Term.Apply (Term.Apply Term.eq a) b)
+        (Term.Boolean true)
+        CnfSupport.AndList.true
+    have hLeftEval := mk_dt_cons_eq_eval_eq M f g hLeft
+    have hLeftEvalBool :
+        ∃ bl : Bool, __smtx_model_eval M (__eo_to_smt left) = SmtValue.Boolean bl := by
+      rw [hLeftEval]
+      exact model_eval_eq_is_boolean
+        (__smtx_model_eval M (__eo_to_smt f))
+        (__smtx_model_eval M (__eo_to_smt g))
+    rcases eval_eo_eq_is_boolean M a b with ⟨br, hEqABEval⟩
+    have hRightEvalBool :
+        ∃ br' : Bool, __smtx_model_eval M (__eo_to_smt right) = SmtValue.Boolean br' := by
+      refine ⟨br, ?_⟩
+      rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval]
+      rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_1]
+      simp [__smtx_model_eval_and, SmtEval.native_and]
+    rw [concat_eval_eq_and M hLeftList hRightList hLeftEvalBool hRightEvalBool]
+    rw [hLeftEval, __eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval]
+    simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
+      SmtEval.native_and]
+  · subst_vars
+    exact mk_dt_cons_eq_base_eval_eq M _ _ (by simpa [__mk_dt_cons_eq] using h)
 termination_by sizeOf t + sizeOf s
 decreasing_by
-  all_goals simp_wf
+  all_goals subst_vars; simp_wf
 
 private theorem dt_cons_eq_condition_rel
     (M : SmtModel) (t s : Term) :
@@ -441,6 +459,9 @@ private theorem dt_cons_eq_condition_rel
     cases hMk' : __mk_dt_cons_eq t s <;>
       simp [__eo_list_singleton_elim, hMk', __eo_requires, native_ite, native_teq,
         native_not, SmtEval.native_not] at hCond ⊢
+    case Stuck =>
+      simp [__eo_list_singleton_elim, __eo_is_list, __eo_is_ok, __eo_get_nil_rec,
+        __eo_requires, hMk', native_ite, native_teq, native_not, SmtEval.native_not] at hCond
   have hList : CnfSupport.AndList (__mk_dt_cons_eq t s) :=
     mk_dt_cons_eq_andList_of_not_stuck t s hMk
   have hMkEval := mk_dt_cons_eq_eval_eq M t s hMk
