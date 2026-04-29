@@ -130,7 +130,9 @@ def __eo_to_smt_type : Term -> SmtType
     (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.Map _v1 _v0)))
   | (Term.UOp UserOp.RegLan) => SmtType.RegLan
   | (Term.UOp UserOp.UnitTuple) => (SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) x1) x2) => (__eo_to_smt_type_tuple (__eo_to_smt_type x1) (__eo_to_smt_type x2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) x1) x2) => 
+    let _v0 := (__eo_to_smt_type_tuple (__eo_to_smt_type x1) (__eo_to_smt_type x2))
+    (native_ite (__smtx_type_wf _v0) _v0 SmtType.None)
   | (Term.Apply (Term.UOp UserOp.Set) x1) => 
     let _v0 := (__eo_to_smt_type x1)
     (__smtx_typeof_guard _v0 (SmtType.Set _v0))
