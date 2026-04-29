@@ -449,7 +449,7 @@ private theorem smtx_model_eval_eq_refl_aux :
   | SmtValue.Map _ => by
       simp [__smtx_model_eval_eq]
   | SmtValue.Fun _ => by
-      simp [__smtx_model_eval_eq, native_veq]
+      simp [__smtx_model_eval_eq]
   | SmtValue.Set _ => by
       simp [__smtx_model_eval_eq]
   | SmtValue.Seq s => by
@@ -863,7 +863,7 @@ theorem term_ne_stuck_of_interprets_true (M : SmtModel) (t : Term) :
   rw [eo_interprets_iff_smt_interprets, eo_to_smt_stuck_eq] at h
   cases h with
   | intro_true hTy _ =>
-      simpa [TranslationProofs.smtx_typeof_none] using hTy
+      simp [TranslationProofs.smtx_typeof_none] at hTy
 
 /-- Derives `term_ne_stuck` from `interprets_false`. -/
 theorem term_ne_stuck_of_interprets_false (M : SmtModel) (t : Term) :
@@ -873,7 +873,7 @@ theorem term_ne_stuck_of_interprets_false (M : SmtModel) (t : Term) :
   rw [eo_interprets_iff_smt_interprets, eo_to_smt_stuck_eq] at h
   cases h with
   | intro_false hTy _ =>
-      simpa [TranslationProofs.smtx_typeof_none] using hTy
+      simp [TranslationProofs.smtx_typeof_none] at hTy
 
 /-- Derives `term_ne_stuck` from `has_bool_type`. -/
 theorem term_ne_stuck_of_has_bool_type (t : Term) :
@@ -881,7 +881,7 @@ theorem term_ne_stuck_of_has_bool_type (t : Term) :
   intro hTy hStuck
   subst hStuck
   rw [eo_has_bool_type, eo_to_smt_stuck_eq] at hTy
-  simpa [TranslationProofs.smtx_typeof_none] using hTy
+  simp [TranslationProofs.smtx_typeof_none] at hTy
 
 set_option linter.unusedSimpArgs false in
 /-- Shows that `eo_interprets_not_true` implies `false`. -/
@@ -899,50 +899,50 @@ theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
       cases ht : __smtx_model_eval M (__eo_to_smt t) with
       | NotValue =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Boolean b =>
           cases b with
           | false =>
               exact smt_interprets.intro_false M (__eo_to_smt t) htyt ht
           | true =>
               exfalso
-              simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+              simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Numeral n =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Rational q =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Binary w n =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Map m =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Fun m =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Set m =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Seq s =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Char c =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | UValue s i =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | RegLan r =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | DtCons s d i =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Apply f x =>
           exfalso
-          simpa [__smtx_model_eval_not, ht, SmtEval.native_not] using hEval
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
 
 /-- Establishes an equality relating `smtx_typeof` and `refl`. -/
 theorem smtx_typeof_eq_refl (T : SmtType) :

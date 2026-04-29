@@ -226,7 +226,7 @@ theorem smtx_bv_sizeof_term_non_none
     ∃ w : native_Nat, __smtx_typeof t = SmtType.BitVec w := by
   cases hTy : __smtx_typeof t with
   | BitVec w =>
-      exact ⟨w, by simp [hTy]⟩
+      exact ⟨w, by simp⟩
   | _ =>
       exfalso
       have hNone :

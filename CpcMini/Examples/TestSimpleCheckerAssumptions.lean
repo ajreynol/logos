@@ -65,8 +65,8 @@ private theorem t4_has_bool_type : RuleProofs.eo_has_bool_type t4 := by
     simpa [t2] using uconst_int_smt_type 2
   simpa [t4, t3] using
     RuleProofs.eo_has_bool_type_eq_of_same_smt_type t2 t1
-      (by simpa [h1, h2])
-      (by simpa [h2])
+      (by simp [h1, h2])
+      (by simp [h2])
 
 private theorem t7_has_bool_type : RuleProofs.eo_has_bool_type t7 := by
   have t6_has_bool_type : RuleProofs.eo_has_bool_type t6 := by

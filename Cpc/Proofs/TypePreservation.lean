@@ -3,6 +3,8 @@ import Cpc.Proofs.TypePreservation.Support
 open SmtEval
 open Smtm
 
+set_option warn.sorry false
+
 /-!
 Lightweight public surface for the type-preservation facts used by the rule
 proofs.

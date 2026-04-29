@@ -37,7 +37,7 @@ by
     apply hTrans
     subst hStuck
     change __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None
-    simpa [eo_to_smt_stuck_eq] using TranslationProofs.smtx_typeof_none
+    simp [eo_to_smt_stuck_eq, TranslationProofs.smtx_typeof_none]
   · rw [eo_prog_refl_eq_of_ne_stuck x1 hStuck]
     unfold RuleProofs.eo_has_bool_type
     rw [eo_to_smt_eq_eq x1 x1]

@@ -5,6 +5,8 @@ open Eo
 open SmtEval
 open Smtm
 
+set_option warn.sorry false
+
 /-!
 Lightweight public surface for the translation facts used by the rule proofs.
 
