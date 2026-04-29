@@ -3729,8 +3729,8 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_eq_atom
   exact arith_atom_denote_real_qdiv_eq_qdiv_total_of_int_args M hM t1 t2 hTy1 hTy2
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_numeral_zero
-    (M : SmtModel) (hM : model_total_typed M) (t1 : Term) (n : native_Int)
-    (hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1)
+    (M : SmtModel) (_hM : model_total_typed M) (t1 : Term) (n : native_Int)
+    (_hTy : __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1)
         (Term.Numeral n))) = SmtType.Real)
     (hZero : native_to_real n = native_mk_rational 0 1) :
   arith_poly_denote_real M
@@ -3741,20 +3741,12 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_nume
   have hNorm :
       __get_arith_poly_norm
         (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Numeral n)) =
-        arith_atomic_poly (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) (Term.Numeral n)) := by
+        arith_atomic_poly
+          (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Numeral n)) := by
     simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_ite, native_ite,
       __eo_eq, native_teq, __eo_not, SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
       __eo_mk_apply, arith_atomic_poly]
-  have hQdivTy :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1)
-        (Term.Numeral n))) = SmtType.Real :=
-    smt_typeof_qdiv_of_qdiv_total t1 (Term.Numeral n) hTy
-  have hTy1 : __smtx_typeof (__eo_to_smt t1) = SmtType.Int :=
-    smt_typeof_qdiv_left_of_numeral_right t1 n hQdivTy
-  have hTy2 : __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int := by
-    simp [__eo_to_smt.eq_def, __smtx_typeof]
-  exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_eq_atomic_qdiv_of_int_args
-    M hM t1 (Term.Numeral n) hNorm hTy1 hTy2
+  exact arith_poly_denote_real_eq_arith_atom_denote_real_of_norm_eq_atomic M _ hNorm
 
 private theorem arith_poly_rational_of_get_arith_poly_norm_qdiv_total_eq_atomic_qdiv
     (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
@@ -3778,12 +3770,363 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
       __smtx_typeof (__eo_to_smt t) = SmtType.Real) ->
     arith_poly_denote_real M (__get_arith_poly_norm t) = arith_atom_denote_real M t := by
   intro t hTy
-  -- Remaining gap: the supported arithmetic branches, including the `Int`-typed
-  -- `qdiv_total` fallback cases, now all have local semantic lemmas.
-  -- What is left is the real-typed `qdiv_total` fallback behavior, where
-  -- `__get_arith_poly_norm` drops to an atomic `qdiv` term instead of an atomic
-  -- `qdiv_total` term.
-  sorry
+  let finishAtomic :
+      (t : Term) ->
+      (__smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
+        __smtx_typeof (__eo_to_smt t) = SmtType.Real) ->
+      (__get_arith_poly_norm t = arith_atomic_poly t) ->
+      arith_poly_rational M (__get_arith_poly_norm t) ∧
+        arith_poly_wf (__get_arith_poly_norm t) ∧
+        arith_poly_denote_real M (__get_arith_poly_norm t) = arith_atom_denote_real M t :=
+    fun t hTy hNorm => by
+      have hRat : arith_poly_rational M (__get_arith_poly_norm t) :=
+        arith_poly_rational_of_get_arith_poly_norm_eq_atomic_of_smt_arith_type M hM t hTy hNorm
+      refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+      exact arith_poly_denote_real_eq_arith_atom_denote_real_of_norm_eq_atomic M t hNorm
+  let rec go (t : Term)
+      (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
+        __smtx_typeof (__eo_to_smt t) = SmtType.Real) :
+      arith_poly_rational M (__get_arith_poly_norm t) ∧
+        arith_poly_wf (__get_arith_poly_norm t) ∧
+        arith_poly_denote_real M (__get_arith_poly_norm t) = arith_atom_denote_real M t := by
+    cases hEq : t with
+    | Rational q =>
+        have hRat : arith_poly_rational M (__get_arith_poly_norm (Term.Rational q)) :=
+          arith_poly_rational_of_get_arith_poly_norm_rational M q
+        refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+        exact arith_poly_denote_real_of_get_arith_poly_norm_rational M q
+    | Numeral n =>
+        have hRat : arith_poly_rational M (__get_arith_poly_norm (Term.Numeral n)) :=
+          arith_poly_rational_of_get_arith_poly_norm_numeral M n
+        refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+        exact arith_poly_denote_real_of_get_arith_poly_norm_numeral M n
+    | Stuck =>
+        have hTy' :
+            __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.Int ∨
+              __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.Real := by
+          simpa [hEq] using hTy
+        exfalso
+        rcases hTy' with hInt | hReal
+        · simp [__eo_to_smt.eq_def] at hInt
+        · simp [__eo_to_smt.eq_def] at hReal
+    | Apply f x =>
+        have hTy :
+            __smtx_typeof (__eo_to_smt (Term.Apply f x)) = SmtType.Int ∨
+              __smtx_typeof (__eo_to_smt (Term.Apply f x)) = SmtType.Real := by
+          simpa [hEq] using hTy
+        let tApplyF := Term.Apply f x
+        cases f with
+        | UOp op =>
+            let tUnary := Term.Apply (Term.UOp op) x
+            cases op with
+            | __eoo_neg_2 =>
+                have ht : term_has_non_none_type ((__eo_to_smt x).uneg) := by
+                  unfold term_has_non_none_type
+                  rw [← eo_to_smt_uneg_eq x]
+                  exact non_none_of_smt_arith_type hTy
+                have hXTy :
+                    __smtx_typeof (__eo_to_smt x) = SmtType.Int ∨
+                      __smtx_typeof (__eo_to_smt x) = SmtType.Real :=
+                  arith_unop_arg_of_non_none
+                    (op := SmtTerm.uneg)
+                    (t := __eo_to_smt x)
+                    (typeof_uneg_eq (__eo_to_smt x)) ht
+                rcases go x hXTy with ⟨hRatX, hWfX, hRecX⟩
+                have hRat :
+                    arith_poly_rational M
+                      (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.__eoo_neg_2) x)) :=
+                  arith_poly_rational_of_get_arith_poly_norm_uneg M x hRatX
+                refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                exact arith_poly_denote_real_of_get_arith_poly_norm_uneg M x hWfX hRecX
+            | to_real =>
+                have ht : term_has_non_none_type ((__eo_to_smt x).to_real) := by
+                  unfold term_has_non_none_type
+                  rw [← eo_to_smt_to_real_eq x]
+                  exact non_none_of_smt_arith_type hTy
+                have hXTy :
+                    __smtx_typeof (__eo_to_smt x) = SmtType.Int ∨
+                      __smtx_typeof (__eo_to_smt x) = SmtType.Real :=
+                  to_real_arg_of_non_none ht
+                rcases go x hXTy with ⟨hRatX, _hWfX, hRecX⟩
+                have hRat :
+                    arith_poly_rational M
+                      (__get_arith_poly_norm (Term.Apply (Term.UOp UserOp.to_real) x)) :=
+                  arith_poly_rational_of_get_arith_poly_norm_to_real M x hRatX
+                refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                exact arith_poly_denote_real_of_get_arith_poly_norm_to_real M x hRecX
+            | _ =>
+                have hNorm :
+                    __get_arith_poly_norm tUnary =
+                      arith_atomic_poly tUnary := by
+                  simp [tUnary, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                    __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                    SmtEval.native_and, SmtEval.native_not]
+                exact finishAtomic tUnary hTy hNorm
+        | Apply g y =>
+            let tApplyG := Term.Apply (Term.Apply g y) x
+            cases g with
+            | UOp op =>
+                let tBinary := Term.Apply (Term.Apply (Term.UOp op) y) x
+                cases op with
+                | plus =>
+                    have ht : term_has_non_none_type
+                        (SmtTerm.plus (__eo_to_smt y) (__eo_to_smt x)) := by
+                      unfold term_has_non_none_type
+                      rw [← eo_to_smt_plus_eq y x]
+                      exact non_none_of_smt_arith_type hTy
+                    rcases arith_binop_args_of_non_none
+                        (op := SmtTerm.plus)
+                        (typeof_plus_eq (__eo_to_smt y) (__eo_to_smt x)) ht with hArgs | hArgs
+                    · rcases go y (Or.inl hArgs.1) with ⟨hRatY, _hWfY, hRecY⟩
+                      rcases go x (Or.inl hArgs.2) with ⟨hRatX, _hWfX, hRecX⟩
+                      have hRat :
+                          arith_poly_rational M
+                            (__get_arith_poly_norm
+                              (Term.Apply (Term.Apply (Term.UOp UserOp.plus) y) x)) :=
+                        arith_poly_rational_of_get_arith_poly_norm_plus M y x hRatY hRatX
+                      refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                      exact arith_poly_denote_real_of_get_arith_poly_norm_plus
+                        M hM y x hTy hRatY hRatX hRecY hRecX
+                    · rcases go y (Or.inr hArgs.1) with ⟨hRatY, _hWfY, hRecY⟩
+                      rcases go x (Or.inr hArgs.2) with ⟨hRatX, _hWfX, hRecX⟩
+                      have hRat :
+                          arith_poly_rational M
+                            (__get_arith_poly_norm
+                              (Term.Apply (Term.Apply (Term.UOp UserOp.plus) y) x)) :=
+                        arith_poly_rational_of_get_arith_poly_norm_plus M y x hRatY hRatX
+                      refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                      exact arith_poly_denote_real_of_get_arith_poly_norm_plus
+                        M hM y x hTy hRatY hRatX hRecY hRecX
+                | neg =>
+                    have ht : term_has_non_none_type
+                        (SmtTerm.neg (__eo_to_smt y) (__eo_to_smt x)) := by
+                      unfold term_has_non_none_type
+                      rw [← eo_to_smt_neg_eq y x]
+                      exact non_none_of_smt_arith_type hTy
+                    rcases arith_binop_args_of_non_none
+                        (op := SmtTerm.neg)
+                        (typeof_neg_eq (__eo_to_smt y) (__eo_to_smt x)) ht with hArgs | hArgs
+                    · rcases go y (Or.inl hArgs.1) with ⟨hRatY, _hWfY, hRecY⟩
+                      rcases go x (Or.inl hArgs.2) with ⟨hRatX, hWfX, hRecX⟩
+                      have hRat :
+                          arith_poly_rational M
+                            (__get_arith_poly_norm
+                              (Term.Apply (Term.Apply (Term.UOp UserOp.neg) y) x)) :=
+                        arith_poly_rational_of_get_arith_poly_norm_neg M y x hRatY hRatX
+                      refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                      exact arith_poly_denote_real_of_get_arith_poly_norm_neg
+                        M hM y x hTy hWfX hRatY hRatX hRecY hRecX
+                    · rcases go y (Or.inr hArgs.1) with ⟨hRatY, _hWfY, hRecY⟩
+                      rcases go x (Or.inr hArgs.2) with ⟨hRatX, hWfX, hRecX⟩
+                      have hRat :
+                          arith_poly_rational M
+                            (__get_arith_poly_norm
+                              (Term.Apply (Term.Apply (Term.UOp UserOp.neg) y) x)) :=
+                        arith_poly_rational_of_get_arith_poly_norm_neg M y x hRatY hRatX
+                      refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                      exact arith_poly_denote_real_of_get_arith_poly_norm_neg
+                        M hM y x hTy hWfX hRatY hRatX hRecY hRecX
+                | mult =>
+                    have ht : term_has_non_none_type
+                        (SmtTerm.mult (__eo_to_smt y) (__eo_to_smt x)) := by
+                      unfold term_has_non_none_type
+                      rw [← eo_to_smt_mult_eq y x]
+                      exact non_none_of_smt_arith_type hTy
+                    rcases arith_binop_args_of_non_none
+                        (op := SmtTerm.mult)
+                        (typeof_mult_eq (__eo_to_smt y) (__eo_to_smt x)) ht with hArgs | hArgs
+                    · rcases go y (Or.inl hArgs.1) with ⟨hRatY, _hWfY, hRecY⟩
+                      rcases go x (Or.inl hArgs.2) with ⟨hRatX, _hWfX, hRecX⟩
+                      have hRat :
+                          arith_poly_rational M
+                            (__get_arith_poly_norm
+                              (Term.Apply (Term.Apply (Term.UOp UserOp.mult) y) x)) :=
+                        arith_poly_rational_of_get_arith_poly_norm_mult M y x hRatY hRatX
+                      refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                      exact arith_poly_denote_real_of_get_arith_poly_norm_mult
+                        M hM y x hTy hRatY hRatX hRecY hRecX
+                    · rcases go y (Or.inr hArgs.1) with ⟨hRatY, _hWfY, hRecY⟩
+                      rcases go x (Or.inr hArgs.2) with ⟨hRatX, _hWfX, hRecX⟩
+                      have hRat :
+                          arith_poly_rational M
+                            (__get_arith_poly_norm
+                              (Term.Apply (Term.Apply (Term.UOp UserOp.mult) y) x)) :=
+                        arith_poly_rational_of_get_arith_poly_norm_mult M y x hRatY hRatX
+                      refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                      exact arith_poly_denote_real_of_get_arith_poly_norm_mult
+                        M hM y x hTy hRatY hRatX hRecY hRecX
+                | qdiv =>
+                    let tQdiv := Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) x
+                    have hQdivTy :
+                        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) x)) =
+                          SmtType.Real :=
+                      smt_typeof_qdiv_of_smt_arith_type y x hTy
+                    cases x with
+                    | Rational q =>
+                        by_cases hZero : q = native_mk_rational 0 1
+                        · have hNorm :
+                              __get_arith_poly_norm
+                                (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Rational q)) =
+                                arith_atomic_poly
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Rational q)) := by
+                            simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal,
+                              __eo_ite, native_ite, __eo_eq, native_teq, __eo_not,
+                              SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
+                              __eo_mk_apply, arith_atomic_poly]
+                          exact finishAtomic
+                            (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Rational q))
+                            hTy hNorm
+                        · rcases go y (Or.inr (smt_typeof_qdiv_left_of_rational_right y q hQdivTy)) with
+                            ⟨hRatY, _hWfY, hRecY⟩
+                          have hRat :
+                              arith_poly_rational M
+                                (__get_arith_poly_norm
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Rational q))) :=
+                            arith_poly_rational_of_get_arith_poly_norm_qdiv_of_rational M y q hZero hRatY
+                          refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                          exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_of_rational
+                            M hM y q hQdivTy hZero hRatY hRecY
+                    | Numeral n =>
+                        by_cases hZero : native_to_real n = native_mk_rational 0 1
+                        · have hNorm :
+                              __get_arith_poly_norm
+                                (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Numeral n)) =
+                                arith_atomic_poly
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Numeral n)) := by
+                            simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal,
+                              __eo_ite, native_ite, __eo_eq, native_teq, __eo_not,
+                              SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
+                              __eo_mk_apply, arith_atomic_poly]
+                          exact finishAtomic
+                            (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Numeral n))
+                            hTy hNorm
+                        · rcases go y (Or.inl (smt_typeof_qdiv_left_of_numeral_right y n hQdivTy)) with
+                            ⟨hRatY, _hWfY, hRecY⟩
+                          have hRat :
+                              arith_poly_rational M
+                                (__get_arith_poly_norm
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Numeral n))) :=
+                            arith_poly_rational_of_get_arith_poly_norm_qdiv_of_numeral M y n hZero hRatY
+                          refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                          exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_of_numeral
+                            M hM y n hQdivTy hZero hRatY hRecY
+                    | _ =>
+                        have hNorm :
+                            __get_arith_poly_norm tQdiv =
+                              arith_atomic_poly tQdiv := by
+                          simp [tQdiv, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                            __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                            SmtEval.native_and, SmtEval.native_not]
+                        exact finishAtomic tQdiv hTy hNorm
+                | qdiv_total =>
+                    let tQdivTotal := Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) x
+                    have hQdivTotalTy :
+                        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) x)) =
+                          SmtType.Real :=
+                      smt_typeof_qdiv_total_of_smt_arith_type y x hTy
+                    cases x with
+                    | Rational q =>
+                        by_cases hZero : q = native_mk_rational 0 1
+                        · have hNorm :
+                              __get_arith_poly_norm
+                                (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Rational q)) =
+                                arith_atomic_poly
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Rational q)) := by
+                            simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal,
+                              __eo_ite, native_ite, __eo_eq, native_teq, __eo_not,
+                              SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
+                              __eo_mk_apply, arith_atomic_poly]
+                          exact finishAtomic
+                            (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Rational q))
+                            hTy hNorm
+                        · have hQdivTy :
+                              __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y)
+                                (Term.Rational q))) = SmtType.Real :=
+                            smt_typeof_qdiv_of_qdiv_total y (Term.Rational q) hQdivTotalTy
+                          rcases go y (Or.inr (smt_typeof_qdiv_left_of_rational_right y q hQdivTy)) with
+                            ⟨hRatY, _hWfY, hRecY⟩
+                          have hRat :
+                              arith_poly_rational M
+                                (__get_arith_poly_norm
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Rational q))) :=
+                            arith_poly_rational_of_get_arith_poly_norm_qdiv_total_of_rational M y q hZero hRatY
+                          refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                          exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_rational
+                            M hM y q hQdivTotalTy hZero hRatY hRecY
+                    | Numeral n =>
+                        by_cases hZero : native_to_real n = native_mk_rational 0 1
+                        · have hRat :
+                              arith_poly_rational M
+                                (__get_arith_poly_norm
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Numeral n))) :=
+                            arith_poly_rational_of_get_arith_poly_norm_eq_atomic_of_smt_arith_type
+                              M hM
+                              (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Numeral n))
+                              hTy
+                              (by
+                                simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal,
+                                  __eo_ite, native_ite, __eo_eq, native_teq, __eo_not,
+                                  SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
+                                  __eo_mk_apply, arith_atomic_poly])
+                          refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                          exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_numeral_zero
+                            M hM y n hQdivTotalTy hZero
+                        · have hQdivTy :
+                              __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y)
+                                (Term.Numeral n))) = SmtType.Real :=
+                            smt_typeof_qdiv_of_qdiv_total y (Term.Numeral n) hQdivTotalTy
+                          rcases go y (Or.inl (smt_typeof_qdiv_left_of_numeral_right y n hQdivTy)) with
+                            ⟨hRatY, _hWfY, hRecY⟩
+                          have hRat :
+                              arith_poly_rational M
+                                (__get_arith_poly_norm
+                                  (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Numeral n))) :=
+                            arith_poly_rational_of_get_arith_poly_norm_qdiv_total_of_numeral M y n hZero hRatY
+                          refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
+                          exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_numeral
+                            M hM y n hQdivTotalTy hZero hRatY hRecY
+                    | _ =>
+                        have hNorm :
+                            __get_arith_poly_norm tQdivTotal =
+                              arith_atomic_poly tQdivTotal := by
+                          simp [tQdivTotal, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                            __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                            SmtEval.native_and, SmtEval.native_not]
+                        exact finishAtomic
+                          tQdivTotal hTy hNorm
+                | _ =>
+                    have hNorm :
+                        __get_arith_poly_norm tBinary = arith_atomic_poly tBinary := by
+                      simp [tBinary, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                        __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                        SmtEval.native_and, SmtEval.native_not]
+                    exact finishAtomic tBinary hTy hNorm
+            | _ =>
+                have hNorm :
+                    __get_arith_poly_norm tApplyG =
+                      arith_atomic_poly tApplyG := by
+                  simp [tApplyG, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                    __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                    SmtEval.native_and, SmtEval.native_not]
+                exact finishAtomic tApplyG hTy hNorm
+        | _ =>
+            have hNorm :
+                __get_arith_poly_norm tApplyF = arith_atomic_poly tApplyF := by
+              simp [tApplyF, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+                __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                SmtEval.native_and, SmtEval.native_not]
+            exact finishAtomic tApplyF hTy hNorm
+    | _ =>
+        have hTy' :
+            __smtx_typeof (__eo_to_smt t) = SmtType.Int ∨
+              __smtx_typeof (__eo_to_smt t) = SmtType.Real := by
+          simpa [hEq] using hTy
+        have hNorm : __get_arith_poly_norm t = arith_atomic_poly t := by
+          simp [hEq, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
+            __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+            SmtEval.native_and, SmtEval.native_not]
+        simpa [hEq] using finishAtomic t hTy' hNorm
+  exact (go t hTy).2.2
 
 private theorem smt_value_rel_of_eq_arith_atom_denote_real_of_smt_arith_type
     (M : SmtModel) (hM : model_total_typed M)
