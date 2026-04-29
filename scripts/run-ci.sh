@@ -8,6 +8,15 @@ lake build logos
 echo "Compiling Cpc.Spec..."
 lake build Cpc.Spec
 
+echo "Compiling Cpc.Proofs.Rules.Refl..."
+lake build Cpc.Proofs.Rules.Refl
+
+echo "Compiling Cpc.Proofs.Rules.Contra..."
+lake build Cpc.Proofs.Rules.Contra
+
+echo "Compiling Cpc.Proofs.Rules.Trans..."
+lake build Cpc.Proofs.Rules.Trans
+
 # expensive (~5mins) (~2min after modularize)
 #echo "Compiling Cpc.Proofs.Rules.Chain_resolution..."
 #lake build Cpc.Proofs.Rules.Chain_resolution
