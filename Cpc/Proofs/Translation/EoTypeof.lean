@@ -72,10 +72,10 @@ The final theorem in `Full.lean` instantiates this with its local recursive
 worker, avoiding a global axiom while keeping these helpers independent from the
 full translation proof module.
 -/
-class TranslationBridge : Prop where
-  matches :
-    ∀ t : Term,
-      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
+class TranslationBridge where
+  holds :
+    (t : Term) ->
+      Not (__smtx_typeof (__eo_to_smt t) = SmtType.None) ->
       __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t)
 
 variable [TranslationBridge]
@@ -89,7 +89,7 @@ private theorem eo_to_smt_type_typeof_of_smt_type
   have hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
     rw [h]
     exact hT
-  exact (TranslationBridge.matches t hNN).symm.trans h
+  exact (TranslationBridge.holds t hNN).symm.trans h
 
 /-- A translated SMT `Bool` recovers EO `Bool`. -/
 private theorem eo_typeof_eq_bool_of_smt_bool
