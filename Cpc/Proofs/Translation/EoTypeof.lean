@@ -1,9 +1,11 @@
 import Cpc.Proofs.Translation.Base
 import Cpc.Proofs.Translation.Datatypes
 import Cpc.Proofs.Translation.Inversions
+import Cpc.Proofs.TypePreservation.BitVecPrep
 import Cpc.Proofs.TypePreservation.Common
 import Cpc.Proofs.TypePreservation.CoreArith
 import Cpc.Proofs.TypePreservation.Datatypes
+import Cpc.Proofs.TypePreservation.SeqStringRegex
 
 open Eo
 open SmtEval
@@ -695,8 +697,12 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
   have hTranslate :
       __eo_to_smt t =
         __eo_to_smt_updater (SmtTerm.DtSel s d i j) (__eo_to_smt y) (__eo_to_smt x) := by
-    rw [__eo_to_smt.eq_def]
-    simp [hz]
+    change
+      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x) =
+        __eo_to_smt_updater (SmtTerm.DtSel s d i j) (__eo_to_smt y) (__eo_to_smt x)
+    rw (occs := .pos [1]) [__eo_to_smt.eq_def]
+    simp only
+    rw [hz]
   have hUpdaterNN :
       __smtx_typeof
           (__eo_to_smt_updater (SmtTerm.DtSel s d i j) (__eo_to_smt y) (__eo_to_smt x)) ≠
@@ -746,8 +752,13 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tupl
       __eo_to_smt t =
         __eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
           (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x) := by
-    rw [__eo_to_smt.eq_def]
-    simp [hy, hz]
+    change
+      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x) =
+        __eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
+          (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x)
+    rw (occs := .pos [1]) [__eo_to_smt.eq_def]
+    simp only
+    rw [hy, hz]
   have hTupleNN :
       __smtx_typeof
           (__eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
@@ -943,7 +954,7 @@ theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
         let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
         let _v2 := SmtTerm.Var "_at_x" _v0
         SmtTerm.choice_nth "_at_x" _v0
-          (SmtTerm.not (SmtTerm.eq (SmtTerm.Apply (__eo_to_smt x1) _v2) (SmtTerm.Apply (__eo_to_smt x2) _v2))) 0 := by
+          (SmtTerm.not (SmtTerm.eq (SmtTerm.select (__eo_to_smt x1) _v2) (SmtTerm.select (__eo_to_smt x2) _v2))) 0 := by
     rw [__eo_to_smt.eq_def]
   have hTranslate :
       __eo_to_smt (Term.Apply (Term._at_array_deq_diff x1 x2) x) =
@@ -1580,7 +1591,8 @@ theorem eo_to_smt_type_typeof_apply_apply_eq_of_smt_same_non_none
   have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Bool := by
     rw [__eo_to_smt.eq_def]
     rw [typeof_eq_eq (__eo_to_smt y) (__eo_to_smt x), hy, hx]
-    simp [__smtx_typeof_eq, native_ite, native_Teq, hT]
+    simpa [__smtx_typeof_eq, native_ite, native_Teq] using
+      smtx_typeof_guard_of_non_none T SmtType.Bool hT
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_plus_of_smt_arith`. -/
@@ -3730,12 +3742,14 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_bvite_of_smt_bitvec1_same_non_no
   have hCond :
       __smtx_typeof (SmtTerm.eq (__eo_to_smt z) (SmtTerm.Binary 1 1)) = SmtType.Bool := by
     rw [typeof_eq_eq (__eo_to_smt z) (SmtTerm.Binary 1 1), hz, typeof_binary_one_eq]
-    simp [__smtx_typeof_eq, native_ite, native_Teq]
+    simpa [__smtx_typeof_eq, native_ite, native_Teq] using
+      smtx_typeof_guard_of_non_none (SmtType.BitVec 1) SmtType.Bool (by simp)
   have hSmt : __smtx_typeof (__eo_to_smt t) = T := by
     rw [__eo_to_smt.eq_def]
     rw [typeof_ite_eq]
     rw [hCond, hy, hx]
-    simp [__smtx_typeof_ite, native_ite, native_Teq, hT]
+    simpa [__smtx_typeof_ite, native_ite, native_Teq] using
+      smtx_typeof_guard_of_non_none T T hT
   exact eo_to_smt_type_typeof_of_smt_type t hSmt hT
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_ite_of_smt_bool_same_non_none`. -/
