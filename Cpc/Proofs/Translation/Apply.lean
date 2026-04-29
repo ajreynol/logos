@@ -14,6 +14,8 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
+variable [TranslationBridge]
+
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_concat`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_concat
     (x y : Term)
