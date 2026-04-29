@@ -3756,6 +3756,21 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_nume
   exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_eq_atomic_qdiv_of_int_args
     M hM t1 (Term.Numeral n) hNorm hTy1 hTy2
 
+private theorem arith_poly_rational_of_get_arith_poly_norm_qdiv_total_eq_atomic_qdiv
+    (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
+    (hNorm :
+      __get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2) =
+        arith_atomic_poly (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) t2))
+    (hTy :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) t1) t2)) =
+        SmtType.Real) :
+  arith_poly_rational M
+      (__get_arith_poly_norm (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2)) := by
+  rw [hNorm]
+  exact arith_poly_rational_of_arith_atomic_poly M _
+    (arith_atom_denote_real_rational_of_smt_arith_type M hM _
+      (Or.inr hTy))
+
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
     (M : SmtModel) (hM : model_total_typed M) :
     (t : Term) ->
