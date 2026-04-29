@@ -55,7 +55,8 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT type translation for `tuple_step`. -/
 @[simp] theorem eo_to_smt_type_tuple_step (T U : Term) :
     __eo_to_smt_type (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U) =
-      __eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U) := by
+      native_ite (__smtx_type_wf (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)))
+        (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)) SmtType.None := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT translation for `tester_of_dtcons`. -/

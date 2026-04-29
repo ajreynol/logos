@@ -278,6 +278,83 @@ theorem eo_to_smt_type_tuple_ne_dtc_app
         | sum c' d'' =>
             simp
 
+private theorem eo_to_smt_type_guarded_tuple_ne_bool
+    (U V : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.Bool := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_bool U V]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_int
+    (U V : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.Int := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_int U V]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_real
+    (U V : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.Real := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_real U V]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_reglan
+    (U V : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.RegLan := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_reglan U V]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_bitvec
+    (U V : SmtType) (w : native_Nat) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.BitVec w := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_bitvec U V w]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_char
+    (U V : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.Char := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_char U V]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_seq
+    (U V W : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.Seq W := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_seq U V W]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_set
+    (U V W : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.Set W := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_set U V W]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_map
+    (U V W X : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.Map W X := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_map U V W X]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_fun
+    (U V A B : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.FunType A B := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_fun U V A B]
+
+private theorem eo_to_smt_type_guarded_tuple_ne_dtc_app
+    (U V A B : SmtType) :
+    native_ite (__smtx_type_wf (__eo_to_smt_type_tuple U V))
+      (__eo_to_smt_type_tuple U V) SmtType.None ≠ SmtType.DtcAppType A B := by
+  cases hWf : __smtx_type_wf (__eo_to_smt_type_tuple U V) <;>
+    simp [native_ite, eo_to_smt_type_tuple_ne_dtc_app U V A B]
+
 /-- Simplifies EO-to-SMT type translation for `fun_ne_bool`. -/
 private theorem eo_to_smt_type_fun_ne_bool
     (T U : Term) :
@@ -479,7 +556,7 @@ theorem eo_to_smt_type_eq_bool
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_bool (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_bool (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -526,7 +603,7 @@ theorem eo_to_smt_type_eq_int
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_int (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_int (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -573,7 +650,7 @@ theorem eo_to_smt_type_eq_real
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_real (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_real (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -620,7 +697,7 @@ theorem eo_to_smt_type_eq_reglan
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_reglan (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -667,7 +744,7 @@ theorem eo_to_smt_type_eq_char
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_char (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_char (__eo_to_smt_type y) (__eo_to_smt_type x) h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -720,7 +797,7 @@ theorem eo_to_smt_type_eq_bitvec
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_bitvec (__eo_to_smt_type y) (__eo_to_smt_type x) w h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_bitvec (__eo_to_smt_type y) (__eo_to_smt_type x) w h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -762,7 +839,7 @@ theorem eo_to_smt_type_eq_seq
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_seq (__eo_to_smt_type y) (__eo_to_smt_type x) U h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_seq (__eo_to_smt_type y) (__eo_to_smt_type x) U h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -812,7 +889,7 @@ theorem eo_to_smt_type_eq_set
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_set (__eo_to_smt_type y) (__eo_to_smt_type x) U h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_set (__eo_to_smt_type y) (__eo_to_smt_type x) U h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -856,7 +933,7 @@ theorem eo_to_smt_type_eq_map
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_map (__eo_to_smt_type y) (__eo_to_smt_type x) A B h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_map (__eo_to_smt_type y) (__eo_to_smt_type x) A B h).elim
               case Array =>
                   exact ⟨y, x, rfl, (eo_to_smt_type_array_inners y x h).1,
                     (eo_to_smt_type_array_inners y x h).2⟩
@@ -904,7 +981,7 @@ theorem eo_to_smt_type_eq_fun
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type y) (__eo_to_smt_type x) A B h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_fun (__eo_to_smt_type y) (__eo_to_smt_type x) A B h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -956,7 +1033,7 @@ theorem eo_to_smt_type_eq_dtc_app
               cases op <;> try simp [__eo_to_smt_type] at h
               case Tuple =>
                   exact
-                    (eo_to_smt_type_tuple_ne_dtc_app (__eo_to_smt_type y) (__eo_to_smt_type x) A B h).elim
+                    (eo_to_smt_type_guarded_tuple_ne_dtc_app (__eo_to_smt_type y) (__eo_to_smt_type x) A B h).elim
               case Array =>
                   cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                     simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
