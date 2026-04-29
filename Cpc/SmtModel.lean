@@ -234,7 +234,7 @@ deriving Repr, Inhabited
 
 mutual
 
-/- 
+/-
 SMT-LIB types.
 -/
 inductive SmtType : Type where
