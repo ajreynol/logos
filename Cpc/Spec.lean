@@ -82,6 +82,7 @@ def __eo_to_smt_set_empty : SmtType -> SmtTerm
 def __eo_to_smt_set_insert : Term -> SmtTerm -> SmtTerm
   | (Term.Apply (Term.Apply Term.__eo_List_cons t1) t2), t3 => (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt t1)) (__eo_to_smt_set_insert t2 t3))
   | Term.__eo_List_nil, t3 => t3
+  | _, _ => SmtTerm.None
 
 
 def __eo_to_smt_quantifiers_skolemize : SmtTerm -> native_Nat -> SmtTerm
