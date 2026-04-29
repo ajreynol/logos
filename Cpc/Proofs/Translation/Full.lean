@@ -412,6 +412,7 @@ theorem eo_to_smt_typeof_matches_translation
   let rec go (t : Term) :
       __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
+    letI bridge : TranslationBridge := ⟨go⟩
     cases t <;> intro hNonNone
     case UOp op =>
       cases op

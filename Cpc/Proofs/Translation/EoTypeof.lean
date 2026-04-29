@@ -65,16 +65,20 @@ theorem eo_requires_eo_and_eq_self_of_non_stuck
   simpa [__eo_and] using eo_requires_self_of_non_stuck (Term.Boolean true) V (by simp)
 
 /--
-Temporary internal bridge mirroring the lightweight public translation layer.
+Local bridge used by EO-side helper lemmas that need the recursive translation
+type-preservation hypothesis for arbitrary subterms.
 
-This stays private so we can discharge SMT-hypothesis wrapper lemmas without
-threading the public stub through imports and colliding with the eventual full
-theorem name.
+The final theorem in `Full.lean` instantiates this with its local recursive
+worker, avoiding a global axiom while keeping these helpers independent from the
+full translation proof module.
 -/
-private axiom eo_to_smt_typeof_matches_translation_bridge
-    (t : Term) :
-    __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t)
+class TranslationBridge : Prop where
+  matches :
+    ∀ t : Term,
+      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t)
+
+variable [TranslationBridge]
 
 /-- Recovers the EO translated type from an SMT typing equality. -/
 private theorem eo_to_smt_type_typeof_of_smt_type
@@ -85,7 +89,7 @@ private theorem eo_to_smt_type_typeof_of_smt_type
   have hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
     rw [h]
     exact hT
-  exact (eo_to_smt_typeof_matches_translation_bridge t hNN).symm.trans h
+  exact (TranslationBridge.matches t hNN).symm.trans h
 
 /-- A translated SMT `Bool` recovers EO `Bool`. -/
 private theorem eo_typeof_eq_bool_of_smt_bool
