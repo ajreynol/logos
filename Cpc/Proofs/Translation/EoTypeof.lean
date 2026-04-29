@@ -2934,6 +2934,23 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_str_indexof_re_of_seq_char_regla
   rw [hz, hy, hx]
   rfl
 
+/-- Stronger EO-side helper for `typeof_apply_apply_apply_at_re_unfold_pos_component`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_char_reglan_int
+    (x y z : Term)
+    (hz : __eo_typeof z = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
+    (hy : __eo_typeof y = Term.UOp UserOp.RegLan)
+    (hx : __eo_typeof x = Term.UOp UserOp.Int) :
+    __eo_to_smt_type
+        (__eo_typeof
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_re_unfold_pos_component) z) y) x)) =
+      SmtType.Seq SmtType.Char := by
+  change
+    __eo_to_smt_type
+        (__eo_typeof__at_re_unfold_pos_component (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
+      SmtType.Seq SmtType.Char
+  rw [hz, hy, hx]
+  rfl
+
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_re_loop`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
     (x y z : Term)
@@ -4260,6 +4277,23 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_str_indexof_re_of_smt_seq_char_r
       SmtType.Int := by
   simpa using
     eo_to_smt_type_typeof_apply_apply_apply_str_indexof_re_of_seq_char_reglan
+      x y z
+      (eo_typeof_eq_seq_char_of_smt_seq_char z hz)
+      (eo_typeof_eq_reglan_of_smt_reglan y hy)
+      (eo_typeof_eq_int_of_smt_int x hx)
+
+/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_at_re_unfold_pos_component_of_smt_seq_char_reglan_int`. -/
+theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_smt_seq_char_reglan_int
+    (x y z : Term)
+    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq SmtType.Char)
+    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.RegLan)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
+    __eo_to_smt_type
+        (__eo_typeof
+          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_re_unfold_pos_component) z) y) x)) =
+      SmtType.Seq SmtType.Char := by
+  simpa using
+    eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_char_reglan_int
       x y z
       (eo_typeof_eq_seq_char_of_smt_seq_char z hz)
       (eo_typeof_eq_reglan_of_smt_reglan y hy)
