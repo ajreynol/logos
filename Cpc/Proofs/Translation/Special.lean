@@ -18,7 +18,9 @@ theorem eo_to_smt_typeof_matches_translation_purify
     (hx : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
     __smtx_typeof (__eo_to_smt (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof (Term._at_purify x)) := by
-  rw [__eo_to_smt.eq_def, hx]
+  change __smtx_typeof (__eo_to_smt x) =
+    __eo_to_smt_type (__eo_typeof (Term._at_purify x))
+  rw [hx]
   exact (eo_to_smt_type_typeof_purify x).symm
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_array_deq_diff`. -/
@@ -37,7 +39,7 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
             (SmtTerm.eq
               (SmtTerm.select (__eo_to_smt x1) _v2)
               (SmtTerm.select (__eo_to_smt x2) _v2))) 0 := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hApplyNN :
       term_has_non_none_type
         (let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2))
@@ -84,7 +86,7 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
             (SmtTerm.eq
               (SmtTerm.set_member _v2 (__eo_to_smt x1))
               (SmtTerm.set_member _v2 (__eo_to_smt x2)))) 0 := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hApplyNN :
       term_has_non_none_type
         (let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))

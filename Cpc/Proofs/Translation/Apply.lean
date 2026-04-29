@@ -376,13 +376,10 @@ private theorem eo_to_smt_eq_dt_sel_cases
       (∃ z, y = Term._at_purify z ∧ __eo_to_smt z = SmtTerm.DtSel s d i j) := by
   cases y
   case DtSel s0 d0 i0 j0 =>
-    rw [__eo_to_smt.eq_def] at hy
     cases hy
     exact Or.inl ⟨d0, rfl, rfl⟩
   case _at_purify z =>
-    have hz : __eo_to_smt z = SmtTerm.DtSel s d i j := by
-      rw [__eo_to_smt.eq_def] at hy
-      exact hy
+    have hz : __eo_to_smt z = SmtTerm.DtSel s d i j := hy
     exact Or.inr ⟨z, rfl, hz⟩
   all_goals
     exfalso
@@ -444,7 +441,6 @@ private theorem eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation
   cases y with
   | _at_purify z =>
       have hz : __eo_to_smt z = SmtTerm.DtTester s d i := by
-        rw [__eo_to_smt.eq_def] at hy
         exact hy
       have hHeadEq :
           __eo_typeof (Term._at_purify (Term._at_purify z)) =
@@ -467,28 +463,10 @@ private theorem eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation
       | UOp op =>
           cases op with
           | is =>
-              cases hz : __eo_to_smt z with
-              | DtCons s0 d0 i0 =>
-                  rw [__eo_to_smt.eq_def, __eo_to_smt_tester, hz] at hy
-                  cases hy
-                  have hIs : __eo_typeof (Term.UOp UserOp.is) = Term.Stuck := by
-                    native_decide
-                  change
-                    __eo_to_smt_type
-                        (__eo_typeof_apply
-                          (__eo_typeof__at_purify (__eo_typeof (Term.Apply (Term.UOp UserOp.is) z)))
-                          (__eo_typeof x)) =
-                      SmtType.None
-                  have hUnaryIs : __eo_typeof (Term.Apply (Term.UOp UserOp.is) z) = Term.Stuck := by
-                    change __eo_typeof_apply (__eo_typeof (Term.UOp UserOp.is)) (__eo_typeof z) =
-                      Term.Stuck
-                    rw [hIs]
-                    rfl
-                  rw [hUnaryIs]
-                  rfl
-              | _ =>
-                  exfalso
-                  simpa [__eo_to_smt.eq_def, __eo_to_smt_tester, hz] using hy
+              exfalso
+              change SmtTerm.Apply (__eo_to_smt (Term.UOp UserOp.is)) (__eo_to_smt z) =
+                SmtTerm.DtTester s d i at hy
+              cases hy
           | _ =>
               exfalso
               simpa [__eo_to_smt.eq_def] using hy
