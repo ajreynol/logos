@@ -14,41 +14,41 @@ set_option maxHeartbeats 10000000
 /-- Simplifies EO-to-SMT translation for `true`. -/
 private theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `false`. -/
 private theorem eo_to_smt_false_eq :
     __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `stuck`. -/
 private theorem eo_to_smt_stuck_eq :
     __eo_to_smt Term.Stuck = SmtTerm.None := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `and`. -/
 private theorem eo_to_smt_and_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) =
       SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `not`. -/
 private theorem eo_to_smt_not_eq (t : Term) :
     __eo_to_smt (Term.Apply (Term.UOp UserOp.not) t) =
       SmtTerm.not (__eo_to_smt t) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `imp`. -/
 private theorem eo_to_smt_imp_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) =
       SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `eq`. -/
 private theorem eo_to_smt_eq_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) =
       SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
