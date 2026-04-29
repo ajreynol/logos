@@ -10,13 +10,13 @@ set_option maxHeartbeats 10000000
 /-- Simplifies EO-to-SMT translation for `stuck`. -/
 private theorem eo_to_smt_stuck_eq :
     __eo_to_smt Term.Stuck = SmtTerm.None := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `eq`. -/
 private theorem eo_to_smt_eq_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.eq x) y) =
       SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Expands `__eo_prog_refl` on non-stuck inputs. -/
 private theorem eo_prog_refl_eq_of_ne_stuck (x : Term) :
@@ -37,7 +37,7 @@ by
     apply hTrans
     subst hStuck
     change __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None
-    simpa [eo_to_smt_stuck_eq] using TranslationProofs.smtx_typeof_none
+    simp [eo_to_smt_stuck_eq, TranslationProofs.smtx_typeof_none]
   · rw [eo_prog_refl_eq_of_ne_stuck x1 hStuck]
     unfold RuleProofs.eo_has_bool_type
     rw [eo_to_smt_eq_eq x1 x1]

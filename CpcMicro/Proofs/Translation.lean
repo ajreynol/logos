@@ -173,7 +173,7 @@ private theorem eo_to_smt_typeof_matches_translation :
         · exact hw
         · exfalso
           apply hNN
-          simp [__eo_to_smt.eq_def, native_ite, SmtEval.native_and, hw]
+          simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, SmtEval.native_and, hw]
       have hSmt := smtx_typeof_binary_of_non_none w n hNN
       have hEo :
           __eo_to_smt_type (__eo_typeof (Term.Binary w n)) =
