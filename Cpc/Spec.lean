@@ -347,8 +347,8 @@ def __eo_to_smt : Term -> SmtTerm
     (SmtTerm.div (SmtTerm.neg (SmtTerm.str_len _v1) (SmtTerm.str_len (SmtTerm.str_replace_all _v1 _v0 (SmtTerm.seq_empty (SmtType.Seq SmtType.Char))))) (SmtTerm.str_len _v0))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_witness_string_length) x1) x2) x3) => 
     let _v0 := (__eo_to_smt_type x1)
-    (SmtTerm.choice_nth "_at_x" _v0 (SmtTerm.eq (SmtTerm.str_len (SmtTerm.Var "_at_x" _v0)) (__eo_to_smt x2)) native_nat_zero)
-  | (Term.Apply (Term.UOp UserOp.is) x1) => (__eo_to_smt_tester (__eo_to_smt x1))
+    (native_ite (native_teq (__eo_typeof x3) (Term.UOp UserOp.Int)) (SmtTerm.choice_nth "_at_x" _v0 (SmtTerm.eq (SmtTerm.str_len (SmtTerm.Var "_at_x" _v0)) (__eo_to_smt x2)) native_nat_zero) SmtTerm.None)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.is) x1) x2) => (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) x1) x2) x3) => (__eo_to_smt_updater (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.UOp UserOp.tuple_unit) => (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) native_nat_zero)
   | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x1) x2) => (SmtTerm.Apply (__eo_to_smt_tuple_app_extend (__eo_to_smt x1) (__eo_to_smt_type (__eo_typeof x2))) (__eo_to_smt x2))
