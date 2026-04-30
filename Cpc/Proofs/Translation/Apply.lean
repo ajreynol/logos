@@ -218,13 +218,31 @@ omit [TranslationBridge] in
 private theorem eo_to_smt_distinct_ne_dt_sel
     (xs : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt_distinct xs ≠ SmtTerm.DtSel s d i j := by
-  sorry
+  intro h
+  cases xs <;> try cases h
+  case Apply f x =>
+    cases f <;> try cases h
+    case UOp op =>
+      cases op <;> cases h
+    case Apply g y =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> cases h
 
 omit [TranslationBridge] in
 private theorem eo_to_smt_distinct_ne_dt_tester
     (xs : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt_distinct xs ≠ SmtTerm.DtTester s d i := by
-  sorry
+  intro h
+  cases xs <;> try cases h
+  case Apply f x =>
+    cases f <;> try cases h
+    case UOp op =>
+      cases op <;> cases h
+    case Apply g y =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> cases h
 
 omit [TranslationBridge] in
 private theorem eo_to_smt_at_bv_ne_dt_sel
@@ -2606,7 +2624,50 @@ private theorem smtx_typeof_eo_to_smt_distinct_bool_or_none
     (xs : Term) :
     __smtx_typeof (__eo_to_smt_distinct xs) = SmtType.Bool ∨
       __smtx_typeof (__eo_to_smt_distinct xs) = SmtType.None := by
-  sorry
+  cases xs
+  case Apply f a =>
+    cases f
+    case UOp op =>
+      cases op with
+      | _at__at_TypedList_nil =>
+          left
+          change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
+          rw [__smtx_typeof.eq_1]
+      | _ =>
+          right
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none
+    case Apply g b =>
+      cases g
+      case UOp op =>
+        cases op with
+        | _at__at_TypedList_cons =>
+            change
+              __smtx_typeof
+                  (SmtTerm.and (__eo_to_smt_distinct_pairs (__eo_to_smt b) a)
+                    (__eo_to_smt_distinct a)) = SmtType.Bool ∨
+                __smtx_typeof
+                  (SmtTerm.and (__eo_to_smt_distinct_pairs (__eo_to_smt b) a)
+                    (__eo_to_smt_distinct a)) = SmtType.None
+            exact smtx_typeof_and_bool_or_none
+              (__eo_to_smt_distinct_pairs (__eo_to_smt b) a)
+              (__eo_to_smt_distinct a)
+        | _ =>
+            right
+            change __smtx_typeof SmtTerm.None = SmtType.None
+            exact smtx_typeof_none
+      all_goals
+        right
+        change __smtx_typeof SmtTerm.None = SmtType.None
+        exact smtx_typeof_none
+    all_goals
+      right
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact smtx_typeof_none
+  all_goals
+    right
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact smtx_typeof_none
 
 omit [TranslationBridge] in
 /-- A non-`none` translated `distinct` has Boolean SMT type. -/
