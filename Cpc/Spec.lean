@@ -37,9 +37,6 @@ Definitions for eo_is_obj
 -/
 noncomputable section
 
-def __eo_to_smt_distinct_guard (xs : Term) : native_Bool :=
-  native_teq (__eo_typeof_distinct (__eo_typeof xs)) Term.Bool
-
 mutual
 
 def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
@@ -49,17 +46,8 @@ def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
 
 
 def __eo_to_smt_distinct : Term -> SmtTerm
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =>
-    native_ite
-      (__eo_to_smt_distinct_guard
-        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs))
-      (SmtTerm.and (__eo_to_smt_distinct_pairs (__eo_to_smt x) xs) (__eo_to_smt_distinct xs))
-      SmtTerm.None
-  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) =>
-    native_ite
-      (__eo_to_smt_distinct_guard (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T))
-      (SmtTerm.Boolean true)
-      SmtTerm.None
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) => (SmtTerm.and (__eo_to_smt_distinct_pairs (__eo_to_smt x) xs) (__eo_to_smt_distinct xs))
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) => (SmtTerm.Boolean true)
   | xs => SmtTerm.None
 
 
@@ -369,10 +357,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.is) x1) x2) => (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) x1) x2) x3) => (__eo_to_smt_updater (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.UOp UserOp.tuple_unit) => (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) native_nat_zero)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x1) x2) =>
-    let _v0 := (SmtTerm.Apply (__eo_to_smt_tuple_app_extend (__eo_to_smt x1) (__eo_to_smt_type (__eo_typeof x2))) (__eo_to_smt x2))
-    let _v1 := (__eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x1) x2)))
-    (native_ite (native_Teq (__smtx_typeof _v0) _v1) _v0 SmtTerm.None)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x1) x2) => (SmtTerm.Apply (__eo_to_smt_tuple_app_extend (__eo_to_smt x1) (__eo_to_smt_type (__eo_typeof x2))) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_select) x1) x2) => (__eo_to_smt_tuple_select (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) x1) x2) x3) => (__eo_to_smt_tuple_update (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.set_empty x1) => (__eo_to_smt_set_empty (__eo_to_smt_type x1))
