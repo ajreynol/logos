@@ -10,14 +10,13 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSectionVars false
-set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
 variable [TranslationBridge]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_concat`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_concat
     (x y : Term)
@@ -51,6 +50,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_concat
     simp [__smtx_typeof_concat, hy, hx]
   exact hSmt.trans (hEo w1 w2 hy hx).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_bv_binop`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop
     (eoOp : Term) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -83,6 +83,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop
     simp [__smtx_typeof_bv_op_2, native_ite, native_nateq, SmtEval.native_nateq]
   exact hSmt.trans (hEo w hy hx).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_bv_binop_ret`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
     (eoOp : Term) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (ret : SmtType) (x y : Term)
@@ -117,6 +118,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
     simp [__smtx_typeof_bv_op_2_ret, native_ite, native_nateq, SmtEval.native_nateq]
   exact hSmt.trans (hEo w hy hx).symm
 
+omit [TranslationBridge] in
 /-- Simplifies comparison operators translated through an `ite` returning `(_ BitVec 1)`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_bv_cmp_to_bv1
     (eoOp : Term) (smtCmp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -177,6 +179,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_cmp_to_bv1
     simp [__smtx_typeof_ite, native_ite, native_Teq]
   exact hSmt.trans (hEo w hy hx).symm
 
+omit [TranslationBridge] in
 /-- Extracts non-`none` from a function-like apply head. -/
 private theorem smtx_head_non_none_of_apply_cases
     {T A B : SmtType}
@@ -187,6 +190,7 @@ private theorem smtx_head_non_none_of_apply_cases
   · cases hNone.symm.trans hHead
   · cases hNone.symm.trans hHead
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof_apply` for function-like apply heads. -/
 private theorem smtx_typeof_apply_of_head_cases
     {F X A B : SmtType}
@@ -200,6 +204,7 @@ private theorem smtx_typeof_apply_of_head_cases
   · rw [hHead, hX]
     simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
 
+omit [TranslationBridge] in
 /-- Rewrites `generic_apply_type` for heads that are not datatype selectors/testers. -/
 private theorem generic_apply_type_of_non_special_head
     (f x : SmtTerm)
@@ -709,6 +714,7 @@ private theorem eo_to_smt_apply_ne_dt_tester
         case tuple_update =>
           exact eo_to_smt_tuple_update_ne_dt_tester _ _ _ _ _ _ _ h
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for `bvnot`. -/
 private theorem typeof_bvnot_eq
     (t : SmtTerm) :
@@ -716,6 +722,7 @@ private theorem typeof_bvnot_eq
       __smtx_typeof_bv_op_1 (__smtx_typeof t) := by
   rw [__smtx_typeof.eq_37]
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for `bvcomp`. -/
 private theorem typeof_bvcomp_eq
     (t1 t2 : SmtTerm) :
@@ -723,6 +730,7 @@ private theorem typeof_bvcomp_eq
       __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) (SmtType.BitVec 1) := by
   rw [__smtx_typeof.eq_44]
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for `bvneg`. -/
 private theorem typeof_bvneg_eq
     (t : SmtTerm) :
@@ -730,6 +738,7 @@ private theorem typeof_bvneg_eq
       __smtx_typeof_bv_op_1 (__smtx_typeof t) := by
   rw [__smtx_typeof.eq_45]
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for `bvnego`. -/
 private theorem typeof_bvnego_eq
     (t : SmtTerm) :
@@ -737,6 +746,7 @@ private theorem typeof_bvnego_eq
       __smtx_typeof_bv_op_1_ret (__smtx_typeof t) SmtType.Bool := by
   rw [__smtx_typeof.eq_70]
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for `seq_unit`. -/
 private theorem typeof_seq_unit_eq
     (t : SmtTerm) :
@@ -745,6 +755,7 @@ private theorem typeof_seq_unit_eq
         (SmtType.Seq (__smtx_typeof t)) := by
   rw [__smtx_typeof.eq_118]
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for `set_empty`. -/
 private theorem typeof_set_empty_eq
     (T : SmtType) :
@@ -752,6 +763,7 @@ private theorem typeof_set_empty_eq
       __smtx_typeof_guard_wf T (SmtType.Set T) := by
   rw [__smtx_typeof.eq_120]
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for `set_singleton`. -/
 private theorem typeof_set_singleton_eq
     (t : SmtTerm) :
@@ -768,6 +780,7 @@ private theorem typeof_exists_eq
       native_ite (native_Teq (__smtx_typeof t) SmtType.Bool) SmtType.Bool SmtType.None := by
   rw [__smtx_typeof.eq_134]
 
+omit [TranslationBridge] in
 /-- Computes the type of applying `none`. -/
 private theorem typeof_apply_none_eq
     (x : SmtTerm) :
@@ -779,6 +792,7 @@ private theorem typeof_apply_none_eq
   rw [hGeneric, smtx_typeof_none]
   simp [__smtx_typeof_apply]
 
+omit [TranslationBridge] in
 /-- Computes the type of a generic apply with a non-function head. -/
 private theorem typeof_generic_apply_non_function_head_eq_none
     (f x : SmtTerm)
@@ -791,6 +805,7 @@ private theorem typeof_generic_apply_non_function_head_eq_none
   · exact False.elim (hFun _ _ hF)
   · exact False.elim (hDtc _ _ hF)
 
+omit [TranslationBridge] in
 /-- Computes the type of applying a Boolean literal as a head. -/
 private theorem typeof_apply_boolean_head_eq_none
     (b : native_Bool) (x : SmtTerm) :
@@ -802,6 +817,7 @@ private theorem typeof_apply_boolean_head_eq_none
     (by intro A B h; rw [__smtx_typeof.eq_1] at h; cases h)
     (by intro A B h; rw [__smtx_typeof.eq_1] at h; cases h)
 
+omit [TranslationBridge] in
 /-- Computes the type of applying an integer literal as a head. -/
 private theorem typeof_apply_numeral_head_eq_none
     (n : native_Int) (x : SmtTerm) :
@@ -813,6 +829,7 @@ private theorem typeof_apply_numeral_head_eq_none
     (by intro A B h; rw [__smtx_typeof.eq_2] at h; cases h)
     (by intro A B h; rw [__smtx_typeof.eq_2] at h; cases h)
 
+omit [TranslationBridge] in
 /-- Computes the type of applying a rational literal as a head. -/
 private theorem typeof_apply_rational_head_eq_none
     (r : native_Rat) (x : SmtTerm) :
@@ -824,6 +841,7 @@ private theorem typeof_apply_rational_head_eq_none
     (by intro A B h; rw [__smtx_typeof.eq_3] at h; cases h)
     (by intro A B h; rw [__smtx_typeof.eq_3] at h; cases h)
 
+omit [TranslationBridge] in
 /-- Computes the type of applying a string literal as a head. -/
 private theorem typeof_apply_string_head_eq_none
     (s : native_String) (x : SmtTerm) :
@@ -835,6 +853,7 @@ private theorem typeof_apply_string_head_eq_none
     (by intro A B h; rw [__smtx_typeof.eq_4] at h; cases h)
     (by intro A B h; rw [__smtx_typeof.eq_4] at h; cases h)
 
+omit [TranslationBridge] in
 /-- Computes the type of applying a bit-vector literal as a head. -/
 private theorem typeof_apply_binary_head_eq_none
     (w n : native_Int) (x : SmtTerm) :
@@ -856,6 +875,7 @@ private theorem typeof_apply_binary_head_eq_none
           native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
         simp [native_ite, hCond] at h)
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for unary arithmetic negation. -/
 private theorem typeof_uneg_eq
     (t : SmtTerm) :
@@ -863,6 +883,7 @@ private theorem typeof_uneg_eq
       __smtx_typeof_arith_overload_op_1 (__smtx_typeof t) := by
   rw [__smtx_typeof.eq_22]
 
+omit [TranslationBridge] in
 /-- Computes the type of applying a regular-language constant as a head. -/
 private theorem typeof_apply_reglan_head_eq_none
     (f x : SmtTerm)
@@ -875,6 +896,7 @@ private theorem typeof_apply_reglan_head_eq_none
   rw [hGeneric, hF]
   rfl
 
+omit [TranslationBridge] in
 /-- Computes the type of applying the nullary tuple constructor as a head. -/
 private theorem typeof_apply_tuple_unit_eq_none
     (x : SmtTerm) :
@@ -893,6 +915,7 @@ private theorem typeof_apply_tuple_unit_eq_none
   rw [hGeneric, smtx_typeof_tuple_unit_translation]
   rfl
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof_apply` for translated `seq_empty`. -/
 private theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none
     (T X : SmtType) :
@@ -921,6 +944,7 @@ private theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none
       cases hWf : __smtx_type_wf U <;>
         simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hInh, hWf]
 
+omit [TranslationBridge] in
 /-- Computes the type of applying a translated `seq_empty` as a head. -/
 private theorem typeof_apply_eo_to_smt_seq_empty_eq_none
     (T : SmtType) (x : SmtTerm) :
@@ -934,6 +958,7 @@ private theorem typeof_apply_eo_to_smt_seq_empty_eq_none
   rw [hGeneric]
   exact smtx_typeof_apply_eo_to_smt_seq_empty_eq_none T (__smtx_typeof x)
 
+omit [TranslationBridge] in
 /-- Closes branches whose SMT translation is already typed as `none`. -/
 private theorem eo_to_smt_typeof_matches_translation_of_smt_none
     (t : Term)
@@ -943,6 +968,7 @@ private theorem eo_to_smt_typeof_matches_translation_of_smt_none
   intro hNonNone
   exact False.elim (hNonNone hNone)
 
+omit [TranslationBridge] in
 /-- Rewrites the typing equation for rationals. -/
 private theorem typeof_rational_eq
     (q : native_Rat) :
@@ -950,6 +976,7 @@ private theorem typeof_rational_eq
   unfold __smtx_typeof
   rfl
 
+omit [TranslationBridge] in
 /-- Computes the type of the one-bit literal used by `bvite`. -/
 private theorem typeof_binary_one_eq :
     __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 := by
@@ -1115,6 +1142,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head
   exact eo_to_smt_typeof_matches_translation_apply_apply_generic
     (Term.UOp op) y x ihF hGeneric hOuterTranslate hNonNone
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for sequence binary operators returning a sequence. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_seq_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -1149,6 +1177,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_seq_binop
     simp [__smtx_typeof_seq_op_2, hY, hX, native_ite, native_Teq]
   exact hSmt.trans (hEo T hY hX).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for sequence binary operators returning a fixed type. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_seq_ret_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (ret : SmtType) (x y : Term)
@@ -1183,6 +1212,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_seq_ret_binop
     simp [__smtx_typeof_seq_op_2_ret, hY, hX, native_ite, native_Teq]
   exact hSmt.trans (hEo T hY hX).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for sequence-char binary operators. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_seq_char_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (ret : SmtType) (x y : Term)
@@ -1218,6 +1248,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_seq_char_binop
     simp [hArgs.1, hArgs.2, native_ite, native_Teq]
   exact hSmt.trans (hEo hArgs.1 hArgs.2).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for regular-language binary operators. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_reglan_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -1253,6 +1284,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_reglan_binop
     simp [hArgs.1, hArgs.2, native_ite, native_Teq]
   exact hSmt.trans (hEo hArgs.1 hArgs.2).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for sequence-char/regular-language binary operators. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_seq_char_reglan_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (ret : SmtType) (x y : Term)
@@ -1382,6 +1414,7 @@ private theorem eo_to_smt_type_typeof_apply_apply_set_subset_of_smt_set
     simp [__smtx_typeof_sets_op_2_ret, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type_apply t hSmt (by simp)
 
+omit [TranslationBridge] in
 /-- Computes the type of a non-`None` `re_exp` term. -/
 private theorem re_exp_typeof_of_non_none
     {t1 t2 : SmtTerm}
@@ -1461,6 +1494,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_itos_resul
       (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) y) x)
       hSmt (by simp)).symm
 
+omit [TranslationBridge] in
 /-- Computes the type of a non-`None` `_at_bv` translation. -/
 private theorem at_bv_typeof_of_non_none
     {a b : SmtTerm}
@@ -1806,6 +1840,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_set_insert
       (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) y) x)
       hSmt (by simp)).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for set binary operators returning a set. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_set_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -1866,6 +1901,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_set_member
   exact hSmt.trans
     (eo_to_smt_type_typeof_apply_apply_set_member_of_smt_set x y T hY hX).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for set binary predicates. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_set_pred_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -1901,6 +1937,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_set_pred_binop
     simp [__smtx_typeof_sets_op_2_ret, hY, hX, native_ite, native_Teq]
   exact hSmt.trans (hEo T hY hX).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for Boolean binary operators. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_bool_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -1936,6 +1973,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bool_binop
     simp [hArgs.1, hArgs.2, native_ite, native_Teq]
   exact hSmt.trans (hEo hArgs.1 hArgs.2).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for arithmetic binary operators returning their input type. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_arith_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -1976,6 +2014,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_arith_binop
       simp [__smtx_typeof_arith_overload_op_2, hArgs.1, hArgs.2]
     exact hSmt.trans (hEo SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for arithmetic comparisons returning Boolean. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_arith_bool_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -2017,6 +2056,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_arith_bool_binop
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
     exact hSmt.trans (hEo SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for arithmetic binary operators returning a fixed type. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_arith_ret_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (ret : SmtType) (x y : Term)
@@ -2058,6 +2098,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_arith_ret_binop
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
     exact hSmt.trans (hEo SmtType.Real hArgs.1 hArgs.2 (Or.inr rfl)).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for integer-only binary operators. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_int_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (ret : SmtType) (x y : Term)
@@ -2093,6 +2134,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_int_binop
     simp [hArgs.1, hArgs.2, native_ite, native_Teq]
   exact hSmt.trans (hEo hArgs.1 hArgs.2).symm
 
+omit [TranslationBridge] in
 /-- Purified selector heads keep the selector result EO type. -/
 private theorem eo_to_smt_eq_dt_sel_cases
     (y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
@@ -2128,6 +2170,7 @@ private theorem eo_to_smt_eq_dt_sel_cases
     exfalso
     cases hy
 
+omit [TranslationBridge] in
 /-- EO translation never produces a bare datatype tester. -/
 private theorem eo_to_smt_ne_dt_tester
     (y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
@@ -2210,6 +2253,7 @@ private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
     rw [hApplyEq]
     exact eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation x z s d i j hz hx hApplyNN
 
+omit [TranslationBridge] in
 /-- Purified tester heads still have stuck EO application type. -/
 private theorem eo_to_smt_type_typeof_apply_purify_of_dt_tester_translation
     (x y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat)
@@ -2389,12 +2433,14 @@ private theorem re_unfold_pos_component_args_of_non_none
         unfold term_has_non_none_type at hNN
         exact hNN smtx_typeof_none
 
+omit [TranslationBridge] in
 /-- Lemma about `smt_type_ne_set_self`. -/
 private theorem smt_type_ne_set_self
     (T : SmtType) :
     T ≠ SmtType.Set T := by
   cases T <;> intro h <;> cases h
 
+omit [TranslationBridge] in
 /-- Lemma about `smt_type_ne_guard_wf_set_self`. -/
 private theorem smt_type_ne_guard_wf_set_self
     {T : SmtType}
@@ -2413,6 +2459,7 @@ private theorem smt_type_ne_guard_wf_set_self
       simpa [__smtx_typeof_guard_wf, hInh, native_ite] using h
     exact hT hNone
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof` for `apply_eo_to_smt_set_empty_eq_none`. -/
 private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
     (T X : SmtType) :
@@ -2568,6 +2615,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_forall
         (Term.Apply (Term.Apply (Term.UOp UserOp.forall) y) x) hBool (by simp)).symm
   · exact False.elim (hNonNone hNone)
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof` for `and` terms. -/
 private theorem smtx_typeof_and_bool_or_none
     (s t : SmtTerm) :
@@ -2577,6 +2625,7 @@ private theorem smtx_typeof_and_bool_or_none
     cases ht : __smtx_typeof t <;>
       (rw [typeof_and_eq]; simp [hs, ht, native_ite, native_Teq])
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof` for `__eo_to_smt_distinct_pairs`. -/
 private theorem smtx_typeof_eo_to_smt_distinct_pairs_bool_or_none
     (s : SmtTerm) (xs : Term) :
@@ -2629,6 +2678,7 @@ private theorem smtx_typeof_eo_to_smt_distinct_pairs_bool_or_none
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact smtx_typeof_none
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof` for `__eo_to_smt_distinct`. -/
 private theorem smtx_typeof_eo_to_smt_distinct_bool_or_none
     (xs : Term) :
@@ -2678,6 +2728,7 @@ private theorem smtx_typeof_eo_to_smt_distinct_bool_or_none
     change __smtx_typeof SmtTerm.None = SmtType.None
     exact smtx_typeof_none
 
+omit [TranslationBridge] in
 /-- A non-`none` translated `distinct` has Boolean SMT type. -/
 private theorem smtx_typeof_eo_to_smt_distinct_of_non_none
     (xs : Term)
@@ -2687,6 +2738,7 @@ private theorem smtx_typeof_eo_to_smt_distinct_of_non_none
   · exact hBool
   · exact False.elim (hNonNone hNone)
 
+omit [TranslationBridge] in
 /-- A true EO `distinct` type guard translates to Boolean SMT type. -/
 private theorem eo_to_smt_type_typeof_distinct_of_guard
     (xs : Term)
@@ -2696,6 +2748,7 @@ private theorem eo_to_smt_type_typeof_distinct_of_guard
   cases hTy : __eo_typeof_distinct (__eo_typeof xs) <;>
     simp [__eo_to_smt_type, native_teq, hTy] at hGuard ⊢
 
+omit [TranslationBridge] in
 /-- A non-`none` translated `distinct` has Boolean EO result type. -/
 private theorem eo_to_smt_type_typeof_distinct_of_non_none
     (xs : Term)
@@ -2743,6 +2796,7 @@ private theorem eo_to_smt_type_typeof_distinct_of_non_none
             simp [native_ite, hGuard] at hNonNone
           exact eo_to_smt_type_typeof_distinct_of_guard _ hGuard
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof_apply` for translated `distinct`. -/
 private theorem smtx_typeof_apply_eo_to_smt_distinct_eq_none
     (xs : Term) (X : SmtType) :
@@ -2753,6 +2807,7 @@ private theorem smtx_typeof_apply_eo_to_smt_distinct_eq_none
   · rw [hNone]
     simp [__smtx_typeof_apply]
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof` for applying translated `distinct`. -/
 private theorem smtx_typeof_eo_to_smt_distinct_apply_eq_none
     (xs : Term) (x : SmtTerm) :
@@ -3991,6 +4046,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_updat
     (eo_to_smt_type_typeof_apply_apply_apply_str_update_of_smt_seq_int_seq
       x y z T hZ hY hX).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for sequence ternary operators returning a sequence. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_seq_triop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm)
@@ -4030,6 +4086,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_seq_triop
     simp [__smtx_typeof_seq_op_3, native_ite, native_Teq, hZ, hY, hX]
   exact hSmt.trans (hEo T hZ hY hX).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for regex-replacement ternary string operators. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_replace_re_like
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm)
@@ -4241,6 +4298,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_a
   exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
     g z y x ihF hGeneric hOuterTranslate hNonNone
 
+omit [TranslationBridge] in
 /-- Closes attempts to apply a one-bit bitvector comparison result as a function. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bv_cmp_to_bv1_applied
     (op : UserOp) (smtCmp : SmtTerm -> SmtTerm -> SmtTerm) (x y z : Term)
@@ -4263,8 +4321,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bv_cmp_to
         SmtType.None := by
     have hHeadGeneric : generic_apply_type head (__eo_to_smt x) := by
       exact generic_apply_type_of_non_special_head _ _
-        (by intro s d i j h; simpa [head] using h)
-        (by intro s d i h; simpa [head] using h)
+        (by intro s d i j h; simp [head] at h)
+        (by intro s d i h; simp [head] at h)
     have hApplyNN' :
         __smtx_typeof (SmtTerm.Apply head (__eo_to_smt x)) ≠ SmtType.None := by
       simpa [head, hTranslate] using hNonNone
@@ -4513,9 +4571,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
               rw [← hTranslate]
               exact hNonNone
             have hGe : native_zleq 0 n = true := by
-              cases hTest : native_zleq 0 n <;>
+              cases hTest : native_zleq 0 n
+              · exfalso
                 simp [__eo_to_smt_tuple_update, hTest, native_ite] at hTupleNN
-              simpa using hTest
+              · simp
             have hUpdaterNN :
                 __smtx_typeof
                     (__eo_to_smt_updater
@@ -4605,6 +4664,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
       rw [hy]
       simp [__eo_to_smt_tuple_update]
 
+omit [TranslationBridge] in
 /-- Closes attempts to apply a binary head already known to have SMT type `Bool`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_head_applied
     (op : UserOp) (head : SmtTerm) (x y z : Term)
@@ -4658,6 +4718,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_head
   | inr hHead =>
       cases (hHeadTy.symm.trans hHead)
 
+omit [TranslationBridge] in
 /-- Closes attempts to apply a non-special binary head known to have SMT type `Bool`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_non_special_head_applied
     (op : UserOp) (head : SmtTerm) (x y z : Term)
@@ -4686,6 +4747,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_non_
   exact eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_head_applied
     op head x y z hHeadTranslate hOuterTranslate hGeneric hHeadType hNonNone
 
+omit [TranslationBridge] in
 /-- Closes attempts to apply a binary head known to have a non-function SMT type. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_function_head_applied
     (op : UserOp) (head : SmtTerm) (x y z : Term)
@@ -4741,6 +4803,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_funct
   | inr hHead =>
       exact False.elim (hNotDtcApp A B (hHeadTy.symm.trans hHead))
 
+omit [TranslationBridge] in
 /-- Closes attempts to apply a non-special binary head with any non-function SMT type. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_function_non_special_head_applied
     (op : UserOp) (head : SmtTerm) (x y z : Term)
@@ -5621,6 +5684,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
         (by intro s d i h; exact (eo_to_smt_apply_ne_dt_tester _ y s d i h).elim))
       (by rfl) hNonNone
 
+omit [TranslationBridge] in
 /-- Closes direct `UOp` applications that are unreachable because their SMT type is `none`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_uop_remaining_obligation
     (op : UserOp) (x : Term)
@@ -5632,6 +5696,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_remaining_obligat
   exact eo_to_smt_typeof_matches_translation_of_smt_none
     (Term.Apply (Term.UOp op) x) hNone
 
+omit [TranslationBridge] in
 /-- Handles direct `distinct` by reducing to its typed-list inversion. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_distinct_obligation
     (x : Term) :
@@ -5647,6 +5712,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_distinct_obligation
   rw [hSmt]
   exact (eo_to_smt_type_typeof_distinct_of_non_none x hNonNone).symm
 
+omit [TranslationBridge] in
 /-- `_at_purify` cannot expose a bare tester, so this branch is unreachable. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_purify_tester_obligation
     (x y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat)
@@ -5659,6 +5725,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_purify_tester_obligat
   intro hNonNone
   exact (eo_to_smt_ne_dt_tester y s d i hTester).elim
 
+omit [TranslationBridge] in
 /-- Remaining constructor fallback obligation for heads not handled by specific cases. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_constructor_fallback_obligation
     (f x : Term)
