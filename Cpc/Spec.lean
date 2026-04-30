@@ -37,6 +37,9 @@ Definitions for eo_is_obj
 -/
 noncomputable section
 
+def __eo_to_smt_distinct_guard (xs : Term) : native_Bool :=
+  native_teq (__eo_typeof_distinct (__eo_typeof xs)) Term.Bool
+
 mutual
 
 def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
@@ -46,8 +49,17 @@ def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
 
 
 def __eo_to_smt_distinct : Term -> SmtTerm
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) => (SmtTerm.and (__eo_to_smt_distinct_pairs (__eo_to_smt x) xs) (__eo_to_smt_distinct xs))
-  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) => (SmtTerm.Boolean true)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =>
+    native_ite
+      (__eo_to_smt_distinct_guard
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs))
+      (SmtTerm.and (__eo_to_smt_distinct_pairs (__eo_to_smt x) xs) (__eo_to_smt_distinct xs))
+      SmtTerm.None
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) =>
+    native_ite
+      (__eo_to_smt_distinct_guard (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T))
+      (SmtTerm.Boolean true)
+      SmtTerm.None
   | xs => SmtTerm.None
 
 
