@@ -554,7 +554,7 @@ theorem eo_to_smt_typeof_matches_translation
               cases g with
               | UOp op =>
                   cases op <;> simp [__eo_to_smt.eq_def] at hNonNone
-                  case forall =>
+                  case «forall» =>
                       cases x2 with
                       | Numeral n =>
                           by_cases hnNeg : native_zlt n 0 = true
