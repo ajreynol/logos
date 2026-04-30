@@ -51,6 +51,11 @@ def __eo_to_smt_distinct : Term -> SmtTerm
   | xs => SmtTerm.None
 
 
+def __eo_to_smt_type_is_tlist : Term -> native_Bool
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList) T) => true
+  | T => false
+
+
 def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
   | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (native_ite (native_zleq 0 x2) (SmtTerm.Binary x2 (native_mod_total x1 (native_int_pow2 x2))) SmtTerm.None)
   | t1, t2 => SmtTerm.None
@@ -202,8 +207,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x1) x2) => (SmtTerm.imp (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.xor) x1) x2) => (SmtTerm.xor (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) x2) => (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.UOp UserOp.distinct) (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T)) => SmtTerm.None
-  | (Term.Apply (Term.UOp UserOp.distinct) x1) => (__eo_to_smt_distinct x1)
+  | (Term.Apply (Term.UOp UserOp.distinct) x1) => (native_ite (__eo_to_smt_type_is_tlist (__eo_typeof x1)) (__eo_to_smt_distinct x1) SmtTerm.None)
   | (Term._at_purify x1) => (__eo_to_smt x1)
   | (Term.Apply (Term.Apply (Term.UOp UserOp.plus) x1) x2) => (SmtTerm.plus (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2) => (SmtTerm.neg (__eo_to_smt x1) (__eo_to_smt x2))
