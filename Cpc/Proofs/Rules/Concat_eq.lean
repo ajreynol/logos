@@ -18,6 +18,19 @@ private abbrev mkConcat (x y : Term) : Term :=
 private abbrev mkPair (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp._at__at_pair) x) y
 
+private abbrev concatEqNormalize (rev x : Term) : Term :=
+  __eo_ite rev (__eo_list_rev (Term.UOp UserOp.str_concat) x) x
+
+private abbrev concatEqStrip (rev s t : Term) : Term :=
+  __str_strip_prefix (concatEqNormalize rev (__str_nary_intro s))
+    (concatEqNormalize rev (__str_nary_intro t))
+
+private abbrev concatEqLhs (rev s t : Term) : Term :=
+  __str_nary_elim (concatEqNormalize rev (__pair_first (concatEqStrip rev s t)))
+
+private abbrev concatEqRhs (rev s t : Term) : Term :=
+  __str_nary_elim (concatEqNormalize rev (__pair_second (concatEqStrip rev s t)))
+
 private theorem seq_ne_none (T : SmtType) : SmtType.Seq T ≠ SmtType.None := by
   intro h
   cases h
@@ -190,6 +203,14 @@ private theorem eo_list_rev_eq_rec_of_ne_stuck (f a : Term) :
     eo_requires_eq_result_of_ne_stuck (__eo_is_list f a) (Term.Boolean true)
       (__eo_list_rev_rec a (__eo_get_nil_rec f a)) hReq
 
+private theorem eo_list_rev_arg_ne_stuck_of_ne_stuck (f a : Term) :
+    __eo_list_rev f a ≠ Term.Stuck ->
+    a ≠ Term.Stuck := by
+  intro h ha
+  subst a
+  cases f <;>
+    simp [__eo_list_rev, __eo_is_list, __eo_requires, native_ite, native_teq] at h
+
 private theorem eo_list_rev_rec_cons (f x y acc : Term)
     (hAcc : acc ≠ Term.Stuck) :
     __eo_list_rev_rec (Term.Apply (Term.Apply f x) y) acc =
@@ -217,6 +238,191 @@ private theorem eo_mk_apply_eq_apply_of_ne_stuck (f x : Term)
     (h : __eo_mk_apply f x ≠ Term.Stuck) :
     __eo_mk_apply f x = Term.Apply f x := by
   cases f <;> cases x <;> simp [__eo_mk_apply] at h ⊢
+
+private theorem eo_mk_apply_fun_ne_stuck_of_ne_stuck (f x : Term)
+    (h : __eo_mk_apply f x ≠ Term.Stuck) :
+    f ≠ Term.Stuck := by
+  intro hf
+  subst f
+  simp [__eo_mk_apply] at h
+
+private theorem eo_mk_apply_arg_ne_stuck_of_ne_stuck (f x : Term)
+    (h : __eo_mk_apply f x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hx
+  subst x
+  cases f <;> simp [__eo_mk_apply] at h
+
+private theorem eo_ite_then_ne_stuck_of_ne_stuck (c x y : Term)
+    (h : __eo_ite c x y ≠ Term.Stuck)
+    (hc : c = Term.Boolean true) :
+    x ≠ Term.Stuck := by
+  subst c
+  simpa [eo_ite_true] using h
+
+private theorem eo_ite_else_ne_stuck_of_ne_stuck (c x y : Term)
+    (h : __eo_ite c x y ≠ Term.Stuck)
+    (hc : c = Term.Boolean false) :
+    y ≠ Term.Stuck := by
+  subst c
+  simpa [eo_ite_false] using h
+
+private theorem str_nary_intro_arg_ne_stuck_of_ne_stuck (x : Term)
+    (h : __str_nary_intro x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hx
+  subst x
+  simp [__str_nary_intro] at h
+
+private theorem str_nary_elim_arg_ne_stuck_of_ne_stuck (x : Term)
+    (h : __str_nary_elim x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hx
+  subst x
+  simp [__str_nary_elim] at h
+
+private theorem pair_first_arg_ne_stuck_of_ne_stuck (x : Term)
+    (h : __pair_first x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hx
+  subst x
+  simp [__pair_first] at h
+
+private theorem pair_second_arg_ne_stuck_of_ne_stuck (x : Term)
+    (h : __pair_second x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hx
+  subst x
+  simp [__pair_second] at h
+
+private theorem eo_prog_concat_eq_eq_of_ne_stuck (rev s t : Term)
+    (hProg : __eo_prog_concat_eq rev (Proof.pf (mkEq s t)) ≠ Term.Stuck) :
+    __eo_prog_concat_eq rev (Proof.pf (mkEq s t)) =
+      mkEq (concatEqLhs rev s t) (concatEqRhs rev s t) := by
+  have hRev : rev ≠ Term.Stuck := by
+    intro h
+    subst rev
+    simp [__eo_prog_concat_eq] at hProg
+  have hProg' :
+      __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t))
+          (concatEqRhs rev s t) ≠ Term.Stuck := by
+    cases rev <;>
+      simp [__eo_prog_concat_eq, concatEqLhs, concatEqRhs, concatEqStrip,
+        concatEqNormalize] at hRev hProg ⊢
+    all_goals first | exact hProg | contradiction
+  have hInner :
+      __eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t) ≠
+        Term.Stuck := by
+    exact eo_mk_apply_fun_ne_stuck_of_ne_stuck
+        (__eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t))
+        (concatEqRhs rev s t) hProg'
+  have hInnerEq :
+      __eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t) =
+        Term.Apply (Term.UOp UserOp.eq) (concatEqLhs rev s t) :=
+    eo_mk_apply_eq_apply_of_ne_stuck (Term.UOp UserOp.eq)
+      (concatEqLhs rev s t) hInner
+  have hOuterEq :
+      __eo_prog_concat_eq rev (Proof.pf (mkEq s t)) =
+        Term.Apply (__eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t))
+          (concatEqRhs rev s t) := by
+    cases rev <;>
+      simp [__eo_prog_concat_eq, concatEqLhs, concatEqRhs, concatEqStrip,
+        concatEqNormalize] at hRev hProg' ⊢
+    all_goals first
+      | exact eo_mk_apply_eq_apply_of_ne_stuck _ _ hProg'
+      | contradiction
+  rw [hOuterEq, hInnerEq]
+
+private theorem eo_prog_concat_eq_mk_apply_ne_stuck (rev s t : Term)
+    (hProg : __eo_prog_concat_eq rev (Proof.pf (mkEq s t)) ≠ Term.Stuck) :
+    __eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t))
+      (concatEqRhs rev s t) ≠ Term.Stuck := by
+  have hRev : rev ≠ Term.Stuck := by
+    intro h
+    subst rev
+    simp [__eo_prog_concat_eq] at hProg
+  cases rev <;>
+    simp [__eo_prog_concat_eq, concatEqLhs, concatEqRhs, concatEqStrip,
+      concatEqNormalize] at hRev hProg ⊢
+  all_goals first | exact hProg | contradiction
+
+private theorem concatEqLhs_ne_stuck_of_prog_ne_stuck (rev s t : Term)
+    (hProg : __eo_prog_concat_eq rev (Proof.pf (mkEq s t)) ≠ Term.Stuck) :
+    concatEqLhs rev s t ≠ Term.Stuck := by
+  have hApply := eo_prog_concat_eq_mk_apply_ne_stuck rev s t hProg
+  have hInner :
+      __eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t) ≠ Term.Stuck :=
+    eo_mk_apply_fun_ne_stuck_of_ne_stuck
+      (__eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t))
+      (concatEqRhs rev s t) hApply
+  exact eo_mk_apply_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.eq)
+    (concatEqLhs rev s t) hInner
+
+private theorem concatEqRhs_ne_stuck_of_prog_ne_stuck (rev s t : Term)
+    (hProg : __eo_prog_concat_eq rev (Proof.pf (mkEq s t)) ≠ Term.Stuck) :
+    concatEqRhs rev s t ≠ Term.Stuck := by
+  have hApply := eo_prog_concat_eq_mk_apply_ne_stuck rev s t hProg
+  exact eo_mk_apply_arg_ne_stuck_of_ne_stuck
+    (__eo_mk_apply (Term.UOp UserOp.eq) (concatEqLhs rev s t))
+    (concatEqRhs rev s t) hApply
+
+private theorem concatEq_rev_cases_of_prog_ne_stuck (rev s t : Term)
+    (hProg : __eo_prog_concat_eq rev (Proof.pf (mkEq s t)) ≠ Term.Stuck) :
+    rev = Term.Boolean true ∨ rev = Term.Boolean false := by
+  have hLhs := concatEqLhs_ne_stuck_of_prog_ne_stuck rev s t hProg
+  have hNorm :
+      concatEqNormalize rev (__pair_first (concatEqStrip rev s t)) ≠ Term.Stuck :=
+    str_nary_elim_arg_ne_stuck_of_ne_stuck
+      (concatEqNormalize rev (__pair_first (concatEqStrip rev s t))) hLhs
+  exact eo_ite_cases_of_ne_stuck rev
+    (__eo_list_rev (Term.UOp UserOp.str_concat) (__pair_first (concatEqStrip rev s t)))
+    (__pair_first (concatEqStrip rev s t)) hNorm
+
+private theorem concatEqStrip_ne_stuck_of_prog_ne_stuck (rev s t : Term)
+    (hProg : __eo_prog_concat_eq rev (Proof.pf (mkEq s t)) ≠ Term.Stuck) :
+    concatEqStrip rev s t ≠ Term.Stuck := by
+  have hLhs := concatEqLhs_ne_stuck_of_prog_ne_stuck rev s t hProg
+  have hNorm :
+      concatEqNormalize rev (__pair_first (concatEqStrip rev s t)) ≠ Term.Stuck :=
+    str_nary_elim_arg_ne_stuck_of_ne_stuck
+      (concatEqNormalize rev (__pair_first (concatEqStrip rev s t))) hLhs
+  rcases concatEq_rev_cases_of_prog_ne_stuck rev s t hProg with hRev | hRev
+  · have hRevFirst :
+        __eo_list_rev (Term.UOp UserOp.str_concat)
+          (__pair_first (concatEqStrip rev s t)) ≠ Term.Stuck :=
+      eo_ite_then_ne_stuck_of_ne_stuck rev
+        (__eo_list_rev (Term.UOp UserOp.str_concat) (__pair_first (concatEqStrip rev s t)))
+        (__pair_first (concatEqStrip rev s t)) hNorm hRev
+    have hFirst : __pair_first (concatEqStrip rev s t) ≠ Term.Stuck :=
+      eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+        (__pair_first (concatEqStrip rev s t)) hRevFirst
+    exact pair_first_arg_ne_stuck_of_ne_stuck (concatEqStrip rev s t) hFirst
+  · have hFirst : __pair_first (concatEqStrip rev s t) ≠ Term.Stuck :=
+      eo_ite_else_ne_stuck_of_ne_stuck rev
+        (__eo_list_rev (Term.UOp UserOp.str_concat) (__pair_first (concatEqStrip rev s t)))
+        (__pair_first (concatEqStrip rev s t)) hNorm hRev
+    exact pair_first_arg_ne_stuck_of_ne_stuck (concatEqStrip rev s t) hFirst
+
+private theorem eo_prog_concat_eq_premise_eq_shape_of_ne_stuck (rev x1 : Term)
+    (hProg : __eo_prog_concat_eq rev (Proof.pf x1) ≠ Term.Stuck) :
+    ∃ s t, x1 = mkEq s t := by
+  cases x1 with
+  | Apply f t =>
+      cases f with
+      | Apply g s =>
+          cases g with
+          | UOp op =>
+              cases op with
+              | eq =>
+                  exact ⟨s, t, rfl⟩
+              | _ =>
+                  cases rev <;> simp [__eo_prog_concat_eq] at hProg
+          | _ =>
+              cases rev <;> simp [__eo_prog_concat_eq] at hProg
+      | _ =>
+          cases rev <;> simp [__eo_prog_concat_eq] at hProg
+  | _ =>
+      cases rev <;> simp [__eo_prog_concat_eq] at hProg
 
 private theorem pair_first_pair (x y : Term) :
     __pair_first (mkPair x y) = x := by
@@ -903,6 +1109,30 @@ private theorem eo_interprets_str_strip_prefix_concat_step
       (hTail hTailEq hTailNonStuck hTailBool)
   · exact eo_interprets_str_strip_prefix_concat_false M t u t2 s2 hCond hXY
 
+private theorem eo_interprets_str_strip_prefix_result
+    (M : SmtModel) (hM : model_total_typed M) (x y : Term)
+    (hXY : eo_interprets M (mkEq x y) true)
+    (hStrip : __str_strip_prefix x y ≠ Term.Stuck)
+    (hBool : RuleProofs.eo_has_bool_type
+      (mkEq (__pair_first (__str_strip_prefix x y))
+        (__pair_second (__str_strip_prefix x y)))) :
+    eo_interprets M
+      (mkEq (__pair_first (__str_strip_prefix x y))
+        (__pair_second (__str_strip_prefix x y))) true := by
+  fun_cases __str_strip_prefix x y
+  · simp [__str_strip_prefix] at hStrip
+  · simp [__str_strip_prefix] at hStrip
+  · rename_i t t2 u s2
+    subst_vars
+    exact eo_interprets_str_strip_prefix_concat_step M hM t u t2 s2
+      hXY hStrip
+      (eo_interprets_str_strip_prefix_result M hM t2 s2) hBool
+  · simpa [__eo_l_1___str_strip_prefix, mkPair, pair_first_pair, pair_second_pair]
+      using hXY
+termination_by sizeOf x + sizeOf y
+decreasing_by
+  all_goals subst_vars; simp_wf; omega
+
 private theorem eo_interprets_str_concat_right_cancel
     (M : SmtModel) (hM : model_total_typed M) (x y z : Term) :
     eo_interprets M (mkEq (mkConcat y x) (mkConcat z x)) true ->
@@ -942,4 +1172,64 @@ theorem cmd_step_concat_eq_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.concat_eq args premises) :=
 by
-  sorry
+  intro hCmdTrans hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.concat_eq args premises ≠ Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+          | cons n1 premises =>
+              cases premises with
+              | nil =>
+                  let X1 := __eo_state_proven_nth s n1
+                  have hA1Trans : RuleProofs.eo_has_smt_translation a1 := by
+                    have hArgs : RuleProofs.eo_has_smt_translation a1 ∧ True := by
+                      simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+                    exact hArgs.1
+                  have hX1Bool : RuleProofs.eo_has_bool_type X1 :=
+                    hPremisesBool X1 (by simp [X1, premiseTermList])
+                  have hProgConcatEq :
+                      __eo_prog_concat_eq a1 (Proof.pf X1) ≠ Term.Stuck := by
+                    change __eo_prog_concat_eq a1
+                      (Proof.pf (__eo_state_proven_nth s n1)) ≠ Term.Stuck at hProg
+                    simpa [X1] using hProg
+                  rcases eo_prog_concat_eq_premise_eq_shape_of_ne_stuck a1 X1
+                      hProgConcatEq with ⟨lhs, rhs, hX1Eq⟩
+                  have hStateEq :
+                      __eo_state_proven_nth s n1 = mkEq lhs rhs := by
+                    simpa [X1] using hX1Eq
+                  have hPremEqBool : RuleProofs.eo_has_bool_type (mkEq lhs rhs) := by
+                    simpa [X1, hStateEq] using hX1Bool
+                  have hProgRule :
+                      __eo_prog_concat_eq a1 (Proof.pf (mkEq lhs rhs)) ≠
+                        Term.Stuck := by
+                    simpa [X1, hStateEq] using hProgConcatEq
+                  have hResultTyRule :
+                      __eo_typeof
+                        (__eo_prog_concat_eq a1 (Proof.pf (mkEq lhs rhs))) =
+                        Term.Bool := by
+                    change __eo_typeof
+                      (__eo_prog_concat_eq a1
+                        (Proof.pf (__eo_state_proven_nth s n1))) = Term.Bool at hResultTy
+                    simpa [hStateEq] using hResultTy
+                  change StepRuleProperties M [__eo_state_proven_nth s n1]
+                    (__eo_prog_concat_eq a1
+                      (Proof.pf (__eo_state_proven_nth s n1)))
+                  rw [hStateEq]
+                  -- Remaining core: prove the generated `concat_eq` program is sound and
+                  -- has an SMT translation from the premise equality and result type.
+                  sorry
+              | cons _ _ =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+      | cons _ _ =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
