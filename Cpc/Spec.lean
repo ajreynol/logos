@@ -37,6 +37,9 @@ Definitions for eo_is_obj
 -/
 noncomputable section
 
+def __eo_reserved_datatype_name (s : native_String) : native_Bool :=
+  s.startsWith "_at_"
+
 mutual
 
 def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
@@ -117,8 +120,8 @@ def __eo_to_smt_datatype : Datatype -> SmtDatatype
 
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
-  | (Term.DatatypeType s d) => (SmtType.Datatype s (__eo_to_smt_datatype d))
-  | (Term.DatatypeTypeRef s) => (SmtType.TypeRef s)
+  | (Term.DatatypeType s d) => (native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s (__eo_to_smt_datatype d)))
+  | (Term.DatatypeTypeRef s) => (native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s))
   | (Term.DtcAppType T1 T2) => 
     let _v0 := (__eo_to_smt_type T2)
     let _v1 := (__eo_to_smt_type T1)
@@ -197,8 +200,8 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
   | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons s d i) => (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)
-  | (Term.DtSel s d i j) => (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j)
+  | (Term.DtCons s d i) => (native_ite (__eo_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
+  | (Term.DtSel s d i j) => (native_ite (__eo_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
   | (Term.UConst i T) => (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) x1) x2) x3) => (SmtTerm.ite (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply (Term.UOp UserOp.not) x1) => (SmtTerm.not (__eo_to_smt x1))

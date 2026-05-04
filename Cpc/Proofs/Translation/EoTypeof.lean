@@ -566,18 +566,31 @@ private theorem eo_to_smt_type_substitute_field
   | Term.DatatypeType s d => by
       by_cases hEq : sub = s
       · subst hEq
-        simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-          native_ite, native_streq]
-      · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-          native_ite, native_streq, hEq, eo_to_smt_datatype_substitute sub d0 d]
+        by_cases hRes : __eo_reserved_datatype_name sub = true
+        · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
+            native_ite, native_streq, native_Teq, hRes]
+        · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
+            native_ite, native_streq, native_Teq, hRes]
+      · by_cases hRes : __eo_reserved_datatype_name s = true
+        · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
+            native_ite, native_streq, native_Teq, hEq, hRes]
+        · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
+            native_ite, native_streq, native_Teq, hEq, hRes,
+            eo_to_smt_datatype_substitute sub d0 d]
   | Term.DatatypeTypeRef s => by
       by_cases hEq : s = sub
       · subst hEq
-        simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-          native_ite, native_teq, native_Teq]
+        by_cases hRes : __eo_reserved_datatype_name s = true
+        · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
+            native_ite, native_teq, native_Teq, hRes]
+        · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
+            native_ite, native_teq, native_Teq, hRes]
       · have hNe : sub ≠ s := by intro hs; exact hEq hs.symm
+        by_cases hRes : __eo_reserved_datatype_name s = true
+        · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
+            native_ite, native_teq, native_Teq, hEq, hRes]
         simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-          native_ite, native_teq, native_Teq, hEq, hNe]
+          native_ite, native_teq, native_Teq, hEq, hNe, hRes]
   | Term.UOp op => by
       cases op
       case UnitTuple =>
@@ -908,6 +921,7 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
 
 theorem eo_to_smt_type_typeof_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat)
+    (hReserved : __eo_reserved_datatype_name s = false)
     (hNN : __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =
       __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) := by
@@ -923,17 +937,18 @@ theorem eo_to_smt_type_typeof_dt_cons
     have hWf := Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s dSmt) raw hGuardNN
     simpa [__smtx_type_wf, __smtx_type_wf_rec, dSmt] using hWf
   have hBaseNN : __eo_to_smt_type (Term.DatatypeType s d) ≠ SmtType.None := by
-    simp [__eo_to_smt_type]
+    simp [__eo_to_smt_type, native_ite, hReserved]
   have hRec := eo_to_smt_typeof_dt_cons_rec_substitute_of_wf s d (Term.DatatypeType s d)
     hBaseNN d i (native_reflist_insert native_reflist_nil s) hBaseWf
   change __eo_to_smt_type (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i) =
     __smtx_typeof (SmtTerm.DtCons s dSmt i)
   rw [hRec]
-  exact hTypeofEq.symm
+  simpa [__eo_to_smt_type, native_ite, hReserved, dSmt] using hTypeofEq.symm
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_dt_cons_of_smt_apply`. -/
 theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply
     (x : Term) (s : native_String) (d : Datatype) (i : native_Nat) (A B : SmtType)
+    (hReserved : __eo_reserved_datatype_name s = false)
     (hHead :
       __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = SmtType.FunType A B ∨
         __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = SmtType.DtcAppType A B)
@@ -948,7 +963,7 @@ theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply
         __eo_to_smt (Term.Apply (Term.DtCons s d i) x) =
           SmtTerm.Apply (__eo_to_smt (Term.DtCons s d i)) (__eo_to_smt x) := by
       rfl
-    simpa [eo_to_smt_term_dt_cons] using hGeneric
+    simpa [eo_to_smt_term_dt_cons, native_ite, hReserved] using hGeneric
   have hGeneric :
       generic_apply_type (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) (__eo_to_smt x) := by
     exact generic_apply_type_of_non_special_head _ _
@@ -982,6 +997,7 @@ theorem eo_to_smt_type_typeof_apply_dt_cons_of_fun_like
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_dt_sel_of_smt_datatype`. -/
 theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype
     (x : Term) (s : native_String) (d : Datatype) (i j : native_Nat)
+    (hReserved : __eo_reserved_datatype_name s = false)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s (__eo_to_smt_datatype d))
     (hApplyNN :
       term_has_non_none_type
@@ -995,7 +1011,7 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype
         __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
           SmtTerm.Apply (__eo_to_smt (Term.DtSel s d i j)) (__eo_to_smt x) := by
       rfl
-    simpa [eo_to_smt_term_dt_sel] using hGeneric
+    simpa [eo_to_smt_term_dt_sel, native_ite, hReserved] using hGeneric
   have hSmt :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) =
         __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
@@ -1583,6 +1599,10 @@ theorem eo_to_smt_type_typeof_apply_seq_unit_of_non_none
     exact smtx_typeof_guard_of_non_none _ _ hx
   case Apply =>
     exact smtx_typeof_guard_of_non_none _ _ hx
+  case DatatypeType =>
+    exact smtx_typeof_guard_of_non_none _ _ hx
+  case DatatypeTypeRef =>
+    exact smtx_typeof_guard_of_non_none _ _ hx
   case DtcAppType a b =>
     cases hA : __eo_to_smt_type a <;> cases hB : __eo_to_smt_type b <;>
       simp [__smtx_typeof_guard, native_ite, native_Teq, hA, hB] at hx ⊢
@@ -1600,6 +1620,10 @@ theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
   case UOp a =>
     exact smtx_typeof_guard_of_non_none _ _ hx
   case Apply =>
+    exact smtx_typeof_guard_of_non_none _ _ hx
+  case DatatypeType =>
+    exact smtx_typeof_guard_of_non_none _ _ hx
+  case DatatypeTypeRef =>
     exact smtx_typeof_guard_of_non_none _ _ hx
   case DtcAppType a b =>
     cases hA : __eo_to_smt_type a <;> cases hB : __eo_to_smt_type b <;>

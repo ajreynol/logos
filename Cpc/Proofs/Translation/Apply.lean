@@ -2137,12 +2137,24 @@ omit [TranslationBridge] in
 private theorem eo_to_smt_eq_dt_sel_cases
     (y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
     (hy : __eo_to_smt y = SmtTerm.DtSel s d i j) :
-    (∃ d0, d = __eo_to_smt_datatype d0 ∧ y = Term.DtSel s d0 i j) ∨
+    (∃ d0, d = __eo_to_smt_datatype d0 ∧ y = Term.DtSel s d0 i j ∧
+      __eo_reserved_datatype_name s = false) ∨
       (∃ z, y = Term._at_purify z ∧ __eo_to_smt z = SmtTerm.DtSel s d i j) := by
   cases y
   case DtSel s0 d0 i0 j0 =>
-    cases hy
-    exact Or.inl ⟨d0, rfl, rfl⟩
+    cases hReserved : __eo_reserved_datatype_name s0
+    · simp [eo_to_smt_term_dt_sel, native_ite, hReserved] at hy
+      rcases hy with ⟨hs, hd, hi, hj⟩
+      cases hs
+      cases hd
+      cases hi
+      cases hj
+      exact Or.inl ⟨d0, rfl, rfl, hReserved⟩
+    · simp [eo_to_smt_term_dt_sel, native_ite, hReserved] at hy
+  case DtCons s0 d0 i0 =>
+    exfalso
+    cases hReserved : __eo_reserved_datatype_name s0 <;>
+      simp [eo_to_smt_term_dt_cons, native_ite, hReserved] at hy
   case _at_purify z =>
     have hz : __eo_to_smt z = SmtTerm.DtSel s d i j := hy
     exact Or.inr ⟨z, rfl, hz⟩
@@ -2179,6 +2191,14 @@ private theorem eo_to_smt_ne_dt_tester
     exact eo_to_smt_ne_dt_tester z s d i hy
   case Apply f x =>
     exact (eo_to_smt_apply_ne_dt_tester f x s d i hy).elim
+  case DtCons s0 d0 i0 =>
+    exfalso
+    cases hReserved : __eo_reserved_datatype_name s0 <;>
+      simp [eo_to_smt_term_dt_cons, native_ite, hReserved] at hy
+  case DtSel s0 d0 i0 j0 =>
+    exfalso
+    cases hReserved : __eo_reserved_datatype_name s0 <;>
+      simp [eo_to_smt_term_dt_sel, native_ite, hReserved] at hy
   case UOp op =>
     exfalso
     cases op <;> cases hy
@@ -2212,7 +2232,7 @@ private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) =
       __smtx_ret_typeof_sel s d i j := by
   rcases eo_to_smt_eq_dt_sel_cases y s d i j hy with hSel | hPurify
-  · rcases hSel with ⟨d0, hd, rfl⟩
+  · rcases hSel with ⟨d0, hd, rfl, hReserved⟩
     have hx' : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s (__eo_to_smt_datatype d0) := by
       simpa [hd] using hx
     have hApplyNN' :
@@ -2232,7 +2252,7 @@ private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
       rw [hHeadEq]
     rw [hApplyEq]
     simpa [hd] using
-      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype x s d0 i j hx' hApplyNN')
+      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype x s d0 i j hReserved hx' hApplyNN')
   · rcases hPurify with ⟨z, rfl, hz⟩
     have hHeadEq :
         __eo_typeof (Term._at_purify (Term._at_purify z)) =
@@ -5820,6 +5840,19 @@ theorem eo_to_smt_typeof_matches_translation_apply
       apply hNonNone
       simpa [hGeneric, hVarNone] using typeof_apply_none_eq (__eo_to_smt x)
   case DtCons s d i =>
+    have hReserved : __eo_reserved_datatype_name s = false := by
+      cases hRes : __eo_reserved_datatype_name s
+      · rfl
+      · exfalso
+        apply hNonNone
+        have hTranslateNone :
+            __eo_to_smt (Term.Apply (Term.DtCons s d i) x) =
+              SmtTerm.Apply SmtTerm.None (__eo_to_smt x) := by
+          change SmtTerm.Apply (__eo_to_smt (Term.DtCons s d i)) (__eo_to_smt x) =
+            SmtTerm.Apply SmtTerm.None (__eo_to_smt x)
+          simp [eo_to_smt_term_dt_cons, native_ite, hRes]
+        rw [hTranslateNone]
+        exact typeof_apply_none_eq (__eo_to_smt x)
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.DtCons s d i) x) =
           SmtTerm.Apply (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) (__eo_to_smt x) := by
@@ -5827,7 +5860,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           __eo_to_smt (Term.Apply (Term.DtCons s d i) x) =
             SmtTerm.Apply (__eo_to_smt (Term.DtCons s d i)) (__eo_to_smt x) := by
         rfl
-      simpa [eo_to_smt_term_dt_cons] using hGeneric
+      simpa [eo_to_smt_term_dt_cons, native_ite, hReserved] using hGeneric
     have hApplyNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
@@ -5860,8 +5893,21 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rw [hTranslate, hGenericApply]
       exact smtx_typeof_apply_of_head_cases hHead hX hA
     exact hSmt.trans
-      (eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply x s d i A B hHead hX hA hB).symm
+      (eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply x s d i A B hReserved hHead hX hA hB).symm
   case DtSel s d i j =>
+    have hReserved : __eo_reserved_datatype_name s = false := by
+      cases hRes : __eo_reserved_datatype_name s
+      · rfl
+      · exfalso
+        apply hNonNone
+        have hTranslateNone :
+            __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
+              SmtTerm.Apply SmtTerm.None (__eo_to_smt x) := by
+          change SmtTerm.Apply (__eo_to_smt (Term.DtSel s d i j)) (__eo_to_smt x) =
+            SmtTerm.Apply SmtTerm.None (__eo_to_smt x)
+          simp [eo_to_smt_term_dt_sel, native_ite, hRes]
+        rw [hTranslateNone]
+        exact typeof_apply_none_eq (__eo_to_smt x)
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
           SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x) := by
@@ -5869,7 +5915,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
             SmtTerm.Apply (__eo_to_smt (Term.DtSel s d i j)) (__eo_to_smt x) := by
         rfl
-      simpa [eo_to_smt_term_dt_sel] using hGeneric
+      simpa [eo_to_smt_term_dt_sel, native_ite, hReserved] using hGeneric
     have hApplyNN :
         term_has_non_none_type
           (SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x)) := by
@@ -5885,7 +5931,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rw [hTranslate]
       exact dt_sel_term_typeof_of_non_none hApplyNN
     exact hSmt.trans
-      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype x s d i j hArg hApplyNN).symm
+      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype x s d i j hReserved hArg hApplyNN).symm
   case UConst i T =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.UConst i T) x) =
