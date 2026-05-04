@@ -1719,6 +1719,109 @@ private theorem str_nary_elim_str_nary_intro_default_ne_stuck_of_seq
     exact str_nary_elim_str_concat_cons_ne_stuck_of_seq x
       (__seq_empty (__eo_typeof x)) T hxTy hEmptyTy
 
+private theorem str_nary_elim_list_rev_rec_ne_stuck_of_seq
+    (tail acc : Term) (T : SmtType)
+    (hTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tail = Term.Boolean true)
+    (hTailTy : __smtx_typeof (__eo_to_smt tail) = SmtType.Seq T)
+    (hAccTy : __smtx_typeof (__eo_to_smt acc) = SmtType.Seq T)
+    (hAccElim : __str_nary_elim acc ≠ Term.Stuck)
+    (hRev : __eo_list_rev_rec tail acc ≠ Term.Stuck) :
+    __str_nary_elim (__eo_list_rev_rec tail acc) ≠ Term.Stuck := by
+  induction tail, acc using __eo_list_rev_rec.induct with
+  | case1 acc =>
+      simp [__eo_is_list] at hTailList
+  | case2 tail hTail =>
+      change __smtx_typeof SmtTerm.None = SmtType.Seq T at hAccTy
+      rw [TranslationProofs.smtx_typeof_none] at hAccTy
+      cases hAccTy
+  | case3 g x y acc hAcc ih =>
+      have hg : g = Term.UOp UserOp.str_concat :=
+        eo_is_list_cons_head_eq_of_true (Term.UOp UserOp.str_concat) g x y
+          hTailList
+      subst g
+      have hTailTailList :
+          __eo_is_list (Term.UOp UserOp.str_concat) y =
+            Term.Boolean true :=
+        eo_is_list_tail_true_of_cons_self (Term.UOp UserOp.str_concat)
+          x y hTailList
+      have hConcatNN :
+          __smtx_typeof (__eo_to_smt (mkConcat x y)) ≠ SmtType.None := by
+        rw [hTailTy]
+        exact seq_ne_none T
+      rcases str_concat_args_of_non_none x y hConcatNN with
+        ⟨U, hxTyU, hyTyU⟩
+      have hConcatTyU :
+          __smtx_typeof (__eo_to_smt (mkConcat x y)) = SmtType.Seq U :=
+        smt_typeof_str_concat_of_seq x y U hxTyU hyTyU
+      have hUT : U = T := by
+        have hSeq : SmtType.Seq U = SmtType.Seq T := by
+          rw [← hConcatTyU, hTailTy]
+        injection hSeq
+      have hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T := by
+        simpa [hUT] using hxTyU
+      have hyTy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T := by
+        simpa [hUT] using hyTyU
+      have hNewAccTy :
+          __smtx_typeof (__eo_to_smt (mkConcat x acc)) = SmtType.Seq T :=
+        smt_typeof_str_concat_of_seq x acc T hxTy hAccTy
+      have hNewAccElim :
+          __str_nary_elim (mkConcat x acc) ≠ Term.Stuck :=
+        str_nary_elim_str_concat_cons_ne_stuck_of_seq x acc T hxTy
+          hAccTy
+      have hTailRev :
+          __eo_list_rev_rec y (mkConcat x acc) ≠ Term.Stuck := by
+        simpa [__eo_list_rev_rec] using hRev
+      simpa [__eo_list_rev_rec] using
+        ih hTailTailList hyTy hNewAccTy hNewAccElim hTailRev
+  | case4 nil acc hNil hAcc hNot =>
+      simpa [__eo_list_rev_rec] using hAccElim
+
+private theorem str_nary_elim_list_rev_str_concat_cons_ne_stuck_of_seq
+    (head tail : Term) (T : SmtType)
+    (hConsTy : __smtx_typeof (__eo_to_smt (mkConcat head tail)) =
+      SmtType.Seq T)
+    (hRevCons :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat head tail) ≠
+        Term.Stuck) :
+    __str_nary_elim
+        (__eo_list_rev (Term.UOp UserOp.str_concat)
+          (mkConcat head tail)) ≠ Term.Stuck := by
+  rcases str_concat_args_of_seq_type head tail T hConsTy with
+    ⟨hHeadTy, hTailTy⟩
+  have hConsList :
+      __eo_is_list (Term.UOp UserOp.str_concat) (mkConcat head tail) =
+        Term.Boolean true :=
+    eo_list_rev_is_list_true_of_ne_stuck (Term.UOp UserOp.str_concat)
+      (mkConcat head tail) hRevCons
+  have hTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tail = Term.Boolean true :=
+    eo_is_list_tail_true_of_cons_self (Term.UOp UserOp.str_concat) head
+      tail hConsList
+  let nil := __eo_get_nil_rec (Term.UOp UserOp.str_concat) tail
+  have hNilTy : __smtx_typeof (__eo_to_smt nil) = SmtType.Seq T := by
+    simpa [nil] using
+      smt_typeof_get_nil_rec_str_concat_of_seq tail T hTailList hTailTy
+        (eo_get_nil_rec_ne_stuck_of_is_list_true
+          (Term.UOp UserOp.str_concat) tail hTailList)
+  have hAccTy :
+      __smtx_typeof (__eo_to_smt (mkConcat head nil)) = SmtType.Seq T :=
+    smt_typeof_str_concat_of_seq head nil T hHeadTy hNilTy
+  have hAccElim : __str_nary_elim (mkConcat head nil) ≠ Term.Stuck :=
+    str_nary_elim_str_concat_cons_ne_stuck_of_seq head nil T hHeadTy
+      hNilTy
+  have hRevEq :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat head tail) =
+        __eo_list_rev_rec tail (mkConcat head nil) := by
+    simpa [nil] using
+      eo_list_rev_str_concat_cons_eq_of_ne_stuck head tail hRevCons
+  have hRevRec :
+      __eo_list_rev_rec tail (mkConcat head nil) ≠ Term.Stuck := by
+    simpa [hRevEq] using hRevCons
+  simpa [hRevEq, nil] using
+    str_nary_elim_list_rev_rec_ne_stuck_of_seq tail (mkConcat head nil)
+      T hTailList hTailTy hAccTy hAccElim hRevRec
+
 private theorem str_nary_elim_str_nary_intro_ne_stuck_of_seq
     (x : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
@@ -7974,6 +8077,125 @@ private theorem eo_interprets_rev_tails_of_head_eo_eq_true_of_cons_seq_strip_tai
     M hM t u a aTail b bTail T hStrip hHead hLeftTy hRightTy
     hTailHead hFinalLeft hFinalRight hXY
 
+private theorem concat_tail_stop_or_head_true_of_seq_type
+    (t2 s2 : Term) (T : SmtType)
+    (ht2Ty : __smtx_typeof (__eo_to_smt t2) = SmtType.Seq T)
+    (hs2Ty : __smtx_typeof (__eo_to_smt s2) = SmtType.Seq T) :
+    ((¬ ∃ head tail : Term, t2 = mkConcat head tail) ∨
+      (¬ ∃ head tail : Term, s2 = mkConcat head tail) ∨
+      ∃ a aTail b bTail : Term,
+        t2 = mkConcat a aTail ∧
+        s2 = mkConcat b bTail ∧
+        __eo_eq a b = Term.Boolean false) ∨
+      ∃ a aTail b bTail : Term,
+        t2 = mkConcat a aTail ∧
+        s2 = mkConcat b bTail ∧
+        __eo_eq a b = Term.Boolean true := by
+  by_cases hT2Concat : ∃ head tail : Term, t2 = mkConcat head tail
+  · rcases hT2Concat with ⟨a, aTail, hT2⟩
+    by_cases hS2Concat : ∃ head tail : Term, s2 = mkConcat head tail
+    · rcases hS2Concat with ⟨b, bTail, hS2⟩
+      subst t2
+      subst s2
+      rcases str_concat_args_of_seq_type a aTail T ht2Ty with
+        ⟨haTy, _haTailTy⟩
+      rcases str_concat_args_of_seq_type b bTail T hs2Ty with
+        ⟨hbTy, _hbTailTy⟩
+      rcases eo_eq_cases_of_ne_stuck a b
+          (term_ne_stuck_of_smt_type_seq a T haTy)
+          (term_ne_stuck_of_smt_type_seq b T hbTy) with
+        hHead | hHead
+      · exact Or.inr ⟨a, aTail, b, bTail, rfl, rfl, hHead⟩
+      · exact Or.inl (Or.inr (Or.inr
+          ⟨a, aTail, b, bTail, rfl, rfl, hHead⟩))
+    · exact Or.inl (Or.inr (Or.inl hS2Concat))
+  · exact Or.inl (Or.inl hT2Concat)
+
+private theorem concat_tail_stop_of_no_head_true_of_seq_type
+    (t2 s2 : Term) (T : SmtType)
+    (ht2Ty : __smtx_typeof (__eo_to_smt t2) = SmtType.Seq T)
+    (hs2Ty : __smtx_typeof (__eo_to_smt s2) = SmtType.Seq T)
+    (hNoHeadTrue :
+      ¬ ∃ a aTail b bTail : Term,
+        t2 = mkConcat a aTail ∧
+        s2 = mkConcat b bTail ∧
+        __eo_eq a b = Term.Boolean true) :
+    (¬ ∃ head tail : Term, t2 = mkConcat head tail) ∨
+      (¬ ∃ head tail : Term, s2 = mkConcat head tail) ∨
+      ∃ a aTail b bTail : Term,
+        t2 = mkConcat a aTail ∧
+        s2 = mkConcat b bTail ∧
+        __eo_eq a b = Term.Boolean false := by
+  rcases concat_tail_stop_or_head_true_of_seq_type t2 s2 T ht2Ty hs2Ty with
+    hStop | hHeadTrue
+  · exact hStop
+  · exact False.elim (hNoHeadTrue hHeadTrue)
+
+private theorem eo_interprets_rev_tails_of_head_eo_eq_true_of_cons_seq_strip_with_final
+    (M : SmtModel) (hM : model_total_typed M)
+    (t u t2 s2 : Term) (T : SmtType)
+    (hStrip :
+      __str_strip_prefix (mkConcat t t2) (mkConcat u s2) ≠ Term.Stuck)
+    (hHead : __eo_eq t u = Term.Boolean true)
+    (hLeftTy :
+      __smtx_typeof (__eo_to_smt (mkConcat t t2)) = SmtType.Seq T)
+    (hRightTy :
+      __smtx_typeof (__eo_to_smt (mkConcat u s2)) = SmtType.Seq T)
+    (hFinalLeft :
+      __str_nary_elim
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__pair_first (__str_strip_prefix t2 s2))) ≠ Term.Stuck)
+    (hFinalRight :
+      __str_nary_elim
+          (__eo_list_rev (Term.UOp UserOp.str_concat)
+            (__pair_second (__str_strip_prefix t2 s2))) ≠ Term.Stuck)
+    (hXY :
+      eo_interprets M
+        (mkEq
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat t t2)))
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat) (mkConcat u s2))))
+        true) :
+    eo_interprets M
+      (mkEq
+        (__str_nary_elim (__eo_list_rev (Term.UOp UserOp.str_concat) t2))
+        (__str_nary_elim (__eo_list_rev (Term.UOp UserOp.str_concat) s2)))
+      true := by
+  rcases str_concat_args_of_seq_type t t2 T hLeftTy with
+    ⟨_htTy, ht2Ty⟩
+  rcases str_concat_args_of_seq_type u s2 T hRightTy with
+    ⟨_huTy, hs2Ty⟩
+  rcases concat_tail_stop_or_head_true_of_seq_type t2 s2 T ht2Ty hs2Ty with
+    hTailStop | hTailHeadTrue
+  · exact
+      eo_interprets_rev_tails_of_head_eo_eq_true_of_cons_seq_strip_tail_stop
+        M hM t u t2 s2 T hStrip hHead hLeftTy hRightTy hTailStop
+        hFinalLeft hFinalRight hXY
+  · rcases hTailHeadTrue with
+      ⟨a, aTail, b, bTail, hT2, hS2, _hTailHead⟩
+    subst t2
+    subst s2
+    rcases rev_elim_cons_tail_lists_of_interprets
+        M t u (mkConcat a aTail) (mkConcat b bTail) hXY with
+      ⟨_hTailLeftList, _hTailRightList, hRevTailLeft,
+        hRevTailRight⟩
+    have hElimTailLeft :
+        __str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (mkConcat a aTail)) ≠ Term.Stuck :=
+      str_nary_elim_list_rev_str_concat_cons_ne_stuck_of_seq a aTail T
+        ht2Ty hRevTailLeft
+    have hElimTailRight :
+        __str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (mkConcat b bTail)) ≠ Term.Stuck :=
+      str_nary_elim_list_rev_str_concat_cons_ne_stuck_of_seq b bTail T
+        hs2Ty hRevTailRight
+    exact eo_interprets_rev_tails_of_head_eo_eq_true_of_cons_seq_strip
+      M hM t u (mkConcat a aTail) (mkConcat b bTail) T hStrip hHead
+      hLeftTy hRightTy hElimTailLeft hElimTailRight hXY
+
 private theorem eo_typeof_eq_operands_same_of_bool (x y : Term)
     (hTy : __eo_typeof (mkEq x y) = Term.Bool) :
     __eo_typeof x = __eo_typeof y ∧
@@ -8842,6 +9064,247 @@ private theorem step_concat_eq_true_of_left_seq_from_rev_strip_with_final_seq_ta
     eq_bool_right_seq_of_left_seq s t T hPremBool hsTy
   exact step_concat_eq_true_of_seq_from_rev_strip_with_final_seq_tail_stop
     M hM s t T hsTy htTy hIntroSNN hIntroTNN hRevStrip hTailStop hProg
+
+private theorem step_concat_eq_true_of_seq_from_rev_strip_with_final_seq_cancel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s t : Term) (T : SmtType)
+    (hsTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq T)
+    (htTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T)
+    (hIntroSNN : __smtx_typeof (__eo_to_smt (__str_nary_intro s)) ≠
+      SmtType.None)
+    (hIntroTNN : __smtx_typeof (__eo_to_smt (__str_nary_intro t)) ≠
+      SmtType.None)
+    (hRevStrip :
+      eo_interprets M (mkEq s t) true ->
+      eo_interprets M
+        (mkEq
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro s))))
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro t)))))
+        true)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean true) (Proof.pf (mkEq s t)) ≠
+        Term.Stuck) :
+    StepRuleProperties M [mkEq s t]
+      (__eo_prog_concat_eq (Term.Boolean true) (Proof.pf (mkEq s t))) := by
+  refine step_concat_eq_true_of_seq_from_rev_strip_with_final_seq M hM
+    s t T hsTy htTy hIntroSNN hIntroTNN hRevStrip ?_ hProg
+  intro a b aTail bTail hStrip hHead hLeftTy hRightTy hFinalLeft
+    hFinalRight hXY
+  exact
+    eo_interprets_rev_tails_of_head_eo_eq_true_of_cons_seq_strip_with_final
+      M hM a b aTail bTail T hStrip hHead hLeftTy hRightTy
+      hFinalLeft hFinalRight hXY
+
+private theorem step_concat_eq_true_of_left_seq_from_rev_strip_with_final_seq_cancel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s t : Term) (T : SmtType)
+    (hPremBool : RuleProofs.eo_has_bool_type (mkEq s t))
+    (hsTy : __smtx_typeof (__eo_to_smt s) = SmtType.Seq T)
+    (hIntroSNN : __smtx_typeof (__eo_to_smt (__str_nary_intro s)) ≠
+      SmtType.None)
+    (hIntroTNN : __smtx_typeof (__eo_to_smt (__str_nary_intro t)) ≠
+      SmtType.None)
+    (hRevStrip :
+      eo_interprets M (mkEq s t) true ->
+      eo_interprets M
+        (mkEq
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro s))))
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro t)))))
+        true)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean true) (Proof.pf (mkEq s t)) ≠
+        Term.Stuck) :
+    StepRuleProperties M [mkEq s t]
+      (__eo_prog_concat_eq (Term.Boolean true) (Proof.pf (mkEq s t))) := by
+  have htTy : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T :=
+    eq_bool_right_seq_of_left_seq s t T hPremBool hsTy
+  exact step_concat_eq_true_of_seq_from_rev_strip_with_final_seq_cancel
+    M hM s t T hsTy htTy hIntroSNN hIntroTNN hRevStrip hProg
+
+private theorem step_concat_eq_true_of_left_concat_from_rev_strip_with_final_seq_cancel
+    (M : SmtModel) (hM : model_total_typed M)
+    (sHead sTail t : Term)
+    (hPremBool :
+      RuleProofs.eo_has_bool_type (mkEq (mkConcat sHead sTail) t))
+    (hIntroTNN :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro t)) ≠
+        SmtType.None)
+    (hRevStrip :
+      eo_interprets M (mkEq (mkConcat sHead sTail) t) true ->
+      eo_interprets M
+        (mkEq
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro (mkConcat sHead sTail)))))
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro t)))))
+        true)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean true)
+          (Proof.pf (mkEq (mkConcat sHead sTail) t)) ≠ Term.Stuck) :
+    StepRuleProperties M [mkEq (mkConcat sHead sTail) t]
+      (__eo_prog_concat_eq (Term.Boolean true)
+        (Proof.pf (mkEq (mkConcat sHead sTail) t))) := by
+  rcases concatEq_seq_pack_of_left_concat sHead sTail t hPremBool
+      hIntroTNN with
+    ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
+  exact step_concat_eq_true_of_left_seq_from_rev_strip_with_final_seq_cancel
+    M hM (mkConcat sHead sTail) t T hPremBool hLeftTy hIntroLeftNN
+    hIntroRightNN hRevStrip hProg
+
+private theorem step_concat_eq_true_of_right_concat_from_rev_strip_with_final_seq_cancel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s tHead tTail : Term)
+    (hPremBool :
+      RuleProofs.eo_has_bool_type (mkEq s (mkConcat tHead tTail)))
+    (hIntroSNN :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro s)) ≠
+        SmtType.None)
+    (hRevStrip :
+      eo_interprets M (mkEq s (mkConcat tHead tTail)) true ->
+      eo_interprets M
+        (mkEq
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro s))))
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro (mkConcat tHead tTail))))))
+        true)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean true)
+          (Proof.pf (mkEq s (mkConcat tHead tTail))) ≠ Term.Stuck) :
+    StepRuleProperties M [mkEq s (mkConcat tHead tTail)]
+      (__eo_prog_concat_eq (Term.Boolean true)
+        (Proof.pf (mkEq s (mkConcat tHead tTail)))) := by
+  rcases concatEq_seq_pack_of_right_concat s tHead tTail hPremBool
+      hIntroSNN with
+    ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
+  exact step_concat_eq_true_of_left_seq_from_rev_strip_with_final_seq_cancel
+    M hM s (mkConcat tHead tTail) T hPremBool hLeftTy hIntroLeftNN
+    hIntroRightNN hRevStrip hProg
+
+private theorem step_concat_eq_true_of_both_concat_from_rev_strip_with_final_seq_cancel
+    (M : SmtModel) (hM : model_total_typed M)
+    (sHead sTail tHead tTail : Term)
+    (hPremBool :
+      RuleProofs.eo_has_bool_type
+        (mkEq (mkConcat sHead sTail) (mkConcat tHead tTail)))
+    (hRevStrip :
+      eo_interprets M (mkEq (mkConcat sHead sTail) (mkConcat tHead tTail))
+        true ->
+      eo_interprets M
+        (mkEq
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro (mkConcat sHead sTail)))))
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro (mkConcat tHead tTail))))))
+        true)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean true)
+          (Proof.pf (mkEq (mkConcat sHead sTail)
+            (mkConcat tHead tTail))) ≠ Term.Stuck) :
+    StepRuleProperties M [mkEq (mkConcat sHead sTail) (mkConcat tHead tTail)]
+      (__eo_prog_concat_eq (Term.Boolean true)
+        (Proof.pf (mkEq (mkConcat sHead sTail)
+          (mkConcat tHead tTail)))) := by
+  rcases concatEq_seq_pack_of_both_concat sHead sTail tHead tTail
+      hPremBool with
+    ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
+  exact step_concat_eq_true_of_left_seq_from_rev_strip_with_final_seq_cancel
+    M hM (mkConcat sHead sTail) (mkConcat tHead tTail) T hPremBool
+    hLeftTy hIntroLeftNN hIntroRightNN hRevStrip hProg
+
+private theorem step_concat_eq_true_of_left_concat_empty_typeof_from_rev_strip_with_final_seq_cancel
+    (M : SmtModel) (hM : model_total_typed M)
+    (sHead sTail t : Term)
+    (hPremBool :
+      RuleProofs.eo_has_bool_type (mkEq (mkConcat sHead sTail) t))
+    (hEmptyTNN :
+      __smtx_typeof (__eo_to_smt (__seq_empty (__eo_typeof t))) ≠
+        SmtType.None)
+    (hIntroT : __str_nary_intro t ≠ Term.Stuck)
+    (hRevStrip :
+      eo_interprets M (mkEq (mkConcat sHead sTail) t) true ->
+      eo_interprets M
+        (mkEq
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro (mkConcat sHead sTail)))))
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro t)))))
+        true)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean true)
+          (Proof.pf (mkEq (mkConcat sHead sTail) t)) ≠ Term.Stuck) :
+    StepRuleProperties M [mkEq (mkConcat sHead sTail) t]
+      (__eo_prog_concat_eq (Term.Boolean true)
+        (Proof.pf (mkEq (mkConcat sHead sTail) t))) := by
+  rcases concatEq_seq_pack_of_left_concat_empty_typeof sHead sTail t
+      hPremBool hEmptyTNN hIntroT with
+    ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
+  exact step_concat_eq_true_of_left_seq_from_rev_strip_with_final_seq_cancel
+    M hM (mkConcat sHead sTail) t T hPremBool hLeftTy hIntroLeftNN
+    hIntroRightNN hRevStrip hProg
+
+private theorem step_concat_eq_true_of_right_concat_empty_typeof_from_rev_strip_with_final_seq_cancel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s tHead tTail : Term)
+    (hPremBool :
+      RuleProofs.eo_has_bool_type (mkEq s (mkConcat tHead tTail)))
+    (hEmptySNN :
+      __smtx_typeof (__eo_to_smt (__seq_empty (__eo_typeof s))) ≠
+        SmtType.None)
+    (hIntroS : __str_nary_intro s ≠ Term.Stuck)
+    (hRevStrip :
+      eo_interprets M (mkEq s (mkConcat tHead tTail)) true ->
+      eo_interprets M
+        (mkEq
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro s))))
+          (__str_nary_elim
+            (__eo_list_rev (Term.UOp UserOp.str_concat)
+              (__eo_list_rev (Term.UOp UserOp.str_concat)
+                (__str_nary_intro (mkConcat tHead tTail))))))
+        true)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean true)
+          (Proof.pf (mkEq s (mkConcat tHead tTail))) ≠ Term.Stuck) :
+    StepRuleProperties M [mkEq s (mkConcat tHead tTail)]
+      (__eo_prog_concat_eq (Term.Boolean true)
+        (Proof.pf (mkEq s (mkConcat tHead tTail)))) := by
+  rcases concatEq_seq_pack_of_right_concat_empty_typeof s tHead tTail
+      hPremBool hEmptySNN hIntroS with
+    ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
+  exact step_concat_eq_true_of_left_seq_from_rev_strip_with_final_seq_cancel
+    M hM s (mkConcat tHead tTail) T hPremBool hLeftTy hIntroLeftNN
+    hIntroRightNN hRevStrip hProg
 
 private theorem step_concat_eq_true_of_left_concat_from_rev_strip_with_final_seq
     (M : SmtModel) (hM : model_total_typed M)
