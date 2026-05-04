@@ -183,6 +183,54 @@ private theorem concatEq_seq_pack_of_right_concat
   exact ⟨T, hLeftTy, hIntroSNN,
     str_nary_intro_concat_has_smt_translation tHead tTail hRightNN⟩
 
+private theorem concatEq_seq_pack_of_left_concat_intro_eq_self
+    (sHead sTail t : Term)
+    (hPremBool :
+      RuleProofs.eo_has_bool_type (mkEq (mkConcat sHead sTail) t))
+    (hIntroEq : __str_nary_intro t = t) :
+    ∃ T,
+      __smtx_typeof (__eo_to_smt (mkConcat sHead sTail)) =
+        SmtType.Seq T ∧
+      __smtx_typeof
+          (__eo_to_smt (__str_nary_intro (mkConcat sHead sTail))) ≠
+        SmtType.None ∧
+      __smtx_typeof (__eo_to_smt (__str_nary_intro t)) ≠
+        SmtType.None := by
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      (mkConcat sHead sTail) t hPremBool with
+    ⟨hSame, hLeftNN⟩
+  have hRightNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
+    rw [← hSame]
+    exact hLeftNN
+  have hIntroTNN :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro t)) ≠
+        SmtType.None := by
+    simpa [hIntroEq] using hRightNN
+  exact concatEq_seq_pack_of_left_concat sHead sTail t hPremBool
+    hIntroTNN
+
+private theorem concatEq_seq_pack_of_right_concat_intro_eq_self
+    (s tHead tTail : Term)
+    (hPremBool :
+      RuleProofs.eo_has_bool_type (mkEq s (mkConcat tHead tTail)))
+    (hIntroEq : __str_nary_intro s = s) :
+    ∃ T,
+      __smtx_typeof (__eo_to_smt s) = SmtType.Seq T ∧
+      __smtx_typeof (__eo_to_smt (__str_nary_intro s)) ≠
+        SmtType.None ∧
+      __smtx_typeof
+          (__eo_to_smt (__str_nary_intro (mkConcat tHead tTail))) ≠
+        SmtType.None := by
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      s (mkConcat tHead tTail) hPremBool with
+    ⟨_hSame, hLeftNN⟩
+  have hIntroSNN :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro s)) ≠
+        SmtType.None := by
+    simpa [hIntroEq] using hLeftNN
+  exact concatEq_seq_pack_of_right_concat s tHead tTail hPremBool
+    hIntroSNN
+
 private theorem eq_bool_seq_of_left_concat
     (sHead sTail t : Term)
     (hPremBool : RuleProofs.eo_has_bool_type (mkEq (mkConcat sHead sTail) t)) :
@@ -4779,6 +4827,107 @@ private theorem str_nary_intro_not_str_concat_cases
         (by simpa [empty] using hEmptyNonStuck)
     exact Or.inr ⟨empty, hIntroEq, hEmptyNil⟩
 
+private theorem str_nary_intro_not_str_concat_cases_typeof_empty
+    (x : Term)
+    (hNotConcat : ¬ ∃ head tail : Term, x = mkConcat head tail)
+    (hIntro : __str_nary_intro x ≠ Term.Stuck) :
+    __str_nary_intro x = x ∨
+      __str_nary_intro x = mkConcat x (__seq_empty (__eo_typeof x)) ∧
+        __eo_is_list_nil (Term.UOp UserOp.str_concat)
+            (__seq_empty (__eo_typeof x)) =
+          Term.Boolean true := by
+  let empty := __seq_empty (__eo_typeof x)
+  have hIntroDefault :
+      __str_nary_intro x =
+        __eo_ite (__eo_eq x empty) x
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) x)
+            empty) := by
+    simpa [empty] using
+      str_nary_intro_eq_default_of_not_str_concat x hNotConcat
+  have hIntroIte :
+      __eo_ite (__eo_eq x empty) x
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) x)
+            empty) ≠ Term.Stuck := by
+    simpa [hIntroDefault] using hIntro
+  rcases eo_ite_cases_of_ne_stuck (__eo_eq x empty) x
+      (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) x) empty)
+      hIntroIte with hCond | hCond
+  · left
+    rw [hIntroDefault]
+    simp [hCond, eo_ite_true]
+  · have hApplyNonStuck :
+        __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) x)
+          empty ≠ Term.Stuck := by
+      simpa [hCond, eo_ite_false] using hIntroIte
+    have hEmptyNonStuck : empty ≠ Term.Stuck :=
+      eo_mk_apply_arg_ne_stuck_of_ne_stuck
+        (Term.Apply (Term.UOp UserOp.str_concat) x) empty hApplyNonStuck
+    have hApplyEq :
+        __eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) x)
+          empty = mkConcat x empty :=
+      eo_mk_apply_eq_apply_of_ne_stuck
+        (Term.Apply (Term.UOp UserOp.str_concat) x) empty hApplyNonStuck
+    have hIntroEq : __str_nary_intro x = mkConcat x empty := by
+      rw [hIntroDefault]
+      simpa [hCond, eo_ite_false, hApplyEq]
+    have hEmptyNil :
+        __eo_is_list_nil (Term.UOp UserOp.str_concat) empty =
+          Term.Boolean true :=
+      eo_is_list_nil_str_concat_seq_empty_of_ne_stuck (__eo_typeof x)
+        (by simpa [empty] using hEmptyNonStuck)
+    right
+    exact ⟨by simpa [empty] using hIntroEq,
+      by simpa [empty] using hEmptyNil⟩
+
+private theorem str_nary_intro_not_str_concat_smt_cases
+    (x : Term)
+    (hNotConcat : ¬ ∃ head tail : Term, x = mkConcat head tail)
+    (hIntro : __str_nary_intro x ≠ Term.Stuck)
+    (hIntroNN :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro x)) ≠ SmtType.None) :
+    (__smtx_typeof (__eo_to_smt x) ≠ SmtType.None) ∨
+      __smtx_typeof (__eo_to_smt (__seq_empty (__eo_typeof x))) ≠
+        SmtType.None := by
+  rcases str_nary_intro_not_str_concat_cases_typeof_empty x hNotConcat
+      hIntro with hIntroEq | ⟨hIntroEq, _hEmptyNil⟩
+  · left
+    simpa [hIntroEq] using hIntroNN
+  · right
+    have hConcatNN :
+        __smtx_typeof
+            (__eo_to_smt (mkConcat x (__seq_empty (__eo_typeof x)))) ≠
+          SmtType.None := by
+      simpa [hIntroEq] using hIntroNN
+    rcases str_concat_args_of_non_none x (__seq_empty (__eo_typeof x))
+        hConcatNN with
+      ⟨_T, _hxTy, hEmptyTy⟩
+    rw [hEmptyTy]
+    exact seq_ne_none _T
+
+private theorem str_nary_intro_not_str_concat_eq_or_empty_smt
+    (x : Term)
+    (hNotConcat : ¬ ∃ head tail : Term, x = mkConcat head tail)
+    (hIntro : __str_nary_intro x ≠ Term.Stuck)
+    (hIntroNN :
+      __smtx_typeof (__eo_to_smt (__str_nary_intro x)) ≠ SmtType.None) :
+    __str_nary_intro x = x ∨
+      __smtx_typeof (__eo_to_smt (__seq_empty (__eo_typeof x))) ≠
+        SmtType.None := by
+  rcases str_nary_intro_not_str_concat_cases_typeof_empty x hNotConcat
+      hIntro with hIntroEq | ⟨hIntroEq, _hEmptyNil⟩
+  · exact Or.inl hIntroEq
+  · right
+    have hConcatNN :
+        __smtx_typeof
+            (__eo_to_smt (mkConcat x (__seq_empty (__eo_typeof x)))) ≠
+          SmtType.None := by
+      simpa [hIntroEq] using hIntroNN
+    rcases str_concat_args_of_non_none x (__seq_empty (__eo_typeof x))
+        hConcatNN with
+      ⟨_T, _hxTy, hEmptyTy⟩
+    rw [hEmptyTy]
+    exact seq_ne_none _T
+
 private theorem eo_list_rev_str_nary_intro_eq_of_not_str_concat
     (x : Term)
     (hNotConcat : ¬ ∃ head tail : Term, x = mkConcat head tail)
@@ -7701,6 +7850,19 @@ private theorem step_concat_eq_core
               concatEq_seq_pack_of_left_concat sHead sTail t hPremBool
                 hIntroTNN
             exact hFalseSeq ⟨rfl, hPack⟩
+          have hNotFalseLeftConcatWithRightIntroEqSelf :
+              ¬ (rev = Term.Boolean false ∧
+                (∃ sHead sTail : Term, s = mkConcat sHead sTail) ∧
+                __str_nary_intro t = t) := by
+            intro h
+            rcases h with
+              ⟨hRev, ⟨sHead, sTail, hS⟩, hIntroEq⟩
+            subst rev
+            subst s
+            have hPack :=
+              concatEq_seq_pack_of_left_concat_intro_eq_self sHead sTail t
+                hPremBool hIntroEq
+            exact hFalseSeq ⟨rfl, hPack⟩
           have hNotFalseRightConcatWithLeftIntro :
               ¬ (rev = Term.Boolean false ∧
                 (∃ tHead tTail : Term, t = mkConcat tHead tTail) ∧
@@ -7714,6 +7876,19 @@ private theorem step_concat_eq_core
             have hPack :=
               concatEq_seq_pack_of_right_concat s tHead tTail hPremBool
                 hIntroSNN
+            exact hFalseSeq ⟨rfl, hPack⟩
+          have hNotFalseRightConcatWithLeftIntroEqSelf :
+              ¬ (rev = Term.Boolean false ∧
+                (∃ tHead tTail : Term, t = mkConcat tHead tTail) ∧
+                __str_nary_intro s = s) := by
+            intro h
+            rcases h with
+              ⟨hRev, ⟨tHead, tTail, hT⟩, hIntroEq⟩
+            subst rev
+            subst t
+            have hPack :=
+              concatEq_seq_pack_of_right_concat_intro_eq_self s tHead tTail
+                hPremBool hIntroEq
             exact hFalseSeq ⟨rfl, hPack⟩
           have hNotFalseLeftConcatWithRightEmpty :
               ¬ (rev = Term.Boolean false ∧
@@ -7786,6 +7961,21 @@ private theorem step_concat_eq_core
               ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
             exact hTrueSeqHead
               ⟨rfl, T, hLeftTy, hIntroLeftNN, hIntroRightNN, hHead⟩
+          have hNotTrueLeftConcatWithRightIntroEqSelfHead :
+              ¬ (rev = Term.Boolean true ∧
+                (∃ sHead sTail : Term, s = mkConcat sHead sTail) ∧
+                __str_nary_intro t = t ∧
+                __eo_eq s t = Term.Boolean true) := by
+            intro h
+            rcases h with
+              ⟨hRev, ⟨sHead, sTail, hS⟩, hIntroEq, hHead⟩
+            subst rev
+            subst s
+            rcases concatEq_seq_pack_of_left_concat_intro_eq_self sHead
+                sTail t hPremBool hIntroEq with
+              ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
+            exact hTrueSeqHead
+              ⟨rfl, T, hLeftTy, hIntroLeftNN, hIntroRightNN, hHead⟩
           have hNotTrueRightConcatWithLeftIntroHead :
               ¬ (rev = Term.Boolean true ∧
                 (∃ tHead tTail : Term, t = mkConcat tHead tTail) ∧
@@ -7799,6 +7989,21 @@ private theorem step_concat_eq_core
             subst t
             rcases concatEq_seq_pack_of_right_concat s tHead tTail
                 hPremBool hIntroSNN with
+              ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
+            exact hTrueSeqHead
+              ⟨rfl, T, hLeftTy, hIntroLeftNN, hIntroRightNN, hHead⟩
+          have hNotTrueRightConcatWithLeftIntroEqSelfHead :
+              ¬ (rev = Term.Boolean true ∧
+                (∃ tHead tTail : Term, t = mkConcat tHead tTail) ∧
+                __str_nary_intro s = s ∧
+                __eo_eq s t = Term.Boolean true) := by
+            intro h
+            rcases h with
+              ⟨hRev, ⟨tHead, tTail, hT⟩, hIntroEq, hHead⟩
+            subst rev
+            subst t
+            rcases concatEq_seq_pack_of_right_concat_intro_eq_self s tHead
+                tTail hPremBool hIntroEq with
               ⟨T, hLeftTy, hIntroLeftNN, hIntroRightNN⟩
             exact hTrueSeqHead
               ⟨rfl, T, hLeftTy, hIntroLeftNN, hIntroRightNN, hHead⟩
