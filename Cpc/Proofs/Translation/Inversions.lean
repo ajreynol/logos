@@ -9,6 +9,49 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
+private theorem tuple_ref_contains_eq
+    {s : native_String}
+    (h : native_reflist_contains (native_reflist_insert native_reflist_nil "_at_Tuple") s = true) :
+    s = "_at_Tuple" := by
+  have hOr : s = "_at_Tuple" ∨ s ∈ native_reflist_nil := by
+    simpa [native_reflist_contains, native_reflist_insert] using h
+  cases hOr with
+  | inl hs => exact hs
+  | inr hnil => cases hnil
+
+theorem smtx_type_wf_rec_guard_of_true
+    (T U : SmtType) (refs : RefList)
+    (h : __smtx_type_wf_rec (__smtx_typeof_guard T U) refs = true) :
+    __smtx_type_wf_rec U refs = true := by
+  cases T <;> simp [__smtx_typeof_guard, __smtx_type_wf_rec, native_ite, native_Teq] at h ⊢ <;>
+    exact h
+
+theorem seq_type_wf_rec_component_of_wf
+    {A : SmtType} {refs : RefList}
+    (h : __smtx_type_wf_rec (SmtType.Seq A) refs = true) :
+    __smtx_type_wf_rec A native_reflist_nil = true := by
+  simpa [__smtx_type_wf_rec] using h
+
+theorem set_type_wf_rec_component_of_wf
+    {A : SmtType} {refs : RefList}
+    (h : __smtx_type_wf_rec (SmtType.Set A) refs = true) :
+    __smtx_type_wf_rec A native_reflist_nil = true := by
+  simpa [__smtx_type_wf_rec] using h
+
+theorem map_type_wf_rec_components_of_wf
+    {A B : SmtType} {refs : RefList}
+    (h : __smtx_type_wf_rec (SmtType.Map A B) refs = true) :
+    __smtx_type_wf_rec A native_reflist_nil = true ∧
+      __smtx_type_wf_rec B native_reflist_nil = true := by
+  simpa [__smtx_type_wf_rec, native_and] using h
+
+theorem fun_type_wf_rec_components_of_wf
+    {A B : SmtType} {refs : RefList}
+    (h : __smtx_type_wf_rec (SmtType.FunType A B) refs = true) :
+    __smtx_type_wf_rec A native_reflist_nil = true ∧
+      __smtx_type_wf_rec B native_reflist_nil = true := by
+  simpa [__smtx_type_wf_rec, native_and] using h
+
 @[simp] private theorem eo_to_smt_type_bitvec_lit_ne_bool
     (n : native_Int) :
     native_ite (native_zleq 0 n) (SmtType.BitVec (native_int_to_nat n)) SmtType.None ≠
@@ -1239,6 +1282,18 @@ theorem eo_to_smt_type_eq_typeref
           simp [__eo_to_smt_type] at h
   | _ =>
       simp [__eo_to_smt_type] at h
+
+/-- EO type translation never produces a tuple-private type reference. -/
+theorem eo_to_smt_type_ne_tuple_typeref
+    (T : Term) :
+    __eo_to_smt_type T ≠ SmtType.TypeRef "_at_Tuple" := by
+  intro h
+  have hT : T = Term.DatatypeTypeRef "_at_Tuple" := eo_to_smt_type_eq_typeref h
+  subst T
+  change native_ite (__eo_reserved_datatype_name "_at_Tuple") SmtType.None
+      (SmtType.TypeRef "_at_Tuple") = SmtType.TypeRef "_at_Tuple" at h
+  rw [show __eo_reserved_datatype_name "_at_Tuple" = true by native_decide] at h
+  simp [native_ite] at h
 
 /-- Recovers the translated EO type from an SMT typing equality using an explicit IH. -/
 theorem eo_to_smt_type_typeof_of_smt_type_from_ih
