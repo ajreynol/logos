@@ -195,6 +195,7 @@ private theorem eo_to_smt_type_bitvec_nat
     native_nat_to_int, native_int_to_nat, SmtEval.native_nat_to_int,
     SmtEval.native_int_to_nat]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_numeral`. -/
 theorem eo_to_smt_type_typeof_numeral
     (n : native_Int) :
@@ -202,6 +203,7 @@ theorem eo_to_smt_type_typeof_numeral
   change __eo_to_smt_type (Term.UOp UserOp.Int) = SmtType.Int
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_rational`. -/
 theorem eo_to_smt_type_typeof_rational
     (q : native_Rat) :
@@ -209,6 +211,7 @@ theorem eo_to_smt_type_typeof_rational
   change __eo_to_smt_type (Term.UOp UserOp.Real) = SmtType.Real
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_string`. -/
 theorem eo_to_smt_type_typeof_string
     (s : native_String) :
@@ -216,6 +219,7 @@ theorem eo_to_smt_type_typeof_string
   change __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)) = SmtType.Seq SmtType.Char
   simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_binary`. -/
 theorem eo_to_smt_type_typeof_binary
     (w n : native_Int)
@@ -226,6 +230,7 @@ theorem eo_to_smt_type_typeof_binary
     SmtType.BitVec (native_int_to_nat w)
   simp [__eo_to_smt_type, native_ite, hWidth]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_var`. -/
 theorem eo_to_smt_type_typeof_var
     (s : native_String) (T : Term) :
@@ -233,6 +238,7 @@ theorem eo_to_smt_type_typeof_var
   change __eo_to_smt_type T = __eo_to_smt_type T
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_uconst`. -/
 theorem eo_to_smt_type_typeof_uconst
     (i : native_Nat) (T : Term) :
@@ -382,6 +388,7 @@ private def smtx_type_substitute_top (sub : native_String) (d0 : SmtDatatype) : 
       SmtType.Datatype s2 (native_ite (native_streq sub s2) d2 (__smtx_dt_substitute sub d0 d2))
   | T => native_ite (native_Teq T (SmtType.TypeRef sub)) (SmtType.Datatype sub d0) T
 
+omit [TranslationBridge] in
 mutual
 
 private theorem smtx_type_substitute_top_of_wf_rec
@@ -535,6 +542,7 @@ private theorem smtx_dt_substitute_of_wf_rec
 
 end
 
+omit [TranslationBridge] in
 private theorem smtx_dtc_substitute_cons_eq
     (sub : native_String) (d0 : SmtDatatype) (T : SmtType) (c : SmtDatatypeCons) :
     __smtx_dtc_substitute sub d0 (SmtDatatypeCons.cons T c) =
@@ -542,6 +550,7 @@ private theorem smtx_dtc_substitute_cons_eq
         (__smtx_dtc_substitute sub d0 c) := by
   cases T <;> rfl
 
+omit [TranslationBridge] in
 private theorem smtx_type_substitute_top_of_guard
     (sub : native_String) (d0 : SmtDatatype) (T U : SmtType)
     (hU : smtx_type_substitute_top sub d0 U = U) :
@@ -556,6 +565,7 @@ private def eo_type_substitute_field (sub : native_String) (d0 : Datatype) : Ter
       Term.DatatypeType s2 (native_ite (native_streq sub s2) d2 (__eo_dt_substitute sub d0 d2))
   | T => native_ite (native_teq T (Term.DatatypeTypeRef sub)) (Term.DatatypeType sub d0) T
 
+omit [TranslationBridge] in
 mutual
 
 private theorem eo_to_smt_type_substitute_field
@@ -745,46 +755,55 @@ private theorem eo_to_smt_datatype_substitute
 
 end
 
+omit [TranslationBridge] in
 private theorem eo_typeof_dt_cons_rec_null (T : Term) (i : native_Nat) :
     __eo_typeof_dt_cons_rec T Datatype.null i = Term.Stuck := by
   rw [__eo_typeof_dt_cons_rec.eq_def]
   cases T <;> cases i <;> simp
 
+omit [TranslationBridge] in
 private theorem eo_typeof_dt_cons_rec_unit (T : Term) (d : Datatype) (hT : T ≠ Term.Stuck) :
     __eo_typeof_dt_cons_rec T (Datatype.sum DatatypeCons.unit d) native_nat_zero = T := by
   rw [__eo_typeof_dt_cons_rec.eq_def]
   cases T <;> simp at hT ⊢
 
+omit [TranslationBridge] in
 private theorem eo_typeof_dt_cons_rec_cons (T U : Term) (c : DatatypeCons) (d : Datatype) (hT : T ≠ Term.Stuck) :
     __eo_typeof_dt_cons_rec T (Datatype.sum (DatatypeCons.cons U c) d) native_nat_zero =
       Term.DtcAppType U (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero) := by
   rw [__eo_typeof_dt_cons_rec.eq_def]
   cases T <;> simp at hT ⊢
 
+omit [TranslationBridge] in
 private theorem eo_typeof_dt_cons_rec_succ (T : Term) (c : DatatypeCons) (d : Datatype) (n : native_Nat) (hT : T ≠ Term.Stuck) :
     __eo_typeof_dt_cons_rec T (Datatype.sum c d) (native_nat_succ n) =
       __eo_typeof_dt_cons_rec T d n := by
   rw [__eo_typeof_dt_cons_rec.eq_def]
   cases T <;> simp at hT ⊢
 
+omit [TranslationBridge] in
 private theorem smtx_typeof_dt_cons_rec_null (T : SmtType) (i : native_Nat) :
     __smtx_typeof_dt_cons_rec T SmtDatatype.null i = SmtType.None := by
   rw [__smtx_typeof_dt_cons_rec.eq_def]
 
+omit [TranslationBridge] in
 private theorem smtx_typeof_dt_cons_rec_unit (T : SmtType) (d : SmtDatatype) :
     __smtx_typeof_dt_cons_rec T (SmtDatatype.sum SmtDatatypeCons.unit d) native_nat_zero = T := by
   rw [__smtx_typeof_dt_cons_rec.eq_1]
 
+omit [TranslationBridge] in
 private theorem smtx_typeof_dt_cons_rec_cons (T U : SmtType) (c : SmtDatatypeCons) (d : SmtDatatype) :
     __smtx_typeof_dt_cons_rec T (SmtDatatype.sum (SmtDatatypeCons.cons U c) d) native_nat_zero =
       SmtType.DtcAppType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero) := by
   rw [__smtx_typeof_dt_cons_rec.eq_2]
 
+omit [TranslationBridge] in
 private theorem smtx_typeof_dt_cons_rec_succ (T : SmtType) (c : SmtDatatypeCons) (d : SmtDatatype) (n : native_Nat) :
     __smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) (native_nat_succ n) =
       __smtx_typeof_dt_cons_rec T d n := by
   rw [__smtx_typeof_dt_cons_rec.eq_3]
 
+omit [TranslationBridge] in
 private theorem smtx_dt_wf_tail_of_sum_wf
     (c : SmtDatatypeCons) (d : SmtDatatype) (refs : RefList)
     (hWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
@@ -793,6 +812,7 @@ private theorem smtx_dt_wf_tail_of_sum_wf
     simpa [__smtx_dt_wf_rec, native_ite] using hWf
   exact hPair.2
 
+omit [TranslationBridge] in
 private theorem smtx_dt_cons_wf_of_sum_wf
     (c : SmtDatatypeCons) (d : SmtDatatype) (refs : RefList)
     (hWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
@@ -801,6 +821,7 @@ private theorem smtx_dt_cons_wf_of_sum_wf
     simpa [__smtx_dt_wf_rec, native_ite] using hWf
   exact hPair.1
 
+omit [TranslationBridge] in
 private theorem smtx_dt_cons_tail_wf_of_wf_rec
     (U : SmtType) (c : SmtDatatypeCons) (refs : RefList)
     (hWf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons U c) refs = true) :
@@ -809,6 +830,7 @@ private theorem smtx_dt_cons_tail_wf_of_wf_rec
   all_goals try exact hWf
   all_goals try exact hWf.2
 
+omit [TranslationBridge] in
 private theorem smtx_type_substitute_top_ne_none_of_cons_wf
     (sub : native_String) (d0 : SmtDatatype) (U : SmtType) (c : SmtDatatypeCons) (refs : RefList)
     (hWf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons U c) refs = true) :
@@ -818,6 +840,7 @@ private theorem smtx_type_substitute_top_ne_none_of_cons_wf
   case TypeRef s =>
     by_cases hEq : s = sub <;> simp [smtx_type_substitute_top, native_Teq, native_ite, hEq]
 
+omit [TranslationBridge] in
 private theorem smtx_typeof_dt_cons_rec_zero_subst_ne_none
     (sub : native_String) (d0 : SmtDatatype) (T : SmtType) (hT : T ≠ SmtType.None) :
     (c : SmtDatatypeCons) -> (d : SmtDatatype) ->
@@ -830,6 +853,7 @@ private theorem smtx_typeof_dt_cons_rec_zero_subst_ne_none
       rw [smtx_dtc_substitute_cons_eq, smtx_typeof_dt_cons_rec_cons]
       simp
 
+omit [TranslationBridge] in
 private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
     (sub : native_String) (d0 : Datatype) (T : Term) (hT : __eo_to_smt_type T ≠ SmtType.None) :
     (d : Datatype) -> (i : native_Nat) -> (refs : RefList) ->
@@ -919,6 +943,7 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
         exact smtx_dt_wf_tail_of_sum_wf _ _ refs (by simpa [__eo_to_smt_datatype] using hWf)
       exact eo_to_smt_typeof_dt_cons_rec_substitute_of_wf sub d0 T hT d n refs hDtTail
 
+omit [TranslationBridge] in
 theorem eo_to_smt_type_typeof_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat)
     (hReserved : __eo_reserved_datatype_name s = false)
@@ -1454,6 +1479,7 @@ theorem eo_to_smt_type_typeof_set_empty_of_set_type
   simp [__eo_disamb_type_set_empty]
   exact smtx_typeof_guard_of_non_none _ _ hT
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_purify`. -/
 theorem eo_to_smt_type_typeof_purify
     (x : Term) :

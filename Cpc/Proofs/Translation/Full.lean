@@ -40,6 +40,19 @@ private theorem smtx_typeof_none_ne_bool :
     __smtx_typeof SmtTerm.None ≠ SmtType.Bool := by
   simp [smtx_typeof_none]
 
+/-- A Boolean `not` term has a Boolean argument. -/
+private theorem smtx_typeof_not_arg_bool
+    (t : SmtTerm) :
+    __smtx_typeof (SmtTerm.not t) = SmtType.Bool ->
+    __smtx_typeof t = SmtType.Bool := by
+  intro hTy
+  rw [typeof_not_eq] at hTy
+  by_cases hArg : __smtx_typeof t = SmtType.Bool
+  · exact hArg
+  · cases hTest : native_Teq (__smtx_typeof t) SmtType.Bool <;>
+      simp [hTest, native_ite] at hTy
+    simpa [native_Teq] using hTest
+
 /-- Typing a successor `choice_nth` is the same as skolemizing the body. -/
 private theorem smtx_typeof_choice_nth_succ_eq_skolemize
     (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) :
@@ -638,7 +651,396 @@ theorem eo_to_smt_typeof_matches_translation
     (t : Term) :
     __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
-  sorry
+  let rec go : (term : Term) ->
+      __smtx_typeof (__eo_to_smt term) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt term) = __eo_to_smt_type (__eo_typeof term)
+    | Term.UOp op, hNonNone => by
+        cases op
+        case re_allchar =>
+          rw [eo_to_smt_re_allchar, eo_typeof_re_allchar, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+        case re_none =>
+          rw [eo_to_smt_re_none, eo_typeof_re_none, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+        case re_all =>
+          rw [eo_to_smt_re_all, eo_typeof_re_all, eo_to_smt_type_reglan]
+          unfold __smtx_typeof
+          rfl
+        case tuple_unit =>
+          rw [eo_to_smt_term_tuple_unit, smtx_typeof_tuple_unit_translation,
+            eo_typeof_tuple_unit, eo_to_smt_type_unit_tuple]
+        all_goals
+          exact False.elim (hNonNone (by
+            change __smtx_typeof SmtTerm.None = SmtType.None
+            exact smtx_typeof_none))
+    | Term.Boolean b, hNonNone => by
+        rw [eo_to_smt_boolean, eo_typeof_boolean, eo_to_smt_type_bool]
+        unfold __smtx_typeof
+        rfl
+    | Term.Numeral n, hNonNone => by
+        have hSmt : __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int := by
+          change __smtx_typeof (SmtTerm.Numeral n) = SmtType.Int
+          unfold __smtx_typeof
+          rfl
+        exact hSmt.trans (eo_to_smt_type_typeof_numeral n).symm
+    | Term.Rational r, hNonNone => by
+        have hSmt : __smtx_typeof (__eo_to_smt (Term.Rational r)) = SmtType.Real := by
+          change __smtx_typeof (SmtTerm.Rational r) = SmtType.Real
+          unfold __smtx_typeof
+          rfl
+        exact hSmt.trans (eo_to_smt_type_typeof_rational r).symm
+    | Term.String s, hNonNone => by
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term.String s)) = SmtType.Seq SmtType.Char := by
+          change __smtx_typeof (SmtTerm.String s) = SmtType.Seq SmtType.Char
+          unfold __smtx_typeof
+          rfl
+        exact hSmt.trans (eo_to_smt_type_typeof_string s).symm
+    | Term.Binary w n, hNonNone => by
+        have hWidth : native_zleq 0 w = true := by
+          by_cases hw : native_zleq 0 w = true
+          · exact hw
+          · exfalso
+            change __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None at hNonNone
+            apply hNonNone
+            unfold __smtx_typeof
+            simp [native_ite, SmtEval.native_and, hw]
+        change __smtx_typeof (SmtTerm.Binary w n) ≠ SmtType.None at hNonNone
+        have hSmt := smtx_typeof_binary_of_non_none w n
+          hNonNone
+        change __smtx_typeof (SmtTerm.Binary w n) =
+          __eo_to_smt_type (__eo_typeof (Term.Binary w n))
+        exact hSmt.trans (eo_to_smt_type_typeof_binary w n hWidth).symm
+    | Term.Var name T, hNonNone => by
+        cases name with
+        | String s =>
+            change __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) ≠
+              SmtType.None at hNonNone
+            change __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) =
+              __eo_to_smt_type (__eo_typeof (Term.Var (Term.String s) T))
+            exact
+              (smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hNonNone).trans
+                (eo_to_smt_type_typeof_var s T).symm
+        | _ =>
+            exact False.elim (hNonNone (by
+              change __smtx_typeof SmtTerm.None = SmtType.None
+              exact smtx_typeof_none))
+    | Term.DtCons s d i, hNonNone => by
+        have hReserved : __eo_reserved_datatype_name s = false := by
+          cases hRes : __eo_reserved_datatype_name s
+          · rfl
+          · exfalso
+            apply hNonNone
+            rw [eo_to_smt_term_dt_cons, hRes]
+            simp [native_ite]
+        have hDtNN :
+            __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠ SmtType.None := by
+          change
+            __smtx_typeof
+                (native_ite (__eo_reserved_datatype_name s) SmtTerm.None
+                  (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)) ≠
+              SmtType.None at hNonNone
+          rw [hReserved] at hNonNone
+          exact hNonNone
+        have hTy := eo_to_smt_type_typeof_dt_cons s d i hReserved hDtNN
+        change
+          __smtx_typeof
+              (native_ite (__eo_reserved_datatype_name s) SmtTerm.None
+                (SmtTerm.DtCons s (__eo_to_smt_datatype d) i)) =
+            __eo_to_smt_type (__eo_typeof (Term.DtCons s d i))
+        rw [hReserved]
+        exact hTy.symm
+    | Term.UConst i T, hNonNone => by
+        change __smtx_typeof (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)) ≠
+          SmtType.None at hNonNone
+        change __smtx_typeof (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)) =
+          __eo_to_smt_type (__eo_typeof (Term.UConst i T))
+        exact
+          (smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T)
+            hNonNone).trans
+            (eo_to_smt_type_typeof_uconst i T).symm
+    | Term.Apply f x, hNonNone => by
+        haveI : TranslationBridge := ⟨go⟩
+        exact eo_to_smt_typeof_matches_translation_apply f x (go f) (go x) hNonNone
+    | Term._at_purify x, hNonNone => by
+        exact eo_to_smt_typeof_matches_translation_purify x (go x hNonNone)
+    | Term._at_array_deq_diff x1 x2, hNonNone => by
+        exact eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2 hNonNone
+    | Term.seq_empty T, hNonNone => by
+        haveI : TranslationBridge := ⟨go⟩
+        change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) ≠
+          SmtType.None at hNonNone
+        change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) =
+          __eo_to_smt_type (__eo_typeof (Term.seq_empty T))
+        exact (eo_to_smt_type_typeof_seq_empty T hNonNone).symm
+    | Term.set_empty T, hNonNone => by
+        haveI : TranslationBridge := ⟨go⟩
+        change __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type T)) ≠
+          SmtType.None at hNonNone
+        change __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type T)) =
+          __eo_to_smt_type (__eo_typeof (Term.set_empty T))
+        exact (eo_to_smt_type_typeof_set_empty T hNonNone).symm
+    | Term._at_sets_deq_diff x1 x2, hNonNone => by
+        exact eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2 hNonNone
+    | Term._at_quantifiers_skolemize q idx, hNonNone => by
+        cases q with
+        | Apply qf body =>
+            cases qf with
+            | Apply qff xs =>
+                cases qff with
+                | UOp op =>
+                    cases op
+                    case «forall» =>
+                      cases hIdxZ : native_teq (__eo_is_z idx) (Term.Boolean true)
+                      · exfalso
+                        apply hNonNone
+                        change __smtx_typeof
+                            (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
+                              (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
+                                (__eo_to_smt_quantifiers_skolemize
+                                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                  (__eo_to_smt_nat idx))
+                                SmtTerm.None)
+                              SmtTerm.None) =
+                          SmtType.None
+                        rw [hIdxZ]
+                        simp [native_ite, smtx_typeof_none]
+                      · cases hIdxNeg : native_teq (__eo_is_neg idx) (Term.Boolean false)
+                        · exfalso
+                          apply hNonNone
+                          change __smtx_typeof
+                              (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
+                                (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
+                                  (__eo_to_smt_quantifiers_skolemize
+                                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                    (__eo_to_smt_nat idx))
+                                  SmtTerm.None)
+                                SmtTerm.None) =
+                            SmtType.None
+                          rw [hIdxZ, hIdxNeg]
+                          simp [native_ite, smtx_typeof_none]
+                        · change
+                            __smtx_typeof
+                                (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
+                                  (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
+                                    (__eo_to_smt_quantifiers_skolemize
+                                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                      (__eo_to_smt_nat idx))
+                                    SmtTerm.None)
+                                  SmtTerm.None) =
+                              __eo_to_smt_type
+                                (__eo_typeof
+                                  (Term._at_quantifiers_skolemize
+                                    (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) idx))
+                          rw [hIdxZ, hIdxNeg]
+                          simp [native_ite]
+                          have hSkolemNN :
+                              __smtx_typeof
+                                  (__eo_to_smt_quantifiers_skolemize
+                                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                    (__eo_to_smt_nat idx)) ≠
+                                SmtType.None := by
+                            change
+                              __smtx_typeof
+                                  (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
+                                    (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
+                                      (__eo_to_smt_quantifiers_skolemize
+                                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                        (__eo_to_smt_nat idx))
+                                      SmtTerm.None)
+                                    SmtTerm.None) ≠
+                                SmtType.None at hNonNone
+                            rw [hIdxZ, hIdxNeg] at hNonNone
+                            simpa [native_ite] using hNonNone
+                          have hBodyNoExists :
+                              ∀ s T F, SmtTerm.not (__eo_to_smt body) ≠ SmtTerm.exists s T F := by
+                            intro s T F h
+                            cases h
+                          have hSkTy :=
+                            eo_to_smt_quantifiers_skolemize_type_of_non_none xs
+                              (SmtTerm.not (__eo_to_smt body)) (__eo_to_smt_nat idx)
+                              hBodyNoExists hSkolemNN
+                          cases idx with
+                          | Numeral n =>
+                              have hExistsBool :=
+                                eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none xs
+                                  (SmtTerm.not (__eo_to_smt body)) (native_int_to_nat n)
+                                  hBodyNoExists hSkolemNN
+                              have hXsList :
+                                  __eo_typeof xs = Term.__eo_List :=
+                                eo_typeof_var_list_of_exists_bool xs
+                                  (SmtTerm.not (__eo_to_smt body)) hExistsBool
+                              have hNotBool :
+                                  __smtx_typeof (SmtTerm.not (__eo_to_smt body)) = SmtType.Bool :=
+                                eo_to_smt_exists_body_bool_of_bool xs
+                                  (SmtTerm.not (__eo_to_smt body)) hExistsBool
+                              have hBodyBool :
+                                  __smtx_typeof (__eo_to_smt body) = SmtType.Bool :=
+                                smtx_typeof_not_arg_bool (__eo_to_smt body) hNotBool
+                              have hBodyNN :
+                                  __smtx_typeof (__eo_to_smt body) ≠ SmtType.None := by
+                                rw [hBodyBool]
+                                simp
+                              have hBodyBridge := go body hBodyNN
+                              have hBodyEoSmt :
+                                  __eo_to_smt_type (__eo_typeof body) = SmtType.Bool := by
+                                rw [← hBodyBridge, hBodyBool]
+                              have hBodyEo : __eo_typeof body = Term.Bool :=
+                                eo_to_smt_type_eq_bool hBodyEoSmt
+                              have hQType :
+                                  __eo_typeof
+                                      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) =
+                                    Term.Bool := by
+                                change __eo_typeof_forall (__eo_typeof xs) (__eo_typeof body) =
+                                  Term.Bool
+                                rw [hXsList, hBodyEo]
+                                rfl
+                              have hNat :
+                                  native_nat_to_int (native_int_to_nat n) = n := by
+                                have hNegFalse : native_zlt n 0 = false := by
+                                  simpa [__eo_is_neg, native_teq, native_and, native_not]
+                                    using hIdxNeg
+                                have hNonneg : 0 ≤ n := by
+                                  have hNotLt : ¬ n < 0 := by
+                                    apply of_decide_eq_false
+                                    simpa [native_zlt, SmtEval.native_zlt] using hNegFalse
+                                  exact Int.not_lt.mp hNotLt
+                                simp [native_nat_to_int, native_int_to_nat,
+                                  SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]
+                                exact Int.max_eq_left hNonneg
+                              have hEoSk :
+                                  __eo_to_smt_type
+                                      (__eo_typeof
+                                        (Term._at_quantifiers_skolemize
+                                          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                                          (Term.Numeral n))) =
+                                    __eo_to_smt_type
+                                      (__get_var_type
+                                        (__eo_list_nth Term.__eo_List_cons xs
+                                          (Term.Numeral
+                                            (native_nat_to_int (native_int_to_nat n))))) := by
+                                change
+                                  __eo_to_smt_type
+                                      (__eo_typeof__at_quantifiers_skolemize
+                                        (__eo_typeof
+                                          (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body))
+                                        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                                        (__eo_typeof (Term.Numeral n)) (Term.Numeral n)) =
+                                    __eo_to_smt_type
+                                      (__get_var_type
+                                        (__eo_list_nth Term.__eo_List_cons xs
+                                          (Term.Numeral
+                                            (native_nat_to_int (native_int_to_nat n)))))
+                                rw [hQType]
+                                change
+                                  __eo_to_smt_type
+                                      (__get_nth_var_type
+                                        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+                                        (Term.Numeral n)) =
+                                    __eo_to_smt_type
+                                      (__get_var_type
+                                        (__eo_list_nth Term.__eo_List_cons xs
+                                          (Term.Numeral
+                                            (native_nat_to_int (native_int_to_nat n)))))
+                                change
+                                  __eo_to_smt_type
+                                      (__get_var_type
+                                        (__eo_list_nth Term.__eo_List_cons xs (Term.Numeral n))) =
+                                    __eo_to_smt_type
+                                      (__get_var_type
+                                        (__eo_list_nth Term.__eo_List_cons xs
+                                          (Term.Numeral
+                                            (native_nat_to_int (native_int_to_nat n)))))
+                                rw [hNat]
+                              simpa [__eo_to_smt_nat] using hSkTy.trans hEoSk.symm
+                          | _ =>
+                              exfalso
+                              simpa [__eo_is_z, __eo_is_z_internal, native_teq,
+                                native_and, native_not] using hIdxZ
+                    all_goals
+                      exact False.elim (hNonNone (by
+                        change __smtx_typeof SmtTerm.None = SmtType.None
+                        exact smtx_typeof_none))
+                | _ =>
+                    exact False.elim (hNonNone (by
+                      change __smtx_typeof SmtTerm.None = SmtType.None
+                      exact smtx_typeof_none))
+            | _ =>
+                exact False.elim (hNonNone (by
+                  change __smtx_typeof SmtTerm.None = SmtType.None
+                  exact smtx_typeof_none))
+        | _ =>
+            exact False.elim (hNonNone (by
+              change __smtx_typeof SmtTerm.None = SmtType.None
+              exact smtx_typeof_none))
+    | Term.__eo_List, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.__eo_List_nil, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.__eo_List_cons, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.Bool, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.Type, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.Stuck, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.FunType, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.DatatypeType s d, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.DatatypeTypeRef s, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.DtcAppType T U, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term.DtSel s d i j, hNonNone => by
+        exfalso
+        apply hNonNone
+        cases hRes : __eo_reserved_datatype_name s <;>
+          rw [eo_to_smt_term_dt_sel, hRes] <;>
+          simp [native_ite, smtx_typeof_none, smtx_typeof_dt_sel_head_none]
+    | Term.USort i, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term._at_strings_replace_all_result x, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term._at_const v T, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    termination_by term _ => sizeOf term
+    decreasing_by
+      all_goals
+        subst_vars
+        simp_wf
+      all_goals
+        sorry
+  exact go t
 
 /--
 Compatibility wrapper matching the more explicit theorem shape we used in the

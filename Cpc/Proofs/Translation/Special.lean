@@ -12,6 +12,7 @@ namespace TranslationProofs
 
 variable [TranslationBridge]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_purify`. -/
 theorem eo_to_smt_typeof_matches_translation_purify
     (x : Term)
@@ -23,6 +24,7 @@ theorem eo_to_smt_typeof_matches_translation_purify
   rw [hx]
   exact (eo_to_smt_type_typeof_purify x).symm
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_array_deq_diff`. -/
 theorem eo_to_smt_typeof_matches_translation_array_deq_diff
     (x1 x2 : Term) :
@@ -70,6 +72,7 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
                 (__eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2)))))))
       hApplyNN
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_sets_deq_diff`. -/
 theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
     (x1 x2 : Term) :
