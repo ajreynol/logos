@@ -375,7 +375,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_minus) x1) x2) => (SmtTerm.set_minus (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x1) x2) => (SmtTerm.set_member (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x1) x2) => (SmtTerm.set_subset (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.set_choose) x1) x2) => 
+  | (Term.Apply (Term.UOp UserOp.set_choose) x1) => 
     let _v0 := (__eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x1)))
     (SmtTerm.choice_nth "_at_x" _v0 (SmtTerm.set_member (SmtTerm.Var "_at_x" _v0) (__eo_to_smt x1)) native_nat_zero)
   | (Term.Apply (Term.UOp UserOp.set_is_empty) x1) => 

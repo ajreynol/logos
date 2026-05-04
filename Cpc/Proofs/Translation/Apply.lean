@@ -1723,19 +1723,20 @@ private theorem eo_to_smt_typeof_matches_translation_apply_is
           simp [__eo_to_smt_tester, typeof_apply_none_eq])
         hNonNone
 
-/-- Simplifies EO-to-SMT translation for `set_choose`. -/
+omit [TranslationBridge] in
+/-- Simplifies EO-to-SMT translation for unary `set_choose`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_set_choose
-    (x y : Term)
+    (x : Term)
     (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_choose) y) x)) ≠
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_choose) x)) ≠
         SmtType.None) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_choose) y) x)) =
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_choose) x)) =
       __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_choose) y) x)) := by
-  let T := __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) y))
-  let body := SmtTerm.set_member (SmtTerm.Var "_at_x" T) (__eo_to_smt y)
+        (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x)) := by
+  let T := __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x))
+  let body := SmtTerm.set_member (SmtTerm.Var "_at_x" T) (__eo_to_smt x)
   have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_choose) y) x) =
+      __eo_to_smt (Term.Apply (Term.UOp UserOp.set_choose) x) =
         SmtTerm.choice_nth "_at_x" T body native_nat_zero := by
     rfl
   have hChoiceNN : term_has_non_none_type (SmtTerm.choice_nth "_at_x" T body 0) := by
@@ -1743,17 +1744,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_set_choose
     rw [← hTranslate]
     exact hNonNone
   have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_choose) y) x)) =
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_choose) x)) =
         T := by
     rw [hTranslate]
     exact choice_term_typeof_of_non_none hChoiceNN
-  have hTNonNone : T ≠ SmtType.None := by
-    rw [← hSmt]
-    exact hNonNone
-  exact hSmt.trans
-    (eo_to_smt_type_typeof_of_smt_type_apply
-      (Term.Apply (Term.Apply (Term.UOp UserOp.set_choose) y) x)
-      hSmt hTNonNone).symm
+  simpa [T] using hSmt
 
 omit [TranslationBridge] in
 /-- A non-empty, well-typed translated `set_insert` chain returns a set type. -/
@@ -3807,7 +3802,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
       (fun T hy hx => eo_to_smt_type_typeof_apply_apply_set_subset_of_smt_set x y T hy hx)
       hNonNone
   case set_choose =>
-    exact eo_to_smt_typeof_matches_translation_apply_set_choose x y hNonNone
+    exact eo_to_smt_typeof_matches_translation_apply_apply_generic
+      (Term.UOp UserOp.set_choose) y x ihF
+      (generic_apply_type_of_non_special_head _ _
+        (by intro s d i j h; cases h)
+        (by intro s d i h; cases h))
+      (by rfl) hNonNone
   case set_insert =>
     exact eo_to_smt_typeof_matches_translation_apply_set_insert x y hNonNone
   case «forall» =>
@@ -5468,16 +5468,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         (by intro s d i h; cases h)
         hNonNone
     case set_choose =>
-      exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.set_choose z y x ihF
-        (let _v0 := __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) z))
-         SmtTerm.choice_nth "_at_x" _v0
-           (SmtTerm.set_member (SmtTerm.Var "_at_x" _v0) (__eo_to_smt z)) 0)
-        (by rfl)
-        (by rfl)
-        (by intro s d i j h; cases h)
-        (by intro s d i h; cases h)
-        hNonNone
+      exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_application_head
+        (Term.UOp UserOp.set_choose) z y x ihF (by rfl) hNonNone
     case set_member =>
       have hHeadTranslate :
           __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) z) y) =
@@ -7018,6 +7010,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
         simp [native_ite, native_Teq, hxEoNonNone]
       exact hSmt.trans
         (eo_to_smt_type_typeof_apply_set_singleton_of_non_none x hxEoNonNone).symm
+    case set_choose =>
+      exact eo_to_smt_typeof_matches_translation_apply_set_choose x hNonNone
     case set_is_empty =>
       exfalso
       have hTranslate :
