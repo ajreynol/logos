@@ -10,6 +10,10 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
+/-- Proof-local compatibility name for the reserved datatype-name guard. -/
+abbrev __eo_reserved_datatype_name : native_String -> native_Bool :=
+  native_reserved_datatype_name
+
 /-- Computes `__eo_typeof` for `boolean`. -/
 @[simp] theorem eo_typeof_boolean (b : native_Bool) :
     __eo_typeof (Term.Boolean b) = Term.Bool := by
