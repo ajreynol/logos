@@ -985,6 +985,30 @@ private theorem typeof_binary_one_eq :
     native_decide
   simpa using smtx_typeof_binary_of_non_none 1 1 hNN
 
+omit [TranslationBridge] in
+/--
+Function-like SMT head types have non-`None` components.  This is the
+bridge-free strengthening needed when turning the generic apply case from a
+whole-term bridge argument into explicit IHs for the head and argument.
+-/
+private theorem function_like_head_components_non_none
+    (f : SmtTerm) {A B : SmtType}
+    (hHead :
+      __smtx_typeof f = SmtType.FunType A B ∨
+        __smtx_typeof f = SmtType.DtcAppType A B) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  have hNN : term_has_non_none_type f := by
+    unfold term_has_non_none_type
+    rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+  have hNoNone := Smtm.term_type_has_no_none_components_of_non_none f hNN
+  rcases hHead with hHead | hHead
+  · have hFun : Smtm.type_has_no_none_components (SmtType.FunType A B) := by
+      simpa [hHead] using hNoNone
+    exact Smtm.type_has_no_none_components_fun_components_non_none hFun
+  · have hDtc : Smtm.type_has_no_none_components (SmtType.DtcAppType A B) := by
+      simpa [hHead] using hNoNone
+    exact Smtm.type_has_no_none_components_dtc_app_components_non_none hDtc
+
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_apply_generic`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_generic
     (f x : Term)

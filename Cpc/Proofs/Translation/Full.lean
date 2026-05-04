@@ -769,19 +769,17 @@ theorem eo_to_smt_typeof_matches_translation
     | Term._at_array_deq_diff x1 x2, hNonNone => by
         exact eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2 hNonNone
     | Term.seq_empty T, hNonNone => by
-        haveI : TranslationBridge := ⟨go⟩
         change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) ≠
           SmtType.None at hNonNone
         change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) =
           __eo_to_smt_type (__eo_typeof (Term.seq_empty T))
-        exact (eo_to_smt_type_typeof_seq_empty T hNonNone).symm
+        exact eo_to_smt_typeof_matches_translation_seq_empty T hNonNone
     | Term.set_empty T, hNonNone => by
-        haveI : TranslationBridge := ⟨go⟩
         change __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type T)) ≠
           SmtType.None at hNonNone
         change __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type T)) =
           __eo_to_smt_type (__eo_typeof (Term.set_empty T))
-        exact (eo_to_smt_type_typeof_set_empty T hNonNone).symm
+        exact eo_to_smt_typeof_matches_translation_set_empty T hNonNone
     | Term._at_sets_deq_diff x1 x2, hNonNone => by
         exact eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2 hNonNone
     | Term._at_quantifiers_skolemize q idx, hNonNone => by

@@ -701,7 +701,7 @@ private theorem bool_unop_arg_of_non_none
     simp [hTy, native_ite, native_Teq, h] at ht
   simp
 
-private def type_has_no_none_components : SmtType -> Prop
+def type_has_no_none_components : SmtType -> Prop
   | SmtType.None => False
   | SmtType.TypeRef _ => False
   | SmtType.Seq A => type_has_no_none_components A
@@ -819,7 +819,7 @@ decreasing_by
   all_goals simp [sizeOf]
   all_goals omega
 
-private theorem type_has_no_none_components_non_none
+theorem type_has_no_none_components_non_none
     {T : SmtType}
     (h : type_has_no_none_components T) :
     T ≠ SmtType.None := by
@@ -844,9 +844,16 @@ private theorem type_has_no_none_components_map_components_non_none
   exact ⟨type_has_no_none_components_non_none h.1,
     type_has_no_none_components_non_none h.2⟩
 
-private theorem type_has_no_none_components_fun_components_non_none
+theorem type_has_no_none_components_fun_components_non_none
     {A B : SmtType}
     (h : type_has_no_none_components (SmtType.FunType A B)) :
+    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
+  exact ⟨type_has_no_none_components_non_none h.1,
+    type_has_no_none_components_non_none h.2⟩
+
+theorem type_has_no_none_components_dtc_app_components_non_none
+    {A B : SmtType}
+    (h : type_has_no_none_components (SmtType.DtcAppType A B)) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
   exact ⟨type_has_no_none_components_non_none h.1,
     type_has_no_none_components_non_none h.2⟩
@@ -2059,7 +2066,7 @@ private theorem apply_term_type_has_no_none_components_of_non_none
             exact term_has_non_none_of_type_eq hFun (by simp)
       exact apply_type_has_no_none_components_of_non_none hTy ht (ihf htf)
 
-private theorem term_type_has_no_none_components_of_non_none :
+theorem term_type_has_no_none_components_of_non_none :
     ∀ t : SmtTerm, term_has_non_none_type t -> type_has_no_none_components (__smtx_typeof t) := by
   let rec go (t : SmtTerm) (ht : term_has_non_none_type t) :
       type_has_no_none_components (__smtx_typeof t) := by

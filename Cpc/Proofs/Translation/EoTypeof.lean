@@ -171,6 +171,7 @@ private theorem eo_typeof_eq_int_of_smt_numeral
     __eo_typeof t = Term.UOp UserOp.Int := by
   exact eo_typeof_eq_int_of_smt_int t (by rw [h]; simp [__smtx_typeof])
 
+omit [TranslationBridge] in
 /-- Computes the type of the one-bit literal used by `bvite`. -/
 private theorem typeof_binary_one_eq :
     __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 := by
@@ -181,6 +182,7 @@ private theorem typeof_binary_one_eq :
     native_decide
   simpa using smtx_typeof_binary_of_non_none 1 1 hNN
 
+omit [TranslationBridge] in
 /-- Computes `__smtx_typeof_apply` for function-like apply heads. -/
 private theorem smtx_typeof_apply_of_head_cases
     {F X A B : SmtType}
@@ -194,6 +196,7 @@ private theorem smtx_typeof_apply_of_head_cases
   · rw [hHead, hX]
     simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
 
+omit [TranslationBridge] in
 /-- Rewrites `generic_apply_type` for heads that are not datatype selectors/testers. -/
 private theorem generic_apply_type_of_non_special_head
     (f x : SmtTerm)
@@ -210,6 +213,7 @@ private theorem generic_apply_type_of_non_special_head
         intro s d i h
         exact hTester s d i h))
 
+omit [TranslationBridge] in
 /-- EO bitvector types at natural widths translate back to the matching SMT width. -/
 private theorem eo_to_smt_type_bitvec_nat
     (w : native_Nat) :
@@ -1444,6 +1448,7 @@ theorem eo_to_smt_type_typeof_seq_empty
   exact eo_to_smt_type_typeof_of_smt_type
     (Term.seq_empty x) hSmt (by simpa [hSmt] using h)
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_seq_empty`. -/
 theorem eo_to_smt_type_typeof_seq_empty_of_seq_type
     (T : Term)
@@ -1467,6 +1472,37 @@ theorem eo_to_smt_type_typeof_seq_empty_of_seq_type
   simp [__eo_disamb_type_seq_empty]
   exact smtx_typeof_guard_of_non_none _ _ hT
 
+omit [TranslationBridge] in
+/-- Bridge-free direct form for `seq_empty` in the main translation proof. -/
+theorem eo_to_smt_typeof_matches_translation_seq_empty
+    (T : Term)
+    (h : __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) =
+      __eo_to_smt_type (__eo_typeof (Term.seq_empty T)) := by
+  cases hTy : __eo_to_smt_type T <;> rw [hTy] at h <;>
+    simp [__eo_to_smt_seq_empty] at h
+  case Seq A =>
+    have hSmt : __smtx_typeof (SmtTerm.seq_empty A) = SmtType.Seq A :=
+      smtx_typeof_seq_empty_of_non_none A h
+    have hWF : __smtx_type_wf A = true :=
+      Smtm.smtx_typeof_guard_wf_wf_of_non_none A (SmtType.Seq A) (by
+        simpa [__smtx_typeof] using h)
+    rcases eo_to_smt_type_eq_seq hTy with ⟨U, hTEq, hU⟩
+    subst T
+    have hUWF : __smtx_type_wf (__eo_to_smt_type U) = true := by
+      rw [hU]
+      exact hWF
+    have hUType := eo_typeof_type_of_smt_type_wf U hUWF
+    have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+      Smtm.type_wf_non_none hUWF
+    have hEo := eo_to_smt_type_typeof_seq_empty_of_seq_type U hUType hUNN
+    change __smtx_typeof (SmtTerm.seq_empty A) =
+      __eo_to_smt_type (__eo_typeof (Term.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)))
+    rw [hSmt]
+    change SmtType.Seq A =
+      __eo_to_smt_type (__eo_typeof (Term.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)))
+    rw [hEo, hU]
+
 /-- Simplifies EO-to-SMT type translation for `typeof_set_empty`. -/
 theorem eo_to_smt_type_typeof_set_empty
     (x : Term)
@@ -1480,6 +1516,7 @@ theorem eo_to_smt_type_typeof_set_empty
   exact eo_to_smt_type_typeof_of_smt_type
     (Term.set_empty x) hSmt (by simpa [hSmt] using h)
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_set_empty`. -/
 theorem eo_to_smt_type_typeof_set_empty_of_set_type
     (T : Term)
@@ -1502,6 +1539,37 @@ theorem eo_to_smt_type_typeof_set_empty_of_set_type
     SmtType.Set (__eo_to_smt_type T)
   simp [__eo_disamb_type_set_empty]
   exact smtx_typeof_guard_of_non_none _ _ hT
+
+omit [TranslationBridge] in
+/-- Bridge-free direct form for `set_empty` in the main translation proof. -/
+theorem eo_to_smt_typeof_matches_translation_set_empty
+    (T : Term)
+    (h : __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type T)) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type T)) =
+      __eo_to_smt_type (__eo_typeof (Term.set_empty T)) := by
+  cases hTy : __eo_to_smt_type T <;> rw [hTy] at h <;>
+    simp [__eo_to_smt_set_empty] at h
+  case Set A =>
+    have hSmt : __smtx_typeof (SmtTerm.set_empty A) = SmtType.Set A :=
+      smtx_typeof_set_empty_of_non_none A h
+    have hWF : __smtx_type_wf A = true :=
+      Smtm.smtx_typeof_guard_wf_wf_of_non_none A (SmtType.Set A) (by
+        simpa [__smtx_typeof] using h)
+    rcases eo_to_smt_type_eq_set hTy with ⟨U, hTEq, hU⟩
+    subst T
+    have hUWF : __smtx_type_wf (__eo_to_smt_type U) = true := by
+      rw [hU]
+      exact hWF
+    have hUType := eo_typeof_type_of_smt_type_wf U hUWF
+    have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+      Smtm.type_wf_non_none hUWF
+    have hEo := eo_to_smt_type_typeof_set_empty_of_set_type U hUType hUNN
+    change __smtx_typeof (SmtTerm.set_empty A) =
+      __eo_to_smt_type (__eo_typeof (Term.set_empty (Term.Apply (Term.UOp UserOp.Set) U)))
+    rw [hSmt]
+    change SmtType.Set A =
+      __eo_to_smt_type (__eo_typeof (Term.set_empty (Term.Apply (Term.UOp UserOp.Set) U)))
+    rw [hEo, hU]
 
 omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_purify`. -/
@@ -1588,6 +1656,7 @@ theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
     eo_to_smt_type_typeof_apply_of_smt_apply
       x (Term._at_array_deq_diff x1 x2) A B hHead hx hTranslate hGeneric hA hB
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_at_bvsize`. -/
 theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec_type
     (x w : Term)
@@ -1597,6 +1666,7 @@ theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec_type
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_not_of_bool`. -/
 theorem eo_to_smt_type_typeof_apply_not_of_bool
     (x : Term)
@@ -1606,6 +1676,7 @@ theorem eo_to_smt_type_typeof_apply_not_of_bool
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_abs_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_abs_of_int
     (x : Term)
@@ -1615,6 +1686,7 @@ theorem eo_to_smt_type_typeof_apply_abs_of_int
   rw [hx]
   native_decide
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_len_of_seq`. -/
 theorem eo_to_smt_type_typeof_apply_str_len_of_seq
     (x V : Term)
@@ -1624,6 +1696,7 @@ theorem eo_to_smt_type_typeof_apply_str_len_of_seq
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_rev_of_seq`. -/
 theorem eo_to_smt_type_typeof_apply_str_rev_of_seq
     (x V : Term)
@@ -1636,6 +1709,7 @@ theorem eo_to_smt_type_typeof_apply_str_rev_of_seq
   rw [hx]
   exact smtx_typeof_guard_of_non_none _ _ hV
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_seq_unit_of_non_none`. -/
 theorem eo_to_smt_type_typeof_apply_seq_unit_of_non_none
     (x : Term)
@@ -1658,6 +1732,7 @@ theorem eo_to_smt_type_typeof_apply_seq_unit_of_non_none
       simp [__smtx_typeof_guard, native_ite, native_Teq, hA, hB] at hx ⊢
   all_goals simp [__smtx_typeof_guard, native_ite, native_Teq]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_set_singleton_of_non_none`. -/
 theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
     (x : Term)
@@ -1680,6 +1755,7 @@ theorem eo_to_smt_type_typeof_apply_set_singleton_of_non_none
       simp [__smtx_typeof_guard, native_ite, native_Teq, hA, hB] at hx ⊢
   all_goals simp [__smtx_typeof_guard, native_ite, native_Teq]
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_at_bvsize`. -/
 theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec
     (x : Term) (w : native_Nat)
@@ -1689,6 +1765,7 @@ theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_set_choose`. -/
 theorem eo_to_smt_type_typeof_apply_set_choose_of_set
     (x T : Term)
@@ -1698,6 +1775,7 @@ theorem eo_to_smt_type_typeof_apply_set_choose_of_set
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_set_is_singleton`. -/
 theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_set
     (x T : Term)
@@ -1741,6 +1819,7 @@ theorem eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply
     eo_to_smt_type_typeof_apply_of_smt_apply
       x (Term._at_sets_deq_diff x1 x2) A B hHead hx hTranslate hGeneric hA hB
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_real_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_to_real_of_int
     (x : Term)
@@ -1750,6 +1829,7 @@ theorem eo_to_smt_type_typeof_apply_to_real_of_int
   rw [hx]
   native_decide
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_real_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_to_real_of_real
     (x : Term)
@@ -1759,6 +1839,7 @@ theorem eo_to_smt_type_typeof_apply_to_real_of_real
   rw [hx]
   native_decide
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_int_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_to_int_of_real
     (x : Term)
@@ -1768,6 +1849,7 @@ theorem eo_to_smt_type_typeof_apply_to_int_of_real
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_int_pow2_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_int_pow2_of_int
     (x : Term)
@@ -1777,6 +1859,7 @@ theorem eo_to_smt_type_typeof_apply_int_pow2_of_int
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_int_log2_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_int_log2_of_int
     (x : Term)
@@ -1786,6 +1869,7 @@ theorem eo_to_smt_type_typeof_apply_int_log2_of_int
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_int_ispow2_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_int_ispow2_of_int
     (x : Term)
@@ -1795,6 +1879,7 @@ theorem eo_to_smt_type_typeof_apply_int_ispow2_of_int
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_int_div_by_zero_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_at_int_div_by_zero_of_int
     (x : Term)
@@ -1804,6 +1889,7 @@ theorem eo_to_smt_type_typeof_apply_at_int_div_by_zero_of_int
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_mod_by_zero_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_at_mod_by_zero_of_int
     (x : Term)
@@ -1813,6 +1899,7 @@ theorem eo_to_smt_type_typeof_apply_at_mod_by_zero_of_int
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_div_by_zero_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_at_div_by_zero_of_real
     (x : Term)
@@ -1822,6 +1909,7 @@ theorem eo_to_smt_type_typeof_apply_at_div_by_zero_of_real
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_is_int_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_is_int_of_real
     (x : Term)
@@ -1831,6 +1919,7 @@ theorem eo_to_smt_type_typeof_apply_is_int_of_real
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_lower_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_lower_of_seq_char
     (x : Term)
@@ -1841,6 +1930,7 @@ theorem eo_to_smt_type_typeof_apply_str_to_lower_of_seq_char
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_upper_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_upper_of_seq_char
     (x : Term)
@@ -1851,6 +1941,7 @@ theorem eo_to_smt_type_typeof_apply_str_to_upper_of_seq_char
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_code_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_code_of_seq_char
     (x : Term)
@@ -1860,6 +1951,7 @@ theorem eo_to_smt_type_typeof_apply_str_to_code_of_seq_char
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_from_code_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_str_from_code_of_int
     (x : Term)
@@ -1870,6 +1962,7 @@ theorem eo_to_smt_type_typeof_apply_str_from_code_of_int
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_is_digit_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_is_digit_of_seq_char
     (x : Term)
@@ -1879,6 +1972,7 @@ theorem eo_to_smt_type_typeof_apply_str_is_digit_of_seq_char
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_int_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_int_of_seq_char
     (x : Term)
@@ -1888,6 +1982,7 @@ theorem eo_to_smt_type_typeof_apply_str_to_int_of_seq_char
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_from_int_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
     (x : Term)
@@ -1898,6 +1993,7 @@ theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_at_strings_stoi_non_digit_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
     (x : Term)
@@ -1920,6 +2016,7 @@ theorem eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_smt_seq_char
   rw [eo_typeof_eq_seq_char_of_smt_seq_char y hy, eo_typeof_eq_int_of_smt_int x hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_to_re_of_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_str_to_re_of_seq_char
     (x : Term)
@@ -1929,6 +2026,7 @@ theorem eo_to_smt_type_typeof_apply_str_to_re_of_seq_char
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_re_mult_of_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_re_mult_of_reglan
     (x : Term)
@@ -1938,6 +2036,7 @@ theorem eo_to_smt_type_typeof_apply_re_mult_of_reglan
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_re_plus_of_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_re_plus_of_reglan
     (x : Term)
@@ -1947,6 +2046,7 @@ theorem eo_to_smt_type_typeof_apply_re_plus_of_reglan
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_re_opt_of_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_re_opt_of_reglan
     (x : Term)
@@ -1956,6 +2056,7 @@ theorem eo_to_smt_type_typeof_apply_re_opt_of_reglan
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_re_comp_of_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_re_comp_of_reglan
     (x : Term)
@@ -1965,6 +2066,7 @@ theorem eo_to_smt_type_typeof_apply_re_comp_of_reglan
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvnot_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvnot_of_bitvec
     (x : Term) (w : native_Nat)
@@ -1978,6 +2080,7 @@ theorem eo_to_smt_type_typeof_apply_bvnot_of_bitvec
     native_nat_to_int, native_int_to_nat, SmtEval.native_nat_to_int,
     SmtEval.native_int_to_nat]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvneg_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvneg_of_bitvec
     (x : Term) (w : native_Nat)
@@ -1991,6 +2094,7 @@ theorem eo_to_smt_type_typeof_apply_bvneg_of_bitvec
     native_nat_to_int, native_int_to_nat, SmtEval.native_nat_to_int,
     SmtEval.native_int_to_nat]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvredand_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvredand_of_bitvec
     (x : Term) (w : native_Nat)
@@ -2002,6 +2106,7 @@ theorem eo_to_smt_type_typeof_apply_bvredand_of_bitvec
   simp [__eo_to_smt_type, native_ite, native_zleq, SmtEval.native_zleq, native_int_to_nat,
     SmtEval.native_int_to_nat]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvredor_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvredor_of_bitvec
     (x : Term) (w : native_Nat)
@@ -2013,6 +2118,7 @@ theorem eo_to_smt_type_typeof_apply_bvredor_of_bitvec
   simp [__eo_to_smt_type, native_ite, native_zleq, SmtEval.native_zleq, native_int_to_nat,
     SmtEval.native_int_to_nat]
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_ubv_to_int_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec
     (x : Term) (w : native_Nat)
@@ -2022,6 +2128,7 @@ theorem eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec
   rw [hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_sbv_to_int_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec
     (x : Term) (w : native_Nat)
@@ -4171,6 +4278,7 @@ theorem eo_to_smt_type_typeof_apply_apply_int_to_bv_of_smt_numeral_int
     simp [__smtx_typeof_int_to_bv, native_ite, hi]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
+omit [TranslationBridge] in
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvnego_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvnego_of_bitvec
     (x : Term) (w : native_Nat)
