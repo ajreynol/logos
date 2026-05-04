@@ -30,6 +30,30 @@ theorem smtx_typeof_guard_of_non_none
     __smtx_typeof_guard T U = U := by
   cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq] at h ⊢
 
+/-- Extracts well-formedness through a non-`None` guard. -/
+theorem smtx_type_wf_guard_of_true
+    (T U : SmtType)
+    (h : __smtx_type_wf (__smtx_typeof_guard T U) = true) :
+    __smtx_type_wf U = true := by
+  cases T <;>
+    simp [__smtx_typeof_guard, __smtx_type_wf, __smtx_type_wf_rec, native_ite,
+      native_Teq] at h ⊢ <;>
+    exact h
+
+/-- Extracts the element well-formedness from a guarded sequence type. -/
+theorem smtx_type_wf_guarded_seq_component_of_true
+    (T : SmtType)
+    (h : __smtx_type_wf (__smtx_typeof_guard T (SmtType.Seq T)) = true) :
+    __smtx_type_wf T = true :=
+  seq_type_wf_component_of_wf (smtx_type_wf_guard_of_true T (SmtType.Seq T) h)
+
+/-- Extracts the element well-formedness from a guarded set type. -/
+theorem smtx_type_wf_guarded_set_component_of_true
+    (T : SmtType)
+    (h : __smtx_type_wf (__smtx_typeof_guard T (SmtType.Set T)) = true) :
+    __smtx_type_wf T = true :=
+  set_type_wf_component_of_wf (smtx_type_wf_guard_of_true T (SmtType.Set T) h)
+
 /-- A translated EO type cannot be non-`None` if the EO term is `Stuck`. -/
 theorem eo_term_ne_stuck_of_smt_type_non_none
     (T : Term) (h : __eo_to_smt_type T ≠ SmtType.None) :
@@ -69,7 +93,7 @@ Local bridge used by EO-side helper lemmas that need the recursive translation
 type-preservation hypothesis for arbitrary subterms.
 
 The final theorem in `Full.lean` instantiates this with its local recursive
-worker, avoiding a global axiom while keeping these helpers independent from the
+worker, avoiding a global assumption while keeping these helpers independent from the
 full translation proof module.
 -/
 class TranslationBridge where
