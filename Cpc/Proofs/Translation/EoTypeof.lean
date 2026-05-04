@@ -352,6 +352,7 @@ theorem eo_to_smt_type_typeof_apply_of_smt_apply
     exact smtx_typeof_apply_of_head_cases hHead hx hA
   exact eo_to_smt_type_typeof_of_smt_type _ hSmt hB
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for successful function-like application. -/
 theorem eo_to_smt_type_typeof_apply_of_fun_like
     (x f T U : Term)
@@ -371,6 +372,7 @@ theorem eo_to_smt_type_typeof_apply_of_fun_like
   · rw [hDtc, hx]
     simp [__eo_typeof_apply, eo_requires_self_of_non_stuck T U hTNS]
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_var`. -/
 theorem eo_to_smt_type_typeof_apply_var_of_fun_like
     (x T U V : Term) (s : native_String)
@@ -391,6 +393,7 @@ theorem eo_to_smt_type_typeof_apply_var_of_fun_like
   · exact hx
   · exact hU
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_uconst`. -/
 theorem eo_to_smt_type_typeof_apply_uconst_of_fun_like
     (x T U V : Term) (i : native_Nat)
@@ -1028,6 +1031,7 @@ theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply
     exact smtx_typeof_apply_of_head_cases hHead hx hA
   exact eo_to_smt_type_typeof_of_smt_type _ hSmt hB
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_dt_cons`. -/
 theorem eo_to_smt_type_typeof_apply_dt_cons_of_fun_like
     (x U V : Term) (s : native_String) (d : Datatype) (i : native_Nat)
@@ -1079,6 +1083,7 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype
     exact hApplyNN'
   exact eo_to_smt_type_typeof_of_smt_type _ hSmt hRet
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_dt_sel`. -/
 theorem eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type
     (x : Term) (s : native_String) (d : Datatype) (i j : native_Nat)
