@@ -391,6 +391,46 @@ private theorem eo_to_smt_tuple_ne_dt_tester
   cases h
 
 omit [TranslationBridge] in
+private theorem eo_to_smt_tuple_app_extend_ne_dt_sel
+    (t : SmtTerm) (T : SmtType) (s : native_String) (d : SmtDatatype)
+    (i j : native_Nat) :
+    __eo_to_smt_tuple_app_extend t T ≠ SmtTerm.DtSel s d i j := by
+  intro h
+  cases t <;> try cases h
+  case DtCons s0 d0 i0 =>
+    cases d0
+    · simp [__eo_to_smt_tuple_app_extend] at h
+    · rename_i c dTail
+      cases dTail
+      · cases i0
+        · by_cases hs : s0 = "_at_Tuple"
+          · subst hs
+            simp [__eo_to_smt_tuple_app_extend] at h
+          · simp [__eo_to_smt_tuple_app_extend, hs] at h
+        · simp [__eo_to_smt_tuple_app_extend] at h
+      · simp [__eo_to_smt_tuple_app_extend] at h
+
+omit [TranslationBridge] in
+private theorem eo_to_smt_tuple_app_extend_ne_dt_tester
+    (t : SmtTerm) (T : SmtType) (s : native_String) (d : SmtDatatype)
+    (i : native_Nat) :
+    __eo_to_smt_tuple_app_extend t T ≠ SmtTerm.DtTester s d i := by
+  intro h
+  cases t <;> try cases h
+  case DtCons s0 d0 i0 =>
+    cases d0
+    · simp [__eo_to_smt_tuple_app_extend] at h
+    · rename_i c dTail
+      cases dTail
+      · cases i0
+        · by_cases hs : s0 = "_at_Tuple"
+          · subst hs
+            simp [__eo_to_smt_tuple_app_extend] at h
+          · simp [__eo_to_smt_tuple_app_extend, hs] at h
+        · simp [__eo_to_smt_tuple_app_extend] at h
+      · simp [__eo_to_smt_tuple_app_extend] at h
+
+omit [TranslationBridge] in
 private theorem eo_to_smt_re_unfold_ne_dt_sel
     (str re : SmtTerm) (n : native_Nat)
     (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
@@ -3691,7 +3731,33 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
   case is =>
     exact eo_to_smt_typeof_matches_translation_apply_is x y hNonNone
   case tuple =>
-    sorry
+    let head :=
+      __eo_to_smt_tuple_app_extend (__eo_to_smt y) (__eo_to_smt_type (__eo_typeof x))
+    have hTranslate :
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x) =
+          SmtTerm.Apply head (__eo_to_smt x) := by
+      rfl
+    have hGeneric : generic_apply_type head (__eo_to_smt x) := by
+      exact generic_apply_type_of_non_special_head _ _
+        (by intro s d i j h; exact eo_to_smt_tuple_app_extend_ne_dt_sel _ _ s d i j h)
+        (by intro s d i h; exact eo_to_smt_tuple_app_extend_ne_dt_tester _ _ s d i h)
+    have hApplyNN :
+        __smtx_typeof_apply (__smtx_typeof head) (__smtx_typeof (__eo_to_smt x)) ≠
+          SmtType.None := by
+      have hApplyNN' :
+          __smtx_typeof (SmtTerm.Apply head (__eo_to_smt x)) ≠ SmtType.None := by
+        simpa [hTranslate] using hNonNone
+      rw [hGeneric] at hApplyNN'
+      exact hApplyNN'
+    rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) =
+          B := by
+      rw [hTranslate, hGeneric]
+      exact smtx_typeof_apply_of_head_cases hHead hX hA
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_of_smt_type_apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x) hSmt hB).symm
   case tuple_select =>
     exact eo_to_smt_typeof_matches_translation_apply_tuple_select x y hNonNone
   case set_union =>
