@@ -2289,6 +2289,278 @@ private theorem smtx_typeof_dt_cons_domains_wf_of_non_none
     (__smtx_dt_substitute s d d) i hSubWf
 
 omit [TranslationBridge] in
+private theorem smtx_term_has_non_none_of_type_eq
+    {t : SmtTerm} {T : SmtType}
+    (h : __smtx_typeof t = T)
+    (hT : T ≠ SmtType.None) :
+    term_has_non_none_type t := by
+  unfold term_has_non_none_type
+  rw [h]
+  exact hT
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_apply_dt_sel_domains_wf_of_non_none
+    (s : native_String) (d : SmtDatatype) (i j : native_Nat) (x : SmtTerm)
+    (hNN : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :
+    smtx_type_fun_like_domains_wf
+      (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) := by
+  let R := __smtx_ret_typeof_sel s d i j
+  let inner :=
+    __smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) R) (__smtx_typeof x)
+  have hGuardNN : __smtx_typeof_guard_wf R inner ≠ SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    rw [typeof_dt_sel_apply_eq] at hNN
+    simpa [R, inner] using hNN
+  have hTy :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) = R := by
+    simpa [R] using dt_sel_term_typeof_of_non_none hNN
+  have hWF : __smtx_type_wf R = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none R inner hGuardNN
+  rw [hTy]
+  exact smtx_type_fun_like_domains_wf_of_type_wf hWF
+
+omit [TranslationBridge] in
+private theorem smtx_term_fun_like_domains_wf_of_non_none :
+    ∀ t : SmtTerm, term_has_non_none_type t ->
+      smtx_type_fun_like_domains_wf (__smtx_typeof t) := by
+  let rec go (t : SmtTerm) (hNN : term_has_non_none_type t) :
+      smtx_type_fun_like_domains_wf (__smtx_typeof t) := by
+    cases t
+    case Apply f x =>
+        by_cases hSel : ∃ s d i j, f = SmtTerm.DtSel s d i j
+        · rcases hSel with ⟨s, d, i, j, rfl⟩
+          exact smtx_typeof_apply_dt_sel_domains_wf_of_non_none s d i j x hNN
+        · by_cases hTester : ∃ s d i, f = SmtTerm.DtTester s d i
+          · rcases hTester with ⟨s, d, i, rfl⟩
+            have hTy :
+                __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) =
+                  SmtType.Bool :=
+              dt_tester_term_typeof_of_non_none hNN
+            rw [hTy]
+            simp [smtx_type_fun_like_domains_wf]
+          · have hGeneric :
+                generic_apply_type f x :=
+              generic_apply_type_of_non_special_head f x
+                (by
+                  intro s d i j h
+                  exact hSel ⟨s, d, i, j, h⟩)
+                (by
+                  intro s d i h
+                  exact hTester ⟨s, d, i, h⟩)
+            have hApplyNN :
+                __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+              unfold term_has_non_none_type at hNN
+              rw [hGeneric] at hNN
+              exact hNN
+            have hFNN : term_has_non_none_type f := by
+              rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, _hX, _hA, _hB⟩
+              unfold term_has_non_none_type
+              exact smtx_head_non_none_of_apply_cases hHead
+            rw [hGeneric]
+            exact smtx_type_fun_like_domains_wf_apply (go f hFNN) hApplyNN
+    case Var s T =>
+        exact smtx_typeof_var_domains_wf_of_non_none s T hNN
+    case UConst s T =>
+        exact smtx_typeof_uconst_domains_wf_of_non_none s T hNN
+    case seq_empty T =>
+        exact smtx_typeof_seq_empty_domains_wf_of_non_none T hNN
+    case set_empty T =>
+        exact smtx_typeof_set_empty_domains_wf_of_non_none T hNN
+    case choice_nth s T body n =>
+        exact choice_nth_fun_like_domains_wf_any s T body n hNN
+    case DtCons s d i =>
+        exact smtx_typeof_dt_cons_domains_wf_of_non_none s d i hNN
+    case ite c t1 t2 =>
+        rcases ite_args_of_non_none hNN with ⟨T, hc, h1, h2, hT⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 hT
+        have hTy : __smtx_typeof (SmtTerm.ite c t1 t2) = T := by
+          rw [typeof_ite_eq]
+          simp [__smtx_typeof_ite, native_ite, native_Teq, hc, h1, h2]
+        rw [hTy, ← h1]
+        exact go t1 ht1
+    case select t1 t2 =>
+        rcases select_args_of_non_none hNN with ⟨A, B, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.select t1 t2) = B := by
+          rw [typeof_select_eq]
+          simp [__smtx_typeof_select, native_ite, native_Teq, h1, h2]
+        have hWFMap := go t1 ht1
+        rw [hTy]
+        rw [h1] at hWFMap
+        exact hWFMap.2
+    case store t1 t2 t3 =>
+        rcases store_args_of_non_none hNN with ⟨A, B, h1, h2, h3⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.store t1 t2 t3) = SmtType.Map A B := by
+          rw [typeof_store_eq]
+          simp [__smtx_typeof_store, native_ite, native_Teq, h1, h2, h3]
+        have hWFMap := go t1 ht1
+        rw [hTy]
+        rw [h1] at hWFMap
+        exact hWFMap
+    case seq_unit t =>
+        have hArgNN : term_has_non_none_type t := by
+          unfold term_has_non_none_type at hNN ⊢
+          rw [__smtx_typeof.eq_118] at hNN
+          by_cases hTy : __smtx_typeof t = SmtType.None
+          · simp [native_ite, native_Teq, hTy] at hNN
+          · exact hTy
+        have hTy :
+            __smtx_typeof (SmtTerm.seq_unit t) = SmtType.Seq (__smtx_typeof t) := by
+          rw [__smtx_typeof.eq_118]
+          have hArgTyNN : __smtx_typeof t ≠ SmtType.None := by
+            simpa [term_has_non_none_type] using hArgNN
+          simp [native_ite, native_Teq, hArgTyNN]
+        rw [hTy]
+        exact go t hArgNN
+    case set_singleton t =>
+        have hArgNN : term_has_non_none_type t := by
+          unfold term_has_non_none_type at hNN ⊢
+          rw [__smtx_typeof.eq_121] at hNN
+          by_cases hTy : __smtx_typeof t = SmtType.None
+          · simp [native_ite, native_Teq, hTy] at hNN
+          · exact hTy
+        have hTy :
+            __smtx_typeof (SmtTerm.set_singleton t) = SmtType.Set (__smtx_typeof t) := by
+          rw [__smtx_typeof.eq_121]
+          have hArgTyNN : __smtx_typeof t ≠ SmtType.None := by
+            simpa [term_has_non_none_type] using hArgNN
+          simp [native_ite, native_Teq, hArgTyNN]
+        rw [hTy]
+        exact go t hArgNN
+    case seq_nth t1 t2 =>
+        rcases seq_nth_args_of_non_none hNN with ⟨T, h1, h2⟩
+        have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+          unfold term_has_non_none_type at hNN
+          rw [typeof_seq_nth_eq, h1, h2] at hNN
+          simpa [__smtx_typeof_seq_nth] using hNN
+        have hTy : __smtx_typeof (SmtTerm.seq_nth t1 t2) = T := by
+          rw [typeof_seq_nth_eq, h1, h2]
+          simpa [__smtx_typeof_seq_nth] using
+            smtx_typeof_guard_wf_of_non_none T T hGuardNN
+        have hWF : __smtx_type_wf T = true :=
+          Smtm.smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+        rw [hTy]
+        exact smtx_type_fun_like_domains_wf_of_type_wf hWF
+    case str_rev t =>
+        rcases seq_arg_of_non_none (op := SmtTerm.str_rev) (t := t)
+            (typeof_str_rev_eq t) hNN with ⟨T, h1⟩
+        have ht : term_has_non_none_type t :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.str_rev t) = SmtType.Seq T := by
+          rw [typeof_str_rev_eq, h1]
+          simp [__smtx_typeof_seq_op_1]
+        rw [hTy]
+        simpa [h1] using go t ht
+    case str_concat t1 t2 =>
+        rcases seq_binop_args_of_non_none (op := SmtTerm.str_concat)
+            (typeof_str_concat_eq t1 t2) hNN with ⟨T, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.str_concat t1 t2) = SmtType.Seq T := by
+          rw [typeof_str_concat_eq, h1, h2]
+          simp [__smtx_typeof_seq_op_2, native_ite, native_Teq]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    case str_substr t1 t2 t3 =>
+        rcases str_substr_args_of_non_none hNN with ⟨T, h1, h2, h3⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.str_substr t1 t2 t3) = SmtType.Seq T := by
+          rw [typeof_str_substr_eq, h1, h2, h3]
+          simp [__smtx_typeof_str_substr]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    case str_at t1 t2 =>
+        rcases str_at_args_of_non_none hNN with ⟨T, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.str_at t1 t2) = SmtType.Seq T := by
+          rw [typeof_str_at_eq, h1, h2]
+          simp [__smtx_typeof_str_at]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    case str_update t1 t2 t3 =>
+        rcases str_update_args_of_non_none hNN with ⟨T, h1, h2, h3⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.str_update t1 t2 t3) = SmtType.Seq T := by
+          rw [typeof_str_update_eq, h1, h2, h3]
+          simp [__smtx_typeof_str_update, native_ite, native_Teq]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    case str_replace t1 t2 t3 =>
+        rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace)
+            (typeof_str_replace_eq t1 t2 t3) hNN with ⟨T, h1, h2, h3⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.str_replace t1 t2 t3) = SmtType.Seq T := by
+          rw [typeof_str_replace_eq, h1, h2, h3]
+          simp [__smtx_typeof_seq_op_3, native_ite, native_Teq]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    case str_replace_all t1 t2 t3 =>
+        rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
+            (typeof_str_replace_all_eq t1 t2 t3) hNN with ⟨T, h1, h2, h3⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.str_replace_all t1 t2 t3) = SmtType.Seq T := by
+          rw [typeof_str_replace_all_eq, h1, h2, h3]
+          simp [__smtx_typeof_seq_op_3, native_ite, native_Teq]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    case set_union t1 t2 =>
+        rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
+            (typeof_set_union_eq t1 t2) hNN with ⟨A, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.set_union t1 t2) = SmtType.Set A := by
+          rw [typeof_set_union_eq, h1, h2]
+          simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    case set_inter t1 t2 =>
+        rcases set_binop_args_of_non_none (op := SmtTerm.set_inter)
+            (typeof_set_inter_eq t1 t2) hNN with ⟨A, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.set_inter t1 t2) = SmtType.Set A := by
+          rw [typeof_set_inter_eq, h1, h2]
+          simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    case set_minus t1 t2 =>
+        rcases set_binop_args_of_non_none (op := SmtTerm.set_minus)
+            (typeof_set_minus_eq t1 t2) hNN with ⟨A, h1, h2⟩
+        have ht1 : term_has_non_none_type t1 :=
+          smtx_term_has_non_none_of_type_eq h1 (by simp)
+        have hTy : __smtx_typeof (SmtTerm.set_minus t1 t2) = SmtType.Set A := by
+          rw [typeof_set_minus_eq, h1, h2]
+          simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+        rw [hTy]
+        simpa [h1] using go t1 ht1
+    all_goals
+      simp only [__smtx_typeof, native_ite,
+        __smtx_typeof_bv_op_1, __smtx_typeof_bv_op_1_ret,
+        __smtx_typeof_bv_op_2, __smtx_typeof_bv_op_2_ret,
+        __smtx_typeof_eq, __smtx_typeof_guard,
+        __smtx_typeof_arith_overload_op_1, __smtx_typeof_arith_overload_op_2,
+        __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_seq_op_1_ret,
+        __smtx_typeof_seq_op_2_ret, __smtx_typeof_str_indexof,
+        __smtx_typeof_re_exp, __smtx_typeof_re_loop, __smtx_typeof_set_member,
+        __smtx_typeof_sets_op_2_ret, __smtx_typeof_int_to_bv,
+        __smtx_typeof_concat, __smtx_typeof_extract, __smtx_typeof_repeat,
+        __smtx_typeof_zero_extend, __smtx_typeof_sign_extend,
+        __smtx_typeof_rotate_left, __smtx_typeof_rotate_right]
+      (repeat split) <;> try simp [smtx_type_fun_like_domains_wf]
+      all_goals
+        split <;> simp [smtx_type_fun_like_domains_wf]
+  exact go
+
+omit [TranslationBridge] in
 private theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply_from_ih
     (x : Term) (s : native_String) (d : Datatype) (i : native_Nat) (A B : SmtType)
     (ihX :
@@ -6687,23 +6959,70 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
     (ihF :
       __smtx_typeof (__eo_to_smt (Term.Apply f y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply f y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply f y))) :
+        __eo_to_smt_type (__eo_typeof (Term.Apply f y)))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f y) x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply f y) x)) := by
   intro hNonNone
+  have genericFallback :
+      ∀ head : Term,
+        (__smtx_typeof (__eo_to_smt head) ≠ SmtType.None ->
+          __smtx_typeof (__eo_to_smt head) =
+            __eo_to_smt_type (__eo_typeof head)) ->
+        (∀ s d i j, __eo_to_smt head ≠ SmtTerm.DtSel s d i j) ->
+        (∀ s d i, __eo_to_smt head ≠ SmtTerm.DtTester s d i) ->
+        __eo_to_smt (Term.Apply head x) =
+          SmtTerm.Apply (__eo_to_smt head) (__eo_to_smt x) ->
+        __eo_typeof (Term.Apply head x) =
+          __eo_typeof_apply (__eo_typeof head) (__eo_typeof x) ->
+        __smtx_typeof (__eo_to_smt (Term.Apply head x)) ≠ SmtType.None ->
+        __smtx_typeof (__eo_to_smt (Term.Apply head x)) =
+          __eo_to_smt_type (__eo_typeof (Term.Apply head x)) := by
+    intro head ihHead hNonSel hNonTester hTranslate hEoApply hNN
+    have hGeneric :
+        generic_apply_type (__eo_to_smt head) (__eo_to_smt x) :=
+      generic_apply_type_of_non_special_head _ _ hNonSel hNonTester
+    have hArgWF :
+        ∀ A B,
+          (__smtx_typeof (__eo_to_smt head) = SmtType.FunType A B ∨
+            __smtx_typeof (__eo_to_smt head) = SmtType.DtcAppType A B) ->
+          smtx_type_field_wf_rec A native_reflist_nil := by
+      intro A B hHead
+      have hHeadNN : term_has_non_none_type (__eo_to_smt head) := by
+        unfold term_has_non_none_type
+        exact smtx_head_non_none_of_apply_cases hHead
+      exact smtx_type_fun_like_arg_field_wf_of_domains_wf
+        (smtx_term_fun_like_domains_wf_of_non_none _ hHeadNN) hHead
+    exact eo_to_smt_typeof_matches_translation_apply_generic_of_field_wf
+      head x ihHead ihX hGeneric hTranslate hEoApply hArgWF hNN
   cases f
   case UOp op =>
     exact eo_to_smt_typeof_matches_translation_apply_uop_application_head op y x ihF hNonNone
   case Apply f z =>
     exact eo_to_smt_typeof_matches_translation_apply_binary_application_head f z y x ihF hNonNone
+  case FunType =>
+    have hTranslate :
+        __eo_to_smt (Term.Apply (Term.Apply Term.FunType y) x) =
+          SmtTerm.Apply (__eo_to_smt (Term.Apply Term.FunType y)) (__eo_to_smt x) := by
+      rfl
+    have hHeadTerm :
+        __eo_to_smt (Term.Apply Term.FunType y) =
+          SmtTerm.Apply SmtTerm.None (__eo_to_smt y) := by
+      rfl
+    exfalso
+    apply hNonNone
+    rw [hTranslate, hHeadTerm]
+    simp only [__smtx_typeof, __smtx_typeof_apply]
   all_goals
-    exact eo_to_smt_typeof_matches_translation_apply_generic
-      _ x ihF
-      (generic_apply_type_of_non_special_head _ _
+    exact genericFallback _ ihF
         (by intro s d i j h; exact (eo_to_smt_apply_ne_dt_sel _ y s d i j h).elim)
-        (by intro s d i h; exact (eo_to_smt_apply_ne_dt_tester _ y s d i h).elim))
-      (by rfl) hNonNone
+        (by intro s d i h; exact (eo_to_smt_apply_ne_dt_tester _ y s d i h).elim)
+        (by rfl)
+        (by rfl)
+        hNonNone
 
 omit [TranslationBridge] in
 /-- Closes direct `UOp` applications that are unreachable because their SMT type is `none`. -/
@@ -7067,7 +7386,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rw [hTDtc] at hBad
         simp [__smtx_type_wf, __smtx_type_wf_rec] at hBad
   case Apply f y =>
-    exact eo_to_smt_typeof_matches_translation_apply_apply_head f y x ihF hNonNone
+    exact eo_to_smt_typeof_matches_translation_apply_apply_head f y x ihF ihX hNonNone
   case UOp op =>
     cases op
     case distinct =>
@@ -8353,8 +8672,19 @@ theorem eo_to_smt_typeof_matches_translation_apply
         have hGeneric :
             generic_apply_type (__eo_to_smt (Term._at_purify y)) (__eo_to_smt x) := by
           exact generic_apply_type_of_non_special_head _ _ hNonSel hNonTester
-        exact eo_to_smt_typeof_matches_translation_apply_generic
-          (Term._at_purify y) x ihF hGeneric (by rfl) hNonNone
+        have hArgWF :
+            ∀ A B,
+              (__smtx_typeof (__eo_to_smt (Term._at_purify y)) = SmtType.FunType A B ∨
+                __smtx_typeof (__eo_to_smt (Term._at_purify y)) = SmtType.DtcAppType A B) ->
+              smtx_type_field_wf_rec A native_reflist_nil := by
+          intro A B hHead
+          have hHeadNN : term_has_non_none_type (__eo_to_smt (Term._at_purify y)) := by
+            unfold term_has_non_none_type
+            exact smtx_head_non_none_of_apply_cases hHead
+          exact smtx_type_fun_like_arg_field_wf_of_domains_wf
+            (smtx_term_fun_like_domains_wf_of_non_none _ hHeadNN) hHead
+        exact eo_to_smt_typeof_matches_translation_apply_generic_of_field_wf
+          (Term._at_purify y) x ihF ihX hGeneric (by rfl) (by rfl) hArgWF hNonNone
   case _at_array_deq_diff x1 x2 =>
     have hHeadTranslate :
         __eo_to_smt (Term._at_array_deq_diff x1 x2) =
