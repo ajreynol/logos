@@ -2007,6 +2007,23 @@ theorem eo_to_smt_type_typeof_of_smt_type_from_ih
     exact hT
   exact (ih hNN).symm.trans h
 
+/-- Recovers the exact EO type from an SMT typing equality and field well-formedness. -/
+theorem eo_typeof_eq_of_smt_type_from_ih_field_wf
+    (t U : Term) {T : SmtType} {refs : RefList}
+    (ih :
+      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t))
+    (h : __smtx_typeof (__eo_to_smt t) = T)
+    (hU : __eo_to_smt_type U = T)
+    (hWF : smtx_type_field_wf_rec T refs) :
+    __eo_typeof t = U := by
+  have hTNN : T ≠ SmtType.None := by
+    intro hNone
+    cases T <;> simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at hWF hNone
+  have hType :=
+    eo_to_smt_type_typeof_of_smt_type_from_ih t ih h hTNN
+  exact eo_to_smt_type_injective_of_field_wf_rec hType hU hWF
+
 /-- An explicit IH plus SMT `Bool` typing recovers EO `Bool`. -/
 theorem eo_typeof_eq_bool_of_smt_bool_from_ih
     (t : Term)
