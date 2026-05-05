@@ -92,6 +92,30 @@ namespace TranslationProofs
     __smtx_typeof (__eo_to_smt_tester t) = SmtType.None := by
   cases t <;> simp [__eo_to_smt_tester]
 
+/-- Selector return-type computation commutes with EO-to-SMT datatype translation. -/
+theorem eo_to_smt_typeof_dt_sel_return :
+    (d : Datatype) -> (i j : native_Nat) ->
+      __eo_to_smt_type (__eo_typeof_dt_sel_return d i j) =
+        __smtx_ret_typeof_sel_rec (__eo_to_smt_datatype d) i j
+  | Datatype.null, i, j => by
+      cases i <;> cases j <;>
+        simp [__eo_typeof_dt_sel_return, __eo_to_smt_type, __eo_to_smt_datatype,
+          __smtx_ret_typeof_sel_rec]
+  | Datatype.sum DatatypeCons.unit d, native_nat_zero, j => by
+      cases j <;>
+        simp [__eo_typeof_dt_sel_return, __eo_to_smt_type, __eo_to_smt_datatype,
+          __eo_to_smt_datatype_cons, __smtx_ret_typeof_sel_rec]
+  | Datatype.sum (DatatypeCons.cons T c) d, native_nat_zero, native_nat_zero => by
+      simp [__eo_typeof_dt_sel_return, __eo_to_smt_datatype, __eo_to_smt_datatype_cons,
+        __smtx_ret_typeof_sel_rec]
+  | Datatype.sum (DatatypeCons.cons T c) d, native_nat_zero, native_nat_succ j => by
+      simpa [__eo_typeof_dt_sel_return, __eo_to_smt_datatype, __eo_to_smt_datatype_cons,
+        __smtx_ret_typeof_sel_rec] using
+        eo_to_smt_typeof_dt_sel_return (Datatype.sum c d) native_nat_zero j
+  | Datatype.sum c d, native_nat_succ i, j => by
+      simpa [__eo_typeof_dt_sel_return, __eo_to_smt_datatype,
+        __smtx_ret_typeof_sel_rec] using eo_to_smt_typeof_dt_sel_return d i j
+
 /-- Computes `__smtx_typeof` for `tuple_unit_translation`. -/
 theorem smtx_typeof_tuple_unit_translation :
     __smtx_typeof

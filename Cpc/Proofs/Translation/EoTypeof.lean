@@ -787,6 +787,16 @@ private theorem eo_to_smt_datatype_substitute
 end
 
 omit [TranslationBridge] in
+/-- Selector return translation after expanding the datatype's recursive self-reference. -/
+theorem eo_to_smt_typeof_dt_sel_return_substitute_self
+    (s : native_String) (d : Datatype) (i j : native_Nat) :
+    __eo_to_smt_type (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) =
+      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
+  rw [eo_to_smt_typeof_dt_sel_return]
+  rw [eo_to_smt_datatype_substitute]
+  rfl
+
+omit [TranslationBridge] in
 private theorem eo_typeof_dt_cons_rec_null (T : Term) (i : native_Nat) :
     __eo_typeof_dt_cons_rec T Datatype.null i = Term.Stuck := by
   rw [__eo_typeof_dt_cons_rec.eq_def]
@@ -1105,6 +1115,17 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type
       __eo_to_smt_type (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j)
   rw [hx]
   simpa [__eo_typeof_apply, hDt] using congrArg __eo_to_smt_type hReq
+
+omit [TranslationBridge] in
+/-- Stronger selector helper phrased directly with the SMT selector return type. -/
+theorem eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type_smt_ret
+    (x : Term) (s : native_String) (d : Datatype) (i j : native_Nat)
+    (hx : __eo_typeof x = Term.DatatypeType s d) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) =
+      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
+  exact
+    (eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type x s d i j hx).trans
+      (eo_to_smt_typeof_dt_sel_return_substitute_self s d i j)
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_select_of_smt_map`. -/
 theorem eo_to_smt_type_typeof_apply_apply_select_of_smt_map
