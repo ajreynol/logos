@@ -2067,6 +2067,120 @@ private theorem smtx_type_fun_like_domains_wf_apply
     exact hF.2.2
 
 omit [TranslationBridge] in
+private theorem smtx_type_fun_like_arg_field_wf_of_domains_wf
+    {T A B : SmtType}
+    (hWF : smtx_type_fun_like_domains_wf T)
+    (hHead : T = SmtType.FunType A B ∨ T = SmtType.DtcAppType A B) :
+    smtx_type_field_wf_rec A native_reflist_nil := by
+  rcases hHead with hHead | hHead
+  · rw [hHead] at hWF
+    exact hWF.1
+  · rw [hHead] at hWF
+    exact hWF.1
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_guard_wf_fun_like_domains_wf_of_non_none
+    {T U : SmtType}
+    (hU : smtx_type_fun_like_domains_wf U)
+    (hNN : __smtx_typeof_guard_wf T U ≠ SmtType.None) :
+    smtx_type_fun_like_domains_wf (__smtx_typeof_guard_wf T U) := by
+  rw [smtx_typeof_guard_wf_of_non_none T U hNN]
+  exact hU
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_var_domains_wf_of_non_none
+    (s : native_String) (T : SmtType)
+    (hNN : term_has_non_none_type (SmtTerm.Var s T)) :
+    smtx_type_fun_like_domains_wf (__smtx_typeof (SmtTerm.Var s T)) := by
+  have hWf : __smtx_type_wf T = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none T T (by
+      unfold term_has_non_none_type at hNN
+      simpa [__smtx_typeof] using hNN)
+  rw [smtx_typeof_var_of_non_none s T hNN]
+  exact smtx_type_fun_like_domains_wf_of_type_wf hWf
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_uconst_domains_wf_of_non_none
+    (s : native_String) (T : SmtType)
+    (hNN : term_has_non_none_type (SmtTerm.UConst s T)) :
+    smtx_type_fun_like_domains_wf (__smtx_typeof (SmtTerm.UConst s T)) := by
+  have hWf : __smtx_type_wf T = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none T T (by
+      unfold term_has_non_none_type at hNN
+      simpa [__smtx_typeof] using hNN)
+  rw [smtx_typeof_uconst_of_non_none s T hNN]
+  exact smtx_type_fun_like_domains_wf_of_type_wf hWf
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_seq_empty_domains_wf_of_non_none
+    (T : SmtType)
+    (hNN : term_has_non_none_type (SmtTerm.seq_empty T)) :
+    smtx_type_fun_like_domains_wf (__smtx_typeof (SmtTerm.seq_empty T)) := by
+  have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠ SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    simpa [__smtx_typeof] using hNN
+  have hWf : __smtx_type_wf T = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Seq T) hGuardNN
+  rw [smtx_typeof_seq_empty_of_non_none T hNN]
+  exact smtx_type_fun_like_domains_wf_of_type_wf
+    (by simpa [__smtx_type_wf, __smtx_type_wf_rec] using hWf)
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_set_empty_domains_wf_of_non_none
+    (T : SmtType)
+    (hNN : term_has_non_none_type (SmtTerm.set_empty T)) :
+    smtx_type_fun_like_domains_wf (__smtx_typeof (SmtTerm.set_empty T)) := by
+  have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Set T) ≠ SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    simpa [__smtx_typeof] using hNN
+  have hWf : __smtx_type_wf T = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Set T) hGuardNN
+  rw [smtx_typeof_set_empty_of_non_none T hNN]
+  exact smtx_type_fun_like_domains_wf_of_type_wf
+    (by simpa [__smtx_type_wf, __smtx_type_wf_rec] using hWf)
+
+omit [TranslationBridge] in
+/-- A well-typed `choice_nth` result preserves well-formed function-like domains. -/
+private theorem choice_nth_fun_like_domains_wf_any
+    (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat)
+    (hNN : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
+    smtx_type_fun_like_domains_wf (__smtx_typeof (SmtTerm.choice_nth s T body n)) := by
+  induction n generalizing s T body with
+  | zero =>
+      have hGuardTy :
+          __smtx_typeof (SmtTerm.choice_nth s T body 0) = __smtx_typeof_guard_wf T T :=
+        Smtm.choice_term_guard_type_of_non_none hNN
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        intro hNone
+        unfold term_has_non_none_type at hNN
+        rw [hGuardTy, hNone] at hNN
+        exact hNN rfl
+      have hWf : __smtx_type_wf T = true :=
+        Smtm.smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+      have hTy : __smtx_typeof (SmtTerm.choice_nth s T body 0) = T :=
+        Smtm.choice_term_typeof_of_non_none hNN
+      rw [hTy]
+      exact smtx_type_fun_like_domains_wf_of_type_wf hWf
+  | succ n ih =>
+      cases body with
+      | «exists» s' U body' =>
+          have hTyEq :
+              __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
+                __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
+            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            simp [__smtx_typeof_choice_nth]
+          have hNN' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
+            unfold term_has_non_none_type at hNN ⊢
+            rw [← hTyEq]
+            exact hNN
+          simpa [hTyEq] using ih s' U body' hNN'
+      | _ =>
+          exfalso
+          unfold term_has_non_none_type at hNN
+          rw [__smtx_typeof.eq_136] at hNN
+          simp [__smtx_typeof_choice_nth] at hNN
+
+omit [TranslationBridge] in
 private theorem smtx_typeof_dt_cons_rec_datatype_ne_fun
     (s : native_String) (d0 : SmtDatatype) :
     ∀ (d : SmtDatatype) (i : native_Nat) (A B : SmtType),
@@ -2116,6 +2230,63 @@ private theorem smtx_typeof_dt_cons_rec_datatype_arg_field_wf_of_wf
             SmtType.DtcAppType A B := by
         simpa [__smtx_typeof_dt_cons_rec] using hRaw
       exact smtx_typeof_dt_cons_rec_datatype_arg_field_wf_of_wf s d0 d i refs hTail hRaw'
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_dt_cons_rec_domains_wf_of_wf_nil
+    (s : native_String) (d0 : SmtDatatype) :
+    ∀ (d : SmtDatatype) (i : native_Nat),
+      __smtx_dt_wf_rec d native_reflist_nil = true ->
+      smtx_type_fun_like_domains_wf
+        (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d0) d i)
+  | SmtDatatype.null, i, hWf => by
+      cases i <;> simp [__smtx_typeof_dt_cons_rec, smtx_type_fun_like_domains_wf] at hWf ⊢
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, _hWf => by
+      simp [__smtx_typeof_dt_cons_rec, smtx_type_fun_like_domains_wf]
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero, hWf => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons U c) native_reflist_nil = true :=
+        smtx_dt_wf_cons_of_sum_wf_apply hWf
+      have hField : smtx_type_field_wf_rec U native_reflist_nil :=
+        smtx_type_field_wf_rec_of_cons_wf hCons
+      have hConsTail :
+          __smtx_dt_cons_wf_rec c native_reflist_nil = true :=
+        smtx_dt_cons_wf_rec_tail_of_true hCons
+      have hDTail : __smtx_dt_wf_rec d native_reflist_nil = true :=
+        smtx_dt_wf_tail_of_sum_wf_apply hWf
+      have hSumTail :
+          __smtx_dt_wf_rec (SmtDatatype.sum c d) native_reflist_nil = true := by
+        simp [__smtx_dt_wf_rec, native_ite, hConsTail, hDTail]
+      simp [__smtx_typeof_dt_cons_rec, smtx_type_fun_like_domains_wf]
+      exact
+        ⟨hField, smtx_type_fun_like_domains_wf_of_field_wf_rec hField,
+          smtx_typeof_dt_cons_rec_domains_wf_of_wf_nil s d0 (SmtDatatype.sum c d)
+            native_nat_zero hSumTail⟩
+  | SmtDatatype.sum c d, native_nat_succ i, hWf => by
+      have hTail : __smtx_dt_wf_rec d native_reflist_nil = true :=
+        smtx_dt_wf_tail_of_sum_wf_apply hWf
+      simpa [__smtx_typeof_dt_cons_rec] using
+        smtx_typeof_dt_cons_rec_domains_wf_of_wf_nil s d0 d i hTail
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_dt_cons_domains_wf_of_non_none
+    (s : native_String) (d : SmtDatatype) (i : native_Nat)
+    (hNN : term_has_non_none_type (SmtTerm.DtCons s d i)) :
+    smtx_type_fun_like_domains_wf (__smtx_typeof (SmtTerm.DtCons s d i)) := by
+  let raw := __smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i
+  have hGuardNN : __smtx_typeof_guard_wf (SmtType.Datatype s d) raw ≠ SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    simpa [Smtm.typeof_dt_cons_eq, raw] using hNN
+  have hRawEq : __smtx_typeof (SmtTerm.DtCons s d i) = raw := by
+    rw [Smtm.typeof_dt_cons_eq]
+    exact smtx_typeof_guard_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
+  have hBaseWf : __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+    have hWf := Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
+    simpa [__smtx_type_wf, __smtx_type_wf_rec] using hWf
+  have hSubWf : __smtx_dt_wf_rec (__smtx_dt_substitute s d d) native_reflist_nil = true :=
+    smtx_dt_substitute_self_wf_apply (s := s) (d := d) (refs := native_reflist_nil) hBaseWf
+  rw [hRawEq]
+  exact smtx_typeof_dt_cons_rec_domains_wf_of_wf_nil s d
+    (__smtx_dt_substitute s d d) i hSubWf
 
 omit [TranslationBridge] in
 private theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply_from_ih
