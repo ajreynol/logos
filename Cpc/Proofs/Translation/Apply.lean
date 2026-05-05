@@ -5846,8 +5846,37 @@ theorem eo_to_smt_typeof_matches_translation_apply
             (by intro s' d i h; cases h)
         rw [hTranslate, hGenericApply]
         exact smtx_typeof_apply_of_head_cases hHead hX hA
-      exact hSmt.trans
-        (eo_to_smt_type_typeof_apply_var_of_smt_apply x T s A B hHead hX hA hB).symm
+      have hTWF : __smtx_type_wf (__eo_to_smt_type T) = true :=
+        Smtm.smtx_typeof_guard_wf_wf_of_non_none
+          (__eo_to_smt_type T) (__eo_to_smt_type T) (by
+            simpa [__smtx_typeof] using hVarNN)
+      cases hT with
+      | inl hTFun =>
+          rcases eo_to_smt_type_eq_fun hTFun with ⟨U, V, hTEq, hU, hV⟩
+          have hFunWF :
+              smtx_type_field_wf_rec (SmtType.FunType A B) native_reflist_nil := by
+            exact smtx_type_field_wf_rec_of_type_wf_rec (by
+              have h := hTWF
+              rw [hTFun] at h
+              simpa [__smtx_type_wf] using h)
+          have hArgWF := (fun_type_field_wf_rec_components_of_wf hFunWF).1
+          have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
+            eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
+          have hxEo : __eo_typeof x = U :=
+            eo_to_smt_type_injective_of_field_wf_rec hXTrans hU hArgWF
+          have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
+            rw [hU]
+            exact hA
+          have hEo :
+              __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Var (Term.String s) T) x)) =
+                B :=
+            (eo_to_smt_type_typeof_apply_var_of_fun_like
+              x T U V s (Or.inl hTEq) hxEo hUNonNone).trans hV
+          exact hSmt.trans hEo.symm
+      | inr hTDtc =>
+          have hBad := hTWF
+          rw [hTDtc] at hBad
+          simp [__smtx_type_wf, __smtx_type_wf_rec] at hBad
     all_goals
       have hVarNone : __eo_to_smt (Term.Var name T) = SmtTerm.None := by
         rw [hName]
@@ -6005,8 +6034,36 @@ theorem eo_to_smt_typeof_matches_translation_apply
           (by intro s' d i' h; cases h)
       rw [hTranslate, hGenericApply]
       exact smtx_typeof_apply_of_head_cases hHead hX hA
-    exact hSmt.trans
-      (eo_to_smt_type_typeof_apply_uconst_of_smt_apply x T i A B hHead hX hA hB).symm
+    have hTWF : __smtx_type_wf (__eo_to_smt_type T) = true :=
+      Smtm.smtx_typeof_guard_wf_wf_of_non_none
+        (__eo_to_smt_type T) (__eo_to_smt_type T) (by
+          simpa [__smtx_typeof] using hUConstNN)
+    cases hT with
+    | inl hTFun =>
+        rcases eo_to_smt_type_eq_fun hTFun with ⟨U, V, hTEq, hU, hV⟩
+        have hFunWF :
+            smtx_type_field_wf_rec (SmtType.FunType A B) native_reflist_nil := by
+          exact smtx_type_field_wf_rec_of_type_wf_rec (by
+            have h := hTWF
+            rw [hTFun] at h
+            simpa [__smtx_type_wf] using h)
+        have hArgWF := (fun_type_field_wf_rec_components_of_wf hFunWF).1
+        have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
+          eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
+        have hxEo : __eo_typeof x = U :=
+          eo_to_smt_type_injective_of_field_wf_rec hXTrans hU hArgWF
+        have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
+          rw [hU]
+          exact hA
+        have hEo :
+            __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UConst i T) x)) = B :=
+          (eo_to_smt_type_typeof_apply_uconst_of_fun_like
+            x T U V i (Or.inl hTEq) hxEo hUNonNone).trans hV
+        exact hSmt.trans hEo.symm
+    | inr hTDtc =>
+        have hBad := hTWF
+        rw [hTDtc] at hBad
+        simp [__smtx_type_wf, __smtx_type_wf_rec] at hBad
   case Apply f y =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_head f y x ihF hNonNone
   case UOp op =>
