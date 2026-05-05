@@ -1549,6 +1549,634 @@ private theorem eo_to_smt_type_typeof_of_smt_type_apply
     exact hT
   exact (TranslationBridge.holds t hNN).symm.trans h
 
+omit [TranslationBridge] in
+/-- Bridge-free selector application typing, using the local IH for the selector argument. -/
+private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
+    (x : Term) (s : native_String) (d : Datatype) (i j : native_Nat)
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hReserved : __eo_reserved_datatype_name s = false)
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s (__eo_to_smt_datatype d)) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) =
+      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
+  have hxNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+    rw [hx]
+    simp
+  have hXType :
+      __eo_to_smt_type (__eo_typeof x) =
+        SmtType.Datatype s (__eo_to_smt_datatype d) :=
+    eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hx (by simp)
+  have hName : s ≠ "_at_Tuple" :=
+    eo_unreserved_datatype_name_ne_tuple hReserved
+  rcases eo_to_smt_type_eq_datatype_non_tuple hName hXType with ⟨d0, hxEo, hd0⟩
+  have hInh : type_inhabited (SmtType.Datatype s (__eo_to_smt_datatype d)) := by
+    refine ⟨__smtx_model_eval default_typed_model (__eo_to_smt x), ?_⟩
+    have hNN : term_has_non_none_type (__eo_to_smt x) := by
+      unfold term_has_non_none_type
+      exact hxNN
+    simpa [hx] using
+      type_preservation default_typed_model default_typed_model_total_typed (__eo_to_smt x) hNN
+  have hDWF :
+      __smtx_dt_wf_rec (__eo_to_smt_datatype d)
+        (native_reflist_insert native_reflist_nil s) = true :=
+    type_inhabited_datatype_wf hInh
+  have hdEq : d0 = d :=
+    eo_to_smt_datatype_injective_of_wf_rec hd0 rfl hDWF
+  subst d0
+  exact eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type_smt_ret x s d i j hxEo
+
+omit [TranslationBridge] in
+private theorem smtx_dt_wf_cons_of_sum_wf_apply
+    {c : SmtDatatypeCons}
+    {d : SmtDatatype}
+    {refs : RefList}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
+    __smtx_dt_cons_wf_rec c refs = true := by
+  by_cases hc : __smtx_dt_cons_wf_rec c refs = true
+  · exact hc
+  · have hFalse : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = false := by
+      simp [__smtx_dt_wf_rec, native_ite, hc]
+    rw [hFalse] at h
+    simp at h
+
+omit [TranslationBridge] in
+private theorem smtx_dt_wf_tail_of_sum_wf_apply
+    {c : SmtDatatypeCons}
+    {d : SmtDatatype}
+    {refs : RefList}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
+    __smtx_dt_wf_rec d refs = true := by
+  by_cases hd : __smtx_dt_wf_rec d refs = true
+  · exact hd
+  · have hFalse : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = false := by
+      simp [__smtx_dt_wf_rec, native_ite, hd]
+    rw [hFalse] at h
+    simp at h
+
+omit [TranslationBridge] in
+private def reflist_subset_apply (xs ys : RefList) : Prop :=
+  ∀ s, native_reflist_contains xs s = true -> native_reflist_contains ys s = true
+
+omit [TranslationBridge] in
+private theorem reflist_subset_insert_same_apply
+    {xs ys : RefList} {s : native_String}
+    (h : reflist_subset_apply xs ys) :
+    reflist_subset_apply (native_reflist_insert xs s) (native_reflist_insert ys s) := by
+  intro t ht
+  by_cases hts : t = s
+  · subst t
+    simp [native_reflist_contains, native_reflist_insert]
+  · have htXs : native_reflist_contains xs t = true := by
+      simpa [native_reflist_contains, native_reflist_insert, hts] using ht
+    have htYs := h t htXs
+    simpa [native_reflist_contains, native_reflist_insert, hts] using htYs
+
+omit [TranslationBridge] in
+private theorem reflist_subset_insert_dup_apply
+    (refs : RefList) (s : native_String) :
+    reflist_subset_apply (native_reflist_insert (native_reflist_insert refs s) s)
+      (native_reflist_insert refs s) := by
+  intro t ht
+  by_cases hts : t = s <;> by_cases htr : t ∈ refs <;>
+    simp [native_reflist_contains, native_reflist_insert, hts, htr] at ht ⊢
+
+omit [TranslationBridge] in
+private theorem reflist_subset_insert_middle_apply
+    (refs : RefList) (s t : native_String) :
+    reflist_subset_apply (native_reflist_insert refs s)
+      (native_reflist_insert (native_reflist_insert refs t) s) := by
+  intro u hu
+  by_cases hus : u = s <;> by_cases hut : u = t <;> by_cases hur : u ∈ refs <;>
+    simp [native_reflist_contains, native_reflist_insert, hus, hut, hur] at hu ⊢
+
+omit [TranslationBridge] in
+private theorem reflist_subset_insert_swap_apply
+    (refs : RefList) (s t : native_String) :
+    reflist_subset_apply (native_reflist_insert (native_reflist_insert refs s) t)
+      (native_reflist_insert (native_reflist_insert refs t) s) := by
+  intro u hu
+  by_cases hus : u = s <;> by_cases hut : u = t <;> by_cases hur : u ∈ refs <;>
+    simp [native_reflist_contains, native_reflist_insert, hus, hut, hur] at hu ⊢
+
+omit [TranslationBridge] in
+private def smtx_type_substitute_top_apply (sub : native_String) (d0 : SmtDatatype) :
+    SmtType -> SmtType
+  | SmtType.Datatype s2 d2 =>
+      SmtType.Datatype s2
+        (native_ite (native_streq sub s2) d2 (__smtx_dt_substitute sub d0 d2))
+  | T => native_ite (native_Teq T (SmtType.TypeRef sub)) (SmtType.Datatype sub d0) T
+
+omit [TranslationBridge] in
+mutual
+
+private theorem smtx_type_wf_rec_mono_apply :
+    (T : SmtType) -> {refs refs' : RefList} ->
+      reflist_subset_apply refs refs' ->
+      __smtx_type_wf_rec T refs = true ->
+      __smtx_type_wf_rec T refs' = true
+  | SmtType.Datatype s d, refs, refs', hSub, hWf => by
+      exact smtx_dt_wf_rec_mono_apply d (reflist_subset_insert_same_apply (s := s) hSub) (by
+        simpa [__smtx_type_wf_rec] using hWf)
+  | SmtType.Seq A, refs, refs', hSub, hWf => by
+      simpa [__smtx_type_wf_rec] using hWf
+  | SmtType.Map A B, refs, refs', hSub, hWf => by
+      simpa [__smtx_type_wf_rec] using hWf
+  | SmtType.FunType A B, refs, refs', hSub, hWf => by
+      simpa [__smtx_type_wf_rec] using hWf
+  | SmtType.Set A, refs, refs', hSub, hWf => by
+      simpa [__smtx_type_wf_rec] using hWf
+  | SmtType.None, refs, refs', hSub, hWf => by
+      simp [__smtx_type_wf_rec] at hWf
+  | SmtType.Bool, refs, refs', hSub, hWf => by
+      rfl
+  | SmtType.Int, refs, refs', hSub, hWf => by
+      rfl
+  | SmtType.Real, refs, refs', hSub, hWf => by
+      rfl
+  | SmtType.RegLan, refs, refs', hSub, hWf => by
+      rfl
+  | SmtType.BitVec n, refs, refs', hSub, hWf => by
+      rfl
+  | SmtType.Char, refs, refs', hSub, hWf => by
+      rfl
+  | SmtType.TypeRef s, refs, refs', hSub, hWf => by
+      simp [__smtx_type_wf_rec] at hWf
+  | SmtType.USort n, refs, refs', hSub, hWf => by
+      rfl
+  | SmtType.DtcAppType A B, refs, refs', hSub, hWf => by
+      simp [__smtx_type_wf_rec] at hWf
+
+private theorem smtx_dtc_wf_rec_mono_apply :
+    (c : SmtDatatypeCons) -> {refs refs' : RefList} ->
+      reflist_subset_apply refs refs' ->
+      __smtx_dt_cons_wf_rec c refs = true ->
+      __smtx_dt_cons_wf_rec c refs' = true
+  | SmtDatatypeCons.unit, refs, refs', hSub, hWf => by
+      rfl
+  | SmtDatatypeCons.cons T c, refs, refs', hSub, hWf => by
+      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+        smtx_dt_cons_wf_rec_tail_of_true hWf
+      have hTail' := smtx_dtc_wf_rec_mono_apply c hSub hTail
+      cases T <;> simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf ⊢
+      case TypeRef s =>
+        exact ⟨hSub s hWf.1, hTail'⟩
+      case Datatype s d =>
+        exact ⟨smtx_dt_wf_rec_mono_apply d (reflist_subset_insert_same_apply (s := s) hSub)
+          hWf.1, hTail'⟩
+      all_goals try exact hTail'
+      all_goals exact ⟨hWf.1, hTail'⟩
+
+private theorem smtx_dt_wf_rec_mono_apply :
+    (d : SmtDatatype) -> {refs refs' : RefList} ->
+      reflist_subset_apply refs refs' ->
+      __smtx_dt_wf_rec d refs = true ->
+      __smtx_dt_wf_rec d refs' = true
+  | SmtDatatype.null, refs, refs', hSub, hWf => by
+      rfl
+  | SmtDatatype.sum c d, refs, refs', hSub, hWf => by
+      have hPair : __smtx_dt_cons_wf_rec c refs = true ∧ __smtx_dt_wf_rec d refs = true := by
+        simpa [__smtx_dt_wf_rec, native_ite] using hWf
+      have hc := smtx_dtc_wf_rec_mono_apply c hSub hPair.1
+      have hd := smtx_dt_wf_rec_mono_apply d hSub hPair.2
+      simp [__smtx_dt_wf_rec, native_ite, hc, hd]
+
+end
+
+omit [TranslationBridge] in
+mutual
+
+private theorem smtx_type_substitute_wf_apply
+    (sub : native_String) (d0 : SmtDatatype) :
+    (T : SmtType) -> (refs : RefList) ->
+      __smtx_dt_wf_rec d0 (native_reflist_insert refs sub) = true ->
+      __smtx_type_wf_rec T (native_reflist_insert refs sub) = true ->
+      __smtx_type_wf_rec (smtx_type_substitute_top_apply sub d0 T) refs = true
+  | SmtType.Datatype s d, refs, hD0, hWf => by
+      by_cases hEq : sub = s
+      · subst s
+        have hOldDup :
+            __smtx_dt_wf_rec d
+              (native_reflist_insert (native_reflist_insert refs sub) sub) = true := by
+          simpa [__smtx_type_wf_rec] using hWf
+        have hOld : __smtx_dt_wf_rec d (native_reflist_insert refs sub) = true :=
+          smtx_dt_wf_rec_mono_apply d (reflist_subset_insert_dup_apply refs sub) hOldDup
+        simpa [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_streq, native_ite]
+          using hOld
+      · have hD0' :
+            __smtx_dt_wf_rec d0 (native_reflist_insert (native_reflist_insert refs s) sub) =
+              true :=
+          smtx_dt_wf_rec_mono_apply d0 (reflist_subset_insert_middle_apply refs sub s) hD0
+        have hOld :
+            __smtx_dt_wf_rec d (native_reflist_insert (native_reflist_insert refs s) sub) =
+              true := by
+          have hOldSwap :
+              __smtx_dt_wf_rec d (native_reflist_insert (native_reflist_insert refs sub) s) =
+                true := by
+            simpa [__smtx_type_wf_rec] using hWf
+          exact smtx_dt_wf_rec_mono_apply d (reflist_subset_insert_swap_apply refs sub s) hOldSwap
+        have hSubD :
+            __smtx_dt_wf_rec (__smtx_dt_substitute sub d0 d)
+              (native_reflist_insert refs s) = true :=
+          smtx_dt_substitute_wf_apply sub d0 d (native_reflist_insert refs s) hD0' hOld
+        have hNe : native_streq sub s = false := by
+          simp [native_streq, SmtEval.native_streq, hEq]
+        simpa [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, hNe]
+          using hSubD
+  | SmtType.TypeRef s, refs, hD0, hWf => by
+      simp [__smtx_type_wf_rec] at hWf
+  | SmtType.None, refs, hD0, hWf => by
+      simp [__smtx_type_wf_rec] at hWf
+  | SmtType.DtcAppType A B, refs, hD0, hWf => by
+      simp [__smtx_type_wf_rec] at hWf
+  | SmtType.Bool, refs, hD0, hWf => by
+      simp [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+  | SmtType.Int, refs, hD0, hWf => by
+      simp [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+  | SmtType.Real, refs, hD0, hWf => by
+      simp [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+  | SmtType.RegLan, refs, hD0, hWf => by
+      simp [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+  | SmtType.BitVec n, refs, hD0, hWf => by
+      simp [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+  | SmtType.Map A B, refs, hD0, hWf => by
+      simpa [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+        using hWf
+  | SmtType.Set A, refs, hD0, hWf => by
+      simpa [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+        using hWf
+  | SmtType.Seq A, refs, hD0, hWf => by
+      simpa [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+        using hWf
+  | SmtType.Char, refs, hD0, hWf => by
+      simp [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+  | SmtType.USort n, refs, hD0, hWf => by
+      simp [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+  | SmtType.FunType A B, refs, hD0, hWf => by
+      simpa [smtx_type_substitute_top_apply, __smtx_type_wf_rec, native_ite, native_Teq]
+        using hWf
+
+private theorem smtx_dtc_substitute_wf_apply
+    (sub : native_String) (d0 : SmtDatatype) :
+    (c : SmtDatatypeCons) -> (refs : RefList) ->
+      __smtx_dt_wf_rec d0 (native_reflist_insert refs sub) = true ->
+      __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true ->
+      __smtx_dt_cons_wf_rec (__smtx_dtc_substitute sub d0 c) refs = true
+  | SmtDatatypeCons.unit, refs, hD0, hWf => by
+      rfl
+  | SmtDatatypeCons.cons T c, refs, hD0, hWf => by
+      have hTail : __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true :=
+        smtx_dt_cons_wf_rec_tail_of_true hWf
+      have hTailSub := smtx_dtc_substitute_wf_apply sub d0 c refs hD0 hTail
+      cases T with
+      | TypeRef s =>
+          by_cases hEq : s = sub
+          · subst s
+            simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+              native_Teq, native_ite, hD0, hTailSub]
+          · have hContainsOld : native_reflist_contains (native_reflist_insert refs sub) s = true := by
+              have hPair :
+                  native_reflist_contains (native_reflist_insert refs sub) s = true ∧
+                    __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true := by
+                simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+              exact hPair.1
+            have hContains : native_reflist_contains refs s = true := by
+              by_cases hsr : s ∈ refs
+              · simpa [native_reflist_contains] using hsr
+              · have hContr : s = sub := by
+                  simpa [native_reflist_contains, native_reflist_insert, hsr] using hContainsOld
+                exact False.elim (hEq hContr)
+            have hNe : sub ≠ s := by intro hs; exact hEq hs.symm
+            simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, native_Teq, native_ite,
+              hEq, hContains, hTailSub]
+      | Datatype s d =>
+          have hFieldWf :
+              __smtx_type_wf_rec (SmtType.Datatype s d) (native_reflist_insert refs sub) =
+                true := by
+            have hPair :
+                __smtx_type_wf_rec (SmtType.Datatype s d)
+                    (native_reflist_insert refs sub) = true ∧
+                  __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true := by
+              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+            exact hPair.1
+          by_cases hEq : sub = s
+          · subst s
+            have hField : __smtx_type_wf_rec (SmtType.Datatype sub d) refs = true := by
+              simpa [smtx_type_substitute_top_apply, native_streq, native_ite] using
+                smtx_type_substitute_wf_apply sub d0 (SmtType.Datatype sub d) refs hD0
+                  hFieldWf
+            simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, native_streq, native_ite,
+              hField, hTailSub]
+          · have hField :
+                __smtx_type_wf_rec (SmtType.Datatype s (__smtx_dt_substitute sub d0 d))
+                  refs = true := by
+              have hNe : native_streq sub s = false := by
+                simp [native_streq, SmtEval.native_streq, hEq]
+              simpa [smtx_type_substitute_top_apply, native_ite, hNe] using
+                smtx_type_substitute_wf_apply sub d0 (SmtType.Datatype s d) refs hD0
+                  hFieldWf
+            simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, native_streq, native_ite,
+              hEq, hField, hTailSub]
+      | None =>
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
+      | DtcAppType A B =>
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
+      | Bool =>
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+            native_Teq, native_ite, hTailSub]
+      | Int =>
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+            native_Teq, native_ite, hTailSub]
+      | Real =>
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+            native_Teq, native_ite, hTailSub]
+      | RegLan =>
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+            native_Teq, native_ite, hTailSub]
+      | BitVec n =>
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+            native_Teq, native_ite, hTailSub]
+      | Map A B =>
+          have hField : __smtx_type_wf_rec (SmtType.Map A B) refs = true := by
+            have hPair :
+                __smtx_type_wf_rec (SmtType.Map A B) (native_reflist_insert refs sub) =
+                    true ∧
+                  __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true := by
+              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+            simpa [__smtx_type_wf_rec] using hPair.1
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, native_Teq, native_ite,
+            hField, hTailSub]
+      | Set A =>
+          have hField : __smtx_type_wf_rec (SmtType.Set A) refs = true := by
+            have hPair :
+                __smtx_type_wf_rec (SmtType.Set A) (native_reflist_insert refs sub) = true ∧
+                  __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true := by
+              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+            simpa [__smtx_type_wf_rec] using hPair.1
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, native_Teq, native_ite,
+            hField, hTailSub]
+      | Seq A =>
+          have hField : __smtx_type_wf_rec (SmtType.Seq A) refs = true := by
+            have hPair :
+                __smtx_type_wf_rec (SmtType.Seq A) (native_reflist_insert refs sub) = true ∧
+                  __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true := by
+              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+            simpa [__smtx_type_wf_rec] using hPair.1
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, native_Teq, native_ite,
+            hField, hTailSub]
+      | Char =>
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+            native_Teq, native_ite, hTailSub]
+      | USort n =>
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+            native_Teq, native_ite, hTailSub]
+      | FunType A B =>
+          have hField : __smtx_type_wf_rec (SmtType.FunType A B) refs = true := by
+            have hPair :
+                __smtx_type_wf_rec (SmtType.FunType A B) (native_reflist_insert refs sub) =
+                    true ∧
+                  __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true := by
+              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+            simpa [__smtx_type_wf_rec] using hPair.1
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec, native_Teq, native_ite,
+            hField, hTailSub]
+
+private theorem smtx_dt_substitute_wf_apply
+    (sub : native_String) (d0 : SmtDatatype) :
+    (d : SmtDatatype) -> (refs : RefList) ->
+      __smtx_dt_wf_rec d0 (native_reflist_insert refs sub) = true ->
+      __smtx_dt_wf_rec d (native_reflist_insert refs sub) = true ->
+      __smtx_dt_wf_rec (__smtx_dt_substitute sub d0 d) refs = true
+  | SmtDatatype.null, refs, hD0, hWf => by
+      rfl
+  | SmtDatatype.sum c d, refs, hD0, hWf => by
+      have hPair :
+          __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true ∧
+            __smtx_dt_wf_rec d (native_reflist_insert refs sub) = true := by
+        simpa [__smtx_dt_wf_rec, native_ite] using hWf
+      have hc := smtx_dtc_substitute_wf_apply sub d0 c refs hD0 hPair.1
+      have hd := smtx_dt_substitute_wf_apply sub d0 d refs hD0 hPair.2
+      simp [__smtx_dt_substitute, __smtx_dt_wf_rec, native_ite, hc, hd]
+
+end
+
+omit [TranslationBridge] in
+private theorem smtx_dt_substitute_self_wf_apply
+    {s : native_String} {d : SmtDatatype} {refs : RefList}
+    (hWf : __smtx_dt_wf_rec d (native_reflist_insert refs s) = true) :
+    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) refs = true :=
+  smtx_dt_substitute_wf_apply s d d refs hWf hWf
+
+omit [TranslationBridge] in
+private def smtx_type_fun_like_domains_wf : SmtType -> Prop
+  | SmtType.Seq A => smtx_type_fun_like_domains_wf A
+  | SmtType.Set A => smtx_type_fun_like_domains_wf A
+  | SmtType.Map A B =>
+      smtx_type_fun_like_domains_wf A ∧ smtx_type_fun_like_domains_wf B
+  | SmtType.FunType A B =>
+      smtx_type_field_wf_rec A native_reflist_nil ∧
+        smtx_type_fun_like_domains_wf A ∧ smtx_type_fun_like_domains_wf B
+  | SmtType.DtcAppType A B =>
+      smtx_type_field_wf_rec A native_reflist_nil ∧
+        smtx_type_fun_like_domains_wf A ∧ smtx_type_fun_like_domains_wf B
+  | _ => True
+
+omit [TranslationBridge] in
+private theorem smtx_type_fun_like_domains_wf_of_type_wf_rec :
+    ∀ {T : SmtType} {refs : RefList},
+      __smtx_type_wf_rec T refs = true -> smtx_type_fun_like_domains_wf T
+  | SmtType.None, _refs, h => by
+      simp [__smtx_type_wf_rec] at h
+  | SmtType.Bool, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.Int, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.Real, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.RegLan, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.BitVec _w, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.Map A B, _refs, h => by
+      rcases map_type_wf_rec_components_of_wf h with ⟨hA, hB⟩
+      exact ⟨smtx_type_fun_like_domains_wf_of_type_wf_rec (T := A)
+          (refs := native_reflist_nil) hA,
+        smtx_type_fun_like_domains_wf_of_type_wf_rec (T := B)
+          (refs := native_reflist_nil) hB⟩
+  | SmtType.Set A, _refs, h => by
+      exact smtx_type_fun_like_domains_wf_of_type_wf_rec (T := A)
+        (refs := native_reflist_nil) (set_type_wf_rec_component_of_wf h)
+  | SmtType.Seq A, _refs, h => by
+      exact smtx_type_fun_like_domains_wf_of_type_wf_rec (T := A)
+        (refs := native_reflist_nil) (seq_type_wf_rec_component_of_wf h)
+  | SmtType.Char, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.Datatype _s _d, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.TypeRef _s, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.USort _i, _refs, _h => by
+      simp [smtx_type_fun_like_domains_wf]
+  | SmtType.FunType A B, _refs, h => by
+      rcases fun_type_wf_rec_components_of_wf h with ⟨hA, hB⟩
+      exact ⟨smtx_type_field_wf_rec_of_type_wf_rec hA,
+        smtx_type_fun_like_domains_wf_of_type_wf_rec (T := A)
+          (refs := native_reflist_nil) hA,
+        smtx_type_fun_like_domains_wf_of_type_wf_rec (T := B)
+          (refs := native_reflist_nil) hB⟩
+  | SmtType.DtcAppType _A _B, _refs, h => by
+      simp [__smtx_type_wf_rec] at h
+termination_by T refs h => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals simp [sizeOf]
+  all_goals omega
+
+omit [TranslationBridge] in
+private theorem smtx_type_fun_like_domains_wf_of_type_wf
+    {T : SmtType} (h : __smtx_type_wf T = true) :
+    smtx_type_fun_like_domains_wf T :=
+  smtx_type_fun_like_domains_wf_of_type_wf_rec (T := T)
+    (refs := native_reflist_nil) (by simpa [__smtx_type_wf] using h)
+
+omit [TranslationBridge] in
+private theorem smtx_type_fun_like_domains_wf_of_field_wf_rec
+    {T : SmtType} {refs : RefList}
+    (h : smtx_type_field_wf_rec T refs) :
+    smtx_type_fun_like_domains_wf T := by
+  cases T
+  case TypeRef _s => simp [smtx_type_fun_like_domains_wf]
+  all_goals
+    exact smtx_type_fun_like_domains_wf_of_type_wf_rec (refs := refs) (by
+      simpa [smtx_type_field_wf_rec] using h)
+
+omit [TranslationBridge] in
+private theorem smtx_type_fun_like_domains_wf_apply
+    {F X : SmtType}
+    (hF : smtx_type_fun_like_domains_wf F)
+    (hNN : __smtx_typeof_apply F X ≠ SmtType.None) :
+    smtx_type_fun_like_domains_wf (__smtx_typeof_apply F X) := by
+  rcases typeof_apply_non_none_cases hNN with ⟨A, B, hHead, hX, hA, _hB⟩
+  have hRes : __smtx_typeof_apply F X = B :=
+    smtx_typeof_apply_of_head_cases hHead hX hA
+  rw [hRes]
+  rcases hHead with hHead | hHead
+  · rw [hHead] at hF
+    exact hF.2.2
+  · rw [hHead] at hF
+    exact hF.2.2
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_dt_cons_rec_datatype_ne_fun
+    (s : native_String) (d0 : SmtDatatype) :
+    ∀ (d : SmtDatatype) (i : native_Nat) (A B : SmtType),
+      __smtx_typeof_dt_cons_rec (SmtType.Datatype s d0) d i ≠ SmtType.FunType A B
+  | SmtDatatype.null, i, A, B => by
+      cases i <;> simp [__smtx_typeof_dt_cons_rec]
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, A, B => by
+      simp [__smtx_typeof_dt_cons_rec]
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero, A, B => by
+      simp [__smtx_typeof_dt_cons_rec]
+  | SmtDatatype.sum c d, native_nat_succ i, A, B => by
+      simpa [__smtx_typeof_dt_cons_rec] using
+        smtx_typeof_dt_cons_rec_datatype_ne_fun s d0 d i A B
+
+omit [TranslationBridge] in
+private theorem smtx_typeof_dt_cons_rec_datatype_arg_field_wf_of_wf
+    (s : native_String) (d0 : SmtDatatype) :
+    ∀ (d : SmtDatatype) (i : native_Nat) (refs : RefList) {A B : SmtType},
+      __smtx_dt_wf_rec d refs = true ->
+      __smtx_typeof_dt_cons_rec (SmtType.Datatype s d0) d i = SmtType.DtcAppType A B ->
+      smtx_type_field_wf_rec A refs
+  | SmtDatatype.null, i, refs, A, B, _hWf, hRaw => by
+      cases i <;> simp [__smtx_typeof_dt_cons_rec] at hRaw
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, refs, A, B, _hWf, hRaw => by
+      simp [__smtx_typeof_dt_cons_rec] at hRaw
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero, refs, A, B, hWf, hRaw => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons U c) refs = true :=
+        smtx_dt_wf_cons_of_sum_wf_apply hWf
+      have hField : smtx_type_field_wf_rec U refs :=
+        smtx_type_field_wf_rec_of_cons_wf hCons
+      have hA : U = A := by
+        have hRaw' :
+            SmtType.DtcAppType U
+                (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d0) (SmtDatatype.sum c d)
+                  native_nat_zero) =
+              SmtType.DtcAppType A B := by
+          simpa [__smtx_typeof_dt_cons_rec] using hRaw
+        injection hRaw' with hU _
+      subst A
+      exact hField
+  | SmtDatatype.sum c d, native_nat_succ i, refs, A, B, hWf, hRaw => by
+      have hTail : __smtx_dt_wf_rec d refs = true :=
+        smtx_dt_wf_tail_of_sum_wf_apply hWf
+      have hRaw' :
+          __smtx_typeof_dt_cons_rec (SmtType.Datatype s d0) d i =
+            SmtType.DtcAppType A B := by
+        simpa [__smtx_typeof_dt_cons_rec] using hRaw
+      exact smtx_typeof_dt_cons_rec_datatype_arg_field_wf_of_wf s d0 d i refs hTail hRaw'
+
+omit [TranslationBridge] in
+private theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply_from_ih
+    (x : Term) (s : native_String) (d : Datatype) (i : native_Nat) (A B : SmtType)
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hReserved : __eo_reserved_datatype_name s = false)
+    (hHead :
+      __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = SmtType.FunType A B ∨
+        __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = SmtType.DtcAppType A B)
+    (hx : __smtx_typeof (__eo_to_smt x) = A)
+    (hA : A ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtCons s d i) x)) = B := by
+  have hHeadNN :
+      __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠ SmtType.None := by
+    intro hNone
+    rcases hHead with hHead | hHead <;> rw [hNone] at hHead <;> cases hHead
+  let dSmt := __eo_to_smt_datatype d
+  let raw := __smtx_typeof_dt_cons_rec (SmtType.Datatype s dSmt)
+    (__smtx_dt_substitute s dSmt dSmt) i
+  have hGuardNN : __smtx_typeof_guard_wf (SmtType.Datatype s dSmt) raw ≠ SmtType.None := by
+    simpa [dSmt, raw, Smtm.typeof_dt_cons_eq] using hHeadNN
+  have hTypeofEq : __smtx_typeof (SmtTerm.DtCons s dSmt i) = raw := by
+    rw [Smtm.typeof_dt_cons_eq]
+    exact smtx_typeof_guard_wf_of_non_none (SmtType.Datatype s dSmt) raw hGuardNN
+  have hBaseWf : __smtx_dt_wf_rec dSmt (native_reflist_insert native_reflist_nil s) = true := by
+    have hWf := Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s dSmt) raw hGuardNN
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, dSmt] using hWf
+  have hHeadTy :
+      __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =
+        __smtx_typeof (SmtTerm.DtCons s dSmt i) :=
+    eo_to_smt_type_typeof_dt_cons s d i hReserved (by simpa [dSmt] using hHeadNN)
+  rcases hHead with hHeadFun | hHeadDtc
+  · have hRawFun : raw = SmtType.FunType A B := hTypeofEq.symm.trans hHeadFun
+    exact False.elim
+      ((smtx_typeof_dt_cons_rec_datatype_ne_fun s dSmt
+        (__smtx_dt_substitute s dSmt dSmt) i A B) hRawFun)
+  · have hRawDtc : raw = SmtType.DtcAppType A B := hTypeofEq.symm.trans hHeadDtc
+    have hSubWf :
+        __smtx_dt_wf_rec (__smtx_dt_substitute s dSmt dSmt) native_reflist_nil = true :=
+      smtx_dt_substitute_self_wf_apply (s := s) (d := dSmt) (refs := native_reflist_nil)
+        hBaseWf
+    have hArgWF : smtx_type_field_wf_rec A native_reflist_nil :=
+      smtx_typeof_dt_cons_rec_datatype_arg_field_wf_of_wf s dSmt
+        (__smtx_dt_substitute s dSmt dSmt) i native_reflist_nil hSubWf hRawDtc
+    have hFTrans :
+        __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = SmtType.DtcAppType A B := by
+      exact hHeadTy.trans (by simpa [dSmt] using hHeadDtc)
+    rcases eo_to_smt_type_eq_dtc_app hFTrans with ⟨U, V, hFEq, hU, hV⟩
+    have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
+      eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hx hA
+    have hxEo : __eo_typeof x = U :=
+      eo_to_smt_type_injective_of_field_wf_rec hXTrans hU hArgWF
+    have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
+      rw [hU]
+      exact hA
+    exact
+      (eo_to_smt_type_typeof_apply_dt_cons_of_fun_like
+        x U V s d i (Or.inr hFEq) hxEo hUNonNone).trans hV
+
 /-- Simplifies EO-to-SMT type translation for set binary operators returning a set. -/
 private theorem eo_to_smt_type_typeof_apply_apply_set_binop_of_smt_set
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term) (T : SmtType)
@@ -2438,9 +3066,13 @@ decreasing_by
   simp_wf
   simp_all
 
+omit [TranslationBridge] in
 /-- Purified selector heads keep the selector result EO type. -/
 private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
     (x y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
     (hy : __eo_to_smt y = SmtTerm.DtSel s d i j)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s d)
     (hApplyNN : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) (__eo_to_smt x))) :
@@ -2467,7 +3099,8 @@ private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
       rw [hHeadEq]
     rw [hApplyEq]
     simpa [hd] using
-      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype x s d0 i j hReserved hx' hApplyNN')
+      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
+        x s d0 i j ihX hReserved hx')
   · rcases hPurify with ⟨z, rfl, hz⟩
     have hHeadEq :
         __eo_typeof (Term._at_purify (Term._at_purify z)) =
@@ -2484,7 +3117,7 @@ private theorem eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
           __eo_typeof_apply (__eo_typeof (Term._at_purify z)) (__eo_typeof x)
       rw [hHeadEq]
     rw [hApplyEq]
-    exact eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation x z s d i j hz hx hApplyNN
+    exact eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation x z s d i j ihX hz hx hApplyNN
 
 omit [TranslationBridge] in
 /-- Purified tester heads still have stuck EO application type. -/
@@ -6134,7 +6767,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rw [hTranslate, hGenericApply]
       exact smtx_typeof_apply_of_head_cases hHead hX hA
     exact hSmt.trans
-      (eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply x s d i A B hReserved hHead hX hA hB).symm
+      (eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply_from_ih
+        x s d i A B ihX hReserved hHead hX hA).symm
   case DtSel s d i j =>
     have hReserved : __eo_reserved_datatype_name s = false := by
       cases hRes : __eo_reserved_datatype_name s
@@ -6172,7 +6806,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rw [hTranslate]
       exact dt_sel_term_typeof_of_non_none hApplyNN
     exact hSmt.trans
-      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype x s d i j hReserved hArg hApplyNN).symm
+      (eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
+        x s d i j ihX hReserved hArg).symm
   case UConst i T =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.UConst i T) x) =
@@ -7523,7 +8158,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rw [hTranslate]
         exact dt_sel_term_typeof_of_non_none hApplyNN
       exact hSmt.trans
-        (eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation x y s d i j hSel hArg hApplyNN).symm
+        (eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
+          x y s d i j ihX hSel hArg hApplyNN).symm
     · by_cases hTesterCase : ∃ s d i, __eo_to_smt y = SmtTerm.DtTester s d i
       · rcases hTesterCase with ⟨s, d, i, hTester⟩
         have hEoNone :
