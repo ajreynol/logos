@@ -2602,6 +2602,7 @@ theorem eo_to_smt_type_typeof_apply_apply_xor_of_bool
   rw [hy, hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_apply_eq`. -/
 theorem eo_to_smt_type_typeof_apply_apply_eq_of_same_type
     (x y T : Term)
