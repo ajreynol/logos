@@ -7885,14 +7885,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
-    ((t : Term) ->
-      sizeOf t < sizeOf (Term.Apply (Term.Apply f y) x) ->
-      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t)) ->
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f y) x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply f y) x)) := by
-  intro ihSub hNonNone
+  intro hNonNone
   have genericFallback :
       ∀ head : Term,
         (__smtx_typeof (__eo_to_smt head) ≠ SmtType.None ->
@@ -7929,7 +7925,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
     exact eo_to_smt_typeof_matches_translation_apply_uop_application_head op y x ihF ihY ihX hNonNone
   case Apply f z =>
     exact eo_to_smt_typeof_matches_translation_apply_binary_application_head f z y x ihF
-      (ihSub z (by simp_wf; omega)) ihY ihX hNonNone
+      (eo_to_smt_typeof_matches_translation_deferred z) ihY ihX hNonNone
   case FunType =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.Apply Term.FunType y) x) =
@@ -8031,12 +8027,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
-    (ihSub :
-      (t : Term) ->
-      sizeOf t < sizeOf (Term.Apply f x) ->
-      __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t)) :
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
     __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
@@ -8320,7 +8311,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         simp [__smtx_type_wf, __smtx_type_wf_rec] at hBad
   case Apply f y =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_head f y x ihF
-      (ihSub y (by simp_wf; omega)) ihX ihSub hNonNone
+      (eo_to_smt_typeof_matches_translation_deferred y) ihX hNonNone
   case UOp op =>
     cases op
     case distinct =>

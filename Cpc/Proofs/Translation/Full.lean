@@ -762,9 +762,7 @@ theorem eo_to_smt_typeof_matches_translation
             hNonNone).trans
             (eo_to_smt_type_typeof_uconst i T).symm
     | Term.Apply f x, hNonNone => by
-        haveI : TranslationBridge := ⟨go⟩
-        exact eo_to_smt_typeof_matches_translation_apply f x (go f) (go x)
-          (fun t _ hNN => go t hNN) hNonNone
+        exact eo_to_smt_typeof_matches_translation_apply f x (go f) (go x) hNonNone
     | Term._at_purify x, hNonNone => by
         exact eo_to_smt_typeof_matches_translation_purify x (go x hNonNone)
     | Term._at_array_deq_diff x1 x2, hNonNone => by
