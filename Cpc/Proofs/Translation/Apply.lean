@@ -2053,19 +2053,19 @@ private theorem smtx_type_translation_injective_wf_of_type_wf
         simp [__smtx_type_wf, __smtx_type_wf_rec] at h
     | SmtType.Bool, _h => by
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
-          __smtx_type_wf, __smtx_type_wf_rec]
+          __smtx_type_wf_rec]
     | SmtType.Int, _h => by
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
-          __smtx_type_wf, __smtx_type_wf_rec]
+          __smtx_type_wf_rec]
     | SmtType.Real, _h => by
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
-          __smtx_type_wf, __smtx_type_wf_rec]
+          __smtx_type_wf_rec]
     | SmtType.RegLan, _h => by
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
-          __smtx_type_wf, __smtx_type_wf_rec]
+          __smtx_type_wf_rec]
     | SmtType.BitVec _w, _h => by
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
-          __smtx_type_wf, __smtx_type_wf_rec]
+          __smtx_type_wf_rec]
     | SmtType.Map A B, h => by
         have hRec : __smtx_type_wf_rec (SmtType.Map A B) native_reflist_nil = true := by
           simpa [__smtx_type_wf] using h
@@ -2089,7 +2089,7 @@ private theorem smtx_type_translation_injective_wf_of_type_wf
               (A := A) (refs := native_reflist_nil) hRec)
     | SmtType.Char, _h => by
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
-          __smtx_type_wf, __smtx_type_wf_rec]
+          __smtx_type_wf_rec]
     | SmtType.Datatype _s _d, h => by
         simpa [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
           __smtx_type_wf] using h
@@ -2097,7 +2097,7 @@ private theorem smtx_type_translation_injective_wf_of_type_wf
         simp [__smtx_type_wf, __smtx_type_wf_rec] at h
     | SmtType.USort _i, _h => by
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
-          __smtx_type_wf, __smtx_type_wf_rec]
+          __smtx_type_wf_rec]
     | SmtType.FunType A B, h => by
         have hRec : __smtx_type_wf_rec (SmtType.FunType A B) native_reflist_nil = true := by
           simpa [__smtx_type_wf] using h
@@ -2109,11 +2109,6 @@ private theorem smtx_type_translation_injective_wf_of_type_wf
     | SmtType.DtcAppType _A _B, h => by
         simp [__smtx_type_wf, __smtx_type_wf_rec] at h
   exact go T h
-  termination_by T _ => sizeOf T
-  decreasing_by
-    all_goals simp_wf
-    all_goals simp [sizeOf]
-    all_goals omega
 
 omit [TranslationBridge] in
 private theorem smtx_type_translation_injective_wf_of_field_wf_rec
@@ -2198,11 +2193,6 @@ private theorem eo_to_smt_type_injective_of_translation_injective_wf
     | SmtType.USort i, T, U, hT, hU, hWF => by
         exact eo_to_smt_type_injective_of_field_wf_rec hT hU hWF
   exact go A hT hU hWF
-  termination_by A _ _ _ _ _ => sizeOf A
-  decreasing_by
-    all_goals simp_wf
-    all_goals simp [sizeOf]
-    all_goals omega
 
 omit [TranslationBridge] in
 private theorem smtx_type_fun_like_domains_wf_of_type_wf_rec :

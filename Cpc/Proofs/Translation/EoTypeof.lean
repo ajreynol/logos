@@ -1151,6 +1151,7 @@ theorem eo_to_smt_type_typeof_apply_apply_select_of_smt_map
     exact hApplyNN'
   exact eo_to_smt_type_typeof_of_smt_type _ hSmt hBNN
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_apply_select`. -/
 theorem eo_to_smt_type_typeof_apply_apply_select_of_array
     (x y U T : Term)
@@ -1185,6 +1186,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_smt_map
     simp [__smtx_typeof_store, native_ite, native_Teq, hz, hy, hx]
   exact eo_to_smt_type_typeof_of_smt_type _ hSmt (by simp)
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_store`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_array
     (x y z U T : Term)
@@ -1218,6 +1220,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_array
   rw [hz, hy, hx]
   simpa [__eo_typeof_store, hUNS, hTNS, hReq] using hArrayTy
 
+omit [TranslationBridge] in
 /-- Private EO-side helper for `is`. -/
 private theorem eo_typeof_is_of_non_stuck
     (C D : Term)
@@ -1226,6 +1229,7 @@ private theorem eo_typeof_is_of_non_stuck
     __eo_typeof_is C D = Term.Bool := by
   cases C <;> cases D <;> simp [__eo_typeof_is] at hC hD ⊢
 
+omit [TranslationBridge] in
 /-- Private EO-side helper for `update`. -/
 private theorem eo_typeof_update_of_non_stuck
     (S D T : Term)
@@ -1234,6 +1238,7 @@ private theorem eo_typeof_update_of_non_stuck
     __eo_typeof_update S D T = D := by
   cases S <;> cases D <;> cases T <;> simp [__eo_typeof_update] at hS hT ⊢
 
+omit [TranslationBridge] in
 /-- Private EO-side helper for `tuple_select`. -/
 private theorem eo_typeof_tuple_select_of_non_stuck
     (i T : Term)
@@ -1243,6 +1248,7 @@ private theorem eo_typeof_tuple_select_of_non_stuck
       __eo_list_nth (Term.UOp UserOp.Tuple) T i := by
   cases i <;> cases T <;> simp [__eo_typeof_tuple_select] at hi hT ⊢
 
+omit [TranslationBridge] in
 /-- Private EO-side helper for `tuple_update`. -/
 private theorem eo_typeof_tuple_update_of_non_stuck
     (i T U : Term)
@@ -1262,6 +1268,7 @@ private theorem eo_typeof_at_witness_string_length_of_non_stuck
     __eo_typeof__at_witness_string_length Term.Type T (Term.UOp UserOp.Int) (Term.UOp UserOp.Int) = T := by
   cases T <;> simp [__eo_typeof__at_witness_string_length] at hT ⊢
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_apply_is`. -/
 theorem eo_to_smt_type_typeof_apply_apply_is_of_non_stuck
     (x y : Term)
@@ -1273,6 +1280,7 @@ theorem eo_to_smt_type_typeof_apply_apply_is_of_non_stuck
   rw [eo_typeof_is_of_non_stuck (__eo_typeof y) (__eo_typeof x) hy hx]
   rfl
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_update`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_middle_type
     (x y z D : Term)
@@ -1286,6 +1294,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_middle_type
   rw [hy]
   rw [eo_typeof_update_of_non_stuck (__eo_typeof z) D (__eo_typeof x) hz hx]
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_apply_tuple_select`. -/
 theorem eo_to_smt_type_typeof_apply_apply_tuple_select_of_int
     (x y T : Term)
@@ -1307,6 +1316,7 @@ theorem eo_to_smt_type_typeof_apply_apply_tuple_select_of_int
   rw [hx, hy]
   rw [eo_typeof_tuple_select_of_non_stuck x T hXNS hTNS]
 
+omit [TranslationBridge] in
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_tuple_update`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_int_list_nth_type
     (x y z T : Term)
