@@ -46,7 +46,7 @@ theorem typeof_value_model_eval_dt_cons
   cases hInh : native_inhabited_type (SmtType.Datatype s d) <;>
   cases hwf : __smtx_type_wf (SmtType.Datatype s d) <;>
     simp [__smtx_model_eval, __smtx_typeof_value, __smtx_typeof, __smtx_typeof_guard_wf,
-      term_has_non_none_type, native_ite, hInh, hwf, typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec] at ht ⊢
+      term_has_non_none_type, native_ite, hwf, typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec] at ht ⊢
 
 /-- Definition used in the proof development for `dt_cons_type_num_args`. -/
 def dt_cons_type_num_args : SmtType -> Nat
