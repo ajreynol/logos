@@ -284,12 +284,26 @@ theorem seq_unit_type_eq_arg_of_eq
     (h : __smtx_typeof (SmtTerm.seq_unit t) = SmtType.Seq A) :
     __smtx_typeof t = A ∧ A ≠ SmtType.None := by
   rw [__smtx_typeof.eq_118] at h
-  by_cases hNone : __smtx_typeof t = SmtType.None
-  · simp [native_ite, native_Teq, hNone] at h
-  · have hSeq : SmtType.Seq (__smtx_typeof t) = SmtType.Seq A := by
-      simpa [native_ite, native_Teq, hNone] using h
-    injection hSeq with hEq
-    exact ⟨hEq, by simpa [hEq] using hNone⟩
+  have hGuardNN :
+      __smtx_typeof_guard_wf (__smtx_typeof t)
+          (SmtType.Seq (__smtx_typeof t)) ≠ SmtType.None := by
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hGuard :
+      __smtx_typeof_guard_wf (__smtx_typeof t)
+          (SmtType.Seq (__smtx_typeof t)) =
+        SmtType.Seq (__smtx_typeof t) :=
+    smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+      (SmtType.Seq (__smtx_typeof t)) hGuardNN
+  have hSeq : SmtType.Seq (__smtx_typeof t) = SmtType.Seq A :=
+    hGuard.symm.trans h
+  injection hSeq with hEq
+  subst hEq
+  exact ⟨rfl,
+    type_wf_non_none
+      (smtx_typeof_guard_wf_wf_of_non_none (__smtx_typeof t)
+        (SmtType.Seq (__smtx_typeof t)) hGuardNN)⟩
 
 /-- If `set_singleton t` has type `Set A`, then `t` has type `A` and `A` is non-`None`. -/
 theorem set_singleton_type_eq_arg_of_eq
@@ -298,12 +312,26 @@ theorem set_singleton_type_eq_arg_of_eq
     (h : __smtx_typeof (SmtTerm.set_singleton t) = SmtType.Set A) :
     __smtx_typeof t = A ∧ A ≠ SmtType.None := by
   rw [__smtx_typeof.eq_121] at h
-  by_cases hNone : __smtx_typeof t = SmtType.None
-  · simp [native_ite, native_Teq, hNone] at h
-  · have hSet : SmtType.Set (__smtx_typeof t) = SmtType.Set A := by
-      simpa [native_ite, native_Teq, hNone] using h
-    injection hSet with hEq
-    exact ⟨hEq, by simpa [hEq] using hNone⟩
+  have hGuardNN :
+      __smtx_typeof_guard_wf (__smtx_typeof t)
+          (SmtType.Set (__smtx_typeof t)) ≠ SmtType.None := by
+    intro hNone
+    rw [hNone] at h
+    simp at h
+  have hGuard :
+      __smtx_typeof_guard_wf (__smtx_typeof t)
+          (SmtType.Set (__smtx_typeof t)) =
+        SmtType.Set (__smtx_typeof t) :=
+    smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+      (SmtType.Set (__smtx_typeof t)) hGuardNN
+  have hSet : SmtType.Set (__smtx_typeof t) = SmtType.Set A :=
+    hGuard.symm.trans h
+  injection hSet with hEq
+  subst hEq
+  exact ⟨rfl,
+    type_wf_non_none
+      (smtx_typeof_guard_wf_wf_of_non_none (__smtx_typeof t)
+        (SmtType.Set (__smtx_typeof t)) hGuardNN)⟩
 
 /-- Shows that evaluating `re_allchar` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_allchar
@@ -366,27 +394,43 @@ theorem typeof_value_model_eval_set_empty
 theorem typeof_value_model_eval_seq_unit
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type t)
+    (ht : term_has_non_none_type (SmtTerm.seq_unit t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.seq_unit t)) =
       __smtx_typeof (SmtTerm.seq_unit t) := by
-  unfold term_has_non_none_type at ht
+  have hGuard :
+      __smtx_typeof_guard_wf (__smtx_typeof t)
+          (SmtType.Seq (__smtx_typeof t)) =
+        SmtType.Seq (__smtx_typeof t) :=
+    smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+      (SmtType.Seq (__smtx_typeof t)) (by
+        unfold term_has_non_none_type at ht
+        rw [__smtx_typeof.eq_118] at ht
+        exact ht)
   unfold __smtx_model_eval __smtx_typeof
-  simp [__smtx_typeof_value, __smtx_typeof_seq_value, native_ite, native_Teq,
-    ht, hpres]
+  simp [__smtx_typeof_value, __smtx_typeof_seq_value, hpres, hGuard,
+    native_Teq, native_ite]
 
 /-- Shows that evaluating `set_singleton` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_set_singleton
     (M : SmtModel)
     (t : SmtTerm)
-    (ht : term_has_non_none_type t)
+    (ht : term_has_non_none_type (SmtTerm.set_singleton t))
     (hpres : __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.set_singleton t)) =
       __smtx_typeof (SmtTerm.set_singleton t) := by
-  unfold term_has_non_none_type at ht
+  have hGuard :
+      __smtx_typeof_guard_wf (__smtx_typeof t)
+          (SmtType.Set (__smtx_typeof t)) =
+        SmtType.Set (__smtx_typeof t) :=
+    smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+      (SmtType.Set (__smtx_typeof t)) (by
+        unfold term_has_non_none_type at ht
+        rw [__smtx_typeof.eq_121] at ht
+        exact ht)
   unfold __smtx_model_eval __smtx_typeof
   simp [__smtx_model_eval_set_singleton, __smtx_typeof_value, __smtx_typeof_map_value,
-    __smtx_map_to_set_type, native_ite, native_Teq, ht, hpres]
+    __smtx_map_to_set_type, hpres, hGuard, native_Teq, native_ite]
 
 /-- Derives `exists_body_bool` from `non_none`. -/
 theorem exists_body_bool_of_non_none
