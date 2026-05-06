@@ -420,8 +420,7 @@ theorem dt_cons_chain_type_of_non_none :
       rcases hHead with ⟨rfl, hEq⟩
       rcases hEq with ⟨rfl, rfl⟩
       cases hWf : __smtx_type_wf (SmtType.Datatype s' d') <;>
-        simp [__smtx_typeof_value, dt_cons_applied_type_rec, vsm_num_apply_args, native_ite,
-          hWf] at hNN ⊢
+        simp [__smtx_typeof_value, dt_cons_applied_type_rec, vsm_num_apply_args] at hNN ⊢
   | SmtValue.Apply f a, s, d, i, hHead, hNN => by
       have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
         simpa [__vsm_apply_head] using hHead

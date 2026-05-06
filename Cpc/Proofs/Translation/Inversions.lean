@@ -1671,7 +1671,7 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
               cases hConsWF :
                   __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT)
                     (native_reflist_insert refs "@Tuple") <;>
-                simp [__smtx_dt_wf_rec, native_ite, hConsWF] at hDWF ⊢
+                simp [__smtx_dt_wf_rec, hConsWF] at hDWF ⊢
             have hFieldWF :
                 smtx_type_field_wf_rec (__eo_to_smt_type yT)
                   (native_reflist_insert refs "@Tuple") :=
@@ -1688,7 +1688,7 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
                 __smtx_dt_wf_rec (SmtDatatype.sum cT SmtDatatype.null)
                     (native_reflist_insert refs "@Tuple") =
                   true
-              simp [__smtx_dt_wf_rec, native_ite, hTailWF]
+              simp [__smtx_dt_wf_rec, hTailWF]
             have hyEq : yT = yU :=
               eo_to_smt_type_injective_of_field_wf_rec
                 (A := __eo_to_smt_type yT) (refs := native_reflist_insert refs "@Tuple")
@@ -1943,7 +1943,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                                     SmtDatatype.null)
                                   (native_reflist_insert native_reflist_nil "@Tuple") =
                                 true at hRawRec
-                            simp [__smtx_dt_wf_rec, native_ite] at hRawRec
+                            simp [__smtx_dt_wf_rec] at hRawRec
                             have hTail :
                                 __smtx_dt_cons_wf_rec c
                                   (native_reflist_insert native_reflist_nil "@Tuple") =
@@ -1973,7 +1973,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                                 __smtx_type_wf_rec (__eo_to_smt_type x) native_reflist_nil =
                                   true := by
                               rw [hX]
-                              simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, native_ite, hTail]
+                              simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, hTail]
                             have hx := eo_typeof_type_of_smt_type_wf_rec x native_reflist_nil hxWF
                             change __eo_typeof__at__at_Pair (__eo_typeof y) (__eo_typeof x) =
                               Term.Type
