@@ -247,8 +247,7 @@ theorem smtx_typeof_guard_wf_of_non_none
     __smtx_typeof_guard_wf T U = U := by
   intro h
   unfold __smtx_typeof_guard_wf at h ⊢
-  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h ⊢
-  cases hWf : __smtx_type_wf T <;> simp [hWf] at h ⊢
+  cases hWf : __smtx_type_wf T <;> simp [native_ite, hWf] at h ⊢
 
 /-- Computes `__smtx_typeof` for `var_of_non_none`. -/
 theorem smtx_typeof_var_of_non_none
