@@ -7060,14 +7060,65 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
           (bv_width_term_nonstuck w))
       hNonNone
   case «repeat» =>
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp.repeat) y) x) hNonNone
+    have hTranslate :
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.repeat) y) x) =
+          SmtTerm.repeat (__eo_to_smt y) (__eo_to_smt x) := by
+      rfl
+    have hApplyNN :
+        term_has_non_none_type (SmtTerm.repeat (__eo_to_smt y) (__eo_to_smt x)) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hNonNone
+    rcases repeat_args_of_non_none hApplyNN with ⟨i, w, hy, hx, hi⟩
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.repeat) y) x)) =
+          SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w))) := by
+      rw [hTranslate, typeof_repeat_eq, hy, hx]
+      simp [__smtx_typeof_repeat, native_ite, hi]
+    haveI : TranslationBridge := ⟨eo_to_smt_typeof_matches_translation_deferred⟩
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_apply_repeat_of_smt_numeral_bitvec
+        x y i w hy hx hi).symm
   case zero_extend =>
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp.zero_extend) y) x) hNonNone
+    have hTranslate :
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.zero_extend) y) x) =
+          SmtTerm.zero_extend (__eo_to_smt y) (__eo_to_smt x) := by
+      rfl
+    have hApplyNN :
+        term_has_non_none_type (SmtTerm.zero_extend (__eo_to_smt y) (__eo_to_smt x)) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hNonNone
+    rcases zero_extend_args_of_non_none hApplyNN with ⟨i, w, hy, hx, hi⟩
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.zero_extend) y) x)) =
+          SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
+      rw [hTranslate, typeof_zero_extend_eq, hy, hx]
+      simp [__smtx_typeof_zero_extend, native_ite, hi]
+    haveI : TranslationBridge := ⟨eo_to_smt_typeof_matches_translation_deferred⟩
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_apply_zero_extend_of_smt_numeral_bitvec
+        x y i w hy hx hi).symm
   case sign_extend =>
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp.sign_extend) y) x) hNonNone
+    have hTranslate :
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.sign_extend) y) x) =
+          SmtTerm.sign_extend (__eo_to_smt y) (__eo_to_smt x) := by
+      rfl
+    have hApplyNN :
+        term_has_non_none_type (SmtTerm.sign_extend (__eo_to_smt y) (__eo_to_smt x)) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hNonNone
+    rcases sign_extend_args_of_non_none hApplyNN with ⟨i, w, hy, hx, hi⟩
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.sign_extend) y) x)) =
+          SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
+      rw [hTranslate, typeof_sign_extend_eq, hy, hx]
+      simp [__smtx_typeof_sign_extend, native_ite, hi]
+    haveI : TranslationBridge := ⟨eo_to_smt_typeof_matches_translation_deferred⟩
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_apply_sign_extend_of_smt_numeral_bitvec
+        x y i w hy hx hi).symm
   case rotate_left =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.rotate_left) y) x) =
@@ -7137,8 +7188,25 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
           x y (Term.Numeral (native_nat_to_int w)) hYInt hXBitVec
     exact hSmt.trans hEo.symm
   case int_to_bv =>
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp.int_to_bv) y) x) hNonNone
+    have hTranslate :
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.int_to_bv) y) x) =
+          SmtTerm.int_to_bv (__eo_to_smt y) (__eo_to_smt x) := by
+      rfl
+    have hApplyNN :
+        term_has_non_none_type (SmtTerm.int_to_bv (__eo_to_smt y) (__eo_to_smt x)) := by
+      unfold term_has_non_none_type
+      rw [← hTranslate]
+      exact hNonNone
+    rcases int_to_bv_args_of_non_none hApplyNN with ⟨i, hy, hx, hi⟩
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.int_to_bv) y) x)) =
+          SmtType.BitVec (native_int_to_nat i) := by
+      rw [hTranslate, typeof_int_to_bv_eq, hy, hx]
+      simp [__smtx_typeof_int_to_bv, native_ite, hi]
+    haveI : TranslationBridge := ⟨eo_to_smt_typeof_matches_translation_deferred⟩
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_apply_int_to_bv_of_smt_numeral_int
+        x y i hy hx hi).symm
   case str_at =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) y) x) =
@@ -7230,8 +7298,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
   case _at_from_bools =>
     exact eo_to_smt_typeof_matches_translation_apply_at_from_bools x y ihY ihX hNonNone
   case _at_bv =>
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp._at_bv) y) x) hNonNone
+    haveI : TranslationBridge := ⟨eo_to_smt_typeof_matches_translation_deferred⟩
+    exact eo_to_smt_typeof_matches_translation_apply_at_bv x y hNonNone
   case re_exp =>
     exact eo_to_smt_typeof_matches_translation_apply_re_exp x y ihY ihX hNonNone
   case _at_strings_deq_diff =>
@@ -9099,8 +9167,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_ih
         x y z ihZ ihY ihX hNonNone
     case extract =>
-      exact eo_to_smt_typeof_matches_translation_deferred
-        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.extract) z) y) x) hNonNone
+      haveI : TranslationBridge := ⟨eo_to_smt_typeof_matches_translation_deferred⟩
+      exact eo_to_smt_typeof_matches_translation_apply_apply_apply_extract x y z hNonNone
     case str_substr =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_str_substr_from_ih
         x y z ihZ ihY ihX hNonNone
