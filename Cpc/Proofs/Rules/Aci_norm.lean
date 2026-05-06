@@ -132,37 +132,42 @@ private theorem aci_sorted_marker_not_has_smt_translation (f t : Term) :
   apply hTrans
   simpa using smtx_typeof_apply_apply_none (__eo_to_smt t) (__eo_to_smt f)
 
+private theorem eo_has_smt_translation_ne_stuck (t : Term) :
+    RuleProofs.eo_has_smt_translation t -> t ≠ Term.Stuck := by
+  intro hTrans hStuck
+  subst t
+  exact hTrans TranslationProofs.smtx_typeof_none
+
 private def aciNormPayload : Term -> Term
   | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) _) t => t
   | t => t
-
-private theorem smt_value_rel_of_aci_norm_eq_true
-    (M : SmtModel) (hM : model_total_typed M) (x y : Term) :
-  __aci_norm_eq x y = Term.Boolean true ->
-  RuleProofs.smt_value_rel
-    (__smtx_model_eval M (__eo_to_smt (aciNormPayload x)))
-    (__smtx_model_eval M (__eo_to_smt (aciNormPayload y))) := by
-  intro hEq
-  by_cases hTermEq : __eo_eq x y = Term.Boolean true
-  · have hyx : y = x := eq_of_eo_eq_true_local x y hTermEq
-    subst y
-    exact RuleProofs.smt_value_rel_refl
-      (__smtx_model_eval M (__eo_to_smt (aciNormPayload x)))
-  · -- The remaining cases are the marker payload/list cases.
-    sorry
 
 private theorem aciNormPayload_has_smt_translation_of_has_smt_translation
     (t : Term) :
   RuleProofs.eo_has_smt_translation t ->
   RuleProofs.eo_has_smt_translation (aciNormPayload t) := by
-  intro hTrans
-  cases t <;> try exact hTrans
+  intro hEq
+  cases t <;> try exact hEq
   case Apply f x =>
-    cases f <;> try exact hTrans
+    cases f <;> try exact hEq
     case Apply g y =>
-      cases g <;> try exact hTrans
+      cases g <;> try exact hEq
       case UOp op =>
-        cases op <;> try exact hTrans
+        cases op <;> try exact hEq
+        exact False.elim (aci_sorted_marker_not_has_smt_translation y x hEq)
+
+private theorem aciNormPayload_eq_self_of_has_smt_translation
+    (t : Term) :
+  RuleProofs.eo_has_smt_translation t ->
+  aciNormPayload t = t := by
+  intro hTrans
+  cases t <;> try rfl
+  case Apply f x =>
+    cases f <;> try rfl
+    case Apply g y =>
+      cases g <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
         exact False.elim (aci_sorted_marker_not_has_smt_translation y x hTrans)
 
 private theorem smt_value_rel_aciNormPayload_self
@@ -172,14 +177,43 @@ private theorem smt_value_rel_aciNormPayload_self
     (__smtx_model_eval M (__eo_to_smt (aciNormPayload t)))
     (__smtx_model_eval M (__eo_to_smt t)) := by
   intro hTrans
-  cases t <;> try exact RuleProofs.smt_value_rel_refl _
-  case Apply f x =>
-    cases f <;> try exact RuleProofs.smt_value_rel_refl _
-    case Apply g y =>
-      cases g <;> try exact RuleProofs.smt_value_rel_refl _
-      case UOp op =>
-        cases op <;> try exact RuleProofs.smt_value_rel_refl _
-        exact False.elim (aci_sorted_marker_not_has_smt_translation y x hTrans)
+  rw [aciNormPayload_eq_self_of_has_smt_translation t hTrans]
+  exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt t))
+
+private theorem smt_value_rel_of_aci_norm_eq_true_right_translation
+    (M : SmtModel) (x y : Term) :
+  RuleProofs.eo_has_smt_translation y ->
+  __aci_norm_eq x y = Term.Boolean true ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt (aciNormPayload x)))
+    (__smtx_model_eval M (__eo_to_smt y)) := by
+  intro hYTrans hEq
+  by_cases hTermEq : __eo_eq x y = Term.Boolean true
+  · have hyx : y = x := eq_of_eo_eq_true_local x y hTermEq
+    subst y
+    exact smt_value_rel_aciNormPayload_self M x hYTrans
+  · -- The remaining one-sided cases are marker payload/list cases; `y` is an
+    -- actual SMT-translatable term, so the marker-marker branch is impossible.
+    sorry
+
+private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
+    (M : SmtModel) (hM : model_total_typed M) (a b : Term) :
+  RuleProofs.eo_has_smt_translation a ->
+  RuleProofs.eo_has_smt_translation b ->
+  __aci_norm_eq (__get_aci_normal_form a) (__get_aci_normal_form b) = Term.Boolean true ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form a))))
+    (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form b)))) := by
+  intro hATrans hBTrans hEq
+  by_cases hTermEq :
+      __eo_eq (__get_aci_normal_form a) (__get_aci_normal_form b) = Term.Boolean true
+  · have hba := eq_of_eo_eq_true_local
+      (__get_aci_normal_form a) (__get_aci_normal_form b) hTermEq
+    rw [hba]
+    exact RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form a))))
+  · -- The remaining cases are generated marker/list cases.
+    sorry
 
 private theorem smt_value_rel_get_aci_normal_form_payload
     (M : SmtModel) (hM : model_total_typed M) (t : Term) :
@@ -236,9 +270,8 @@ private theorem smt_value_rel_of_aci_norm_guard_true
           have hNFBRel :=
             smt_value_rel_get_aci_normal_form_payload M hM b hBHas
           have hNFRel :=
-            smt_value_rel_of_aci_norm_eq_true M hM
-              (__get_aci_normal_form a) (__get_aci_normal_form b)
-              hGuard
+            smt_value_rel_of_aci_norm_eq_true_normal_forms M hM
+              a b hAHas hBHas hGuard
           exact RuleProofs.smt_value_rel_trans
             (__smtx_model_eval M (__eo_to_smt a))
             (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form a))))
@@ -253,9 +286,8 @@ private theorem smt_value_rel_of_aci_norm_guard_true
         · have hNFBRel :=
             smt_value_rel_get_aci_normal_form_payload M hM b hBHas
           have hRel :=
-            smt_value_rel_of_aci_norm_eq_true M hM
-              (__get_aci_normal_form b) a hRight
-          have hPayloadA := smt_value_rel_aciNormPayload_self M a hAHas
+            smt_value_rel_of_aci_norm_eq_true_right_translation M
+              (__get_aci_normal_form b) a hAHas hRight
           have hBA : RuleProofs.smt_value_rel
               (__smtx_model_eval M (__eo_to_smt b))
               (__smtx_model_eval M (__eo_to_smt a)) :=
@@ -263,12 +295,7 @@ private theorem smt_value_rel_of_aci_norm_guard_true
               (__smtx_model_eval M (__eo_to_smt b))
               (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form b))))
               (__smtx_model_eval M (__eo_to_smt a))
-              hNFBRel
-              (RuleProofs.smt_value_rel_trans
-                (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form b))))
-                (__smtx_model_eval M (__eo_to_smt (aciNormPayload a)))
-                (__smtx_model_eval M (__eo_to_smt a))
-                hRel hPayloadA)
+              hNFBRel hRel
           exact RuleProofs.smt_value_rel_symm
             (__smtx_model_eval M (__eo_to_smt b))
             (__smtx_model_eval M (__eo_to_smt a))
@@ -278,19 +305,13 @@ private theorem smt_value_rel_of_aci_norm_guard_true
     · have hNFARel :=
         smt_value_rel_get_aci_normal_form_payload M hM a hAHas
       have hRel :=
-        smt_value_rel_of_aci_norm_eq_true M hM
-          (__get_aci_normal_form a) b hLeft
-      have hPayloadB := smt_value_rel_aciNormPayload_self M b hBHas
+        smt_value_rel_of_aci_norm_eq_true_right_translation M
+          (__get_aci_normal_form a) b hBHas hLeft
       exact RuleProofs.smt_value_rel_trans
         (__smtx_model_eval M (__eo_to_smt a))
         (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form a))))
         (__smtx_model_eval M (__eo_to_smt b))
-        hNFARel
-        (RuleProofs.smt_value_rel_trans
-          (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form a))))
-          (__smtx_model_eval M (__eo_to_smt (aciNormPayload b)))
-          (__smtx_model_eval M (__eo_to_smt b))
-          hRel hPayloadB)
+        hNFARel hRel
   all_goals
     contradiction
 
