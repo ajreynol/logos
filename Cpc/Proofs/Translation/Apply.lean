@@ -10,7 +10,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
@@ -34,7 +33,7 @@ private theorem smtx_type_wf_seq_component
       native_inhabited_type A = true ∧
         __smtx_type_wf_rec A native_reflist_nil = true := by
     simpa [__smtx_type_wf_rec, native_and] using hRec
-  simpa [__smtx_type_wf, native_and, hA.1, hA.2]
+  simp [__smtx_type_wf, native_and, hA.1, hA.2]
 
 private theorem smtx_type_wf_set_component
     {A : SmtType}
@@ -45,7 +44,7 @@ private theorem smtx_type_wf_set_component
       native_inhabited_type A = true ∧
         __smtx_type_wf_rec A native_reflist_nil = true := by
     simpa [__smtx_type_wf_rec, native_and] using hRec
-  simpa [__smtx_type_wf, native_and, hA.1, hA.2]
+  simp [__smtx_type_wf, native_and, hA.1, hA.2]
 
 private theorem smtx_type_wf_map_components
     {A B : SmtType}
@@ -58,8 +57,8 @@ private theorem smtx_type_wf_map_components
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
     simpa [__smtx_type_wf_rec, native_and] using hRec
-  exact ⟨by simpa [__smtx_type_wf, native_and, hAB.1, hAB.2.1],
-    by simpa [__smtx_type_wf, native_and, hAB.2.2.1, hAB.2.2.2]⟩
+  exact ⟨by simp [__smtx_type_wf, native_and, hAB.1, hAB.2.1],
+    by simp [__smtx_type_wf, native_and, hAB.2.2.1, hAB.2.2.2]⟩
 
 private theorem smtx_type_wf_fun_components
     {A B : SmtType}
@@ -72,8 +71,8 @@ private theorem smtx_type_wf_fun_components
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
     simpa [__smtx_type_wf_rec, native_and] using hRec
-  exact ⟨by simpa [__smtx_type_wf, native_and, hAB.1, hAB.2.1],
-    by simpa [__smtx_type_wf, native_and, hAB.2.2.1, hAB.2.2.2]⟩
+  exact ⟨by simp [__smtx_type_wf, native_and, hAB.1, hAB.2.1],
+    by simp [__smtx_type_wf, native_and, hAB.2.2.1, hAB.2.2.2]⟩
 
 private theorem native_inhabited_type_of_type_inhabited
     {T : SmtType}
