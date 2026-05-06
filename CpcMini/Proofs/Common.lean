@@ -321,6 +321,9 @@ inductive smt_value_rel : SmtValue -> SmtValue -> Prop where
   | set {m1 m2 : SmtMap} :
       (∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) ->
       smt_value_rel (SmtValue.Set m1) (SmtValue.Set m2)
+  | reglan {r1 r2 : native_RegLan} :
+      (∀ s : native_String, native_str_in_re s r1 = native_str_in_re s r2) ->
+      smt_value_rel (SmtValue.RegLan r1) (SmtValue.RegLan r2)
   | seq {s1 s2 : SmtSeq} :
       smt_seq_rel s1 s2 ->
       smt_value_rel (SmtValue.Seq s1) (SmtValue.Seq s2)
@@ -370,7 +373,7 @@ theorem smt_value_rel_refl : (v : SmtValue) -> smt_value_rel v v
   | SmtValue.UValue _ _ => by
       exact smt_value_rel.base rfl
   | SmtValue.RegLan _ => by
-      exact smt_value_rel.base rfl
+      exact smt_value_rel.reglan (fun _ => rfl)
   | SmtValue.DtCons _ _ _ => by
       exact smt_value_rel.base rfl
   | SmtValue.Apply f v => by
@@ -399,6 +402,8 @@ theorem smt_value_rel_symm (v1 v2 : SmtValue) :
       exact smt_value_rel.func (fun v => (hm v).symm)
   | set hm =>
       exact smt_value_rel.set (fun v => (hm v).symm)
+  | reglan hr =>
+      exact smt_value_rel.reglan (fun s => (hr s).symm)
   | seq hs =>
       exact smt_value_rel.seq (smt_seq_rel_symm _ _ hs)
   | apply hf hv =>
@@ -449,6 +454,13 @@ theorem smt_value_rel_trans (v1 v2 v3 : SmtValue) :
       | base hEq =>
           subst hEq
           exact smt_value_rel.set hm12
+  | reglan hr12 =>
+      cases h23 with
+      | reglan hr23 =>
+          exact smt_value_rel.reglan (fun s => (hr12 s).trans (hr23 s))
+      | base hEq =>
+          subst hEq
+          exact smt_value_rel.reglan hr12
   | seq hs12 =>
       cases h23 with
       | seq hs23 =>
@@ -518,7 +530,7 @@ private theorem smtx_model_eval_eq_refl_aux :
   | SmtValue.UValue _ _ => by
       simp [__smtx_model_eval_eq, native_veq]
   | SmtValue.RegLan _ => by
-      simp [__smtx_model_eval_eq, native_veq]
+      simp [__smtx_model_eval_eq]
   | SmtValue.DtCons _ _ _ => by
       simp [__smtx_model_eval_eq, native_veq]
 
@@ -548,6 +560,9 @@ theorem smt_value_rel_iff_model_eval_eq_true :
         | set hm =>
             classical
             simp [__smtx_model_eval_eq, hm]
+        | reglan hr =>
+            classical
+            simp [__smtx_model_eval_eq, hr]
         | seq hs =>
             simpa using (smt_seq_rel_iff_model_eval_eq_true _ _).mp hs
         | apply hf hv =>
@@ -606,9 +621,9 @@ theorem smt_value_rel_iff_model_eval_eq_true :
           rcases h with ⟨rfl, rfl⟩
           exact smt_value_rel.base rfl
         case RegLan.RegLan r1 r2 =>
-          simp [__smtx_model_eval_eq, native_veq] at h
-          subst h
-          exact smt_value_rel.base rfl
+          classical
+          simp [__smtx_model_eval_eq] at h
+          exact smt_value_rel.reglan h
         case DtCons.DtCons n1 dt1 ar1 n2 dt2 ar2 =>
           simp [__smtx_model_eval_eq, native_veq] at h
           rcases h with ⟨rfl, rfl, rfl⟩
