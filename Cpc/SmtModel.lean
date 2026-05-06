@@ -1762,12 +1762,12 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.str_in_re x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) (SmtType.Seq SmtType.Char)) (native_ite (native_Teq (__smtx_typeof x2) SmtType.RegLan) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.seq_unit x1) => 
     let _v0 := (__smtx_typeof x1)
-    (native_ite (native_Teq _v0 SmtType.None) SmtType.None (SmtType.Seq _v0))
+    (__smtx_typeof_guard_wf _v0 (SmtType.Seq _v0))
   | (SmtTerm.seq_nth x1 x2) => (__smtx_typeof_seq_nth (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.set_empty x1) => (__smtx_typeof_guard_wf x1 (SmtType.Set x1))
   | (SmtTerm.set_singleton x1) => 
     let _v0 := (__smtx_typeof x1)
-    (native_ite (native_Teq _v0 SmtType.None) SmtType.None (SmtType.Set _v0))
+    (__smtx_typeof_guard_wf _v0 (SmtType.Set _v0))
   | (SmtTerm.set_union x1 x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.set_inter x1 x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.set_minus x1 x2) => (__smtx_typeof_sets_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
