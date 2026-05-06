@@ -60,33 +60,61 @@ theorem type_wf_non_none
   intro hNone
   simp [__smtx_type_wf, __smtx_type_wf_rec, hNone] at h
 
+/-- Rebuilds public well-formedness from recursive well-formedness plus inhabitation. -/
+theorem type_wf_of_inhabited_and_wf_rec
+    {T : SmtType}
+    (hInh : native_inhabited_type T = true)
+    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    __smtx_type_wf T = true := by
+  cases T <;> simp [__smtx_type_wf, native_and, hInh, hRec]
+
 /-- Extracts well-formedness of the element type of a well-formed sequence type. -/
 theorem seq_type_wf_component_of_wf
     {A : SmtType}
     (h : __smtx_type_wf (SmtType.Seq A) = true) :
     __smtx_type_wf A = true := by
-  simpa [__smtx_type_wf, __smtx_type_wf_rec] using h
+  have hPair :
+      native_inhabited_type A = true ∧ __smtx_type_wf_rec A native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2
 
 /-- Extracts well-formedness of the element type of a well-formed set type. -/
 theorem set_type_wf_component_of_wf
     {A : SmtType}
     (h : __smtx_type_wf (SmtType.Set A) = true) :
     __smtx_type_wf A = true := by
-  simpa [__smtx_type_wf, __smtx_type_wf_rec] using h
+  have hPair :
+      native_inhabited_type A = true ∧ __smtx_type_wf_rec A native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2
 
 /-- Extracts well-formedness of the domain and codomain of a well-formed map type. -/
 theorem map_type_wf_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.Map A B) = true) :
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  have hPair :
+      native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A native_reflist_nil = true ∧
+          native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
+    type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
 
 /-- Extracts well-formedness of the domain and codomain of a well-formed function type. -/
 theorem fun_type_wf_components_of_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  have hPair :
+      native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A native_reflist_nil = true ∧
+          native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
+    type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
 
 /-- A well-formed sequence type has a non-`None` element type. -/
 theorem seq_type_component_non_none_of_wf
