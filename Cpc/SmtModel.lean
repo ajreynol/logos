@@ -620,15 +620,13 @@ def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
 
 
 def __smtx_type_wf (T : SmtType) : native_Bool :=
-  match T with
-  | SmtType.Datatype _ _ => (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil))
-  | _ => (__smtx_type_wf_rec T native_reflist_nil)
+  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil))
 
 def __smtx_typeof_guard (T : SmtType) (U : SmtType) : SmtType :=
   (native_ite (native_Teq T SmtType.None) SmtType.None U)
 
 def __smtx_typeof_guard_wf (T : SmtType) (U : SmtType) : SmtType :=
-  (native_ite (native_inhabited_type T) (native_ite (__smtx_type_wf T) U SmtType.None) SmtType.None)
+  (native_ite (__smtx_type_wf T) U SmtType.None)
 
 def __smtx_msm_get_default : SmtMap -> SmtValue
   | (SmtMap.cons j e m) => (__smtx_msm_get_default m)
@@ -760,9 +758,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
   | (SmtValue.Char c) => SmtType.Char
   | (SmtValue.UValue i e) => (SmtType.USort i)
-  | (SmtValue.DtCons s d i) => 
-    let _v0 := (SmtType.Datatype s d)
-    (__smtx_typeof_dt_cons_value_rec _v0 (__smtx_dt_substitute s d d) i)
+  | (SmtValue.DtCons s d i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
   | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
   | v => SmtType.None
 
