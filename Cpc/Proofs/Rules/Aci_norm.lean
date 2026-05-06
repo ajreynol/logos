@@ -461,9 +461,38 @@ private theorem smt_value_rel_get_aci_normal_form_payload
       case UOp op =>
         cases op <;> simp [__get_aci_normal_form, aciNormPayload] <;>
           try exact RuleProofs.smt_value_rel_refl _
-        all_goals
-          -- These are the supported A/AI/ACI operators that the normalizer rewrites.
+        case or =>
+          -- AI normalizer case.
           sorry
+        case and =>
+          -- AI normalizer case.
+          sorry
+        case concat =>
+          -- A normalizer case.
+          sorry
+        case bvand =>
+          -- AI normalizer case.
+          sorry
+        case bvor =>
+          -- AI normalizer case.
+          sorry
+        case bvxor =>
+          -- A normalizer case.
+          sorry
+        case str_concat =>
+          -- A normalizer case.
+          sorry
+        case re_concat =>
+          -- A normalizer case.
+          sorry
+        case re_inter =>
+          -- AI normalizer case.
+          sorry
+        case re_union =>
+          -- AI normalizer case.
+          sorry
+        case _at__at_aci_sorted =>
+          exact False.elim (aci_sorted_marker_not_has_smt_translation y x hTrans)
 
 private theorem smt_value_rel_of_aci_norm_guard_true
     (M : SmtModel) (hM : model_total_typed M) (a b : Term) :
