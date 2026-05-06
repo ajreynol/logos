@@ -35,6 +35,648 @@ private theorem seq_ne_none (T : SmtType) : SmtType.Seq T ≠ SmtType.None := by
   intro h
   cases h
 
+private theorem type_inhabited_of_type_wf (T : SmtType)
+    (h : __smtx_type_wf T = true) :
+    type_inhabited T := by
+  have hPair :
+      native_inhabited_type T = true ∧
+        __smtx_type_wf_rec T native_reflist_nil = true := by
+    simpa [__smtx_type_wf, native_and] using h
+  exact (smtx_inhabited_type_eq_true_iff T).1 hPair.1
+
+private theorem seq_component_inhabited_wf_of_seq_wf (T : SmtType)
+    (h : __smtx_type_wf (SmtType.Seq T) = true) :
+    type_inhabited T ∧ __smtx_type_wf T = true := by
+  have hTWf : __smtx_type_wf T = true :=
+    seq_type_wf_component_of_wf h
+  exact ⟨type_inhabited_of_type_wf T hTWf, hTWf⟩
+
+private theorem term_has_non_none_of_type_eq
+    {t : SmtTerm}
+    {T : SmtType}
+    (h : __smtx_typeof t = T)
+    (hT : T ≠ SmtType.None) :
+    term_has_non_none_type t := by
+  unfold term_has_non_none_type
+  rw [h]
+  exact hT
+
+private def type_result_seq_components_wf : SmtType -> Prop
+  | SmtType.Seq A => __smtx_type_wf A = true
+  | SmtType.Map _ B => type_result_seq_components_wf B
+  | SmtType.FunType _ B => type_result_seq_components_wf B
+  | SmtType.DtcAppType _ B => type_result_seq_components_wf B
+  | _ => True
+
+@[simp] private theorem type_result_seq_components_wf_if
+    {c : Prop} [Decidable c] {A B : SmtType}
+    (hA : type_result_seq_components_wf A)
+    (hB : type_result_seq_components_wf B) :
+    type_result_seq_components_wf (if c then A else B) := by
+  by_cases hc : c <;> simp [hc, hA, hB]
+
+@[simp] private theorem type_result_seq_components_wf_native_ite
+    (c : native_Bool) {A B : SmtType}
+    (hA : type_result_seq_components_wf A)
+    (hB : type_result_seq_components_wf B) :
+    type_result_seq_components_wf (native_ite c A B) := by
+  cases c <;> simp [native_ite, hA, hB]
+
+private theorem type_result_seq_components_wf_typeof_eq
+    (T U : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_eq T U) := by
+  cases T <;> cases U <;>
+    simp [__smtx_typeof_eq, __smtx_typeof_guard,
+      type_result_seq_components_wf, native_ite, native_Teq]
+
+private theorem type_result_seq_components_wf_arith_overload_op_1
+    (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_arith_overload_op_1 T) := by
+  cases T <;> simp [__smtx_typeof_arith_overload_op_1,
+    type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_arith_overload_op_2
+    (T U : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_arith_overload_op_2 T U) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_arith_overload_op_2,
+    type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_arith_overload_op_2_ret
+    (T U R : SmtType)
+    (hR : type_result_seq_components_wf R) :
+    type_result_seq_components_wf
+      (__smtx_typeof_arith_overload_op_2_ret T U R) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_arith_overload_op_2_ret,
+    type_result_seq_components_wf, hR]
+
+private theorem type_result_seq_components_wf_bv_op_1
+    (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_bv_op_1 T) := by
+  cases T <;> simp [__smtx_typeof_bv_op_1, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_bv_op_1_ret
+    (T R : SmtType)
+    (hR : type_result_seq_components_wf R) :
+    type_result_seq_components_wf (__smtx_typeof_bv_op_1_ret T R) := by
+  cases T <;> simp [__smtx_typeof_bv_op_1_ret, type_result_seq_components_wf,
+    hR]
+
+private theorem type_result_seq_components_wf_bv_op_2
+    (T U : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_bv_op_2 T U) := by
+  cases T <;> cases U <;>
+    simp [__smtx_typeof_bv_op_2, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_bv_op_2_ret
+    (T U R : SmtType)
+    (hR : type_result_seq_components_wf R) :
+    type_result_seq_components_wf (__smtx_typeof_bv_op_2_ret T U R) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_bv_op_2_ret,
+    type_result_seq_components_wf, hR]
+
+private theorem type_result_seq_components_wf_seq_op_1_ret
+    (T R : SmtType)
+    (hR : type_result_seq_components_wf R) :
+    type_result_seq_components_wf (__smtx_typeof_seq_op_1_ret T R) := by
+  cases T <;> simp [__smtx_typeof_seq_op_1_ret,
+    type_result_seq_components_wf, hR]
+
+private theorem type_result_seq_components_wf_seq_op_2_ret
+    (T U R : SmtType)
+    (hR : type_result_seq_components_wf R) :
+    type_result_seq_components_wf (__smtx_typeof_seq_op_2_ret T U R) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_seq_op_2_ret,
+    type_result_seq_components_wf, hR, native_ite, native_Teq]
+
+private theorem type_result_seq_components_wf_str_indexof
+    (T U V : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_str_indexof T U V) := by
+  cases T <;> cases U <;> cases V <;> simp [__smtx_typeof_str_indexof,
+    type_result_seq_components_wf, native_ite, native_Teq]
+
+private theorem type_result_seq_components_wf_str_indexof_re
+    (T U V : SmtType) :
+    type_result_seq_components_wf
+      (if T = SmtType.Seq SmtType.Char then
+        if U = SmtType.RegLan then
+          if V = SmtType.Int then SmtType.Int else SmtType.None
+        else SmtType.None
+      else SmtType.None) := by
+  by_cases hT : T = SmtType.Seq SmtType.Char <;>
+    by_cases hU : U = SmtType.RegLan <;>
+    by_cases hV : V = SmtType.Int <;>
+    simp [hT, hU, hV, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_re_exp
+    (n : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_re_exp n T) := by
+  cases n <;> try simp [__smtx_typeof_re_exp, type_result_seq_components_wf]
+  case Numeral k =>
+    cases T <;> simp [__smtx_typeof_re_exp, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_re_loop
+    (m n : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_re_loop m n T) := by
+  cases m <;> try simp [__smtx_typeof_re_loop, type_result_seq_components_wf]
+  case Numeral i =>
+    cases n <;> try simp [__smtx_typeof_re_loop, type_result_seq_components_wf]
+    case Numeral j =>
+      cases T <;> simp [__smtx_typeof_re_loop, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_set_member
+    (T U : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_set_member T U) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_set_member,
+    type_result_seq_components_wf, native_ite, native_Teq]
+
+private theorem type_result_seq_components_wf_sets_op_2_ret
+    (T U R : SmtType)
+    (hR : type_result_seq_components_wf R) :
+    type_result_seq_components_wf (__smtx_typeof_sets_op_2_ret T U R) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_sets_op_2_ret,
+    type_result_seq_components_wf, hR, native_ite, native_Teq]
+
+private theorem type_result_seq_components_wf_int_to_bv
+    (n : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_int_to_bv n T) := by
+  cases n <;> try simp [__smtx_typeof_int_to_bv, type_result_seq_components_wf]
+  case Numeral k =>
+    cases T <;> simp [__smtx_typeof_int_to_bv, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_concat
+    (T U : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_concat T U) := by
+  cases T <;> cases U <;> simp [__smtx_typeof_concat,
+    type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_extract
+    (i j : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_extract i j T) := by
+  cases i <;> try simp [__smtx_typeof_extract, type_result_seq_components_wf]
+  case Numeral hi =>
+    cases j <;> try simp [__smtx_typeof_extract, type_result_seq_components_wf]
+    case Numeral lo =>
+      cases T <;> try simp [__smtx_typeof_extract, type_result_seq_components_wf]
+      case BitVec w =>
+        cases h0 : native_zleq 0 lo <;>
+          simp [__smtx_typeof_extract, type_result_seq_components_wf,
+            native_ite, h0]
+
+private theorem type_result_seq_components_wf_repeat
+    (n : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_repeat n T) := by
+  cases n <;> try simp [__smtx_typeof_repeat, type_result_seq_components_wf]
+  case Numeral k =>
+    cases T <;> simp [__smtx_typeof_repeat, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_zero_extend
+    (n : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_zero_extend n T) := by
+  cases n <;> try simp [__smtx_typeof_zero_extend, type_result_seq_components_wf]
+  case Numeral k =>
+    cases T <;> simp [__smtx_typeof_zero_extend, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_sign_extend
+    (n : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_sign_extend n T) := by
+  cases n <;> try simp [__smtx_typeof_sign_extend, type_result_seq_components_wf]
+  case Numeral k =>
+    cases T <;> simp [__smtx_typeof_sign_extend, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_rotate_left
+    (n : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_rotate_left n T) := by
+  cases n <;> try simp [__smtx_typeof_rotate_left, type_result_seq_components_wf]
+  case Numeral k =>
+    cases T <;> simp [__smtx_typeof_rotate_left, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_rotate_right
+    (n : SmtTerm) (T : SmtType) :
+    type_result_seq_components_wf (__smtx_typeof_rotate_right n T) := by
+  cases n <;> try simp [__smtx_typeof_rotate_right, type_result_seq_components_wf]
+  case Numeral k =>
+    cases T <;> simp [__smtx_typeof_rotate_right, type_result_seq_components_wf]
+
+private theorem type_result_seq_components_wf_of_type_wf
+    {T : SmtType} (h : __smtx_type_wf T = true) :
+    type_result_seq_components_wf T := by
+  let rec go (T : SmtType) (h : __smtx_type_wf T = true) :
+      type_result_seq_components_wf T := by
+    cases T
+    case Seq A =>
+      have hA : __smtx_type_wf A = true := seq_type_wf_component_of_wf h
+      exact hA
+    case Set A =>
+      simp [type_result_seq_components_wf]
+    case Map A B =>
+      exact go B (map_type_wf_components_of_wf h).2
+    case FunType A B =>
+      exact go B (fun_type_wf_components_of_wf h).2
+    case DtcAppType A B =>
+      simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
+    all_goals
+      simp [type_result_seq_components_wf]
+  exact go T h
+
+private theorem type_result_seq_components_wf_dt_cons_rec
+    (T : SmtType) (hT : type_result_seq_components_wf T) :
+    ∀ (d : SmtDatatype) (i : native_Nat),
+      type_result_seq_components_wf (__smtx_typeof_dt_cons_rec T d i)
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero => by
+      simpa [__smtx_typeof_dt_cons_rec] using hT
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero => by
+      simpa [__smtx_typeof_dt_cons_rec, type_result_seq_components_wf] using
+        type_result_seq_components_wf_dt_cons_rec T hT
+          (SmtDatatype.sum c d) native_nat_zero
+  | SmtDatatype.sum c d, native_nat_succ i => by
+      simpa [__smtx_typeof_dt_cons_rec] using
+        type_result_seq_components_wf_dt_cons_rec T hT d i
+  | SmtDatatype.null, i => by
+      cases i <;> simp [__smtx_typeof_dt_cons_rec, type_result_seq_components_wf]
+
+private theorem smt_term_result_seq_components_wf_of_non_none
+    (x : SmtTerm) (hxNN : term_has_non_none_type x) :
+    type_result_seq_components_wf (__smtx_typeof x) := by
+  let rec go (x : SmtTerm) (hxNN : term_has_non_none_type x) :
+      type_result_seq_components_wf (__smtx_typeof x) := by
+    cases x
+    case String s =>
+      simp [__smtx_typeof, type_result_seq_components_wf, __smtx_type_wf,
+        __smtx_type_wf_rec, native_and]
+    case Var s T =>
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        unfold term_has_non_none_type at hxNN
+        simpa [__smtx_typeof] using hxNN
+      have hWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+      rw [__smtx_typeof.eq_141,
+        smtx_typeof_guard_wf_of_non_none T T hGuardNN]
+      exact type_result_seq_components_wf_of_type_wf hWf
+    case UConst s T =>
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        unfold term_has_non_none_type at hxNN
+        simpa [__smtx_typeof] using hxNN
+      have hWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+      rw [__smtx_typeof.eq_142,
+        smtx_typeof_guard_wf_of_non_none T T hGuardNN]
+      exact type_result_seq_components_wf_of_type_wf hWf
+    case seq_empty T =>
+      have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠
+          SmtType.None := by
+        unfold term_has_non_none_type at hxNN
+        simpa [__smtx_typeof] using hxNN
+      have hWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Seq T) hGuardNN
+      rw [__smtx_typeof.eq_77,
+        smtx_typeof_guard_wf_of_non_none T (SmtType.Seq T) hGuardNN]
+      exact hWf
+    case set_empty T =>
+      have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Set T) ≠
+          SmtType.None := by
+        unfold term_has_non_none_type at hxNN
+        simpa [__smtx_typeof] using hxNN
+      have hWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Set T) hGuardNN
+      rw [__smtx_typeof.eq_120,
+        smtx_typeof_guard_wf_of_non_none T (SmtType.Set T) hGuardNN]
+      simpa [type_result_seq_components_wf] using
+        type_result_seq_components_wf_of_type_wf hWf
+    case seq_unit t =>
+      have hGuardNN :
+          __smtx_typeof_guard_wf (__smtx_typeof t)
+              (SmtType.Seq (__smtx_typeof t)) ≠ SmtType.None := by
+        unfold term_has_non_none_type at hxNN
+        simpa [__smtx_typeof] using hxNN
+      have hWf : __smtx_type_wf (__smtx_typeof t) = true :=
+        smtx_typeof_guard_wf_wf_of_non_none (__smtx_typeof t)
+          (SmtType.Seq (__smtx_typeof t)) hGuardNN
+      rw [__smtx_typeof.eq_118,
+        smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+          (SmtType.Seq (__smtx_typeof t)) hGuardNN]
+      exact hWf
+    case set_singleton t =>
+      have hGuardNN :
+          __smtx_typeof_guard_wf (__smtx_typeof t)
+              (SmtType.Set (__smtx_typeof t)) ≠ SmtType.None := by
+        unfold term_has_non_none_type at hxNN
+        simpa [__smtx_typeof] using hxNN
+      have hWf : __smtx_type_wf (__smtx_typeof t) = true :=
+        smtx_typeof_guard_wf_wf_of_non_none (__smtx_typeof t)
+          (SmtType.Set (__smtx_typeof t)) hGuardNN
+      rw [__smtx_typeof.eq_121,
+        smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+          (SmtType.Set (__smtx_typeof t)) hGuardNN]
+      simpa [type_result_seq_components_wf] using
+        type_result_seq_components_wf_of_type_wf hWf
+    case str_concat x y =>
+      rcases seq_binop_args_of_non_none (op := SmtTerm.str_concat)
+          (typeof_str_concat_eq x y) hxNN with ⟨T, hxT, hyT⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxT (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_str_concat_eq x y, hxT, hyT]
+      simpa [__smtx_typeof_seq_op_2, native_ite, native_Teq, hxT,
+        type_result_seq_components_wf] using hxGood
+    case str_rev t =>
+      rcases seq_arg_of_non_none (op := SmtTerm.str_rev)
+          (typeof_str_rev_eq t) hxNN with ⟨T, htT⟩
+      have htNN : term_has_non_none_type t :=
+        term_has_non_none_of_type_eq htT (by simp)
+      have htGood := go t htNN
+      rw [typeof_str_rev_eq t, htT]
+      simpa [__smtx_typeof_seq_op_1, htT,
+        type_result_seq_components_wf] using htGood
+    case str_substr x y z =>
+      rcases str_substr_args_of_non_none hxNN with ⟨T, hxT, hy, hz⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxT (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_str_substr_eq x y z]
+      simp [__smtx_typeof_str_substr, hxT, hy, hz]
+      simpa [hxT, type_result_seq_components_wf] using hxGood
+    case str_replace x y z =>
+      rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace)
+          (typeof_str_replace_eq x y z) hxNN with ⟨T, hxT, hyT, hzT⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxT (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_str_replace_eq x y z, hxT, hyT, hzT]
+      simpa [__smtx_typeof_seq_op_3, native_ite, native_Teq, hxT,
+        type_result_seq_components_wf] using hxGood
+    case str_replace_all x y z =>
+      rcases seq_triop_args_of_non_none (op := SmtTerm.str_replace_all)
+          (typeof_str_replace_all_eq x y z) hxNN with ⟨T, hxT, hyT, hzT⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxT (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_str_replace_all_eq x y z, hxT, hyT, hzT]
+      simpa [__smtx_typeof_seq_op_3, native_ite, native_Teq, hxT,
+        type_result_seq_components_wf] using hxGood
+    case str_at x y =>
+      rcases str_at_args_of_non_none hxNN with ⟨T, hxT, hy⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxT (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_str_at_eq x y]
+      simp [__smtx_typeof_str_at, hxT, hy]
+      simpa [hxT, type_result_seq_components_wf] using hxGood
+    case str_update x y z =>
+      rcases str_update_args_of_non_none hxNN with ⟨T, hxT, hy, hzT⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxT (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_str_update_eq x y z]
+      simpa [__smtx_typeof_str_update, native_ite, native_Teq, hxT, hy,
+        hzT, type_result_seq_components_wf] using hxGood
+    case str_to_lower t =>
+      have ht : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+        seq_char_arg_of_non_none (op := SmtTerm.str_to_lower)
+          (typeof_str_to_lower_eq t) hxNN
+      rw [typeof_str_to_lower_eq, ht]
+      simp [type_result_seq_components_wf, __smtx_type_wf,
+        __smtx_type_wf_rec, native_and, native_ite, native_Teq]
+    case str_to_upper t =>
+      have ht : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+        seq_char_arg_of_non_none (op := SmtTerm.str_to_upper)
+          (typeof_str_to_upper_eq t) hxNN
+      rw [typeof_str_to_upper_eq, ht]
+      simp [type_result_seq_components_wf, __smtx_type_wf,
+        __smtx_type_wf_rec, native_and, native_ite, native_Teq]
+    case str_from_code t =>
+      rw [typeof_str_from_code_eq]
+      cases h : __smtx_typeof t <;>
+        simp [type_result_seq_components_wf, __smtx_type_wf,
+          __smtx_type_wf_rec, native_and, native_ite, native_Teq, h]
+    case str_from_int t =>
+      rw [typeof_str_from_int_eq]
+      cases h : __smtx_typeof t <;>
+        simp [type_result_seq_components_wf, __smtx_type_wf,
+          __smtx_type_wf_rec, native_and, native_ite, native_Teq, h]
+    case str_replace_re x y z =>
+      rw [typeof_str_replace_re_eq x y z]
+      rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re)
+          (typeof_str_replace_re_eq x y z) hxNN with ⟨hx, hy, hz⟩
+      simp [hx, hy, hz, type_result_seq_components_wf, __smtx_type_wf,
+        __smtx_type_wf_rec, native_and, native_ite, native_Teq]
+    case str_replace_re_all x y z =>
+      rw [typeof_str_replace_re_all_eq x y z]
+      rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re_all)
+          (typeof_str_replace_re_all_eq x y z) hxNN with ⟨hx, hy, hz⟩
+      simp [hx, hy, hz, type_result_seq_components_wf, __smtx_type_wf,
+        __smtx_type_wf_rec, native_and, native_ite, native_Teq]
+    case seq_nth x y =>
+      rcases seq_nth_args_of_non_none hxNN with ⟨T, hxT, hy⟩
+      have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+        unfold term_has_non_none_type at hxNN
+        rw [typeof_seq_nth_eq x y, hxT, hy] at hxNN
+        simpa [__smtx_typeof_seq_nth] using hxNN
+      have hWf : __smtx_type_wf T = true :=
+        smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+      rw [typeof_seq_nth_eq x y, hxT, hy]
+      simpa [__smtx_typeof_seq_nth,
+        smtx_typeof_guard_wf_of_non_none T T hGuardNN] using
+        type_result_seq_components_wf_of_type_wf hWf
+    case select x y =>
+      rcases select_args_of_non_none hxNN with ⟨A, B, hxMap, hyA⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxMap (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_select_eq x y]
+      simpa [__smtx_typeof_select, native_ite, native_Teq, hxMap, hyA,
+        type_result_seq_components_wf] using hxGood
+    case store x y z =>
+      rcases store_args_of_non_none hxNN with ⟨A, B, hxMap, hyA, hzB⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxMap (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_store_eq x y z]
+      simpa [__smtx_typeof_store, native_ite, native_Teq, hxMap, hyA, hzB,
+        type_result_seq_components_wf] using hxGood
+    case ite c x y =>
+      rcases ite_args_of_non_none hxNN with ⟨T, hc, hxT, hyT, hTNN⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxT hTNN
+      have hxGood := go x hxNN'
+      rw [typeof_ite_eq]
+      simp [__smtx_typeof_ite, native_ite, native_Teq, hc, hxT, hyT]
+      simpa [hxT] using hxGood
+    case choice_nth s T body n =>
+      induction n generalizing s T body with
+      | zero =>
+          have hGuardTy :
+              __smtx_typeof (SmtTerm.choice_nth s T body 0) =
+                __smtx_typeof_guard_wf T T :=
+            choice_term_guard_type_of_non_none hxNN
+          have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+            intro hNone
+            unfold term_has_non_none_type at hxNN
+            rw [hGuardTy, hNone] at hxNN
+            exact hxNN rfl
+          have hWf : __smtx_type_wf T = true :=
+            smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
+          rw [choice_term_typeof_of_non_none hxNN]
+          exact type_result_seq_components_wf_of_type_wf hWf
+      | succ n ih =>
+          cases body with
+          | «exists» s' U body' =>
+              have hTyEq :
+                  __smtx_typeof
+                      (SmtTerm.choice_nth s T
+                        (SmtTerm.exists s' U body') (Nat.succ n)) =
+                    __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
+                rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+                simp [__smtx_typeof_choice_nth]
+              have hNN' : term_has_non_none_type
+                  (SmtTerm.choice_nth s' U body' n) := by
+                unfold term_has_non_none_type at hxNN ⊢
+                rw [← hTyEq]
+                exact hxNN
+              simpa [hTyEq] using ih s' U body' hNN'
+          | _ =>
+              exfalso
+              unfold term_has_non_none_type at hxNN
+              rw [__smtx_typeof.eq_136] at hxNN
+              simp [__smtx_typeof_choice_nth] at hxNN
+    case DtCons s d i =>
+      let raw :=
+        __smtx_typeof_dt_cons_rec (SmtType.Datatype s d)
+          (__smtx_dt_substitute s d d) i
+      have hGuardNN : __smtx_typeof_guard_wf (SmtType.Datatype s d) raw ≠
+          SmtType.None := by
+        unfold term_has_non_none_type at hxNN
+        simpa [Smtm.typeof_dt_cons_eq, raw] using hxNN
+      rw [Smtm.typeof_dt_cons_eq,
+        smtx_typeof_guard_wf_of_non_none (SmtType.Datatype s d) raw
+          hGuardNN]
+      exact type_result_seq_components_wf_dt_cons_rec (SmtType.Datatype s d)
+        (by simp [type_result_seq_components_wf])
+        (__smtx_dt_substitute s d d) i
+    case Apply f x =>
+      by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
+      · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
+        let R := __smtx_ret_typeof_sel s d i j
+        let inner :=
+          __smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) R)
+            (__smtx_typeof x)
+        have hGuardNN : __smtx_typeof_guard_wf R inner ≠ SmtType.None := by
+          unfold term_has_non_none_type at hxNN
+          rw [typeof_dt_sel_apply_eq] at hxNN
+          simpa [R, inner] using hxNN
+        have hWf : __smtx_type_wf R = true :=
+          smtx_typeof_guard_wf_wf_of_non_none R inner hGuardNN
+        rw [dt_sel_term_typeof_of_non_none hxNN]
+        exact type_result_seq_components_wf_of_type_wf hWf
+      · by_cases hTesterWitness : ∃ s d i, f = SmtTerm.DtTester s d i
+        · rcases hTesterWitness with ⟨s, d, i, rfl⟩
+          rw [dt_tester_term_typeof_of_non_none hxNN]
+          simp [type_result_seq_components_wf]
+        · have hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j := by
+            intro s d i j hEq
+            exact hSelWitness ⟨s, d, i, j, hEq⟩
+          have hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i := by
+            intro s d i hEq
+            exact hTesterWitness ⟨s, d, i, hEq⟩
+          have hTy : generic_apply_type f x :=
+            generic_apply_type_of_non_datatype_head hSel hTester
+          have hTyEq :
+              __smtx_typeof (SmtTerm.Apply f x) =
+                __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) := hTy
+          have hApplyNN :
+              __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠
+                SmtType.None := by
+            intro hNone
+            unfold term_has_non_none_type at hxNN
+            rw [hTyEq, hNone] at hxNN
+            exact hxNN rfl
+          rcases typeof_apply_non_none_cases hApplyNN with
+            ⟨A, B, hHead, hX, _hA, _hB⟩
+          have hfNN : term_has_non_none_type f := by
+            unfold term_has_non_none_type
+            rcases hHead with hF | hF <;> rw [hF] <;> simp
+          have hfGood := go f hfNN
+          have hApplyTy : __smtx_typeof_apply (__smtx_typeof f)
+                (__smtx_typeof x) = B := by
+            rcases hHead with hF | hF
+            · rw [hF, hX]
+              simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+                native_Teq, _hA]
+            · rw [hF, hX]
+              simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+                native_Teq, _hA]
+          rw [hTyEq, hApplyTy]
+          rcases hHead with hF | hF
+          · simpa [hF, type_result_seq_components_wf] using hfGood
+          · simpa [hF, type_result_seq_components_wf] using hfGood
+    case set_union x y =>
+      rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
+          (typeof_set_union_eq x y) hxNN with ⟨A, hxSet, hySet⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxSet (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_set_union_eq x y, hxSet, hySet]
+      simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+      simpa [hxSet, type_result_seq_components_wf] using hxGood
+    case set_inter x y =>
+      rcases set_binop_args_of_non_none (op := SmtTerm.set_inter)
+          (typeof_set_inter_eq x y) hxNN with ⟨A, hxSet, hySet⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxSet (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_set_inter_eq x y, hxSet, hySet]
+      simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+      simpa [hxSet, type_result_seq_components_wf] using hxGood
+    case set_minus x y =>
+      rcases set_binop_args_of_non_none (op := SmtTerm.set_minus)
+          (typeof_set_minus_eq x y) hxNN with ⟨A, hxSet, hySet⟩
+      have hxNN' : term_has_non_none_type x :=
+        term_has_non_none_of_type_eq hxSet (by simp)
+      have hxGood := go x hxNN'
+      rw [typeof_set_minus_eq x y, hxSet, hySet]
+      simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
+      simpa [hxSet, type_result_seq_components_wf] using hxGood
+    all_goals
+      repeat split
+      all_goals
+      simp [type_result_seq_components_wf, __smtx_typeof, native_ite,
+        native_Teq, type_result_seq_components_wf_typeof_eq,
+        type_result_seq_components_wf_arith_overload_op_1,
+        type_result_seq_components_wf_arith_overload_op_2,
+        type_result_seq_components_wf_arith_overload_op_2_ret,
+        type_result_seq_components_wf_bv_op_1,
+        type_result_seq_components_wf_bv_op_1_ret,
+        type_result_seq_components_wf_bv_op_2,
+        type_result_seq_components_wf_bv_op_2_ret,
+        type_result_seq_components_wf_seq_op_1_ret,
+        type_result_seq_components_wf_seq_op_2_ret,
+        type_result_seq_components_wf_str_indexof,
+        type_result_seq_components_wf_str_indexof_re,
+        type_result_seq_components_wf_re_exp,
+        type_result_seq_components_wf_re_loop,
+        type_result_seq_components_wf_set_member,
+        type_result_seq_components_wf_sets_op_2_ret,
+        type_result_seq_components_wf_int_to_bv,
+        type_result_seq_components_wf_concat,
+        type_result_seq_components_wf_extract,
+        type_result_seq_components_wf_repeat,
+        type_result_seq_components_wf_zero_extend,
+        type_result_seq_components_wf_sign_extend,
+        type_result_seq_components_wf_rotate_left,
+        type_result_seq_components_wf_rotate_right]
+  exact go x hxNN
+
+private theorem smt_seq_component_wf_of_non_none_type
+    (x : SmtTerm) (T : SmtType)
+    (hxTy : __smtx_typeof x = SmtType.Seq T) :
+    type_inhabited T ∧ __smtx_type_wf T = true := by
+  have hxNN : term_has_non_none_type x := by
+    unfold term_has_non_none_type
+    rw [hxTy]
+    exact seq_ne_none T
+  have hGood := smt_term_result_seq_components_wf_of_non_none x hxNN
+  rw [hxTy] at hGood
+  exact ⟨type_inhabited_of_type_wf T hGood, hGood⟩
+
 private theorem smtx_model_eval_str_concat_term_eq (M : SmtModel) (x y : Term) :
     __smtx_model_eval M (__eo_to_smt (mkConcat x y)) =
       __smtx_model_eval_str_concat (__smtx_model_eval M (__eo_to_smt x))
@@ -504,6 +1146,109 @@ private theorem seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
         (smtx_inhabited_type_eq_true_iff T).2 hTInh
       simp [__smtx_typeof, __smtx_typeof_guard_wf, native_ite, hInh,
         hTWf]
+
+private theorem eo_disamb_type_seq_empty_stuck_of_not_seq
+    (A : Term)
+    (hNotSeq : ¬ ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T) :
+    __eo_disamb_type_seq_empty A = Term.Stuck := by
+  cases A with
+  | Apply f a =>
+      cases f with
+      | UOp op =>
+          by_cases hop : op = UserOp.Seq
+          · subst op
+            exact False.elim (hNotSeq ⟨a, rfl⟩)
+          · simp [__eo_disamb_type_seq_empty, hop]
+      | _ =>
+          simp [__eo_disamb_type_seq_empty]
+  | _ =>
+      simp [__eo_disamb_type_seq_empty]
+
+private theorem seq_empty_default_of_not_seq_ne_stuck
+    (A : Term)
+    (hA : A ≠ Term.Stuck)
+    (hNotSeq : ¬ ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T) :
+    __seq_empty A = Term.seq_empty A := by
+  cases A with
+  | Stuck =>
+      exact False.elim (hA rfl)
+  | Apply f a =>
+      cases f with
+      | UOp op =>
+          by_cases hop : op = UserOp.Seq
+          · subst op
+            exact False.elim (hNotSeq ⟨a, rfl⟩)
+          · simp [__seq_empty, hop]
+      | _ =>
+          simp [__seq_empty]
+  | _ =>
+      simp [__seq_empty]
+
+private theorem eo_typeof_seq_empty_stuck_of_not_seq_ne_stuck
+    (A : Term)
+    (hA : A ≠ Term.Stuck)
+    (hNotSeq : ¬ ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T) :
+    __eo_typeof (Term.seq_empty A) = Term.Stuck := by
+  change __eo_typeof_seq_empty (__eo_typeof A) A = Term.Stuck
+  by_cases hType : __eo_typeof A = Term.Type
+  · rw [hType]
+    simpa [__eo_typeof_seq_empty, hA] using
+      eo_disamb_type_seq_empty_stuck_of_not_seq A hNotSeq
+  · cases hTy : __eo_typeof A <;>
+      simp [__eo_typeof_seq_empty, hTy] at hType ⊢
+
+private theorem seq_empty_typeof_seq_type_of_elim_ne_stuck
+    (A : Term)
+    (hElim : __str_nary_elim (__seq_empty A) ≠ Term.Stuck) :
+    ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T := by
+  by_cases hSeq : ∃ T, A = Term.Apply (Term.UOp UserOp.Seq) T
+  · exact hSeq
+  · exfalso
+    by_cases hStuck : A = Term.Stuck
+    · subst A
+      simp [__seq_empty, __str_nary_elim] at hElim
+    · have hDefault : __seq_empty A = Term.seq_empty A :=
+        seq_empty_default_of_not_seq_ne_stuck A hStuck hSeq
+      have hTypeStuck :
+          __eo_typeof (Term.seq_empty A) = Term.Stuck :=
+        eo_typeof_seq_empty_stuck_of_not_seq_ne_stuck A hStuck hSeq
+      have hElimStuck :
+          __str_nary_elim (__seq_empty A) = Term.Stuck := by
+        rw [hDefault]
+        simp [__str_nary_elim, hTypeStuck, __seq_empty, __eo_requires,
+          native_teq, SmtEval.native_ite]
+      exact hElim hElimStuck
+
+private theorem seq_empty_typeof_has_smt_translation_of_elim_ne_stuck
+    (x : Term)
+    (hxNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None)
+    (hElim :
+      __str_nary_elim (__seq_empty (__eo_typeof x)) ≠ Term.Stuck) :
+    __smtx_typeof (__eo_to_smt (__seq_empty (__eo_typeof x))) ≠
+      SmtType.None := by
+  have hTypeMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation x hxNN
+  generalize hA : __eo_typeof x = A at hElim hTypeMatch
+  rcases seq_empty_typeof_seq_type_of_elim_ne_stuck A hElim with ⟨a, rfl⟩
+  have hComponentNN : __eo_to_smt_type a ≠ SmtType.None := by
+    intro hNone
+    apply hxNN
+    rw [hTypeMatch]
+    simp [__eo_to_smt_type, __smtx_typeof_guard, hNone, native_Teq,
+      native_ite]
+  have hxTy :
+      __smtx_typeof (__eo_to_smt x) =
+        SmtType.Seq (__eo_to_smt_type a) := by
+    rw [hTypeMatch]
+    exact TranslationProofs.smtx_typeof_guard_of_non_none
+      (__eo_to_smt_type a) (SmtType.Seq (__eo_to_smt_type a))
+      hComponentNN
+  rcases smt_seq_component_wf_of_non_none_type
+      (__eo_to_smt x) (__eo_to_smt_type a) hxTy with
+    ⟨hInh, hWf⟩
+  simpa [hA] using
+    seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
+      x (__eo_to_smt_type a) hxTy hInh hWf
 
 private theorem eq_of_eo_eq_true_local (x y : Term)
     (h : __eo_eq x y = Term.Boolean true) :
@@ -2588,6 +3333,126 @@ private theorem str_strip_prefix_concat_of_eo_eq_true
     (__eo_l_1___str_strip_prefix (mkConcat t t2) (mkConcat u s2)) =
       __str_strip_prefix t2 s2
   rw [h, eo_ite_true]
+
+private theorem term_ne_stuck_of_eo_is_list_nil_true (f nil : Term)
+    (hNil : __eo_is_list_nil f nil = Term.Boolean true) :
+    nil ≠ Term.Stuck := by
+  intro h
+  subst nil
+  cases f <;> simp [__eo_is_list_nil] at hNil
+
+private theorem seq_empty_not_str_concat (A : Term)
+    (hEmpty : __seq_empty A ≠ Term.Stuck) :
+    ¬ ∃ head tail : Term, __seq_empty A = mkConcat head tail := by
+  intro hConcat
+  rcases hConcat with ⟨head, tail, hEq⟩
+  cases A with
+  | Stuck =>
+      simp [__seq_empty] at hEmpty
+  | Apply f a =>
+      cases f with
+      | UOp op =>
+          by_cases hop : op = UserOp.Seq
+          · subst op
+            cases a with
+            | UOp op' =>
+                by_cases hchar : op' = UserOp.Char
+                · subst op'
+                  simp [__seq_empty, mkConcat] at hEq
+                · simp [__seq_empty, mkConcat, hchar] at hEq
+            | _ =>
+                simp [__seq_empty, mkConcat] at hEq
+          · simp [__seq_empty, mkConcat, hop] at hEq
+      | _ =>
+          simp [__seq_empty, mkConcat] at hEq
+  | _ =>
+      simp [__seq_empty, mkConcat] at hEq
+
+private theorem str_nary_elim_seq_empty_typeof_ne_stuck_of_concat_eq_true_generated
+    (s : Term)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean true) (Proof.pf (mkEq s s)) ≠
+        Term.Stuck)
+    (hsNonStuck : s ≠ Term.Stuck)
+    (hIntroSConcat :
+      __str_nary_intro s = mkConcat s (__seq_empty (__eo_typeof s)) ∧
+        __eo_is_list_nil (Term.UOp UserOp.str_concat)
+          (__seq_empty (__eo_typeof s)) = Term.Boolean true) :
+    __str_nary_elim (__seq_empty (__eo_typeof s)) ≠ Term.Stuck := by
+  let empty := __seq_empty (__eo_typeof s)
+  have hIntroEq : __str_nary_intro s = mkConcat s empty := by
+    simpa [empty] using hIntroSConcat.1
+  have hEmptyNil :
+      __eo_is_list_nil (Term.UOp UserOp.str_concat) empty =
+        Term.Boolean true := by
+    simpa [empty] using hIntroSConcat.2
+  have hEmptyNonStuck : empty ≠ Term.Stuck :=
+    term_ne_stuck_of_eo_is_list_nil_true
+      (Term.UOp UserOp.str_concat) empty hEmptyNil
+  have hRevIntroNN :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro s) ≠
+        Term.Stuck :=
+    concatEq_true_rev_intro_left_ne_stuck_of_prog_ne_stuck s s hProg
+  have hRevIntroEq :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro s) =
+        mkConcat s empty := by
+    rw [hIntroEq]
+    exact eo_list_rev_str_concat_cons_nil_eq_of_ne_stuck s empty
+      hEmptyNil (by simpa [hIntroEq] using hRevIntroNN)
+  have hStripEq :
+      __str_strip_prefix (mkConcat s empty) (mkConcat s empty) =
+        mkPair empty empty := by
+    rw [str_strip_prefix_concat_of_eo_eq_true s s empty empty
+      (eo_eq_self_true_of_ne_stuck s hsNonStuck)]
+    exact str_strip_prefix_left_not_str_concat empty empty
+      hEmptyNonStuck hEmptyNonStuck
+      (seq_empty_not_str_concat (__eo_typeof s)
+        (by simpa [empty] using hEmptyNonStuck))
+  have hLhs :
+      __str_nary_elim
+          (__eo_list_rev (Term.UOp UserOp.str_concat) empty) ≠
+        Term.Stuck := by
+    simpa [concatEqLhs_true, concatEqStrip_true, hRevIntroEq, hStripEq,
+      mkPair, pair_first_pair] using
+      concatEqLhs_ne_stuck_of_prog_ne_stuck (Term.Boolean true) s s hProg
+  have hRevEmptyEq :
+      __eo_list_rev (Term.UOp UserOp.str_concat) empty = empty :=
+    eo_list_rev_str_concat_nil_eq_of_nil_true empty hEmptyNil
+  simpa [empty, hRevEmptyEq] using hLhs
+
+private theorem str_nary_elim_seq_empty_typeof_ne_stuck_of_concat_eq_false_generated
+    (s : Term)
+    (hProg :
+      __eo_prog_concat_eq (Term.Boolean false) (Proof.pf (mkEq s s)) ≠
+        Term.Stuck)
+    (hsNonStuck : s ≠ Term.Stuck)
+    (hIntroSConcat :
+      __str_nary_intro s = mkConcat s (__seq_empty (__eo_typeof s)) ∧
+        __eo_is_list_nil (Term.UOp UserOp.str_concat)
+          (__seq_empty (__eo_typeof s)) = Term.Boolean true) :
+    __str_nary_elim (__seq_empty (__eo_typeof s)) ≠ Term.Stuck := by
+  let empty := __seq_empty (__eo_typeof s)
+  have hIntroEq : __str_nary_intro s = mkConcat s empty := by
+    simpa [empty] using hIntroSConcat.1
+  have hEmptyNil :
+      __eo_is_list_nil (Term.UOp UserOp.str_concat) empty =
+        Term.Boolean true := by
+    simpa [empty] using hIntroSConcat.2
+  have hEmptyNonStuck : empty ≠ Term.Stuck :=
+    term_ne_stuck_of_eo_is_list_nil_true
+      (Term.UOp UserOp.str_concat) empty hEmptyNil
+  have hStripEq :
+      __str_strip_prefix (mkConcat s empty) (mkConcat s empty) =
+        mkPair empty empty := by
+    rw [str_strip_prefix_concat_of_eo_eq_true s s empty empty
+      (eo_eq_self_true_of_ne_stuck s hsNonStuck)]
+    exact str_strip_prefix_left_not_str_concat empty empty
+      hEmptyNonStuck hEmptyNonStuck
+      (seq_empty_not_str_concat (__eo_typeof s)
+        (by simpa [empty] using hEmptyNonStuck))
+  simpa [concatEqLhs_false, concatEqStrip_false, hIntroEq, hStripEq, mkPair,
+    pair_first_pair] using
+    concatEqLhs_ne_stuck_of_prog_ne_stuck (Term.Boolean false) s s hProg
 
 private theorem str_strip_prefix_tail_ne_stuck_of_concat_eo_eq_true
     (t u t2 s2 : Term)
@@ -11436,7 +12301,192 @@ private theorem step_concat_eq_core
                                       -- generated seq.empty terms whose SMT
                                       -- translation needs inhabited/wf element
                                       -- type evidence.
-                                      · sorry
+                                      · have hIntroS :
+                                            __str_nary_intro s ≠ Term.Stuck :=
+                                          str_nary_intro_left_ne_stuck_of_prog_ne_stuck
+                                            (Term.Boolean true) s t hProg
+                                        have hIntroT :
+                                            __str_nary_intro t ≠ Term.Stuck :=
+                                          str_nary_intro_right_ne_stuck_of_prog_ne_stuck
+                                            (Term.Boolean true) s t hProg
+                                        by_cases hSConcatAny :
+                                            ∃ sHead sTail : Term,
+                                              s = mkConcat sHead sTail
+                                        · rcases hSConcatAny with
+                                            ⟨sHead, sTail, hS⟩
+                                          subst s
+                                          rcases eq_bool_seq_of_left_concat sHead
+                                              sTail t hPremBool with
+                                            ⟨T, hLeftTy, hRightTy⟩
+                                          rcases
+                                              smt_seq_component_wf_of_non_none_type
+                                                (__eo_to_smt
+                                                  (mkConcat sHead sTail)) T
+                                                hLeftTy with
+                                            ⟨hTInh, hTWf⟩
+                                          have hIntroTNN :
+                                              __smtx_typeof
+                                                  (__eo_to_smt
+                                                    (__str_nary_intro t)) ≠
+                                                SmtType.None :=
+                                            str_nary_intro_has_smt_translation_of_seq_wf
+                                              t T hRightTy hTInh hTWf hIntroT
+                                          exact False.elim
+                                            (hLeftConcatWithRightIntro
+                                              ⟨⟨sHead, sTail, rfl⟩,
+                                                hIntroTNN⟩)
+                                        · by_cases hTConcatAny :
+                                              ∃ tHead tTail : Term,
+                                                t = mkConcat tHead tTail
+                                          · rcases hTConcatAny with
+                                              ⟨tHead, tTail, hT⟩
+                                            subst t
+                                            rcases eq_bool_seq_of_right_concat s
+                                                tHead tTail hPremBool with
+                                              ⟨T, hLeftTy, hRightTy⟩
+                                            rcases
+                                                smt_seq_component_wf_of_non_none_type
+                                                  (__eo_to_smt
+                                                    (mkConcat tHead tTail)) T
+                                                  hRightTy with
+                                              ⟨hTInh, hTWf⟩
+                                            have hIntroSNN :
+                                                __smtx_typeof
+                                                    (__eo_to_smt
+                                                      (__str_nary_intro s)) ≠
+                                                  SmtType.None :=
+                                              str_nary_intro_has_smt_translation_of_seq_wf
+                                                s T hLeftTy hTInh hTWf hIntroS
+                                            exact False.elim
+                                              (hRightConcatWithLeftIntro
+                                                ⟨⟨tHead, tTail, rfl⟩,
+                                                  hIntroSNN⟩)
+                                          · have hsNonStuck :=
+                                              str_nary_intro_arg_ne_stuck_of_ne_stuck
+                                                s hIntroS
+                                            have htNonStuck :=
+                                              str_nary_intro_arg_ne_stuck_of_ne_stuck
+                                                t hIntroT
+                                            rcases eo_eq_cases_of_ne_stuck s t
+                                                hsNonStuck htNonStuck with
+                                              hHead | hHead
+                                            · rcases
+                                                str_nary_intro_not_str_concat_cases_typeof_empty
+                                                  s hSConcatAny hIntroS with
+                                                hIntroSEq | hIntroSConcat
+                                              · rcases
+                                                  str_nary_intro_not_str_concat_cases_typeof_empty
+                                                    t hTConcatAny hIntroT with
+                                                  hIntroTEq | _hIntroTConcat
+                                                · exact False.elim
+                                                    (hBothNotConcatIntroEqSelf
+                                                      ⟨hSConcatAny,
+                                                        hTConcatAny,
+                                                        hIntroSEq,
+                                                        hIntroTEq⟩)
+                                                · rcases
+                                                    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                                      s t hPremBool with
+                                                    ⟨_hSame, hSNN⟩
+                                                  rcases
+                                                    smt_typeof_seq_of_not_str_concat_intro_eq_self
+                                                      s hSConcatAny hIntroS
+                                                      hIntroSEq hSNN with
+                                                    ⟨T, hsTy⟩
+                                                  rcases
+                                                    smt_seq_component_wf_of_non_none_type
+                                                      (__eo_to_smt s) T hsTy with
+                                                    ⟨hTInh, hTWf⟩
+                                                  have htTy :=
+                                                    eq_bool_right_seq_of_left_seq
+                                                      s t T hPremBool hsTy
+                                                  have hEmptyTNN :
+                                                      __smtx_typeof
+                                                          (__eo_to_smt
+                                                            (__seq_empty
+                                                              (__eo_typeof t))) ≠
+                                                        SmtType.None :=
+                                                    seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
+                                                      t T htTy hTInh hTWf
+                                                  exact False.elim
+                                                    (hBothNotConcatLeftIntroEqSelfRightEmpty
+                                                      ⟨hSConcatAny,
+                                                        hTConcatAny,
+                                                        hIntroSEq,
+                                                        hEmptyTNN⟩)
+                                              · rcases
+                                                  str_nary_intro_not_str_concat_cases_typeof_empty
+                                                    t hTConcatAny hIntroT with
+                                                  hIntroTEq | _hIntroTConcat
+                                                · rcases
+                                                    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                                      s t hPremBool with
+                                                    ⟨hSame, hSNN⟩
+                                                  have hTNN :
+                                                      __smtx_typeof
+                                                          (__eo_to_smt t) ≠
+                                                        SmtType.None := by
+                                                    rw [← hSame]
+                                                    exact hSNN
+                                                  rcases
+                                                    smt_typeof_seq_of_not_str_concat_intro_eq_self
+                                                      t hTConcatAny hIntroT
+                                                      hIntroTEq hTNN with
+                                                    ⟨T, htTy⟩
+                                                  rcases
+                                                    smt_seq_component_wf_of_non_none_type
+                                                      (__eo_to_smt t) T htTy with
+                                                    ⟨hTInh, hTWf⟩
+                                                  have hsTy :=
+                                                    eq_bool_left_seq_of_right_seq
+                                                      s t T hPremBool htTy
+                                                  have hEmptySNN :
+                                                      __smtx_typeof
+                                                          (__eo_to_smt
+                                                            (__seq_empty
+                                                              (__eo_typeof s))) ≠
+                                                        SmtType.None :=
+                                                    seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
+                                                      s T hsTy hTInh hTWf
+                                                  exact False.elim
+                                                    (hBothNotConcatRightIntroEqSelfLeftEmpty
+                                                      ⟨hSConcatAny,
+                                                        hTConcatAny,
+                                                        hEmptySNN,
+                                                        hIntroTEq⟩)
+                                                · have hTS : t = s :=
+                                                    eq_of_eo_eq_true_local s t hHead
+                                                  subst t
+                                                  rcases
+                                                    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                                      s s hPremBool with
+                                                    ⟨_hSame, hSNN⟩
+                                                  have hElim :
+                                                      __str_nary_elim
+                                                          (__seq_empty
+                                                            (__eo_typeof s)) ≠
+                                                        Term.Stuck :=
+                                                    str_nary_elim_seq_empty_typeof_ne_stuck_of_concat_eq_true_generated
+                                                      s hProg hsNonStuck
+                                                      hIntroSConcat
+                                                  have hEmptySNN :
+                                                      __smtx_typeof
+                                                          (__eo_to_smt
+                                                            (__seq_empty
+                                                              (__eo_typeof s))) ≠
+                                                        SmtType.None :=
+                                                    seq_empty_typeof_has_smt_translation_of_elim_ne_stuck
+                                                      s hSNN hElim
+                                                  exact False.elim
+                                                    (hBothNotConcatEmptyTypeof
+                                                      ⟨hSConcatAny,
+                                                        hTConcatAny,
+                                                        hEmptySNN,
+                                                        hEmptySNN⟩)
+                                            · exact False.elim
+                                                (hBothNotConcatHeadFalse
+                                                  ⟨hSConcatAny, hTConcatAny,
+                                                    hHead⟩)
           · subst rev
             by_cases hBothConcat :
                 (∃ sHead sTail : Term, s = mkConcat sHead sTail) ∧
@@ -11568,7 +12618,192 @@ private theorem step_concat_eq_core
                                       (hNonConcatHead hBothNotConcatHeadFalse)
                                   -- Same remaining seq.empty translation corner
                                   -- for the non-reversed strip.
-                                  · sorry
+                                  · have hIntroS :
+                                        __str_nary_intro s ≠ Term.Stuck :=
+                                      str_nary_intro_left_ne_stuck_of_prog_ne_stuck
+                                        (Term.Boolean false) s t hProg
+                                    have hIntroT :
+                                        __str_nary_intro t ≠ Term.Stuck :=
+                                      str_nary_intro_right_ne_stuck_of_prog_ne_stuck
+                                        (Term.Boolean false) s t hProg
+                                    by_cases hSConcatAny :
+                                        ∃ sHead sTail : Term,
+                                          s = mkConcat sHead sTail
+                                    · rcases hSConcatAny with
+                                        ⟨sHead, sTail, hS⟩
+                                      subst s
+                                      rcases eq_bool_seq_of_left_concat sHead
+                                          sTail t hPremBool with
+                                        ⟨T, hLeftTy, hRightTy⟩
+                                      rcases
+                                          smt_seq_component_wf_of_non_none_type
+                                            (__eo_to_smt
+                                              (mkConcat sHead sTail)) T
+                                            hLeftTy with
+                                        ⟨hTInh, hTWf⟩
+                                      have hIntroTNN :
+                                          __smtx_typeof
+                                              (__eo_to_smt
+                                                (__str_nary_intro t)) ≠
+                                            SmtType.None :=
+                                        str_nary_intro_has_smt_translation_of_seq_wf
+                                          t T hRightTy hTInh hTWf hIntroT
+                                      exact False.elim
+                                        (hLeftConcatWithRightIntro
+                                          ⟨⟨sHead, sTail, rfl⟩,
+                                            hIntroTNN⟩)
+                                    · by_cases hTConcatAny :
+                                          ∃ tHead tTail : Term,
+                                            t = mkConcat tHead tTail
+                                      · rcases hTConcatAny with
+                                          ⟨tHead, tTail, hT⟩
+                                        subst t
+                                        rcases eq_bool_seq_of_right_concat s
+                                            tHead tTail hPremBool with
+                                          ⟨T, hLeftTy, hRightTy⟩
+                                        rcases
+                                            smt_seq_component_wf_of_non_none_type
+                                              (__eo_to_smt
+                                                (mkConcat tHead tTail)) T
+                                              hRightTy with
+                                          ⟨hTInh, hTWf⟩
+                                        have hIntroSNN :
+                                            __smtx_typeof
+                                                (__eo_to_smt
+                                                  (__str_nary_intro s)) ≠
+                                              SmtType.None :=
+                                          str_nary_intro_has_smt_translation_of_seq_wf
+                                            s T hLeftTy hTInh hTWf hIntroS
+                                        exact False.elim
+                                          (hRightConcatWithLeftIntro
+                                            ⟨⟨tHead, tTail, rfl⟩,
+                                              hIntroSNN⟩)
+                                      · have hsNonStuck :=
+                                          str_nary_intro_arg_ne_stuck_of_ne_stuck
+                                            s hIntroS
+                                        have htNonStuck :=
+                                          str_nary_intro_arg_ne_stuck_of_ne_stuck
+                                            t hIntroT
+                                        rcases eo_eq_cases_of_ne_stuck s t
+                                            hsNonStuck htNonStuck with
+                                          hHead | hHead
+                                        · rcases
+                                            str_nary_intro_not_str_concat_cases_typeof_empty
+                                              s hSConcatAny hIntroS with
+                                            hIntroSEq | hIntroSConcat
+                                          · rcases
+                                              str_nary_intro_not_str_concat_cases_typeof_empty
+                                                t hTConcatAny hIntroT with
+                                              hIntroTEq | _hIntroTConcat
+                                            · exact False.elim
+                                                (hBothNotConcatIntroEqSelf
+                                                  ⟨hSConcatAny,
+                                                    hTConcatAny,
+                                                    hIntroSEq,
+                                                    hIntroTEq⟩)
+                                            · rcases
+                                                RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                                  s t hPremBool with
+                                                ⟨_hSame, hSNN⟩
+                                              rcases
+                                                smt_typeof_seq_of_not_str_concat_intro_eq_self
+                                                  s hSConcatAny hIntroS
+                                                  hIntroSEq hSNN with
+                                                ⟨T, hsTy⟩
+                                              rcases
+                                                smt_seq_component_wf_of_non_none_type
+                                                  (__eo_to_smt s) T hsTy with
+                                                ⟨hTInh, hTWf⟩
+                                              have htTy :=
+                                                eq_bool_right_seq_of_left_seq
+                                                  s t T hPremBool hsTy
+                                              have hEmptyTNN :
+                                                  __smtx_typeof
+                                                      (__eo_to_smt
+                                                        (__seq_empty
+                                                          (__eo_typeof t))) ≠
+                                                    SmtType.None :=
+                                                seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
+                                                  t T htTy hTInh hTWf
+                                              exact False.elim
+                                                (hBothNotConcatLeftIntroEqSelfRightEmpty
+                                                  ⟨hSConcatAny,
+                                                    hTConcatAny,
+                                                    hIntroSEq,
+                                                    hEmptyTNN⟩)
+                                          · rcases
+                                              str_nary_intro_not_str_concat_cases_typeof_empty
+                                                t hTConcatAny hIntroT with
+                                              hIntroTEq | _hIntroTConcat
+                                            · rcases
+                                                RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                                  s t hPremBool with
+                                                ⟨hSame, hSNN⟩
+                                              have hTNN :
+                                                  __smtx_typeof
+                                                      (__eo_to_smt t) ≠
+                                                    SmtType.None := by
+                                                rw [← hSame]
+                                                exact hSNN
+                                              rcases
+                                                smt_typeof_seq_of_not_str_concat_intro_eq_self
+                                                  t hTConcatAny hIntroT
+                                                  hIntroTEq hTNN with
+                                                ⟨T, htTy⟩
+                                              rcases
+                                                smt_seq_component_wf_of_non_none_type
+                                                  (__eo_to_smt t) T htTy with
+                                                ⟨hTInh, hTWf⟩
+                                              have hsTy :=
+                                                eq_bool_left_seq_of_right_seq
+                                                  s t T hPremBool htTy
+                                              have hEmptySNN :
+                                                  __smtx_typeof
+                                                      (__eo_to_smt
+                                                        (__seq_empty
+                                                          (__eo_typeof s))) ≠
+                                                    SmtType.None :=
+                                                seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
+                                                  s T hsTy hTInh hTWf
+                                              exact False.elim
+                                                (hBothNotConcatRightIntroEqSelfLeftEmpty
+                                                  ⟨hSConcatAny,
+                                                    hTConcatAny,
+                                                    hEmptySNN,
+                                                    hIntroTEq⟩)
+                                            · have hTS : t = s :=
+                                                eq_of_eo_eq_true_local s t hHead
+                                              subst t
+                                              rcases
+                                                RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                                  s s hPremBool with
+                                                ⟨_hSame, hSNN⟩
+                                              have hElim :
+                                                  __str_nary_elim
+                                                      (__seq_empty
+                                                        (__eo_typeof s)) ≠
+                                                    Term.Stuck :=
+                                                str_nary_elim_seq_empty_typeof_ne_stuck_of_concat_eq_false_generated
+                                                  s hProg hsNonStuck
+                                                  hIntroSConcat
+                                              have hEmptySNN :
+                                                  __smtx_typeof
+                                                      (__eo_to_smt
+                                                        (__seq_empty
+                                                          (__eo_typeof s))) ≠
+                                                    SmtType.None :=
+                                                seq_empty_typeof_has_smt_translation_of_elim_ne_stuck
+                                                  s hSNN hElim
+                                              exact False.elim
+                                                (hBothNotConcatEmptyTypeof
+                                                  ⟨hSConcatAny,
+                                                    hTConcatAny,
+                                                    hEmptySNN,
+                                                    hEmptySNN⟩)
+                                        · exact False.elim
+                                            (hBothNotConcatHeadFalse
+                                              ⟨hSConcatAny, hTConcatAny,
+                                                hHead⟩)
 
 theorem cmd_step_concat_eq_properties
     (M : SmtModel) (hM : model_total_typed M)
