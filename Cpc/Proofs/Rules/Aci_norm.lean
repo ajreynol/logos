@@ -311,6 +311,370 @@ private theorem aciNormPayload_eq_self_of_has_smt_translation
         cases op <;> try rfl
         exact False.elim (aci_sorted_marker_not_has_smt_translation y x hTrans)
 
+@[simp] private theorem aciNormPayload_mk_aci_sorted (f payload : Term) :
+    aciNormPayload
+        (__eo_mk_apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload) =
+      payload := by
+  cases payload <;> simp [aciNormPayload, __eo_mk_apply]
+
+private theorem eo_typeof_or_eq_bool_of_has_smt_translation (y x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) ->
+    __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) =
+      Term.Bool := by
+  intro hTrans
+  let s := SmtTerm.or (__eo_to_smt y) (__eo_to_smt x)
+  have hNN : term_has_non_none_type s := by
+    unfold term_has_non_none_type
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    simpa [s] using hTrans
+  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.or)
+    (typeof_or_eq (__eo_to_smt y) (__eo_to_smt x)) hNN
+  have hSmtTy :
+      __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x)) =
+        SmtType.Bool := by
+    change __smtx_typeof (SmtTerm.or (__eo_to_smt y) (__eo_to_smt x)) =
+      SmtType.Bool
+    rw [typeof_or_eq]
+    simp [hArgs.1, hArgs.2, native_ite, native_Teq]
+  have hMatch := TranslationProofs.eo_to_smt_typeof_matches_translation
+    (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) hTrans
+  exact TranslationProofs.eo_to_smt_type_eq_bool (hMatch.symm.trans hSmtTy)
+
+private theorem eo_typeof_and_eq_bool_of_has_smt_translation (y x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) ->
+    __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) =
+      Term.Bool := by
+  intro hTrans
+  let s := SmtTerm.and (__eo_to_smt y) (__eo_to_smt x)
+  have hNN : term_has_non_none_type s := by
+    unfold term_has_non_none_type
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    simpa [s] using hTrans
+  have hArgs := bool_binop_args_bool_of_non_none (op := SmtTerm.and)
+    (typeof_and_eq (__eo_to_smt y) (__eo_to_smt x)) hNN
+  have hSmtTy :
+      __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x)) =
+        SmtType.Bool := by
+    change __smtx_typeof (SmtTerm.and (__eo_to_smt y) (__eo_to_smt x)) =
+      SmtType.Bool
+    rw [typeof_and_eq]
+    simp [hArgs.1, hArgs.2, native_ite, native_Teq]
+  have hMatch := TranslationProofs.eo_to_smt_typeof_matches_translation
+    (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) hTrans
+  exact TranslationProofs.eo_to_smt_type_eq_bool (hMatch.symm.trans hSmtTy)
+
+private theorem eo_has_bool_type_or_args_of_has_smt_translation (y x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) ->
+    RuleProofs.eo_has_bool_type y ∧ RuleProofs.eo_has_bool_type x := by
+  intro hTrans
+  let s := SmtTerm.or (__eo_to_smt y) (__eo_to_smt x)
+  have hNN : term_has_non_none_type s := by
+    unfold term_has_non_none_type
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    simpa [s] using hTrans
+  exact bool_binop_args_bool_of_non_none (op := SmtTerm.or)
+    (typeof_or_eq (__eo_to_smt y) (__eo_to_smt x)) hNN
+
+private theorem eo_has_bool_type_and_args_of_has_smt_translation (y x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) ->
+    RuleProofs.eo_has_bool_type y ∧ RuleProofs.eo_has_bool_type x := by
+  intro hTrans
+  let s := SmtTerm.and (__eo_to_smt y) (__eo_to_smt x)
+  have hNN : term_has_non_none_type s := by
+    unfold term_has_non_none_type
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    simpa [s] using hTrans
+  exact bool_binop_args_bool_of_non_none (op := SmtTerm.and)
+    (typeof_and_eq (__eo_to_smt y) (__eo_to_smt x)) hNN
+
+private theorem eo_has_bool_type_false_local :
+    RuleProofs.eo_has_bool_type (Term.Boolean false) := by
+  unfold RuleProofs.eo_has_bool_type
+  change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
+  rw [__smtx_typeof.eq_1]
+
+private theorem eo_has_bool_type_or_of_bool_args_local (A B : Term) :
+    RuleProofs.eo_has_bool_type A ->
+    RuleProofs.eo_has_bool_type B ->
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) A) B) := by
+  intro hA hB
+  unfold RuleProofs.eo_has_bool_type at hA hB ⊢
+  change __smtx_typeof (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) =
+    SmtType.Bool
+  rw [typeof_or_eq]
+  simp [hA, hB, native_ite, native_Teq]
+
+private theorem eo_interprets_bool_cases_local
+    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+  RuleProofs.eo_has_bool_type t ->
+  eo_interprets M t true ∨ eo_interprets M t false := by
+  intro hTy
+  rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM t hTy with
+    ⟨b, hEval⟩
+  cases b
+  · exact Or.inr (RuleProofs.eo_interprets_of_bool_eval M t false hTy hEval)
+  · exact Or.inl (RuleProofs.eo_interprets_of_bool_eval M t true hTy hEval)
+
+private theorem eo_interprets_or_left_intro_local
+    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+  eo_interprets M A true ->
+  RuleProofs.eo_has_bool_type B ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.or) A) B)
+    true := by
+  intro hATrue hBBool
+  have hABool : RuleProofs.eo_has_bool_type A :=
+    RuleProofs.eo_has_bool_type_of_interprets_true M A hATrue
+  rw [RuleProofs.eo_interprets_iff_smt_interprets] at hATrue ⊢
+  change smt_interprets M (SmtTerm.or (__eo_to_smt A) (__eo_to_smt B)) true
+  cases hATrue with
+  | intro_true hTyA hEvalA =>
+      refine smt_interprets.intro_true M _ ?_ ?_
+      · simpa [RuleProofs.eo_has_bool_type] using
+          eo_has_bool_type_or_of_bool_args_local A B hABool hBBool
+      · rw [__smtx_model_eval.eq_7]
+        rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM B hBBool with
+          ⟨b, hEvalB⟩
+        rw [hEvalA, hEvalB]
+        cases b <;> simp [__smtx_model_eval_or, SmtEval.native_or]
+
+private theorem smt_value_rel_of_bool_interprets_iff
+    (M : SmtModel) (hM : model_total_typed M) (a b : Term) :
+  RuleProofs.eo_has_bool_type a ->
+  RuleProofs.eo_has_bool_type b ->
+  (eo_interprets M a true ↔ eo_interprets M b true) ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt a))
+    (__smtx_model_eval M (__eo_to_smt b)) := by
+  intro hABool hBBool hIff
+  rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM a hABool with
+    ⟨av, hAEval⟩
+  rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM b hBBool with
+    ⟨bv, hBEval⟩
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  cases av <;> cases bv
+  · rw [hAEval, hBEval]
+    simp [__smtx_model_eval_eq, native_veq]
+  · have hBTrue : eo_interprets M b true :=
+      RuleProofs.eo_interprets_of_bool_eval M b true hBBool hBEval
+    have hATrue : eo_interprets M a true := hIff.mpr hBTrue
+    rw [RuleProofs.eo_interprets_iff_smt_interprets] at hATrue
+    cases hATrue with
+    | intro_true _ hAEvalTrue =>
+        rw [hAEval] at hAEvalTrue
+        cases hAEvalTrue
+  · have hATrue : eo_interprets M a true :=
+      RuleProofs.eo_interprets_of_bool_eval M a true hABool hAEval
+    have hBTrue : eo_interprets M b true := hIff.mp hATrue
+    rw [RuleProofs.eo_interprets_iff_smt_interprets] at hBTrue
+    cases hBTrue with
+    | intro_true _ hBEvalTrue =>
+        rw [hBEval] at hBEvalTrue
+        cases hBEvalTrue
+  · rw [hAEval, hBEval]
+    simp [__smtx_model_eval_eq, native_veq]
+
+private theorem eo_interprets_or_false_iff
+    (M : SmtModel) (hM : model_total_typed M) (a : Term) :
+  RuleProofs.eo_has_bool_type a ->
+  (eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.or) a)
+      (Term.Boolean false)) true ↔
+    eo_interprets M a true) := by
+  intro hABool
+  constructor
+  · intro hOrTrue
+    rcases eo_interprets_bool_cases_local M hM a hABool with
+      hATrue | hAFalse
+    · exact hATrue
+    · exfalso
+      rw [RuleProofs.eo_interprets_iff_smt_interprets] at hOrTrue hAFalse
+      cases hAFalse with
+      | intro_false _ hEvalA =>
+          cases hOrTrue with
+          | intro_true _ hEvalOr =>
+              change
+                __smtx_model_eval M
+                  (SmtTerm.or (__eo_to_smt a) (SmtTerm.Boolean false)) =
+                    SmtValue.Boolean true at hEvalOr
+              rw [__smtx_model_eval.eq_7, hEvalA, __smtx_model_eval.eq_1] at hEvalOr
+              simp [__smtx_model_eval_or, SmtEval.native_or] at hEvalOr
+  · intro hATrue
+    exact eo_interprets_or_left_intro_local M hM a (Term.Boolean false)
+      hATrue eo_has_bool_type_false_local
+
+private theorem eo_interprets_and_true_iff
+    (M : SmtModel) (a : Term) :
+  RuleProofs.eo_has_bool_type a ->
+  (eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.and) a)
+      (Term.Boolean true)) true ↔
+    eo_interprets M a true) := by
+  intro _hABool
+  constructor
+  · intro hAndTrue
+    exact RuleProofs.eo_interprets_and_left M a (Term.Boolean true) hAndTrue
+  · intro hATrue
+    exact RuleProofs.eo_interprets_and_intro M a (Term.Boolean true) hATrue
+      (RuleProofs.eo_interprets_true M)
+
+private theorem aci_norm_l1_or_false_eq_of_ne_false (t : Term) :
+  t ≠ Term.Stuck ->
+  t ≠ Term.Boolean false ->
+  __eo_l_1___get_ai_norm_rec (Term.UOp UserOp.or) (Term.Boolean false) t =
+    Term.Apply (Term.Apply (Term.UOp UserOp.or) t) (Term.Boolean false) := by
+  intro hStuck hFalse
+  cases t <;> simp [__eo_l_1___get_ai_norm_rec, __eo_l_2___get_ai_norm_rec,
+    __eo_ite, __eo_eq, native_ite, native_teq] at hStuck hFalse ⊢
+  case Boolean b =>
+    cases b <;> simp at hFalse ⊢
+
+private theorem aci_norm_l1_and_true_eq_of_ne_true (t : Term) :
+  t ≠ Term.Stuck ->
+  t ≠ Term.Boolean true ->
+  __eo_l_1___get_ai_norm_rec (Term.UOp UserOp.and) (Term.Boolean true) t =
+    Term.Apply (Term.Apply (Term.UOp UserOp.and) t) (Term.Boolean true) := by
+  intro hStuck hTrue
+  cases t <;> simp [__eo_l_1___get_ai_norm_rec, __eo_l_2___get_ai_norm_rec,
+    __eo_ite, __eo_eq, native_ite, native_teq] at hStuck hTrue ⊢
+  case Boolean b =>
+    cases b <;> simp at hTrue ⊢
+
+private theorem smt_value_rel_l1_or_false
+    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+  RuleProofs.eo_has_bool_type t ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt t))
+    (__smtx_model_eval M
+      (__eo_to_smt
+        (__eo_l_1___get_ai_norm_rec (Term.UOp UserOp.or)
+          (Term.Boolean false) t))) := by
+  intro hBool
+  by_cases hFalse : t = Term.Boolean false
+  · subst t
+    simp [__eo_l_1___get_ai_norm_rec, __eo_ite, __eo_eq, native_ite, native_teq,
+      RuleProofs.smt_value_rel_refl]
+  · have hNe : t ≠ Term.Stuck := RuleProofs.term_ne_stuck_of_has_bool_type t hBool
+    rw [aci_norm_l1_or_false_eq_of_ne_false t hNe hFalse]
+    apply smt_value_rel_of_bool_interprets_iff M hM
+    · exact hBool
+    · exact eo_has_bool_type_or_of_bool_args_local _ _ hBool
+        eo_has_bool_type_false_local
+    · exact (eo_interprets_or_false_iff M hM t hBool).symm
+
+private theorem smt_value_rel_l1_and_true
+    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+  RuleProofs.eo_has_bool_type t ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt t))
+    (__smtx_model_eval M
+      (__eo_to_smt
+        (__eo_l_1___get_ai_norm_rec (Term.UOp UserOp.and)
+          (Term.Boolean true) t))) := by
+  intro hBool
+  by_cases hTrue : t = Term.Boolean true
+  · subst t
+    simp [__eo_l_1___get_ai_norm_rec, __eo_ite, __eo_eq, native_ite, native_teq,
+      RuleProofs.smt_value_rel_refl]
+  · have hNe : t ≠ Term.Stuck := RuleProofs.term_ne_stuck_of_has_bool_type t hBool
+    rw [aci_norm_l1_and_true_eq_of_ne_true t hNe hTrue]
+    apply smt_value_rel_of_bool_interprets_iff M hM
+    · exact hBool
+    · exact RuleProofs.eo_has_bool_type_and_of_bool_args _ _ hBool
+        RuleProofs.eo_has_bool_type_true
+    · exact (eo_interprets_and_true_iff M t hBool).symm
+
+private theorem get_ai_norm_rec_or_eq_l1_of_not_or (t : Term) :
+  RuleProofs.eo_has_bool_type t ->
+  (∀ y x, t ≠ Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) ->
+  __get_ai_norm_rec (Term.UOp UserOp.or) (Term.Boolean false) t =
+    __eo_l_1___get_ai_norm_rec (Term.UOp UserOp.or) (Term.Boolean false) t := by
+  intro hBool hNotOr
+  cases t <;> try rfl
+  case Apply f x =>
+    cases f <;> try rfl
+    case Apply g y =>
+      cases g <;> try
+        (simp [RuleProofs.eo_has_bool_type] at hBool)
+        <;> simp [__get_ai_norm_rec, __eo_eq, __eo_ite, native_ite, native_teq]
+      case Stuck =>
+        have hBad :
+            __smtx_typeof
+              (__eo_to_smt (Term.Apply (Term.Apply Term.Stuck y) x)) =
+              SmtType.None := by
+          change __smtx_typeof
+            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
+              (__eo_to_smt x)) = SmtType.None
+          exact smtx_typeof_apply_apply_none (__eo_to_smt x) (__eo_to_smt y)
+        rw [hBad] at hBool
+        cases hBool
+      case UOp op =>
+        cases op <;> simp [__get_ai_norm_rec, __eo_eq, __eo_ite, native_ite,
+          native_teq]
+        case or =>
+          exact False.elim (hNotOr y x rfl)
+
+private theorem get_ai_norm_rec_and_eq_l1_of_not_and (t : Term) :
+  RuleProofs.eo_has_bool_type t ->
+  (∀ y x, t ≠ Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) ->
+  __get_ai_norm_rec (Term.UOp UserOp.and) (Term.Boolean true) t =
+    __eo_l_1___get_ai_norm_rec (Term.UOp UserOp.and) (Term.Boolean true) t := by
+  intro hBool hNotAnd
+  cases t <;> try rfl
+  case Apply f x =>
+    cases f <;> try rfl
+    case Apply g y =>
+      cases g <;> try
+        (simp [RuleProofs.eo_has_bool_type] at hBool)
+        <;> simp [__get_ai_norm_rec, __eo_eq, __eo_ite, native_ite, native_teq]
+      case Stuck =>
+        have hBad :
+            __smtx_typeof
+              (__eo_to_smt (Term.Apply (Term.Apply Term.Stuck y) x)) =
+              SmtType.None := by
+          change __smtx_typeof
+            (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
+              (__eo_to_smt x)) = SmtType.None
+          exact smtx_typeof_apply_apply_none (__eo_to_smt x) (__eo_to_smt y)
+        rw [hBad] at hBool
+        cases hBool
+      case UOp op =>
+        cases op <;> simp [__get_ai_norm_rec, __eo_eq, __eo_ite, native_ite,
+          native_teq]
+        case and =>
+          exact False.elim (hNotAnd y x rfl)
+
+private theorem smt_value_rel_get_ai_norm_rec_or_non_or
+    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+  RuleProofs.eo_has_bool_type t ->
+  (∀ y x, t ≠ Term.Apply (Term.Apply (Term.UOp UserOp.or) y) x) ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt t))
+    (__smtx_model_eval M
+      (__eo_to_smt
+        (__get_ai_norm_rec (Term.UOp UserOp.or) (Term.Boolean false) t))) := by
+  intro hBool hNotOr
+  rw [get_ai_norm_rec_or_eq_l1_of_not_or t hBool hNotOr]
+  exact smt_value_rel_l1_or_false M hM t hBool
+
+private theorem smt_value_rel_get_ai_norm_rec_and_non_and
+    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+  RuleProofs.eo_has_bool_type t ->
+  (∀ y x, t ≠ Term.Apply (Term.Apply (Term.UOp UserOp.and) y) x) ->
+  RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt t))
+    (__smtx_model_eval M
+      (__eo_to_smt
+        (__get_ai_norm_rec (Term.UOp UserOp.and) (Term.Boolean true) t))) := by
+  intro hBool hNotAnd
+  rw [get_ai_norm_rec_and_eq_l1_of_not_and t hBool hNotAnd]
+  exact smt_value_rel_l1_and_true M hM t hBool
+
 private theorem smt_value_rel_aciNormPayload_self
     (M : SmtModel) (t : Term) :
   RuleProofs.eo_has_smt_translation t ->
@@ -459,7 +823,7 @@ private theorem smt_value_rel_get_aci_normal_form_payload
     case Apply g y =>
       cases g <;> try exact RuleProofs.smt_value_rel_refl _
       case UOp op =>
-        cases op <;> simp [__get_aci_normal_form, aciNormPayload] <;>
+        cases op <;> simp [__get_aci_normal_form] <;>
           try exact RuleProofs.smt_value_rel_refl _
         case or =>
           -- AI normalizer case.
