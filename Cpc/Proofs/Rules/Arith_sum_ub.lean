@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem eo_to_smt_plus_eq (a b : Term) :
@@ -946,8 +945,7 @@ private theorem arithSumFoldList_eq_mk_rec :
               __mk_arith_sum_ub_rec, arithSumFoldList_stuck]
           case Apply af ab =>
             cases af <;>
-              simp [premiseAndFormulaList, arithSumFoldList, arithSumStep,
-                __mk_arith_sum_ub_rec, arithSumFoldList_stuck, ih]
+              simp [__mk_arith_sum_ub_rec, arithSumFoldList_stuck, ih]
         all_goals
           cases acc <;>
             simp [premiseAndFormulaList, arithSumFoldList, arithSumStep,
@@ -1116,8 +1114,7 @@ private theorem eo_typeof_lt_bool_args
   case UOp opA =>
     rename_i opB
     cases opA <;> cases opB <;>
-      simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
+      simp at h ⊢
 
 private theorem eo_typeof_plus_eq_int_args
     (A B : Term) :
@@ -1131,8 +1128,7 @@ private theorem eo_typeof_plus_eq_int_args
   case UOp opA =>
     rename_i opB
     cases opA <;> cases opB <;>
-      simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
+      simp at h ⊢
 
 private theorem eo_typeof_plus_eq_real_args
     (A B : Term) :
@@ -1146,8 +1142,7 @@ private theorem eo_typeof_plus_eq_real_args
   case UOp opA =>
     rename_i opB
     cases opA <;> cases opB <;>
-      simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not, SmtEval.native_not] at h ⊢
+      simp at h ⊢
 
 private theorem eo_typeof_right_rel_of_sum_rel_bool
     (op : UserOp) (a1 b1 a2 b2 : Term)
