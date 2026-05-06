@@ -474,7 +474,7 @@ private theorem smtx_model_eval_eq_refl_aux :
   | SmtValue.DtCons _ _ _ => by
       simp [__smtx_model_eval_eq, native_veq]
   | SmtValue.RegLan _ => by
-      simp [__smtx_model_eval_eq, native_veq]
+      simp [__smtx_model_eval_eq]
 
 /-- Establishes an equality relating `smtx_model_eval_seq` and `refl_aux`. -/
 private theorem smtx_model_eval_seq_eq_refl_aux :
@@ -512,6 +512,12 @@ private theorem smtx_model_eval_eq_true_symm
     intro v
     symm
     exact h v
+  case RegLan.RegLan r1 r2 =>
+    classical
+    simp [__smtx_model_eval_eq] at h ⊢
+    intro s
+    symm
+    exact h s
   case Seq.Seq s1 s2 =>
     simpa using smtx_model_eval_seq_eq_true_symm h
   case Apply.Apply f1 a1 f2 a2 =>
@@ -573,6 +579,11 @@ private theorem smtx_model_eval_eq_true_trans
     calc
       __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v := h12 v
       _ = __smtx_msm_lookup m3 v := h23 v
+  case RegLan.RegLan.RegLan r1 r2 r3 =>
+    classical
+    simp [__smtx_model_eval_eq] at h12 h23 ⊢
+    intro s
+    exact (h12 s).trans (h23 s)
   case Seq.Seq.Seq s1 s2 s3 =>
     simpa using smtx_model_eval_seq_eq_true_trans h12 h23
   case Apply.Apply.Apply f1 a1 f2 a2 f3 a3 =>
