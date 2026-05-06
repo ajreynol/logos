@@ -1,4 +1,5 @@
 import CpcMini.Spec
+import CpcMini.Proofs.Assumptions
 import CpcMini.Proofs.RuleSupport.Support
 
 open Eo
@@ -10,23 +11,6 @@ inductive ValidAssumptionList : Term -> Prop
   | base : ValidAssumptionList (Term.Boolean true)
   | step (A rest : Term) : ValidAssumptionList rest ->
       ValidAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
-
-/-- Inductive predicate for valid assumption lists whose entries are non-stuck EO Boolean terms. -/
-inductive TypedAssumptionList : Term -> Prop
-  | base : TypedAssumptionList (Term.Boolean true)
-  | step (A rest : Term) :
-      A ≠ Term.Stuck ->
-      __eo_typeof A = Term.Bool ->
-      TypedAssumptionList rest ->
-      TypedAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
-
-/-- Inductive predicate for valid assumption lists whose entries all admit SMT translations. -/
-inductive TranslatableAssumptionList : Term -> Prop
-  | base : TranslatableAssumptionList (Term.Boolean true)
-  | step (A rest : Term) :
-      RuleProofs.eo_has_smt_translation A ->
-      TranslatableAssumptionList rest ->
-      TranslatableAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
 /-- Predicate asserting that a checker state is structurally well-formed and not `Stuck`. -/
 def stateOk : CState -> Prop
