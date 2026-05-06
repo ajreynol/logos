@@ -10,6 +10,10 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
+/-- Proof-local compatibility name for the reserved datatype-name guard. -/
+abbrev __eo_reserved_datatype_name : native_String -> native_Bool :=
+  native_reserved_datatype_name
+
 /-- Computes `__eo_typeof` for `boolean`. -/
 @[simp] theorem eo_typeof_boolean (b : native_Bool) :
     __eo_typeof (Term.Boolean b) = Term.Bool := by
@@ -99,6 +103,122 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT type translation for `reglan`. -/
 @[simp] theorem eo_to_smt_type_reglan :
     __eo_to_smt_type (Term.UOp UserOp.RegLan) = SmtType.RegLan := rfl
+
+@[simp] theorem guarded_eo_datatype_ne_bool (s : native_String) (d : SmtDatatype) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.Bool := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_int (s : native_String) (d : SmtDatatype) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.Int := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_real (s : native_String) (d : SmtDatatype) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.Real := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_reglan (s : native_String) (d : SmtDatatype) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.RegLan := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_char (s : native_String) (d : SmtDatatype) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.Char := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_bitvec
+    (s : native_String) (d : SmtDatatype) (w : native_Nat) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.BitVec w := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_seq
+    (s : native_String) (d : SmtDatatype) (U : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.Seq U := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_set
+    (s : native_String) (d : SmtDatatype) (U : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.Set U := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_map
+    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.Map A B := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_fun
+    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.FunType A B := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_datatype_ne_dtc_app
+    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.Datatype s d) ≠
+      SmtType.DtcAppType A B := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_bool (s : native_String) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.Bool := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_int (s : native_String) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.Int := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_real (s : native_String) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.Real := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_reglan (s : native_String) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.RegLan := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_char (s : native_String) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.Char := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_bitvec (s : native_String) (w : native_Nat) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.BitVec w := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_seq (s : native_String) (U : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.Seq U := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_set (s : native_String) (U : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.Set U := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_map (s : native_String) (A B : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.Map A B := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_fun (s : native_String) (A B : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.FunType A B := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
+
+@[simp] theorem guarded_eo_typeref_ne_dtc_app (s : native_String) (A B : SmtType) :
+    native_ite (__eo_reserved_datatype_name s) SmtType.None (SmtType.TypeRef s) ≠
+      SmtType.DtcAppType A B := by
+  cases h : __eo_reserved_datatype_name s <;> simp [native_ite]
 
 /-- Simplifies EO-to-SMT type translation for `seq`. -/
 @[simp] theorem eo_to_smt_type_seq (T : Term) :

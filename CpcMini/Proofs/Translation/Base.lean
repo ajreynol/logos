@@ -29,6 +29,12 @@ theorem eo_to_smt_ne_dt_tester (t : Term) (s : native_String) (d : SmtDatatype) 
     __eo_to_smt t ≠ SmtTerm.DtTester s d i := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case DtCons s' d' i' =>
+    rw [__eo_to_smt.eq_def] at h
+    cases hReserved : native_reserved_datatype_name s' <;> simp [native_ite, hReserved] at h
+  case DtSel s' d' i' j' =>
+    rw [__eo_to_smt.eq_def] at h
+    cases hReserved : native_reserved_datatype_name s' <;> simp [native_ite, hReserved] at h
   case Var name U =>
     exact eo_to_smt_var_ne name U (SmtTerm.DtTester s d i) (by intro hEq; cases hEq)
       (by intro s' hEq; cases hEq) h
@@ -49,6 +55,9 @@ theorem eo_to_smt_ne_dt_sel
     __eo_to_smt t ≠ SmtTerm.DtSel s d i j := by
   intro h
   cases t <;> try (rw [__eo_to_smt.eq_def] at h; cases h)
+  case DtCons s' d' i' =>
+    rw [__eo_to_smt.eq_def] at h
+    cases hReserved : native_reserved_datatype_name s' <;> simp [native_ite, hReserved] at h
   case Var name U =>
     exact eo_to_smt_var_ne name U (SmtTerm.DtSel s d i j) (by intro hEq; cases hEq)
       (by intro s' hEq; cases hEq) h
