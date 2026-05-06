@@ -6,6 +6,7 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
+set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 private theorem eo_typeof_stuck_ne_bool :
@@ -98,6 +99,27 @@ private theorem smt_value_rel_of_eo_eq_true
   subst y
   exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt x))
 
+private theorem eo_ite_eq_true_cases (c t e : Term) :
+    __eo_ite c t e = Term.Boolean true ->
+    (c = Term.Boolean true ∧ t = Term.Boolean true) ∨
+      (c = Term.Boolean false ∧ e = Term.Boolean true) := by
+  intro h
+  cases c <;> simp [__eo_ite, native_teq, native_ite] at h
+  case Boolean b =>
+    cases b <;> simp [__eo_ite, native_teq, native_ite] at h
+    · exact Or.inr ⟨rfl, h⟩
+    · exact Or.inl ⟨rfl, h⟩
+
+private theorem eo_ite_else_eq_true_of_cond_ne_true
+    (c t e : Term) :
+    c ≠ Term.Boolean true ->
+    __eo_ite c t e = Term.Boolean true ->
+    c = Term.Boolean false ∧ e = Term.Boolean true := by
+  intro hNe hIte
+  rcases eo_ite_eq_true_cases c t e hIte with hThen | hElse
+  · exact False.elim (hNe hThen.1)
+  · exact hElse
+
 private theorem generic_apply_type_of_non_special_head_local
     (f x : SmtTerm)
     (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
@@ -137,6 +159,125 @@ private theorem eo_has_smt_translation_ne_stuck (t : Term) :
   intro hTrans hStuck
   subst t
   exact hTrans TranslationProofs.smtx_typeof_none
+
+private theorem aci_norm_eq_nonstuck (x y : Term) :
+    x ≠ Term.Stuck ->
+    y ≠ Term.Stuck ->
+    __aci_norm_eq x y =
+      __eo_ite (__eo_eq x y) (Term.Boolean true)
+        (__eo_l_1___aci_norm_eq x y) := by
+  intro hx hy
+  cases x <;> cases y <;> simp [__aci_norm_eq] at hx hy ⊢
+
+private theorem aci_norm_l3_nonstuck_eq_false (x y : Term) :
+    x ≠ Term.Stuck ->
+    y ≠ Term.Stuck ->
+    __eo_l_3___aci_norm_eq x y = Term.Boolean false := by
+  intro hx hy
+  cases x <;> cases y <;> simp [__eo_l_3___aci_norm_eq] at hx hy ⊢
+
+private theorem aci_norm_l2_marker_right_translation_ne_true
+    (f payload y : Term) :
+    RuleProofs.eo_has_smt_translation y ->
+    __eo_l_2___aci_norm_eq
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+      y ≠ Term.Boolean true := by
+  intro hYTrans hEq
+  cases y <;>
+    simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq, __eo_ite,
+      __eo_eq, native_teq, native_ite] at hEq hYTrans
+  case Apply yf yPayload =>
+    cases yf
+    all_goals try
+      simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq, __eo_ite,
+        __eo_eq, native_teq, native_ite] at hEq hYTrans
+    case Apply yg yMarkerArg =>
+      cases yg
+      all_goals try
+        simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq, __eo_ite,
+          __eo_eq, native_teq, native_ite] at hEq hYTrans
+      case UOp op =>
+        cases op
+        all_goals try
+          simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq, __eo_ite,
+            __eo_eq, native_teq, native_ite] at hEq hYTrans
+        exact aci_sorted_marker_not_has_smt_translation yMarkerArg yPayload hYTrans
+
+private theorem aci_norm_l2_nonmarker_left_eq_false
+    (x y : Term) :
+    (∀ f payload,
+      x ≠ Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload) ->
+    x ≠ Term.Stuck ->
+    y ≠ Term.Stuck ->
+    __eo_l_2___aci_norm_eq x y = Term.Boolean false := by
+  intro hNotMarker hx hy
+  cases x <;> cases y <;>
+    simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hx hy ⊢
+  case Apply.Apply f payload yf yPayload =>
+    cases f <;>
+      simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+    case Apply g markerArg =>
+      cases g <;>
+        simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+      case UOp op =>
+        cases op <;>
+          simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+
+private theorem aci_norm_l1_nonmarker_left_eq_false
+    (x y : Term) :
+    (∀ f payload,
+      x ≠ Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload) ->
+    x ≠ Term.Stuck ->
+    y ≠ Term.Stuck ->
+    __eo_l_1___aci_norm_eq x y = Term.Boolean false := by
+  intro hNotMarker hx hy
+  cases x <;> cases y <;>
+    simp [__eo_l_1___aci_norm_eq, __eo_l_2___aci_norm_eq,
+      __eo_l_3___aci_norm_eq] at hx hy ⊢
+  case Apply.Apply f payload yf yPayload =>
+    cases f <;>
+      simp [__eo_l_1___aci_norm_eq, __eo_l_2___aci_norm_eq,
+        __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+    case Apply g markerArg =>
+      cases g <;>
+        simp [__eo_l_1___aci_norm_eq, __eo_l_2___aci_norm_eq,
+          __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+      case UOp op =>
+        cases op <;>
+          simp [__eo_l_1___aci_norm_eq, __eo_l_2___aci_norm_eq,
+            __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+
+private theorem smt_value_rel_of_aci_norm_l1_marker_eq_true_right_translation
+    (M : SmtModel) (f payload y : Term) :
+    RuleProofs.eo_has_smt_translation y ->
+    __eo_l_1___aci_norm_eq
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+      y = Term.Boolean true ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt payload))
+      (__smtx_model_eval M (__eo_to_smt y)) := by
+  intro hYTrans hL1
+  have hYNe : y ≠ Term.Stuck := eo_has_smt_translation_ne_stuck y hYTrans
+  have hIte :
+      __eo_ite (__eo_eq payload y) (Term.Boolean true)
+          (__eo_l_2___aci_norm_eq
+            (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+            y) =
+        Term.Boolean true := by
+    cases y <;> try
+      simpa [__eo_l_1___aci_norm_eq] using hL1
+  rcases eo_ite_eq_true_cases
+      (__eo_eq payload y) (Term.Boolean true)
+      (__eo_l_2___aci_norm_eq
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+        y)
+      hIte with hPayload | hL2
+  · have hyp : y = payload := eq_of_eo_eq_true_local payload y hPayload.1
+    subst y
+    exact RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval M (__eo_to_smt payload))
+  · exact False.elim
+      (aci_norm_l2_marker_right_translation_ne_true f payload y hYTrans hL2.2)
 
 private def aciNormPayload : Term -> Term
   | Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) _) t => t
@@ -192,9 +333,98 @@ private theorem smt_value_rel_of_aci_norm_eq_true_right_translation
   · have hyx : y = x := eq_of_eo_eq_true_local x y hTermEq
     subst y
     exact smt_value_rel_aciNormPayload_self M x hYTrans
-  · -- The remaining one-sided cases are marker payload/list cases; `y` is an
-    -- actual SMT-translatable term, so the marker-marker branch is impossible.
-    sorry
+  · have hYNe : y ≠ Term.Stuck := eo_has_smt_translation_ne_stuck y hYTrans
+    have hXNe : x ≠ Term.Stuck := by
+      intro hX
+      subst x
+      simp [__aci_norm_eq] at hEq
+    have hEqIte := hEq
+    rw [aci_norm_eq_nonstuck x y hXNe hYNe] at hEqIte
+    have hL1 :
+        __eo_l_1___aci_norm_eq x y = Term.Boolean true :=
+      (eo_ite_else_eq_true_of_cond_ne_true
+        (__eo_eq x y) (Term.Boolean true)
+        (__eo_l_1___aci_norm_eq x y) hTermEq hEqIte).2
+    let x0 := x
+    change __eo_l_1___aci_norm_eq x0 y = Term.Boolean true at hL1
+    change RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (aciNormPayload x0)))
+      (__smtx_model_eval M (__eo_to_smt y))
+    cases x
+    case neg.Stuck =>
+      exact False.elim (hXNe rfl)
+    case neg.Apply f payload =>
+      change RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt (aciNormPayload x0)))
+        (__smtx_model_eval M (__eo_to_smt y))
+      cases f
+      case Apply g markerArg =>
+        cases g
+        case UOp op =>
+          cases op
+          case _at__at_aci_sorted =>
+            exact
+              smt_value_rel_of_aci_norm_l1_marker_eq_true_right_translation
+                M markerArg payload y hYTrans hL1
+          all_goals
+            have hNotMarker :
+                ∀ markerOp markerPayload,
+                  x0 ≠
+                    Term.Apply
+                      (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerOp)
+                      markerPayload := by
+              intro markerOp markerPayload h
+              unfold x0 at h
+              cases h
+            have hFalse :=
+              aci_norm_l1_nonmarker_left_eq_false
+                x0 y hNotMarker hXNe hYNe
+            rw [hFalse] at hL1
+            contradiction
+        all_goals
+          have hNotMarker :
+              ∀ markerOp markerPayload,
+                x0 ≠
+                  Term.Apply
+                    (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerOp)
+                    markerPayload := by
+            intro markerOp markerPayload h
+            unfold x0 at h
+            cases h
+          have hFalse :=
+            aci_norm_l1_nonmarker_left_eq_false
+              x0 y hNotMarker hXNe hYNe
+          rw [hFalse] at hL1
+          contradiction
+      all_goals
+        have hNotMarker :
+            ∀ markerArg markerPayload,
+              x0 ≠
+                Term.Apply
+                  (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+                  markerPayload := by
+          intro markerArg markerPayload h
+          unfold x0 at h
+          cases h
+        have hFalse :=
+          aci_norm_l1_nonmarker_left_eq_false
+            x0 y hNotMarker hXNe hYNe
+        rw [hFalse] at hL1
+        contradiction
+    all_goals
+      have hNotMarker :
+          ∀ markerArg markerPayload,
+            x0 ≠
+              Term.Apply
+                (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+                markerPayload := by
+        intro markerArg markerPayload h
+        unfold x0 at h
+        cases h
+      have hFalse :=
+        aci_norm_l1_nonmarker_left_eq_false x0 y hNotMarker hXNe hYNe
+      rw [hFalse] at hL1
+      contradiction
 
 private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
     (M : SmtModel) (hM : model_total_typed M) (a b : Term) :
