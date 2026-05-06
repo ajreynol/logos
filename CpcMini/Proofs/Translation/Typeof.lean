@@ -927,17 +927,22 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
       have hWf :
           __smtx_type_wf (SmtType.Datatype s (__eo_to_smt_datatype d)) = true := by
         unfold __smtx_typeof_guard_wf at hGuardNN
-        cases hInh : native_inhabited_type (SmtType.Datatype s (__eo_to_smt_datatype d)) <;>
-          simp [native_ite, hInh] at hGuardNN
         by_cases hWf : __smtx_type_wf (SmtType.Datatype s (__eo_to_smt_datatype d)) = true
         · exact hWf
         · exfalso
-          simp [hWf] at hGuardNN
-      change __smtx_type_wf_rec (SmtType.Datatype s (__eo_to_smt_datatype d)) [] = true at hWf
+          simp [native_ite, hWf] at hGuardNN
+      have hWfRec :
+          __smtx_type_wf_rec (SmtType.Datatype s (__eo_to_smt_datatype d)) [] = true := by
+        have hPair :
+            native_inhabited_type (SmtType.Datatype s (__eo_to_smt_datatype d)) = true ∧
+              __smtx_type_wf_rec
+                (SmtType.Datatype s (__eo_to_smt_datatype d)) native_reflist_nil = true := by
+          simpa [__smtx_type_wf, native_and] using hWf
+        exact hPair.2
       have hTyValid :
           TranslationProofs.eo_type_valid_rec [] (Term.DatatypeType s d) :=
         TranslationProofs.eo_type_valid_of_smt_wf_rec []
-          (by simpa [__eo_to_smt_type, hReserved] using hWf)
+          (by simpa [__eo_to_smt_type, hReserved] using hWfRec)
       have hDtValid : TranslationProofs.eo_datatype_valid_rec [s] d := by
         exact hTyValid.2
       have hCons :=
@@ -1264,18 +1269,22 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                     simpa [term_has_non_none_type, __smtx_typeof, R] using hApplyNN
                   have hRetWf : __smtx_type_wf R = true := by
                     unfold __smtx_typeof_guard_wf at hGuardNN
-                    cases hInh : native_inhabited_type R <;> simp [native_ite, hInh] at hGuardNN
                     by_cases hWf : __smtx_type_wf R = true
                     · exact hWf
                     · exfalso
-                      simp [hWf] at hGuardNN
-                  change __smtx_type_wf_rec R [] = true at hRetWf
+                      simp [native_ite, hWf] at hGuardNN
+                  have hRetWfRec : __smtx_type_wf_rec R [] = true := by
+                    have hPair :
+                        native_inhabited_type R = true ∧
+                          __smtx_type_wf_rec R native_reflist_nil = true := by
+                      simpa [__smtx_type_wf, native_and] using hRetWf
+                    exact hPair.2
                   have hSelRetValid :
                       TranslationProofs.eo_type_valid_rec []
                         (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) := by
                     apply TranslationProofs.eo_type_valid_of_smt_wf_rec []
                     rw [TranslationProofs.eo_to_smt_type_typeof_dt_sel_return_on_substituted_datatype s d i j]
-                    exact hRetWf
+                    exact hRetWfRec
                   simpa [__eo_typeof, __eo_typeof_apply, __eo_requires, hArgExact,
                     native_ite, native_teq, native_not] using hSelRetValid
                 ·

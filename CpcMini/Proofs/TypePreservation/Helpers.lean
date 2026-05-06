@@ -67,12 +67,7 @@ theorem typeof_value_dt_cons_inner_eq_of_eq_non_none
     (hU : U ≠ SmtType.None) :
     __smtx_typeof_dt_cons_value_rec
         (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i = U := by
-  cases hwf : __smtx_type_wf (SmtType.Datatype s d) with
-  | false =>
-      simp [__smtx_typeof_value, native_ite, hwf] at h
-      exact False.elim (hU (by simpa using h.symm))
-  | true =>
-      simpa [__smtx_typeof_value, native_ite, hwf] using h
+  simpa [__smtx_typeof_value] using h
 
 /-- Raw datatype constructor values always have constructor-chain result types. -/
 theorem dt_cons_chain_result_of_dt_cons_value_type
