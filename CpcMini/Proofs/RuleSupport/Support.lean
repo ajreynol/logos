@@ -1,4 +1,5 @@
 import CpcMini.Proofs.Common
+import CpcMini.Proofs.Assumptions
 
 open Eo
 open SmtEval
@@ -6,25 +7,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-/-- Predicate asserting that every argument in a checker argument list is translation-safe. -/
-def cArgListTranslationOk : CArgList -> Prop
-  | CArgList.nil => True
-  | CArgList.cons a args => RuleProofs.eo_has_smt_translation a ∧ cArgListTranslationOk args
-
-/-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
-def cmdTranslationOk : CCmd -> Prop
-  | CCmd.assume_push A => RuleProofs.eo_has_smt_translation A
-  | CCmd.step _ args _ => cArgListTranslationOk args
-  | _ => True
-
-/-- Inductive predicate asserting that every command in a checker command list satisfies `cmdTranslationOk`. -/
-inductive CmdListTranslationOk : CCmdList -> Prop
-  | nil : CmdListTranslationOk CCmdList.nil
-  | cons (c : CCmd) (cs : CCmdList) :
-      cmdTranslationOk c ->
-      CmdListTranslationOk cs ->
-      CmdListTranslationOk (CCmdList.cons c cs)
 
 /-- Builds the right-associated conjunction of a list of premise terms, using `true` as the empty case. -/
 def premiseAndFormulaList : List Term -> Term

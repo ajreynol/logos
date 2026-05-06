@@ -9,6 +9,128 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
+attribute [local simp] native_ite
+
+@[simp] private theorem guarded_datatype_type_ne_fun
+    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.FunType A B := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_fun
+    (s : native_String) (A B : SmtType) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.FunType A B := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_dtc_app
+    (s : native_String) (d : SmtDatatype) (A B : SmtType) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.DtcAppType A B := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_dtc_app
+    (s : native_String) (A B : SmtType) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.DtcAppType A B := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_seq
+    (s : native_String) (d : SmtDatatype) (A : SmtType) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.Seq A := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_seq
+    (s : native_String) (A : SmtType) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.Seq A := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_typeref
+    (s r : native_String) (d : SmtDatatype) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.TypeRef r := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_datatype
+    (s r : native_String) (d : SmtDatatype) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.Datatype r d := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_bool
+    (s : native_String) (d : SmtDatatype) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.Bool := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_bool
+    (s : native_String) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.Bool := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_int
+    (s : native_String) (d : SmtDatatype) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.Int := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_int
+    (s : native_String) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.Int := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_real
+    (s : native_String) (d : SmtDatatype) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.Real := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_real
+    (s : native_String) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.Real := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_char
+    (s : native_String) (d : SmtDatatype) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.Char := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_char
+    (s : native_String) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.Char := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_usort
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.USort i := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_usort
+    (s : native_String) (i : native_Nat) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.USort i := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_datatype_type_ne_bitvec
+    (s : native_String) (d : SmtDatatype) (w : native_Nat) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
+      SmtType.BitVec w := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
+@[simp] private theorem guarded_typeref_type_ne_bitvec
+    (s : native_String) (w : native_Nat) :
+    (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
+      SmtType.BitVec w := by
+  by_cases h : native_reserved_datatype_name s = true <;> simp [h]
+
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
 theorem smtx_typeof_guard_of_non_none
     (T U : SmtType) (h : T ≠ SmtType.None) :
@@ -288,14 +410,20 @@ theorem eo_to_smt_type_eq_datatype_iff
     __eo_to_smt_type T = SmtType.Datatype s d ↔
       ∃ d0,
         T = Term.DatatypeType s d0 ∧
+        native_reserved_datatype_name s = false ∧
         __eo_to_smt_datatype d0 = d := by
   constructor
   · intro h
     cases T with
     | DatatypeType s0 d0 =>
-        injection h with hs hd
-        subst hs
-        exact ⟨d0, rfl, hd⟩
+        by_cases hReserved : native_reserved_datatype_name s0 = true
+        · simp [__eo_to_smt_type, hReserved] at h
+        · have hReservedFalse : native_reserved_datatype_name s0 = false := by
+            cases hName : native_reserved_datatype_name s0 <;> simp [hName] at hReserved ⊢
+          simp [__eo_to_smt_type, hReservedFalse] at h
+          rcases h with ⟨hs, hd⟩
+          subst hs
+          exact ⟨d0, rfl, hReservedFalse, hd⟩
     | Apply f x =>
         exact False.elim (eo_to_smt_type_apply_ne_datatype f x s d h)
     | DtcAppType T1 T2 =>
@@ -304,19 +432,25 @@ theorem eo_to_smt_type_eq_datatype_iff
         cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
-  · rintro ⟨d0, rfl, hd⟩
-    simp [__eo_to_smt_type, hd]
+  · rintro ⟨d0, rfl, hReserved, hd⟩
+    simp [__eo_to_smt_type, hReserved, hd]
 
 /-- Characterizes translated EO types equal to an SMT type reference. -/
 theorem eo_to_smt_type_eq_typeref_iff
     {T : Term} {s : native_String} :
     __eo_to_smt_type T = SmtType.TypeRef s ↔
-      T = Term.DatatypeTypeRef s := by
+      T = Term.DatatypeTypeRef s ∧ native_reserved_datatype_name s = false := by
   constructor
   · intro h
     cases T with
     | DatatypeTypeRef s0 =>
-        simpa [__eo_to_smt_type] using h
+        by_cases hReserved : native_reserved_datatype_name s0 = true
+        · simp [__eo_to_smt_type, hReserved] at h
+        · have hReservedFalse : native_reserved_datatype_name s0 = false := by
+            cases hName : native_reserved_datatype_name s0 <;> simp [hName] at hReserved ⊢
+          simp [__eo_to_smt_type, hReservedFalse] at h
+          subst h
+          exact ⟨rfl, hReservedFalse⟩
     | Apply f x =>
         exact False.elim (eo_to_smt_type_apply_ne_typeref f x s h)
     | DtcAppType T1 T2 =>
@@ -328,8 +462,8 @@ theorem eo_to_smt_type_eq_typeref_iff
         cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
-  · intro h
-    simp [h, __eo_to_smt_type]
+  · rintro ⟨rfl, hReserved⟩
+    simp [__eo_to_smt_type, hReserved]
 
 /-- A translated function type is never an SMT sequence type. -/
 private theorem smtx_typeof_guard_fun_ne_seq
@@ -681,8 +815,9 @@ mutual
 
 def eo_type_valid_rec (refs : List native_String) : Term -> Prop
   | Term.Bool => True
-  | Term.DatatypeType s d => eo_datatype_valid_rec (s :: refs) d
-  | Term.DatatypeTypeRef s => s ∈ refs
+  | Term.DatatypeType s d =>
+      native_reserved_datatype_name s = false ∧ eo_datatype_valid_rec (s :: refs) d
+  | Term.DatatypeTypeRef s => native_reserved_datatype_name s = false ∧ s ∈ refs
   | Term.DtcAppType T U => eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U
   | Term.USort _ => True
   | Term.Apply (Term.Apply Term.FunType T1) T2 =>
@@ -748,10 +883,12 @@ theorem eo_type_valid_rec_non_none :
       simp [eo_type_valid_rec] at h
   | refs, Term.Var name ty, h => by
       simp [eo_type_valid_rec] at h
-  | refs, Term.DatatypeType s d, _ => by
-      simp [__eo_to_smt_type]
-  | refs, Term.DatatypeTypeRef s, _ => by
-      simp [__eo_to_smt_type]
+  | refs, Term.DatatypeType s d, h => by
+      rcases h with ⟨hReserved, _⟩
+      simp [__eo_to_smt_type, hReserved]
+  | refs, Term.DatatypeTypeRef s, h => by
+      rcases h with ⟨hReserved, _⟩
+      simp [__eo_to_smt_type, hReserved]
   | refs, Term.DtcAppType T U, h => by
       rcases h with ⟨hT, hU⟩
       have hTNN : __eo_to_smt_type T ≠ SmtType.None := eo_type_valid_rec_non_none hT
@@ -875,18 +1012,20 @@ private theorem eo_to_smt_type_unique_of_valid_rec
   | Term.Var name ty, U, hValid, hEq => by
       simp [eo_type_valid_rec] at hValid
   | Term.DatatypeType s d, U, hValid, hEq => by
+      rcases hValid with ⟨hReserved, hValid⟩
       have hU : __eo_to_smt_type U = SmtType.Datatype s (__eo_to_smt_datatype d) := by
-        simpa [__eo_to_smt_type] using hEq.symm
-      rcases eo_to_smt_type_eq_datatype_iff.mp hU with ⟨d0, hU', hd0⟩
+        simpa [__eo_to_smt_type, hReserved] using hEq.symm
+      rcases eo_to_smt_type_eq_datatype_iff.mp hU with ⟨d0, hU', _, hd0⟩
       subst hU'
       have hd : d = d0 :=
         eo_to_smt_datatype_unique_of_valid_rec (s :: refs) hValid hd0.symm
       cases hd
       rfl
   | Term.DatatypeTypeRef s, U, hValid, hEq => by
+      rcases hValid with ⟨hReserved, _⟩
       have hU : __eo_to_smt_type U = SmtType.TypeRef s := by
-        simpa [__eo_to_smt_type] using hEq.symm
-      exact (eo_to_smt_type_eq_typeref_iff.mp hU).symm
+        simpa [__eo_to_smt_type, hReserved] using hEq.symm
+      exact (eo_to_smt_type_eq_typeref_iff.mp hU).1.symm
   | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), U, hValid, hEq => by
       have hz : native_zleq 0 n = true := by
         simpa [native_zleq] using hValid
@@ -1145,11 +1284,23 @@ theorem eo_type_valid_of_smt_wf_rec
       | USort i =>
           simp [eo_type_valid_rec]
       | DatatypeType s d =>
-          simpa [eo_type_valid_rec, __eo_to_smt_type, __smtx_type_wf_rec] using
-            eo_datatype_valid_of_smt_wf_rec (s :: refs) h
+          by_cases hReserved : native_reserved_datatype_name s = true
+          · have : False := by
+              simp [__eo_to_smt_type, __smtx_type_wf_rec, hReserved] at h
+            exact False.elim this
+          · have hReservedFalse : native_reserved_datatype_name s = false := by
+              cases hName : native_reserved_datatype_name s <;> simp [hName] at hReserved ⊢
+            have hDt :
+                __smtx_dt_wf_rec (__eo_to_smt_datatype d) (s :: refs) = true := by
+              simpa [__eo_to_smt_type, __smtx_type_wf_rec, hReservedFalse] using h
+            exact ⟨hReservedFalse, eo_datatype_valid_of_smt_wf_rec (s :: refs) hDt⟩
       | DatatypeTypeRef s =>
           have : False := by
-            simp [__eo_to_smt_type, __smtx_type_wf_rec] at h
+            by_cases hReserved : native_reserved_datatype_name s = true
+            · simp [__eo_to_smt_type, __smtx_type_wf_rec, hReserved] at h
+            · have hReservedFalse : native_reserved_datatype_name s = false := by
+                cases hName : native_reserved_datatype_name s <;> simp [hName] at hReserved ⊢
+              simp [__eo_to_smt_type, __smtx_type_wf_rec, hReservedFalse] at h
           exact False.elim this
       | DtcAppType T U =>
           have : False := by
@@ -1221,15 +1372,18 @@ theorem eo_datatype_cons_valid_of_smt_wf_rec
             native_ite, hTy] at h
         exact False.elim this
       case TypeRef s =>
+        rcases (eo_to_smt_type_eq_typeref_iff.mp hTy) with ⟨hT, hReserved⟩
         have hT : T = Term.DatatypeTypeRef s :=
-          eo_to_smt_type_eq_typeref_iff.mp hTy
+          hT
         subst hT
         have h' :
             native_ite (native_reflist_contains refs s)
               (__smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs) false = true := by
-          simpa [__eo_to_smt_datatype_cons, __eo_to_smt_type, __smtx_dt_cons_wf_rec] using h
+          simpa [__eo_to_smt_datatype_cons, __eo_to_smt_type, __smtx_dt_cons_wf_rec,
+            hReserved] using h
         rcases native_ite_false_eq_true h' with ⟨hs, hC⟩
-        exact ⟨native_reflist_contains_true hs, eo_datatype_cons_valid_of_smt_wf_rec refs hC⟩
+        exact ⟨⟨hReserved, native_reflist_contains_true hs⟩,
+          eo_datatype_cons_valid_of_smt_wf_rec refs hC⟩
       all_goals
         have h' :
             native_ite (__smtx_type_wf_rec (__eo_to_smt_type T) refs)
@@ -1317,8 +1471,17 @@ theorem eo_to_smt_type_substitute_typeref
       simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.DatatypeTypeRef s2 => by
       by_cases hs : s2 = s
-      · simp [__eo_to_smt_type, native_ite, native_teq, native_Teq, hs]
-      · simp [__eo_to_smt_type, native_ite, native_teq, native_Teq, hs]
+      · subst s2
+        by_cases hReserved : native_reserved_datatype_name s = true
+        · simp [__eo_to_smt_type, native_ite, native_teq, native_Teq, hReserved]
+        · have hReservedFalse : native_reserved_datatype_name s = false := by
+            cases hName : native_reserved_datatype_name s <;> simp [hName] at hReserved ⊢
+          simp [__eo_to_smt_type, native_ite, native_teq, native_Teq, hReservedFalse]
+      · by_cases hReserved : native_reserved_datatype_name s2 = true
+        · simp [__eo_to_smt_type, native_ite, native_teq, native_Teq, hs, hReserved]
+        · have hReservedFalse : native_reserved_datatype_name s2 = false := by
+            cases hName : native_reserved_datatype_name s2 <;> simp [hName] at hReserved ⊢
+          simp [__eo_to_smt_type, native_ite, native_teq, native_Teq, hs, hReservedFalse]
   | Term.DtcAppType T U => by
       let V :=
         __smtx_typeof_guard (__eo_to_smt_type T)
@@ -1409,14 +1572,20 @@ private theorem eo_to_smt_substitute_aux
   | .inl (DatatypeCons.cons T c) => by
       cases T
       case DatatypeType s2 d2 =>
-        by_cases hst : native_streq s s2 = true
+        by_cases hReserved : native_reserved_datatype_name s2 = true
         · have hc := eo_to_smt_substitute_aux s d (.inl c)
           simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
-            native_ite, hst] using hc
-        · have hd2 := eo_to_smt_substitute_aux s d (.inr d2)
-          have hc := eo_to_smt_substitute_aux s d (.inl c)
-          simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
-            native_ite, hst] using And.intro hd2 hc
+            __eo_to_smt_type, native_ite, native_Teq, hReserved] using hc
+        · have hReservedFalse : native_reserved_datatype_name s2 = false := by
+            cases hName : native_reserved_datatype_name s2 <;> simp [hName] at hReserved ⊢
+          by_cases hst : native_streq s s2 = true
+          · have hc := eo_to_smt_substitute_aux s d (.inl c)
+            simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
+              __eo_to_smt_type, native_ite, native_Teq, hst, hReservedFalse] using hc
+          · have hd2 := eo_to_smt_substitute_aux s d (.inr d2)
+            have hc := eo_to_smt_substitute_aux s d (.inl c)
+            simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
+              __eo_to_smt_type, native_ite, native_Teq, hst, hReservedFalse] using And.intro hd2 hc
       case Apply f x =>
         have hc := eo_to_smt_substitute_aux s d (.inl c)
         dsimp [Sum.elim, __eo_dtc_substitute, __eo_to_smt_datatype_cons]
@@ -1437,6 +1606,20 @@ private theorem eo_to_smt_substitute_aux
             (by simpa using hc)
         · intro s2 d2
           exact eo_to_smt_type_dtc_app_ne_datatype T1 T2 s2 d2
+      case DatatypeTypeRef s2 =>
+        have hc := eo_to_smt_substitute_aux s d (.inl c)
+        dsimp [Sum.elim, __eo_dtc_substitute, __eo_to_smt_datatype_cons]
+        rw [smtx_dtc_substitute_non_datatype s (__eo_to_smt_datatype d)
+          (__eo_to_smt_type (Term.DatatypeTypeRef s2)) (__eo_to_smt_datatype_cons c)]
+        · exact smt_datatype_cons_congr
+            (eo_to_smt_type_substitute_typeref s d (Term.DatatypeTypeRef s2))
+            (by simpa using hc)
+        · intro s3 d3
+          by_cases hReserved : native_reserved_datatype_name s2 = true
+          · simp [__eo_to_smt_type, hReserved]
+          · have hReservedFalse : native_reserved_datatype_name s2 = false := by
+              cases hName : native_reserved_datatype_name s2 <;> simp [hName] at hReserved ⊢
+            simp [__eo_to_smt_type, hReservedFalse]
       case UOp op =>
         cases op <;>
           (have hc := eo_to_smt_substitute_aux s d (.inl c)

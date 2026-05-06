@@ -1,4 +1,5 @@
 import Cpc.Spec
+import Cpc.Proofs.Assumptions
 import Cpc.Proofs.RuleSupport.Support
 
 open Eo
@@ -14,23 +15,6 @@ inductive ValidAssumptionList : Term -> Prop
   | step (A rest : Term) : ValidAssumptionList rest ->
       ValidAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
-/-- Inductive predicate for valid assumption lists whose entries are non-stuck EO Boolean terms. -/
-inductive TypedAssumptionList : Term -> Prop
-  | base : TypedAssumptionList (Term.Boolean true)
-  | step (A rest : Term) :
-      A ≠ Term.Stuck ->
-      __eo_typeof A = Term.Bool ->
-      TypedAssumptionList rest ->
-      TypedAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
-
-/-- Inductive predicate for valid assumption lists whose entries all admit SMT translations. -/
-inductive TranslatableAssumptionList : Term -> Prop
-  | base : TranslatableAssumptionList (Term.Boolean true)
-  | step (A rest : Term) :
-      RuleProofs.eo_has_smt_translation A ->
-      TranslatableAssumptionList rest ->
-      TranslatableAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
-
 /-- Predicate asserting that a checker state is structurally well-formed and not `Stuck`. -/
 def stateOk : CState -> Prop
   | CState.nil => True
@@ -40,29 +24,29 @@ def stateOk : CState -> Prop
 /-- Simplifies EO-to-SMT translation for `true_eq`. -/
 private theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `false_eq`. -/
 private theorem eo_to_smt_false_eq :
     __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `stuck_eq`. -/
 private theorem eo_to_smt_stuck_eq :
     __eo_to_smt Term.Stuck = SmtTerm.None := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `and_eq`. -/
 private theorem eo_to_smt_and_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) B) =
       SmtTerm.and (__eo_to_smt A) (__eo_to_smt B) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Simplifies EO-to-SMT translation for `imp_eq`. -/
 private theorem eo_to_smt_imp_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) A) B) =
       SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Lemma about `eo_has_smt_translation_true`. -/
 private theorem eo_has_smt_translation_true :
