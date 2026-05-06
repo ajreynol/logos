@@ -1235,14 +1235,46 @@ private theorem native_ite_false_eq_true
   cases ha : a <;> cases hb : b <;> simp [native_ite, ha, hb] at h
   exact ⟨rfl, rfl⟩
 
+/-- Extracts recursive well-formedness through a non-`None` type guard. -/
+private theorem smtx_type_wf_rec_guard_of_true
+    (T U : SmtType) (refs : List native_String)
+    (h : __smtx_type_wf_rec (__smtx_typeof_guard T U) refs = true) :
+    __smtx_type_wf_rec U refs = true := by
+  cases T <;> simp [__smtx_typeof_guard, __smtx_type_wf_rec, native_ite, native_Teq] at h ⊢ <;>
+    exact h
+
+/-- Extracts the element recursive well-formedness from a recursive sequence wf proof. -/
+private theorem smtx_type_wf_rec_seq_component
+    {T : SmtType} {refs : List native_String}
+    (h : __smtx_type_wf_rec (SmtType.Seq T) refs = true) :
+    __smtx_type_wf_rec T [] = true := by
+  have hPair :
+      native_inhabited_type T = true ∧
+        __smtx_type_wf_rec T native_reflist_nil = true := by
+    simpa [__smtx_type_wf_rec, native_and] using h
+  exact hPair.2
+
+/-- Extracts domain/codomain recursive well-formedness from a recursive function wf proof. -/
+private theorem smtx_type_wf_rec_fun_components
+    {T U : SmtType} {refs : List native_String}
+    (h : __smtx_type_wf_rec (SmtType.FunType T U) refs = true) :
+    __smtx_type_wf_rec T [] = true ∧
+      __smtx_type_wf_rec U [] = true := by
+  have hPair :
+      native_inhabited_type T = true ∧
+        __smtx_type_wf_rec T native_reflist_nil = true ∧
+          native_inhabited_type U = true ∧
+            __smtx_type_wf_rec U native_reflist_nil = true := by
+    simpa [__smtx_type_wf_rec, native_and] using h
+  exact ⟨hPair.2.1, hPair.2.2.2⟩
+
 /-- A well-formed guarded sequence type has a well-formed element type. -/
 private theorem smtx_type_wf_rec_guard_seq_true
     (refs : List native_String) (T : SmtType)
     (h : __smtx_type_wf_rec (__smtx_typeof_guard T (SmtType.Seq T)) refs = true) :
     __smtx_type_wf_rec T [] = true := by
-  cases T <;>
-    simp [__smtx_typeof_guard, __smtx_type_wf_rec, native_ite, native_Teq] at h ⊢ <;>
-    simpa using h
+  exact smtx_type_wf_rec_seq_component
+    (smtx_type_wf_rec_guard_of_true T (SmtType.Seq T) refs h)
 
 /-- A well-formed guarded function type has well-formed domain and codomain. -/
 private theorem smtx_type_wf_rec_guard_fun_true
@@ -1252,10 +1284,13 @@ private theorem smtx_type_wf_rec_guard_fun_true
         (__smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.FunType T U))) refs = true) :
     __smtx_type_wf_rec T [] = true ∧
       __smtx_type_wf_rec U [] = true := by
-  cases T <;> cases U <;>
-    simp [__smtx_typeof_guard, __smtx_type_wf_rec, native_ite, native_Teq,
-      SmtEval.native_and] at h ⊢ <;>
-    simpa using h
+  have hInner :
+      __smtx_type_wf_rec (__smtx_typeof_guard U (SmtType.FunType T U)) refs = true :=
+    smtx_type_wf_rec_guard_of_true T
+      (__smtx_typeof_guard U (SmtType.FunType T U)) refs h
+  have hFun : __smtx_type_wf_rec (SmtType.FunType T U) refs = true :=
+    smtx_type_wf_rec_guard_of_true U (SmtType.FunType T U) refs hInner
+  exact smtx_type_wf_rec_fun_components hFun
 
 /- Well-formed translated EO datatypes have valid EO field shapes. -/
 mutual
@@ -1385,12 +1420,14 @@ theorem eo_datatype_cons_valid_of_smt_wf_rec
         exact ⟨⟨hReserved, native_reflist_contains_true hs⟩,
           eo_datatype_cons_valid_of_smt_wf_rec refs hC⟩
       all_goals
-        have h' :
-            native_ite (__smtx_type_wf_rec (__eo_to_smt_type T) refs)
-              (__smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs) false = true := by
-          simpa [__eo_to_smt_datatype_cons, __smtx_dt_cons_wf_rec, hTy] using h
-        rcases native_ite_false_eq_true h' with ⟨hT, hC⟩
-        exact ⟨eo_type_valid_of_smt_wf_rec refs hT, eo_datatype_cons_valid_of_smt_wf_rec refs hC⟩
+        have hAll :
+            native_inhabited_type (__eo_to_smt_type T) = true ∧
+              __smtx_type_wf_rec (__eo_to_smt_type T) refs = true ∧
+                __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true := by
+          simpa [__eo_to_smt_datatype_cons, __smtx_dt_cons_wf_rec, hTy,
+            native_ite, native_and] using h
+        exact ⟨eo_type_valid_of_smt_wf_rec refs hAll.2.1,
+          eo_datatype_cons_valid_of_smt_wf_rec refs hAll.2.2⟩
 
 theorem eo_datatype_valid_of_smt_wf_rec
     (refs : List native_String) :
@@ -1400,12 +1437,21 @@ theorem eo_datatype_valid_of_smt_wf_rec
   | Datatype.null, _ => by
       simp [eo_datatype_valid_rec]
   | Datatype.sum c d, h => by
-      have h' :
-          native_ite (__smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs)
-            (__smtx_dt_wf_rec (__eo_to_smt_datatype d) refs) false = true := by
-        simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec] using h
-      rcases native_ite_false_eq_true h' with ⟨hC, hD⟩
-      exact ⟨eo_datatype_cons_valid_of_smt_wf_rec refs hC, eo_datatype_valid_of_smt_wf_rec refs hD⟩
+      cases d with
+      | null =>
+          have hC : __smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs = true := by
+            simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec] using h
+          exact ⟨eo_datatype_cons_valid_of_smt_wf_rec refs hC, by
+            simp [eo_datatype_valid_rec]⟩
+      | sum cTail dTail =>
+          have h' :
+              native_ite (__smtx_dt_cons_wf_rec (__eo_to_smt_datatype_cons c) refs)
+                (__smtx_dt_wf_rec
+                  (__eo_to_smt_datatype (Datatype.sum cTail dTail)) refs) false = true := by
+            simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec] using h
+          rcases native_ite_false_eq_true h' with ⟨hC, hD⟩
+          exact ⟨eo_datatype_cons_valid_of_smt_wf_rec refs hC,
+            eo_datatype_valid_of_smt_wf_rec refs hD⟩
 
 end
 
@@ -1415,15 +1461,16 @@ theorem eo_type_valid_of_guard_wf_non_none
     (h : __smtx_typeof_guard_wf (__eo_to_smt_type T) (__eo_to_smt_type U) ≠ SmtType.None) :
     eo_type_valid_rec [] T := by
   unfold __smtx_typeof_guard_wf at h
-  cases hInh : native_inhabited_type (__eo_to_smt_type T) <;>
-    simp [native_ite, hInh] at h
   have hWf : __smtx_type_wf (__eo_to_smt_type T) = true := by
     by_cases h1 : __smtx_type_wf (__eo_to_smt_type T) = true
     · exact h1
     · exfalso
-      simp [h1] at h
-  change __smtx_type_wf_rec (__eo_to_smt_type T) [] = true at hWf
-  exact eo_type_valid_of_smt_wf_rec [] hWf
+      simp [native_ite, h1] at h
+  have hPair :
+      native_inhabited_type (__eo_to_smt_type T) = true ∧
+        __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true := by
+    simpa [__smtx_type_wf, native_and] using hWf
+  exact eo_type_valid_of_smt_wf_rec [] hPair.2
 
 /-- Translating EO type-reference substitution matches the corresponding SMT substitution step. -/
 theorem eo_to_smt_type_substitute_typeref

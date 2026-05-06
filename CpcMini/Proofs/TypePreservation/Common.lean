@@ -28,8 +28,7 @@ theorem smtx_typeof_guard_wf_of_non_none
     __smtx_typeof_guard_wf T U = U := by
   intro h
   unfold __smtx_typeof_guard_wf at h ⊢
-  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h ⊢
-  cases hWf : __smtx_type_wf T <;> simp [hWf] at h ⊢
+  cases hWf : __smtx_type_wf T <;> simp [native_ite, hWf] at h ⊢
 
 /-- Extracts semantic inhabitation from a non-`None` guarded type. -/
 theorem smtx_typeof_guard_wf_inhabited_of_non_none
@@ -38,8 +37,37 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
     type_inhabited T := by
   intro h
   unfold __smtx_typeof_guard_wf at h
-  cases hInh : native_inhabited_type T <;> simp [native_ite, hInh] at h
-  exact (smtx_inhabited_type_eq_true_iff T).1 hInh
+  cases hWf : __smtx_type_wf T <;> simp [native_ite, hWf] at h
+  have hPair :
+      native_inhabited_type T = true ∧
+        __smtx_type_wf_rec T native_reflist_nil = true := by
+    simpa [__smtx_type_wf, native_and] using hWf
+  exact (smtx_inhabited_type_eq_true_iff T).1 hPair.1
+
+/-- Extracts well-formedness of the guarded source type from a non-`None` guarded type. -/
+theorem smtx_typeof_guard_wf_wf_of_non_none
+    (T U : SmtType) :
+    __smtx_typeof_guard_wf T U ≠ SmtType.None ->
+    __smtx_type_wf T = true := by
+  intro h
+  unfold __smtx_typeof_guard_wf at h
+  cases hWf : __smtx_type_wf T <;> simp [native_ite, hWf] at h ⊢
+
+/-- Any well-formed SMT type is different from `None`. -/
+theorem type_wf_non_none
+    {T : SmtType}
+    (h : __smtx_type_wf T = true) :
+    T ≠ SmtType.None := by
+  intro hNone
+  simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hNone] at h
+
+/-- Rebuilds public well-formedness from recursive well-formedness plus inhabitation. -/
+theorem type_wf_of_inhabited_and_wf_rec
+    {T : SmtType}
+    (hInh : native_inhabited_type T = true)
+    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    __smtx_type_wf T = true := by
+  simp [__smtx_type_wf, native_and, hInh, hRec]
 
 /-- Predicate asserting that an SMT term does not have type `None`. -/
 def term_has_non_none_type (t : SmtTerm) : Prop :=

@@ -17,7 +17,7 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT translation for `term_tuple_unit`. -/
 @[simp] theorem eo_to_smt_term_tuple_unit :
     __eo_to_smt (Term.UOp UserOp.tuple_unit) =
-      SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := rfl
+      SmtTerm.DtCons "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := rfl
 
 /-- Simplifies EO-to-SMT translation for `term_dt_cons`. -/
 @[simp] theorem eo_to_smt_term_dt_cons
@@ -51,7 +51,7 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT type translation for `unit_tuple`. -/
 @[simp] theorem eo_to_smt_type_unit_tuple :
     __eo_to_smt_type (Term.UOp UserOp.UnitTuple) =
-      SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
+      SmtType.Datatype "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_step`. -/
@@ -119,20 +119,24 @@ theorem eo_to_smt_typeof_dt_sel_return :
 /-- Computes `__smtx_typeof` for `tuple_unit_translation`. -/
 theorem smtx_typeof_tuple_unit_translation :
     __smtx_typeof
-        (SmtTerm.DtCons "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) =
-      SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
+        (SmtTerm.DtCons "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) =
+      SmtType.Datatype "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
   let tupleTy :=
-    SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+    SmtType.Datatype "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
   have hInh : native_inhabited_type tupleTy = true := by
     classical
     unfold native_inhabited_type
     apply decide_eq_true
-    refine ⟨SmtValue.DtCons "_at_Tuple"
+    refine ⟨SmtValue.DtCons "@Tuple"
       (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0, ?_⟩
     simp [tupleTy, __smtx_typeof_value, __smtx_type_wf, __smtx_type_wf_rec,
       __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, native_ite,
       __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute]
-  have hWf : __smtx_type_wf tupleTy = true := by native_decide
+  have hRec : __smtx_type_wf_rec tupleTy native_reflist_nil = true := by
+    simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
+      __smtx_dt_cons_wf_rec]
+  have hWf : __smtx_type_wf tupleTy = true := by
+    simp [__smtx_type_wf, native_and, hInh, hRec]
   unfold __smtx_typeof
   simp [tupleTy, __smtx_typeof_guard_wf, hInh, hWf, native_ite,
     __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec]

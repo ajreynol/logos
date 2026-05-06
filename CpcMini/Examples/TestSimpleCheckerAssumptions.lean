@@ -51,10 +51,10 @@ private theorem uconst_int_smt_type (i : native_Nat) :
   have hInh : native_inhabited_type SmtType.Int = true :=
     (smtx_inhabited_type_eq_true_iff SmtType.Int).2 type_inhabited_int
   have hWf : __smtx_type_wf SmtType.Int = true := by
-    simp [__smtx_type_wf, __smtx_type_wf_rec]
+    simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hInh]
   have hNonNone :
       __smtx_typeof (SmtTerm.UConst (native_uconst_id i) SmtType.Int) ≠ SmtType.None := by
-    simp [__smtx_typeof, __smtx_typeof_guard_wf, native_ite, hInh, hWf]
+    simp [__smtx_typeof, __smtx_typeof_guard_wf, native_ite, hWf]
   simpa [__eo_to_smt, __eo_to_smt_type] using
     TranslationProofs.smtx_typeof_uconst_of_non_none (native_uconst_id i) SmtType.Int hNonNone
 

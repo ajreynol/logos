@@ -24,6 +24,16 @@ They let the main translation theorem make progress on the direct constructor
 cases while we continue filling in the EO typing story separately.
 -/
 
+private theorem smtx_type_wf_rec_of_type_wf
+    {T : SmtType}
+    (h : __smtx_type_wf T = true) :
+    __smtx_type_wf_rec T native_reflist_nil = true := by
+  have hPair :
+      native_inhabited_type T = true ∧
+        __smtx_type_wf_rec T native_reflist_nil = true := by
+    simpa [__smtx_type_wf, native_and] using h
+  exact hPair.2
+
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
 theorem smtx_typeof_guard_of_non_none
     (T U : SmtType) (h : T ≠ SmtType.None) :
@@ -35,9 +45,11 @@ theorem smtx_type_wf_guard_of_true
     (T U : SmtType)
     (h : __smtx_type_wf (__smtx_typeof_guard T U) = true) :
     __smtx_type_wf U = true := by
-  cases T <;>
-    simp [__smtx_typeof_guard, __smtx_type_wf, __smtx_type_wf_rec, native_ite,
-      native_Teq] at h ⊢ <;>
+  cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq] at h ⊢
+  case None =>
+    exact False.elim (by
+      simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h)
+  all_goals
     exact h
 
 /-- Extracts the element well-formedness from a guarded sequence type. -/
@@ -458,7 +470,11 @@ private theorem smtx_dtc_substitute_of_wf_rec
           have hPair :
               __smtx_type_wf_rec (SmtType.Datatype s d) refs = true ∧
                 __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+            have hField :
+                smtx_type_field_wf_rec (SmtType.Datatype s d) refs :=
+              smtx_type_field_wf_rec_of_cons_wf hWf
+            exact ⟨by simpa [smtx_type_field_wf_rec] using hField,
+              smtx_dt_cons_wf_rec_tail_of_true hWf⟩
           have hT := smtx_type_substitute_top_of_wf_rec sub d0 (SmtType.Datatype s d) refs hNot hPair.1
           have hC := smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hPair.2
           simpa [smtx_type_substitute_top, __smtx_dtc_substitute, hC] using
@@ -469,63 +485,59 @@ private theorem smtx_dtc_substitute_of_wf_rec
           simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
       | Bool =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using hWf
+            exact smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | Int =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using hWf
+            exact smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | Real =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using hWf
+            exact smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | RegLan =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using hWf
+            exact smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | BitVec n =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using hWf
+            exact smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | Map A B =>
-          have hPair : __smtx_type_wf_rec (SmtType.Map A B) refs = true ∧
-              __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+          have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+            smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
-            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hPair.2]
+            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | Set A =>
-          have hPair : __smtx_type_wf_rec (SmtType.Set A) refs = true ∧
-              __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+          have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+            smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
-            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hPair.2]
+            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | Seq A =>
-          have hPair : __smtx_type_wf_rec (SmtType.Seq A) refs = true ∧
-              __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+          have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+            smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
-            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hPair.2]
+            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | Char =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using hWf
+            exact smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | USort n =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] using hWf
+            exact smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | FunType A B =>
-          have hPair : __smtx_type_wf_rec (SmtType.FunType A B) refs = true ∧
-              __smtx_dt_cons_wf_rec c refs = true := by
-            simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+          have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+            smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
-            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hPair.2]
+            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
 
 private theorem smtx_dt_substitute_of_wf_rec
     (sub : native_String) (d0 : SmtDatatype) :
@@ -535,11 +547,25 @@ private theorem smtx_dt_substitute_of_wf_rec
       __smtx_dt_substitute sub d0 d = d
   | SmtDatatype.null, refs, hNot, hWf => by rfl
   | SmtDatatype.sum c d, refs, hNot, hWf => by
-      have hPair : __smtx_dt_cons_wf_rec c refs = true ∧ __smtx_dt_wf_rec d refs = true := by
-        simpa [__smtx_dt_wf_rec, native_ite] using hWf
-      simp [__smtx_dt_substitute,
-        smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hPair.1,
-        smtx_dt_substitute_of_wf_rec sub d0 d refs hNot hPair.2]
+      have hCons : __smtx_dt_cons_wf_rec c refs = true := by
+        cases hC : __smtx_dt_cons_wf_rec c refs <;>
+          cases d <;> simp [__smtx_dt_wf_rec, native_ite, hC] at hWf ⊢
+      cases d with
+      | null =>
+          simp [__smtx_dt_substitute,
+            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hCons]
+      | sum cTail dTail =>
+          have hTail :
+              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
+            simpa [__smtx_dt_wf_rec, native_ite, hCons] using hWf
+          have hCSub := smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hCons
+          have hDSub :=
+            smtx_dt_substitute_of_wf_rec sub d0 (SmtDatatype.sum cTail dTail) refs hNot hTail
+          change
+            SmtDatatype.sum (__smtx_dtc_substitute sub d0 c)
+                (__smtx_dt_substitute sub d0 (SmtDatatype.sum cTail dTail)) =
+              SmtDatatype.sum c (SmtDatatype.sum cTail dTail)
+          rw [hCSub, hDSub]
 
 end
 
@@ -602,10 +628,12 @@ private theorem eo_to_smt_type_substitute_field
   | Term.UOp op => by
       cases op
       case UnitTuple =>
-        let tupleTy := SmtType.Datatype "_at_Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+        let tupleTy := SmtType.Datatype "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
         have hNoop : smtx_type_substitute_top sub (__eo_to_smt_datatype d0) tupleTy = tupleTy := by
           exact smtx_type_substitute_top_of_wf_rec sub (__eo_to_smt_datatype d0) tupleTy
-            native_reflist_nil (by rfl) (by native_decide)
+            native_reflist_nil (by rfl)
+            (by simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
+              __smtx_dt_cons_wf_rec])
         change tupleTy = smtx_type_substitute_top sub (__eo_to_smt_datatype d0) tupleTy
         exact hNoop.symm
       all_goals
@@ -673,13 +701,15 @@ private theorem eo_to_smt_type_substitute_field
               (__eo_to_smt_type x1) inner hInner).symm
           case Tuple =>
             let raw := __eo_to_smt_type_tuple (__eo_to_smt_type x1) (__eo_to_smt_type x)
-            cases hWf : __smtx_type_wf raw
-            · simp [raw, eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-                native_ite, native_teq, native_Teq, hWf]
-            · simp [raw, eo_type_substitute_field, __eo_to_smt_type,
-                native_ite, native_teq, native_Teq, hWf]
-              exact (smtx_type_substitute_top_of_wf_rec sub (__eo_to_smt_datatype d0) raw
-                native_reflist_nil (by rfl) hWf).symm
+            cases hWf : __smtx_type_wf raw with
+            | false =>
+                simp [raw, eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
+                  native_ite, native_teq, native_Teq, hWf]
+            | true =>
+                simp [raw, eo_type_substitute_field, __eo_to_smt_type,
+                  native_ite, native_teq, native_Teq, hWf]
+                exact (smtx_type_substitute_top_of_wf_rec sub (__eo_to_smt_datatype d0) raw
+                  native_reflist_nil (by rfl) (smtx_type_wf_rec_of_type_wf hWf)).symm
           all_goals
             simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
               native_ite, native_teq, native_Teq]
@@ -804,27 +834,30 @@ private theorem smtx_typeof_dt_cons_rec_succ (T : SmtType) (c : SmtDatatypeCons)
 
 private theorem smtx_dt_wf_tail_of_sum_wf
     (c : SmtDatatypeCons) (d : SmtDatatype) (refs : RefList)
+    (hTail : d ≠ SmtDatatype.null)
     (hWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
     __smtx_dt_wf_rec d refs = true := by
-  have hPair : __smtx_dt_cons_wf_rec c refs = true ∧ __smtx_dt_wf_rec d refs = true := by
-    simpa [__smtx_dt_wf_rec, native_ite] using hWf
-  exact hPair.2
+  cases d with
+  | null =>
+      exact False.elim (hTail rfl)
+  | sum cTail dTail =>
+      have hCons : __smtx_dt_cons_wf_rec c refs = true := by
+        cases hC : __smtx_dt_cons_wf_rec c refs <;>
+          simp [__smtx_dt_wf_rec, native_ite, hC] at hWf ⊢
+      simpa [__smtx_dt_wf_rec, native_ite, hCons] using hWf
 
 private theorem smtx_dt_cons_wf_of_sum_wf
     (c : SmtDatatypeCons) (d : SmtDatatype) (refs : RefList)
     (hWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
     __smtx_dt_cons_wf_rec c refs = true := by
-  have hPair : __smtx_dt_cons_wf_rec c refs = true ∧ __smtx_dt_wf_rec d refs = true := by
-    simpa [__smtx_dt_wf_rec, native_ite] using hWf
-  exact hPair.1
+  cases hC : __smtx_dt_cons_wf_rec c refs <;>
+    cases d <;> simp [__smtx_dt_wf_rec, native_ite, hC] at hWf ⊢
 
 private theorem smtx_dt_cons_tail_wf_of_wf_rec
     (U : SmtType) (c : SmtDatatypeCons) (refs : RefList)
     (hWf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons U c) refs = true) :
     __smtx_dt_cons_wf_rec c refs = true := by
-  cases U <;> simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf ⊢
-  all_goals try exact hWf
-  all_goals try exact hWf.2
+  exact smtx_dt_cons_wf_rec_tail_of_true hWf
 
 private theorem smtx_type_substitute_top_ne_none_of_cons_wf
     (sub : native_String) (d0 : SmtDatatype) (U : SmtType) (c : SmtDatatypeCons) (refs : RefList)
@@ -895,11 +928,14 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
         smtx_type_substitute_top_ne_none_of_cons_wf sub d0Smt (__eo_to_smt_type U) cSmt refs hCons
       have hTailCons : __smtx_dt_cons_wf_rec cSmt refs = true :=
         smtx_dt_cons_tail_wf_of_wf_rec (__eo_to_smt_type U) cSmt refs hCons
-      have hDtTail : __smtx_dt_wf_rec dSmt refs = true :=
-        smtx_dt_wf_tail_of_sum_wf _ _ refs (by simpa [cSmt, dSmt] using hWf)
       have hTailWf : __smtx_dt_wf_rec (__eo_to_smt_datatype (Datatype.sum c d)) refs = true := by
-        simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec, cSmt, dSmt, hTailCons,
-          hDtTail, native_ite]
+        by_cases hDnull : dSmt = SmtDatatype.null
+        · simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec, cSmt, dSmt, hDnull,
+            hTailCons, native_ite]
+        · have hDtTail : __smtx_dt_wf_rec dSmt refs = true :=
+            smtx_dt_wf_tail_of_sum_wf _ _ refs hDnull (by simpa [cSmt, dSmt] using hWf)
+          simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec, cSmt, dSmt, hTailCons,
+            hDtTail, native_ite]
       have hRec := eo_to_smt_typeof_dt_cons_rec_substitute_of_wf sub d0 T hT
         (Datatype.sum c d) native_nat_zero refs hTailWf
       have hRestNN :
@@ -932,9 +968,17 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
           (SmtDatatype.sum (__smtx_dtc_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype_cons c))
             (__smtx_dt_substitute sub (__eo_to_smt_datatype d0) (__eo_to_smt_datatype d))) (native_nat_succ n)
       rw [smtx_typeof_dt_cons_rec_succ]
-      have hDtTail : __smtx_dt_wf_rec (__eo_to_smt_datatype d) refs = true := by
-        exact smtx_dt_wf_tail_of_sum_wf _ _ refs (by simpa [__eo_to_smt_datatype] using hWf)
-      exact eo_to_smt_typeof_dt_cons_rec_substitute_of_wf sub d0 T hT d n refs hDtTail
+      cases d with
+      | null =>
+          simp [__eo_dt_substitute, __smtx_dt_substitute, eo_typeof_dt_cons_rec_null,
+            smtx_typeof_dt_cons_rec_null, __eo_to_smt_type]
+      | sum cTail dTail =>
+          have hDtTail :
+              __smtx_dt_wf_rec (__eo_to_smt_datatype (Datatype.sum cTail dTail)) refs = true := by
+            exact smtx_dt_wf_tail_of_sum_wf _ _ refs (by simp [__eo_to_smt_datatype])
+              (by simpa [__eo_to_smt_datatype] using hWf)
+          exact eo_to_smt_typeof_dt_cons_rec_substitute_of_wf sub d0 T hT
+            (Datatype.sum cTail dTail) n refs hDtTail
 
 theorem eo_to_smt_type_typeof_dt_cons
     (s : native_String) (d : Datatype) (i : native_Nat)
@@ -952,7 +996,7 @@ theorem eo_to_smt_type_typeof_dt_cons
     exact smtx_typeof_guard_wf_of_non_none (SmtType.Datatype s dSmt) raw hGuardNN
   have hBaseWf : __smtx_dt_wf_rec dSmt (native_reflist_insert native_reflist_nil s) = true := by
     have hWf := Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s dSmt) raw hGuardNN
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, dSmt] using hWf
+    exact datatype_wf_rec_of_type_wf hWf
   have hBaseNN : __eo_to_smt_type (Term.DatatypeType s d) ≠ SmtType.None := by
     simp [__eo_to_smt_type, native_ite, hReserved]
   have hRec := eo_to_smt_typeof_dt_cons_rec_substitute_of_wf s d (Term.DatatypeType s d)
@@ -1336,27 +1380,27 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_tuple_update_of_smt_numeral_tuple`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tuple
     (x y z : Term) (d : SmtDatatype) (n : native_Int)
-    (hy : __eo_to_smt_type (__eo_typeof y) = SmtType.Datatype "_at_Tuple" d)
+    (hy : __eo_to_smt_type (__eo_typeof y) = SmtType.Datatype "@Tuple" d)
     (hz : __eo_to_smt z = SmtTerm.Numeral n)
     (h :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x)) ≠
         SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x)) =
-      SmtType.Datatype "_at_Tuple" d := by
+      SmtType.Datatype "@Tuple" d := by
   let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x
   have hTranslate :
       __eo_to_smt t =
-        __eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
+        __eo_to_smt_tuple_update (SmtType.Datatype "@Tuple" d)
           (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x) := by
     change
       __eo_to_smt_tuple_update (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt z)
           (__eo_to_smt y) (__eo_to_smt x) =
-        __eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
+        __eo_to_smt_tuple_update (SmtType.Datatype "@Tuple" d)
           (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x)
     rw [hy, hz]
   have hTupleNN :
       __smtx_typeof
-          (__eo_to_smt_tuple_update (SmtType.Datatype "_at_Tuple" d)
+          (__eo_to_smt_tuple_update (SmtType.Datatype "@Tuple" d)
             (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x)) ≠
         SmtType.None := by
     rw [← hTranslate]
@@ -1368,43 +1412,43 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tupl
   have hUpdaterNN :
       __smtx_typeof
           (__eo_to_smt_updater
-            (SmtTerm.DtSel "_at_Tuple" d native_nat_zero (native_int_to_nat n))
+            (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat n))
             (__eo_to_smt y) (__eo_to_smt x)) ≠
         SmtType.None := by
     simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hTupleNN
   have hIteNN :
       term_has_non_none_type
         (SmtTerm.ite
-          (SmtTerm.Apply (SmtTerm.DtTester "_at_Tuple" d native_nat_zero) (__eo_to_smt y))
+          (SmtTerm.Apply (SmtTerm.DtTester "@Tuple" d native_nat_zero) (__eo_to_smt y))
           (__eo_to_smt_updater_rec
-            (SmtTerm.DtSel "_at_Tuple" d native_nat_zero (native_int_to_nat n))
+            (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat n))
             (__smtx_dt_num_sels d native_nat_zero) (__eo_to_smt y)
-            (__eo_to_smt x) (SmtTerm.DtCons "_at_Tuple" d native_nat_zero))
+            (__eo_to_smt x) (SmtTerm.DtCons "@Tuple" d native_nat_zero))
           (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     simpa [__eo_to_smt_updater] using hUpdaterNN
   rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, hT⟩
   have hCondNN :
       term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.DtTester "_at_Tuple" d native_nat_zero) (__eo_to_smt y)) := by
+        (SmtTerm.Apply (SmtTerm.DtTester "@Tuple" d native_nat_zero) (__eo_to_smt y)) := by
     unfold term_has_non_none_type
     rw [hCond]
     simp
-  have hYTy : __smtx_typeof (__eo_to_smt y) = SmtType.Datatype "_at_Tuple" d := by
+  have hYTy : __smtx_typeof (__eo_to_smt y) = SmtType.Datatype "@Tuple" d := by
     exact dt_tester_arg_datatype_of_non_none hCondNN
-  have hTTy : T = SmtType.Datatype "_at_Tuple" d := by
+  have hTTy : T = SmtType.Datatype "@Tuple" d := by
     exact hElse.symm.trans hYTy
   have hInnerTy :
       __smtx_typeof
           (__eo_to_smt_updater
-            (SmtTerm.DtSel "_at_Tuple" d native_nat_zero (native_int_to_nat n))
+            (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat n))
             (__eo_to_smt y) (__eo_to_smt x)) =
-        SmtType.Datatype "_at_Tuple" d := by
+        SmtType.Datatype "@Tuple" d := by
     rw [__eo_to_smt_updater]
     rw [typeof_ite_eq]
     rw [hCond, hThen, hElse, hTTy]
     simp [__smtx_typeof_ite, native_ite, native_Teq]
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "_at_Tuple" d := by
+  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d := by
     rw [hTranslate]
     simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hInnerTy
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
@@ -1607,8 +1651,8 @@ theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
   have hHeadTranslate :
       __eo_to_smt (Term._at_array_deq_diff x1 x2) =
         (let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_array_deq_diff x1 x2));
-         let _v2 := SmtTerm.Var "_at_x" _v0;
-         SmtTerm.choice_nth "_at_x" _v0
+         let _v2 := SmtTerm.Var "@x" _v0;
+         SmtTerm.choice_nth "@x" _v0
           (SmtTerm.not (SmtTerm.eq (SmtTerm.select (__eo_to_smt x1) _v2) (SmtTerm.select (__eo_to_smt x2) _v2))) 0) := by
     rfl
   have hTranslate :
@@ -1650,7 +1694,7 @@ theorem eo_to_smt_type_typeof_apply_abs_of_int
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.abs) x)) = SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof_abs (__eo_typeof x)) = SmtType.Int
   rw [hx]
-  native_decide
+  simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_len_of_seq`. -/
 theorem eo_to_smt_type_typeof_apply_str_len_of_seq
@@ -1757,8 +1801,8 @@ theorem eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply
   have hHeadTranslate :
       __eo_to_smt (Term._at_sets_deq_diff x1 x2) =
         let _v0 := __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))
-        let _v2 := SmtTerm.Var "_at_x" _v0
-        SmtTerm.choice_nth "_at_x" _v0
+        let _v2 := SmtTerm.Var "@x" _v0
+        SmtTerm.choice_nth "@x" _v0
           (SmtTerm.not
             (SmtTerm.eq
               (SmtTerm.set_member _v2 (__eo_to_smt x1))
@@ -1785,7 +1829,7 @@ theorem eo_to_smt_type_typeof_apply_to_real_of_int
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.Real := by
   change __eo_to_smt_type (__eo_typeof_to_real (__eo_typeof x)) = SmtType.Real
   rw [hx]
-  native_decide
+  simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_real_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_to_real_of_real
@@ -1794,7 +1838,7 @@ theorem eo_to_smt_type_typeof_apply_to_real_of_real
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.Real := by
   change __eo_to_smt_type (__eo_typeof_to_real (__eo_typeof x)) = SmtType.Real
   rw [hx]
-  native_decide
+  simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_int_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_to_int_of_real
@@ -2268,10 +2312,10 @@ theorem eo_to_smt_type_typeof_apply_apply_plus_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_neg_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_neg_of_smt_arith
@@ -2283,10 +2327,10 @@ theorem eo_to_smt_type_typeof_apply_apply_neg_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_mult_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_mult_of_smt_arith
@@ -2298,10 +2342,10 @@ theorem eo_to_smt_type_typeof_apply_apply_mult_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_lt_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_lt_of_smt_arith
@@ -2313,10 +2357,10 @@ theorem eo_to_smt_type_typeof_apply_apply_lt_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_leq_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_leq_of_smt_arith
@@ -2328,10 +2372,10 @@ theorem eo_to_smt_type_typeof_apply_apply_leq_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_gt_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_gt_of_smt_arith
@@ -2343,10 +2387,10 @@ theorem eo_to_smt_type_typeof_apply_apply_gt_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_geq_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_geq_of_smt_arith
@@ -2358,10 +2402,10 @@ theorem eo_to_smt_type_typeof_apply_apply_geq_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_div_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_div_of_smt_int
@@ -2445,10 +2489,10 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_qdiv_total_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
@@ -2461,10 +2505,10 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
   · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    native_decide
+    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 end DeferredTypeRecovery
 
@@ -2532,7 +2576,7 @@ theorem eo_to_smt_type_typeof_apply_apply_plus_of_arith_type
       __eo_to_smt_type T := by
   change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = __eo_to_smt_type T
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_neg`. -/
 theorem eo_to_smt_type_typeof_apply_apply_neg_of_arith_type
@@ -2544,7 +2588,7 @@ theorem eo_to_smt_type_typeof_apply_apply_neg_of_arith_type
       __eo_to_smt_type T := by
   change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = __eo_to_smt_type T
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_mult`. -/
 theorem eo_to_smt_type_typeof_apply_apply_mult_of_arith_type
@@ -2556,7 +2600,7 @@ theorem eo_to_smt_type_typeof_apply_apply_mult_of_arith_type
       __eo_to_smt_type T := by
   change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = __eo_to_smt_type T
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_lt`. -/
 theorem eo_to_smt_type_typeof_apply_apply_lt_of_arith_type
@@ -2567,7 +2611,7 @@ theorem eo_to_smt_type_typeof_apply_apply_lt_of_arith_type
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.lt) y) x)) = SmtType.Bool := by
   change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_leq`. -/
 theorem eo_to_smt_type_typeof_apply_apply_leq_of_arith_type
@@ -2578,7 +2622,7 @@ theorem eo_to_smt_type_typeof_apply_apply_leq_of_arith_type
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.leq) y) x)) = SmtType.Bool := by
   change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_gt`. -/
 theorem eo_to_smt_type_typeof_apply_apply_gt_of_arith_type
@@ -2589,7 +2633,7 @@ theorem eo_to_smt_type_typeof_apply_apply_gt_of_arith_type
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.gt) y) x)) = SmtType.Bool := by
   change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_geq`. -/
 theorem eo_to_smt_type_typeof_apply_apply_geq_of_arith_type
@@ -2600,7 +2644,7 @@ theorem eo_to_smt_type_typeof_apply_apply_geq_of_arith_type
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.geq) y) x)) = SmtType.Bool := by
   change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_div`. -/
 theorem eo_to_smt_type_typeof_apply_apply_div_of_int
@@ -2687,7 +2731,7 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_of_arith_type
       SmtType.Real := by
   change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_qdiv_total`. -/
 theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_arith_type
@@ -2699,7 +2743,7 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_arith_type
       SmtType.Real := by
   change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> native_decide
+  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_ite`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_ite_of_bool_same_type
