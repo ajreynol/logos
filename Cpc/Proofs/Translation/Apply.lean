@@ -10,7 +10,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -1022,7 +1021,7 @@ private theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none
         simp [__eo_to_smt_seq_empty, __smtx_typeof]]
       cases hInh : native_inhabited_type U <;>
       cases hWf : __smtx_type_wf U <;>
-        simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hInh, hWf]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hWf]
 
 /-- Computes the type of applying a translated `seq_empty` as a head. -/
 private theorem typeof_apply_eo_to_smt_seq_empty_eq_none
@@ -5282,7 +5281,7 @@ private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
         rw [__smtx_typeof.eq_120]]
       cases hInh : native_inhabited_type U <;>
       cases hWf : __smtx_type_wf U <;>
-        simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hInh, hWf]
+        simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hWf]
 
 /-- Computes `__smtx_typeof` for `not` terms. -/
 private theorem smtx_typeof_not_bool_or_none
@@ -10508,7 +10507,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
               SmtType.Int := by
           change __eo_to_smt_type (__eo_typeof_abs (__eo_typeof x)) = SmtType.Int
           rw [hxEo]
-          simp [__eo_to_smt_type, __eo_typeof_abs, __eo_requires, __is_arith_type,
+          simp [__eo_typeof_abs, __eo_requires, __is_arith_type,
             native_ite, native_teq, native_not]
         exact hSmt.trans hEo.symm
       · have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
@@ -10529,7 +10528,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
               SmtType.Real := by
           change __eo_to_smt_type (__eo_typeof_abs (__eo_typeof x)) = SmtType.Real
           rw [hxEo]
-          simp [__eo_to_smt_type, __eo_typeof_abs, __eo_requires, __is_arith_type,
+          simp [__eo_typeof_abs, __eo_requires, __is_arith_type,
             native_ite, native_teq, native_not]
         exact hSmt.trans hEo.symm
     case int_pow2 =>

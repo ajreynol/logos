@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
@@ -130,16 +129,15 @@ theorem smtx_typeof_tuple_unit_translation :
     apply decide_eq_true
     refine ⟨SmtValue.DtCons "@Tuple"
       (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0, ?_⟩
-    simp [tupleTy, __smtx_typeof_value, __smtx_type_wf, __smtx_type_wf_rec,
-      __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec, native_ite,
-      __smtx_typeof_dt_cons_value_rec, __smtx_dt_substitute, __smtx_dtc_substitute]
+    simp [tupleTy, __smtx_typeof_value, __smtx_typeof_dt_cons_value_rec,
+      __smtx_dt_substitute, __smtx_dtc_substitute]
   have hRec : __smtx_type_wf_rec tupleTy native_reflist_nil = true := by
     simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
       __smtx_dt_cons_wf_rec]
   have hWf : __smtx_type_wf tupleTy = true := by
     simp [__smtx_type_wf, native_and, hInh, hRec]
   unfold __smtx_typeof
-  simp [tupleTy, __smtx_typeof_guard_wf, hInh, hWf, native_ite,
+  simp [tupleTy, __smtx_typeof_guard_wf, hWf, native_ite,
     __smtx_dt_substitute, __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec]
 
 end TranslationProofs

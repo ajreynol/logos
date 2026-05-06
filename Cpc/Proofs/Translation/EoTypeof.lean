@@ -12,7 +12,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -176,7 +175,7 @@ private theorem typeof_binary_one_eq :
     unfold __smtx_typeof
     simp [native_ite, SmtEval.native_and, native_zleq, native_zeq, native_mod_total,
       native_int_pow2]
-    native_decide
+    rfl
   simpa using smtx_typeof_binary_of_non_none 1 1 hNN
 
 /-- Computes `__smtx_typeof_apply` for function-like apply heads. -/
@@ -463,7 +462,7 @@ private theorem smtx_dtc_substitute_of_wf_rec
             rw [hNot] at hContains
             cases hContains
           · have hTail : __smtx_dt_cons_wf_rec c refs = true := by
-              simp [__smtx_dt_cons_wf_rec, native_ite, hEq] at hWf
+              simp [__smtx_dt_cons_wf_rec, native_ite] at hWf
               exact hWf.2
             have hTailSub := smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail
             have hNe : s ≠ sub := by intro hs; exact hEq hs.symm
@@ -606,12 +605,12 @@ private theorem eo_to_smt_type_substitute_field
         · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
             native_ite, native_streq, native_Teq, hRes]
         · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-            native_ite, native_streq, native_Teq, hRes]
+            native_ite, native_streq, hRes]
       · by_cases hRes : __eo_reserved_datatype_name s = true
         · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
             native_ite, native_streq, native_Teq, hEq, hRes]
         · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-            native_ite, native_streq, native_Teq, hEq, hRes,
+            native_ite, native_streq, hEq, hRes,
             eo_to_smt_datatype_substitute sub d0 d]
   | Term.DatatypeTypeRef s => by
       by_cases hEq : s = sub
@@ -626,7 +625,7 @@ private theorem eo_to_smt_type_substitute_field
         · simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
             native_ite, native_teq, native_Teq, hEq, hRes]
         simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-          native_ite, native_teq, native_Teq, hEq, hNe, hRes]
+          native_ite, native_teq, native_Teq, hEq, hRes]
   | Term.UOp op => by
       cases op
       case UnitTuple =>
@@ -639,8 +638,7 @@ private theorem eo_to_smt_type_substitute_field
         change tupleTy = smtx_type_substitute_top sub (__eo_to_smt_datatype d0) tupleTy
         exact hNoop.symm
       all_goals
-        simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-          native_ite, native_teq, native_Teq]
+        rfl
   | Term.Apply f x => by
       cases f
       case UOp op =>
@@ -650,8 +648,7 @@ private theorem eo_to_smt_type_substitute_field
             __eo_to_smt_type, native_ite, native_teq, native_Teq]
           case Numeral n =>
             cases h : native_zleq 0 n <;>
-              simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
-                native_ite, native_teq, native_Teq, h]
+              rfl
         case Seq =>
           change
             __smtx_typeof_guard (__eo_to_smt_type x) (SmtType.Seq (__eo_to_smt_type x)) =
@@ -709,7 +706,7 @@ private theorem eo_to_smt_type_substitute_field
                   native_ite, native_teq, native_Teq, hWf]
             | true =>
                 simp [raw, eo_type_substitute_field, __eo_to_smt_type,
-                  native_ite, native_teq, native_Teq, hWf]
+                  native_ite, native_teq, hWf]
                 exact (smtx_type_substitute_top_of_wf_rec sub (__eo_to_smt_datatype d0) raw
                   native_reflist_nil (by rfl) (smtx_type_wf_rec_of_type_wf hWf)).symm
           all_goals
@@ -868,7 +865,7 @@ private theorem smtx_type_substitute_top_ne_none_of_cons_wf
   cases U <;> simp [smtx_type_substitute_top, __smtx_dt_cons_wf_rec,
     __smtx_type_wf_rec, native_ite, native_Teq] at hWf ⊢
   case TypeRef s =>
-    by_cases hEq : s = sub <;> simp [smtx_type_substitute_top, native_Teq, native_ite, hEq]
+    by_cases hEq : s = sub <;> simp [hEq]
 
 private theorem smtx_typeof_dt_cons_rec_zero_subst_ne_none
     (sub : native_String) (d0 : SmtDatatype) (T : SmtType) (hT : T ≠ SmtType.None) :
@@ -1696,7 +1693,7 @@ theorem eo_to_smt_type_typeof_apply_abs_of_int
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.abs) x)) = SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof_abs (__eo_typeof x)) = SmtType.Int
   rw [hx]
-  simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_str_len_of_seq`. -/
 theorem eo_to_smt_type_typeof_apply_str_len_of_seq
@@ -1831,7 +1828,7 @@ theorem eo_to_smt_type_typeof_apply_to_real_of_int
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.Real := by
   change __eo_to_smt_type (__eo_typeof_to_real (__eo_typeof x)) = SmtType.Real
   rw [hx]
-  simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_real_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_to_real_of_real
@@ -1840,7 +1837,7 @@ theorem eo_to_smt_type_typeof_apply_to_real_of_real
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.to_real) x)) = SmtType.Real := by
   change __eo_to_smt_type (__eo_typeof_to_real (__eo_typeof x)) = SmtType.Real
   rw [hx]
-  simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_int_of_real`. -/
 theorem eo_to_smt_type_typeof_apply_to_int_of_real
@@ -2314,10 +2311,10 @@ theorem eo_to_smt_type_typeof_apply_apply_plus_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_neg_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_neg_of_smt_arith
@@ -2329,10 +2326,10 @@ theorem eo_to_smt_type_typeof_apply_apply_neg_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_mult_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_mult_of_smt_arith
@@ -2344,10 +2341,10 @@ theorem eo_to_smt_type_typeof_apply_apply_mult_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_lt_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_lt_of_smt_arith
@@ -2359,10 +2356,10 @@ theorem eo_to_smt_type_typeof_apply_apply_lt_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_leq_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_leq_of_smt_arith
@@ -2374,10 +2371,10 @@ theorem eo_to_smt_type_typeof_apply_apply_leq_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_gt_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_gt_of_smt_arith
@@ -2389,10 +2386,10 @@ theorem eo_to_smt_type_typeof_apply_apply_gt_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_geq_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_geq_of_smt_arith
@@ -2404,10 +2401,10 @@ theorem eo_to_smt_type_typeof_apply_apply_geq_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_div_of_smt_int`. -/
 theorem eo_to_smt_type_typeof_apply_apply_div_of_smt_int
@@ -2491,10 +2488,10 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_qdiv_total_of_smt_arith`. -/
 theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
@@ -2507,10 +2504,10 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_smt_arith
   rcases hT with rfl | rfl
   · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_int_of_smt_int y hy, eo_typeof_eq_int_of_smt_int x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
   · change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
     rw [eo_typeof_eq_real_of_smt_real y hy, eo_typeof_eq_real_of_smt_real x hx]
-    simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+    rfl
 
 end DeferredTypeRecovery
 
@@ -2578,7 +2575,7 @@ theorem eo_to_smt_type_typeof_apply_apply_plus_of_arith_type
       __eo_to_smt_type T := by
   change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = __eo_to_smt_type T
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_neg`. -/
 theorem eo_to_smt_type_typeof_apply_apply_neg_of_arith_type
@@ -2590,7 +2587,7 @@ theorem eo_to_smt_type_typeof_apply_apply_neg_of_arith_type
       __eo_to_smt_type T := by
   change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = __eo_to_smt_type T
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_mult`. -/
 theorem eo_to_smt_type_typeof_apply_apply_mult_of_arith_type
@@ -2602,7 +2599,7 @@ theorem eo_to_smt_type_typeof_apply_apply_mult_of_arith_type
       __eo_to_smt_type T := by
   change __eo_to_smt_type (__eo_typeof_plus (__eo_typeof y) (__eo_typeof x)) = __eo_to_smt_type T
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_lt`. -/
 theorem eo_to_smt_type_typeof_apply_apply_lt_of_arith_type
@@ -2613,7 +2610,7 @@ theorem eo_to_smt_type_typeof_apply_apply_lt_of_arith_type
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.lt) y) x)) = SmtType.Bool := by
   change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_leq`. -/
 theorem eo_to_smt_type_typeof_apply_apply_leq_of_arith_type
@@ -2624,7 +2621,7 @@ theorem eo_to_smt_type_typeof_apply_apply_leq_of_arith_type
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.leq) y) x)) = SmtType.Bool := by
   change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_gt`. -/
 theorem eo_to_smt_type_typeof_apply_apply_gt_of_arith_type
@@ -2635,7 +2632,7 @@ theorem eo_to_smt_type_typeof_apply_apply_gt_of_arith_type
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.gt) y) x)) = SmtType.Bool := by
   change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_geq`. -/
 theorem eo_to_smt_type_typeof_apply_apply_geq_of_arith_type
@@ -2646,7 +2643,7 @@ theorem eo_to_smt_type_typeof_apply_apply_geq_of_arith_type
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.geq) y) x)) = SmtType.Bool := by
   change __eo_to_smt_type (__eo_typeof_lt (__eo_typeof y) (__eo_typeof x)) = SmtType.Bool
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_div`. -/
 theorem eo_to_smt_type_typeof_apply_apply_div_of_int
@@ -2733,7 +2730,7 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_of_arith_type
       SmtType.Real := by
   change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_qdiv_total`. -/
 theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_arith_type
@@ -2745,7 +2742,7 @@ theorem eo_to_smt_type_typeof_apply_apply_qdiv_total_of_arith_type
       SmtType.Real := by
   change __eo_to_smt_type (__eo_typeof_qdiv (__eo_typeof y) (__eo_typeof x)) = SmtType.Real
   rw [hy, hx]
-  rcases hT with rfl | rfl <;> simp [__eo_to_smt_type, __eo_typeof_abs, __eo_typeof_to_real, __eo_typeof_plus, __eo_typeof_lt, __eo_typeof_qdiv, __eo_requires, __eo_eq, __is_arith_type, native_ite, native_teq, native_not]
+  rcases hT with rfl | rfl <;> rfl
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_ite`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_ite_of_bool_same_type
@@ -4515,7 +4512,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_ite_of_smt_bool_same_non_none
   have hSmt : __smtx_typeof (__eo_to_smt t) = T := by
     change __smtx_typeof (SmtTerm.ite (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) = T
     rw [typeof_ite_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
-    simp [__smtx_typeof_ite, native_ite, native_Teq, hT]
+    simp [__smtx_typeof_ite, native_ite, native_Teq]
   exact eo_to_smt_type_typeof_of_smt_type t hSmt hT
 
 end DeferredTypeRecovery
