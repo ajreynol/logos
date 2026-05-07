@@ -308,212 +308,895 @@ theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
           · simp [Smtm.__smtx_typeof.eq_8, htyA, htyB, native_Teq, native_ite]
           · simp [Smtm.__smtx_model_eval.eq_8, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
 
-mutual
-
 /-- Semantic equality relation on SMT values, defined by evaluation of SMT equality. -/
-inductive smt_value_rel : SmtValue -> SmtValue -> Prop where
-  | map {m1 m2 : SmtMap} :
-      (∀ (T : SmtType) (v : SmtValue),
-        __smtx_msm_lookup T m1 v = __smtx_msm_lookup T m2 v) ->
-      smt_value_rel (SmtValue.Map m1) (SmtValue.Map m2)
-  | func {m1 m2 : SmtMap} :
-      (∀ (T : SmtType) (v : SmtValue),
-        __smtx_msm_lookup T m1 v = __smtx_msm_lookup T m2 v) ->
-      smt_value_rel (SmtValue.Fun m1) (SmtValue.Fun m2)
-  | set {m1 m2 : SmtMap} :
-      (∀ (T : SmtType) (v : SmtValue),
-        __smtx_msm_lookup T m1 v = __smtx_msm_lookup T m2 v) ->
-      smt_value_rel (SmtValue.Set m1) (SmtValue.Set m2)
-  | reglan {r1 r2 : native_RegLan} :
-      (∀ s : native_String, native_str_in_re s r1 = native_str_in_re s r2) ->
-      smt_value_rel (SmtValue.RegLan r1) (SmtValue.RegLan r2)
-  | seq {s1 s2 : SmtSeq} :
-      smt_seq_rel s1 s2 ->
-      smt_value_rel (SmtValue.Seq s1) (SmtValue.Seq s2)
-  | apply {f1 v1 f2 v2 : SmtValue} :
-      smt_value_rel f1 f2 ->
-      smt_value_rel v1 v2 ->
-      smt_value_rel (SmtValue.Apply f1 v1) (SmtValue.Apply f2 v2)
-  | base {v1 v2 : SmtValue} :
-      v1 = v2 ->
-      smt_value_rel v1 v2
+def smt_value_rel (v1 v2 : SmtValue) : Prop :=
+  __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true
 
 /-- Semantic equality relation on SMT sequences, lifted through `SmtValue.Seq`. -/
-inductive smt_seq_rel : SmtSeq -> SmtSeq -> Prop where
-  | empty {T1 T2 : SmtType} :
-      smt_seq_rel (SmtSeq.empty T1) (SmtSeq.empty T2)
-  | cons {v1 v2 : SmtValue} {s1 s2 : SmtSeq} :
-      smt_value_rel v1 v2 ->
-      smt_seq_rel s1 s2 ->
-      smt_seq_rel (SmtSeq.cons v1 s1) (SmtSeq.cons v2 s2)
+def smt_seq_rel (s1 s2 : SmtSeq) : Prop :=
+  __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true
 
-end
+/-- Fallback equation for typed equality when the left value is not a map. -/
+private theorem smtx_value_eq_map_fallback_left
+    (T U : SmtType) {v1 v2 : SmtValue}
+    (hLeft : ∀ m, v1 ≠ SmtValue.Map m) :
+    __smtx_value_eq (SmtType.Map T U) v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
 
-mutual
+/-- Fallback equation for typed equality when the right value is not a map. -/
+private theorem smtx_value_eq_map_fallback_right
+    (T U : SmtType) {v1 v2 : SmtValue}
+    (hRight : ∀ m, v2 ≠ SmtValue.Map m) :
+    __smtx_value_eq (SmtType.Map T U) v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+/-- Fallback equation for typed equality when the left value is not a set. -/
+private theorem smtx_value_eq_set_fallback_left
+    (T : SmtType) {v1 v2 : SmtValue}
+    (hLeft : ∀ m, v1 ≠ SmtValue.Set m) :
+    __smtx_value_eq (SmtType.Set T) v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+/-- Fallback equation for typed equality when the right value is not a set. -/
+private theorem smtx_value_eq_set_fallback_right
+    (T : SmtType) {v1 v2 : SmtValue}
+    (hRight : ∀ m, v2 ≠ SmtValue.Set m) :
+    __smtx_value_eq (SmtType.Set T) v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+/-- Fallback equation for typed equality when the left value is not a function. -/
+private theorem smtx_value_eq_fun_fallback_left
+    (T U : SmtType) {v1 v2 : SmtValue}
+    (hLeft : ∀ m, v1 ≠ SmtValue.Fun m) :
+    __smtx_value_eq (SmtType.FunType T U) v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+/-- Fallback equation for typed equality when the right value is not a function. -/
+private theorem smtx_value_eq_fun_fallback_right
+    (T U : SmtType) {v1 v2 : SmtValue}
+    (hRight : ∀ m, v2 ≠ SmtValue.Fun m) :
+    __smtx_value_eq (SmtType.FunType T U) v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+/-- Fallback equation for typed equality when the left value is not a regular language. -/
+private theorem smtx_value_eq_reglan_fallback_left
+    {v1 v2 : SmtValue}
+    (hLeft : ∀ r, v1 ≠ SmtValue.RegLan r) :
+    __smtx_value_eq SmtType.RegLan v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+/-- Fallback equation for typed equality when the right value is not a regular language. -/
+private theorem smtx_value_eq_reglan_fallback_right
+    {v1 v2 : SmtValue}
+    (hRight : ∀ r, v2 ≠ SmtValue.RegLan r) :
+    __smtx_value_eq SmtType.RegLan v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+/-- Fallback equation for typed equality when the left value is not a sequence. -/
+private theorem smtx_value_eq_seq_fallback_left
+    (T : SmtType) {v1 v2 : SmtValue}
+    (hLeft : ∀ s, v1 ≠ SmtValue.Seq s) :
+    __smtx_value_eq (SmtType.Seq T) v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+/-- Fallback equation for typed equality when the right value is not a sequence. -/
+private theorem smtx_value_eq_seq_fallback_right
+    (T : SmtType) {v1 v2 : SmtValue}
+    (hRight : ∀ s, v2 ≠ SmtValue.Seq s) :
+    __smtx_value_eq (SmtType.Seq T) v1 v2 = native_veq v1 v2 := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+private theorem smtx_value_eq_seq_empty_cons_fallback
+    (T T1 : SmtType) (v2 : SmtValue) (s2 : SmtSeq) :
+    __smtx_value_eq (SmtType.Seq T) (SmtValue.Seq (SmtSeq.empty T1))
+      (SmtValue.Seq (SmtSeq.cons v2 s2)) =
+        native_veq (SmtValue.Seq (SmtSeq.empty T1))
+          (SmtValue.Seq (SmtSeq.cons v2 s2)) := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+private theorem smtx_value_eq_seq_cons_empty_fallback
+    (T : SmtType) (v1 : SmtValue) (s1 : SmtSeq) (T2 : SmtType) :
+    __smtx_value_eq (SmtType.Seq T) (SmtValue.Seq (SmtSeq.cons v1 s1))
+      (SmtValue.Seq (SmtSeq.empty T2)) =
+        native_veq (SmtValue.Seq (SmtSeq.cons v1 s1))
+          (SmtValue.Seq (SmtSeq.empty T2)) := by
+  rw [Smtm.__smtx_value_eq.eq_7]
+  all_goals
+    intro
+    simp_all
+
+private theorem smtx_value_eq_reglan_trans_aux {v1 v2 v3 : SmtValue}
+    (h12 : __smtx_value_eq SmtType.RegLan v1 v2 = true)
+    (h23 : __smtx_value_eq SmtType.RegLan v2 v3 = true) :
+    __smtx_value_eq SmtType.RegLan v1 v3 = true := by
+  by_cases hv1 : ∃ r1, v1 = SmtValue.RegLan r1
+  · rcases hv1 with ⟨r1, rfl⟩
+    by_cases hv2 : ∃ r2, v2 = SmtValue.RegLan r2
+    · rcases hv2 with ⟨r2, rfl⟩
+      by_cases hv3 : ∃ r3, v3 = SmtValue.RegLan r3
+      · rcases hv3 with ⟨r3, rfl⟩
+        classical
+        simp [__smtx_value_eq] at h12 h23 ⊢
+        intro s
+        exact (h12 s).trans (h23 s)
+      · have h23Native : native_veq (SmtValue.RegLan r2) v3 = true := by
+          simpa [smtx_value_eq_reglan_fallback_right
+            (v1 := SmtValue.RegLan r2) (v2 := v3) (by
+              intro r hr
+              exact hv3 ⟨r, hr⟩)] using h23
+        have hEq : SmtValue.RegLan r2 = v3 := by
+          simpa [native_veq] using h23Native
+        exact False.elim (hv3 ⟨r2, hEq.symm⟩)
+    · have h12Native : native_veq (SmtValue.RegLan r1) v2 = true := by
+        simpa [smtx_value_eq_reglan_fallback_right
+          (v1 := SmtValue.RegLan r1) (v2 := v2) (by
+            intro r hr
+            exact hv2 ⟨r, hr⟩)] using h12
+      have hEq : SmtValue.RegLan r1 = v2 := by
+        simpa [native_veq] using h12Native
+      exact False.elim (hv2 ⟨r1, hEq.symm⟩)
+  · have h12Native : native_veq v1 v2 = true := by
+      simpa [smtx_value_eq_reglan_fallback_left
+        (v1 := v1) (v2 := v2) (by
+          intro r hr
+          exact hv1 ⟨r, hr⟩)] using h12
+    have hEq12 : v1 = v2 := by
+      simpa [native_veq] using h12Native
+    subst v2
+    have h23Native : native_veq v1 v3 = true := by
+      simpa [smtx_value_eq_reglan_fallback_left
+        (v1 := v1) (v2 := v3) (by
+          intro r hr
+          exact hv1 ⟨r, hr⟩)] using h23
+    have hEq13 : v1 = v3 := by
+      simpa [native_veq] using h23Native
+    subst v3
+    rw [smtx_value_eq_reglan_fallback_left (v1 := v1) (v2 := v1) (by
+      intro r hr
+      exact hv1 ⟨r, hr⟩)]
+    simp [native_veq]
+
+private theorem smtx_value_eq_reglan_symm_aux {v1 v2 : SmtValue}
+    (h : __smtx_value_eq SmtType.RegLan v1 v2 = true) :
+    __smtx_value_eq SmtType.RegLan v2 v1 = true := by
+  by_cases hv1 : ∃ r1, v1 = SmtValue.RegLan r1
+  · rcases hv1 with ⟨r1, rfl⟩
+    by_cases hv2 : ∃ r2, v2 = SmtValue.RegLan r2
+    · rcases hv2 with ⟨r2, rfl⟩
+      classical
+      simp [__smtx_value_eq] at h ⊢
+      intro s
+      exact (h s).symm
+    · have hNative : native_veq (SmtValue.RegLan r1) v2 = true := by
+        simpa [smtx_value_eq_reglan_fallback_right
+          (v1 := SmtValue.RegLan r1) (v2 := v2) (by
+            intro r hr
+            exact hv2 ⟨r, hr⟩)] using h
+      have hEq : SmtValue.RegLan r1 = v2 := by
+        simpa [native_veq] using hNative
+      exact False.elim (hv2 ⟨r1, hEq.symm⟩)
+  · have hNative : native_veq v1 v2 = true := by
+      simpa [smtx_value_eq_reglan_fallback_left
+        (v1 := v1) (v2 := v2) (by
+          intro r hr
+          exact hv1 ⟨r, hr⟩)] using h
+    have hEq : v1 = v2 := by
+      simpa [native_veq] using hNative
+    subst v2
+    rw [smtx_value_eq_reglan_fallback_left (v1 := v1) (v2 := v1) (by
+      intro r hr
+      exact hv1 ⟨r, hr⟩)]
+    simp [native_veq]
+
+private theorem smtx_value_eq_map_trans_aux
+    (T U : SmtType)
+    (rec : ∀ {a b c : SmtValue},
+      __smtx_value_eq U a b = true ->
+      __smtx_value_eq U b c = true ->
+      __smtx_value_eq U a c = true)
+    {v1 v2 v3 : SmtValue}
+    (h12 : __smtx_value_eq (SmtType.Map T U) v1 v2 = true)
+    (h23 : __smtx_value_eq (SmtType.Map T U) v2 v3 = true) :
+    __smtx_value_eq (SmtType.Map T U) v1 v3 = true := by
+  by_cases hv1 : ∃ m1, v1 = SmtValue.Map m1
+  · rcases hv1 with ⟨m1, rfl⟩
+    by_cases hv2 : ∃ m2, v2 = SmtValue.Map m2
+    · rcases hv2 with ⟨m2, rfl⟩
+      by_cases hv3 : ∃ m3, v3 = SmtValue.Map m3
+      · rcases hv3 with ⟨m3, rfl⟩
+        classical
+        simp [__smtx_value_eq] at h12 h23 ⊢
+        intro v
+        exact rec (h12 v) (h23 v)
+      · have h23Native : native_veq (SmtValue.Map m2) v3 = true := by
+          simpa [smtx_value_eq_map_fallback_right T U
+            (v1 := SmtValue.Map m2) (v2 := v3) (by
+              intro m hm
+              exact hv3 ⟨m, hm⟩)] using h23
+        have hEq : SmtValue.Map m2 = v3 := by
+          simpa [native_veq] using h23Native
+        exact False.elim (hv3 ⟨m2, hEq.symm⟩)
+    · have h12Native : native_veq (SmtValue.Map m1) v2 = true := by
+        simpa [smtx_value_eq_map_fallback_right T U
+          (v1 := SmtValue.Map m1) (v2 := v2) (by
+            intro m hm
+            exact hv2 ⟨m, hm⟩)] using h12
+      have hEq : SmtValue.Map m1 = v2 := by
+        simpa [native_veq] using h12Native
+      exact False.elim (hv2 ⟨m1, hEq.symm⟩)
+  · have h12Native : native_veq v1 v2 = true := by
+      simpa [smtx_value_eq_map_fallback_left T U
+        (v1 := v1) (v2 := v2) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h12
+    have hEq12 : v1 = v2 := by
+      simpa [native_veq] using h12Native
+    subst v2
+    have h23Native : native_veq v1 v3 = true := by
+      simpa [smtx_value_eq_map_fallback_left T U
+        (v1 := v1) (v2 := v3) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h23
+    have hEq13 : v1 = v3 := by
+      simpa [native_veq] using h23Native
+    subst v3
+    rw [smtx_value_eq_map_fallback_left T U (v1 := v1) (v2 := v1) (by
+      intro m hm
+      exact hv1 ⟨m, hm⟩)]
+    simp [native_veq]
+
+private theorem smtx_value_eq_map_symm_aux
+    (T U : SmtType)
+    (rec : ∀ {a b : SmtValue},
+      __smtx_value_eq U a b = true ->
+      __smtx_value_eq U b a = true)
+    {v1 v2 : SmtValue}
+    (h : __smtx_value_eq (SmtType.Map T U) v1 v2 = true) :
+    __smtx_value_eq (SmtType.Map T U) v2 v1 = true := by
+  by_cases hv1 : ∃ m1, v1 = SmtValue.Map m1
+  · rcases hv1 with ⟨m1, rfl⟩
+    by_cases hv2 : ∃ m2, v2 = SmtValue.Map m2
+    · rcases hv2 with ⟨m2, rfl⟩
+      classical
+      simp [__smtx_value_eq] at h ⊢
+      intro v
+      exact rec (h v)
+    · have hNative : native_veq (SmtValue.Map m1) v2 = true := by
+        simpa [smtx_value_eq_map_fallback_right T U
+          (v1 := SmtValue.Map m1) (v2 := v2) (by
+            intro m hm
+            exact hv2 ⟨m, hm⟩)] using h
+      have hEq : SmtValue.Map m1 = v2 := by
+        simpa [native_veq] using hNative
+      exact False.elim (hv2 ⟨m1, hEq.symm⟩)
+  · have hNative : native_veq v1 v2 = true := by
+      simpa [smtx_value_eq_map_fallback_left T U
+        (v1 := v1) (v2 := v2) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h
+    have hEq : v1 = v2 := by
+      simpa [native_veq] using hNative
+    subst v2
+    rw [smtx_value_eq_map_fallback_left T U (v1 := v1) (v2 := v1) (by
+      intro m hm
+      exact hv1 ⟨m, hm⟩)]
+    simp [native_veq]
+
+private theorem smtx_value_eq_set_trans_aux
+    (T : SmtType) {v1 v2 v3 : SmtValue}
+    (h12 : __smtx_value_eq (SmtType.Set T) v1 v2 = true)
+    (h23 : __smtx_value_eq (SmtType.Set T) v2 v3 = true) :
+    __smtx_value_eq (SmtType.Set T) v1 v3 = true := by
+  by_cases hv1 : ∃ m1, v1 = SmtValue.Set m1
+  · rcases hv1 with ⟨m1, rfl⟩
+    by_cases hv2 : ∃ m2, v2 = SmtValue.Set m2
+    · rcases hv2 with ⟨m2, rfl⟩
+      by_cases hv3 : ∃ m3, v3 = SmtValue.Set m3
+      · rcases hv3 with ⟨m3, rfl⟩
+        classical
+        simp [__smtx_value_eq] at h12 h23 ⊢
+        intro v
+        have hv12 := h12 v
+        have hv23 := h23 v
+        simp [native_veq] at hv12 hv23 ⊢
+        exact hv12.trans hv23
+      · have h23Native : native_veq (SmtValue.Set m2) v3 = true := by
+          simpa [smtx_value_eq_set_fallback_right T
+            (v1 := SmtValue.Set m2) (v2 := v3) (by
+              intro m hm
+              exact hv3 ⟨m, hm⟩)] using h23
+        have hEq : SmtValue.Set m2 = v3 := by
+          simpa [native_veq] using h23Native
+        exact False.elim (hv3 ⟨m2, hEq.symm⟩)
+    · have h12Native : native_veq (SmtValue.Set m1) v2 = true := by
+        simpa [smtx_value_eq_set_fallback_right T
+          (v1 := SmtValue.Set m1) (v2 := v2) (by
+            intro m hm
+            exact hv2 ⟨m, hm⟩)] using h12
+      have hEq : SmtValue.Set m1 = v2 := by
+        simpa [native_veq] using h12Native
+      exact False.elim (hv2 ⟨m1, hEq.symm⟩)
+  · have h12Native : native_veq v1 v2 = true := by
+      simpa [smtx_value_eq_set_fallback_left T
+        (v1 := v1) (v2 := v2) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h12
+    have hEq12 : v1 = v2 := by
+      simpa [native_veq] using h12Native
+    subst v2
+    have h23Native : native_veq v1 v3 = true := by
+      simpa [smtx_value_eq_set_fallback_left T
+        (v1 := v1) (v2 := v3) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h23
+    have hEq13 : v1 = v3 := by
+      simpa [native_veq] using h23Native
+    subst v3
+    rw [smtx_value_eq_set_fallback_left T (v1 := v1) (v2 := v1) (by
+      intro m hm
+      exact hv1 ⟨m, hm⟩)]
+    simp [native_veq]
+
+private theorem smtx_value_eq_set_symm_aux
+    (T : SmtType) {v1 v2 : SmtValue}
+    (h : __smtx_value_eq (SmtType.Set T) v1 v2 = true) :
+    __smtx_value_eq (SmtType.Set T) v2 v1 = true := by
+  by_cases hv1 : ∃ m1, v1 = SmtValue.Set m1
+  · rcases hv1 with ⟨m1, rfl⟩
+    by_cases hv2 : ∃ m2, v2 = SmtValue.Set m2
+    · rcases hv2 with ⟨m2, rfl⟩
+      classical
+      simp [__smtx_value_eq] at h ⊢
+      intro v
+      have hv := h v
+      simp [native_veq] at hv ⊢
+      exact hv.symm
+    · have hNative : native_veq (SmtValue.Set m1) v2 = true := by
+        simpa [smtx_value_eq_set_fallback_right T
+          (v1 := SmtValue.Set m1) (v2 := v2) (by
+            intro m hm
+            exact hv2 ⟨m, hm⟩)] using h
+      have hEq : SmtValue.Set m1 = v2 := by
+        simpa [native_veq] using hNative
+      exact False.elim (hv2 ⟨m1, hEq.symm⟩)
+  · have hNative : native_veq v1 v2 = true := by
+      simpa [smtx_value_eq_set_fallback_left T
+        (v1 := v1) (v2 := v2) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h
+    have hEq : v1 = v2 := by
+      simpa [native_veq] using hNative
+    subst v2
+    rw [smtx_value_eq_set_fallback_left T (v1 := v1) (v2 := v1) (by
+      intro m hm
+      exact hv1 ⟨m, hm⟩)]
+    simp [native_veq]
+
+private theorem smtx_value_eq_fun_trans_aux
+    (T U : SmtType)
+    (rec : ∀ {a b c : SmtValue},
+      __smtx_value_eq U a b = true ->
+      __smtx_value_eq U b c = true ->
+      __smtx_value_eq U a c = true)
+    {v1 v2 v3 : SmtValue}
+    (h12 : __smtx_value_eq (SmtType.FunType T U) v1 v2 = true)
+    (h23 : __smtx_value_eq (SmtType.FunType T U) v2 v3 = true) :
+    __smtx_value_eq (SmtType.FunType T U) v1 v3 = true := by
+  by_cases hv1 : ∃ m1, v1 = SmtValue.Fun m1
+  · rcases hv1 with ⟨m1, rfl⟩
+    by_cases hv2 : ∃ m2, v2 = SmtValue.Fun m2
+    · rcases hv2 with ⟨m2, rfl⟩
+      by_cases hv3 : ∃ m3, v3 = SmtValue.Fun m3
+      · rcases hv3 with ⟨m3, rfl⟩
+        classical
+        simp [__smtx_value_eq] at h12 h23 ⊢
+        intro v
+        exact rec (h12 v) (h23 v)
+      · have h23Native : native_veq (SmtValue.Fun m2) v3 = true := by
+          simpa [smtx_value_eq_fun_fallback_right T U
+            (v1 := SmtValue.Fun m2) (v2 := v3) (by
+              intro m hm
+              exact hv3 ⟨m, hm⟩)] using h23
+        have hEq : SmtValue.Fun m2 = v3 := by
+          simpa [native_veq] using h23Native
+        exact False.elim (hv3 ⟨m2, hEq.symm⟩)
+    · have h12Native : native_veq (SmtValue.Fun m1) v2 = true := by
+        simpa [smtx_value_eq_fun_fallback_right T U
+          (v1 := SmtValue.Fun m1) (v2 := v2) (by
+            intro m hm
+            exact hv2 ⟨m, hm⟩)] using h12
+      have hEq : SmtValue.Fun m1 = v2 := by
+        simpa [native_veq] using h12Native
+      exact False.elim (hv2 ⟨m1, hEq.symm⟩)
+  · have h12Native : native_veq v1 v2 = true := by
+      simpa [smtx_value_eq_fun_fallback_left T U
+        (v1 := v1) (v2 := v2) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h12
+    have hEq12 : v1 = v2 := by
+      simpa [native_veq] using h12Native
+    subst v2
+    have h23Native : native_veq v1 v3 = true := by
+      simpa [smtx_value_eq_fun_fallback_left T U
+        (v1 := v1) (v2 := v3) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h23
+    have hEq13 : v1 = v3 := by
+      simpa [native_veq] using h23Native
+    subst v3
+    rw [smtx_value_eq_fun_fallback_left T U (v1 := v1) (v2 := v1) (by
+      intro m hm
+      exact hv1 ⟨m, hm⟩)]
+    simp [native_veq]
+
+private theorem smtx_value_eq_fun_symm_aux
+    (T U : SmtType)
+    (rec : ∀ {a b : SmtValue},
+      __smtx_value_eq U a b = true ->
+      __smtx_value_eq U b a = true)
+    {v1 v2 : SmtValue}
+    (h : __smtx_value_eq (SmtType.FunType T U) v1 v2 = true) :
+    __smtx_value_eq (SmtType.FunType T U) v2 v1 = true := by
+  by_cases hv1 : ∃ m1, v1 = SmtValue.Fun m1
+  · rcases hv1 with ⟨m1, rfl⟩
+    by_cases hv2 : ∃ m2, v2 = SmtValue.Fun m2
+    · rcases hv2 with ⟨m2, rfl⟩
+      classical
+      simp [__smtx_value_eq] at h ⊢
+      intro v
+      exact rec (h v)
+    · have hNative : native_veq (SmtValue.Fun m1) v2 = true := by
+        simpa [smtx_value_eq_fun_fallback_right T U
+          (v1 := SmtValue.Fun m1) (v2 := v2) (by
+            intro m hm
+            exact hv2 ⟨m, hm⟩)] using h
+      have hEq : SmtValue.Fun m1 = v2 := by
+        simpa [native_veq] using hNative
+      exact False.elim (hv2 ⟨m1, hEq.symm⟩)
+  · have hNative : native_veq v1 v2 = true := by
+      simpa [smtx_value_eq_fun_fallback_left T U
+        (v1 := v1) (v2 := v2) (by
+          intro m hm
+          exact hv1 ⟨m, hm⟩)] using h
+    have hEq : v1 = v2 := by
+      simpa [native_veq] using hNative
+    subst v2
+    rw [smtx_value_eq_fun_fallback_left T U (v1 := v1) (v2 := v1) (by
+      intro m hm
+      exact hv1 ⟨m, hm⟩)]
+    simp [native_veq]
+
+/-- Reflexivity of executable value equality at a fixed SMT type. -/
+private theorem smtx_value_eq_refl (T : SmtType) (v : SmtValue) :
+    __smtx_value_eq T v v = true := by
+  cases T with
+  | None => simp [__smtx_value_eq, native_veq]
+  | Bool => simp [__smtx_value_eq, native_veq]
+  | Int => simp [__smtx_value_eq, native_veq]
+  | Real => simp [__smtx_value_eq, native_veq]
+  | RegLan =>
+      cases v
+      case RegLan r =>
+        classical
+        simp [__smtx_value_eq]
+      all_goals
+        rw [Smtm.__smtx_value_eq.eq_7]
+        · simp [native_veq]
+        all_goals
+          intro
+          simp_all
+  | BitVec n => simp [__smtx_value_eq, native_veq]
+  | Map T U =>
+      cases v
+      case Map m =>
+        classical
+        simp [__smtx_value_eq]
+        intro v
+        exact smtx_value_eq_refl U (__smtx_msm_lookup T m v)
+      all_goals
+        rw [Smtm.__smtx_value_eq.eq_7]
+        · simp [native_veq]
+        all_goals
+          intro
+          simp_all
+  | Set T =>
+      cases v
+      case Set m =>
+        classical
+        simp [__smtx_value_eq]
+        intro v
+        simp [native_veq]
+      all_goals
+        rw [Smtm.__smtx_value_eq.eq_7]
+        · simp [native_veq]
+        all_goals
+          intro
+          simp_all
+  | Seq T =>
+      cases v
+      case Seq s =>
+        cases s
+        case empty U =>
+          simp [__smtx_value_eq]
+        case cons v s =>
+          simp [__smtx_value_eq, SmtEval.native_and,
+            smtx_value_eq_refl T v,
+            smtx_value_eq_refl (SmtType.Seq T) (SmtValue.Seq s)]
+      all_goals
+        rw [Smtm.__smtx_value_eq.eq_7]
+        · simp [native_veq]
+        all_goals
+          intro
+          simp_all
+  | Char => simp [__smtx_value_eq, native_veq]
+  | Datatype s d => simp [__smtx_value_eq, native_veq]
+  | TypeRef s => simp [__smtx_value_eq, native_veq]
+  | USort n => simp [__smtx_value_eq, native_veq]
+  | FunType T U =>
+      cases v
+      case Fun m =>
+        classical
+        simp [__smtx_value_eq]
+        intro v
+        exact smtx_value_eq_refl U (__smtx_msm_lookup T m v)
+      all_goals
+        rw [Smtm.__smtx_value_eq.eq_7]
+        · simp [native_veq]
+        all_goals
+          intro
+          simp_all
+  | DtcAppType T U => simp [__smtx_value_eq, native_veq]
+termination_by
+  (__smtx_type_measure T, sizeOf v)
+decreasing_by
+  all_goals subst_vars; simp_wf
+  all_goals first
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_right _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_right _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set_value _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_seq _)
+    | apply Prod.Lex.right
+      omega
+
+/-- Symmetry of executable value equality at a fixed SMT type. -/
+private theorem smtx_value_eq_symm (T : SmtType) {v1 v2 : SmtValue} :
+    __smtx_value_eq T v1 v2 = true ->
+      __smtx_value_eq T v2 v1 = true := by
+  intro h
+  cases T with
+  | None =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | Bool =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | Int =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | Real =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | RegLan =>
+      exact smtx_value_eq_reglan_symm_aux h
+  | BitVec n =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | Map T U =>
+      exact smtx_value_eq_map_symm_aux T U
+        (fun h => smtx_value_eq_symm U h) h
+  | Set T =>
+      exact smtx_value_eq_set_symm_aux T h
+  | Seq T =>
+      by_cases hv1 : ∃ s1, v1 = SmtValue.Seq s1
+      · rcases hv1 with ⟨s1, rfl⟩
+        by_cases hv2 : ∃ s2, v2 = SmtValue.Seq s2
+        · rcases hv2 with ⟨s2, rfl⟩
+          cases s1 with
+          | empty T1 =>
+              cases s2 with
+              | empty T2 =>
+                  simp [__smtx_value_eq]
+              | cons v2 s2 =>
+                  have hFalse : False := by
+                    simp [smtx_value_eq_seq_empty_cons_fallback T T1 v2 s2,
+                      native_veq] at h
+                  exact False.elim hFalse
+          | cons v1 s1 =>
+              cases s2 with
+              | empty T2 =>
+                  have hFalse : False := by
+                    simp [smtx_value_eq_seq_cons_empty_fallback T v1 s1 T2,
+                      native_veq] at h
+                  exact False.elim hFalse
+              | cons v2 s2 =>
+                  simp [__smtx_value_eq, SmtEval.native_and] at h ⊢
+                  exact ⟨smtx_value_eq_symm T h.1,
+                    smtx_value_eq_symm (SmtType.Seq T) h.2⟩
+        · have hNative : native_veq (SmtValue.Seq s1) v2 = true := by
+            simpa [smtx_value_eq_seq_fallback_right T
+              (v1 := SmtValue.Seq s1) (v2 := v2) (by
+                intro s hs
+                exact hv2 ⟨s, hs⟩)] using h
+          have hEq : SmtValue.Seq s1 = v2 := by
+            simpa [native_veq] using hNative
+          exact False.elim (hv2 ⟨s1, hEq.symm⟩)
+      · have hNative : native_veq v1 v2 = true := by
+          simpa [smtx_value_eq_seq_fallback_left T
+            (v1 := v1) (v2 := v2) (by
+              intro s hs
+              exact hv1 ⟨s, hs⟩)] using h
+        have hEq : v1 = v2 := by
+          simpa [native_veq] using hNative
+        subst v2
+        rw [smtx_value_eq_seq_fallback_left T (v1 := v1) (v2 := v1) (by
+          intro s hs
+          exact hv1 ⟨s, hs⟩)]
+        simp [native_veq]
+  | Char =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | Datatype s d =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | TypeRef s =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | USort n =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+  | FunType T U =>
+      exact smtx_value_eq_fun_symm_aux T U
+        (fun h => smtx_value_eq_symm U h) h
+  | DtcAppType T U =>
+      simp [__smtx_value_eq, native_veq] at h ⊢
+      exact h.symm
+termination_by
+  (__smtx_type_measure T, sizeOf v1 + sizeOf v2)
+decreasing_by
+  all_goals subst_vars; simp_wf
+  all_goals first
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_right _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_right _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set_value _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_seq _)
+    | apply Prod.Lex.right
+      omega
+
+/-- Transitivity of executable value equality at a fixed SMT type. -/
+private theorem smtx_value_eq_trans (T : SmtType) {v1 v2 v3 : SmtValue} :
+    __smtx_value_eq T v1 v2 = true ->
+      __smtx_value_eq T v2 v3 = true ->
+        __smtx_value_eq T v1 v3 = true := by
+  intro h12 h23
+  cases T with
+  | None =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | Bool =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | Int =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | Real =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | RegLan =>
+      exact smtx_value_eq_reglan_trans_aux h12 h23
+  | BitVec n =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | Map T U =>
+      exact smtx_value_eq_map_trans_aux T U
+        (fun h12 h23 => smtx_value_eq_trans U h12 h23) h12 h23
+  | Set T =>
+      exact smtx_value_eq_set_trans_aux T h12 h23
+  | Seq T =>
+      by_cases hv1 : ∃ s1, v1 = SmtValue.Seq s1
+      · rcases hv1 with ⟨s1, rfl⟩
+        by_cases hv2 : ∃ s2, v2 = SmtValue.Seq s2
+        · rcases hv2 with ⟨s2, rfl⟩
+          by_cases hv3 : ∃ s3, v3 = SmtValue.Seq s3
+          · rcases hv3 with ⟨s3, rfl⟩
+            cases s1 with
+            | empty T1 =>
+                cases s2 with
+                | empty T2 =>
+                    cases s3 with
+                    | empty T3 =>
+                        simp [__smtx_value_eq]
+                    | cons v3 s3 =>
+                        have hFalse : False := by
+                          simp [smtx_value_eq_seq_empty_cons_fallback T T2 v3 s3,
+                            native_veq] at h23
+                        exact False.elim hFalse
+                | cons v2 s2 =>
+                    have hFalse : False := by
+                      simp [smtx_value_eq_seq_empty_cons_fallback T T1 v2 s2,
+                        native_veq] at h12
+                    exact False.elim hFalse
+            | cons v1 s1 =>
+                cases s2 with
+                | empty T2 =>
+                    have hFalse : False := by
+                      simp [smtx_value_eq_seq_cons_empty_fallback T v1 s1 T2,
+                        native_veq] at h12
+                    exact False.elim hFalse
+                | cons v2 s2 =>
+                    cases s3 with
+                    | empty T3 =>
+                        have hFalse : False := by
+                          simp [smtx_value_eq_seq_cons_empty_fallback T v2 s2 T3,
+                            native_veq] at h23
+                        exact False.elim hFalse
+                    | cons v3 s3 =>
+                        simp [__smtx_value_eq, SmtEval.native_and] at h12 h23 ⊢
+                        exact ⟨smtx_value_eq_trans T h12.1 h23.1,
+                          smtx_value_eq_trans (SmtType.Seq T) h12.2 h23.2⟩
+          · have h23Native : native_veq (SmtValue.Seq s2) v3 = true := by
+              simpa [smtx_value_eq_seq_fallback_right T
+                (v1 := SmtValue.Seq s2) (v2 := v3) (by
+                  intro s hs
+                  exact hv3 ⟨s, hs⟩)] using h23
+            have hEq : SmtValue.Seq s2 = v3 := by
+              simpa [native_veq] using h23Native
+            exact False.elim (hv3 ⟨s2, hEq.symm⟩)
+        · have h12Native : native_veq (SmtValue.Seq s1) v2 = true := by
+            simpa [smtx_value_eq_seq_fallback_right T
+              (v1 := SmtValue.Seq s1) (v2 := v2) (by
+                intro s hs
+                exact hv2 ⟨s, hs⟩)] using h12
+          have hEq : SmtValue.Seq s1 = v2 := by
+            simpa [native_veq] using h12Native
+          exact False.elim (hv2 ⟨s1, hEq.symm⟩)
+      · have h12Native : native_veq v1 v2 = true := by
+          simpa [smtx_value_eq_seq_fallback_left T
+            (v1 := v1) (v2 := v2) (by
+              intro s hs
+              exact hv1 ⟨s, hs⟩)] using h12
+        have hEq12 : v1 = v2 := by
+          simpa [native_veq] using h12Native
+        subst v2
+        have h23Native : native_veq v1 v3 = true := by
+          simpa [smtx_value_eq_seq_fallback_left T
+            (v1 := v1) (v2 := v3) (by
+              intro s hs
+              exact hv1 ⟨s, hs⟩)] using h23
+        have hEq13 : v1 = v3 := by
+          simpa [native_veq] using h23Native
+        subst v3
+        rw [smtx_value_eq_seq_fallback_left T (v1 := v1) (v2 := v1) (by
+          intro s hs
+          exact hv1 ⟨s, hs⟩)]
+        simp [native_veq]
+  | Char =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | Datatype s d =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | TypeRef s =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | USort n =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+  | FunType T U =>
+      exact smtx_value_eq_fun_trans_aux T U
+        (fun h12 h23 => smtx_value_eq_trans U h12 h23) h12 h23
+  | DtcAppType T U =>
+      simp [__smtx_value_eq, native_veq] at h12 h23 ⊢
+      exact h12.trans h23
+termination_by
+  (__smtx_type_measure T, sizeOf v1 + sizeOf v2 + sizeOf v3)
+decreasing_by
+  all_goals subst_vars; simp_wf
+  all_goals first
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_right _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_right _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set_value _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_seq _)
+    | apply Prod.Lex.right
+      omega
 
 /-- Reflexivity lemma for `smt_value_rel`. -/
-theorem smt_value_rel_refl : (v : SmtValue) -> smt_value_rel v v
-  | SmtValue.NotValue => by
-      exact smt_value_rel.base rfl
-  | SmtValue.Boolean _ => by
-      exact smt_value_rel.base rfl
-  | SmtValue.Numeral _ => by
-      exact smt_value_rel.base rfl
-  | SmtValue.Rational _ => by
-      exact smt_value_rel.base rfl
-  | SmtValue.Binary _ _ => by
-      exact smt_value_rel.base rfl
-  | SmtValue.Map _ => by
-      exact smt_value_rel.map (fun _ _ => rfl)
-  | SmtValue.Fun _ => by
-      exact smt_value_rel.func (fun _ _ => rfl)
-  | SmtValue.Set _ => by
-      exact smt_value_rel.set (fun _ _ => rfl)
-  | SmtValue.Seq s => by
-      exact smt_value_rel.seq (smt_seq_rel_refl s)
-  | SmtValue.Char _ => by
-      exact smt_value_rel.base rfl
-  | SmtValue.UValue _ _ => by
-      exact smt_value_rel.base rfl
-  | SmtValue.RegLan _ => by
-      exact smt_value_rel.reglan (fun _ => rfl)
-  | SmtValue.DtCons _ _ _ => by
-      exact smt_value_rel.base rfl
-  | SmtValue.Apply f v => by
-      exact smt_value_rel.apply (smt_value_rel_refl f) (smt_value_rel_refl v)
+theorem smt_value_rel_refl (v : SmtValue) : smt_value_rel v v :=
+  by
+    simp [smt_value_rel, __smtx_model_eval_eq, smtx_value_eq_refl]
 
 /-- Reflexivity lemma for `smt_seq_rel`. -/
-theorem smt_seq_rel_refl : (s : SmtSeq) -> smt_seq_rel s s
-  | SmtSeq.empty _ => by
-      exact smt_seq_rel.empty
-  | SmtSeq.cons v s => by
-      exact smt_seq_rel.cons (smt_value_rel_refl v) (smt_seq_rel_refl s)
-
-end
-
-mutual
+theorem smt_seq_rel_refl (s : SmtSeq) : smt_seq_rel s s :=
+  by
+    simp [smt_seq_rel, __smtx_model_eval_eq, smtx_value_eq_refl]
 
 /-- Symmetry lemma for `smt_value_rel`. -/
 theorem smt_value_rel_symm (v1 v2 : SmtValue) :
+    __smtx_typeof_value v1 = __smtx_typeof_value v2 ->
     smt_value_rel v1 v2 ->
     smt_value_rel v2 v1 := by
-  intro h
-  cases h with
-  | map hm =>
-      exact smt_value_rel.map (fun T v => (hm T v).symm)
-  | func hm =>
-      exact smt_value_rel.func (fun T v => (hm T v).symm)
-  | set hm =>
-      exact smt_value_rel.set (fun T v => (hm T v).symm)
-  | reglan hr =>
-      exact smt_value_rel.reglan (fun s => (hr s).symm)
-  | seq hs =>
-      exact smt_value_rel.seq (smt_seq_rel_symm _ _ hs)
-  | apply hf hv =>
-      exact smt_value_rel.apply (smt_value_rel_symm _ _ hf) (smt_value_rel_symm _ _ hv)
-  | base hEq =>
-      exact smt_value_rel.base hEq.symm
+  intro hTy hRel
+  simp [smt_value_rel, __smtx_model_eval_eq] at hRel ⊢
+  rw [← hTy]
+  exact smtx_value_eq_symm (__smtx_typeof_value v1) hRel
 
 /-- Symmetry lemma for `smt_seq_rel`. -/
 theorem smt_seq_rel_symm (s1 s2 : SmtSeq) :
+    __smtx_typeof_seq_value s1 = __smtx_typeof_seq_value s2 ->
     smt_seq_rel s1 s2 ->
     smt_seq_rel s2 s1 := by
-  intro h
-  cases h with
-  | empty =>
-      exact smt_seq_rel.empty
-  | cons hv hs =>
-      exact smt_seq_rel.cons (smt_value_rel_symm _ _ hv) (smt_seq_rel_symm _ _ hs)
-
-end
-
-mutual
+  intro hTy hRel
+  exact smt_value_rel_symm (SmtValue.Seq s1) (SmtValue.Seq s2)
+    (by simpa [__smtx_typeof_value] using hTy) hRel
 
 /-- Transitivity lemma for `smt_value_rel`. -/
 theorem smt_value_rel_trans (v1 v2 v3 : SmtValue) :
+    __smtx_typeof_value v1 = __smtx_typeof_value v2 ->
+    __smtx_typeof_value v2 = __smtx_typeof_value v3 ->
     smt_value_rel v1 v2 ->
     smt_value_rel v2 v3 ->
     smt_value_rel v1 v3 := by
-  intro h12 h23
-  cases h12 with
-  | map hm12 =>
-      cases h23 with
-      | map hm23 =>
-          exact smt_value_rel.map (fun T v => by rw [hm12 T v, hm23 T v])
-      | base hEq =>
-          subst hEq
-          exact smt_value_rel.map hm12
-  | func hm12 =>
-      cases h23 with
-      | func hm23 =>
-          exact smt_value_rel.func (fun T v => by rw [hm12 T v, hm23 T v])
-      | base hEq =>
-          subst hEq
-          exact smt_value_rel.func hm12
-  | set hm12 =>
-      cases h23 with
-      | set hm23 =>
-          exact smt_value_rel.set (fun T v => by rw [hm12 T v, hm23 T v])
-      | base hEq =>
-          subst hEq
-          exact smt_value_rel.set hm12
-  | reglan hr12 =>
-      cases h23 with
-      | reglan hr23 =>
-          exact smt_value_rel.reglan (fun s => (hr12 s).trans (hr23 s))
-      | base hEq =>
-          subst hEq
-          exact smt_value_rel.reglan hr12
-  | seq hs12 =>
-      cases h23 with
-      | seq hs23 =>
-          exact smt_value_rel.seq (smt_seq_rel_trans _ _ _ hs12 hs23)
-      | base hEq =>
-          subst hEq
-          exact smt_value_rel.seq hs12
-  | apply hf12 hv12 =>
-      cases h23 with
-      | apply hf23 hv23 =>
-          exact smt_value_rel.apply (smt_value_rel_trans _ _ _ hf12 hf23)
-            (smt_value_rel_trans _ _ _ hv12 hv23)
-      | base hEq =>
-          subst hEq
-          exact smt_value_rel.apply hf12 hv12
-  | base hEq =>
-      subst hEq
-      exact h23
+  intro hTy12 hTy23 h12 h23
+  simp [smt_value_rel, __smtx_model_eval_eq] at h12 h23 ⊢
+  rw [← hTy12] at h23
+  exact smtx_value_eq_trans (__smtx_typeof_value v1) h12 h23
 
 /-- Transitivity lemma for `smt_seq_rel`. -/
 theorem smt_seq_rel_trans (s1 s2 s3 : SmtSeq) :
+    __smtx_typeof_seq_value s1 = __smtx_typeof_seq_value s2 ->
+    __smtx_typeof_seq_value s2 = __smtx_typeof_seq_value s3 ->
     smt_seq_rel s1 s2 ->
     smt_seq_rel s2 s3 ->
     smt_seq_rel s1 s3 := by
-  intro h12 h23
-  cases h12 with
-  | empty =>
-      cases h23 with
-      | empty =>
-          exact smt_seq_rel.empty
-  | cons hv12 hs12 =>
-      cases h23 with
-      | cons hv23 hs23 =>
-          exact smt_seq_rel.cons (smt_value_rel_trans _ _ _ hv12 hv23)
-            (smt_seq_rel_trans _ _ _ hs12 hs23)
-
-end
+  intro hTy12 hTy23 h12 h23
+  exact smt_value_rel_trans (SmtValue.Seq s1) (SmtValue.Seq s2) (SmtValue.Seq s3)
+    (by simpa [__smtx_typeof_value] using hTy12)
+    (by simpa [__smtx_typeof_value] using hTy23) h12 h23
 
 /-- Characterizes `smt_value_rel` in terms of `model_eval_eq_true`. -/
 theorem smt_value_rel_iff_model_eval_eq_true
     (v1 : SmtValue) (v2 : SmtValue) :
-    smt_value_rel v1 v2 ↔ __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true := by
-  sorry
+    smt_value_rel v1 v2 ↔ __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true :=
+  Iff.rfl
 
 /-- Characterizes `smt_seq_rel` in terms of `model_eval_eq_true`. -/
 theorem smt_seq_rel_iff_model_eval_eq_true
     (s1 : SmtSeq) (s2 : SmtSeq) :
     smt_seq_rel s1 s2 ↔
-      __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true := by
-  sorry
+      __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true :=
+  Iff.rfl
 
 /-- Computes `__smtx_typeof` for `eq_bool_iff`. -/
 theorem smtx_typeof_eq_bool_iff (T U : SmtType) :
@@ -674,17 +1357,45 @@ theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
     simpa [Smtm.__smtx_model_eval.eq_11] using hEvalEq
 
 /-- Transitivity lemma for `eo_interprets_eq`. -/
-theorem eo_interprets_eq_trans (M : SmtModel) (x y z : Term) :
+theorem eo_interprets_eq_trans (M : SmtModel) (hM : model_total_typed M) (x y z : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) true ->
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y) z) true ->
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) z) true := by
   intro hXY hYZ
+  rcases eo_eq_operands_same_smt_type M x y hXY with ⟨hTyXY, hXNonNone⟩
+  rcases eo_eq_operands_same_smt_type M y z hYZ with ⟨hTyYZ, _⟩
+  have hYNonNone : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
+    simpa [← hTyXY] using hXNonNone
+  have hZNonNone : __smtx_typeof (__eo_to_smt z) ≠ SmtType.None := by
+    simpa [← hTyYZ] using hYNonNone
+  have hEvalTyXY :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt x)) =
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt y)) := by
+    rw [type_preservation M hM (__eo_to_smt x) (by
+        unfold term_has_non_none_type
+        exact hXNonNone),
+      type_preservation M hM (__eo_to_smt y) (by
+        unfold term_has_non_none_type
+        exact hYNonNone),
+      hTyXY]
+  have hEvalTyYZ :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt y)) =
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt z)) := by
+    rw [type_preservation M hM (__eo_to_smt y) (by
+        unfold term_has_non_none_type
+        exact hYNonNone),
+      type_preservation M hM (__eo_to_smt z) (by
+        unfold term_has_non_none_type
+        exact hZNonNone),
+      hTyYZ]
   apply eo_interprets_eq_of_rel M x z
   · exact eo_has_bool_type_eq_of_true_chain M x y z hXY hYZ
   · exact smt_value_rel_trans
       (__smtx_model_eval M (__eo_to_smt x))
       (__smtx_model_eval M (__eo_to_smt y))
       (__smtx_model_eval M (__eo_to_smt z))
+      hEvalTyXY
+      hEvalTyYZ
       (eo_interprets_eq_rel M x y hXY)
       (eo_interprets_eq_rel M y z hYZ)
 

@@ -101,7 +101,7 @@ private theorem eo_interprets_not_false_implies_true (M : SmtModel) (t : Term) :
         exact smt_interprets.intro_true M (__eo_to_smt t) htyt ht
 
 /-- Establishes an equality relating `eo_interprets` and `symm_true`. -/
-private theorem eo_interprets_eq_symm_true (M : SmtModel) (a b : Term) :
+private theorem eo_interprets_eq_symm_true (M : SmtModel) (hM : model_total_typed M) (a b : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) b) a) true ->
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) true := by
   intro hEqTrue
@@ -117,13 +117,24 @@ private theorem eo_interprets_eq_symm_true (M : SmtModel) (a b : Term) :
         (__smtx_typeof (__eo_to_smt a)) (__smtx_typeof (__eo_to_smt b))).mpr
           ⟨hTy.symm, hNonNone'⟩
     simpa [RuleProofs.eo_has_bool_type, __eo_to_smt, __smtx_typeof] using hEqTy
+  have hEvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt b)) =
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a)) := by
+    rw [type_preservation M hM (__eo_to_smt b) (by
+        unfold term_has_non_none_type
+        exact hNonNone),
+      type_preservation M hM (__eo_to_smt a) (by
+        unfold term_has_non_none_type
+        exact hNonNone'),
+      hTy]
   apply RuleProofs.eo_interprets_eq_of_rel M a b
   · exact hTySymm
-  · exact RuleProofs.smt_value_rel_symm _ _ (RuleProofs.eo_interprets_eq_rel M b a hEqTrue)
+  · exact RuleProofs.smt_value_rel_symm _ _ hEvalTy
+      (RuleProofs.eo_interprets_eq_rel M b a hEqTrue)
 
 /-- Proves correctness of the EO program for `symm_impl`. -/
 theorem correct___eo_prog_symm_impl
-    (M : SmtModel) (_hM : model_total_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   (eo_interprets M x1 true) ->
   RuleProofs.eo_has_bool_type (__eo_prog_symm (Proof.pf x1)) ->
   (eo_interprets M (__eo_prog_symm (Proof.pf x1)) true) :=
@@ -140,7 +151,7 @@ by
               cases op with
               | eq =>
                   simpa [__eo_prog_symm, __mk_symm] using
-                    eo_interprets_eq_symm_true M a b hXTrue
+                    eo_interprets_eq_symm_true M hM a b hXTrue
               | _ =>
                   exfalso
                   exact hProgNotStuck (by simp [__eo_prog_symm, __mk_symm])
@@ -160,7 +171,7 @@ by
                           | eq =>
                               let symmEq := Term.Apply (Term.Apply (Term.UOp UserOp.eq) a2) b2
                               let symmNot := Term.Apply (Term.UOp UserOp.not) symmEq
-                              rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M _hM symmNot hTy with
+                              rcases RuleProofs.eo_eval_is_boolean_of_has_bool_type M hM symmNot hTy with
                                 ⟨bsymm, hEvalSymmNot⟩
                               cases bsymm with
                               | true =>
@@ -175,7 +186,7 @@ by
                                   have hOrigEqTrue :
                                       eo_interprets M
                                         (Term.Apply (Term.Apply (Term.UOp UserOp.eq) b2) a2) true :=
-                                    eo_interprets_eq_symm_true M b2 a2 hSymmEqTrue
+                                    eo_interprets_eq_symm_true M hM b2 a2 hSymmEqTrue
                                   have hOrigEqFalse :
                                       eo_interprets M
                                         (Term.Apply (Term.Apply (Term.UOp UserOp.eq) b2) a2) false :=

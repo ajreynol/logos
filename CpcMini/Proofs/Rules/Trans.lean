@@ -130,7 +130,7 @@ private theorem sizeOf_lt_trans_tail (t3 t4 tail : Term) :
   omega
 
 /-- Transitivity lemma for `typed_mk`. -/
-private theorem typed_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
+private theorem typed_mk_trans (M : SmtModel) (hM : model_total_typed M) (t1 t2 tail : Term) :
     eo_interprets M
       (Term.Apply
         (Term.Apply (Term.UOp UserOp.and)
@@ -181,7 +181,7 @@ private theorem typed_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
         simpa [eq34, h23] using hEq34True
       have hEq14True :
           eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4) true :=
-        RuleProofs.eo_interprets_eq_trans M t1 t2 t4 hEq12True hEq24True
+        RuleProofs.eo_interprets_eq_trans M hM t1 t2 t4 hEq12True hEq24True
       have hCompressedTrue :
           eo_interprets M
             (Term.Apply
@@ -193,7 +193,7 @@ private theorem typed_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
           hEq14True hRestTrue
       rw [mk_trans_step_eq t1 t2 t3 t4 tail' hT1NotStuck hT2NotStuck]
       rw [eo_requires_eq_of_eq_not_stuck t2 t3 (__mk_trans t1 t4 tail') h23 hT2NotStuck]
-      exact typed_mk_trans M t1 t4 tail' hCompressedTrue hRecNotStuck
+      exact typed_mk_trans M hM t1 t4 tail' hCompressedTrue hRecNotStuck
 termination_by sizeOf tail
 decreasing_by
   simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
@@ -271,7 +271,7 @@ decreasing_by
   simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
 
 /-- Transitivity lemma for `correct_mk`. -/
-private theorem correct_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
+private theorem correct_mk_trans (M : SmtModel) (hM : model_total_typed M) (t1 t2 tail : Term) :
     eo_interprets M
       (Term.Apply
         (Term.Apply (Term.UOp UserOp.and)
@@ -322,7 +322,7 @@ private theorem correct_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
         simpa [eq34, h23] using hEq34True
       have hEq14True :
           eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t4) true :=
-        RuleProofs.eo_interprets_eq_trans M t1 t2 t4 hEq12True hEq24True
+        RuleProofs.eo_interprets_eq_trans M hM t1 t2 t4 hEq12True hEq24True
       have hCompressedTrue :
           eo_interprets M
             (Term.Apply
@@ -334,7 +334,7 @@ private theorem correct_mk_trans (M : SmtModel) (t1 t2 tail : Term) :
           hEq14True hRestTrue
       rw [mk_trans_step_eq t1 t2 t3 t4 tail' hT1NotStuck hT2NotStuck]
       rw [eo_requires_eq_of_eq_not_stuck t2 t3 (__mk_trans t1 t4 tail') h23 hT2NotStuck]
-      exact correct_mk_trans M t1 t4 tail' hCompressedTrue hRecNotStuck
+      exact correct_mk_trans M hM t1 t4 tail' hCompressedTrue hRecNotStuck
 termination_by sizeOf tail
 decreasing_by
   simpa [hTail] using sizeOf_lt_trans_tail t3 t4 tail'
@@ -383,7 +383,7 @@ by
 
 /-- Proves correctness of the EO program for `trans_impl`. -/
 theorem correct___eo_prog_trans_impl
-    (M : SmtModel) (_hM : model_total_typed M) (x1 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (x1 : Term) :
   (eo_interprets M x1 true) ->
   RuleProofs.eo_has_bool_type (__eo_prog_trans (Proof.pf x1)) ->
   (eo_interprets M (__eo_prog_trans (Proof.pf x1)) true) :=
@@ -408,7 +408,7 @@ by
                               cases op2 with
                               | eq =>
                                   simpa [__eo_prog_trans] using
-                                    correct_mk_trans M t1 t2 tail hX1True hProg
+                                    correct_mk_trans M hM t1 t2 tail hX1True hProg
                               | _ =>
                                   exact False.elim (hProg (by simp [__eo_prog_trans]))
                           | _ =>
