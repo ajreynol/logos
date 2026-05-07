@@ -571,8 +571,8 @@ theorem typeof_value_model_eval_dt_sel_wrong
       __smtx_typeof_value
         (__smtx_map_select (SmtValue.Map m0) (SmtValue.Numeral (native_nat_to_int i))) =
         SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)) := by
-    simpa [__smtx_map_select] using
-      map_lookup_typed
+    simpa using
+      map_select_typed
         (m := m0)
         (A := SmtType.Int)
         (B := SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))
@@ -588,8 +588,8 @@ theorem typeof_value_model_eval_dt_sel_wrong
       __smtx_typeof_value
         (__smtx_map_select (SmtValue.Map m1) (SmtValue.Numeral (native_nat_to_int j))) =
         SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j) := by
-    simpa [__smtx_map_select] using
-      map_lookup_typed
+    simpa using
+      map_select_typed
         (m := m1)
         (A := SmtType.Int)
         (B := SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))
@@ -601,8 +601,8 @@ theorem typeof_value_model_eval_dt_sel_wrong
       (B := __smtx_ret_typeof_sel s d i j)
       hInner1 with ⟨m2, hm2⟩
   rw [hm2]
-  simpa [__smtx_map_select] using
-    map_lookup_typed
+  simpa using
+    map_select_typed
       (m := m2)
       (A := SmtType.Datatype s d)
       (B := __smtx_ret_typeof_sel s d i j)
@@ -766,8 +766,8 @@ theorem typeof_value_model_eval_apply_fun
       cases hFun
       cases i <;> first
         | exact (hiNN rfl).elim
-        | simpa [__smtx_model_eval_apply, __smtx_map_select] using
-            map_lookup_typed (m := m) (A := A) (B := B) (by simpa using hMap) hi
+        | simpa [__smtx_model_eval_apply] using
+            map_select_typed (m := m) (A := A) (B := B) (by simpa using hMap) hi
   | inr hNone =>
       simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at hf
 
