@@ -316,8 +316,8 @@ theorem typeof_value_model_eval_select
   rw [__smtx_model_eval.eq_32]
   rcases map_value_canonical (A := A) (B := B) (by simpa [h1] using hpres1) with ⟨m, hm⟩
   rw [hm]
-  simpa [__smtx_model_eval_select, __smtx_map_select] using
-    map_lookup_typed (m := m) (A := A) (B := B) (i := __smtx_model_eval M t2)
+  simpa [__smtx_model_eval_select] using
+    map_select_typed (m := m) (A := A) (B := B) (i := __smtx_model_eval M t2)
       (by simpa [hm, h1] using hpres1)
       (by simpa [h2] using hpres2)
 
@@ -953,12 +953,12 @@ theorem typeof_value_model_eval_div
   rw [hn1, hn2]
   by_cases hZero : n2 = 0
   · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_div_total,
-      native_veq, hZero] using
+      __smtx_value_eq, native_veq, hZero] using
       typeof_value_model_eval_apply_lookup_fun M hM
         native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
         (SmtValue.Numeral n1) rfl
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_div_total,
-      __smtx_typeof_value, native_veq, hZero]
+      __smtx_typeof_value, __smtx_value_eq, native_veq, hZero]
 
 /-- Shows that evaluating `mod` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_mod
@@ -981,12 +981,12 @@ theorem typeof_value_model_eval_mod
   rw [hn1, hn2]
   by_cases hZero : n2 = 0
   · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_mod_total,
-      native_veq, hZero] using
+      __smtx_value_eq, native_veq, hZero] using
       typeof_value_model_eval_apply_lookup_fun M hM
         native_mod_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
         (SmtValue.Numeral n1) rfl
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_mod_total,
-      __smtx_typeof_value, native_veq, hZero]
+      __smtx_typeof_value, __smtx_value_eq, native_veq, hZero]
 
 /-- Shows that evaluating `multmult` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_multmult
@@ -1013,13 +1013,13 @@ theorem typeof_value_model_eval_multmult
   · by_cases hZero : n1 = 0
     · simpa [__smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_ite,
         __smtx_model_eval_eq, __smtx_model_eval_div_total, __smtx_model_eval_multmult_total,
-        __smtx_model_eval__, native_veq, hNonneg, hZero] using
+        __smtx_model_eval__, __smtx_value_eq, native_veq, hNonneg, hZero] using
         typeof_value_model_eval_apply_lookup_fun M hM
           native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
           (SmtValue.Numeral 1) rfl
     · simp [__smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_ite,
         __smtx_model_eval_eq, __smtx_model_eval_div_total, __smtx_model_eval_multmult_total,
-        __smtx_model_eval__, __smtx_typeof_value, native_veq, hNonneg, hZero]
+        __smtx_model_eval__, __smtx_typeof_value, __smtx_value_eq, native_veq, hNonneg, hZero]
 
 /-- Shows that evaluating `qdiv_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_qdiv_total
@@ -1069,7 +1069,7 @@ theorem typeof_value_model_eval_qdiv
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
     simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
-      __smtx_typeof_value, native_veq]
+      __smtx_typeof_value, __smtx_value_eq, native_veq]
   · rw [show __smtx_typeof (SmtTerm.qdiv t1 t2) = SmtType.Real by
       rw [typeof_qdiv_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
@@ -1079,11 +1079,11 @@ theorem typeof_value_model_eval_qdiv
     rw [hq1, hq2]
     by_cases hZero : q2 = native_mk_rational 0 1
     · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
-        native_veq, hZero] using
+        __smtx_value_eq, native_veq, hZero] using
         typeof_value_model_eval_apply_lookup_fun M hM
           native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real
           (SmtValue.Rational q1) rfl
     · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
-        __smtx_typeof_value, native_veq, hZero]
+        __smtx_typeof_value, __smtx_value_eq, native_veq, hZero]
 
 end Smtm

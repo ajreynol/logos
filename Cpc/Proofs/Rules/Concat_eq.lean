@@ -1551,7 +1551,7 @@ private theorem eo_interprets_double_rev_intros_of_prog_not_str_concat
     s t T hsTy htTy hIntroSNN hIntroTNN hProg hDoubleS hDoubleT hST
 
 private theorem eo_interprets_double_rev_intros_of_prog_not_str_concat_smt
-    (M : SmtModel) (s t : Term)
+    (M : SmtModel) (hM : model_total_typed M) (s t : Term)
     (hPremBool : RuleProofs.eo_has_bool_type (mkEq s t))
     (hProg :
       __eo_prog_concat_eq (Term.Boolean true) (Proof.pf (mkEq s t)) ≠
@@ -1635,7 +1635,7 @@ private theorem eo_interprets_double_rev_intros_of_prog_not_str_concat_smt
                 (__str_nary_intro t))))
           t) true := by
     simpa [hElimIntroT] using hDoubleT
-  exact eo_interprets_double_rev_intros_of_self M s t hSelfS hSelfT hST
+  exact eo_interprets_double_rev_intros_of_self M hM s t hSelfS hSelfT hST
 
 private theorem concatEq_false_lhs_eq_of_not_str_concat_eo_eq_false
     (s t : Term)

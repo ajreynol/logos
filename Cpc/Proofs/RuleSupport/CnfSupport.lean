@@ -14,8 +14,7 @@ namespace CnfSupport
 theorem eo_interprets_false (M : SmtModel) :
     eo_interprets M (Term.Boolean false) false := by
   rw [RuleProofs.eo_interprets_iff_smt_interprets]
-  rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-    rw [__eo_to_smt.eq_def]]
+  change smt_interprets M (SmtTerm.Boolean false) false
   refine smt_interprets.intro_false M (SmtTerm.Boolean false) ?_ ?_
   · rw [__smtx_typeof.eq_1]
   · rw [__smtx_model_eval.eq_1]

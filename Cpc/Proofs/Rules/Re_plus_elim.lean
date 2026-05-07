@@ -57,7 +57,7 @@ private theorem typed___eo_prog_re_plus_elim_impl
   have hLhsTranslate :
       __eo_to_smt (Term.Apply Term.re_plus a1) =
         SmtTerm.re_plus (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hLhsTyRaw :
       __smtx_typeof (__eo_to_smt (Term.Apply Term.re_plus a1)) = SmtType.RegLan := by
     rw [hLhsTranslate]
@@ -67,19 +67,21 @@ private theorem typed___eo_prog_re_plus_elim_impl
   have hStarTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
         SmtTerm.re_mult (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hStarTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.re_mult a1)) = SmtType.RegLan := by
     rw [hStarTranslate]
     simp [__smtx_typeof, hA1SmtTy, native_ite, native_Teq]
   have hEmpTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) = SmtType.RegLan := by
-    simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, native_Teq]
+    change __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String "")) = SmtType.RegLan
+    rw [typeof_str_to_re_eq, __smtx_typeof.eq_4]
+    simp [native_ite, native_Teq]
   have hInnerConcatTranslate :
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
             (Term.Apply Term.str_to_re (Term.String ""))) =
         SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
           (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hInnerConcatTy :
       __smtx_typeof
           (__eo_to_smt
@@ -93,7 +95,11 @@ private theorem typed___eo_prog_re_plus_elim_impl
             (Term.Apply (Term.Apply Term.re_concat a1)
               (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
                 (Term.Apply Term.str_to_re (Term.String ""))))) = SmtType.RegLan := by
-    rw [__eo_to_smt.eq_def]
+    change __smtx_typeof
+      (SmtTerm.re_concat (__eo_to_smt a1)
+        (__eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+            (Term.Apply Term.str_to_re (Term.String ""))))) = SmtType.RegLan
     simp [__smtx_typeof, hA1SmtTy, hInnerConcatTy, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.RegLan := by
     simpa [rhs] using hRhsTyRaw
@@ -142,7 +148,7 @@ private theorem facts___eo_prog_re_plus_elim_impl
   have hLhsTranslate :
       __eo_to_smt (Term.Apply Term.re_plus a1) =
         SmtTerm.re_plus (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hRhsTranslate :
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat a1)
@@ -152,29 +158,28 @@ private theorem facts___eo_prog_re_plus_elim_impl
           (__eo_to_smt
             (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
               (Term.Apply Term.str_to_re (Term.String "")))) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hInnerConcatTranslate :
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
             (Term.Apply Term.str_to_re (Term.String ""))) =
         SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
           (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hStarTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
         SmtTerm.re_mult (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hEmpTranslate :
       __eo_to_smt (Term.Apply Term.str_to_re (Term.String "")) =
         SmtTerm.str_to_re (__eo_to_smt (Term.String "")) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hEmptyStringEval :
       __smtx_model_eval M (__eo_to_smt (Term.String "")) =
         SmtValue.Seq (native_pack_string "") := by
-    simpa [__eo_to_smt.eq_def] using
-      (show __smtx_model_eval M (SmtTerm.String "") =
-          SmtValue.Seq (native_pack_string "") by
-        rw [__smtx_model_eval.eq_4])
+    change __smtx_model_eval M (SmtTerm.String "") =
+      SmtValue.Seq (native_pack_string "")
+    rw [__smtx_model_eval.eq_4]
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_plus a1)) =
         __smtx_model_eval M

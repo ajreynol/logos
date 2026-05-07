@@ -120,18 +120,26 @@ theorem facts___eo_prog_eq_resolve_impl
                       calc
                         __smtx_typeof (__eo_to_smt B) = SmtType.Bool := hBBool
                         _ = __smtx_typeof (__eo_to_smt (Term.Boolean true)) := by
-                          rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
-                            rw [__eo_to_smt.eq_def]]
+                          change SmtType.Bool = __smtx_typeof (SmtTerm.Boolean true)
                           rw [__smtx_typeof.eq_1]
                     exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
                       B (Term.Boolean true) hTyEq hBTrans
                   have hRelBTrue :
                       RuleProofs.smt_value_rel (__smtx_model_eval M (__eo_to_smt B))
                         (__smtx_model_eval M (__eo_to_smt (Term.Boolean true))) := by
-                    rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
-                      rw [__eo_to_smt.eq_def]]
+                    change RuleProofs.smt_value_rel (__smtx_model_eval M (__eo_to_smt B))
+                      (__smtx_model_eval M (SmtTerm.Boolean true))
                     rw [__smtx_model_eval.eq_1]
-                    exact RuleProofs.smt_value_rel_symm _ _ hRel
+                    have hEvalBTy :
+                        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt B)) =
+                          SmtType.Bool :=
+                      smt_model_eval_preserves_type M hM (__eo_to_smt B) SmtType.Bool
+                        hBBool (by simp) type_inhabited_bool
+                    have hTy :
+                        __smtx_typeof_value (SmtValue.Boolean true) =
+                          __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt B)) := by
+                      simpa [__smtx_typeof_value] using hEvalBTy.symm
+                    exact RuleProofs.smt_value_rel_symm _ _ hTy hRel
                   have hEqBTrue :
                       eo_interprets M
                         (Term.Apply (Term.Apply Term.eq B) (Term.Boolean true)) true :=

@@ -397,7 +397,7 @@ private theorem int_le_eval_of_eq_true
   cases h with
   | intro_true _ hEval =>
       rw [__smtx_model_eval.eq_133, ha, hb] at hEval
-      simp [__smtx_model_eval_eq, native_veq] at hEval
+      simp [__smtx_model_eval_eq, __smtx_value_eq, native_veq] at hEval
       subst m
       exact ⟨n, n, ha, hb, by simp [native_zleq, SmtEval.native_zleq]⟩
 
@@ -455,7 +455,7 @@ private theorem real_le_eval_of_eq_true
   cases h with
   | intro_true _ hEval =>
       rw [__smtx_model_eval.eq_133, ha, hb] at hEval
-      simp [__smtx_model_eval_eq, native_veq] at hEval
+      simp [__smtx_model_eval_eq, __smtx_value_eq, native_veq] at hEval
       subst r
       exact ⟨q, q, ha, hb, by simp [native_qleq, SmtEval.native_qleq]⟩
 

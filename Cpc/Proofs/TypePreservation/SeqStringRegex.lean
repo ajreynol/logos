@@ -564,15 +564,15 @@ theorem typeof_value_seq_nth_wrong
   have hInner :
       __smtx_typeof_value (__smtx_map_select (SmtValue.Map m0) (SmtValue.Seq ss)) =
         SmtType.Map SmtType.Int T := by
-    simpa [__smtx_map_select] using
-      map_lookup_typed (m := m0) (A := SmtType.Seq T) (B := SmtType.Map SmtType.Int T)
+    simpa using
+      map_select_typed (m := m0) (A := SmtType.Seq T) (B := SmtType.Map SmtType.Int T)
         (i := SmtValue.Seq ss)
         (by simpa [hm0] using hLookup)
         hssVal
   rcases map_value_canonical (A := SmtType.Int) (B := T) hInner with ⟨m1, hm1⟩
   rw [hm1]
-  simpa [__smtx_map_select] using
-    map_lookup_typed (m := m1) (A := SmtType.Int) (B := T)
+  simpa using
+    map_select_typed (m := m1) (A := SmtType.Int) (B := T)
       (i := SmtValue.Numeral n)
       (by simpa [hm1] using hInner)
       rfl

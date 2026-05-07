@@ -1259,7 +1259,7 @@ theorem map_lookup_typed :
     ∀ {m : SmtMap} {A B : SmtType} {i : SmtValue},
       __smtx_typeof_map_value m = SmtType.Map A B ->
         __smtx_typeof_value i = A ->
-        __smtx_typeof_value (__smtx_msm_lookup m i) = B
+        __smtx_typeof_value (__smtx_msm_lookup A m i) = B
   | SmtMap.default T e, A, B, i, hMap, hi => by
       cases hMap
       simp [__smtx_msm_lookup]
@@ -1281,12 +1281,24 @@ theorem map_lookup_typed :
         have he : __smtx_typeof_value e = B := by
           cases hHead
           rfl
-        have hRec : __smtx_typeof_value (__smtx_msm_lookup m i) = B :=
+        have hRec : __smtx_typeof_value (__smtx_msm_lookup A m i) = B :=
           map_lookup_typed hm hi
-        by_cases hVeq : native_veq j i
+        by_cases hVeq : __smtx_value_eq A j i
         · simpa [__smtx_msm_lookup, native_ite, hVeq] using he
         · simpa [__smtx_msm_lookup, native_ite, hVeq] using hRec
       · simp [__smtx_typeof_map_value, native_ite, hEq] at hMap
+
+/-- Lemma about `map_select_typed`. -/
+theorem map_select_typed
+    {m : SmtMap} {A B : SmtType} {i : SmtValue}
+    (hMap : __smtx_typeof_map_value m = SmtType.Map A B)
+    (hi : __smtx_typeof_value i = A) :
+    __smtx_typeof_value (__smtx_map_select (SmtValue.Map m) i) = B := by
+  have hIndex :
+      __smtx_index_typeof_map (__smtx_typeof_map_value m) = A := by
+    simp [hMap, __smtx_index_typeof_map]
+  simpa [__smtx_map_select, hIndex] using
+    map_lookup_typed (m := m) (A := A) (B := B) (i := i) hMap hi
 
 /-- Lemma about `map_store_typed`. -/
 theorem map_store_typed

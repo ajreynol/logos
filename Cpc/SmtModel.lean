@@ -502,6 +502,15 @@ def native_Teq : SmtType -> SmtType -> native_Bool
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
 
+@[simp] def native_apply_veq
+    (typeofValue : SmtValue -> SmtType)
+    (valueEq : SmtType -> SmtValue -> SmtValue -> native_Bool) :
+    SmtValue -> SmtValue -> native_Nat -> native_Bool
+  | (SmtValue.Apply f1 v1), (SmtValue.Apply f2 v2), native_nat_succ n =>
+      native_and (native_apply_veq typeofValue valueEq f1 f2 n)
+        (native_apply_veq typeofValue valueEq v1 v2 n)
+  | v1, v2, _ => valueEq (typeofValue v1) v1 v2
+
 macro_rules
   | `(native_veq_ext $T $U $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
@@ -839,7 +848,9 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_eq (v1 : SmtValue) (v2 : SmtValue) : SmtValue :=
-  (SmtValue.Boolean (__smtx_value_eq (__smtx_typeof_value v1) v1 v2))
+  (SmtValue.Boolean
+    (native_apply_veq __smtx_typeof_value __smtx_value_eq
+      v1 v2 (sizeOf v1 + sizeOf v2)))
 
 def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i =>

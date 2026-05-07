@@ -9,9 +9,7 @@ set_option maxHeartbeats 10000000
 
 private theorem eo_has_bool_type_false :
   RuleProofs.eo_has_bool_type (Term.Boolean false) := by
-  change __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool
-  rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-    rw [__eo_to_smt.eq_def]]
+  change __smtx_typeof (SmtTerm.Boolean false) = SmtType.Bool
   rw [__smtx_typeof.eq_1]
 
 private theorem eo_has_bool_type_eq_left (A B : Term) :
@@ -93,7 +91,7 @@ theorem facts___eo_prog_false_elim_impl
                               have hRel' :=
                                 RuleProofs.eo_interprets_eq_rel M b (Term.Boolean false) hX1True
                               rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-                                rw [__eo_to_smt.eq_def]] at hRel'
+                                rfl] at hRel'
                               rw [__smtx_model_eval.eq_1] at hRel'
                               exact hRel'
                           cases bv with
@@ -105,7 +103,7 @@ theorem facts___eo_prog_false_elim_impl
                           | true =>
                               rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
                               rw [hEvalB] at hRel
-                              simp [__smtx_model_eval_eq, native_veq] at hRel
+                              simp [__smtx_model_eval_eq, __smtx_value_eq, native_veq] at hRel
                       | _ =>
                           simp [__eo_prog_false_elim] at hProg
                   | _ =>

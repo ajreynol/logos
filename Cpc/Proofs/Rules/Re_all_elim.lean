@@ -7,6 +7,19 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+private theorem eo_to_smt_re_all :
+    __eo_to_smt Term.re_all = SmtTerm.re_all := by
+  rfl
+
+private theorem eo_to_smt_re_allchar :
+    __eo_to_smt Term.re_allchar = SmtTerm.re_allchar := by
+  rfl
+
+private theorem eo_to_smt_re_mult_allchar :
+    __eo_to_smt (Term.Apply Term.re_mult Term.re_allchar) =
+      SmtTerm.re_mult SmtTerm.re_allchar := by
+  rfl
+
 private theorem typed___eo_prog_re_all_elim :
   RuleProofs.eo_has_bool_type __eo_prog_re_all_elim := by
   change RuleProofs.eo_has_bool_type
@@ -15,9 +28,11 @@ private theorem typed___eo_prog_re_all_elim :
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     Term.re_all (Term.Apply Term.re_mult Term.re_allchar)
     (by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, native_Teq])
+      rw [eo_to_smt_re_all, eo_to_smt_re_mult_allchar]
+      simp [__smtx_typeof, native_ite, native_Teq])
     (by
-      simp [__eo_to_smt.eq_def, __smtx_typeof])
+      rw [eo_to_smt_re_all]
+      simp [__smtx_typeof])
 
 private theorem facts___eo_prog_re_all_elim (M : SmtModel) :
   eo_interprets M __eo_prog_re_all_elim true := by
@@ -30,7 +45,8 @@ private theorem facts___eo_prog_re_all_elim (M : SmtModel) :
   · have hEvalEq :
         __smtx_model_eval M (__eo_to_smt Term.re_all) =
           __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult Term.re_allchar)) := by
-      simp [__eo_to_smt.eq_def, __smtx_model_eval, __smtx_model_eval_re_mult,
+      rw [eo_to_smt_re_all, eo_to_smt_re_mult_allchar]
+      simp [__smtx_model_eval, __smtx_model_eval_re_mult,
         native_re_all, native_re_allchar, native_re_mult, native_re_mk_star]
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl

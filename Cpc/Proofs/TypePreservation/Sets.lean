@@ -147,14 +147,18 @@ theorem mss_op_internal_typed
         let acc' :=
           native_ite
             (native_iff
-              (native_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true))
+              (native_veq
+                (__smtx_msm_lookup (__smtx_index_typeof_map (__smtx_typeof_map_value m2)) m2 e)
+                (SmtValue.Boolean true))
               isInter)
             (SmtMap.cons e (SmtValue.Boolean true) acc) acc
         have hacc' : __smtx_typeof_map_value acc' = SmtType.Map A SmtType.Bool := by
           dsimp [acc']
           by_cases hKeep :
               native_iff
-                (native_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true))
+                (native_veq
+                  (__smtx_msm_lookup (__smtx_index_typeof_map (__smtx_typeof_map_value m2)) m2 e)
+                  (SmtValue.Boolean true))
                 isInter
           · simpa [native_ite, hKeep] using hAccCons
           · simpa [native_ite, hKeep] using hacc
@@ -335,8 +339,8 @@ theorem typeof_value_model_eval_set_member
     apply set_map_value_typed (A := A)
     simpa [hm, h2] using hpres2
   rw [hm]
-  simpa [__smtx_model_eval_set_member, __smtx_map_select] using
-    map_lookup_typed (m := m) (A := A) (B := SmtType.Bool) (i := __smtx_model_eval M t1)
+  simpa [__smtx_model_eval_set_member] using
+    map_select_typed (m := m) (A := A) (B := SmtType.Bool) (i := __smtx_model_eval M t1)
       hmTy
       (by simpa [h1] using hpres1)
 

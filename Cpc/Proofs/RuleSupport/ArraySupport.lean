@@ -11,30 +11,30 @@ namespace RuleProofs
 
 theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 theorem eo_to_smt_false_eq :
     __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 theorem eo_to_smt_not_eq (t : Term) :
     __eo_to_smt (Term.Apply Term.not t) = SmtTerm.not (__eo_to_smt t) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 theorem eo_to_smt_eq_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.eq x) y) =
       SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 theorem eo_to_smt_select_eq (a i : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.select a) i) =
       SmtTerm.select (__eo_to_smt a) (__eo_to_smt i) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 theorem eo_to_smt_store_eq (a i e : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.store a) i) e) =
       SmtTerm.store (__eo_to_smt a) (__eo_to_smt i) (__eo_to_smt e) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 theorem eo_to_smt_type_array_of_non_none (A B : Term)
     (h : __eo_to_smt_type (Term.Apply (Term.Apply Term.Array A) B) ≠ SmtType.None) :
@@ -184,20 +184,24 @@ theorem eo_typeof_select_not_stuck_implies_array (A I : Term)
         simp [__eo_typeof_select, hI] at h
 
 theorem smt_value_rel_map_of_lookup_eq
-    (m1 m2 : SmtMap)
-    (h : ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) :
+    (m1 m2 : SmtMap) {A B : SmtType}
+    (hTy : __smtx_typeof_map_value m1 = SmtType.Map A B)
+    (h : ∀ v : SmtValue, __smtx_msm_lookup A m1 v = __smtx_msm_lookup A m2 v) :
     smt_value_rel (SmtValue.Map m1) (SmtValue.Map m2) := by
   classical
   rw [smt_value_rel_iff_model_eval_eq_true]
-  simp [__smtx_model_eval_eq, h]
+  simp [__smtx_model_eval_eq, __smtx_typeof_value, hTy, __smtx_value_eq, h,
+    smtx_value_eq_refl_typed]
 
 theorem smt_value_rel_set_of_lookup_eq
-    (m1 m2 : SmtMap)
-    (h : ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) :
+    (m1 m2 : SmtMap) {A : SmtType}
+    (hTy : __smtx_typeof_map_value m1 = SmtType.Map A SmtType.Bool)
+    (h : ∀ v : SmtValue, __smtx_msm_lookup A m1 v = __smtx_msm_lookup A m2 v) :
     smt_value_rel (SmtValue.Set m1) (SmtValue.Set m2) := by
   classical
   rw [smt_value_rel_iff_model_eval_eq_true]
-  simp [__smtx_model_eval_eq, h]
+  simp [__smtx_model_eval_eq, __smtx_typeof_value, hTy, __smtx_map_to_set_type,
+    __smtx_value_eq, h, smtx_value_eq_refl_typed]
 
 theorem smt_value_rel_select_store_same_of_map
     (m : SmtMap) (i e : SmtValue) :
@@ -206,7 +210,7 @@ theorem smt_value_rel_select_store_same_of_map
       e := by
   rw [smt_value_rel_iff_model_eval_eq_true]
   simpa [__smtx_model_eval_select, __smtx_model_eval_store, __smtx_map_select,
-    __smtx_map_store, __smtx_msm_lookup, native_ite, native_veq] using
+    __smtx_map_store, __smtx_msm_lookup, native_ite, smtx_value_eq_refl_typed] using
     smtx_model_eval_eq_refl e
 
 private theorem eq_of_native_veq_true {v1 v2 : SmtValue}
@@ -222,199 +226,162 @@ private theorem ne_of_native_veq_false {v1 v2 : SmtValue}
   simp [native_veq] at h
 
 theorem smt_value_rel_store_overwrite
-    (v i e f : SmtValue) :
+    (v i e f : SmtValue) {A B : SmtType}
+    (hv : __smtx_typeof_value v = SmtType.Map A B)
+    (hi : __smtx_typeof_value i = A)
+    (he : __smtx_typeof_value e = B)
+    (hf : __smtx_typeof_value f = B) :
     smt_value_rel
       (__smtx_model_eval_store (__smtx_model_eval_store v i e) i f)
       (__smtx_model_eval_store v i f) := by
-  cases v with
-  | Map m =>
-      apply smt_value_rel_map_of_lookup_eq
-      intro x
-      by_cases hix : native_veq i x
-      · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-          native_ite, hix]
-      · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-          native_ite, hix]
-  | Fun m =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Set m =>
-      apply smt_value_rel_set_of_lookup_eq
-      intro x
-      by_cases hix : native_veq i x
-      · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-          native_ite, hix]
-      · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-          native_ite, hix]
-  | NotValue =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Boolean b =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Numeral n =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Rational q =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Binary w n =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Seq s =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | UValue s i =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Char c =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | RegLan r =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | DtCons s d n =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Apply f' x' =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
+  rcases map_value_canonical hv with ⟨m, rfl⟩
+  have hMap : __smtx_typeof_map_value m = SmtType.Map A B := by
+    simpa [__smtx_typeof_value] using hv
+  apply smt_value_rel_map_of_lookup_eq
+    (m1 := SmtMap.cons i f (SmtMap.cons i e m))
+    (m2 := SmtMap.cons i f m)
+    (A := A) (B := B)
+  · simp [__smtx_typeof_map_value, hMap, hi, he, hf, native_ite, native_Teq]
+  · intro x
+    by_cases hix : __smtx_value_eq A i x
+    · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
+        __smtx_typeof_map_value, hMap, hi, he, hf, native_ite, native_Teq, hix]
+    · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
+        __smtx_typeof_map_value, hMap, hi, he, hf, native_ite, native_Teq, hix]
 
-theorem smt_value_rel_store_swap_of_native_veq_false
-    (v i j e f : SmtValue)
-    (hij : native_veq i j = false) :
+theorem smt_value_rel_store_swap_of_value_eq_false
+    (v i j e f : SmtValue) {A B : SmtType}
+    (hv : __smtx_typeof_value v = SmtType.Map A B)
+    (hi : __smtx_typeof_value i = A)
+    (hj : __smtx_typeof_value j = A)
+    (he : __smtx_typeof_value e = B)
+    (hf : __smtx_typeof_value f = B)
+    (hij : __smtx_value_eq A i j = false) :
     smt_value_rel
       (__smtx_model_eval_store (__smtx_model_eval_store v i e) j f)
       (__smtx_model_eval_store (__smtx_model_eval_store v j f) i e) := by
-  cases v with
-  | Map m =>
-      apply smt_value_rel_map_of_lookup_eq
-      intro x
-      by_cases hix : native_veq i x
-      · by_cases hjx : native_veq j x
-        · have hix' : i = x := eq_of_native_veq_true hix
-          have hjx' : j = x := eq_of_native_veq_true hjx
-          have hij' : i = j := hix'.trans hjx'.symm
-          have : native_veq i j = true := by
-            simpa [native_veq] using hij'
-          rw [this] at hij
-          cases hij
-        · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-            native_ite, hix, hjx]
-      · by_cases hjx : native_veq j x
-        · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-            native_ite, hix, hjx]
-        · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-            native_ite, hix, hjx]
-  | Fun m =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Set m =>
-      apply smt_value_rel_set_of_lookup_eq
-      intro x
-      by_cases hix : native_veq i x
-      · by_cases hjx : native_veq j x
-        · have hix' : i = x := eq_of_native_veq_true hix
-          have hjx' : j = x := eq_of_native_veq_true hjx
-          have hij' : i = j := hix'.trans hjx'.symm
-          have : native_veq i j = true := by
-            simpa [native_veq] using hij'
-          rw [this] at hij
-          cases hij
-        · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-            native_ite, hix, hjx]
-      · by_cases hjx : native_veq j x
-        · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-            native_ite, hix, hjx]
-        · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
-            native_ite, hix, hjx]
-  | NotValue =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Boolean b =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Numeral n =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Rational q =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Binary w n =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Seq s =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | UValue s i =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Char c =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | RegLan r =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | DtCons s d n =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
-  | Apply f' x' =>
-      rw [smt_value_rel_iff_model_eval_eq_true]
-      simpa [__smtx_model_eval_store, __smtx_map_store] using
-        smtx_model_eval_eq_refl SmtValue.NotValue
+  rcases map_value_canonical hv with ⟨m, rfl⟩
+  have hMap : __smtx_typeof_map_value m = SmtType.Map A B := by
+    simpa [__smtx_typeof_value] using hv
+  apply smt_value_rel_map_of_lookup_eq
+    (m1 := SmtMap.cons j f (SmtMap.cons i e m))
+    (m2 := SmtMap.cons i e (SmtMap.cons j f m))
+    (A := A) (B := B)
+  · simp [__smtx_typeof_map_value, hMap, hi, hj, he, hf, native_ite, native_Teq]
+  · intro x
+    by_cases hix : __smtx_value_eq A i x
+    · by_cases hjx : __smtx_value_eq A j x
+      · have hji : __smtx_value_eq A x j = true :=
+          smtx_value_eq_symm_typed A hjx
+        have hijTrue : __smtx_value_eq A i j = true :=
+          smtx_value_eq_trans_typed A hix hji
+        rw [hij] at hijTrue
+        cases hijTrue
+      · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
+          __smtx_typeof_map_value, hMap, hi, hj, he, hf, native_ite, native_Teq,
+          hix, hjx]
+    · by_cases hjx : __smtx_value_eq A j x
+      · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
+          __smtx_typeof_map_value, hMap, hi, hj, he, hf, native_ite, native_Teq,
+          hix, hjx]
+      · simp [__smtx_model_eval_store, __smtx_map_store, __smtx_msm_lookup,
+          __smtx_typeof_map_value, hMap, hi, hj, he, hf, native_ite, native_Teq,
+          hix, hjx]
 
-theorem smt_value_rel_select_store_other_of_native_veq_false
-    (v i j e : SmtValue)
-    (hij : native_veq i j = false) :
+theorem smt_value_rel_select_store_other_of_value_eq_false
+    (v i j e : SmtValue) {A B : SmtType}
+    (hv : __smtx_typeof_value v = SmtType.Map A B)
+    (hi : __smtx_typeof_value i = A)
+    (hj : __smtx_typeof_value j = A)
+    (he : __smtx_typeof_value e = B)
+    (hij : __smtx_value_eq A i j = false) :
     smt_value_rel
       (__smtx_model_eval_select (__smtx_model_eval_store v i e) j)
       (__smtx_model_eval_select v j) := by
-  have hij' : i ≠ j := ne_of_native_veq_false hij
-  cases v <;>
-    rw [smt_value_rel_iff_model_eval_eq_true] <;>
-    simp [__smtx_model_eval_select, __smtx_model_eval_store, __smtx_map_select,
-      __smtx_map_store, __smtx_msm_lookup, __smtx_model_eval_eq, native_ite,
-      native_veq, hij', smtx_model_eval_eq_refl]
+  rcases map_value_canonical hv with ⟨m, rfl⟩
+  have hMap : __smtx_typeof_map_value m = SmtType.Map A B := by
+    simpa [__smtx_typeof_value] using hv
+  rw [smt_value_rel_iff_model_eval_eq_true]
+  by_cases hijTrue : __smtx_value_eq A i j
+  · rw [hij] at hijTrue
+    cases hijTrue
+  · simp [__smtx_model_eval_select, __smtx_model_eval_store, __smtx_map_select,
+      __smtx_map_store, __smtx_msm_lookup, __smtx_model_eval_eq,
+      __smtx_typeof_map_value, hMap, hi, hj, he, native_ite, native_Teq,
+      __smtx_index_typeof_map, hij, smtx_value_eq_refl_typed]
+
+theorem msm_lookup_congr_value_eq :
+    ∀ {m : SmtMap} {A B : SmtType} {i j : SmtValue},
+      __smtx_typeof_map_value m = SmtType.Map A B ->
+        __smtx_value_eq A i j = true ->
+          __smtx_msm_lookup A m i = __smtx_msm_lookup A m j
+  | SmtMap.default T e, A, B, i, j, hMap, hij => by
+      simp [__smtx_msm_lookup]
+  | SmtMap.cons k e m, A, B, i, j, hMap, hij => by
+      by_cases hEq :
+          native_Teq (SmtType.Map (__smtx_typeof_value k) (__smtx_typeof_value e))
+            (__smtx_typeof_map_value m)
+      · have hm : __smtx_typeof_map_value m = SmtType.Map A B := by
+          simpa [__smtx_typeof_map_value, native_ite, hEq] using hMap
+        have hEq' :
+            SmtType.Map (__smtx_typeof_value k) (__smtx_typeof_value e) =
+              __smtx_typeof_map_value m := by
+          simpa [native_Teq] using hEq
+        have hHead : SmtType.Map (__smtx_typeof_value k) (__smtx_typeof_value e) =
+            SmtType.Map A B := hEq'.trans hm
+        have hk : __smtx_typeof_value k = A := by
+          cases hHead
+          rfl
+        have he : __smtx_typeof_value e = B := by
+          cases hHead
+          rfl
+        by_cases hki : __smtx_value_eq A k i
+        · have hkj : __smtx_value_eq A k j = true :=
+            smtx_value_eq_trans_typed A hki hij
+          simp [__smtx_msm_lookup, native_ite, hki, hkj]
+        · by_cases hkj : __smtx_value_eq A k j
+          · have hji : __smtx_value_eq A j i = true :=
+              smtx_value_eq_symm_typed A hij
+            have hkiTrue : __smtx_value_eq A k i = true :=
+              smtx_value_eq_trans_typed A hkj hji
+            exact False.elim (hki hkiTrue)
+          · simp [__smtx_msm_lookup, hki, hkj,
+              msm_lookup_congr_value_eq (m := m) (A := A) (B := B) hm hij]
+      · simp [__smtx_typeof_map_value, native_ite, hEq] at hMap
 
 theorem smt_value_rel_store_self_of_map
-    (m : SmtMap) (i : SmtValue) :
+    (m : SmtMap) (i : SmtValue) {A B : SmtType}
+    (hMap : __smtx_typeof_map_value m = SmtType.Map A B)
+    (hi : __smtx_typeof_value i = A) :
     smt_value_rel
       (__smtx_model_eval_store
         (SmtValue.Map m) i
         (__smtx_model_eval_select (SmtValue.Map m) i))
       (SmtValue.Map m) := by
+  have hSelect : __smtx_typeof_value (__smtx_model_eval_select (SmtValue.Map m) i) = B := by
+    simpa [__smtx_model_eval_select] using
+      map_select_typed (m := m) (A := A) (B := B) (i := i) hMap hi
   apply smt_value_rel_map_of_lookup_eq
-  intro x
-  by_cases hix : native_veq i x
-  · have hix' : i = x := eq_of_native_veq_true hix
-    subst x
-    simp [__smtx_model_eval_store, __smtx_model_eval_select, __smtx_map_store,
-      __smtx_map_select, __smtx_msm_lookup, native_ite, native_veq]
-  · simp [__smtx_model_eval_store, __smtx_model_eval_select, __smtx_map_store,
-      __smtx_map_select, __smtx_msm_lookup, native_ite, hix]
+    (m1 := SmtMap.cons i (__smtx_model_eval_select (SmtValue.Map m) i) m)
+    (m2 := m)
+    (A := A) (B := B)
+  · simp [__smtx_typeof_map_value, hMap, hi, hSelect, native_ite, native_Teq]
+  · intro x
+    by_cases hix : __smtx_value_eq A i x
+    · simpa [__smtx_model_eval_store, __smtx_model_eval_select, __smtx_map_store,
+        __smtx_map_select, __smtx_msm_lookup, __smtx_typeof_map_value, hMap, hi,
+        hSelect, native_ite, native_Teq, hix, __smtx_index_typeof_map] using
+        msm_lookup_congr_value_eq (m := m) (A := A) (B := B) hMap hix
+    · simp [__smtx_model_eval_store, __smtx_model_eval_select, __smtx_map_store,
+        __smtx_map_select, __smtx_msm_lookup, __smtx_typeof_map_value, hMap, hi,
+        hSelect, native_ite, native_Teq, hix, __smtx_index_typeof_map]
+
+theorem value_eq_false_of_model_eval_eq_false
+    {A : SmtType} {v1 v2 : SmtValue}
+    (hTy : __smtx_typeof_value v1 = A)
+    (h : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean false) :
+    __smtx_value_eq A v1 v2 = false := by
+  simpa [__smtx_model_eval_eq, hTy] using h
 
 theorem model_eval_eq_false_of_eo_eq_false
     (M : SmtModel) (x y : Term) :
@@ -459,19 +426,9 @@ theorem model_eval_eq_false_of_eq_false_eq_true
   rw [eo_to_smt_eq_eq, eo_to_smt_eq_eq, eo_to_smt_false_eq] at h
   cases h with
   | intro_true _ hEval =>
-      simp [__smtx_model_eval, __smtx_model_eval_eq] at hEval
-      let vx := __smtx_model_eval M (__eo_to_smt x)
-      let vy := __smtx_model_eval M (__eo_to_smt y)
-      have hBool :
-          ∃ b : Bool, __smtx_model_eval_eq vx vy = SmtValue.Boolean b :=
-        bool_value_canonical (typeof_value_model_eval_eq_value vx vy)
-      rcases hBool with ⟨b, hb⟩
-      rw [hb] at hEval
-      cases b with
-      | false =>
-          simpa [vx, vy] using hb
-      | true =>
-          simp [native_veq] at hEval
+      simp [__smtx_model_eval, __smtx_model_eval_eq, __smtx_value_eq,
+        native_veq] at hEval
+      simpa [__smtx_model_eval_eq] using hEval
 
 theorem model_eval_eq_false_of_not_eq_true
     (M : SmtModel) (x y : Term) :

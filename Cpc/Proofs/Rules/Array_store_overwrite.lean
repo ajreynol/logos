@@ -201,7 +201,7 @@ private theorem typed___eo_prog_array_store_overwrite_impl
     (by rw [hLhsTy, hRhsTy]) hLhsTrans
 
 private theorem facts___eo_prog_array_store_overwrite_impl
-    (M : SmtModel) (_hM : model_total_typed M) (t1 i1 e1 f1 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (t1 i1 e1 f1 : Term) :
   RuleProofs.eo_has_smt_translation t1 ->
   RuleProofs.eo_has_smt_translation i1 ->
   RuleProofs.eo_has_smt_translation e1 ->
@@ -221,6 +221,50 @@ private theorem facts___eo_prog_array_store_overwrite_impl
     RuleProofs.term_ne_stuck_of_has_smt_translation e1 hE1Trans
   have hF1NotStuck : f1 ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation f1 hF1Trans
+  rcases typeof_args_of_prog_array_store_overwrite_bool
+      t1 i1 e1 f1 hT1Trans hI1Trans hE1Trans hF1Trans hResultTy with
+    ⟨hT1Ty, hEF⟩
+  let A := __eo_to_smt_type (__eo_typeof i1)
+  let B := __eo_to_smt_type (__eo_typeof f1)
+  have hSmtT1Raw :
+      __smtx_typeof (__eo_to_smt t1) =
+        __eo_to_smt_type
+          (Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1)) :=
+    TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      t1 _ (__eo_to_smt t1) rfl hT1Trans hT1Ty
+  have hT1TyNonNone :
+      __eo_to_smt_type
+          (Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1)) ≠
+        SmtType.None := by
+    rw [← hSmtT1Raw]
+    exact hT1Trans
+  have hSmtT1 :
+      __smtx_typeof (__eo_to_smt t1) = SmtType.Map A B := by
+    exact hSmtT1Raw.trans
+      (RuleProofs.eo_to_smt_type_array_of_non_none
+        (__eo_typeof i1) (__eo_typeof f1) hT1TyNonNone)
+  have hSmtI1 :
+      __smtx_typeof (__eo_to_smt i1) = A :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation i1 hI1Trans
+  have hSmtE1 :
+      __smtx_typeof (__eo_to_smt e1) = B := by
+    exact TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      e1 (__eo_typeof f1) (__eo_to_smt e1) rfl hE1Trans hEF
+  have hSmtF1 :
+      __smtx_typeof (__eo_to_smt f1) = B :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation f1 hF1Trans
+  have hv :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) = SmtType.Map A B := by
+    rw [type_preservation M hM (__eo_to_smt t1) hT1Trans, hSmtT1]
+  have hi :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt i1)) = A := by
+    rw [type_preservation M hM (__eo_to_smt i1) hI1Trans, hSmtI1]
+  have he :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e1)) = B := by
+    rw [type_preservation M hM (__eo_to_smt e1) hE1Trans, hSmtE1]
+  have hf :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt f1)) = B := by
+    rw [type_preservation M hM (__eo_to_smt f1) hF1Trans, hSmtF1]
   have hProgEq :=
     prog_array_store_overwrite_eq t1 i1 e1 f1
       hT1NotStuck hI1NotStuck hE1NotStuck hF1NotStuck
@@ -247,7 +291,8 @@ private theorem facts___eo_prog_array_store_overwrite_impl
           (__smtx_model_eval M (__eo_to_smt t1))
           (__smtx_model_eval M (__eo_to_smt i1))
           (__smtx_model_eval M (__eo_to_smt e1))
-          (__smtx_model_eval M (__eo_to_smt f1)))
+          (__smtx_model_eval M (__eo_to_smt f1))
+          hv hi he hf)
 
 theorem cmd_step_array_store_overwrite_properties
     (M : SmtModel) (hM : model_total_typed M)

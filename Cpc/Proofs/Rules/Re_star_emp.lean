@@ -7,6 +7,20 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+private theorem eo_to_smt_str_empty :
+    __eo_to_smt (Term.String "") = SmtTerm.String "" := by
+  rfl
+
+private theorem eo_to_smt_str_to_re_empty :
+    __eo_to_smt (Term.Apply Term.str_to_re (Term.String "")) =
+      SmtTerm.str_to_re (SmtTerm.String "") := by
+  rfl
+
+private theorem eo_to_smt_re_mult_str_empty :
+    __eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.str_to_re (Term.String ""))) =
+      SmtTerm.re_mult (SmtTerm.str_to_re (SmtTerm.String "")) := by
+  rfl
+
 private theorem typed___eo_prog_re_star_emp :
   RuleProofs.eo_has_bool_type __eo_prog_re_star_emp := by
   change RuleProofs.eo_has_bool_type
@@ -18,9 +32,11 @@ private theorem typed___eo_prog_re_star_emp :
     (Term.Apply Term.re_mult (Term.Apply Term.str_to_re (Term.String "")))
     (Term.Apply Term.str_to_re (Term.String ""))
     (by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, native_Teq])
+      rw [eo_to_smt_re_mult_str_empty, eo_to_smt_str_to_re_empty]
+      simp [__smtx_typeof, native_ite, native_Teq])
     (by
-      simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, native_Teq])
+      rw [eo_to_smt_re_mult_str_empty]
+      simp [__smtx_typeof, native_ite, native_Teq])
 
 private theorem facts___eo_prog_re_star_emp (M : SmtModel) :
   eo_interprets M __eo_prog_re_star_emp true := by
@@ -36,10 +52,11 @@ private theorem facts___eo_prog_re_star_emp (M : SmtModel) :
   · have hEvalEq :
         __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.str_to_re (Term.String "")))) =
           __smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
-      simp [__eo_to_smt.eq_def, __smtx_model_eval, __smtx_model_eval_re_mult,
-        __smtx_model_eval_str_to_re, native_re_mult, native_re_mk_star, native_str_to_re,
-        native_re_of_list, native_pack_string, native_unpack_string, native_pack_seq,
-        native_unpack_seq, __smtx_ssm_char_values_of_string, __smtx_ssm_string_of_char_values]
+      rw [eo_to_smt_re_mult_str_empty, eo_to_smt_str_to_re_empty]
+      simp [__smtx_model_eval, __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re,
+        native_re_mult, native_re_mk_star, native_str_to_re, native_re_of_list,
+        native_pack_string, native_unpack_string, native_pack_seq, native_unpack_seq,
+        __smtx_ssm_char_values_of_string, __smtx_ssm_string_of_char_values]
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))))

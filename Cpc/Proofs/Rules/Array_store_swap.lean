@@ -475,7 +475,7 @@ private theorem typed___eo_prog_array_store_swap_impl
       exact False.elim this
 
 private theorem facts___eo_prog_array_store_swap_impl
-    (M : SmtModel) (_hM : model_total_typed M) (t1 i1 j1 e1 f1 p1 : Term) :
+    (M : SmtModel) (hM : model_total_typed M) (t1 i1 j1 e1 f1 p1 : Term) :
   RuleProofs.eo_has_smt_translation t1 ->
   RuleProofs.eo_has_smt_translation i1 ->
   RuleProofs.eo_has_smt_translation j1 ->
@@ -500,6 +500,57 @@ private theorem facts___eo_prog_array_store_swap_impl
     RuleProofs.term_ne_stuck_of_has_smt_translation e1 hE1Trans
   have hF1NotStuck : f1 ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation f1 hF1Trans
+  rcases typeof_args_of_prog_array_store_swap_bool
+      t1 i1 j1 e1 f1 p1
+      hT1Trans hI1Trans hJ1Trans hE1Trans hF1Trans hResultTy with
+    ⟨hT1Ty, hJI, hEF⟩
+  let A := __eo_to_smt_type (__eo_typeof i1)
+  let B := __eo_to_smt_type (__eo_typeof f1)
+  have hSmtT1Raw :
+      __smtx_typeof (__eo_to_smt t1) =
+        __eo_to_smt_type
+          (Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1)) :=
+    TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      t1 _ (__eo_to_smt t1) rfl hT1Trans hT1Ty
+  have hT1TyNonNone :
+      __eo_to_smt_type
+          (Term.Apply (Term.Apply Term.Array (__eo_typeof i1)) (__eo_typeof f1)) ≠
+        SmtType.None := by
+    rw [← hSmtT1Raw]
+    exact hT1Trans
+  have hSmtT1 :
+      __smtx_typeof (__eo_to_smt t1) = SmtType.Map A B := by
+    exact hSmtT1Raw.trans
+      (RuleProofs.eo_to_smt_type_array_of_non_none
+        (__eo_typeof i1) (__eo_typeof f1) hT1TyNonNone)
+  have hSmtI1 :
+      __smtx_typeof (__eo_to_smt i1) = A :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation i1 hI1Trans
+  have hSmtJ1 :
+      __smtx_typeof (__eo_to_smt j1) = A := by
+    rw [TranslationProofs.eo_to_smt_typeof_matches_translation j1 hJ1Trans, hJI]
+  have hSmtE1 :
+      __smtx_typeof (__eo_to_smt e1) = B := by
+    exact TranslationProofs.eo_to_smt_well_typed_and_typeof_implies_smt_type
+      e1 (__eo_typeof f1) (__eo_to_smt e1) rfl hE1Trans hEF
+  have hSmtF1 :
+      __smtx_typeof (__eo_to_smt f1) = B :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation f1 hF1Trans
+  have hv :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) = SmtType.Map A B := by
+    rw [type_preservation M hM (__eo_to_smt t1) hT1Trans, hSmtT1]
+  have hi :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt i1)) = A := by
+    rw [type_preservation M hM (__eo_to_smt i1) hI1Trans, hSmtI1]
+  have hj :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt j1)) = A := by
+    rw [type_preservation M hM (__eo_to_smt j1) hJ1Trans, hSmtJ1]
+  have he :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e1)) = B := by
+    rw [type_preservation M hM (__eo_to_smt e1) hE1Trans, hSmtE1]
+  have hf :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt f1)) = B := by
+    rw [type_preservation M hM (__eo_to_smt f1) hF1Trans, hSmtF1]
   have hProg :
       __eo_prog_array_store_swap t1 i1 j1 e1 f1 (Proof.pf p1) ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_bool_type _
@@ -551,10 +602,10 @@ private theorem facts___eo_prog_array_store_swap_impl
                                           subst i2
                                           subst j2
                                           have hij :
-                                              native_veq
+                                              __smtx_value_eq A
                                                 (__smtx_model_eval M (__eo_to_smt i1))
-                                                (__smtx_model_eval M (__eo_to_smt j1)) = false := by
-                                            exact RuleProofs.native_veq_false_of_model_eval_eq_false
+                                                (__smtx_model_eval M (__eo_to_smt j1)) = false :=
+                                            RuleProofs.value_eq_false_of_model_eval_eq_false hi
                                               (RuleProofs.model_eval_eq_false_of_eq_false_eq_true M i1 j1 hP1True)
                                           have hBodyBool :
                                               RuleProofs.eo_has_bool_type body := by
@@ -567,12 +618,13 @@ private theorem facts___eo_prog_array_store_swap_impl
                                             native_ite, native_teq, native_not, SmtEval.native_not]
                                           exact RuleProofs.eo_interprets_eq_of_rel M lhs rhs hBodyBool <| by
                                             simpa [lhs, rhs, RuleProofs.eo_to_smt_store_eq, __smtx_model_eval] using
-                                              (RuleProofs.smt_value_rel_store_swap_of_native_veq_false
+                                              (RuleProofs.smt_value_rel_store_swap_of_value_eq_false
                                                 (__smtx_model_eval M (__eo_to_smt t1))
                                                 (__smtx_model_eval M (__eo_to_smt i1))
                                                 (__smtx_model_eval M (__eo_to_smt j1))
                                                 (__smtx_model_eval M (__eo_to_smt e1))
                                                 (__smtx_model_eval M (__eo_to_smt f1))
+                                                hv hi hj he hf
                                                 hij)
                                       | true =>
                                           have : False := by

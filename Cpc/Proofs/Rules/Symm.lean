@@ -76,7 +76,7 @@ theorem typed___eo_prog_symm_impl (x1 : Term) :
       exact False.elim (hProg rfl)
 
 /-- Establishes an equality relating `eo_interprets` and `symm_true`. -/
-private theorem eo_interprets_eq_symm_true (M : SmtModel) (x y : Term) :
+private theorem eo_interprets_eq_symm_true (M : SmtModel) (hM : model_total_typed M) (x y : Term) :
   eo_interprets M (Term.Apply (Term.Apply Term.eq x) y) true ->
   eo_interprets M (Term.Apply (Term.Apply Term.eq y) x) true := by
   intro hEqTrue
@@ -84,8 +84,21 @@ private theorem eo_interprets_eq_symm_true (M : SmtModel) (x y : Term) :
       RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq y) x) :=
     RuleProofs.eo_has_bool_type_eq_symm x y
       (RuleProofs.eo_has_bool_type_of_interprets_true M _ hEqTrue)
+  rcases RuleProofs.eo_eq_operands_same_smt_type M x y hEqTrue with ⟨hTyXY, hXTy⟩
+  have hYTy : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
+    rwa [← hTyXY]
+  have hEvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt x)) =
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt y)) := by
+    rw [type_preservation M hM (__eo_to_smt x) (by
+        unfold term_has_non_none_type
+        exact hXTy),
+      type_preservation M hM (__eo_to_smt y) (by
+        unfold term_has_non_none_type
+        exact hYTy),
+      hTyXY]
   exact RuleProofs.eo_interprets_eq_of_rel M y x hTy
-    (RuleProofs.smt_value_rel_symm _ _
+    (RuleProofs.smt_value_rel_symm _ _ hEvalTy
       (RuleProofs.eo_interprets_eq_rel M x y hEqTrue))
 
 /-- Proves correctness of the EO program for `symm_impl`. -/
@@ -106,7 +119,7 @@ theorem correct___eo_prog_symm_impl
               cases op with
               | eq =>
                   change eo_interprets M (Term.Apply (Term.Apply Term.eq a) b) true
-                  exact eo_interprets_eq_symm_true M b a hXTrue
+                  exact eo_interprets_eq_symm_true M hM b a hXTrue
               | _ =>
                   change Term.Stuck ≠ Term.Stuck at hProgNotStuck
                   exact False.elim (hProgNotStuck rfl)
@@ -161,7 +174,7 @@ theorem correct___eo_prog_symm_impl
                                   have hOrigEqTrue :
                                       eo_interprets M
                                         (Term.Apply (Term.Apply Term.eq b2) a2) true :=
-                                    eo_interprets_eq_symm_true M a2 b2 hSymmEqTrue
+                                    eo_interprets_eq_symm_true M hM a2 b2 hSymmEqTrue
                                   exact False.elim
                                     ((RuleProofs.eo_interprets_true_not_false M _ hOrigEqTrue)
                                       hOrigEqFalse)

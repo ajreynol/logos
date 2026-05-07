@@ -12,7 +12,7 @@ private theorem eo_has_bool_type_imp_right (A B : Term) :
   RuleProofs.eo_has_bool_type B := by
   intro hImp
   unfold RuleProofs.eo_has_bool_type at hImp ⊢
-  rw [__eo_to_smt.eq_def] at hImp
+  change __smtx_typeof (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) = SmtType.Bool at hImp
   have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hImp]
@@ -25,7 +25,7 @@ private theorem eo_has_bool_type_imp_left (A B : Term) :
   RuleProofs.eo_has_bool_type A := by
   intro hImp
   unfold RuleProofs.eo_has_bool_type at hImp ⊢
-  rw [__eo_to_smt.eq_def] at hImp
+  change __smtx_typeof (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) = SmtType.Bool at hImp
   have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hImp]

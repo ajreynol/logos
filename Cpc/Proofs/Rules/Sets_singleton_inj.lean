@@ -11,27 +11,70 @@ private theorem set_singleton_arg_non_none (x : Term) :
     __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
   intro hSingleton hNone
-  rw [__eo_to_smt.eq_def, __smtx_typeof.eq_121] at hSingleton
-  simpa [hNone, native_ite, native_Teq] using hSingleton
+  change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt x)) ≠ SmtType.None at hSingleton
+  rw [__smtx_typeof.eq_121] at hSingleton
+  exact (Smtm.type_wf_non_none <|
+      Smtm.smtx_typeof_guard_wf_wf_of_non_none
+        (__smtx_typeof (__eo_to_smt x))
+        (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
+        hSingleton) hNone
 
-private theorem set_singleton_type_of_non_none (x : Term)
-    (h : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None) :
+private theorem set_singleton_type_of_non_none (x : Term) :
+    __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton x)) =
-      SmtType.Set (__smtx_typeof (__eo_to_smt x)) := by
-  rw [__eo_to_smt.eq_def, __smtx_typeof.eq_121]
-  simpa [h, native_ite, native_Teq]
+        SmtType.Set (__smtx_typeof (__eo_to_smt x)) := by
+  intro h
+  change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt x)) ≠ SmtType.None at h
+  change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt x)) =
+    SmtType.Set (__smtx_typeof (__eo_to_smt x))
+  rw [__smtx_typeof.eq_121]
+  exact Smtm.smtx_typeof_guard_wf_of_non_none
+    (__smtx_typeof (__eo_to_smt x))
+    (SmtType.Set (__smtx_typeof (__eo_to_smt x))) (by
+      simpa [__smtx_typeof.eq_121] using h)
 
-private theorem singleton_rel_implies_eq
+private theorem singleton_rel_implies_rel
     {v w : SmtValue}
     (h :
       RuleProofs.smt_value_rel
         (__smtx_model_eval_set_singleton v)
         (__smtx_model_eval_set_singleton w)) :
-    w = v := by
-  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at h
-  simp [__smtx_model_eval_set_singleton, __smtx_model_eval_eq] at h
-  have hLookup := h v
-  simpa [__smtx_msm_lookup, native_ite, native_veq] using hLookup.symm
+    RuleProofs.smt_value_rel v w := by
+  let T := __smtx_typeof_value v
+  let mv :=
+    SmtMap.cons v (SmtValue.Boolean true)
+      (SmtMap.default T (SmtValue.Boolean false))
+  let mw :=
+    SmtMap.cons w (SmtValue.Boolean true)
+      (SmtMap.default (__smtx_typeof_value w) (SmtValue.Boolean false))
+  have hExt :
+      ∀ x : SmtValue,
+        native_veq
+          (__smtx_msm_lookup T mv x)
+          (__smtx_msm_lookup T mw x) = true := by
+    rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at h
+    change __smtx_model_eval_eq (SmtValue.Set mv) (SmtValue.Set mw) =
+      SmtValue.Boolean true at h
+    simp [__smtx_model_eval_eq, __smtx_value_eq, __smtx_typeof_value,
+      __smtx_typeof_map_value, __smtx_map_to_set_type, T, mv, mw,
+      native_Teq, native_ite] at h
+    by_cases hExt :
+        ∀ x : SmtValue,
+          native_veq
+            (__smtx_msm_lookup T mv x)
+            (__smtx_msm_lookup T mw x) = true
+    · exact hExt
+    · exact False.elim (hExt h)
+  have hLookup := hExt v
+  have hWV : __smtx_value_eq T w v = true := by
+    cases hEq : __smtx_value_eq T w v
+    · exfalso
+      simpa [__smtx_msm_lookup, RuleProofs.smtx_value_eq_refl_typed,
+        hEq, __smtx_value_eq, native_veq, native_ite, T, mv, mw] using hLookup
+    · rfl
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simpa [__smtx_model_eval_eq, T] using
+    RuleProofs.smtx_value_eq_symm_typed T hWV
 
 private theorem typed___eo_prog_sets_singleton_inj_impl (x1 : Term) :
     RuleProofs.eo_has_bool_type x1 ->
@@ -81,11 +124,11 @@ private theorem typed___eo_prog_sets_singleton_inj_impl (x1 : Term) :
                                           have hSingletonATy :
                                               __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton a)) =
                                                 SmtType.Set (__smtx_typeof (__eo_to_smt a)) :=
-                                            set_singleton_type_of_non_none a hATrans
+                                            set_singleton_type_of_non_none a hSingletonNN
                                           have hSingletonBTy :
                                               __smtx_typeof (__eo_to_smt (Term.Apply Term.set_singleton b)) =
                                                 SmtType.Set (__smtx_typeof (__eo_to_smt b)) :=
-                                            set_singleton_type_of_non_none b hBTrans
+                                            set_singleton_type_of_non_none b hSingletonNNB
                                           have hABTy :
                                               __smtx_typeof (__eo_to_smt a) =
                                                 __smtx_typeof (__eo_to_smt b) := by
@@ -119,17 +162,20 @@ private theorem typed___eo_prog_sets_singleton_inj_impl (x1 : Term) :
   | _ =>
       simp [__eo_prog_sets_singleton_inj] at hProg
 
-private theorem singleton_term_rel_implies_eq
+private theorem singleton_term_rel_implies_rel
     (M : SmtModel) (a b : Term)
     (h :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.set_singleton a)))
         (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.set_singleton b)))) :
-    __smtx_model_eval M (__eo_to_smt b) =
-      __smtx_model_eval M (__eo_to_smt a) := by
-  rw [__eo_to_smt.eq_def, __eo_to_smt.eq_def] at h
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt a))
+      (__smtx_model_eval M (__eo_to_smt b)) := by
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt a)))
+    (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt b))) at h
   rw [__smtx_model_eval.eq_121, __smtx_model_eval.eq_121] at h
-  exact singleton_rel_implies_eq h
+  exact singleton_rel_implies_rel h
 
 private theorem facts___eo_prog_sets_singleton_inj_impl
     (M : SmtModel) (x1 : Term) :
@@ -178,15 +224,13 @@ private theorem facts___eo_prog_sets_singleton_inj_impl
                                               (Term.Apply Term.set_singleton a)
                                               (Term.Apply Term.set_singleton b)
                                               hPremTrue
-                                          have hEvalEq :
-                                              __smtx_model_eval M (__eo_to_smt b) =
-                                                __smtx_model_eval M (__eo_to_smt a) :=
-                                            singleton_term_rel_implies_eq M a b hSetRel
-                                          simpa [__eo_prog_sets_singleton_inj] using
-                                            RuleProofs.eo_interprets_eq_of_rel M a b hOutBool <| by
-                                              rw [hEvalEq]
-                                              exact RuleProofs.smt_value_rel_refl
+                                          have hArgRel :
+                                              RuleProofs.smt_value_rel
                                                 (__smtx_model_eval M (__eo_to_smt a))
+                                                (__smtx_model_eval M (__eo_to_smt b)) :=
+                                            singleton_term_rel_implies_rel M a b hSetRel
+                                          simpa [__eo_prog_sets_singleton_inj] using
+                                            RuleProofs.eo_interprets_eq_of_rel M a b hOutBool hArgRel
                                       | _ =>
                                           simp [__eo_prog_sets_singleton_inj] at hProg
                                   | _ =>

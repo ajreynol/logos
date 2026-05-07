@@ -12,17 +12,18 @@ set_option maxHeartbeats 10000000
 private theorem eo_to_smt_not_eq (t : Term) :
     __eo_to_smt (Term.Apply (Term.UOp UserOp.not) t) =
       SmtTerm.not (__eo_to_smt t) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 private theorem eo_to_smt_eq_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) =
       SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
-private theorem eo_to_smt_forall_eq (x F : Term) :
+private theorem eo_to_smt_forall_eq (x F : Term)
+    (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) F) =
       SmtTerm.not (__eo_to_smt_exists x (SmtTerm.not (__eo_to_smt F))) := by
-  rw [__eo_to_smt.eq_def]
+  cases x <;> simp at hx <;> rfl
 
 private theorem smtx_typeof_none_ne_bool :
     __smtx_typeof SmtTerm.None ≠ SmtType.Bool := by
@@ -41,24 +42,24 @@ private def exists_elim_formula (x F : Term) : Term :=
     (exists_elim_rhs x F)
 
 private theorem eo_to_smt_exists_elim_lhs
-    (x F : Term) :
+    (x F : Term) (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (exists_elim_lhs x F) =
       __eo_to_smt_exists x (__eo_to_smt F) := by
   unfold exists_elim_lhs
-  rw [__eo_to_smt.eq_def]
+  cases x <;> simp at hx <;> rfl
 
 private theorem eo_to_smt_exists_elim_rhs
-    (x F : Term) :
+    (x F : Term) (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (exists_elim_rhs x F) =
       SmtTerm.not
         (SmtTerm.not
           (__eo_to_smt_exists x
             (SmtTerm.not (SmtTerm.not (__eo_to_smt F))))) := by
   unfold exists_elim_rhs
-  rw [eo_to_smt_not_eq, eo_to_smt_forall_eq, eo_to_smt_not_eq]
+  rw [eo_to_smt_not_eq, eo_to_smt_forall_eq x _ hx, eo_to_smt_not_eq]
 
 private theorem eo_to_smt_exists_elim_formula
-    (x F : Term) :
+    (x F : Term) (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (exists_elim_formula x F) =
       SmtTerm.eq
         (__eo_to_smt_exists x (__eo_to_smt F))
@@ -67,7 +68,8 @@ private theorem eo_to_smt_exists_elim_formula
             (__eo_to_smt_exists x
               (SmtTerm.not (SmtTerm.not (__eo_to_smt F)))))) := by
   unfold exists_elim_formula
-  rw [eo_to_smt_eq_eq, eo_to_smt_exists_elim_lhs, eo_to_smt_exists_elim_rhs]
+  rw [eo_to_smt_eq_eq, eo_to_smt_exists_elim_lhs x F hx,
+    eo_to_smt_exists_elim_rhs x F hx]
 
 private theorem eo_to_smt_exists_body_bool_of_bool
     (xs : Term) (body : SmtTerm) :
@@ -370,8 +372,12 @@ private theorem typed_exists_elim_formula_of_translation
   have hNN : term_has_non_none_type (__eo_to_smt (exists_elim_formula x F)) := by
     simpa [RuleProofs.eo_has_smt_translation, term_has_non_none_type] using hTrans
   unfold RuleProofs.eo_has_bool_type
-  rw [eo_to_smt_exists_elim_formula]
-  rw [eo_to_smt_exists_elim_formula] at hNN
+  change __smtx_typeof
+    (SmtTerm.eq (__eo_to_smt (exists_elim_lhs x F))
+      (__eo_to_smt (exists_elim_rhs x F))) = SmtType.Bool
+  change term_has_non_none_type
+    (SmtTerm.eq (__eo_to_smt (exists_elim_lhs x F))
+      (__eo_to_smt (exists_elim_rhs x F))) at hNN
   exact eq_term_typeof_of_non_none hNN
 
 private theorem typed___eo_prog_exists_elim_impl
@@ -401,8 +407,14 @@ private theorem smtx_model_eval_exists_elim_formula
   rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
       (exists_elim_lhs x F) (exists_elim_rhs x F) hEqBool with
     ⟨hSameTy, hLhsNN⟩
-  rw [eo_to_smt_exists_elim_lhs, eo_to_smt_exists_elim_rhs] at hSameTy
-  rw [eo_to_smt_exists_elim_lhs] at hLhsNN
+  have hx : x ≠ Term.__eo_List_nil := by
+    intro hxNil
+    apply hLhsNN
+    subst hxNil
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+  rw [eo_to_smt_exists_elim_lhs x F hx, eo_to_smt_exists_elim_rhs x F hx] at hSameTy
+  rw [eo_to_smt_exists_elim_lhs x F hx] at hLhsNN
   have hSameTy' : __smtx_typeof lhsS = __smtx_typeof rhsS := by
     simpa [body, lhsS, rhsS] using hSameTy
   have hLhsNN' : __smtx_typeof lhsS ≠ SmtType.None := by
@@ -428,7 +440,7 @@ private theorem smtx_model_eval_exists_elim_formula
   have hEvalInnerLhs :
       __smtx_model_eval M innerS = __smtx_model_eval M lhsS :=
     smtx_model_eval_eo_to_smt_exists_double_not_body M hM x body hBodyTy
-  rw [eo_to_smt_exists_elim_rhs, eo_to_smt_exists_elim_lhs]
+  rw [eo_to_smt_exists_elim_rhs x F hx, eo_to_smt_exists_elim_lhs x F hx]
   simpa [body, lhsS, innerS, rhsS] using hEvalRhsInner.trans hEvalInnerLhs
 
 private theorem facts___eo_prog_exists_elim_impl
