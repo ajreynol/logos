@@ -295,7 +295,9 @@ theorem typeof_value_apply_of_head_ne_fun_ne_dt_cons :
       simp [__smtx_typeof_value, __smtx_typeof_apply_value]
   | SmtValue.Binary w n, i, hFun, hDt => by
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite, hWidth]
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite,
+            SmtEval.native_and, hWidth, hMod]
   | SmtValue.Map m, i, hFun, hDt => by
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -471,9 +473,10 @@ theorem typeof_value_ne_type_ref
       simp [__smtx_typeof_value]
   | SmtValue.Rational _ => by
       simp [__smtx_typeof_value]
-  | SmtValue.Binary w _ => by
+  | SmtValue.Binary w n => by
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth]
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod]
   | SmtValue.Map m => by
       intro h
       cases typeof_map_value_shape m with
@@ -542,9 +545,10 @@ theorem bool_value_canonical
       simp [__smtx_typeof_value] at h
   | Rational _ =>
       simp [__smtx_typeof_value] at h
-  | Binary w _ =>
+  | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   | Map m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -605,9 +609,10 @@ theorem int_value_canonical
       simp [__smtx_typeof_value] at h
   | Rational _ =>
       simp [__smtx_typeof_value] at h
-  | Binary w _ =>
+  | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   | Map m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -668,9 +673,10 @@ theorem real_value_canonical
       simp [__smtx_typeof_value] at h
   | Numeral _ =>
       simp [__smtx_typeof_value] at h
-  | Binary w _ =>
+  | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   | Map m =>
       exfalso
       cases typeof_map_value_shape m with
@@ -726,7 +732,8 @@ theorem bitvec_value_canonical
   cases v with
   | Binary w' n =>
       cases hWidth : native_zleq 0 w' <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w')) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
       have hw' : w' = native_nat_to_int w := by
         have hNonneg : 0 <= w' := by
           simpa [native_zleq, SmtEval.native_zleq] using hWidth
@@ -795,15 +802,46 @@ theorem bitvec_width_nonneg
     (h : __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec u) :
     native_zleq 0 w = true := by
   cases hWidth : native_zleq 0 w <;>
-    simp [__smtx_typeof_value, native_ite, hWidth] at h
+    cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+      simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   simp
+
+/-- A well-typed bitvector value has a canonical payload for its width. -/
+theorem bitvec_payload_canonical
+    {w n : native_Int} {u : native_Nat}
+    (h : __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec u) :
+    native_zeq n (native_mod_total n (native_int_pow2 w)) = true := by
+  cases hWidth : native_zleq 0 w <;>
+    cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+      simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
+  simp
+
+/-- Reducing a payload modulo a width makes it canonical for that width. -/
+theorem native_mod_total_canonical
+    (w n : native_Int) :
+    native_zeq (native_mod_total n (native_int_pow2 w))
+      (native_mod_total (native_mod_total n (native_int_pow2 w)) (native_int_pow2 w)) = true := by
+  simp [SmtEval.native_zeq, SmtEval.native_mod_total]
 
 /-- Derives `typeof_value_binary` from `nonneg`. -/
 theorem typeof_value_binary_of_nonneg
     (w n : native_Int)
-    (hWidth : native_zleq 0 w = true) :
+    (hWidth : native_zleq 0 w = true)
+    (hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) = true) :
     __smtx_typeof_value (SmtValue.Binary w n) = SmtType.BitVec (native_int_to_nat w) := by
-  simp [__smtx_typeof_value, native_ite, hWidth]
+  simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod]
+
+/-- A bitvector value whose payload has just been reduced modulo its width is well-typed. -/
+theorem typeof_value_binary_mod_of_nonneg
+    (w n : native_Int)
+    (hWidth : native_zleq 0 w = true) :
+    __smtx_typeof_value (SmtValue.Binary w (native_mod_total n (native_int_pow2 w))) =
+      SmtType.BitVec (native_int_to_nat w) := by
+  have hMod :
+      native_zeq (native_mod_total n (native_int_pow2 w))
+        (native_mod_total (native_mod_total n (native_int_pow2 w)) (native_int_pow2 w)) = true := by
+    exact native_mod_total_canonical w n
+  exact typeof_value_binary_of_nonneg w (native_mod_total n (native_int_pow2 w)) hWidth hMod
 
 /-- Canonical-form lemma for `map_value`. -/
 theorem map_value_canonical
@@ -822,9 +860,10 @@ theorem map_value_canonical
       simp [__smtx_typeof_value] at h
   | Rational _ =>
       simp [__smtx_typeof_value] at h
-  | Binary w _ =>
+  | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   | Fun m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -876,9 +915,10 @@ theorem set_value_canonical
       simp [__smtx_typeof_value] at h
   | Rational _ =>
       simp [__smtx_typeof_value] at h
-  | Binary w _ =>
+  | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -980,9 +1020,10 @@ theorem seq_value_canonical
       simp [__smtx_typeof_value] at h
   | Rational _ =>
       simp [__smtx_typeof_value] at h
-  | Binary w _ =>
+  | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -1315,9 +1356,10 @@ theorem reglan_value_canonical
       simp [__smtx_typeof_value] at h
   | Rational _ =>
       simp [__smtx_typeof_value] at h
-  | Binary w _ =>
+  | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at h
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>

@@ -510,9 +510,10 @@ theorem no_value_of_empty_datatype
       simp [__smtx_typeof_value] at hv
   | Rational _ =>
       simp [__smtx_typeof_value] at hv
-  | Binary w _ =>
+  | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at hv
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at hv
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -1097,7 +1098,8 @@ theorem typeof_value_model_eval_apply_dt
   | Rational q => simp [__smtx_typeof_value] at hf
   | Binary w n =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__smtx_typeof_value, native_ite, hWidth] at hf
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at hf
   | Map m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
