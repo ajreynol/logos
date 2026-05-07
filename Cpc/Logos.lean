@@ -9937,6 +9937,11 @@ def __eo_push_assume : Term -> CState -> CState
   | F, s => (__eo_push_assume_check (__eo_is_bool_type F) F s)
 
 
+def __eo_push_input_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume F) s)
+  | b, F, s => CState.Stuck
+
+
 def __eo_push_proven_check : Term -> Term -> CState -> CState
   | (Term.Boolean true), F, s => (CState.cons (CStateObj.proven F) s)
   | b, F, s => CState.Stuck
@@ -10579,7 +10584,7 @@ def __eo_state_is_refutation (s : CState) : native_Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
 def __eo_invoke_assume_list (S : CState) : Term -> CState
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (CState.cons (CStateObj.assume F) (__eo_invoke_assume_list S as))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (__eo_push_input_assume_check (__eo_is_bool_type F) F (__eo_invoke_assume_list S as))
   | (Term.Boolean true) => S
   | as => CState.Stuck
 

@@ -19,15 +19,6 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step _ args _ => cArgListTranslationOk args
   | _ => True
 
-/-- Inductive predicate for valid assumption lists whose entries are non-stuck EO Boolean terms. -/
-inductive TypedAssumptionList : Term -> Prop
-  | base : TypedAssumptionList (Term.Boolean true)
-  | step (A rest : Term) :
-      A ≠ Term.Stuck ->
-      __eo_typeof A = Term.Bool ->
-      TypedAssumptionList rest ->
-      TypedAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
-
 /-- Inductive predicate for valid assumption lists whose entries all admit SMT translations. -/
 inductive TranslatableAssumptionList : Term -> Prop
   | base : TranslatableAssumptionList (Term.Boolean true)
