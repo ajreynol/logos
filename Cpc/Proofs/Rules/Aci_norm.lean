@@ -249,6 +249,27 @@ private theorem aci_norm_l1_nonmarker_left_eq_false
           simp [__eo_l_1___aci_norm_eq, __eo_l_2___aci_norm_eq,
             __eo_l_3___aci_norm_eq] at hNotMarker ⊢
 
+private theorem aci_norm_eq_true_nonmarker_left_false (x y : Term) :
+    (∀ f payload,
+      x ≠ Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload) ->
+    __eo_eq x y ≠ Term.Boolean true ->
+    __aci_norm_eq x y = Term.Boolean true ->
+    False := by
+  intro hNotMarker hTermEq hEq
+  have hXNe : x ≠ Term.Stuck := aci_norm_eq_true_left_ne_stuck x y hEq
+  have hYNe : y ≠ Term.Stuck := aci_norm_eq_true_right_ne_stuck x y hEq
+  have hEqIte := hEq
+  rw [aci_norm_eq_nonstuck x y hXNe hYNe] at hEqIte
+  have hL1 :
+      __eo_l_1___aci_norm_eq x y = Term.Boolean true :=
+    (eo_ite_else_eq_true_of_cond_ne_true
+      (__eo_eq x y) (Term.Boolean true)
+      (__eo_l_1___aci_norm_eq x y) hTermEq hEqIte).2
+  have hFalse :=
+    aci_norm_l1_nonmarker_left_eq_false x y hNotMarker hXNe hYNe
+  rw [hFalse] at hL1
+  contradiction
+
 private theorem smt_value_rel_of_aci_norm_l1_marker_eq_true_right_translation
     (M : SmtModel) (f payload y : Term) :
     RuleProofs.eo_has_smt_translation y ->
@@ -3555,6 +3576,140 @@ private theorem smt_value_rel_aciNormPayload_right_of_rel_has_translation
   rw [aciNormPayload_eq_self_of_eval_not_notvalue M norm hNormNe]
   exact hRel
 
+private theorem bvConcat_smt_value_rel_right_empty_eval
+    (M : SmtModel) (hM : model_total_typed M)
+    (x nil : Term) (w : native_Nat) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w ->
+    __smtx_model_eval M (__eo_to_smt nil) = SmtValue.Binary 0 0 ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x) nil)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  intro hxTy hNilEval
+  have hNN : term_has_non_none_type (__eo_to_smt x) := by
+    unfold term_has_non_none_type
+    rw [hxTy]
+    intro h
+    cases h
+  have hValTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt x)) =
+        SmtType.BitVec w := by
+    simpa [hxTy] using
+      smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt x) hNN
+  rcases bitvec_value_canonical hValTy with ⟨n, hxEval⟩
+  have hMod :
+      native_zeq n
+          (native_mod_total n (native_int_pow2 (native_nat_to_int w))) =
+        true := by
+    exact bitvec_payload_canonical (by simpa [hxEval] using hValTy)
+  have hModEq :
+      native_mod_total n (native_int_pow2 (native_nat_to_int w)) = n := by
+    have hEq :
+        n = native_mod_total n (native_int_pow2 (native_nat_to_int w)) := by
+      simpa [SmtEval.native_zeq] using hMod
+    exact hEq.symm
+  have hPow0 : native_int_pow2 0 = 1 := by
+    native_decide
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M
+        (SmtTerm.concat (__eo_to_smt x) (__eo_to_smt nil)))
+      (__smtx_model_eval M (__eo_to_smt x)) =
+    SmtValue.Boolean true
+  simp only [__smtx_model_eval, __smtx_model_eval_concat, hxEval, hNilEval]
+  simp only [SmtEval.native_binary_concat, SmtEval.native_zplus,
+    SmtEval.native_zmult, hPow0, Int.add_zero, Int.mul_one]
+  rw [hModEq]
+  simp [__smtx_model_eval_eq, native_veq]
+
+private theorem bvConcat_eval_concat_binary_of_args_eval_binary
+    (M : SmtModel) (x y : Term) (wx wy : native_Int) :
+    (∃ nx,
+      __smtx_model_eval M (__eo_to_smt x) = SmtValue.Binary wx nx) ->
+    (∃ ny,
+      __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary wy ny) ->
+    ∃ n,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x) y)) =
+        SmtValue.Binary (native_zplus wx wy) n := by
+  intro hxBin hyBin
+  rcases hxBin with ⟨nx, hxEval⟩
+  rcases hyBin with ⟨ny, hyEval⟩
+  refine ⟨native_mod_total (native_binary_concat wx nx wy ny)
+      (native_int_pow2 (native_zplus wx wy)), ?_⟩
+  change __smtx_model_eval M
+      (SmtTerm.concat (__eo_to_smt x) (__eo_to_smt y)) =
+    SmtValue.Binary (native_zplus wx wy)
+      (native_mod_total (native_binary_concat wx nx wy ny)
+        (native_int_pow2 (native_zplus wx wy)))
+  simp [__smtx_model_eval, __smtx_model_eval_concat, hxEval, hyEval]
+
+private theorem bvConcat_smt_value_rel_congr_eval
+    (M : SmtModel) (x x' y y' : Term) (wx wy : native_Int) :
+    (∃ nx,
+      __smtx_model_eval M (__eo_to_smt x) = SmtValue.Binary wx nx) ->
+    (∃ ny,
+      __smtx_model_eval M (__eo_to_smt y) = SmtValue.Binary wy ny) ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt x))
+      (__smtx_model_eval M (__eo_to_smt x')) ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt y))
+      (__smtx_model_eval M (__eo_to_smt y')) ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x) y)))
+      (__smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x') y'))) := by
+  intro hxBin hyBin hxRel hyRel
+  rcases hxBin with ⟨nx, hxEval⟩
+  rcases hyBin with ⟨ny, hyEval⟩
+  rcases smt_value_rel_eval_binary_right hxRel ⟨nx, hxEval⟩ with
+    ⟨nx', hxEval'⟩
+  rcases smt_value_rel_eval_binary_right hyRel ⟨ny, hyEval⟩ with
+    ⟨ny', hyEval'⟩
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M
+        (SmtTerm.concat (__eo_to_smt x) (__eo_to_smt y)))
+      (__smtx_model_eval M
+        (SmtTerm.concat (__eo_to_smt x') (__eo_to_smt y'))) =
+    SmtValue.Boolean true
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hxRel hyRel
+  simp [__smtx_model_eval, __smtx_model_eval_concat, hxEval, hyEval,
+    hxEval', hyEval', __smtx_model_eval_eq, native_veq] at hxRel hyRel ⊢
+  subst nx'
+  subst ny'
+  rfl
+
+private theorem native_re_mk_union_self (r : native_RegLan) :
+    native_re_mk_union r r = r := by
+  cases r <;> simp [native_re_mk_union]
+
+private theorem native_re_mk_inter_self (r : native_RegLan) :
+    native_re_mk_inter r r = r := by
+  cases r <;> simp [native_re_mk_inter]
+
+private theorem native_re_nullable_mk_union (r s : native_RegLan) :
+    native_re_nullable (native_re_mk_union r s) =
+      (native_re_nullable r || native_re_nullable s) := by
+  cases r <;> cases s <;>
+    simp [native_re_mk_union, native_re_nullable]
+  all_goals
+    split <;> simp_all [native_re_nullable]
+
+private theorem native_re_nullable_mk_inter (r s : native_RegLan) :
+    native_re_nullable (native_re_mk_inter r s) =
+      (native_re_nullable r && native_re_nullable s) := by
+  cases r <;> cases s <;>
+    simp [native_re_mk_inter, native_re_nullable]
+  all_goals
+    split <;> simp_all [native_re_nullable]
+
 private theorem term_ne_stuck_of_strConcat_is_list_true {t : Term} :
     __eo_is_list (Term.UOp UserOp.str_concat) t = Term.Boolean true ->
     t ≠ Term.Stuck := by
@@ -3976,8 +4131,24 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
       rw [aciNormPayload_eq_self_of_has_smt_translation
         (__get_aci_normal_form b) hBnfTrans]
       exact hRel
-    · -- The remaining cases are generated marker/list cases.
-      sorry
+    · by_cases hAnfTrans :
+          RuleProofs.eo_has_smt_translation (__get_aci_normal_form a)
+      · have hNotMarker :
+            ∀ f payload,
+              __get_aci_normal_form a ≠
+                Term.Apply
+                  (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f)
+                  payload := by
+          intro f payload hMarker
+          exact aci_sorted_marker_not_has_smt_translation f payload (by
+            rw [← hMarker]
+            exact hAnfTrans)
+        exact False.elim
+          (aci_norm_eq_true_nonmarker_left_false
+            (__get_aci_normal_form a) (__get_aci_normal_form b)
+            hNotMarker hTermEq hEq)
+      · -- The remaining cases are generated marker/list cases.
+        sorry
 
 private theorem smt_value_rel_get_aci_normal_form_payload
     (M : SmtModel) (hM : model_total_typed M) (t : Term) :
