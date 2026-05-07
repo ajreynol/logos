@@ -1142,9 +1142,7 @@ def __smtx_model_eval_bvashr (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
     (__smtx_model_eval_ite (__smtx_model_eval_eq (__smtx_model_eval_extract _v1 _v1 x1) (SmtValue.Binary 1 0)) (__smtx_model_eval_bvlshr x1 x2) (__smtx_model_eval_bvnot (__smtx_model_eval_bvlshr (__smtx_model_eval_bvnot x1) x2)))
 
 def __smtx_model_eval_zero_extend : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) =>
-    let _v0 := (native_zplus x1 x2)
-    (SmtValue.Binary _v0 (native_mod_total x3 (native_int_pow2 _v0)))
+  | (SmtValue.Numeral x1), (SmtValue.Binary x2 x3) => (SmtValue.Binary (native_zplus x1 x2) x3)
   | t1, t2 => SmtValue.NotValue
 
 
@@ -1156,7 +1154,7 @@ def __smtx_model_eval_sign_extend : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_rotate_left_rec : native_Nat -> SmtValue -> SmtValue
-  | native_nat_zero, (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 (native_mod_total x2 (native_int_pow2 x1)))
+  | native_nat_zero, (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 x2)
   | (native_nat_succ n), (SmtValue.Binary x1 x2) => 
     let _v0 := (SmtValue.Binary x1 x2)
     let _v1 := (native_zneg 1)
@@ -1172,7 +1170,7 @@ def __smtx_model_eval_rotate_left : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_rotate_right_rec : native_Nat -> SmtValue -> SmtValue
-  | native_nat_zero, (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 (native_mod_total x2 (native_int_pow2 x1)))
+  | native_nat_zero, (SmtValue.Binary x1 x2) => (SmtValue.Binary x1 x2)
   | (native_nat_succ n), (SmtValue.Binary x1 x2) => 
     let _v0 := (SmtValue.Binary x1 x2)
     let _v2 := (SmtValue.Numeral 0)

@@ -816,6 +816,66 @@ theorem bitvec_payload_canonical
       simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
   simp
 
+/-- A canonical bitvector payload is in range for its width. -/
+theorem bitvec_payload_range_of_canonical
+    {w n : native_Int}
+    (hWidth : native_zleq 0 w = true)
+    (hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) = true) :
+    0 <= n ∧ n < native_int_pow2 w := by
+  have hw : 0 <= w := by
+    simpa [SmtEval.native_zleq] using hWidth
+  have hPowPos : 0 < native_int_pow2 w := by
+    have hnot : ¬ w < 0 := Int.not_lt_of_ge hw
+    simp [SmtEval.native_int_pow2, SmtEval.native_zexp_total, hnot]
+    exact Int.pow_pos (by decide)
+  have hEq : n = native_mod_total n (native_int_pow2 w) := by
+    simpa [SmtEval.native_zeq] using hMod
+  constructor
+  · rw [hEq]
+    exact Int.emod_nonneg n (Int.ne_of_gt hPowPos)
+  · rw [hEq]
+    exact Int.emod_lt_of_pos n hPowPos
+
+/-- Powers of two are monotone for nonnegative integer exponents. -/
+theorem native_int_pow2_le_of_le_nonneg
+    {a b : native_Int}
+    (ha : 0 <= a)
+    (hab : a <= b) :
+    native_int_pow2 a <= native_int_pow2 b := by
+  have hb : 0 <= b := Int.le_trans ha hab
+  have hnotA : ¬ a < 0 := Int.not_lt_of_ge ha
+  have hnotB : ¬ b < 0 := Int.not_lt_of_ge hb
+  have hnat : Int.toNat a <= Int.toNat b :=
+    Int.toNat_le_toNat hab
+  have hpowNat : 2 ^ Int.toNat a <= 2 ^ Int.toNat b :=
+    Nat.pow_le_pow_of_le (by decide) hnat
+  have hpowInt :
+      ((2 ^ Int.toNat a : Nat) : Int) <= ((2 ^ Int.toNat b : Nat) : Int) :=
+    Int.ofNat_le.mpr hpowNat
+  simpa [SmtEval.native_int_pow2, SmtEval.native_zexp_total, hnotA, hnotB] using hpowInt
+
+/-- A payload canonical for width `w` remains canonical after zero-extension by `i`. -/
+theorem bitvec_payload_canonical_zero_extend
+    {i w n : native_Int}
+    (hi0 : native_zleq 0 i = true)
+    (hw0 : native_zleq 0 w = true)
+    (hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) = true) :
+    native_zeq n (native_mod_total n (native_int_pow2 (native_zplus i w))) = true := by
+  have hi : 0 <= i := by
+    simpa [SmtEval.native_zleq] using hi0
+  have hw : 0 <= w := by
+    simpa [SmtEval.native_zleq] using hw0
+  have hRange := bitvec_payload_range_of_canonical hw0 hMod
+  have hleWidth : w <= native_zplus i w := by
+    simpa [SmtEval.native_zplus] using (Int.le_add_of_nonneg_left (a := w) hi)
+  have hpowLe : native_int_pow2 w <= native_int_pow2 (native_zplus i w) :=
+    native_int_pow2_le_of_le_nonneg hw hleWidth
+  have hltNew : n < native_int_pow2 (native_zplus i w) :=
+    Int.lt_of_lt_of_le hRange.2 hpowLe
+  have hEqNew : native_mod_total n (native_int_pow2 (native_zplus i w)) = n := by
+    simpa [SmtEval.native_mod_total] using Int.emod_eq_of_lt hRange.1 hltNew
+  simp [SmtEval.native_zeq, hEqNew]
+
 /-- Reducing a payload modulo a width makes it canonical for that width. -/
 theorem native_mod_total_canonical
     (w n : native_Int) :

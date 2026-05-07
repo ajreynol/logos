@@ -526,7 +526,8 @@ theorem model_eval_rotate_left_step_binary
             (SmtValue.Numeral (native_zplus w (native_zneg 1)))
             (SmtValue.Numeral (native_zplus w (native_zneg 1)))
             (SmtValue.Binary w x)) =
-        SmtValue.Binary w y := by
+        SmtValue.Binary w y ∧
+      native_zeq y (native_mod_total y (native_int_pow2 w)) = true := by
   let hi := native_zplus w (native_zneg 1)
   let w1 := native_zplus (native_zplus (native_zplus hi (native_zneg 1)) 1) (native_zneg 0)
   let w2 := native_zplus (native_zplus hi 1) (native_zneg hi)
@@ -537,34 +538,41 @@ theorem model_eval_rotate_left_step_binary
           (native_int_pow2 w1))
         w2
         (native_mod_total (native_binary_extract w x hi hi) (native_int_pow2 w2)))
-      (native_int_pow2 w), ?_⟩
-  simp [__smtx_model_eval_concat, __smtx_model_eval_extract, w1, w2, hi,
-    SmtEval.native_zplus, SmtEval.native_zneg]
-  have hWidthEq : w + -1 + -1 + 1 + (w + -1 + 1 + -(w + -1)) = w := by
-    rw [Int.neg_add]
-    calc
-      w + -1 + -1 + 1 + (w + -1 + 1 + (-w + 1)) = w + (w + -w) := by
-        simp [Int.add_assoc, Int.add_left_comm, Int.add_comm]
-      _ = w := by
-        simpa [Int.add_assoc] using (Int.add_neg_cancel_right w w)
-  constructor
-  · exact hWidthEq
-  · simp [hWidthEq]
+      (native_int_pow2 w), ?_, ?_⟩
+  · simp [__smtx_model_eval_concat, __smtx_model_eval_extract, w1, w2, hi,
+      SmtEval.native_zplus, SmtEval.native_zneg]
+    have hWidthEq : w + -1 + -1 + 1 + (w + -1 + 1 + -(w + -1)) = w := by
+      rw [Int.neg_add]
+      calc
+        w + -1 + -1 + 1 + (w + -1 + 1 + (-w + 1)) = w + (w + -w) := by
+          simp [Int.add_assoc, Int.add_left_comm, Int.add_comm]
+        _ = w := by
+          simpa [Int.add_assoc] using (Int.add_neg_cancel_right w w)
+    constructor
+    · exact hWidthEq
+    · simp [hWidthEq]
+  · exact native_mod_total_canonical w
+      (native_binary_concat w1
+        (native_mod_total
+          (native_binary_extract w x (native_zplus hi (native_zneg 1)) 0)
+          (native_int_pow2 w1))
+        w2
+        (native_mod_total (native_binary_extract w x hi hi) (native_int_pow2 w2)))
 
 /-- Lemma about `model_eval_rotate_left_rec_binary`. -/
 theorem model_eval_rotate_left_rec_binary :
     ∀ n : native_Nat, ∀ w x : native_Int,
+      native_zeq x (native_mod_total x (native_int_pow2 w)) = true ->
       ∃ m : native_Int,
         __smtx_model_eval_rotate_left_rec n (SmtValue.Binary w x) =
           SmtValue.Binary w m ∧
         native_zeq m (native_mod_total m (native_int_pow2 w)) = true
-  | native_nat_zero, w, x => by
-      refine ⟨native_mod_total x (native_int_pow2 w), ?_, ?_⟩
-      · simp [__smtx_model_eval_rotate_left_rec]
-      · exact native_mod_total_canonical w x
-  | native_nat_succ n, w, x => by
-      rcases model_eval_rotate_left_step_binary w x with ⟨y, hy⟩
-      rcases model_eval_rotate_left_rec_binary n w y with ⟨m, hm, hCanon⟩
+  | native_nat_zero, w, x, hCanon => by
+      refine ⟨x, ?_, hCanon⟩
+      simp [__smtx_model_eval_rotate_left_rec]
+  | native_nat_succ n, w, x, hCanon => by
+      rcases model_eval_rotate_left_step_binary w x with ⟨y, hy, hCanonY⟩
+      rcases model_eval_rotate_left_rec_binary n w y hCanonY with ⟨m, hm, hCanon⟩
       refine ⟨m, ?_, hCanon⟩
       rw [__smtx_model_eval_rotate_left_rec, hy, hm]
 
@@ -586,7 +594,10 @@ theorem typeof_value_model_eval_rotate_left
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
   rw [hv, __smtx_model_eval_rotate_left]
-  rcases model_eval_rotate_left_rec_binary (native_int_to_nat i) (native_nat_to_int w) n with ⟨m, hm, hCanon⟩
+  have hCanonIn :
+      native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true := by
+    exact bitvec_payload_canonical (by simpa [h2, hv] using hpres2)
+  rcases model_eval_rotate_left_rec_binary (native_int_to_nat i) (native_nat_to_int w) n hCanonIn with ⟨m, hm, hCanon⟩
   rw [hm]
   have hw0 : native_zleq 0 (native_nat_to_int w) = true := by
     exact bitvec_width_nonneg (by simpa [h2, hv] using hpres2)
@@ -608,7 +619,8 @@ theorem model_eval_rotate_right_step_binary
             (SmtValue.Numeral (native_zplus w (native_zneg 1)))
             (SmtValue.Numeral 1)
             (SmtValue.Binary w x)) =
-        SmtValue.Binary w y := by
+        SmtValue.Binary w y ∧
+      native_zeq y (native_mod_total y (native_int_pow2 w)) = true := by
   let hi := native_zplus w (native_zneg 1)
   let w1 := native_zplus (native_zplus 0 1) (native_zneg 0)
   let w2 := native_zplus (native_zplus hi 1) (native_zneg 1)
@@ -617,29 +629,34 @@ theorem model_eval_rotate_right_step_binary
         (native_mod_total (native_binary_extract w x 0 0) (native_int_pow2 w1))
         w2
         (native_mod_total (native_binary_extract w x hi 1) (native_int_pow2 w2)))
-      (native_int_pow2 w), ?_⟩
-  simp [__smtx_model_eval_concat, __smtx_model_eval_extract, w1, w2, hi,
-    SmtEval.native_zplus, SmtEval.native_zneg]
-  have hWidthEq : 1 + (w + -1 + 1 + -1) = w := by
-    simp [Int.add_left_comm, Int.add_comm]
-  constructor
-  · exact hWidthEq
-  · simp [hWidthEq]
+      (native_int_pow2 w), ?_, ?_⟩
+  · simp [__smtx_model_eval_concat, __smtx_model_eval_extract, w1, w2, hi,
+      SmtEval.native_zplus, SmtEval.native_zneg]
+    have hWidthEq : 1 + (w + -1 + 1 + -1) = w := by
+      simp [Int.add_left_comm, Int.add_comm]
+    constructor
+    · exact hWidthEq
+    · simp [hWidthEq]
+  · exact native_mod_total_canonical w
+      (native_binary_concat w1
+        (native_mod_total (native_binary_extract w x 0 0) (native_int_pow2 w1))
+        w2
+        (native_mod_total (native_binary_extract w x hi 1) (native_int_pow2 w2)))
 
 /-- Lemma about `model_eval_rotate_right_rec_binary`. -/
 theorem model_eval_rotate_right_rec_binary :
     ∀ n : native_Nat, ∀ w x : native_Int,
+      native_zeq x (native_mod_total x (native_int_pow2 w)) = true ->
       ∃ m : native_Int,
         __smtx_model_eval_rotate_right_rec n (SmtValue.Binary w x) =
           SmtValue.Binary w m ∧
         native_zeq m (native_mod_total m (native_int_pow2 w)) = true
-  | native_nat_zero, w, x => by
-      refine ⟨native_mod_total x (native_int_pow2 w), ?_, ?_⟩
-      · simp [__smtx_model_eval_rotate_right_rec]
-      · exact native_mod_total_canonical w x
-  | native_nat_succ n, w, x => by
-      rcases model_eval_rotate_right_step_binary w x with ⟨y, hy⟩
-      rcases model_eval_rotate_right_rec_binary n w y with ⟨m, hm, hCanon⟩
+  | native_nat_zero, w, x, hCanon => by
+      refine ⟨x, ?_, hCanon⟩
+      simp [__smtx_model_eval_rotate_right_rec]
+  | native_nat_succ n, w, x, hCanon => by
+      rcases model_eval_rotate_right_step_binary w x with ⟨y, hy, hCanonY⟩
+      rcases model_eval_rotate_right_rec_binary n w y hCanonY with ⟨m, hm, hCanon⟩
       refine ⟨m, ?_, hCanon⟩
       rw [__smtx_model_eval_rotate_right_rec, hy, hm]
 
@@ -661,7 +678,10 @@ theorem typeof_value_model_eval_rotate_right
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
   rw [hv, __smtx_model_eval_rotate_right]
-  rcases model_eval_rotate_right_rec_binary (native_int_to_nat i) (native_nat_to_int w) n with ⟨m, hm, hCanon⟩
+  have hCanonIn :
+      native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true := by
+    exact bitvec_payload_canonical (by simpa [h2, hv] using hpres2)
+  rcases model_eval_rotate_right_rec_binary (native_int_to_nat i) (native_nat_to_int w) n hCanonIn with ⟨m, hm, hCanon⟩
   rw [hm]
   have hw0 : native_zleq 0 (native_nat_to_int w) = true := by
     exact bitvec_width_nonneg (by simpa [h2, hv] using hpres2)
@@ -775,8 +795,14 @@ theorem typeof_value_model_eval_zero_extend
   have hWidth : native_zleq 0 (native_zplus i (native_nat_to_int w)) = true := by
     have hAdd : 0 <= i + native_nat_to_int w := Int.add_nonneg hi hw
     simpa [SmtEval.native_zleq, SmtEval.native_zplus] using hAdd
+  have hMod :
+      native_zeq n (native_mod_total n (native_int_pow2 (native_zplus i (native_nat_to_int w)))) = true := by
+    have hCanon :
+        native_zeq n (native_mod_total n (native_int_pow2 (native_nat_to_int w))) = true :=
+      bitvec_payload_canonical (by simpa [h2, hv] using hpres2)
+    exact bitvec_payload_canonical_zero_extend hi0 hw0 hCanon
   simpa [__smtx_model_eval_zero_extend] using
-    typeof_value_binary_mod_of_nonneg (native_zplus i (native_nat_to_int w)) n hWidth
+    typeof_value_binary_of_nonneg (native_zplus i (native_nat_to_int w)) n hWidth hMod
 
 /-- Shows that evaluating `sign_extend` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_sign_extend
