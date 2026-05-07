@@ -503,14 +503,16 @@ def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
 
 macro_rules
-  | `(native_veq_ext $T $m1 $m2) => do
+  | `(native_veq_ext $T $U $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      let valueEqId := Lean.mkIdent `__smtx_value_eq
       `(by
           classical
           exact
             if hExt :
                 ∀ v : SmtValue,
-                  $lookupId $T $m1 v = $lookupId $T $m2 v then
+                  $valueEqId $U ($lookupId $T $m1 v)
+                    ($lookupId $T $m2 v) = true then
               true
             else
               false)
@@ -592,10 +594,15 @@ def __smtx_type_measure : SmtType -> Nat
   | SmtType.Seq T => 1 + __smtx_type_measure T
   | SmtType.FunType T U => 1 + __smtx_type_measure T + __smtx_type_measure U
   | SmtType.DtcAppType T U => 1 + __smtx_type_measure T + __smtx_type_measure U
-  | _ => 1
+  | _ => 0
 
 theorem __smtx_type_measure_lt_map_left (T U : SmtType) :
     __smtx_type_measure T < __smtx_type_measure (SmtType.Map T U) := by
+  simp [__smtx_type_measure]
+  omega
+
+theorem __smtx_type_measure_lt_map_right (T U : SmtType) :
+    __smtx_type_measure U < __smtx_type_measure (SmtType.Map T U) := by
   simp [__smtx_type_measure]
   omega
 
@@ -604,9 +611,19 @@ theorem __smtx_type_measure_lt_fun_left (T U : SmtType) :
   simp [__smtx_type_measure]
   omega
 
+theorem __smtx_type_measure_lt_fun_right (T U : SmtType) :
+    __smtx_type_measure U < __smtx_type_measure (SmtType.FunType T U) := by
+  simp [__smtx_type_measure]
+  omega
+
 theorem __smtx_type_measure_lt_set (T : SmtType) :
     __smtx_type_measure T < __smtx_type_measure (SmtType.Set T) := by
   simp [__smtx_type_measure]
+
+theorem __smtx_type_measure_lt_set_value (T : SmtType) :
+    __smtx_type_measure SmtType.Bool < __smtx_type_measure (SmtType.Set T) := by
+  simp [__smtx_type_measure]
+  omega
 
 theorem __smtx_type_measure_lt_seq (T : SmtType) :
     __smtx_type_measure T < __smtx_type_measure (SmtType.Seq T) := by
@@ -634,11 +651,11 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
 
 def __smtx_value_eq : SmtType -> SmtValue -> SmtValue -> native_Bool
   | (SmtType.Map T U), (SmtValue.Map m1), (SmtValue.Map m2) =>
-      (native_veq_ext T m1 m2)
+      (native_veq_ext T U m1 m2)
   | (SmtType.Set T), (SmtValue.Set m1), (SmtValue.Set m2) =>
-      (native_veq_ext T m1 m2)
+      (native_veq_ext T SmtType.Bool m1 m2)
   | (SmtType.FunType T U), (SmtValue.Fun m1), (SmtValue.Fun m2) =>
-      (native_veq_ext T m1 m2)
+      (native_veq_ext T U m1 m2)
   | SmtType.RegLan, (SmtValue.RegLan r1), (SmtValue.RegLan r2) =>
       (native_re_ext_eq r1 r2)
   | (SmtType.Seq T), (SmtValue.Seq (SmtSeq.empty T1)),
@@ -655,8 +672,11 @@ decreasing_by
   all_goals subst_vars; simp_wf
   all_goals first
     | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_left _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_right _ _)
     | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_left _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_right _ _)
     | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set_value _)
     | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_seq _)
     | apply Prod.Lex.right
       exact Prod.Lex.left _ _ (by omega)
@@ -713,8 +733,11 @@ decreasing_by
   all_goals subst_vars; simp_wf
   all_goals first
     | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_left _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_right _ _)
     | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_left _ _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_right _ _)
     | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set _)
+    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set_value _)
     | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_seq _)
     | apply Prod.Lex.right
       exact Prod.Lex.left _ _ (by omega)
