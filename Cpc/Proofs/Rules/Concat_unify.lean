@@ -593,6 +593,227 @@ private theorem eo_interprets_concat_unify_false
   exact eo_interprets_str_concat_heads_of_len_eq_of_seq M hM
     s1 sTail t1 tTail T hs1Ty hsTailTy ht1Ty htTailTy hLen hConcatEq
 
+private theorem final_eq_bool_of_len_bool_and_eo_typeof_bool
+    (s1 t1 : Term)
+    (hLenBool :
+      RuleProofs.eo_has_bool_type (mkEq (mkStrLen s1) (mkStrLen t1)))
+    (hResultTy : __eo_typeof (mkEq s1 t1) = Term.Bool) :
+    RuleProofs.eo_has_bool_type (mkEq s1 t1) := by
+  rcases len_eq_seq_types_of_bool s1 t1 hLenBool with
+    ⟨T, U, hs1Ty, ht1TyU⟩
+  rcases eo_typeof_eq_operands_same_of_bool s1 t1 hResultTy with
+    ⟨hEoSame, hS1EoNN, hT1EoNN⟩
+  have hS1Match :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation s1
+      (by rw [hs1Ty]; exact seq_ne_none T)
+  have hT1Match :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t1
+      (by rw [ht1TyU]; exact seq_ne_none U)
+  have hSeqSame : SmtType.Seq T = SmtType.Seq U := by
+    rw [← hs1Ty, ← ht1TyU]
+    rw [hS1Match, hT1Match, hEoSame]
+  have hUT : U = T := by
+    injection hSeqSame.symm
+  apply RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+  · rw [hs1Ty, ht1TyU, hUT]
+  · rw [hs1Ty]
+    exact seq_ne_none T
+
+private theorem eo_prog_concat_unify_premise_shapes_of_ne_stuck
+    (rev x1 x2 : Term)
+    (hProg :
+      __eo_prog_concat_unify rev (Proof.pf x1) (Proof.pf x2) ≠
+        Term.Stuck) :
+    ∃ s t s1 t1,
+      x1 = mkEq s t ∧ x2 = mkEq (mkStrLen s1) (mkStrLen t1) := by
+  cases x1 with
+  | Apply lhs1 rhs1 =>
+      cases lhs1 with
+      | Apply op1 s =>
+          cases op1 with
+          | UOp u1 =>
+              cases u1 with
+              | eq =>
+                  cases x2 with
+                  | Apply lhs2 rhs2 =>
+                      cases lhs2 with
+                      | Apply op2 lhsLen =>
+                          cases op2 with
+                          | UOp u2 =>
+                              cases u2 with
+                              | eq =>
+                                  cases lhsLen with
+                                  | Apply lenOp s1 =>
+                                      cases lenOp with
+                                      | UOp lenU1 =>
+                                          cases lenU1 with
+                                          | str_len =>
+                                              cases rhs2 with
+                                              | Apply lenOp2 t1 =>
+                                                  cases lenOp2 with
+                                                  | UOp lenU2 =>
+                                                      cases lenU2 with
+                                                      | str_len =>
+                                                          exact
+                                                            ⟨s, rhs1, s1, t1,
+                                                              rfl, rfl⟩
+                                                      | _ =>
+                                                          cases rev <;>
+                                                            simp [__eo_prog_concat_unify]
+                                                              at hProg
+                                                  | _ =>
+                                                      cases rev <;>
+                                                        simp [__eo_prog_concat_unify]
+                                                          at hProg
+                                              | _ =>
+                                                  cases rev <;>
+                                                    simp [__eo_prog_concat_unify]
+                                                      at hProg
+                                          | _ =>
+                                              cases rev <;>
+                                                simp [__eo_prog_concat_unify]
+                                                  at hProg
+                                      | _ =>
+                                          cases rev <;>
+                                            simp [__eo_prog_concat_unify] at hProg
+                                  | _ =>
+                                      cases rev <;>
+                                        simp [__eo_prog_concat_unify] at hProg
+                              | _ =>
+                                  cases rev <;>
+                                    simp [__eo_prog_concat_unify] at hProg
+                          | _ =>
+                              cases rev <;>
+                                simp [__eo_prog_concat_unify] at hProg
+                      | _ =>
+                          cases rev <;> simp [__eo_prog_concat_unify] at hProg
+                  | _ =>
+                      cases rev <;> simp [__eo_prog_concat_unify] at hProg
+              | _ =>
+                  cases rev <;> simp [__eo_prog_concat_unify] at hProg
+          | _ =>
+              cases rev <;> simp [__eo_prog_concat_unify] at hProg
+      | _ =>
+          cases rev <;> simp [__eo_prog_concat_unify] at hProg
+  | _ =>
+      cases rev <;> simp [__eo_prog_concat_unify] at hProg
+
+private theorem eo_list_nth_arg_ne_stuck_of_ne_stuck
+    (f a i : Term)
+    (hNth : __eo_list_nth f a i ≠ Term.Stuck) :
+    a ≠ Term.Stuck := by
+  have hReq :
+      __eo_requires (__eo_is_list f a) (Term.Boolean true)
+          (__eo_list_nth_rec a i) ≠ Term.Stuck := by
+    simpa [__eo_list_nth] using hNth
+  have hIsNe : __eo_is_list f a ≠ Term.Stuck :=
+    eo_requires_left_ne_stuck_of_ne_stuck (__eo_is_list f a)
+      (Term.Boolean true) (__eo_list_nth_rec a i) hReq
+  intro hA
+  subst a
+  cases f <;> simp [__eo_is_list] at hIsNe
+
+private theorem concatUnifyNormalize_ne_stuck_of_head_ne_stuck
+    (rev x : Term)
+    (hHead : concatUnifyHead rev x ≠ Term.Stuck) :
+    concatUnifyNormalize rev x ≠ Term.Stuck := by
+  exact eo_list_nth_arg_ne_stuck_of_ne_stuck
+    (Term.UOp UserOp.str_concat) (concatUnifyNormalize rev x)
+    (Term.Numeral 0) hHead
+
+private theorem concatUnify_rev_cases_of_prog_ne_stuck
+    (rev s t s1 t1 : Term)
+    (hProg :
+      __eo_prog_concat_unify rev (Proof.pf (mkEq s t))
+          (Proof.pf (mkEq (mkStrLen s1) (mkStrLen t1))) ≠ Term.Stuck)
+    (hs1Ne : s1 ≠ Term.Stuck) :
+    rev = Term.Boolean true ∨ rev = Term.Boolean false := by
+  rcases eo_prog_concat_unify_eq_of_ne_stuck rev s t s1 t1 hProg with
+    ⟨_, hHeadS, _⟩
+  have hHeadNe : concatUnifyHead rev s ≠ Term.Stuck := by
+    rw [hHeadS]
+    exact hs1Ne
+  have hNormNe : concatUnifyNormalize rev s ≠ Term.Stuck :=
+    concatUnifyNormalize_ne_stuck_of_head_ne_stuck rev s hHeadNe
+  have hIteNe :
+      __eo_ite rev
+          (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro s))
+          (__str_nary_intro s) ≠ Term.Stuck := by
+    simpa [concatUnifyNormalize] using hNormNe
+  exact eo_ite_cases_of_ne_stuck rev
+    (__eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro s))
+    (__str_nary_intro s) hIteNe
+
+private theorem eo_interprets_concat_unify_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (s t s1 t1 : Term)
+    (hPremBool : RuleProofs.eo_has_bool_type (mkEq s t))
+    (hLenBool :
+      RuleProofs.eo_has_bool_type (mkEq (mkStrLen s1) (mkStrLen t1)))
+    (hFinalBool : RuleProofs.eo_has_bool_type (mkEq s1 t1))
+    (hProg :
+      __eo_prog_concat_unify (Term.Boolean true) (Proof.pf (mkEq s t))
+          (Proof.pf (mkEq (mkStrLen s1) (mkStrLen t1))) ≠ Term.Stuck)
+    (hST : eo_interprets M (mkEq s t) true)
+    (hLen : eo_interprets M (mkEq (mkStrLen s1) (mkStrLen t1)) true) :
+    eo_interprets M (mkEq s1 t1) true := by
+  -- Suffix case: the normalized lists are reversed, so the first
+  -- components are the original suffixes. The remaining argument should
+  -- mirror the false/prefix proof, using double-reverse semantics plus
+  -- length-based suffix cancellation.
+  sorry
+
+private theorem step_concat_unify_core
+    (M : SmtModel) (hM : model_total_typed M)
+    (rev s t s1 t1 : Term)
+    (hRevTrans : RuleProofs.eo_has_smt_translation rev)
+    (hPremBool : RuleProofs.eo_has_bool_type (mkEq s t))
+    (hLenBool :
+      RuleProofs.eo_has_bool_type (mkEq (mkStrLen s1) (mkStrLen t1)))
+    (hProg :
+      __eo_prog_concat_unify rev (Proof.pf (mkEq s t))
+          (Proof.pf (mkEq (mkStrLen s1) (mkStrLen t1))) ≠ Term.Stuck)
+    (hResultTy :
+      __eo_typeof
+          (__eo_prog_concat_unify rev (Proof.pf (mkEq s t))
+            (Proof.pf (mkEq (mkStrLen s1) (mkStrLen t1)))) =
+        Term.Bool) :
+    StepRuleProperties M
+      [mkEq s t, mkEq (mkStrLen s1) (mkStrLen t1)]
+      (__eo_prog_concat_unify rev (Proof.pf (mkEq s t))
+        (Proof.pf (mkEq (mkStrLen s1) (mkStrLen t1)))) := by
+  rcases eo_prog_concat_unify_eq_of_ne_stuck rev s t s1 t1 hProg with
+    ⟨hProgEq, _, _⟩
+  have hFinalTy : __eo_typeof (mkEq s1 t1) = Term.Bool := by
+    simpa [hProgEq] using hResultTy
+  have hFinalBool : RuleProofs.eo_has_bool_type (mkEq s1 t1) :=
+    final_eq_bool_of_len_bool_and_eo_typeof_bool s1 t1 hLenBool hFinalTy
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      s1 t1 hFinalBool with
+    ⟨_hS1T1, hS1NN⟩
+  have hs1Ne : s1 ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation s1 hS1NN
+  refine ⟨?_, ?_⟩
+  · intro hPremisesTrue
+    have hST : eo_interprets M (mkEq s t) true :=
+      hPremisesTrue (mkEq s t) (by simp)
+    have hLen :
+        eo_interprets M (mkEq (mkStrLen s1) (mkStrLen t1)) true :=
+      hPremisesTrue (mkEq (mkStrLen s1) (mkStrLen t1)) (by simp)
+    rcases concatUnify_rev_cases_of_prog_ne_stuck rev s t s1 t1 hProg
+        hs1Ne with hRev | hRev
+    · subst rev
+      rw [hProgEq]
+      exact eo_interprets_concat_unify_true M hM s t s1 t1 hPremBool
+        hLenBool hFinalBool hProg hST hLen
+    · subst rev
+      rw [hProgEq]
+      exact eo_interprets_concat_unify_false M hM s t s1 t1 hPremBool
+        hLenBool hFinalBool hProg hST hLen
+  · rw [hProgEq]
+    exact RuleProofs.eo_has_smt_translation_of_has_bool_type
+      (mkEq s1 t1) hFinalBool
+
 theorem cmd_step_concat_unify_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
@@ -602,4 +823,101 @@ theorem cmd_step_concat_unify_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.concat_unify args premises) :=
 by
-  sorry
+  intro hCmdTrans hPremisesBool hResultTy
+  have hProg : __eo_cmd_step_proven s CRule.concat_unify args premises ≠
+      Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+          | cons n1 premises =>
+              cases premises with
+              | nil =>
+                  change Term.Stuck ≠ Term.Stuck at hProg
+                  exact False.elim (hProg rfl)
+              | cons n2 premises =>
+                  cases premises with
+                  | nil =>
+                      let X1 := __eo_state_proven_nth s n1
+                      let X2 := __eo_state_proven_nth s n2
+                      have hA1Trans : RuleProofs.eo_has_smt_translation a1 := by
+                        have hArgs : RuleProofs.eo_has_smt_translation a1 ∧
+                            True := by
+                          simpa [cmdTranslationOk, cArgListTranslationOk]
+                            using hCmdTrans
+                        exact hArgs.1
+                      have hX1Bool : RuleProofs.eo_has_bool_type X1 :=
+                        hPremisesBool X1 (by simp [X1, premiseTermList])
+                      have hX2Bool : RuleProofs.eo_has_bool_type X2 :=
+                        hPremisesBool X2 (by simp [X2, premiseTermList])
+                      have hProgConcat :
+                          __eo_prog_concat_unify a1 (Proof.pf X1)
+                              (Proof.pf X2) ≠ Term.Stuck := by
+                        change __eo_prog_concat_unify a1
+                          (Proof.pf (__eo_state_proven_nth s n1))
+                          (Proof.pf (__eo_state_proven_nth s n2)) ≠
+                            Term.Stuck at hProg
+                        simpa [X1, X2] using hProg
+                      rcases
+                          eo_prog_concat_unify_premise_shapes_of_ne_stuck
+                            a1 X1 X2 hProgConcat with
+                        ⟨lhs, rhs, lhs1, rhs1, hX1Eq, hX2Eq⟩
+                      have hState1Eq :
+                          __eo_state_proven_nth s n1 = mkEq lhs rhs := by
+                        simpa [X1] using hX1Eq
+                      have hState2Eq :
+                          __eo_state_proven_nth s n2 =
+                            mkEq (mkStrLen lhs1) (mkStrLen rhs1) := by
+                        simpa [X2] using hX2Eq
+                      have hPremEqBool :
+                          RuleProofs.eo_has_bool_type (mkEq lhs rhs) := by
+                        simpa [X1, hState1Eq] using hX1Bool
+                      have hLenEqBool :
+                          RuleProofs.eo_has_bool_type
+                            (mkEq (mkStrLen lhs1) (mkStrLen rhs1)) := by
+                        simpa [X2, hState2Eq] using hX2Bool
+                      have hProgRule :
+                          __eo_prog_concat_unify a1
+                              (Proof.pf (mkEq lhs rhs))
+                              (Proof.pf
+                                (mkEq (mkStrLen lhs1) (mkStrLen rhs1))) ≠
+                            Term.Stuck := by
+                        simpa [X1, X2, hState1Eq, hState2Eq]
+                          using hProgConcat
+                      have hResultTyRule :
+                          __eo_typeof
+                              (__eo_prog_concat_unify a1
+                                (Proof.pf (mkEq lhs rhs))
+                                (Proof.pf
+                                  (mkEq (mkStrLen lhs1) (mkStrLen rhs1)))) =
+                            Term.Bool := by
+                        change __eo_typeof
+                            (__eo_prog_concat_unify a1
+                              (Proof.pf (__eo_state_proven_nth s n1))
+                              (Proof.pf (__eo_state_proven_nth s n2))) =
+                          Term.Bool at hResultTy
+                        simpa [hState1Eq, hState2Eq] using hResultTy
+                      change StepRuleProperties M
+                        [__eo_state_proven_nth s n1,
+                          __eo_state_proven_nth s n2]
+                        (__eo_prog_concat_unify a1
+                          (Proof.pf (__eo_state_proven_nth s n1))
+                          (Proof.pf (__eo_state_proven_nth s n2)))
+                      rw [hState1Eq, hState2Eq]
+                      exact step_concat_unify_core M hM a1 lhs rhs lhs1 rhs1
+                        hA1Trans hPremEqBool hLenEqBool hProgRule
+                        hResultTyRule
+                  | cons _ _ =>
+                      change Term.Stuck ≠ Term.Stuck at hProg
+                      exact False.elim (hProg rfl)
+      | cons _ _ =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
