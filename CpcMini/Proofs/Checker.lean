@@ -477,10 +477,10 @@ by
   | assume_push A =>
       cases s with
       | nil =>
-          change checkerLocalTruthInvariant M (__eo_push_assume A CState.nil)
+          change checkerLocalTruthInvariant M (__eo_push_assume_check (__eo_is_bool_type A) A CState.nil)
           exact push_assume_preserves_localTruthInvariant M CState.nil A hs
       | cons so s =>
-          change checkerLocalTruthInvariant M (__eo_push_assume A (CState.cons so s))
+          change checkerLocalTruthInvariant M (__eo_push_assume_check (__eo_is_bool_type A) A (CState.cons so s))
           exact push_assume_preserves_localTruthInvariant M (CState.cons so s) A hs
       | Stuck =>
           exact False.elim (hNotStuck rfl)
@@ -538,12 +538,12 @@ by
       cases s with
       | nil =>
           by_cases hTy : __eo_typeof A = Term.Bool
-          · simp [__eo_invoke_cmd, push_assume_eq_cons_of_typeof_bool, hTy, checkerShapeInvariant,
+          · simp [__eo_invoke_cmd, push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, checkerShapeInvariant,
               stateAssumptionSuffix]
           · simp [__eo_invoke_cmd, push_assume_eq_stuck_of_typeof_ne_bool, hTy, checkerShapeInvariant]
       | cons so s =>
           by_cases hTy : __eo_typeof A = Term.Bool
-          · simpa [__eo_invoke_cmd, push_assume_eq_cons_of_typeof_bool, hTy, checkerShapeInvariant] using hSuffix
+          · simpa [__eo_invoke_cmd, push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, checkerShapeInvariant] using hSuffix
           · simp [__eo_invoke_cmd, push_assume_eq_stuck_of_typeof_ne_bool, hTy, checkerShapeInvariant]
       | Stuck =>
           exact False.elim (hNotStuck rfl)
@@ -628,10 +628,10 @@ by
   | assume_push A =>
       cases s with
       | nil =>
-          change checkerTypeInvariant (__eo_push_assume A CState.nil)
+          change checkerTypeInvariant (__eo_push_assume_check (__eo_is_bool_type A) A CState.nil)
           exact push_assume_preserves_typeInvariant CState.nil A hs
       | cons so s =>
-          change checkerTypeInvariant (__eo_push_assume A (CState.cons so s))
+          change checkerTypeInvariant (__eo_push_assume_check (__eo_is_bool_type A) A (CState.cons so s))
           exact push_assume_preserves_typeInvariant (CState.cons so s) A hs
       | Stuck =>
           exact False.elim (hNotStuck rfl)
@@ -691,11 +691,11 @@ by
   | assume_push A =>
       cases s with
       | nil =>
-          change checkerTranslationInvariant (__eo_push_assume A CState.nil)
+          change checkerTranslationInvariant (__eo_push_assume_check (__eo_is_bool_type A) A CState.nil)
           exact push_assume_preserves_translationInvariant CState.nil A hsTrans
             (by simpa [cmdTranslationOk] using hCmdTrans)
       | cons so s =>
-          change checkerTranslationInvariant (__eo_push_assume A (CState.cons so s))
+          change checkerTranslationInvariant (__eo_push_assume_check (__eo_is_bool_type A) A (CState.cons so s))
           exact push_assume_preserves_translationInvariant (CState.cons so s) A hsTrans
             (by simpa [cmdTranslationOk] using hCmdTrans)
       | Stuck =>
