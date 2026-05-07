@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.SequenceSupport
+import Cpc.Proofs.RuleSupport.StrConcatSupport
 
 open Eo
 open SmtEval

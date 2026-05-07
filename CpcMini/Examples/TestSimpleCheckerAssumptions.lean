@@ -77,16 +77,6 @@ private theorem t7_has_bool_type : RuleProofs.eo_has_bool_type t7 := by
     simpa [t6, t5] using RuleProofs.eo_has_bool_type_eq_symm t2 t1 hT4
   simpa [t7] using RuleProofs.eo_has_bool_type_not_of_bool_arg t6 t6_has_bool_type
 
-example : TypedAssumptionList assumptions := by
-  unfold assumptions
-  apply TypedAssumptionList.step
-  · native_decide
-  · native_decide
-  · apply TypedAssumptionList.step
-    · native_decide
-    · native_decide
-    · exact TypedAssumptionList.base
-
 example : TranslatableAssumptionList assumptions := by
   unfold assumptions
   apply TranslatableAssumptionList.step

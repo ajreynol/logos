@@ -93,7 +93,7 @@ theorem typeof_value_model_eval_binary
     simp [hAnd, native_ite]
   rw [hType]
   unfold __smtx_model_eval __smtx_typeof_value
-  simp [native_ite, hWidth]
+  simp [native_ite, SmtEval.native_and, hWidth, hMod]
 
 /-- Shows that evaluating `var` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_var
