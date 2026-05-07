@@ -3538,6 +3538,23 @@ private theorem smt_value_rel_ne_notvalue_left
   exact smt_value_rel_ne_notvalue_right
     (RuleProofs.smt_value_rel_symm v w hRel) hwNe
 
+private theorem smt_value_rel_aciNormPayload_right_of_rel_has_translation
+    (M : SmtModel) (hM : model_total_typed M) (t norm : Term) :
+    RuleProofs.eo_has_smt_translation t ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt t))
+      (__smtx_model_eval M (__eo_to_smt norm)) ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt t))
+      (__smtx_model_eval M (__eo_to_smt (aciNormPayload norm))) := by
+  intro hTrans hRel
+  have htNe : __smtx_model_eval M (__eo_to_smt t) ≠ SmtValue.NotValue :=
+    smt_eval_ne_notvalue_of_has_smt_translation M hM t hTrans
+  have hNormNe : __smtx_model_eval M (__eo_to_smt norm) ≠ SmtValue.NotValue :=
+    smt_value_rel_ne_notvalue_right hRel htNe
+  rw [aciNormPayload_eq_self_of_eval_not_notvalue M norm hNormNe]
+  exact hRel
+
 private theorem term_ne_stuck_of_strConcat_is_list_true {t : Term} :
     __eo_is_list (Term.UOp UserOp.str_concat) t = Term.Boolean true ->
     t ≠ Term.Stuck := by
@@ -3950,8 +3967,17 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
     rw [hba]
     exact RuleProofs.smt_value_rel_refl
       (__smtx_model_eval M (__eo_to_smt (aciNormPayload (__get_aci_normal_form a))))
-  · -- The remaining cases are generated marker/list cases.
-    sorry
+  · by_cases hBnfTrans :
+        RuleProofs.eo_has_smt_translation (__get_aci_normal_form b)
+    · have hRel :=
+        smt_value_rel_of_aci_norm_eq_true_right_translation M
+          (__get_aci_normal_form a) (__get_aci_normal_form b)
+          hBnfTrans hEq
+      rw [aciNormPayload_eq_self_of_has_smt_translation
+        (__get_aci_normal_form b) hBnfTrans]
+      exact hRel
+    · -- The remaining cases are generated marker/list cases.
+      sorry
 
 private theorem smt_value_rel_get_aci_normal_form_payload
     (M : SmtModel) (hM : model_total_typed M) (t : Term) :
@@ -4013,31 +4039,14 @@ private theorem smt_value_rel_get_aci_normal_form_payload
         case str_concat =>
           have hNormRel :=
             smt_value_rel_get_a_norm_str_concat M hM y x hTrans
-          rcases strConcat_args_of_has_smt_translation y x hTrans with
-            ⟨T, hyTy, hxTy⟩
-          have htTy :
-              __smtx_typeof (__eo_to_smt (mkStrConcat y x)) = SmtType.Seq T :=
-            strConcat_typeof_concat_of_seq y x T hyTy hxTy
-          have htSeq :
-              ∃ s,
-                __smtx_model_eval M (__eo_to_smt (mkStrConcat y x)) =
-                  SmtValue.Seq s :=
-            smt_eval_seq_of_smt_type_seq M hM
-              (__eo_to_smt (mkStrConcat y x)) T htTy
-          have hNormSeq :
-              ∃ s,
-                __smtx_model_eval M
-                    (__eo_to_smt (__get_a_norm (mkStrConcat y x))) =
-                  SmtValue.Seq s :=
-            smt_value_rel_eval_seq_right hNormRel htSeq
           change RuleProofs.smt_value_rel
             (__smtx_model_eval M (__eo_to_smt (mkStrConcat y x)))
             (__smtx_model_eval M
               (__eo_to_smt
                 (aciNormPayload (__get_a_norm (mkStrConcat y x)))))
-          rw [aciNormPayload_eq_self_of_eval_seq M
-            (__get_a_norm (mkStrConcat y x)) hNormSeq]
-          exact hNormRel
+          exact smt_value_rel_aciNormPayload_right_of_rel_has_translation
+            M hM (mkStrConcat y x) (__get_a_norm (mkStrConcat y x)) hTrans
+            hNormRel
         case re_concat =>
           -- A normalizer case.
           sorry
