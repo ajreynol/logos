@@ -4187,6 +4187,487 @@ theorem strConcat_smt_value_rel_left_eval_empty
   exact RuleProofs.smt_seq_rel_symm sx (native_pack_seq T (native_unpack_seq sx))
     (smt_seq_rel_pack_unpack T sx)
 
+private theorem smt_value_rel_seq_right {v : SmtValue} {s : SmtSeq} :
+    RuleProofs.smt_value_rel v (SmtValue.Seq s) ->
+    ∃ s', v = SmtValue.Seq s' ∧ RuleProofs.smt_seq_rel s' s := by
+  intro hRel
+  cases v <;>
+    simp [RuleProofs.smt_value_rel, RuleProofs.smt_seq_rel,
+      __smtx_model_eval_eq, native_veq] at hRel ⊢
+  case Seq s' =>
+    exact hRel
+
+private theorem smt_value_rel_seq_left {s : SmtSeq} {v : SmtValue} :
+    RuleProofs.smt_value_rel (SmtValue.Seq s) v ->
+    ∃ s', v = SmtValue.Seq s' ∧ RuleProofs.smt_seq_rel s s' := by
+  intro hRel
+  rcases smt_value_rel_seq_right
+      (RuleProofs.smt_value_rel_symm (SmtValue.Seq s) v hRel) with
+    ⟨s', hv, hs'⟩
+  exact ⟨s', hv, RuleProofs.smt_seq_rel_symm s' s hs'⟩
+
+private theorem smt_seq_rel_pack_append_both (T : SmtType)
+    (sx sx' sy sy' : SmtSeq)
+    (hx : RuleProofs.smt_seq_rel sx sx')
+    (hy : RuleProofs.smt_seq_rel sy sy') :
+    RuleProofs.smt_seq_rel
+      (native_pack_seq T (native_unpack_seq sx ++ native_unpack_seq sy))
+      (native_pack_seq T (native_unpack_seq sx' ++ native_unpack_seq sy')) := by
+  have hxPack :
+      RuleProofs.smt_seq_rel
+        (native_pack_seq T (native_unpack_seq sx))
+        (native_pack_seq T (native_unpack_seq sx')) :=
+    RuleProofs.smt_seq_rel_trans
+      (native_pack_seq T (native_unpack_seq sx)) sx
+      (native_pack_seq T (native_unpack_seq sx'))
+      (RuleProofs.smt_seq_rel_symm sx
+        (native_pack_seq T (native_unpack_seq sx))
+        (smt_seq_rel_pack_unpack T sx))
+      (RuleProofs.smt_seq_rel_trans sx sx'
+        (native_pack_seq T (native_unpack_seq sx')) hx
+        (smt_seq_rel_pack_unpack T sx'))
+  have hyPack :
+      RuleProofs.smt_seq_rel
+        (native_pack_seq T (native_unpack_seq sy))
+        (native_pack_seq T (native_unpack_seq sy')) :=
+    RuleProofs.smt_seq_rel_trans
+      (native_pack_seq T (native_unpack_seq sy)) sy
+      (native_pack_seq T (native_unpack_seq sy'))
+      (RuleProofs.smt_seq_rel_symm sy
+        (native_pack_seq T (native_unpack_seq sy))
+        (smt_seq_rel_pack_unpack T sy))
+      (RuleProofs.smt_seq_rel_trans sy sy'
+        (native_pack_seq T (native_unpack_seq sy')) hy
+        (smt_seq_rel_pack_unpack T sy'))
+  exact RuleProofs.smt_seq_rel_trans
+    (native_pack_seq T (native_unpack_seq sx ++ native_unpack_seq sy))
+    (native_pack_seq T (native_unpack_seq sx' ++ native_unpack_seq sy))
+    (native_pack_seq T (native_unpack_seq sx' ++ native_unpack_seq sy'))
+    (smt_seq_rel_pack_append_right T
+      (native_unpack_seq sx) (native_unpack_seq sx')
+      (native_unpack_seq sy) hxPack)
+    (smt_seq_rel_pack_append_left T
+      (native_unpack_seq sx') (native_unpack_seq sy)
+      (native_unpack_seq sy') hyPack)
+
+private theorem smt_value_rel_str_concat_congr_of_seq_eval
+    (M : SmtModel) (x x' y y' : Term) (sx' sy' : SmtSeq)
+    (hx'Eval :
+      __smtx_model_eval M (__eo_to_smt x') = SmtValue.Seq sx')
+    (hy'Eval :
+      __smtx_model_eval M (__eo_to_smt y') = SmtValue.Seq sy')
+    (hxx : RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt x))
+      (__smtx_model_eval M (__eo_to_smt x')))
+    (hyy : RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt y))
+      (__smtx_model_eval M (__eo_to_smt y'))) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkConcat x y)))
+      (__smtx_model_eval M (__eo_to_smt (mkConcat x' y'))) := by
+  rcases smt_value_rel_seq_right (by simpa [hx'Eval] using hxx) with
+    ⟨sx, hxEval, hxRel⟩
+  rcases smt_value_rel_seq_right (by simpa [hy'Eval] using hyy) with
+    ⟨sy, hyEval, hyRel⟩
+  let T := __smtx_elem_typeof_seq_value sx'
+  have hLeftPack :
+      RuleProofs.smt_seq_rel
+        (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+          (native_unpack_seq sx ++ native_unpack_seq sy))
+        (native_pack_seq T
+          (native_unpack_seq sx ++ native_unpack_seq sy)) := by
+    have hPack := smt_seq_rel_pack_unpack T
+      (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+        (native_unpack_seq sx ++ native_unpack_seq sy))
+    simpa [native_unpack_pack_seq] using hPack
+  have hBoth :
+      RuleProofs.smt_seq_rel
+        (native_pack_seq T
+          (native_unpack_seq sx ++ native_unpack_seq sy))
+        (native_pack_seq T
+          (native_unpack_seq sx' ++ native_unpack_seq sy')) :=
+    smt_seq_rel_pack_append_both T sx sx' sy sy' hxRel hyRel
+  unfold RuleProofs.smt_value_rel
+  rw [smtx_model_eval_str_concat_term_eq, smtx_model_eval_str_concat_term_eq]
+  rw [hxEval, hyEval, hx'Eval, hy'Eval]
+  change __smtx_model_eval_eq
+    (SmtValue.Seq
+      (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+        (native_unpack_seq sx ++ native_unpack_seq sy)))
+    (SmtValue.Seq
+      (native_pack_seq (__smtx_elem_typeof_seq_value sx')
+        (native_unpack_seq sx' ++ native_unpack_seq sy'))) =
+      SmtValue.Boolean true
+  exact RuleProofs.smt_seq_rel_trans
+    (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+      (native_unpack_seq sx ++ native_unpack_seq sy))
+    (native_pack_seq T
+      (native_unpack_seq sx ++ native_unpack_seq sy))
+    (native_pack_seq T
+      (native_unpack_seq sx' ++ native_unpack_seq sy'))
+    hLeftPack hBoth
+
+private theorem smt_value_rel_str_concat_assoc_of_seq_eval
+    (M : SmtModel) (x y z : Term) (sx sy sz : SmtSeq)
+    (hxEval : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hyEval : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy)
+    (hzEval : __smtx_model_eval M (__eo_to_smt z) = SmtValue.Seq sz) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkConcat (mkConcat x y) z)))
+      (__smtx_model_eval M (__eo_to_smt (mkConcat x (mkConcat y z)))) := by
+  unfold RuleProofs.smt_value_rel
+  rw [smtx_model_eval_str_concat_term_eq M (mkConcat x y) z]
+  rw [smtx_model_eval_str_concat_term_eq M x y]
+  rw [smtx_model_eval_str_concat_term_eq M x (mkConcat y z)]
+  rw [smtx_model_eval_str_concat_term_eq M y z]
+  rw [hxEval, hyEval, hzEval]
+  simp [__smtx_model_eval_str_concat, native_seq_concat,
+    native_unpack_pack_seq, elem_typeof_pack_seq, List.append_assoc,
+    RuleProofs.smtx_model_eval_eq_refl]
+
+private theorem smt_value_rel_str_concat_list_nil_left_empty_eval
+    (M : SmtModel) (nil x : Term)
+    (hNil :
+      __eo_is_list_nil (Term.UOp UserOp.str_concat) nil = Term.Boolean true)
+    (hNilSeq :
+      ∃ snil, __smtx_model_eval M (__eo_to_smt nil) = SmtValue.Seq snil)
+    (hxSeq :
+      ∃ sx, __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkConcat nil x)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  rcases hxSeq with ⟨sx, hxEval⟩
+  cases nil <;>
+    simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
+      native_teq] at hNil
+  case String s =>
+    subst s
+    unfold RuleProofs.smt_value_rel
+    rw [smtx_model_eval_str_concat_term_eq, hxEval]
+    change __smtx_model_eval_eq
+      (__smtx_model_eval_str_concat (__smtx_model_eval M (SmtTerm.String ""))
+        (SmtValue.Seq sx)) (SmtValue.Seq sx) = SmtValue.Boolean true
+    rw [__smtx_model_eval.eq_4]
+    simp [native_pack_string, __smtx_ssm_char_values_of_string,
+      __smtx_model_eval_str_concat, native_pack_seq, native_seq_concat,
+      native_unpack_seq]
+    change RuleProofs.smt_seq_rel
+      (native_pack_seq SmtType.Char (native_unpack_seq sx)) sx
+    exact RuleProofs.smt_seq_rel_symm sx
+      (native_pack_seq SmtType.Char (native_unpack_seq sx))
+      (smt_seq_rel_pack_unpack SmtType.Char sx)
+  case seq_empty A =>
+    rcases hNilSeq with ⟨snil, hNilEval⟩
+    unfold RuleProofs.smt_value_rel
+    rw [smtx_model_eval_str_concat_term_eq, hxEval]
+    change __smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A)) =
+      SmtValue.Seq snil at hNilEval
+    change __smtx_model_eval_eq
+      (__smtx_model_eval_str_concat
+        (__smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A)))
+        (SmtValue.Seq sx)) (SmtValue.Seq sx) = SmtValue.Boolean true
+    cases hA : __eo_to_smt_type A <;>
+      simp [__eo_to_smt_seq_empty, hA] at hNilEval ⊢
+    case Seq U =>
+      rw [__smtx_model_eval.eq_77] at hNilEval ⊢
+      simp [__smtx_model_eval_str_concat, native_seq_concat, native_unpack_seq]
+      change RuleProofs.smt_seq_rel
+        (native_pack_seq U (native_unpack_seq sx)) sx
+      exact RuleProofs.smt_seq_rel_symm sx
+        (native_pack_seq U (native_unpack_seq sx))
+        (smt_seq_rel_pack_unpack U sx)
+    all_goals
+      simp [__smtx_model_eval] at hNilEval
+
+private theorem smt_value_rel_str_concat_list_nil_right_empty_eval
+    (M : SmtModel) (x nil : Term)
+    (hNil :
+      __eo_is_list_nil (Term.UOp UserOp.str_concat) nil = Term.Boolean true)
+    (hxSeq :
+      ∃ sx, __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hNilSeq :
+      ∃ snil, __smtx_model_eval M (__eo_to_smt nil) = SmtValue.Seq snil) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkConcat x nil)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  rcases hxSeq with ⟨sx, hxEval⟩
+  cases nil <;>
+    simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
+      native_teq] at hNil
+  case String s =>
+    subst s
+    unfold RuleProofs.smt_value_rel
+    rw [smtx_model_eval_str_concat_term_eq, hxEval]
+    change __smtx_model_eval_eq
+      (__smtx_model_eval_str_concat (SmtValue.Seq sx)
+        (__smtx_model_eval M (SmtTerm.String ""))) (SmtValue.Seq sx) =
+      SmtValue.Boolean true
+    rw [__smtx_model_eval.eq_4]
+    simp [native_pack_string, __smtx_ssm_char_values_of_string,
+      __smtx_model_eval_str_concat, native_pack_seq, native_seq_concat]
+    rw [native_unpack_seq, List.append_nil]
+    change RuleProofs.smt_seq_rel
+      (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+        (native_unpack_seq sx)) sx
+    exact RuleProofs.smt_seq_rel_symm sx
+      (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+        (native_unpack_seq sx))
+      (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx)
+  case seq_empty A =>
+    rcases hNilSeq with ⟨snil, hNilEval⟩
+    unfold RuleProofs.smt_value_rel
+    rw [smtx_model_eval_str_concat_term_eq, hxEval]
+    change __smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A)) =
+      SmtValue.Seq snil at hNilEval
+    change __smtx_model_eval_eq
+      (__smtx_model_eval_str_concat (SmtValue.Seq sx)
+        (__smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A))))
+      (SmtValue.Seq sx) = SmtValue.Boolean true
+    cases hA : __eo_to_smt_type A <;>
+      simp [__eo_to_smt_seq_empty, hA] at hNilEval ⊢
+    case Seq U =>
+      rw [__smtx_model_eval.eq_77] at hNilEval ⊢
+      simp [__smtx_model_eval_str_concat, native_seq_concat]
+      rw [native_unpack_seq, List.append_nil]
+      change RuleProofs.smt_seq_rel
+        (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+          (native_unpack_seq sx)) sx
+      exact RuleProofs.smt_seq_rel_symm sx
+        (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+          (native_unpack_seq sx))
+        (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx)
+    all_goals
+      simp [__smtx_model_eval] at hNilEval
+
+private theorem smtx_model_eval_none (M : SmtModel) :
+    __smtx_model_eval M SmtTerm.None = SmtValue.NotValue := by
+  rw [__smtx_model_eval.eq_143]
+  all_goals
+    intros
+    contradiction
+
+private theorem term_ne_stuck_of_seq_eval
+    {M : SmtModel} {t : Term} :
+    (∃ s, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq s) ->
+    t ≠ Term.Stuck := by
+  intro hSeq hStuck
+  subst t
+  rcases hSeq with ⟨s, hEval⟩
+  change __smtx_model_eval M SmtTerm.None = SmtValue.Seq s at hEval
+  rw [smtx_model_eval_none] at hEval
+  cases hEval
+
+private theorem strConcat_args_seq_eval_of_concat_seq_eval
+    (M : SmtModel) (x y : Term) :
+    (∃ sxy,
+      __smtx_model_eval M (__eo_to_smt (mkConcat x y)) =
+        SmtValue.Seq sxy) ->
+    (∃ sx, __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx) ∧
+      (∃ sy, __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) := by
+  intro hSeq
+  rcases hSeq with ⟨sxy, hEval⟩
+  rw [smtx_model_eval_str_concat_term_eq] at hEval
+  cases hx : __smtx_model_eval M (__eo_to_smt x) <;>
+    simp [hx, __smtx_model_eval_str_concat] at hEval
+  case Seq sx =>
+    cases hy : __smtx_model_eval M (__eo_to_smt y) <;>
+      simp [hy, __smtx_model_eval_str_concat] at hEval
+    case Seq sy =>
+      exact ⟨⟨sx, rfl⟩, ⟨sy, rfl⟩⟩
+
+private theorem strConcat_concat_seq_eval_of_args_seq_eval
+    (M : SmtModel) (x y : Term) :
+    (∃ sx, __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx) ->
+    (∃ sy, __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) ->
+    ∃ sxy,
+      __smtx_model_eval M (__eo_to_smt (mkConcat x y)) =
+        SmtValue.Seq sxy := by
+  intro hxSeq hySeq
+  rcases hxSeq with ⟨sx, hxEval⟩
+  rcases hySeq with ⟨sy, hyEval⟩
+  rw [smtx_model_eval_str_concat_term_eq, hxEval, hyEval]
+  exact ⟨native_pack_seq (__smtx_elem_typeof_seq_value sx)
+    (native_unpack_seq sx ++ native_unpack_seq sy), rfl⟩
+
+private theorem smt_value_rel_list_concat_rec_str_concat_eval
+    (M : SmtModel) :
+    ∀ a z,
+      __eo_is_list (Term.UOp UserOp.str_concat) a = Term.Boolean true ->
+      (∃ sa, __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sa) ->
+      (∃ sz, __smtx_model_eval M (__eo_to_smt z) = SmtValue.Seq sz) ->
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec a z)))
+        (__smtx_model_eval M (__eo_to_smt (mkConcat a z)))
+  | a, z, hList, haSeq, hzSeq => by
+      induction a, z using __eo_list_concat_rec.induct with
+      | case1 z =>
+          simp [__eo_is_list] at hList
+      | case2 a hA =>
+          exact False.elim
+            (term_ne_stuck_of_seq_eval (t := Term.Stuck) hzSeq rfl)
+      | case3 g x y z hZ ih =>
+          have hg : g = Term.UOp UserOp.str_concat :=
+            eo_is_list_cons_head_eq_of_true (Term.UOp UserOp.str_concat)
+              g x y hList
+          subst g
+          have hTailList :
+              __eo_is_list (Term.UOp UserOp.str_concat) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self (Term.UOp UserOp.str_concat)
+              x y hList
+          rcases strConcat_args_seq_eval_of_concat_seq_eval M x y haSeq with
+            ⟨hxSeq, hySeq⟩
+          rcases hxSeq with ⟨sx, hxEval⟩
+          rcases hySeq with ⟨sy, hyEval⟩
+          rcases hzSeq with ⟨sz, hzEval⟩
+          have hTailConcat :
+              __eo_list_concat_rec y z ≠ Term.Stuck :=
+            eo_list_concat_rec_ne_stuck_of_list (Term.UOp UserOp.str_concat)
+              y z hTailList hZ
+          have hTailRel :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec y z)))
+                (__smtx_model_eval M (__eo_to_smt (mkConcat y z))) :=
+            ih hTailList ⟨sy, hyEval⟩ ⟨sz, hzEval⟩
+          have hYZSeq :
+              ∃ syz,
+                __smtx_model_eval M (__eo_to_smt (mkConcat y z)) =
+                  SmtValue.Seq syz :=
+            strConcat_concat_seq_eval_of_args_seq_eval M y z
+              ⟨sy, hyEval⟩ ⟨sz, hzEval⟩
+          rcases hYZSeq with ⟨syz, hyzEval⟩
+          rw [eo_list_concat_rec_str_concat_cons_eq_of_tail_ne_stuck
+            x y z hTailConcat]
+          have hCongr :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M
+                  (__eo_to_smt (mkConcat x (__eo_list_concat_rec y z))))
+                (__smtx_model_eval M
+                  (__eo_to_smt (mkConcat x (mkConcat y z)))) :=
+            smt_value_rel_str_concat_congr_of_seq_eval M x x
+              (__eo_list_concat_rec y z) (mkConcat y z) sx syz
+              hxEval hyzEval
+              (RuleProofs.smt_value_rel_refl
+                (__smtx_model_eval M (__eo_to_smt x)))
+              hTailRel
+          have hAssoc :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M
+                  (__eo_to_smt (mkConcat x (mkConcat y z))))
+                (__smtx_model_eval M
+                  (__eo_to_smt (mkConcat (mkConcat x y) z))) :=
+            RuleProofs.smt_value_rel_symm
+              (__smtx_model_eval M
+                (__eo_to_smt (mkConcat (mkConcat x y) z)))
+              (__smtx_model_eval M
+                (__eo_to_smt (mkConcat x (mkConcat y z))))
+              (smt_value_rel_str_concat_assoc_of_seq_eval M x y z sx sy sz
+                hxEval hyEval hzEval)
+          exact RuleProofs.smt_value_rel_trans
+            (__smtx_model_eval M
+              (__eo_to_smt (mkConcat x (__eo_list_concat_rec y z))))
+            (__smtx_model_eval M
+              (__eo_to_smt (mkConcat x (mkConcat y z))))
+            (__smtx_model_eval M
+              (__eo_to_smt (mkConcat (mkConcat x y) z)))
+            hCongr hAssoc
+      | case4 nil z hNil hZ hNot =>
+          have hGet :
+              __eo_get_nil_rec (Term.UOp UserOp.str_concat) nil ≠
+                Term.Stuck :=
+            eo_get_nil_rec_ne_stuck_of_is_list_true
+              (Term.UOp UserOp.str_concat) nil hList
+          have hReq :
+              __eo_requires
+                  (__eo_is_list_nil (Term.UOp UserOp.str_concat) nil)
+                  (Term.Boolean true) nil ≠ Term.Stuck := by
+            simpa [__eo_get_nil_rec] using hGet
+          have hNilTrue :
+              __eo_is_list_nil (Term.UOp UserOp.str_concat) nil =
+                Term.Boolean true :=
+            eo_requires_eq_of_ne_stuck
+              (__eo_is_list_nil (Term.UOp UserOp.str_concat) nil)
+              (Term.Boolean true) nil hReq
+          rw [eo_list_concat_rec_str_concat_nil_eq_of_nil_true
+            nil z hNilTrue]
+          exact RuleProofs.smt_value_rel_symm
+            (__smtx_model_eval M (__eo_to_smt (mkConcat nil z)))
+            (__smtx_model_eval M (__eo_to_smt z))
+            (smt_value_rel_str_concat_list_nil_left_empty_eval M nil z
+              hNilTrue haSeq hzSeq)
+
+theorem strConcat_args_eval_seq_of_concat_eval_seq
+    (M : SmtModel) (x y : Term) :
+    (∃ sxy,
+      __smtx_model_eval M (__eo_to_smt (Term.Apply
+        (Term.Apply (Term.UOp UserOp.str_concat) x) y)) =
+        SmtValue.Seq sxy) ->
+    (∃ sx, __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx) ∧
+      (∃ sy, __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) := by
+  simpa [mkConcat] using strConcat_args_seq_eval_of_concat_seq_eval M x y
+
+theorem strConcat_eval_concat_seq_of_args_eval_seq
+    (M : SmtModel) (x y : Term) :
+    (∃ sx, __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx) ->
+    (∃ sy, __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) ->
+    ∃ sxy,
+      __smtx_model_eval M (__eo_to_smt (Term.Apply
+        (Term.Apply (Term.UOp UserOp.str_concat) x) y)) =
+        SmtValue.Seq sxy := by
+  simpa [mkConcat] using strConcat_concat_seq_eval_of_args_seq_eval M x y
+
+theorem strConcat_smt_value_rel_congr_eval
+    (M : SmtModel) (x x' y y' : Term) (sx' sy' : SmtSeq)
+    (hx'Eval :
+      __smtx_model_eval M (__eo_to_smt x') = SmtValue.Seq sx')
+    (hy'Eval :
+      __smtx_model_eval M (__eo_to_smt y') = SmtValue.Seq sy')
+    (hxx : RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt x))
+      (__smtx_model_eval M (__eo_to_smt x')))
+    (hyy : RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt y))
+      (__smtx_model_eval M (__eo_to_smt y'))) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) y)))
+      (__smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x') y'))) := by
+  simpa [mkConcat] using
+    smt_value_rel_str_concat_congr_of_seq_eval M x x' y y'
+      sx' sy' hx'Eval hy'Eval hxx hyy
+
+theorem strConcat_smt_value_rel_list_nil_right_empty_eval
+    (M : SmtModel) (x nil : Term)
+    (hNil :
+      __eo_is_list_nil (Term.UOp UserOp.str_concat) nil = Term.Boolean true)
+    (hxSeq :
+      ∃ sx, __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hNilSeq :
+      ∃ snil, __smtx_model_eval M (__eo_to_smt nil) = SmtValue.Seq snil) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x) nil)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  simpa [mkConcat] using
+    smt_value_rel_str_concat_list_nil_right_empty_eval M x nil
+      hNil hxSeq hNilSeq
+
+theorem strConcat_smt_value_rel_list_concat_rec_eval
+    (M : SmtModel) (a z : Term)
+    (hList :
+      __eo_is_list (Term.UOp UserOp.str_concat) a = Term.Boolean true)
+    (haSeq :
+      ∃ sa, __smtx_model_eval M (__eo_to_smt a) = SmtValue.Seq sa)
+    (hzSeq :
+      ∃ sz, __smtx_model_eval M (__eo_to_smt z) = SmtValue.Seq sz) :
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec a z)))
+      (__smtx_model_eval M
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) a) z))) := by
+  simpa [mkConcat] using
+    smt_value_rel_list_concat_rec_str_concat_eval M a z hList haSeq hzSeq
+
 private theorem smt_value_rel_str_nary_intro_ite
     (M : SmtModel) (hM : model_total_typed M) (x : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T)
