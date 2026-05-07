@@ -588,47 +588,6 @@ macro_rules
                 | _ => SmtValue.NotValue
           exact evalChoiceNth $M $s $T $body $n)
 
-def __smtx_type_measure : SmtType -> Nat
-  | SmtType.Map T U => 1 + __smtx_type_measure T + __smtx_type_measure U
-  | SmtType.Set T => 1 + __smtx_type_measure T
-  | SmtType.Seq T => 1 + __smtx_type_measure T
-  | SmtType.FunType T U => 1 + __smtx_type_measure T + __smtx_type_measure U
-  | SmtType.DtcAppType T U => 1 + __smtx_type_measure T + __smtx_type_measure U
-  | _ => 0
-
-theorem __smtx_type_measure_lt_map_left (T U : SmtType) :
-    __smtx_type_measure T < __smtx_type_measure (SmtType.Map T U) := by
-  simp [__smtx_type_measure]
-  omega
-
-theorem __smtx_type_measure_lt_map_right (T U : SmtType) :
-    __smtx_type_measure U < __smtx_type_measure (SmtType.Map T U) := by
-  simp [__smtx_type_measure]
-  omega
-
-theorem __smtx_type_measure_lt_fun_left (T U : SmtType) :
-    __smtx_type_measure T < __smtx_type_measure (SmtType.FunType T U) := by
-  simp [__smtx_type_measure]
-  omega
-
-theorem __smtx_type_measure_lt_fun_right (T U : SmtType) :
-    __smtx_type_measure U < __smtx_type_measure (SmtType.FunType T U) := by
-  simp [__smtx_type_measure]
-  omega
-
-theorem __smtx_type_measure_lt_set (T : SmtType) :
-    __smtx_type_measure T < __smtx_type_measure (SmtType.Set T) := by
-  simp [__smtx_type_measure]
-
-theorem __smtx_type_measure_lt_set_value (T : SmtType) :
-    __smtx_type_measure SmtType.Bool < __smtx_type_measure (SmtType.Set T) := by
-  simp [__smtx_type_measure]
-  omega
-
-theorem __smtx_type_measure_lt_seq (T : SmtType) :
-    __smtx_type_measure T < __smtx_type_measure (SmtType.Seq T) := by
-  simp [__smtx_type_measure]
-
 /- Definition of SMT-LIB model semantics -/
 
 noncomputable section
@@ -667,17 +626,14 @@ def __smtx_value_eq : SmtType -> SmtValue -> SmtValue -> native_Bool
           (SmtValue.Seq vs2)))
   | T, v1, v2 => (native_veq v1 v2)
 termination_by
-  T v1 v2 => (__smtx_type_measure T, 0, sizeOf v1 + sizeOf v2)
+  T v1 v2 => (sizeOf T, 0, sizeOf v1 + sizeOf v2)
 decreasing_by
   all_goals subst_vars; simp_wf
   all_goals first
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_left _ _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_right _ _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_left _ _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_right _ _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set_value _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_seq _)
+    | exact Prod.Lex.left _ _ (by
+        have hSizeOfT : 0 < sizeOf T := by
+          cases T <;> simp <;> omega
+        omega)
     | apply Prod.Lex.right
       exact Prod.Lex.left _ _ (by omega)
     | apply Prod.Lex.right
@@ -728,17 +684,14 @@ def __smtx_msm_lookup : SmtType -> SmtMap -> SmtValue -> SmtValue
       (native_ite (__smtx_value_eq T j i) e (__smtx_msm_lookup T m i))
   | T, (SmtMap.default U e), i => e
 termination_by
-  T m i => (__smtx_type_measure T, 1, sizeOf m)
+  T m i => (sizeOf T, 1, sizeOf m)
 decreasing_by
   all_goals subst_vars; simp_wf
   all_goals first
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_left _ _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_map_right _ _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_left _ _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_fun_right _ _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_set_value _)
-    | exact Prod.Lex.left _ _ (__smtx_type_measure_lt_seq _)
+    | exact Prod.Lex.left _ _ (by
+        have hSizeOfT : 0 < sizeOf T := by
+          cases T <;> simp <;> omega
+        omega)
     | apply Prod.Lex.right
       exact Prod.Lex.left _ _ (by omega)
     | apply Prod.Lex.right
