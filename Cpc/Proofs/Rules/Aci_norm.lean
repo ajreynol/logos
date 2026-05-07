@@ -1,5 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Rules.Concat_eq
+import Cpc.Proofs.RuleSupport.StrConcatSupport
 
 open Eo
 open SmtEval
@@ -75,19 +75,6 @@ private theorem aci_norm_guard_true_of_type_bool (a b : Term) :
     · rfl
   all_goals
     exact False.elim (eo_typeof_stuck_ne_bool hTy)
-
-private theorem eq_of_eo_eq_true_local (x y : Term)
-    (h : __eo_eq x y = Term.Boolean true) :
-    y = x := by
-  by_cases hx : x = Term.Stuck
-  · subst x
-    simp [__eo_eq] at h
-  · by_cases hy : y = Term.Stuck
-    · subst y
-      simp [__eo_eq] at h
-    · have hDec : native_teq y x = true := by
-        simpa [__eo_eq, hx, hy] using h
-      simpa [native_teq] using hDec
 
 private theorem smt_value_rel_of_eo_eq_true
     (M : SmtModel) (x y : Term) :

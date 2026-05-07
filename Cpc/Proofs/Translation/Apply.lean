@@ -123,9 +123,14 @@ private theorem native_inhabited_type_of_type_inhabited
   have hWidth : native_zleq 0 (native_nat_to_int w) = true := by
     simp [native_zleq, SmtEval.native_zleq, native_nat_to_int,
       SmtEval.native_nat_to_int]
+  have hMod :
+      native_zeq 0
+        (native_mod_total 0 (native_int_pow2 (native_nat_to_int w))) = true := by
+    simp [native_zeq, SmtEval.native_zeq, native_mod_total,
+      SmtEval.native_mod_total]
   simpa [native_int_to_nat, SmtEval.native_int_to_nat, native_nat_to_int,
     SmtEval.native_nat_to_int] using
-      typeof_value_binary_of_nonneg (native_nat_to_int w) 0 hWidth
+      typeof_value_binary_of_nonneg (native_nat_to_int w) 0 hWidth hMod
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_concat`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_concat
