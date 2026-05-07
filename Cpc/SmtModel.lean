@@ -611,7 +611,7 @@ def __smtx_value_eq : SmtValue -> SmtValue -> native_Bool
   | (SmtValue.Set m1), (SmtValue.Set m2) => (native_veq_ext m1 m2)
   | (SmtValue.Fun m1), (SmtValue.Fun m2) => (native_veq_ext m1 m2)
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (native_re_ext_eq r1 r2)
-  | (SmtValue.Seq (SmtSeq.empty T1)), (SmtValue.Seq (SmtSeq.empty T2)) => (SmtValue.Boolean true)
+  | (SmtValue.Seq (SmtSeq.empty T1)), (SmtValue.Seq (SmtSeq.empty T2)) => true
   | (SmtValue.Seq (SmtSeq.cons v1 vs1)), (SmtValue.Seq (SmtSeq.cons v2 vs2)) => (native_and (__smtx_value_eq v1 v2) (__smtx_value_eq (SmtValue.Seq vs1) (SmtValue.Seq vs2)))
   | (SmtValue.Apply f1 v1), (SmtValue.Apply f2 v2) => (native_and (__smtx_value_eq f1 f2) (__smtx_value_eq v1 v2))
   | v1, v2 => (native_veq v1 v2)
