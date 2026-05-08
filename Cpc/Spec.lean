@@ -245,8 +245,8 @@ def __eo_to_smt : Term -> SmtTerm
     let _v2 := (SmtTerm.Var "@x" _v0)
     (SmtTerm.choice_nth "@x" _v0 (SmtTerm.not (SmtTerm.eq (SmtTerm.select (__eo_to_smt x1) _v2) (SmtTerm.select (__eo_to_smt x2) _v2))) native_nat_zero)
   | (Term.Apply (Term.UOp UserOp._at_bvsize) x1) => 
-    let _v0 := (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x1)))
-    (native_ite (native_zleq 0 _v0) (SmtTerm.Numeral _v0) SmtTerm.None)
+    let _v1 := (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x1)))
+    (native_ite (native_zleq 0 _v1) (SmtTerm.plus (SmtTerm.Numeral _v1) (SmtTerm.Numeral 0)) SmtTerm.None)
   | (Term.Apply (Term.Apply (Term.UOp UserOp.concat) x1) x2) => (SmtTerm.concat (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.extract) x1) x2) x3) => (SmtTerm.extract (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.repeat) x1) x2) => (SmtTerm.repeat (__eo_to_smt x1) (__eo_to_smt x2))
