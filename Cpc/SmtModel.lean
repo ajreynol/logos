@@ -22,7 +22,7 @@ inductive SmtRegLan : Type where
   | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
   | star : SmtRegLan -> SmtRegLan
   | comp : SmtRegLan -> SmtRegLan
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 abbrev native_RegLan := SmtRegLan
   
 -- SMT Beyond Eunoia
@@ -266,7 +266,7 @@ inductive SmtType : Type where
   | FunType : SmtType -> SmtType -> SmtType
   | DtcAppType : SmtType -> SmtType -> SmtType
 
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /- 
 SMT-LIB terms.
@@ -437,7 +437,7 @@ inductive SmtValue : Type where
   | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
 
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 SMT-LIB map values.
@@ -445,7 +445,7 @@ SMT-LIB map values.
 inductive SmtMap : Type where
   | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
   | default : SmtType -> SmtValue -> SmtMap
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /- 
 SMT-LIB sequence values.
@@ -453,7 +453,7 @@ SMT-LIB sequence values.
 inductive SmtSeq : Type where
   | cons : SmtValue -> SmtSeq -> SmtSeq
   | empty : SmtType -> SmtSeq
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 SMT-LIB datatypes.
@@ -461,7 +461,7 @@ SMT-LIB datatypes.
 inductive SmtDatatype : Type where
   | null : SmtDatatype
   | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 /-
 SMT-LIB datatype constructors.
@@ -469,7 +469,7 @@ SMT-LIB datatype constructors.
 inductive SmtDatatypeCons : Type where
   | unit : SmtDatatypeCons
   | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
-deriving Repr, DecidableEq, Inhabited
+deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
@@ -784,11 +784,10 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
   | v => SmtType.None
 
-def __smtx_value_sort_key (v : SmtValue) : native_String :=
-  reprStr v
-
 def __smtx_value_sort_lt (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
-  decide (__smtx_value_sort_key v1 < __smtx_value_sort_key v2)
+  match compare v1 v2 with
+  | Ordering.lt => true
+  | _ => false
 
 def __smtx_map_default_type : SmtMap -> SmtType
   | (SmtMap.cons _ _ m) => __smtx_map_default_type m
