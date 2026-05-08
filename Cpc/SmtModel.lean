@@ -789,44 +789,28 @@ def __smtx_value_sort_lt (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   | Ordering.lt => true
   | _ => false
 
-def __smtx_map_default_type : SmtMap -> SmtType
-  | (SmtMap.cons _ _ m) => __smtx_map_default_type m
-  | (SmtMap.default T _) => T
-
-def __smtx_map_entries : SmtMap -> List (SmtValue × SmtValue)
-  | (SmtMap.cons i e m) => (i, e) :: __smtx_map_entries m
-  | (SmtMap.default _ _) => []
-
-def __smtx_map_entries_remove_key (i : SmtValue) : List (SmtValue × SmtValue) -> List (SmtValue × SmtValue)
-  | [] => []
-  | (j, e) :: xs =>
-      native_ite (native_veq i j)
-        (__smtx_map_entries_remove_key i xs)
-        ((j, e) :: __smtx_map_entries_remove_key i xs)
-
-def __smtx_map_entries_insert_sorted
-    (entry : SmtValue × SmtValue) : List (SmtValue × SmtValue) -> List (SmtValue × SmtValue)
-  | [] => [entry]
-  | x :: xs =>
-      native_ite (__smtx_value_sort_lt entry.1 x.1)
-        (entry :: x :: xs)
-        (x :: __smtx_map_entries_insert_sorted entry xs)
-
-def __smtx_map_of_entries (T : SmtType) (d : SmtValue) : List (SmtValue × SmtValue) -> SmtMap
-  | [] => SmtMap.default T d
-  | (i, e) :: xs => SmtMap.cons i e (__smtx_map_of_entries T d xs)
+def __smtx_map_canon_insert_aux (d : SmtValue) (i : SmtValue) (e : SmtValue) : SmtMap -> SmtMap
+  | (SmtMap.default T _) =>
+    if native_veq e d then
+      SmtMap.default T d
+    else
+      SmtMap.cons i e (SmtMap.default T d)
+  | (SmtMap.cons j e' m') =>
+    if native_veq i j then
+      if native_veq e d then
+        m'
+      else
+        SmtMap.cons j e m'
+    else if __smtx_value_sort_lt i j then
+      if native_veq e d then
+        SmtMap.cons j e' m'
+      else
+        SmtMap.cons i e (SmtMap.cons j e' m')
+    else
+      SmtMap.cons j e' (__smtx_map_canon_insert_aux d i e m')
 
 def __smtx_map_canon_insert (i : SmtValue) (e : SmtValue) (m : SmtMap) : SmtMap :=
-  let d := __smtx_msm_get_default m
-  if native_veq e (__smtx_msm_lookup m i) then
-    m
-  else
-    let entries := __smtx_map_entries_remove_key i (__smtx_map_entries m)
-    if native_veq e d then
-      __smtx_map_of_entries (__smtx_map_default_type m) d entries
-    else
-      __smtx_map_of_entries (__smtx_map_default_type m) d
-        (__smtx_map_entries_insert_sorted (i, e) entries)
+  __smtx_map_canon_insert_aux (__smtx_msm_get_default m) i e m
 
 def __smtx_mss_op_internal (isInter : native_Bool) : SmtMap -> SmtMap -> SmtMap -> SmtMap
   | (SmtMap.default T efalse), m2, acc => acc
