@@ -7424,7 +7424,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite
     rw [typeof_ite_eq]
     rw [hCond, hY, hX]
     simp [__smtx_typeof_ite, native_ite, native_Teq]
-  sorry
+  have hTNN : T ≠ SmtType.None := by
+    intro hNone
+    exact hNonNone (by rw [hSmt, hNone])
+  exact hSmt.trans
+    (eo_to_smt_type_typeof_apply_apply_apply_bvite_of_smt_bitvec1_same_non_none
+      x y z T hZ hY hX hTNN).symm
 
 /-- Bridge-free ternary `ite`, using local IHs to align branch EO types. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_ih
@@ -7603,7 +7608,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
           (native_int_to_nat (native_zplus (native_zplus i (native_zneg j)) 1)) := by
     rw [hTranslate, typeof_extract_eq, hZ, hY, hX]
     simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw]
-  sorry
+  exact hSmt.trans
+    (eo_to_smt_type_typeof_apply_apply_apply_extract_of_smt_numeral_numeral_bitvec
+      x y z i j w hZ hY hX hj0 hji hiw).symm
 
 /-- Bridge-free proof for `_at_witness_string_length`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_at_witness_string_length
@@ -9041,8 +9048,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_ih
         x y z ihZ ihY ihX hNonNone
     case extract =>
-      exact eo_to_smt_typeof_matches_translation_deferred
-        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.extract) z) y) x) hNonNone
+      exact eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
+        x y z hNonNone
     case str_substr =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_str_substr_from_ih
         x y z ihZ ihY ihX hNonNone
