@@ -131,6 +131,21 @@ private theorem eval_eo_eq_is_boolean (M : SmtModel) (x y : Term) :
     (__smtx_model_eval M (__eo_to_smt x))
     (__smtx_model_eval M (__eo_to_smt y))
 
+private theorem eval_eo_eq_bool_eq (M : SmtModel) (x y : Term) (b : Bool) :
+    __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply Term.eq x) y)) =
+      SmtValue.Boolean b ->
+    b =
+      native_apply_veq __smtx_typeof_value __smtx_value_eq
+        (__smtx_model_eval M (__eo_to_smt x))
+        (__smtx_model_eval M (__eo_to_smt y))
+        (sizeOf (__smtx_model_eval M (__eo_to_smt x)) +
+          sizeOf (__smtx_model_eval M (__eo_to_smt y))) := by
+  intro h
+  rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_133] at h
+  unfold __smtx_model_eval_eq at h
+  cases h
+  rfl
+
 private theorem eval_and_bool_components
     (M : SmtModel) (x y : Term) :
     (∃ b : Bool,
@@ -405,6 +420,7 @@ private theorem mk_dt_cons_eq_eval_eq
       exact by simp [__mk_dt_cons_eq, __eo_mk_apply, hTailStuck]
     have hTailEval := mk_dt_cons_eq_eval_eq M as bs hTail
     rcases eval_eo_eq_is_boolean M a b with ⟨b1, hEqABEval⟩
+    have hEqABBool := eval_eo_eq_bool_eq M a b b1 hEqABEval
     have hMkApply :
         __eo_mk_apply (Term.Apply (Term.UOp UserOp.and)
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b))
@@ -420,8 +436,8 @@ private theorem mk_dt_cons_eq_eval_eq
           | simp [__eo_mk_apply]
     rw [hMkApply]
     rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval, hTailEval]
-    simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
-      SmtEval.native_and]
+    simp [__smtx_model_eval_and, __smtx_model_eval_eq,
+      native_apply_veq, SmtEval.native_and, hEqABBool]
   · rename_i f a g b _hNotTuple
     subst_vars
     let left := __mk_dt_cons_eq f g
@@ -453,6 +469,7 @@ private theorem mk_dt_cons_eq_eval_eq
         (__smtx_model_eval M (__eo_to_smt f))
         (__smtx_model_eval M (__eo_to_smt g))
     rcases eval_eo_eq_is_boolean M a b with ⟨br, hEqABEval⟩
+    have hEqABBool := eval_eo_eq_bool_eq M a b br hEqABEval
     have hRightEvalBool :
         ∃ br' : Bool, __smtx_model_eval M (__eo_to_smt right) = SmtValue.Boolean br' := by
       refine ⟨br, ?_⟩
@@ -461,8 +478,8 @@ private theorem mk_dt_cons_eq_eval_eq
       simp [__smtx_model_eval_and, SmtEval.native_and]
     rw [concat_eval_eq_and M hLeftList hRightList hLeftEvalBool hRightEvalBool]
     rw [hLeftEval, eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval]
-    simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
-      SmtEval.native_and]
+    simp [__smtx_model_eval_and, __smtx_model_eval_eq,
+      native_apply_veq, SmtEval.native_and, hEqABBool]
   · subst_vars
     exact mk_dt_cons_eq_base_eval_eq M _ _ (by simpa [__mk_dt_cons_eq] using h)
 termination_by sizeOf t + sizeOf s
