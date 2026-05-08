@@ -522,14 +522,18 @@ def __smtx_finite_type_default : SmtType -> SmtValue
   | SmtType.Char => SmtValue.Char (Char.ofNat 0)
   | SmtType.Datatype s d => __smtx_finite_datatype_default s d d native_nat_zero
   | SmtType.Map T U =>
-      let _v0 := __smtx_finite_type_default T
-      let _v1 := __smtx_finite_type_default U
-      if native_and
-          (native_not (native_veq _v0 SmtValue.NotValue))
-          (native_not (native_veq _v1 SmtValue.NotValue)) then
-        SmtValue.Map (SmtMap.default T _v1)
+      let _vunit := __smtx_unit_type_default U
+      if native_not (native_veq _vunit SmtValue.NotValue) then
+        SmtValue.Map (SmtMap.default T _vunit)
       else
-        SmtValue.NotValue
+        let _v0 := __smtx_finite_type_default T
+        let _v1 := __smtx_finite_type_default U
+        if native_and
+            (native_not (native_veq _v0 SmtValue.NotValue))
+            (native_not (native_veq _v1 SmtValue.NotValue)) then
+          SmtValue.Map (SmtMap.default T _v1)
+        else
+          SmtValue.NotValue
   | SmtType.Set T =>
       let _v0 := __smtx_finite_type_default T
       if native_veq _v0 SmtValue.NotValue then
@@ -537,14 +541,39 @@ def __smtx_finite_type_default : SmtType -> SmtValue
       else
         SmtValue.Set (SmtMap.default T (SmtValue.Boolean false))
   | SmtType.FunType T U =>
-      let _v0 := __smtx_finite_type_default T
-      let _v1 := __smtx_finite_type_default U
-      if native_and
-          (native_not (native_veq _v0 SmtValue.NotValue))
-          (native_not (native_veq _v1 SmtValue.NotValue)) then
-        SmtValue.Fun (SmtMap.default T _v1)
+      let _vunit := __smtx_unit_type_default U
+      if native_not (native_veq _vunit SmtValue.NotValue) then
+        SmtValue.Fun (SmtMap.default T _vunit)
+      else
+        let _v0 := __smtx_finite_type_default T
+        let _v1 := __smtx_finite_type_default U
+        if native_and
+            (native_not (native_veq _v0 SmtValue.NotValue))
+            (native_not (native_veq _v1 SmtValue.NotValue)) then
+          SmtValue.Fun (SmtMap.default T _v1)
+        else
+          SmtValue.NotValue
+  | _ => SmtValue.NotValue
+
+def __smtx_unit_type_default : SmtType -> SmtValue
+  | SmtType.BitVec w =>
+      if native_nateq w native_nat_zero then
+        SmtValue.Binary 0 0
       else
         SmtValue.NotValue
+  | SmtType.Datatype s d => __smtx_unit_datatype_default s d d native_nat_zero
+  | SmtType.Map T U =>
+      let _v0 := __smtx_unit_type_default U
+      if native_veq _v0 SmtValue.NotValue then
+        SmtValue.NotValue
+      else
+        SmtValue.Map (SmtMap.default T _v0)
+  | SmtType.FunType T U =>
+      let _v0 := __smtx_unit_type_default U
+      if native_veq _v0 SmtValue.NotValue then
+        SmtValue.NotValue
+      else
+        SmtValue.Fun (SmtMap.default T _v0)
   | _ => SmtValue.NotValue
 
 def __smtx_finite_datatype_default
@@ -571,6 +600,22 @@ def __smtx_finite_datatype_cons_default :
         SmtValue.NotValue
       else
         __smtx_finite_datatype_cons_default (SmtValue.Apply v _v0) c
+
+def __smtx_unit_datatype_default
+    (s : native_String) (d0 : SmtDatatype) : SmtDatatype -> native_Nat -> SmtValue
+  | SmtDatatype.sum c SmtDatatype.null, n =>
+      __smtx_unit_datatype_cons_default (SmtValue.DtCons s d0 n) c
+  | _, _ => SmtValue.NotValue
+
+def __smtx_unit_datatype_cons_default :
+    SmtValue -> SmtDatatypeCons -> SmtValue
+  | v, SmtDatatypeCons.unit => v
+  | v, SmtDatatypeCons.cons T c =>
+      let _v0 := __smtx_unit_type_default T
+      if native_veq _v0 SmtValue.NotValue then
+        SmtValue.NotValue
+      else
+        __smtx_unit_datatype_cons_default (SmtValue.Apply v _v0) c
 
 end
 
