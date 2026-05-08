@@ -1298,155 +1298,6 @@ private theorem eo_to_smt_quantifiers_skolemize_fun_like_arg_field_wf
       · simp [__eo_to_smt_quantifiers_skolemize] at hHead
       · simp [__eo_to_smt_quantifiers_skolemize] at hHead
 
-/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_apply_generic`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_generic
-    (f x : Term)
-    (ihF :
-      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
-    (hGeneric :
-      generic_apply_type (__eo_to_smt f) (__eo_to_smt x))
-    (hTranslate :
-      __eo_to_smt (Term.Apply f x) =
-        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
-    (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠
-        SmtType.None) :
-    __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
-      __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
-  have hApplyNN :
-      __smtx_typeof_apply
-          (__smtx_typeof (__eo_to_smt f))
-          (__smtx_typeof (__eo_to_smt x)) ≠
-        SmtType.None := by
-    have hApplyNN' :
-        __smtx_typeof
-            (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) ≠
-          SmtType.None := by
-      simpa [hTranslate] using hNonNone
-    rw [hGeneric] at hApplyNN'
-    exact hApplyNN'
-  rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
-    rw [hTranslate]
-    rw [hGeneric]
-    exact smtx_typeof_apply_of_head_cases hHead hX hA
-  sorry
-
-/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_apply_generic`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic
-    (g z y x : Term)
-    (ihF :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)))
-    (hGeneric :
-      generic_apply_type (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x))
-    (hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x) =
-        SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x))
-    (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) =
-      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply g z) y) x)) := by
-  have hApplyNN :
-      __smtx_typeof_apply
-          (__smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)))
-          (__smtx_typeof (__eo_to_smt x)) ≠
-        SmtType.None := by
-    have hApplyNN' :
-        __smtx_typeof
-            (SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x)) ≠
-          SmtType.None := by
-      simpa [hTranslate] using hNonNone
-    rw [hGeneric] at hApplyNN'
-    exact hApplyNN'
-  rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x)) = B := by
-    rw [hTranslate]
-    rw [hGeneric]
-    cases hHead with
-    | inl hHead =>
-        rw [hHead, hX]
-        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-    | inr hHead =>
-        rw [hHead, hX]
-        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-  sorry
-
-/-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_apply_generic`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic
-    (g y x : Term)
-    (ihF :
-      __smtx_typeof (__eo_to_smt (Term.Apply g y)) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt (Term.Apply g y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply g y)))
-    (hGeneric :
-      generic_apply_type (__eo_to_smt (Term.Apply g y)) (__eo_to_smt x))
-    (hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply g y) x) =
-        SmtTerm.Apply (__eo_to_smt (Term.Apply g y)) (__eo_to_smt x))
-    (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g y) x)) =
-      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g y) x)) := by
-  have hApplyNN :
-      __smtx_typeof_apply
-          (__smtx_typeof (__eo_to_smt (Term.Apply g y)))
-          (__smtx_typeof (__eo_to_smt x)) ≠
-        SmtType.None := by
-    have hApplyNN' :
-        __smtx_typeof
-            (SmtTerm.Apply (__eo_to_smt (Term.Apply g y)) (__eo_to_smt x)) ≠
-          SmtType.None := by
-      simpa [hTranslate] using hNonNone
-    rw [hGeneric] at hApplyNN'
-    exact hApplyNN'
-  rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g y) x)) = B := by
-    rw [hTranslate]
-    rw [hGeneric]
-    cases hHead with
-    | inl hHead =>
-        rw [hHead, hX]
-        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-    | inr hHead =>
-        rw [hHead, hX]
-        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-  sorry
-
-/-- Applies the generic nested-application proof after exposing a non-special translated head. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head
-    (op : UserOp) (y x : Term) (head : SmtTerm)
-    (ihF :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) y)) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp op) y)))
-    (hHeadTranslate :
-      __eo_to_smt (Term.Apply (Term.UOp op) y) = head)
-    (hOuterTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) y) x) =
-        SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.UOp op) y)) (__eo_to_smt x))
-    (hSel : ∀ s d i j, head ≠ SmtTerm.DtSel s d i j)
-    (hTester : ∀ s d i, head ≠ SmtTerm.DtTester s d i) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) y) x)) ≠
-      SmtType.None ->
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) y) x)) =
-      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp op) y) x)) := by
-  intro hNonNone
-  have hGeneric :
-      generic_apply_type
-        (__eo_to_smt (Term.Apply (Term.UOp op) y)) (__eo_to_smt x) := by
-    simpa [hHeadTranslate] using
-      (generic_apply_type_of_non_special_head head (__eo_to_smt x) hSel hTester)
-  exact eo_to_smt_typeof_matches_translation_apply_apply_generic
-    (Term.UOp op) y x ihF hGeneric hOuterTranslate hNonNone
-
 /-- Simplifies EO-to-SMT translation for sequence binary operators returning a sequence. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_seq_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -1626,7 +1477,12 @@ private theorem eo_to_smt_type_typeof_of_smt_type_apply
     (h : __smtx_typeof (__eo_to_smt t) = T)
     (hT : T ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof t) = T := by
-  sorry
+  have hNonNone : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
+    rw [h]
+    exact hT
+  have hMatch := eo_to_smt_typeof_matches_translation_deferred t hNonNone
+  rw [h] at hMatch
+  exact hMatch.symm
 
 private theorem smtx_dt_wf_cons_of_sum_wf_apply
     {c : SmtDatatypeCons}
@@ -1898,42 +1754,12 @@ private theorem smtx_dt_wf_rec_mono_apply :
 
 end
 
-private theorem smtx_type_substitute_wf_apply
-    (sub : native_String) (d0 : SmtDatatype) :
-    (T : SmtType) -> (refs : RefList) ->
-      native_inhabited_type (SmtType.Datatype sub d0) = true ->
-      __smtx_dt_wf_rec d0 (native_reflist_insert refs sub) = true ->
-      __smtx_type_wf_rec T (native_reflist_insert refs sub) = true ->
-      __smtx_type_wf_rec (smtx_type_substitute_top_apply sub d0 T) refs = true
-  := by
-  sorry
-
-private theorem smtx_dtc_substitute_wf_apply
-    (sub : native_String) (d0 : SmtDatatype) :
-    (c : SmtDatatypeCons) -> (refs : RefList) ->
-      native_inhabited_type (SmtType.Datatype sub d0) = true ->
-      __smtx_dt_wf_rec d0 (native_reflist_insert refs sub) = true ->
-      __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true ->
-      __smtx_dt_cons_wf_rec (__smtx_dtc_substitute sub d0 c) refs = true
-  := by
-  sorry
-
-private theorem smtx_dt_substitute_wf_apply
-    (sub : native_String) (d0 : SmtDatatype) :
-    (d : SmtDatatype) -> (refs : RefList) ->
-      native_inhabited_type (SmtType.Datatype sub d0) = true ->
-      __smtx_dt_wf_rec d0 (native_reflist_insert refs sub) = true ->
-      __smtx_dt_wf_rec d (native_reflist_insert refs sub) = true ->
-      __smtx_dt_wf_rec (__smtx_dt_substitute sub d0 d) refs = true
-  := by
-  sorry
-
 private theorem smtx_dt_substitute_self_wf_apply
     {s : native_String} {d : SmtDatatype} {refs : RefList}
     (hInh : native_inhabited_type (SmtType.Datatype s d) = true)
     (hWf : __smtx_dt_wf_rec d (native_reflist_insert refs s) = true) :
-    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) refs = true :=
-  smtx_dt_substitute_wf_apply s d d refs hInh hWf hWf
+    __smtx_dt_wf_rec (__smtx_dt_substitute s d d) refs = true := by
+  sorry
 
 private def smtx_type_fun_like_domains_wf : SmtType -> Prop
   | SmtType.Seq A => smtx_type_fun_like_domains_wf A
@@ -7344,37 +7170,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head
   exact eo_to_smt_typeof_matches_translation_apply_uop_application_head_obligation
     op y x ihF ihY ihX hNonNone
 
-/-- Simplifies EO-to-SMT translation for ternary `ite`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_ite
-    (x y z : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) z) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) z) y) x)) := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) z) y) x) =
-        SmtTerm.ite (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
-    rfl
-  have hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.ite (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
-    unfold term_has_non_none_type
-    rw [← hTranslate]
-    exact hNonNone
-  rcases ite_args_of_non_none hApplyNN with ⟨T, hZ, hY, hX, hT⟩
-  have hSmt :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) z) y) x)) =
-        T := by
-    rw [hTranslate, typeof_ite_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)]
-    rw [hZ, hY, hX]
-    simp [__smtx_typeof_ite, native_ite, native_Teq]
-  sorry
-
 /-- Simplifies EO-to-SMT translation for ternary `bvite`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite
     (x y z : Term)
@@ -7711,36 +7506,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_at_witnes
         x y z hZType hYInt hXInt
   exact hSmt.trans hEo.symm
 
-/-- Simplifies EO-to-SMT translation for ternary `str_substr`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_substr
-    (x y z : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) z) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) z) y) x)) := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) z) y) x) =
-        SmtTerm.str_substr (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
-    rfl
-  have hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.str_substr (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
-    unfold term_has_non_none_type
-    rw [← hTranslate]
-    exact hNonNone
-  rcases str_substr_args_of_non_none hApplyNN with ⟨T, hZ, hY, hX⟩
-  have hSmt :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) z) y) x)) =
-        SmtType.Seq T := by
-    rw [hTranslate, typeof_str_substr_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)]
-    simp [__smtx_typeof_str_substr, hZ, hY, hX]
-  sorry
-
 /-- Bridge-free `str_substr`, using the local IHs to recover EO argument types. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_substr_from_ih
     (x y z : Term)
@@ -7803,66 +7568,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_subst
       eo_to_smt_type_typeof_apply_apply_apply_str_substr_of_seq_int_int
         x y z U hZSeq hYInt hXInt
   exact hSmt.trans hEo.symm
-
-/-- Simplifies EO-to-SMT translation for ternary `str_indexof`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_indexof
-    (x y z : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x)) := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x) =
-        SmtTerm.str_indexof (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
-    rfl
-  have hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.str_indexof (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
-    unfold term_has_non_none_type
-    rw [← hTranslate]
-    exact hNonNone
-  rcases str_indexof_args_of_non_none hApplyNN with ⟨T, hZ, hY, hX⟩
-  have hSmt :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x)) =
-        SmtType.Int := by
-    rw [hTranslate, typeof_str_indexof_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)]
-    simp [__smtx_typeof_str_indexof, native_ite, native_Teq, hZ, hY, hX]
-  sorry
-
-/-- Simplifies EO-to-SMT translation for ternary `str_update`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_update
-    (x y z : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) z) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) z) y) x)) := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) z) y) x) =
-        SmtTerm.str_update (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
-    rfl
-  have hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.str_update (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
-    unfold term_has_non_none_type
-    rw [← hTranslate]
-    exact hNonNone
-  rcases str_update_args_of_non_none hApplyNN with ⟨T, hZ, hY, hX⟩
-  have hSmt :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) z) y) x)) =
-        SmtType.Seq T := by
-    rw [hTranslate, typeof_str_update_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)]
-    simp [__smtx_typeof_str_update, native_ite, native_Teq, hZ, hY, hX]
-  sorry
 
 /-- Bridge-free `str_indexof`, using local IHs to recover EO argument types. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_indexof_from_ih
@@ -8126,36 +7831,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_repla
     simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]
   exact hSmt.trans (hEo hArgs.1 hArgs.2.1 hArgs.2.2).symm
 
-/-- Simplifies EO-to-SMT translation for ternary `str_indexof_re`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_indexof_re
-    (x y z : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) z) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) z) y) x)) := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) z) y) x) =
-        SmtTerm.str_indexof_re (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
-    rfl
-  have hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.str_indexof_re (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
-    unfold term_has_non_none_type
-    rw [← hTranslate]
-    exact hNonNone
-  have hArgs := str_indexof_re_args_of_non_none hApplyNN
-  have hSmt :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) z) y) x)) =
-        SmtType.Int := by
-    rw [hTranslate, typeof_str_indexof_re_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)]
-    simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]
-  sorry
-
 /-- Bridge-free `str_indexof_re`, using local IHs to recover EO argument types. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_indexof_re_from_ih
     (x y z : Term)
@@ -8203,36 +7878,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_str_index
       (eo_typeof_eq_reglan_of_smt_reglan_from_ih y ihY hArgs.2.1)
       (eo_typeof_eq_int_of_smt_int_from_ih x ihX hArgs.2.2)
   exact hSmt.trans hEo.symm
-
-/-- Simplifies EO-to-SMT translation for ternary `store`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_store
-    (x y z : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x)) := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x) =
-        SmtTerm.store (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) := by
-    rfl
-  have hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.store (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) := by
-    unfold term_has_non_none_type
-    rw [← hTranslate]
-    exact hNonNone
-  rcases store_args_of_non_none hApplyNN with ⟨A, B, hZ, hY, hX⟩
-  have hSmt :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x)) =
-        SmtType.Map A B := by
-    rw [hTranslate, typeof_store_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)]
-    simp [__smtx_typeof_store, native_ite, native_Teq, hZ, hY, hX]
-  sorry
 
 /-- Bridge-free ternary `store`, using local IHs to recover the EO array shape. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_store_from_ih
@@ -8656,201 +8301,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold
         SmtType.None
       simp [__eo_is_z, __eo_is_z_internal, native_ite, native_teq,
         native_and, native_not]
-
-/-- Simplifies EO-to-SMT translation for datatype `update`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
-    (x y z : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x)) := by
-  cases hz : __eo_to_smt z with
-  | DtSel s d n m =>
-      have hTranslate :
-          __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x) =
-            __eo_to_smt_updater (SmtTerm.DtSel s d n m) (__eo_to_smt y) (__eo_to_smt x) := by
-        change
-          __eo_to_smt_updater (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x) =
-            __eo_to_smt_updater (SmtTerm.DtSel s d n m) (__eo_to_smt y) (__eo_to_smt x)
-        rw [hz]
-      have hUpdaterNN :
-          __smtx_typeof
-              (__eo_to_smt_updater (SmtTerm.DtSel s d n m) (__eo_to_smt y) (__eo_to_smt x)) ≠
-            SmtType.None := by
-        rw [← hTranslate]
-        exact hNonNone
-      have hIteNN :
-          term_has_non_none_type
-            (SmtTerm.ite
-              (SmtTerm.Apply (SmtTerm.DtTester s d n) (__eo_to_smt y))
-              (__eo_to_smt_updater_rec
-                (SmtTerm.DtSel s d n m) (__smtx_dt_num_sels d n) (__eo_to_smt y)
-                (__eo_to_smt x) (SmtTerm.DtCons s d n))
-              (__eo_to_smt y)) := by
-        unfold term_has_non_none_type
-        simpa [__eo_to_smt_updater] using hUpdaterNN
-      rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, hT⟩
-      have hCondNN :
-          term_has_non_none_type
-            (SmtTerm.Apply (SmtTerm.DtTester s d n) (__eo_to_smt y)) := by
-        unfold term_has_non_none_type
-        rw [hCond]
-        simp
-      have hYTy : __smtx_typeof (__eo_to_smt y) = SmtType.Datatype s d := by
-        exact dt_tester_arg_datatype_of_non_none hCondNN
-      have hTTy : T = SmtType.Datatype s d := by
-        exact hElse.symm.trans hYTy
-      have hSmt :
-          __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.update) z) y) x)) =
-            SmtType.Datatype s d := by
-        rw [hTranslate, __eo_to_smt_updater]
-        rw [typeof_ite_eq]
-        rw [hCond, hThen, hElse, hTTy]
-        simp [__smtx_typeof_ite, native_ite, native_Teq]
-      sorry
-  | _ =>
-      exfalso
-      apply hNonNone
-      change
-        __smtx_typeof
-          (__eo_to_smt_updater (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) =
-          SmtType.None
-      rw [hz]
-      simp [__eo_to_smt_updater]
-
-/-- Simplifies EO-to-SMT translation for tuple `tuple_update`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_update
-    (x y z : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt
-            (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt
-          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof
-          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x)) := by
-  cases hy : __eo_to_smt_type (__eo_typeof y) with
-  | Datatype s d =>
-      by_cases hTuple : s = "@Tuple"
-      · subst hTuple
-        cases hz : __eo_to_smt z with
-        | Numeral n =>
-            have hTranslate :
-                __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x) =
-                  __eo_to_smt_tuple_update (SmtType.Datatype "@Tuple" d)
-                    (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x) := by
-              change
-                __eo_to_smt_tuple_update
-                    (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt z)
-                    (__eo_to_smt y) (__eo_to_smt x) =
-                  __eo_to_smt_tuple_update (SmtType.Datatype "@Tuple" d)
-                    (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x)
-              rw [hy, hz]
-            have hTupleNN :
-                __smtx_typeof
-                    (__eo_to_smt_tuple_update (SmtType.Datatype "@Tuple" d)
-                      (SmtTerm.Numeral n) (__eo_to_smt y) (__eo_to_smt x)) ≠
-                  SmtType.None := by
-              rw [← hTranslate]
-              exact hNonNone
-            have hGe : native_zleq 0 n = true := by
-              cases hTest : native_zleq 0 n
-              · exfalso
-                simp [__eo_to_smt_tuple_update, hTest, native_ite] at hTupleNN
-              · simp
-            have hUpdaterNN :
-                __smtx_typeof
-                    (__eo_to_smt_updater
-                      (SmtTerm.DtSel "@Tuple" d native_nat_zero
-                        (native_int_to_nat n))
-                      (__eo_to_smt y) (__eo_to_smt x)) ≠
-                  SmtType.None := by
-              simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hTupleNN
-            have hIteNN :
-                term_has_non_none_type
-                  (SmtTerm.ite
-                    (SmtTerm.Apply (SmtTerm.DtTester "@Tuple" d native_nat_zero)
-                      (__eo_to_smt y))
-                    (__eo_to_smt_updater_rec
-                      (SmtTerm.DtSel "@Tuple" d native_nat_zero
-                        (native_int_to_nat n))
-                      (__smtx_dt_num_sels d native_nat_zero) (__eo_to_smt y)
-                      (__eo_to_smt x)
-                      (SmtTerm.DtCons "@Tuple" d native_nat_zero))
-                    (__eo_to_smt y)) := by
-              unfold term_has_non_none_type
-              simpa [__eo_to_smt_updater] using hUpdaterNN
-            rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, hT⟩
-            have hCondNN :
-                term_has_non_none_type
-                  (SmtTerm.Apply (SmtTerm.DtTester "@Tuple" d native_nat_zero)
-                    (__eo_to_smt y)) := by
-              unfold term_has_non_none_type
-              rw [hCond]
-              simp
-            have hYTy : __smtx_typeof (__eo_to_smt y) = SmtType.Datatype "@Tuple" d := by
-              exact dt_tester_arg_datatype_of_non_none hCondNN
-            have hTTy : T = SmtType.Datatype "@Tuple" d := by
-              exact hElse.symm.trans hYTy
-            have hInnerTy :
-                __smtx_typeof
-                    (__eo_to_smt_updater
-                      (SmtTerm.DtSel "@Tuple" d native_nat_zero
-                        (native_int_to_nat n))
-                      (__eo_to_smt y) (__eo_to_smt x)) =
-                  SmtType.Datatype "@Tuple" d := by
-              rw [__eo_to_smt_updater]
-              rw [typeof_ite_eq]
-              rw [hCond, hThen, hElse, hTTy]
-              simp [__smtx_typeof_ite, native_ite, native_Teq]
-            have hSmt :
-                __smtx_typeof
-                    (__eo_to_smt
-                      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_update) z) y) x)) =
-                  SmtType.Datatype "@Tuple" d := by
-              rw [hTranslate]
-              simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hInnerTy
-            sorry
-        | _ =>
-            exfalso
-            apply hNonNone
-            change
-              __smtx_typeof
-                  (__eo_to_smt_tuple_update
-                    (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt z)
-                    (__eo_to_smt y) (__eo_to_smt x)) =
-                SmtType.None
-            rw [hy, hz]
-            simp [__eo_to_smt_tuple_update]
-      · have hBad := hNonNone
-        exfalso
-        apply hBad
-        change
-          __smtx_typeof
-              (__eo_to_smt_tuple_update
-                (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt z)
-                (__eo_to_smt y) (__eo_to_smt x)) =
-            SmtType.None
-        rw [hy]
-        simp [__eo_to_smt_tuple_update, hTuple]
-  | _ =>
-      exfalso
-      apply hNonNone
-      change
-        __smtx_typeof
-            (__eo_to_smt_tuple_update
-              (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt z)
-              (__eo_to_smt y) (__eo_to_smt x)) =
-          SmtType.None
-      rw [hy]
-      simp [__eo_to_smt_tuple_update]
 
 /-- Closes attempts to apply a binary head already known to have SMT type `Bool`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_head_applied
