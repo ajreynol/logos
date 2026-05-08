@@ -3564,6 +3564,24 @@ private theorem reConcat_args_of_has_smt_translation (y x : Term) :
   exact reglan_binop_args_of_non_none (op := SmtTerm.re_concat)
     (typeof_re_concat_eq (__eo_to_smt y) (__eo_to_smt x)) hNN
 
+private theorem reConcat_args_of_reglan_type (y x : Term) :
+    __smtx_typeof (__eo_to_smt (mkReConcat y x)) = SmtType.RegLan ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.RegLan ∧
+      __smtx_typeof (__eo_to_smt x) = SmtType.RegLan := by
+  intro hTy
+  have hTy' :
+      __smtx_typeof (SmtTerm.re_concat (__eo_to_smt y) (__eo_to_smt x)) =
+        SmtType.RegLan := by
+    simpa [mkReConcat] using hTy
+  have hNN :
+      term_has_non_none_type
+        (SmtTerm.re_concat (__eo_to_smt y) (__eo_to_smt x)) := by
+    unfold term_has_non_none_type
+    rw [hTy']
+    exact smt_reglan_ne_none
+  exact reglan_binop_args_of_non_none (op := SmtTerm.re_concat)
+    (typeof_re_concat_eq (__eo_to_smt y) (__eo_to_smt x)) hNN
+
 private theorem reInter_args_of_has_smt_translation (y x : Term) :
     RuleProofs.eo_has_smt_translation
       (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) y) x) ->
@@ -8336,6 +8354,262 @@ private theorem native_list_in_re_mk_union :
             exact native_list_in_re_mk_union cs
               (native_re_deriv c r) (native_re_deriv c s)
 
+private theorem native_re_nullable_mk_concat (r s : native_RegLan) :
+    native_re_nullable (native_re_mk_concat r s) =
+      (native_re_nullable r && native_re_nullable s) := by
+  cases r <;> cases s <;>
+    simp [native_re_mk_concat, native_re_nullable]
+
+private theorem native_list_in_re_mk_concat_empty_left
+    (xs : List Char) (r : native_RegLan) :
+    native_list_in_re xs (native_re_mk_concat SmtRegLan.empty r) = false := by
+  simp [native_re_mk_concat, native_list_in_re_empty]
+
+private theorem native_list_in_re_mk_concat_empty_right
+    (xs : List Char) (r : native_RegLan) :
+    native_list_in_re xs (native_re_mk_concat r SmtRegLan.empty) = false := by
+  cases r <;> simp [native_re_mk_concat, native_list_in_re_empty]
+
+private theorem native_list_in_re_mk_concat_epsilon_left
+    (xs : List Char) (r : native_RegLan) :
+    native_list_in_re xs (native_re_mk_concat SmtRegLan.epsilon r) =
+      native_list_in_re xs r := by
+  cases r <;> simp [native_re_mk_concat, native_list_in_re_empty]
+
+private theorem native_list_in_re_mk_concat_epsilon_right
+    (xs : List Char) (r : native_RegLan) :
+    native_list_in_re xs (native_re_mk_concat r SmtRegLan.epsilon) =
+      native_list_in_re xs r := by
+  cases r <;> simp [native_re_mk_concat, native_list_in_re_empty]
+
+private theorem native_re_mk_concat_eq_concat_of_ne
+    (r s : native_RegLan) :
+    r ≠ SmtRegLan.empty ->
+    s ≠ SmtRegLan.empty ->
+    r ≠ SmtRegLan.epsilon ->
+    s ≠ SmtRegLan.epsilon ->
+    native_re_mk_concat r s = SmtRegLan.concat r s := by
+  intro hrEmpty hsEmpty hrEps hsEps
+  cases r <;> cases s <;>
+    simp [native_re_mk_concat] at hrEmpty hsEmpty hrEps hsEps ⊢
+
+private theorem native_list_in_re_deriv_mk_concat
+    (xs : List Char) (c : Char) (r s : native_RegLan) :
+    native_list_in_re xs (native_re_deriv c (native_re_mk_concat r s)) =
+      native_list_in_re xs
+        (native_re_mk_union
+          (native_re_mk_concat (native_re_deriv c r) s)
+          (if native_re_nullable r then native_re_deriv c s else SmtRegLan.empty)) := by
+  by_cases hrEmpty : r = SmtRegLan.empty
+  · subst r
+    simp [native_re_mk_concat, native_re_deriv, native_re_nullable,
+      native_list_in_re_mk_union, native_list_in_re_empty]
+  · by_cases hsEmpty : s = SmtRegLan.empty
+    · subst s
+      have hL :
+          native_list_in_re xs
+            (native_re_deriv c (native_re_mk_concat r SmtRegLan.empty)) =
+            false := by
+        simp [native_re_mk_concat, native_re_deriv, native_list_in_re_empty]
+      rw [hL]
+      rw [native_list_in_re_mk_union]
+      rw [native_list_in_re_mk_concat_empty_right]
+      simp [native_re_deriv, native_list_in_re_empty]
+    · by_cases hrEps : r = SmtRegLan.epsilon
+      · subst r
+        simp [native_re_mk_concat, native_re_deriv, native_re_nullable,
+          native_list_in_re_mk_union, native_list_in_re_empty]
+      · by_cases hsEps : s = SmtRegLan.epsilon
+        · subst s
+          have hMk : native_re_mk_concat r SmtRegLan.epsilon = r := by
+            cases r <;> simp [native_re_mk_concat] at hrEmpty hrEps ⊢
+          rw [hMk]
+          rw [native_list_in_re_mk_union]
+          rw [native_list_in_re_mk_concat_epsilon_right]
+          simp [native_re_deriv, native_list_in_re_empty]
+        · have hMk :=
+            native_re_mk_concat_eq_concat_of_ne r s hrEmpty hsEmpty hrEps hsEps
+          rw [hMk]
+          simp [native_re_deriv, native_list_in_re_mk_union]
+
+private def native_list_in_re_concat :
+    List Char -> native_RegLan -> native_RegLan -> native_Bool
+  | [], r, s => native_re_nullable r && native_re_nullable s
+  | c :: cs, r, s =>
+      (native_re_nullable r && native_list_in_re (c :: cs) s) ||
+        native_list_in_re_concat cs (native_re_deriv c r) s
+
+private theorem native_list_in_re_mk_concat :
+    (xs : List Char) -> (r s : native_RegLan) ->
+      native_list_in_re xs (native_re_mk_concat r s) =
+        native_list_in_re_concat xs r s
+  | [], r, s => by
+      simp [native_list_in_re, native_list_in_re_concat,
+        native_re_nullable_mk_concat]
+  | c :: cs, r, s => by
+      change
+        native_list_in_re cs
+            (native_re_deriv c (native_re_mk_concat r s)) =
+          ((native_re_nullable r &&
+              native_list_in_re cs (native_re_deriv c s)) ||
+            native_list_in_re_concat cs (native_re_deriv c r) s)
+      rw [native_list_in_re_deriv_mk_concat cs c r s]
+      rw [native_list_in_re_mk_union]
+      rw [native_list_in_re_mk_concat cs (native_re_deriv c r) s]
+      cases hNullable : native_re_nullable r <;>
+        simp [hNullable, native_list_in_re_empty, Bool.or_comm]
+
+private theorem native_list_in_re_concat_true_iff_exists_append :
+    (xs : List Char) -> (r s : native_RegLan) ->
+      native_list_in_re_concat xs r s = true ↔
+        ∃ xs₁ xs₂ : List Char,
+          xs₁ ++ xs₂ = xs ∧
+            native_list_in_re xs₁ r = true ∧
+            native_list_in_re xs₂ s = true
+  | [], r, s => by
+      constructor
+      · intro h
+        simp [native_list_in_re_concat, Bool.and_eq_true] at h
+        exact ⟨[], [], by rfl, by simpa [native_list_in_re] using h.1,
+          by simpa [native_list_in_re] using h.2⟩
+      · intro h
+        rcases h with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+        cases xs₁ with
+        | nil =>
+            cases xs₂ with
+            | nil =>
+                simp [native_list_in_re_concat, native_list_in_re] at hLeft hRight ⊢
+                simp [hLeft, hRight]
+            | cons c cs =>
+                simp at hAppend
+        | cons c cs =>
+            simp at hAppend
+  | c :: cs, r, s => by
+      constructor
+      · intro h
+        simp [native_list_in_re_concat, Bool.or_eq_true, Bool.and_eq_true] at h
+        rcases h with hHead | hTail
+        · exact ⟨[], c :: cs, by rfl,
+            by simpa [native_list_in_re] using hHead.1, hHead.2⟩
+        · have hTailExists :=
+            (native_list_in_re_concat_true_iff_exists_append cs
+              (native_re_deriv c r) s).1 hTail
+          rcases hTailExists with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+          exact ⟨c :: xs₁, xs₂, by simp [hAppend],
+            by simpa [native_list_in_re] using hLeft, hRight⟩
+      · intro h
+        rcases h with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+        cases xs₁ with
+        | nil =>
+            cases xs₂ with
+            | nil =>
+                simp at hAppend
+            | cons d ds =>
+                cases hAppend
+                have hNullable : native_re_nullable r = true := by
+                  simpa [native_list_in_re] using hLeft
+                simp [native_list_in_re_concat, Bool.or_eq_true,
+                  Bool.and_eq_true, hNullable, hRight]
+        | cons d ds =>
+            cases hAppend
+            have hLeftDeriv :
+                native_list_in_re ds (native_re_deriv c r) = true := by
+              simpa [native_list_in_re] using hLeft
+            have hTail :
+                native_list_in_re_concat (ds ++ xs₂) (native_re_deriv c r) s = true :=
+              (native_list_in_re_concat_true_iff_exists_append (ds ++ xs₂)
+                (native_re_deriv c r) s).2
+                ⟨ds, xs₂, by rfl, hLeftDeriv, hRight⟩
+            simp [native_list_in_re_concat, Bool.or_eq_true, hTail]
+
+private theorem native_list_in_re_mk_concat_true_iff_exists_append
+    (xs : List Char) (r s : native_RegLan) :
+    native_list_in_re xs (native_re_mk_concat r s) = true ↔
+      ∃ xs₁ xs₂ : List Char,
+        xs₁ ++ xs₂ = xs ∧
+          native_list_in_re xs₁ r = true ∧
+          native_list_in_re xs₂ s = true := by
+  rw [native_list_in_re_mk_concat xs r s]
+  exact native_list_in_re_concat_true_iff_exists_append xs r s
+
+private theorem native_list_in_re_mk_concat_congr
+    (xs : List Char) (r r' s s' : native_RegLan)
+    (hr : ∀ ys : List Char, native_list_in_re ys r = native_list_in_re ys r')
+    (hs : ∀ ys : List Char, native_list_in_re ys s = native_list_in_re ys s') :
+    native_list_in_re xs (native_re_mk_concat r s) =
+      native_list_in_re xs (native_re_mk_concat r' s') := by
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro h
+    rcases
+      (native_list_in_re_mk_concat_true_iff_exists_append xs r s).1 h
+        with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+    apply (native_list_in_re_mk_concat_true_iff_exists_append xs r' s').2
+    refine ⟨xs₁, xs₂, hAppend, ?_, ?_⟩
+    · rwa [← hr xs₁]
+    · rwa [← hs xs₂]
+  · intro h
+    rcases
+      (native_list_in_re_mk_concat_true_iff_exists_append xs r' s').1 h
+        with ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+    apply (native_list_in_re_mk_concat_true_iff_exists_append xs r s).2
+    refine ⟨xs₁, xs₂, hAppend, ?_, ?_⟩
+    · rwa [hr xs₁]
+    · rwa [hs xs₂]
+
+private theorem native_list_in_re_mk_concat_assoc
+    (xs : List Char) (r s t : native_RegLan) :
+    native_list_in_re xs
+        (native_re_mk_concat (native_re_mk_concat r s) t) =
+      native_list_in_re xs
+        (native_re_mk_concat r (native_re_mk_concat s t)) := by
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro h
+    rcases
+      (native_list_in_re_mk_concat_true_iff_exists_append xs
+        (native_re_mk_concat r s) t).1 h
+        with ⟨xs₁₂, xs₃, hAppend₁, hLeft₁₂, hRight₃⟩
+    rcases
+      (native_list_in_re_mk_concat_true_iff_exists_append xs₁₂ r s).1 hLeft₁₂
+        with ⟨xs₁, xs₂, hAppend₂, hLeft₁, hRight₂⟩
+    have hRight₂₃ :
+        native_list_in_re (xs₂ ++ xs₃) (native_re_mk_concat s t) = true :=
+      (native_list_in_re_mk_concat_true_iff_exists_append
+        (xs₂ ++ xs₃) s t).2
+        ⟨xs₂, xs₃, by rfl, hRight₂, hRight₃⟩
+    apply
+      (native_list_in_re_mk_concat_true_iff_exists_append xs r
+        (native_re_mk_concat s t)).2
+    refine ⟨xs₁, xs₂ ++ xs₃, ?_, hLeft₁, hRight₂₃⟩
+    calc
+      xs₁ ++ (xs₂ ++ xs₃) = (xs₁ ++ xs₂) ++ xs₃ := by
+        rw [List.append_assoc]
+      _ = xs₁₂ ++ xs₃ := by rw [hAppend₂]
+      _ = xs := hAppend₁
+  · intro h
+    rcases
+      (native_list_in_re_mk_concat_true_iff_exists_append xs r
+        (native_re_mk_concat s t)).1 h
+        with ⟨xs₁, xs₂₃, hAppend₁, hLeft₁, hRight₂₃⟩
+    rcases
+      (native_list_in_re_mk_concat_true_iff_exists_append xs₂₃ s t).1 hRight₂₃
+        with ⟨xs₂, xs₃, hAppend₂, hLeft₂, hRight₃⟩
+    have hLeft₁₂ :
+        native_list_in_re (xs₁ ++ xs₂) (native_re_mk_concat r s) = true :=
+      (native_list_in_re_mk_concat_true_iff_exists_append
+        (xs₁ ++ xs₂) r s).2
+        ⟨xs₁, xs₂, by rfl, hLeft₁, hLeft₂⟩
+    apply
+      (native_list_in_re_mk_concat_true_iff_exists_append xs
+        (native_re_mk_concat r s) t).2
+    refine ⟨xs₁ ++ xs₂, xs₃, ?_, hLeft₁₂, hRight₃⟩
+    calc
+      (xs₁ ++ xs₂) ++ xs₃ = xs₁ ++ (xs₂ ++ xs₃) := by
+        rw [List.append_assoc]
+      _ = xs₁ ++ xs₂₃ := by rw [hAppend₂]
+      _ = xs := hAppend₁
+
 private theorem native_re_nullable_mk_inter (r s : native_RegLan) :
     native_re_nullable (native_re_mk_inter r s) =
       (native_re_nullable r && native_re_nullable s) := by
@@ -8379,6 +8653,32 @@ private theorem native_str_in_re_mk_inter
       (native_str_in_re str r && native_str_in_re str s) := by
   simpa [native_str_in_re, native_list_in_re] using
     native_list_in_re_mk_inter str.toList r s
+
+private theorem native_str_in_re_mk_concat_assoc
+    (str : native_String) (r s t : native_RegLan) :
+    native_str_in_re str
+        (native_re_mk_concat (native_re_mk_concat r s) t) =
+      native_str_in_re str
+        (native_re_mk_concat r (native_re_mk_concat s t)) := by
+  simpa [native_str_in_re, native_list_in_re] using
+    native_list_in_re_mk_concat_assoc str.toList r s t
+
+private theorem native_str_in_re_mk_concat_congr
+    (str : native_String) (r r' s s' : native_RegLan)
+    (hr : ∀ str : native_String, native_str_in_re str r = native_str_in_re str r')
+    (hs : ∀ str : native_String, native_str_in_re str s = native_str_in_re str s') :
+    native_str_in_re str (native_re_mk_concat r s) =
+      native_str_in_re str (native_re_mk_concat r' s') := by
+  have hrList :
+      ∀ ys : List Char, native_list_in_re ys r = native_list_in_re ys r' := by
+    intro ys
+    simpa [native_str_in_re, native_list_in_re] using hr (String.ofList ys)
+  have hsList :
+      ∀ ys : List Char, native_list_in_re ys s = native_list_in_re ys s' := by
+    intro ys
+    simpa [native_str_in_re, native_list_in_re] using hs (String.ofList ys)
+  simpa [native_str_in_re, native_list_in_re] using
+    native_list_in_re_mk_concat_congr str.toList r r' s s' hrList hsList
 
 private theorem native_str_in_re_empty (str : native_String) :
     native_str_in_re str SmtRegLan.empty = false := by
@@ -8700,6 +9000,26 @@ private theorem reConcat_smt_value_rel_right_empty_eval
     simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
       native_str_to_re, native_re_of_list]
 
+private theorem reConcat_smt_value_rel_left_empty_eval
+    (M : SmtModel) (id x : Term) (r : native_RegLan) :
+    __smtx_model_eval M (__eo_to_smt id) =
+      SmtValue.RegLan (native_str_to_re "") ->
+    __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan r ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkReConcat id x)))
+      (__smtx_model_eval M (__eo_to_smt x)) := by
+  intro hIdEval hxEval
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M
+        (SmtTerm.re_concat (__eo_to_smt id) (__eo_to_smt x)))
+      (__smtx_model_eval M (__eo_to_smt x)) =
+    SmtValue.Boolean true
+  simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hIdEval, hxEval]
+  cases r <;>
+    simp [__smtx_model_eval_eq, native_re_concat, native_re_mk_concat,
+      native_str_to_re, native_re_of_list]
+
 private theorem reConcat_eval_reglan_of_reglan_args
     (M : SmtModel) (x y : Term) :
     RegLanEval M x ->
@@ -8713,6 +9033,74 @@ private theorem reConcat_eval_reglan_of_reglan_args
         (SmtTerm.re_concat (__eo_to_smt x) (__eo_to_smt y)) =
       SmtValue.RegLan (native_re_concat rx ry)
     simp [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hyEval]⟩
+
+private theorem reConcat_smt_value_rel_assoc_eval
+    (M : SmtModel) (x y z : Term) (rx ry rz : native_RegLan) :
+    __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx ->
+    __smtx_model_eval M (__eo_to_smt y) = SmtValue.RegLan ry ->
+    __smtx_model_eval M (__eo_to_smt z) = SmtValue.RegLan rz ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkReConcat (mkReConcat x y) z)))
+      (__smtx_model_eval M (__eo_to_smt (mkReConcat x (mkReConcat y z)))) := by
+  intro hxEval hyEval hzEval
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M
+        (SmtTerm.re_concat
+          (SmtTerm.re_concat (__eo_to_smt x) (__eo_to_smt y))
+          (__eo_to_smt z)))
+      (__smtx_model_eval M
+        (SmtTerm.re_concat (__eo_to_smt x)
+          (SmtTerm.re_concat (__eo_to_smt y) (__eo_to_smt z)))) =
+    SmtValue.Boolean true
+  simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hyEval,
+    hzEval]
+  simp [__smtx_model_eval_eq, native_re_concat]
+  intro str
+  exact native_str_in_re_mk_concat_assoc str rx ry rz
+
+private theorem reConcat_smt_value_rel_congr_eval
+    (M : SmtModel) (x x' y y' : Term) :
+    RegLanEval M x ->
+    RegLanEval M y ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt x))
+      (__smtx_model_eval M (__eo_to_smt x')) ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt y))
+      (__smtx_model_eval M (__eo_to_smt y')) ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkReConcat x y)))
+      (__smtx_model_eval M (__eo_to_smt (mkReConcat x' y'))) := by
+  intro hxRe hyRe hxRel hyRel
+  rcases hxRe with ⟨rx, hxEval⟩
+  rcases hyRe with ⟨ry, hyEval⟩
+  rcases smt_value_rel_eval_reglan_right hxRel ⟨rx, hxEval⟩ with
+    ⟨rx', hxEval'⟩
+  rcases smt_value_rel_eval_reglan_right hyRel ⟨ry, hyEval⟩ with
+    ⟨ry', hyEval'⟩
+  have hxExt : ∀ str,
+      native_str_in_re str rx = native_str_in_re str rx' := by
+    rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hxRel
+    rw [hxEval, hxEval'] at hxRel
+    simpa [__smtx_model_eval_eq] using hxRel
+  have hyExt : ∀ str,
+      native_str_in_re str ry = native_str_in_re str ry' := by
+    rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hyRel
+    rw [hyEval, hyEval'] at hyRel
+    simpa [__smtx_model_eval_eq] using hyRel
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  change __smtx_model_eval_eq
+      (__smtx_model_eval M
+        (SmtTerm.re_concat (__eo_to_smt x) (__eo_to_smt y)))
+      (__smtx_model_eval M
+        (SmtTerm.re_concat (__eo_to_smt x') (__eo_to_smt y'))) =
+    SmtValue.Boolean true
+  simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hyEval,
+    hxEval', hyEval']
+  simp [__smtx_model_eval_eq, native_re_concat]
+  intro str
+  exact native_str_in_re_mk_concat_congr str rx rx' ry ry' hxExt hyExt
 
 private theorem reConcat_l1_eq_self_of_eq (id : Term) :
     id ≠ Term.Stuck ->
@@ -8795,6 +9183,502 @@ private theorem regLanEval_ne_stuck {M : SmtModel} {t : Term} :
   have hBad : SmtValue.NotValue = SmtValue.RegLan r := by
     simpa [__smtx_model_eval] using hEval
   cases hBad
+
+private def ReConcatListCanonical (M : SmtModel) : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) x) xs =>
+      RegLanEval M x ∧ ReConcatListCanonical M xs
+  | t => RegLanEval M t
+
+private theorem reConcatListCanonical_eval
+    (M : SmtModel) :
+    (t : Term) -> ReConcatListCanonical M t -> RegLanEval M t
+  | t, h => by
+      cases t with
+      | Apply f xs =>
+          cases f with
+          | Apply g x =>
+              cases g with
+              | UOp op =>
+                  cases op
+                  case re_concat =>
+                    exact reConcat_eval_reglan_of_reglan_args M x xs h.1
+                      (reConcatListCanonical_eval M xs h.2)
+                  all_goals
+                    simpa [ReConcatListCanonical] using h
+              | _ =>
+                  simpa [ReConcatListCanonical] using h
+          | _ =>
+              simpa [ReConcatListCanonical] using h
+      | _ =>
+          simpa [ReConcatListCanonical] using h
+
+private theorem reConcat_l1_norm_rec_list_rel_eval
+    (M : SmtModel) (hM : model_total_typed M) (id : Term)
+    (hIdList :
+      __eo_is_list (Term.UOp UserOp.re_concat) id = Term.Boolean true)
+    (hIdEval :
+      __smtx_model_eval M (__eo_to_smt id) =
+        SmtValue.RegLan (native_str_to_re ""))
+    (hIdCan : ReConcatListCanonical M id)
+    (hIdNe : id ≠ Term.Stuck)
+    (t : Term) :
+    __smtx_typeof (__eo_to_smt t) = SmtType.RegLan ->
+    __eo_is_list (Term.UOp UserOp.re_concat)
+        (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.re_concat) id t) =
+        Term.Boolean true ∧
+      ReConcatListCanonical M
+        (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.re_concat) id t) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.re_concat) id t)))
+        (__smtx_model_eval M (__eo_to_smt t)) := by
+  intro hTy
+  have hTNe : t ≠ Term.Stuck := term_ne_stuck_of_smt_reglan_type hTy
+  by_cases hEq : t = id
+  · subst t
+    rw [reConcat_l1_eq_self_of_eq id hIdNe]
+    exact ⟨hIdList, hIdCan, RuleProofs.smt_value_rel_refl _⟩
+  · rw [reConcat_l1_eq_concat_of_ne_id id t hIdNe hTNe hEq]
+    rcases smt_eval_reglan_of_smt_type_reglan M hM (__eo_to_smt t) hTy with
+      ⟨rt, htEval⟩
+    exact ⟨
+      eo_is_list_cons_self_true_of_tail_list
+        (Term.UOp UserOp.re_concat) t id (by decide) hIdList,
+      ⟨⟨rt, htEval⟩, hIdCan⟩,
+      reConcat_smt_value_rel_right_empty_eval M t id rt htEval hIdEval⟩
+
+private theorem eo_list_concat_rec_reConcat_nil_eq_of_nil_true
+    (nil z : Term)
+    (hNil :
+      __eo_is_list_nil (Term.UOp UserOp.re_concat) nil = Term.Boolean true) :
+    __eo_list_concat_rec nil z = z := by
+  cases nil <;>
+    simp [__eo_is_list_nil, __eo_list_concat_rec] at hNil ⊢
+  case Apply f x =>
+    cases f
+    all_goals try simp [__eo_is_list_nil, __eo_list_concat_rec] at hNil ⊢
+    case UOp op =>
+      cases op
+      all_goals try simp [__eo_is_list_nil] at hNil
+      all_goals try simp [__eo_list_concat_rec]
+      case str_to_re =>
+        cases x <;>
+          (rw [__eo_list_concat_rec.eq_def]; cases z <;> rfl)
+
+private theorem reConcat_nil_eval_empty_of_is_list_nil_true
+    (M : SmtModel) (nil : Term)
+    (hNil :
+      __eo_is_list_nil (Term.UOp UserOp.re_concat) nil = Term.Boolean true) :
+    __smtx_model_eval M (__eo_to_smt nil) =
+      SmtValue.RegLan (native_str_to_re "") := by
+  cases nil
+  all_goals try simp [__eo_is_list_nil] at hNil
+  all_goals try contradiction
+  case Apply f x =>
+    cases f
+    all_goals try simp [__eo_is_list_nil] at hNil
+    case UOp op =>
+      cases op
+      all_goals try simp [__eo_is_list_nil] at hNil
+      case str_to_re =>
+        cases x
+        all_goals try simp [__eo_is_list_nil] at hNil
+        case String s =>
+          by_cases hs : s = ""
+          · subst s
+            change __smtx_model_eval M
+                (SmtTerm.str_to_re (SmtTerm.String "")) =
+              SmtValue.RegLan (native_str_to_re "")
+            simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+              native_str_to_re, native_re_of_list, native_pack_string,
+              native_unpack_string, native_pack_seq, native_unpack_seq,
+              __smtx_ssm_char_values_of_string,
+              __smtx_ssm_string_of_char_values]
+          · simp [__eo_is_list_nil, hs] at hNil
+
+private theorem reConcat_list_concat_rec_rel_eval
+    (M : SmtModel) :
+    (a z : Term) ->
+    __eo_is_list (Term.UOp UserOp.re_concat) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.re_concat) z = Term.Boolean true ->
+    ReConcatListCanonical M a ->
+    ReConcatListCanonical M z ->
+    ReConcatListCanonical M (__eo_list_concat_rec a z) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec a z)))
+        (__smtx_model_eval M (__eo_to_smt (mkReConcat a z)))
+  | a, z, hAList, hZList, hACan, hZCan => by
+      induction a, z using __eo_list_concat_rec.induct with
+      | case1 z =>
+          cases (Term.UOp UserOp.re_concat) <;> simp [__eo_is_list] at hAList
+      | case2 a hA =>
+          cases (Term.UOp UserOp.re_concat) <;> simp [__eo_is_list] at hZList
+      | case3 g x y z hZ ih =>
+          have hg : g = Term.UOp UserOp.re_concat :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.re_concat) g x y hAList
+          subst g
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.re_concat) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.re_concat) x y hAList
+          have hTailNe :
+              __eo_list_concat_rec y z ≠ Term.Stuck :=
+            eo_list_concat_rec_ne_stuck_of_list
+              (Term.UOp UserOp.re_concat) y z hYList hZ
+          have hXCan : RegLanEval M x := hACan.1
+          have hYCanList : ReConcatListCanonical M y := hACan.2
+          have hYCan : RegLanEval M y :=
+            reConcatListCanonical_eval M y hYCanList
+          have hZCanEval : RegLanEval M z :=
+            reConcatListCanonical_eval M z hZCan
+          have hIH := ih hYList hZList hYCanList hZCan
+          rw [eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+            (Term.UOp UserOp.re_concat) x y z hTailNe]
+          have hTailCan : RegLanEval M (__eo_list_concat_rec y z) :=
+            reConcatListCanonical_eval M (__eo_list_concat_rec y z) hIH.1
+          have hYZCan : RegLanEval M (mkReConcat y z) :=
+            reConcat_eval_reglan_of_reglan_args M y z hYCan hZCanEval
+          rcases hXCan with ⟨rx, hxEval⟩
+          rcases hYCan with ⟨ry, hyEval⟩
+          rcases hZCanEval with ⟨rz, hzEval⟩
+          have hCongr :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M
+                  (__eo_to_smt (mkReConcat x (__eo_list_concat_rec y z))))
+                (__smtx_model_eval M
+                  (__eo_to_smt (mkReConcat x (mkReConcat y z)))) :=
+            reConcat_smt_value_rel_congr_eval M x x
+              (__eo_list_concat_rec y z) (mkReConcat y z)
+              ⟨rx, hxEval⟩ hTailCan
+              (RuleProofs.smt_value_rel_refl
+                (__smtx_model_eval M (__eo_to_smt x)))
+              hIH.2
+          have hAssoc :
+              RuleProofs.smt_value_rel
+                (__smtx_model_eval M
+                  (__eo_to_smt (mkReConcat x (mkReConcat y z))))
+                (__smtx_model_eval M
+                  (__eo_to_smt (mkReConcat (mkReConcat x y) z))) :=
+            RuleProofs.smt_value_rel_symm _ _
+              (reConcat_smt_value_rel_assoc_eval M x y z rx ry rz
+                hxEval hyEval hzEval)
+          exact ⟨
+            ⟨⟨rx, hxEval⟩, hIH.1⟩,
+            RuleProofs.smt_value_rel_trans
+              (__smtx_model_eval M
+                (__eo_to_smt (mkReConcat x (__eo_list_concat_rec y z))))
+              (__smtx_model_eval M
+                (__eo_to_smt (mkReConcat x (mkReConcat y z))))
+              (__smtx_model_eval M
+                (__eo_to_smt (mkReConcat (mkReConcat x y) z)))
+              hCongr hAssoc⟩
+      | case4 nil z hNil hZ hNot =>
+          have hNilTrue :
+              __eo_is_list_nil (Term.UOp UserOp.re_concat) nil =
+                Term.Boolean true := by
+            have hGet :=
+              eo_get_nil_rec_ne_stuck_of_is_list_true
+                (Term.UOp UserOp.re_concat) nil hAList
+            have hReq :
+                __eo_requires
+                    (__eo_is_list_nil (Term.UOp UserOp.re_concat) nil)
+                    (Term.Boolean true) nil ≠ Term.Stuck := by
+              simpa [__eo_get_nil_rec] using hGet
+            exact eo_requires_eq_of_ne_stuck
+              (__eo_is_list_nil (Term.UOp UserOp.re_concat) nil)
+              (Term.Boolean true) nil hReq
+          rw [eo_list_concat_rec_reConcat_nil_eq_of_nil_true nil z hNilTrue]
+          have hNilEval :=
+            reConcat_nil_eval_empty_of_is_list_nil_true M nil hNilTrue
+          rcases reConcatListCanonical_eval M z hZCan with ⟨rz, hzEval⟩
+          exact ⟨hZCan,
+            RuleProofs.smt_value_rel_symm _ _
+              (reConcat_smt_value_rel_left_empty_eval M nil z rz
+                hNilEval hzEval)⟩
+
+private theorem reConcat_get_a_norm_rec_rel_eval
+    (M : SmtModel) (hM : model_total_typed M) (id : Term)
+    (hIdList :
+      __eo_is_list (Term.UOp UserOp.re_concat) id = Term.Boolean true)
+    (hIdEval :
+      __smtx_model_eval M (__eo_to_smt id) =
+        SmtValue.RegLan (native_str_to_re ""))
+    (hIdCan : ReConcatListCanonical M id)
+    (hIdNe : id ≠ Term.Stuck) :
+    (t : Term) ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.RegLan ->
+    __eo_is_list (Term.UOp UserOp.re_concat)
+        (__get_a_norm_rec (Term.UOp UserOp.re_concat) id t) =
+        Term.Boolean true ∧
+      ReConcatListCanonical M
+        (__get_a_norm_rec (Term.UOp UserOp.re_concat) id t) ∧
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt (__get_a_norm_rec (Term.UOp UserOp.re_concat) id t)))
+        (__smtx_model_eval M (__eo_to_smt t))
+  | t, hTy => by
+      cases t
+      case Apply f x =>
+        cases f
+        case Apply g y =>
+          cases g
+          case Stuck =>
+            have hBad :
+                __smtx_typeof
+                  (__eo_to_smt (Term.Apply (Term.Apply Term.Stuck y) x)) =
+                  SmtType.None := by
+              change __smtx_typeof
+                (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
+                  (__eo_to_smt x)) = SmtType.None
+              exact smtx_typeof_apply_apply_none (__eo_to_smt x) (__eo_to_smt y)
+            rw [hBad] at hTy
+            cases hTy
+          case UOp op =>
+            cases op
+            case re_concat =>
+              have hTypes := reConcat_args_of_reglan_type y x hTy
+              have hYRec :=
+                reConcat_get_a_norm_rec_rel_eval M hM id hIdList hIdEval
+                  hIdCan hIdNe y hTypes.1
+              have hXRec :=
+                reConcat_get_a_norm_rec_rel_eval M hM id hIdList hIdEval
+                  hIdCan hIdNe x hTypes.2
+              let ry := __get_a_norm_rec (Term.UOp UserOp.re_concat) id y
+              let rx := __get_a_norm_rec (Term.UOp UserOp.re_concat) id x
+              have hRecEq :
+                  __get_a_norm_rec (Term.UOp UserOp.re_concat) id
+                      (mkReConcat y x) =
+                    __eo_list_concat_rec ry rx := by
+                dsimp [ry, rx, mkReConcat]
+                simp [__get_a_norm_rec, __eo_eq, __eo_ite, native_ite,
+                  native_teq, native_not, SmtEval.native_not,
+                  __eo_list_concat, __eo_requires, hYRec.1, hXRec.1]
+              have hListConcat :
+                  __eo_is_list (Term.UOp UserOp.re_concat)
+                      (__eo_list_concat_rec ry rx) =
+                    Term.Boolean true :=
+                eo_list_concat_rec_is_list_true_of_lists
+                  (Term.UOp UserOp.re_concat) ry rx hYRec.1 hXRec.1
+              have hListRel :=
+                reConcat_list_concat_rec_rel_eval M ry rx hYRec.1 hXRec.1
+                  hYRec.2.1 hXRec.2.1
+              have hRyCan : RegLanEval M ry :=
+                reConcatListCanonical_eval M ry hYRec.2.1
+              have hRxCan : RegLanEval M rx :=
+                reConcatListCanonical_eval M rx hXRec.2.1
+              have hCongr :
+                  RuleProofs.smt_value_rel
+                    (__smtx_model_eval M (__eo_to_smt (mkReConcat ry rx)))
+                    (__smtx_model_eval M (__eo_to_smt (mkReConcat y x))) :=
+                reConcat_smt_value_rel_congr_eval M ry y rx x
+                  hRyCan hRxCan hYRec.2.2 hXRec.2.2
+              have hRel :
+                  RuleProofs.smt_value_rel
+                    (__smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec ry rx)))
+                    (__smtx_model_eval M (__eo_to_smt (mkReConcat y x))) :=
+                RuleProofs.smt_value_rel_trans
+                  (__smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec ry rx)))
+                  (__smtx_model_eval M (__eo_to_smt (mkReConcat ry rx)))
+                  (__smtx_model_eval M (__eo_to_smt (mkReConcat y x)))
+                  hListRel.2 hCongr
+              rw [hRecEq]
+              exact ⟨hListConcat, hListRel.1, hRel⟩
+            all_goals
+              simpa [__get_a_norm_rec, __eo_eq, __eo_ite, native_ite,
+                native_teq] using
+                reConcat_l1_norm_rec_list_rel_eval M hM id hIdList hIdEval
+                  hIdCan hIdNe _ hTy
+          all_goals
+            simpa [__get_a_norm_rec, __eo_eq, __eo_ite, native_ite,
+              native_teq, __eo_l_1___get_a_norm_rec] using
+              reConcat_l1_norm_rec_list_rel_eval M hM id hIdList hIdEval
+                hIdCan hIdNe _ hTy
+        all_goals
+          simpa [__get_a_norm_rec, __eo_l_1___get_a_norm_rec] using
+            reConcat_l1_norm_rec_list_rel_eval M hM id hIdList hIdEval
+              hIdCan hIdNe _ hTy
+      all_goals
+        simpa [__get_a_norm_rec, __eo_l_1___get_a_norm_rec] using
+          reConcat_l1_norm_rec_list_rel_eval M hM id hIdList hIdEval hIdCan hIdNe
+            _ hTy
+
+private theorem reConcat_is_list_nil_boolean_of_ne_stuck (t : Term) :
+    t ≠ Term.Stuck ->
+    ∃ b, __eo_is_list_nil (Term.UOp UserOp.re_concat) t = Term.Boolean b := by
+  intro hNe
+  cases t
+  case Stuck =>
+    exact False.elim (hNe rfl)
+  case Apply f x =>
+    cases f
+    case UOp op =>
+      cases op
+      case str_to_re =>
+        cases x
+        case String s =>
+          by_cases hs : s = ""
+          · subst s
+            exact ⟨true, by simp [__eo_is_list_nil]⟩
+          · exact ⟨false, by simp [__eo_is_list_nil, hs]⟩
+        all_goals
+          exact ⟨false, by simp [__eo_is_list_nil]⟩
+      all_goals
+        exact ⟨false, by simp [__eo_is_list_nil]⟩
+    all_goals
+      exact ⟨false, by simp [__eo_is_list_nil]⟩
+  all_goals
+    exact ⟨false, by simp [__eo_is_list_nil]⟩
+
+private theorem reConcat_singleton_elim_rel_eval
+    (M : SmtModel) (c : Term) :
+    __eo_is_list (Term.UOp UserOp.re_concat) c = Term.Boolean true ->
+    ReConcatListCanonical M c ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M
+        (__eo_to_smt (__eo_list_singleton_elim (Term.UOp UserOp.re_concat) c)))
+      (__smtx_model_eval M (__eo_to_smt c)) := by
+  intro hList hCan
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M
+      (__eo_to_smt
+        (__eo_requires (__eo_is_list (Term.UOp UserOp.re_concat) c)
+          (Term.Boolean true) (__eo_list_singleton_elim_2 c))))
+    (__smtx_model_eval M (__eo_to_smt c))
+  rw [hList]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  cases c with
+  | Apply f tail =>
+      cases f with
+      | Apply g head =>
+          have hg :
+              g = Term.UOp UserOp.re_concat :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.re_concat) g head tail hList
+          subst g
+          have hHeadCan : RegLanEval M head := hCan.1
+          have hTailList :
+              __eo_is_list (Term.UOp UserOp.re_concat) tail =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.re_concat) head tail hList
+          have hTailNe : tail ≠ Term.Stuck := by
+            intro h
+            subst tail
+            simp [__eo_is_list] at hTailList
+          rcases reConcat_is_list_nil_boolean_of_ne_stuck tail hTailNe with
+            ⟨b, hNil⟩
+          simp [__eo_list_singleton_elim_2, hNil, __eo_ite, native_ite,
+            native_teq]
+          cases b
+          · exact RuleProofs.smt_value_rel_refl
+              (__smtx_model_eval M (__eo_to_smt (mkReConcat head tail)))
+          · rcases hHeadCan with ⟨rHead, hHeadEval⟩
+            exact RuleProofs.smt_value_rel_symm _ _
+              (reConcat_smt_value_rel_right_empty_eval M
+                head tail rHead hHeadEval
+                (reConcat_nil_eval_empty_of_is_list_nil_true M tail hNil))
+      | _ =>
+          simpa [__eo_list_singleton_elim_2] using
+            RuleProofs.smt_value_rel_refl _
+  | _ =>
+      simpa [__eo_list_singleton_elim_2] using
+        RuleProofs.smt_value_rel_refl _
+
+private theorem smt_value_rel_get_a_norm_re_concat
+    (M : SmtModel) (hM : model_total_typed M) (y x : Term) :
+    RuleProofs.eo_has_smt_translation (mkReConcat y x) ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt (mkReConcat y x)))
+      (__smtx_model_eval M (__eo_to_smt (__get_a_norm (mkReConcat y x)))) := by
+  intro hTrans
+  let t := mkReConcat y x
+  have hTypes := reConcat_args_of_has_smt_translation y x hTrans
+  have htTy : __smtx_typeof (__eo_to_smt t) = SmtType.RegLan := by
+    dsimp [t, mkReConcat]
+    change __smtx_typeof (SmtTerm.re_concat (__eo_to_smt y) (__eo_to_smt x)) =
+      SmtType.RegLan
+    rw [typeof_re_concat_eq]
+    simp [hTypes.1, hTypes.2, native_Teq, native_ite]
+  have hTypeMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t (by
+      rw [htTy]
+      exact smt_reglan_ne_none)
+  have hTypeRegLan : __eo_to_smt_type (__eo_typeof t) = SmtType.RegLan := by
+    rw [← hTypeMatch, htTy]
+  have hTypeNe : __eo_typeof t ≠ Term.Stuck := by
+    intro h
+    rw [h] at hTypeRegLan
+    simp [__eo_to_smt_type] at hTypeRegLan
+  let id := __eo_nil (Term.UOp UserOp.re_concat) (__eo_typeof t)
+  have hIdEq : id = mkReEps := by
+    dsimp [id, mkReEps]
+    cases hTy : __eo_typeof t
+    case Stuck =>
+      exact False.elim (hTypeNe hTy)
+    all_goals rfl
+  have hIdList :
+      __eo_is_list (Term.UOp UserOp.re_concat) id = Term.Boolean true := by
+    rw [hIdEq]
+    simp [mkReEps, __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
+      __eo_requires, __eo_is_ok, native_teq, native_ite, native_not,
+      SmtEval.native_not]
+  have hIdEval :
+      __smtx_model_eval M (__eo_to_smt id) =
+        SmtValue.RegLan (native_str_to_re "") := by
+    rw [hIdEq]
+    change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String "")) =
+      SmtValue.RegLan (native_str_to_re "")
+    simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+      native_str_to_re, native_re_of_list, native_pack_string,
+      native_unpack_string, native_pack_seq, native_unpack_seq,
+      __smtx_ssm_char_values_of_string,
+      __smtx_ssm_string_of_char_values]
+  have hIdCan : ReConcatListCanonical M id := by
+    rw [hIdEq]
+    exact ⟨native_str_to_re "", by simpa [hIdEq] using hIdEval⟩
+  have hIdNe : id ≠ Term.Stuck := by
+    rw [hIdEq]
+    intro h
+    cases h
+  have hRec :=
+    reConcat_get_a_norm_rec_rel_eval M hM id hIdList hIdEval hIdCan hIdNe
+      t htTy
+  have hElim :=
+    reConcat_singleton_elim_rel_eval M
+      (__get_a_norm_rec (Term.UOp UserOp.re_concat) id t) hRec.1 hRec.2.1
+  have hNormRel :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (__eo_to_smt (__eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+            (__get_a_norm_rec (Term.UOp UserOp.re_concat) id t))))
+        (__smtx_model_eval M (__eo_to_smt t)) :=
+    RuleProofs.smt_value_rel_trans
+      (__smtx_model_eval M
+        (__eo_to_smt (__eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+          (__get_a_norm_rec (Term.UOp UserOp.re_concat) id t))))
+      (__smtx_model_eval M
+        (__eo_to_smt (__get_a_norm_rec (Term.UOp UserOp.re_concat) id t)))
+      (__smtx_model_eval M (__eo_to_smt t))
+      hElim hRec.2.2
+  change RuleProofs.smt_value_rel
+    (__smtx_model_eval M (__eo_to_smt t))
+    (__smtx_model_eval M
+      (__eo_to_smt
+        (__eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+          (__get_a_norm_rec (Term.UOp UserOp.re_concat)
+            (__eo_nil (Term.UOp UserOp.re_concat) (__eo_typeof t)) t))))
+  dsimp [id] at hNormRel
+  exact RuleProofs.smt_value_rel_symm
+    (__smtx_model_eval M
+      (__eo_to_smt
+        (__eo_list_singleton_elim (Term.UOp UserOp.re_concat)
+          (__get_a_norm_rec (Term.UOp UserOp.re_concat)
+            (__eo_nil (Term.UOp UserOp.re_concat) (__eo_typeof t)) t))))
+    (__smtx_model_eval M (__eo_to_smt t))
+    hNormRel
 
 private theorem reUnion_eval_reglan_of_reglan_args
     (M : SmtModel) (x y : Term) :
@@ -11053,8 +11937,16 @@ private theorem smt_value_rel_get_aci_normal_form_payload
             M hM (mkStrConcat y x) (__get_a_norm (mkStrConcat y x)) hTrans
             hNormRel
         case re_concat =>
-          -- A normalizer case.
-          sorry
+          have hNormRel :=
+            smt_value_rel_get_a_norm_re_concat M hM y x hTrans
+          change RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt (mkReConcat y x)))
+            (__smtx_model_eval M
+              (__eo_to_smt
+                (aciNormPayload (__get_a_norm (mkReConcat y x)))))
+          exact smt_value_rel_aciNormPayload_right_of_rel_has_translation
+            M hM (mkReConcat y x) (__get_a_norm (mkReConcat y x)) hTrans
+            hNormRel
         case re_inter =>
           have hNormRel :=
             smt_value_rel_get_ai_norm_re_inter M hM y x hTrans (by
