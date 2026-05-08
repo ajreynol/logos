@@ -789,9 +789,53 @@ def __smtx_value_sort_lt (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   | Ordering.lt => true
   | _ => false
 
-def __smtx_type_finite_values? : SmtType -> Option (List SmtValue)
-  | SmtType.Bool => some [SmtValue.Boolean false, SmtValue.Boolean true]
-  | _ => none
+def __smtx_value_list_insert_sorted (v : SmtValue) : List SmtValue -> List SmtValue
+  | [] => [v]
+  | x :: xs =>
+      native_ite (__smtx_value_sort_lt v x)
+        (v :: x :: xs)
+        (x :: __smtx_value_list_insert_sorted v xs)
+
+def __smtx_value_list_sort : List SmtValue -> List SmtValue
+  | [] => []
+  | x :: xs => __smtx_value_list_insert_sorted x (__smtx_value_list_sort xs)
+
+def __smtx_type_size : SmtType -> native_Nat
+  | SmtType.Map T U => 1 + __smtx_type_size T + __smtx_type_size U
+  | SmtType.Set T => 1 + __smtx_type_size T
+  | SmtType.Seq T => 1 + __smtx_type_size T
+  | SmtType.Datatype _ d => 1 + __smtx_dt_size d
+  | SmtType.FunType T U => 1 + __smtx_type_size T + __smtx_type_size U
+  | SmtType.DtcAppType T U => 1 + __smtx_type_size T + __smtx_type_size U
+  | _ => 1
+
+def __smtx_dt_size : SmtDatatype -> native_Nat
+  | SmtDatatype.null => 1
+  | SmtDatatype.sum c d => 1 + __smtx_dtc_size c + __smtx_dt_size d
+
+def __smtx_dtc_size : SmtDatatypeCons -> native_Nat
+  | SmtDatatypeCons.unit => 1
+  | SmtDatatypeCons.cons T c => 1 + __smtx_type_size T + __smtx_dtc_size c
+
+def __smtx_bv_finite_values_rec (w : native_Nat) : native_Nat -> List SmtValue
+  | 0 => []
+  | n + 1 =>
+      SmtValue.Binary (native_nat_to_int w) (native_nat_to_int n) ::
+        __smtx_bv_finite_values_rec w n
+
+def __smtx_bv_finite_values (w : native_Nat) : List SmtValue :=
+  __smtx_value_list_sort
+    (__smtx_bv_finite_values_rec w (Int.toNat (native_int_pow2 (native_nat_to_int w))))
+
+def __smtx_value_assignments (values : List SmtValue) : List SmtValue -> List (List SmtValue)
+  | [] => [[]]
+  | _ :: keys =>
+      let rest := __smtx_value_assignments values keys
+      values.flatMap (fun v => rest.map (fun vs => v :: vs))
+
+def __smtx_map_of_values (T : SmtType) (d : SmtValue) : List SmtValue -> List SmtValue -> SmtMap
+  | i :: is, e :: es => SmtMap.cons i e (__smtx_map_of_values T d is es)
+  | _, _ => SmtMap.default T d
 
 def __smtx_type_dummy_value : SmtType -> SmtValue
   | SmtType.Bool => SmtValue.Boolean false
@@ -809,6 +853,79 @@ def __smtx_type_dummy_value : SmtType -> SmtValue
           Classical.choose h
         else
           SmtValue.NotValue
+
+def __smtx_map_values (T : SmtType) (U : SmtType)
+    (keys : List SmtValue) (values : List SmtValue) : List SmtValue :=
+  let d := __smtx_type_dummy_value U
+  (__smtx_value_assignments values keys).map
+    (fun es => SmtValue.Map (__smtx_map_of_values T d keys es))
+
+def __smtx_fun_values (T : SmtType) (U : SmtType)
+    (keys : List SmtValue) (values : List SmtValue) : List SmtValue :=
+  let d := __smtx_type_dummy_value U
+  (__smtx_value_assignments values keys).map
+    (fun es => SmtValue.Fun (__smtx_map_of_values T d keys es))
+
+def __smtx_set_values (T : SmtType) (keys : List SmtValue) : List SmtValue :=
+  let bools := [SmtValue.Boolean false, SmtValue.Boolean true]
+  (__smtx_value_assignments bools keys).map
+    (fun es => SmtValue.Set (__smtx_map_of_values T (SmtValue.Boolean false) keys es))
+
+def __smtx_apply_value_args : SmtValue -> List SmtValue -> SmtValue
+  | f, [] => f
+  | f, v :: vs => __smtx_apply_value_args (SmtValue.Apply f v) vs
+
+def __smtx_dtc_arg_values (fuel : native_Nat) : SmtDatatypeCons -> Option (List (List SmtValue))
+  | SmtDatatypeCons.unit => some [[]]
+  | SmtDatatypeCons.cons T c =>
+      match __smtx_type_finite_values_rec fuel T, __smtx_dtc_arg_values fuel c with
+      | some vs, some argss =>
+          some (vs.flatMap (fun v => argss.map (fun args => v :: args)))
+      | _, _ => none
+
+def __smtx_dtc_finite_values (fuel : native_Nat) (head : SmtValue) :
+    SmtDatatypeCons -> Option (List SmtValue)
+  | SmtDatatypeCons.unit => some [head]
+  | SmtDatatypeCons.cons T c =>
+      match __smtx_type_finite_values_rec fuel T, __smtx_dtc_arg_values fuel c with
+      | some vs, some argss =>
+          some (vs.flatMap (fun v =>
+            argss.map (fun args => __smtx_apply_value_args head (v :: args))))
+      | _, _ => none
+
+def __smtx_dt_finite_values (fuel : native_Nat) (s : native_String) (d : SmtDatatype)
+    (i : native_Nat) : SmtDatatype -> Option (List SmtValue)
+  | SmtDatatype.null => some []
+  | SmtDatatype.sum c d' =>
+      match __smtx_dtc_finite_values fuel (SmtValue.DtCons s d i) c,
+          __smtx_dt_finite_values fuel s d (i + 1) d' with
+      | some vs, some vs' => some (vs ++ vs')
+      | _, _ => none
+
+def __smtx_type_finite_values_rec : native_Nat -> SmtType -> Option (List SmtValue)
+  | 0, _ => none
+  | fuel + 1, SmtType.Bool => some [SmtValue.Boolean false, SmtValue.Boolean true]
+  | fuel + 1, SmtType.BitVec w => some (__smtx_bv_finite_values w)
+  | fuel + 1, SmtType.Set T =>
+      match __smtx_type_finite_values_rec fuel T with
+      | some keys => some (__smtx_value_list_sort (__smtx_set_values T keys))
+      | none => none
+  | fuel + 1, SmtType.Map T U =>
+      match __smtx_type_finite_values_rec fuel T, __smtx_type_finite_values_rec fuel U with
+      | some keys, some values => some (__smtx_value_list_sort (__smtx_map_values T U keys values))
+      | _, _ => none
+  | fuel + 1, SmtType.FunType T U =>
+      match __smtx_type_finite_values_rec fuel T, __smtx_type_finite_values_rec fuel U with
+      | some keys, some values => some (__smtx_value_list_sort (__smtx_fun_values T U keys values))
+      | _, _ => none
+  | fuel + 1, SmtType.Datatype s d =>
+      match __smtx_dt_finite_values fuel s d 0 (__smtx_dt_substitute s d d) with
+      | some vs => some (__smtx_value_list_sort vs)
+      | none => none
+  | _, _ => none
+
+def __smtx_type_finite_values? : SmtType -> Option (List SmtValue)
+  | T => __smtx_type_finite_values_rec (__smtx_type_size T + 1) T
 
 def __smtx_map_canon_complete (T : SmtType) (d : SmtValue) (m : SmtMap) : List SmtValue -> SmtMap
   | [] => SmtMap.default T d
