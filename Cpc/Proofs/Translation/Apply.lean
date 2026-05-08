@@ -3493,89 +3493,6 @@ private theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply_from_ih
       (eo_to_smt_type_typeof_apply_dt_cons_of_fun_like
         x U V s d i (Or.inr hFEq) hxEo hUNonNone).trans hV
 
-/-- Simplifies EO-to-SMT type translation for set binary operators returning a set. -/
-private theorem eo_to_smt_type_typeof_apply_apply_set_binop_of_smt_set
-    (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term) (T : SmtType)
-    (hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) y) x) =
-        smtOp (__eo_to_smt y) (__eo_to_smt x))
-    (hTy :
-      __smtx_typeof (smtOp (__eo_to_smt y) (__eo_to_smt x)) =
-        __smtx_typeof_sets_op_2
-          (__smtx_typeof (__eo_to_smt y)) (__smtx_typeof (__eo_to_smt x)))
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Set T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Set T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp eoOp) y) x)) =
-      SmtType.Set T := by
-  let t := Term.Apply (Term.Apply (Term.UOp eoOp) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Set T := by
-    change __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp eoOp) y) x)) =
-      SmtType.Set T
-    rw [hTranslate, hTy, hy, hx]
-    simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_set_union`. -/
-private theorem eo_to_smt_type_typeof_apply_apply_set_union_of_smt_set
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Set T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Set T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) y) x)) =
-      SmtType.Set T := by
-  exact eo_to_smt_type_typeof_apply_apply_set_binop_of_smt_set
-    UserOp.set_union SmtTerm.set_union x y T (by rfl)
-    (by rw [__smtx_typeof.eq_122]) hy hx
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_set_inter`. -/
-private theorem eo_to_smt_type_typeof_apply_apply_set_inter_of_smt_set
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Set T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Set T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_inter) y) x)) =
-      SmtType.Set T := by
-  exact eo_to_smt_type_typeof_apply_apply_set_binop_of_smt_set
-    UserOp.set_inter SmtTerm.set_inter x y T (by rfl)
-    (by rw [__smtx_typeof.eq_123]) hy hx
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_set_minus`. -/
-private theorem eo_to_smt_type_typeof_apply_apply_set_minus_of_smt_set
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Set T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Set T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_minus) y) x)) =
-      SmtType.Set T := by
-  exact eo_to_smt_type_typeof_apply_apply_set_binop_of_smt_set
-    UserOp.set_minus SmtTerm.set_minus x y T (by rfl)
-    (by rw [__smtx_typeof.eq_124]) hy hx
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_set_member`. -/
-private theorem eo_to_smt_type_typeof_apply_apply_set_member_of_smt_set
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Set T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) y) x)) =
-      SmtType.Bool := by
-  let t := Term.Apply (Term.Apply (Term.UOp UserOp.set_member) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Bool := by
-    change __smtx_typeof (SmtTerm.set_member (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Bool
-    rw [__smtx_typeof.eq_125, hy, hx]
-    simp [__smtx_typeof_set_member, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_set_subset`. -/
-private theorem eo_to_smt_type_typeof_apply_apply_set_subset_of_smt_set
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Set T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Set T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) y) x)) =
-      SmtType.Bool := by
-  let t := Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Bool := by
-    change __smtx_typeof (SmtTerm.set_subset (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Bool
-    rw [__smtx_typeof.eq_126, hy, hx]
-    simp [__smtx_typeof_sets_op_2_ret, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
 /-- Computes the type of a non-`None` `re_exp` term. -/
 private theorem re_exp_typeof_of_non_none
     {t1 t2 : SmtTerm}
@@ -4527,32 +4444,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_set_binop
     simp [__smtx_typeof_sets_op_2, hY, hX, native_ite, native_Teq]
   exact hSmt.trans (hEo T hY hX).symm
 
-/-- Simplifies EO-to-SMT translation for `set_member`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_set_member
-    (x y : Term)
-    (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) y) x)) =
-      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) y) x)) := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) y) x) =
-        SmtTerm.set_member (__eo_to_smt y) (__eo_to_smt x) := by
-    rfl
-  have hApplyNN :
-      term_has_non_none_type (SmtTerm.set_member (__eo_to_smt y) (__eo_to_smt x)) := by
-    unfold term_has_non_none_type
-    rw [← hTranslate]
-    exact hNonNone
-  rcases set_member_args_of_non_none hApplyNN with ⟨T, hY, hX⟩
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) y) x)) =
-        SmtType.Bool := by
-    rw [hTranslate, typeof_set_member_eq]
-    simp [__smtx_typeof_set_member, hY, hX, native_ite, native_Teq]
-  exact hSmt.trans
-    (eo_to_smt_type_typeof_apply_apply_set_member_of_smt_set x y T hY hX).symm
-
 /-- Simplifies EO-to-SMT translation for set binary predicates. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_set_pred_binop
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm) (x y : Term)
@@ -5350,36 +5241,6 @@ private theorem smtx_typeof_eo_to_smt_forall_top_bool_or_none
           SmtType.None
     exact smtx_typeof_not_bool_or_none
       (__eo_to_smt_exists _ (SmtTerm.not (__eo_to_smt x)))
-
-/-- Simplifies EO-to-SMT translation for `exists`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_exists
-    (x y : Term)
-    (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.exists) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.exists) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.exists) y) x)) := by
-  rcases smtx_typeof_eo_to_smt_exists_top_bool_or_none x y with hBool | hNone
-  · exact hBool.trans
-      (eo_to_smt_type_typeof_of_smt_type
-        (Term.Apply (Term.Apply (Term.UOp UserOp.exists) y) x) hBool (by simp)).symm
-  · exact False.elim (hNonNone hNone)
-
-/-- Simplifies EO-to-SMT translation for `forall`. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_forall
-    (x y : Term)
-    (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.forall) y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.forall) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.forall) y) x)) := by
-  rcases smtx_typeof_eo_to_smt_forall_top_bool_or_none x y with hBool | hNone
-  · exact hBool.trans
-      (eo_to_smt_type_typeof_of_smt_type
-        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) y) x) hBool (by simp)).symm
-  · exact False.elim (hNonNone hNone)
 
 /-- Bridge-free proof for `exists`, using the body IH and quantifier-list inversion. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_exists_from_ih
