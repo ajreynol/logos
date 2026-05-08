@@ -1457,14 +1457,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_seq_char_reglan_binop
     simp [hArgs.1, hArgs.2, native_ite, native_Teq]
   exact hSmt.trans (hEo hArgs.1 hArgs.2).symm
 
-/-- Recovers the EO translated type from an SMT typing equality, local to Apply refactors. -/
-private theorem eo_to_smt_type_typeof_of_smt_type_apply
-    (t : Term) {T : SmtType}
-    (h : __smtx_typeof (__eo_to_smt t) = T)
-    (hT : T ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof t) = T := by
-  exact eo_to_smt_type_typeof_of_smt_type t h hT
-
 private theorem smtx_dt_wf_cons_of_sum_wf_apply
     {c : SmtDatatypeCons}
     {d : SmtDatatype}
@@ -1735,6 +1727,13 @@ private theorem smtx_dt_wf_rec_mono_apply :
 
 end
 
+/--
+Self-substitution preserves datatype well-formedness.
+
+The remaining hard case is semantic rather than list-shaped: a nested datatype
+field produces a fresh `native_inhabited_type` obligation for the substituted
+datatype, so the proof needs inhabitance preservation for datatype substitution.
+-/
 private theorem smtx_dt_substitute_self_wf_apply :
     (d : SmtDatatype) -> {s : native_String} -> {refs : RefList} ->
       native_inhabited_type (SmtType.Datatype s d) = true ->
@@ -3514,7 +3513,7 @@ private theorem eo_to_smt_type_typeof_apply_apply_set_binop_of_smt_set
       SmtType.Set T
     rw [hTranslate, hTy, hy, hx]
     simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type_apply t hSmt (by simp)
+  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_set_union`. -/
 private theorem eo_to_smt_type_typeof_apply_apply_set_union_of_smt_set
@@ -3561,7 +3560,7 @@ private theorem eo_to_smt_type_typeof_apply_apply_set_member_of_smt_set
     change __smtx_typeof (SmtTerm.set_member (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Bool
     rw [__smtx_typeof.eq_125, hy, hx]
     simp [__smtx_typeof_set_member, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type_apply t hSmt (by simp)
+  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_set_subset`. -/
 private theorem eo_to_smt_type_typeof_apply_apply_set_subset_of_smt_set
@@ -3575,7 +3574,7 @@ private theorem eo_to_smt_type_typeof_apply_apply_set_subset_of_smt_set
     change __smtx_typeof (SmtTerm.set_subset (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Bool
     rw [__smtx_typeof.eq_126, hy, hx]
     simp [__smtx_typeof_sets_op_2_ret, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type_apply t hSmt (by simp)
+  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
 /-- Computes the type of a non-`None` `re_exp` term. -/
 private theorem re_exp_typeof_of_non_none
@@ -3960,7 +3959,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_bv
     rw [hTranslate]
     exact hSmt'
   exact hSmt.trans
-    (eo_to_smt_type_typeof_of_smt_type_apply
+    (eo_to_smt_type_typeof_of_smt_type
       (Term.Apply (Term.Apply (Term.UOp UserOp._at_bv) y) x) hSmt (by simp)).symm
 
 /-- Simplifies EO-to-SMT translation for `_at_strings_deq_diff`. -/
@@ -4220,7 +4219,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_is
         rw [hTranslate]
         exact dt_tester_term_typeof_of_non_none hApplyNN
       exact hSmt.trans
-        (eo_to_smt_type_typeof_of_smt_type_apply
+        (eo_to_smt_type_typeof_of_smt_type
           (Term.Apply (Term.Apply (Term.UOp UserOp.is) y) x) hSmt (by simp)).symm
   | _ =>
       exact eo_to_smt_typeof_matches_translation_of_smt_none
@@ -5363,7 +5362,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_exists
         (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.exists) y) x)) := by
   rcases smtx_typeof_eo_to_smt_exists_top_bool_or_none x y with hBool | hNone
   · exact hBool.trans
-      (eo_to_smt_type_typeof_of_smt_type_apply
+      (eo_to_smt_type_typeof_of_smt_type
         (Term.Apply (Term.Apply (Term.UOp UserOp.exists) y) x) hBool (by simp)).symm
   · exact False.elim (hNonNone hNone)
 
@@ -5378,7 +5377,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_forall
         (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.forall) y) x)) := by
   rcases smtx_typeof_eo_to_smt_forall_top_bool_or_none x y with hBool | hNone
   · exact hBool.trans
-      (eo_to_smt_type_typeof_of_smt_type_apply
+      (eo_to_smt_type_typeof_of_smt_type
         (Term.Apply (Term.Apply (Term.UOp UserOp.forall) y) x) hBool (by simp)).symm
   · exact False.elim (hNonNone hNone)
 
@@ -5703,7 +5702,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_select
                 rw [← hSmt]
                 exact hNonNone
               exact hSmt.trans
-                (eo_to_smt_type_typeof_of_smt_type_apply
+                (eo_to_smt_type_typeof_of_smt_type
                   (Term.Apply (Term.Apply (Term.UOp UserOp.tuple_select) y) x)
                   hSmt hTNonNone).symm
         | _ =>
@@ -5752,7 +5751,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple
       __eo_to_smt_type
         (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) := by
   let t := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x
-  exact (eo_to_smt_type_typeof_of_smt_type_apply t rfl hNonNone).symm
+  exact (eo_to_smt_type_typeof_of_smt_type t rfl hNonNone).symm
 
 /-- Simplifies EO-to-SMT translation for map `select`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_select
