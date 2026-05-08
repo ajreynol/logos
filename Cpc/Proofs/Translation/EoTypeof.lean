@@ -105,7 +105,7 @@ section DeferredTypeRecovery
 
 
 /-- Recovers the EO translated type from an SMT typing equality. -/
-private theorem eo_to_smt_type_typeof_of_smt_type
+theorem eo_to_smt_type_typeof_of_smt_type
     (t : Term) {T : SmtType}
     (h : __smtx_typeof (__eo_to_smt t) = T)
     (hT : T ≠ SmtType.None) :

@@ -1053,20 +1053,6 @@ private theorem eo_to_smt_typeof_matches_translation_of_smt_none
   intro hNonNone
   exact False.elim (hNonNone hNone)
 
-/--
-Temporary bridge-free placeholder for the remaining hard translation cases.
-
-The surrounding proof has been refactored so these calls are isolated: each
-use marks a case that still needs a local IH-based proof rather than the old
-global bridge.
--/
-private theorem eo_to_smt_typeof_matches_translation_deferred
-    (t : Term) :
-    __smtx_typeof (__eo_to_smt t) ≠ SmtType.None ->
-    __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t) := by
-  intro _hNonNone
-  sorry
-
 /-- Rewrites the typing equation for rationals. -/
 private theorem typeof_rational_eq
     (q : native_Rat) :
@@ -1477,12 +1463,7 @@ private theorem eo_to_smt_type_typeof_of_smt_type_apply
     (h : __smtx_typeof (__eo_to_smt t) = T)
     (hT : T ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof t) = T := by
-  have hNonNone : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
-    rw [h]
-    exact hT
-  have hMatch := eo_to_smt_typeof_matches_translation_deferred t hNonNone
-  rw [h] at hMatch
-  exact hMatch.symm
+  exact eo_to_smt_type_typeof_of_smt_type t h hT
 
 private theorem smtx_dt_wf_cons_of_sum_wf_apply
     {c : SmtDatatypeCons}
@@ -3336,7 +3317,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_set_member_from_ih
 Bridge-free nested generic application once the translated head is known to be
 ordinary SMT application. This is the version needed by `Full.lean`: it threads
 the explicit IH for the outer argument instead of reaching through
-the deferred type-recovery lemma.
+the global type-recovery bridge.
 -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic_from_ih
     (g y x : Term)
