@@ -4016,6 +4016,96 @@ private theorem native_binary_and_assoc_mod_nat
           symm
           rw [native_binary_and_mod_eq_toNat]
 
+private theorem native_binary_or_mod_eq_toNat
+    (w : Nat) (n1 n2 : Int) :
+    native_mod_total (native_binary_or (native_nat_to_int w) n1 n2)
+        (native_int_pow2 (native_nat_to_int w)) =
+      ((BitVec.ofInt w n1 ||| BitVec.ofInt w n2).toNat : Int) := by
+  cases w with
+  | zero =>
+      simp [native_binary_or, native_pior, native_mod_total,
+        native_int_pow2_nat]
+  | succ w =>
+      simp [native_binary_or, native_pior, native_mod_total,
+        native_int_pow2_nat, native_nat_to_int, native_ite, native_zeq]
+      exact bitvec_toInt_emod_pow (Nat.succ w)
+        (BitVec.ofInt (Nat.succ w) n1 ||| BitVec.ofInt (Nat.succ w) n2)
+
+private theorem native_binary_or_comm_mod_nat
+    (w : Nat) (n1 n2 : Int) :
+    native_mod_total (native_binary_or (native_nat_to_int w) n1 n2)
+        (native_int_pow2 (native_nat_to_int w)) =
+      native_mod_total (native_binary_or (native_nat_to_int w) n2 n1)
+        (native_int_pow2 (native_nat_to_int w)) := by
+  rw [native_binary_or_mod_eq_toNat, native_binary_or_mod_eq_toNat]
+  rw [BitVec.or_comm]
+
+private theorem native_binary_or_self_mod_nat (w : Nat) (n : Int) :
+    native_mod_total (native_binary_or (native_nat_to_int w) n n)
+        (native_int_pow2 (native_nat_to_int w)) =
+      native_mod_total n (native_int_pow2 (native_nat_to_int w)) := by
+  rw [native_binary_or_mod_eq_toNat, native_mod_pow2_eq_bitvec_toNat]
+  simp
+
+private theorem native_binary_or_assoc_mod_nat
+    (w : Nat) (n1 n2 n3 : Int) :
+    native_mod_total
+        (native_binary_or (native_nat_to_int w)
+          (native_mod_total (native_binary_or (native_nat_to_int w) n1 n2)
+            (native_int_pow2 (native_nat_to_int w))) n3)
+        (native_int_pow2 (native_nat_to_int w)) =
+      native_mod_total
+        (native_binary_or (native_nat_to_int w) n1
+          (native_mod_total (native_binary_or (native_nat_to_int w) n2 n3)
+            (native_int_pow2 (native_nat_to_int w))))
+        (native_int_pow2 (native_nat_to_int w)) := by
+  have h12 :
+      BitVec.ofInt w
+          (native_mod_total (native_binary_or (native_nat_to_int w) n1 n2)
+            (native_int_pow2 (native_nat_to_int w))) =
+        (BitVec.ofInt w n1 ||| BitVec.ofInt w n2) := by
+    rw [native_binary_or_mod_eq_toNat]
+    exact bitvec_ofInt_natCast_toNat _
+  have h23 :
+      BitVec.ofInt w
+          (native_mod_total (native_binary_or (native_nat_to_int w) n2 n3)
+            (native_int_pow2 (native_nat_to_int w))) =
+        (BitVec.ofInt w n2 ||| BitVec.ofInt w n3) := by
+    rw [native_binary_or_mod_eq_toNat]
+    exact bitvec_ofInt_natCast_toNat _
+  calc
+    native_mod_total
+        (native_binary_or (native_nat_to_int w)
+          (native_mod_total (native_binary_or (native_nat_to_int w) n1 n2)
+            (native_int_pow2 (native_nat_to_int w))) n3)
+        (native_int_pow2 (native_nat_to_int w))
+        =
+      ((BitVec.ofInt w
+          (native_mod_total (native_binary_or (native_nat_to_int w) n1 n2)
+            (native_int_pow2 (native_nat_to_int w))) |||
+        BitVec.ofInt w n3).toNat : Int) := by
+          rw [native_binary_or_mod_eq_toNat]
+    _ = (((BitVec.ofInt w n1 ||| BitVec.ofInt w n2) |||
+          BitVec.ofInt w n3).toNat : Int) := by
+          rw [h12]
+    _ = ((BitVec.ofInt w n1 ||| (BitVec.ofInt w n2 |||
+          BitVec.ofInt w n3)).toNat : Int) := by
+          rw [BitVec.or_assoc]
+    _ =
+      ((BitVec.ofInt w n1 |||
+        BitVec.ofInt w
+          (native_mod_total (native_binary_or (native_nat_to_int w) n2 n3)
+            (native_int_pow2 (native_nat_to_int w)))).toNat : Int) := by
+          rw [h23]
+    _ =
+      native_mod_total
+        (native_binary_or (native_nat_to_int w) n1
+          (native_mod_total (native_binary_or (native_nat_to_int w) n2 n3)
+            (native_int_pow2 (native_nat_to_int w))))
+        (native_int_pow2 (native_nat_to_int w)) := by
+          symm
+          rw [native_binary_or_mod_eq_toNat]
+
 private theorem bvAnd_smt_value_rel_comm_eval
     (M : SmtModel) (x y : Term) (w : Nat) (nx ny : Int) :
     __smtx_model_eval M (__eo_to_smt x) =
@@ -5374,64 +5464,16 @@ private theorem native_binary_or_right_zero_mod_nat
     native_mod_total (native_binary_or (native_nat_to_int w) n 0)
         (native_int_pow2 (native_nat_to_int w)) =
       native_mod_total n (native_int_pow2 (native_nat_to_int w)) := by
-  rw [native_mod_pow2_eq_bitvec_toNat, native_mod_pow2_eq_bitvec_toNat]
-  apply congrArg (fun x : BitVec w => (x.toNat : Int))
-  cases w with
-  | zero =>
-      exact Subsingleton.elim _ _
-  | succ w =>
-      have hNe : ((w : Int) + 1) ≠ 0 := by omega
-      have hAndZero :
-          (BitVec.ofInt (w + 1) n &&& 0#(w + 1)) = 0#(w + 1) := by
-        exact BitVec.and_zero
-      have hAndZeroToInt :
-          (BitVec.ofInt (w + 1) n &&& 0#(w + 1)).toInt =
-            (0#(w + 1)).toInt :=
-        congrArg BitVec.toInt hAndZero
-      have hCore :
-          BitVec.ofInt (w + 1)
-              (n + -(BitVec.ofInt (w + 1) n &&& 0#(w + 1)).toInt) =
-            BitVec.ofInt (w + 1) n := by
-        simpa [hAndZeroToInt]
-      simp [native_binary_or, native_piand, native_nat_to_int, native_ite,
-        native_zeq, native_zplus, native_zneg, hNe]
-      change
-        BitVec.ofInt (w + 1)
-            (n + -(BitVec.ofInt (w + 1) n &&& 0#(w + 1)).toInt) =
-          BitVec.ofInt (w + 1) n
-      exact hCore
+  rw [native_binary_or_mod_eq_toNat, native_mod_pow2_eq_bitvec_toNat]
+  simp
 
 private theorem native_binary_or_left_zero_mod_nat
     (w : Nat) (n : Int) :
     native_mod_total (native_binary_or (native_nat_to_int w) 0 n)
         (native_int_pow2 (native_nat_to_int w)) =
       native_mod_total n (native_int_pow2 (native_nat_to_int w)) := by
-  rw [native_mod_pow2_eq_bitvec_toNat, native_mod_pow2_eq_bitvec_toNat]
-  apply congrArg (fun x : BitVec w => (x.toNat : Int))
-  cases w with
-  | zero =>
-      exact Subsingleton.elim _ _
-  | succ w =>
-      have hNe : ((w : Int) + 1) ≠ 0 := by omega
-      have hAndZero :
-          (0#(w + 1) &&& BitVec.ofInt (w + 1) n) = 0#(w + 1) := by
-        exact BitVec.zero_and
-      have hAndZeroToInt :
-          (0#(w + 1) &&& BitVec.ofInt (w + 1) n).toInt =
-            (0#(w + 1)).toInt :=
-        congrArg BitVec.toInt hAndZero
-      have hCore :
-          BitVec.ofInt (w + 1)
-              (n + -(0#(w + 1) &&& BitVec.ofInt (w + 1) n).toInt) =
-            BitVec.ofInt (w + 1) n := by
-        simpa [hAndZeroToInt]
-      simp [native_binary_or, native_piand, native_nat_to_int, native_ite,
-        native_zeq, native_zplus, native_zneg, hNe, Int.add_comm]
-      change
-        BitVec.ofInt (w + 1)
-            (n + -(0#(w + 1) &&& BitVec.ofInt (w + 1) n).toInt) =
-          BitVec.ofInt (w + 1) n
-      exact hCore
+  rw [native_binary_or_mod_eq_toNat, native_mod_pow2_eq_bitvec_toNat]
+  simp
 
 private theorem bvOr_smt_value_rel_right_zero_eval
     (M : SmtModel) (x id : Term) (w : Nat) (nx : Int) :
