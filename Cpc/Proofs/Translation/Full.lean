@@ -763,7 +763,14 @@ theorem eo_to_smt_typeof_matches_translation
             hNonNone).trans
             (eo_to_smt_type_typeof_uconst i T).symm
     | Term.Apply f x, hNonNone => by
-        exact eo_to_smt_typeof_matches_translation_apply f x (go f) (go x) hNonNone
+        exact eo_to_smt_typeof_matches_translation_apply f x (go f) (go x)
+          (fun g y h => by
+            subst f
+            exact go y)
+          (fun g z y h => by
+            subst f
+            exact go z)
+          hNonNone
     | Term._at_purify x, hNonNone => by
         exact eo_to_smt_typeof_matches_translation_purify x (go x hNonNone)
     | Term._at_array_deq_diff x1 x2, hNonNone => by
