@@ -789,7 +789,40 @@ def __smtx_value_sort_lt (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   | Ordering.lt => true
   | _ => false
 
-def __smtx_map_canon_insert_aux (d : SmtValue) (i : SmtValue) (e : SmtValue) : SmtMap -> SmtMap
+def __smtx_type_finite_values? : SmtType -> Option (List SmtValue)
+  | SmtType.Bool => some [SmtValue.Boolean false, SmtValue.Boolean true]
+  | _ => none
+
+def __smtx_type_dummy_value : SmtType -> SmtValue
+  | SmtType.Bool => SmtValue.Boolean false
+  | SmtType.Int => SmtValue.Numeral 0
+  | SmtType.Real => SmtValue.Rational 0
+  | SmtType.RegLan => SmtValue.RegLan (native_re_canon native_re_none)
+  | SmtType.BitVec n => SmtValue.Binary (native_nat_to_int n) 0
+  | SmtType.Seq T => SmtValue.Seq (SmtSeq.empty T)
+  | SmtType.Char => SmtValue.Char (Char.ofNat 0)
+  | SmtType.USort i => SmtValue.UValue i 0
+  | T => by
+      classical
+      exact
+        if h : ∃ v : SmtValue, __smtx_typeof_value v = T then
+          Classical.choose h
+        else
+          SmtValue.NotValue
+
+def __smtx_map_canon_complete (T : SmtType) (d : SmtValue) (m : SmtMap) : List SmtValue -> SmtMap
+  | [] => SmtMap.default T d
+  | i :: is => SmtMap.cons i (__smtx_msm_lookup m i) (__smtx_map_canon_complete T d m is)
+
+def __smtx_map_canon_finish (m : SmtMap) : SmtMap :=
+  let MT := __smtx_typeof_map_value m
+  let T := __smtx_index_typeof_map MT
+  let U := __smtx_elem_typeof_map MT
+  match __smtx_type_finite_values? T with
+  | some is => __smtx_map_canon_complete T (__smtx_type_dummy_value U) m is
+  | none => m
+
+def __smtx_map_canon_insert_raw_aux (d : SmtValue) (i : SmtValue) (e : SmtValue) : SmtMap -> SmtMap
   | (SmtMap.default T _) =>
     if native_veq e d then
       SmtMap.default T d
@@ -807,17 +840,23 @@ def __smtx_map_canon_insert_aux (d : SmtValue) (i : SmtValue) (e : SmtValue) : S
       else
         SmtMap.cons i e (SmtMap.cons j e' m')
     else
-      SmtMap.cons j e' (__smtx_map_canon_insert_aux d i e m')
+      SmtMap.cons j e' (__smtx_map_canon_insert_raw_aux d i e m')
+
+def __smtx_map_canon_insert_raw (i : SmtValue) (e : SmtValue) (m : SmtMap) : SmtMap :=
+  __smtx_map_canon_insert_raw_aux (__smtx_msm_get_default m) i e m
 
 def __smtx_map_canon_insert (i : SmtValue) (e : SmtValue) (m : SmtMap) : SmtMap :=
-  __smtx_map_canon_insert_aux (__smtx_msm_get_default m) i e m
+  __smtx_map_canon_finish (__smtx_map_canon_insert_raw i e m)
 
 def __smtx_mss_op_internal (isInter : native_Bool) : SmtMap -> SmtMap -> SmtMap -> SmtMap
   | (SmtMap.default T efalse), m2, acc => acc
   | (SmtMap.cons e etrue m1), m2, acc =>
     let _v0 := (SmtValue.Boolean true)
     (__smtx_mss_op_internal isInter m1 m2
-      (native_ite (native_iff (native_veq (__smtx_msm_lookup m2 e) _v0) isInter)
+      (native_ite
+        (native_and
+          (native_veq etrue _v0)
+          (native_iff (native_veq (__smtx_msm_lookup m2 e) _v0) isInter))
         (__smtx_map_canon_insert e _v0 acc)
         acc))
 
@@ -840,13 +879,16 @@ def __smtx_value_canon : SmtValue -> SmtValue
   | SmtValue.DtCons s d i => SmtValue.DtCons s d i
   | SmtValue.Apply f v => SmtValue.Apply (__smtx_value_canon f) (__smtx_value_canon v)
 
-def __smtx_map_canon : SmtMap -> SmtMap
+def __smtx_map_canon_raw : SmtMap -> SmtMap
   | SmtMap.default T e => SmtMap.default T (__smtx_value_canon e)
   | SmtMap.cons i e m =>
-      __smtx_map_canon_insert
+      __smtx_map_canon_insert_raw
         (__smtx_value_canon i)
         (__smtx_value_canon e)
-        (__smtx_map_canon m)
+        (__smtx_map_canon_raw m)
+
+def __smtx_map_canon (m : SmtMap) : SmtMap :=
+  __smtx_map_canon_finish (__smtx_map_canon_raw m)
 
 def __smtx_seq_canon : SmtSeq -> SmtSeq
   | SmtSeq.empty T => SmtSeq.empty T
