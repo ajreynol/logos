@@ -1736,6 +1736,72 @@ field produces a fresh `native_inhabited_type` obligation for the substituted
 datatype, so the proof needs inhabitance preservation for datatype substitution.
 -/
 
+private def smtx_value_dt_substitute_apply
+    (sub : native_String) (base : SmtDatatype) : SmtValue -> SmtValue
+  | SmtValue.DtCons s d i =>
+      SmtValue.DtCons s
+        (native_ite (native_streq sub s) d (__smtx_dt_substitute sub base d)) i
+  | SmtValue.Apply f a =>
+      SmtValue.Apply (smtx_value_dt_substitute_apply sub base f)
+        (smtx_value_dt_substitute_apply sub base a)
+  | v => v
+
+private theorem smtx_value_dt_substitute_typeof_apply
+    (v : SmtValue)
+    {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
+    (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
+    (hBaseWf :
+      __smtx_dt_wf_rec base
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hTargetWf :
+      __smtx_dt_wf_rec d
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hv : __smtx_typeof_value v = SmtType.Datatype s2 d)
+    (hSubWf :
+      __smtx_dt_wf_rec (__smtx_dt_substitute s base d)
+        (native_reflist_insert refs s2) = true)
+    (hNe : s ≠ s2) :
+    __smtx_typeof_value (smtx_value_dt_substitute_apply s base v) =
+      SmtType.Datatype s2 (__smtx_dt_substitute s base d) := by
+  sorry
+
+private theorem smtx_value_typeof_dt_substitute_apply
+    (v : SmtValue)
+    {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
+    (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
+    (hBaseWf :
+      __smtx_dt_wf_rec base
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hTargetWf :
+      __smtx_dt_wf_rec d
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hv : __smtx_typeof_value v = SmtType.Datatype s2 d)
+    (hSubWf :
+      __smtx_dt_wf_rec (__smtx_dt_substitute s base d)
+        (native_reflist_insert refs s2) = true)
+    (hNe : s ≠ s2) :
+    type_inhabited (SmtType.Datatype s2 (__smtx_dt_substitute s base d)) :=
+  ⟨smtx_value_dt_substitute_apply s base v,
+    smtx_value_dt_substitute_typeof_apply v hBaseInh hBaseWf hTargetWf hv hSubWf hNe⟩
+
+private theorem smtx_dt_substitute_type_inhabited_apply
+    {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
+    (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
+    (hBaseWf :
+      __smtx_dt_wf_rec base
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hTargetWf :
+      __smtx_dt_wf_rec d
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hTargetInh : type_inhabited (SmtType.Datatype s2 d))
+    (hSubWf :
+      __smtx_dt_wf_rec (__smtx_dt_substitute s base d)
+        (native_reflist_insert refs s2) = true)
+    (hNe : s ≠ s2) :
+    type_inhabited (SmtType.Datatype s2 (__smtx_dt_substitute s base d)) := by
+  rcases hTargetInh with ⟨v, hv⟩
+  exact smtx_value_typeof_dt_substitute_apply v hBaseInh hBaseWf hTargetWf hv hSubWf hNe
+
 private theorem smtx_dt_substitute_inhabited_apply
     {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
     (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
@@ -1752,7 +1818,10 @@ private theorem smtx_dt_substitute_inhabited_apply
     (hNe : s ≠ s2) :
     native_inhabited_type
       (SmtType.Datatype s2 (__smtx_dt_substitute s base d)) = true := by
-  sorry
+  apply native_inhabited_type_of_type_inhabited
+  exact smtx_dt_substitute_type_inhabited_apply hBaseInh hBaseWf hTargetWf
+    ((Smtm.smtx_inhabited_type_eq_true_iff (SmtType.Datatype s2 d)).1 hTargetInh)
+    hSubWf hNe
 
 mutual
 
