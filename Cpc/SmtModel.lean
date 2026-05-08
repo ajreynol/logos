@@ -684,13 +684,6 @@ def __smtx_elem_typeof_map : SmtType -> SmtType
   | T => SmtType.None
 
 
-def __smtx_mss_op_internal (isInter : native_Bool) : SmtMap -> SmtMap -> SmtMap -> SmtMap
-  | (SmtMap.default T efalse), m2, acc => acc
-  | (SmtMap.cons e etrue m1), m2, acc => 
-    let _v0 := (SmtValue.Boolean true)
-    (__smtx_mss_op_internal isInter m1 m2 (native_ite (native_iff (native_veq (__smtx_msm_lookup m2 e) _v0) isInter) (SmtMap.cons e _v0 acc) acc))
-
-
 def __smtx_map_to_set_type : SmtType -> SmtType
   | (SmtType.Map T SmtType.Bool) => (SmtType.Set T)
   | T => SmtType.None
@@ -836,6 +829,15 @@ def __smtx_map_canon_insert (i : SmtValue) (e : SmtValue) (m : SmtMap) : SmtMap 
       __smtx_map_of_entries (__smtx_map_default_type m) d
         (__smtx_map_entries_insert_sorted (i, e) entries)
 
+def __smtx_mss_op_internal (isInter : native_Bool) : SmtMap -> SmtMap -> SmtMap -> SmtMap
+  | (SmtMap.default T efalse), m2, acc => acc
+  | (SmtMap.cons e etrue m1), m2, acc =>
+    let _v0 := (SmtValue.Boolean true)
+    (__smtx_mss_op_internal isInter m1 m2
+      (native_ite (native_iff (native_veq (__smtx_msm_lookup m2 e) _v0) isInter)
+        (__smtx_map_canon_insert e _v0 acc)
+        acc))
+
 def __smtx_value_canon : SmtValue -> SmtValue
   | SmtValue.NotValue => SmtValue.NotValue
   | SmtValue.Boolean b => SmtValue.Boolean b
@@ -896,17 +898,17 @@ def __smtx_map_store : SmtValue -> SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_set_inter : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal true m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)))))
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_mss_op_internal true m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false))))
   | v1, v2 => SmtValue.NotValue
 
 
 def __smtx_set_minus : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal false m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)))))
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_mss_op_internal false m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false))))
   | v1, v2 => SmtValue.NotValue
 
 
 def __smtx_set_union : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal false m1 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)) m2)))
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_mss_op_internal false m1 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)) m2))
   | v1, v2 => SmtValue.NotValue
 
 
