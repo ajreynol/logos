@@ -530,6 +530,19 @@ macro_rules
               true
             else
               false)
+  | `(native_veq_ext_fuel $fuel $T $U $m1 $m2) => do
+      let lookupId := Lean.mkIdent `__smtx_msm_lookup_fuel
+      let valueEqId := Lean.mkIdent `__smtx_value_eq_fuel
+      `(by
+          classical
+          exact
+            if hExt :
+                ∀ v : SmtValue,
+                  $valueEqId $fuel $U ($lookupId $fuel $T $m1 v)
+                    ($lookupId $fuel $T $m2 v) = true then
+              true
+            else
+              false)
   | `(native_re_ext_eq $r1 $r2) => do
       let strInReId := Lean.mkIdent `native_str_in_re
       `(by
@@ -622,37 +635,34 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
   | a, n, npos => SmtValue.NotValue
 
 
-def __smtx_value_eq : SmtType -> SmtValue -> SmtValue -> native_Bool
-  | (SmtType.Map T U), (SmtValue.Map m1), (SmtValue.Map m2) =>
-      (native_veq_ext T U m1 m2)
-  | (SmtType.Set T), (SmtValue.Set m1), (SmtValue.Set m2) =>
-      (native_veq_ext T SmtType.Bool m1 m2)
-  | (SmtType.FunType T U), (SmtValue.Fun m1), (SmtValue.Fun m2) =>
-      (native_veq_ext T U m1 m2)
-  | SmtType.RegLan, (SmtValue.RegLan r1), (SmtValue.RegLan r2) =>
+def __smtx_value_eq_fuel : native_Nat -> SmtType -> SmtValue -> SmtValue -> native_Bool
+  | native_nat_zero, T, v1, v2 => (native_veq v1 v2)
+  | (native_nat_succ fuel), T, (SmtValue.Apply f1 v1), (SmtValue.Apply f2 v2) =>
+      (native_and (__smtx_value_eq_fuel fuel (__smtx_typeof_value f1) f1 f2)
+        (__smtx_value_eq_fuel fuel (__smtx_typeof_value v1) v1 v2))
+  | (native_nat_succ fuel), (SmtType.Map T U), (SmtValue.Map m1), (SmtValue.Map m2) =>
+      (native_veq_ext_fuel fuel T U m1 m2)
+  | (native_nat_succ fuel), (SmtType.Set T), (SmtValue.Set m1), (SmtValue.Set m2) =>
+      (native_veq_ext_fuel fuel T SmtType.Bool m1 m2)
+  | (native_nat_succ fuel), (SmtType.FunType T U), (SmtValue.Fun m1), (SmtValue.Fun m2) =>
+      (native_veq_ext_fuel fuel T U m1 m2)
+  | (native_nat_succ fuel), SmtType.RegLan, (SmtValue.RegLan r1), (SmtValue.RegLan r2) =>
       (native_re_ext_eq r1 r2)
-  | (SmtType.Seq T), (SmtValue.Seq (SmtSeq.empty T1)),
+  | (native_nat_succ fuel), (SmtType.Seq T), (SmtValue.Seq (SmtSeq.empty T1)),
       (SmtValue.Seq (SmtSeq.empty T2)) => true
-  | (SmtType.Seq T), (SmtValue.Seq (SmtSeq.cons v1 vs1)),
+  | (native_nat_succ fuel), (SmtType.Seq T), (SmtValue.Seq (SmtSeq.cons v1 vs1)),
       (SmtValue.Seq (SmtSeq.cons v2 vs2)) =>
-      (native_and (__smtx_value_eq T v1 v2)
-        (__smtx_value_eq (SmtType.Seq T) (SmtValue.Seq vs1)
+      (native_and (__smtx_value_eq_fuel fuel T v1 v2)
+        (__smtx_value_eq_fuel fuel (SmtType.Seq T) (SmtValue.Seq vs1)
           (SmtValue.Seq vs2)))
-  | T, v1, v2 => (native_veq v1 v2)
+  | (native_nat_succ fuel), T, v1, v2 => (native_veq v1 v2)
 termination_by
-  T v1 v2 => (sizeOf T, 0, sizeOf v1 + sizeOf v2)
+  fuel T v1 v2 => (fuel, 0, sizeOf v1 + sizeOf v2)
 decreasing_by
-  all_goals subst_vars; simp_wf
-  all_goals first
-    | exact Prod.Lex.left _ _ (by
-        have hSizeOfT : 0 < sizeOf T := by
-          cases T <;> simp <;> omega
-        omega)
-    | apply Prod.Lex.right
-      exact Prod.Lex.left _ _ (by omega)
-    | apply Prod.Lex.right
-      apply Prod.Lex.right
-      omega
+  all_goals subst_vars; simp_wf; omega
+
+def __smtx_value_eq (T : SmtType) (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+  (__smtx_value_eq_fuel (sizeOf T + sizeOf v1 + sizeOf v2) T v1 v2)
 
 
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
@@ -693,23 +703,22 @@ def __smtx_msm_get_default : SmtMap -> SmtValue
   | (SmtMap.default T e) => e
 
 
-def __smtx_msm_lookup : SmtType -> SmtMap -> SmtValue -> SmtValue
-  | T, (SmtMap.cons j e m), i => (native_ite (__smtx_value_eq T j i) e (__smtx_msm_lookup T m i))
-  | T, (SmtMap.default U e), i => e
+def __smtx_msm_lookup_fuel : native_Nat -> SmtType -> SmtMap -> SmtValue -> SmtValue
+  | fuel, T, (SmtMap.cons j e m), i =>
+      (native_ite (__smtx_value_eq_fuel fuel T j i) e (__smtx_msm_lookup_fuel fuel T m i))
+  | fuel, T, (SmtMap.default U e), i => e
 termination_by
-  T m i => (sizeOf T, 1, sizeOf m)
+  fuel T m i => (fuel, 1, sizeOf m)
 decreasing_by
   all_goals subst_vars; simp_wf
-  all_goals first
-    | exact Prod.Lex.left _ _ (by
-        have hSizeOfT : 0 < sizeOf T := by
-          cases T <;> simp <;> omega
-        omega)
-    | apply Prod.Lex.right
-      exact Prod.Lex.left _ _ (by omega)
-    | apply Prod.Lex.right
-      apply Prod.Lex.right
-      omega
+  · apply Prod.Lex.right
+    exact Prod.Lex.left _ _ (by omega)
+  · apply Prod.Lex.right
+    apply Prod.Lex.right
+    omega
+
+def __smtx_msm_lookup (T : SmtType) (m : SmtMap) (i : SmtValue) : SmtValue :=
+  (__smtx_msm_lookup_fuel (sizeOf T + sizeOf m + sizeOf i) T m i)
 
 
 def __smtx_typeof_map_value : SmtMap -> SmtType
@@ -844,7 +853,9 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_eq (v1 : SmtValue) (v2 : SmtValue) : SmtValue :=
-  (SmtValue.Boolean (native_apply_veq __smtx_typeof_value __smtx_value_eq v1 v2 (sizeOf v1 + sizeOf v2)))
+  (SmtValue.Boolean
+    (native_and (native_Teq (__smtx_typeof_value v1) (__smtx_typeof_value v2))
+      (__smtx_value_eq (__smtx_typeof_value v1) v1 v2)))
 
 def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i => (__smtx_msm_lookup (__smtx_index_typeof_map (__smtx_typeof_map_value m)) m i)
