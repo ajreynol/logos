@@ -688,7 +688,9 @@ private theorem eo_to_smt_apply_ne_dt_sel
       exact eo_to_smt_distinct_top_ne_dt_sel x s d i j h
     case _at_bvsize =>
       change native_ite (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
-          (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))) SmtTerm.None =
+          (SmtTerm.plus
+            (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+            (SmtTerm.Numeral 0)) SmtTerm.None =
         SmtTerm.DtSel s d i j at h
       unfold native_ite at h
       split at h <;> cases h
@@ -745,7 +747,9 @@ private theorem eo_to_smt_apply_ne_dt_tester
       exact eo_to_smt_distinct_top_ne_dt_tester x s d i h
     case _at_bvsize =>
       change native_ite (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
-          (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))) SmtTerm.None =
+          (SmtTerm.plus
+            (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+            (SmtTerm.Numeral 0)) SmtTerm.None =
         SmtTerm.DtTester s d i at h
       unfold native_ite at h
       split at h <;> cases h
@@ -6993,8 +6997,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
           SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w))) := by
       rw [hTranslate, typeof_repeat_eq, hy, hx]
       simp [__smtx_typeof_repeat, native_ite, hi]
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp.repeat) y) x) hNonNone
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_apply_repeat_of_smt_numeral_bitvec
+        x y i w hy hx hi).symm
   case zero_extend =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.zero_extend) y) x) =
@@ -7011,8 +7016,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
           SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
       rw [hTranslate, typeof_zero_extend_eq, hy, hx]
       simp [__smtx_typeof_zero_extend, native_ite, hi]
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp.zero_extend) y) x) hNonNone
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_apply_zero_extend_of_smt_numeral_bitvec
+        x y i w hy hx hi).symm
   case sign_extend =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.sign_extend) y) x) =
@@ -7029,8 +7035,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
           SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
       rw [hTranslate, typeof_sign_extend_eq, hy, hx]
       simp [__smtx_typeof_sign_extend, native_ite, hi]
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp.sign_extend) y) x) hNonNone
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_apply_sign_extend_of_smt_numeral_bitvec
+        x y i w hy hx hi).symm
   case rotate_left =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.rotate_left) y) x) =
@@ -7115,8 +7122,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
           SmtType.BitVec (native_int_to_nat i) := by
       rw [hTranslate, typeof_int_to_bv_eq, hy, hx]
       simp [__smtx_typeof_int_to_bv, native_ite, hi]
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp.int_to_bv) y) x) hNonNone
+    exact hSmt.trans
+      (eo_to_smt_type_typeof_apply_apply_int_to_bv_of_smt_numeral_int
+        x y i hy hx hi).symm
   case str_at =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) y) x) =
@@ -7208,8 +7216,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
   case _at_from_bools =>
     exact eo_to_smt_typeof_matches_translation_apply_at_from_bools x y ihY ihX hNonNone
   case _at_bv =>
-    exact eo_to_smt_typeof_matches_translation_deferred
-      (Term.Apply (Term.Apply (Term.UOp UserOp._at_bv) y) x) hNonNone
+    exact eo_to_smt_typeof_matches_translation_apply_at_bv x y hNonNone
   case re_exp =>
     exact eo_to_smt_typeof_matches_translation_apply_re_exp x y ihY ihX hNonNone
   case _at_strings_deq_diff =>
@@ -7417,7 +7424,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite
     rw [typeof_ite_eq]
     rw [hCond, hY, hX]
     simp [__smtx_typeof_ite, native_ite, native_Teq]
-  sorry
+  have hTNN : T ≠ SmtType.None := by
+    intro hNone
+    exact hNonNone (by rw [hSmt, hNone])
+  exact hSmt.trans
+    (eo_to_smt_type_typeof_apply_apply_apply_bvite_of_smt_bitvec1_same_non_none
+      x y z T hZ hY hX hTNN).symm
 
 /-- Bridge-free ternary `ite`, using local IHs to align branch EO types. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_ih
@@ -7596,7 +7608,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
           (native_int_to_nat (native_zplus (native_zplus i (native_zneg j)) 1)) := by
     rw [hTranslate, typeof_extract_eq, hZ, hY, hX]
     simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw]
-  sorry
+  exact hSmt.trans
+    (eo_to_smt_type_typeof_apply_apply_apply_extract_of_smt_numeral_numeral_bitvec
+      x y z i j w hZ hY hX hj0 hji hiw).symm
 
 /-- Bridge-free proof for `_at_witness_string_length`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_at_witness_string_length
@@ -9034,8 +9048,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_ih
         x y z ihZ ihY ihX hNonNone
     case extract =>
-      exact eo_to_smt_typeof_matches_translation_deferred
-        (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.extract) z) y) x) hNonNone
+      exact eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
+        x y z hNonNone
     case str_substr =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_str_substr_from_ih
         x y z ihZ ihY ihX hNonNone
@@ -10704,12 +10718,16 @@ theorem eo_to_smt_typeof_matches_translation_apply
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x) =
             let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
-            native_ite (native_zleq 0 _v0) (SmtTerm.Numeral _v0) SmtTerm.None := by
+            native_ite (native_zleq 0 _v0)
+              (SmtTerm.plus (SmtTerm.Numeral _v0) (SmtTerm.Numeral 0))
+              SmtTerm.None := by
         rfl
       have hApplyNN :
           term_has_non_none_type
             (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
-             native_ite (native_zleq 0 _v0) (SmtTerm.Numeral _v0) SmtTerm.None) := by
+             native_ite (native_zleq 0 _v0)
+               (SmtTerm.plus (SmtTerm.Numeral _v0) (SmtTerm.Numeral 0))
+               SmtTerm.None) := by
         unfold term_has_non_none_type
         rw [← hTranslate]
         exact hNonNone
@@ -10731,7 +10749,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
         have hWNonneg : native_zleq 0 (native_nat_to_int w) = true := by
           simp [native_zleq, SmtEval.native_zleq, native_nat_to_int, SmtEval.native_nat_to_int]
         rw [hTranslate, hArg]
-        simp [__smtx_bv_sizeof_type, __smtx_typeof, native_ite, hWNonneg]
+        simp [__smtx_bv_sizeof_type, __smtx_typeof, native_ite, hWNonneg,
+          __smtx_typeof_arith_overload_op_2]
       exact hSmt.trans (eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec x w hxEo).symm
     case bvnot =>
       have hTranslate :
