@@ -226,9 +226,6 @@ membership checks.
 noncomputable def native_re_canon (r : native_RegLan) : native_RegLan :=
   Classical.choose (show ∃ r' : native_RegLan, native_re_lang r' = native_re_lang r from ⟨r, rfl⟩)
 
-def native_re_canonical (r : native_RegLan) : Prop :=
-  native_re_canon r = r
-
 -- Partial semantics
 
 def native_qdiv_by_zero_id : native_String := "@qdiv_by_zero"
@@ -551,7 +548,8 @@ macro_rules
             if h :
                 ∃ v : SmtValue,
                   $typeofValueId v = $T ∧
-                    $evalId ($pushId $M $s $T ($canonId v)) $body = (SmtValue.Boolean true) then
+                    $canonId v = v ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               SmtValue.Boolean true
             else
               SmtValue.Boolean false)
@@ -566,7 +564,8 @@ macro_rules
             if h :
                 ∀ v : SmtValue,
                   $typeofValueId v = $T ->
-                    $evalId ($pushId $M $s $T ($canonId v)) $body = (SmtValue.Boolean true) then
+                    $canonId v = v ->
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
               SmtValue.Boolean true
             else
               SmtValue.Boolean false)
@@ -581,10 +580,11 @@ macro_rules
             if hSat :
                 ∃ v : SmtValue,
                   $typeofValueId v = $T ∧
-                    $evalId ($pushId $M $s $T ($canonId v)) $body = (SmtValue.Boolean true) then
-              $canonId (Classical.choose hSat)
-            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T then
-              $canonId (Classical.choose hTy)
+                    $canonId v = v ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              Classical.choose hSat
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v = v then
+              Classical.choose hTy
             else
               SmtValue.NotValue)
   | `(native_eval_tchoice_nth $M $s $T $body $n) => do
@@ -805,10 +805,6 @@ def __smtx_map_entries : SmtMap -> List (SmtValue × SmtValue)
   | (SmtMap.cons i e m) => (i, e) :: __smtx_map_entries m
   | (SmtMap.default _ _) => []
 
-def __smtx_map_entries_lookup (d : SmtValue) (i : SmtValue) : List (SmtValue × SmtValue) -> SmtValue
-  | [] => d
-  | (j, e) :: xs => native_ite (native_veq i j) e (__smtx_map_entries_lookup d i xs)
-
 def __smtx_map_entries_remove_key (i : SmtValue) : List (SmtValue × SmtValue) -> List (SmtValue × SmtValue)
   | [] => []
   | (j, e) :: xs =>
@@ -871,15 +867,6 @@ def __smtx_seq_canon : SmtSeq -> SmtSeq
   | SmtSeq.empty T => SmtSeq.empty T
   | SmtSeq.cons v s => SmtSeq.cons (__smtx_value_canon v) (__smtx_seq_canon s)
 
-def __smtx_value_canonical (v : SmtValue) : Prop :=
-  __smtx_value_canon v = v
-
-def __smtx_map_canonical (m : SmtMap) : Prop :=
-  __smtx_map_canon m = m
-
-def __smtx_seq_canonical (s : SmtSeq) : Prop :=
-  __smtx_seq_canon s = s
-
 def __smtx_reglan_value (r : native_RegLan) : SmtValue :=
   SmtValue.RegLan (native_re_canon r)
 
@@ -895,35 +882,31 @@ def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Map m), i => (__smtx_value_canon (__smtx_msm_lookup (__smtx_map_canon m) (__smtx_value_canon i)))
-  | (SmtValue.Set m), i => (__smtx_value_canon (__smtx_msm_lookup (__smtx_map_canon m) (__smtx_value_canon i)))
+  | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
+  | (SmtValue.Set m), i => (__smtx_msm_lookup m i)
   | v, i => SmtValue.NotValue
 
 
 def __smtx_map_store : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i, e =>
-      (SmtValue.Map
-        (__smtx_map_canon_insert
-          (__smtx_value_canon i) (__smtx_value_canon e) (__smtx_map_canon m)))
+      (SmtValue.Map (__smtx_map_canon_insert i e m))
   | (SmtValue.Set m), i, e =>
-      (SmtValue.Set
-        (__smtx_map_canon_insert
-          (__smtx_value_canon i) (__smtx_value_canon e) (__smtx_map_canon m)))
+      (SmtValue.Set (__smtx_map_canon_insert i e m))
   | v, i, e => SmtValue.NotValue
 
 
 def __smtx_set_inter : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal true (__smtx_map_canon m1) (__smtx_map_canon m2) (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)))))
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal true m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)))))
   | v1, v2 => SmtValue.NotValue
 
 
 def __smtx_set_minus : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal false (__smtx_map_canon m1) (__smtx_map_canon m2) (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)))))
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal false m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)))))
   | v1, v2 => SmtValue.NotValue
 
 
 def __smtx_set_union : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal false (__smtx_map_canon m1) (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)) (__smtx_map_canon m2))))
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_map_canon (__smtx_mss_op_internal false m1 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false)) m2)))
   | v1, v2 => SmtValue.NotValue
 
 
@@ -1518,9 +1501,8 @@ def __smtx_model_eval_str_in_re : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_set_singleton (x1 : SmtValue) : SmtValue :=
-  let x := __smtx_value_canon x1
-  (SmtValue.Set (__smtx_map_canon_insert x (SmtValue.Boolean true)
-    (SmtMap.default (__smtx_typeof_value x) (SmtValue.Boolean false))))
+  (SmtValue.Set (__smtx_map_canon_insert x1 (SmtValue.Boolean true)
+    (SmtMap.default (__smtx_typeof_value x1) (SmtValue.Boolean false))))
 
 def __smtx_model_eval_set_union (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_set_union x1 x2)
@@ -1924,7 +1906,7 @@ def native_unpack_seq : SmtSeq -> List SmtValue
 
 def native_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
   | [] => (SmtSeq.empty T)
-  | v :: vs => (SmtSeq.cons (__smtx_value_canon v) (native_pack_seq T vs))
+  | v :: vs => (SmtSeq.cons v (native_pack_seq T vs))
 
 
 def __smtx_ssm_char_values_of_string (s : native_String) : List SmtValue :=
@@ -2054,7 +2036,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
   | (SmtTerm.Rational r) => (SmtValue.Rational r)
   | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
-  | (SmtTerm.Binary w n) => (__smtx_value_canon (SmtValue.Binary w n))
+  | (SmtTerm.Binary w n) => (SmtValue.Binary w n)
   | (SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
   | (SmtTerm.or x1 x2) => (__smtx_model_eval_or (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.and x1 x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
@@ -2179,7 +2161,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.re_loop x1 x2 x3) => (__smtx_model_eval_re_loop (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
   | (SmtTerm.str_in_re x1 x2) => (__smtx_model_eval_str_in_re (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.seq_unit x1) => 
-    let _v0 := (__smtx_value_canon (__smtx_model_eval M x1))
+    let _v0 := (__smtx_model_eval M x1)
     (SmtValue.Seq (SmtSeq.cons _v0 (SmtSeq.empty (__smtx_typeof_value _v0))))
   | (SmtTerm.seq_nth x1 x2) => (__smtx_seq_nth M (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.set_empty x1) => (SmtValue.Set (SmtMap.default x1 (SmtValue.Boolean false)))
@@ -2228,7 +2210,7 @@ def type_inhabited (T : SmtType) : Prop :=
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
-  (∀ s T, type_inhabited T -> __smtx_value_canonical (__smtx_model_lookup M s T)) ∧
+  (∀ s T, type_inhabited T -> __smtx_value_canon (__smtx_model_lookup M s T) = __smtx_model_lookup M s T) ∧
   (∀ s T, ¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
 
 /-
