@@ -799,54 +799,48 @@ def __smtx_finite_type_default : SmtType -> SmtValue
   | T => SmtValue.NotValue
 
 
-def __smtx_map_canon : SmtMap -> SmtMap
-  | (SmtMap.default T e) => (SmtMap.default T (__smtx_value_canon e))
+def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
+  | (SmtMap.default T e) => true
+  | (SmtMap.cons j e m) => (native_vcmp j i)
+
+
+def __smtx_map_default_canonical (m : SmtMap) : native_Bool :=
+  match __smtx_typeof_map_value m with
+  | SmtType.Map T U => 
+    (native_ite (native_veq (__smtx_finite_type_default (SmtType.Map T U)) SmtValue.NotValue)
+      true
+      (native_veq (__smtx_msm_get_default m) (__smtx_finite_type_default U)))
+  | T => true
+
+
+def __smtx_map_canonical : SmtMap -> native_Bool
+  | m@(SmtMap.default T e) => (native_and (__smtx_map_default_canonical m) (__smtx_value_canonical_bool e))
   | (SmtMap.cons i e m) => 
-    let _v0 := (__smtx_map_canon m)
-    (__smtx_msm_update_aux (__smtx_msm_get_default _v0) _v0 (__smtx_value_canon i) (__smtx_value_canon e))
+    (native_and (__smtx_map_default_canonical (SmtMap.cons i e m))
+      (native_and (__smtx_value_canonical_bool i)
+        (native_and (__smtx_value_canonical_bool e)
+          (native_and (__smtx_map_canonical m)
+            (native_and (__smtx_map_entries_ordered_after i m)
+              (native_not (native_veq e (__smtx_msm_get_default m))))))))
 
 
-def __smtx_seq_canon : SmtSeq -> SmtSeq
-  | (SmtSeq.empty T) => (SmtSeq.empty T)
-  | (SmtSeq.cons v s) => (SmtSeq.cons (__smtx_value_canon v) (__smtx_seq_canon s))
-
-
-def __smtx_value_canon : SmtValue -> SmtValue
-  | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (SmtValue.Binary w (native_mod_total n (native_int_pow2 w))) (SmtValue.Binary w n))
-  | (SmtValue.Map m) => (SmtValue.Map (__smtx_map_canon m))
-  | (SmtValue.Set m) => (SmtValue.Set (__smtx_map_canon m))
-  | (SmtValue.Fun m) => (SmtValue.Fun (__smtx_map_canon m))
-  | (SmtValue.Seq s) => (SmtValue.Seq (__smtx_seq_canon s))
-  | (SmtValue.Apply f v) => (SmtValue.Apply (__smtx_value_canon f) (__smtx_value_canon v))
-  | v => v
-
-
-def __smtx_map_finite_default_canonical : SmtType -> SmtMap -> native_Bool
-  | (SmtType.Map T U), m => (native_ite (native_veq (__smtx_finite_type_default (SmtType.Map T U)) SmtValue.NotValue) (native_veq (__smtx_msm_get_default m) (__smtx_finite_type_default U)) true)
-  | T, m => true
-
-
-def __smtx_map_values_finite_defaults_canonical : SmtMap -> native_Bool
-  | (SmtMap.default T e) => (__smtx_value_finite_defaults_canonical e)
-  | (SmtMap.cons i e m) => (native_and (native_and (__smtx_value_finite_defaults_canonical i) (__smtx_value_finite_defaults_canonical e)) (__smtx_map_values_finite_defaults_canonical m))
-
-
-def __smtx_seq_values_finite_defaults_canonical : SmtSeq -> native_Bool
+def __smtx_seq_canonical : SmtSeq -> native_Bool
   | (SmtSeq.empty T) => true
-  | (SmtSeq.cons v s) => (native_and (__smtx_value_finite_defaults_canonical v) (__smtx_seq_values_finite_defaults_canonical s))
+  | (SmtSeq.cons v s) => (native_and (__smtx_value_canonical_bool v) (__smtx_seq_canonical s))
 
 
-def __smtx_value_finite_defaults_canonical : SmtValue -> native_Bool
-  | (SmtValue.Map m) => (native_and (__smtx_map_finite_default_canonical (__smtx_typeof_map_value m) m) (__smtx_map_values_finite_defaults_canonical m))
-  | (SmtValue.Fun m) => (native_and (__smtx_map_finite_default_canonical (__smtx_typeof_map_value m) m) (__smtx_map_values_finite_defaults_canonical m))
-  | (SmtValue.Set m) => (native_and (__smtx_map_finite_default_canonical (__smtx_typeof_map_value m) m) (__smtx_map_values_finite_defaults_canonical m))
-  | (SmtValue.Seq s) => (__smtx_seq_values_finite_defaults_canonical s)
-  | (SmtValue.Apply f v) => (native_and (__smtx_value_finite_defaults_canonical f) (__smtx_value_finite_defaults_canonical v))
+def __smtx_value_canonical_bool : SmtValue -> native_Bool
+  | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) true)
+  | (SmtValue.Map m) => (__smtx_map_canonical m)
+  | (SmtValue.Set m) => (__smtx_map_canonical m)
+  | (SmtValue.Fun m) => (__smtx_map_canonical m)
+  | (SmtValue.Seq s) => (__smtx_seq_canonical s)
+  | (SmtValue.Apply f v) => (native_and (__smtx_value_canonical_bool f) (__smtx_value_canonical_bool v))
   | v => true
 
 
 def __smtx_value_canonical (v : SmtValue) : Prop :=
-  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v = true
+  __smtx_value_canonical_bool v = true
 
 
 
