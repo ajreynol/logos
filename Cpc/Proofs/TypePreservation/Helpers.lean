@@ -1400,6 +1400,93 @@ theorem map_store_typed
     __smtx_typeof_value (SmtValue.Map (SmtMap.cons i e m)) = SmtType.Map A B := by
   simp [__smtx_typeof_value, __smtx_typeof_map_value, hMap, hi, he, native_ite, native_Teq]
 
+/-- Lemma about the default value of a typed map. -/
+theorem map_default_typed :
+    ∀ {m : SmtMap} {A B : SmtType},
+      __smtx_typeof_map_value m = SmtType.Map A B ->
+        __smtx_typeof_value (__smtx_msm_get_default m) = B
+  | SmtMap.default T e, A, B, hMap => by
+      cases hMap
+      rfl
+  | SmtMap.cons i e m, A, B, hMap => by
+      by_cases hEq :
+          native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+            (__smtx_typeof_map_value m)
+      · have hm : __smtx_typeof_map_value m = SmtType.Map A B := by
+          simpa [__smtx_typeof_map_value, native_ite, hEq] using hMap
+        simpa [__smtx_msm_get_default] using map_default_typed hm
+      · simp [__smtx_typeof_map_value, native_ite, hEq] at hMap
+
+/-- Lemma about `map_canon_insert_aux`. -/
+theorem map_canon_insert_aux_typed :
+    ∀ {m : SmtMap} {A B : SmtType} {d i e : SmtValue},
+      __smtx_typeof_map_value m = SmtType.Map A B ->
+        __smtx_typeof_value d = B ->
+          __smtx_typeof_value i = A ->
+            __smtx_typeof_value e = B ->
+              __smtx_typeof_map_value (__smtx_map_canon_insert_aux d i e m) =
+                SmtType.Map A B
+  | SmtMap.default T e0, A, B, d, i, e, hMap, hd, hi, he => by
+      cases hMap
+      by_cases hEd : native_veq e d
+      · simp [__smtx_map_canon_insert_aux, hEd, __smtx_typeof_map_value, hd]
+      · simp [__smtx_map_canon_insert_aux, native_ite, hEd, __smtx_typeof_map_value,
+          hi, he, hd, native_Teq]
+  | SmtMap.cons j e' m, A, B, d, i, e, hMap, hd, hi, he => by
+      by_cases hEq :
+          native_Teq (SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e'))
+            (__smtx_typeof_map_value m)
+      · have hm : __smtx_typeof_map_value m = SmtType.Map A B := by
+          simpa [__smtx_typeof_map_value, native_ite, hEq] using hMap
+        have hEq' :
+            SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e') =
+              __smtx_typeof_map_value m := by
+          simpa [native_Teq] using hEq
+        have hHead : SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e') =
+            SmtType.Map A B := hEq'.trans hm
+        have hj : __smtx_typeof_value j = A := by
+          cases hHead
+          rfl
+        have he' : __smtx_typeof_value e' = B := by
+          cases hHead
+          rfl
+        have hCons :
+            __smtx_typeof_map_value (SmtMap.cons j e' m) = SmtType.Map A B := by
+          simp [__smtx_typeof_map_value, hm, hj, he', native_Teq, native_ite]
+        by_cases hIj : native_veq i j
+        · by_cases hEd : native_veq e d
+          · simpa [__smtx_map_canon_insert_aux, native_ite, hIj, hEd, hEq] using hm
+          · simp [__smtx_map_canon_insert_aux, native_ite, hIj, hEd,
+              __smtx_typeof_map_value, hm, hj, he, native_Teq]
+        · by_cases hLt : __smtx_value_sort_lt i j
+          · by_cases hEd : native_veq e d
+            · simpa [__smtx_map_canon_insert_aux, native_ite, hIj, hLt, hEd, hEq] using hCons
+            · have hOuter :
+                  __smtx_typeof_map_value (SmtMap.cons i e (SmtMap.cons j e' m)) =
+                    SmtType.Map A B := by
+                simpa [__smtx_typeof_value] using
+                  map_store_typed (m := SmtMap.cons j e' m) (A := A) (B := B)
+                    hCons hi he
+              simpa [__smtx_map_canon_insert_aux, native_ite, hIj, hLt, hEd, hEq] using hOuter
+          · have hRec :
+                __smtx_typeof_map_value (__smtx_map_canon_insert_aux d i e m) =
+                  SmtType.Map A B :=
+              map_canon_insert_aux_typed (m := m) hm hd hi he
+            simp [__smtx_map_canon_insert_aux, native_ite, hIj, hLt,
+              __smtx_typeof_map_value, hRec, hj, he', native_Teq]
+      · simp [__smtx_typeof_map_value, native_ite, hEq] at hMap
+
+/-- Lemma about `map_canon_insert`. -/
+theorem map_canon_insert_typed
+    {m : SmtMap}
+    {A B : SmtType}
+    {i e : SmtValue}
+    (hMap : __smtx_typeof_map_value m = SmtType.Map A B)
+    (hi : __smtx_typeof_value i = A)
+    (he : __smtx_typeof_value e = B) :
+    __smtx_typeof_map_value (__smtx_map_canon_insert i e m) = SmtType.Map A B := by
+  exact map_canon_insert_aux_typed (m := m) hMap (map_default_typed hMap) hi he
+
 /-- Canonical-form lemma for `reglan_value`. -/
 theorem reglan_value_canonical
     {v : SmtValue}

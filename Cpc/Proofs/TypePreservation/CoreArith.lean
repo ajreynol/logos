@@ -348,8 +348,8 @@ theorem typeof_value_model_eval_store
     simpa [h2] using hpres2
   have he : __smtx_typeof_value (__smtx_model_eval M t3) = B := by
     simpa [h3] using hpres3
-  simp [__smtx_model_eval_store, __smtx_map_store, __smtx_typeof_value,
-    __smtx_typeof_map_value, hMap, hi, he, native_ite, native_Teq]
+  simpa [__smtx_model_eval_store, __smtx_map_store, __smtx_typeof_value] using
+    map_canon_insert_typed (m := m) (A := A) (B := B) hMap hi he
 
 /-- Derives `eq_term_typeof` from `non_none`. -/
 theorem eq_term_typeof_of_non_none

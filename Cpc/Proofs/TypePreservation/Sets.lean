@@ -139,17 +139,17 @@ theorem mss_op_internal_typed
         have he : __smtx_typeof_value e = A := by
           simpa [__smtx_index_typeof_map] using congrArg __smtx_index_typeof_map hHead
         have hAccCons :
-            __smtx_typeof_map_value (SmtMap.cons e (SmtValue.Boolean true) acc) =
+            __smtx_typeof_map_value
+                (__smtx_map_canon_insert e (SmtValue.Boolean true) acc) =
               SmtType.Map A SmtType.Bool := by
-          simpa [__smtx_typeof_value] using
-            map_store_typed (m := acc) (A := A) (B := SmtType.Bool)
-              hacc he rfl
+          exact map_canon_insert_typed (m := acc) (A := A) (B := SmtType.Bool)
+            hacc he rfl
         let acc' :=
           native_ite
             (native_iff
               (native_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true))
               isInter)
-            (SmtMap.cons e (SmtValue.Boolean true) acc) acc
+            (__smtx_map_canon_insert e (SmtValue.Boolean true) acc) acc
         have hacc' : __smtx_typeof_map_value acc' = SmtType.Map A SmtType.Bool := by
           dsimp [acc']
           by_cases hKeep :

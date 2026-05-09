@@ -217,6 +217,17 @@ def native_re_all : native_RegLan := .star .allchar
 def native_re_lang (r : native_RegLan) : native_String -> native_Bool :=
   fun s => native_str_in_re s r
 
+private instance native_RegLan_language_setoid : Setoid native_RegLan where
+  r := fun r₁ r₂ => native_re_lang r₁ = native_re_lang r₂
+  iseqv := by
+    constructor
+    · intro r
+      rfl
+    · intro r₁ r₂ h
+      exact h.symm
+    · intro r₁ r₂ r₃ h₁ h₂
+      exact h₁.trans h₂
+
 /--
 Choose one syntactic representative for each regular language. This is the
 strong regular-expression canonicalizer used by model values; equality can
@@ -224,7 +235,8 @@ therefore compare canonical regexps structurally instead of using extensional
 membership checks.
 -/
 noncomputable def native_re_canon (r : native_RegLan) : native_RegLan :=
-  Classical.choose (show ∃ r' : native_RegLan, native_re_lang r' = native_re_lang r from ⟨r, rfl⟩)
+  Classical.choose
+    (Quotient.exists_rep (Quotient.mk native_RegLan_language_setoid r))
 
 -- Partial semantics
 

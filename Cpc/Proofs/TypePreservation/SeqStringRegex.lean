@@ -1561,11 +1561,13 @@ theorem model_eval_re_exp_rec_reglan :
       ∃ r' : native_RegLan,
         __smtx_model_eval_re_exp_rec n (SmtValue.RegLan r) = SmtValue.RegLan r'
   | native_nat_zero, r =>
-      ⟨native_str_to_re (native_unpack_string (SmtSeq.empty SmtType.Char)), rfl⟩
+      ⟨native_re_canon (native_str_to_re (native_unpack_string (SmtSeq.empty SmtType.Char))), by
+        simp [__smtx_model_eval_re_exp_rec, __smtx_reglan_value]⟩
   | native_nat_succ n, r => by
       rcases model_eval_re_exp_rec_reglan n r with ⟨r', hr'⟩
-      refine ⟨native_re_concat r' r, ?_⟩
-      simp [__smtx_model_eval_re_exp_rec, hr', __smtx_model_eval_re_concat]
+      refine ⟨native_re_canon (native_re_concat r' r), ?_⟩
+      simp [__smtx_model_eval_re_exp_rec, hr', __smtx_model_eval_re_concat,
+        __smtx_reglan_value]
 
 /-- Lemma about `model_eval_re_exp_reglan`. -/
 theorem model_eval_re_exp_reglan
@@ -1763,8 +1765,9 @@ theorem model_eval_re_loop_rec_reglan :
       rcases model_eval_re_loop_rec_reglan n n1 (native_zplus n2 (native_zneg 1)) r with
         ⟨r1, hr1⟩
       rcases model_eval_re_exp_reglan n2 r with ⟨r2, hr2⟩
-      refine ⟨native_re_union r1 r2, ?_⟩
-      simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union]
+      refine ⟨native_re_canon (native_re_union r1 r2), ?_⟩
+      simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union,
+        __smtx_reglan_value]
 
 /-- Shows that evaluating `re_loop` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_loop
@@ -1793,7 +1796,7 @@ theorem typeof_value_model_eval_re_loop
   rw [hr]
   by_cases hlt : native_zlt n2 n1
   · simp [__smtx_model_eval_re_loop, __smtx_model_eval_gt, __smtx_model_eval_lt,
-      __smtx_model_eval_ite, hlt, __smtx_typeof_value]
+      __smtx_model_eval_ite, hlt, __smtx_reglan_value, __smtx_typeof_value]
   · rcases model_eval_re_loop_rec_reglan (native_int_to_nat (native_zplus n2 (native_zneg n1)))
         n1 n2 r with ⟨r', hr'⟩
     simp [__smtx_model_eval_re_loop, __smtx_model_eval_gt, __smtx_model_eval_lt,
