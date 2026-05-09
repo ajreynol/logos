@@ -524,7 +524,11 @@ def __smtx_finite_type_default : SmtType -> SmtValue
   | SmtType.Map T U =>
       let _vunit := __smtx_unit_type_default U
       if native_not (native_veq _vunit SmtValue.NotValue) then
-        SmtValue.Map (SmtMap.default T _vunit)
+        let _v1 := __smtx_finite_type_default U
+        if native_veq _v1 SmtValue.NotValue then
+          SmtValue.NotValue
+        else
+          SmtValue.Map (SmtMap.default T _v1)
       else
         let _v0 := __smtx_finite_type_default T
         let _v1 := __smtx_finite_type_default U
@@ -543,7 +547,11 @@ def __smtx_finite_type_default : SmtType -> SmtValue
   | SmtType.FunType T U =>
       let _vunit := __smtx_unit_type_default U
       if native_not (native_veq _vunit SmtValue.NotValue) then
-        SmtValue.Fun (SmtMap.default T _vunit)
+        let _v1 := __smtx_finite_type_default U
+        if native_veq _v1 SmtValue.NotValue then
+          SmtValue.NotValue
+        else
+          SmtValue.Fun (SmtMap.default T _v1)
       else
         let _v0 := __smtx_finite_type_default T
         let _v1 := __smtx_finite_type_default U

@@ -115,12 +115,19 @@ theorem type_inhabited_map {A B : SmtType} (hB : type_inhabited B) :
   rcases hB with ⟨v, hv⟩
   exact ⟨SmtValue.Map (SmtMap.default A v), by simp [__smtx_typeof_value, __smtx_typeof_map_value, hv]⟩
 
+/-- Every inhabited Mini SMT type has a canonical inhabitant. -/
+theorem canonical_type_inhabited_of_type_inhabited
+    {T : SmtType}
+    (hT : type_inhabited T) :
+    ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v := by
+  sorry
+
 /-- Choice-based model that returns a canonical inhabitant for every inhabited SMT type. -/
 noncomputable def default_typed_model : SmtModel := by
   classical
   exact fun k =>
     if h : type_inhabited k.ty then
-      some (Classical.choose h)
+      some (Classical.choose (canonical_type_inhabited_of_type_inhabited h))
     else
       none
 
