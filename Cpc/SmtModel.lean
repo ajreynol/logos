@@ -502,7 +502,7 @@ def native_Teq : SmtType -> SmtType -> native_Bool
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
 /- Value comparsion -/
-def __smtx_value_sort_lt (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
+def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   match compare v1 v2 with
   | Ordering.lt => true
   | _ => false
