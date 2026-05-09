@@ -31,7 +31,7 @@ private theorem smt_seq_rel_pack_prefix_of_eq_length (T : SmtType) :
       RuleProofs.smt_seq_rel (native_pack_seq T xs)
         (native_pack_seq T ys)
   | [], [], xs', ys', _hLen, _hRel => by
-      simp [native_pack_seq, RuleProofs.smt_seq_rel, __smtx_model_eval_eq]
+      exact (RuleProofs.smt_seq_rel_iff_eq _ _).2 rfl
   | [], _ :: _, xs', ys', hLen, _hRel => by
       cases hLen
   | _ :: _, [], xs', ys', hLen, _hRel => by
@@ -41,9 +41,10 @@ private theorem smt_seq_rel_pack_prefix_of_eq_length (T : SmtType) :
         simpa using Nat.succ.inj hLen
       simp [RuleProofs.smt_seq_rel, native_pack_seq,
         __smtx_model_eval_eq, native_veq, SmtEval.native_and] at hRel ⊢
-      exact ⟨hRel.1,
+      have hTailRel :=
         smt_seq_rel_pack_prefix_of_eq_length T xs ys xs' ys' hTailLen
-          hRel.2⟩
+          ((RuleProofs.smt_seq_rel_iff_eq _ _).2 hRel.2)
+      exact ⟨hRel.1, (RuleProofs.smt_seq_rel_iff_eq _ _).1 hTailRel⟩
 
 private theorem smt_seq_rel_pack_suffix_of_eq_length (T : SmtType) :
     ∀ xs ys sx sy : List SmtValue,
@@ -65,7 +66,8 @@ private theorem smt_seq_rel_pack_suffix_of_eq_length (T : SmtType) :
   | x :: xs, y :: ys, sx, sy, hLen, hRel => by
       simp [RuleProofs.smt_seq_rel, native_pack_seq,
         __smtx_model_eval_eq, native_veq, SmtEval.native_and] at hRel
-      exact smt_seq_rel_pack_suffix_of_eq_length T xs ys sx sy hLen hRel.2
+      exact smt_seq_rel_pack_suffix_of_eq_length T xs ys sx sy hLen
+        ((RuleProofs.smt_seq_rel_iff_eq _ _).2 hRel.2)
 
 private theorem seq_unpack_length_eq_of_str_len_eq
     (M : SmtModel) (hM : model_total_typed M) (x y : Term) (T : SmtType)
@@ -169,13 +171,13 @@ private theorem smt_value_rel_str_concat_heads_of_len_eq
       (native_unpack_seq sys) hLenXY hRel
   exact RuleProofs.smt_seq_rel_trans sx
     (native_pack_seq T (native_unpack_seq sx)) sy
-    (smt_seq_rel_pack_unpack T sx)
+    (smt_seq_rel_pack_unpack T sx hsxElem)
     (RuleProofs.smt_seq_rel_trans
       (native_pack_seq T (native_unpack_seq sx))
       (native_pack_seq T (native_unpack_seq sy)) sy hHeadPack
       (RuleProofs.smt_seq_rel_symm sy
         (native_pack_seq T (native_unpack_seq sy))
-        (smt_seq_rel_pack_unpack T sy)))
+        (smt_seq_rel_pack_unpack T sy hsyElem)))
 
 private theorem smt_value_rel_str_concat_tails_of_len_eq
     (M : SmtModel) (hM : model_total_typed M) (xs x ys y : Term)
@@ -210,12 +212,20 @@ private theorem smt_value_rel_str_concat_tails_of_len_eq
   rcases seq_value_canonical hyValTy with ⟨sy, hyEval⟩
   have hsxsTy : __smtx_typeof_seq_value sxs = SmtType.Seq T := by
     simpa [hxsEval, __smtx_typeof_value] using hxsValTy
+  have hsxTy : __smtx_typeof_seq_value sx = SmtType.Seq T := by
+    simpa [hxEval, __smtx_typeof_value] using hxValTy
   have hsysTy : __smtx_typeof_seq_value sys = SmtType.Seq T := by
     simpa [hysEval, __smtx_typeof_value] using hysValTy
+  have hsyTy : __smtx_typeof_seq_value sy = SmtType.Seq T := by
+    simpa [hyEval, __smtx_typeof_value] using hyValTy
   have hsxsElem : __smtx_elem_typeof_seq_value sxs = T :=
     elem_typeof_seq_value_of_typeof_seq_value hsxsTy
+  have hsxElem : __smtx_elem_typeof_seq_value sx = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hsxTy
   have hsysElem : __smtx_elem_typeof_seq_value sys = T :=
     elem_typeof_seq_value_of_typeof_seq_value hsysTy
+  have hsyElem : __smtx_elem_typeof_seq_value sy = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hsyTy
   have hLenXY :
       (native_unpack_seq sx).length = (native_unpack_seq sy).length :=
     hLen sx sy hxEval hyEval
@@ -244,13 +254,13 @@ private theorem smt_value_rel_str_concat_tails_of_len_eq
       (native_unpack_seq sy) hLenXY hRel
   exact RuleProofs.smt_seq_rel_trans sx
     (native_pack_seq T (native_unpack_seq sx)) sy
-    (smt_seq_rel_pack_unpack T sx)
+    (smt_seq_rel_pack_unpack T sx hsxElem)
     (RuleProofs.smt_seq_rel_trans
       (native_pack_seq T (native_unpack_seq sx))
       (native_pack_seq T (native_unpack_seq sy)) sy hTailPack
       (RuleProofs.smt_seq_rel_symm sy
         (native_pack_seq T (native_unpack_seq sy))
-        (smt_seq_rel_pack_unpack T sy)))
+        (smt_seq_rel_pack_unpack T sy hsyElem)))
 
 private theorem eo_interprets_str_concat_heads_of_len_eq_of_seq
     (M : SmtModel) (hM : model_total_typed M) (x xs y ys : Term)

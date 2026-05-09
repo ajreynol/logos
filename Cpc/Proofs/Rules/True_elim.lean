@@ -85,7 +85,7 @@ theorem facts___eo_prog_true_elim_impl
                               have hRel' :=
                                 RuleProofs.eo_interprets_eq_rel M b (Term.Boolean true) hX1True
                               rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by
-                                rw [__eo_to_smt.eq_def]] at hRel'
+                                rfl] at hRel'
                               rw [__smtx_model_eval.eq_1] at hRel'
                               exact hRel'
                           cases bv with

@@ -10,14 +10,13 @@ namespace RuleProofs
 theorem eo_to_smt_or_eq (A B : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.or A) B) =
       SmtTerm.or (__eo_to_smt A) (__eo_to_smt B) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Shows that `false` has translated SMT Boolean type. -/
 theorem eo_has_bool_type_false :
     eo_has_bool_type (Term.Boolean false) := by
   unfold eo_has_bool_type
-  rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-    rw [__eo_to_smt.eq_def]]
+  rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by rfl]
   rw [__smtx_typeof.eq_1]
 
 /-- Derives `eo_has_bool_type_or` from `bool_args`. -/

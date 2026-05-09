@@ -11,12 +11,31 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
-/-- The regular-language canonicalizer chooses a stable representative for each language. -/
+/-- The regular-language canonicalizer is stable after one normalization pass. -/
 theorem native_re_canon_idempotent (r : native_RegLan) :
     native_re_canon (native_re_canon r) = native_re_canon r := by
-  unfold native_re_canon
-  apply congrArg (fun q => Classical.choose (Quotient.exists_rep q))
-  exact Classical.choose_spec (Quotient.exists_rep (Quotient.mk _ r))
+  induction r with
+  | empty => rfl
+  | epsilon => rfl
+  | char _ => rfl
+  | range _ _ => rfl
+  | allchar => rfl
+  | concat _ _ ih₁ ih₂ =>
+      rfl
+  | union _ _ ih₁ ih₂ =>
+      rfl
+  | inter _ _ ih₁ ih₂ =>
+      rfl
+  | star r ih =>
+      change native_re_canon (native_re_mk_star (native_re_canon r)) =
+        native_re_mk_star (native_re_canon r)
+      generalize hcDef : native_re_canon r = c
+      have hc : native_re_canon c = c := by
+        rw [← hcDef]
+        exact ih
+      cases c <;> simp [native_re_canon, native_re_mk_star] at hc ⊢ <;> exact hc
+  | comp _ ih =>
+      rfl
 
 /-- Establishes an equality relating `smtx_inhabited_type` and `true_iff`. -/
 theorem smtx_inhabited_type_eq_true_iff (T : SmtType) :

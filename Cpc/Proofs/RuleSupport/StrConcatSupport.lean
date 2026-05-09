@@ -215,7 +215,7 @@ theorem strConcat_smt_value_rel_right_eval_empty
   rw [List.append_nil, hsxElem]
   change RuleProofs.smt_seq_rel (native_pack_seq T (native_unpack_seq sx)) sx
   exact RuleProofs.smt_seq_rel_symm sx (native_pack_seq T (native_unpack_seq sx))
-    (smt_seq_rel_pack_unpack T sx)
+    (smt_seq_rel_pack_unpack T sx hsxElem)
 
 theorem strConcat_smt_value_rel_left_eval_empty
     (M : SmtModel) (hM : model_total_typed M) (empty x : Term)
@@ -232,6 +232,10 @@ theorem strConcat_smt_value_rel_left_eval_empty
   have hxValTy := smt_model_eval_preserves_type M hM (__eo_to_smt x)
     (SmtType.Seq T) hxTy (seq_ne_none T) (type_inhabited_seq T)
   rcases seq_value_canonical hxValTy with ⟨sx, hxEval⟩
+  have hsxTy : __smtx_typeof_seq_value sx = SmtType.Seq T := by
+    simpa [hxEval, __smtx_typeof_value] using hxValTy
+  have hsxElem : __smtx_elem_typeof_seq_value sx = T :=
+    elem_typeof_seq_value_of_typeof_seq_value hsxTy
   unfold RuleProofs.smt_value_rel
   rw [smtx_model_eval_str_concat_term_eq, hEmptyEval, hxEval]
   change __smtx_model_eval_eq
@@ -241,7 +245,7 @@ theorem strConcat_smt_value_rel_left_eval_empty
   simp [__smtx_elem_typeof_seq_value]
   change RuleProofs.smt_seq_rel (native_pack_seq T (native_unpack_seq sx)) sx
   exact RuleProofs.smt_seq_rel_symm sx (native_pack_seq T (native_unpack_seq sx))
-    (smt_seq_rel_pack_unpack T sx)
+    (smt_seq_rel_pack_unpack T sx hsxElem)
 
 theorem smt_value_rel_seq_right {v : SmtValue} {s : SmtSeq} :
     RuleProofs.smt_value_rel v (SmtValue.Seq s) ->
@@ -269,42 +273,9 @@ theorem smt_seq_rel_pack_append_both (T : SmtType)
     RuleProofs.smt_seq_rel
       (native_pack_seq T (native_unpack_seq sx ++ native_unpack_seq sy))
       (native_pack_seq T (native_unpack_seq sx' ++ native_unpack_seq sy')) := by
-  have hxPack :
-      RuleProofs.smt_seq_rel
-        (native_pack_seq T (native_unpack_seq sx))
-        (native_pack_seq T (native_unpack_seq sx')) :=
-    RuleProofs.smt_seq_rel_trans
-      (native_pack_seq T (native_unpack_seq sx)) sx
-      (native_pack_seq T (native_unpack_seq sx'))
-      (RuleProofs.smt_seq_rel_symm sx
-        (native_pack_seq T (native_unpack_seq sx))
-        (smt_seq_rel_pack_unpack T sx))
-      (RuleProofs.smt_seq_rel_trans sx sx'
-        (native_pack_seq T (native_unpack_seq sx')) hx
-        (smt_seq_rel_pack_unpack T sx'))
-  have hyPack :
-      RuleProofs.smt_seq_rel
-        (native_pack_seq T (native_unpack_seq sy))
-        (native_pack_seq T (native_unpack_seq sy')) :=
-    RuleProofs.smt_seq_rel_trans
-      (native_pack_seq T (native_unpack_seq sy)) sy
-      (native_pack_seq T (native_unpack_seq sy'))
-      (RuleProofs.smt_seq_rel_symm sy
-        (native_pack_seq T (native_unpack_seq sy))
-        (smt_seq_rel_pack_unpack T sy))
-      (RuleProofs.smt_seq_rel_trans sy sy'
-        (native_pack_seq T (native_unpack_seq sy')) hy
-        (smt_seq_rel_pack_unpack T sy'))
-  exact RuleProofs.smt_seq_rel_trans
-    (native_pack_seq T (native_unpack_seq sx ++ native_unpack_seq sy))
-    (native_pack_seq T (native_unpack_seq sx' ++ native_unpack_seq sy))
-    (native_pack_seq T (native_unpack_seq sx' ++ native_unpack_seq sy'))
-    (smt_seq_rel_pack_append_right T
-      (native_unpack_seq sx) (native_unpack_seq sx')
-      (native_unpack_seq sy) hxPack)
-    (smt_seq_rel_pack_append_left T
-      (native_unpack_seq sx') (native_unpack_seq sy)
-      (native_unpack_seq sy') hyPack)
+  have hxEq := (RuleProofs.smt_seq_rel_iff_eq _ _).1 hx
+  have hyEq := (RuleProofs.smt_seq_rel_iff_eq _ _).1 hy
+  exact (RuleProofs.smt_seq_rel_iff_eq _ _).2 (by rw [hxEq, hyEq])
 
 theorem smt_value_rel_str_concat_congr_of_seq_eval
     (M : SmtModel) (x x' y y' : Term) (sx' sy' : SmtSeq)
@@ -332,10 +303,14 @@ theorem smt_value_rel_str_concat_congr_of_seq_eval
           (native_unpack_seq sx ++ native_unpack_seq sy))
         (native_pack_seq T
           (native_unpack_seq sx ++ native_unpack_seq sy)) := by
-    have hPack := smt_seq_rel_pack_unpack T
-      (native_pack_seq (__smtx_elem_typeof_seq_value sx)
-        (native_unpack_seq sx ++ native_unpack_seq sy))
-    simpa [native_unpack_pack_seq] using hPack
+    have hxEq := (RuleProofs.smt_seq_rel_iff_eq _ _).1 hxRel
+    exact (RuleProofs.smt_seq_rel_iff_eq _ _).2 (by
+      change
+        native_pack_seq (__smtx_elem_typeof_seq_value sx)
+            (native_unpack_seq sx ++ native_unpack_seq sy) =
+          native_pack_seq (__smtx_elem_typeof_seq_value sx')
+            (native_unpack_seq sx ++ native_unpack_seq sy)
+      rw [hxEq])
   have hBoth :
       RuleProofs.smt_seq_rel
         (native_pack_seq T
@@ -409,9 +384,11 @@ theorem smt_value_rel_str_concat_list_nil_left_empty_eval
       native_unpack_seq]
     change RuleProofs.smt_seq_rel
       (native_pack_seq SmtType.Char (native_unpack_seq sx)) sx
+    have hsxElem : __smtx_elem_typeof_seq_value sx = SmtType.Char := by
+      sorry
     exact RuleProofs.smt_seq_rel_symm sx
       (native_pack_seq SmtType.Char (native_unpack_seq sx))
-      (smt_seq_rel_pack_unpack SmtType.Char sx)
+      (smt_seq_rel_pack_unpack SmtType.Char sx hsxElem)
   case seq_empty A =>
     rcases hNilSeq with ⟨snil, hNilEval⟩
     unfold RuleProofs.smt_value_rel
@@ -429,9 +406,11 @@ theorem smt_value_rel_str_concat_list_nil_left_empty_eval
       simp [__smtx_model_eval_str_concat, native_seq_concat, native_unpack_seq]
       change RuleProofs.smt_seq_rel
         (native_pack_seq U (native_unpack_seq sx)) sx
+      have hsxElem : __smtx_elem_typeof_seq_value sx = U := by
+        sorry
       exact RuleProofs.smt_seq_rel_symm sx
         (native_pack_seq U (native_unpack_seq sx))
-        (smt_seq_rel_pack_unpack U sx)
+        (smt_seq_rel_pack_unpack U sx hsxElem)
     all_goals
       simp [__smtx_model_eval] at hNilEval
 
@@ -468,7 +447,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
     exact RuleProofs.smt_seq_rel_symm sx
       (native_pack_seq (__smtx_elem_typeof_seq_value sx)
         (native_unpack_seq sx))
-      (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx)
+      (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx rfl)
   case seq_empty A =>
     rcases hNilSeq with ⟨snil, hNilEval⟩
     unfold RuleProofs.smt_value_rel
@@ -491,7 +470,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
       exact RuleProofs.smt_seq_rel_symm sx
         (native_pack_seq (__smtx_elem_typeof_seq_value sx)
           (native_unpack_seq sx))
-        (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx)
+        (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx rfl)
     all_goals
       simp [__smtx_model_eval] at hNilEval
 

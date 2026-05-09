@@ -10,13 +10,12 @@ set_option maxHeartbeats 10000000
 private theorem eo_to_smt_or_eq (A B : Term) :
   __eo_to_smt (Term.Apply (Term.Apply Term.or A) B) =
     SmtTerm.or (__eo_to_smt A) (__eo_to_smt B) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 private theorem eo_has_bool_type_false :
   RuleProofs.eo_has_bool_type (Term.Boolean false) := by
   unfold RuleProofs.eo_has_bool_type
-  rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-    rw [__eo_to_smt.eq_def]]
+  rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by rfl]
   rw [__smtx_typeof.eq_1]
 
 private theorem eo_has_bool_type_or_of_bool_args (A B : Term) :
@@ -33,7 +32,8 @@ private theorem eo_has_bool_type_imp_left (A B : Term) :
   RuleProofs.eo_has_bool_type A := by
   intro hImp
   unfold RuleProofs.eo_has_bool_type at hImp ⊢
-  rw [__eo_to_smt.eq_def] at hImp
+  change __smtx_typeof (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) =
+    SmtType.Bool at hImp
   have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hImp]
@@ -46,7 +46,8 @@ private theorem eo_has_bool_type_imp_right (A B : Term) :
   RuleProofs.eo_has_bool_type B := by
   intro hImp
   unfold RuleProofs.eo_has_bool_type at hImp ⊢
-  rw [__eo_to_smt.eq_def] at hImp
+  change __smtx_typeof (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) =
+    SmtType.Bool at hImp
   have hNN : term_has_non_none_type (SmtTerm.imp (__eo_to_smt A) (__eo_to_smt B)) := by
     unfold term_has_non_none_type
     rw [hImp]

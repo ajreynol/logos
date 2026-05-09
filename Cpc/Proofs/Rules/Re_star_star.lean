@@ -16,15 +16,28 @@ private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
   | _ =>
       simp [__eo_typeof_re_mult] at h
 
+private theorem native_re_canon_mk_star_idempotent (r : native_RegLan) :
+    native_re_canon (native_re_mk_star (native_re_canon (native_re_mk_star r))) =
+      native_re_canon (native_re_mk_star r) := by
+  cases r <;> simp [native_re_canon, native_re_mk_star]
+  case star r =>
+    generalize hc : native_re_canon r = c
+    cases c <;> simp [native_re_canon, native_re_mk_star]
+    case star c =>
+      have hcanon := native_re_canon_idempotent r
+      rw [hc] at hcanon
+      simpa [native_re_canon, native_re_mk_star] using hcanon
+
 private theorem smtx_model_eval_re_star_star (v : SmtValue) :
     __smtx_model_eval_re_mult (__smtx_model_eval_re_mult v) =
       __smtx_model_eval_re_mult v := by
   cases v
   case RegLan r =>
-    cases r <;>
-      simp [__smtx_model_eval_re_mult, native_re_mult, native_re_mk_star]
+    simp [__smtx_model_eval_re_mult, __smtx_reglan_value, native_re_mult,
+      native_re_canon_mk_star_idempotent]
   all_goals
-    simp [__smtx_model_eval_re_mult, native_re_mult, native_re_mk_star]
+    simp [__smtx_model_eval_re_mult, __smtx_reglan_value, native_re_canon,
+      native_re_mult, native_re_mk_star]
 
 private theorem typed___eo_prog_re_star_star_impl
     (a1 : Term)
@@ -42,16 +55,19 @@ private theorem typed___eo_prog_re_star_star_impl
   have hInnerTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
         SmtTerm.re_mult (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hInnerTyRaw :
       __smtx_typeof (__eo_to_smt (Term.Apply Term.re_mult a1)) = SmtType.RegLan := by
     rw [hInnerTranslate]
-    simp [__smtx_typeof, hA1SmtTy, native_ite, native_Teq]
+    rw [typeof_re_mult_eq]
+    simp [hA1SmtTy, native_ite, native_Teq]
   have hLhsTyRaw :
       __smtx_typeof (__eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1))) =
         SmtType.RegLan := by
-    rw [__eo_to_smt.eq_def]
-    simp [__smtx_typeof, hInnerTyRaw, native_ite, native_Teq]
+    change __smtx_typeof
+      (SmtTerm.re_mult (__eo_to_smt (Term.Apply Term.re_mult a1))) = SmtType.RegLan
+    rw [typeof_re_mult_eq]
+    simp [hInnerTyRaw, native_ite, native_Teq]
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.RegLan := by
     simpa [lhs] using hLhsTyRaw
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.RegLan := by
@@ -101,11 +117,11 @@ private theorem facts___eo_prog_re_star_star_impl
   have hOuterTranslate :
       __eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1)) =
         SmtTerm.re_mult (__eo_to_smt (Term.Apply Term.re_mult a1)) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hInnerTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
         SmtTerm.re_mult (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hEvalEq :
       __smtx_model_eval M
           (__eo_to_smt (Term.Apply Term.re_mult (Term.Apply Term.re_mult a1))) =
