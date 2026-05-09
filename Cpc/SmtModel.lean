@@ -1864,20 +1864,20 @@ def __smtx_finite_datatype_default (s : native_String) (d0 : SmtDatatype) : SmtD
     (native_ite (native_and (native_not (native_veq _v0 SmtValue.NotValue)) (native_not (native_veq (__smtx_finite_datatype_default s d0 d (native_nat_succ n)) SmtValue.NotValue))) _v0 SmtValue.NotValue)
 
 
-def __smtx_finite_map_type_default (T : SmtType) (U : SmtType) : SmtValue :=
-  
-    let _v0 := (__smtx_unit_type_default U)
-    let _v1 := (__smtx_finite_type_default U)
-    (native_ite (native_veq _v0 SmtValue.NotValue) (native_ite (native_and (native_not (native_veq (__smtx_finite_type_default T) SmtValue.NotValue)) (native_not (native_veq _v1 SmtValue.NotValue))) (SmtValue.Map (SmtMap.default T _v1)) SmtValue.NotValue) (SmtValue.Map (SmtMap.default T _v0)))
-
 def __smtx_finite_type_default : SmtType -> SmtValue
   | SmtType.Bool => (SmtValue.Boolean false)
   | (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
-  | SmtType.Char => (SmtValue.Char (native_nat_to_char native_nat_zero))
+  | SmtType.Char => (SmtValue.Char (Char.ofNat 0))
   | (SmtType.Datatype s d) => (__smtx_finite_datatype_default s d d native_nat_zero)
-  | (SmtType.Map T U) => (__smtx_finite_map_type_default T U)
+  | (SmtType.Map T U) => 
+    let _v0 := (__smtx_unit_type_default U)
+    let _v1 := (__smtx_finite_type_default U)
+    (native_ite (native_veq _v0 SmtValue.NotValue) (native_ite (native_and (native_not (native_veq (__smtx_finite_type_default T) SmtValue.NotValue)) (native_not (native_veq _v1 SmtValue.NotValue))) (SmtValue.Map (SmtMap.default T _v1)) SmtValue.NotValue) (SmtValue.Map (SmtMap.default T _v0)))
   | (SmtType.Set T) => (native_ite (native_veq (__smtx_finite_type_default T) SmtValue.NotValue) SmtValue.NotValue (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false))))
-  | (SmtType.FunType T U) => (__smtx_map_to_fun_value (__smtx_finite_map_type_default T U))
+  | (SmtType.FunType T U) => 
+    let _v0 := (__smtx_unit_type_default U)
+    let _v1 := (__smtx_finite_type_default U)
+    (native_ite (native_veq _v0 SmtValue.NotValue) (native_ite (native_and (native_not (native_veq (__smtx_finite_type_default T) SmtValue.NotValue)) (native_not (native_veq _v1 SmtValue.NotValue))) (SmtValue.Fun (SmtMap.default T _v1)) SmtValue.NotValue) (SmtValue.Fun (SmtMap.default T _v0)))
   | T => SmtValue.NotValue
 
 
@@ -1925,6 +1925,10 @@ def __smtx_value_finite_defaults_canonical : SmtValue -> native_Bool
   | (SmtValue.Seq s) => (__smtx_seq_values_finite_defaults_canonical s)
   | (SmtValue.Apply f v) => (native_and (__smtx_value_finite_defaults_canonical f) (__smtx_value_finite_defaults_canonical v))
   | v => true
+
+
+def __smtx_value_canonical (v : SmtValue) : Prop :=
+  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v = true
 
 
 
@@ -2237,9 +2241,6 @@ inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
 
 def type_inhabited (T : SmtType) : Prop :=
   ∃ v : SmtValue, __smtx_typeof_value v = T
-
-def __smtx_value_canonical (v : SmtValue) : Prop :=
-  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v = true
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
