@@ -507,46 +507,6 @@ def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
   | Ordering.lt => true
   | _ => false
 
-
-def __smtx_map_finite_default_canonical (m : SmtMap) : Prop :=
-  match __smtx_typeof_map_value m with
-  | SmtType.Map T U =>
-      __smtx_finite_type_default (SmtType.Map T U) ≠ SmtValue.NotValue ->
-        __smtx_msm_get_default m = __smtx_finite_type_default U
-  | _ => True
-
-def __smtx_value_finite_defaults_canonical : SmtValue -> Prop
-  | SmtValue.Map m =>
-      __smtx_map_finite_default_canonical m ∧
-        __smtx_map_values_finite_defaults_canonical m
-  | SmtValue.Fun m =>
-      __smtx_map_finite_default_canonical m ∧
-        __smtx_map_values_finite_defaults_canonical m
-  | SmtValue.Set m =>
-      __smtx_map_finite_default_canonical m ∧
-        __smtx_map_values_finite_defaults_canonical m
-  | SmtValue.Seq s => __smtx_seq_values_finite_defaults_canonical s
-  | SmtValue.Apply f v =>
-      __smtx_value_finite_defaults_canonical f ∧
-        __smtx_value_finite_defaults_canonical v
-  | _ => True
-
-def __smtx_map_values_finite_defaults_canonical : SmtMap -> Prop
-  | SmtMap.default _ e => __smtx_value_finite_defaults_canonical e
-  | SmtMap.cons i e m =>
-      __smtx_value_finite_defaults_canonical i ∧
-        __smtx_value_finite_defaults_canonical e ∧
-          __smtx_map_values_finite_defaults_canonical m
-
-def __smtx_seq_values_finite_defaults_canonical : SmtSeq -> Prop
-  | SmtSeq.empty _ => True
-  | SmtSeq.cons v s =>
-      __smtx_value_finite_defaults_canonical v ∧
-        __smtx_seq_values_finite_defaults_canonical s
-
-def __smtx_value_canonical (v : SmtValue) : Prop :=
-  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v
-
 macro_rules
   | `(native_veq_ext $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
@@ -1943,6 +1903,30 @@ def __smtx_value_canon : SmtValue -> SmtValue
   | v => v
 
 
+def __smtx_map_finite_default_canonical : SmtType -> SmtMap -> native_Bool
+  | (SmtType.Map T U), m => (native_ite (native_veq (__smtx_finite_type_default (SmtType.Map T U)) SmtValue.NotValue) (native_veq (__smtx_msm_get_default m) (__smtx_finite_type_default U)) true)
+  | T, m => true
+
+
+def __smtx_map_values_finite_defaults_canonical : SmtMap -> native_Bool
+  | (SmtMap.default T e) => (__smtx_value_finite_defaults_canonical e)
+  | (SmtMap.cons i e m) => (native_and (native_and (__smtx_value_finite_defaults_canonical i) (__smtx_value_finite_defaults_canonical e)) (__smtx_map_values_finite_defaults_canonical m))
+
+
+def __smtx_seq_values_finite_defaults_canonical : SmtSeq -> native_Bool
+  | (SmtSeq.empty T) => true
+  | (SmtSeq.cons v s) => (native_and (__smtx_value_finite_defaults_canonical v) (__smtx_seq_values_finite_defaults_canonical s))
+
+
+def __smtx_value_finite_defaults_canonical : SmtValue -> native_Bool
+  | (SmtValue.Map m) => (native_and (__smtx_map_finite_default_canonical (__smtx_typeof_map_value m) m) (__smtx_map_values_finite_defaults_canonical m))
+  | (SmtValue.Fun m) => (native_and (__smtx_map_finite_default_canonical (__smtx_typeof_map_value m) m) (__smtx_map_values_finite_defaults_canonical m))
+  | (SmtValue.Set m) => (native_and (__smtx_map_finite_default_canonical (__smtx_typeof_map_value m) m) (__smtx_map_values_finite_defaults_canonical m))
+  | (SmtValue.Seq s) => (__smtx_seq_values_finite_defaults_canonical s)
+  | (SmtValue.Apply f v) => (native_and (__smtx_value_finite_defaults_canonical f) (__smtx_value_finite_defaults_canonical v))
+  | v => true
+
+
 
 
 def native_unpack_seq : SmtSeq -> List SmtValue
@@ -2253,6 +2237,9 @@ inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
 
 def type_inhabited (T : SmtType) : Prop :=
   ∃ v : SmtValue, __smtx_typeof_value v = T
+
+def __smtx_value_canonical (v : SmtValue) : Prop :=
+  __smtx_value_canon v = v ∧ __smtx_value_finite_defaults_canonical v = true
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
