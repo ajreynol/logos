@@ -7,37 +7,445 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace CongSupport
 
+private abbrev mkEq (x y : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y
+
+private theorem eo_mk_apply_eq_of_ne_stuck (f x : Term) :
+    f ≠ Term.Stuck ->
+    x ≠ Term.Stuck ->
+    __eo_mk_apply f x = Term.Apply f x := by
+  intro hf hx
+  cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
+
+private theorem eo_mk_apply_left_ne_stuck_of_ne_stuck (f x : Term) :
+    __eo_mk_apply f x ≠ Term.Stuck ->
+    f ≠ Term.Stuck := by
+  intro h hF
+  subst hF
+  exact h (by simp [__eo_mk_apply])
+
+private theorem eo_mk_apply_right_ne_stuck_of_ne_stuck (f x : Term) :
+    __eo_mk_apply f x ≠ Term.Stuck ->
+    x ≠ Term.Stuck := by
+  intro h hX
+  subst hX
+  cases f <;> simp [__eo_mk_apply] at h
+
+private theorem eq_of_eo_eq_true (x y : Term) :
+    __eo_eq x y = Term.Boolean true ->
+    y = x := by
+  intro h
+  cases x <;> cases y <;> simp [__eo_eq, native_teq] at h ⊢
+  all_goals exact h
+
+private theorem eo_get_nil_rec_and_premiseAndFormulaList :
+    ∀ ps : List Term,
+      __eo_get_nil_rec (Term.UOp UserOp.and) (premiseAndFormulaList ps) =
+        Term.Boolean true := by
+  intro ps
+  induction ps with
+  | nil =>
+      simp [premiseAndFormulaList, __eo_get_nil_rec, __eo_requires,
+        __eo_is_list_nil, native_ite, native_teq, native_not,
+        SmtEval.native_not]
+  | cons p ps ih =>
+      simp [premiseAndFormulaList, __eo_get_nil_rec, __eo_requires, ih,
+        native_ite, native_teq, native_not, SmtEval.native_not]
+
+private theorem eo_list_rev_rec_and_premiseAndFormulaList :
+    ∀ xs ys : List Term,
+      __eo_list_rev_rec (premiseAndFormulaList xs) (premiseAndFormulaList ys) =
+        premiseAndFormulaList (xs.reverse ++ ys) := by
+  intro xs ys
+  induction xs generalizing ys with
+  | nil =>
+      cases ys <;> rfl
+  | cons p xs ih =>
+      cases ys with
+      | nil =>
+          simpa [premiseAndFormulaList, __eo_list_rev_rec, List.reverse_cons,
+            List.append_assoc] using ih [p]
+      | cons y ys =>
+          simpa [premiseAndFormulaList, __eo_list_rev_rec, List.reverse_cons,
+            List.append_assoc] using ih (p :: y :: ys)
+
+private theorem eo_list_rev_and_premiseAndFormulaList :
+    ∀ ps : List Term,
+      __eo_list_rev (Term.UOp UserOp.and) (premiseAndFormulaList ps) =
+        premiseAndFormulaList ps.reverse := by
+  intro ps
+  unfold __eo_list_rev
+  simp [__eo_requires, premiseAndFormulaList_is_and_list,
+    eo_get_nil_rec_and_premiseAndFormulaList, native_ite, native_teq,
+    native_not, SmtEval.native_not]
+  simpa using eo_list_rev_rec_and_premiseAndFormulaList ps []
+
+private theorem all_interpreted_true_reverse
+    (M : SmtModel) (ps : List Term) :
+    AllInterpretedTrue M ps ->
+    AllInterpretedTrue M ps.reverse := by
+  intro h t ht
+  exact h t (by simpa using List.mem_reverse.mp ht)
+
+private theorem all_have_bool_type_reverse
+    (ps : List Term) :
+    AllHaveBoolType ps ->
+    AllHaveBoolType ps.reverse := by
+  intro h t ht
+  exact h t (by simpa using List.mem_reverse.mp ht)
+
+inductive CongTrueSpine (M : SmtModel) : Term -> Term -> Prop where
+  | refl (t : Term) : CongTrueSpine M t t
+  | app {f g x y : Term} :
+      CongTrueSpine M f g ->
+      eo_interprets M (mkEq x y) true ->
+      CongTrueSpine M (Term.Apply f x) (Term.Apply g y)
+
+inductive CongTypeSpine : Term -> Term -> Prop where
+  | refl (t : Term) : CongTypeSpine t t
+  | app {f g x y : Term} :
+      CongTypeSpine f g ->
+      RuleProofs.eo_has_bool_type (mkEq x y) ->
+      CongTypeSpine (Term.Apply f x) (Term.Apply g y)
+
+private theorem mk_cong_rhs_step_eq_of_eo_eq_true
+    (f x y z tail : Term) :
+    __eo_eq x y = Term.Boolean true ->
+    __mk_cong_rhs (Term.Apply f x)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq y z)) tail) =
+      __eo_mk_apply (__mk_cong_rhs f tail) z := by
+  intro hEq
+  simp [mkEq, __mk_cong_rhs, __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
+    native_teq, native_ite]
+
+private theorem mk_cong_rhs_false_branch_stuck
+    (f x y z tail : Term) :
+    __eo_l_1___mk_cong_rhs (Term.Apply f x)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq y z)) tail) =
+      Term.Stuck := by
+  simp [mkEq, __eo_l_1___mk_cong_rhs]
+
+private theorem mk_cong_rhs_congTrueSpine_of_list
+    (M : SmtModel) :
+    ∀ (ps : List Term) (t : Term),
+      AllInterpretedTrue M ps ->
+      __mk_cong_rhs t (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      CongTrueSpine M t (__mk_cong_rhs t (premiseAndFormulaList ps)) := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro t _ hProg
+      cases t <;>
+        simp [premiseAndFormulaList, __mk_cong_rhs, __eo_l_1___mk_cong_rhs] at hProg ⊢
+      all_goals exact CongTrueSpine.refl _
+  | cons p ps ih =>
+      intro t hTrue hProg
+      cases p with
+      | Apply pf tail =>
+          cases pf with
+          | Apply pg lhs =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    cases t with
+                    | Apply f x =>
+                        have hHeadTrue :
+                            eo_interprets M (mkEq lhs tail) true := by
+                          simpa [premiseAndFormulaList, mkEq] using
+                            hTrue (mkEq lhs tail) (by simp [mkEq])
+                        have hRestTrue : AllInterpretedTrue M ps := by
+                          intro q hq
+                          exact hTrue q (by simp [premiseAndFormulaList, hq])
+                        have hCond :
+                            __eo_eq x lhs = Term.Boolean true := by
+                          cases hEq : __eo_eq x lhs <;>
+                            simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                              __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
+                              native_teq, native_ite] at hProg
+                          case Boolean b =>
+                            cases b with
+                            | false =>
+                                simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                                  __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
+                                  native_teq, native_ite] at hProg
+                            | true =>
+                                rfl
+                        have hStepEq :=
+                          mk_cong_rhs_step_eq_of_eo_eq_true f x lhs tail
+                            (premiseAndFormulaList ps) hCond
+                        have hMkApplyNN :
+                            __eo_mk_apply
+                                (__mk_cong_rhs f (premiseAndFormulaList ps)) tail ≠
+                              Term.Stuck := by
+                          rw [← hStepEq]
+                          exact hProg
+                        have hRecNN :
+                            __mk_cong_rhs f (premiseAndFormulaList ps) ≠
+                              Term.Stuck :=
+                          eo_mk_apply_left_ne_stuck_of_ne_stuck
+                            (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                            hMkApplyNN
+                        have hTailNN : tail ≠ Term.Stuck :=
+                          eo_mk_apply_right_ne_stuck_of_ne_stuck
+                            (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                            hMkApplyNN
+                        have hRec :=
+                          ih f hRestTrue hRecNN
+                        have hLhs : lhs = x :=
+                          eq_of_eo_eq_true x lhs hCond
+                        subst lhs
+                        change CongTrueSpine M (Term.Apply f x)
+                          (__mk_cong_rhs (Term.Apply f x)
+                            (Term.Apply (Term.Apply (Term.UOp UserOp.and)
+                              (mkEq x tail)) (premiseAndFormulaList ps)))
+                        rw [hStepEq]
+                        rw [eo_mk_apply_eq_of_ne_stuck
+                          (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                          hRecNN hTailNN]
+                        exact CongTrueSpine.app hRec hHeadTrue
+                    | _ =>
+                        exact False.elim (hProg (by
+                          simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                            __eo_l_1___mk_cong_rhs]))
+                  all_goals
+                    exact False.elim (hProg (by
+                      cases t <;>
+                        simp [premiseAndFormulaList, __mk_cong_rhs,
+                          __eo_l_1___mk_cong_rhs]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    cases t <;>
+                      simp [premiseAndFormulaList, __mk_cong_rhs,
+                        __eo_l_1___mk_cong_rhs]))
+          | _ =>
+              exact False.elim (hProg (by
+                cases t <;>
+                  simp [premiseAndFormulaList, __mk_cong_rhs,
+                    __eo_l_1___mk_cong_rhs]))
+      | _ =>
+          exact False.elim (hProg (by
+            cases t <;>
+              simp [premiseAndFormulaList, __mk_cong_rhs,
+                __eo_l_1___mk_cong_rhs]))
+
+private theorem mk_cong_rhs_congTypeSpine_of_list :
+    ∀ (ps : List Term) (t : Term),
+      AllHaveBoolType ps ->
+      __mk_cong_rhs t (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      CongTypeSpine t (__mk_cong_rhs t (premiseAndFormulaList ps)) := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro t _ hProg
+      cases t <;>
+        simp [premiseAndFormulaList, __mk_cong_rhs, __eo_l_1___mk_cong_rhs] at hProg ⊢
+      all_goals exact CongTypeSpine.refl _
+  | cons p ps ih =>
+      intro t hBool hProg
+      cases p with
+      | Apply pf tail =>
+          cases pf with
+          | Apply pg lhs =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    cases t with
+                    | Apply f x =>
+                        have hHeadBool :
+                            RuleProofs.eo_has_bool_type (mkEq lhs tail) := by
+                          simpa [premiseAndFormulaList, mkEq] using
+                            hBool (mkEq lhs tail) (by simp [mkEq])
+                        have hRestBool : AllHaveBoolType ps := by
+                          intro q hq
+                          exact hBool q (by simp [premiseAndFormulaList, hq])
+                        have hCond :
+                            __eo_eq x lhs = Term.Boolean true := by
+                          cases hEq : __eo_eq x lhs <;>
+                            simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                              __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
+                              native_teq, native_ite] at hProg
+                          case Boolean b =>
+                            cases b with
+                            | false =>
+                                simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                                  __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
+                                  native_teq, native_ite] at hProg
+                            | true =>
+                                rfl
+                        have hStepEq :=
+                          mk_cong_rhs_step_eq_of_eo_eq_true f x lhs tail
+                            (premiseAndFormulaList ps) hCond
+                        have hMkApplyNN :
+                            __eo_mk_apply
+                                (__mk_cong_rhs f (premiseAndFormulaList ps)) tail ≠
+                              Term.Stuck := by
+                          rw [← hStepEq]
+                          exact hProg
+                        have hRecNN :
+                            __mk_cong_rhs f (premiseAndFormulaList ps) ≠
+                              Term.Stuck :=
+                          eo_mk_apply_left_ne_stuck_of_ne_stuck
+                            (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                            hMkApplyNN
+                        have hTailNN : tail ≠ Term.Stuck :=
+                          eo_mk_apply_right_ne_stuck_of_ne_stuck
+                            (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                            hMkApplyNN
+                        have hRec :=
+                          ih f hRestBool hRecNN
+                        have hLhs : lhs = x :=
+                          eq_of_eo_eq_true x lhs hCond
+                        subst lhs
+                        change CongTypeSpine (Term.Apply f x)
+                          (__mk_cong_rhs (Term.Apply f x)
+                            (Term.Apply (Term.Apply (Term.UOp UserOp.and)
+                              (mkEq x tail)) (premiseAndFormulaList ps)))
+                        rw [hStepEq]
+                        rw [eo_mk_apply_eq_of_ne_stuck
+                          (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                          hRecNN hTailNN]
+                        exact CongTypeSpine.app hRec hHeadBool
+                    | _ =>
+                        exact False.elim (hProg (by
+                          simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                            __eo_l_1___mk_cong_rhs]))
+                  all_goals
+                    exact False.elim (hProg (by
+                      cases t <;>
+                        simp [premiseAndFormulaList, __mk_cong_rhs,
+                          __eo_l_1___mk_cong_rhs]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    cases t <;>
+                      simp [premiseAndFormulaList, __mk_cong_rhs,
+                        __eo_l_1___mk_cong_rhs]))
+          | _ =>
+              exact False.elim (hProg (by
+                cases t <;>
+                  simp [premiseAndFormulaList, __mk_cong_rhs,
+                    __eo_l_1___mk_cong_rhs]))
+      | _ =>
+          exact False.elim (hProg (by
+            cases t <;>
+              simp [premiseAndFormulaList, __mk_cong_rhs,
+                __eo_l_1___mk_cong_rhs]))
+
+private theorem eo_prog_cong_pf_eq_of_ne_stuck (t E : Term) :
+    t ≠ Term.Stuck ->
+    __eo_prog_cong t (Proof.pf E) =
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t)
+        (__mk_cong_rhs t (__eo_list_rev (Term.UOp UserOp.and) E)) := by
+  intro ht
+  cases t <;> simp [__eo_prog_cong] at ht ⊢
+
 /--
-Typing for the generated EO implementation of `cong`.
-
-The proof obligation is intentionally isolated here because it is the semantic
-heart of the rule: `__eo_prog_cong` reverses the premise conjunction and walks
-the application spine, so this lemma packages the corresponding type argument
-for the generated program.
+The remaining typing core for congruence: once the generated program has been
+reduced to a spine of congruent applications, the equality between the original
+spine and the rewritten spine is Boolean.
 -/
-axiom typed___eo_prog_cong_impl (t E : Term) :
+private axiom congTypeSpine_eq_has_bool_type (t rhs : Term) :
   RuleProofs.eo_has_smt_translation t ->
-  RuleProofs.eo_has_bool_type E ->
-  __eo_prog_cong t (Proof.pf E) ≠ Term.Stuck ->
-  RuleProofs.eo_has_bool_type (__eo_prog_cong t (Proof.pf E))
+  CongTypeSpine t rhs ->
+  RuleProofs.eo_has_bool_type (mkEq t rhs)
 
 /--
-Correctness for the generated EO implementation of `cong`.
-
-This is the semantic core of the rule.  If the premise conjunction represented
-by `E` is true, then the generated equality between the original application
-spine and the rewritten spine is true.
+The remaining semantic core for congruence: a syntactic congruence spine
+preserves SMT equality in a total typed model.
 -/
-axiom facts___eo_prog_cong_impl
-    (M : SmtModel) (hM : model_total_typed M) (t E : Term) :
+private axiom congTrueSpine_eq_true
+    (M : SmtModel) (hM : model_total_typed M) (t rhs : Term) :
   RuleProofs.eo_has_smt_translation t ->
-  eo_interprets M E true ->
-  __eo_prog_cong t (Proof.pf E) ≠ Term.Stuck ->
-  eo_interprets M (__eo_prog_cong t (Proof.pf E)) true
+  CongTrueSpine M t rhs ->
+  eo_interprets M (mkEq t rhs) true
+
+/-- Typing for the generated EO implementation of `cong` over a premise list. -/
+theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
+  RuleProofs.eo_has_smt_translation t ->
+  AllHaveBoolType premises ->
+  __eo_prog_cong t (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_cong t (Proof.pf (premiseAndFormulaList premises))) := by
+  intro hTrans hPremisesBool hProg
+  have htNN : t ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation t hTrans
+  let rhs := __mk_cong_rhs t (premiseAndFormulaList premises.reverse)
+  have hProgEq :=
+    eo_prog_cong_pf_eq_of_ne_stuck t (premiseAndFormulaList premises) htNN
+  have hProgNN :
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs ≠ Term.Stuck := by
+    change
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t)
+        (__mk_cong_rhs t (premiseAndFormulaList premises.reverse)) ≠
+        Term.Stuck
+    rw [← eo_list_rev_and_premiseAndFormulaList premises]
+    rw [← hProgEq]
+    exact hProg
+  have hRhsNN : rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq) t) rhs hProgNN
+  have hSpine :
+      CongTypeSpine t rhs := by
+    simpa [rhs] using
+      mk_cong_rhs_congTypeSpine_of_list premises.reverse t
+        (all_have_bool_type_reverse premises hPremisesBool) hRhsNN
+  have hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs) :=
+    congTypeSpine_eq_has_bool_type t rhs hTrans hSpine
+  rw [hProgEq]
+  rw [eo_list_rev_and_premiseAndFormulaList]
+  change RuleProofs.eo_has_bool_type
+    (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs)
+  rw [eo_mk_apply_eq_of_ne_stuck (Term.Apply (Term.UOp UserOp.eq) t) rhs
+    (by simp) hRhsNN]
+  exact hEqBool
+
+/-- Correctness for the generated EO implementation of `cong` over a premise list. -/
+theorem facts___eo_prog_cong_impl
+    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (premises : List Term) :
+  RuleProofs.eo_has_smt_translation t ->
+  AllInterpretedTrue M premises ->
+  __eo_prog_cong t (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
+  eo_interprets M
+    (__eo_prog_cong t (Proof.pf (premiseAndFormulaList premises))) true := by
+  intro hTrans hPremisesTrue hProg
+  have htNN : t ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation t hTrans
+  let rhs := __mk_cong_rhs t (premiseAndFormulaList premises.reverse)
+  have hProgEq :=
+    eo_prog_cong_pf_eq_of_ne_stuck t (premiseAndFormulaList premises) htNN
+  have hProgNN :
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs ≠ Term.Stuck := by
+    change
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t)
+        (__mk_cong_rhs t (premiseAndFormulaList premises.reverse)) ≠
+        Term.Stuck
+    rw [← eo_list_rev_and_premiseAndFormulaList premises]
+    rw [← hProgEq]
+    exact hProg
+  have hRhsNN : rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq) t) rhs hProgNN
+  have hSpine :
+      CongTrueSpine M t rhs := by
+    simpa [rhs] using
+      mk_cong_rhs_congTrueSpine_of_list M premises.reverse t
+        (all_interpreted_true_reverse M premises hPremisesTrue) hRhsNN
+  have hEqTrue : eo_interprets M (mkEq t rhs) true :=
+    congTrueSpine_eq_true M hM t rhs hTrans hSpine
+  rw [hProgEq]
+  rw [eo_list_rev_and_premiseAndFormulaList]
+  change eo_interprets M
+    (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs) true
+  rw [eo_mk_apply_eq_of_ne_stuck (Term.Apply (Term.UOp UserOp.eq) t) rhs
+    (by simp) hRhsNN]
+  exact hEqTrue
 
 theorem smt_value_rel_model_eval_apply_of_rel
     (M : SmtModel) (hM : model_total_typed M)

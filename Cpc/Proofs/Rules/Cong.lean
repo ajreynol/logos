@@ -45,10 +45,9 @@ by
                 (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
             rw [mk_premise_list_and_eq_premiseAndFormulaList]
             exact CongSupport.facts___eo_prog_cong_impl M hM a1
-              (premiseAndFormulaList (premiseTermList s premises))
+              (premiseTermList s premises)
               hATrans
-              (premiseAndFormulaList_true_of_all_true M
-                (premiseTermList s premises) hTrue)
+              hTrue
               (by
                 rw [mk_premise_list_and_eq_premiseAndFormulaList] at hProgCong
                 exact hProgCong)
@@ -58,10 +57,9 @@ by
             apply RuleProofs.eo_has_smt_translation_of_has_bool_type
             rw [mk_premise_list_and_eq_premiseAndFormulaList]
             exact CongSupport.typed___eo_prog_cong_impl a1
-              (premiseAndFormulaList (premiseTermList s premises))
+              (premiseTermList s premises)
               hATrans
-              (premiseAndFormulaList_has_bool_type
-                (premiseTermList s premises) hPremisesBool)
+              hPremisesBool
               (by
                 rw [mk_premise_list_and_eq_premiseAndFormulaList] at hProgCong
                 exact hProgCong)
