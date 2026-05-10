@@ -38,6 +38,40 @@ by
                   (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) ≠
                 Term.Stuck at hProg
             exact hProg
+          have hProgCongType :
+              __eo_typeof
+                (__eo_prog_cong a1
+                  (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) =
+                Term.Bool := by
+            change
+              __eo_typeof
+                (__eo_prog_cong a1
+                  (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) =
+                Term.Bool at hResultTy
+            exact hResultTy
+          have hProgCongListNN :
+              __eo_prog_cong a1
+                  (Proof.pf (premiseAndFormulaList (premiseTermList s premises))) ≠
+                Term.Stuck := by
+            rw [← mk_premise_list_and_eq_premiseAndFormulaList]
+            exact hProgCong
+          have hProgCongListType :
+              __eo_typeof
+                (__eo_prog_cong a1
+                  (Proof.pf (premiseAndFormulaList (premiseTermList s premises)))) =
+                Term.Bool := by
+            rw [← mk_premise_list_and_eq_premiseAndFormulaList]
+            exact hProgCongType
+          have hProgCongListBool :
+              RuleProofs.eo_has_bool_type
+                (__eo_prog_cong a1
+                  (Proof.pf (premiseAndFormulaList (premiseTermList s premises)))) :=
+            CongSupport.typed___eo_prog_cong_impl a1
+              (premiseTermList s premises)
+              hATrans
+              hPremisesBool
+              hProgCongListNN
+              hProgCongListType
           refine ⟨?_, ?_⟩
           · intro hTrue
             change eo_interprets M
@@ -48,21 +82,14 @@ by
               (premiseTermList s premises)
               hATrans
               hTrue
-              (by
-                rw [mk_premise_list_and_eq_premiseAndFormulaList] at hProgCong
-                exact hProgCong)
+              hProgCongListBool
+              hProgCongListNN
           · change RuleProofs.eo_has_smt_translation
               (__eo_prog_cong a1
                 (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)))
             apply RuleProofs.eo_has_smt_translation_of_has_bool_type
             rw [mk_premise_list_and_eq_premiseAndFormulaList]
-            exact CongSupport.typed___eo_prog_cong_impl a1
-              (premiseTermList s premises)
-              hATrans
-              hPremisesBool
-              (by
-                rw [mk_premise_list_and_eq_premiseAndFormulaList] at hProgCong
-                exact hProgCong)
+            exact hProgCongListBool
       | cons _ _ =>
           change Term.Stuck ≠ Term.Stuck at hProg
           exact False.elim (hProg rfl)
