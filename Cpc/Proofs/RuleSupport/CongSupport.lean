@@ -345,6 +345,25 @@ private theorem eo_prog_cong_pf_eq_of_ne_stuck (t E : Term) :
   intro ht
   cases t <;> simp [__eo_prog_cong] at ht ⊢
 
+private theorem eo_typeof_eq_bool_operands_eq (A B : Term)
+    (h : __eo_typeof_eq A B = Term.Bool) :
+    A = B := by
+  by_cases hA : A = Term.Stuck
+  · subst A
+    simp [__eo_typeof_eq] at h
+  · by_cases hB : B = Term.Stuck
+    · subst B
+      simp [__eo_typeof_eq] at h
+    · simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
+        native_not] at h
+      exact h.symm
+
+private theorem mkEq_typeof_bool_operands_typeof_eq (x y : Term)
+    (h : __eo_typeof (mkEq x y) = Term.Bool) :
+    __eo_typeof x = __eo_typeof y := by
+  change __eo_typeof_eq (__eo_typeof x) (__eo_typeof y) = Term.Bool at h
+  exact eo_typeof_eq_bool_operands_eq (__eo_typeof x) (__eo_typeof y) h
+
 /--
 The remaining typing core for congruence: once the generated program has been
 reduced to a spine of congruent applications, the equality between the original
