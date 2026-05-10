@@ -49,8 +49,7 @@ private theorem singleton_rel_implies_eq
         (__smtx_model_eval_set_singleton w)) :
     w = v := by
   have hEq := (RuleProofs.smt_value_rel_iff_eq _ _).1 h
-  simp [__smtx_model_eval_set_singleton, __smtx_map_canon_insert,
-    __smtx_map_canon_insert_aux, __smtx_msm_get_default, native_veq] at hEq
+  simp [__smtx_model_eval_set_singleton] at hEq
   exact hEq.1.symm
 
 private theorem typed___eo_prog_sets_singleton_inj_impl (x1 : Term) :

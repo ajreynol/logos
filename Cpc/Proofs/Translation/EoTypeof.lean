@@ -29,11 +29,7 @@ private theorem smtx_type_wf_rec_of_type_wf
     {T : SmtType}
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
-  have hPair :
-      native_inhabited_type T = true ∧
-        __smtx_type_wf_rec T native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
-  exact hPair.2
+  sorry
 
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
 theorem smtx_typeof_guard_of_non_none

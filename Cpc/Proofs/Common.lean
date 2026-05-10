@@ -441,10 +441,13 @@ def smt_value_rel (v1 v2 : SmtValue) : Prop :=
 def smt_seq_rel (s1 s2 : SmtSeq) : Prop :=
   __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true
 
-/-- Relates SMT equality evaluation to Lean equality of values. -/
-private theorem smtx_model_eval_eq_true_iff {v1 v2 : SmtValue} :
+/-- Relates non-regex SMT equality evaluation to Lean equality of values. -/
+private theorem smtx_model_eval_eq_true_iff_of_not_reglan_pair {v1 v2 : SmtValue}
+    (hReg :
+      ¬ ∃ r1 r2, v1 = SmtValue.RegLan r1 ∧ v2 = SmtValue.RegLan r2) :
     __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true ↔ v1 = v2 := by
-  simp [__smtx_model_eval_eq, native_veq]
+  cases v1 <;> cases v2 <;>
+    simp [__smtx_model_eval_eq, native_veq] at hReg ⊢
 
 /-- Relates SMT equality evaluation to Lean equality of sequences. -/
 private theorem smtx_model_eval_seq_eq_true_iff {s1 s2 : SmtSeq} :
@@ -455,8 +458,8 @@ private theorem smtx_model_eval_seq_eq_true_iff {s1 s2 : SmtSeq} :
 /-- Establishes an equality relating `smtx_model_eval` and `refl_aux`. -/
 private theorem smtx_model_eval_eq_refl_aux
     (v : SmtValue) :
-    __smtx_model_eval_eq v v = SmtValue.Boolean true :=
-  smtx_model_eval_eq_true_iff.2 rfl
+    __smtx_model_eval_eq v v = SmtValue.Boolean true := by
+  cases v <;> simp [__smtx_model_eval_eq, native_veq]
 
 /-- Establishes an equality relating `smtx_model_eval_seq` and `refl_aux`. -/
 private theorem smtx_model_eval_seq_eq_refl_aux
@@ -468,8 +471,11 @@ private theorem smtx_model_eval_seq_eq_refl_aux
 private theorem smtx_model_eval_eq_true_symm
     {v1 v2 : SmtValue}
     (h : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true) :
-    __smtx_model_eval_eq v2 v1 = SmtValue.Boolean true :=
-  smtx_model_eval_eq_true_iff.2 (smtx_model_eval_eq_true_iff.1 h).symm
+    __smtx_model_eval_eq v2 v1 = SmtValue.Boolean true := by
+  cases v1 <;> cases v2 <;>
+    simp [__smtx_model_eval_eq, native_veq] at h ⊢
+  all_goals
+    simpa [eq_comm] using h
 
 /-- Establishes an equality relating `smtx_model_eval_seq` and `true_symm`. -/
 private theorem smtx_model_eval_seq_eq_true_symm
@@ -483,9 +489,14 @@ private theorem smtx_model_eval_eq_true_trans
     {v1 v2 v3 : SmtValue}
     (h12 : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true)
     (h23 : __smtx_model_eval_eq v2 v3 = SmtValue.Boolean true) :
-    __smtx_model_eval_eq v1 v3 = SmtValue.Boolean true :=
-  smtx_model_eval_eq_true_iff.2
-    ((smtx_model_eval_eq_true_iff.1 h12).trans (smtx_model_eval_eq_true_iff.1 h23))
+    __smtx_model_eval_eq v1 v3 = SmtValue.Boolean true := by
+  cases v1 <;> cases v2 <;> cases v3 <;>
+    simp [__smtx_model_eval_eq, native_veq] at h12 h23 ⊢
+  all_goals
+    first
+    | intro s
+      exact (h12 s).trans (h23 s)
+    | simp_all
 
 /-- Establishes an equality relating `smtx_model_eval_seq` and `true_trans`. -/
 private theorem smtx_model_eval_seq_eq_true_trans
@@ -544,10 +555,12 @@ theorem smt_seq_rel_iff_model_eval_eq_true
       __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true :=
   Iff.rfl
 
-/-- Characterizes `smt_value_rel` under canonical value equality. -/
-theorem smt_value_rel_iff_eq (v1 : SmtValue) (v2 : SmtValue) :
+/-- Characterizes `smt_value_rel` under constructor equality outside regex pairs. -/
+theorem smt_value_rel_iff_eq (v1 : SmtValue) (v2 : SmtValue)
+    (hReg :
+      ¬ ∃ r1 r2, v1 = SmtValue.RegLan r1 ∧ v2 = SmtValue.RegLan r2) :
     smt_value_rel v1 v2 ↔ v1 = v2 :=
-  smtx_model_eval_eq_true_iff
+  smtx_model_eval_eq_true_iff_of_not_reglan_pair hReg
 
 /-- Characterizes `smt_seq_rel` under canonical value equality. -/
 theorem smt_seq_rel_iff_eq (s1 : SmtSeq) (s2 : SmtSeq) :
