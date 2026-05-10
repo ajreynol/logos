@@ -1418,6 +1418,70 @@ theorem map_default_typed :
       · simp [__smtx_typeof_map_value, native_ite, hEq] at hMap
 
 /-- Lemma about `__smtx_msm_update_aux`. -/
+private theorem map_update_aux_no_default_typed
+    {m : SmtMap} {A B : SmtType} {d i e : SmtValue}
+    (hMap : __smtx_typeof_map_value m = SmtType.Map A B)
+    (hi : __smtx_typeof_value i = A)
+    (he : __smtx_typeof_value e = B) :
+    __smtx_typeof_map_value (__smtx_msm_update_aux_no_default d m i e) =
+      SmtType.Map A B := by
+  by_cases hEq : native_veq d e = true
+  · simp [__smtx_msm_update_aux_no_default, hEq, native_ite, hMap]
+  · have hEqFalse : native_veq d e = false := by
+      cases hEqBool : native_veq d e <;> simp [hEqBool] at hEq ⊢
+    simp [__smtx_msm_update_aux_no_default, hEqFalse, native_ite,
+      __smtx_typeof_map_value, hMap, hi, he, native_Teq]
+
+private theorem map_update_aux_typed_explicit :
+    ∀ (m : SmtMap) (A B : SmtType) (d i e : SmtValue),
+      __smtx_typeof_map_value m = SmtType.Map A B ->
+        __smtx_typeof_value d = B ->
+          __smtx_typeof_value i = A ->
+            __smtx_typeof_value e = B ->
+              __smtx_typeof_map_value (__smtx_msm_update_aux d m i e) =
+                SmtType.Map A B
+  | SmtMap.default T ed, A, B, d, i, e, hMap, _hd, hi, he => by
+      exact map_update_aux_no_default_typed hMap hi he
+  | SmtMap.cons j e1 m, A, B, d, i, e, hMap, hd, hi, he => by
+      by_cases hTyEq :
+          native_Teq (SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e1))
+            (__smtx_typeof_map_value m) = true
+      · have hM : __smtx_typeof_map_value m = SmtType.Map A B := by
+          simpa [__smtx_typeof_map_value, hTyEq, native_ite] using hMap
+        have hHead :
+            SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e1) =
+              SmtType.Map A B := by
+          have hEqMap :
+              SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e1) =
+                __smtx_typeof_map_value m := by
+            simpa [native_Teq] using hTyEq
+          exact hEqMap.trans hM
+        have hj : __smtx_typeof_value j = A := by
+          injection hHead with hIdx hVal
+        have he1 : __smtx_typeof_value e1 = B := by
+          injection hHead with hIdx hVal
+        by_cases hJi : native_veq j i = true
+        · simp [__smtx_msm_update_aux, hJi, native_ite]
+          exact map_update_aux_no_default_typed hM hi he
+        · have hJiFalse : native_veq j i = false := by
+            cases hJiBool : native_veq j i <;> simp [hJiBool] at hJi ⊢
+          by_cases hCmp : native_vcmp j i = true
+          · simp [__smtx_msm_update_aux, hJiFalse, hCmp, native_ite]
+            exact map_update_aux_no_default_typed hMap hi he
+          · have hCmpFalse : native_vcmp j i = false := by
+              cases hCmpBool : native_vcmp j i <;> simp [hCmpBool] at hCmp ⊢
+            have hRest := map_update_aux_typed_explicit m A B d i e hM hd hi he
+            simp [__smtx_msm_update_aux, hJiFalse, hCmpFalse, native_ite,
+              __smtx_typeof_map_value, hj, he1, hRest, native_Teq]
+      · have hTyFalse :
+            native_Teq (SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e1))
+              (__smtx_typeof_map_value m) = false := by
+          cases hTyBool :
+              native_Teq (SmtType.Map (__smtx_typeof_value j) (__smtx_typeof_value e1))
+                (__smtx_typeof_map_value m) <;>
+            simp [hTyBool] at hTyEq ⊢
+        simp [__smtx_typeof_map_value, hTyFalse, native_ite] at hMap
+
 theorem map_update_aux_typed :
     ∀ {m : SmtMap} {A B : SmtType} {d i e : SmtValue},
       __smtx_typeof_map_value m = SmtType.Map A B ->
@@ -1428,7 +1492,7 @@ theorem map_update_aux_typed :
                 SmtType.Map A B
   := by
     intro m A B d i e hMap hd hi he
-    sorry
+    exact map_update_aux_typed_explicit m A B d i e hMap hd hi he
 
 /-- Lemma about the update used by `map_store`. -/
 theorem map_canon_insert_typed
