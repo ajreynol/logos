@@ -17768,17 +17768,20 @@ private theorem term_ne_stuck_of_strConcat_is_list_true {t : Term} :
 
 private theorem strConcat_l1_norm_rec_rel_eval
     (M : SmtModel) (hM : model_total_typed M) (id : Term) (T : SmtType)
+    (hIdNil :
+      __eo_is_list_nil (Term.UOp UserOp.str_concat) id = Term.Boolean true)
     (hIdList :
       __eo_is_list (Term.UOp UserOp.str_concat) id = Term.Boolean true)
-    (hIdEval :
-      __smtx_model_eval M (__eo_to_smt id) =
-        SmtValue.Seq (SmtSeq.empty T))
-    (hIdNe : id ≠ Term.Stuck)
+    (hIdTy : __smtx_typeof (__eo_to_smt id) = SmtType.Seq T)
     (t : Term) :
     __smtx_typeof (__eo_to_smt t) = SmtType.Seq T ->
     __eo_is_list (Term.UOp UserOp.str_concat)
         (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.str_concat) id t) =
         Term.Boolean true ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.str_concat) id t)) =
+        SmtType.Seq T ∧
       (∃ s,
         __smtx_model_eval M
           (__eo_to_smt
@@ -17791,23 +17794,29 @@ private theorem strConcat_l1_norm_rec_rel_eval
         (__smtx_model_eval M (__eo_to_smt t)) := by
   intro hTy
   have hL1 :=
-    strConcat_l1_rel_eval_empty M hM id T hIdList hIdEval hIdNe t hTy
-  have htSeq := smt_eval_seq_of_smt_type_seq M hM (__eo_to_smt t) T hTy
-  exact ⟨hL1.1, smt_value_rel_eval_seq_left hL1.2 htSeq, hL1.2⟩
+    strConcat_l1_rel_struct M hM id T hIdNil hIdList hIdTy t hTy
+  have hL1Seq :=
+    smt_eval_seq_of_smt_type_seq M hM
+      (__eo_to_smt
+        (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.str_concat) id t))
+      T hL1.2.1
+  exact ⟨hL1.1, hL1.2.1, hL1Seq, hL1.2.2⟩
 
 private theorem strConcat_get_a_norm_rec_rel_eval
     (M : SmtModel) (hM : model_total_typed M) (id : Term) (T : SmtType)
+    (hIdNil :
+      __eo_is_list_nil (Term.UOp UserOp.str_concat) id = Term.Boolean true)
     (hIdList :
       __eo_is_list (Term.UOp UserOp.str_concat) id = Term.Boolean true)
-    (hIdEval :
-      __smtx_model_eval M (__eo_to_smt id) =
-        SmtValue.Seq (SmtSeq.empty T))
-    (hIdNe : id ≠ Term.Stuck) :
+    (hIdTy : __smtx_typeof (__eo_to_smt id) = SmtType.Seq T) :
     (t : Term) ->
     __smtx_typeof (__eo_to_smt t) = SmtType.Seq T ->
     __eo_is_list (Term.UOp UserOp.str_concat)
         (__get_a_norm_rec (Term.UOp UserOp.str_concat) id t) =
         Term.Boolean true ∧
+      __smtx_typeof
+          (__eo_to_smt (__get_a_norm_rec (Term.UOp UserOp.str_concat) id t)) =
+        SmtType.Seq T ∧
       (∃ s,
         __smtx_model_eval M
           (__eo_to_smt (__get_a_norm_rec (Term.UOp UserOp.str_concat) id t)) =
@@ -17817,6 +17826,10 @@ private theorem strConcat_get_a_norm_rec_rel_eval
           (__eo_to_smt (__get_a_norm_rec (Term.UOp UserOp.str_concat) id t)))
         (__smtx_model_eval M (__eo_to_smt t))
   | t, hTy => by
+      have hIdNe : id ≠ Term.Stuck :=
+        term_ne_stuck_of_strConcat_is_list_true hIdList
+      have hTNe : t ≠ Term.Stuck :=
+        term_ne_stuck_of_smt_seq_type hTy
       cases t
       case Apply f x =>
         cases f
@@ -17839,10 +17852,10 @@ private theorem strConcat_get_a_norm_rec_rel_eval
               have hTypes := strConcat_args_of_seq_type y x T hTy
               have hYRec :=
                 strConcat_get_a_norm_rec_rel_eval M hM id T
-                  hIdList hIdEval hIdNe y hTypes.1
+                  hIdNil hIdList hIdTy y hTypes.1
               have hXRec :=
                 strConcat_get_a_norm_rec_rel_eval M hM id T
-                  hIdList hIdEval hIdNe x hTypes.2
+                  hIdNil hIdList hIdTy x hTypes.2
               let ry := __get_a_norm_rec (Term.UOp UserOp.str_concat) id y
               let rx := __get_a_norm_rec (Term.UOp UserOp.str_concat) id x
               have hRecEq :
@@ -17852,24 +17865,30 @@ private theorem strConcat_get_a_norm_rec_rel_eval
                 dsimp [ry, rx, mkStrConcat]
                 simp [__get_a_norm_rec, __eo_eq, __eo_ite, native_ite,
                   native_teq, native_not, SmtEval.native_not,
-                  __eo_list_concat, __eo_requires, hYRec.1, hXRec.1]
+                  __eo_list_concat, __eo_requires, hIdNe, hYRec.1, hXRec.1]
               have hListConcat :
                   __eo_is_list (Term.UOp UserOp.str_concat)
                       (__eo_list_concat_rec ry rx) =
                     Term.Boolean true :=
                 strConcat_is_list_concat_rec_of_lists ry rx hYRec.1 hXRec.1
+              have hListConcatTy :
+                  __smtx_typeof
+                      (__eo_to_smt (__eo_list_concat_rec ry rx)) =
+                    SmtType.Seq T :=
+                strConcat_typeof_list_concat_rec_of_seq ry rx T
+                  hYRec.1 hYRec.2.1 hXRec.2.1
               have hListRel :
                   RuleProofs.smt_value_rel
                     (__smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec ry rx)))
                     (__smtx_model_eval M (__eo_to_smt (mkStrConcat ry rx))) :=
-                strConcat_smt_value_rel_list_concat_rec_eval M ry rx
+                strConcat_smt_value_rel_list_concat_rec_eval M hM ry rx T
                   hYRec.1 hYRec.2.1 hXRec.2.1
               have hConcatRecSeq :
                   ∃ s,
                     __smtx_model_eval M (__eo_to_smt (mkStrConcat ry rx)) =
                       SmtValue.Seq s :=
                 strConcat_eval_concat_seq_of_args_eval_seq M ry rx
-                  hYRec.2.1 hXRec.2.1
+                  hYRec.2.2.1 hXRec.2.2.1
               have hListSeq :=
                 smt_value_rel_eval_seq_left hListRel hConcatRecSeq
               rcases smt_eval_seq_of_smt_type_seq M hM (__eo_to_smt y) T
@@ -17883,7 +17902,7 @@ private theorem strConcat_get_a_norm_rec_rel_eval
                     (__smtx_model_eval M (__eo_to_smt (mkStrConcat ry rx)))
                     (__smtx_model_eval M (__eo_to_smt (mkStrConcat y x))) :=
                 strConcat_smt_value_rel_congr_eval M ry y rx x sy sx
-                  hyEval hxEval hYRec.2.2 hXRec.2.2
+                  hyEval hxEval hYRec.2.2.2 hXRec.2.2.2
               have hRel :
                   RuleProofs.smt_value_rel
                     (__smtx_model_eval M (__eo_to_smt (__eo_list_concat_rec ry rx)))
@@ -17894,24 +17913,24 @@ private theorem strConcat_get_a_norm_rec_rel_eval
                   (__smtx_model_eval M (__eo_to_smt (mkStrConcat y x)))
                   hListRel hCongr
               rw [hRecEq]
-              exact ⟨hListConcat, hListSeq, hRel⟩
+              exact ⟨hListConcat, hListConcatTy, hListSeq, hRel⟩
             all_goals
               simpa [__get_a_norm_rec, __eo_eq, __eo_ite, native_ite,
-                native_teq] using
-                strConcat_l1_norm_rec_rel_eval M hM id T hIdList hIdEval
-                  hIdNe _ hTy
+                native_teq, hIdNe] using
+                strConcat_l1_norm_rec_rel_eval M hM id T hIdNil hIdList
+                  hIdTy _ hTy
           all_goals
             simpa [__get_a_norm_rec, __eo_eq, __eo_ite, native_ite,
-              native_teq, __eo_l_1___get_a_norm_rec] using
-              strConcat_l1_norm_rec_rel_eval M hM id T hIdList hIdEval
-                hIdNe _ hTy
+              native_teq, __eo_l_1___get_a_norm_rec, hIdNe] using
+              strConcat_l1_norm_rec_rel_eval M hM id T hIdNil hIdList
+                hIdTy _ hTy
         all_goals
-          simpa [__get_a_norm_rec, __eo_l_1___get_a_norm_rec] using
-            strConcat_l1_norm_rec_rel_eval M hM id T hIdList hIdEval
-              hIdNe _ hTy
+          simpa [__get_a_norm_rec, __eo_l_1___get_a_norm_rec, hIdNe] using
+            strConcat_l1_norm_rec_rel_eval M hM id T hIdNil hIdList
+              hIdTy _ hTy
       all_goals
-        simpa [__get_a_norm_rec, __eo_l_1___get_a_norm_rec] using
-          strConcat_l1_norm_rec_rel_eval M hM id T hIdList hIdEval hIdNe
+        simpa [__get_a_norm_rec, __eo_l_1___get_a_norm_rec, hIdNe, hTNe] using
+          strConcat_l1_norm_rec_rel_eval M hM id T hIdNil hIdList hIdTy
             _ hTy
 
 private theorem strConcat_singleton_elim_rel_eval
@@ -17997,18 +18016,22 @@ private theorem smt_value_rel_get_a_norm_str_concat
   have hIdEq : id = __seq_empty (__eo_typeof t) := by
     dsimp [id]
     exact strConcat_nil_eq_seq_empty_of_type hTypeSeq
-  have hIdEval :
-      __smtx_model_eval M (__eo_to_smt id) =
-        SmtValue.Seq (SmtSeq.empty T) := by
+  have hIdTy : __smtx_typeof (__eo_to_smt id) = SmtType.Seq T := by
     rw [hIdEq]
-    exact strConcat_eval_seq_empty_typeof M t T htTy
-  have hIdNe : id ≠ Term.Stuck :=
-    term_ne_stuck_of_strConcat_is_list_true hIdList
+    have hComp := smt_seq_component_wf_of_non_none_type
+      (__eo_to_smt t) T htTy
+    have hEmptyNN :
+        __smtx_typeof (__eo_to_smt (__seq_empty (__eo_typeof t))) ≠
+          SmtType.None :=
+      seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
+        t T htTy hComp.1 hComp.2
+    exact smt_typeof_seq_empty_typeof t T htTy hEmptyNN
   have hRec :=
-    strConcat_get_a_norm_rec_rel_eval M hM id T hIdList hIdEval hIdNe t htTy
+    strConcat_get_a_norm_rec_rel_eval M hM id T hIdNil hIdList hIdTy t htTy
   have hElim :=
     strConcat_singleton_elim_rel_eval M
-      (__get_a_norm_rec (Term.UOp UserOp.str_concat) id t) hRec.1 hRec.2.1
+      (__get_a_norm_rec (Term.UOp UserOp.str_concat) id t)
+      hRec.1 hRec.2.2.1
   have hNormRel :
       RuleProofs.smt_value_rel
         (__smtx_model_eval M
@@ -18022,7 +18045,7 @@ private theorem smt_value_rel_get_a_norm_str_concat
       (__smtx_model_eval M
         (__eo_to_smt (__get_a_norm_rec (Term.UOp UserOp.str_concat) id t)))
       (__smtx_model_eval M (__eo_to_smt t))
-      hElim hRec.2.2
+      hElim hRec.2.2.2
   change RuleProofs.smt_value_rel
     (__smtx_model_eval M (__eo_to_smt t))
     (__smtx_model_eval M

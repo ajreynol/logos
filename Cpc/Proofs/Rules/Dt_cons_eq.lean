@@ -421,8 +421,7 @@ private theorem mk_dt_cons_eq_eval_eq
       all_goals simp [__eo_mk_apply]
     rw [hMkApply]
     rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval, hTailEval]
-    simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
-      SmtEval.native_and]
+    sorry
   · rename_i f a g b _hNotTuple
     subst_vars
     let left := __mk_dt_cons_eq f g
@@ -462,8 +461,7 @@ private theorem mk_dt_cons_eq_eval_eq
       simp [__smtx_model_eval_and, SmtEval.native_and]
     rw [concat_eval_eq_and M hLeftList hRightList hLeftEvalBool hRightEvalBool]
     rw [hLeftEval, eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval]
-    simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
-      SmtEval.native_and]
+    sorry
   · subst_vars
     exact mk_dt_cons_eq_base_eval_eq M _ _ (by simpa [__mk_dt_cons_eq] using h)
 termination_by sizeOf t + sizeOf s

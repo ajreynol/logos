@@ -277,6 +277,10 @@ theorem native_veq_false_of_model_eval_eq_false
     rw [smtx_model_eval_eq_refl] at h
     cases h
 
+private theorem model_eval_eq_is_boolean (v1 v2 : SmtValue) :
+    ∃ b : Bool, __smtx_model_eval_eq v1 v2 = SmtValue.Boolean b := by
+  cases v1 <;> cases v2 <;> simp [__smtx_model_eval_eq]
+
 theorem model_eval_eq_false_of_eq_false_eq_true
     (M : SmtModel) (x y : Term) :
   eo_interprets M
@@ -289,15 +293,25 @@ theorem model_eval_eq_false_of_eq_false_eq_true
   rw [eo_to_smt_eq_eq, eo_to_smt_eq_eq, eo_to_smt_false_eq] at h
   cases h with
   | intro_true _ hEval =>
-      simp [__smtx_model_eval, __smtx_model_eval_eq] at hEval
-      let vx := __smtx_model_eval M (__eo_to_smt x)
-      let vy := __smtx_model_eval M (__eo_to_smt y)
-      have hBoolEq :
-          SmtValue.Boolean (native_veq vx vy) = SmtValue.Boolean false := by
-        simpa [native_veq] using hEval
-      have hVeq : native_veq vx vy = false := by
-        injection hBoolEq
-      simpa [vx, vy, __smtx_model_eval_eq, hVeq]
+      rw [__smtx_model_eval.eq_133] at hEval
+      have hEqEval :
+          __smtx_model_eval M ((__eo_to_smt x).eq (__eo_to_smt y)) =
+            __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt x))
+              (__smtx_model_eval M (__eo_to_smt y)) := by
+        rw [__smtx_model_eval.eq_133]
+      have hFalseEval :
+          __smtx_model_eval M (SmtTerm.Boolean false) =
+            SmtValue.Boolean false := by
+        rw [__smtx_model_eval.eq_1]
+      rw [hEqEval, hFalseEval] at hEval
+      rcases model_eval_eq_is_boolean
+          (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt y)) with
+        ⟨b, hInner⟩
+      rw [hInner] at hEval
+      cases b
+      · exact hInner
+      · simp [__smtx_model_eval_eq, native_veq] at hEval
 
 theorem model_eval_eq_false_of_not_eq_true
     (M : SmtModel) (x y : Term) :

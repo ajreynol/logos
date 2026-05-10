@@ -25,10 +25,14 @@ theorem seq_ne_none (T : SmtType) : SmtType.Seq T ≠ SmtType.None := by
 theorem type_inhabited_of_type_wf (T : SmtType)
     (h : __smtx_type_wf T = true) :
     type_inhabited T := by
+  by_cases hReg : T = SmtType.RegLan
+  · subst T
+    exact type_inhabited_reglan
   have hPair :
       native_inhabited_type T = true ∧
         __smtx_type_wf_rec T native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
+    cases T <;> simp [__smtx_type_wf, native_and] at h hReg ⊢
+    all_goals first | contradiction | assumption
   exact (smtx_inhabited_type_eq_true_iff T).1 hPair.1
 
 theorem seq_component_inhabited_wf_of_seq_wf (T : SmtType)

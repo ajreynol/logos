@@ -48,7 +48,14 @@ private theorem singleton_rel_implies_eq
         (__smtx_model_eval_set_singleton v)
         (__smtx_model_eval_set_singleton w)) :
     w = v := by
-  have hEq := (RuleProofs.smt_value_rel_iff_eq _ _).1 h
+  have hNotReg :
+      ¬ ∃ r1 r2,
+        __smtx_model_eval_set_singleton v = SmtValue.RegLan r1 ∧
+          __smtx_model_eval_set_singleton w = SmtValue.RegLan r2 := by
+    intro hReg
+    rcases hReg with ⟨r1, _r2, h1, _h2⟩
+    simp [__smtx_model_eval_set_singleton] at h1
+  have hEq := (RuleProofs.smt_value_rel_iff_eq _ _ hNotReg).1 h
   simp [__smtx_model_eval_set_singleton] at hEq
   exact hEq.1.symm
 

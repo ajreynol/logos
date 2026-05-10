@@ -139,11 +139,20 @@ private theorem smt_value_rel_of_seq_unit_rel (M : SmtModel) (a b : Term) :
   change RuleProofs.smt_value_rel
     (__smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt a)))
     (__smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt b))) at hRel
-  have hEq := (RuleProofs.smt_value_rel_iff_eq _ _).1 hRel
+  have hNotReg :
+      ¬ ∃ r1 r2,
+        __smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt a)) = SmtValue.RegLan r1 ∧
+          __smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt b)) = SmtValue.RegLan r2 := by
+    intro hReg
+    rcases hReg with ⟨r1, _r2, h1, _h2⟩
+    rw [__smtx_model_eval.eq_118] at h1
+    simp at h1
+  have hEq := (RuleProofs.smt_value_rel_iff_eq _ _ hNotReg).1 hRel
   rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_118] at hEq
-  apply (RuleProofs.smt_value_rel_iff_eq _ _).2
   injection hEq with hSeq
   injection hSeq with hHead _hTail
+  rw [hHead]
+  exact RuleProofs.smt_value_rel_refl _
 
 /-- Derives the checker facts exposed by the EO program for `string_seq_unit_inj`. -/
 private theorem facts___eo_prog_string_seq_unit_inj_impl (M : SmtModel) (x1 : Term) :

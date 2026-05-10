@@ -16,46 +16,27 @@ private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
   | _ =>
       simp [__eo_typeof_re_mult] at h
 
-private theorem native_re_canon_mk_star_of_canonical
-    (r : native_RegLan)
-    (h : native_re_canon r = r) :
-    native_re_canon (native_re_mk_star r) = native_re_mk_star r := by
-  cases r <;> simp [native_re_canon, native_re_mk_star] at h ⊢
-  case star r =>
-    exact h
-
 private theorem smtx_model_eval_re_plus_elim
-    (v : SmtValue)
-    (hv : __smtx_value_canonical v) :
+    (v : SmtValue) :
     __smtx_model_eval_re_plus v =
       __smtx_model_eval_re_concat v
         (__smtx_model_eval_re_concat (__smtx_model_eval_re_mult v)
           (__smtx_model_eval_str_to_re (SmtValue.Seq (native_pack_string "")))) := by
   cases v
   case RegLan r =>
-    have hr : native_re_canon r = r := by
-      simpa [__smtx_value_canonical, __smtx_value_canon] using hv.1
     cases r <;>
       simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
-        __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, __smtx_reglan_value,
-        native_re_canon, native_re_plus, native_re_concat, native_re_mult,
-        native_re_mk_concat, native_re_mk_star, native_str_to_re, native_re_of_list,
-        native_pack_string, native_unpack_string, native_pack_seq, native_unpack_seq,
-        __smtx_ssm_char_values_of_string, __smtx_ssm_string_of_char_values] at hr ⊢
-    case star r =>
-      have hStarInner : native_re_mk_star (native_re_canon r) = SmtRegLan.star r := by
-        simpa [native_re_mk_star] using hr
-      rw [hr]
-      simp [native_re_canon]
-      rw [hStarInner]
-      simp [native_re_canon, native_re_mk_concat]
+        __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re,
+        native_re_plus, native_re_concat, native_re_mult, native_re_mk_concat,
+        native_re_mk_star, native_str_to_re, native_re_of_list, native_pack_string,
+        native_unpack_string, native_pack_seq, native_unpack_seq,
+        __smtx_ssm_char_values_of_string, __smtx_ssm_string_of_char_values]
   all_goals
     simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
-      __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, __smtx_reglan_value,
-      native_re_canon, native_re_plus,
-      native_re_concat, native_re_mult, native_re_mk_concat, native_re_mk_star,
-      native_str_to_re, native_re_of_list, native_pack_string, native_unpack_string,
-      native_pack_seq, native_unpack_seq, __smtx_ssm_char_values_of_string,
+      __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_concat,
+      native_re_mult, native_re_mk_concat, native_re_mk_star, native_str_to_re,
+      native_re_of_list, native_pack_string, native_unpack_string, native_pack_seq,
+      native_unpack_seq, __smtx_ssm_char_values_of_string,
       __smtx_ssm_string_of_char_values]
 
 private theorem typed___eo_prog_re_plus_elim_impl
@@ -143,13 +124,6 @@ private theorem typed___eo_prog_re_plus_elim_impl
   rw [hProg]
   exact hBoolEq
 
-private theorem eo_eval_canonical_of_reglan
-    (M : SmtModel) (hM : model_total_typed M) (a1 : Term)
-    (hA1Trans : RuleProofs.eo_has_smt_translation a1)
-    (hA1Ty : __eo_typeof a1 = Term.RegLan) :
-    __smtx_value_canonical (__smtx_model_eval M (__eo_to_smt a1)) := by
-  sorry
-
 private theorem facts___eo_prog_re_plus_elim_impl
     (M : SmtModel) (hM : model_total_typed M) (a1 : Term)
     (hA1Trans : RuleProofs.eo_has_smt_translation a1)
@@ -223,7 +197,6 @@ private theorem facts___eo_prog_re_plus_elim_impl
       __smtx_model_eval.eq_112, __smtx_model_eval.eq_106, __smtx_model_eval.eq_105]
     simpa [hEmptyStringEval] using
       smtx_model_eval_re_plus_elim (__smtx_model_eval M (__eo_to_smt a1))
-        (eo_eval_canonical_of_reglan M hM a1 hA1Trans hA1Ty)
   rw [hProg]
   exact RuleProofs.eo_interprets_eq_of_rel M
     (Term.Apply Term.re_plus a1)

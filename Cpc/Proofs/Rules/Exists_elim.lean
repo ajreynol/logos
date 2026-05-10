@@ -178,14 +178,14 @@ private theorem smtx_model_eval_eo_to_smt_exists_double_not_body
             let P : Prop :=
               ∃ v : SmtValue,
                 __smtx_typeof_value v = __eo_to_smt_type T ∧
-                  __smtx_value_canonical v ∧
+                  __smtx_value_canonical_bool v = true ∧
                   __smtx_model_eval (__smtx_model_push M s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists a (SmtTerm.not (SmtTerm.not body))) =
                     SmtValue.Boolean true
             let Q : Prop :=
               ∃ v : SmtValue,
                 __smtx_typeof_value v = __eo_to_smt_type T ∧
-                  __smtx_value_canonical v ∧
+                  __smtx_value_canonical_bool v = true ∧
                   __smtx_model_eval (__smtx_model_push M s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists a body) = SmtValue.Boolean true
             have hPQ : P ↔ Q := by

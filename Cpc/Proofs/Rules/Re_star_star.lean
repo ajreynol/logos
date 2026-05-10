@@ -16,28 +16,12 @@ private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
   | _ =>
       simp [__eo_typeof_re_mult] at h
 
-private theorem native_re_canon_mk_star_idempotent (r : native_RegLan) :
-    native_re_canon (native_re_mk_star (native_re_canon (native_re_mk_star r))) =
-      native_re_canon (native_re_mk_star r) := by
-  cases r <;> simp [native_re_canon, native_re_mk_star]
-  case star r =>
-    generalize hc : native_re_canon r = c
-    cases c <;> simp [native_re_canon, native_re_mk_star]
-    case star c =>
-      have hcanon := native_re_canon_idempotent r
-      rw [hc] at hcanon
-      simpa [native_re_canon, native_re_mk_star] using hcanon
-
 private theorem smtx_model_eval_re_star_star (v : SmtValue) :
     __smtx_model_eval_re_mult (__smtx_model_eval_re_mult v) =
       __smtx_model_eval_re_mult v := by
-  cases v
+  cases v <;> simp [__smtx_model_eval_re_mult, native_re_mult]
   case RegLan r =>
-    simp [__smtx_model_eval_re_mult, __smtx_reglan_value, native_re_mult,
-      native_re_canon_mk_star_idempotent]
-  all_goals
-    simp [__smtx_model_eval_re_mult, __smtx_reglan_value, native_re_canon,
-      native_re_mult, native_re_mk_star]
+    cases r <;> simp [__smtx_model_eval_re_mult, native_re_mult, native_re_mk_star]
 
 private theorem typed___eo_prog_re_star_star_impl
     (a1 : Term)
