@@ -12,17 +12,18 @@ set_option maxHeartbeats 10000000
 private theorem eo_to_smt_not_eq (t : Term) :
     __eo_to_smt (Term.Apply (Term.UOp UserOp.not) t) =
       SmtTerm.not (__eo_to_smt t) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 private theorem eo_to_smt_eq_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) =
       SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
-private theorem eo_to_smt_forall_eq (x F : Term) :
+private theorem eo_to_smt_forall_eq (x F : Term)
+    (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) F) =
       SmtTerm.not (__eo_to_smt_exists x (SmtTerm.not (__eo_to_smt F))) := by
-  rw [__eo_to_smt.eq_def]
+  cases x <;> first | rfl | exact False.elim (hx rfl)
 
 private theorem smtx_typeof_none_ne_bool :
     __smtx_typeof SmtTerm.None ≠ SmtType.Bool := by
@@ -41,24 +42,24 @@ private def exists_elim_formula (x F : Term) : Term :=
     (exists_elim_rhs x F)
 
 private theorem eo_to_smt_exists_elim_lhs
-    (x F : Term) :
+    (x F : Term) (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (exists_elim_lhs x F) =
       __eo_to_smt_exists x (__eo_to_smt F) := by
   unfold exists_elim_lhs
-  rw [__eo_to_smt.eq_def]
+  cases x <;> first | rfl | exact False.elim (hx rfl)
 
 private theorem eo_to_smt_exists_elim_rhs
-    (x F : Term) :
+    (x F : Term) (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (exists_elim_rhs x F) =
       SmtTerm.not
         (SmtTerm.not
           (__eo_to_smt_exists x
             (SmtTerm.not (SmtTerm.not (__eo_to_smt F))))) := by
   unfold exists_elim_rhs
-  rw [eo_to_smt_not_eq, eo_to_smt_forall_eq, eo_to_smt_not_eq]
+  rw [eo_to_smt_not_eq, eo_to_smt_forall_eq _ _ hx, eo_to_smt_not_eq]
 
 private theorem eo_to_smt_exists_elim_formula
-    (x F : Term) :
+    (x F : Term) (hx : x ≠ Term.__eo_List_nil) :
     __eo_to_smt (exists_elim_formula x F) =
       SmtTerm.eq
         (__eo_to_smt_exists x (__eo_to_smt F))
@@ -67,7 +68,22 @@ private theorem eo_to_smt_exists_elim_formula
             (__eo_to_smt_exists x
               (SmtTerm.not (SmtTerm.not (__eo_to_smt F)))))) := by
   unfold exists_elim_formula
-  rw [eo_to_smt_eq_eq, eo_to_smt_exists_elim_lhs, eo_to_smt_exists_elim_rhs]
+  rw [eo_to_smt_eq_eq, eo_to_smt_exists_elim_lhs _ _ hx,
+    eo_to_smt_exists_elim_rhs _ _ hx]
+
+private theorem exists_elim_vars_non_nil_of_translation
+    (x F : Term) :
+    RuleProofs.eo_has_smt_translation (exists_elim_formula x F) ->
+    x ≠ Term.__eo_List_nil := by
+  intro hTrans hx
+  subst x
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  apply hTrans
+  unfold exists_elim_formula exists_elim_lhs exists_elim_rhs
+  change __smtx_typeof (SmtTerm.eq SmtTerm.None (SmtTerm.not SmtTerm.None)) =
+    SmtType.None
+  rw [typeof_eq_eq, typeof_not_eq, TranslationProofs.smtx_typeof_none]
+  simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
 
 private theorem eo_to_smt_exists_body_bool_of_bool
     (xs : Term) (body : SmtTerm) :
@@ -162,33 +178,35 @@ private theorem smtx_model_eval_eo_to_smt_exists_double_not_body
             let P : Prop :=
               ∃ v : SmtValue,
                 __smtx_typeof_value v = __eo_to_smt_type T ∧
+                  __smtx_value_canonical_bool v = true ∧
                   __smtx_model_eval (__smtx_model_push M s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists a (SmtTerm.not (SmtTerm.not body))) =
                     SmtValue.Boolean true
             let Q : Prop :=
               ∃ v : SmtValue,
                 __smtx_typeof_value v = __eo_to_smt_type T ∧
+                  __smtx_value_canonical_bool v = true ∧
                   __smtx_model_eval (__smtx_model_push M s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists a body) = SmtValue.Boolean true
             have hPQ : P ↔ Q := by
               constructor
               · intro hSat
-                rcases hSat with ⟨v, hv, hEval⟩
-                refine ⟨v, hv, ?_⟩
+                rcases hSat with ⟨v, hv, hCan, hEval⟩
+                refine ⟨v, hv, hCan, ?_⟩
                 have hRec :=
                     smtx_model_eval_eo_to_smt_exists_double_not_body
                       (__smtx_model_push M s (__eo_to_smt_type T) v)
-                      (model_total_typed_push hM s (__eo_to_smt_type T) v hv)
+                      (model_total_typed_push hM s (__eo_to_smt_type T) v hv hCan)
                       a body hBody
                 rw [hRec] at hEval
                 exact hEval
               · intro hSat
-                rcases hSat with ⟨v, hv, hEval⟩
-                refine ⟨v, hv, ?_⟩
+                rcases hSat with ⟨v, hv, hCan, hEval⟩
+                refine ⟨v, hv, hCan, ?_⟩
                 have hRec :=
                     smtx_model_eval_eo_to_smt_exists_double_not_body
                       (__smtx_model_push M s (__eo_to_smt_type T) v)
-                      (model_total_typed_push hM s (__eo_to_smt_type T) v hv)
+                      (model_total_typed_push hM s (__eo_to_smt_type T) v hv hCan)
                       a body hBody
                 rw [← hRec] at hEval
                 exact hEval
@@ -369,9 +387,11 @@ private theorem typed_exists_elim_formula_of_translation
   intro hTrans
   have hNN : term_has_non_none_type (__eo_to_smt (exists_elim_formula x F)) := by
     simpa [RuleProofs.eo_has_smt_translation, term_has_non_none_type] using hTrans
+  have hx : x ≠ Term.__eo_List_nil :=
+    exists_elim_vars_non_nil_of_translation x F hTrans
   unfold RuleProofs.eo_has_bool_type
-  rw [eo_to_smt_exists_elim_formula]
-  rw [eo_to_smt_exists_elim_formula] at hNN
+  rw [eo_to_smt_exists_elim_formula _ _ hx]
+  rw [eo_to_smt_exists_elim_formula _ _ hx] at hNN
   exact eq_term_typeof_of_non_none hNN
 
 private theorem typed___eo_prog_exists_elim_impl
@@ -398,11 +418,13 @@ private theorem smtx_model_eval_exists_elim_formula
   have hEqBool :
       RuleProofs.eo_has_bool_type (exists_elim_formula x F) :=
     typed_exists_elim_formula_of_translation x F hTrans
+  have hx : x ≠ Term.__eo_List_nil :=
+    exists_elim_vars_non_nil_of_translation x F hTrans
   rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
       (exists_elim_lhs x F) (exists_elim_rhs x F) hEqBool with
     ⟨hSameTy, hLhsNN⟩
-  rw [eo_to_smt_exists_elim_lhs, eo_to_smt_exists_elim_rhs] at hSameTy
-  rw [eo_to_smt_exists_elim_lhs] at hLhsNN
+  rw [eo_to_smt_exists_elim_lhs _ _ hx, eo_to_smt_exists_elim_rhs _ _ hx] at hSameTy
+  rw [eo_to_smt_exists_elim_lhs _ _ hx] at hLhsNN
   have hSameTy' : __smtx_typeof lhsS = __smtx_typeof rhsS := by
     simpa [body, lhsS, rhsS] using hSameTy
   have hLhsNN' : __smtx_typeof lhsS ≠ SmtType.None := by
@@ -428,7 +450,7 @@ private theorem smtx_model_eval_exists_elim_formula
   have hEvalInnerLhs :
       __smtx_model_eval M innerS = __smtx_model_eval M lhsS :=
     smtx_model_eval_eo_to_smt_exists_double_not_body M hM x body hBodyTy
-  rw [eo_to_smt_exists_elim_rhs, eo_to_smt_exists_elim_lhs]
+  rw [eo_to_smt_exists_elim_rhs _ _ hx, eo_to_smt_exists_elim_lhs _ _ hx]
   simpa [body, lhsS, innerS, rhsS] using hEvalRhsInner.trans hEvalInnerLhs
 
 private theorem facts___eo_prog_exists_elim_impl

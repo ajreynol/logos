@@ -27,13 +27,11 @@ cases while we continue filling in the EO typing story separately.
 
 private theorem smtx_type_wf_rec_of_type_wf
     {T : SmtType}
+    (hNotReg : T ≠ SmtType.RegLan)
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
-  have hPair :
-      native_inhabited_type T = true ∧
-        __smtx_type_wf_rec T native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
-  exact hPair.2
+  cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
+  all_goals exact h.2
 
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
 theorem smtx_typeof_guard_of_non_none
@@ -708,7 +706,10 @@ private theorem eo_to_smt_type_substitute_field
                 simp [raw, eo_type_substitute_field, __eo_to_smt_type,
                   native_ite, native_teq, hWf]
                 exact (smtx_type_substitute_top_of_wf_rec sub (__eo_to_smt_datatype d0) raw
-                  native_reflist_nil (by rfl) (smtx_type_wf_rec_of_type_wf hWf)).symm
+                  native_reflist_nil (by rfl)
+                  (smtx_type_wf_rec_of_type_wf
+                    (eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type x1) (__eo_to_smt_type x))
+                    hWf)).symm
           all_goals
             simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
               native_ite, native_teq, native_Teq]

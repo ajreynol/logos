@@ -1915,16 +1915,14 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
                         native_reflist_nil =
                       true := by
-                  have hPair :
-                      native_inhabited_type
-                          (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) =
-                        true ∧
-                        __smtx_type_wf_rec
-                            (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
-                            native_reflist_nil =
-                          true := by
-                    simpa [__smtx_type_wf, native_and] using hRawWf
-                  exact hPair.2
+                  have hNotReg :
+                      __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) ≠
+                        SmtType.RegLan :=
+                    eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type y) (__eo_to_smt_type x)
+                  cases hTuple :
+                      __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) <;>
+                    simp [hTuple, __smtx_type_wf, native_and] at hRawWf hNotReg ⊢
+                  all_goals first | contradiction | exact hRawWf.2
                 cases hX : __eo_to_smt_type x <;>
                   simp [__eo_to_smt_type_tuple, hX, __smtx_type_wf_rec] at hRawRec
                 case Datatype s d =>
@@ -2025,12 +2023,13 @@ theorem eo_typeof_type_of_smt_type_wf
     (T : Term)
     (h : __smtx_type_wf (__eo_to_smt_type T) = true) :
     __eo_typeof T = Term.Type := by
-  exact eo_typeof_type_of_smt_type_wf_rec T native_reflist_nil (by
-    have hPair :
-        native_inhabited_type (__eo_to_smt_type T) = true ∧
-          __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true := by
-      simpa [__smtx_type_wf, native_and] using h
-    exact hPair.2)
+  by_cases hReg : __eo_to_smt_type T = SmtType.RegLan
+  · rw [eo_to_smt_type_eq_reglan hReg]
+    rfl
+  · exact eo_typeof_type_of_smt_type_wf_rec T native_reflist_nil (by
+      cases hTy : __eo_to_smt_type T <;>
+        simp [hTy, __smtx_type_wf, native_and] at h hReg ⊢
+      all_goals first | contradiction | exact h.2)
 
 theorem eo_typeof_type_of_smt_type_field_wf_rec
     (T : Term) (refs : RefList)

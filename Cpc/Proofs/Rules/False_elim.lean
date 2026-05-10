@@ -11,7 +11,7 @@ private theorem eo_has_bool_type_false :
   RuleProofs.eo_has_bool_type (Term.Boolean false) := by
   change __smtx_typeof (__eo_to_smt (Term.Boolean false)) = SmtType.Bool
   rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-    rw [__eo_to_smt.eq_def]]
+    rfl]
   rw [__smtx_typeof.eq_1]
 
 private theorem eo_has_bool_type_eq_left (A B : Term) :
@@ -88,14 +88,13 @@ theorem facts___eo_prog_false_elim_impl
                             ⟨bv, hEvalB⟩
                           have hRel :
                               RuleProofs.smt_value_rel (__smtx_model_eval M (__eo_to_smt b))
-                                (SmtValue.Boolean false) :=
-                            by
-                              have hRel' :=
-                                RuleProofs.eo_interprets_eq_rel M b (Term.Boolean false) hX1True
-                              rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-                                rw [__eo_to_smt.eq_def]] at hRel'
-                              rw [__smtx_model_eval.eq_1] at hRel'
-                              exact hRel'
+                                (SmtValue.Boolean false) := by
+                            have hRel' :=
+                              RuleProofs.eo_interprets_eq_rel M b (Term.Boolean false) hX1True
+                            rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
+                              rfl] at hRel'
+                            rw [__smtx_model_eval.eq_1] at hRel'
+                            exact hRel'
                           cases bv with
                           | false =>
                               have hBFalse : eo_interprets M b false :=

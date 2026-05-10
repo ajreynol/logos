@@ -16,7 +16,8 @@ private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
   | _ =>
       simp [__eo_typeof_re_mult] at h
 
-private theorem smtx_model_eval_re_plus_elim (v : SmtValue) :
+private theorem smtx_model_eval_re_plus_elim
+    (v : SmtValue) :
     __smtx_model_eval_re_plus v =
       __smtx_model_eval_re_concat v
         (__smtx_model_eval_re_concat (__smtx_model_eval_re_mult v)
@@ -25,17 +26,17 @@ private theorem smtx_model_eval_re_plus_elim (v : SmtValue) :
   case RegLan r =>
     cases r <;>
       simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
-        __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_plus,
-        native_re_concat, native_re_mult, native_re_mk_concat, native_re_mk_star,
-        native_str_to_re, native_re_of_list, native_pack_string, native_unpack_string,
-        native_pack_seq, native_unpack_seq, __smtx_ssm_char_values_of_string,
-        __smtx_ssm_string_of_char_values]
+        __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re,
+        native_re_plus, native_re_concat, native_re_mult, native_re_mk_concat,
+        native_re_mk_star, native_str_to_re, native_re_of_list, native_pack_string,
+        native_unpack_string, native_pack_seq, native_unpack_seq,
+        __smtx_ssm_char_values_of_string, __smtx_ssm_string_of_char_values]
   all_goals
     simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
-      __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_plus,
-      native_re_concat, native_re_mult, native_re_mk_concat, native_re_mk_star,
-      native_str_to_re, native_re_of_list, native_pack_string, native_unpack_string,
-      native_pack_seq, native_unpack_seq, __smtx_ssm_char_values_of_string,
+      __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_concat,
+      native_re_mult, native_re_mk_concat, native_re_mk_star, native_str_to_re,
+      native_re_of_list, native_pack_string, native_unpack_string, native_pack_seq,
+      native_unpack_seq, __smtx_ssm_char_values_of_string,
       __smtx_ssm_string_of_char_values]
 
 private theorem typed___eo_prog_re_plus_elim_impl
@@ -57,44 +58,54 @@ private theorem typed___eo_prog_re_plus_elim_impl
   have hLhsTranslate :
       __eo_to_smt (Term.Apply Term.re_plus a1) =
         SmtTerm.re_plus (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hLhsTyRaw :
       __smtx_typeof (__eo_to_smt (Term.Apply Term.re_plus a1)) = SmtType.RegLan := by
     rw [hLhsTranslate]
-    simp [__smtx_typeof, hA1SmtTy, native_ite, native_Teq]
+    rw [typeof_re_plus_eq]
+    simp [hA1SmtTy, native_ite, native_Teq]
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = SmtType.RegLan := by
     simpa [lhs] using hLhsTyRaw
   have hStarTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
         SmtTerm.re_mult (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hStarTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.re_mult a1)) = SmtType.RegLan := by
     rw [hStarTranslate]
-    simp [__smtx_typeof, hA1SmtTy, native_ite, native_Teq]
+    rw [typeof_re_mult_eq]
+    simp [hA1SmtTy, native_ite, native_Teq]
   have hEmpTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) = SmtType.RegLan := by
-    simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, native_Teq]
+    change __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String "")) = SmtType.RegLan
+    rw [typeof_str_to_re_eq]
+    simp [__smtx_typeof.eq_4, native_ite, native_Teq]
   have hInnerConcatTranslate :
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
             (Term.Apply Term.str_to_re (Term.String ""))) =
         SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
           (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hInnerConcatTy :
       __smtx_typeof
           (__eo_to_smt
             (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
               (Term.Apply Term.str_to_re (Term.String "")))) = SmtType.RegLan := by
     rw [hInnerConcatTranslate]
-    simp [__smtx_typeof, hStarTy, hEmpTy, native_ite, native_Teq]
+    rw [typeof_re_concat_eq]
+    simp [hStarTy, hEmpTy, native_ite, native_Teq]
   have hRhsTyRaw :
       __smtx_typeof
           (__eo_to_smt
             (Term.Apply (Term.Apply Term.re_concat a1)
               (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
                 (Term.Apply Term.str_to_re (Term.String ""))))) = SmtType.RegLan := by
-    rw [__eo_to_smt.eq_def]
-    simp [__smtx_typeof, hA1SmtTy, hInnerConcatTy, native_ite, native_Teq]
+    change __smtx_typeof
+      (SmtTerm.re_concat (__eo_to_smt a1)
+        (__eo_to_smt
+          (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
+            (Term.Apply Term.str_to_re (Term.String ""))))) = SmtType.RegLan
+    rw [typeof_re_concat_eq]
+    simp [hA1SmtTy, hInnerConcatTy, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.RegLan := by
     simpa [rhs] using hRhsTyRaw
   have hBoolEq :
@@ -114,7 +125,7 @@ private theorem typed___eo_prog_re_plus_elim_impl
   exact hBoolEq
 
 private theorem facts___eo_prog_re_plus_elim_impl
-    (M : SmtModel) (a1 : Term)
+    (M : SmtModel) (hM : model_total_typed M) (a1 : Term)
     (hA1Trans : RuleProofs.eo_has_smt_translation a1)
     (hA1Ty : __eo_typeof a1 = Term.RegLan) :
   eo_interprets M (__eo_prog_re_plus_elim a1) true := by
@@ -142,7 +153,7 @@ private theorem facts___eo_prog_re_plus_elim_impl
   have hLhsTranslate :
       __eo_to_smt (Term.Apply Term.re_plus a1) =
         SmtTerm.re_plus (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hRhsTranslate :
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat a1)
@@ -152,29 +163,28 @@ private theorem facts___eo_prog_re_plus_elim_impl
           (__eo_to_smt
             (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
               (Term.Apply Term.str_to_re (Term.String "")))) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hInnerConcatTranslate :
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
             (Term.Apply Term.str_to_re (Term.String ""))) =
         SmtTerm.re_concat (__eo_to_smt (Term.Apply Term.re_mult a1))
           (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hStarTranslate :
       __eo_to_smt (Term.Apply Term.re_mult a1) =
         SmtTerm.re_mult (__eo_to_smt a1) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hEmpTranslate :
       __eo_to_smt (Term.Apply Term.str_to_re (Term.String "")) =
         SmtTerm.str_to_re (__eo_to_smt (Term.String "")) := by
-    rw [__eo_to_smt.eq_def]
+    rfl
   have hEmptyStringEval :
       __smtx_model_eval M (__eo_to_smt (Term.String "")) =
         SmtValue.Seq (native_pack_string "") := by
-    simpa [__eo_to_smt.eq_def] using
-      (show __smtx_model_eval M (SmtTerm.String "") =
-          SmtValue.Seq (native_pack_string "") by
-        rw [__smtx_model_eval.eq_4])
+    change __smtx_model_eval M (SmtTerm.String "") =
+      SmtValue.Seq (native_pack_string "")
+    rw [__smtx_model_eval.eq_4]
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_plus a1)) =
         __smtx_model_eval M
@@ -263,7 +273,7 @@ by
                 refine ⟨?_, RuleProofs.eo_has_smt_translation_of_has_bool_type _
                   (typed___eo_prog_re_plus_elim_impl a1 hA1Trans hA1Ty)⟩
                 intro _hTrue
-                exact facts___eo_prog_re_plus_elim_impl M a1 hA1Trans hA1Ty
+                exact facts___eo_prog_re_plus_elim_impl M hM a1 hA1Trans hA1Ty
               change StepRuleProperties M [] (__eo_prog_re_plus_elim a1)
               simpa [premiseTermList] using hProps
           | cons _ _ =>

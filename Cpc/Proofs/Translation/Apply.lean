@@ -16,63 +16,35 @@ namespace TranslationProofs
 
 private theorem smtx_type_wf_rec_of_type_wf
     {T : SmtType}
+    (hNotReg : T ≠ SmtType.RegLan)
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
-  have hPair :
-      native_inhabited_type T = true ∧
-        __smtx_type_wf_rec T native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
-  exact hPair.2
+  cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
+  all_goals exact h.2
 
 private theorem smtx_type_wf_seq_component
     {A : SmtType}
     (h : __smtx_type_wf (SmtType.Seq A) = true) :
     __smtx_type_wf A = true := by
-  have hRec := smtx_type_wf_rec_of_type_wf h
-  have hA :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true := by
-    simpa [__smtx_type_wf_rec, native_and] using hRec
-  simp [__smtx_type_wf, native_and, hA.1, hA.2]
+  exact seq_type_wf_component_of_wf h
 
 private theorem smtx_type_wf_set_component
     {A : SmtType}
     (h : __smtx_type_wf (SmtType.Set A) = true) :
     __smtx_type_wf A = true := by
-  have hRec := smtx_type_wf_rec_of_type_wf h
-  have hA :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true := by
-    simpa [__smtx_type_wf_rec, native_and] using hRec
-  simp [__smtx_type_wf, native_and, hA.1, hA.2]
+  exact set_type_wf_component_of_wf h
 
 private theorem smtx_type_wf_map_components
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.Map A B) = true) :
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  have hRec := smtx_type_wf_rec_of_type_wf h
-  have hAB :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf_rec, native_and] using hRec
-  exact ⟨by simp [__smtx_type_wf, native_and, hAB.1, hAB.2.1],
-    by simp [__smtx_type_wf, native_and, hAB.2.2.1, hAB.2.2.2]⟩
+  exact map_type_wf_components_of_wf h
 
 private theorem smtx_type_wf_fun_components
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  have hRec := smtx_type_wf_rec_of_type_wf h
-  have hAB :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf_rec, native_and] using hRec
-  exact ⟨by simp [__smtx_type_wf, native_and, hAB.1, hAB.2.1],
-    by simp [__smtx_type_wf, native_and, hAB.2.2.1, hAB.2.2.2]⟩
+  exact fun_type_wf_components_of_wf h
 
 private theorem native_inhabited_type_of_type_inhabited
     {T : SmtType}
@@ -1233,7 +1205,7 @@ private theorem choice_nth_fun_like_arg_field_wf
         smtx_type_field_wf_rec (SmtType.FunType A B) native_reflist_nil := by
       exact smtx_type_field_wf_rec_of_type_wf_rec (by
         rw [← hTFun]
-        exact smtx_type_wf_rec_of_type_wf hTWF)
+        exact smtx_type_wf_rec_of_type_wf (by rw [hTFun]; simp) hTWF)
     exact (fun_type_field_wf_rec_components_of_wf hFunWF).1
   · have hTDtc : T = SmtType.DtcAppType A B := hChoiceTy.symm.trans hHead
     have hBad := hTWF
@@ -1590,7 +1562,7 @@ private theorem smtx_type_wf_rec_mono_apply :
   | SmtType.Real, refs, refs', hSub, hWf => by
       simp [__smtx_type_wf_rec]
   | SmtType.RegLan, refs, refs', hSub, hWf => by
-      simp [__smtx_type_wf_rec]
+      simp [__smtx_type_wf_rec] at hWf
   | SmtType.BitVec _w, refs, refs', hSub, hWf => by
       simp [__smtx_type_wf_rec]
   | SmtType.Map _A _B, refs, refs', hSub, hWf => by
@@ -1666,9 +1638,7 @@ private theorem smtx_dtc_wf_rec_mono_apply :
           have hTail' := smtx_dtc_wf_rec_mono_apply c hSub hTail
           simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, hTail']
       | RegLan =>
-          have hTail := smtx_dt_cons_wf_rec_tail_of_true hWf
-          have hTail' := smtx_dtc_wf_rec_mono_apply c hSub hTail
-          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite, hTail']
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
       | BitVec w =>
           have hTail := smtx_dt_cons_wf_rec_tail_of_true hWf
           have hTail' := smtx_dtc_wf_rec_mono_apply c hSub hTail
@@ -2412,11 +2382,7 @@ private theorem smtx_dtc_substitute_wf_apply :
           simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
             __smtx_type_wf_rec, native_ite, native_Teq, hTailSub]
       | RegLan =>
-          have hTail := smtx_dt_cons_wf_rec_tail_of_true hWf
-          have hTailSub :=
-            smtx_dtc_substitute_wf_apply c hBaseInh hBaseWf hTail
-          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
-            __smtx_type_wf_rec, native_ite, native_Teq, hTailSub]
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hWf
       | BitVec w =>
           have hTail := smtx_dt_cons_wf_rec_tail_of_true hWf
           have hTailSub :=
@@ -2566,6 +2532,7 @@ private def smtx_type_translation_injective_wf : SmtType -> Prop
   | SmtType.DtcAppType A B =>
       smtx_type_field_wf_rec A native_reflist_nil ∧
         smtx_type_translation_injective_wf A ∧ smtx_type_translation_injective_wf B
+  | SmtType.RegLan => True
   | T => smtx_type_field_wf_rec T native_reflist_nil
 
 private theorem smtx_type_translation_injective_wf_of_type_wf
@@ -2585,8 +2552,7 @@ private theorem smtx_type_translation_injective_wf_of_type_wf
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
           __smtx_type_wf_rec]
     | SmtType.RegLan, _h => by
-        simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
-          __smtx_type_wf_rec]
+        simp [smtx_type_translation_injective_wf]
     | SmtType.BitVec _w, _h => by
         simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
           __smtx_type_wf_rec]
@@ -2602,7 +2568,7 @@ private theorem smtx_type_translation_injective_wf_of_type_wf
           __smtx_type_wf_rec]
     | SmtType.Datatype _s _d, h => by
         exact smtx_type_field_wf_rec_of_type_wf_rec
-          (smtx_type_wf_rec_of_type_wf h)
+          (smtx_type_wf_rec_of_type_wf (by simp) h)
     | SmtType.TypeRef _s, h => by
         simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
     | SmtType.USort _i, _h => by
@@ -2610,7 +2576,7 @@ private theorem smtx_type_translation_injective_wf_of_type_wf
           __smtx_type_wf_rec]
     | SmtType.FunType A B, h => by
         have hRec : __smtx_type_wf_rec (SmtType.FunType A B) native_reflist_nil = true :=
-          smtx_type_wf_rec_of_type_wf h
+          smtx_type_wf_rec_of_type_wf (by simp) h
         rcases fun_type_wf_rec_components_of_wf
             (A := A) (B := B) (refs := native_reflist_nil) hRec with ⟨hA, hB⟩
         rcases smtx_type_wf_fun_components h with ⟨hAWf, hBWf⟩
@@ -2652,7 +2618,7 @@ private theorem smtx_type_translation_injective_wf_of_field_wf_rec
     | SmtType.Real, h => by
         simpa [smtx_type_translation_injective_wf] using h
     | SmtType.RegLan, h => by
-        simpa [smtx_type_translation_injective_wf] using h
+        simp [smtx_type_translation_injective_wf]
     | SmtType.BitVec _w, h => by
         simpa [smtx_type_translation_injective_wf] using h
     | SmtType.Char, h => by
@@ -2718,7 +2684,7 @@ private theorem eo_to_smt_type_injective_of_translation_injective_wf
     | SmtType.Real, T, U, hT, hU, hWF => by
         exact eo_to_smt_type_injective_of_field_wf_rec hT hU hWF
     | SmtType.RegLan, T, U, hT, hU, hWF => by
-        exact eo_to_smt_type_injective_of_field_wf_rec hT hU hWF
+        rw [eo_to_smt_type_eq_reglan hT, eo_to_smt_type_eq_reglan hU]
     | SmtType.BitVec w, T, U, hT, hU, hWF => by
         exact eo_to_smt_type_injective_of_field_wf_rec hT hU hWF
     | SmtType.Char, T, U, hT, hU, hWF => by
@@ -2783,9 +2749,12 @@ decreasing_by
 
 private theorem smtx_type_fun_like_domains_wf_of_type_wf
     {T : SmtType} (h : __smtx_type_wf T = true) :
-    smtx_type_fun_like_domains_wf T :=
-  smtx_type_fun_like_domains_wf_of_type_wf_rec (T := T)
-    (refs := native_reflist_nil) (by exact smtx_type_wf_rec_of_type_wf h)
+    smtx_type_fun_like_domains_wf T := by
+  by_cases hReg : T = SmtType.RegLan
+  · subst T
+    simp [smtx_type_fun_like_domains_wf]
+  · exact smtx_type_fun_like_domains_wf_of_type_wf_rec (T := T)
+      (refs := native_reflist_nil) (smtx_type_wf_rec_of_type_wf hReg h)
 
 private theorem smtx_type_fun_like_domains_wf_of_field_wf_rec
     {T : SmtType} {refs : RefList}
@@ -3606,6 +3575,20 @@ private theorem smtx_term_translation_injective_wf_of_non_none :
         exact choice_nth_translation_injective_wf_any s T body n hNN
     case DtCons s d i =>
         exact smtx_typeof_dt_cons_translation_injective_wf_of_non_none s d i hNN
+    case eq t1 t2 =>
+        rw [eq_term_typeof_of_non_none hNN]
+        simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
+          __smtx_type_wf_rec]
+    case to_real t =>
+        have hTy : __smtx_typeof (SmtTerm.to_real t) = SmtType.Real := by
+          rcases to_real_arg_of_non_none hNN with hArg | hArg
+          · rw [typeof_to_real_eq, hArg]
+            simp [native_ite, native_Teq]
+          · rw [typeof_to_real_eq, hArg]
+            simp [native_ite, native_Teq]
+        rw [hTy]
+        simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
+          __smtx_type_wf_rec]
     case ite c t1 t2 =>
         rcases ite_args_of_non_none hNN with ⟨T, hc, h1, h2, hT⟩
         have ht1 : term_has_non_none_type t1 :=
@@ -3785,12 +3768,9 @@ private theorem smtx_term_translation_injective_wf_of_non_none :
         rw [hTy]
         simpa [h1] using go t1 ht1
     all_goals
-      apply smtx_type_translation_injective_wf_of_type_wf
-      unfold term_has_non_none_type at hNN
-      simp only [__smtx_type_wf, __smtx_typeof, native_ite,
+      simp only [__smtx_typeof, native_ite,
         __smtx_typeof_bv_op_1, __smtx_typeof_bv_op_1_ret,
         __smtx_typeof_bv_op_2, __smtx_typeof_bv_op_2_ret,
-        __smtx_typeof_eq, __smtx_typeof_guard,
         __smtx_typeof_arith_overload_op_1, __smtx_typeof_arith_overload_op_2,
         __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_seq_op_1_ret,
         __smtx_typeof_seq_op_2_ret, __smtx_typeof_str_indexof,
@@ -3799,19 +3779,28 @@ private theorem smtx_term_translation_injective_wf_of_non_none :
         __smtx_typeof_concat, __smtx_typeof_extract, __smtx_typeof_repeat,
         __smtx_typeof_zero_extend, __smtx_typeof_sign_extend,
         __smtx_typeof_rotate_left, __smtx_typeof_rotate_right]
-      (repeat split) <;>
-        simp_all [__smtx_type_wf_rec, __smtx_typeof, native_and, native_ite,
-          __smtx_typeof_bv_op_1, __smtx_typeof_bv_op_1_ret,
-          __smtx_typeof_bv_op_2, __smtx_typeof_bv_op_2_ret,
-          __smtx_typeof_eq, __smtx_typeof_guard,
-          __smtx_typeof_arith_overload_op_1, __smtx_typeof_arith_overload_op_2,
-          __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_seq_op_1_ret,
-          __smtx_typeof_seq_op_2_ret, __smtx_typeof_str_indexof,
-          __smtx_typeof_re_exp, __smtx_typeof_re_loop, __smtx_typeof_set_member,
-          __smtx_typeof_sets_op_2_ret, __smtx_typeof_int_to_bv,
-          __smtx_typeof_concat, __smtx_typeof_extract, __smtx_typeof_repeat,
-          __smtx_typeof_zero_extend, __smtx_typeof_sign_extend,
-          __smtx_typeof_rotate_left, __smtx_typeof_rotate_right]
+      (repeat split) <;> try
+        simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
+          __smtx_type_wf_rec]
+      all_goals
+        first
+        | split <;>
+            simp [smtx_type_translation_injective_wf, smtx_type_field_wf_rec,
+              __smtx_type_wf_rec]
+        | exfalso
+          unfold term_has_non_none_type at hNN
+          simp only [__smtx_typeof, native_ite,
+            __smtx_typeof_bv_op_1, __smtx_typeof_bv_op_1_ret,
+            __smtx_typeof_bv_op_2, __smtx_typeof_bv_op_2_ret,
+            __smtx_typeof_arith_overload_op_1, __smtx_typeof_arith_overload_op_2,
+            __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_seq_op_1_ret,
+            __smtx_typeof_seq_op_2_ret, __smtx_typeof_str_indexof,
+            __smtx_typeof_re_exp, __smtx_typeof_re_loop, __smtx_typeof_set_member,
+            __smtx_typeof_sets_op_2_ret, __smtx_typeof_int_to_bv,
+            __smtx_typeof_concat, __smtx_typeof_extract, __smtx_typeof_repeat,
+            __smtx_typeof_zero_extend, __smtx_typeof_sign_extend,
+            __smtx_typeof_rotate_left, __smtx_typeof_rotate_right] at hNN
+          (repeat split at hNN) <;> simp_all
   exact go
 
 /-- Bridge-free selector application typing, using the local IH for the selector argument. -/
@@ -10429,7 +10418,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
             exact smtx_type_field_wf_rec_of_type_wf_rec (by
               have h := hTWF
               rw [hTFun] at h
-              exact smtx_type_wf_rec_of_type_wf h)
+              exact smtx_type_wf_rec_of_type_wf (by simp) h)
           have hArgWF := (fun_type_field_wf_rec_components_of_wf hFunWF).1
           have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
             eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
@@ -10619,7 +10608,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           exact smtx_type_field_wf_rec_of_type_wf_rec (by
             have h := hTWF
             rw [hTFun] at h
-            exact smtx_type_wf_rec_of_type_wf h)
+            exact smtx_type_wf_rec_of_type_wf (by simp) h)
         have hArgWF := (fun_type_field_wf_rec_components_of_wf hFunWF).1
         have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
           eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA

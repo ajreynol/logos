@@ -1274,10 +1274,19 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                     · exfalso
                       simp [native_ite, hWf] at hGuardNN
                   have hRetWfRec : __smtx_type_wf_rec R [] = true := by
+                    have hRetNotReg : R ≠ SmtType.RegLan := by
+                      have hNoReg :=
+                        TranslationProofs.eo_to_smt_type_ne_reglan
+                          (__eo_typeof (Term.Apply (Term.DtSel s d i j) x))
+                      rwa [hEoTy] at hNoReg
                     have hPair :
                         native_inhabited_type R = true ∧
                           __smtx_type_wf_rec R native_reflist_nil = true := by
-                      simpa [__smtx_type_wf, native_and] using hRetWf
+                      cases hR : R <;> simp [__smtx_type_wf, native_and, hR] at hRetWf ⊢
+                      case RegLan =>
+                        exact False.elim (hRetNotReg hR)
+                      all_goals
+                        exact hRetWf
                     exact hPair.2
                   have hSelRetValid :
                       TranslationProofs.eo_type_valid_rec []

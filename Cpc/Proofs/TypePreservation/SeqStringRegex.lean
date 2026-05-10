@@ -1561,7 +1561,8 @@ theorem model_eval_re_exp_rec_reglan :
       ∃ r' : native_RegLan,
         __smtx_model_eval_re_exp_rec n (SmtValue.RegLan r) = SmtValue.RegLan r'
   | native_nat_zero, r =>
-      ⟨native_str_to_re (native_unpack_string (SmtSeq.empty SmtType.Char)), rfl⟩
+      ⟨native_str_to_re (native_unpack_string (SmtSeq.empty SmtType.Char)), by
+        simp [__smtx_model_eval_re_exp_rec]⟩
   | native_nat_succ n, r => by
       rcases model_eval_re_exp_rec_reglan n r with ⟨r', hr'⟩
       refine ⟨native_re_concat r' r, ?_⟩
@@ -1764,7 +1765,8 @@ theorem model_eval_re_loop_rec_reglan :
         ⟨r1, hr1⟩
       rcases model_eval_re_exp_reglan n2 r with ⟨r2, hr2⟩
       refine ⟨native_re_union r1 r2, ?_⟩
-      simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union]
+      simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union,
+        __smtx_typeof_value]
 
 /-- Shows that evaluating `re_loop` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_loop

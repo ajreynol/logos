@@ -10,7 +10,7 @@ set_option maxHeartbeats 10000000
 private theorem eo_to_smt_mod_total_eq (x y : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.mod_total x) y) =
       SmtTerm.mod_total (__eo_to_smt x) (__eo_to_smt y) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 private theorem prog_arith_int_mod_total_zero_eq
     (t1 : Term)
@@ -47,8 +47,8 @@ private theorem typeof_arg_of_prog_arith_int_mod_total_zero_bool
 
 private theorem eval_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral n)) = SmtValue.Numeral n := by
-  rw [__eo_to_smt.eq_def]
-  simp [__smtx_model_eval]
+  change __smtx_model_eval M (SmtTerm.Numeral n) = SmtValue.Numeral n
+  rw [__smtx_model_eval.eq_2]
 
 private theorem typed___eo_prog_arith_int_mod_total_zero_impl
     (t1 : Term) :
@@ -68,9 +68,11 @@ private theorem typed___eo_prog_arith_int_mod_total_zero_impl
           (__eo_to_smt (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0))) =
         SmtType.Int := by
     have hNumTy : __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
-      simp [__eo_to_smt.eq_def, __smtx_typeof]
+      change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
+      rw [__smtx_typeof.eq_2]
     rw [eo_to_smt_mod_total_eq]
-    simp [__smtx_typeof, native_ite, native_Teq, hSmtT1, hNumTy]
+    rw [typeof_mod_total_eq]
+    simp [native_ite, native_Teq, hSmtT1, hNumTy]
   have hLhsTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)) := by
@@ -116,7 +118,9 @@ private theorem facts___eo_prog_arith_int_mod_total_zero_impl
           (__eo_to_smt (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0))) =
         SmtValue.Numeral n := by
     rw [eo_to_smt_mod_total_eq]
-    simp [__smtx_model_eval, hEvalT1, hEval0, __smtx_model_eval_mod_total]
+    rw [__smtx_model_eval.eq_30]
+    rw [hEvalT1, hEval0]
+    simp [__smtx_model_eval_mod_total]
     simp [SmtEval.native_mod_total]
   rw [hProgEq]
   exact RuleProofs.eo_interprets_eq_of_rel M

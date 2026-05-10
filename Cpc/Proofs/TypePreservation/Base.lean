@@ -478,6 +478,7 @@ theorem typeof_value_model_eval_exists
   by_cases h :
       ∃ v : SmtValue,
         __smtx_typeof_value v = T ∧
+          __smtx_value_canonical_bool v = true ∧
           __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
   · simp [h, __smtx_typeof_value]
   · simp [h, __smtx_typeof_value]
@@ -528,39 +529,10 @@ theorem typeof_value_model_eval_forall
   by_cases h :
       ∀ v : SmtValue,
         __smtx_typeof_value v = T ->
+          __smtx_value_canonical_bool v = true ->
           __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
-  · have hIf :
-        (if h' :
-            ∀ v : SmtValue,
-              __smtx_typeof_value v = T ->
-                __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true then
-          SmtValue.Boolean true
-        else
-          SmtValue.Boolean false) = SmtValue.Boolean true := by
-        by_cases h' :
-            ∀ v : SmtValue,
-              __smtx_typeof_value v = T ->
-                __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
-        · simpa using h'
-        · contradiction
-    rw [hIf]
-    rfl
-  · have hIf :
-        (if h' :
-            ∀ v : SmtValue,
-              __smtx_typeof_value v = T ->
-                __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true then
-          SmtValue.Boolean true
-        else
-          SmtValue.Boolean false) = SmtValue.Boolean false := by
-        by_cases h' :
-            ∀ v : SmtValue,
-              __smtx_typeof_value v = T ->
-                __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
-        · contradiction
-        · simp [h']
-    rw [hIf]
-    rfl
+  · simp [dif_pos h, __smtx_typeof_value]
+  · simp [dif_neg h, __smtx_typeof_value]
 
 /-- Provides a witness for `choice_term_has`. -/
 theorem choice_term_has_witness
@@ -568,7 +540,7 @@ theorem choice_term_has_witness
     {T : SmtType}
     {body : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
-    ∃ v : SmtValue, __smtx_typeof_value v = T := by
+    ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v := by
   unfold term_has_non_none_type at ht
   have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
     by_cases hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true
@@ -582,7 +554,8 @@ theorem choice_term_has_witness
   have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
     unfold __smtx_typeof at ht
     simpa [__smtx_typeof_choice_nth, hEq, native_ite] using ht
-  exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
+  exact canonical_type_inhabited_of_type_inhabited
+    (smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN)
 
 /-- Derives the zero-index `choice_nth` type as the self-guarded choice type from `non_none`. -/
 theorem choice_term_guard_type_of_non_none
@@ -778,19 +751,26 @@ theorem typeof_value_model_eval_choice
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.choice_nth s T body 0)) =
       __smtx_typeof (SmtTerm.choice_nth s T body 0) := by
   classical
-  have hTy : ∃ v : SmtValue, __smtx_typeof_value v = T :=
-    choice_term_has_witness ht
+  have hTy : ∃ v : SmtValue, __smtx_typeof_value v = T ∧
+      __smtx_value_canonical_bool v = true := by
+    rcases choice_term_has_witness ht with ⟨v, hvTy, hvCanon⟩
+    exact ⟨v, hvTy, by simpa [__smtx_value_canonical] using hvCanon⟩
+  have hTyIf : ∃ v : SmtValue, __smtx_typeof_value v = T ∧
+      __smtx_value_canonical_bool v := by
+    rcases hTy with ⟨v, hvTy, hvCanon⟩
+    exact ⟨v, hvTy, by simpa [hvCanon]⟩
   rw [choice_term_typeof_of_non_none ht]
   by_cases hSat :
       ∃ v : SmtValue,
         __smtx_typeof_value v = T ∧
+          __smtx_value_canonical_bool v = true ∧
           __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
   · rw [__smtx_model_eval.eq_136, smtx_model_eval_choice_nth_eq_1]
     simp [hSat]
     exact (Classical.choose_spec hSat).1
   · rw [__smtx_model_eval.eq_136, smtx_model_eval_choice_nth_eq_1]
-    simp [hSat, hTy]
-    exact Classical.choose_spec hTy
+    simp [hSat, hTyIf]
+    exact (Classical.choose_spec hTy).1
 
 /-- Shows that evaluating `choice_nth` terms preserves the computed choice type for any index. -/
 theorem typeof_value_model_eval_choice_nth
@@ -826,11 +806,13 @@ theorem typeof_value_model_eval_choice_nth
               (if hSat :
                   ∃ v : SmtValue,
                     __smtx_typeof_value v = T ∧
+                      __smtx_value_canonical_bool v = true ∧
                       __smtx_model_eval (__smtx_model_push M s T v)
                         (SmtTerm.exists s' U body') = SmtValue.Boolean true then
                 Classical.choose hSat
               else
-                if hTy : ∃ v : SmtValue, __smtx_typeof_value v = T then
+                if hTy : ∃ v : SmtValue, __smtx_typeof_value v = T ∧
+                    __smtx_value_canonical_bool v then
                   Classical.choose hTy
                 else
                   SmtValue.NotValue)) s' U body' ht'

@@ -10,7 +10,7 @@ set_option maxHeartbeats 10000000
 private theorem eo_to_smt_imp_eq_scope (x1 x2 : Term) :
     __eo_to_smt (Term.Apply (Term.Apply Term.imp x1) x2) =
       SmtTerm.imp (__eo_to_smt x1) (__eo_to_smt x2) := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Shows that the EO program for `scope_impl` is well typed. -/
 theorem typed___eo_prog_scope_of_bool_args (x1 x2 : Term) :

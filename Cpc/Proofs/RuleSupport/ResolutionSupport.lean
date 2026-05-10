@@ -185,11 +185,18 @@ private theorem erase_preserves_orClause {c e : Term} :
   simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
   exact erase_rec_preserves_orClause hClause hCBool hE
 
+private theorem eo_to_smt_false_eq :
+    __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false := by
+  rfl
+
+private theorem eo_to_smt_not_eq (t : Term) :
+    __eo_to_smt (Term.Apply Term.not t) = SmtTerm.not (__eo_to_smt t) := by
+  rfl
+
 private theorem eo_interprets_false (M : SmtModel) :
     eo_interprets M (Term.Boolean false) false := by
   rw [RuleProofs.eo_interprets_iff_smt_interprets]
-  rw [show __eo_to_smt (Term.Boolean false) = SmtTerm.Boolean false by
-    rw [__eo_to_smt.eq_def]]
+  rw [eo_to_smt_false_eq]
   refine smt_interprets.intro_false M (SmtTerm.Boolean false) ?_ ?_
   · rw [__smtx_typeof.eq_1]
   · rw [__smtx_model_eval.eq_1]
@@ -268,13 +275,11 @@ private theorem eo_interprets_not_false_of_true (M : SmtModel) (t : Term) :
   have hTy : RuleProofs.eo_has_bool_type t :=
     RuleProofs.eo_has_bool_type_of_interprets_true M t hTrue
   rw [RuleProofs.eo_interprets_iff_smt_interprets] at hTrue ⊢
-  rw [show __eo_to_smt (Term.Apply Term.not t) = SmtTerm.not (__eo_to_smt t) by
-    rw [__eo_to_smt.eq_def]]
+  rw [eo_to_smt_not_eq]
   cases hTrue with
   | intro_true _ hEval =>
       refine smt_interprets.intro_false M (SmtTerm.not (__eo_to_smt t)) ?_ ?_
-      · simpa [RuleProofs.eo_has_bool_type, show __eo_to_smt (Term.Apply Term.not t) =
-            SmtTerm.not (__eo_to_smt t) by rw [__eo_to_smt.eq_def]]
+      · simpa [RuleProofs.eo_has_bool_type, eo_to_smt_not_eq]
           using RuleProofs.eo_has_bool_type_not_of_bool_arg t hTy
       · rw [__smtx_model_eval.eq_6]
         rw [hEval]

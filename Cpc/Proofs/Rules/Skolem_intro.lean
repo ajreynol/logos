@@ -10,7 +10,7 @@ set_option maxHeartbeats 10000000
 /-- Simplifies EO-to-SMT translation for `skolem_intro`'s purify marker. -/
 private theorem eo_to_smt_purify_eq (x : Term) :
     __eo_to_smt (Term._at_purify x) = __eo_to_smt x := by
-  rw [__eo_to_smt.eq_def]
+  rfl
 
 /-- Expands `__eo_prog_skolem_intro` on purify inputs. -/
 private theorem eo_prog_skolem_intro_purify_eq (x : Term) :

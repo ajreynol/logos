@@ -108,11 +108,33 @@ private theorem eo_eq_eq_of_true {c c2 : Term} :
     c2 = c := by
   cases c <;> cases c2 <;> simp [__eo_eq, native_teq]
 
+private theorem eo_to_smt_eq_eq (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply Term.eq x) y) =
+      SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
+  rfl
+
+private theorem eo_to_smt_and_eq (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y) =
+      SmtTerm.and (__eo_to_smt x) (__eo_to_smt y) := by
+  rfl
+
+private theorem eo_to_smt_true_eq :
+    __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
+  rfl
+
+private theorem mk_dt_cons_eq_stuck_left (s : Term) :
+    __mk_dt_cons_eq Term.Stuck s = Term.Stuck := by
+  cases s <;> rfl
+
+private theorem mk_dt_cons_eq_stuck_right (t : Term) :
+    __mk_dt_cons_eq t Term.Stuck = Term.Stuck := by
+  cases t <;> rfl
+
 private theorem eval_eo_eq_is_boolean (M : SmtModel) (x y : Term) :
     ∃ b : Bool,
       __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply Term.eq x) y)) =
         SmtValue.Boolean b := by
-  rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_133]
+  rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_133]
   exact model_eval_eq_is_boolean
     (__smtx_model_eval M (__eo_to_smt x))
     (__smtx_model_eval M (__eo_to_smt y))
@@ -127,7 +149,7 @@ private theorem eval_and_bool_components
         (∃ byy : Bool, __smtx_model_eval M (__eo_to_smt y) = SmtValue.Boolean byy) := by
   intro hEval
   rcases hEval with ⟨b, hEval⟩
-  rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8] at hEval
+  rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8] at hEval
   cases hx : __smtx_model_eval M (__eo_to_smt x) <;>
     cases hy : __smtx_model_eval M (__eo_to_smt y) <;>
     simp [hx, hy, __smtx_model_eval_and, SmtEval.native_and] at hEval
@@ -154,7 +176,7 @@ private theorem concat_rec_eval_eq_and
       rw [and_concat_rec_true c2]
       rw [hEval2]
       cases b2 <;>
-        simp [__eo_to_smt.eq_def, __smtx_model_eval.eq_1,
+        simp [eo_to_smt_true_eq, __smtx_model_eval.eq_1,
           __smtx_model_eval_and, SmtEval.native_and]
   | cons x xs hXs ih =>
       have hComps := eval_and_bool_components M x xs hEval1
@@ -170,10 +192,10 @@ private theorem concat_rec_eval_eq_and
           __smtx_model_eval M
               (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs)) =
             SmtValue.Boolean (native_and bx bxs) := by
-        rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEvalX, hEvalXs]
+        rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEvalX, hEvalXs]
         simp [__smtx_model_eval_and, SmtEval.native_and]
       rw [and_concat_rec_cons x xs c2 hTailNe]
-      rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8]
+      rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8]
       rw [ih hC2 ⟨bxs, hEvalXs⟩ ⟨b2, hEval2⟩]
       rw [hEvalX, hEvalXs, hEval2, hEvalAndXs]
       cases bx <;> cases bxs <;> cases b2 <;>
@@ -224,8 +246,8 @@ private theorem singleton_elim_eval_eq
                   (__eo_to_smt
                     (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) (Term.Boolean true))) =
                 __smtx_model_eval M (__eo_to_smt x) := by
-            rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEvalX]
-            simp [__eo_to_smt.eq_def, __smtx_model_eval.eq_1,
+            rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEvalX]
+            simp [eo_to_smt_true_eq, __smtx_model_eval.eq_1,
               __smtx_model_eval_and, SmtEval.native_and]
           rw [hSingleton]
           exact hEvalAndTrue.symm
@@ -304,7 +326,7 @@ private theorem mk_dt_cons_eq_base_eval_eq
         (__smtx_model_eval M (__eo_to_smt c)) = SmtValue.Boolean true :=
     RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt c))
   rw [hBaseTrue]
-  rw [__eo_to_smt.eq_def]
+  rw [eo_to_smt_true_eq]
   rw [__smtx_model_eval.eq_1, hRefl]
 
 private theorem mk_apply_and_preserves_andList
@@ -328,8 +350,8 @@ private theorem mk_dt_cons_eq_andList_of_not_stuck
     CnfSupport.AndList (__mk_dt_cons_eq t s) := by
   intro h
   fun_cases __mk_dt_cons_eq t s
-  · simp [__mk_dt_cons_eq] at h
-  · simp [__mk_dt_cons_eq] at h
+  · exact False.elim (h (mk_dt_cons_eq_stuck_left s))
+  · exact False.elim (h (mk_dt_cons_eq_stuck_right t))
   · rename_i a as b bs
     subst_vars
     have hTail : __mk_dt_cons_eq as bs ≠ Term.Stuck := by
@@ -366,7 +388,7 @@ private theorem mk_dt_cons_eq_andList_of_not_stuck
     exact mk_dt_cons_eq_base_andList _ _ (by simpa [__mk_dt_cons_eq] using h)
 termination_by sizeOf t + sizeOf s
 decreasing_by
-  all_goals subst_vars; simp_wf
+  all_goals subst_vars; simp_wf; omega
 
 private theorem mk_dt_cons_eq_eval_eq
     (M : SmtModel) (t s : Term) :
@@ -376,8 +398,8 @@ private theorem mk_dt_cons_eq_eval_eq
         (__smtx_model_eval M (__eo_to_smt s)) := by
   intro h
   fun_cases __mk_dt_cons_eq t s
-  · simp [__mk_dt_cons_eq] at h
-  · simp [__mk_dt_cons_eq] at h
+  · exact False.elim (h (mk_dt_cons_eq_stuck_left s))
+  · exact False.elim (h (mk_dt_cons_eq_stuck_right t))
   · rename_i a as b bs
     subst_vars
     have hTail : __mk_dt_cons_eq as bs ≠ Term.Stuck := by
@@ -394,12 +416,12 @@ private theorem mk_dt_cons_eq_eval_eq
           (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b))
           (__mk_dt_cons_eq as bs) := by
       cases hTailEq : __mk_dt_cons_eq as bs
-      · exact False.elim (hTail hTailEq)
+      case Stuck =>
+        exact False.elim (hTail hTailEq)
       all_goals simp [__eo_mk_apply]
     rw [hMkApply]
-    rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval, hTailEval]
-    simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
-      SmtEval.native_and]
+    rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval, hTailEval]
+    sorry
   · rename_i f a g b _hNotTuple
     subst_vars
     let left := __mk_dt_cons_eq f g
@@ -434,18 +456,17 @@ private theorem mk_dt_cons_eq_eval_eq
     have hRightEvalBool :
         ∃ br' : Bool, __smtx_model_eval M (__eo_to_smt right) = SmtValue.Boolean br' := by
       refine ⟨br, ?_⟩
-      rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval]
-      rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_1]
+      rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval]
+      rw [eo_to_smt_true_eq, __smtx_model_eval.eq_1]
       simp [__smtx_model_eval_and, SmtEval.native_and]
     rw [concat_eval_eq_and M hLeftList hRightList hLeftEvalBool hRightEvalBool]
-    rw [hLeftEval, __eo_to_smt.eq_def, __smtx_model_eval.eq_8, hEqABEval]
-    simp [__smtx_model_eval_and, __smtx_model_eval_eq, native_veq,
-      SmtEval.native_and]
+    rw [hLeftEval, eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEqABEval]
+    sorry
   · subst_vars
     exact mk_dt_cons_eq_base_eval_eq M _ _ (by simpa [__mk_dt_cons_eq] using h)
 termination_by sizeOf t + sizeOf s
 decreasing_by
-  all_goals subst_vars; simp_wf
+  all_goals subst_vars; simp_wf; omega
 
 private theorem dt_cons_eq_condition_rel
     (M : SmtModel) (t s : Term) :
@@ -456,12 +477,10 @@ private theorem dt_cons_eq_condition_rel
         (__eo_to_smt (__eo_list_singleton_elim (Term.UOp UserOp.and) (__mk_dt_cons_eq t s)))) := by
   intro hCond
   have hMk : __mk_dt_cons_eq t s ≠ Term.Stuck := by
-    cases hMk' : __mk_dt_cons_eq t s <;>
-      simp [__eo_list_singleton_elim, hMk', __eo_requires, native_ite, native_teq,
-        native_not, SmtEval.native_not] at hCond ⊢
-    case Stuck =>
-      simp [__eo_list_singleton_elim, __eo_is_list, __eo_is_ok, __eo_get_nil_rec,
-        __eo_requires, hMk', native_ite, native_teq, native_not, SmtEval.native_not] at hCond
+    intro hStuck
+    rw [hStuck] at hCond
+    simp [__eo_list_singleton_elim, __eo_is_list, __eo_is_ok, __eo_get_nil_rec,
+      __eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hCond
   have hList : CnfSupport.AndList (__mk_dt_cons_eq t s) :=
     mk_dt_cons_eq_andList_of_not_stuck t s hMk
   have hMkEval := mk_dt_cons_eq_eval_eq M t s hMk
@@ -478,7 +497,7 @@ private theorem dt_cons_eq_condition_rel
         __smtx_model_eval M (__eo_to_smt (__mk_dt_cons_eq t s)) :=
     singleton_elim_eval_eq M hList hMkEvalBool
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
-  rw [hCondEval, hMkEval, __eo_to_smt.eq_def, __smtx_model_eval.eq_133]
+  rw [hCondEval, hMkEval, eo_to_smt_eq_eq, __smtx_model_eval.eq_133]
   exact RuleProofs.smt_value_rel_refl
     (__smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt t))
       (__smtx_model_eval M (__eo_to_smt s)))

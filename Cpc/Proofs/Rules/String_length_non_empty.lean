@@ -27,6 +27,44 @@ private theorem empty_of_prog_string_length_non_empty_not_stuck
       simp [__eo_prog_string_length_non_empty, hE, __eo_requires,
         native_ite, native_teq, native_not] at hProg
 
+/-- Simplifies EO-to-SMT translation for equality. -/
+private theorem eo_to_smt_eq_eq (x y : Term) :
+    __eo_to_smt (Term.Apply (Term.Apply Term.eq x) y) =
+      SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y) := by
+  rfl
+
+/-- Computes the SMT type of an EO `str.len` term once its argument is known to be a sequence. -/
+private theorem typeof_eo_str_len_of_seq
+    (s : Term) (T : SmtType)
+    (hSTySeq : __smtx_typeof (__eo_to_smt s) = SmtType.Seq T) :
+    __smtx_typeof (__eo_to_smt (Term.Apply Term.str_len s)) = SmtType.Int := by
+  change __smtx_typeof (SmtTerm.str_len (__eo_to_smt s)) = SmtType.Int
+  rw [typeof_str_len_eq, hSTySeq]
+  simp [__smtx_typeof_seq_op_1_ret, native_ite, native_Teq]
+
+/-- Computes the SMT type of the EO numeral `0`. -/
+private theorem typeof_eo_zero :
+    __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
+  change __smtx_typeof (SmtTerm.Numeral 0) = SmtType.Int
+  rw [__smtx_typeof.eq_2]
+
+/-- Evaluates EO `str.len` once the translated argument has been evaluated to a sequence. -/
+private theorem eval_eo_str_len_of_seq
+    (M : SmtModel) (s : Term) (ss : SmtSeq)
+    (hEvalS : __smtx_model_eval M (__eo_to_smt s) = SmtValue.Seq ss) :
+    __smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_len s)) =
+      SmtValue.Numeral (native_seq_len (native_unpack_seq ss)) := by
+  change __smtx_model_eval M (SmtTerm.str_len (__eo_to_smt s)) =
+    SmtValue.Numeral (native_seq_len (native_unpack_seq ss))
+  rw [__smtx_model_eval.eq_78, hEvalS]
+  rfl
+
+/-- Evaluates the translated EO numeral `0`. -/
+private theorem eval_eo_zero (M : SmtModel) :
+    __smtx_model_eval M (__eo_to_smt (Term.Numeral 0)) = SmtValue.Numeral 0 := by
+  change __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0
+  rw [__smtx_model_eval.eq_2]
+
 /-- Characterizes the SMT type and evaluation of syntactically empty string terms. -/
 private theorem empty_term_smt_info
     (t : Term)
@@ -40,9 +78,13 @@ private theorem empty_term_smt_info
       by_cases hs : s = ""
       · subst hs
         refine ⟨SmtType.Char, ?_, ?_⟩
-        · simp [__eo_to_smt.eq_def, __smtx_typeof]
+        · change __smtx_typeof (SmtTerm.String "") = SmtType.Seq SmtType.Char
+          rw [__smtx_typeof.eq_4]
         · intro M
-          simp [__eo_to_smt.eq_def, __smtx_model_eval, native_pack_string, native_pack_seq,
+          change __smtx_model_eval M (SmtTerm.String "") =
+            SmtValue.Seq (SmtSeq.empty SmtType.Char)
+          rw [__smtx_model_eval.eq_4]
+          simp [native_pack_string, native_pack_seq,
             __smtx_ssm_char_values_of_string]
       · simp [__str_is_empty, hs] at hEmpty
   | seq_empty x =>
@@ -58,10 +100,21 @@ private theorem empty_term_smt_info
                         SmtType.None := hTrans
                   by_cases hU : __eo_to_smt_type U = SmtType.None
                   · exfalso
+                    have hSeqTyNone :
+                        __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
+                          SmtType.None := by
+                      rw [TranslationProofs.eo_to_smt_type_seq]
+                      unfold __smtx_typeof_guard
+                      simp [hU, native_ite, native_Teq]
                     apply hTrans'
-                    simp [__eo_to_smt.eq_def, TranslationProofs.eo_to_smt_type_seq,
-                      __eo_to_smt_seq_empty, __smtx_typeof_guard, __smtx_typeof, hU, native_ite,
-                      native_Teq]
+                    change
+                      __smtx_typeof
+                          (__eo_to_smt_seq_empty
+                            (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
+                        SmtType.None
+                    rw [hSeqTyNone]
+                    change __smtx_typeof SmtTerm.None = SmtType.None
+                    simp [__smtx_typeof]
                   · refine ⟨__eo_to_smt_type U, ?_, ?_⟩
                     · have hGuard :
                           __smtx_typeof_guard (__eo_to_smt_type U)
@@ -69,18 +122,35 @@ private theorem empty_term_smt_info
                             SmtType.Seq (__eo_to_smt_type U) := by
                         unfold __smtx_typeof_guard
                         simp [hU, native_ite, native_Teq]
+                      have hSeqTy :
+                          __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
+                            SmtType.Seq (__eo_to_smt_type U) := by
+                        rw [TranslationProofs.eo_to_smt_type_seq]
+                        exact hGuard
                       have hSeqEmptyNonNone :
                           __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) ≠
                             SmtType.None := by
-                        simpa [__eo_to_smt.eq_def, TranslationProofs.eo_to_smt_type_seq, hGuard,
-                          __eo_to_smt_seq_empty] using hTrans'
+                        change
+                          __smtx_typeof
+                              (__eo_to_smt_seq_empty
+                                (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) ≠
+                            SmtType.None at hTrans'
+                        rw [hSeqTy] at hTrans'
+                        change __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) ≠
+                          SmtType.None at hTrans'
+                        exact hTrans'
                       have hSeqEmptyTy :
                           __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) =
                             SmtType.Seq (__eo_to_smt_type U) :=
                         TranslationProofs.smtx_typeof_seq_empty_of_non_none
                           (__eo_to_smt_type U) hSeqEmptyNonNone
-                      simpa [__eo_to_smt.eq_def, TranslationProofs.eo_to_smt_type_seq, hGuard,
-                        __eo_to_smt_seq_empty] using hSeqEmptyTy
+                      change
+                        __smtx_typeof
+                            (__eo_to_smt_seq_empty
+                              (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
+                          SmtType.Seq (__eo_to_smt_type U)
+                      rw [hSeqTy]
+                      exact hSeqEmptyTy
                     · intro M
                       have hGuard :
                           __smtx_typeof_guard (__eo_to_smt_type U)
@@ -88,8 +158,20 @@ private theorem empty_term_smt_info
                             SmtType.Seq (__eo_to_smt_type U) := by
                         unfold __smtx_typeof_guard
                         simp [hU, native_ite, native_Teq]
-                      simp [__eo_to_smt.eq_def, TranslationProofs.eo_to_smt_type_seq, hGuard,
-                        __eo_to_smt_seq_empty, __smtx_model_eval]
+                      have hSeqTy :
+                          __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
+                            SmtType.Seq (__eo_to_smt_type U) := by
+                        rw [TranslationProofs.eo_to_smt_type_seq]
+                        exact hGuard
+                      change
+                        __smtx_model_eval M
+                            (__eo_to_smt_seq_empty
+                              (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
+                          SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
+                      rw [hSeqTy]
+                      change __smtx_model_eval M (SmtTerm.seq_empty (__eo_to_smt_type U)) =
+                        SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
+                      rw [__smtx_model_eval.eq_77]
               | _ =>
                   simp [__str_is_empty] at hEmpty
           | _ =>
@@ -139,12 +221,10 @@ private theorem typed___eo_prog_string_length_non_empty_impl (x1 : Term) :
                               have hLenTy :
                                   __smtx_typeof (__eo_to_smt (Term.Apply Term.str_len s)) =
                                     SmtType.Int := by
-                                rw [__eo_to_smt.eq_def, typeof_str_len_eq]
-                                rw [hSTySeq]
-                                simp [__smtx_typeof_seq_op_1_ret, native_ite, native_Teq]
+                                exact typeof_eo_str_len_of_seq s T hSTySeq
                               have hNumTy :
                                   __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
-                                simp [__eo_to_smt.eq_def, __smtx_typeof]
+                                exact typeof_eo_zero
                               have hEqLenBool :
                                   RuleProofs.eo_has_bool_type
                                     (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_len s))
@@ -153,9 +233,21 @@ private theorem typed___eo_prog_string_length_non_empty_impl (x1 : Term) :
                                   (Term.Apply Term.str_len s) (Term.Numeral 0)
                                   (by rw [hLenTy, hNumTy])
                                   (by rw [hLenTy]; simp)
-                              simpa [__eo_prog_string_length_non_empty, hEmpty, __eo_requires,
-                                native_ite, native_teq, native_not] using
+                              have hNotLenBool :
+                                  RuleProofs.eo_has_bool_type
+                                    (Term.Apply Term.not
+                                      (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_len s))
+                                        (Term.Numeral 0))) :=
                                 RuleProofs.eo_has_bool_type_not_of_bool_arg _ hEqLenBool
+                              change RuleProofs.eo_has_bool_type
+                                (__eo_requires (__str_is_empty t) (Term.Boolean true)
+                                  (Term.Apply Term.not
+                                    (Term.Apply
+                                      (Term.Apply Term.eq (Term.Apply Term.str_len s))
+                                      (Term.Numeral 0))))
+                              rw [hEmpty]
+                              simpa [__eo_requires, native_ite, native_teq, native_not] using
+                                hNotLenBool
                           | _ =>
                               change Term.Stuck ≠ Term.Stuck at hProg
                               exact False.elim (hProg rfl)
@@ -265,12 +357,10 @@ private theorem facts___eo_prog_string_length_non_empty_impl
                                   have hLenTy :
                                       __smtx_typeof (__eo_to_smt (Term.Apply Term.str_len s)) =
                                         SmtType.Int := by
-                                    rw [__eo_to_smt.eq_def, typeof_str_len_eq]
-                                    rw [hSTySeq]
-                                    simp [__smtx_typeof_seq_op_1_ret, native_ite, native_Teq]
+                                    exact typeof_eo_str_len_of_seq s T hSTySeq
                                   have hNumTy :
                                       __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
-                                    simp [__eo_to_smt.eq_def, __smtx_typeof]
+                                    exact typeof_eo_zero
                                   have hEqLenBool :
                                       RuleProofs.eo_has_bool_type
                                         (Term.Apply
@@ -284,29 +374,53 @@ private theorem facts___eo_prog_string_length_non_empty_impl
                                       __smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_len s)) =
                                         SmtValue.Numeral
                                           (native_seq_len (native_unpack_seq (SmtSeq.cons v vs))) := by
-                                    rw [__eo_to_smt.eq_def]
-                                    simp [__smtx_model_eval, hEvalS, __smtx_model_eval_str_len]
+                                    exact eval_eo_str_len_of_seq M s (SmtSeq.cons v vs) hEvalS
+                                  have hEqLenEval :
+                                      __smtx_model_eval M
+                                          (__eo_to_smt
+                                            (Term.Apply
+                                              (Term.Apply Term.eq (Term.Apply Term.str_len s))
+                                              (Term.Numeral 0))) =
+                                        SmtValue.Boolean false := by
+                                    rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_133]
+                                    rw [hEvalLen]
+                                    rw [eval_eo_zero M]
+                                    unfold __smtx_model_eval_eq native_veq
+                                    change
+                                      SmtValue.Boolean
+                                          (decide
+                                            (SmtValue.Numeral
+                                                (native_seq_len
+                                                  (native_unpack_seq (SmtSeq.cons v vs))) =
+                                              SmtValue.Numeral 0)) =
+                                        SmtValue.Boolean false
+                                    congr
                                   have hEqLenFalse :
                                       eo_interprets M
                                         (Term.Apply
                                           (Term.Apply Term.eq (Term.Apply Term.str_len s))
                                           (Term.Numeral 0))
-                                        false := by
-                                    apply RuleProofs.eo_interprets_of_bool_eval M _ false hEqLenBool
-                                    rw [__eo_to_smt.eq_def, __smtx_model_eval.eq_133]
-                                    rw [hEvalLen]
-                                    simp [__eo_to_smt.eq_def, __smtx_model_eval, __smtx_model_eval_eq,
-                                      native_veq, native_seq_len, native_unpack_seq]
-                                    intro hZero
-                                    have hZeroNat : (native_unpack_seq vs).length + 1 = 0 := by
-                                      exact_mod_cast hZero
-                                    exact Nat.succ_ne_zero _ hZeroNat
-                                  simpa [__eo_prog_string_length_non_empty, hEmpty, __eo_requires,
-                                    native_ite, native_teq, native_not] using
+                                        false :=
+                                    RuleProofs.eo_interprets_of_bool_eval M _ false hEqLenBool hEqLenEval
+                                  have hNotLen :
+                                      eo_interprets M
+                                        (Term.Apply Term.not
+                                          (Term.Apply
+                                            (Term.Apply Term.eq (Term.Apply Term.str_len s))
+                                            (Term.Numeral 0))) true :=
                                     RuleProofs.eo_interprets_not_of_false M
                                       (Term.Apply (Term.Apply Term.eq (Term.Apply Term.str_len s))
                                         (Term.Numeral 0))
                                       hEqLenFalse
+                                  change eo_interprets M
+                                    (__eo_requires (__str_is_empty t) (Term.Boolean true)
+                                      (Term.Apply Term.not
+                                        (Term.Apply
+                                          (Term.Apply Term.eq (Term.Apply Term.str_len s))
+                                          (Term.Numeral 0)))) true
+                                  rw [hEmpty]
+                                  simpa [__eo_requires, native_ite, native_teq, native_not] using
+                                    hNotLen
                           | _ =>
                               change Term.Stuck ≠ Term.Stuck at hProg
                               exact False.elim (hProg rfl)

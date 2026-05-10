@@ -15,6 +15,16 @@ theorem model_total_typed_lookup
     __smtx_typeof_value (__smtx_model_lookup M s T) = T :=
   hM.1 s T hT
 
+/-- Describes how `model_total_typed` preserves canonical lookup values. -/
+theorem model_total_typed_lookup_canonical
+    {M : SmtModel}
+    (hM : model_total_typed M)
+    (s : native_String)
+    (T : SmtType)
+    (hT : type_inhabited T) :
+    __smtx_value_canonical (__smtx_model_lookup M s T) :=
+  hM.2.1 s T hT
+
 /-- Describes how `model_total_typed` behaves under `lookup_uninhabited`. -/
 theorem model_total_typed_lookup_uninhabited
     {M : SmtModel}
@@ -23,7 +33,7 @@ theorem model_total_typed_lookup_uninhabited
     (T : SmtType)
     (hT : ¬ type_inhabited T) :
     __smtx_model_lookup M s T = SmtValue.NotValue :=
-  hM.2 s T hT
+  hM.2.2 s T hT
 
 /-- Describes how `model_typed_at` behaves under `push`. -/
 theorem model_typed_at_push
@@ -47,7 +57,8 @@ theorem model_total_typed_push
     (s : native_String)
     (T : SmtType)
     (v : SmtValue)
-    (hv : __smtx_typeof_value v = T) :
+    (hv : __smtx_typeof_value v = T)
+    (hvCanon : __smtx_value_canonical v) :
     model_total_typed (__smtx_model_push M s T v) := by
   constructor
   · intro s' T' hT'
@@ -57,14 +68,22 @@ theorem model_total_typed_push
       simp [hv]
     · simp [h]
       exact model_total_typed_lookup hM s' T' hT'
-  · intro s' T' hT'
-    unfold __smtx_model_lookup __smtx_model_push
-    by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
-    · cases h
-      exfalso
-      exact hT' ⟨v, hv⟩
-    · simp [h]
-      exact model_total_typed_lookup_uninhabited hM s' T' hT'
+  · constructor
+    · intro s' T' hT'
+      unfold __smtx_model_lookup __smtx_model_push
+      by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
+      · cases h
+        simp [hvCanon]
+      · simp [h]
+        exact model_total_typed_lookup_canonical hM s' T' hT'
+    · intro s' T' hT'
+      unfold __smtx_model_lookup __smtx_model_push
+      by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
+      · cases h
+        exfalso
+        exact hT' ⟨v, hv⟩
+      · simp [h]
+        exact model_total_typed_lookup_uninhabited hM s' T' hT'
 
 /-- Shows that `default_typed_model` is total and type-correct on every inhabited SMT type. -/
 theorem default_typed_model_total_typed :
@@ -73,9 +92,13 @@ theorem default_typed_model_total_typed :
   constructor
   · intro s T hT
     simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT,
-      Classical.choose_spec hT]
-  · intro s T hT
-    simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT]
+      (Classical.choose_spec (canonical_type_inhabited_of_type_inhabited hT)).1]
+  · constructor
+    · intro s T hT
+      simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT,
+        (Classical.choose_spec (canonical_type_inhabited_of_type_inhabited hT)).2]
+    · intro s T hT
+      simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT]
 
 /-- Constructs a total typed SMT model. -/
 theorem exists_total_typed_model :

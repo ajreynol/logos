@@ -1455,6 +1455,95 @@ theorem eo_datatype_valid_of_smt_wf_rec
 
 end
 
+private theorem smtx_typeof_guard_ne_reglan
+    (T U : SmtType) (hU : U ≠ SmtType.RegLan) :
+    __smtx_typeof_guard T U ≠ SmtType.RegLan := by
+  cases T <;> simp [__smtx_typeof_guard, native_Teq, hU]
+
+theorem eo_to_smt_type_ne_reglan (T : Term) :
+    __eo_to_smt_type T ≠ SmtType.RegLan := by
+  cases T with
+  | UOp op =>
+      cases op <;> simp [__eo_to_smt_type]
+  | __eo_List => simp [__eo_to_smt_type]
+  | __eo_List_nil => simp [__eo_to_smt_type]
+  | __eo_List_cons => simp [__eo_to_smt_type]
+  | Bool => simp [__eo_to_smt_type]
+  | Boolean b => simp [__eo_to_smt_type]
+  | Numeral n => simp [__eo_to_smt_type]
+  | Rational q => simp [__eo_to_smt_type]
+  | String s => simp [__eo_to_smt_type]
+  | Binary w n => simp [__eo_to_smt_type]
+  | «Type» => simp [__eo_to_smt_type]
+  | Stuck => simp [__eo_to_smt_type]
+  | Apply f x =>
+      cases f with
+      | UOp op =>
+          cases op with
+          | Int => simp [__eo_to_smt_type]
+          | Real => simp [__eo_to_smt_type]
+          | BitVec =>
+              cases x <;> try simp [__eo_to_smt_type]
+              rename_i n
+              by_cases h : native_zleq 0 n = true <;> simp [h]
+          | Char => simp [__eo_to_smt_type]
+          | Seq =>
+              simpa [__eo_to_smt_type] using
+                smtx_typeof_guard_ne_reglan (__eo_to_smt_type x)
+                  (SmtType.Seq (__eo_to_smt_type x)) (by simp)
+          | not => simp [__eo_to_smt_type]
+          | or => simp [__eo_to_smt_type]
+          | and => simp [__eo_to_smt_type]
+          | imp => simp [__eo_to_smt_type]
+          | eq => simp [__eo_to_smt_type]
+      | __eo_List => simp [__eo_to_smt_type]
+      | __eo_List_nil => simp [__eo_to_smt_type]
+      | __eo_List_cons => simp [__eo_to_smt_type]
+      | Bool => simp [__eo_to_smt_type]
+      | Boolean b => simp [__eo_to_smt_type]
+      | Numeral n => simp [__eo_to_smt_type]
+      | Rational q => simp [__eo_to_smt_type]
+      | String s => simp [__eo_to_smt_type]
+      | Binary w n => simp [__eo_to_smt_type]
+      | «Type» => simp [__eo_to_smt_type]
+      | Stuck => simp [__eo_to_smt_type]
+      | Apply f1 f2 =>
+          cases f1 <;> try simp [__eo_to_smt_type]
+          simpa [__eo_to_smt_type] using
+            smtx_typeof_guard_ne_reglan (__eo_to_smt_type f2)
+              (__smtx_typeof_guard (__eo_to_smt_type x)
+                (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x)))
+              (smtx_typeof_guard_ne_reglan (__eo_to_smt_type x)
+                (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x)) (by simp))
+      | FunType => simp [__eo_to_smt_type]
+      | Var T U => simp [__eo_to_smt_type]
+      | DatatypeType s d => simp [__eo_to_smt_type]
+      | DatatypeTypeRef s => simp [__eo_to_smt_type]
+      | DtcAppType T1 T2 => simp [__eo_to_smt_type]
+      | DtCons s d i => simp [__eo_to_smt_type]
+      | DtSel s d i j => simp [__eo_to_smt_type]
+      | USort i => simp [__eo_to_smt_type]
+      | UConst i T => simp [__eo_to_smt_type]
+  | FunType => simp [__eo_to_smt_type]
+  | Var T U => simp [__eo_to_smt_type]
+  | DatatypeType s d =>
+      by_cases h : native_reserved_datatype_name s = true <;>
+        simp [__eo_to_smt_type, h]
+  | DatatypeTypeRef s =>
+      by_cases h : native_reserved_datatype_name s = true <;>
+        simp [__eo_to_smt_type, h]
+  | DtcAppType T1 T2 =>
+      simpa [__eo_to_smt_type] using
+        smtx_typeof_guard_ne_reglan (__eo_to_smt_type T1)
+          (__smtx_typeof_guard (__eo_to_smt_type T2)
+            (SmtType.DtcAppType (__eo_to_smt_type T1) (__eo_to_smt_type T2)))
+          (smtx_typeof_guard_ne_reglan (__eo_to_smt_type T2)
+            (SmtType.DtcAppType (__eo_to_smt_type T1) (__eo_to_smt_type T2)) (by simp))
+  | DtCons s d i => simp [__eo_to_smt_type]
+  | DtSel s d i j => simp [__eo_to_smt_type]
+  | USort i => simp [__eo_to_smt_type]
+  | UConst i T => simp [__eo_to_smt_type]
+
 /-- A non-`None` well-formedness guard witnesses proof-side EO type validity. -/
 theorem eo_type_valid_of_guard_wf_non_none
     {T U : Term}
@@ -1469,7 +1558,11 @@ theorem eo_type_valid_of_guard_wf_non_none
   have hPair :
       native_inhabited_type (__eo_to_smt_type T) = true ∧
         __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using hWf
+    cases hTy : __eo_to_smt_type T <;> simp [__smtx_type_wf, native_and, hTy] at hWf ⊢
+    case RegLan =>
+      exact False.elim (eo_to_smt_type_ne_reglan T hTy)
+    all_goals
+      exact hWf
   exact eo_type_valid_of_smt_wf_rec [] hPair.2
 
 /-- Translating EO type-reference substitution matches the corresponding SMT substitution step. -/
