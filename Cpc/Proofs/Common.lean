@@ -562,6 +562,30 @@ theorem smt_value_rel_iff_eq (v1 : SmtValue) (v2 : SmtValue)
     smt_value_rel v1 v2 ↔ v1 = v2 :=
   smtx_model_eval_eq_true_iff_of_not_reglan_pair hReg
 
+/-- Values of the same non-`RegLan` type are semantically related iff they are equal. -/
+theorem smt_value_rel_iff_eq_of_type_ne_reglan
+    {v1 v2 : SmtValue} {T : SmtType}
+    (hTy1 : __smtx_typeof_value v1 = T)
+    (hTy2 : __smtx_typeof_value v2 = T)
+    (hT : T ≠ SmtType.RegLan) :
+    smt_value_rel v1 v2 ↔ v1 = v2 := by
+  exact smt_value_rel_iff_eq v1 v2 (by
+    rintro ⟨r1, r2, hV1, hV2⟩
+    have hTReg : T = SmtType.RegLan := by
+      rw [← hTy1, hV1]
+      rfl
+    exact hT hTReg)
+
+/-- Values of the same non-`RegLan` type that are semantically related are equal. -/
+theorem smt_value_rel_eq_of_type_ne_reglan
+    {v1 v2 : SmtValue} {T : SmtType}
+    (hTy1 : __smtx_typeof_value v1 = T)
+    (hTy2 : __smtx_typeof_value v2 = T)
+    (hT : T ≠ SmtType.RegLan)
+    (hRel : smt_value_rel v1 v2) :
+    v1 = v2 :=
+  (smt_value_rel_iff_eq_of_type_ne_reglan hTy1 hTy2 hT).mp hRel
+
 /-- Characterizes `smt_seq_rel` under canonical value equality. -/
 theorem smt_seq_rel_iff_eq (s1 : SmtSeq) (s2 : SmtSeq) :
     smt_seq_rel s1 s2 ↔ s1 = s2 :=
