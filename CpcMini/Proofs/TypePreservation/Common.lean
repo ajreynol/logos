@@ -240,12 +240,244 @@ end
 
 mutual
 
+private theorem finite_type_default_of_unit_default_ne
+    (T : SmtType)
+    (h : __smtx_unit_type_default T ≠ SmtValue.NotValue) :
+    __smtx_finite_type_default T = __smtx_unit_type_default T := by
+  cases T with
+  | BitVec w =>
+      simp [__smtx_unit_type_default] at h ⊢
+      by_cases hw : native_nateq w native_nat_zero = true
+      · have hwEq : w = native_nat_zero := by
+          simpa [native_nateq] using hw
+        subst w
+        simp [__smtx_finite_type_default, __smtx_unit_type_default, native_nateq,
+          native_nat_to_int, native_ite]
+      · exfalso
+        exact h (by simp [hw, native_ite])
+  | Datatype s d =>
+      exact finite_datatype_default_of_unit_default_ne s d h
+  | Map A B =>
+      simp [__smtx_unit_type_default] at h ⊢
+      by_cases hB : native_veq (__smtx_unit_type_default B) SmtValue.NotValue = true
+      · exfalso
+        exact h (by simp [hB, native_ite])
+      · have hBFalse :
+            native_veq (__smtx_unit_type_default B) SmtValue.NotValue = false := by
+          cases hBb : native_veq (__smtx_unit_type_default B) SmtValue.NotValue <;>
+            simp [hBb] at hB ⊢
+        simp [__smtx_finite_type_default, __smtx_unit_type_default, hBFalse,
+          native_ite]
+  | FunType A B =>
+      simp [__smtx_unit_type_default] at h ⊢
+      by_cases hB : native_veq (__smtx_unit_type_default B) SmtValue.NotValue = true
+      · exfalso
+        exact h (by simp [hB, native_ite])
+      · have hBFalse :
+            native_veq (__smtx_unit_type_default B) SmtValue.NotValue = false := by
+          cases hBb : native_veq (__smtx_unit_type_default B) SmtValue.NotValue <;>
+            simp [hBb] at hB ⊢
+        simp [__smtx_finite_type_default, __smtx_unit_type_default, hBFalse,
+          native_ite]
+  | _ =>
+      simp [__smtx_unit_type_default] at h
+
+private theorem finite_datatype_default_of_unit_default_ne
+    (s : native_String) :
+    ∀ d,
+      __smtx_unit_datatype_default s d ≠ SmtValue.NotValue ->
+        __smtx_finite_datatype_default s d d native_nat_zero =
+          __smtx_unit_datatype_default s d
+  | SmtDatatype.null, h => by
+      simp [__smtx_unit_datatype_default] at h
+  | SmtDatatype.sum c SmtDatatype.null, h => by
+      exact finite_datatype_cons_default_of_unit_default_ne
+        (SmtValue.DtCons s (SmtDatatype.sum c SmtDatatype.null) native_nat_zero) c h
+  | SmtDatatype.sum c (SmtDatatype.sum c2 d2), h => by
+      simp [__smtx_unit_datatype_default] at h
+
+private theorem finite_datatype_cons_default_of_unit_default_ne
+    (v : SmtValue) :
+    ∀ c,
+      __smtx_unit_datatype_cons_default v c ≠ SmtValue.NotValue ->
+        __smtx_finite_datatype_cons_default v c =
+          __smtx_unit_datatype_cons_default v c
+  | SmtDatatypeCons.unit, _ => by
+      simp [__smtx_finite_datatype_cons_default, __smtx_unit_datatype_cons_default]
+  | SmtDatatypeCons.cons T c, h => by
+      simp [__smtx_unit_datatype_cons_default] at h ⊢
+      by_cases hT : native_veq (__smtx_unit_type_default T) SmtValue.NotValue = true
+      · exfalso
+        exact h (by simp [hT, native_ite])
+      · have hTFalse :
+            native_veq (__smtx_unit_type_default T) SmtValue.NotValue = false := by
+          cases hTb : native_veq (__smtx_unit_type_default T) SmtValue.NotValue <;>
+            simp [hTb] at hT ⊢
+        have hTne : __smtx_unit_type_default T ≠ SmtValue.NotValue := by
+          intro hh
+          simp [hh, native_veq] at hT
+        have hEq := finite_type_default_of_unit_default_ne T hTne
+        have hFinFalse :
+            native_veq (__smtx_finite_type_default T) SmtValue.NotValue = false := by
+          rw [hEq]
+          exact hTFalse
+        have hRest :
+            __smtx_unit_datatype_cons_default
+                (SmtValue.Apply v (__smtx_unit_type_default T)) c ≠
+              SmtValue.NotValue := by
+          intro hh
+          exact h (by simp [hTFalse, hh, native_ite])
+        have hRec :=
+          finite_datatype_cons_default_of_unit_default_ne
+            (SmtValue.Apply v (__smtx_unit_type_default T)) c hRest
+        simpa [__smtx_finite_datatype_cons_default, hEq, hFinFalse, hTFalse,
+          native_ite] using hRec
+
+end
+
+mutual
+
 private theorem finite_type_default_typed_canonical
     (T : SmtType)
     (h : __smtx_finite_type_default T ≠ SmtValue.NotValue) :
     __smtx_typeof_value (__smtx_finite_type_default T) = T ∧
       __smtx_value_canonical (__smtx_finite_type_default T) := by
-  sorry
+  cases T with
+  | Bool =>
+      simp [__smtx_finite_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | BitVec w =>
+      constructor
+      · simp [__smtx_finite_type_default, __smtx_typeof_value, native_ite, native_and,
+          native_zleq, native_zeq, native_mod_total, native_int_pow2, native_zexp_total,
+          native_nat_to_int, native_int_to_nat]
+      · simp [__smtx_finite_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, native_ite, native_zleq, native_zeq,
+          native_mod_total, native_int_pow2, native_zexp_total, native_nat_to_int]
+  | Char =>
+      simp [__smtx_finite_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | Datatype s d =>
+      exact finite_datatype_default_typed_canonical s d h
+  | Map A B =>
+      by_cases hUnit : native_veq (__smtx_unit_type_default B) SmtValue.NotValue = true
+      · simp [__smtx_finite_type_default, hUnit, native_not, native_and] at h ⊢
+        by_cases hAeq : native_veq (__smtx_finite_type_default A) SmtValue.NotValue = true
+        · exfalso
+          exact h (by simp [hAeq, native_not, native_and, native_ite])
+        · by_cases hBeq : native_veq (__smtx_finite_type_default B) SmtValue.NotValue = true
+          · exfalso
+            have hAFalse :
+                native_veq (__smtx_finite_type_default A) SmtValue.NotValue = false := by
+              cases hAb : native_veq (__smtx_finite_type_default A) SmtValue.NotValue <;>
+                simp [hAb] at hAeq ⊢
+            exact h (by simp [hAFalse, hBeq, native_not, native_and, native_ite])
+          · have hAFalse :
+                native_veq (__smtx_finite_type_default A) SmtValue.NotValue = false := by
+              cases hAb : native_veq (__smtx_finite_type_default A) SmtValue.NotValue <;>
+                simp [hAb] at hAeq ⊢
+            have hBFalse :
+                native_veq (__smtx_finite_type_default B) SmtValue.NotValue = false := by
+              cases hBb : native_veq (__smtx_finite_type_default B) SmtValue.NotValue <;>
+                simp [hBb] at hBeq ⊢
+            have hBne : __smtx_finite_type_default B ≠ SmtValue.NotValue := by
+              intro hb
+              simp [hb, native_veq] at hBeq
+            have hAne : __smtx_finite_type_default A ≠ SmtValue.NotValue := by
+              intro ha
+              simp [ha, native_veq] at hAeq
+            have ihB := finite_type_default_typed_canonical B hBne
+            simp [__smtx_finite_type_default, hUnit, hAFalse, hBFalse, native_not,
+              native_and, native_ite, __smtx_typeof_value, __smtx_typeof_map_value,
+              hAne, hBne, ihB.1, __smtx_value_canonical, __smtx_value_canonical_bool,
+              __smtx_map_canonical, __smtx_map_default_canonical, native_veq]
+            simpa [__smtx_value_canonical] using ihB.2
+      · have hUnitFalse :
+            native_veq (__smtx_unit_type_default B) SmtValue.NotValue = false := by
+          cases hUnitBool : native_veq (__smtx_unit_type_default B) SmtValue.NotValue <;>
+            simp [hUnitBool] at hUnit ⊢
+        have hUnitNe : __smtx_unit_type_default B ≠ SmtValue.NotValue := by
+          intro hb
+          simp [hb, native_veq] at hUnit
+        have hUnitEq := finite_type_default_of_unit_default_ne B hUnitNe
+        have hBne : __smtx_finite_type_default B ≠ SmtValue.NotValue := by
+          intro hb
+          exact hUnitNe (by simpa [← hUnitEq] using hb)
+        have ihB := finite_type_default_typed_canonical B hBne
+        simp [__smtx_finite_type_default, hUnitFalse, native_not, native_and,
+          native_ite, __smtx_typeof_value, __smtx_typeof_map_value, ← hUnitEq,
+          hBne, ihB.1, __smtx_value_canonical, __smtx_value_canonical_bool,
+          __smtx_map_canonical, __smtx_map_default_canonical, native_veq]
+        simpa [__smtx_value_canonical] using ihB.2
+  | Set A =>
+      simp [__smtx_finite_type_default] at h ⊢
+      by_cases hAeq : native_veq (__smtx_finite_type_default A) SmtValue.NotValue = true
+      · exfalso
+        exact h (by simp [hAeq, native_ite])
+      · have hAFalse :
+            native_veq (__smtx_finite_type_default A) SmtValue.NotValue = false := by
+          cases hAb : native_veq (__smtx_finite_type_default A) SmtValue.NotValue <;>
+            simp [hAb] at hAeq ⊢
+        have hAne : __smtx_finite_type_default A ≠ SmtValue.NotValue := by
+          intro ha
+          simp [ha, native_veq] at hAeq
+        simp [hAFalse, __smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_set_type,
+          __smtx_value_canonical, __smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, __smtx_finite_type_default, __smtx_unit_type_default,
+          __smtx_msm_get_default, hAne, native_veq, native_and, native_not, native_ite]
+  | FunType A B =>
+      by_cases hUnit : native_veq (__smtx_unit_type_default B) SmtValue.NotValue = true
+      · simp [__smtx_finite_type_default, hUnit, native_not, native_and] at h ⊢
+        by_cases hAeq : native_veq (__smtx_finite_type_default A) SmtValue.NotValue = true
+        · exfalso
+          exact h (by simp [hAeq, native_not, native_and, native_ite])
+        · by_cases hBeq : native_veq (__smtx_finite_type_default B) SmtValue.NotValue = true
+          · exfalso
+            have hAFalse :
+                native_veq (__smtx_finite_type_default A) SmtValue.NotValue = false := by
+              cases hAb : native_veq (__smtx_finite_type_default A) SmtValue.NotValue <;>
+                simp [hAb] at hAeq ⊢
+            exact h (by simp [hAFalse, hBeq, native_not, native_and, native_ite])
+          · have hAFalse :
+                native_veq (__smtx_finite_type_default A) SmtValue.NotValue = false := by
+              cases hAb : native_veq (__smtx_finite_type_default A) SmtValue.NotValue <;>
+                simp [hAb] at hAeq ⊢
+            have hBFalse :
+                native_veq (__smtx_finite_type_default B) SmtValue.NotValue = false := by
+              cases hBb : native_veq (__smtx_finite_type_default B) SmtValue.NotValue <;>
+                simp [hBb] at hBeq ⊢
+            have hBne : __smtx_finite_type_default B ≠ SmtValue.NotValue := by
+              intro hb
+              simp [hb, native_veq] at hBeq
+            have hAne : __smtx_finite_type_default A ≠ SmtValue.NotValue := by
+              intro ha
+              simp [ha, native_veq] at hAeq
+            have ihB := finite_type_default_typed_canonical B hBne
+            simp [__smtx_finite_type_default, hUnit, hAFalse, hBFalse, native_not,
+              native_and, native_ite, __smtx_typeof_value, __smtx_typeof_map_value,
+              __smtx_map_to_fun_type, hAne, hBne, ihB.1, __smtx_value_canonical,
+              __smtx_value_canonical_bool, __smtx_map_canonical,
+              __smtx_map_default_canonical, native_veq]
+            simpa [__smtx_value_canonical] using ihB.2
+      · have hUnitFalse :
+            native_veq (__smtx_unit_type_default B) SmtValue.NotValue = false := by
+          cases hUnitBool : native_veq (__smtx_unit_type_default B) SmtValue.NotValue <;>
+            simp [hUnitBool] at hUnit ⊢
+        have hUnitNe : __smtx_unit_type_default B ≠ SmtValue.NotValue := by
+          intro hb
+          simp [hb, native_veq] at hUnit
+        have hUnitEq := finite_type_default_of_unit_default_ne B hUnitNe
+        have hBne : __smtx_finite_type_default B ≠ SmtValue.NotValue := by
+          intro hb
+          exact hUnitNe (by simpa [← hUnitEq] using hb)
+        have ihB := finite_type_default_typed_canonical B hBne
+        simp [__smtx_finite_type_default, hUnitFalse, native_not, native_and,
+          native_ite, __smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_fun_type,
+          ← hUnitEq, hBne, ihB.1, __smtx_value_canonical, __smtx_value_canonical_bool,
+          __smtx_map_canonical, __smtx_map_default_canonical, native_veq]
+        simpa [__smtx_value_canonical] using ihB.2
+  | _ =>
+      simp [__smtx_finite_type_default] at h
 
 private theorem finite_datatype_default_typed_canonical
     (s : native_String) :
@@ -256,7 +488,74 @@ private theorem finite_datatype_default_typed_canonical
         __smtx_value_canonical (__smtx_finite_datatype_default s d d native_nat_zero)
   := by
     intro d h
-    sorry
+    cases d with
+    | null =>
+        simp [__smtx_finite_datatype_default] at h
+    | sum c rest =>
+        have hSub :=
+          finite_datatype_default_subst_id s (SmtDatatype.sum c rest) s
+            (SmtDatatype.sum c rest) (SmtDatatype.sum c rest) native_nat_zero h
+        have hv :
+            __smtx_typeof_value (SmtValue.DtCons s (SmtDatatype.sum c rest) native_nat_zero) =
+              __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s (SmtDatatype.sum c rest))
+                (SmtDatatype.sum c rest) native_nat_zero := by
+          simpa [__smtx_typeof_value, hSub]
+        have hvCanon :
+            __smtx_value_canonical (SmtValue.DtCons s (SmtDatatype.sum c rest) native_nat_zero) := by
+          simp [__smtx_value_canonical, __smtx_value_canonical_bool]
+        cases rest with
+        | null =>
+            exact finite_datatype_cons_default_typed_canonical
+              (SmtType.Datatype s (SmtDatatype.sum c SmtDatatype.null)) SmtDatatype.null
+              (SmtValue.DtCons s (SmtDatatype.sum c SmtDatatype.null) native_nat_zero)
+              c hv hvCanon h
+        | sum c2 d2 =>
+            simp [__smtx_finite_datatype_default] at h ⊢
+            by_cases hcEq :
+                native_veq
+                    (__smtx_finite_datatype_cons_default
+                      (SmtValue.DtCons s (SmtDatatype.sum c (SmtDatatype.sum c2 d2)) native_nat_zero)
+                      c)
+                    SmtValue.NotValue = true
+            · simp [hcEq, native_and, native_not] at h
+              exfalso
+              exact h (by simp [hcEq, native_and, native_not, native_ite])
+            · by_cases hdEq :
+                native_veq
+                    (__smtx_finite_datatype_default s (SmtDatatype.sum c (SmtDatatype.sum c2 d2))
+                      (SmtDatatype.sum c2 d2) (native_nat_succ native_nat_zero))
+                    SmtValue.NotValue = true
+              · simp [hcEq, hdEq, native_and, native_not] at h
+                exfalso
+                have hcFalse :
+                    native_veq
+                        (__smtx_finite_datatype_cons_default
+                          (SmtValue.DtCons s (SmtDatatype.sum c (SmtDatatype.sum c2 d2))
+                            native_nat_zero) c)
+                        SmtValue.NotValue = false := by
+                  cases hcBool :
+                      native_veq
+                        (__smtx_finite_datatype_cons_default
+                          (SmtValue.DtCons s (SmtDatatype.sum c (SmtDatatype.sum c2 d2))
+                            native_nat_zero) c)
+                        SmtValue.NotValue <;>
+                    simp [hcBool] at hcEq ⊢
+                exact h (by simp [hcFalse, hdEq, native_and, native_not, native_ite])
+              · have hcNe :
+                    __smtx_finite_datatype_cons_default
+                        (SmtValue.DtCons s (SmtDatatype.sum c (SmtDatatype.sum c2 d2))
+                          native_nat_zero) c ≠
+                      SmtValue.NotValue := by
+                  intro hh
+                  simp [hh, native_veq] at hcEq
+                have hRes :=
+                  finite_datatype_cons_default_typed_canonical
+                    (SmtType.Datatype s (SmtDatatype.sum c (SmtDatatype.sum c2 d2)))
+                    (SmtDatatype.sum c2 d2)
+                    (SmtValue.DtCons s (SmtDatatype.sum c (SmtDatatype.sum c2 d2))
+                      native_nat_zero)
+                    c hv hvCanon hcNe
+                simpa [hcEq, hdEq, native_not, native_and, native_ite] using hRes
 
 private theorem finite_datatype_cons_default_typed_canonical
     (Tfinal : SmtType)
@@ -271,7 +570,48 @@ private theorem finite_datatype_cons_default_typed_canonical
         __smtx_value_canonical (__smtx_finite_datatype_cons_default v c)
   := by
     intro c hv hvCanon h
-    sorry
+    cases c with
+    | unit =>
+        simpa [__smtx_finite_datatype_cons_default, __smtx_typeof_dt_cons_value_rec] using
+          And.intro hv hvCanon
+    | cons U c =>
+        simp [__smtx_finite_datatype_cons_default] at h ⊢
+        by_cases hUeq : native_veq (__smtx_finite_type_default U) SmtValue.NotValue = true
+        · exfalso
+          exact h (by simp [hUeq, native_ite])
+        · have hUFalse :
+              native_veq (__smtx_finite_type_default U) SmtValue.NotValue = false := by
+            cases hUb : native_veq (__smtx_finite_type_default U) SmtValue.NotValue <;>
+              simp [hUb] at hUeq ⊢
+          have hUne : __smtx_finite_type_default U ≠ SmtValue.NotValue := by
+            intro hh
+            simp [hh, native_veq] at hUeq
+          have ihU := finite_type_default_typed_canonical U hUne
+          have hUNone : U ≠ SmtType.None := by
+            intro hNone
+            subst U
+            simp [__smtx_finite_type_default] at hUne
+          have hApplyTy :
+              __smtx_typeof_value (SmtValue.Apply v (__smtx_finite_type_default U)) =
+                __smtx_typeof_dt_cons_value_rec Tfinal (SmtDatatype.sum c rest) native_nat_zero := by
+            simp [__smtx_typeof_value, __smtx_typeof_apply_value,
+              __smtx_typeof_dt_cons_value_rec, hv, ihU.1, __smtx_typeof_guard, native_ite,
+              native_Teq, hUNone]
+          have hApplyCanon :
+              __smtx_value_canonical (SmtValue.Apply v (__smtx_finite_type_default U)) := by
+            simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_and]
+            exact ⟨by simpa [__smtx_value_canonical] using hvCanon,
+              by simpa [__smtx_value_canonical] using ihU.2⟩
+          have hRest :
+              __smtx_finite_datatype_cons_default
+                  (SmtValue.Apply v (__smtx_finite_type_default U)) c ≠
+                SmtValue.NotValue := by
+            intro hh
+            exact h (by simp [hUFalse, hh, native_ite])
+          have hRes :=
+            finite_datatype_cons_default_typed_canonical Tfinal rest
+              (SmtValue.Apply v (__smtx_finite_type_default U)) c hApplyTy hApplyCanon hRest
+          simpa [hUFalse] using hRes
 
 end
 
@@ -279,7 +619,26 @@ private theorem finite_map_default_codomain_non_notvalue
     (A B : SmtType)
     (h : __smtx_finite_type_default (SmtType.Map A B) ≠ SmtValue.NotValue) :
     __smtx_finite_type_default B ≠ SmtValue.NotValue := by
-  sorry
+  by_cases hUnit : native_veq (__smtx_unit_type_default B) SmtValue.NotValue = true
+  · simp [__smtx_finite_type_default, hUnit, native_not, native_and] at h
+    by_cases hAeq : native_veq (__smtx_finite_type_default A) SmtValue.NotValue = true
+    · exfalso
+      exact h (by simp [hAeq, native_not, native_and, native_ite])
+    · by_cases hBeq : native_veq (__smtx_finite_type_default B) SmtValue.NotValue = true
+      · exfalso
+        have hAFalse :
+            native_veq (__smtx_finite_type_default A) SmtValue.NotValue = false := by
+          cases hAb : native_veq (__smtx_finite_type_default A) SmtValue.NotValue <;>
+            simp [hAb] at hAeq ⊢
+        exact h (by simp [hAFalse, hBeq, native_not, native_and, native_ite])
+      · intro hb
+        simp [hb, native_veq] at hBeq
+  · have hUnitNe : __smtx_unit_type_default B ≠ SmtValue.NotValue := by
+      intro hb
+      simp [hb, native_veq] at hUnit
+    have hUnitEq := finite_type_default_of_unit_default_ne B hUnitNe
+    intro hb
+    exact hUnitNe (by simpa [← hUnitEq] using hb)
 
 mutual
 
@@ -289,7 +648,71 @@ private theorem canonical_value_of_typeof :
         __smtx_typeof_value v' = __smtx_typeof_value v ∧ __smtx_value_canonical v'
   := by
     intro v
-    sorry
+    cases v with
+    | Map m =>
+        rcases canonical_map_of_typeof m with ⟨m', hmTy, hmCanon⟩
+        exact ⟨SmtValue.Map m', by simp [__smtx_typeof_value, hmTy],
+          by simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hmCanon⟩
+    | Fun m =>
+        rcases canonical_map_of_typeof m with ⟨m', hmTy, hmCanon⟩
+        exact ⟨SmtValue.Fun m', by simp [__smtx_typeof_value, hmTy],
+          by simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hmCanon⟩
+    | Set m =>
+        rcases canonical_map_of_typeof m with ⟨m', hmTy, hmCanon⟩
+        exact ⟨SmtValue.Set m', by simp [__smtx_typeof_value, hmTy],
+          by simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hmCanon⟩
+    | Seq s =>
+        rcases canonical_seq_of_typeof s with ⟨s', hsTy, hsCanon⟩
+        exact ⟨SmtValue.Seq s', by simp [__smtx_typeof_value, hsTy],
+          by simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hsCanon⟩
+    | Apply f x =>
+        rcases canonical_value_of_typeof f with ⟨f', hfTy, hfCanon⟩
+        rcases canonical_value_of_typeof x with ⟨x', hxTy, hxCanon⟩
+        exact ⟨SmtValue.Apply f' x', by simp [__smtx_typeof_value, hfTy, hxTy],
+          by
+            simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_and]
+            exact ⟨by simpa [__smtx_value_canonical] using hfCanon,
+              by simpa [__smtx_value_canonical] using hxCanon⟩⟩
+    | NotValue =>
+        exact ⟨SmtValue.NotValue, rfl,
+          by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+    | Boolean b =>
+        exact ⟨SmtValue.Boolean b, rfl,
+          by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+    | Numeral n =>
+        exact ⟨SmtValue.Numeral n, rfl,
+          by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+    | Rational q =>
+        exact ⟨SmtValue.Rational q, rfl,
+          by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+    | Binary w n =>
+        cases hWidth : native_zleq 0 w <;>
+          cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w))
+        · exact ⟨SmtValue.NotValue, by
+            simp [__smtx_typeof_value, native_and, native_ite, hWidth, hMod],
+            by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+        · exact ⟨SmtValue.NotValue, by
+            simp [__smtx_typeof_value, native_and, native_ite, hWidth, hMod],
+            by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+        · exact ⟨SmtValue.NotValue, by
+            simp [__smtx_typeof_value, native_and, native_ite, hWidth, hMod],
+            by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+        · exact ⟨SmtValue.Binary w n, by
+            simp [__smtx_typeof_value, native_and, native_ite, hWidth, hMod],
+            by simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_ite,
+              hWidth, hMod]⟩
+    | Char c =>
+        exact ⟨SmtValue.Char c, rfl,
+          by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+    | UValue i e =>
+        exact ⟨SmtValue.UValue i e, rfl,
+          by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+    | RegLan r =>
+        exact ⟨SmtValue.RegLan r, rfl,
+          by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+    | DtCons s d i =>
+        exact ⟨SmtValue.DtCons s d i, rfl,
+          by simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
 
 private theorem canonical_map_of_typeof :
     ∀ m : SmtMap,
@@ -298,7 +721,54 @@ private theorem canonical_map_of_typeof :
           __smtx_map_canonical m' = true
   := by
     intro m
-    sorry
+    cases m with
+    | default A e =>
+        rcases canonical_value_of_typeof e with ⟨e', heTy, heCanon⟩
+        let U := __smtx_typeof_value e
+        by_cases hFin : __smtx_finite_type_default (SmtType.Map A U) = SmtValue.NotValue
+        · refine ⟨SmtMap.default A e', ?_, ?_⟩
+          · simp [__smtx_typeof_map_value, U, heTy]
+          · have hDefault :
+                __smtx_map_default_canonical A e' = true := by
+              simp [__smtx_map_default_canonical, U, heTy, hFin, native_veq, native_ite]
+            simpa [__smtx_map_canonical, hDefault, native_and, __smtx_value_canonical] using
+              heCanon
+        · have hCodomain := finite_map_default_codomain_non_notvalue A U hFin
+          have hDefaultValue := finite_type_default_typed_canonical U hCodomain
+          refine ⟨SmtMap.default A (__smtx_finite_type_default U), ?_, ?_⟩
+          · simp [__smtx_typeof_map_value, U, hDefaultValue.1]
+          · simp [__smtx_map_canonical, __smtx_map_default_canonical, hDefaultValue.1,
+              hFin, hDefaultValue.2, __smtx_value_canonical, native_and, native_veq,
+              native_ite]
+            simpa [__smtx_value_canonical] using hDefaultValue.2
+    | cons i e m =>
+        rcases canonical_map_of_typeof m with ⟨m', hmTy, hmCanon⟩
+        by_cases hEq :
+            native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+              (__smtx_typeof_map_value m) = true
+        · exact ⟨m', by simp [__smtx_typeof_map_value, hEq, hmTy, native_ite], hmCanon⟩
+        · have hEqFalse :
+              native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+                (__smtx_typeof_map_value m) = false := by
+            cases hEqBool :
+                native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+                  (__smtx_typeof_map_value m) <;>
+              simp [hEqBool] at hEq ⊢
+          let bad : SmtMap :=
+            SmtMap.cons SmtValue.NotValue SmtValue.NotValue
+              (SmtMap.default SmtType.Bool (SmtValue.Boolean false))
+          refine ⟨bad, ?_, ?_⟩
+          · have hBad : __smtx_typeof_map_value bad = SmtType.None := by
+              simp [bad, __smtx_typeof_map_value, __smtx_typeof_value, native_Teq, native_ite]
+            have hOrig :
+                __smtx_typeof_map_value (SmtMap.cons i e m) = SmtType.None := by
+              simp [__smtx_typeof_map_value, hEqFalse, native_ite]
+            rw [hBad, hOrig]
+          · simp [bad, __smtx_map_canonical, __smtx_map_default_canonical,
+              __smtx_typeof_value, __smtx_typeof_map_value, __smtx_finite_type_default,
+              __smtx_unit_type_default, __smtx_msm_get_default, native_and, native_not,
+              native_veq, native_ite, __smtx_value_canonical_bool,
+              __smtx_map_entries_ordered_after]
 
 private theorem canonical_seq_of_typeof :
     ∀ s : SmtSeq,
@@ -307,7 +777,16 @@ private theorem canonical_seq_of_typeof :
           __smtx_seq_canonical s' = true
   := by
     intro s
-    sorry
+    cases s with
+    | empty T =>
+        exact ⟨SmtSeq.empty T, rfl, by simp [__smtx_seq_canonical]⟩
+    | cons v s =>
+        rcases canonical_value_of_typeof v with ⟨v', hvTy, hvCanon⟩
+        rcases canonical_seq_of_typeof s with ⟨s', hsTy, hsCanon⟩
+        refine ⟨SmtSeq.cons v' s', ?_, ?_⟩
+        · simp [__smtx_typeof_seq_value, hvTy, hsTy]
+        · simp [__smtx_seq_canonical, native_and]
+          exact ⟨by simpa [__smtx_value_canonical] using hvCanon, hsCanon⟩
 
 end
 
