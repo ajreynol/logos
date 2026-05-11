@@ -54,8 +54,6 @@ abbrev select := Term.UOp UserOp.select
 abbrev store := Term.UOp UserOp.store
 abbrev _at_bvsize := Term.UOp UserOp._at_bvsize
 abbrev concat := Term.UOp UserOp.concat
-abbrev extract := Term.UOp UserOp.extract
-abbrev «repeat» := Term.UOp UserOp.repeat
 abbrev bvnot := Term.UOp UserOp.bvnot
 abbrev bvand := Term.UOp UserOp.bvand
 abbrev bvor := Term.UOp UserOp.bvor
@@ -84,10 +82,6 @@ abbrev bvsge := Term.UOp UserOp.bvsge
 abbrev bvshl := Term.UOp UserOp.bvshl
 abbrev bvlshr := Term.UOp UserOp.bvlshr
 abbrev bvashr := Term.UOp UserOp.bvashr
-abbrev zero_extend := Term.UOp UserOp.zero_extend
-abbrev sign_extend := Term.UOp UserOp.sign_extend
-abbrev rotate_left := Term.UOp UserOp.rotate_left
-abbrev rotate_right := Term.UOp UserOp.rotate_right
 abbrev bvite := Term.UOp UserOp.bvite
 abbrev bvuaddo := Term.UOp UserOp.bvuaddo
 abbrev bvnego := Term.UOp UserOp.bvnego
@@ -101,9 +95,7 @@ abbrev bvultbv := Term.UOp UserOp.bvultbv
 abbrev bvsltbv := Term.UOp UserOp.bvsltbv
 abbrev bvredand := Term.UOp UserOp.bvredand
 abbrev bvredor := Term.UOp UserOp.bvredor
-abbrev _at_bit := Term.UOp UserOp._at_bit
 abbrev _at_from_bools := Term.UOp UserOp._at_from_bools
-abbrev _at_bv := Term.UOp UserOp._at_bv
 abbrev RegLan := Term.UOp UserOp.RegLan
 abbrev str_len := Term.UOp UserOp.str_len
 abbrev str_concat := Term.UOp UserOp.str_concat
@@ -156,15 +148,10 @@ abbrev _at_strings_num_occur := Term.UOp UserOp._at_strings_num_occur
 abbrev _at_strings_num_occur_re := Term.UOp UserOp._at_strings_num_occur_re
 abbrev _at_strings_occur_index := Term.UOp UserOp._at_strings_occur_index
 abbrev _at_strings_occur_index_re := Term.UOp UserOp._at_strings_occur_index_re
-abbrev _at_witness_string_length := Term.UOp UserOp._at_witness_string_length
-abbrev is := Term.UOp UserOp.is
-abbrev update := Term.UOp UserOp.update
 abbrev UnitTuple := Term.UOp UserOp.UnitTuple
 abbrev Tuple := Term.UOp UserOp.Tuple
 abbrev tuple_unit := Term.UOp UserOp.tuple_unit
 abbrev tuple := Term.UOp UserOp.tuple
-abbrev tuple_select := Term.UOp UserOp.tuple_select
-abbrev tuple_update := Term.UOp UserOp.tuple_update
 abbrev Set := Term.UOp UserOp.Set
 abbrev set_singleton := Term.UOp UserOp.set_singleton
 abbrev set_union := Term.UOp UserOp.set_union
@@ -186,7 +173,6 @@ abbrev _at__at_poly_zero := Term.UOp UserOp._at__at_poly_zero
 abbrev _at__at_poly := Term.UOp UserOp._at__at_poly
 abbrev «forall» := Term.UOp UserOp.forall
 abbrev «exists» := Term.UOp UserOp.exists
-abbrev int_to_bv := Term.UOp UserOp.int_to_bv
 abbrev ubv_to_int := Term.UOp UserOp.ubv_to_int
 abbrev sbv_to_int := Term.UOp UserOp.sbv_to_int
 abbrev _at__at_aci_sorted := Term.UOp UserOp._at__at_aci_sorted
@@ -241,8 +227,6 @@ attribute [match_pattern]
   Term.store
   Term._at_bvsize
   Term.concat
-  Term.extract
-  Term.«repeat»
   Term.bvnot
   Term.bvand
   Term.bvor
@@ -271,10 +255,6 @@ attribute [match_pattern]
   Term.bvshl
   Term.bvlshr
   Term.bvashr
-  Term.zero_extend
-  Term.sign_extend
-  Term.rotate_left
-  Term.rotate_right
   Term.bvite
   Term.bvuaddo
   Term.bvnego
@@ -288,9 +268,7 @@ attribute [match_pattern]
   Term.bvsltbv
   Term.bvredand
   Term.bvredor
-  Term._at_bit
   Term._at_from_bools
-  Term._at_bv
   Term.RegLan
   Term.str_len
   Term.str_concat
@@ -343,15 +321,10 @@ attribute [match_pattern]
   Term._at_strings_num_occur_re
   Term._at_strings_occur_index
   Term._at_strings_occur_index_re
-  Term._at_witness_string_length
-  Term.is
-  Term.update
   Term.UnitTuple
   Term.Tuple
   Term.tuple_unit
   Term.tuple
-  Term.tuple_select
-  Term.tuple_update
   Term.Set
   Term.set_singleton
   Term.set_union
@@ -373,7 +346,6 @@ attribute [match_pattern]
   Term._at__at_poly
   Term.«forall»
   Term.«exists»
-  Term.int_to_bv
   Term.ubv_to_int
   Term.sbv_to_int
   Term._at__at_aci_sorted

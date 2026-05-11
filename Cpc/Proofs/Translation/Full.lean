@@ -771,6 +771,34 @@ theorem eo_to_smt_typeof_matches_translation
             subst f
             exact go z)
           hNonNone
+    | Term.extract hi lo, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.extract hi lo) rfl hNonNone).symm
+    | Term.repeat n, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.repeat n) rfl hNonNone).symm
+    | Term.zero_extend n, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.zero_extend n) rfl hNonNone).symm
+    | Term.sign_extend n, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.sign_extend n) rfl hNonNone).symm
+    | Term.rotate_left n, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.rotate_left n) rfl hNonNone).symm
+    | Term.rotate_right n, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.rotate_right n) rfl hNonNone).symm
+    | Term._at_bit i, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term._at_bit i) rfl hNonNone).symm
+    | Term._at_bv n w, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term._at_bv n w) rfl hNonNone).symm
+    | Term._at_witness_string_length T, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term._at_witness_string_length T) rfl hNonNone).symm
+    | Term.is c, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.is c) rfl hNonNone).symm
+    | Term.update sel, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.update sel) rfl hNonNone).symm
+    | Term.tuple_select i, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.tuple_select i) rfl hNonNone).symm
+    | Term.tuple_update i, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.tuple_update i) rfl hNonNone).symm
+    | Term.int_to_bv w, hNonNone => by
+        exact (eo_to_smt_type_typeof_of_smt_type (Term.int_to_bv w) rfl hNonNone).symm
     | Term._at_purify x, hNonNone => by
         exact eo_to_smt_typeof_matches_translation_purify x (go x hNonNone)
     | Term._at_array_deq_diff x1 x2, hNonNone => by
