@@ -1501,6 +1501,14 @@ private def smtx_type_substitute_top_apply (sub : native_String) (d0 : SmtDataty
         (native_ite (native_streq sub s2) d2 (__smtx_dt_substitute sub d0 d2))
   | T => native_ite (native_Teq T (SmtType.TypeRef sub)) (SmtType.Datatype sub d0) T
 
+private def smtx_chain_type_substitute_top_apply
+    (sub : native_String) (d0 : SmtDatatype) : SmtType -> SmtType
+  | SmtType.DtcAppType A B =>
+      SmtType.DtcAppType
+        (smtx_chain_type_substitute_top_apply sub d0 A)
+        (smtx_chain_type_substitute_top_apply sub d0 B)
+  | T => smtx_type_substitute_top_apply sub d0 T
+
 mutual
 
 private def smtx_type_context_substitute_apply
@@ -2254,6 +2262,181 @@ private theorem smtx_typeof_dt_cons_value_rec_context_substitute_ne_none_apply
     sub base root oldRoot newRoot doSub doRoot
     (__smtx_typeof_dt_cons_value_rec T d i) h
 
+private def smtx_type_chain_field_wf_rec (refs : RefList) : SmtType -> Prop
+  | SmtType.DtcAppType A B =>
+      smtx_type_field_wf_rec A refs ∧ smtx_type_chain_field_wf_rec refs B
+  | T => smtx_type_field_wf_rec T refs
+
+private theorem smtx_type_field_wf_rec_ne_none
+    {T : SmtType} {refs : RefList}
+    (h : smtx_type_field_wf_rec T refs) :
+    T ≠ SmtType.None := by
+  cases T <;> simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at h ⊢
+
+private theorem smtx_type_chain_field_wf_rec_of_field_wf
+    {T : SmtType} {refs : RefList}
+    (h : smtx_type_field_wf_rec T refs) :
+    smtx_type_chain_field_wf_rec refs T := by
+  cases T <;> simpa [smtx_type_chain_field_wf_rec,
+    smtx_type_field_wf_rec, __smtx_type_wf_rec] using h
+
+private theorem smtx_type_chain_field_wf_rec_ne_none
+    {T : SmtType} {refs : RefList}
+    (h : smtx_type_chain_field_wf_rec refs T) :
+    T ≠ SmtType.None := by
+  cases T <;>
+    simp [smtx_type_chain_field_wf_rec, smtx_type_field_wf_rec,
+      __smtx_type_wf_rec] at h ⊢
+
+private theorem smtx_type_chain_field_wf_rec_head_of_dtc_app
+    {A B : SmtType} {refs : RefList}
+    (h : smtx_type_chain_field_wf_rec refs (SmtType.DtcAppType A B)) :
+    smtx_type_field_wf_rec A refs := by
+  simpa [smtx_type_chain_field_wf_rec] using h.1
+
+private theorem smtx_type_chain_field_wf_rec_tail_of_dtc_app
+    {A B : SmtType} {refs : RefList}
+    (h : smtx_type_chain_field_wf_rec refs (SmtType.DtcAppType A B)) :
+    smtx_type_chain_field_wf_rec refs B := by
+  simpa [smtx_type_chain_field_wf_rec] using h.2
+
+private theorem smtx_typeof_dt_cons_value_rec_zero_ne_none_of_wf_apply
+    (T : SmtType) {refs : RefList}
+    (hT : smtx_type_field_wf_rec T refs) :
+    (c : SmtDatatypeCons) -> (d : SmtDatatype) ->
+      __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true ->
+      __smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d) native_nat_zero ≠
+        SmtType.None
+  | SmtDatatypeCons.unit, d, _hWf => by
+      simpa [__smtx_typeof_dt_cons_value_rec] using
+        smtx_type_field_wf_rec_ne_none hT
+  | SmtDatatypeCons.cons U c, d, _hWf => by
+      simp [__smtx_typeof_dt_cons_value_rec]
+
+private theorem smtx_typeof_dt_cons_value_rec_chain_field_wf_of_wf_apply
+    (T : SmtType) {refs : RefList}
+    (hT : smtx_type_field_wf_rec T refs) :
+    (d : SmtDatatype) -> (i : native_Nat) ->
+      __smtx_dt_wf_rec d refs = true ->
+      __smtx_typeof_dt_cons_value_rec T d i ≠ SmtType.None ->
+      smtx_type_chain_field_wf_rec refs
+        (__smtx_typeof_dt_cons_value_rec T d i)
+  | SmtDatatype.null, i, hWf, hNN => by
+      cases i <;> simp [__smtx_dt_wf_rec] at hWf
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, hWf, hNN => by
+      simpa [__smtx_typeof_dt_cons_value_rec,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_chain_field_wf_rec_of_field_wf hT
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero, hWf, hNN => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons U c) refs = true :=
+        smtx_dt_wf_cons_of_sum_wf_apply hWf
+      have hU : smtx_type_field_wf_rec U refs :=
+        smtx_type_field_wf_rec_of_cons_wf hCons
+      have hTailCons : __smtx_dt_cons_wf_rec c refs = true :=
+        smtx_dt_cons_wf_rec_tail_of_true hCons
+      have hTailWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true := by
+        cases d with
+        | null =>
+            simpa [__smtx_dt_wf_rec] using hTailCons
+        | sum cTail dTail =>
+            have hDTail :
+                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+              smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
+            simp [__smtx_dt_wf_rec, native_ite, hTailCons, hDTail]
+      have hTailNN :
+          __smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d)
+              native_nat_zero ≠
+            SmtType.None :=
+        smtx_typeof_dt_cons_value_rec_zero_ne_none_of_wf_apply
+          T hT c d hTailWf
+      have hTailWF :=
+        smtx_typeof_dt_cons_value_rec_chain_field_wf_of_wf_apply
+          T hT (SmtDatatype.sum c d) native_nat_zero hTailWf hTailNN
+      simpa [__smtx_typeof_dt_cons_value_rec,
+        smtx_type_chain_field_wf_rec] using
+        (show smtx_type_field_wf_rec U refs ∧
+            smtx_type_chain_field_wf_rec refs
+              (__smtx_typeof_dt_cons_value_rec T (SmtDatatype.sum c d)
+                native_nat_zero) from
+          ⟨hU, hTailWF⟩)
+  | SmtDatatype.sum c d, native_nat_succ i, hWf, hNN => by
+      cases d with
+      | null =>
+          simp [__smtx_typeof_dt_cons_value_rec] at hNN
+      | sum cTail dTail =>
+          have hTailWf :
+              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+            smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
+          have hTailNN :
+              __smtx_typeof_dt_cons_value_rec T
+                  (SmtDatatype.sum cTail dTail) i ≠
+                SmtType.None := by
+            simpa [__smtx_typeof_dt_cons_value_rec] using hNN
+          simpa [__smtx_typeof_dt_cons_value_rec] using
+            smtx_typeof_dt_cons_value_rec_chain_field_wf_of_wf_apply
+              T hT (SmtDatatype.sum cTail dTail) i hTailWf hTailNN
+
+private theorem smtx_dt_cons_applied_type_rec_chain_field_wf_of_wf_apply
+    (s : native_String) (d0 : SmtDatatype) {refs : RefList}
+    (hT : smtx_type_field_wf_rec (SmtType.Datatype s d0) refs) :
+    (d : SmtDatatype) -> (i n : native_Nat) ->
+      __smtx_dt_wf_rec d refs = true ->
+      dt_cons_applied_type_rec s d0 d i n ≠ SmtType.None ->
+      smtx_type_chain_field_wf_rec refs
+        (dt_cons_applied_type_rec s d0 d i n)
+  | d, i, native_nat_zero, hWf, hNN => by
+      simpa [dt_cons_applied_type_rec] using
+        smtx_typeof_dt_cons_value_rec_chain_field_wf_of_wf_apply
+          (SmtType.Datatype s d0) hT d i hWf (by
+            simpa [dt_cons_applied_type_rec] using hNN)
+  | SmtDatatype.null, i, native_nat_succ n, hWf, hNN => by
+      cases i <;> simp [dt_cons_applied_type_rec] at hNN
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero,
+      native_nat_succ n, hWf, hNN => by
+      simp [dt_cons_applied_type_rec] at hNN
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, native_nat_zero,
+      native_nat_succ n, hWf, hNN => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons U c) refs = true :=
+        smtx_dt_wf_cons_of_sum_wf_apply hWf
+      have hTailCons : __smtx_dt_cons_wf_rec c refs = true :=
+        smtx_dt_cons_wf_rec_tail_of_true hCons
+      have hTailWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true := by
+        cases d with
+        | null =>
+            simpa [__smtx_dt_wf_rec] using hTailCons
+        | sum cTail dTail =>
+            have hDTail :
+                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+              smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
+            simp [__smtx_dt_wf_rec, native_ite, hTailCons, hDTail]
+      have hTailNN :
+          dt_cons_applied_type_rec s d0 (SmtDatatype.sum c d)
+              native_nat_zero n ≠
+            SmtType.None := by
+        simpa [dt_cons_applied_type_rec] using hNN
+      simpa [dt_cons_applied_type_rec] using
+        smtx_dt_cons_applied_type_rec_chain_field_wf_of_wf_apply
+          s d0 hT (SmtDatatype.sum c d) native_nat_zero n hTailWf hTailNN
+  | SmtDatatype.sum c d, native_nat_succ i, native_nat_succ n, hWf, hNN => by
+      cases d with
+      | null =>
+          simp [dt_cons_applied_type_rec] at hNN
+      | sum cTail dTail =>
+          have hTailWf :
+              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+            smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
+          have hTailNN :
+              dt_cons_applied_type_rec s d0
+                  (SmtDatatype.sum cTail dTail) i (native_nat_succ n) ≠
+                SmtType.None := by
+            simpa [dt_cons_applied_type_rec] using hNN
+          simpa [dt_cons_applied_type_rec] using
+            smtx_dt_cons_applied_type_rec_chain_field_wf_of_wf_apply
+              s d0 hT (SmtDatatype.sum cTail dTail) i
+              (native_nat_succ n) hTailWf hTailNN
+
 mutual
 
 private theorem smtx_type_context_substitute_no_root_of_field_wf_apply
@@ -2423,6 +2606,184 @@ private theorem smtx_dt_context_substitute_value_body_root_eq_no_root_apply
       sub base root oldRoot newRoot oldRoot hWf
   rw [hNoRoot]
   simp [smtx_dt_context_substitute_value_body_apply, hNewRoot, native_streq]
+
+private theorem smtx_dt_context_substitute_value_body_eq_shadow_apply
+    (sub : native_String) (base : SmtDatatype)
+    (root : native_String) (oldRoot newRoot : SmtDatatype)
+    (hNewRoot : newRoot = __smtx_dt_substitute sub base oldRoot)
+    (hNeRoot : sub ≠ root)
+    (s : native_String) (d : SmtDatatype) {refs : RefList}
+    (hWf :
+      native_streq s root = true ∧ d = oldRoot ->
+        __smtx_dt_wf_rec oldRoot refs = true) :
+    smtx_dt_context_substitute_value_body_apply
+        sub base root oldRoot newRoot s d =
+      smtx_dt_context_substitute_apply sub base root oldRoot newRoot
+        (!native_streq s sub) (!native_streq s root) d := by
+  by_cases hRoot : native_streq s root = true ∧ d = oldRoot
+  · rcases hRoot with ⟨hsRoot, hd⟩
+    have hsEq : s = root := by
+      simpa [native_streq] using hsRoot
+    subst s
+    subst d
+    have hSubRoot : native_streq root sub = false := by
+      cases hEq : native_streq root sub <;> simp [native_streq] at hEq ⊢
+      exact False.elim (hNeRoot hEq.symm)
+    have hDoSub : (!native_streq root sub) = true := by
+      simp [hSubRoot]
+    have hDoRoot : (!native_streq root root) = false := by
+      simp [native_streq]
+    have hBody :=
+      smtx_dt_context_substitute_value_body_root_eq_no_root_apply
+        sub base root oldRoot newRoot hNewRoot (hWf ⟨by simp [native_streq], rfl⟩)
+    simpa [hDoSub, hDoRoot] using hBody
+  · simp [smtx_dt_context_substitute_value_body_apply, hRoot]
+
+private theorem smtx_chain_type_context_substitute_no_root_of_chain_wf_apply
+    (sub : native_String) (base : SmtDatatype)
+    (root : native_String) (oldRoot newRoot : SmtDatatype) :
+    (T : SmtType) -> {refs : RefList} ->
+      smtx_type_chain_field_wf_rec refs T ->
+      smtx_chain_type_context_substitute_apply sub base root oldRoot newRoot
+          true false T =
+        smtx_chain_type_substitute_top_apply sub base T
+  | SmtType.DtcAppType A B, refs, hWf => by
+      have hA : smtx_type_field_wf_rec A refs :=
+        smtx_type_chain_field_wf_rec_head_of_dtc_app hWf
+      have hB : smtx_type_chain_field_wf_rec refs B :=
+        smtx_type_chain_field_wf_rec_tail_of_dtc_app hWf
+      have hAContext :
+          smtx_chain_type_context_substitute_apply
+              sub base root oldRoot newRoot true false A =
+            smtx_chain_type_substitute_top_apply sub base A := by
+        exact smtx_chain_type_context_substitute_no_root_of_chain_wf_apply
+          sub base root oldRoot newRoot A
+          (smtx_type_chain_field_wf_rec_of_field_wf hA)
+      have hBContext :=
+        smtx_chain_type_context_substitute_no_root_of_chain_wf_apply
+          sub base root oldRoot newRoot B hB
+      simp [smtx_chain_type_context_substitute_apply,
+        smtx_chain_type_substitute_top_apply, hAContext, hBContext]
+  | SmtType.TypeRef r, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot (SmtType.TypeRef r)
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Datatype s d, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot (SmtType.Datatype s d)
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.None, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot SmtType.None
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Bool, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot SmtType.Bool
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Int, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot SmtType.Int
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Real, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot SmtType.Real
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.RegLan, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot SmtType.RegLan
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.BitVec w, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot (SmtType.BitVec w)
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Map A B, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot (SmtType.Map A B)
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Set A, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot (SmtType.Set A)
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Seq A, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot (SmtType.Seq A)
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Char, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot SmtType.Char
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.USort i, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot (SmtType.USort i)
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.FunType A B, refs, hWf => by
+      rw [← smtx_type_context_substitute_eq_chain_type_context_substitute_apply]
+      simpa [smtx_chain_type_substitute_top_apply,
+        smtx_type_chain_field_wf_rec] using
+        smtx_type_context_substitute_no_root_of_field_wf_apply
+          sub base root oldRoot newRoot (SmtType.FunType A B)
+          (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+
+private theorem smtx_ret_typeof_sel_rec_value_body_context_apply
+    (sub : native_String) (base : SmtDatatype)
+    (root : native_String) (oldRoot newRoot : SmtDatatype)
+    (hNewRoot : newRoot = __smtx_dt_substitute sub base oldRoot)
+    (hNeRoot : sub ≠ root)
+    (s : native_String) (d : SmtDatatype) (i j : native_Nat)
+    {refs : RefList}
+    (hWf :
+      native_streq s root = true ∧ d = oldRoot ->
+        __smtx_dt_wf_rec oldRoot refs = true) :
+    __smtx_ret_typeof_sel_rec
+        (smtx_dt_context_substitute_value_body_apply
+          sub base root oldRoot newRoot s d) i j =
+      smtx_type_context_substitute_apply sub base root oldRoot newRoot
+        (!native_streq s sub) (!native_streq s root)
+        (__smtx_ret_typeof_sel_rec d i j) := by
+  rw [smtx_dt_context_substitute_value_body_eq_shadow_apply
+    sub base root oldRoot newRoot hNewRoot hNeRoot s d hWf]
+  exact smtx_ret_typeof_sel_rec_context_substitute_apply
+    sub base root oldRoot newRoot
+    (!native_streq s sub) (!native_streq s root) d i j
 
 private theorem smtx_ret_typeof_sel_rec_substitute_cons_apply
     (sub : native_String) (base : SmtDatatype) :
@@ -2886,6 +3247,89 @@ private theorem smtx_dt_wf_rec_mono_apply :
       simp [__smtx_dt_wf_rec, native_ite, hCons', hTail']
 
 end
+
+private theorem smtx_type_field_wf_rec_mono_apply
+    {T : SmtType} {refs refs' : RefList}
+    (hSub : reflist_subset_apply refs refs')
+    (hWf : smtx_type_field_wf_rec T refs) :
+    smtx_type_field_wf_rec T refs' := by
+  cases T with
+  | TypeRef s =>
+      exact hSub s (by
+        simpa [smtx_type_field_wf_rec] using hWf)
+  | None =>
+      simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at hWf
+  | DtcAppType A B =>
+      simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at hWf
+  | _ =>
+      exact smtx_type_field_wf_rec_of_type_wf_rec
+        (smtx_type_wf_rec_mono_apply _ hSub (by
+          simpa [smtx_type_field_wf_rec] using hWf))
+
+private theorem smtx_type_chain_field_wf_rec_mono_apply :
+    (T : SmtType) -> {refs refs' : RefList} ->
+      reflist_subset_apply refs refs' ->
+      smtx_type_chain_field_wf_rec refs T ->
+      smtx_type_chain_field_wf_rec refs' T
+  | SmtType.DtcAppType A B, refs, refs', hSub, hWf => by
+      have hHead : smtx_type_field_wf_rec A refs :=
+        smtx_type_chain_field_wf_rec_head_of_dtc_app hWf
+      have hTail : smtx_type_chain_field_wf_rec refs B :=
+        smtx_type_chain_field_wf_rec_tail_of_dtc_app hWf
+      exact ⟨smtx_type_field_wf_rec_mono_apply hSub hHead,
+        smtx_type_chain_field_wf_rec_mono_apply B hSub hTail⟩
+  | SmtType.TypeRef r, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Datatype s d, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.None, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Bool, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Int, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Real, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.RegLan, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.BitVec w, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Map A B, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Set A, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Seq A, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.Char, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.USort i, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+  | SmtType.FunType A B, refs, refs', hSub, hWf => by
+      exact smtx_type_field_wf_rec_mono_apply hSub
+        (by simpa [smtx_type_chain_field_wf_rec] using hWf)
+
+private theorem smtx_dt_wf_rec_insert_swap_apply
+    (d : SmtDatatype) (refs : RefList) (s t : native_String)
+    (hWf :
+      __smtx_dt_wf_rec d
+        (native_reflist_insert (native_reflist_insert refs s) t) = true) :
+    __smtx_dt_wf_rec d
+      (native_reflist_insert (native_reflist_insert refs t) s) = true :=
+  smtx_dt_wf_rec_mono_apply d
+    (reflist_subset_insert_swap_apply refs s t) hWf
 
 /-
 Substituting a fixed datatype for its recursive reference preserves datatype
@@ -3521,6 +3965,47 @@ private theorem smtx_ret_typeof_sel_rec_ne_type_ref_of_apply_arg
   exact typeof_value_ne_type_ref r
     (__vsm_apply_arg_nth v j (vsm_num_apply_args v))
     (hArgTy.trans hTypeRef)
+
+private theorem smtx_value_chain_field_wf_of_head_wf_apply
+    {v : SmtValue} {T : SmtType}
+    {s : native_String} {d : SmtDatatype} {i : native_Nat}
+    {refs : RefList}
+    (hHead : __vsm_apply_head v = SmtValue.DtCons s d i)
+    (hv : __smtx_typeof_value v = T)
+    (hT : T ≠ SmtType.None)
+    (hBodyWf : __smtx_dt_wf_rec d (native_reflist_insert refs s) = true)
+    (hSelfWf : __smtx_dt_wf_rec (__smtx_dt_substitute s d d) refs = true) :
+    smtx_type_chain_field_wf_rec refs T := by
+  have hBaseField :
+      smtx_type_field_wf_rec (SmtType.Datatype s d) refs := by
+    simpa [smtx_type_field_wf_rec, __smtx_type_wf_rec] using hBodyWf
+  have hNNValue : __smtx_typeof_value v ≠ SmtType.None := by
+    intro hNone
+    exact hT (hv.symm.trans hNone)
+  have hChain :=
+    dt_cons_chain_type_of_non_none hHead hNNValue
+  have hRecNN :
+      dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (vsm_num_apply_args v) ≠
+        SmtType.None := by
+    intro hNone
+    apply hT
+    calc
+      T = __smtx_typeof_value v := hv.symm
+      _ =
+          dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+            (vsm_num_apply_args v) := hChain
+      _ = SmtType.None := hNone
+  have hWF :=
+    smtx_dt_cons_applied_type_rec_chain_field_wf_of_wf_apply
+      s d hBaseField (__smtx_dt_substitute s d d) i
+      (vsm_num_apply_args v) hSelfWf hRecNN
+  have hTEq :
+      T =
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (vsm_num_apply_args v) :=
+    hv.symm.trans hChain
+  simpa [hTEq] using hWF
 
 private theorem smtx_value_dt_substitute_typeof_of_non_chain_apply
     (sub : native_String) (base : SmtDatatype) :
