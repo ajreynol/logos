@@ -1539,6 +1539,57 @@ private theorem smtx_ret_typeof_sel_rec_substitute_apply
       simpa [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec] using
         smtx_ret_typeof_sel_rec_substitute_apply sub base d i j
 
+private theorem smtx_ret_typeof_sel_rec_field_wf_of_wf_apply :
+    (d : SmtDatatype) -> (i j : native_Nat) -> {refs : RefList} ->
+      __smtx_dt_wf_rec d refs = true ->
+      j < __smtx_dt_num_sels d i ->
+      smtx_type_field_wf_rec (__smtx_ret_typeof_sel_rec d i j) refs
+  | SmtDatatype.null, i, j, refs, hWf, hj => by
+      cases i <;> simp [__smtx_dt_wf_rec] at hWf hj
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, j, refs, hWf, hj => by
+      cases j <;> simp [__smtx_dt_num_sels, __smtx_dtc_num_sels] at hj
+  | SmtDatatype.sum (SmtDatatypeCons.cons T c) d, native_nat_zero,
+      native_nat_zero, refs, hWf, _hj => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true :=
+        smtx_dt_wf_cons_of_sum_wf_apply hWf
+      simpa [__smtx_ret_typeof_sel_rec] using
+        smtx_type_field_wf_rec_of_cons_wf hCons
+  | SmtDatatype.sum (SmtDatatypeCons.cons T c) d, native_nat_zero,
+      native_nat_succ j, refs, hWf, hj => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true :=
+        smtx_dt_wf_cons_of_sum_wf_apply hWf
+      have hTailCons : __smtx_dt_cons_wf_rec c refs = true :=
+        smtx_dt_cons_wf_rec_tail_of_true hCons
+      have hTailWf : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true := by
+        cases d with
+        | null =>
+            simpa [__smtx_dt_wf_rec] using hTailCons
+        | sum cTail dTail =>
+            have hDTail :
+                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+              smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
+            simp [__smtx_dt_wf_rec, native_ite, hTailCons, hDTail]
+      have hj' : j < __smtx_dt_num_sels (SmtDatatype.sum c d) native_nat_zero := by
+        simpa [__smtx_dt_num_sels, __smtx_dtc_num_sels] using hj
+      simpa [__smtx_ret_typeof_sel_rec] using
+        smtx_ret_typeof_sel_rec_field_wf_of_wf_apply
+          (SmtDatatype.sum c d) native_nat_zero j hTailWf hj'
+  | SmtDatatype.sum c d, native_nat_succ i, j, refs, hWf, hj => by
+      cases d with
+      | null =>
+          simp [__smtx_dt_num_sels] at hj
+      | sum cTail dTail =>
+          have hTailWf :
+              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+            smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
+          have hj' : j < __smtx_dt_num_sels (SmtDatatype.sum cTail dTail) i := by
+            simpa [__smtx_dt_num_sels] using hj
+          simpa [__smtx_ret_typeof_sel_rec] using
+            smtx_ret_typeof_sel_rec_field_wf_of_wf_apply
+              (SmtDatatype.sum cTail dTail) i j hTailWf hj'
+
 mutual
 
 private theorem smtx_type_wf_rec_mono_apply :
@@ -2282,6 +2333,92 @@ private theorem smtx_value_dt_substitute_typeof_of_non_chain_apply
       exact False.elim (hT (dt_cons_chain_result_of_dt_cons_value_type hv))
   | SmtValue.Apply f a, T, hT, hv => by
       exact False.elim (apply_value_non_chain_result_impossible hT hv)
+
+private theorem smtx_value_dt_substitute_typeof_non_chain_top_apply
+    (sub : native_String) (base : SmtDatatype)
+    (v : SmtValue) {T : SmtType}
+    (hT : ¬ dt_cons_chain_result T)
+    (hv : __smtx_typeof_value v = T) :
+    __smtx_typeof_value (smtx_value_dt_substitute_apply sub base v) =
+      smtx_type_substitute_top_apply sub base T := by
+  have hPres :=
+    smtx_value_dt_substitute_typeof_of_non_chain_apply sub base v hT hv
+  have hNoSubRef : T ≠ SmtType.TypeRef sub := by
+    intro hRef
+    exact typeof_value_ne_type_ref sub v (hv.trans hRef)
+  cases T with
+  | TypeRef r =>
+      by_cases hEq : r = sub
+      · subst r
+        exact False.elim (hNoSubRef rfl)
+      · simpa [smtx_type_substitute_top_apply, native_ite, native_Teq, hEq]
+          using hPres
+  | None =>
+      exact False.elim (hT (by simp [dt_cons_chain_result]))
+  | Datatype s d =>
+      exact False.elim (hT (by simp [dt_cons_chain_result]))
+  | DtcAppType A B =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | Bool =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | Int =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | Real =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | RegLan =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | BitVec w =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | Map A B =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | Set A =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | Seq A =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | Char =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | USort i =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+  | FunType A B =>
+      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
+
+private theorem smtx_value_typeof_field_non_chain_or_datatype_apply
+    {v : SmtValue} {T : SmtType} {refs : RefList}
+    (hField : smtx_type_field_wf_rec T refs)
+    (hv : __smtx_typeof_value v = T) :
+    (¬ dt_cons_chain_result T) ∨
+      ∃ s d, T = SmtType.Datatype s d := by
+  cases T with
+  | None =>
+      simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at hField
+  | Bool =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | Int =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | Real =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | RegLan =>
+      simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at hField
+  | BitVec w =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | Map A B =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | Set A =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | Seq A =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | Char =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | Datatype s d =>
+      exact Or.inr ⟨s, d, rfl⟩
+  | TypeRef r =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | USort i =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | FunType A B =>
+      exact Or.inl (by simp [dt_cons_chain_result])
+  | DtcAppType A B =>
+      simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at hField
 
 private theorem smtx_value_dt_substitute_typeof_apply
     (v : SmtValue)
