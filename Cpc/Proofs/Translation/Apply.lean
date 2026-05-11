@@ -1520,6 +1520,12 @@ private def smtx_type_context_substitute_apply
         SmtType.Datatype r
           (smtx_dt_context_substitute_apply sub base root oldRoot newRoot
             (doSub && !native_streq r sub) (doRoot && !native_streq r root) d)
+  | SmtType.DtcAppType A B =>
+      SmtType.DtcAppType
+        (smtx_chain_type_context_substitute_apply sub base root oldRoot newRoot
+          doSub doRoot A)
+        (smtx_chain_type_context_substitute_apply sub base root oldRoot newRoot
+          doSub doRoot B)
   | T => T
 
 private def smtx_dtc_context_substitute_apply
@@ -1542,18 +1548,33 @@ private def smtx_dt_context_substitute_apply
         (smtx_dt_context_substitute_apply sub base root oldRoot newRoot doSub doRoot d)
   | SmtDatatype.null => SmtDatatype.null
 
-end
-
 private def smtx_chain_type_context_substitute_apply
     (sub : native_String) (base : SmtDatatype)
     (root : native_String) (oldRoot newRoot : SmtDatatype)
     (doSub doRoot : Bool) : SmtType -> SmtType
   | SmtType.DtcAppType A B =>
       SmtType.DtcAppType
-        (smtx_type_context_substitute_apply sub base root oldRoot newRoot doSub doRoot A)
+        (smtx_chain_type_context_substitute_apply sub base root oldRoot newRoot doSub doRoot A)
         (smtx_chain_type_context_substitute_apply sub base root oldRoot newRoot doSub doRoot B)
   | T =>
       smtx_type_context_substitute_apply sub base root oldRoot newRoot doSub doRoot T
+
+end
+
+private theorem smtx_type_context_substitute_eq_chain_type_context_substitute_apply
+    (sub : native_String) (base : SmtDatatype)
+    (root : native_String) (oldRoot newRoot : SmtDatatype)
+    (doSub doRoot : Bool) :
+    (T : SmtType) ->
+      smtx_type_context_substitute_apply sub base root oldRoot newRoot doSub doRoot T =
+        smtx_chain_type_context_substitute_apply sub base root oldRoot newRoot doSub doRoot T
+  | SmtType.DtcAppType A B => by
+      simp [smtx_type_context_substitute_apply,
+        smtx_chain_type_context_substitute_apply]
+  | T => by
+      cases T <;>
+        simp [smtx_type_context_substitute_apply,
+          smtx_chain_type_context_substitute_apply]
 
 private def smtx_value_dt_context_substitute_apply
     (sub : native_String) (base : SmtDatatype)
@@ -1794,6 +1815,7 @@ private theorem smtx_typeof_dt_cons_value_rec_context_substitute_cons_apply
   | SmtDatatypeCons.cons U c, d => by
       simp [smtx_dtc_context_substitute_apply, __smtx_typeof_dt_cons_value_rec,
         smtx_chain_type_context_substitute_apply,
+        smtx_type_context_substitute_eq_chain_type_context_substitute_apply,
         smtx_typeof_dt_cons_value_rec_context_substitute_cons_apply
           sub base root oldRoot newRoot doSub doRoot T c d]
 
@@ -3229,6 +3251,162 @@ private theorem smtx_value_typeof_field_non_chain_or_datatype_apply
   | DtcAppType A B =>
       simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at hField
 
+private theorem smtx_value_chain_type_head_exists_apply
+    (v : SmtValue) {T : SmtType}
+    (hv : __smtx_typeof_value v = T)
+    (hT : T ≠ SmtType.None)
+    (hChain : dt_cons_chain_result T) :
+    ∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i := by
+  cases T with
+  | None =>
+      exact False.elim (hT rfl)
+  | Datatype s d =>
+      rcases smtx_value_datatype_type_head_exists_apply v hv with ⟨i, hHead⟩
+      exact ⟨s, d, i, hHead⟩
+  | DtcAppType A B =>
+      exact smtx_value_dtc_app_type_head_exists_apply v hv
+  | Bool =>
+      simp [dt_cons_chain_result] at hChain
+  | Int =>
+      simp [dt_cons_chain_result] at hChain
+  | Real =>
+      simp [dt_cons_chain_result] at hChain
+  | RegLan =>
+      simp [dt_cons_chain_result] at hChain
+  | BitVec w =>
+      simp [dt_cons_chain_result] at hChain
+  | Map A B =>
+      simp [dt_cons_chain_result] at hChain
+  | Set A =>
+      simp [dt_cons_chain_result] at hChain
+  | Seq A =>
+      simp [dt_cons_chain_result] at hChain
+  | Char =>
+      simp [dt_cons_chain_result] at hChain
+  | TypeRef r =>
+      simp [dt_cons_chain_result] at hChain
+  | USort i =>
+      simp [dt_cons_chain_result] at hChain
+  | FunType A B =>
+      simp [dt_cons_chain_result] at hChain
+
+private theorem smtx_value_dt_context_substitute_typeof_top_apply
+    (sub : native_String) (base : SmtDatatype)
+    (root : native_String) (oldRoot newRoot : SmtDatatype) :
+    (v : SmtValue) -> {T : SmtType} ->
+      __smtx_typeof_value v = T ->
+      T ≠ SmtType.None ->
+      dt_cons_chain_result T ->
+      __smtx_typeof_value
+          (smtx_value_dt_context_substitute_apply sub base root oldRoot newRoot v) =
+        smtx_chain_type_context_substitute_apply
+          sub base root oldRoot newRoot true true T
+  | SmtValue.NotValue, T, hv, hT, hChain => by
+      simp [__smtx_typeof_value] at hv
+      exact False.elim (hT hv.symm)
+  | SmtValue.Boolean b, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Boolean b) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Numeral n, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Numeral n) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Rational q, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Rational q) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Binary w n, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Binary w n) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Map m, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Map m) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Fun m, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Fun m) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Set m, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Set m) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Seq ss, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Seq ss) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Char c, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.Char c) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.UValue k e, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.UValue k e) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.RegLan r, T, hv, hT, hChain => by
+      rcases smtx_value_chain_type_head_exists_apply
+          (SmtValue.RegLan r) hv hT hChain with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.DtCons s d i, T, hv, hT, hChain => by
+      -- Needs the commutation lemma between context substitution and the
+      -- constructor's self-substitution; the root case also needs the intended
+      -- relationship between `newRoot` and the transformed `oldRoot`.
+      sorry
+  | SmtValue.Apply f a, T, hv, hT, hChain => by
+      have hApplyNN :
+          __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value a) ≠
+            SmtType.None := by
+        intro hNone
+        apply hT
+        simpa [__smtx_typeof_value, hNone] using hv.symm
+      rcases typeof_apply_value_non_none_cases hApplyNN with
+        ⟨A, B, hF, hA, hANone, hBNone⟩
+      have hFNN : __smtx_typeof_value f ≠ SmtType.None := by
+        intro hNone
+        simp [hNone] at hF
+      have hArgNN : __smtx_typeof_value a ≠ SmtType.None := by
+        intro hNone
+        subst hA
+        exact hANone hNone
+      have hFTrans :=
+        smtx_value_dt_context_substitute_typeof_top_apply
+          sub base root oldRoot newRoot f hF (by simp) (by
+            have hApplyTy0 :
+                __smtx_typeof_value (SmtValue.Apply f a) = B := by
+              simp [__smtx_typeof_value, __smtx_typeof_apply_value,
+                __smtx_typeof_guard, native_ite, native_Teq, hF, hA, hANone]
+            have hBChain : dt_cons_chain_result B := by
+              have hTChain := hChain
+              have hTB : T = B := hv.symm.trans hApplyTy0
+              simpa [hTB] using hTChain
+            simpa [dt_cons_chain_result] using hBChain)
+      have hATrans :
+          __smtx_typeof_value
+              (smtx_value_dt_context_substitute_apply sub base root oldRoot newRoot a) =
+            smtx_chain_type_context_substitute_apply
+              sub base root oldRoot newRoot true true A := by
+        by_cases hAChain : dt_cons_chain_result A
+        · exact smtx_value_dt_context_substitute_typeof_top_apply
+            sub base root oldRoot newRoot a hA hANone hAChain
+        · exact smtx_value_dt_context_substitute_typeof_non_chain_top_apply
+            sub base root oldRoot newRoot a hAChain hA
+      have hApplyTy :
+          __smtx_typeof_value (SmtValue.Apply f a) = B := by
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, __smtx_typeof_guard,
+          native_ite, native_Teq, hF, hA, hANone]
+      have hTB : T = B := hv.symm.trans hApplyTy
+      subst T
+      have hCtxANone :
+          smtx_chain_type_context_substitute_apply
+              sub base root oldRoot newRoot true true A ≠ SmtType.None :=
+        smtx_chain_type_context_substitute_ne_none_apply
+          sub base root oldRoot newRoot true true A hANone
+      simp [smtx_value_dt_context_substitute_apply, __smtx_typeof_value,
+        __smtx_typeof_apply_value, __smtx_typeof_guard,
+        smtx_chain_type_context_substitute_apply, hFTrans, hATrans,
+        hF, hA, native_ite, native_Teq, hANone, hCtxANone]
+
 private theorem smtx_value_dt_context_substitute_typeof_apply
     (v : SmtValue)
     {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
@@ -3248,10 +3426,12 @@ private theorem smtx_value_dt_context_substitute_typeof_apply
         (smtx_value_dt_context_substitute_apply
           s base s2 d (__smtx_dt_substitute s base d) v) =
       SmtType.Datatype s2 (__smtx_dt_substitute s base d) := by
-  rcases smtx_value_dt_context_substitute_apply_datatype_head_full_args v hv with
-    ⟨i, hHead, hCount⟩
-  exact smtx_value_typeof_full_dt_cons_chain_apply hHead hCount (by
-    sorry)
+  have hTop :=
+    smtx_value_dt_context_substitute_typeof_top_apply
+      s base s2 d (__smtx_dt_substitute s base d) v hv (by simp)
+      (by simp [dt_cons_chain_result])
+  simpa [smtx_chain_type_context_substitute_apply,
+    smtx_type_context_substitute_apply, native_streq] using hTop
 
 private theorem smtx_value_typeof_dt_substitute_apply
     (v : SmtValue)
