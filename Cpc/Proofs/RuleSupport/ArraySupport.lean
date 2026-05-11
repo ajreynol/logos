@@ -196,17 +196,23 @@ theorem smt_value_rel_map_of_lookup_eq
     (m1 m2 : SmtMap)
     (hm1 : __smtx_map_canonical m1 = true)
     (hm2 : __smtx_map_canonical m2 = true)
+    (hDef : Smtm.smt_map_default_leaf m1 = Smtm.smt_map_default_leaf m2)
     (h : ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) :
     smt_value_rel (SmtValue.Map m1) (SmtValue.Map m2) := by
-  sorry
+  have hEq : m1 = m2 := Smtm.map_ext_of_lookup_eq hm1 hm2 hDef h
+  subst m2
+  exact smt_value_rel_refl (SmtValue.Map m1)
 
 theorem smt_value_rel_set_of_lookup_eq
     (m1 m2 : SmtMap)
     (hm1 : __smtx_map_canonical m1 = true)
     (hm2 : __smtx_map_canonical m2 = true)
+    (hDef : Smtm.smt_map_default_leaf m1 = Smtm.smt_map_default_leaf m2)
     (h : ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) :
     smt_value_rel (SmtValue.Set m1) (SmtValue.Set m2) := by
-  sorry
+  have hEq : m1 = m2 := Smtm.map_ext_of_lookup_eq hm1 hm2 hDef h
+  subst m2
+  exact smt_value_rel_refl (SmtValue.Set m1)
 
 theorem smt_value_rel_select_store_same_of_map
     (m : SmtMap) (i e : SmtValue)
@@ -216,7 +222,14 @@ theorem smt_value_rel_select_store_same_of_map
     smt_value_rel
       (__smtx_model_eval_select (__smtx_model_eval_store (SmtValue.Map m) i e) i)
       e := by
-  sorry
+  have hLookup :
+      __smtx_model_eval_select
+          (__smtx_model_eval_store (SmtValue.Map m) i e) i = e := by
+    simpa [__smtx_model_eval_select, __smtx_model_eval_store,
+      __smtx_map_select, __smtx_map_store] using
+      Smtm.map_lookup_update_aux_same (m := m) (i := i) (e := e) hm
+  rw [hLookup]
+  exact smt_value_rel_refl e
 
 private theorem eq_of_native_veq_true {v1 v2 : SmtValue}
     (h : native_veq v1 v2 = true) :
@@ -239,7 +252,78 @@ theorem smt_value_rel_store_overwrite
     smt_value_rel
       (__smtx_model_eval_store (__smtx_model_eval_store v i e) i f)
       (__smtx_model_eval_store v i f) := by
-  sorry
+  cases v <;>
+    try
+      simpa [__smtx_model_eval_store, __smtx_map_store] using
+        smt_value_rel_refl SmtValue.NotValue
+  · have hm : __smtx_map_canonical ‹SmtMap› = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+    have hmInner :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e) = true :=
+      Smtm.map_update_aux_canonical (m := ‹SmtMap›) (i := i) (e := e) hm hi he
+    have hmLeft :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux
+            (__smtx_msm_get_default
+              (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e))
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+            i f) = true :=
+      Smtm.map_update_aux_canonical
+        (m := __smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+        (i := i) (e := f) hmInner hi hf
+    have hmRight :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i f) = true :=
+      Smtm.map_update_aux_canonical (m := ‹SmtMap›) (i := i) (e := f) hm hi hf
+    simpa [__smtx_model_eval_store, __smtx_map_store] using
+      smt_value_rel_map_of_lookup_eq
+        (__smtx_msm_update_aux
+          (__smtx_msm_get_default
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e))
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+          i f)
+        (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i f)
+        hmLeft hmRight
+        (by simp [Smtm.map_update_aux_default_leaf])
+        (by
+          intro x
+          exact Smtm.map_lookup_update_aux_overwrite
+            (m := ‹SmtMap›) (i := i) (e := e) (f := f) (x := x) hm hi he)
+  · have hm : __smtx_map_canonical ‹SmtMap› = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+    have hmInner :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e) = true :=
+      Smtm.map_update_aux_canonical (m := ‹SmtMap›) (i := i) (e := e) hm hi he
+    have hmLeft :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux
+            (__smtx_msm_get_default
+              (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e))
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+            i f) = true :=
+      Smtm.map_update_aux_canonical
+        (m := __smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+        (i := i) (e := f) hmInner hi hf
+    have hmRight :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i f) = true :=
+      Smtm.map_update_aux_canonical (m := ‹SmtMap›) (i := i) (e := f) hm hi hf
+    simpa [__smtx_model_eval_store, __smtx_map_store] using
+      smt_value_rel_set_of_lookup_eq
+        (__smtx_msm_update_aux
+          (__smtx_msm_get_default
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e))
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+          i f)
+        (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i f)
+        hmLeft hmRight
+        (by simp [Smtm.map_update_aux_default_leaf])
+        (by
+          intro x
+          exact Smtm.map_lookup_update_aux_overwrite
+            (m := ‹SmtMap›) (i := i) (e := e) (f := f) (x := x) hm hi he)
 
 theorem smt_value_rel_store_swap_of_native_veq_false
     (v i j e f : SmtValue)
@@ -252,7 +336,108 @@ theorem smt_value_rel_store_swap_of_native_veq_false
     smt_value_rel
       (__smtx_model_eval_store (__smtx_model_eval_store v i e) j f)
       (__smtx_model_eval_store (__smtx_model_eval_store v j f) i e) := by
-  sorry
+  cases v <;>
+    try
+      simpa [__smtx_model_eval_store, __smtx_map_store] using
+        smt_value_rel_refl SmtValue.NotValue
+  · have hm : __smtx_map_canonical ‹SmtMap› = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+    have hmi :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e) = true :=
+      Smtm.map_update_aux_canonical (m := ‹SmtMap›) (i := i) (e := e) hm hi he
+    have hmj :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f) = true :=
+      Smtm.map_update_aux_canonical (m := ‹SmtMap›) (i := j) (e := f) hm hj hf
+    have hmLeft :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux
+            (__smtx_msm_get_default
+              (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e))
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+            j f) = true :=
+      Smtm.map_update_aux_canonical
+        (m := __smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+        (i := j) (e := f) hmi hj hf
+    have hmRight :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux
+            (__smtx_msm_get_default
+              (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f))
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f)
+            i e) = true :=
+      Smtm.map_update_aux_canonical
+        (m := __smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f)
+        (i := i) (e := e) hmj hi he
+    simpa [__smtx_model_eval_store, __smtx_map_store] using
+      smt_value_rel_map_of_lookup_eq
+        (__smtx_msm_update_aux
+          (__smtx_msm_get_default
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e))
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+          j f)
+        (__smtx_msm_update_aux
+          (__smtx_msm_get_default
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f))
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f)
+          i e)
+        hmLeft hmRight
+        (by simp [Smtm.map_update_aux_default_leaf])
+        (by
+          intro x
+          exact Smtm.map_lookup_update_aux_swap
+            (m := ‹SmtMap›) (i := i) (j := j) (e := e) (f := f) (x := x)
+            hm hi hj he hf hij)
+  · have hm : __smtx_map_canonical ‹SmtMap› = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+    have hmi :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e) = true :=
+      Smtm.map_update_aux_canonical (m := ‹SmtMap›) (i := i) (e := e) hm hi he
+    have hmj :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f) = true :=
+      Smtm.map_update_aux_canonical (m := ‹SmtMap›) (i := j) (e := f) hm hj hf
+    have hmLeft :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux
+            (__smtx_msm_get_default
+              (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e))
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+            j f) = true :=
+      Smtm.map_update_aux_canonical
+        (m := __smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+        (i := j) (e := f) hmi hj hf
+    have hmRight :
+        __smtx_map_canonical
+          (__smtx_msm_update_aux
+            (__smtx_msm_get_default
+              (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f))
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f)
+            i e) = true :=
+      Smtm.map_update_aux_canonical
+        (m := __smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f)
+        (i := i) (e := e) hmj hi he
+    simpa [__smtx_model_eval_store, __smtx_map_store] using
+      smt_value_rel_set_of_lookup_eq
+        (__smtx_msm_update_aux
+          (__smtx_msm_get_default
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e))
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e)
+          j f)
+        (__smtx_msm_update_aux
+          (__smtx_msm_get_default
+            (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f))
+          (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› j f)
+          i e)
+        hmLeft hmRight
+        (by simp [Smtm.map_update_aux_default_leaf])
+        (by
+          intro x
+          exact Smtm.map_lookup_update_aux_swap
+            (m := ‹SmtMap›) (i := i) (j := j) (e := e) (f := f) (x := x)
+            hm hi hj he hf hij)
 
 theorem smt_value_rel_select_store_other_of_native_veq_false
     (v i j e : SmtValue)
@@ -264,7 +449,35 @@ theorem smt_value_rel_select_store_other_of_native_veq_false
     smt_value_rel
       (__smtx_model_eval_select (__smtx_model_eval_store v i e) j)
       (__smtx_model_eval_select v j) := by
-  sorry
+  cases v <;>
+    try
+      simpa [__smtx_model_eval_select, __smtx_model_eval_store,
+        __smtx_map_select, __smtx_map_store] using
+        smt_value_rel_refl SmtValue.NotValue
+  · have hm : __smtx_map_canonical ‹SmtMap› = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+    have hLookup :
+        __smtx_model_eval_select
+            (__smtx_model_eval_store (SmtValue.Map ‹SmtMap›) i e) j =
+          __smtx_model_eval_select (SmtValue.Map ‹SmtMap›) j := by
+      simpa [__smtx_model_eval_select, __smtx_model_eval_store,
+        __smtx_map_select, __smtx_map_store] using
+        Smtm.map_lookup_update_aux_other (m := ‹SmtMap›)
+          (i := i) (j := j) (e := e) hm hij
+    rw [hLookup]
+    exact smt_value_rel_refl (__smtx_model_eval_select (SmtValue.Map ‹SmtMap›) j)
+  · have hm : __smtx_map_canonical ‹SmtMap› = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+    have hLookup :
+        __smtx_model_eval_select
+            (__smtx_model_eval_store (SmtValue.Set ‹SmtMap›) i e) j =
+          __smtx_model_eval_select (SmtValue.Set ‹SmtMap›) j := by
+      simpa [__smtx_model_eval_select, __smtx_model_eval_store,
+        __smtx_map_select, __smtx_map_store] using
+        Smtm.map_lookup_update_aux_other (m := ‹SmtMap›)
+          (i := i) (j := j) (e := e) hm hij
+    rw [hLookup]
+    exact smt_value_rel_refl (__smtx_model_eval_select (SmtValue.Set ‹SmtMap›) j)
 
 theorem smt_value_rel_store_self_of_map
     (m : SmtMap) (i : SmtValue)
@@ -275,7 +488,25 @@ theorem smt_value_rel_store_self_of_map
         (SmtValue.Map m) i
         (__smtx_model_eval_select (SmtValue.Map m) i))
       (SmtValue.Map m) := by
-  sorry
+  have hLookupCanonical : __smtx_value_canonical (__smtx_msm_lookup m i) :=
+    Smtm.map_lookup_value_canonical (m := m) (i := i) hm
+  have hmLeft :
+      __smtx_map_canonical
+        (__smtx_msm_update_aux (__smtx_msm_get_default m) m i
+          (__smtx_msm_lookup m i)) = true :=
+    Smtm.map_update_aux_canonical
+      (m := m) (i := i) (e := __smtx_msm_lookup m i) hm hi hLookupCanonical
+  simpa [__smtx_model_eval_store, __smtx_model_eval_select,
+    __smtx_map_store, __smtx_map_select] using
+    smt_value_rel_map_of_lookup_eq
+      (__smtx_msm_update_aux (__smtx_msm_get_default m) m i
+        (__smtx_msm_lookup m i))
+      m
+      hmLeft hm
+      (by simp [Smtm.map_update_aux_default_leaf])
+      (by
+        intro x
+        exact Smtm.map_lookup_update_aux_self (m := m) (i := i) (x := x) hm)
 
 theorem model_eval_eq_false_of_eo_eq_false
     (M : SmtModel) (x y : Term) :

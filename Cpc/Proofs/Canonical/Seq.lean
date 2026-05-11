@@ -47,6 +47,53 @@ theorem seq_canonical_pack_seq
       simpa [native_pack_seq] using
         seq_canonical_cons hv (seq_canonical_pack_seq T hvs)
 
+/-- Unpacking a canonical sequence gives a list of canonical values. -/
+theorem seq_unpack_values_canonical :
+    ∀ {s : SmtSeq},
+      __smtx_seq_canonical s = true ->
+        ∀ v, v ∈ native_unpack_seq s -> __smtx_value_canonical v
+  | SmtSeq.empty T, _h, v, hv => by
+      simp [native_unpack_seq] at hv
+  | SmtSeq.cons x xs, h, v, hv => by
+      have hx : __smtx_value_canonical x := by
+        have hParts := h
+        simp [__smtx_seq_canonical, SmtEval.native_and] at hParts
+        exact hParts.1
+      have hxs : __smtx_seq_canonical xs = true := by
+        have hParts := h
+        simp [__smtx_seq_canonical, SmtEval.native_and] at hParts
+        exact hParts.2
+      simp [native_unpack_seq] at hv
+      rcases hv with rfl | hv
+      · exact hx
+      · exact seq_unpack_values_canonical hxs v hv
+
+/-- Repacking the concatenation of two canonical sequences is canonical. -/
+theorem seq_canonical_pack_unpack_concat
+    (T : SmtType)
+    {s1 s2 : SmtSeq}
+    (h1 : __smtx_seq_canonical s1 = true)
+    (h2 : __smtx_seq_canonical s2 = true) :
+    __smtx_seq_canonical
+      (native_pack_seq T (native_unpack_seq s1 ++ native_unpack_seq s2)) = true := by
+  apply seq_canonical_pack_seq
+  intro v hv
+  simp at hv
+  rcases hv with hv | hv
+  · exact seq_unpack_values_canonical h1 v hv
+  · exact seq_unpack_values_canonical h2 v hv
+
+/-- Repacking the reverse of a canonical sequence is canonical. -/
+theorem seq_canonical_pack_unpack_reverse
+    (T : SmtType)
+    {s : SmtSeq}
+    (h : __smtx_seq_canonical s = true) :
+    __smtx_seq_canonical
+      (native_pack_seq T (native_unpack_seq s).reverse) = true := by
+  apply seq_canonical_pack_seq
+  intro v hv
+  exact seq_unpack_values_canonical h v (by simpa using hv)
+
 /-- Packed strings are canonical sequences, since every character value is canonical. -/
 theorem seq_canonical_pack_string (s : native_String) :
     __smtx_seq_canonical (native_pack_string s) = true := by

@@ -212,6 +212,25 @@ theorem model_eval_seq_unit_term_canonical
   simpa [__smtx_model_eval] using
     model_eval_seq_unit_value_canonical (v := __smtx_model_eval M t) ht
 
+theorem model_eval_str_concat_term_canonical
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (h1 : __smtx_value_canonical (__smtx_model_eval M t1))
+    (h2 : __smtx_value_canonical (__smtx_model_eval M t2)) :
+    __smtx_value_canonical (__smtx_model_eval M (SmtTerm.str_concat t1 t2)) := by
+  simpa [__smtx_model_eval] using
+    model_eval_str_concat_canonical
+      (v1 := __smtx_model_eval M t1)
+      (v2 := __smtx_model_eval M t2) h1 h2
+
+theorem model_eval_str_rev_term_canonical
+    (M : SmtModel)
+    (t : SmtTerm)
+    (ht : __smtx_value_canonical (__smtx_model_eval M t)) :
+    __smtx_value_canonical (__smtx_model_eval M (SmtTerm.str_rev t)) := by
+  simpa [__smtx_model_eval] using
+    model_eval_str_rev_canonical (v := __smtx_model_eval M t) ht
+
 theorem model_eval_set_empty_term_canonical
     (M : SmtModel)
     (T : SmtType) :

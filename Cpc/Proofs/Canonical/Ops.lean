@@ -187,6 +187,22 @@ theorem model_eval_qdiv_total_canonical
     simp [__smtx_model_eval_qdiv_total, __smtx_value_canonical,
       __smtx_value_canonical_bool]
 
+theorem model_eval_apply_canonical
+    {f x : SmtValue}
+    (hf : __smtx_value_canonical f)
+    (hx : __smtx_value_canonical x) :
+    __smtx_value_canonical (__smtx_model_eval_apply f x) := by
+  cases f <;> cases x <;>
+    simp [__smtx_model_eval_apply, __smtx_map_select,
+      __smtx_value_canonical, __smtx_value_canonical_bool,
+      SmtEval.native_and] at hf hx ⊢
+  all_goals
+    first
+    | assumption
+    | exact ⟨hf, hx⟩
+    | simpa [__smtx_value_canonical] using
+        map_lookup_value_canonical (i := ?_) hf
+
 /-- Value-level SMT `ite` preserves canonicality of the selected branch. -/
 theorem model_eval_ite_canonical
     {c t e : SmtValue}
@@ -216,6 +232,37 @@ theorem model_eval_seq_unit_value_canonical
     __smtx_value_canonical
       (SmtValue.Seq (SmtSeq.cons v (SmtSeq.empty (__smtx_typeof_value v)))) := by
   exact value_canonical_seq_cons hv (seq_canonical_empty (__smtx_typeof_value v))
+
+theorem model_eval_str_concat_canonical
+    {v1 v2 : SmtValue}
+    (hv1 : __smtx_value_canonical v1)
+    (hv2 : __smtx_value_canonical v2) :
+    __smtx_value_canonical (__smtx_model_eval_str_concat v1 v2) := by
+  cases v1 <;> cases v2 <;>
+    try
+      simpa [__smtx_model_eval_str_concat] using value_canonical_notValue
+  case Seq.Seq s1 s2 =>
+    have hs1 : __smtx_seq_canonical s1 = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv1
+    have hs2 : __smtx_seq_canonical s2 = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv2
+    simpa [__smtx_model_eval_str_concat, __smtx_value_canonical,
+      __smtx_value_canonical_bool, native_seq_concat] using
+      seq_canonical_pack_unpack_concat (__smtx_elem_typeof_seq_value s1)
+        hs1 hs2
+
+theorem model_eval_str_rev_canonical
+    {v : SmtValue}
+    (hv : __smtx_value_canonical v) :
+    __smtx_value_canonical (__smtx_model_eval_str_rev v) := by
+  cases v <;>
+    try
+      simpa [__smtx_model_eval_str_rev] using value_canonical_notValue
+  · have hs : __smtx_seq_canonical ‹SmtSeq› = true := by
+      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+    simpa [__smtx_model_eval_str_rev, __smtx_value_canonical,
+      __smtx_value_canonical_bool, native_seq_rev] using
+      seq_canonical_pack_unpack_reverse (__smtx_elem_typeof_seq_value ‹SmtSeq›) hs
 
 theorem model_eval_set_empty_value_canonical
     (T : SmtType) :

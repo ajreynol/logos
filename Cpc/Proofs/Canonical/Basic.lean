@@ -68,6 +68,18 @@ theorem value_canonical_dt_cons (s : native_String) (d : SmtDatatype) (i : nativ
     __smtx_value_canonical (SmtValue.DtCons s d i) := by
   simp [__smtx_value_canonical, __smtx_value_canonical_bool]
 
+theorem value_canonical_apply
+    {f x : SmtValue}
+    (hf : __smtx_value_canonical f)
+    (hx : __smtx_value_canonical x) :
+    __smtx_value_canonical (SmtValue.Apply f x) := by
+  have hfBool : __smtx_value_canonical_bool f = true := by
+    simpa [__smtx_value_canonical] using hf
+  have hxBool : __smtx_value_canonical_bool x = true := by
+    simpa [__smtx_value_canonical] using hx
+  simp [__smtx_value_canonical, __smtx_value_canonical_bool, hfBool, hxBool,
+    SmtEval.native_and]
+
 /-- Boolean-typed values are canonical. -/
 theorem value_canonical_of_bool_type
     {v : SmtValue}

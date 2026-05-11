@@ -23,6 +23,16 @@ theorem native_vcmp_flip
   sorry
 
 /--
+Temporary irreflexivity/disequality assumption for the strict order induced by
+`native_vcmp`.
+-/
+theorem native_vcmp_ne
+    {a b : SmtValue}
+    (hCmp : native_vcmp a b = true) :
+    native_veq a b = false := by
+  sorry
+
+/--
 Temporary transitivity assumption for the strict order induced by
 `native_vcmp`.
 -/
