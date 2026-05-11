@@ -2502,7 +2502,7 @@ private theorem smtx_dt_substitute_self_wf_apply :
   | d, s, refs, hInh, hWf =>
       smtx_dt_substitute_wf_apply d hInh hWf hWf
 
-private def smtx_type_fun_like_domains_wf : SmtType -> Prop
+def smtx_type_fun_like_domains_wf : SmtType -> Prop
   | SmtType.Seq A => smtx_type_fun_like_domains_wf A
   | SmtType.Set A => smtx_type_fun_like_domains_wf A
   | SmtType.Map A B =>
@@ -2697,7 +2697,7 @@ private theorem eo_to_smt_type_injective_of_translation_injective_wf
         exact eo_to_smt_type_injective_of_field_wf_rec hT hU hWF
   exact go A hT hU hWF
 
-private theorem smtx_type_fun_like_domains_wf_of_type_wf_rec :
+theorem smtx_type_fun_like_domains_wf_of_type_wf_rec :
     ∀ {T : SmtType} {refs : RefList},
       __smtx_type_wf_rec T refs = true -> smtx_type_fun_like_domains_wf T
   | SmtType.None, _refs, h => by
@@ -2747,7 +2747,7 @@ decreasing_by
   all_goals simp [sizeOf]
   all_goals omega
 
-private theorem smtx_type_fun_like_domains_wf_of_type_wf
+theorem smtx_type_fun_like_domains_wf_of_type_wf
     {T : SmtType} (h : __smtx_type_wf T = true) :
     smtx_type_fun_like_domains_wf T := by
   by_cases hReg : T = SmtType.RegLan
@@ -2766,7 +2766,7 @@ private theorem smtx_type_fun_like_domains_wf_of_field_wf_rec
     exact smtx_type_fun_like_domains_wf_of_type_wf_rec (refs := refs) (by
       simpa [smtx_type_field_wf_rec] using h)
 
-private theorem smtx_type_fun_like_domains_wf_apply
+theorem smtx_type_fun_like_domains_wf_apply
     {F X : SmtType}
     (hF : smtx_type_fun_like_domains_wf F)
     (hNN : __smtx_typeof_apply F X ≠ SmtType.None) :
@@ -2781,7 +2781,7 @@ private theorem smtx_type_fun_like_domains_wf_apply
   · rw [hHead] at hF
     exact hF.2.2
 
-private theorem smtx_type_fun_like_arg_field_wf_of_domains_wf
+theorem smtx_type_fun_like_arg_field_wf_of_domains_wf
     {T A B : SmtType}
     (hWF : smtx_type_fun_like_domains_wf T)
     (hHead : T = SmtType.FunType A B ∨ T = SmtType.DtcAppType A B) :
@@ -3068,7 +3068,7 @@ private theorem smtx_typeof_apply_dt_sel_domains_wf_of_non_none
   rw [hTy]
   exact smtx_type_fun_like_domains_wf_of_type_wf hWF
 
-private theorem smtx_term_fun_like_domains_wf_of_non_none :
+theorem smtx_term_fun_like_domains_wf_of_non_none :
     ∀ t : SmtTerm, term_has_non_none_type t ->
       smtx_type_fun_like_domains_wf (__smtx_typeof t) := by
   let rec go (t : SmtTerm) (hNN : term_has_non_none_type t) :

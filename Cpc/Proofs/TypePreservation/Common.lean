@@ -71,6 +71,15 @@ theorem type_wf_non_none
   intro hNone
   simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hNone] at h
 
+/-- Recursive well-formedness rejects `RegLan` at nested positions. -/
+theorem type_wf_rec_ne_reglan
+    {T : SmtType} {refs : RefList}
+    (h : __smtx_type_wf_rec T refs = true) :
+    T ≠ SmtType.RegLan := by
+  intro hReg
+  subst hReg
+  simp [__smtx_type_wf_rec] at h
+
 /-- Rebuilds public well-formedness from recursive well-formedness plus inhabitation. -/
 theorem type_wf_of_inhabited_and_wf_rec
     {T : SmtType}
@@ -150,6 +159,34 @@ theorem fun_type_wf_components_of_wf
     exact hAll.2
   exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
     type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
+
+/-- Extracts recursive well-formedness of the domain and codomain of a well-formed function type. -/
+theorem fun_type_wf_rec_components_of_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_type_wf_rec A native_reflist_nil = true ∧
+      __smtx_type_wf_rec B native_reflist_nil = true := by
+  have hPair :
+      native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A native_reflist_nil = true ∧
+          native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true := by
+    have hAll :
+        native_inhabited_type (SmtType.FunType A B) = true ∧
+          native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A native_reflist_nil = true ∧
+              native_inhabited_type B = true ∧
+                __smtx_type_wf_rec B native_reflist_nil = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+    exact hAll.2
+  exact ⟨hPair.2.1, hPair.2.2.2⟩
+
+/-- The domain of a well-formed function type is not `RegLan`. -/
+theorem fun_type_domain_ne_reglan_of_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
+    A ≠ SmtType.RegLan :=
+  type_wf_rec_ne_reglan (fun_type_wf_rec_components_of_wf h).1
 
 /-- A well-formed sequence type has a non-`None` element type. -/
 theorem seq_type_component_non_none_of_wf
