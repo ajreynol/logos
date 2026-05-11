@@ -3,6 +3,7 @@ import Cpc.Proofs.Translation.Quantifiers
 import Cpc.Proofs.Translation.Special
 import Cpc.Proofs.Translation.Inversions
 import Cpc.Proofs.Translation.Heads
+import Cpc.Proofs.Translation.EoTypeof
 import Cpc.Proofs.TypePreservationFull
 
 open Eo
@@ -1750,8 +1751,14 @@ private def smtx_value_dt_substitute_apply
       SmtValue.DtCons s
         (native_ite (native_streq sub s) d (__smtx_dt_substitute sub base d)) i
   | SmtValue.Apply f a =>
-      SmtValue.Apply (smtx_value_dt_substitute_apply sub base f)
-        (smtx_value_dt_substitute_apply sub base a)
+      match __vsm_apply_head f with
+      | SmtValue.DtCons s _ _ =>
+          native_ite (native_streq sub s) (SmtValue.Apply f a)
+            (SmtValue.Apply (smtx_value_dt_substitute_apply sub base f)
+              (smtx_value_dt_substitute_apply sub base a))
+      | _ =>
+          SmtValue.Apply (smtx_value_dt_substitute_apply sub base f)
+            (smtx_value_dt_substitute_apply sub base a)
   | v => v
 
 private theorem smtx_value_dt_substitute_apply_num_args
@@ -1760,8 +1767,14 @@ private theorem smtx_value_dt_substitute_apply_num_args
       vsm_num_apply_args (smtx_value_dt_substitute_apply sub base v) =
         vsm_num_apply_args v
   | SmtValue.Apply f a => by
-      simp [smtx_value_dt_substitute_apply, vsm_num_apply_args,
-        smtx_value_dt_substitute_apply_num_args sub base f]
+      cases hHead : __vsm_apply_head f
+      case DtCons s d i =>
+        cases hEq : native_streq sub s <;>
+          simp [smtx_value_dt_substitute_apply, hHead, native_ite, hEq,
+            vsm_num_apply_args, smtx_value_dt_substitute_apply_num_args sub base f]
+      all_goals
+        simp [smtx_value_dt_substitute_apply, hHead,
+          vsm_num_apply_args, smtx_value_dt_substitute_apply_num_args sub base f]
   | SmtValue.NotValue => rfl
   | SmtValue.Boolean _ => rfl
   | SmtValue.Numeral _ => rfl
@@ -1791,8 +1804,11 @@ private theorem smtx_value_dt_substitute_apply_head_of_dt_cons
   | SmtValue.Apply f a, s, d, i, hHead => by
       have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
         simpa [__vsm_apply_head] using hHead
-      simpa [smtx_value_dt_substitute_apply, __vsm_apply_head] using
+      have hRec :=
         smtx_value_dt_substitute_apply_head_of_dt_cons sub base f hHeadF
+      cases hEq : native_streq sub s <;>
+        simp [smtx_value_dt_substitute_apply, __vsm_apply_head, hHeadF,
+          native_ite, hEq, hRec]
   | SmtValue.NotValue, s, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
   | SmtValue.Boolean _, s, d, i, hHead => by
@@ -1818,36 +1834,98 @@ private theorem smtx_value_dt_substitute_apply_head_of_dt_cons
   | SmtValue.RegLan _, s, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
 
+private theorem smtx_value_dt_substitute_apply_of_shadowed_head
+    (sub : native_String) (base : SmtDatatype) :
+    (v : SmtValue) -> {d : SmtDatatype} -> {i : native_Nat} ->
+      __vsm_apply_head v = SmtValue.DtCons sub d i ->
+      smtx_value_dt_substitute_apply sub base v = v
+  | SmtValue.DtCons s d i, d', i', hHead => by
+      simp [__vsm_apply_head] at hHead
+      rcases hHead with ⟨rfl, hRest⟩
+      rcases hRest with ⟨rfl, rfl⟩
+      simp [smtx_value_dt_substitute_apply, native_streq, native_ite]
+  | SmtValue.Apply f a, d, i, hHead => by
+      have hHeadF : __vsm_apply_head f = SmtValue.DtCons sub d i := by
+        simpa [__vsm_apply_head] using hHead
+      simp [smtx_value_dt_substitute_apply, hHeadF, native_streq, native_ite]
+  | SmtValue.NotValue, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Boolean _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Numeral _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Rational _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Binary _ _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Map _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Fun _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Set _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Seq _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Char _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.UValue _ _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.RegLan _, d, i, hHead => by
+      simp [__vsm_apply_head] at hHead
+
 private theorem smtx_value_dt_substitute_apply_arg_nth
     (sub : native_String) (base : SmtDatatype) :
     (v : SmtValue) -> (j : native_Nat) ->
+      (∀ {s : native_String} {d : SmtDatatype} {i : native_Nat},
+        __vsm_apply_head v = SmtValue.DtCons s d i -> s ≠ sub) ->
       __vsm_apply_arg_nth (smtx_value_dt_substitute_apply sub base v) j
           (vsm_num_apply_args (smtx_value_dt_substitute_apply sub base v)) =
         smtx_value_dt_substitute_apply sub base
           (__vsm_apply_arg_nth v j (vsm_num_apply_args v))
-  | SmtValue.Apply f a, j => by
-      by_cases hEq : native_nateq j (vsm_num_apply_args f) = true
-      · simp [smtx_value_dt_substitute_apply, __vsm_apply_arg_nth,
-          vsm_num_apply_args, native_ite,
-          smtx_value_dt_substitute_apply_num_args sub base f, hEq]
-      · have hArg := smtx_value_dt_substitute_apply_arg_nth sub base f j
-        simp [smtx_value_dt_substitute_apply, __vsm_apply_arg_nth,
-          vsm_num_apply_args, native_ite,
-          smtx_value_dt_substitute_apply_num_args sub base f, hEq]
-        simpa [smtx_value_dt_substitute_apply_num_args sub base f] using hArg
-  | SmtValue.NotValue, _ => rfl
-  | SmtValue.Boolean _, _ => rfl
-  | SmtValue.Numeral _, _ => rfl
-  | SmtValue.Rational _, _ => rfl
-  | SmtValue.Binary _ _, _ => rfl
-  | SmtValue.Map _, _ => rfl
-  | SmtValue.Fun _, _ => rfl
-  | SmtValue.Set _, _ => rfl
-  | SmtValue.Seq _, _ => rfl
-  | SmtValue.Char _, _ => rfl
-  | SmtValue.UValue _ _, _ => rfl
-  | SmtValue.RegLan _, _ => rfl
-  | SmtValue.DtCons _ _ _, _ => rfl
+  | SmtValue.Apply f a, j, hNoShadow => by
+      have hNoShadowF :
+          ∀ {s : native_String} {d : SmtDatatype} {i : native_Nat},
+            __vsm_apply_head f = SmtValue.DtCons s d i -> s ≠ sub := by
+        intro s d i hHead
+        exact hNoShadow (by simpa [__vsm_apply_head] using hHead)
+      cases hHead : __vsm_apply_head f
+      case DtCons s d i =>
+        have hNe : s ≠ sub := hNoShadowF hHead
+        have hStreq : native_streq sub s = false := by
+          cases hEq : native_streq sub s <;> simp [native_streq] at hEq ⊢
+          exact False.elim (hNe hEq.symm)
+        by_cases hEq : native_nateq j (vsm_num_apply_args f) = true
+        · simp [smtx_value_dt_substitute_apply, hHead, __vsm_apply_arg_nth,
+            vsm_num_apply_args, native_ite, hStreq,
+            smtx_value_dt_substitute_apply_num_args sub base f, hEq]
+        · have hArg := smtx_value_dt_substitute_apply_arg_nth sub base f j hNoShadowF
+          simp [smtx_value_dt_substitute_apply, hHead, __vsm_apply_arg_nth,
+            vsm_num_apply_args, native_ite, hStreq,
+            smtx_value_dt_substitute_apply_num_args sub base f, hEq]
+          simpa [smtx_value_dt_substitute_apply_num_args sub base f] using hArg
+      all_goals
+        by_cases hEq : native_nateq j (vsm_num_apply_args f) = true
+        · simp [smtx_value_dt_substitute_apply, hHead, __vsm_apply_arg_nth,
+            vsm_num_apply_args, native_ite,
+            smtx_value_dt_substitute_apply_num_args sub base f, hEq]
+        · have hArg := smtx_value_dt_substitute_apply_arg_nth sub base f j hNoShadowF
+          simp [smtx_value_dt_substitute_apply, hHead, __vsm_apply_arg_nth,
+            vsm_num_apply_args, native_ite,
+            smtx_value_dt_substitute_apply_num_args sub base f, hEq]
+          simpa [smtx_value_dt_substitute_apply_num_args sub base f] using hArg
+  | SmtValue.NotValue, _, _ => rfl
+  | SmtValue.Boolean _, _, _ => rfl
+  | SmtValue.Numeral _, _, _ => rfl
+  | SmtValue.Rational _, _, _ => rfl
+  | SmtValue.Binary _ _, _, _ => rfl
+  | SmtValue.Map _, _, _ => rfl
+  | SmtValue.Fun _, _, _ => rfl
+  | SmtValue.Set _, _, _ => rfl
+  | SmtValue.Seq _, _, _ => rfl
+  | SmtValue.Char _, _, _ => rfl
+  | SmtValue.UValue _ _, _, _ => rfl
+  | SmtValue.RegLan _, _, _ => rfl
+  | SmtValue.DtCons _ _ _, _, _ => rfl
 
 private theorem smtx_value_dtc_app_type_head_exists_apply :
     (v : SmtValue) -> {A B : SmtType} ->
@@ -2049,6 +2127,17 @@ private theorem smtx_value_datatype_type_head_exists_apply :
         smtx_value_datatype_type_head_base_apply hHeadApply h
       rcases hBase with ⟨rfl, rfl⟩
       exact ⟨i, hHeadApply⟩
+
+private theorem smtx_value_dt_substitute_typeof_shadowed_datatype_apply
+    (v : SmtValue)
+    {base d : SmtDatatype} {s : native_String}
+    (hv : __smtx_typeof_value v = SmtType.Datatype s d) :
+    __smtx_typeof_value (smtx_value_dt_substitute_apply s base v) =
+      SmtType.Datatype s d := by
+  rcases smtx_value_datatype_type_head_exists_apply v hv with ⟨i, hHead⟩
+  have hSame :=
+    smtx_value_dt_substitute_apply_of_shadowed_head s base v hHead
+  simpa [hSame] using hv
 
 private theorem smtx_value_dt_substitute_apply_datatype_head
     (v : SmtValue)
