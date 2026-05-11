@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.Canonical
 import Cpc.Proofs.TypePreservation.Helpers
 
 open Eo
@@ -36,6 +37,13 @@ theorem eo_to_smt_store_eq (a i e : Term) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.store a) i) e) =
       SmtTerm.store (__eo_to_smt a) (__eo_to_smt i) (__eo_to_smt e) := by
   rfl
+
+theorem model_eval_eo_to_smt_canonical
+    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (hTrans : eo_has_smt_translation t) :
+    __smtx_value_canonical (__smtx_model_eval M (__eo_to_smt t)) := by
+  exact Smtm.model_eval_canonical M hM (__eo_to_smt t) (by
+    simpa [eo_has_smt_translation, term_has_non_none_type] using hTrans)
 
 theorem eo_to_smt_type_array_of_non_none (A B : Term)
     (h : __eo_to_smt_type (Term.Apply (Term.Apply Term.Array A) B) ≠ SmtType.None) :
@@ -186,18 +194,25 @@ theorem eo_typeof_select_not_stuck_implies_array (A I : Term)
 
 theorem smt_value_rel_map_of_lookup_eq
     (m1 m2 : SmtMap)
+    (hm1 : __smtx_map_canonical m1 = true)
+    (hm2 : __smtx_map_canonical m2 = true)
     (h : ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) :
     smt_value_rel (SmtValue.Map m1) (SmtValue.Map m2) := by
   sorry
 
 theorem smt_value_rel_set_of_lookup_eq
     (m1 m2 : SmtMap)
+    (hm1 : __smtx_map_canonical m1 = true)
+    (hm2 : __smtx_map_canonical m2 = true)
     (h : ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) :
     smt_value_rel (SmtValue.Set m1) (SmtValue.Set m2) := by
   sorry
 
 theorem smt_value_rel_select_store_same_of_map
-    (m : SmtMap) (i e : SmtValue) :
+    (m : SmtMap) (i e : SmtValue)
+    (hm : __smtx_map_canonical m = true)
+    (hi : __smtx_value_canonical i)
+    (he : __smtx_value_canonical e) :
     smt_value_rel
       (__smtx_model_eval_select (__smtx_model_eval_store (SmtValue.Map m) i e) i)
       e := by
@@ -216,7 +231,11 @@ private theorem ne_of_native_veq_false {v1 v2 : SmtValue}
   simp [native_veq] at h
 
 theorem smt_value_rel_store_overwrite
-    (v i e f : SmtValue) :
+    (v i e f : SmtValue)
+    (hv : __smtx_value_canonical v)
+    (hi : __smtx_value_canonical i)
+    (he : __smtx_value_canonical e)
+    (hf : __smtx_value_canonical f) :
     smt_value_rel
       (__smtx_model_eval_store (__smtx_model_eval_store v i e) i f)
       (__smtx_model_eval_store v i f) := by
@@ -224,6 +243,11 @@ theorem smt_value_rel_store_overwrite
 
 theorem smt_value_rel_store_swap_of_native_veq_false
     (v i j e f : SmtValue)
+    (hv : __smtx_value_canonical v)
+    (hi : __smtx_value_canonical i)
+    (hj : __smtx_value_canonical j)
+    (he : __smtx_value_canonical e)
+    (hf : __smtx_value_canonical f)
     (hij : native_veq i j = false) :
     smt_value_rel
       (__smtx_model_eval_store (__smtx_model_eval_store v i e) j f)
@@ -232,6 +256,10 @@ theorem smt_value_rel_store_swap_of_native_veq_false
 
 theorem smt_value_rel_select_store_other_of_native_veq_false
     (v i j e : SmtValue)
+    (hv : __smtx_value_canonical v)
+    (hi : __smtx_value_canonical i)
+    (hj : __smtx_value_canonical j)
+    (he : __smtx_value_canonical e)
     (hij : native_veq i j = false) :
     smt_value_rel
       (__smtx_model_eval_select (__smtx_model_eval_store v i e) j)
@@ -239,7 +267,9 @@ theorem smt_value_rel_select_store_other_of_native_veq_false
   sorry
 
 theorem smt_value_rel_store_self_of_map
-    (m : SmtMap) (i : SmtValue) :
+    (m : SmtMap) (i : SmtValue)
+    (hm : __smtx_map_canonical m = true)
+    (hi : __smtx_value_canonical i) :
     smt_value_rel
       (__smtx_model_eval_store
         (SmtValue.Map m) i

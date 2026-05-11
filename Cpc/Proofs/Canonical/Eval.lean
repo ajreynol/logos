@@ -268,4 +268,19 @@ theorem model_eval_store_term_canonical
       (i := __smtx_model_eval M i)
       (e := __smtx_model_eval M e) ha hi he
 
+/--
+Central canonicity theorem for SMT model evaluation.
+
+This is the public theorem array extensionality should consume. The proof is
+being assembled from the constructor-specific lemmas above; the remaining gap is
+to finish the full term induction across all SMT operators.
+-/
+theorem model_eval_canonical
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (hTy : term_has_non_none_type t) :
+    __smtx_value_canonical (__smtx_model_eval M t) := by
+  sorry
+
 end Smtm
