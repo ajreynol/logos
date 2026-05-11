@@ -3292,7 +3292,9 @@ private theorem smtx_value_chain_type_head_exists_apply
 
 private theorem smtx_value_dt_context_substitute_typeof_top_apply
     (sub : native_String) (base : SmtDatatype)
-    (root : native_String) (oldRoot newRoot : SmtDatatype) :
+    (root : native_String) (oldRoot newRoot : SmtDatatype)
+    (hNewRoot : newRoot = __smtx_dt_substitute sub base oldRoot)
+    (hNeRoot : sub ≠ root) :
     (v : SmtValue) -> {T : SmtType} ->
       __smtx_typeof_value v = T ->
       T ≠ SmtType.None ->
@@ -3350,8 +3352,8 @@ private theorem smtx_value_dt_context_substitute_typeof_top_apply
       simp [__vsm_apply_head] at hHead
   | SmtValue.DtCons s d i, T, hv, hT, hChain => by
       -- Needs the commutation lemma between context substitution and the
-      -- constructor's self-substitution; the root case also needs the intended
-      -- relationship between `newRoot` and the transformed `oldRoot`.
+      -- constructor's self-substitution.  The hypotheses `hNewRoot` and
+      -- `hNeRoot` are the invariants needed for the root-replacement subcase.
       sorry
   | SmtValue.Apply f a, T, hv, hT, hChain => by
       have hApplyNN :
@@ -3371,7 +3373,7 @@ private theorem smtx_value_dt_context_substitute_typeof_top_apply
         exact hANone hNone
       have hFTrans :=
         smtx_value_dt_context_substitute_typeof_top_apply
-          sub base root oldRoot newRoot f hF (by simp) (by
+          sub base root oldRoot newRoot hNewRoot hNeRoot f hF (by simp) (by
             have hApplyTy0 :
                 __smtx_typeof_value (SmtValue.Apply f a) = B := by
               simp [__smtx_typeof_value, __smtx_typeof_apply_value,
@@ -3388,7 +3390,7 @@ private theorem smtx_value_dt_context_substitute_typeof_top_apply
               sub base root oldRoot newRoot true true A := by
         by_cases hAChain : dt_cons_chain_result A
         · exact smtx_value_dt_context_substitute_typeof_top_apply
-            sub base root oldRoot newRoot a hA hANone hAChain
+            sub base root oldRoot newRoot hNewRoot hNeRoot a hA hANone hAChain
         · exact smtx_value_dt_context_substitute_typeof_non_chain_top_apply
             sub base root oldRoot newRoot a hAChain hA
       have hApplyTy :
@@ -3428,7 +3430,7 @@ private theorem smtx_value_dt_context_substitute_typeof_apply
       SmtType.Datatype s2 (__smtx_dt_substitute s base d) := by
   have hTop :=
     smtx_value_dt_context_substitute_typeof_top_apply
-      s base s2 d (__smtx_dt_substitute s base d) v hv (by simp)
+      s base s2 d (__smtx_dt_substitute s base d) rfl hNe v hv (by simp)
       (by simp [dt_cons_chain_result])
   simpa [smtx_chain_type_context_substitute_apply,
     smtx_type_context_substitute_apply, native_streq] using hTop
