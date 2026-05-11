@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.TypePreservation.Helpers
 
 open Eo
 open SmtEval
@@ -278,8 +279,8 @@ theorem native_veq_false_of_model_eval_eq_false
     cases h
 
 private theorem model_eval_eq_is_boolean (v1 v2 : SmtValue) :
-    ∃ b : Bool, __smtx_model_eval_eq v1 v2 = SmtValue.Boolean b := by
-  cases v1 <;> cases v2 <;> simp [__smtx_model_eval_eq]
+    ∃ b : Bool, __smtx_model_eval_eq v1 v2 = SmtValue.Boolean b :=
+  bool_value_canonical (typeof_value_model_eval_eq_value v1 v2)
 
 theorem model_eval_eq_false_of_eq_false_eq_true
     (M : SmtModel) (x y : Term) :
