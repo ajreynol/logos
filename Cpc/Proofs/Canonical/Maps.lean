@@ -1,4 +1,4 @@
-import Cpc.Proofs.Canonical.Basic
+import Cpc.Proofs.Canonical.Order
 
 open SmtEval
 open Smtm
@@ -306,6 +306,23 @@ theorem map_update_aux_canonical_of_order_laws
         subst i
         simpa [__smtx_msm_update_aux, native_ite, hEq, __smtx_msm_get_default] using
           map_update_aux_no_default_canonical hm hi he hOrdTailK
+
+/--
+Canonicality of the recursive map update, using the temporary `native_vcmp`
+order-law assumptions.
+-/
+theorem map_update_aux_canonical
+    {m : SmtMap}
+    {i e : SmtValue}
+    (hm : __smtx_map_canonical m = true)
+    (hi : __smtx_value_canonical i)
+    (he : __smtx_value_canonical e) :
+    __smtx_map_canonical
+      (__smtx_msm_update_aux (__smtx_msm_get_default m) m i e) = true :=
+  map_update_aux_canonical_of_order_laws
+    (fun hNe hCmp => native_vcmp_flip hNe hCmp)
+    (fun hAB hBC => native_vcmp_trans hAB hBC)
+    hm hi he
 
 /-- Selecting from a canonical map value returns a canonical value. -/
 theorem model_eval_select_canonical_of_map

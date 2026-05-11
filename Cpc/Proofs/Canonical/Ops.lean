@@ -335,4 +335,19 @@ theorem model_eval_store_canonical_of_order_laws
       simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
     exact model_eval_store_canonical_of_set hFlip hTrans hm hi he
 
+/--
+Value-level store preserves canonicality, using the temporary `native_vcmp`
+order-law assumptions.
+-/
+theorem model_eval_store_canonical
+    {v i e : SmtValue}
+    (hv : __smtx_value_canonical v)
+    (hi : __smtx_value_canonical i)
+    (he : __smtx_value_canonical e) :
+    __smtx_value_canonical (__smtx_model_eval_store v i e) :=
+  model_eval_store_canonical_of_order_laws
+    (fun hNe hCmp => native_vcmp_flip hNe hCmp)
+    (fun hAB hBC => native_vcmp_trans hAB hBC)
+    hv hi he
+
 end Smtm
