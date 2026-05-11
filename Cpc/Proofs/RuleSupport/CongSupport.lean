@@ -2743,6 +2743,139 @@ private theorem congTypeSpine_uconst_apply_apply_apply_apply_apply_inv
       exact ⟨y₁, y₂, y₃, y₄, _, rfl, hArg₁, hArg₂, hArg₃, hArg₄,
         Or.inr hArg₅⟩
 
+private theorem congTrueSpine_var_apply_apply_apply_apply_apply_apply_inv
+    (M : SmtModel)
+    (s : native_String) (T x₁ x₂ x₃ x₄ x₅ x₆ rhs : Term) :
+    CongTrueSpine M
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs ->
+      ∃ y₁ y₂ y₃ y₄ y₅ y₆,
+        rhs =
+          Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply (Term.Apply (Term.Var (Term.String s) T) y₁) y₂)
+                  y₃) y₄) y₅) y₆ ∧
+          EqTrueOrSame M x₁ y₁ ∧ EqTrueOrSame M x₂ y₂ ∧
+            EqTrueOrSame M x₃ y₃ ∧ EqTrueOrSame M x₄ y₄ ∧
+              EqTrueOrSame M x₅ y₅ ∧ EqTrueOrSame M x₆ y₆ := by
+  intro hSpine
+  cases hSpine with
+  | refl _ =>
+      exact ⟨x₁, x₂, x₃, x₄, x₅, x₆, rfl, Or.inl rfl,
+        Or.inl rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl⟩
+  | app hHead hArg₆ =>
+      rcases congTrueSpine_var_apply_apply_apply_apply_apply_inv M s T
+          x₁ x₂ x₃ x₄ x₅ _ hHead with
+        ⟨y₁, y₂, y₃, y₄, y₅, hHeadEq, hArg₁, hArg₂, hArg₃, hArg₄,
+          hArg₅⟩
+      subst hHeadEq
+      exact ⟨y₁, y₂, y₃, y₄, y₅, _, rfl, hArg₁, hArg₂, hArg₃,
+        hArg₄, hArg₅, Or.inr hArg₆⟩
+
+private theorem congTrueSpine_uconst_apply_apply_apply_apply_apply_apply_inv
+    (M : SmtModel) (i : native_Nat) (T x₁ x₂ x₃ x₄ x₅ x₆ rhs : Term) :
+    CongTrueSpine M
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs ->
+      ∃ y₁ y₂ y₃ y₄ y₅ y₆,
+        rhs =
+          Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) y₁) y₂)
+                  y₃) y₄) y₅) y₆ ∧
+          EqTrueOrSame M x₁ y₁ ∧ EqTrueOrSame M x₂ y₂ ∧
+            EqTrueOrSame M x₃ y₃ ∧ EqTrueOrSame M x₄ y₄ ∧
+              EqTrueOrSame M x₅ y₅ ∧ EqTrueOrSame M x₆ y₆ := by
+  intro hSpine
+  cases hSpine with
+  | refl _ =>
+      exact ⟨x₁, x₂, x₃, x₄, x₅, x₆, rfl, Or.inl rfl,
+        Or.inl rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl⟩
+  | app hHead hArg₆ =>
+      rcases congTrueSpine_uconst_apply_apply_apply_apply_apply_inv M i T
+          x₁ x₂ x₃ x₄ x₅ _ hHead with
+        ⟨y₁, y₂, y₃, y₄, y₅, hHeadEq, hArg₁, hArg₂, hArg₃, hArg₄,
+          hArg₅⟩
+      subst hHeadEq
+      exact ⟨y₁, y₂, y₃, y₄, y₅, _, rfl, hArg₁, hArg₂, hArg₃,
+        hArg₄, hArg₅, Or.inr hArg₆⟩
+
+private theorem congTypeSpine_var_apply_apply_apply_apply_apply_apply_inv
+    (s : native_String) (T x₁ x₂ x₃ x₄ x₅ x₆ rhs : Term) :
+    CongTypeSpine
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs ->
+      ∃ y₁ y₂ y₃ y₄ y₅ y₆,
+        rhs =
+          Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply (Term.Apply (Term.Var (Term.String s) T) y₁) y₂)
+                  y₃) y₄) y₅) y₆ ∧
+          EqBoolOrSame x₁ y₁ ∧ EqBoolOrSame x₂ y₂ ∧
+            EqBoolOrSame x₃ y₃ ∧ EqBoolOrSame x₄ y₄ ∧
+              EqBoolOrSame x₅ y₅ ∧ EqBoolOrSame x₆ y₆ := by
+  intro hSpine
+  cases hSpine with
+  | refl _ =>
+      exact ⟨x₁, x₂, x₃, x₄, x₅, x₆, rfl, Or.inl rfl,
+        Or.inl rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl⟩
+  | app hHead hArg₆ =>
+      rcases congTypeSpine_var_apply_apply_apply_apply_apply_inv s T
+          x₁ x₂ x₃ x₄ x₅ _ hHead with
+        ⟨y₁, y₂, y₃, y₄, y₅, hHeadEq, hArg₁, hArg₂, hArg₃, hArg₄,
+          hArg₅⟩
+      subst hHeadEq
+      exact ⟨y₁, y₂, y₃, y₄, y₅, _, rfl, hArg₁, hArg₂, hArg₃,
+        hArg₄, hArg₅, Or.inr hArg₆⟩
+
+private theorem congTypeSpine_uconst_apply_apply_apply_apply_apply_apply_inv
+    (i : native_Nat) (T x₁ x₂ x₃ x₄ x₅ x₆ rhs : Term) :
+    CongTypeSpine
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs ->
+      ∃ y₁ y₂ y₃ y₄ y₅ y₆,
+        rhs =
+          Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) y₁) y₂)
+                  y₃) y₄) y₅) y₆ ∧
+          EqBoolOrSame x₁ y₁ ∧ EqBoolOrSame x₂ y₂ ∧
+            EqBoolOrSame x₃ y₃ ∧ EqBoolOrSame x₄ y₄ ∧
+              EqBoolOrSame x₅ y₅ ∧ EqBoolOrSame x₆ y₆ := by
+  intro hSpine
+  cases hSpine with
+  | refl _ =>
+      exact ⟨x₁, x₂, x₃, x₄, x₅, x₆, rfl, Or.inl rfl,
+        Or.inl rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl, Or.inl rfl⟩
+  | app hHead hArg₆ =>
+      rcases congTypeSpine_uconst_apply_apply_apply_apply_apply_inv i T
+          x₁ x₂ x₃ x₄ x₅ _ hHead with
+        ⟨y₁, y₂, y₃, y₄, y₅, hHeadEq, hArg₁, hArg₂, hArg₃, hArg₄,
+          hArg₅⟩
+      subst hHeadEq
+      exact ⟨y₁, y₂, y₃, y₄, y₅, _, rfl, hArg₁, hArg₂, hArg₃,
+        hArg₄, hArg₅, Or.inr hArg₆⟩
+
 private theorem congTypeSpine_var_apply_eq_has_bool_type
     (s : native_String) (T x rhs : Term) :
     RuleProofs.eo_has_smt_translation
@@ -3314,6 +3447,165 @@ private theorem congTypeSpine_uconst_apply_apply_apply_apply_apply_eq_has_bool_t
       (Term.Apply
         (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) y₁) y₂)
           y₃) y₄) y₅)
+    hAppTy hTrans
+
+private theorem congTypeSpine_var_apply_apply_apply_apply_apply_apply_eq_has_bool_type
+    (s : native_String) (T x₁ x₂ x₃ x₄ x₅ x₆ rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+              x₃) x₄) x₅) x₆) ->
+    CongTypeSpine
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+              x₃) x₄) x₅) x₆) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_var_apply_apply_apply_apply_apply_apply_inv
+      s T x₁ x₂ x₃ x₄ x₅ x₆ rhs hSpine with
+    ⟨y₁, y₂, y₃, y₄, y₅, y₆, hRhs, hArg₁, hArg₂, hArg₃, hArg₄, hArg₅,
+      hArg₆⟩
+  subst hRhs
+  have hAppTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁)
+                      x₂) x₃) x₄) x₅) x₆)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply
+                    (Term.Apply (Term.Apply (Term.Var (Term.String s) T) y₁)
+                      y₂) y₃) y₄) y₅) y₆)) := by
+    change
+      __smtx_typeof
+          (mkSmtAppSpineRev (SmtTerm.Var s (__eo_to_smt_type T))
+            [__eo_to_smt x₆, __eo_to_smt x₅, __eo_to_smt x₄,
+              __eo_to_smt x₃, __eo_to_smt x₂, __eo_to_smt x₁]) =
+        __smtx_typeof
+          (mkSmtAppSpineRev (SmtTerm.Var s (__eo_to_smt_type T))
+            [__eo_to_smt y₆, __eo_to_smt y₅, __eo_to_smt y₄,
+              __eo_to_smt y₃, __eo_to_smt y₂, __eo_to_smt y₁])
+    exact smt_app_spine_type_eq_of_listRel_bool rfl
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (ListRel.cons hArg₆
+        (ListRel.cons hArg₅
+          (ListRel.cons hArg₄
+            (ListRel.cons hArg₃
+              (ListRel.cons hArg₂
+                (ListRel.cons hArg₁ ListRel.nil))))))
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+    (Term.Apply
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+            x₃) x₄) x₅) x₆)
+    (Term.Apply
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Var (Term.String s) T) y₁) y₂)
+            y₃) y₄) y₅) y₆)
+    hAppTy hTrans
+
+private theorem congTypeSpine_uconst_apply_apply_apply_apply_apply_apply_eq_has_bool_type
+    (i : native_Nat) (T x₁ x₂ x₃ x₄ x₅ x₆ rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+              x₃) x₄) x₅) x₆) ->
+    CongTypeSpine
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+              x₃) x₄) x₅) x₆) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_uconst_apply_apply_apply_apply_apply_apply_inv
+      i T x₁ x₂ x₃ x₄ x₅ x₆ rhs hSpine with
+    ⟨y₁, y₂, y₃, y₄, y₅, y₆, hRhs, hArg₁, hArg₂, hArg₃, hArg₄, hArg₅,
+      hArg₆⟩
+  subst hRhs
+  have hAppTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁)
+                    x₂) x₃) x₄) x₅) x₆)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply
+                  (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) y₁)
+                    y₂) y₃) y₄) y₅) y₆)) := by
+    change
+      __smtx_typeof
+          (mkSmtAppSpineRev
+            (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
+            [__eo_to_smt x₆, __eo_to_smt x₅, __eo_to_smt x₄,
+              __eo_to_smt x₃, __eo_to_smt x₂, __eo_to_smt x₁]) =
+        __smtx_typeof
+          (mkSmtAppSpineRev
+            (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
+            [__eo_to_smt y₆, __eo_to_smt y₅, __eo_to_smt y₄,
+              __eo_to_smt y₃, __eo_to_smt y₂, __eo_to_smt y₁])
+    exact smt_app_spine_type_eq_of_listRel_bool rfl
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (ListRel.cons hArg₆
+        (ListRel.cons hArg₅
+          (ListRel.cons hArg₄
+            (ListRel.cons hArg₃
+              (ListRel.cons hArg₂
+                (ListRel.cons hArg₁ ListRel.nil))))))
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+    (Term.Apply
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+            x₃) x₄) x₅) x₆)
+    (Term.Apply
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) y₁) y₂)
+            y₃) y₄) y₅) y₆)
     hAppTy hTrans
 
 private theorem congTrueSpine_var_apply_eq_true
@@ -4296,6 +4588,176 @@ private theorem congTrueSpine_uconst_apply_apply_apply_apply_apply_eq_true
             (ListRel.cons hArg₃
               (ListRel.cons hArg₂
                 (ListRel.cons hArg₁ ListRel.nil)))))
+        hLeftNN).2
+
+private theorem congTrueSpine_var_apply_apply_apply_apply_apply_apply_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (T x₁ x₂ x₃ x₄ x₅ x₆ rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs) ->
+    CongTrueSpine M
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+              x₃) x₄) x₅) x₆) rhs ->
+    eo_interprets M
+      (mkEq
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs) true := by
+  intro hEqBool hSpine
+  rcases congTrueSpine_var_apply_apply_apply_apply_apply_apply_inv M s T
+      x₁ x₂ x₃ x₄ x₅ x₆ rhs hSpine with
+    ⟨y₁, y₂, y₃, y₄, y₅, y₆, hRhs, hArg₁, hArg₂, hArg₃, hArg₄, hArg₅,
+      hArg₆⟩
+  subst hRhs
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hEqBool
+  · let F : SmtTerm := SmtTerm.Var s (__eo_to_smt_type T)
+    let X₁ : SmtTerm := __eo_to_smt x₁
+    let X₂ : SmtTerm := __eo_to_smt x₂
+    let X₃ : SmtTerm := __eo_to_smt x₃
+    let X₄ : SmtTerm := __eo_to_smt x₄
+    let X₅ : SmtTerm := __eo_to_smt x₅
+    let X₆ : SmtTerm := __eo_to_smt x₆
+    let Y₁ : SmtTerm := __eo_to_smt y₁
+    let Y₂ : SmtTerm := __eo_to_smt y₂
+    let Y₃ : SmtTerm := __eo_to_smt y₃
+    let Y₄ : SmtTerm := __eo_to_smt y₄
+    let Y₅ : SmtTerm := __eo_to_smt y₅
+    let Y₆ : SmtTerm := __eo_to_smt y₆
+    have hTypes :=
+      RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂)
+                x₃) x₄) x₅) x₆)
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply
+                (Term.Apply (Term.Apply (Term.Var (Term.String s) T) y₁) y₂)
+                y₃) y₄) y₅) y₆) hEqBool
+    have hLeftNN :
+        __smtx_typeof
+          (mkSmtAppSpineRev F [X₆, X₅, X₄, X₃, X₂, X₁]) ≠
+            SmtType.None := by
+      simpa [F, X₁, X₂, X₃, X₄, X₅, X₆, mkSmtAppSpineRev] using hTypes.2
+    change
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (mkSmtAppSpineRev F [X₆, X₅, X₄, X₃, X₂, X₁]))
+        (__smtx_model_eval M
+          (mkSmtAppSpineRev F [Y₆, Y₅, Y₄, Y₃, Y₂, Y₁]))
+    exact
+      (smt_app_spine_type_eq_and_rel_of_listRel_true M hM rfl
+        (RuleProofs.smt_value_rel_refl _)
+        (by intro s d i j h; simp [F] at h)
+        (by intro s d i h; simp [F] at h)
+        (by intro s d i j h; simp [F] at h)
+        (by intro s d i h; simp [F] at h)
+        (ListRel.cons hArg₆
+          (ListRel.cons hArg₅
+            (ListRel.cons hArg₄
+              (ListRel.cons hArg₃
+                (ListRel.cons hArg₂
+                  (ListRel.cons hArg₁ ListRel.nil))))))
+        hLeftNN).2
+
+private theorem congTrueSpine_uconst_apply_apply_apply_apply_apply_apply_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (i : native_Nat) (T x₁ x₂ x₃ x₄ x₅ x₆ rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs) ->
+    CongTrueSpine M
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+              x₃) x₄) x₅) x₆) rhs ->
+    eo_interprets M
+      (mkEq
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+                x₃) x₄) x₅) x₆) rhs) true := by
+  intro hEqBool hSpine
+  rcases congTrueSpine_uconst_apply_apply_apply_apply_apply_apply_inv M i T
+      x₁ x₂ x₃ x₄ x₅ x₆ rhs hSpine with
+    ⟨y₁, y₂, y₃, y₄, y₅, y₆, hRhs, hArg₁, hArg₂, hArg₃, hArg₄, hArg₅,
+      hArg₆⟩
+  subst hRhs
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hEqBool
+  · let F : SmtTerm :=
+      SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)
+    let X₁ : SmtTerm := __eo_to_smt x₁
+    let X₂ : SmtTerm := __eo_to_smt x₂
+    let X₃ : SmtTerm := __eo_to_smt x₃
+    let X₄ : SmtTerm := __eo_to_smt x₄
+    let X₅ : SmtTerm := __eo_to_smt x₅
+    let X₆ : SmtTerm := __eo_to_smt x₆
+    let Y₁ : SmtTerm := __eo_to_smt y₁
+    let Y₂ : SmtTerm := __eo_to_smt y₂
+    let Y₃ : SmtTerm := __eo_to_smt y₃
+    let Y₄ : SmtTerm := __eo_to_smt y₄
+    let Y₅ : SmtTerm := __eo_to_smt y₅
+    let Y₆ : SmtTerm := __eo_to_smt y₆
+    have hTypes :=
+      RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂)
+                x₃) x₄) x₅) x₆)
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) y₁) y₂)
+                y₃) y₄) y₅) y₆) hEqBool
+    have hLeftNN :
+        __smtx_typeof
+          (mkSmtAppSpineRev F [X₆, X₅, X₄, X₃, X₂, X₁]) ≠
+            SmtType.None := by
+      simpa [F, X₁, X₂, X₃, X₄, X₅, X₆, mkSmtAppSpineRev] using hTypes.2
+    change
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (mkSmtAppSpineRev F [X₆, X₅, X₄, X₃, X₂, X₁]))
+        (__smtx_model_eval M
+          (mkSmtAppSpineRev F [Y₆, Y₅, Y₄, Y₃, Y₂, Y₁]))
+    exact
+      (smt_app_spine_type_eq_and_rel_of_listRel_true M hM rfl
+        (RuleProofs.smt_value_rel_refl _)
+        (by intro s d i j h; simp [F] at h)
+        (by intro s d i h; simp [F] at h)
+        (by intro s d i j h; simp [F] at h)
+        (by intro s d i h; simp [F] at h)
+        (ListRel.cons hArg₆
+          (ListRel.cons hArg₅
+            (ListRel.cons hArg₄
+              (ListRel.cons hArg₃
+                (ListRel.cons hArg₂
+                  (ListRel.cons hArg₁ ListRel.nil))))))
         hLeftNN).2
 
 private theorem congTypeSpine_bvsize_eq_has_bool_type
@@ -7972,6 +8434,21 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
         x₄) x₅ =>
       exact congTypeSpine_uconst_apply_apply_apply_apply_apply_eq_has_bool_type
         i T x₁ x₂ x₃ x₄ x₅ rhs hTrans hSpine
+  | Term.Apply
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂) x₃)
+          x₄) x₅) x₆ =>
+      exact congTypeSpine_var_apply_apply_apply_apply_apply_apply_eq_has_bool_type
+        s T x₁ x₂ x₃ x₄ x₅ x₆ rhs hTrans hSpine
+  | Term.Apply
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂) x₃)
+          x₄) x₅) x₆ =>
+      exact congTypeSpine_uconst_apply_apply_apply_apply_apply_apply_eq_has_bool_type
+        i T x₁ x₂ x₃ x₄ x₅ x₆ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.and) x₁) x₂ =>
       exact congTypeSpine_and_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.or) x₁) x₂ =>
@@ -8562,6 +9039,21 @@ private theorem congTrueSpine_eq_true
         x₄) x₅ =>
       exact congTrueSpine_uconst_apply_apply_apply_apply_apply_eq_true M hM
         i T x₁ x₂ x₃ x₄ x₅ rhs hEqBool hSpine
+  | Term.Apply
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply
+            (Term.Apply (Term.Apply (Term.Var (Term.String s) T) x₁) x₂) x₃)
+          x₄) x₅) x₆ =>
+      exact congTrueSpine_var_apply_apply_apply_apply_apply_apply_eq_true M hM
+        s T x₁ x₂ x₃ x₄ x₅ x₆ rhs hEqBool hSpine
+  | Term.Apply
+      (Term.Apply
+        (Term.Apply
+          (Term.Apply (Term.Apply (Term.Apply (Term.UConst i T) x₁) x₂) x₃)
+          x₄) x₅) x₆ =>
+      exact congTrueSpine_uconst_apply_apply_apply_apply_apply_apply_eq_true M hM
+        i T x₁ x₂ x₃ x₄ x₅ x₆ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.and) x₁) x₂ =>
       exact congTrueSpine_and_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.or) x₁) x₂ =>
