@@ -1590,6 +1590,183 @@ private theorem smtx_ret_typeof_sel_rec_field_wf_of_wf_apply :
             smtx_ret_typeof_sel_rec_field_wf_of_wf_apply
               (SmtDatatype.sum cTail dTail) i j hTailWf hj'
 
+private theorem smtx_dtc_substitute_cons_tail_lt_apply
+    (sub : native_String) (base : SmtDatatype)
+    (T : SmtType) (c : SmtDatatypeCons) {j : native_Nat}
+    (hj :
+      (native_nat_succ j) <
+        __smtx_dtc_num_sels
+          (__smtx_dtc_substitute sub base (SmtDatatypeCons.cons T c))) :
+    j < __smtx_dtc_num_sels (__smtx_dtc_substitute sub base c) := by
+  cases T <;>
+    simpa [__smtx_dtc_substitute, __smtx_dtc_num_sels] using hj
+
+private theorem smtx_ret_typeof_sel_rec_substitute_cons_succ_apply
+    (sub : native_String) (base : SmtDatatype)
+    (T : SmtType) (c : SmtDatatypeCons) (d : SmtDatatype)
+    (j : native_Nat) :
+    __smtx_ret_typeof_sel_rec
+        (SmtDatatype.sum
+          (__smtx_dtc_substitute sub base (SmtDatatypeCons.cons T c))
+          (__smtx_dt_substitute sub base d))
+        native_nat_zero (native_nat_succ j) =
+      __smtx_ret_typeof_sel_rec
+        (SmtDatatype.sum (__smtx_dtc_substitute sub base c)
+          (__smtx_dt_substitute sub base d))
+        native_nat_zero j := by
+  cases T <;>
+    simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec]
+
+private theorem smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_apply
+    (sub : native_String) (base : SmtDatatype) :
+    (d : SmtDatatype) -> (i j : native_Nat) -> {refs : RefList} ->
+      __smtx_dt_wf_rec d (native_reflist_insert refs sub) = true ->
+      j < __smtx_dt_num_sels (__smtx_dt_substitute sub base d) i ->
+      (¬ dt_cons_chain_result
+          (__smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j)) ∨
+        ∃ s2 d2,
+          __smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j =
+            SmtType.Datatype s2 d2
+  | SmtDatatype.null, i, j, refs, hWf, hj => by
+      cases i <;> simp [__smtx_dt_wf_rec] at hWf hj
+  | SmtDatatype.sum SmtDatatypeCons.unit d, native_nat_zero, j, refs, hWf, hj => by
+      cases j <;>
+        simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+          __smtx_dt_num_sels, __smtx_dtc_num_sels] at hj
+  | SmtDatatype.sum (SmtDatatypeCons.cons T c) d, native_nat_zero,
+      native_nat_zero, refs, hWf, _hj => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c)
+              (native_reflist_insert refs sub) = true :=
+        smtx_dt_wf_cons_of_sum_wf_apply hWf
+      cases T with
+      | TypeRef r =>
+          by_cases hEq : r = sub
+          · subst r
+            exact Or.inr (by
+              refine ⟨sub, base, ?_⟩
+              simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+                __smtx_ret_typeof_sel_rec, native_ite, native_Teq])
+          · exact Or.inl (by
+              simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+                __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+                native_ite, native_Teq, hEq])
+      | None =>
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hCons
+      | DtcAppType A B =>
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hCons
+      | Datatype s2 d2 =>
+          exact Or.inr (by
+            refine ⟨s2, native_ite (native_streq sub s2) d2
+              (__smtx_dt_substitute sub base d2), ?_⟩
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec])
+      | Bool =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | Int =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | Real =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | RegLan =>
+          simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hCons
+      | BitVec w =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | Map A B =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | Set A =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | Seq A =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | Char =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | USort i =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+      | FunType A B =>
+          exact Or.inl (by
+            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
+              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
+              native_ite, native_Teq])
+  | SmtDatatype.sum (SmtDatatypeCons.cons T c) d, native_nat_zero,
+      native_nat_succ j, refs, hWf, hj => by
+      have hCons :
+          __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c)
+              (native_reflist_insert refs sub) = true :=
+        smtx_dt_wf_cons_of_sum_wf_apply hWf
+      have hTailCons :
+          __smtx_dt_cons_wf_rec c (native_reflist_insert refs sub) = true :=
+        smtx_dt_cons_wf_rec_tail_of_true hCons
+      have hTailWf :
+          __smtx_dt_wf_rec (SmtDatatype.sum c d)
+              (native_reflist_insert refs sub) = true := by
+        cases d with
+        | null =>
+            simpa [__smtx_dt_wf_rec] using hTailCons
+        | sum cTail dTail =>
+            have hDTail :
+                __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail)
+                    (native_reflist_insert refs sub) = true :=
+              smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
+            simp [__smtx_dt_wf_rec, native_ite, hTailCons, hDTail]
+      have hj' :
+          j <
+            __smtx_dt_num_sels
+              (__smtx_dt_substitute sub base (SmtDatatype.sum c d))
+              native_nat_zero := by
+        simpa [__smtx_dt_substitute, __smtx_dt_num_sels] using
+          smtx_dtc_substitute_cons_tail_lt_apply sub base T c hj
+      have hRec :=
+        smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_apply
+          sub base (SmtDatatype.sum c d) native_nat_zero j hTailWf hj'
+      have hRet :=
+        smtx_ret_typeof_sel_rec_substitute_cons_succ_apply
+          sub base T c d j
+      simpa [__smtx_dt_substitute, hRet] using hRec
+  | SmtDatatype.sum c d, native_nat_succ i, j, refs, hWf, hj => by
+      cases d with
+      | null =>
+          simp [__smtx_dt_substitute, __smtx_dt_num_sels] at hj
+      | sum cTail dTail =>
+          have hTailWf :
+              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail)
+                  (native_reflist_insert refs sub) = true :=
+            smtx_dt_wf_tail_of_sum_wf_apply (by simp) hWf
+          have hj' :
+              j <
+                __smtx_dt_num_sels
+                  (__smtx_dt_substitute sub base (SmtDatatype.sum cTail dTail))
+                  i := by
+            simpa [__smtx_dt_substitute, __smtx_dt_num_sels] using hj
+          simpa [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec] using
+            smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_apply
+              sub base (SmtDatatype.sum cTail dTail) i j hTailWf hj'
+
 mutual
 
 private theorem smtx_type_wf_rec_mono_apply :
@@ -1977,6 +2154,25 @@ private theorem smtx_value_dt_substitute_apply_arg_nth
   | SmtValue.UValue _ _, _, _ => rfl
   | SmtValue.RegLan _, _, _ => rfl
   | SmtValue.DtCons _ _ _, _, _ => rfl
+
+private theorem smtx_value_dt_substitute_apply_arg_nth_of_head_ne
+    (sub : native_String) (base : SmtDatatype)
+    {v : SmtValue} {s2 : native_String} {d : SmtDatatype} {i : native_Nat}
+    (hHead : __vsm_apply_head v = SmtValue.DtCons s2 d i)
+    (hNe : sub ≠ s2)
+    (j : native_Nat) :
+    __vsm_apply_arg_nth (smtx_value_dt_substitute_apply sub base v) j
+        (vsm_num_apply_args (smtx_value_dt_substitute_apply sub base v)) =
+      smtx_value_dt_substitute_apply sub base
+        (__vsm_apply_arg_nth v j (vsm_num_apply_args v)) := by
+  apply smtx_value_dt_substitute_apply_arg_nth
+  intro sh dh ih hHead'
+  have hEq : SmtValue.DtCons sh dh ih = SmtValue.DtCons s2 d i := by
+    exact hHead'.symm.trans hHead
+  injection hEq with hName _ _
+  intro hSub
+  apply hNe
+  exact hSub.symm.trans hName
 
 private theorem smtx_value_dtc_app_type_head_exists_apply :
     (v : SmtValue) -> {A B : SmtType} ->
