@@ -4663,10 +4663,158 @@ private theorem smtx_value_dt_context_substitute_apply_context_preservation_for_
       smtx_chain_type_context_substitute_apply
         s base targetName targetDt (__smtx_dt_substitute s base targetDt)
         true true (__smtx_typeof_value a) := by
-  -- This is the remaining mutual invariant.  The function side is a root
-  -- partial-constructor spine; selector arguments may themselves be full
-  -- datatype values whose bodies also need the same context substitution.
-  sorry
+  have hApplyNN :
+      __smtx_typeof_value (SmtValue.Apply f a) ≠ SmtType.None := by
+    simp [hvApply]
+  rcases
+      smtx_value_datatype_type_head_exists_apply
+        (SmtValue.Apply f a) hvApply with
+    ⟨i, hHead⟩
+  have hHeadF :
+      __vsm_apply_head f = SmtValue.DtCons targetName targetDt i := by
+    simpa [__vsm_apply_head] using hHead
+  have hTargetWfForSel :
+      __smtx_dt_wf_rec targetDt
+        (native_reflist_insert (native_reflist_insert refs s) targetName) =
+        true :=
+    smtx_dt_wf_rec_mono_apply targetDt
+      (reflist_subset_insert_swap_apply refs targetName s) hTargetWf
+  have hArgClass :
+      (¬ dt_cons_chain_result (__smtx_typeof_value a)) ∨
+        ∃ sArg dArg,
+          __smtx_typeof_value a = SmtType.Datatype sArg dArg :=
+    smtx_apply_arg_type_non_chain_or_datatype_of_root_target_wf_apply
+      (f := f) (a := a) (root := targetName) (oldRoot := targetDt)
+      (refs := native_reflist_insert refs s) hHead hApplyNN hTargetWfForSel
+  have hApplyValueNN :
+      __smtx_typeof_apply_value (__smtx_typeof_value f)
+          (__smtx_typeof_value a) ≠
+        SmtType.None := by
+    simpa [__smtx_typeof_value] using hApplyNN
+  rcases typeof_apply_value_non_none_cases hApplyValueNN with
+    ⟨A, B, hFunTy, hArgTy, hA, hB⟩
+  have hResultTy : B = SmtType.Datatype targetName targetDt := by
+    have hApplyTy :
+        __smtx_typeof_apply_value (__smtx_typeof_value f)
+            (__smtx_typeof_value a) =
+          SmtType.Datatype targetName targetDt := by
+      simpa [__smtx_typeof_value] using hvApply
+    rw [hFunTy, hArgTy] at hApplyTy
+    simpa [__smtx_typeof_apply_value, __smtx_typeof_guard,
+      native_ite, native_Teq, hA] using hApplyTy
+  have hFunNN : __smtx_typeof_value f ≠ SmtType.None := by
+    rw [hFunTy]
+    simp
+  have hFunChain :
+      __smtx_typeof_value f =
+        dt_cons_applied_type_rec targetName targetDt
+          (__smtx_dt_substitute targetName targetDt targetDt) i
+          (vsm_num_apply_args f) :=
+    dt_cons_chain_type_of_non_none hHeadF hFunNN
+  have hArgSelector :
+      __smtx_typeof_value a =
+        __smtx_ret_typeof_sel_rec
+          (__smtx_dt_substitute targetName targetDt targetDt) i
+          (vsm_num_apply_args f) := by
+    have hArg :=
+      apply_arg_nth_type_of_non_none
+        (v := SmtValue.Apply f a) hHead hApplyNN
+        (j := vsm_num_apply_args f)
+        (by simp [vsm_num_apply_args])
+    have hEq :
+        SmtEval.native_nateq (vsm_num_apply_args f) (vsm_num_apply_args f) =
+          true := by
+      simp [SmtEval.native_nateq]
+    simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hEq] using hArg
+  have hPrefixChain :
+      dt_cons_applied_type_rec targetName targetDt
+          (__smtx_dt_substitute targetName targetDt targetDt) i
+          (vsm_num_apply_args f) =
+        SmtType.DtcAppType A B :=
+    hFunChain.symm.trans hFunTy
+  have hASelector :
+      A =
+        __smtx_ret_typeof_sel_rec
+          (__smtx_dt_substitute targetName targetDt targetDt) i
+          (vsm_num_apply_args f) :=
+    hArgTy.symm.trans hArgSelector
+  let argType' :=
+    smtx_chain_type_context_substitute_apply
+      s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+      true true A
+  have hTailContext :
+      smtx_chain_type_context_substitute_apply
+          s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+          true true B =
+        SmtType.Datatype targetName
+          (__smtx_dt_substitute s base targetDt) := by
+    simpa [hResultTy, smtx_chain_type_context_substitute_apply,
+      smtx_type_context_substitute_apply, native_streq]
+  have hFunTyContext :
+      smtx_chain_type_context_substitute_apply
+          s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+          true true (__smtx_typeof_value f) =
+        SmtType.DtcAppType argType'
+          (SmtType.Datatype targetName
+            (__smtx_dt_substitute s base targetDt)) := by
+    rw [hFunTy]
+    simpa [argType', smtx_chain_type_context_substitute_apply,
+      hTailContext]
+  have hArgTyContext :
+      smtx_chain_type_context_substitute_apply
+          s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+          true true (__smtx_typeof_value a) =
+        argType' := by
+    simpa [argType', hArgTy]
+  have hHard :
+      __smtx_typeof_value
+          (smtx_value_dt_context_substitute_apply
+            s base targetName targetDt
+            (__smtx_dt_substitute s base targetDt) f) =
+        SmtType.DtcAppType argType'
+          (SmtType.Datatype targetName
+            (__smtx_dt_substitute s base targetDt)) ∧
+      (∀ {sArg : native_String} {dArg : SmtDatatype},
+        __smtx_typeof_value a = SmtType.Datatype sArg dArg ->
+        __smtx_typeof_value
+            (smtx_value_dt_context_substitute_apply
+              s base targetName targetDt
+              (__smtx_dt_substitute s base targetDt) a) =
+          argType') := by
+    -- The remaining mutual invariant is now narrower.  The function side is a
+    -- root partial-constructor spine; datatype selector arguments may
+    -- themselves be full datatype values whose bodies also need the same
+    -- context substitution.
+    sorry
+  rcases hHard with ⟨hFunCtxExact, hDatatypeArgCtxExact⟩
+  have hFunCtx :
+      __smtx_typeof_value
+          (smtx_value_dt_context_substitute_apply
+            s base targetName targetDt
+            (__smtx_dt_substitute s base targetDt) f) =
+        smtx_chain_type_context_substitute_apply
+          s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+          true true (__smtx_typeof_value f) :=
+    hFunCtxExact.trans hFunTyContext.symm
+  cases hArgClass with
+  | inl hArgNonChain =>
+      exact
+        ⟨hFunCtx,
+          smtx_value_dt_context_substitute_typeof_non_chain_top_apply
+            s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+            a hArgNonChain rfl⟩
+  | inr hArgDatatype =>
+      rcases hArgDatatype with ⟨sArg, dArg, hArgTy⟩
+      have hArgCtx :
+          __smtx_typeof_value
+              (smtx_value_dt_context_substitute_apply
+                s base targetName targetDt
+                (__smtx_dt_substitute s base targetDt) a) =
+            smtx_chain_type_context_substitute_apply
+              s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+              true true (__smtx_typeof_value a) :=
+        (hDatatypeArgCtxExact hArgTy).trans hArgTyContext.symm
+      exact ⟨hFunCtx, hArgCtx⟩
 
 private theorem smtx_value_dt_context_substitute_typeof_apply
     (v : SmtValue)
