@@ -2275,7 +2275,7 @@ private theorem smtx_value_dt_substitute_typeof_of_non_chain_apply
   | SmtValue.Apply f a, T, hT, hv => by
       exact False.elim (apply_value_non_chain_result_impossible hT hv)
 
-private axiom smtx_value_dt_substitute_apply_non_none
+private theorem smtx_value_dt_substitute_apply_non_none
     (v : SmtValue)
     {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
     (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
@@ -2290,7 +2290,8 @@ private axiom smtx_value_dt_substitute_apply_non_none
       __smtx_dt_wf_rec (__smtx_dt_substitute s base d)
         (native_reflist_insert refs s2) = true)
     (hNe : s ≠ s2) :
-    __smtx_typeof_value (smtx_value_dt_substitute_apply s base v) ≠ SmtType.None
+    __smtx_typeof_value (smtx_value_dt_substitute_apply s base v) ≠ SmtType.None := by
+  sorry
 
 private theorem smtx_value_dt_substitute_typeof_apply
     (v : SmtValue)

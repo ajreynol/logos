@@ -109,11 +109,12 @@ TODO: as stated this is false for indexed operators when an index translates
 to a numeral without being a syntactic EO numeral, for example `_at_purify 2`
 used as the index of `repeat`.
 -/
-axiom eo_to_smt_type_typeof_of_smt_type
+theorem eo_to_smt_type_typeof_of_smt_type
     (t : Term) {T : SmtType}
     (h : __smtx_typeof (__eo_to_smt t) = T)
     (hT : T ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof t) = T
+    __eo_to_smt_type (__eo_typeof t) = T := by
+  sorry
 
 /-- A translated SMT `Bool` recovers EO `Bool`. -/
 private theorem eo_typeof_eq_bool_of_smt_bool
