@@ -728,6 +728,46 @@ def __smtx_typeof : SmtTerm -> SmtType
   | x1 => SmtType.None
 
 
+def __smtx_is_unit_datatype_cons : SmtDatatypeCons -> native_Bool
+  | SmtDatatypeCons.unit => true
+  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_unit_type T) (__smtx_is_unit_datatype_cons c))
+
+
+def __smtx_is_unit_datatype : SmtDatatype -> native_Bool
+  | (SmtDatatype.sum c SmtDatatype.null) => (__smtx_is_unit_datatype_cons c)
+  | d => false
+
+
+def __smtx_is_unit_type : SmtType -> native_Bool
+  | (SmtType.BitVec w) => (native_nateq w native_nat_zero)
+  | (SmtType.Datatype s d) => (__smtx_is_unit_datatype d)
+  | (SmtType.Map T U) => (__smtx_is_unit_type U)
+  | (SmtType.FunType T U) => (__smtx_is_unit_type U)
+  | T => false
+
+
+def __smtx_is_finite_datatype_cons : SmtDatatypeCons -> native_Bool
+  | SmtDatatypeCons.unit => true
+  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_finite_type T) (__smtx_is_finite_datatype_cons c))
+
+
+def __smtx_is_finite_datatype : SmtDatatype -> native_Bool
+  | SmtDatatype.null => true
+  | (SmtDatatype.sum c d) => (native_and (__smtx_is_finite_datatype_cons c) (__smtx_is_finite_datatype d))
+
+
+def __smtx_is_finite_type : SmtType -> native_Bool
+  | SmtType.Bool => true
+  | (SmtType.BitVec w) => true
+  | SmtType.Char => true
+  | (SmtType.Datatype s d) => (__smtx_is_finite_datatype d)
+  | (SmtType.Map T U) => (native_or (__smtx_is_unit_type U) (native_and (__smtx_is_finite_type T) (__smtx_is_finite_type U)))
+  | (SmtType.FunType T U) => (native_or (__smtx_is_unit_type U) (native_and (__smtx_is_finite_type T) (__smtx_is_finite_type U)))
+  | (SmtType.Set T) => (__smtx_is_finite_type T)
+  | (SmtType.Seq T) => (__smtx_is_finite_type T)
+  | T => false
+
+
 def __smtx_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtValue
   | SmtDatatypeCons.unit => v
   | (SmtDatatypeCons.cons T c) => 
@@ -737,10 +777,9 @@ def __smtx_datatype_cons_default (v : SmtValue) : SmtDatatypeCons -> SmtValue
 
 def __smtx_datatype_default (s : native_String) (d0 : SmtDatatype) : SmtDatatype -> native_Nat -> SmtValue
   | SmtDatatype.null, n => SmtValue.NotValue
-  | (SmtDatatype.sum c SmtDatatype.null), n => (__smtx_datatype_cons_default (SmtValue.DtCons s d0 n) c)
   | (SmtDatatype.sum c d), n => 
     let _v0 := (__smtx_datatype_cons_default (SmtValue.DtCons s d0 n) c)
-    (native_ite (native_and (native_not (native_veq _v0 SmtValue.NotValue)) (native_not (native_veq (__smtx_datatype_default s d0 d (native_nat_succ n)) SmtValue.NotValue))) _v0 SmtValue.NotValue)
+    (native_ite (native_not (native_veq _v0 SmtValue.NotValue)) _v0 (__smtx_datatype_default s d0 d (native_nat_succ n)))
 
 
 def __smtx_type_default : SmtType -> SmtValue
@@ -750,11 +789,11 @@ def __smtx_type_default : SmtType -> SmtValue
   | (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
   | SmtType.Char => (SmtValue.Char (native_nat_to_char native_nat_zero))
   | (SmtType.Datatype s d) => (__smtx_datatype_default s d d native_nat_zero)
-  | (SmtType.Map T U) => (SmtMap.default T (__smtx_type_default U))
+  | (SmtType.Map T U) => (SmtValue.Map (SmtMap.default T (__smtx_type_default U)))
   | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
   | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
   | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
-  | (SmtType.FunType T U) => (SmtMap.default T (__smtx_type_default U))
+  | (SmtType.FunType T U) => (SmtValue.Fun (SmtMap.default T (__smtx_type_default U)))
   | T => SmtValue.NotValue
 
 
@@ -764,9 +803,7 @@ def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
 
 
 def __smtx_map_default_canonical (T : SmtType) (e : SmtValue) : native_Bool :=
-  
-    let _v0 := (__smtx_typeof_value e)
-    (native_ite (native_veq (__smtx_type_default (SmtType.Map T _v0)) SmtValue.NotValue) true (native_veq e (__smtx_type_default _v0)))
+  (native_ite (__smtx_is_finite_type T) (native_veq e (__smtx_type_default (__smtx_typeof_value e))) true)
 
 def __smtx_map_canonical : SmtMap -> native_Bool
   | (SmtMap.default T e) => (native_and (__smtx_map_default_canonical T e) (__smtx_value_canonical_bool e))
