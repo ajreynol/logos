@@ -1031,21 +1031,48 @@ theorem eo_to_smt_typeof_matches_translation
           change __smtx_typeof SmtTerm.None = SmtType.None
           exact smtx_typeof_none))
     | Term._at_re_unfold_pos_component x y z, hNonNone => by
-        sorry
+        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_component
+          z y x (go x) (go y) hNonNone
     | Term._at_strings_deq_diff x y, hNonNone => by
-        sorry
+        exact eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
+          y x (go x) (go y) hNonNone
     | Term._at_strings_stoi_result x, hNonNone => by
         exact False.elim (hNonNone (by
           change __smtx_typeof SmtTerm.None = SmtType.None
           exact smtx_typeof_none))
     | Term._at_strings_stoi_non_digit x, hNonNone => by
-        sorry
+        let regex :=
+          SmtTerm.re_comp (SmtTerm.re_range (SmtTerm.String "0") (SmtTerm.String "9"))
+        have hTranslate :
+            __eo_to_smt (Term._at_strings_stoi_non_digit x) =
+              SmtTerm.str_indexof_re (__eo_to_smt x) regex (SmtTerm.Numeral 0) := by
+          rfl
+        have hApplyNN :
+            term_has_non_none_type
+              (SmtTerm.str_indexof_re (__eo_to_smt x) regex (SmtTerm.Numeral 0)) := by
+          unfold term_has_non_none_type
+          rw [← hTranslate]
+          exact hNonNone
+        have hArgs := str_indexof_re_args_of_non_none hApplyNN
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term._at_strings_stoi_non_digit x)) =
+              SmtType.Int := by
+          rw [hTranslate, typeof_str_indexof_re_eq]
+          simp [hArgs.1, hArgs.2.1, hArgs.2.2, native_Teq, native_ite]
+        have hEo :
+            __eo_to_smt_type (__eo_typeof (Term._at_strings_stoi_non_digit x)) =
+              SmtType.Int :=
+          eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char x
+            (eo_typeof_eq_seq_char_of_smt_seq_char_from_ih x (go x) hArgs.1)
+        exact hSmt.trans hEo.symm
     | Term._at_strings_itos_result x, hNonNone => by
         exact False.elim (hNonNone (by
           change __smtx_typeof SmtTerm.None = SmtType.None
           exact smtx_typeof_none))
     | Term._at_strings_num_occur_re x y, hNonNone => by
-        sorry
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term._at_strings_occur_index_re x y, hNonNone => by
         exact False.elim (hNonNone (by
           change __smtx_typeof SmtTerm.None = SmtType.None
