@@ -4830,6 +4830,56 @@ private theorem smtx_value_dt_context_substitute_typeof_apply
             smtx_chain_type_context_substitute_ne_none_apply
               s base targetName targetDt (__smtx_dt_substitute s base targetDt)
               true true A hA
+        have hFunTyContext :
+            smtx_chain_type_context_substitute_apply
+                s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+                true true (__smtx_typeof_value f) =
+              SmtType.DtcAppType argType'
+                (SmtType.Datatype targetName
+                  (__smtx_dt_substitute s base targetDt)) := by
+          rw [hFunTy]
+          simpa [argType', smtx_chain_type_context_substitute_apply,
+            hTailContext]
+        have hArgTyContext :
+            smtx_chain_type_context_substitute_apply
+                s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+                true true (__smtx_typeof_value a) =
+              argType' := by
+          simpa [argType', hArgTy]
+        have hArgCtxOfNonChain
+            (hArgNonChain : ¬ dt_cons_chain_result (__smtx_typeof_value a)) :
+            __smtx_typeof_value
+                (smtx_value_dt_context_substitute_apply
+                  s base targetName targetDt
+                  (__smtx_dt_substitute s base targetDt) a) =
+              smtx_chain_type_context_substitute_apply
+                s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+                true true (__smtx_typeof_value a) :=
+          smtx_value_dt_context_substitute_typeof_non_chain_top_apply
+            s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+            a hArgNonChain rfl
+        have hCtxPreservation :
+            __smtx_typeof_value
+                (smtx_value_dt_context_substitute_apply
+                  s base targetName targetDt
+                  (__smtx_dt_substitute s base targetDt) f) =
+              smtx_chain_type_context_substitute_apply
+                s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+                true true (__smtx_typeof_value f) ∧
+            __smtx_typeof_value
+                (smtx_value_dt_context_substitute_apply
+                  s base targetName targetDt
+                  (__smtx_dt_substitute s base targetDt) a) =
+              smtx_chain_type_context_substitute_apply
+                s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+                true true (__smtx_typeof_value a) := by
+          -- This is the remaining root-spine preservation lemma: the prefix `f`
+          -- must be handled as a root partial constructor chain.  The argument
+          -- side is already covered by `hArgCtxOfNonChain` when `hArgClass` is
+          -- the non-chain case; the datatype-valued case needs the strengthened
+          -- datatype preservation theorem for context substitution.
+          sorry
+        rcases hCtxPreservation with ⟨hFunCtx, hArgCtx⟩
         have hCtxTypes :
             __smtx_typeof_value
                 (smtx_value_dt_context_substitute_apply
@@ -4843,7 +4893,7 @@ private theorem smtx_value_dt_context_substitute_typeof_apply
                   s base targetName targetDt
                   (__smtx_dt_substitute s base targetDt) a) =
               argType' := by
-          sorry
+          exact ⟨hFunCtx.trans hFunTyContext, hArgCtx.trans hArgTyContext⟩
         rcases hCtxTypes with ⟨hFunCtxTy, hArgCtxTy⟩
         simp [smtx_value_dt_context_substitute_apply, __smtx_typeof_value,
           __smtx_typeof_apply_value, __smtx_typeof_guard, native_ite,
