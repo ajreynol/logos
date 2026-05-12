@@ -484,6 +484,12 @@ private theorem eo_datatype_cons_valid_rec_substitute
                 And.intro trivial hC'
           | _ =>
               simp [TranslationProofs.eo_type_valid_rec] at hT
+      | UOp1 op x =>
+          cases op <;> simp [TranslationProofs.eo_type_valid_rec] at hT
+      | UOp2 op x y =>
+          cases op <;> simp [TranslationProofs.eo_type_valid_rec] at hT
+      | UOp3 op x y z =>
+          cases op <;> simp [TranslationProofs.eo_type_valid_rec] at hT
       | USort i =>
           simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
             TranslationProofs.eo_type_valid_rec, native_ite, native_teq] using
@@ -841,6 +847,12 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
         TranslationProofs.eo_type_valid_rec [] (__eo_typeof t)
   | Term.UOp op, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
+  | Term.UOp1 op x, hNN => by
+      cases op <;> simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
+  | Term.UOp2 op x y, hNN => by
+      cases op <;> simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
+  | Term.UOp3 op x y z, hNN => by
+      cases op <;> simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.__eo_List, hNN => by
       simp [__eo_to_smt.eq_def, __smtx_typeof] at hNN
   | Term.__eo_List_nil, hNN => by

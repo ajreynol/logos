@@ -66,20 +66,25 @@ by
           cases premises with
           | nil =>
               cases a1 with
-              | _at_purify x1 =>
-                  have hATransPair : RuleProofs.eo_has_smt_translation (Term._at_purify x1) ∧ True := by
-                    simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
-                  have hXTrans : RuleProofs.eo_has_smt_translation x1 := by
-                    simpa [RuleProofs.eo_has_smt_translation, eo_to_smt_purify_eq] using
-                      hATransPair.1
-                  have hProgIntro : __eo_prog_skolem_intro (Term._at_purify x1) ≠ Term.Stuck := by
-                    change __eo_prog_skolem_intro (Term._at_purify x1) ≠ Term.Stuck at hProg
-                    exact hProg
-                  refine ⟨?_, ?_⟩
-                  · intro _hTrue
-                    exact facts___eo_prog_skolem_intro_impl M hM x1 hXTrans hProgIntro
-                  · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
-                      (typed___eo_prog_skolem_intro_impl x1 hXTrans hProgIntro)
+              | UOp1 op x1 =>
+                  cases op with
+                  | _at_purify =>
+                      have hATransPair : RuleProofs.eo_has_smt_translation (Term._at_purify x1) ∧ True := by
+                        simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+                      have hXTrans : RuleProofs.eo_has_smt_translation x1 := by
+                        simpa [RuleProofs.eo_has_smt_translation, eo_to_smt_purify_eq] using
+                          hATransPair.1
+                      have hProgIntro : __eo_prog_skolem_intro (Term._at_purify x1) ≠ Term.Stuck := by
+                        change __eo_prog_skolem_intro (Term._at_purify x1) ≠ Term.Stuck at hProg
+                        exact hProg
+                      refine ⟨?_, ?_⟩
+                      · intro _hTrue
+                        exact facts___eo_prog_skolem_intro_impl M hM x1 hXTrans hProgIntro
+                      · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
+                          (typed___eo_prog_skolem_intro_impl x1 hXTrans hProgIntro)
+                  | _ =>
+                      change Term.Stuck ≠ Term.Stuck at hProg
+                      exact False.elim (hProg rfl)
               | _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)

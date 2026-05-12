@@ -5070,6 +5070,10 @@ private theorem strConcat_singleton_elim_rel
             cases tail <;>
               simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
                 __eo_eq, native_teq] at hNil hTailNe
+            case UOp1 op A =>
+              cases op <;>
+                simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
+                  __eo_eq, native_teq] at hNil
       | _ =>
           simpa [__eo_list_singleton_elim_2] using
             RuleProofs.smt_value_rel_refl _
@@ -18040,6 +18044,10 @@ private theorem strConcat_singleton_elim_rel_eval
             cases tail <;>
               simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
                 __eo_eq, native_teq] at hNil hTailNe
+            case UOp1 op A =>
+              cases op <;>
+                simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
+                  __eo_eq, native_teq] at hNil
       | _ =>
           simpa [__eo_list_singleton_elim_2] using
             RuleProofs.smt_value_rel_refl _
