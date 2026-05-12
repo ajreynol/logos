@@ -450,6 +450,29 @@ private theorem aci_norm_marker_marker_eq_true_false_of_heads_ne
         aci_norm_l2_marker_marker_eq_true f payload g rhsPayload hL2
       exact hHeadEqNe hSplit.1
 
+private theorem aci_norm_marker_marker_eq_true_false_of_heads_ne_payload_translation
+    (f g payload rhsPayload : Term) :
+    RuleProofs.eo_has_smt_translation payload ->
+    f ≠ g ->
+    __eo_eq f g ≠ Term.Boolean true ->
+    __aci_norm_eq
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) g) rhsPayload) =
+      Term.Boolean true ->
+    False := by
+  intro hPayloadTrans hHeadNe hHeadEqNe hEq
+  exact aci_norm_marker_marker_eq_true_false_of_heads_ne
+    f g payload rhsPayload
+    (by
+      intro markerArg markerPayload hMarker
+      exact aci_sorted_marker_not_has_smt_translation markerArg markerPayload
+        (by
+          rw [← hMarker]
+          exact hPayloadTrans))
+    hHeadNe hHeadEqNe hEq
+
 private theorem aci_norm_l2_nonmarker_left_eq_false
     (x y : Term) :
     (∀ f payload,
@@ -639,6 +662,126 @@ private theorem aciNormPayload_eq_self_of_eval_not_notvalue
             cases hy : __smtx_model_eval M (__eo_to_smt y) <;>
               cases hx : __smtx_model_eval M (__eo_to_smt x) <;>
                 simp [__smtx_model_eval, __smtx_model_eval_apply, hy, hx]))
+
+private theorem aciNormPayload_eq_self_of_not_aci_sorted_marker
+    (t : Term) :
+    (∀ markerArg markerPayload,
+      t ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload) ->
+    aciNormPayload t = t := by
+  intro hNotMarker
+  cases t <;> try rfl
+  case Apply f x =>
+    cases f <;> try rfl
+    case Apply g y =>
+      cases g <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
+        exact False.elim (hNotMarker y x rfl)
+
+private theorem not_aci_sorted_marker_of_eval_not_notvalue
+    (M : SmtModel) (t : Term) :
+    __smtx_model_eval M (__eo_to_smt t) ≠ SmtValue.NotValue ->
+    ∀ markerArg markerPayload,
+      t ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload := by
+  intro hEvalNe markerArg markerPayload hMarker
+  subst t
+  apply hEvalNe
+  change __smtx_model_eval M
+      (SmtTerm.Apply
+        (SmtTerm.Apply SmtTerm.None (__eo_to_smt markerArg))
+        (__eo_to_smt markerPayload)) =
+    SmtValue.NotValue
+  cases hArg : __smtx_model_eval M (__eo_to_smt markerArg) <;>
+    cases hPayload : __smtx_model_eval M (__eo_to_smt markerPayload) <;>
+      simp [__smtx_model_eval, __smtx_model_eval_apply, hArg, hPayload]
+
+private theorem aci_norm_l2_marker_right_nonmarker_eq_false
+    (f payload y : Term) :
+    (∀ markerArg markerPayload,
+      y ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload) ->
+    y ≠ Term.Stuck ->
+    __eo_l_2___aci_norm_eq
+      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+      y = Term.Boolean false := by
+  intro hYNotMarker hYNe
+  cases y <;>
+    simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hYNe ⊢
+  case Apply yf yPayload =>
+    cases yf <;>
+      simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hYNotMarker ⊢
+    case Apply yg yMarkerArg =>
+      cases yg <;>
+        simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hYNotMarker ⊢
+      case UOp op =>
+        cases op <;>
+          simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hYNotMarker ⊢
+
+private theorem smt_value_rel_of_aci_norm_eq_true_left_marker_right_nonmarker
+    (M : SmtModel) (f payload y : Term) :
+    (∀ markerArg markerPayload,
+      y ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload) ->
+    __smtx_model_eval M (__eo_to_smt payload) ≠ SmtValue.NotValue ->
+    __eo_eq
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+        y ≠ Term.Boolean true ->
+    __aci_norm_eq
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+        y = Term.Boolean true ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt payload))
+      (__smtx_model_eval M (__eo_to_smt (aciNormPayload y))) := by
+  intro hYNotMarker hPayloadEvalNe hTermEq hEq
+  let leftMarker :=
+    Term.Apply
+      (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload
+  have hLeftMarkerNe : leftMarker ≠ Term.Stuck := by
+    dsimp [leftMarker]
+    simp
+  have hYNe : y ≠ Term.Stuck :=
+    aci_norm_eq_true_right_ne_stuck leftMarker y (by
+      simpa [leftMarker] using hEq)
+  have hEqIte := hEq
+  rw [show __aci_norm_eq
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+        y =
+      __aci_norm_eq leftMarker y by rfl] at hEqIte
+  rw [aci_norm_eq_nonstuck leftMarker y hLeftMarkerNe hYNe] at hEqIte
+  have hL1 :
+      __eo_l_1___aci_norm_eq leftMarker y = Term.Boolean true :=
+    (eo_ite_else_eq_true_of_cond_ne_true
+      (__eo_eq leftMarker y) (Term.Boolean true)
+      (__eo_l_1___aci_norm_eq leftMarker y)
+      (by simpa [leftMarker] using hTermEq) hEqIte).2
+  have hPayloadSelf : aciNormPayload payload = payload :=
+    aciNormPayload_eq_self_of_eval_not_notvalue M payload hPayloadEvalNe
+  have hYSelf : aciNormPayload y = y :=
+    aciNormPayload_eq_self_of_not_aci_sorted_marker y hYNotMarker
+  rcases aci_norm_l1_marker_eq_true_cases f payload y (by
+      simpa [leftMarker] using hL1) with hPayloadEq | hL2
+  · have hy : y = payload := eq_of_eo_eq_true_local payload y hPayloadEq
+    rw [hy, hPayloadSelf]
+    exact RuleProofs.smt_value_rel_refl
+      (__smtx_model_eval M (__eo_to_smt payload))
+  · have hFalse :=
+      aci_norm_l2_marker_right_nonmarker_eq_false f payload y
+        hYNotMarker hYNe
+    rw [hFalse] at hL2
+    contradiction
 
 private theorem eo_typeof_or_eq_bool_of_has_smt_translation (y x : Term) :
     RuleProofs.eo_has_smt_translation
@@ -18428,6 +18571,102 @@ private theorem smt_value_rel_get_a_norm_str_concat
     (__smtx_model_eval M (__eo_to_smt t))
     hNormRel
 
+private theorem get_a_norm_concat_not_aci_sorted_marker_of_has_smt_translation
+    (M : SmtModel) (hM : model_total_typed M) (y x : Term) :
+    RuleProofs.eo_has_smt_translation (mkBvConcat y x) ->
+    ∀ markerArg markerPayload,
+      __get_a_norm (mkBvConcat y x) ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload := by
+  intro hTrans
+  have hRel := smt_value_rel_get_a_norm_concat M hM y x hTrans
+  have hOrigNe :
+      __smtx_model_eval M (__eo_to_smt (mkBvConcat y x)) ≠
+        SmtValue.NotValue :=
+    smt_eval_ne_notvalue_of_has_smt_translation M hM (mkBvConcat y x)
+      hTrans
+  have hNormNe :
+      __smtx_model_eval M
+          (__eo_to_smt (__get_a_norm (mkBvConcat y x))) ≠
+        SmtValue.NotValue :=
+    smt_value_rel_ne_notvalue_right hRel hOrigNe
+  exact not_aci_sorted_marker_of_eval_not_notvalue M
+    (__get_a_norm (mkBvConcat y x)) hNormNe
+
+private theorem get_a_norm_str_concat_not_aci_sorted_marker_of_has_smt_translation
+    (M : SmtModel) (hM : model_total_typed M) (y x : Term) :
+    RuleProofs.eo_has_smt_translation (mkStrConcat y x) ->
+    ∀ markerArg markerPayload,
+      __get_a_norm (mkStrConcat y x) ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload := by
+  intro hTrans
+  have hRel := smt_value_rel_get_a_norm_str_concat M hM y x hTrans
+  have hOrigNe :
+      __smtx_model_eval M (__eo_to_smt (mkStrConcat y x)) ≠
+        SmtValue.NotValue :=
+    smt_eval_ne_notvalue_of_has_smt_translation M hM (mkStrConcat y x)
+      hTrans
+  have hNormNe :
+      __smtx_model_eval M
+          (__eo_to_smt (__get_a_norm (mkStrConcat y x))) ≠
+        SmtValue.NotValue :=
+    smt_value_rel_ne_notvalue_right hRel hOrigNe
+  exact not_aci_sorted_marker_of_eval_not_notvalue M
+    (__get_a_norm (mkStrConcat y x)) hNormNe
+
+private theorem get_a_norm_re_concat_not_aci_sorted_marker_of_has_smt_translation
+    (M : SmtModel) (hM : model_total_typed M) (y x : Term) :
+    RuleProofs.eo_has_smt_translation (mkReConcat y x) ->
+    ∀ markerArg markerPayload,
+      __get_a_norm (mkReConcat y x) ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload := by
+  intro hTrans
+  have hRel := smt_value_rel_get_a_norm_re_concat M hM y x hTrans
+  have hOrigNe :
+      __smtx_model_eval M (__eo_to_smt (mkReConcat y x)) ≠
+        SmtValue.NotValue :=
+    smt_eval_ne_notvalue_of_has_smt_translation M hM (mkReConcat y x)
+      hTrans
+  have hNormNe :
+      __smtx_model_eval M
+          (__eo_to_smt (__get_a_norm (mkReConcat y x))) ≠
+        SmtValue.NotValue :=
+    smt_value_rel_ne_notvalue_right hRel hOrigNe
+  exact not_aci_sorted_marker_of_eval_not_notvalue M
+    (__get_a_norm (mkReConcat y x)) hNormNe
+
+private theorem smt_value_rel_of_aci_norm_eq_true_left_marker_right_nonmarker_payload_translation
+    (M : SmtModel) (hM : model_total_typed M)
+    (f payload y : Term) :
+    RuleProofs.eo_has_smt_translation payload ->
+    (∀ markerArg markerPayload,
+      y ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload) ->
+    __eo_eq
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+        y ≠ Term.Boolean true ->
+    __aci_norm_eq
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+        y = Term.Boolean true ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt payload))
+      (__smtx_model_eval M (__eo_to_smt (aciNormPayload y))) := by
+  intro hPayloadTrans hYNotMarker hTermEq hEq
+  exact smt_value_rel_of_aci_norm_eq_true_left_marker_right_nonmarker M
+    f payload y hYNotMarker
+    (smt_eval_ne_notvalue_of_has_smt_translation M hM payload
+      hPayloadTrans)
+    hTermEq hEq
+
 private theorem smt_value_rel_aciNormPayload_self
     (M : SmtModel) (t : Term) :
   RuleProofs.eo_has_smt_translation t ->
@@ -18643,12 +18882,380 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
                   case Apply bg byArg =>
                     cases bg <;> (try simp [aciNormSpecialInput] at hBSpecial)
                     case UOp bop =>
+                      let leftPayloadOr :=
+                        __get_ai_norm
+                          (Term.Apply
+                            (Term.Apply (Term.UOp UserOp.or) ay) ax)
+                      have hLeftPayloadOrBool :
+                          RuleProofs.eo_has_bool_type leftPayloadOr := by
+                        dsimp [leftPayloadOr]
+                        exact eo_has_bool_type_get_ai_norm_or ay ax hATrans
+                      have hLeftPayloadOrTrans :
+                          RuleProofs.eo_has_smt_translation leftPayloadOr :=
+                        RuleProofs.eo_has_smt_translation_of_has_bool_type
+                          leftPayloadOr hLeftPayloadOrBool
+                      have hLeftNFOr :
+                          __get_aci_normal_form
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp.or) ay) ax) =
+                            Term.Apply
+                              (Term.Apply
+                                (Term.UOp UserOp._at__at_aci_sorted)
+                                (Term.UOp UserOp.or))
+                              leftPayloadOr := by
+                        dsimp [leftPayloadOr]
+                        exact get_aci_normal_form_or_eq_marker ay ax hATrans
+                      have hLeftMkOr :
+                          __eo_mk_apply
+                              (Term.Apply
+                                (Term.UOp UserOp._at__at_aci_sorted)
+                                (Term.UOp UserOp.or))
+                              leftPayloadOr =
+                            Term.Apply
+                              (Term.Apply
+                                (Term.UOp UserOp._at__at_aci_sorted)
+                                (Term.UOp UserOp.or))
+                              leftPayloadOr := by
+                        simpa [leftPayloadOr, __get_aci_normal_form] using
+                          hLeftNFOr
                       cases bop <;> (try simp [aciNormSpecialInput] at hBSpecial)
                       case or =>
                         exact smt_value_rel_of_or_normal_forms_eq_true
                           M hM ay ax byArg bx hATrans hBTrans hEq
+                      case and =>
+                        let leftPayload :=
+                          __get_ai_norm
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp.or) ay) ax)
+                        let rightPayload :=
+                          __get_ai_norm
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp.and) byArg) bx)
+                        have hLeftPayloadBool :
+                            RuleProofs.eo_has_bool_type leftPayload := by
+                          dsimp [leftPayload]
+                          exact eo_has_bool_type_get_ai_norm_or ay ax hATrans
+                        have hLeftPayloadTrans :
+                            RuleProofs.eo_has_smt_translation leftPayload :=
+                          RuleProofs.eo_has_smt_translation_of_has_bool_type
+                            leftPayload hLeftPayloadBool
+                        have hLeftNF :
+                            __get_aci_normal_form
+                                (Term.Apply
+                                  (Term.Apply (Term.UOp UserOp.or) ay) ax) =
+                              Term.Apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_aci_sorted)
+                                  (Term.UOp UserOp.or))
+                                leftPayload := by
+                          dsimp [leftPayload]
+                          exact get_aci_normal_form_or_eq_marker ay ax
+                            hATrans
+                        have hRightNF :
+                            __get_aci_normal_form
+                                (Term.Apply
+                                  (Term.Apply (Term.UOp UserOp.and) byArg)
+                                  bx) =
+                              Term.Apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_aci_sorted)
+                                  (Term.UOp UserOp.and))
+                                rightPayload := by
+                          dsimp [rightPayload]
+                          exact get_aci_normal_form_and_eq_marker byArg bx
+                            hBTrans
+                        have hEqMarkers :
+                            __aci_norm_eq
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.or))
+                                  leftPayload)
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.and))
+                                  rightPayload) =
+                              Term.Boolean true := by
+                          simpa [leftPayload, rightPayload, hLeftNF,
+                            hRightNF] using hEq
+                        exact False.elim
+                          (aci_norm_marker_marker_eq_true_false_of_heads_ne_payload_translation
+                            (Term.UOp UserOp.or) (Term.UOp UserOp.and)
+                            leftPayload rightPayload hLeftPayloadTrans
+                            (by intro h; cases h)
+                            (by simp [__eo_eq, native_teq])
+                            hEqMarkers)
+                      case concat =>
+                        have hRel :=
+                          smt_value_rel_of_aci_norm_eq_true_left_marker_right_nonmarker_payload_translation
+                            M hM (Term.UOp UserOp.or) leftPayloadOr
+                            (__get_a_norm (mkBvConcat byArg bx))
+                            hLeftPayloadOrTrans
+                            (get_a_norm_concat_not_aci_sorted_marker_of_has_smt_translation
+                              M hM byArg bx hBTrans)
+                            (by
+                              simpa [leftPayloadOr, hLeftMkOr, mkBvConcat,
+                                __get_aci_normal_form] using hTermEq)
+                            (by
+                              simpa [leftPayloadOr, hLeftMkOr, mkBvConcat,
+                                __get_aci_normal_form] using hEq)
+                        simpa [leftPayloadOr, hLeftMkOr, mkBvConcat,
+                          __get_aci_normal_form, aciNormPayload] using hRel
+                      case bvand =>
+                        let rightPayload :=
+                          __get_ai_norm (mkBvAnd byArg bx)
+                        have hRightNFNe :
+                            __get_aci_normal_form (mkBvAnd byArg bx) ≠
+                              Term.Stuck :=
+                          aci_norm_eq_true_right_ne_stuck
+                            (__get_aci_normal_form
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp.or) ay) ax))
+                            (__get_aci_normal_form (mkBvAnd byArg bx))
+                            (by simpa [mkBvAnd] using hEq)
+                        have hRightNF :
+                            __get_aci_normal_form (mkBvAnd byArg bx) =
+                              Term.Apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_aci_sorted)
+                                  (Term.UOp UserOp.bvand))
+                                rightPayload := by
+                          dsimp [rightPayload]
+                          exact get_aci_normal_form_bvand_eq_marker_of_ne_stuck
+                            byArg bx hRightNFNe
+                        have hEqMarkers :
+                            __aci_norm_eq
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.or))
+                                  leftPayloadOr)
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.bvand))
+                                  rightPayload) =
+                              Term.Boolean true := by
+                          simpa [leftPayloadOr, rightPayload, hLeftNFOr,
+                            hRightNF, mkBvAnd] using hEq
+                        exact False.elim
+                          (aci_norm_marker_marker_eq_true_false_of_heads_ne_payload_translation
+                            (Term.UOp UserOp.or) (Term.UOp UserOp.bvand)
+                            leftPayloadOr rightPayload hLeftPayloadOrTrans
+                            (by intro h; cases h)
+                            (by simp [__eo_eq, native_teq])
+                            hEqMarkers)
+                      case bvor =>
+                        let rightPayload :=
+                          __get_ai_norm (mkBvOr byArg bx)
+                        have hRightNFNe :
+                            __get_aci_normal_form (mkBvOr byArg bx) ≠
+                              Term.Stuck :=
+                          aci_norm_eq_true_right_ne_stuck
+                            (__get_aci_normal_form
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp.or) ay) ax))
+                            (__get_aci_normal_form (mkBvOr byArg bx))
+                            (by simpa [mkBvOr] using hEq)
+                        have hRightNF :
+                            __get_aci_normal_form (mkBvOr byArg bx) =
+                              Term.Apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_aci_sorted)
+                                  (Term.UOp UserOp.bvor))
+                                rightPayload := by
+                          dsimp [rightPayload]
+                          exact get_aci_normal_form_bvor_eq_marker_of_ne_stuck
+                            byArg bx hRightNFNe
+                        have hEqMarkers :
+                            __aci_norm_eq
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.or))
+                                  leftPayloadOr)
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.bvor))
+                                  rightPayload) =
+                              Term.Boolean true := by
+                          simpa [leftPayloadOr, rightPayload, hLeftNFOr,
+                            hRightNF, mkBvOr] using hEq
+                        exact False.elim
+                          (aci_norm_marker_marker_eq_true_false_of_heads_ne_payload_translation
+                            (Term.UOp UserOp.or) (Term.UOp UserOp.bvor)
+                            leftPayloadOr rightPayload hLeftPayloadOrTrans
+                            (by intro h; cases h)
+                            (by simp [__eo_eq, native_teq])
+                            hEqMarkers)
+                      case bvxor =>
+                        let rightPayload :=
+                          __get_a_norm (mkBvXor byArg bx)
+                        have hRightNFNe :
+                            __get_aci_normal_form (mkBvXor byArg bx) ≠
+                              Term.Stuck :=
+                          aci_norm_eq_true_right_ne_stuck
+                            (__get_aci_normal_form
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp.or) ay) ax))
+                            (__get_aci_normal_form (mkBvXor byArg bx))
+                            (by simpa [mkBvXor] using hEq)
+                        have hRightNF :
+                            __get_aci_normal_form (mkBvXor byArg bx) =
+                              Term.Apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_aci_sorted)
+                                  (Term.UOp UserOp.bvxor))
+                                rightPayload := by
+                          dsimp [rightPayload]
+                          exact get_aci_normal_form_bvxor_eq_marker_of_ne_stuck
+                            byArg bx hRightNFNe
+                        have hEqMarkers :
+                            __aci_norm_eq
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.or))
+                                  leftPayloadOr)
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.bvxor))
+                                  rightPayload) =
+                              Term.Boolean true := by
+                          simpa [leftPayloadOr, rightPayload, hLeftNFOr,
+                            hRightNF, mkBvXor] using hEq
+                        exact False.elim
+                          (aci_norm_marker_marker_eq_true_false_of_heads_ne_payload_translation
+                            (Term.UOp UserOp.or) (Term.UOp UserOp.bvxor)
+                            leftPayloadOr rightPayload hLeftPayloadOrTrans
+                            (by intro h; cases h)
+                            (by simp [__eo_eq, native_teq])
+                            hEqMarkers)
+                      case str_concat =>
+                        have hRel :=
+                          smt_value_rel_of_aci_norm_eq_true_left_marker_right_nonmarker_payload_translation
+                            M hM (Term.UOp UserOp.or) leftPayloadOr
+                            (__get_a_norm (mkStrConcat byArg bx))
+                            hLeftPayloadOrTrans
+                            (get_a_norm_str_concat_not_aci_sorted_marker_of_has_smt_translation
+                              M hM byArg bx hBTrans)
+                            (by
+                              simpa [leftPayloadOr, hLeftMkOr, mkStrConcat,
+                                __get_aci_normal_form] using hTermEq)
+                            (by
+                              simpa [leftPayloadOr, hLeftMkOr, mkStrConcat,
+                                __get_aci_normal_form] using hEq)
+                        simpa [leftPayloadOr, hLeftMkOr, mkStrConcat,
+                          __get_aci_normal_form, aciNormPayload] using hRel
+                      case re_concat =>
+                        have hRel :=
+                          smt_value_rel_of_aci_norm_eq_true_left_marker_right_nonmarker_payload_translation
+                            M hM (Term.UOp UserOp.or) leftPayloadOr
+                            (__get_a_norm (mkReConcat byArg bx))
+                            hLeftPayloadOrTrans
+                            (get_a_norm_re_concat_not_aci_sorted_marker_of_has_smt_translation
+                              M hM byArg bx hBTrans)
+                            (by
+                              simpa [leftPayloadOr, hLeftMkOr, mkReConcat,
+                                __get_aci_normal_form] using hTermEq)
+                            (by
+                              simpa [leftPayloadOr, hLeftMkOr, mkReConcat,
+                                __get_aci_normal_form] using hEq)
+                        simpa [leftPayloadOr, hLeftMkOr, mkReConcat,
+                          __get_aci_normal_form, aciNormPayload] using hRel
+                      case re_inter =>
+                        let rightPayload :=
+                          __get_ai_norm (mkReInter byArg bx)
+                        have hRightNFNe :
+                            __get_aci_normal_form (mkReInter byArg bx) ≠
+                              Term.Stuck :=
+                          aci_norm_eq_true_right_ne_stuck
+                            (__get_aci_normal_form
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp.or) ay) ax))
+                            (__get_aci_normal_form (mkReInter byArg bx))
+                            (by simpa [mkReInter] using hEq)
+                        have hRightNF :
+                            __get_aci_normal_form (mkReInter byArg bx) =
+                              Term.Apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_aci_sorted)
+                                  (Term.UOp UserOp.re_inter))
+                                rightPayload := by
+                          dsimp [rightPayload]
+                          exact get_aci_normal_form_re_inter_eq_marker_of_ne_stuck
+                            byArg bx hRightNFNe
+                        have hEqMarkers :
+                            __aci_norm_eq
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.or))
+                                  leftPayloadOr)
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.re_inter))
+                                  rightPayload) =
+                              Term.Boolean true := by
+                          simpa [leftPayloadOr, rightPayload, hLeftNFOr,
+                            hRightNF, mkReInter] using hEq
+                        exact False.elim
+                          (aci_norm_marker_marker_eq_true_false_of_heads_ne_payload_translation
+                            (Term.UOp UserOp.or) (Term.UOp UserOp.re_inter)
+                            leftPayloadOr rightPayload hLeftPayloadOrTrans
+                            (by intro h; cases h)
+                            (by simp [__eo_eq, native_teq])
+                            hEqMarkers)
+                      case re_union =>
+                        let rightPayload :=
+                          __get_ai_norm (mkReUnion byArg bx)
+                        have hRightNFNe :
+                            __get_aci_normal_form (mkReUnion byArg bx) ≠
+                              Term.Stuck :=
+                          aci_norm_eq_true_right_ne_stuck
+                            (__get_aci_normal_form
+                              (Term.Apply
+                                (Term.Apply (Term.UOp UserOp.or) ay) ax))
+                            (__get_aci_normal_form (mkReUnion byArg bx))
+                            (by simpa [mkReUnion] using hEq)
+                        have hRightNF :
+                            __get_aci_normal_form (mkReUnion byArg bx) =
+                              Term.Apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_aci_sorted)
+                                  (Term.UOp UserOp.re_union))
+                                rightPayload := by
+                          dsimp [rightPayload]
+                          exact get_aci_normal_form_re_union_eq_marker_of_ne_stuck
+                            byArg bx hRightNFNe
+                        have hEqMarkers :
+                            __aci_norm_eq
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.or))
+                                  leftPayloadOr)
+                                (Term.Apply
+                                  (Term.Apply
+                                    (Term.UOp UserOp._at__at_aci_sorted)
+                                    (Term.UOp UserOp.re_union))
+                                  rightPayload) =
+                              Term.Boolean true := by
+                          simpa [leftPayloadOr, rightPayload, hLeftNFOr,
+                            hRightNF, mkReUnion] using hEq
+                        exact False.elim
+                          (aci_norm_marker_marker_eq_true_false_of_heads_ne_payload_translation
+                            (Term.UOp UserOp.or) (Term.UOp UserOp.re_union)
+                            leftPayloadOr rightPayload hLeftPayloadOrTrans
+                            (by intro h; cases h)
+                            (by simp [__eo_eq, native_teq])
+                            hEqMarkers)
                       all_goals
-                        sorry
+                        contradiction
                   all_goals
                     contradiction
                 all_goals
