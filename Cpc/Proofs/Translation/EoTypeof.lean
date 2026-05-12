@@ -1997,7 +1997,7 @@ theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
 theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x)) =
+    __eo_to_smt_type (__eo_typeof (Term._at_strings_stoi_non_digit x)) =
       SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof_str_to_code (__eo_typeof x)) = SmtType.Int
   rw [hx]
@@ -2008,7 +2008,7 @@ theorem eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_smt_seq_char
     (x y : Term)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) y) x)) =
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_strings_stoi_result y) x)) =
       SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof__at_strings_stoi_result (__eo_typeof y) (__eo_typeof x)) =
     SmtType.Int
@@ -3113,7 +3113,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_c
     (hx : __eo_typeof x = Term.UOp UserOp.Int) :
     __eo_to_smt_type
         (__eo_typeof
-          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_re_unfold_pos_component) z) y) x)) =
+          (Term._at_re_unfold_pos_component z y x)) =
       SmtType.Seq SmtType.Char := by
   change
     __eo_to_smt_type
@@ -3128,7 +3128,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
     (hz : __eo_typeof z = Term.UOp UserOp.Int)
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.UOp UserOp.RegLan) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.re_loop) z) y) x)) =
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.re_loop z y) x)) =
       SmtType.RegLan := by
   change __eo_to_smt_type (__eo_typeof_re_loop (__eo_typeof z) (__eo_typeof y) (__eo_typeof x)) =
     SmtType.RegLan
@@ -4466,9 +4466,9 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_smt_s
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type
         (__eo_typeof
-          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_re_unfold_pos_component) z) y) x)) =
+          (Term._at_re_unfold_pos_component z y x)) =
       SmtType.Seq SmtType.Char := by
-  simpa using
+  exact
     eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_char_reglan_int
       x y z
       (eo_typeof_eq_seq_char_of_smt_seq_char z hz)
@@ -4483,9 +4483,9 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_smt_numeral_numeral_r
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan)
     (hn1 : native_zleq 0 n1)
     (hn2 : native_zleq 0 n2) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.re_loop) z) y) x)) =
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.re_loop z y) x)) =
       SmtType.RegLan := by
-  simpa using
+  exact
     eo_to_smt_type_typeof_apply_apply_apply_re_loop_of_int_int_reglan
       x y z
       (eo_typeof_eq_int_of_smt_numeral z n1 hz)

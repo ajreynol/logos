@@ -127,7 +127,6 @@ abbrev re_all := Term.UOp UserOp.re_all
 abbrev str_to_re := Term.UOp UserOp.str_to_re
 abbrev re_mult := Term.UOp UserOp.re_mult
 abbrev re_plus := Term.UOp UserOp.re_plus
-abbrev re_exp := Term.UOp UserOp.re_exp
 abbrev re_opt := Term.UOp UserOp.re_opt
 abbrev re_comp := Term.UOp UserOp.re_comp
 abbrev re_range := Term.UOp UserOp.re_range
@@ -135,19 +134,11 @@ abbrev re_concat := Term.UOp UserOp.re_concat
 abbrev re_inter := Term.UOp UserOp.re_inter
 abbrev re_union := Term.UOp UserOp.re_union
 abbrev re_diff := Term.UOp UserOp.re_diff
-abbrev re_loop := Term.UOp UserOp.re_loop
 abbrev str_in_re := Term.UOp UserOp.str_in_re
 abbrev seq_unit := Term.UOp UserOp.seq_unit
 abbrev seq_nth := Term.UOp UserOp.seq_nth
-abbrev _at_re_unfold_pos_component := Term.UOp UserOp._at_re_unfold_pos_component
-abbrev _at_strings_deq_diff := Term.UOp UserOp._at_strings_deq_diff
-abbrev _at_strings_stoi_result := Term.UOp UserOp._at_strings_stoi_result
-abbrev _at_strings_stoi_non_digit := Term.UOp UserOp._at_strings_stoi_non_digit
-abbrev _at_strings_itos_result := Term.UOp UserOp._at_strings_itos_result
 abbrev _at_strings_num_occur := Term.UOp UserOp._at_strings_num_occur
-abbrev _at_strings_num_occur_re := Term.UOp UserOp._at_strings_num_occur_re
 abbrev _at_strings_occur_index := Term.UOp UserOp._at_strings_occur_index
-abbrev _at_strings_occur_index_re := Term.UOp UserOp._at_strings_occur_index_re
 abbrev UnitTuple := Term.UOp UserOp.UnitTuple
 abbrev Tuple := Term.UOp UserOp.Tuple
 abbrev tuple_unit := Term.UOp UserOp.tuple_unit
@@ -300,7 +291,6 @@ attribute [match_pattern]
   Term.str_to_re
   Term.re_mult
   Term.re_plus
-  Term.re_exp
   Term.re_opt
   Term.re_comp
   Term.re_range
@@ -308,19 +298,11 @@ attribute [match_pattern]
   Term.re_inter
   Term.re_union
   Term.re_diff
-  Term.re_loop
   Term.str_in_re
   Term.seq_unit
   Term.seq_nth
-  Term._at_re_unfold_pos_component
-  Term._at_strings_deq_diff
-  Term._at_strings_stoi_result
-  Term._at_strings_stoi_non_digit
-  Term._at_strings_itos_result
   Term._at_strings_num_occur
-  Term._at_strings_num_occur_re
   Term._at_strings_occur_index
-  Term._at_strings_occur_index_re
   Term.UnitTuple
   Term.Tuple
   Term.tuple_unit

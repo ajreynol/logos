@@ -793,11 +793,11 @@ def __eo_list_repeat_rec : Term -> Term -> native_Nat -> Term
   | _ , Term.Stuck , _  => Term.Stuck
   | f, a, native_nat_zero => (__eo_nil f (__eo_typeof a))
   | f, a, (native_nat_succ n) => (__eo_mk_apply (Term.Apply f a) (__eo_list_repeat_rec f a n))
-  | _, _, _ => Term.Stuck
 
 
 def __eo_list_repeat : Term -> Term -> Term -> Term
-  | f, a, i => (__eo_requires (__eo_is_neg i) (Term.Boolean false) (__eo_list_repeat_rec f a (native_int_to_nat i)))
+  | f, a, (Term.Numeral i) => (__eo_requires (__eo_is_neg (Term.Numeral i)) (Term.Boolean false) (__eo_list_repeat_rec f a (native_int_to_nat i)))
+  | _, _, _ => Term.Stuck
 
 
 def __pair_first : Term -> Term
