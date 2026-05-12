@@ -791,9 +791,8 @@ def __eo_list_singleton_elim : Term -> Term -> Term
 def __eo_list_repeat_rec : Term -> Term -> native_Nat -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
-  | f, a, native_nat_zero => (__eo_nil f (__eo_typeof a))
   | f, a, (native_nat_succ n) => (__eo_mk_apply (Term.Apply f a) (__eo_list_repeat_rec f a n))
-  | _, _, _ => Term.Stuck
+  | f, a, n => (__eo_nil f (__eo_typeof a))
 
 
 def __eo_list_repeat : Term -> Term -> Term -> Term
