@@ -536,6 +536,8 @@ theorem typeof_value_model_eval_forall
 
 /-- Provides a witness for `choice_term_has`. -/
 theorem choice_term_has_witness
+    (Mw : SmtModel)
+    (hMw : model_total_typed Mw)
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
@@ -554,8 +556,11 @@ theorem choice_term_has_witness
   have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
     unfold __smtx_typeof at ht
     simpa [__smtx_typeof_choice_nth, hEq, native_ite] using ht
-  exact canonical_type_inhabited_of_type_inhabited
-    (smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN)
+  have hInh : type_inhabited T :=
+    smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
+  exact ⟨__smtx_model_lookup Mw s T,
+    model_total_typed_lookup hMw s T hInh,
+    model_total_typed_lookup_canonical hMw s T hInh⟩
 
 /-- Derives the zero-index `choice_nth` type as the self-guarded choice type from `non_none`. -/
 theorem choice_term_guard_type_of_non_none
@@ -743,6 +748,8 @@ theorem choice_term_fun_components_non_none
 
 /-- Shows that evaluating `choice` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_choice
+    (Mw : SmtModel)
+    (hMw : model_total_typed Mw)
     (M : SmtModel)
     (s : native_String)
     (T : SmtType)
@@ -753,12 +760,12 @@ theorem typeof_value_model_eval_choice
   classical
   have hTy : ∃ v : SmtValue, __smtx_typeof_value v = T ∧
       __smtx_value_canonical_bool v = true := by
-    rcases choice_term_has_witness ht with ⟨v, hvTy, hvCanon⟩
+    rcases choice_term_has_witness Mw hMw ht with ⟨v, hvTy, hvCanon⟩
     exact ⟨v, hvTy, by simpa [__smtx_value_canonical] using hvCanon⟩
   have hTyIf : ∃ v : SmtValue, __smtx_typeof_value v = T ∧
       __smtx_value_canonical_bool v := by
     rcases hTy with ⟨v, hvTy, hvCanon⟩
-    exact ⟨v, hvTy, by simpa [hvCanon]⟩
+    exact ⟨v, hvTy, by simp [hvCanon]⟩
   rw [choice_term_typeof_of_non_none ht]
   by_cases hSat :
       ∃ v : SmtValue,
@@ -774,6 +781,8 @@ theorem typeof_value_model_eval_choice
 
 /-- Shows that evaluating `choice_nth` terms preserves the computed choice type for any index. -/
 theorem typeof_value_model_eval_choice_nth
+    (Mw : SmtModel)
+    (hMw : model_total_typed Mw)
     (M : SmtModel)
     (s : native_String)
     (T : SmtType)
@@ -785,7 +794,7 @@ theorem typeof_value_model_eval_choice_nth
   classical
   induction n generalizing M s T body with
   | zero =>
-      simpa using typeof_value_model_eval_choice M s T body ht
+      simpa using typeof_value_model_eval_choice Mw hMw M s T body ht
   | succ n ih =>
       cases body with
       | «exists» s' U body' =>
@@ -824,14 +833,16 @@ theorem typeof_value_model_eval_choice_nth
 
 /-- Extracts inhabitation of the computed `choice_nth` type from a non-`None` typing judgment. -/
 theorem choice_term_inhabited_of_non_none
+    (Mw : SmtModel)
+    (hMw : model_total_typed Mw)
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
     {n : native_Nat}
     (ht : term_has_non_none_type (SmtTerm.choice_nth s T body n)) :
     type_inhabited (__smtx_typeof (SmtTerm.choice_nth s T body n)) := by
-  refine ⟨__smtx_model_eval default_typed_model (SmtTerm.choice_nth s T body n), ?_⟩
-  simpa using typeof_value_model_eval_choice_nth default_typed_model s T body n ht
+  refine ⟨__smtx_model_eval Mw (SmtTerm.choice_nth s T body n), ?_⟩
+  simpa using typeof_value_model_eval_choice_nth Mw hMw Mw s T body n ht
 
 
 end Smtm
