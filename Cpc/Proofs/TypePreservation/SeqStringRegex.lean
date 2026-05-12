@@ -1765,8 +1765,7 @@ theorem model_eval_re_loop_rec_reglan :
         ⟨r1, hr1⟩
       rcases model_eval_re_exp_reglan n2 r with ⟨r2, hr2⟩
       refine ⟨native_re_union r1 r2, ?_⟩
-      simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union,
-        __smtx_typeof_value]
+      simp [__smtx_model_eval_re_loop_rec, hr1, hr2, __smtx_model_eval_re_union]
 
 /-- Shows that evaluating `re_loop` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_re_loop
