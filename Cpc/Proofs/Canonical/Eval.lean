@@ -42,7 +42,7 @@ theorem model_eval_var_canonical
   by_cases hWF : __smtx_type_wf T = true
   · simpa [__smtx_model_eval] using model_total_typed_lookup_canonical hM s T hWF
   · have hWF' : __smtx_type_wf T = false := by
-      cases __smtx_type_wf T <;> simp at hWF ⊢
+      cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
     have hLookup : __smtx_model_lookup M s T = SmtValue.NotValue :=
       model_total_typed_lookup_not_wf hM s T hWF'
     simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
@@ -57,7 +57,7 @@ theorem model_eval_uconst_canonical
   by_cases hWF : __smtx_type_wf T = true
   · simpa [__smtx_model_eval] using model_total_typed_lookup_canonical hM s T hWF
   · have hWF' : __smtx_type_wf T = false := by
-      cases __smtx_type_wf T <;> simp at hWF ⊢
+      cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
     have hLookup : __smtx_model_lookup M s T = SmtValue.NotValue :=
       model_total_typed_lookup_not_wf hM s T hWF'
     simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
@@ -530,7 +530,7 @@ theorem model_eval_canonical_of_supported
       exact model_eval_seq_unit_term_canonical M _ (ih M hM ht)
   case set_singleton ht hs ih =>
       exact model_eval_set_singleton_term_canonical M _ (ih M hM ht)
-  case seq_nth ht1 hs1 ht2 hs2 hT ih1 ih2 =>
+  case seq_nth ht1 hs1 ht2 hs2 hT hElemRec ih1 ih2 =>
       exact model_eval_seq_nth_term_canonical M hM _ _ (ih1 M hM ht1)
   case set_union ht1 hs1 ht2 hs2 ih1 ih2 =>
       exact model_eval_set_union_term_canonical M _ _ (ih1 M hM ht1) (ih2 M hM ht2)

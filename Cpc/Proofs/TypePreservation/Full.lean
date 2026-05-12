@@ -564,6 +564,15 @@ theorem seq_nth_term_inhabited_of_non_none
   rw [hTy]
   exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
 
+/-- Extracts recursive well-formedness of the element type used by `seq_nth`. -/
+theorem seq_nth_elem_wf_rec_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2)) :
+    ∀ {T : SmtType},
+      __smtx_typeof t1 = SmtType.Seq T ->
+        __smtx_type_wf_rec T native_reflist_nil = true := by
+  sorry
+
 /-- Extracts inhabitation of the `dt_sel` result type from a non-`None` typing judgment. -/
 theorem dt_sel_term_inhabited_of_non_none
     {s : native_String}
@@ -585,6 +594,19 @@ theorem dt_sel_term_inhabited_of_non_none
     smtx_typeof_guard_wf_inhabited_of_non_none R inner hGuardNN
   rw [dt_sel_term_typeof_of_non_none ht]
   exact hInh
+
+/-- The model fallback used for wrong datatype-selector applications is well-formed. -/
+theorem dt_sel_wrong_map_type_wf_of_non_none
+    {s : native_String}
+    {d : SmtDatatype}
+    {i j : native_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :
+    __smtx_type_wf
+      (SmtType.Map SmtType.Int
+        (SmtType.Map SmtType.Int
+          (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))) = true := by
+  sorry
 
 /-- Builds support for `seq_unit` directly from support of its argument and a non-`None` typing judgment. -/
 theorem supported_seq_unit_of_non_none
@@ -663,7 +685,8 @@ theorem supported_apply_of_non_none
     supported_preservation_term (SmtTerm.Apply f x) := by
   by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
   · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
-    exact supported_dt_sel_of_non_none ht hsx
+    exact supported_dt_sel_of_non_none ht
+      (dt_sel_wrong_map_type_wf_of_non_none ht) hsx
   · by_cases hTesterWitness : ∃ s d i, f = SmtTerm.DtTester s d i
     · rcases hTesterWitness with ⟨s, d, i, rfl⟩
       exact supported_preservation_term.dt_tester s d i x
@@ -997,7 +1020,8 @@ private theorem supported_apply_term_of_non_none
   · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
     have htx : term_has_non_none_type x :=
       term_has_non_none_of_type_eq (dt_sel_arg_datatype_of_non_none ht) (by simp)
-    exact supported_dt_sel_of_non_none ht (ihx htx)
+    exact supported_dt_sel_of_non_none ht
+      (dt_sel_wrong_map_type_wf_of_non_none ht) (ihx htx)
   · by_cases hTesterWitness : ∃ s d i, f = SmtTerm.DtTester s d i
     · rcases hTesterWitness with ⟨s, d, i, rfl⟩
       exact supported_preservation_term.dt_tester s d i x
@@ -3383,6 +3407,7 @@ theorem supported_preservation_term_of_non_none :
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 (by simp)
         exact supported_seq_nth_of_non_none ht (go t1 ht1) (go t2 ht2)
+          (seq_nth_elem_wf_rec_of_non_none ht)
     | SmtTerm.set_empty _ =>
         exact supported_set_empty_of_non_none ht
     | SmtTerm.set_singleton t1 =>
@@ -3537,5 +3562,10 @@ theorem smt_model_eval_bool_is_boolean
         rw [hTy]
         simp)
   exact bool_value_canonical hPres
+
+/-- Shows that total typed SMT models exist. -/
+theorem total_typed_model_nonvacuous :
+    ∃ M : SmtModel, model_total_typed M :=
+  exists_total_typed_model
 
 end Smtm

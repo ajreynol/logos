@@ -1165,7 +1165,7 @@ theorem model_eval_seq_nth_wrong_canonical
       · have hLookup :
             __smtx_model_lookup M native_oob_seq_nth_id mapTy = SmtValue.NotValue :=
           model_total_typed_lookup_not_wf hM native_oob_seq_nth_id mapTy (by
-            cases __smtx_type_wf mapTy <;> simp at hTy ⊢)
+            cases hWF : __smtx_type_wf mapTy <;> simp [hWF] at hTy ⊢)
         simpa [__smtx_seq_nth_wrong, mapTy, hLookup, __smtx_map_select] using
           value_canonical_notValue
   | _ =>
@@ -1310,7 +1310,7 @@ theorem model_eval_dt_sel_wrong_canonical
   · have hLookup :
         __smtx_model_lookup M native_wrong_apply_sel_id mapTy = SmtValue.NotValue :=
       model_total_typed_lookup_not_wf hM native_wrong_apply_sel_id mapTy (by
-        cases __smtx_type_wf mapTy <;> simp at hTy ⊢)
+        cases hWF : __smtx_type_wf mapTy <;> simp [hWF] at hTy ⊢)
     simpa [mapTy, hLookup, __smtx_map_select] using value_canonical_notValue
 
 theorem model_eval_dt_sel_canonical
