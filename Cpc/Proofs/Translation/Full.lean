@@ -1030,6 +1030,26 @@ theorem eo_to_smt_typeof_matches_translation
         exact False.elim (hNonNone (by
           change __smtx_typeof SmtTerm.None = SmtType.None
           exact smtx_typeof_none))
+    | Term._at_re_unfold_pos_component x y z, hNonNone => by
+        sorry
+    | Term._at_strings_deq_diff x y, hNonNone => by
+        sorry
+    | Term._at_strings_stoi_result x, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term._at_strings_stoi_non_digit x, hNonNone => by
+        sorry
+    | Term._at_strings_itos_result x, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term._at_strings_num_occur_re x y, hNonNone => by
+        sorry
+    | Term._at_strings_occur_index_re x y, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term._at_strings_replace_all_result x, hNonNone => by
         exact False.elim (hNonNone (by
           change __smtx_typeof SmtTerm.None = SmtType.None

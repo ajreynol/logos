@@ -8067,49 +8067,22 @@ private theorem strings_stoi_result_args_non_reg_of_non_none
 private theorem congTrueSpine_strings_stoi_result_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x₁ x₂ rhs : Term) :
     RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x₁) x₂)
-        rhs) ->
+      (mkEq (Term.Apply (Term._at_strings_stoi_result x₁) x₂) rhs) ->
     CongTrueSpine M
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x₁) x₂)
-        rhs ->
+      (Term.Apply (Term._at_strings_stoi_result x₁) x₂) rhs ->
     eo_interprets M
-      (mkEq (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x₁) x₂)
-        rhs) true :=
-  congTrueSpine_non_reg_binop_eq_true M hM UserOp._at_strings_stoi_result
-    stringsStoiResultTerm stringsStoiResultEval
-    (by intro a b; rfl)
-    strings_stoi_result_args_non_reg_of_non_none
-    (by
-      intro a b
-      rw [stringsStoiResultTerm, stringsStoiResultEval, __smtx_model_eval.eq_94,
-        __smtx_model_eval.eq_80, __smtx_model_eval.eq_2])
-    x₁ x₂ rhs
+      (mkEq (Term.Apply (Term._at_strings_stoi_result x₁) x₂) rhs) true := by
+  sorry
 
 private theorem congTypeSpine_strings_stoi_result_eq_has_bool_type
     (x₁ x₂ rhs : Term) :
     RuleProofs.eo_has_smt_translation
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x₁) x₂) ->
+      (Term.Apply (Term._at_strings_stoi_result x₁) x₂) ->
     CongTypeSpine
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x₁) x₂)
-        rhs ->
+      (Term.Apply (Term._at_strings_stoi_result x₁) x₂) rhs ->
     RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x₁) x₂)
-        rhs) :=
-  congTypeSpine_typecongr_binop_eq_has_bool_type
-    UserOp._at_strings_stoi_result stringsStoiResultTerm
-    (by intro a b; rfl)
-    (by
-      intro a b a' b' ha hb
-      rw [stringsStoiResultTerm, stringsStoiResultTerm, typeof_str_to_int_eq,
-        typeof_str_to_int_eq, typeof_str_substr_eq, typeof_str_substr_eq,
-        ha, hb])
-    x₁ x₂ rhs
+      (mkEq (Term.Apply (Term._at_strings_stoi_result x₁) x₂) rhs) := by
+  sorry
 
 private def stringsItosResultTerm (a b : SmtTerm) : SmtTerm :=
   SmtTerm.mod a (SmtTerm.multmult (SmtTerm.Numeral 10) b)
@@ -8145,48 +8118,22 @@ private theorem strings_itos_result_args_non_reg_of_non_none
 private theorem congTrueSpine_strings_itos_result_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x₁ x₂ rhs : Term) :
     RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x₁) x₂)
-        rhs) ->
+      (mkEq (Term.Apply (Term._at_strings_itos_result x₁) x₂) rhs) ->
     CongTrueSpine M
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x₁) x₂)
-        rhs ->
+      (Term.Apply (Term._at_strings_itos_result x₁) x₂) rhs ->
     eo_interprets M
-      (mkEq (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x₁) x₂)
-        rhs) true :=
-  congTrueSpine_non_reg_binop_eq_true M hM UserOp._at_strings_itos_result
-    stringsItosResultTerm (stringsItosResultEval M)
-    (by intro a b; rfl)
-    strings_itos_result_args_non_reg_of_non_none
-    (by
-      intro a b
-      rw [stringsItosResultTerm, stringsItosResultEval, __smtx_model_eval.eq_24,
-        __smtx_model_eval.eq_25, __smtx_model_eval.eq_2])
-    x₁ x₂ rhs
+      (mkEq (Term.Apply (Term._at_strings_itos_result x₁) x₂) rhs) true := by
+  sorry
 
 private theorem congTypeSpine_strings_itos_result_eq_has_bool_type
     (x₁ x₂ rhs : Term) :
     RuleProofs.eo_has_smt_translation
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x₁) x₂) ->
+      (Term.Apply (Term._at_strings_itos_result x₁) x₂) ->
     CongTypeSpine
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x₁) x₂)
-        rhs ->
+      (Term.Apply (Term._at_strings_itos_result x₁) x₂) rhs ->
     RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply
-        (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x₁) x₂)
-        rhs) :=
-  congTypeSpine_typecongr_binop_eq_has_bool_type
-    UserOp._at_strings_itos_result stringsItosResultTerm
-    (by intro a b; rfl)
-    (by
-      intro a b a' b' ha hb
-      rw [stringsItosResultTerm, stringsItosResultTerm, typeof_mod_eq,
-        typeof_mod_eq, typeof_multmult_eq, typeof_multmult_eq, ha, hb])
-    x₁ x₂ rhs
+      (mkEq (Term.Apply (Term._at_strings_itos_result x₁) x₂) rhs) := by
+  sorry
 
 private def stringsNumOccurTerm (source pattern : SmtTerm) : SmtTerm :=
   SmtTerm.div
@@ -8329,43 +8276,25 @@ private theorem strings_stoi_non_digit_arg_non_reg_of_non_none
 private theorem congTrueSpine_strings_stoi_non_digit_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
     RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x)
+      (mkEq (Term._at_strings_stoi_non_digit x)
         rhs) ->
     CongTrueSpine M
-      (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x) rhs ->
+      (Term._at_strings_stoi_non_digit x) rhs ->
     eo_interprets M
-      (mkEq (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x)
-        rhs) true :=
-  congTrueSpine_non_reg_unop_eq_true M hM UserOp._at_strings_stoi_non_digit
-    stringsStoiNonDigitTerm stringsStoiNonDigitEval
-    (by intro a; rfl)
-    strings_stoi_non_digit_arg_non_reg_of_non_none
-    (by
-      intro a
-      rw [stringsStoiNonDigitTerm, stringsStoiNonDigitRegex,
-        stringsStoiNonDigitEval, __smtx_model_eval.eq_101,
-        __smtx_model_eval.eq_110, __smtx_model_eval.eq_111,
-        __smtx_model_eval.eq_4, __smtx_model_eval.eq_4,
-        __smtx_model_eval.eq_2])
-    x rhs
+      (mkEq (Term._at_strings_stoi_non_digit x)
+        rhs) true := by
+  sorry
 
 private theorem congTypeSpine_strings_stoi_non_digit_eq_has_bool_type
     (x rhs : Term) :
     RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x) ->
+      (Term._at_strings_stoi_non_digit x) ->
     CongTypeSpine
-      (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x) rhs ->
+      (Term._at_strings_stoi_non_digit x) rhs ->
     RuleProofs.eo_has_bool_type
-      (mkEq (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x)
-        rhs) :=
-  congTypeSpine_typecongr_unop_eq_has_bool_type
-    UserOp._at_strings_stoi_non_digit stringsStoiNonDigitTerm
-    (by intro a; rfl)
-    (by
-      intro a b h
-      rw [stringsStoiNonDigitTerm, stringsStoiNonDigitTerm,
-        typeof_str_indexof_re_eq, typeof_str_indexof_re_eq, h])
-    x rhs
+      (mkEq (Term._at_strings_stoi_non_digit x)
+        rhs) := by
+  sorry
 
 /--
 The remaining typing core for congruence: once the generated program has been
@@ -8563,7 +8492,7 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
         (by intro a; rfl)
         (by intro a; exact typeof_str_to_int_eq a)
         x rhs hTrans hSpine
-  | Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x =>
+  | Term._at_strings_stoi_non_digit x =>
       exact congTypeSpine_strings_stoi_non_digit_eq_has_bool_type
         x rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp.str_from_int) x =>
@@ -8657,10 +8586,10 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
           intro a b a' b' ha hb
           rw [typeof_seq_nth_eq, typeof_seq_nth_eq, ha, hb])
         x₁ x₂ rhs hTrans hSpine
-  | Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x₁) x₂ =>
+  | Term.Apply (Term._at_strings_stoi_result x₁) x₂ =>
       exact congTypeSpine_strings_stoi_result_eq_has_bool_type
         x₁ x₂ rhs hTrans hSpine
-  | Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x₁) x₂ =>
+  | Term.Apply (Term._at_strings_itos_result x₁) x₂ =>
       exact congTypeSpine_strings_itos_result_eq_has_bool_type
         x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x₁) x₂ =>
@@ -9182,7 +9111,7 @@ private theorem congTrueSpine_eq_true
         (by intro a; exact typeof_str_to_int_eq a)
         (by intro a; rw [__smtx_model_eval.eq_94])
         x rhs hEqBool hSpine
-  | Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x =>
+  | Term._at_strings_stoi_non_digit x =>
       exact congTrueSpine_strings_stoi_non_digit_eq_true M hM
         x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.str_from_int) x =>
@@ -9285,10 +9214,10 @@ private theorem congTrueSpine_eq_true
         seq_nth_args_non_reg_of_non_none
         (by intro a b; rw [__smtx_model_eval.eq_119])
         x₁ x₂ rhs hEqBool hSpine
-  | Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) x₁) x₂ =>
+  | Term.Apply (Term._at_strings_stoi_result x₁) x₂ =>
       exact congTrueSpine_strings_stoi_result_eq_true M hM
         x₁ x₂ rhs hEqBool hSpine
-  | Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_itos_result) x₁) x₂ =>
+  | Term.Apply (Term._at_strings_itos_result x₁) x₂ =>
       exact congTrueSpine_strings_itos_result_eq_true M hM
         x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_num_occur) x₁) x₂ =>

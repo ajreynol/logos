@@ -104,6 +104,8 @@ abbrev bvredor := Term.UOp UserOp.bvredor
 abbrev _at_bit := Term.UOp UserOp._at_bit
 abbrev _at_from_bools := Term.UOp UserOp._at_from_bools
 abbrev _at_bv := Term.UOp UserOp._at_bv
+abbrev _at_purify := Term.UOp1 UserOp1._at_purify
+abbrev _at_array_deq_diff := Term.UOp2 UserOp2._at_array_deq_diff
 abbrev RegLan := Term.UOp UserOp.RegLan
 abbrev str_len := Term.UOp UserOp.str_len
 abbrev str_concat := Term.UOp UserOp.str_concat
@@ -145,18 +147,20 @@ abbrev re_union := Term.UOp UserOp.re_union
 abbrev re_diff := Term.UOp UserOp.re_diff
 abbrev re_loop := Term.UOp UserOp.re_loop
 abbrev str_in_re := Term.UOp UserOp.str_in_re
+abbrev seq_empty := Term.UOp1 UserOp1.seq_empty
 abbrev seq_unit := Term.UOp UserOp.seq_unit
 abbrev seq_nth := Term.UOp UserOp.seq_nth
-abbrev _at_re_unfold_pos_component := Term.UOp UserOp._at_re_unfold_pos_component
-abbrev _at_strings_deq_diff := Term.UOp UserOp._at_strings_deq_diff
-abbrev _at_strings_stoi_result := Term.UOp UserOp._at_strings_stoi_result
-abbrev _at_strings_stoi_non_digit := Term.UOp UserOp._at_strings_stoi_non_digit
-abbrev _at_strings_itos_result := Term.UOp UserOp._at_strings_itos_result
+abbrev _at_re_unfold_pos_component := Term.UOp3 UserOp3._at_re_unfold_pos_component
+abbrev _at_strings_deq_diff := Term.UOp2 UserOp2._at_strings_deq_diff
+abbrev _at_strings_stoi_result := Term.UOp1 UserOp1._at_strings_stoi_result
+abbrev _at_strings_stoi_non_digit := Term.UOp1 UserOp1._at_strings_stoi_non_digit
+abbrev _at_strings_itos_result := Term.UOp1 UserOp1._at_strings_itos_result
 abbrev _at_strings_num_occur := Term.UOp UserOp._at_strings_num_occur
-abbrev _at_strings_num_occur_re := Term.UOp UserOp._at_strings_num_occur_re
+abbrev _at_strings_num_occur_re := Term.UOp2 UserOp2._at_strings_num_occur_re
 abbrev _at_strings_occur_index := Term.UOp UserOp._at_strings_occur_index
-abbrev _at_strings_occur_index_re := Term.UOp UserOp._at_strings_occur_index_re
+abbrev _at_strings_occur_index_re := Term.UOp2 UserOp2._at_strings_occur_index_re
 abbrev _at_witness_string_length := Term.UOp UserOp._at_witness_string_length
+abbrev _at_strings_replace_all_result := Term.UOp1 UserOp1._at_strings_replace_all_result
 abbrev is := Term.UOp UserOp.is
 abbrev update := Term.UOp UserOp.update
 abbrev UnitTuple := Term.UOp UserOp.UnitTuple
@@ -166,6 +170,7 @@ abbrev tuple := Term.UOp UserOp.tuple
 abbrev tuple_select := Term.UOp UserOp.tuple_select
 abbrev tuple_update := Term.UOp UserOp.tuple_update
 abbrev Set := Term.UOp UserOp.Set
+abbrev set_empty := Term.UOp1 UserOp1.set_empty
 abbrev set_singleton := Term.UOp UserOp.set_singleton
 abbrev set_union := Term.UOp UserOp.set_union
 abbrev set_inter := Term.UOp UserOp.set_inter
@@ -179,6 +184,7 @@ abbrev set_insert := Term.UOp UserOp.set_insert
 abbrev qdiv := Term.UOp UserOp.qdiv
 abbrev qdiv_total := Term.UOp UserOp.qdiv_total
 abbrev _at_div_by_zero := Term.UOp UserOp._at_div_by_zero
+abbrev _at_sets_deq_diff := Term.UOp2 UserOp2._at_sets_deq_diff
 abbrev _at__at_Monomial := Term.UOp UserOp._at__at_Monomial
 abbrev _at__at_mon := Term.UOp UserOp._at__at_mon
 abbrev _at__at_Polynomial := Term.UOp UserOp._at__at_Polynomial
@@ -186,10 +192,12 @@ abbrev _at__at_poly_zero := Term.UOp UserOp._at__at_poly_zero
 abbrev _at__at_poly := Term.UOp UserOp._at__at_poly
 abbrev «forall» := Term.UOp UserOp.forall
 abbrev «exists» := Term.UOp UserOp.exists
+abbrev _at_quantifiers_skolemize := Term.UOp2 UserOp2._at_quantifiers_skolemize
 abbrev int_to_bv := Term.UOp UserOp.int_to_bv
 abbrev ubv_to_int := Term.UOp UserOp.ubv_to_int
 abbrev sbv_to_int := Term.UOp UserOp.sbv_to_int
 abbrev _at__at_aci_sorted := Term.UOp UserOp._at__at_aci_sorted
+abbrev _at_const := Term.UOp2 UserOp2._at_const
 
 attribute [match_pattern]
   Term.Int
@@ -291,6 +299,8 @@ attribute [match_pattern]
   Term._at_bit
   Term._at_from_bools
   Term._at_bv
+  Term._at_purify
+  Term._at_array_deq_diff
   Term.RegLan
   Term.str_len
   Term.str_concat
@@ -332,6 +342,7 @@ attribute [match_pattern]
   Term.re_diff
   Term.re_loop
   Term.str_in_re
+  Term.seq_empty
   Term.seq_unit
   Term.seq_nth
   Term._at_re_unfold_pos_component
@@ -344,6 +355,7 @@ attribute [match_pattern]
   Term._at_strings_occur_index
   Term._at_strings_occur_index_re
   Term._at_witness_string_length
+  Term._at_strings_replace_all_result
   Term.is
   Term.update
   Term.UnitTuple
@@ -353,6 +365,7 @@ attribute [match_pattern]
   Term.tuple_select
   Term.tuple_update
   Term.Set
+  Term.set_empty
   Term.set_singleton
   Term.set_union
   Term.set_inter
@@ -366,6 +379,7 @@ attribute [match_pattern]
   Term.qdiv
   Term.qdiv_total
   Term._at_div_by_zero
+  Term._at_sets_deq_diff
   Term._at__at_Monomial
   Term._at__at_mon
   Term._at__at_Polynomial
@@ -373,9 +387,11 @@ attribute [match_pattern]
   Term._at__at_poly
   Term.«forall»
   Term.«exists»
+  Term._at_quantifiers_skolemize
   Term.int_to_bv
   Term.ubv_to_int
   Term.sbv_to_int
   Term._at__at_aci_sorted
+  Term._at_const
 
 end Term
