@@ -770,6 +770,14 @@ theorem eo_to_smt_typeof_matches_translation
           (fun g z y h => by
             subst f
             exact go z)
+          (fun y h => by
+            cases h with
+            | inl h =>
+                subst f
+                exact go y
+            | inr h =>
+                subst f
+                exact go y)
           hNonNone
     | Term._at_purify x, hNonNone => by
         exact eo_to_smt_typeof_matches_translation_purify x (go x hNonNone)
@@ -781,6 +789,31 @@ theorem eo_to_smt_typeof_matches_translation
         change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) =
           __eo_to_smt_type (__eo_typeof (Term.seq_empty T))
         exact eo_to_smt_typeof_matches_translation_seq_empty T hNonNone
+    | Term._at_re_unfold_pos_component z y idx, hNonNone => by
+        exact eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_component
+          idx y z (go z) (go y) hNonNone
+    | Term._at_strings_deq_diff y z, hNonNone => by
+        exact eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
+          z y (go y) (go z) hNonNone
+    | Term._at_strings_stoi_result y, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term._at_strings_stoi_non_digit y, hNonNone => by
+        exact eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_non_digit
+          y (go y) hNonNone
+    | Term._at_strings_itos_result y, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term._at_strings_num_occur_re y z, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
+    | Term._at_strings_occur_index_re y z, hNonNone => by
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.set_empty T, hNonNone => by
         change __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type T)) ≠
           SmtType.None at hNonNone

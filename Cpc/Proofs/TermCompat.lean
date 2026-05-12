@@ -147,15 +147,8 @@ abbrev re_loop := Term.UOp UserOp.re_loop
 abbrev str_in_re := Term.UOp UserOp.str_in_re
 abbrev seq_unit := Term.UOp UserOp.seq_unit
 abbrev seq_nth := Term.UOp UserOp.seq_nth
-abbrev _at_re_unfold_pos_component := Term.UOp UserOp._at_re_unfold_pos_component
-abbrev _at_strings_deq_diff := Term.UOp UserOp._at_strings_deq_diff
-abbrev _at_strings_stoi_result := Term.UOp UserOp._at_strings_stoi_result
-abbrev _at_strings_stoi_non_digit := Term.UOp UserOp._at_strings_stoi_non_digit
-abbrev _at_strings_itos_result := Term.UOp UserOp._at_strings_itos_result
 abbrev _at_strings_num_occur := Term.UOp UserOp._at_strings_num_occur
-abbrev _at_strings_num_occur_re := Term.UOp UserOp._at_strings_num_occur_re
 abbrev _at_strings_occur_index := Term.UOp UserOp._at_strings_occur_index
-abbrev _at_strings_occur_index_re := Term.UOp UserOp._at_strings_occur_index_re
 abbrev _at_witness_string_length := Term.UOp UserOp._at_witness_string_length
 abbrev is := Term.UOp UserOp.is
 abbrev update := Term.UOp UserOp.update
@@ -334,15 +327,8 @@ attribute [match_pattern]
   Term.str_in_re
   Term.seq_unit
   Term.seq_nth
-  Term._at_re_unfold_pos_component
-  Term._at_strings_deq_diff
-  Term._at_strings_stoi_result
-  Term._at_strings_stoi_non_digit
-  Term._at_strings_itos_result
   Term._at_strings_num_occur
-  Term._at_strings_num_occur_re
   Term._at_strings_occur_index
-  Term._at_strings_occur_index_re
   Term._at_witness_string_length
   Term.is
   Term.update
