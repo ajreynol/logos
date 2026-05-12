@@ -87,91 +87,95 @@ private theorem empty_term_smt_info
           simp [native_pack_string, native_pack_seq,
             __smtx_ssm_char_values_of_string]
       · simp [__str_is_empty, hs] at hEmpty
-  | seq_empty x =>
-      cases x with
-      | Apply f U =>
-          cases f with
-          | UOp op =>
-              cases op with
-              | Seq =>
-                  have hTrans' :
-                      __smtx_typeof
-                          (__eo_to_smt (Term.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))) ≠
-                        SmtType.None := hTrans
-                  by_cases hU : __eo_to_smt_type U = SmtType.None
-                  · exfalso
-                    have hSeqTyNone :
-                        __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
-                          SmtType.None := by
-                      rw [TranslationProofs.eo_to_smt_type_seq]
-                      unfold __smtx_typeof_guard
-                      simp [hU, native_ite, native_Teq]
-                    apply hTrans'
-                    change
-                      __smtx_typeof
-                          (__eo_to_smt_seq_empty
-                            (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
-                        SmtType.None
-                    rw [hSeqTyNone]
-                    change __smtx_typeof SmtTerm.None = SmtType.None
-                    simp [__smtx_typeof]
-                  · refine ⟨__eo_to_smt_type U, ?_, ?_⟩
-                    · have hGuard :
-                          __smtx_typeof_guard (__eo_to_smt_type U)
-                            (SmtType.Seq (__eo_to_smt_type U)) =
-                            SmtType.Seq (__eo_to_smt_type U) := by
-                        unfold __smtx_typeof_guard
-                        simp [hU, native_ite, native_Teq]
-                      have hSeqTy :
-                          __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
-                            SmtType.Seq (__eo_to_smt_type U) := by
-                        rw [TranslationProofs.eo_to_smt_type_seq]
-                        exact hGuard
-                      have hSeqEmptyNonNone :
-                          __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) ≠
-                            SmtType.None := by
+  | UOp1 op x =>
+      cases op with
+      | seq_empty =>
+          cases x with
+          | Apply f U =>
+              cases f with
+              | UOp op =>
+                  cases op with
+                  | Seq =>
+                      have hTrans' :
+                          __smtx_typeof
+                              (__eo_to_smt (Term.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U))) ≠
+                            SmtType.None := hTrans
+                      by_cases hU : __eo_to_smt_type U = SmtType.None
+                      · exfalso
+                        have hSeqTyNone :
+                            __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
+                              SmtType.None := by
+                          rw [TranslationProofs.eo_to_smt_type_seq]
+                          unfold __smtx_typeof_guard
+                          simp [hU, native_ite, native_Teq]
+                        apply hTrans'
                         change
                           __smtx_typeof
                               (__eo_to_smt_seq_empty
-                                (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) ≠
-                            SmtType.None at hTrans'
-                        rw [hSeqTy] at hTrans'
-                        change __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) ≠
-                          SmtType.None at hTrans'
-                        exact hTrans'
-                      have hSeqEmptyTy :
-                          __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) =
-                            SmtType.Seq (__eo_to_smt_type U) :=
-                        TranslationProofs.smtx_typeof_seq_empty_of_non_none
-                          (__eo_to_smt_type U) hSeqEmptyNonNone
-                      change
-                        __smtx_typeof
-                            (__eo_to_smt_seq_empty
-                              (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
-                          SmtType.Seq (__eo_to_smt_type U)
-                      rw [hSeqTy]
-                      exact hSeqEmptyTy
-                    · intro M
-                      have hGuard :
-                          __smtx_typeof_guard (__eo_to_smt_type U)
-                            (SmtType.Seq (__eo_to_smt_type U)) =
-                            SmtType.Seq (__eo_to_smt_type U) := by
-                        unfold __smtx_typeof_guard
-                        simp [hU, native_ite, native_Teq]
-                      have hSeqTy :
-                          __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
-                            SmtType.Seq (__eo_to_smt_type U) := by
-                        rw [TranslationProofs.eo_to_smt_type_seq]
-                        exact hGuard
-                      change
-                        __smtx_model_eval M
-                            (__eo_to_smt_seq_empty
-                              (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
-                          SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
-                      rw [hSeqTy]
-                      change __smtx_model_eval M (SmtTerm.seq_empty (__eo_to_smt_type U)) =
-                        SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
-                      rw [__smtx_model_eval.eq_77]
+                                (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
+                            SmtType.None
+                        rw [hSeqTyNone]
+                        change __smtx_typeof SmtTerm.None = SmtType.None
+                        simp [__smtx_typeof]
+                      · refine ⟨__eo_to_smt_type U, ?_, ?_⟩
+                        · have hGuard :
+                              __smtx_typeof_guard (__eo_to_smt_type U)
+                                (SmtType.Seq (__eo_to_smt_type U)) =
+                                SmtType.Seq (__eo_to_smt_type U) := by
+                            unfold __smtx_typeof_guard
+                            simp [hU, native_ite, native_Teq]
+                          have hSeqTy :
+                              __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
+                                SmtType.Seq (__eo_to_smt_type U) := by
+                            rw [TranslationProofs.eo_to_smt_type_seq]
+                            exact hGuard
+                          have hSeqEmptyNonNone :
+                              __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) ≠
+                                SmtType.None := by
+                            change
+                              __smtx_typeof
+                                  (__eo_to_smt_seq_empty
+                                    (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) ≠
+                                SmtType.None at hTrans'
+                            rw [hSeqTy] at hTrans'
+                            change __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) ≠
+                              SmtType.None at hTrans'
+                            exact hTrans'
+                          have hSeqEmptyTy :
+                              __smtx_typeof (SmtTerm.seq_empty (__eo_to_smt_type U)) =
+                                SmtType.Seq (__eo_to_smt_type U) :=
+                            TranslationProofs.smtx_typeof_seq_empty_of_non_none
+                              (__eo_to_smt_type U) hSeqEmptyNonNone
+                          change
+                            __smtx_typeof
+                                (__eo_to_smt_seq_empty
+                                  (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
+                              SmtType.Seq (__eo_to_smt_type U)
+                          rw [hSeqTy]
+                          exact hSeqEmptyTy
+                        · intro M
+                          have hGuard :
+                              __smtx_typeof_guard (__eo_to_smt_type U)
+                                (SmtType.Seq (__eo_to_smt_type U)) =
+                                SmtType.Seq (__eo_to_smt_type U) := by
+                            unfold __smtx_typeof_guard
+                            simp [hU, native_ite, native_Teq]
+                          have hSeqTy :
+                              __eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U) =
+                                SmtType.Seq (__eo_to_smt_type U) := by
+                            rw [TranslationProofs.eo_to_smt_type_seq]
+                            exact hGuard
+                          change
+                            __smtx_model_eval M
+                                (__eo_to_smt_seq_empty
+                                  (__eo_to_smt_type (Term.Apply (Term.UOp UserOp.Seq) U))) =
+                              SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
+                          rw [hSeqTy]
+                          change __smtx_model_eval M (SmtTerm.seq_empty (__eo_to_smt_type U)) =
+                            SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
+                          rw [__smtx_model_eval.eq_77]
+                  | _ =>
+                      simp [__str_is_empty] at hEmpty
               | _ =>
                   simp [__str_is_empty] at hEmpty
           | _ =>

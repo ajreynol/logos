@@ -41,6 +41,15 @@ theorem smtx_type_field_wf_rec_of_type_wf_rec
   cases T <;> simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at h ⊢ <;>
     exact h
 
+/-- Field well-formedness excludes `RegLan` at field/function-argument positions. -/
+theorem smtx_type_field_wf_rec_ne_reglan
+    {T : SmtType} {refs : RefList}
+    (h : smtx_type_field_wf_rec T refs) :
+    T ≠ SmtType.RegLan := by
+  intro hReg
+  subst hReg
+  simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
+
 theorem smtx_type_field_wf_rec_of_cons_wf
     {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
     (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :

@@ -390,6 +390,66 @@ private theorem aci_norm_same_marker_eq_true_cases_of_payload_translation
         aci_norm_l2_marker_marker_eq_true f payload f rhsPayload hL2
       exact Or.inr hSplit.2
 
+private theorem aci_norm_marker_marker_eq_true_false_of_heads_ne
+    (f g payload rhsPayload : Term) :
+    (∀ markerArg markerPayload,
+      payload ≠
+        Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) markerArg)
+          markerPayload) ->
+    f ≠ g ->
+    __eo_eq f g ≠ Term.Boolean true ->
+    __aci_norm_eq
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload)
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) g) rhsPayload) =
+      Term.Boolean true ->
+    False := by
+  intro hPayloadNotMarker hHeadNe hHeadEqNe hEq
+  let leftMarker :=
+    Term.Apply
+      (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f) payload
+  let rightMarker :=
+    Term.Apply
+      (Term.Apply (Term.UOp UserOp._at__at_aci_sorted) g) rhsPayload
+  have hEqMarkers :
+      __aci_norm_eq leftMarker rightMarker = Term.Boolean true := by
+    simpa [leftMarker, rightMarker] using hEq
+  have hEqIte := hEqMarkers
+  have hLeftMarkerNe : leftMarker ≠ Term.Stuck := by
+    dsimp [leftMarker]
+    simp
+  have hRightMarkerNe : rightMarker ≠ Term.Stuck := by
+    dsimp [rightMarker]
+    simp
+  rw [aci_norm_eq_nonstuck leftMarker rightMarker hLeftMarkerNe
+    hRightMarkerNe] at hEqIte
+  rcases eo_ite_eq_true_cases (__eo_eq leftMarker rightMarker)
+      (Term.Boolean true) (__eo_l_1___aci_norm_eq leftMarker rightMarker)
+      hEqIte with hFullEq | hL1
+  · have hMarkerEq : rightMarker = leftMarker :=
+      eq_of_eo_eq_true_local leftMarker rightMarker hFullEq.1
+    have hHeadApplyEq :
+        Term.Apply (Term.UOp UserOp._at__at_aci_sorted) g =
+          Term.Apply (Term.UOp UserOp._at__at_aci_sorted) f := by
+      dsimp [leftMarker, rightMarker] at hMarkerEq
+      injection hMarkerEq with hHeadApplyEq _
+    have hGF : g = f := by
+      injection hHeadApplyEq with _ hGF
+    exact hHeadNe hGF.symm
+  · have hL1' :
+        __eo_l_1___aci_norm_eq leftMarker rightMarker = Term.Boolean true :=
+      hL1.2
+    rcases aci_norm_l1_marker_eq_true_cases f payload rightMarker hL1' with
+      hPayloadEq | hL2
+    · have hRightEq : rightMarker = payload :=
+        eq_of_eo_eq_true_local payload rightMarker hPayloadEq
+      exact hPayloadNotMarker g rhsPayload hRightEq.symm
+    · have hSplit :=
+        aci_norm_l2_marker_marker_eq_true f payload g rhsPayload hL2
+      exact hHeadEqNe hSplit.1
+
 private theorem aci_norm_l2_nonmarker_left_eq_false
     (x y : Term) :
     (∀ f payload,
@@ -5010,6 +5070,10 @@ private theorem strConcat_singleton_elim_rel
             cases tail <;>
               simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
                 __eo_eq, native_teq] at hNil hTailNe
+            case UOp1 op A =>
+              cases op <;>
+                simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
+                  __eo_eq, native_teq] at hNil
       | _ =>
           simpa [__eo_list_singleton_elim_2] using
             RuleProofs.smt_value_rel_refl _
@@ -17980,6 +18044,10 @@ private theorem strConcat_singleton_elim_rel_eval
             cases tail <;>
               simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
                 __eo_eq, native_teq] at hNil hTailNe
+            case UOp1 op A =>
+              cases op <;>
+                simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
+                  __eo_eq, native_teq] at hNil
       | _ =>
           simpa [__eo_list_singleton_elim_2] using
             RuleProofs.smt_value_rel_refl _

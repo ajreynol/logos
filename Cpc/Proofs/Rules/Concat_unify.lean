@@ -528,6 +528,11 @@ private theorem eo_is_list_nil_str_concat_of_list_true_not_concat
       simpa [__eo_is_list, __eo_get_nil_rec, __eo_is_ok,
         __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_requires,
         native_ite, SmtEval.native_not, native_teq, __eo_eq] using hList
+  | UOp1 op A =>
+      cases op <;>
+        simp [__eo_is_list, __eo_get_nil_rec, __eo_is_ok,
+          __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_requires,
+          native_ite, SmtEval.native_not, native_teq, __eo_eq] at hList ⊢
   | _ =>
       simp [__eo_is_list, __eo_get_nil_rec, __eo_is_ok,
         __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_requires,

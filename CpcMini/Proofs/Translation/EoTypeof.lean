@@ -1465,6 +1465,12 @@ theorem eo_to_smt_type_ne_reglan (T : Term) :
   cases T with
   | UOp op =>
       cases op <;> simp [__eo_to_smt_type]
+  | UOp1 op x =>
+      cases op <;> simp [__eo_to_smt_type]
+  | UOp2 op x y =>
+      cases op <;> simp [__eo_to_smt_type]
+  | UOp3 op x y z =>
+      cases op <;> simp [__eo_to_smt_type]
   | __eo_List => simp [__eo_to_smt_type]
   | __eo_List_nil => simp [__eo_to_smt_type]
   | __eo_List_cons => simp [__eo_to_smt_type]
@@ -1496,6 +1502,12 @@ theorem eo_to_smt_type_ne_reglan (T : Term) :
           | and => simp [__eo_to_smt_type]
           | imp => simp [__eo_to_smt_type]
           | eq => simp [__eo_to_smt_type]
+      | UOp1 op y =>
+          cases op <;> simp [__eo_to_smt_type]
+      | UOp2 op y z =>
+          cases op <;> simp [__eo_to_smt_type]
+      | UOp3 op y z w =>
+          cases op <;> simp [__eo_to_smt_type]
       | __eo_List => simp [__eo_to_smt_type]
       | __eo_List_nil => simp [__eo_to_smt_type]
       | __eo_List_cons => simp [__eo_to_smt_type]
@@ -1576,6 +1588,12 @@ theorem eo_to_smt_type_substitute_typeref
           (SmtType.Datatype s (__eo_to_smt_datatype d))
           (__eo_to_smt_type T)
   | Term.UOp op => by
+      cases op <;> simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term.UOp1 op x => by
+      cases op <;> simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term.UOp2 op x y => by
+      cases op <;> simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term.UOp3 op x y z => by
       cases op <;> simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.__eo_List => by
       simp [__eo_to_smt_type, native_ite, native_teq, native_Teq]
