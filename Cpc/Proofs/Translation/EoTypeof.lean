@@ -757,6 +757,13 @@ private theorem eo_to_smt_type_substitute_field
   | Term._at_sets_deq_diff x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term._at_quantifiers_skolemize x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term._at_const x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term._at_re_unfold_pos_component x y z => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term._at_strings_deq_diff x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term._at_strings_stoi_result x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term._at_strings_stoi_non_digit x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term._at_strings_itos_result x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term._at_strings_num_occur_re x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term._at_strings_occur_index_re x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
 
 private theorem eo_to_smt_datatype_cons_substitute
     (sub : native_String) (d0 : Datatype) :
@@ -1983,7 +1990,7 @@ theorem eo_to_smt_type_typeof_apply_str_from_int_of_int
 theorem eo_to_smt_type_typeof_apply_at_strings_stoi_non_digit_of_seq_char
     (x : Term)
     (hx : __eo_typeof x = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp._at_strings_stoi_non_digit) x)) =
+    __eo_to_smt_type (__eo_typeof (Term._at_strings_stoi_non_digit x)) =
       SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof_str_to_code (__eo_typeof x)) = SmtType.Int
   rw [hx]
@@ -1994,7 +2001,7 @@ theorem eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_smt_seq_char
     (x y : Term)
     (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq SmtType.Char)
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_stoi_result) y) x)) =
+    __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_strings_stoi_result y) x)) =
       SmtType.Int := by
   change __eo_to_smt_type (__eo_typeof__at_strings_stoi_result (__eo_typeof y) (__eo_typeof x)) =
     SmtType.Int
@@ -3099,7 +3106,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_c
     (hx : __eo_typeof x = Term.UOp UserOp.Int) :
     __eo_to_smt_type
         (__eo_typeof
-          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_re_unfold_pos_component) z) y) x)) =
+          (Term._at_re_unfold_pos_component z y x)) =
       SmtType.Seq SmtType.Char := by
   change
     __eo_to_smt_type
@@ -4452,7 +4459,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_smt_s
     (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
     __eo_to_smt_type
         (__eo_typeof
-          (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_re_unfold_pos_component) z) y) x)) =
+          (Term._at_re_unfold_pos_component z y x)) =
       SmtType.Seq SmtType.Char := by
   simpa using
     eo_to_smt_type_typeof_apply_apply_apply_re_unfold_pos_component_of_seq_char_reglan_int

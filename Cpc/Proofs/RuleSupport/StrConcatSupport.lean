@@ -383,6 +383,35 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
   cases nil <;>
     simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
       native_teq] at hNil
+  case UOp1 op A =>
+    cases op <;>
+      simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
+        native_teq] at hNil
+    case seq_empty =>
+      rcases hNilSeq with ⟨snil, hNilEval⟩
+      unfold RuleProofs.smt_value_rel
+      rw [smtx_model_eval_str_concat_term_eq, hxEval]
+      change __smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A)) =
+        SmtValue.Seq snil at hNilEval
+      change __smtx_model_eval_eq
+        (__smtx_model_eval_str_concat (SmtValue.Seq sx)
+          (__smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A))))
+        (SmtValue.Seq sx) = SmtValue.Boolean true
+      cases hA : __eo_to_smt_type A <;>
+        simp [__eo_to_smt_seq_empty, hA] at hNilEval ⊢
+      case Seq U =>
+        rw [__smtx_model_eval.eq_77] at hNilEval ⊢
+        simp [__smtx_model_eval_str_concat, native_seq_concat]
+        rw [native_unpack_seq, List.append_nil]
+        change RuleProofs.smt_seq_rel
+          (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+            (native_unpack_seq sx)) sx
+        exact RuleProofs.smt_seq_rel_symm sx
+          (native_pack_seq (__smtx_elem_typeof_seq_value sx)
+            (native_unpack_seq sx))
+          (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx rfl)
+      all_goals
+        simp [__smtx_model_eval] at hNilEval
   case String s =>
     subst s
     unfold RuleProofs.smt_value_rel
@@ -402,31 +431,6 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
       (native_pack_seq (__smtx_elem_typeof_seq_value sx)
         (native_unpack_seq sx))
       (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx rfl)
-  case seq_empty A =>
-    rcases hNilSeq with ⟨snil, hNilEval⟩
-    unfold RuleProofs.smt_value_rel
-    rw [smtx_model_eval_str_concat_term_eq, hxEval]
-    change __smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A)) =
-      SmtValue.Seq snil at hNilEval
-    change __smtx_model_eval_eq
-      (__smtx_model_eval_str_concat (SmtValue.Seq sx)
-        (__smtx_model_eval M (__eo_to_smt_seq_empty (__eo_to_smt_type A))))
-      (SmtValue.Seq sx) = SmtValue.Boolean true
-    cases hA : __eo_to_smt_type A <;>
-      simp [__eo_to_smt_seq_empty, hA] at hNilEval ⊢
-    case Seq U =>
-      rw [__smtx_model_eval.eq_77] at hNilEval ⊢
-      simp [__smtx_model_eval_str_concat, native_seq_concat]
-      rw [native_unpack_seq, List.append_nil]
-      change RuleProofs.smt_seq_rel
-        (native_pack_seq (__smtx_elem_typeof_seq_value sx)
-          (native_unpack_seq sx)) sx
-      exact RuleProofs.smt_seq_rel_symm sx
-        (native_pack_seq (__smtx_elem_typeof_seq_value sx)
-          (native_unpack_seq sx))
-        (smt_seq_rel_pack_unpack (__smtx_elem_typeof_seq_value sx) sx rfl)
-    all_goals
-      simp [__smtx_model_eval] at hNilEval
 
 theorem smtx_model_eval_none (M : SmtModel) :
     __smtx_model_eval M SmtTerm.None = SmtValue.NotValue := by
