@@ -499,9 +499,127 @@ def native_Teq : SmtType -> SmtType -> native_Bool
 /- Value equality -/
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
+
+def __smtx_order_key_int : native_Int -> List native_Nat
+  | Int.ofNat n => [0, n]
+  | Int.negSucc n => [1, n]
+
+def __smtx_order_key_string (s : native_String) : List native_Nat :=
+  s.toList.length :: s.toList.map Char.toNat
+
+def __smtx_order_key_rat (q : native_Rat) : List native_Nat :=
+  __smtx_order_key_int q.num ++ [q.den]
+
+def __smtx_order_key_field (xs : List native_Nat) : List native_Nat :=
+  xs.length :: xs
+
+mutual
+
+def __smtx_reglan_order_key : SmtRegLan -> List native_Nat
+  | SmtRegLan.empty => [0]
+  | SmtRegLan.epsilon => [1]
+  | SmtRegLan.char c => [2, c.toNat]
+  | SmtRegLan.range lo hi => [3, lo.toNat, hi.toNat]
+  | SmtRegLan.allchar => [4]
+  | SmtRegLan.concat r1 r2 =>
+      5 :: __smtx_order_key_field (__smtx_reglan_order_key r1) ++
+        __smtx_order_key_field (__smtx_reglan_order_key r2)
+  | SmtRegLan.union r1 r2 =>
+      6 :: __smtx_order_key_field (__smtx_reglan_order_key r1) ++
+        __smtx_order_key_field (__smtx_reglan_order_key r2)
+  | SmtRegLan.inter r1 r2 =>
+      7 :: __smtx_order_key_field (__smtx_reglan_order_key r1) ++
+        __smtx_order_key_field (__smtx_reglan_order_key r2)
+  | SmtRegLan.star r =>
+      8 :: __smtx_order_key_field (__smtx_reglan_order_key r)
+  | SmtRegLan.comp r =>
+      9 :: __smtx_order_key_field (__smtx_reglan_order_key r)
+
+def __smtx_type_order_key : SmtType -> List native_Nat
+  | SmtType.None => [0]
+  | SmtType.Bool => [1]
+  | SmtType.Int => [2]
+  | SmtType.Real => [3]
+  | SmtType.RegLan => [4]
+  | SmtType.BitVec n => [5, n]
+  | SmtType.Map T U =>
+      6 :: __smtx_order_key_field (__smtx_type_order_key T) ++
+        __smtx_order_key_field (__smtx_type_order_key U)
+  | SmtType.Set T =>
+      7 :: __smtx_order_key_field (__smtx_type_order_key T)
+  | SmtType.Seq T =>
+      8 :: __smtx_order_key_field (__smtx_type_order_key T)
+  | SmtType.Char => [9]
+  | SmtType.Datatype s d =>
+      10 :: __smtx_order_key_field (__smtx_order_key_string s) ++
+        __smtx_order_key_field (__smtx_datatype_order_key d)
+  | SmtType.TypeRef s => 11 :: __smtx_order_key_field (__smtx_order_key_string s)
+  | SmtType.USort n => [12, n]
+  | SmtType.FunType T U =>
+      13 :: __smtx_order_key_field (__smtx_type_order_key T) ++
+        __smtx_order_key_field (__smtx_type_order_key U)
+  | SmtType.DtcAppType T U =>
+      14 :: __smtx_order_key_field (__smtx_type_order_key T) ++
+        __smtx_order_key_field (__smtx_type_order_key U)
+
+def __smtx_value_order_key : SmtValue -> List native_Nat
+  | SmtValue.NotValue => [0]
+  | SmtValue.Boolean b => [1, if b then 1 else 0]
+  | SmtValue.Numeral n =>
+      2 :: __smtx_order_key_field (__smtx_order_key_int n)
+  | SmtValue.Rational q =>
+      3 :: __smtx_order_key_field (__smtx_order_key_rat q)
+  | SmtValue.Binary w n =>
+      4 :: __smtx_order_key_field (__smtx_order_key_int w) ++
+        __smtx_order_key_field (__smtx_order_key_int n)
+  | SmtValue.Map m => 5 :: __smtx_order_key_field (__smtx_map_order_key m)
+  | SmtValue.Fun m => 6 :: __smtx_order_key_field (__smtx_map_order_key m)
+  | SmtValue.Set m => 7 :: __smtx_order_key_field (__smtx_map_order_key m)
+  | SmtValue.Seq s => 8 :: __smtx_order_key_field (__smtx_seq_order_key s)
+  | SmtValue.Char c => [9, c.toNat]
+  | SmtValue.UValue u n => [10, u, n]
+  | SmtValue.RegLan r =>
+      11 :: __smtx_order_key_field (__smtx_reglan_order_key r)
+  | SmtValue.DtCons s d n =>
+      12 :: __smtx_order_key_field (__smtx_order_key_string s) ++
+        __smtx_order_key_field (__smtx_datatype_order_key d) ++ [n]
+  | SmtValue.Apply f x =>
+      13 :: __smtx_order_key_field (__smtx_value_order_key f) ++
+        __smtx_order_key_field (__smtx_value_order_key x)
+
+def __smtx_map_order_key : SmtMap -> List native_Nat
+  | SmtMap.cons i e m =>
+      0 :: __smtx_order_key_field (__smtx_value_order_key i) ++
+        __smtx_order_key_field (__smtx_value_order_key e) ++
+        __smtx_order_key_field (__smtx_map_order_key m)
+  | SmtMap.default T e =>
+      1 :: __smtx_order_key_field (__smtx_type_order_key T) ++
+        __smtx_order_key_field (__smtx_value_order_key e)
+
+def __smtx_seq_order_key : SmtSeq -> List native_Nat
+  | SmtSeq.cons v s =>
+      0 :: __smtx_order_key_field (__smtx_value_order_key v) ++
+        __smtx_order_key_field (__smtx_seq_order_key s)
+  | SmtSeq.empty T =>
+      1 :: __smtx_order_key_field (__smtx_type_order_key T)
+
+def __smtx_datatype_order_key : SmtDatatype -> List native_Nat
+  | SmtDatatype.null => [0]
+  | SmtDatatype.sum c d =>
+      1 :: __smtx_order_key_field (__smtx_datatype_cons_order_key c) ++
+        __smtx_order_key_field (__smtx_datatype_order_key d)
+
+def __smtx_datatype_cons_order_key : SmtDatatypeCons -> List native_Nat
+  | SmtDatatypeCons.unit => [0]
+  | SmtDatatypeCons.cons T c =>
+      1 :: __smtx_order_key_field (__smtx_type_order_key T) ++
+        __smtx_order_key_field (__smtx_datatype_cons_order_key c)
+
+end
+
 /- Value comparsion -/
 def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
-  match compare v1 v2 with
+  match compare (__smtx_value_order_key v1) (__smtx_value_order_key v2) with
   | Ordering.lt => true
   | _ => false
 
