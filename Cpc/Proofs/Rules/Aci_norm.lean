@@ -18141,6 +18141,41 @@ private theorem smt_value_rel_aciNormPayload_self
   rw [aciNormPayload_eq_self_of_has_smt_translation t hTrans]
   exact RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt t))
 
+private def aciNormSpecialInput : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.or) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.and) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.re_union) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvor) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvand) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) _) _ => True
+  | Term.Apply (Term.Apply (Term.UOp UserOp.concat) _) _ => True
+  | _ => False
+
+private theorem aciNormSpecialInput_of_normal_form_not_translation
+    (t : Term) :
+  RuleProofs.eo_has_smt_translation t ->
+  ¬ RuleProofs.eo_has_smt_translation (__get_aci_normal_form t) ->
+  aciNormSpecialInput t := by
+  intro hTrans hNormNoTrans
+  cases t <;>
+    (try simp [aciNormSpecialInput, __get_aci_normal_form] at hNormNoTrans ⊢)
+  all_goals try exact False.elim (hNormNoTrans hTrans)
+  case Apply f x =>
+    cases f <;>
+      (try simp [aciNormSpecialInput, __get_aci_normal_form] at hNormNoTrans ⊢)
+    all_goals try exact False.elim (hNormNoTrans hTrans)
+    case Apply g y =>
+      cases g <;>
+        (try simp [aciNormSpecialInput, __get_aci_normal_form] at hNormNoTrans ⊢)
+      all_goals try exact False.elim (hNormNoTrans hTrans)
+      case UOp op =>
+        cases op <;>
+          (try simp [aciNormSpecialInput, __get_aci_normal_form] at hNormNoTrans ⊢)
+        all_goals try exact False.elim (hNormNoTrans hTrans)
+
 private theorem smt_value_rel_of_aci_norm_eq_true_right_translation
     (M : SmtModel) (x y : Term) :
   RuleProofs.eo_has_smt_translation y ->
@@ -18289,6 +18324,14 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
             (__get_aci_normal_form a) (__get_aci_normal_form b)
             hNotMarker hTermEq hEq)
       · -- The remaining cases are generated marker/list cases.
+        have hASpecial :
+            aciNormSpecialInput a :=
+          aciNormSpecialInput_of_normal_form_not_translation a
+            hATrans hAnfTrans
+        have hBSpecial :
+            aciNormSpecialInput b :=
+          aciNormSpecialInput_of_normal_form_not_translation b
+            hBTrans hBnfTrans
         sorry
 
 private theorem smt_value_rel_get_aci_normal_form_payload
