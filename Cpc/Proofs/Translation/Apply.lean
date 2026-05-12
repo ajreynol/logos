@@ -4858,6 +4858,27 @@ private theorem smtx_value_dt_context_substitute_typeof_apply
           smtx_value_dt_context_substitute_typeof_non_chain_top_apply
             s base targetName targetDt (__smtx_dt_substitute s base targetDt)
             a hArgNonChain rfl
+        have hFunCtxPreservation :
+            __smtx_typeof_value
+                (smtx_value_dt_context_substitute_apply
+                  s base targetName targetDt
+                  (__smtx_dt_substitute s base targetDt) f) =
+              smtx_chain_type_context_substitute_apply
+                s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+                true true (__smtx_typeof_value f) := by
+          have hFunCtxTyPreservation :
+              __smtx_typeof_value
+                  (smtx_value_dt_context_substitute_apply
+                    s base targetName targetDt
+                    (__smtx_dt_substitute s base targetDt) f) =
+                SmtType.DtcAppType argType'
+                  (SmtType.Datatype targetName
+                    (__smtx_dt_substitute s base targetDt)) := by
+            -- Remaining prefix obligation: the transformed root partial
+            -- constructor spine `f` is still well typed at the transformed
+            -- selector/result type.
+            sorry
+          exact hFunCtxTyPreservation.trans hFunTyContext.symm
         have hCtxPreservation :
             __smtx_typeof_value
                 (smtx_value_dt_context_substitute_apply
@@ -4873,12 +4894,45 @@ private theorem smtx_value_dt_context_substitute_typeof_apply
               smtx_chain_type_context_substitute_apply
                 s base targetName targetDt (__smtx_dt_substitute s base targetDt)
                 true true (__smtx_typeof_value a) := by
-          -- This is the remaining root-spine preservation lemma: the prefix `f`
-          -- must be handled as a root partial constructor chain.  The argument
-          -- side is already covered by `hArgCtxOfNonChain` when `hArgClass` is
-          -- the non-chain case; the datatype-valued case needs the strengthened
-          -- datatype preservation theorem for context substitution.
-          sorry
+          cases hArgClass with
+          | inl hArgNonChain =>
+              exact ⟨hFunCtxPreservation, hArgCtxOfNonChain hArgNonChain⟩
+          | inr hArgDatatype =>
+              rcases hArgDatatype with ⟨sArg, dArg, hArgDatatype⟩
+              have hArgCtxTarget :
+                  smtx_chain_type_context_substitute_apply
+                      s base targetName targetDt
+                      (__smtx_dt_substitute s base targetDt)
+                      true true (__smtx_typeof_value a) =
+                    SmtType.Datatype sArg
+                      (smtx_dt_context_substitute_value_body_apply
+                        s base targetName targetDt
+                        (__smtx_dt_substitute s base targetDt) sArg dArg) := by
+                rw [hArgDatatype]
+                exact
+                  smtx_chain_type_context_substitute_datatype_value_body_apply
+                    s base targetName targetDt
+                    (__smtx_dt_substitute s base targetDt) sArg dArg
+              refine ⟨hFunCtxPreservation, ?_⟩
+              rw [hArgCtxTarget]
+              rcases
+                  smtx_value_dt_context_substitute_apply_datatype_head_body_full_args
+                    s base targetName targetDt
+                    (__smtx_dt_substitute s base targetDt) rfl a
+                    hArgDatatype with
+                ⟨iArg, hArgHead', hArgCount'⟩
+              have hArgCtxNN :
+                  __smtx_typeof_value
+                      (smtx_value_dt_context_substitute_apply
+                        s base targetName targetDt
+                        (__smtx_dt_substitute s base targetDt) a) ≠
+                    SmtType.None := by
+                -- This is the recursive datatype-preservation obligation for
+                -- the selector argument.
+                sorry
+              exact
+                smtx_value_typeof_full_dt_cons_chain_apply
+                  hArgHead' hArgCount' hArgCtxNN
         rcases hCtxPreservation with ⟨hFunCtx, hArgCtx⟩
         have hCtxTypes :
             __smtx_typeof_value
