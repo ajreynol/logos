@@ -2139,13 +2139,8 @@ private theorem smt_value_rel_model_eval_apply_of_rel_core
     smt_model_eval_preserves_type_of_non_none M hM y hYNN
   have hFNeReg : __smtx_typeof f ≠ SmtType.RegLan := by
     rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
-  have hArgField :
-      TranslationProofs.smtx_type_field_wf_rec A native_reflist_nil := by
-    have hDomains :=
-      TranslationProofs.smtx_term_fun_like_domains_wf_of_non_none f hFNN
-    exact TranslationProofs.smtx_type_fun_like_arg_field_wf_of_domains_wf hDomains hHead
   have hANeReg : A ≠ SmtType.RegLan :=
-    TranslationProofs.smtx_type_field_wf_rec_ne_reglan hArgField
+    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none f hFNN hHead
   have hFEq : __smtx_model_eval M f = __smtx_model_eval M g :=
     RuleProofs.smt_value_rel_eq_of_type_ne_reglan
       hFPres (by simpa [hFy] using hGPres) hFNeReg hFRel
