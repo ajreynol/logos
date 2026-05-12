@@ -41,8 +41,8 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
     else
       -1
 
-/- 
-Ordinary user operators
+/-
+Ordinary user operators.
 -/
 inductive UserOp : Type where
   | Int : UserOp
@@ -58,16 +58,25 @@ inductive UserOp : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
+/-
+User operators with one index.
+-/
 inductive UserOp1 : Type where
   | None : UserOp1
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
+/-
+User operators with two indices.
+-/
 inductive UserOp2 : Type where
   | None : UserOp2
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
+/-
+User operators with three indices.
+-/
 inductive UserOp3 : Type where
   | None : UserOp3
 
