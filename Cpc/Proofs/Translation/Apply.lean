@@ -2626,6 +2626,55 @@ private theorem dt_cons_applied_type_rec_self_substitute_replace_ne_none_apply
     dt_cons_applied_type_rec_substitute_ne_none_apply
       root newRoot root newRoot newRoot newRoot i n hNewRootBody'
 
+private theorem dt_cons_applied_type_rec_self_context_full_arity_apply
+    (sub : native_String) (base : SmtDatatype)
+    (root : native_String) (oldRoot newRoot : SmtDatatype)
+    (hNewRoot : newRoot = __smtx_dt_substitute sub base oldRoot)
+    (i n : native_Nat)
+    (hCount :
+      n =
+        __smtx_dt_num_sels (__smtx_dt_substitute root oldRoot oldRoot) i)
+    (hNN :
+      dt_cons_applied_type_rec root oldRoot
+          (__smtx_dt_substitute root oldRoot oldRoot) i n ≠
+        SmtType.None) :
+    dt_cons_applied_type_rec root newRoot
+        (__smtx_dt_substitute root newRoot newRoot) i n =
+      SmtType.Datatype root newRoot := by
+  have hNewNN :
+      dt_cons_applied_type_rec root newRoot
+          (__smtx_dt_substitute root newRoot newRoot) i n ≠
+        SmtType.None :=
+    dt_cons_applied_type_rec_self_substitute_replace_ne_none_apply
+      sub base root oldRoot newRoot hNewRoot i n hNN
+  have hCountNew :
+      n =
+        __smtx_dt_num_sels (__smtx_dt_substitute root newRoot newRoot) i := by
+    calc
+      n = __smtx_dt_num_sels
+            (__smtx_dt_substitute root oldRoot oldRoot) i := hCount
+      _ = __smtx_dt_num_sels oldRoot i :=
+            dt_num_sels_substitute root oldRoot oldRoot i
+      _ = __smtx_dt_num_sels (__smtx_dt_substitute sub base oldRoot) i := by
+            exact (dt_num_sels_substitute sub base oldRoot i).symm
+      _ = __smtx_dt_num_sels newRoot i := by
+            simp [hNewRoot]
+      _ = __smtx_dt_num_sels
+            (__smtx_dt_substitute root newRoot newRoot) i := by
+            exact (dt_num_sels_substitute root newRoot newRoot i).symm
+  calc
+    dt_cons_applied_type_rec root newRoot
+        (__smtx_dt_substitute root newRoot newRoot) i n =
+        dt_cons_applied_type_rec root newRoot
+          (__smtx_dt_substitute root newRoot newRoot) i
+          (__smtx_dt_num_sels
+            (__smtx_dt_substitute root newRoot newRoot) i) := by
+        rw [hCountNew]
+    _ = SmtType.Datatype root newRoot :=
+        dt_cons_applied_type_rec_full_arity root newRoot
+          (__smtx_dt_substitute root newRoot newRoot) i
+          (by simpa [← hCountNew] using hNewNN)
+
 private theorem smtx_value_dt_context_substitute_root_dtcons_ne_none_apply
     (sub : native_String) (base : SmtDatatype)
     (root : native_String) (oldRoot newRoot : SmtDatatype)
@@ -5034,6 +5083,186 @@ private theorem smtx_value_dt_context_substitute_apply_context_preservation_for_
       -- root self-substitution/context-substitution algebra for the partial
       -- constructor spine.  The last two conjuncts are the value-level
       -- non-`None` facts needed to run the type-equality bridges above.
+      have hOldFullCount :
+          Nat.succ (vsm_num_apply_args f) =
+            __smtx_dt_num_sels
+              (__smtx_dt_substitute targetName targetDt targetDt) i := by
+        simpa [vsm_num_apply_args] using
+          (vsm_num_apply_args_eq_dt_num_sels_of_datatype hHead hvApply)
+      have hNewFullCount :
+          Nat.succ (vsm_num_apply_args f) =
+            __smtx_dt_num_sels
+              (__smtx_dt_substitute targetName
+                (__smtx_dt_substitute s base targetDt)
+                (__smtx_dt_substitute s base targetDt)) i := by
+        calc
+          Nat.succ (vsm_num_apply_args f) =
+              __smtx_dt_num_sels
+                (__smtx_dt_substitute targetName targetDt targetDt) i :=
+                hOldFullCount
+          _ = __smtx_dt_num_sels targetDt i :=
+                dt_num_sels_substitute targetName targetDt targetDt i
+          _ = __smtx_dt_num_sels (__smtx_dt_substitute s base targetDt) i := by
+                exact (dt_num_sels_substitute s base targetDt i).symm
+          _ =
+              __smtx_dt_num_sels
+                (__smtx_dt_substitute targetName
+                  (__smtx_dt_substitute s base targetDt)
+                  (__smtx_dt_substitute s base targetDt)) i := by
+                exact (dt_num_sels_substitute targetName
+                  (__smtx_dt_substitute s base targetDt)
+                  (__smtx_dt_substitute s base targetDt) i).symm
+      have hOldFullNN :
+          dt_cons_applied_type_rec targetName targetDt
+              (__smtx_dt_substitute targetName targetDt targetDt) i
+              (Nat.succ (vsm_num_apply_args f)) ≠
+            SmtType.None := by
+        have hApplyChain := dt_cons_chain_type_of_non_none hHead hApplyNN
+        intro hNone
+        apply hApplyNN
+        rw [hApplyChain]
+        simpa [vsm_num_apply_args] using hNone
+      have hNewTailFull :
+          dt_cons_applied_type_rec targetName
+              (__smtx_dt_substitute s base targetDt)
+              (__smtx_dt_substitute targetName
+                (__smtx_dt_substitute s base targetDt)
+                (__smtx_dt_substitute s base targetDt)) i
+              (Nat.succ (vsm_num_apply_args f)) =
+            SmtType.Datatype targetName
+              (__smtx_dt_substitute s base targetDt) :=
+        dt_cons_applied_type_rec_self_context_full_arity_apply
+          s base targetName targetDt (__smtx_dt_substitute s base targetDt)
+          rfl i (Nat.succ (vsm_num_apply_args f)) hOldFullCount hOldFullNN
+      have hOldPrefixLt :
+          vsm_num_apply_args f <
+            __smtx_dt_num_sels
+              (__smtx_dt_substitute targetName targetDt targetDt) i := by
+        omega
+      have hNewPrefixLt :
+          vsm_num_apply_args f <
+            __smtx_dt_num_sels
+              (__smtx_dt_substitute targetName
+                (__smtx_dt_substitute s base targetDt)
+                (__smtx_dt_substitute s base targetDt)) i := by
+        omega
+      have hOldStep :=
+        dt_cons_applied_type_rec_step targetName targetDt
+          (__smtx_dt_substitute targetName targetDt targetDt) i
+          (vsm_num_apply_args f) hOldPrefixLt
+      have hNewStep :=
+        dt_cons_applied_type_rec_step targetName
+          (__smtx_dt_substitute s base targetDt)
+          (__smtx_dt_substitute targetName
+            (__smtx_dt_substitute s base targetDt)
+            (__smtx_dt_substitute s base targetDt)) i
+          (vsm_num_apply_args f) hNewPrefixLt
+      have hOldTailFull :
+          dt_cons_applied_type_rec targetName targetDt
+              (__smtx_dt_substitute targetName targetDt targetDt) i
+              (Nat.succ (vsm_num_apply_args f)) =
+            SmtType.Datatype targetName targetDt := by
+        calc
+          dt_cons_applied_type_rec targetName targetDt
+              (__smtx_dt_substitute targetName targetDt targetDt) i
+              (Nat.succ (vsm_num_apply_args f)) =
+              dt_cons_applied_type_rec targetName targetDt
+                (__smtx_dt_substitute targetName targetDt targetDt) i
+                (__smtx_dt_num_sels
+                  (__smtx_dt_substitute targetName targetDt targetDt) i) := by
+              rw [hOldFullCount]
+          _ = SmtType.Datatype targetName targetDt :=
+              dt_cons_applied_type_rec_full_arity targetName targetDt
+                (__smtx_dt_substitute targetName targetDt targetDt) i
+                (by simpa [← hOldFullCount] using hOldFullNN)
+      have hOldTailContext :
+          smtx_chain_type_context_substitute_apply
+              s base targetName targetDt
+              (__smtx_dt_substitute s base targetDt) true true
+              (dt_cons_applied_type_rec targetName targetDt
+                (__smtx_dt_substitute targetName targetDt targetDt) i
+                (Nat.succ (vsm_num_apply_args f))) =
+            SmtType.Datatype targetName
+              (__smtx_dt_substitute s base targetDt) := by
+        rw [hOldTailFull]
+        simp [smtx_chain_type_context_substitute_apply,
+          smtx_type_context_substitute_apply, native_streq]
+      have hRecContextFromSelector
+          (hSelectorContext :
+            __smtx_ret_typeof_sel_rec
+                (__smtx_dt_substitute targetName
+                  (__smtx_dt_substitute s base targetDt)
+                  (__smtx_dt_substitute s base targetDt)) i
+                (vsm_num_apply_args f) =
+              smtx_chain_type_context_substitute_apply
+                s base targetName targetDt
+                (__smtx_dt_substitute s base targetDt) true true
+                (__smtx_ret_typeof_sel_rec
+                  (__smtx_dt_substitute targetName targetDt targetDt) i
+                  (vsm_num_apply_args f))) :
+          dt_cons_applied_type_rec targetName
+              (__smtx_dt_substitute s base targetDt)
+              (__smtx_dt_substitute targetName
+                (__smtx_dt_substitute s base targetDt)
+                (__smtx_dt_substitute s base targetDt)) i
+              (vsm_num_apply_args f) =
+            smtx_chain_type_context_substitute_apply
+              s base targetName targetDt
+              (__smtx_dt_substitute s base targetDt) true true
+              (dt_cons_applied_type_rec targetName targetDt
+                (__smtx_dt_substitute targetName targetDt targetDt) i
+                (vsm_num_apply_args f)) := by
+        calc
+          dt_cons_applied_type_rec targetName
+              (__smtx_dt_substitute s base targetDt)
+              (__smtx_dt_substitute targetName
+                (__smtx_dt_substitute s base targetDt)
+                (__smtx_dt_substitute s base targetDt)) i
+              (vsm_num_apply_args f) =
+              SmtType.DtcAppType
+                (__smtx_ret_typeof_sel_rec
+                  (__smtx_dt_substitute targetName
+                    (__smtx_dt_substitute s base targetDt)
+                    (__smtx_dt_substitute s base targetDt)) i
+                  (vsm_num_apply_args f))
+                (dt_cons_applied_type_rec targetName
+                  (__smtx_dt_substitute s base targetDt)
+                  (__smtx_dt_substitute targetName
+                    (__smtx_dt_substitute s base targetDt)
+                    (__smtx_dt_substitute s base targetDt)) i
+                  (Nat.succ (vsm_num_apply_args f))) := hNewStep
+          _ =
+              SmtType.DtcAppType
+                (smtx_chain_type_context_substitute_apply
+                  s base targetName targetDt
+                  (__smtx_dt_substitute s base targetDt) true true
+                  (__smtx_ret_typeof_sel_rec
+                    (__smtx_dt_substitute targetName targetDt targetDt) i
+                    (vsm_num_apply_args f)))
+                (SmtType.Datatype targetName
+                  (__smtx_dt_substitute s base targetDt)) := by
+              rw [hSelectorContext, hNewTailFull]
+          _ =
+              smtx_chain_type_context_substitute_apply
+                s base targetName targetDt
+                (__smtx_dt_substitute s base targetDt) true true
+                (SmtType.DtcAppType
+                  (__smtx_ret_typeof_sel_rec
+                    (__smtx_dt_substitute targetName targetDt targetDt) i
+                    (vsm_num_apply_args f))
+                  (dt_cons_applied_type_rec targetName targetDt
+                    (__smtx_dt_substitute targetName targetDt targetDt) i
+                    (Nat.succ (vsm_num_apply_args f)))) := by
+              simp [smtx_chain_type_context_substitute_apply,
+                hOldTailContext]
+          _ =
+              smtx_chain_type_context_substitute_apply
+                s base targetName targetDt
+                (__smtx_dt_substitute s base targetDt) true true
+                (dt_cons_applied_type_rec targetName targetDt
+                  (__smtx_dt_substitute targetName targetDt targetDt) i
+                  (vsm_num_apply_args f)) := by
+              rw [hOldStep]
       sorry
     rcases hHardCore with ⟨hRecContext, hFunTransNN, hArgTransNN⟩
     exact
