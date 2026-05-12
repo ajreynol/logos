@@ -798,7 +798,7 @@ def __eo_list_repeat_rec : Term -> Term -> native_Nat -> Term
 def __eo_list_repeat : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
-  | f, a, (Term.Numeral i) => (__eo_requires (__eo_is_neg i) (Term.Boolean false) (__eo_list_repeat_rec f a (native_int_to_nat i)))
+  | f, a, (Term.Numeral i) => (native_ite (native_zlt i 0) Term.Stuck (__eo_list_repeat_rec f a (native_int_to_nat i)))
   | _, _, _ => Term.Stuck
 
 
