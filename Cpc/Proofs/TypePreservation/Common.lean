@@ -95,6 +95,19 @@ theorem type_wf_of_inhabited_and_wf_rec
     __smtx_type_wf T = true := by
   cases T <;> simp [__smtx_type_wf, native_and, hInh, hRec]
 
+/-- Every well-formed SMT type is semantically inhabited. -/
+theorem type_inhabited_of_type_wf
+    (T : SmtType)
+    (hWF : __smtx_type_wf T = true) :
+    type_inhabited T := by
+  by_cases hReg : T = SmtType.RegLan
+  · subst T
+    exact ⟨SmtValue.RegLan native_re_none, rfl⟩
+  · have hInh : native_inhabited_type T = true := by
+      cases T <;> simp [__smtx_type_wf, native_and] at hWF hReg ⊢
+      all_goals first | contradiction | exact hWF.1
+    exact (smtx_inhabited_type_eq_true_iff T).1 hInh
+
 /-- Extracts well-formedness of the element type of a well-formed sequence type. -/
 theorem seq_type_wf_component_of_wf
     {A : SmtType}

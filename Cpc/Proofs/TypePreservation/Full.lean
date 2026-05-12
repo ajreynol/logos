@@ -918,33 +918,33 @@ private theorem seq_empty_type_has_no_none_components_of_non_none
     {T : SmtType}
     (ht : term_has_non_none_type (SmtTerm.seq_empty T)) :
     type_has_no_none_components (__smtx_typeof (SmtTerm.seq_empty T)) := by
-  have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠ SmtType.None := by
+  have hGuardNN : __smtx_typeof_guard_wf (SmtType.Seq T) (SmtType.Seq T) ≠ SmtType.None := by
     unfold term_has_non_none_type at ht
     simpa [__smtx_typeof] using ht
-  have hWf : __smtx_type_wf T = true :=
-    smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Seq T) hGuardNN
+  have hWf : __smtx_type_wf (SmtType.Seq T) = true :=
+    smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN
   simpa [__smtx_typeof] using
     guard_wf_type_has_no_none_components_of_non_none
       (by
-        have hGoodT : type_has_no_none_components T :=
+        have hGoodT : type_has_no_none_components (SmtType.Seq T) :=
           type_has_no_none_components_of_wf hWf
-        simpa [type_has_no_none_components] using hGoodT) hGuardNN
+        exact hGoodT) hGuardNN
 
 private theorem set_empty_type_has_no_none_components_of_non_none
     {T : SmtType}
     (ht : term_has_non_none_type (SmtTerm.set_empty T)) :
     type_has_no_none_components (__smtx_typeof (SmtTerm.set_empty T)) := by
-  have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Set T) ≠ SmtType.None := by
+  have hGuardNN : __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) ≠ SmtType.None := by
     unfold term_has_non_none_type at ht
     simpa [__smtx_typeof] using ht
-  have hWf : __smtx_type_wf T = true :=
-    smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Set T) hGuardNN
+  have hWf : __smtx_type_wf (SmtType.Set T) = true :=
+    smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN
   simpa [__smtx_typeof] using
     guard_wf_type_has_no_none_components_of_non_none
       (by
-        have hGoodT : type_has_no_none_components T :=
+        have hGoodT : type_has_no_none_components (SmtType.Set T) :=
           type_has_no_none_components_of_wf hWf
-        simpa [type_has_no_none_components] using hGoodT) hGuardNN
+        exact hGoodT) hGuardNN
 
 private theorem choice_type_has_no_none_components_of_non_none
     {s : native_String}
@@ -1111,10 +1111,10 @@ private theorem seq_unit_type_has_no_none_components_of_non_none
     type_has_no_none_components (__smtx_typeof (SmtTerm.seq_unit t)) := by
   rw [__smtx_typeof.eq_118]
   have hGuard :
-      __smtx_typeof_guard_wf (__smtx_typeof t)
+      __smtx_typeof_guard_wf (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) =
         SmtType.Seq (__smtx_typeof t) :=
-    smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+    smtx_typeof_guard_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
       (SmtType.Seq (__smtx_typeof t)) (by
         unfold term_has_non_none_type at ht
         rw [__smtx_typeof.eq_118] at ht
@@ -1129,10 +1129,10 @@ private theorem set_singleton_type_has_no_none_components_of_non_none
     type_has_no_none_components (__smtx_typeof (SmtTerm.set_singleton t)) := by
   rw [__smtx_typeof.eq_121]
   have hGuard :
-      __smtx_typeof_guard_wf (__smtx_typeof t)
+      __smtx_typeof_guard_wf (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) =
         SmtType.Set (__smtx_typeof t) :=
-    smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+    smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
       (SmtType.Set (__smtx_typeof t)) (by
         unfold term_has_non_none_type at ht
         rw [__smtx_typeof.eq_121] at ht

@@ -793,20 +793,26 @@ theorem seq_empty_type_inhabited_of_non_none
     {T : SmtType}
     (ht : term_has_non_none_type (SmtTerm.seq_empty T)) :
     type_inhabited T := by
-  have hGuard : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠ SmtType.None := by
+  have hGuard : __smtx_typeof_guard_wf (SmtType.Seq T) (SmtType.Seq T) ≠ SmtType.None := by
     unfold term_has_non_none_type at ht
     simpa [__smtx_typeof] using ht
-  exact smtx_typeof_guard_wf_inhabited_of_non_none T (SmtType.Seq T) hGuard
+  have hSeqWF :
+      __smtx_type_wf (SmtType.Seq T) = true :=
+    smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuard
+  exact type_inhabited_of_type_wf T (seq_type_wf_component_of_wf hSeqWF)
 
 /-- Extracts inhabitation of the element type of `set_empty` from a non-`None` typing judgment. -/
 theorem set_empty_type_inhabited_of_non_none
     {T : SmtType}
     (ht : term_has_non_none_type (SmtTerm.set_empty T)) :
     type_inhabited T := by
-  have hGuard : __smtx_typeof_guard_wf T (SmtType.Set T) ≠ SmtType.None := by
+  have hGuard : __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) ≠ SmtType.None := by
     unfold term_has_non_none_type at ht
     simpa [__smtx_typeof] using ht
-  exact smtx_typeof_guard_wf_inhabited_of_non_none T (SmtType.Set T) hGuard
+  have hSetWF :
+      __smtx_type_wf (SmtType.Set T) = true :=
+    smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuard
+  exact type_inhabited_of_type_wf T (set_type_wf_component_of_wf hSetWF)
 
 /-- Builds support for variables directly from a non-`None` typing judgment. -/
 theorem supported_var_of_non_none
