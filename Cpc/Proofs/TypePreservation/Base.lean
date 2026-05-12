@@ -105,13 +105,16 @@ theorem typeof_value_model_eval_var
     (ht : term_has_non_none_type (SmtTerm.Var s T)) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Var s T)) =
       __smtx_typeof (SmtTerm.Var s T) := by
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    unfold __smtx_typeof at ht
+    exact ht
+  have hWF : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
   have hGuard : __smtx_typeof_guard_wf T T = T :=
-    smtx_typeof_guard_wf_of_non_none T T (by
-      unfold term_has_non_none_type at ht
-      unfold __smtx_typeof at ht
-      exact ht)
+    smtx_typeof_guard_wf_of_non_none T T hGuardNN
   unfold __smtx_model_eval __smtx_typeof
-  rw [model_total_typed_lookup hM s T hT]
+  rw [model_total_typed_lookup hM s T hWF]
   exact hGuard.symm
 
 /-- Shows that evaluating `uconst` terms produces values of the expected type. -/
@@ -124,33 +127,36 @@ theorem typeof_value_model_eval_uconst
     (ht : term_has_non_none_type (SmtTerm.UConst s T)) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.UConst s T)) =
       __smtx_typeof (SmtTerm.UConst s T) := by
+  have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
+    unfold term_has_non_none_type at ht
+    unfold __smtx_typeof at ht
+    exact ht
+  have hWF : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
   have hGuard : __smtx_typeof_guard_wf T T = T :=
-    smtx_typeof_guard_wf_of_non_none T T (by
-      unfold term_has_non_none_type at ht
-      unfold __smtx_typeof at ht
-      exact ht)
+    smtx_typeof_guard_wf_of_non_none T T hGuardNN
   unfold __smtx_model_eval __smtx_typeof
-  rw [model_total_typed_lookup hM s T hT]
+  rw [model_total_typed_lookup hM s T hWF]
   exact hGuard.symm
 
-/-- Derives `model_eval_var` from `uninhabited`. -/
-theorem model_eval_var_of_uninhabited
+/-- Derives `model_eval_var` from non-well-formedness. -/
+theorem model_eval_var_of_not_wf
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : native_String)
     (T : SmtType)
-    (hT : ¬ type_inhabited T) :
+    (hT : __smtx_type_wf T = false) :
     __smtx_model_eval M (SmtTerm.Var s T) = SmtValue.NotValue := by
   unfold __smtx_model_eval
   simpa using model_total_typed_lookup_uninhabited hM s T hT
 
-/-- Derives `model_eval_uconst` from `uninhabited`. -/
-theorem model_eval_uconst_of_uninhabited
+/-- Derives `model_eval_uconst` from non-well-formedness. -/
+theorem model_eval_uconst_of_not_wf
     (M : SmtModel)
     (hM : model_total_typed M)
     (s : native_String)
     (T : SmtType)
-    (hT : ¬ type_inhabited T) :
+    (hT : __smtx_type_wf T = false) :
     __smtx_model_eval M (SmtTerm.UConst s T) = SmtValue.NotValue := by
   unfold __smtx_model_eval
   simpa using model_total_typed_lookup_uninhabited hM s T hT
@@ -556,11 +562,11 @@ theorem choice_term_has_witness
   have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
     unfold __smtx_typeof at ht
     simpa [__smtx_typeof_choice_nth, hEq, native_ite] using ht
-  have hInh : type_inhabited T :=
-    smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
+  have hWF : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
   exact ⟨__smtx_model_lookup Mw s T,
-    model_total_typed_lookup hMw s T hInh,
-    model_total_typed_lookup_canonical hMw s T hInh⟩
+    model_total_typed_lookup hMw s T hWF,
+    model_total_typed_lookup_canonical hMw s T hWF⟩
 
 /-- Derives the zero-index `choice_nth` type as the self-guarded choice type from `non_none`. -/
 theorem choice_term_guard_type_of_non_none

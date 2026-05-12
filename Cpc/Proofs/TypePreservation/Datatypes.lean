@@ -829,6 +829,11 @@ theorem typeof_value_model_eval_dt_sel_wrong
     (i j : native_Nat)
     (v : SmtValue)
     (hT : type_inhabited (__smtx_ret_typeof_sel s d i j))
+    (hMapWF :
+      __smtx_type_wf
+        (SmtType.Map SmtType.Int
+          (SmtType.Map SmtType.Int
+            (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))) = true)
     (hv : __smtx_typeof_value v = SmtType.Datatype s d) :
     __smtx_typeof_value
       (__smtx_map_select
@@ -854,7 +859,7 @@ theorem typeof_value_model_eval_dt_sel_wrong
       (SmtType.Map SmtType.Int
         (SmtType.Map SmtType.Int
           (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))))
-      (type_inhabited_map (type_inhabited_map (type_inhabited_map hT)))
+      hMapWF
   rcases map_value_canonical
       (A := SmtType.Int)
       (B := SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))
@@ -912,6 +917,11 @@ theorem typeof_value_model_eval_dt_sel
     (i j : native_Nat)
     (x : SmtTerm)
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
+    (hWrongMapWF :
+      __smtx_type_wf
+        (SmtType.Map SmtType.Int
+          (SmtType.Map SmtType.Int
+            (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))) = true)
     (hT : type_inhabited (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)))
     (hpresx : __smtx_typeof_value (__smtx_model_eval M x) = __smtx_typeof x) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) =
@@ -960,7 +970,7 @@ theorem typeof_value_model_eval_dt_sel
       simpa [__smtx_ret_typeof_sel, hCount] using hArgTy
     simpa [v, native_ite, hHead] using hArgTy'
   · simpa [v, native_ite, hHead] using
-      typeof_value_model_eval_dt_sel_wrong M hM s d i j v hResInh hv
+      typeof_value_model_eval_dt_sel_wrong M hM s d i j v hResInh hWrongMapWF hv
 
 /-- Derives `dt_tester_arg_datatype` from `non_none`. -/
 theorem dt_tester_arg_datatype_of_non_none

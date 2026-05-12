@@ -539,6 +539,7 @@ theorem typeof_value_seq_nth_wrong
     (n : native_Int)
     (T : SmtType)
     (hT : type_inhabited T)
+    (hRec : __smtx_type_wf_rec T native_reflist_nil = true)
     (hss : __smtx_typeof_seq_value ss = SmtType.Seq T) :
     __smtx_typeof_value (__smtx_seq_nth_wrong M ss n (SmtType.Seq T)) = T := by
   change __smtx_typeof_value
@@ -555,7 +556,7 @@ theorem typeof_value_seq_nth_wrong
         SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T) :=
     model_total_typed_lookup hM native_oob_seq_nth_id
       (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))
-      (type_inhabited_map (type_inhabited_map hT))
+      (seq_nth_wrong_map_type_wf hT hRec)
   rcases map_value_canonical
       (A := SmtType.Seq T) (B := SmtType.Map SmtType.Int T) hLookup with ⟨m0, hm0⟩
   rw [hm0]
@@ -1957,6 +1958,10 @@ theorem typeof_value_model_eval_seq_nth
     (hM : model_total_typed M)
     (t1 t2 : SmtTerm)
     (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2))
+    (hElemRec :
+      ∀ {T : SmtType},
+        __smtx_typeof t1 = SmtType.Seq T ->
+          __smtx_type_wf_rec T native_reflist_nil = true)
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M
@@ -1984,11 +1989,13 @@ theorem typeof_value_model_eval_seq_nth
     simpa [hss, h1, __smtx_typeof_value] using hpres1
   have hT' : type_inhabited T := by
     exact smtx_typeof_guard_wf_inhabited_of_non_none T T hGuardNN
+  have hRec : __smtx_type_wf_rec T native_reflist_nil = true := by
+    exact hElemRec h1
   have hd :
       __smtx_typeof_value
         (__smtx_seq_nth_wrong M ss n (__smtx_typeof_seq_value ss)) = T := by
     rw [hssTy]
-    exact typeof_value_seq_nth_wrong M hM ss n T hT' hssTy
+    exact typeof_value_seq_nth_wrong M hM ss n T hT' hRec hssTy
   simpa using ssm_seq_nth_typed (ss := ss) (n := n)
     (d := __smtx_seq_nth_wrong M ss n (__smtx_typeof_seq_value ss)) (T := T) hssTy hd
 

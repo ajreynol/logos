@@ -41,7 +41,11 @@ inductive supported_preservation_term : SmtTerm -> Prop
       (ht2 : term_has_non_none_type t2)
       (hs2 : supported_preservation_term t2)
       (hT :
-        type_inhabited (__smtx_typeof (SmtTerm.seq_nth t1 t2))) :
+        type_inhabited (__smtx_typeof (SmtTerm.seq_nth t1 t2)))
+      (hElemRec :
+        ∀ {T : SmtType},
+          __smtx_typeof t1 = SmtType.Seq T ->
+            __smtx_type_wf_rec T native_reflist_nil = true) :
       supported_preservation_term (SmtTerm.seq_nth t1 t2)
   | set_union {t1 t2 : SmtTerm}
       (ht1 : term_has_non_none_type t1)
@@ -743,6 +747,11 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | dt_sel {s : native_String} {d : SmtDatatype} {i j : native_Nat} {x : SmtTerm}
       (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
       (hT : type_inhabited (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)))
+      (hWrongMapWF :
+        __smtx_type_wf
+          (SmtType.Map SmtType.Int
+            (SmtType.Map SmtType.Int
+              (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))) = true)
       (htx : term_has_non_none_type x)
       (hsx : supported_preservation_term x) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)

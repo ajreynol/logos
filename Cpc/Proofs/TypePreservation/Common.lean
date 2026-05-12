@@ -18,6 +18,13 @@ theorem smtx_inhabited_type_eq_true_iff (T : SmtType) :
   unfold native_inhabited_type type_inhabited
   simp
 
+/-- Converts semantic inhabitation into the generated Boolean inhabitation test. -/
+theorem native_inhabited_type_of_type_inhabited
+    {T : SmtType}
+    (h : type_inhabited T) :
+    native_inhabited_type T = true :=
+  (smtx_inhabited_type_eq_true_iff T).2 h
+
 /-- Establishes an equality relating `smtx_inhabited_type` and `false_iff`. -/
 theorem smtx_inhabited_type_eq_false_iff (T : SmtType) :
     native_inhabited_type T = false ↔ ¬ type_inhabited T := by
@@ -301,10 +308,11 @@ def generic_apply_eval (f x : SmtTerm) : Prop :=
     __smtx_model_eval M (SmtTerm.Apply f x) =
       __smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x)
 
-/-- Predicate asserting that a model returns a correctly typed value, or `NotValue`, at a given symbol and type. -/
+/-- Predicate asserting that a model returns a correctly typed value for well-formed types,
+or `NotValue` for non-well-formed types, at a given symbol and type. -/
 def model_typed_at (M : SmtModel) (s : native_String) (T : SmtType) : Prop :=
-  (type_inhabited T -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
-  (¬ type_inhabited T -> __smtx_model_lookup M s T = SmtValue.NotValue)
+  (__smtx_type_wf T = true -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
+  (__smtx_type_wf T = false -> __smtx_model_lookup M s T = SmtValue.NotValue)
 
 /-- Shows that the SMT type `bool` is inhabited. -/
 theorem type_inhabited_bool : type_inhabited SmtType.Bool :=
@@ -339,6 +347,28 @@ theorem type_inhabited_map {A B : SmtType} (hB : type_inhabited B) :
     type_inhabited (SmtType.Map A B) := by
   rcases hB with ⟨v, hv⟩
   exact ⟨SmtValue.Map (SmtMap.default A v), by simp [__smtx_typeof_value, __smtx_typeof_map_value, hv]⟩
+
+/-- Builds well-formedness for the fallback map used by sequence nth defaults. -/
+theorem seq_nth_wrong_map_type_wf
+    {T : SmtType}
+    (hT : type_inhabited T)
+    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    __smtx_type_wf
+      (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T)) = true := by
+  have hTInh : native_inhabited_type T = true :=
+    native_inhabited_type_of_type_inhabited hT
+  have hIntInh : native_inhabited_type SmtType.Int = true :=
+    native_inhabited_type_of_type_inhabited type_inhabited_int
+  have hSeqInh : native_inhabited_type (SmtType.Seq T) = true :=
+    native_inhabited_type_of_type_inhabited (type_inhabited_seq T)
+  have hMapInh : native_inhabited_type (SmtType.Map SmtType.Int T) = true :=
+    native_inhabited_type_of_type_inhabited (type_inhabited_map hT)
+  have hOuterInh :
+      native_inhabited_type
+        (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T)) = true :=
+    native_inhabited_type_of_type_inhabited (type_inhabited_map (type_inhabited_map hT))
+  simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hTInh, hRec, hIntInh,
+    hSeqInh, hMapInh, hOuterInh]
 
 /-- Shows that the SMT type `fun` is inhabited when its result type is inhabited. -/
 theorem type_inhabited_fun {A B : SmtType} (hB : type_inhabited B) :

@@ -51,8 +51,8 @@ private theorem supported_type_preservation
   | set_singleton ht1 hs1 =>
       exact typeof_value_model_eval_set_singleton M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
-  | seq_nth ht1 hs1 ht2 hs2 hT =>
-      exact typeof_value_model_eval_seq_nth M hM _ _ ht
+  | seq_nth ht1 hs1 ht2 hs2 hT hElemRec =>
+      exact typeof_value_model_eval_seq_nth M hM _ _ ht hElemRec
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
   | set_union ht1 hs1 ht2 hs2 =>
@@ -513,8 +513,8 @@ private theorem supported_type_preservation
         (supported_type_preservation M hM _ ht1 hs1)
   | dt_cons s d i =>
       exact typeof_value_model_eval_dt_cons M s d i ht
-  | dt_sel htSel hT htx hsx =>
-      exact typeof_value_model_eval_dt_sel M hM _ _ _ _ _ htSel hT
+  | dt_sel htSel hT hWrongMapWF htx hsx =>
+      exact typeof_value_model_eval_dt_sel M hM _ _ _ _ _ htSel hWrongMapWF hT
         (supported_type_preservation M hM _ htx hsx)
   | dt_tester s d i x =>
       exact typeof_value_model_eval_dt_tester M s d i x ht
@@ -621,7 +621,11 @@ theorem supported_seq_nth_of_non_none
     {t1 t2 : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.seq_nth t1 t2))
     (hs1 : supported_preservation_term t1)
-    (hs2 : supported_preservation_term t2) :
+    (hs2 : supported_preservation_term t2)
+    (hElemRec :
+      ∀ {T : SmtType},
+        __smtx_typeof t1 = SmtType.Seq T ->
+          __smtx_type_wf_rec T native_reflist_nil = true) :
     supported_preservation_term (SmtTerm.seq_nth t1 t2) := by
   rcases seq_nth_args_of_non_none ht with ⟨T, h1, h2⟩
   have ht1 : term_has_non_none_type t1 :=
@@ -629,7 +633,7 @@ theorem supported_seq_nth_of_non_none
   have ht2 : term_has_non_none_type t2 :=
     term_has_non_none_of_type_eq h2 (by simp)
   exact supported_preservation_term.seq_nth
-    ht1 hs1 ht2 hs2 (seq_nth_term_inhabited_of_non_none ht)
+    ht1 hs1 ht2 hs2 (seq_nth_term_inhabited_of_non_none ht) hElemRec
 
 /-- Builds support for datatype-selector applications directly from support of the argument. -/
 theorem supported_dt_sel_of_non_none
@@ -638,12 +642,17 @@ theorem supported_dt_sel_of_non_none
     {i j : native_Nat}
     {x : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
+    (hWrongMapWF :
+      __smtx_type_wf
+        (SmtType.Map SmtType.Int
+          (SmtType.Map SmtType.Int
+            (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))) = true)
     (hsx : supported_preservation_term x) :
     supported_preservation_term (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) := by
   have htx : term_has_non_none_type x :=
     term_has_non_none_of_type_eq (dt_sel_arg_datatype_of_non_none ht) (by simp)
   exact supported_preservation_term.dt_sel
-    ht (dt_sel_term_inhabited_of_non_none ht) htx hsx
+    ht (dt_sel_term_inhabited_of_non_none ht) hWrongMapWF htx hsx
 
 /-- Builds support for applications directly from support of their subterms and a non-`None` typing judgment. -/
 theorem supported_apply_of_non_none
