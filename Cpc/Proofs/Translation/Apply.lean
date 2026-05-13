@@ -788,7 +788,7 @@ private theorem typeof_bvnego_eq
 private theorem typeof_seq_unit_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.seq_unit t) =
-      __smtx_typeof_guard_wf (__smtx_typeof t)
+      __smtx_typeof_guard_wf (SmtType.Seq (__smtx_typeof t))
         (SmtType.Seq (__smtx_typeof t)) := by
   rw [__smtx_typeof.eq_119]
 
@@ -796,14 +796,14 @@ private theorem typeof_seq_unit_eq
 private theorem typeof_set_empty_eq
     (T : SmtType) :
     __smtx_typeof (SmtTerm.set_empty T) =
-      __smtx_typeof_guard_wf T (SmtType.Set T) := by
+      __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) := by
   rw [__smtx_typeof.eq_121]
 
 /-- Rewrites the typing equation for `set_singleton`. -/
 private theorem typeof_set_singleton_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.set_singleton t) =
-      __smtx_typeof_guard_wf (__smtx_typeof t)
+      __smtx_typeof_guard_wf (SmtType.Set (__smtx_typeof t))
         (SmtType.Set (__smtx_typeof t)) := by
   rw [__smtx_typeof.eq_122]
 
@@ -986,10 +986,9 @@ private theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none
       simp [__eo_to_smt_seq_empty, __smtx_typeof_apply]
   | Seq U =>
       rw [show __smtx_typeof (__eo_to_smt_seq_empty (SmtType.Seq U)) =
-          __smtx_typeof_guard_wf U (SmtType.Seq U) by
+          __smtx_typeof_guard_wf (SmtType.Seq U) (SmtType.Seq U) by
         simp [__eo_to_smt_seq_empty, __smtx_typeof]]
-      cases hInh : native_inhabited_type U <;>
-      cases hWf : __smtx_type_wf U <;>
+      cases hWf : __smtx_type_wf (SmtType.Seq U) <;>
         simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hWf]
 
 /-- Computes the type of applying a translated `seq_empty` as a head. -/
@@ -5641,20 +5640,24 @@ theorem smtx_term_fun_like_arg_ne_reglan_of_non_none :
         rw [smtx_typeof_uconst_of_non_none s T hNN]
         exact smtx_type_fun_like_domains_no_reglan_of_type_wf hWf
     case seq_empty T =>
-        have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠ SmtType.None := by
+        have hGuardNN : __smtx_typeof_guard_wf (SmtType.Seq T) (SmtType.Seq T) ≠ SmtType.None := by
           unfold term_has_non_none_type at hNN
           simpa [__smtx_typeof] using hNN
+        have hSeqWf : __smtx_type_wf (SmtType.Seq T) = true :=
+          Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN
         have hWf : __smtx_type_wf T = true :=
-          Smtm.smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Seq T) hGuardNN
+          Smtm.seq_type_wf_component_of_wf hSeqWf
         rw [smtx_typeof_seq_empty_of_non_none T hNN]
         change smtx_type_fun_like_domains_no_reglan T
         exact smtx_type_fun_like_domains_no_reglan_of_type_wf hWf
     case set_empty T =>
-        have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Set T) ≠ SmtType.None := by
+        have hGuardNN : __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) ≠ SmtType.None := by
           unfold term_has_non_none_type at hNN
           simpa [__smtx_typeof] using hNN
+        have hSetWf : __smtx_type_wf (SmtType.Set T) = true :=
+          Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN
         have hWf : __smtx_type_wf T = true :=
-          Smtm.smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Set T) hGuardNN
+          Smtm.set_type_wf_component_of_wf hSetWf
         rw [smtx_typeof_set_empty_of_non_none T hNN]
         change smtx_type_fun_like_domains_no_reglan T
         exact smtx_type_fun_like_domains_no_reglan_of_type_wf hWf
@@ -5704,7 +5707,7 @@ theorem smtx_term_fun_like_arg_ne_reglan_of_non_none :
         have hTy :
             __smtx_typeof (SmtTerm.seq_unit t) = SmtType.Seq (__smtx_typeof t) := by
           rw [__smtx_typeof.eq_119]
-          exact smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+          exact smtx_typeof_guard_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
             (SmtType.Seq (__smtx_typeof t)) (by
               unfold term_has_non_none_type at hNN
               rw [__smtx_typeof.eq_119] at hNN
@@ -5722,7 +5725,7 @@ theorem smtx_term_fun_like_arg_ne_reglan_of_non_none :
         have hTy :
             __smtx_typeof (SmtTerm.set_singleton t) = SmtType.Set (__smtx_typeof t) := by
           rw [__smtx_typeof.eq_122]
-          exact smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+          exact smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
             (SmtType.Set (__smtx_typeof t)) (by
               unfold term_has_non_none_type at hNN
               rw [__smtx_typeof.eq_122] at hNN
@@ -7393,9 +7396,9 @@ private theorem smt_type_ne_set_self
 private theorem smt_type_ne_guard_wf_set_self
     {T : SmtType}
     (hT : T ≠ SmtType.None) :
-    T ≠ __smtx_typeof_guard_wf T (SmtType.Set T) := by
+    T ≠ __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) := by
   intro h
-  by_cases hWf : __smtx_type_wf T = true
+  by_cases hWf : __smtx_type_wf (SmtType.Set T) = true
   · have hSet : T = SmtType.Set T := by
       simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
     exact smt_type_ne_set_self T hSet
@@ -7425,11 +7428,10 @@ private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
       simp [__eo_to_smt_set_empty, __smtx_typeof_apply]
   | Set U =>
       rw [show __smtx_typeof (__eo_to_smt_set_empty (SmtType.Set U)) =
-          __smtx_typeof_guard_wf U (SmtType.Set U) by
+          __smtx_typeof_guard_wf (SmtType.Set U) (SmtType.Set U) by
         simp [__eo_to_smt_set_empty]
         rw [__smtx_typeof.eq_121]]
-      cases hInh : native_inhabited_type U <;>
-      cases hWf : __smtx_type_wf U <;>
+      cases hWf : __smtx_type_wf (SmtType.Set U) <;>
         simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hWf]
 
 /-- Computes `__smtx_typeof` for `not` terms. -/
@@ -12414,18 +12416,20 @@ theorem eo_to_smt_typeof_matches_translation_apply
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) x)) =
             SmtType.Seq (__eo_to_smt_type (__eo_typeof x)) := by
         have hGuardNN :
-            __smtx_typeof_guard_wf (__smtx_typeof (__eo_to_smt x))
+            __smtx_typeof_guard_wf
+                (SmtType.Seq (__smtx_typeof (__eo_to_smt x)))
                 (SmtType.Seq (__smtx_typeof (__eo_to_smt x))) ≠
               SmtType.None := by
           rw [hTranslate, typeof_seq_unit_eq (__eo_to_smt x)] at hNonNone
           exact hNonNone
         have hGuard :
-            __smtx_typeof_guard_wf (__eo_to_smt_type (__eo_typeof x))
+            __smtx_typeof_guard_wf
+                (SmtType.Seq (__eo_to_smt_type (__eo_typeof x)))
                 (SmtType.Seq (__eo_to_smt_type (__eo_typeof x))) =
               SmtType.Seq (__eo_to_smt_type (__eo_typeof x)) := by
           rw [← hXTyped]
           exact smtx_typeof_guard_wf_of_non_none
-            (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Seq (__smtx_typeof (__eo_to_smt x)))
             (SmtType.Seq (__smtx_typeof (__eo_to_smt x))) hGuardNN
         rw [hTranslate, typeof_seq_unit_eq (__eo_to_smt x), hXTyped]
         exact hGuard
@@ -12449,18 +12453,20 @@ theorem eo_to_smt_typeof_matches_translation_apply
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_singleton) x)) =
             SmtType.Set (__eo_to_smt_type (__eo_typeof x)) := by
         have hGuardNN :
-            __smtx_typeof_guard_wf (__smtx_typeof (__eo_to_smt x))
+            __smtx_typeof_guard_wf
+                (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
                 (SmtType.Set (__smtx_typeof (__eo_to_smt x))) ≠
               SmtType.None := by
           rw [hTranslate, typeof_set_singleton_eq (__eo_to_smt x)] at hNonNone
           exact hNonNone
         have hGuard :
-            __smtx_typeof_guard_wf (__eo_to_smt_type (__eo_typeof x))
+            __smtx_typeof_guard_wf
+                (SmtType.Set (__eo_to_smt_type (__eo_typeof x)))
                 (SmtType.Set (__eo_to_smt_type (__eo_typeof x))) =
               SmtType.Set (__eo_to_smt_type (__eo_typeof x)) := by
           rw [← hXTyped]
           exact smtx_typeof_guard_wf_of_non_none
-            (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
             (SmtType.Set (__smtx_typeof (__eo_to_smt x))) hGuardNN
         rw [hTranslate, typeof_set_singleton_eq (__eo_to_smt x), hXTyped]
         exact hGuard
@@ -12479,7 +12485,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
           __smtx_typeof_eq
               (__smtx_typeof (__eo_to_smt x))
               (__smtx_typeof_guard_wf
-                (__smtx_typeof (__eo_to_smt x))
+                (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
                 (SmtType.Set (__smtx_typeof (__eo_to_smt x)))) ≠
             SmtType.None := by
         simpa [hTranslate, typeof_eq_eq, typeof_set_empty_eq] using hNonNone
@@ -12536,10 +12542,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
       have hVarTy : __smtx_typeof (SmtTerm.Var "@x" T) = T := by
         simpa using smtx_typeof_var_of_non_none "@x" T hVarNN
       have hSingletonGuard :
-          __smtx_typeof_guard_wf T (SmtType.Set T) = SmtType.Set T := by
+          __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) = SmtType.Set T := by
         rw [← hVarTy]
         exact smtx_typeof_guard_wf_of_non_none
-          (__smtx_typeof (SmtTerm.Var "@x" T))
+          (SmtType.Set (__smtx_typeof (SmtTerm.Var "@x" T)))
           (SmtType.Set (__smtx_typeof (SmtTerm.Var "@x" T))) (by
             simpa [typeof_set_singleton_eq] using hSingletonNN)
       have hXTy :

@@ -794,6 +794,26 @@ theorem int_binop_args_of_non_none
     simp [hTy, native_ite, native_Teq, h1, h2] at ht
   simp
 
+/-- The integer-to-integer total-function type used for arithmetic defaults is well formed. -/
+theorem fun_type_wf_int_int :
+    __smtx_type_wf (SmtType.FunType SmtType.Int SmtType.Int) = true := by
+  have hIntInh : native_inhabited_type SmtType.Int = true :=
+    native_inhabited_type_of_type_inhabited type_inhabited_int
+  have hFunInh :
+      native_inhabited_type (SmtType.FunType SmtType.Int SmtType.Int) = true :=
+    native_inhabited_type_of_type_inhabited (type_inhabited_fun type_inhabited_int)
+  simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hIntInh, hFunInh]
+
+/-- The real-to-real total-function type used for arithmetic defaults is well formed. -/
+theorem fun_type_wf_real_real :
+    __smtx_type_wf (SmtType.FunType SmtType.Real SmtType.Real) = true := by
+  have hRealInh : native_inhabited_type SmtType.Real = true :=
+    native_inhabited_type_of_type_inhabited type_inhabited_real
+  have hFunInh :
+      native_inhabited_type (SmtType.FunType SmtType.Real SmtType.Real) = true :=
+    native_inhabited_type_of_type_inhabited (type_inhabited_fun type_inhabited_real)
+  simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hRealInh, hFunInh]
+
 /-- Shows that evaluating `apply_lookup_fun` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_lookup_fun
     (M : SmtModel)
@@ -802,6 +822,7 @@ theorem typeof_value_model_eval_apply_lookup_fun
     (A B : SmtType)
     (hA : A ≠ SmtType.None)
     (hB : type_inhabited B)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
     (i : SmtValue)
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value
@@ -809,7 +830,7 @@ theorem typeof_value_model_eval_apply_lookup_fun
   have hLookup :
       __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
         SmtType.FunType A B :=
-    model_total_typed_lookup hM s (SmtType.FunType A B) (type_inhabited_fun hB)
+    model_total_typed_lookup hM s (SmtType.FunType A B) hFunWF
   exact typeof_value_model_eval_apply_dt hA (Or.inl hLookup) hi
 
 /-- Shows that evaluating `div_total` terms produces values of the expected type. -/
@@ -955,7 +976,7 @@ theorem typeof_value_model_eval_div
   · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_div_total,
       native_veq, hZero] using
       typeof_value_model_eval_apply_lookup_fun M hM
-        native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
+        native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int fun_type_wf_int_int
         (SmtValue.Numeral n1) rfl
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_div_total,
       __smtx_typeof_value, native_veq, hZero]
@@ -983,7 +1004,7 @@ theorem typeof_value_model_eval_mod
   · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_mod_total,
       native_veq, hZero] using
       typeof_value_model_eval_apply_lookup_fun M hM
-        native_mod_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
+        native_mod_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int fun_type_wf_int_int
         (SmtValue.Numeral n1) rfl
   · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_mod_total,
       __smtx_typeof_value, native_veq, hZero]
@@ -1015,7 +1036,7 @@ theorem typeof_value_model_eval_multmult
         __smtx_model_eval_eq, __smtx_model_eval_div_total, __smtx_model_eval_multmult_total,
         __smtx_model_eval__, native_veq, hNonneg, hZero] using
         typeof_value_model_eval_apply_lookup_fun M hM
-          native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int
+          native_div_by_zero_id SmtType.Int SmtType.Int (by simp) type_inhabited_int fun_type_wf_int_int
           (SmtValue.Numeral 1) rfl
     · simp [__smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_ite,
         __smtx_model_eval_eq, __smtx_model_eval_div_total, __smtx_model_eval_multmult_total,
@@ -1081,7 +1102,7 @@ theorem typeof_value_model_eval_qdiv
     · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
         native_veq, hZero] using
         typeof_value_model_eval_apply_lookup_fun M hM
-          native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real
+          native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real fun_type_wf_real_real
           (SmtValue.Rational q1) rfl
     · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
         __smtx_typeof_value, native_veq, hZero]
