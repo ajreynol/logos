@@ -440,6 +440,48 @@ private theorem dt_wf_tail_of_nonempty_tail_wf
     dt_wf_cons_of_wf h
   simpa [__smtx_dt_wf_rec, native_ite, hc] using h
 
+private theorem nested_datatype_field_head_wf_rec_of_cons_wf
+    {sNested : native_String}
+    {cNested : SmtDatatypeCons}
+    {dNestedTail : SmtDatatype}
+    {cTail : SmtDatatypeCons}
+    {refs : RefList}
+    (h :
+      __smtx_dt_cons_wf_rec
+          (SmtDatatypeCons.cons
+            (SmtType.Datatype sNested (SmtDatatype.sum cNested dNestedTail))
+            cTail)
+          refs =
+        true) :
+    __smtx_dt_cons_wf_rec cNested
+        (native_reflist_insert refs sNested) =
+      true := by
+  have hParts :
+      native_inhabited_type
+            (SmtType.Datatype sNested (SmtDatatype.sum cNested dNestedTail)) =
+          true ∧
+        __smtx_type_wf_rec
+            (SmtType.Datatype sNested (SmtDatatype.sum cNested dNestedTail))
+            refs =
+          true := by
+    have hAll :
+        native_inhabited_type
+              (SmtType.Datatype sNested (SmtDatatype.sum cNested dNestedTail)) =
+            true ∧
+          __smtx_type_wf_rec
+              (SmtType.Datatype sNested (SmtDatatype.sum cNested dNestedTail))
+              refs =
+            true ∧
+          __smtx_dt_cons_wf_rec cTail refs = true := by
+      simpa [__smtx_dt_cons_wf_rec, native_ite] using h
+    exact ⟨hAll.1, hAll.2.1⟩
+  have hNestedWf :
+      __smtx_dt_wf_rec (SmtDatatype.sum cNested dNestedTail)
+          (native_reflist_insert refs sNested) =
+        true := by
+    simpa [__smtx_type_wf_rec] using hParts.2
+  exact dt_wf_cons_of_wf (d := dNestedTail) hNestedWf
+
 private def datatype_cons_default_productive
     (s : native_String)
     (d : SmtDatatype) :
@@ -1516,8 +1558,463 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                               native_veq, native_not, native_ite, native_Teq,
                               native_and, hShadow]
                       | cons TNested cNestedTail =>
-                          exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
-                            _ _hInh _hRec
+                          cases cNestedTail with
+                          | unit =>
+                              cases TNested with
+                              | None =>
+                                  have hOuterCons :
+                                      __smtx_dt_cons_wf_rec
+                                          (SmtDatatypeCons.cons
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons SmtType.None
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail))
+                                            SmtDatatypeCons.unit)
+                                          (native_reflist_insert native_reflist_nil s) = true :=
+                                    dt_wf_cons_of_wf (d := dTail) (by
+                                      simpa [__smtx_type_wf_rec] using _hRec)
+                                  have hNestedCons :=
+                                    nested_datatype_field_head_wf_rec_of_cons_wf
+                                      (sNested := sNested)
+                                      (cNested := SmtDatatypeCons.cons SmtType.None
+                                        SmtDatatypeCons.unit)
+                                      (dNestedTail := dNestedTail)
+                                      (cTail := SmtDatatypeCons.unit)
+                                      (refs := native_reflist_insert native_reflist_nil s)
+                                      hOuterCons
+                                  simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+                                    native_ite] at hNestedCons
+                              | Bool =>
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_dt_substitute, __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool, native_veq,
+                                      native_not, native_ite, native_Teq, native_and,
+                                      hShadow]
+                              | Int =>
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_dt_substitute, __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool, native_veq,
+                                      native_not, native_ite, native_Teq, native_and,
+                                      hShadow]
+                              | Real =>
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_dt_substitute, __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool, native_veq,
+                                      native_not, native_ite, native_Teq, native_and,
+                                      hShadow]
+                              | BitVec w =>
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_dt_substitute, __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool, native_veq,
+                                      native_not, native_ite, native_Teq, native_and,
+                                      native_zleq, native_zeq, native_mod_total,
+                                      native_int_pow2, native_zexp_total,
+                                      native_nat_to_int, native_int_to_nat, hShadow]
+                              | Map A B =>
+                                  have hOuterCons :
+                                      __smtx_dt_cons_wf_rec
+                                          (SmtDatatypeCons.cons
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons
+                                                  (SmtType.Map A B)
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail))
+                                            SmtDatatypeCons.unit)
+                                          (native_reflist_insert native_reflist_nil s) = true :=
+                                    dt_wf_cons_of_wf (d := dTail) (by
+                                      simpa [__smtx_type_wf_rec] using _hRec)
+                                  have hNestedParts :
+                                      native_inhabited_type
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons
+                                                  (SmtType.Map A B)
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail)) = true ∧
+                                        __smtx_type_wf_rec
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons
+                                                  (SmtType.Map A B)
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail))
+                                            (native_reflist_insert native_reflist_nil s) =
+                                          true := by
+                                    simpa [__smtx_dt_cons_wf_rec, native_ite]
+                                      using hOuterCons
+                                  have hNestedWf :
+                                      __smtx_dt_wf_rec
+                                          (SmtDatatype.sum
+                                            (SmtDatatypeCons.cons
+                                              (SmtType.Map A B)
+                                              SmtDatatypeCons.unit)
+                                            dNestedTail)
+                                          (native_reflist_insert
+                                            (native_reflist_insert native_reflist_nil s)
+                                            sNested) =
+                                        true := by
+                                    simpa [__smtx_type_wf_rec] using hNestedParts.2
+                                  have hNestedCons :
+                                      __smtx_dt_cons_wf_rec
+                                          (SmtDatatypeCons.cons
+                                            (SmtType.Map A B)
+                                            SmtDatatypeCons.unit)
+                                          (native_reflist_insert
+                                            (native_reflist_insert native_reflist_nil s)
+                                            sNested) =
+                                        true :=
+                                    dt_wf_cons_of_wf (d := dNestedTail) hNestedWf
+                                  have hTRefs :
+                                      native_inhabited_type (SmtType.Map A B) = true ∧
+                                        __smtx_type_wf_rec (SmtType.Map A B)
+                                          (native_reflist_insert
+                                            (native_reflist_insert native_reflist_nil s)
+                                            sNested) =
+                                          true := by
+                                    simpa [__smtx_dt_cons_wf_rec, native_ite]
+                                      using hNestedCons
+                                  have hT :
+                                      native_inhabited_type (SmtType.Map A B) = true ∧
+                                        __smtx_type_wf_rec (SmtType.Map A B)
+                                          native_reflist_nil = true := by
+                                    exact ⟨hTRefs.1, by
+                                      simpa [__smtx_type_wf_rec] using hTRefs.2⟩
+                                  have hDef :=
+                                    type_default_typed_canonical_of_wf_rec_deferred_datatype
+                                      (SmtType.Map A B) hT.1 hT.2
+                                  have hTy :
+                                      __smtx_typeof_map_value
+                                          (SmtMap.default A (__smtx_type_default B)) =
+                                        SmtType.Map A B := by
+                                    simpa [__smtx_type_default, __smtx_typeof_value]
+                                      using hDef.1
+                                  have hBType :
+                                      __smtx_typeof_value (__smtx_type_default B) = B := by
+                                    have hMapEq :
+                                        SmtType.Map A
+                                            (__smtx_typeof_value (__smtx_type_default B)) =
+                                          SmtType.Map A B := by
+                                      simpa [__smtx_type_default, __smtx_typeof_value,
+                                        __smtx_typeof_map_value] using hDef.1
+                                    injection hMapEq with _ hB
+                                  have hCan :
+                                      __smtx_map_canonical
+                                          (SmtMap.default A (__smtx_type_default B)) =
+                                        true := by
+                                    simpa [__smtx_value_canonical] using hDef.2
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_typeof_map_value, __smtx_dt_substitute,
+                                      __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool,
+                                      native_veq, native_not, native_ite,
+                                      native_Teq, native_and, hTy, hCan, hBType,
+                                      hShadow]
+                              | RegLan =>
+                                  have hOuterCons :
+                                      __smtx_dt_cons_wf_rec
+                                          (SmtDatatypeCons.cons
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons SmtType.RegLan
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail))
+                                            SmtDatatypeCons.unit)
+                                          (native_reflist_insert native_reflist_nil s) = true :=
+                                    dt_wf_cons_of_wf (d := dTail) (by
+                                      simpa [__smtx_type_wf_rec] using _hRec)
+                                  have hNestedCons :=
+                                    nested_datatype_field_head_wf_rec_of_cons_wf
+                                      (sNested := sNested)
+                                      (cNested := SmtDatatypeCons.cons SmtType.RegLan
+                                        SmtDatatypeCons.unit)
+                                      (dNestedTail := dNestedTail)
+                                      (cTail := SmtDatatypeCons.unit)
+                                      (refs := native_reflist_insert native_reflist_nil s)
+                                      hOuterCons
+                                  simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+                                    native_ite] at hNestedCons
+                              | Set A =>
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_typeof_map_value, __smtx_map_to_set_type,
+                                      __smtx_dt_substitute, __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool,
+                                      __smtx_map_canonical,
+                                      __smtx_map_default_canonical, native_veq,
+                                      native_not, native_ite, native_Teq, native_and,
+                                      hShadow]
+                              | Seq A =>
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_typeof_seq_value, __smtx_dt_substitute,
+                                      __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool,
+                                      __smtx_seq_canonical, native_veq, native_not,
+                                      native_ite, native_Teq, native_and, hShadow]
+                              | FunType A B =>
+                                  have hOuterCons :
+                                      __smtx_dt_cons_wf_rec
+                                          (SmtDatatypeCons.cons
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons
+                                                  (SmtType.FunType A B)
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail))
+                                            SmtDatatypeCons.unit)
+                                          (native_reflist_insert native_reflist_nil s) = true :=
+                                    dt_wf_cons_of_wf (d := dTail) (by
+                                      simpa [__smtx_type_wf_rec] using _hRec)
+                                  have hNestedParts :
+                                      native_inhabited_type
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons
+                                                  (SmtType.FunType A B)
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail)) = true ∧
+                                        __smtx_type_wf_rec
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons
+                                                  (SmtType.FunType A B)
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail))
+                                            (native_reflist_insert native_reflist_nil s) =
+                                          true := by
+                                    simpa [__smtx_dt_cons_wf_rec, native_ite]
+                                      using hOuterCons
+                                  have hNestedWf :
+                                      __smtx_dt_wf_rec
+                                          (SmtDatatype.sum
+                                            (SmtDatatypeCons.cons
+                                              (SmtType.FunType A B)
+                                              SmtDatatypeCons.unit)
+                                            dNestedTail)
+                                          (native_reflist_insert
+                                            (native_reflist_insert native_reflist_nil s)
+                                            sNested) =
+                                        true := by
+                                    simpa [__smtx_type_wf_rec] using hNestedParts.2
+                                  have hNestedCons :
+                                      __smtx_dt_cons_wf_rec
+                                          (SmtDatatypeCons.cons
+                                            (SmtType.FunType A B)
+                                            SmtDatatypeCons.unit)
+                                          (native_reflist_insert
+                                            (native_reflist_insert native_reflist_nil s)
+                                            sNested) =
+                                        true :=
+                                    dt_wf_cons_of_wf (d := dNestedTail) hNestedWf
+                                  have hTRefs :
+                                      native_inhabited_type (SmtType.FunType A B) = true ∧
+                                        __smtx_type_wf_rec (SmtType.FunType A B)
+                                          (native_reflist_insert
+                                            (native_reflist_insert native_reflist_nil s)
+                                            sNested) =
+                                          true := by
+                                    simpa [__smtx_dt_cons_wf_rec, native_ite]
+                                      using hNestedCons
+                                  have hT :
+                                      native_inhabited_type (SmtType.FunType A B) = true ∧
+                                        __smtx_type_wf_rec (SmtType.FunType A B)
+                                          native_reflist_nil = true := by
+                                    exact ⟨hTRefs.1, by
+                                      simpa [__smtx_type_wf_rec] using hTRefs.2⟩
+                                  have hDef :=
+                                    type_default_typed_canonical_of_wf_rec_deferred_datatype
+                                      (SmtType.FunType A B) hT.1 hT.2
+                                  have hTy :
+                                      __smtx_map_to_fun_type
+                                          (__smtx_typeof_map_value
+                                            (SmtMap.default A (__smtx_type_default B))) =
+                                        SmtType.FunType A B := by
+                                    simpa [__smtx_type_default, __smtx_typeof_value]
+                                      using hDef.1
+                                  have hBType :
+                                      __smtx_typeof_value (__smtx_type_default B) = B := by
+                                    have hFunEq :
+                                        SmtType.FunType A
+                                            (__smtx_typeof_value (__smtx_type_default B)) =
+                                          SmtType.FunType A B := by
+                                      simpa [__smtx_type_default, __smtx_typeof_value,
+                                        __smtx_typeof_map_value, __smtx_map_to_fun_type]
+                                        using hDef.1
+                                    injection hFunEq with _ hB
+                                  have hCan :
+                                      __smtx_map_canonical
+                                          (SmtMap.default A (__smtx_type_default B)) =
+                                        true := by
+                                    simpa [__smtx_value_canonical] using hDef.2
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_typeof_map_value,
+                                      __smtx_map_to_fun_type, __smtx_dt_substitute,
+                                      __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool,
+                                      native_veq, native_not, native_ite,
+                                      native_Teq, native_and, hTy, hCan, hBType,
+                                      hShadow]
+                              | Char =>
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_dt_substitute, __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool, native_veq,
+                                      native_not, native_ite, native_Teq, native_and,
+                                      hShadow]
+                              | USort i =>
+                                  cases hShadow : native_streq s sNested <;>
+                                    simp [__smtx_type_default, __smtx_datatype_default,
+                                      __smtx_datatype_cons_default,
+                                      __smtx_value_dt_substitute,
+                                      __smtx_value_dt_substitute_apply,
+                                      __vsm_apply_head, __smtx_typeof_value,
+                                      __smtx_dt_substitute, __smtx_dtc_substitute,
+                                      __smtx_typeof_dt_cons_value_rec,
+                                      __smtx_typeof_apply_value, __smtx_typeof_guard,
+                                      __smtx_value_canonical,
+                                      __smtx_value_canonical_bool, native_veq,
+                                      native_not, native_ite, native_Teq, native_and,
+                                      hShadow]
+                              | DtcAppType A B =>
+                                  have hOuterCons :
+                                      __smtx_dt_cons_wf_rec
+                                          (SmtDatatypeCons.cons
+                                            (SmtType.Datatype sNested
+                                              (SmtDatatype.sum
+                                                (SmtDatatypeCons.cons
+                                                  (SmtType.DtcAppType A B)
+                                                  SmtDatatypeCons.unit)
+                                                dNestedTail))
+                                            SmtDatatypeCons.unit)
+                                          (native_reflist_insert native_reflist_nil s) = true :=
+                                    dt_wf_cons_of_wf (d := dTail) (by
+                                      simpa [__smtx_type_wf_rec] using _hRec)
+                                  have hNestedCons :=
+                                    nested_datatype_field_head_wf_rec_of_cons_wf
+                                      (sNested := sNested)
+                                      (cNested := SmtDatatypeCons.cons
+                                        (SmtType.DtcAppType A B) SmtDatatypeCons.unit)
+                                      (dNestedTail := dNestedTail)
+                                      (cTail := SmtDatatypeCons.unit)
+                                      (refs := native_reflist_insert native_reflist_nil s)
+                                      hOuterCons
+                                  simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+                                    native_ite] at hNestedCons
+                              | Datatype sDeep dDeep =>
+                                  cases dDeep with
+                                  | null =>
+                                      have hOuterCons :
+                                          __smtx_dt_cons_wf_rec
+                                              (SmtDatatypeCons.cons
+                                                (SmtType.Datatype sNested
+                                                  (SmtDatatype.sum
+                                                    (SmtDatatypeCons.cons
+                                                      (SmtType.Datatype sDeep
+                                                        SmtDatatype.null)
+                                                      SmtDatatypeCons.unit)
+                                                    dNestedTail))
+                                                SmtDatatypeCons.unit)
+                                              (native_reflist_insert
+                                                native_reflist_nil s) = true :=
+                                        dt_wf_cons_of_wf (d := dTail) (by
+                                          simpa [__smtx_type_wf_rec] using _hRec)
+                                      have hNestedCons :=
+                                        nested_datatype_field_head_wf_rec_of_cons_wf
+                                          (sNested := sNested)
+                                          (cNested := SmtDatatypeCons.cons
+                                            (SmtType.Datatype sDeep SmtDatatype.null)
+                                            SmtDatatypeCons.unit)
+                                          (dNestedTail := dNestedTail)
+                                          (cTail := SmtDatatypeCons.unit)
+                                          (refs := native_reflist_insert native_reflist_nil s)
+                                          hOuterCons
+                                      exact False.elim
+                                        (dt_cons_wf_rec_false_of_has_datatype_null_field
+                                          (SmtDatatypeCons.cons
+                                            (SmtType.Datatype sDeep SmtDatatype.null)
+                                            SmtDatatypeCons.unit)
+                                          (by simp [datatype_cons_has_datatype_null_field])
+                                          hNestedCons)
+                                  | sum cDeep dDeepTail =>
+                                      exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
+                                        _ _hInh _hRec
+                              | _ =>
+                                  exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
+                                    _ _hInh _hRec
+                          | cons _ _ =>
+                              exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
+                                _ _hInh _hRec
               | TypeRef r =>
                   cases dTail with
                   | null =>
