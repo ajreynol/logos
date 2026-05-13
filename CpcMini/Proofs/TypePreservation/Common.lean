@@ -412,6 +412,146 @@ private theorem value_canonical_apply
   simpa [__smtx_value_canonical, __smtx_value_canonical_bool, native_and] using
     And.intro hf hv
 
+private def smt_type_result_not_typeRef : SmtType -> Prop
+  | SmtType.DtcAppType _ B => smt_type_result_not_typeRef B
+  | SmtType.TypeRef _ => False
+  | _ => True
+
+private theorem typeof_dt_cons_value_rec_result_not_typeRef
+    {T : SmtType}
+    (hT : smt_type_result_not_typeRef T) :
+    (d : SmtDatatype) ->
+      (n : native_Nat) ->
+        smt_type_result_not_typeRef (__smtx_typeof_dt_cons_value_rec T d n)
+  | SmtDatatype.null, _ => by
+      simp [__smtx_typeof_dt_cons_value_rec, smt_type_result_not_typeRef]
+  | SmtDatatype.sum c dTail, native_nat_zero => by
+      cases c with
+      | unit =>
+          simpa [__smtx_typeof_dt_cons_value_rec] using hT
+      | cons U cTail =>
+          simp [__smtx_typeof_dt_cons_value_rec, smt_type_result_not_typeRef]
+          exact typeof_dt_cons_value_rec_result_not_typeRef hT
+            (SmtDatatype.sum cTail dTail) native_nat_zero
+  | SmtDatatype.sum c dTail, native_nat_succ n => by
+      simpa [__smtx_typeof_dt_cons_value_rec] using
+        typeof_dt_cons_value_rec_result_not_typeRef hT dTail n
+
+private theorem typeof_apply_value_result_not_typeRef
+    {A B : SmtType}
+    (hA : smt_type_result_not_typeRef A) :
+    smt_type_result_not_typeRef (__smtx_typeof_apply_value A B) := by
+  cases A with
+  | DtcAppType T U =>
+      cases hArgNone : native_Teq T SmtType.None <;>
+        cases hArgEq : native_Teq T B <;>
+          simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
+            smt_type_result_not_typeRef, native_ite, hArgNone, hArgEq] at hA ⊢
+      exact hA
+  | _ =>
+      simp [__smtx_typeof_apply_value, smt_type_result_not_typeRef]
+
+private theorem typeof_map_value_result_not_typeRef :
+    (m : SmtMap) ->
+      smt_type_result_not_typeRef (__smtx_typeof_map_value m)
+  | SmtMap.default T e => by
+      simp [__smtx_typeof_map_value, smt_type_result_not_typeRef]
+  | SmtMap.cons i e m => by
+      have hm := typeof_map_value_result_not_typeRef m
+      cases hEq :
+          native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+            (__smtx_typeof_map_value m) <;>
+        simp [__smtx_typeof_map_value, native_ite, hEq,
+          smt_type_result_not_typeRef] at hm ⊢
+      exact hm
+
+private theorem map_to_fun_type_result_not_typeRef
+    (T : SmtType) :
+    smt_type_result_not_typeRef (__smtx_map_to_fun_type T) := by
+  cases T <;> simp [__smtx_map_to_fun_type, smt_type_result_not_typeRef]
+
+private theorem map_to_set_type_result_not_typeRef
+    (T : SmtType) :
+    smt_type_result_not_typeRef (__smtx_map_to_set_type T) := by
+  cases T <;> simp [__smtx_map_to_set_type, smt_type_result_not_typeRef]
+  case Map A B =>
+    cases B <;> simp [__smtx_map_to_set_type, smt_type_result_not_typeRef]
+
+private theorem typeof_seq_value_result_not_typeRef :
+    (ss : SmtSeq) ->
+      smt_type_result_not_typeRef (__smtx_typeof_seq_value ss)
+  | SmtSeq.empty T => by
+      simp [__smtx_typeof_seq_value, smt_type_result_not_typeRef]
+  | SmtSeq.cons v ss => by
+      have hs := typeof_seq_value_result_not_typeRef ss
+      cases hEq :
+          native_Teq (SmtType.Seq (__smtx_typeof_value v))
+            (__smtx_typeof_seq_value ss) <;>
+        simp [__smtx_typeof_seq_value, native_ite, hEq,
+          smt_type_result_not_typeRef] at hs ⊢
+      exact hs
+
+private theorem typeof_value_result_not_typeRef :
+    (v : SmtValue) ->
+      smt_type_result_not_typeRef (__smtx_typeof_value v)
+  | SmtValue.NotValue => by
+      simp [__smtx_typeof_value, smt_type_result_not_typeRef]
+  | SmtValue.Boolean _ => by
+      simp [__smtx_typeof_value, smt_type_result_not_typeRef]
+  | SmtValue.Numeral _ => by
+      simp [__smtx_typeof_value, smt_type_result_not_typeRef]
+  | SmtValue.Rational _ => by
+      simp [__smtx_typeof_value, smt_type_result_not_typeRef]
+  | SmtValue.Binary w n => by
+      cases hBV :
+          native_and (native_zleq 0 w)
+            (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
+        simp [__smtx_typeof_value, smt_type_result_not_typeRef,
+          native_ite, hBV]
+  | SmtValue.Map m => by
+      simpa [__smtx_typeof_value] using
+        typeof_map_value_result_not_typeRef m
+  | SmtValue.Fun m => by
+      exact map_to_fun_type_result_not_typeRef (__smtx_typeof_map_value m)
+  | SmtValue.Set m => by
+      exact map_to_set_type_result_not_typeRef (__smtx_typeof_map_value m)
+  | SmtValue.Seq ss => by
+      simpa [__smtx_typeof_value] using
+        typeof_seq_value_result_not_typeRef ss
+  | SmtValue.Char _ => by
+      simp [__smtx_typeof_value, smt_type_result_not_typeRef]
+  | SmtValue.UValue _ _ => by
+      simp [__smtx_typeof_value, smt_type_result_not_typeRef]
+  | SmtValue.RegLan _ => by
+      simp [__smtx_typeof_value, smt_type_result_not_typeRef]
+  | SmtValue.DtCons s d i => by
+      simpa [__smtx_typeof_value, smt_type_result_not_typeRef] using
+        typeof_dt_cons_value_rec_result_not_typeRef
+          (T := SmtType.Datatype s d) (by
+            simp [smt_type_result_not_typeRef])
+          (__smtx_dt_substitute s d d) i
+  | SmtValue.Apply f a => by
+      exact typeof_apply_value_result_not_typeRef
+        (typeof_value_result_not_typeRef f)
+
+private theorem typeof_value_ne_typeRef
+    (v : SmtValue)
+    (r : native_String) :
+    __smtx_typeof_value v ≠ SmtType.TypeRef r := by
+  intro hTy
+  have hNo := typeof_value_result_not_typeRef v
+  rw [hTy] at hNo
+  simpa [smt_type_result_not_typeRef] using hNo
+
+private theorem native_inhabited_type_typeRef_false
+    (r : native_String) :
+    native_inhabited_type (SmtType.TypeRef r) = false := by
+  have hNot : ¬ type_inhabited (SmtType.TypeRef r) := by
+    intro h
+    rcases h with ⟨v, hv⟩
+    exact typeof_value_ne_typeRef v r hv
+  exact (smtx_inhabited_type_eq_false_iff (SmtType.TypeRef r)).2 hNot
+
 private theorem dt_cons_wf_rec_tail_of_true
     {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
     (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
@@ -439,6 +579,71 @@ private theorem dt_wf_tail_of_nonempty_tail_wf
   have hc : __smtx_dt_cons_wf_rec c refs = true :=
     dt_wf_cons_of_wf h
   simpa [__smtx_dt_wf_rec, native_ite, hc] using h
+
+private theorem reflist_contains_singleton_eq
+    {s r : native_String}
+    (h :
+      native_reflist_contains (native_reflist_insert native_reflist_nil s) r =
+        true) :
+    r = s := by
+  simpa [native_reflist_contains, native_reflist_insert, native_reflist_nil]
+    using h
+
+private theorem typeRef_head_singleton_cons_wf_eq
+    {s r : native_String}
+    {c : SmtDatatypeCons}
+    (h :
+      __smtx_dt_cons_wf_rec
+          (SmtDatatypeCons.cons (SmtType.TypeRef r) c)
+          (native_reflist_insert native_reflist_nil s) =
+        true) :
+    r = s := by
+  have hContains :
+      native_reflist_contains (native_reflist_insert native_reflist_nil s) r =
+        true := by
+    cases hRef :
+        native_reflist_contains (native_reflist_insert native_reflist_nil s) r <;>
+      simp [__smtx_dt_cons_wf_rec, native_ite, hRef] at h
+    · rfl
+  exact reflist_contains_singleton_eq hContains
+
+private theorem typeRef_singleton_cons_wf_eq
+    {s r : native_String}
+    (h :
+      __smtx_dt_cons_wf_rec
+          (SmtDatatypeCons.cons (SmtType.TypeRef r) SmtDatatypeCons.unit)
+          (native_reflist_insert native_reflist_nil s) =
+        true) :
+    r = s :=
+  typeRef_head_singleton_cons_wf_eq h
+
+private def datatype_cons_typeRef_fields_self
+    (s : native_String) : SmtDatatypeCons -> Prop
+  | SmtDatatypeCons.unit => True
+  | SmtDatatypeCons.cons (SmtType.TypeRef r) c =>
+      r = s ∧ datatype_cons_typeRef_fields_self s c
+  | SmtDatatypeCons.cons _ c => datatype_cons_typeRef_fields_self s c
+
+private theorem datatype_cons_typeRef_fields_self_of_wf_singleton
+    (s : native_String) :
+    (c : SmtDatatypeCons) ->
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) =
+          true ->
+        datatype_cons_typeRef_fields_self s c
+  | SmtDatatypeCons.unit, _hWF => by
+      simp [datatype_cons_typeRef_fields_self]
+  | SmtDatatypeCons.cons T c, hWF => by
+      have hTail :
+          __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) =
+            true :=
+        dt_cons_wf_rec_tail_of_true hWF
+      cases T with
+      | TypeRef r =>
+          exact ⟨typeRef_head_singleton_cons_wf_eq hWF,
+            datatype_cons_typeRef_fields_self_of_wf_singleton s c hTail⟩
+      | _ =>
+          simpa [datatype_cons_typeRef_fields_self] using
+            datatype_cons_typeRef_fields_self_of_wf_singleton s c hTail
 
 private theorem nested_datatype_field_head_wf_rec_of_cons_wf
     {sNested : native_String}
@@ -2016,9 +2221,19 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                               exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
                                 _ _hInh _hRec
               | TypeRef r =>
+                  have hHeadCons :
+                      __smtx_dt_cons_wf_rec
+                          (SmtDatatypeCons.cons (SmtType.TypeRef r)
+                            SmtDatatypeCons.unit)
+                          (native_reflist_insert native_reflist_nil s) = true :=
+                    dt_wf_cons_of_wf (d := dTail) (by
+                      simpa [__smtx_type_wf_rec] using _hRec)
+                  have hSelf : r = s :=
+                    typeRef_singleton_cons_wf_eq hHeadCons
+                  subst r
                   cases dTail with
                   | null =>
-                      -- A datatype with only a recursive constructor is
+                      -- A datatype with only its recursive constructor is
                       -- ruled out by semantic inhabitation, but that is part
                       -- of the remaining productivity proof.
                       exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
@@ -2028,13 +2243,13 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                           datatype_cons_no_deferred_fields cNext
                       · let d0 :=
                             SmtDatatype.sum
-                              (SmtDatatypeCons.cons (SmtType.TypeRef r)
+                              (SmtDatatypeCons.cons (SmtType.TypeRef s)
                                 SmtDatatypeCons.unit)
                               (SmtDatatype.sum cNext dRest)
                         have hFirst :
                             __smtx_datatype_cons_default s d0
                                 (SmtValue.DtCons s d0 native_nat_zero)
-                                (SmtDatatypeCons.cons (SmtType.TypeRef r)
+                                (SmtDatatypeCons.cons (SmtType.TypeRef s)
                                   SmtDatatypeCons.unit) =
                               SmtValue.NotValue := by
                           simp [d0, __smtx_datatype_cons_default,
@@ -2045,7 +2260,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                                 (native_reflist_insert native_reflist_nil s) =
                               true :=
                           dt_wf_tail_of_nonempty_tail_wf
-                            (c := SmtDatatypeCons.cons (SmtType.TypeRef r)
+                            (c := SmtDatatypeCons.cons (SmtType.TypeRef s)
                               SmtDatatypeCons.unit)
                             (cTail := cNext)
                             (dTail := dRest)
@@ -2063,7 +2278,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                             cNext hNextWf hNoDeferred
                         exact
                           datatype_default_typed_canonical_of_second_args_typed s
-                            (SmtDatatypeCons.cons (SmtType.TypeRef r)
+                            (SmtDatatypeCons.cons (SmtType.TypeRef s)
                               SmtDatatypeCons.unit)
                             cNext dRest hFirst hArgs
                       · by_cases hNextSimple :
@@ -2071,7 +2286,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                         · have hPrefix :
                               datatype_typeRef_prefix_to_simple
                                 (SmtDatatype.sum
-                                  (SmtDatatypeCons.cons (SmtType.TypeRef r)
+                                  (SmtDatatypeCons.cons (SmtType.TypeRef s)
                                     SmtDatatypeCons.unit)
                                   (SmtDatatype.sum cNext dRest)) := by
                             exact Or.inr ⟨by
