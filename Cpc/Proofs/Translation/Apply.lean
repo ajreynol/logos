@@ -5166,6 +5166,119 @@ private def smtx_type_fun_like_domains_no_reglan : SmtType -> Prop
           smtx_type_fun_like_domains_no_reglan B
   | _ => True
 
+private def smtx_type_fun_like_domains_field_wf : SmtType -> Prop
+  | SmtType.Seq A => smtx_type_fun_like_domains_field_wf A
+  | SmtType.Set A => smtx_type_fun_like_domains_field_wf A
+  | SmtType.Map A B =>
+      smtx_type_fun_like_domains_field_wf A ∧
+        smtx_type_fun_like_domains_field_wf B
+  | SmtType.FunType A B =>
+      smtx_type_field_wf_rec A native_reflist_nil ∧
+        smtx_type_fun_like_domains_field_wf A ∧
+          smtx_type_fun_like_domains_field_wf B
+  | SmtType.DtcAppType A B =>
+      smtx_type_field_wf_rec A native_reflist_nil ∧
+        smtx_type_fun_like_domains_field_wf A ∧
+          smtx_type_fun_like_domains_field_wf B
+  | _ => True
+
+private theorem smtx_type_fun_like_domains_field_wf_of_type_wf_rec :
+    ∀ {T : SmtType} {refs : RefList},
+      __smtx_type_wf_rec T refs = true ->
+        smtx_type_fun_like_domains_field_wf T
+  | SmtType.None, _refs, h => by
+      simp [__smtx_type_wf_rec] at h
+  | SmtType.Bool, _refs, _h => by
+      simp [smtx_type_fun_like_domains_field_wf]
+  | SmtType.Int, _refs, _h => by
+      simp [smtx_type_fun_like_domains_field_wf]
+  | SmtType.Real, _refs, _h => by
+      simp [smtx_type_fun_like_domains_field_wf]
+  | SmtType.RegLan, _refs, h => by
+      simp [__smtx_type_wf_rec] at h
+  | SmtType.BitVec _w, _refs, _h => by
+      simp [smtx_type_fun_like_domains_field_wf]
+  | SmtType.Map A B, _refs, h => by
+      rcases map_type_wf_rec_components_of_wf h with ⟨hA, hB⟩
+      exact ⟨smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := A)
+          (refs := native_reflist_nil) hA,
+        smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := B)
+          (refs := native_reflist_nil) hB⟩
+  | SmtType.Set A, _refs, h => by
+      exact smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := A)
+        (refs := native_reflist_nil) (set_type_wf_rec_component_of_wf h)
+  | SmtType.Seq A, _refs, h => by
+      exact smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := A)
+        (refs := native_reflist_nil) (seq_type_wf_rec_component_of_wf h)
+  | SmtType.Char, _refs, _h => by
+      simp [smtx_type_fun_like_domains_field_wf]
+  | SmtType.Datatype _s _d, _refs, _h => by
+      simp [smtx_type_fun_like_domains_field_wf]
+  | SmtType.TypeRef _s, _refs, _h => by
+      simp [smtx_type_fun_like_domains_field_wf]
+  | SmtType.USort _i, _refs, _h => by
+      simp [smtx_type_fun_like_domains_field_wf]
+  | SmtType.FunType A B, _refs, h => by
+      rcases fun_type_wf_rec_components_of_wf h with ⟨hA, hB⟩
+      exact ⟨
+        smtx_type_field_wf_rec_of_type_wf_rec hA,
+        smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := A)
+          (refs := native_reflist_nil) hA,
+        smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := B)
+          (refs := native_reflist_nil) hB⟩
+  | SmtType.DtcAppType _A _B, _refs, h => by
+      simp [__smtx_type_wf_rec] at h
+termination_by T refs h => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals simp [sizeOf]
+  all_goals omega
+
+private theorem smtx_type_fun_like_domains_field_wf_of_type_wf
+    {T : SmtType} (h : __smtx_type_wf T = true) :
+    smtx_type_fun_like_domains_field_wf T := by
+  by_cases hReg : T = SmtType.RegLan
+  · subst T
+    simp [smtx_type_fun_like_domains_field_wf]
+  · exact smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := T)
+      (refs := native_reflist_nil) (smtx_type_wf_rec_of_type_wf hReg h)
+
+private theorem smtx_type_fun_like_domains_field_wf_of_field_wf_rec
+    {T : SmtType} {refs : RefList}
+    (h : smtx_type_field_wf_rec T refs) :
+    smtx_type_fun_like_domains_field_wf T := by
+  cases T
+  case TypeRef _s => simp [smtx_type_fun_like_domains_field_wf]
+  all_goals
+    exact smtx_type_fun_like_domains_field_wf_of_type_wf_rec (refs := refs) (by
+      simpa [smtx_type_field_wf_rec] using h)
+
+private theorem smtx_type_fun_like_arg_field_wf_of_domains_field_wf
+    {T A B : SmtType}
+    (hWF : smtx_type_fun_like_domains_field_wf T)
+    (hHead : T = SmtType.FunType A B ∨ T = SmtType.DtcAppType A B) :
+    smtx_type_field_wf_rec A native_reflist_nil := by
+  rcases hHead with hHead | hHead
+  · rw [hHead] at hWF
+    exact hWF.1
+  · rw [hHead] at hWF
+    exact hWF.1
+
+private theorem smtx_type_fun_like_domains_field_wf_apply
+    {F X : SmtType}
+    (hF : smtx_type_fun_like_domains_field_wf F)
+    (hNN : __smtx_typeof_apply F X ≠ SmtType.None) :
+    smtx_type_fun_like_domains_field_wf (__smtx_typeof_apply F X) := by
+  rcases typeof_apply_non_none_cases hNN with ⟨A, B, hHead, hX, hA, _hB⟩
+  have hRes : __smtx_typeof_apply F X = B :=
+    smtx_typeof_apply_of_head_cases hHead hX hA
+  rw [hRes]
+  rcases hHead with hHead | hHead
+  · rw [hHead] at hF
+    exact hF.2.2
+  · rw [hHead] at hF
+    exact hF.2.2
+
 private theorem smtx_type_fun_like_domains_no_reglan_of_type_wf_rec :
     ∀ {T : SmtType} {refs : RefList},
       __smtx_type_wf_rec T refs = true ->
