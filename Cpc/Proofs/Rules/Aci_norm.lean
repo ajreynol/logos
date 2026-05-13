@@ -8866,6 +8866,15 @@ private def BvXorListCanonical (M : SmtModel) (w : Nat) : Term -> Prop
       BvEvalCanonicalWidth M w x ∧ BvXorListCanonical M w xs
   | t => BvEvalCanonicalWidth M w t
 
+private def BvXorHeadFlat : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) _) _ => False
+  | _ => True
+
+private def BvXorFlatList : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvxor) x) xs =>
+      BvXorHeadFlat x ∧ BvXorFlatList xs
+  | _ => True
+
 private theorem bvXor_eval_canonical_width_of_canonical_args
     (M : SmtModel) (x y : Term) (w : Nat) :
     BvEvalCanonicalWidth M w x ->
@@ -9579,8 +9588,162 @@ private theorem bvXor_list_concat_rec_rel_eval
                 hNilEval
                 (Classical.choose_spec
                   (bvXorListCanonical_eval M w z hZCan)).1
-                (Classical.choose_spec
+              (Classical.choose_spec
                   (bvXorListCanonical_eval M w z hZCan)).2)⟩
+
+private theorem bvXor_flat_list_concat_rec :
+    (a z : Term) ->
+    __eo_is_list (Term.UOp UserOp.bvxor) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvxor) z = Term.Boolean true ->
+    BvXorFlatList a ->
+    BvXorFlatList z ->
+    BvXorFlatList (__eo_list_concat_rec a z)
+  | a, z, hAList, hZList, hAFlat, hZFlat => by
+      induction a, z using __eo_list_concat_rec.induct with
+      | case1 z =>
+          simp [__eo_is_list] at hAList
+      | case2 a hA =>
+          simp [__eo_is_list] at hZList
+      | case3 g x y z _hZ ih =>
+          have hg : g = Term.UOp UserOp.bvxor :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvxor) g x y hAList
+          subst g
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.bvxor) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvxor) x y hAList
+          have hXFlat : BvXorHeadFlat x := hAFlat.1
+          have hYFlat : BvXorFlatList y := hAFlat.2
+          have hTailFlat :
+              BvXorFlatList (__eo_list_concat_rec y z) :=
+            ih hYList hZList hYFlat hZFlat
+          have hTailNe :
+              __eo_list_concat_rec y z ≠ Term.Stuck :=
+            eo_list_concat_rec_ne_stuck_of_list
+              (Term.UOp UserOp.bvxor) y z hYList _hZ
+          rw [eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+            (Term.UOp UserOp.bvxor) x y z hTailNe]
+          exact ⟨hXFlat, hTailFlat⟩
+      | case4 nil z _hNil hZ _hNot =>
+          have hNilTrue :
+              __eo_is_list_nil (Term.UOp UserOp.bvxor) nil =
+                Term.Boolean true := by
+            have hGet :=
+              eo_get_nil_rec_ne_stuck_of_is_list_true
+                (Term.UOp UserOp.bvxor) nil hAList
+            have hReq :
+                __eo_requires
+                    (__eo_is_list_nil (Term.UOp UserOp.bvxor) nil)
+                    (Term.Boolean true) nil ≠ Term.Stuck := by
+              simpa [__eo_get_nil_rec] using hGet
+            exact eo_requires_eq_of_ne_stuck
+              (__eo_is_list_nil (Term.UOp UserOp.bvxor) nil)
+              (Term.Boolean true) nil hReq
+          rw [show __eo_list_concat_rec nil z = z by
+            cases nil <;> cases z <;>
+              simp [__eo_is_list_nil, __eo_list_concat_rec] at hNilTrue hZ ⊢]
+          exact hZFlat
+
+private theorem bvXor_l1_norm_rec_flat_list_of_head_flat
+    (id t : Term) :
+    BvXorFlatList id ->
+    id ≠ Term.Stuck ->
+    BvXorHeadFlat t ->
+    BvXorFlatList
+      (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.bvxor) id t) := by
+  intro hIdFlat hIdNe hTFlat
+  by_cases hTStuck : t = Term.Stuck
+  · subst t
+    simp [__eo_l_1___get_a_norm_rec, BvXorFlatList]
+  · by_cases hEq : t = id
+    · subst t
+      rw [bvXor_l1_eq_self_of_eq id hIdNe]
+      exact hIdFlat
+    · rw [bvXor_l1_eq_xor_of_ne_id id t hIdNe hTStuck hEq]
+      exact ⟨hTFlat, hIdFlat⟩
+
+private theorem bvXorHeadFlat_of_not_bvxor (t : Term) :
+    (∀ y x, t ≠ mkBvXor y x) ->
+    BvXorHeadFlat t := by
+  intro hNot
+  cases t with
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              cases op <;> simp [BvXorHeadFlat]
+              case bvxor =>
+                exact False.elim (hNot y x rfl)
+          | _ =>
+              simp [BvXorHeadFlat]
+      | _ =>
+          simp [BvXorHeadFlat]
+  | _ =>
+      simp [BvXorHeadFlat]
+
+private theorem bvXor_l1_norm_rec_flat_list_of_not_bvxor
+    (id t : Term) :
+    BvXorFlatList id ->
+    id ≠ Term.Stuck ->
+    (∀ y x, t ≠ mkBvXor y x) ->
+    BvXorFlatList
+      (__eo_l_1___get_a_norm_rec (Term.UOp UserOp.bvxor) id t) := by
+  intro hIdFlat hIdNe hNot
+  exact bvXor_l1_norm_rec_flat_list_of_head_flat id t hIdFlat hIdNe
+    (bvXorHeadFlat_of_not_bvxor t hNot)
+
+private theorem bvXor_get_a_norm_rec_non_apply
+    (id t : Term) :
+    (∀ f x, t ≠ Term.Apply f x) ->
+    __get_a_norm_rec (Term.UOp UserOp.bvxor) id t =
+      __eo_l_1___get_a_norm_rec (Term.UOp UserOp.bvxor) id t := by
+  intro hNot
+  cases t
+  case Apply f x =>
+    exact False.elim (hNot f x rfl)
+  all_goals
+    cases id <;> simp [__get_a_norm_rec, __eo_l_1___get_a_norm_rec]
+
+private theorem bvXor_get_a_norm_rec_apply_non_apply
+    (id f x : Term) :
+    (∀ g y, f ≠ Term.Apply g y) ->
+    __get_a_norm_rec (Term.UOp UserOp.bvxor) id (Term.Apply f x) =
+      __eo_l_1___get_a_norm_rec
+        (Term.UOp UserOp.bvxor) id (Term.Apply f x) := by
+  intro hNot
+  cases f
+  case Apply g y =>
+    exact False.elim (hNot g y rfl)
+  all_goals
+    cases id <;> simp [__get_a_norm_rec, __eo_l_1___get_a_norm_rec]
+
+private theorem bvXor_get_a_norm_rec_apply_apply_ne_bvxor
+    (id g y x : Term) :
+    g ≠ Term.UOp UserOp.bvxor ->
+    g ≠ Term.Stuck ->
+    __get_a_norm_rec (Term.UOp UserOp.bvxor) id
+        (Term.Apply (Term.Apply g y) x) =
+      __eo_l_1___get_a_norm_rec (Term.UOp UserOp.bvxor) id
+        (Term.Apply (Term.Apply g y) x) := by
+  intro hG hGNe
+  have hEq :
+      __eo_eq (Term.UOp UserOp.bvxor) g = Term.Boolean false :=
+    eo_eq_eq_false_of_ne_local
+      (x := Term.UOp UserOp.bvxor) (y := g)
+      (by
+        intro h
+        exact hG h.symm)
+      (by intro h; cases h)
+      hGNe
+  by_cases hIdStuck : id = Term.Stuck
+  · subst id
+    simp [__get_a_norm_rec, __eo_l_1___get_a_norm_rec]
+  · cases id <;>
+      simp [__get_a_norm_rec, __eo_l_1___get_a_norm_rec, hEq,
+        __eo_ite, native_ite, native_teq] at hIdStuck ⊢
 
 private theorem bvXor_get_a_norm_rec_rel_eval
     (M : SmtModel) (hM : model_total_typed M) (id : Term) (w : Nat)
@@ -9690,6 +9853,94 @@ private theorem bvXor_get_a_norm_rec_rel_eval
         simpa [__get_a_norm_rec, __eo_l_1___get_a_norm_rec] using
           bvXor_l1_norm_rec_rel_eval M hM id w hIdList hIdEval hIdCan hIdNe
             _ hTy
+
+private theorem bvXor_get_a_norm_rec_flat_list
+    (M : SmtModel) (hM : model_total_typed M) (id : Term) (w : Nat)
+    (hIdList :
+      __eo_is_list (Term.UOp UserOp.bvxor) id = Term.Boolean true)
+    (hIdEval :
+      __smtx_model_eval M (__eo_to_smt id) =
+        SmtValue.Binary (native_nat_to_int w) 0)
+    (hIdCan : BvXorListCanonical M w id)
+    (hIdFlat : BvXorFlatList id)
+    (hIdNe : id ≠ Term.Stuck) :
+    (t : Term) ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
+      BvXorFlatList
+        (__get_a_norm_rec (Term.UOp UserOp.bvxor) id t)
+  | t, hTy => by
+      by_cases hApp : ∃ f x, t = Term.Apply f x
+      · rcases hApp with ⟨f, x, rfl⟩
+        by_cases hF : ∃ g y, f = Term.Apply g y
+        · rcases hF with ⟨g, y, rfl⟩
+          by_cases hG : g = Term.UOp UserOp.bvxor
+          · subst g
+            have hTypes := bvXor_args_of_bitvec_type y x w hTy
+            have hYRec :=
+              bvXor_get_a_norm_rec_rel_eval M hM id w
+                hIdList hIdEval hIdCan hIdNe y hTypes.1
+            have hXRec :=
+              bvXor_get_a_norm_rec_rel_eval M hM id w
+                hIdList hIdEval hIdCan hIdNe x hTypes.2
+            have hYFlat :=
+              bvXor_get_a_norm_rec_flat_list M hM id w hIdList
+                hIdEval hIdCan hIdFlat hIdNe y hTypes.1
+            have hXFlat :=
+              bvXor_get_a_norm_rec_flat_list M hM id w hIdList
+                hIdEval hIdCan hIdFlat hIdNe x hTypes.2
+            simpa [__get_a_norm_rec, __eo_eq, __eo_ite, native_ite,
+              native_teq, native_not, SmtEval.native_not,
+              __eo_list_concat, __eo_requires, hYRec.1, hXRec.1] using
+              bvXor_flat_list_concat_rec
+                (__get_a_norm_rec (Term.UOp UserOp.bvxor) id y)
+                (__get_a_norm_rec (Term.UOp UserOp.bvxor) id x)
+                hYRec.1 hXRec.1 hYFlat hXFlat
+          · have hGNe : g ≠ Term.Stuck := by
+              intro hStuck
+              subst g
+              have hBad :
+                  __smtx_typeof
+                    (__eo_to_smt
+                      (Term.Apply (Term.Apply Term.Stuck y) x)) =
+                    SmtType.None := by
+                change __smtx_typeof
+                  (SmtTerm.Apply
+                    (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
+                    (__eo_to_smt x)) = SmtType.None
+                exact smtx_typeof_apply_apply_none
+                  (__eo_to_smt x) (__eo_to_smt y)
+              rw [hBad] at hTy
+              cases hTy
+            rw [bvXor_get_a_norm_rec_apply_apply_ne_bvxor
+              id g y x hG hGNe]
+            exact
+              bvXor_l1_norm_rec_flat_list_of_not_bvxor id
+                (Term.Apply (Term.Apply g y) x) hIdFlat hIdNe (by
+                  intro y' x' h
+                  apply hG
+                  cases h
+                  rfl)
+        · rw [bvXor_get_a_norm_rec_apply_non_apply id f x
+            (by
+              intro g y h
+              exact hF ⟨g, y, h⟩)]
+          exact
+            bvXor_l1_norm_rec_flat_list_of_not_bvxor id
+              (Term.Apply f x) hIdFlat hIdNe (by
+                intro y' x' h
+                apply hF
+                injection h with hFn _hx
+                exact ⟨Term.UOp UserOp.bvxor, y', hFn⟩)
+      · rw [bvXor_get_a_norm_rec_non_apply id t
+          (by
+            intro f x h
+            exact hApp ⟨f, x, h⟩)]
+        exact
+          bvXor_l1_norm_rec_flat_list_of_not_bvxor id t
+            hIdFlat hIdNe (by
+              intro y' x' h
+              apply hApp
+              exact ⟨Term.Apply (Term.UOp UserOp.bvxor) y', x', h⟩)
 
 private theorem bvXor_is_list_nil_boolean_of_ne_stuck (t : Term) :
     t ≠ Term.Stuck ->
@@ -9801,6 +10052,65 @@ private theorem bvXor_singleton_elim_eval_canonical
   | _ =>
       simpa [__eo_list_singleton_elim_2] using
         bvXorListCanonical_eval M w _ hCan
+
+private theorem bvXor_singleton_elim_list_canonical_of_flat
+    (M : SmtModel) (c : Term) (w : Nat) :
+    __eo_is_list (Term.UOp UserOp.bvxor) c = Term.Boolean true ->
+    BvXorListCanonical M w c ->
+    BvXorFlatList c ->
+    BvXorListCanonical M w
+      (__eo_list_singleton_elim (Term.UOp UserOp.bvxor) c) := by
+  intro hList hCan hFlat
+  change BvXorListCanonical M w
+    (__eo_requires (__eo_is_list (Term.UOp UserOp.bvxor) c)
+      (Term.Boolean true) (__eo_list_singleton_elim_2 c))
+  rw [hList]
+  simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
+  cases c with
+  | Apply f tail =>
+      cases f with
+      | Apply g head =>
+          have hg :
+              g = Term.UOp UserOp.bvxor :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvxor) g head tail hList
+          subst g
+          have hHeadCan : BvEvalCanonicalWidth M w head := hCan.1
+          have hHeadFlat : BvXorHeadFlat head := hFlat.1
+          have hTailList :
+              __eo_is_list (Term.UOp UserOp.bvxor) tail =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvxor) head tail hList
+          have hTailNe : tail ≠ Term.Stuck :=
+            bvXor_is_list_true_ne_stuck hTailList
+          rcases bvXor_is_list_nil_boolean_of_ne_stuck tail hTailNe with
+            ⟨b, hNil⟩
+          cases b <;>
+            simp [__eo_list_singleton_elim_2, hNil, __eo_ite, native_ite,
+              native_teq]
+          · exact hCan
+          · cases head with
+            | Apply hf hx =>
+                cases hf with
+                | Apply hg hy =>
+                    cases hg with
+                    | UOp op =>
+                        cases op
+                        case bvxor =>
+                          simp [BvXorHeadFlat] at hHeadFlat
+                        all_goals
+                          simpa [BvXorListCanonical] using hHeadCan
+                    | _ =>
+                        simpa [BvXorListCanonical] using hHeadCan
+                | _ =>
+                    simpa [BvXorListCanonical] using hHeadCan
+            | _ =>
+                simpa [BvXorListCanonical] using hHeadCan
+      | _ =>
+          simpa [__eo_list_singleton_elim_2] using hCan
+  | _ =>
+      simpa [__eo_list_singleton_elim_2] using hCan
 
 private theorem bvXor_get_a_norm_eval_canonical
     (M : SmtModel) (hM : model_total_typed M) (y x : Term) :
@@ -9960,6 +10270,76 @@ private theorem smt_value_rel_get_a_norm_bvxor
             (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof t)) t))))
     (__smtx_model_eval M (__eo_to_smt t))
     hNormRel
+
+private theorem bvXor_get_a_norm_list_canonical_of_type
+    (M : SmtModel) (hM : model_total_typed M) (y x : Term) (w : Nat) :
+    RuleProofs.eo_has_smt_translation (mkBvXor y x) ->
+    __smtx_typeof (__eo_to_smt (mkBvXor y x)) = SmtType.BitVec w ->
+    __eo_is_list (Term.UOp UserOp.bvxor) (__get_a_norm (mkBvXor y x)) =
+      Term.Boolean true ->
+    BvXorListCanonical M w (__get_a_norm (mkBvXor y x)) := by
+  intro _hTrans htTy hAList
+  let t := mkBvXor y x
+  have hTypeMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t (by
+      rw [htTy]
+      exact smt_bitvec_ne_none w)
+  have hTypeBitVec :
+      __eo_to_smt_type (__eo_typeof t) = SmtType.BitVec w := by
+    rw [← hTypeMatch, htTy]
+  let id := __eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof t)
+  have hIdNe : id ≠ Term.Stuck := by
+    intro hIdStuck
+    have hAStuck :
+        __get_a_norm (mkBvXor y x) = Term.Stuck := by
+      dsimp [t, id, mkBvXor] at hIdStuck ⊢
+      simp [__get_a_norm, __get_a_norm_rec, __eo_list_singleton_elim,
+        __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
+        native_not, SmtEval.native_not]
+    rw [hAStuck] at hAList
+    simp [__eo_is_list] at hAList
+  have hIdEq :
+      id = Term.Binary (native_nat_to_int w) 0 := by
+    dsimp [id]
+    exact bvXor_nil_eq_zero_of_type w hTypeBitVec hIdNe
+  have hIdList :
+      __eo_is_list (Term.UOp UserOp.bvxor) id = Term.Boolean true := by
+    rw [hIdEq]
+    have hNilConcrete := bvXor_zero_is_list_nil w
+    simp [__eo_is_list, __eo_get_nil_rec, hNilConcrete,
+      __eo_requires, __eo_is_ok, native_ite, native_teq, native_not,
+      SmtEval.native_not]
+  have hIdEval :
+      __smtx_model_eval M (__eo_to_smt id) =
+        SmtValue.Binary (native_nat_to_int w) 0 := by
+    rw [hIdEq]
+    rw [show __eo_to_smt (Term.Binary (native_nat_to_int w) 0) =
+      SmtTerm.Binary (native_nat_to_int w) 0 by rfl]
+    rw [__smtx_model_eval]
+  have hIdCan : BvXorListCanonical M w id := by
+    rw [hIdEq]
+    exact ⟨0, by simpa [hIdEq] using hIdEval, by
+      simp [native_zeq, native_mod_total]⟩
+  have hIdFlat : BvXorFlatList id := by
+    rw [hIdEq]
+    simp [BvXorFlatList]
+  have hRec :=
+    bvXor_get_a_norm_rec_rel_eval M hM id w hIdList hIdEval hIdCan hIdNe
+      t htTy
+  have hRecFlat :
+      BvXorFlatList
+        (__get_a_norm_rec (Term.UOp UserOp.bvxor) id t) :=
+    bvXor_get_a_norm_rec_flat_list M hM id w hIdList hIdEval hIdCan
+      hIdFlat hIdNe t htTy
+  change BvXorListCanonical M w
+    (__eo_list_singleton_elim (Term.UOp UserOp.bvxor)
+      (__get_a_norm_rec (Term.UOp UserOp.bvxor)
+        (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof t)) t))
+  dsimp [id] at hRec hRecFlat
+  exact bvXor_singleton_elim_list_canonical_of_flat M
+    (__get_a_norm_rec (Term.UOp UserOp.bvxor)
+      (__eo_nil (Term.UOp UserOp.bvxor) (__eo_typeof t)) t)
+    w hRec.1 hRec.2.1 hRecFlat
 
 private theorem native_binary_or_right_zero_mod_nat
     (w : Nat) (n : Int) :
@@ -18853,6 +19233,18 @@ private theorem smt_value_rel_of_aci_norm_eq_true_right_translation
       rw [hFalse] at hL1
       contradiction
 
+private theorem bvXor_list_meq_rel_eval
+    (M : SmtModel) (w : Nat) {c d : Term} :
+    __eo_is_list (Term.UOp UserOp.bvxor) c = Term.Boolean true ->
+    BvXorListCanonical M w c ->
+    __eo_is_list (Term.UOp UserOp.bvxor) d = Term.Boolean true ->
+    BvXorListCanonical M w d ->
+    __eo_list_meq (Term.UOp UserOp.bvxor) c d = Term.Boolean true ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt c))
+      (__smtx_model_eval M (__eo_to_smt d)) := by
+  sorry
+
 private theorem smt_value_rel_of_bvxor_get_a_norm_meq
     (M : SmtModel) (hM : model_total_typed M)
     (y x y' x' : Term) :
@@ -18887,27 +19279,19 @@ private theorem smt_value_rel_of_bvxor_get_a_norm_meq
   rcases bvxor_width_eq_of_same_result_type y x y' x'
       hLeftTrans hRightTrans hSameType with
     ⟨w, hLeftTy, hRightTy⟩
-  have hLeftOrigCan :
-      BvEvalCanonicalWidth M w (mkBvXor y x) :=
-    bvEvalCanonicalWidth_of_smt_type_bitvec M hM (mkBvXor y x) w hLeftTy
-  have hRightOrigCan :
-      BvEvalCanonicalWidth M w (mkBvXor y' x') :=
-    bvEvalCanonicalWidth_of_smt_type_bitvec M hM (mkBvXor y' x') w hRightTy
-  have hLeftRel :=
-    smt_value_rel_get_a_norm_bvxor M hM y x hLeftTrans
-      (bvXor_is_list_true_ne_stuck hLeftList)
-  have hRightRel :=
-    smt_value_rel_get_a_norm_bvxor M hM y' x' hRightTrans
-      (bvXor_is_list_true_ne_stuck hRightList)
-  have hLeftCan :
-      BvEvalCanonicalWidth M w leftPayload :=
-    bvEvalCanonicalWidth_of_smt_value_rel_left M w
-      (mkBvXor y x) leftPayload hLeftOrigCan hLeftRel
-  have hRightCan :
-      BvEvalCanonicalWidth M w rightPayload :=
-    bvEvalCanonicalWidth_of_smt_value_rel_left M w
-      (mkBvXor y' x') rightPayload hRightOrigCan hRightRel
-  sorry
+  have hLeftListCan :
+      BvXorListCanonical M w leftPayload := by
+    dsimp [leftPayload]
+    exact bvXor_get_a_norm_list_canonical_of_type M hM y x w
+      hLeftTrans hLeftTy hLeftList
+  have hRightListCan :
+      BvXorListCanonical M w rightPayload := by
+    dsimp [rightPayload]
+    exact bvXor_get_a_norm_list_canonical_of_type M hM y' x' w
+      hRightTrans hRightTy hRightList
+  exact bvXor_list_meq_rel_eval M w hLeftList hLeftListCan
+    hRightList hRightListCan (by
+      simpa [leftPayload, rightPayload] using hMeq)
 
 private theorem smt_value_rel_of_bvxor_normal_forms_eq_true
     (M : SmtModel) (hM : model_total_typed M)
