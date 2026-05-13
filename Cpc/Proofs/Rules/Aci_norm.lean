@@ -9372,6 +9372,460 @@ private theorem bvXor_get_elements_erase_eq
   rw [hEraseEq]
   exact bvXor_get_elements_erase_rec_eq M w hCList hCCan hECan
 
+private theorem bvXor_tail_minclude_of_cons_right
+    (M : SmtModel) (w : Nat) {c x xs : Term} :
+    __eo_is_list (Term.UOp UserOp.bvxor) c = Term.Boolean true ->
+    BvXorListCanonical M w c ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    BvEvalCanonicalWidth M w x ->
+    BvXorListCanonical M w xs ->
+    __eo_list_minclude (Term.UOp UserOp.bvxor) c (mkBvXor x xs) =
+      Term.Boolean true ->
+    let erased := __eo_list_erase (Term.UOp UserOp.bvxor) c x
+    erased ≠ c ∧
+      __eo_is_list (Term.UOp UserOp.bvxor) erased = Term.Boolean true ∧
+      BvXorListCanonical M w erased ∧
+      __eo_list_minclude (Term.UOp UserOp.bvxor) erased xs =
+        Term.Boolean true := by
+  intro hCList hCCan hXsList hXCan hXsCan hIncl
+  have hDList :
+      __eo_is_list (Term.UOp UserOp.bvxor) (mkBvXor x xs) =
+        Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list
+      (Term.UOp UserOp.bvxor) x xs (by decide) hXsList
+  have hXNe : x ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hXCan
+  have hElemsCNe : __eo_get_elements_rec c ≠ Term.Stuck :=
+    bvXor_get_elements_rec_ne_stuck M w c hCList hCCan
+  have hElemsXsNe : __eo_get_elements_rec xs ≠ Term.Stuck :=
+    bvXor_get_elements_rec_ne_stuck M w xs hXsList hXsCan
+  let z := __eo_list_erase_rec (__eo_get_elements_rec c) x
+  have hInclRec :
+      __eo_list_minclude_rec z (__eo_get_elements_rec xs)
+        (__eo_not (__eo_eq z (__eo_get_elements_rec c))) =
+          Term.Boolean true := by
+    have hIncl' := hIncl
+    rw [show __eo_list_minclude (Term.UOp UserOp.bvxor) c
+          (mkBvXor x xs) =
+        __eo_list_minclude_rec
+          (__eo_get_elements_rec c)
+          (Term.Apply (Term.Apply Term.__eo_List_cons x)
+            (__eo_get_elements_rec xs))
+          (Term.Boolean true) by
+          simp [__eo_list_minclude, hCList, hDList, __eo_requires,
+            native_ite, native_teq, native_not, SmtEval.native_not,
+            bvXor_get_elements_xor_eq hXNe hElemsXsNe]] at hIncl'
+    simpa [__eo_list_minclude_rec, z] using hIncl'
+  have hZNe : z ≠ Term.Stuck := by
+    intro hZ
+    have hInclRec' := hInclRec
+    rw [hZ] at hInclRec'
+    simp [__eo_list_minclude_rec] at hInclRec'
+  have hZChanged : z ≠ __eo_get_elements_rec c := by
+    intro hEq
+    have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
+      eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
+    simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
+      native_teq] at hInclRec
+  have hNotEqTerm :
+      __eo_not (__eo_eq z (__eo_get_elements_rec c)) =
+        Term.Boolean true := by
+    have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
+      eo_eq_eq_false_of_ne_local hZChanged hZNe hElemsCNe
+    simp [__eo_not, hEqTerm, native_not]
+  have hTailInclRec :
+      __eo_list_minclude_rec z (__eo_get_elements_rec xs)
+          (Term.Boolean true) =
+        Term.Boolean true := by
+    rw [hNotEqTerm] at hInclRec
+    exact hInclRec
+  have hEraseChanged :
+      __eo_list_erase (Term.UOp UserOp.bvxor) c x ≠ c := by
+    intro hEraseEq
+    apply hZChanged
+    rw [show z =
+          __eo_get_elements_rec
+            (__eo_list_erase (Term.UOp UserOp.bvxor) c x) by
+          simpa [z] using
+            (bvXor_get_elements_erase_eq M w hCList hCCan hXCan).symm]
+    exact congrArg __eo_get_elements_rec hEraseEq
+  have hEraseList :
+      __eo_is_list (Term.UOp UserOp.bvxor)
+          (__eo_list_erase (Term.UOp UserOp.bvxor) c x) =
+        Term.Boolean true :=
+    bvXor_erase_preserves_list M w hCList hCCan hXCan
+  have hEraseCan :
+      BvXorListCanonical M w
+        (__eo_list_erase (Term.UOp UserOp.bvxor) c x) :=
+    bvXor_erase_preserves_canonical M w hCList hCCan hXCan
+  have hTailIncl :
+      __eo_list_minclude (Term.UOp UserOp.bvxor)
+          (__eo_list_erase (Term.UOp UserOp.bvxor) c x) xs =
+        Term.Boolean true := by
+    have hGetErase :
+        __eo_get_elements_rec
+            (__eo_list_erase (Term.UOp UserOp.bvxor) c x) = z := by
+      simpa [z] using bvXor_get_elements_erase_eq M w hCList hCCan hXCan
+    simpa [__eo_list_minclude, hEraseList, hXsList, __eo_requires,
+      native_ite, native_teq, native_not, SmtEval.native_not, hGetErase]
+      using hTailInclRec
+  exact ⟨hEraseChanged, hEraseList, hEraseCan, hTailIncl⟩
+
+private theorem bvXor_raw_erase_changed_of_minclude_cons_right
+    (M : SmtModel) (w : Nat) {c x xs : Term} :
+    __eo_is_list (Term.UOp UserOp.bvxor) c = Term.Boolean true ->
+    BvXorListCanonical M w c ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    BvEvalCanonicalWidth M w x ->
+    BvXorListCanonical M w xs ->
+    __eo_list_minclude (Term.UOp UserOp.bvxor) c (mkBvXor x xs) =
+      Term.Boolean true ->
+    __eo_list_erase_rec (__eo_get_elements_rec c) x ≠
+      __eo_get_elements_rec c := by
+  intro hCList hCCan hXsList hXCan hXsCan hIncl
+  have hDList :
+      __eo_is_list (Term.UOp UserOp.bvxor) (mkBvXor x xs) =
+        Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list
+      (Term.UOp UserOp.bvxor) x xs (by decide) hXsList
+  have hXNe : x ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hXCan
+  have hElemsCNe : __eo_get_elements_rec c ≠ Term.Stuck :=
+    bvXor_get_elements_rec_ne_stuck M w c hCList hCCan
+  have hElemsXsNe : __eo_get_elements_rec xs ≠ Term.Stuck :=
+    bvXor_get_elements_rec_ne_stuck M w xs hXsList hXsCan
+  let z := __eo_list_erase_rec (__eo_get_elements_rec c) x
+  have hInclRec :
+      __eo_list_minclude_rec z (__eo_get_elements_rec xs)
+        (__eo_not (__eo_eq z (__eo_get_elements_rec c))) =
+          Term.Boolean true := by
+    have hIncl' := hIncl
+    rw [show __eo_list_minclude (Term.UOp UserOp.bvxor) c
+          (mkBvXor x xs) =
+        __eo_list_minclude_rec
+          (__eo_get_elements_rec c)
+          (Term.Apply (Term.Apply Term.__eo_List_cons x)
+            (__eo_get_elements_rec xs))
+          (Term.Boolean true) by
+          simp [__eo_list_minclude, hCList, hDList, __eo_requires,
+            native_ite, native_teq, native_not, SmtEval.native_not,
+            bvXor_get_elements_xor_eq hXNe hElemsXsNe]] at hIncl'
+    simpa [__eo_list_minclude_rec, z] using hIncl'
+  have hZNe : z ≠ Term.Stuck := by
+    intro hZ
+    have hInclRec' := hInclRec
+    rw [hZ] at hInclRec'
+    simp [__eo_list_minclude_rec] at hInclRec'
+  intro hEq
+  have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
+    eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
+  simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
+    native_teq] at hInclRec
+
+private theorem raw_list_erase_rec_cons_eq
+    (x xs e : Term) :
+    x = e ->
+    x ≠ Term.Stuck ->
+    e ≠ Term.Stuck ->
+    __eo_list_erase_rec
+      (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) e = xs := by
+  intro hEq hX hE
+  have hEqTerm : __eo_eq x e = Term.Boolean true :=
+    eo_eq_eq_true_of_eq_local hEq hX hE
+  simp [__eo_list_erase_rec, hEqTerm, __eo_ite, native_ite, native_teq]
+
+private theorem raw_list_erase_rec_cons_ne
+    (x xs e : Term) :
+    x ≠ e ->
+    x ≠ Term.Stuck ->
+    e ≠ Term.Stuck ->
+    __eo_list_erase_rec xs e ≠ Term.Stuck ->
+    __eo_list_erase_rec
+        (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) e =
+      Term.Apply (Term.Apply Term.__eo_List_cons x)
+        (__eo_list_erase_rec xs e) := by
+  intro hNe hX hE hTail
+  have hEqTerm : __eo_eq x e = Term.Boolean false :=
+    eo_eq_eq_false_of_ne_local hNe hX hE
+  cases hRec : __eo_list_erase_rec xs e <;>
+    simp [__eo_list_erase_rec, hEqTerm, __eo_ite, __eo_mk_apply,
+      native_ite, native_teq, hRec] at hTail ⊢
+
+private theorem raw_minclude_rec_left_ne_stuck_of_true
+    {y z flag : Term} :
+    __eo_list_minclude_rec y z flag = Term.Boolean true ->
+    y ≠ Term.Stuck := by
+  intro hIncl hY
+  subst y
+  simp [__eo_list_minclude_rec] at hIncl
+
+private theorem raw_minclude_rec_right_ne_stuck_of_true
+    {y z flag : Term} :
+    __eo_list_minclude_rec y z flag = Term.Boolean true ->
+    z ≠ Term.Stuck := by
+  intro hIncl hZ
+  subst z
+  cases y <;> simp [__eo_list_minclude_rec] at hIncl
+
+private theorem raw_minclude_rec_false_ne_true
+    {y z : Term} :
+    y ≠ Term.Stuck ->
+    z ≠ Term.Stuck ->
+    __eo_list_minclude_rec y z (Term.Boolean false) ≠
+      Term.Boolean true := by
+  intro hY hZ hIncl
+  cases y <;> cases z <;>
+    simp [__eo_list_minclude_rec] at hIncl hY hZ
+
+private theorem raw_minclude_rec_eq_not_flag_true
+    {y z orig : Term} :
+    y ≠ Term.Stuck ->
+    z ≠ Term.Stuck ->
+    orig ≠ Term.Stuck ->
+    __eo_list_minclude_rec y z (__eo_not (__eo_eq y orig)) =
+      Term.Boolean true ->
+    __eo_not (__eo_eq y orig) = Term.Boolean true := by
+  intro hY hZ hOrig hIncl
+  by_cases hEq : y = orig
+  · have hEqTerm : __eo_eq y orig = Term.Boolean true :=
+      eo_eq_eq_true_of_eq_local hEq hY hOrig
+    have hFlag :
+        __eo_not (__eo_eq y orig) = Term.Boolean false := by
+      simp [__eo_not, hEqTerm, native_not]
+    have hBad := hIncl
+    rw [hFlag] at hBad
+    exact False.elim (raw_minclude_rec_false_ne_true hY hZ hBad)
+  · have hEqTerm : __eo_eq y orig = Term.Boolean false :=
+      eo_eq_eq_false_of_ne_local hEq hY hOrig
+    simp [__eo_not, hEqTerm, native_not]
+
+private theorem raw_minclude_cons_left_tail_after_right_erase :
+    (c x xs : Term) ->
+    x ≠ Term.Stuck ->
+    xs ≠ Term.Stuck ->
+    __eo_list_erase_rec c x ≠ c ->
+    __eo_list_minclude_rec
+        (Term.Apply (Term.Apply Term.__eo_List_cons x) xs)
+        c (Term.Boolean true) =
+      Term.Boolean true ->
+    __eo_list_minclude_rec xs (__eo_list_erase_rec c x)
+        (Term.Boolean true) =
+      Term.Boolean true := by
+  intro c
+  induction c using __eo_get_elements_rec.induct with
+  | case1 =>
+      intro x xs hX hXs hChanged _hIncl
+      simp [__eo_list_erase_rec] at hChanged
+  | case2 f e rest ih =>
+      intro x xs hX hXs hChanged hIncl
+      cases f
+      case __eo_List_cons =>
+        let left := Term.Apply (Term.Apply Term.__eo_List_cons x) xs
+        have hLeftNe : left ≠ Term.Stuck := by
+          dsimp [left]
+          intro h
+          cases h
+        have hRestInclRaw :
+            __eo_list_minclude_rec (__eo_list_erase_rec left e) rest
+                (__eo_not (__eo_eq (__eo_list_erase_rec left e) left)) =
+              Term.Boolean true := by
+          simpa [left, __eo_list_minclude_rec] using hIncl
+        have hLeftEraseNeFromIncl :
+            __eo_list_erase_rec left e ≠ Term.Stuck :=
+          raw_minclude_rec_left_ne_stuck_of_true hRestInclRaw
+        have hRestNe : rest ≠ Term.Stuck :=
+          raw_minclude_rec_right_ne_stuck_of_true hRestInclRaw
+        have hENe : e ≠ Term.Stuck := by
+          intro hE
+          subst e
+          simp [__eo_list_erase_rec] at hLeftEraseNeFromIncl
+        by_cases hEq : e = x
+        · have hEraseRight :
+              __eo_list_erase_rec
+                  (Term.Apply (Term.Apply Term.__eo_List_cons e) rest) x =
+                rest :=
+            raw_list_erase_rec_cons_eq e rest x hEq hENe hX
+          have hEraseLeft :
+              __eo_list_erase_rec left e = xs := by
+            dsimp [left]
+            exact raw_list_erase_rec_cons_eq x xs e hEq.symm hX hENe
+          have hRestInclEq :
+              __eo_list_minclude_rec xs rest
+                  (__eo_not (__eo_eq xs left)) =
+                Term.Boolean true := by
+            simpa [hEraseLeft] using hRestInclRaw
+          have hFlag :
+              __eo_not (__eo_eq xs left) = Term.Boolean true := by
+            exact raw_minclude_rec_eq_not_flag_true hXs hRestNe hLeftNe
+              hRestInclEq
+          rw [hFlag] at hRestInclEq
+          rw [hEraseRight]
+          exact hRestInclEq
+        · have hXNeE : x ≠ e := by
+            intro hXE
+            exact hEq hXE.symm
+          have hEqTermXE : __eo_eq x e = Term.Boolean false :=
+            eo_eq_eq_false_of_ne_local hXNeE hX hENe
+          have hXsEraseNe :
+              __eo_list_erase_rec xs e ≠ Term.Stuck := by
+            intro hXsErase
+            have hLeftEraseStuck :
+                __eo_list_erase_rec left e = Term.Stuck := by
+              dsimp [left]
+              simp [__eo_list_erase_rec, hEqTermXE, __eo_ite,
+                __eo_mk_apply, native_ite, native_teq, hXsErase]
+            rw [hLeftEraseStuck] at hRestInclRaw
+            simp [__eo_list_minclude_rec] at hRestInclRaw
+          have hEraseLeft :
+              __eo_list_erase_rec left e =
+                Term.Apply (Term.Apply Term.__eo_List_cons x)
+                  (__eo_list_erase_rec xs e) := by
+            dsimp [left]
+            exact raw_list_erase_rec_cons_ne x xs e hXNeE hX hENe
+              hXsEraseNe
+          have hLeftEraseNe :
+              __eo_list_erase_rec left e ≠ Term.Stuck := by
+            exact hLeftEraseNeFromIncl
+          have hLeftEraseChanged :
+              __eo_list_erase_rec left e ≠ left := by
+            intro hSame
+            have hEqTerm :
+                __eo_eq (__eo_list_erase_rec left e) left =
+                  Term.Boolean true :=
+              eo_eq_eq_true_of_eq_local hSame hLeftEraseNe hLeftNe
+            have hFlagFalse :
+                __eo_not (__eo_eq (__eo_list_erase_rec left e) left) =
+                  Term.Boolean false := by
+              simp [__eo_not, hEqTerm, native_not]
+            have hBad := hRestInclRaw
+            rw [hFlagFalse] at hBad
+            exact False.elim
+              (raw_minclude_rec_false_ne_true hLeftEraseNe hRestNe hBad)
+          have hFlagLeft :
+              __eo_not (__eo_eq (__eo_list_erase_rec left e) left) =
+                Term.Boolean true := by
+            exact raw_minclude_rec_eq_not_flag_true hLeftEraseNe hRestNe
+              hLeftNe hRestInclRaw
+          have hRestInclTrue :
+              __eo_list_minclude_rec
+                  (Term.Apply (Term.Apply Term.__eo_List_cons x)
+                    (__eo_list_erase_rec xs e))
+                  rest (Term.Boolean true) =
+                Term.Boolean true := by
+            rw [hFlagLeft] at hRestInclRaw
+            rw [hEraseLeft] at hRestInclRaw
+            exact hRestInclRaw
+          have hTailChanged :
+              __eo_list_erase_rec rest x ≠ rest := by
+            intro hTailSame
+            apply hChanged
+            have hRestEraseNe :
+                __eo_list_erase_rec rest x ≠ Term.Stuck := by
+              rw [hTailSame]
+              exact hRestNe
+            rw [raw_list_erase_rec_cons_ne e rest x hEq hENe hX
+              hRestEraseNe, hTailSame]
+          have hIH :
+              __eo_list_minclude_rec
+                  (__eo_list_erase_rec xs e)
+                  (__eo_list_erase_rec rest x)
+                  (Term.Boolean true) =
+                Term.Boolean true :=
+            ih x (__eo_list_erase_rec xs e) hX hXsEraseNe hTailChanged
+              hRestInclTrue
+          have hRestEraseNe :
+              __eo_list_erase_rec rest x ≠ Term.Stuck := by
+            intro hRestErase
+            rw [hRestErase] at hIH
+            simp [__eo_list_minclude_rec] at hIH
+          have hEraseRight :
+              __eo_list_erase_rec
+                  (Term.Apply (Term.Apply Term.__eo_List_cons e) rest) x =
+                Term.Apply (Term.Apply Term.__eo_List_cons e)
+                  (__eo_list_erase_rec rest x) :=
+            raw_list_erase_rec_cons_ne e rest x hEq hENe hX hRestEraseNe
+          have hXsEraseChanged :
+              __eo_list_erase_rec xs e ≠ xs := by
+            intro hSame
+            apply hLeftEraseChanged
+            rw [hEraseLeft, hSame]
+          have hFlagXs :
+              __eo_not (__eo_eq (__eo_list_erase_rec xs e) xs) =
+                Term.Boolean true := by
+            have hEqTerm :
+                __eo_eq (__eo_list_erase_rec xs e) xs =
+                  Term.Boolean false :=
+              eo_eq_eq_false_of_ne_local hXsEraseChanged hXsEraseNe hXs
+            simp [__eo_not, hEqTerm, native_not]
+          rw [hEraseRight]
+          simpa [__eo_list_minclude_rec, hFlagXs] using hIH
+      all_goals
+        simp [__eo_list_minclude_rec] at hIncl
+  | case3 nil _hNil _hNot =>
+      intro x xs hX hXs hChanged _hIncl
+      simp [__eo_list_erase_rec] at hChanged
+
+private theorem bvXor_tail_minclude_reverse_of_cons_right
+    (M : SmtModel) (w : Nat) {c x xs : Term} :
+    __eo_is_list (Term.UOp UserOp.bvxor) c = Term.Boolean true ->
+    BvXorListCanonical M w c ->
+    __eo_is_list (Term.UOp UserOp.bvxor) xs = Term.Boolean true ->
+    BvEvalCanonicalWidth M w x ->
+    BvXorListCanonical M w xs ->
+    __eo_list_erase_rec (__eo_get_elements_rec c) x ≠
+      __eo_get_elements_rec c ->
+    __eo_list_minclude (Term.UOp UserOp.bvxor) (mkBvXor x xs) c =
+      Term.Boolean true ->
+    __eo_list_minclude (Term.UOp UserOp.bvxor) xs
+        (__eo_list_erase (Term.UOp UserOp.bvxor) c x) =
+      Term.Boolean true := by
+  intro hCList hCCan hXsList hXCan hXsCan hRawChanged hIncl
+  have hDList :
+      __eo_is_list (Term.UOp UserOp.bvxor) (mkBvXor x xs) =
+        Term.Boolean true :=
+    eo_is_list_cons_self_true_of_tail_list
+      (Term.UOp UserOp.bvxor) x xs (by decide) hXsList
+  have hXNe : x ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hXCan
+  have hElemsXsNe : __eo_get_elements_rec xs ≠ Term.Stuck :=
+    bvXor_get_elements_rec_ne_stuck M w xs hXsList hXsCan
+  have hRawIncl :
+      __eo_list_minclude_rec
+          (Term.Apply (Term.Apply Term.__eo_List_cons x)
+            (__eo_get_elements_rec xs))
+          (__eo_get_elements_rec c) (Term.Boolean true) =
+        Term.Boolean true := by
+    have hIncl' := hIncl
+    rw [show __eo_list_minclude (Term.UOp UserOp.bvxor)
+          (mkBvXor x xs) c =
+        __eo_list_minclude_rec
+          (Term.Apply (Term.Apply Term.__eo_List_cons x)
+            (__eo_get_elements_rec xs))
+          (__eo_get_elements_rec c)
+          (Term.Boolean true) by
+          simp [__eo_list_minclude, hDList, hCList, __eo_requires,
+            native_ite, native_teq, native_not, SmtEval.native_not,
+            bvXor_get_elements_xor_eq hXNe hElemsXsNe]] at hIncl'
+    exact hIncl'
+  have hRawTail :
+      __eo_list_minclude_rec (__eo_get_elements_rec xs)
+          (__eo_list_erase_rec (__eo_get_elements_rec c) x)
+          (Term.Boolean true) =
+        Term.Boolean true :=
+    raw_minclude_cons_left_tail_after_right_erase
+      (__eo_get_elements_rec c) x (__eo_get_elements_rec xs) hXNe
+      hElemsXsNe hRawChanged hRawIncl
+  have hEraseList :
+      __eo_is_list (Term.UOp UserOp.bvxor)
+          (__eo_list_erase (Term.UOp UserOp.bvxor) c x) =
+        Term.Boolean true :=
+    bvXor_erase_preserves_list M w hCList hCCan hXCan
+  have hGetErase :
+      __eo_get_elements_rec
+          (__eo_list_erase (Term.UOp UserOp.bvxor) c x) =
+        __eo_list_erase_rec (__eo_get_elements_rec c) x :=
+    bvXor_get_elements_erase_eq M w hCList hCCan hXCan
+  simpa [__eo_list_minclude, hXsList, hEraseList, __eo_requires,
+    native_ite, native_teq, native_not, SmtEval.native_not, hGetErase]
+    using hRawTail
+
 private theorem bvXor_nil_zero_of_is_list_nil_true
     (M : SmtModel) (nil : Term) (w : Nat) (nnil : Int) :
     __eo_is_list_nil (Term.UOp UserOp.bvxor) nil = Term.Boolean true ->
@@ -9410,6 +9864,103 @@ private theorem bvXor_nil_zero_of_is_list_nil_true
     subst wb
     subst nnil
     exact hNilTrue.symm
+
+private theorem bvXor_get_elements_rec_eq_nil_of_is_list_nil_true
+    {nil : Term} :
+    __eo_is_list_nil (Term.UOp UserOp.bvxor) nil = Term.Boolean true ->
+    __eo_get_elements_rec nil = Term.__eo_List_nil := by
+  intro hNilTrue
+  cases nil <;>
+    simp [__eo_is_list_nil, __eo_is_list_nil_bvxor, __eo_to_z,
+      __eo_is_eq, native_and, native_not, SmtEval.native_not, native_teq,
+      native_zeq, __eo_get_elements_rec] at hNilTrue ⊢
+
+private theorem bvXor_rel_eval_of_minclude_nil_left
+    (M : SmtModel) (w : Nat) :
+    ∀ {nil c : Term},
+      __eo_is_list (Term.UOp UserOp.bvxor) nil = Term.Boolean true ->
+      __eo_is_list_nil (Term.UOp UserOp.bvxor) nil = Term.Boolean true ->
+      BvXorListCanonical M w nil ->
+      __eo_is_list (Term.UOp UserOp.bvxor) c = Term.Boolean true ->
+      BvXorListCanonical M w c ->
+      __eo_list_minclude (Term.UOp UserOp.bvxor) nil c =
+        Term.Boolean true ->
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt c))
+        (__smtx_model_eval M (__eo_to_smt nil)) := by
+  intro nil c hNilList hNilTrue hNilCan hCList hCCan hIncl
+  induction c using __eo_get_elements_rec.induct with
+  | case1 =>
+      simp [__eo_is_list] at hCList
+  | case2 f x xs ih =>
+      have hf : f = Term.UOp UserOp.bvxor :=
+        eo_is_list_cons_head_eq_of_true
+          (Term.UOp UserOp.bvxor) f x xs hCList
+      subst f
+      have hXsList :
+          __eo_is_list (Term.UOp UserOp.bvxor) xs =
+            Term.Boolean true :=
+        eo_is_list_tail_true_of_cons_self
+          (Term.UOp UserOp.bvxor) x xs hCList
+      have hXCan : BvEvalCanonicalWidth M w x := hCCan.1
+      have hXsCan : BvXorListCanonical M w xs := hCCan.2
+      have hXNe : x ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hXCan
+      have hElemsXsNe : __eo_get_elements_rec xs ≠ Term.Stuck :=
+        bvXor_get_elements_rec_ne_stuck M w xs hXsList hXsCan
+      have hGetNil :
+          __eo_get_elements_rec nil = Term.__eo_List_nil :=
+        bvXor_get_elements_rec_eq_nil_of_is_list_nil_true hNilTrue
+      have hInclRaw :
+          __eo_list_minclude_rec Term.__eo_List_nil
+              (Term.Apply (Term.Apply Term.__eo_List_cons x)
+                (__eo_get_elements_rec xs))
+              (Term.Boolean true) =
+            Term.Boolean true := by
+        have hIncl' := hIncl
+        rw [show __eo_list_minclude (Term.UOp UserOp.bvxor) nil
+              (mkBvXor x xs) =
+            __eo_list_minclude_rec Term.__eo_List_nil
+              (Term.Apply (Term.Apply Term.__eo_List_cons x)
+                (__eo_get_elements_rec xs))
+              (Term.Boolean true) by
+              simp [__eo_list_minclude, hNilList, hCList, __eo_requires,
+                native_ite, native_teq, native_not, SmtEval.native_not,
+                hGetNil, bvXor_get_elements_xor_eq hXNe hElemsXsNe]]
+          at hIncl'
+        exact hIncl'
+      simp [__eo_list_minclude_rec, __eo_list_erase_rec, __eo_eq,
+        __eo_not, native_not, native_teq] at hInclRaw
+  | case3 cNil _hNil _hNot =>
+      have hCNilTrue :
+          __eo_is_list_nil (Term.UOp UserOp.bvxor) cNil =
+            Term.Boolean true := by
+        have hGet :=
+          eo_get_nil_rec_ne_stuck_of_is_list_true
+            (Term.UOp UserOp.bvxor) cNil hCList
+        have hReq :
+            __eo_requires
+                (__eo_is_list_nil (Term.UOp UserOp.bvxor) cNil)
+                (Term.Boolean true) cNil ≠ Term.Stuck := by
+          simpa [__eo_get_nil_rec] using hGet
+        exact eo_requires_eq_of_ne_stuck
+          (__eo_is_list_nil (Term.UOp UserOp.bvxor) cNil)
+          (Term.Boolean true) cNil hReq
+      have hCEval : BvEvalCanonicalWidth M w cNil :=
+        bvXorListCanonical_eval M w cNil hCCan
+      have hNilEvalCan : BvEvalCanonicalWidth M w nil :=
+        bvXorListCanonical_eval M w nil hNilCan
+      rcases hCEval with ⟨nc, hcEval, hcMod⟩
+      rcases hNilEvalCan with ⟨nnil, hNilEval, hNilMod⟩
+      have hCZero : nc = 0 :=
+        bvXor_nil_zero_of_is_list_nil_true M cNil w nc
+          hCNilTrue hcEval hcMod
+      have hNilZero : nnil = 0 :=
+        bvXor_nil_zero_of_is_list_nil_true M nil w nnil
+          hNilTrue hNilEval hNilMod
+      subst nc
+      subst nnil
+      rw [hcEval, hNilEval]
+      exact RuleProofs.smt_value_rel_refl _
 
 private theorem bvXor_l1_eq_self_of_eq (id : Term) :
     id ≠ Term.Stuck ->
@@ -19243,7 +19794,172 @@ private theorem bvXor_list_meq_rel_eval
     RuleProofs.smt_value_rel
       (__smtx_model_eval M (__eo_to_smt c))
       (__smtx_model_eval M (__eo_to_smt d)) := by
-  sorry
+  intro hCList hCCan hDList hDCan hMeq
+  induction d using __eo_get_elements_rec.induct generalizing c with
+  | case1 =>
+      simp [__eo_is_list] at hDList
+  | case2 f x xs ih =>
+      have hf : f = Term.UOp UserOp.bvxor :=
+        eo_is_list_cons_head_eq_of_true
+          (Term.UOp UserOp.bvxor) f x xs hDList
+      subst f
+      have hXsList :
+          __eo_is_list (Term.UOp UserOp.bvxor) xs =
+            Term.Boolean true :=
+        eo_is_list_tail_true_of_cons_self
+          (Term.UOp UserOp.bvxor) x xs hDList
+      have hXCan : BvEvalCanonicalWidth M w x := hDCan.1
+      have hXsCan : BvXorListCanonical M w xs := hDCan.2
+      have hAnd :
+          __eo_and
+              (__eo_list_minclude_rec (__eo_get_elements_rec c)
+                (__eo_get_elements_rec (mkBvXor x xs)) (Term.Boolean true))
+              (__eo_list_minclude_rec
+                (__eo_get_elements_rec (mkBvXor x xs))
+                (__eo_get_elements_rec c) (Term.Boolean true)) =
+            Term.Boolean true := by
+        simpa [__eo_list_meq, hCList, hDList, __eo_requires, native_ite,
+          native_teq, native_not, SmtEval.native_not] using hMeq
+      have hSplit := eo_and_eq_true_cases
+        (__eo_list_minclude_rec (__eo_get_elements_rec c)
+          (__eo_get_elements_rec (mkBvXor x xs)) (Term.Boolean true))
+        (__eo_list_minclude_rec
+          (__eo_get_elements_rec (mkBvXor x xs))
+          (__eo_get_elements_rec c) (Term.Boolean true)) hAnd
+      have hInclCD :
+          __eo_list_minclude (Term.UOp UserOp.bvxor) c
+              (mkBvXor x xs) =
+            Term.Boolean true := by
+        simpa [__eo_list_minclude, hCList, hDList, __eo_requires,
+          native_ite, native_teq, native_not, SmtEval.native_not]
+          using hSplit.1
+      have hInclDC :
+          __eo_list_minclude (Term.UOp UserOp.bvxor)
+              (mkBvXor x xs) c =
+            Term.Boolean true := by
+        simpa [__eo_list_minclude, hDList, hCList, __eo_requires,
+          native_ite, native_teq, native_not, SmtEval.native_not]
+          using hSplit.2
+      let erased := __eo_list_erase (Term.UOp UserOp.bvxor) c x
+      have hTailForward :
+          erased ≠ c ∧
+            __eo_is_list (Term.UOp UserOp.bvxor) erased =
+              Term.Boolean true ∧
+            BvXorListCanonical M w erased ∧
+            __eo_list_minclude (Term.UOp UserOp.bvxor) erased xs =
+              Term.Boolean true := by
+        dsimp [erased]
+        exact bvXor_tail_minclude_of_cons_right M w hCList hCCan
+          hXsList hXCan hXsCan hInclCD
+      rcases hTailForward with
+        ⟨hEraseChanged, hEraseList, hEraseCan, hTailInclCD⟩
+      have hRawChanged :
+          __eo_list_erase_rec (__eo_get_elements_rec c) x ≠
+            __eo_get_elements_rec c :=
+        bvXor_raw_erase_changed_of_minclude_cons_right M w hCList hCCan
+          hXsList hXCan hXsCan hInclCD
+      have hTailInclDC :
+          __eo_list_minclude (Term.UOp UserOp.bvxor) xs erased =
+            Term.Boolean true := by
+        dsimp [erased]
+        exact bvXor_tail_minclude_reverse_of_cons_right M w hCList hCCan
+          hXsList hXCan hXsCan hRawChanged hInclDC
+      have hTailInclCDRaw :
+          __eo_list_minclude_rec (__eo_get_elements_rec erased)
+              (__eo_get_elements_rec xs) (Term.Boolean true) =
+            Term.Boolean true := by
+        simpa [__eo_list_minclude, hEraseList, hXsList, __eo_requires,
+          native_ite, native_teq, native_not, SmtEval.native_not]
+          using hTailInclCD
+      have hTailInclDCRaw :
+          __eo_list_minclude_rec (__eo_get_elements_rec xs)
+              (__eo_get_elements_rec erased) (Term.Boolean true) =
+            Term.Boolean true := by
+        simpa [__eo_list_minclude, hXsList, hEraseList, __eo_requires,
+          native_ite, native_teq, native_not, SmtEval.native_not]
+          using hTailInclDC
+      have hTailAnd :
+          __eo_and
+              (__eo_list_minclude_rec (__eo_get_elements_rec erased)
+                (__eo_get_elements_rec xs) (Term.Boolean true))
+              (__eo_list_minclude_rec (__eo_get_elements_rec xs)
+                (__eo_get_elements_rec erased) (Term.Boolean true)) =
+            Term.Boolean true := by
+        simp [hTailInclCDRaw, hTailInclDCRaw, __eo_and, native_and]
+      have hTailMeq :
+          __eo_list_meq (Term.UOp UserOp.bvxor) erased xs =
+            Term.Boolean true := by
+        simpa [__eo_list_meq, hEraseList, hXsList, __eo_requires,
+          native_ite, native_teq, native_not, SmtEval.native_not]
+          using hTailAnd
+      have hIH :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt erased))
+            (__smtx_model_eval M (__eo_to_smt xs)) :=
+        ih hEraseList hEraseCan hXsList hXsCan hTailMeq
+      have hEraseRel :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt (mkBvXor x erased)))
+            (__smtx_model_eval M (__eo_to_smt c)) := by
+        dsimp [erased]
+        exact bvXor_erase_changed_rel_eval M w hCList hCCan hXCan
+          hEraseChanged
+      have hEraseEval : BvEvalCanonicalWidth M w erased :=
+        bvXorListCanonical_eval M w erased hEraseCan
+      rcases hXCan with ⟨nx, hxEval, _hxMod⟩
+      rcases hEraseEval with ⟨nerased, hErasedEval, _hErasedMod⟩
+      have hCongr :
+          RuleProofs.smt_value_rel
+            (__smtx_model_eval M (__eo_to_smt (mkBvXor x erased)))
+            (__smtx_model_eval M (__eo_to_smt (mkBvXor x xs))) :=
+        bvXor_smt_value_rel_congr_eval M x x erased xs w
+          ⟨nx, hxEval⟩ ⟨nerased, hErasedEval⟩
+          (RuleProofs.smt_value_rel_refl
+            (__smtx_model_eval M (__eo_to_smt x)))
+          hIH
+      exact RuleProofs.smt_value_rel_trans
+        (__smtx_model_eval M (__eo_to_smt c))
+        (__smtx_model_eval M (__eo_to_smt (mkBvXor x erased)))
+        (__smtx_model_eval M (__eo_to_smt (mkBvXor x xs)))
+        (RuleProofs.smt_value_rel_symm _ _ hEraseRel)
+        hCongr
+  | case3 nil _hNil _hNot =>
+      have hAnd :
+          __eo_and
+              (__eo_list_minclude_rec (__eo_get_elements_rec c)
+                (__eo_get_elements_rec nil) (Term.Boolean true))
+              (__eo_list_minclude_rec (__eo_get_elements_rec nil)
+                (__eo_get_elements_rec c) (Term.Boolean true)) =
+            Term.Boolean true := by
+        simpa [__eo_list_meq, hCList, hDList, __eo_requires, native_ite,
+          native_teq, native_not, SmtEval.native_not] using hMeq
+      have hSplit := eo_and_eq_true_cases
+        (__eo_list_minclude_rec (__eo_get_elements_rec c)
+          (__eo_get_elements_rec nil) (Term.Boolean true))
+        (__eo_list_minclude_rec (__eo_get_elements_rec nil)
+          (__eo_get_elements_rec c) (Term.Boolean true)) hAnd
+      have hInclDC :
+          __eo_list_minclude (Term.UOp UserOp.bvxor) nil c =
+            Term.Boolean true := by
+        simpa [__eo_list_minclude, hDList, hCList, __eo_requires,
+          native_ite, native_teq, native_not, SmtEval.native_not]
+          using hSplit.2
+      have hNilTrue :
+          __eo_is_list_nil (Term.UOp UserOp.bvxor) nil =
+            Term.Boolean true := by
+        have hGet :=
+          eo_get_nil_rec_ne_stuck_of_is_list_true
+            (Term.UOp UserOp.bvxor) nil hDList
+        have hReq :
+            __eo_requires
+                (__eo_is_list_nil (Term.UOp UserOp.bvxor) nil)
+                (Term.Boolean true) nil ≠ Term.Stuck := by
+          simpa [__eo_get_nil_rec] using hGet
+        exact eo_requires_eq_of_ne_stuck
+          (__eo_is_list_nil (Term.UOp UserOp.bvxor) nil)
+          (Term.Boolean true) nil hReq
+      exact bvXor_rel_eval_of_minclude_nil_left M w hDList hNilTrue
+        hDCan hCList hCCan hInclDC
 
 private theorem smt_value_rel_of_bvxor_get_a_norm_meq
     (M : SmtModel) (hM : model_total_typed M)
