@@ -280,6 +280,7 @@ inductive SmtTerm : Type where
   | and : SmtTerm -> SmtTerm -> SmtTerm
   | imp : SmtTerm -> SmtTerm -> SmtTerm
   | xor : SmtTerm -> SmtTerm -> SmtTerm
+  | _at_purify : SmtTerm -> SmtTerm
   | plus : SmtTerm -> SmtTerm -> SmtTerm
   | neg : SmtTerm -> SmtTerm -> SmtTerm
   | mult : SmtTerm -> SmtTerm -> SmtTerm
@@ -886,6 +887,9 @@ def __smtx_model_eval_imp (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
 
 def __smtx_model_eval_xor (x1 : SmtValue) (x2 : SmtValue) : SmtValue :=
   (__smtx_model_eval_not (__smtx_model_eval_eq x1 x2))
+
+def __smtx_model_eval__at_purify (x1 : SmtValue) : SmtValue :=
+  x1
 
 def __smtx_model_eval_plus : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Numeral x1), (SmtValue.Numeral x2) => (SmtValue.Numeral (native_zplus x1 x2))
@@ -1655,6 +1659,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.and x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.imp x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
   | (SmtTerm.xor x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
+  | (SmtTerm._at_purify x1) => (__smtx_typeof x1)
   | (SmtTerm.plus x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.neg x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.mult x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
@@ -2043,6 +2048,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.and x1 x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.imp x1 x2) => (__smtx_model_eval_imp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.xor x1 x2) => (__smtx_model_eval_xor (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm._at_purify x1) => (__smtx_model_eval__at_purify (__smtx_model_eval M x1))
   | (SmtTerm.plus x1 x2) => (__smtx_model_eval_plus (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.neg x1 x2) => (__smtx_model_eval__ (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.mult x1 x2) => (__smtx_model_eval_mult (__smtx_model_eval M x1) (__smtx_model_eval M x2))
