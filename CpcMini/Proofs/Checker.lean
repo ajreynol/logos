@@ -458,7 +458,6 @@ by
   intro hSuffix
   exact invoke_cmd_step_pop_preserves_shapeInvariant_aux s s r args premises hSuffix
 
-set_option linter.unusedSimpArgs false in
 /-- Shows that `invoke_cmd` preserves `localTruthInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_localTruthInvariant_nonstuck (M : SmtModel) :
   forall _hM : model_total_typed M,
@@ -502,11 +501,11 @@ by
               by_cases hEq : proven = F
               · subst proven
                 simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                  __eo_eq, checkerLocalTruthInvariant, native_teq, hFNotStuck] at hs ⊢
+                  __eo_eq, checkerLocalTruthInvariant, native_teq] at hs ⊢
                 exact hs
               · cases proven <;>
                   simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                    __eo_eq, checkerLocalTruthInvariant, native_teq, hEq, hFNotStuck]
+                    __eo_eq, checkerLocalTruthInvariant, native_teq, hEq]
   | step r args premises =>
       exact invoke_step_preserves_localTruthInvariant M hM s hNotStuck r args premises
         hs hsTy hsTrans hCmdTrans
@@ -521,7 +520,6 @@ by
       | Stuck =>
           exact False.elim (hNotStuck rfl)
 
-set_option linter.unusedSimpArgs false in
 /-- Shows that `invoke_cmd` preserves `shapeInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_shapeInvariant_nonstuck :
   forall s : CState, forall c : CCmd,
@@ -538,7 +536,7 @@ by
       cases s with
       | nil =>
           by_cases hTy : __eo_typeof A = Term.Bool
-          · simp [__eo_invoke_cmd, push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, checkerShapeInvariant,
+          · simp [__eo_invoke_cmd, push_assume_check_true, hTy, checkerShapeInvariant,
               stateAssumptionSuffix]
           · simp [__eo_invoke_cmd, push_assume_eq_stuck_of_typeof_ne_bool, hTy, checkerShapeInvariant]
       | cons so s =>
@@ -564,7 +562,7 @@ by
                 simpa [stateAssumptionSuffix] using hSuffix
               by_cases hFStuck : F = Term.Stuck
               · simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                  __eo_eq, checkerShapeInvariant, stateAssumptionSuffix, native_teq, hFStuck]
+                  __eo_eq, checkerShapeInvariant, hFStuck]
               · by_cases hEq : proven = F
                 · subst proven
                   simpa [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
@@ -572,7 +570,7 @@ by
                     using hSuffixTail
                 · cases proven <;>
                     simp [__eo_invoke_cmd, __eo_invoke_cmd_check_proven, __eo_push_proven_check,
-                      __eo_eq, checkerShapeInvariant, stateAssumptionSuffix, native_teq, hEq, hFStuck]
+                      __eo_eq, checkerShapeInvariant, native_teq, hEq]
   | step r args premises =>
       cases s with
       | nil =>
@@ -596,7 +594,6 @@ by
       | Stuck =>
           exact False.elim (hNotStuck rfl)
 
-set_option linter.unusedSimpArgs false in
 /-- Shows that `invoke_cmd` preserves `truthInvariant_nonstuck`. -/
 theorem invoke_cmd_preserves_truthInvariant_nonstuck (M : SmtModel) :
   forall _hM : model_total_typed M,

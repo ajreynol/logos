@@ -12,6 +12,10 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | rational (q : native_Rat) : supported_preservation_term (SmtTerm.Rational q)
   | string (s : native_String) : supported_preservation_term (SmtTerm.String s)
   | binary (w n : native_Int) : supported_preservation_term (SmtTerm.Binary w n)
+  | purify {t : SmtTerm}
+      (ht : term_has_non_none_type t)
+      (hs : supported_preservation_term t) :
+      supported_preservation_term (SmtTerm._at_purify t)
   | var (s : native_String) (T : SmtType)
       (hT : type_inhabited T) :
       supported_preservation_term (SmtTerm.Var s T)

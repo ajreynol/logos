@@ -290,6 +290,11 @@ theorem smt_term_result_seq_components_wf_of_non_none
   let rec go (x : SmtTerm) (hxNN : term_has_non_none_type x) :
       type_result_seq_components_wf (__smtx_typeof x) := by
     cases x
+    case _at_purify t =>
+      have htNN : term_has_non_none_type t := by
+        unfold term_has_non_none_type at hxNN ⊢
+        simpa [__smtx_typeof] using hxNN
+      simpa [__smtx_typeof] using go t htNN
     case String s =>
       simp [__smtx_typeof, type_result_seq_components_wf, __smtx_type_wf,
         __smtx_type_wf_rec, native_and]
@@ -299,7 +304,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf T = true :=
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-      rw [__smtx_typeof.eq_141,
+      rw [__smtx_typeof.eq_142,
         smtx_typeof_guard_wf_of_non_none T T hGuardNN]
       exact type_result_seq_components_wf_of_type_wf hWf
     case UConst s T =>
@@ -308,7 +313,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf T = true :=
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-      rw [__smtx_typeof.eq_142,
+      rw [__smtx_typeof.eq_143,
         smtx_typeof_guard_wf_of_non_none T T hGuardNN]
       exact type_result_seq_components_wf_of_type_wf hWf
     case seq_empty T =>
@@ -318,7 +323,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf (SmtType.Seq T) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN
-      rw [__smtx_typeof.eq_77,
+      rw [__smtx_typeof.eq_78,
         smtx_typeof_guard_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN]
       exact hWf
     case set_empty T =>
@@ -328,7 +333,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf (SmtType.Set T) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN
-      rw [__smtx_typeof.eq_120,
+      rw [__smtx_typeof.eq_121,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN]
       simp [type_result_seq_components_wf]
     case seq_unit t =>
@@ -341,7 +346,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       have hWf : __smtx_type_wf (SmtType.Seq (__smtx_typeof t)) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN
-      rw [__smtx_typeof.eq_118,
+      rw [__smtx_typeof.eq_119,
         smtx_typeof_guard_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN]
       exact hWf
@@ -355,7 +360,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       have hWf : __smtx_type_wf (SmtType.Set (__smtx_typeof t)) = true :=
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN
-      rw [__smtx_typeof.eq_121,
+      rw [__smtx_typeof.eq_122,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN]
       simp [type_result_seq_components_wf]
@@ -515,7 +520,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
                       (SmtTerm.choice_nth s T
                         (SmtTerm.exists s' U body') (Nat.succ n)) =
                     __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
-                rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+                rw [__smtx_typeof.eq_137, __smtx_typeof.eq_137]
                 simp [__smtx_typeof_choice_nth]
               have hNN' : term_has_non_none_type
                   (SmtTerm.choice_nth s' U body' n) := by
@@ -526,7 +531,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
           | _ =>
               exfalso
               unfold term_has_non_none_type at hxNN
-              rw [__smtx_typeof.eq_136] at hxNN
+              rw [__smtx_typeof.eq_137] at hxNN
               simp [__smtx_typeof_choice_nth] at hxNN
     case DtCons s d i =>
       let raw :=
@@ -694,7 +699,7 @@ theorem eval_seq_empty_of_type (M : SmtModel) (A : Term) (T : SmtType) :
       rw [hA]
       change __smtx_model_eval M (SmtTerm.seq_empty T) =
         SmtValue.Seq (SmtSeq.empty T)
-      rw [__smtx_model_eval.eq_77]
+      rw [__smtx_model_eval.eq_78]
 
 theorem eval_seq_empty_typeof (M : SmtModel) (x : Term) (T : SmtType)
     (hxTy : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
@@ -1006,7 +1011,7 @@ theorem smtx_model_eval_str_concat_term_eq (M : SmtModel) (x y : Term) :
   rw [show __eo_to_smt (mkConcat x y) =
       SmtTerm.str_concat (__eo_to_smt x) (__eo_to_smt y) by
     rfl]
-  rw [__smtx_model_eval.eq_79]
+  rw [__smtx_model_eval.eq_80]
 
 theorem str_concat_args_of_non_none (x y : Term) :
     __smtx_typeof (__eo_to_smt (mkConcat x y)) ≠ SmtType.None ->
@@ -3152,7 +3157,7 @@ theorem smt_value_rel_str_concat_nil_empty
               rw [hTyU] at hNilTy
               injection hNilTy
             subst T
-            rw [__smtx_model_eval.eq_77]
+            rw [__smtx_model_eval.eq_78]
             unfold RuleProofs.smt_value_rel
             simp [__smtx_model_eval_eq, native_veq]
         | _ =>

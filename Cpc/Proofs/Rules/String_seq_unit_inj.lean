@@ -15,7 +15,7 @@ private theorem seq_unit_arg_non_none (x : Term) :
   change __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt x)) ≠ SmtType.None at hSeq
   have hSeqNone :
       __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt x)) = SmtType.None := by
-    rw [__smtx_typeof.eq_118]
+    rw [__smtx_typeof.eq_119]
     have hWfNone : __smtx_type_wf SmtType.None = false := by
       unfold __smtx_type_wf
       change native_and (native_inhabited_type SmtType.None) false = false
@@ -73,7 +73,7 @@ private theorem typed___eo_prog_string_seq_unit_inj_impl (x1 : Term) :
                                               change
                                                 __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt a1)) =
                                                   SmtType.Seq (__smtx_typeof (__eo_to_smt a1))
-                                              rw [__smtx_typeof.eq_118]
+                                              rw [__smtx_typeof.eq_119]
                                               exact smtx_typeof_guard_wf_of_non_none
                                                 (__smtx_typeof (__eo_to_smt a1))
                                                 (SmtType.Seq (__smtx_typeof (__eo_to_smt a1)))
@@ -81,14 +81,14 @@ private theorem typed___eo_prog_string_seq_unit_inj_impl (x1 : Term) :
                                                   change
                                                     __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt a1)) ≠
                                                       SmtType.None at hSeqANonNone
-                                                  rwa [__smtx_typeof.eq_118] at hSeqANonNone)
+                                                  rwa [__smtx_typeof.eq_119] at hSeqANonNone)
                                             have hSeqBTy :
                                                 __smtx_typeof (__eo_to_smt (Term.Apply Term.seq_unit b1)) =
                                                   SmtType.Seq (__smtx_typeof (__eo_to_smt b1)) := by
                                               change
                                                 __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt b1)) =
                                                   SmtType.Seq (__smtx_typeof (__eo_to_smt b1))
-                                              rw [__smtx_typeof.eq_118]
+                                              rw [__smtx_typeof.eq_119]
                                               exact smtx_typeof_guard_wf_of_non_none
                                                 (__smtx_typeof (__eo_to_smt b1))
                                                 (SmtType.Seq (__smtx_typeof (__eo_to_smt b1)))
@@ -96,7 +96,7 @@ private theorem typed___eo_prog_string_seq_unit_inj_impl (x1 : Term) :
                                                   change
                                                     __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt b1)) ≠
                                                       SmtType.None at hSeqBNonNone
-                                                  rwa [__smtx_typeof.eq_118] at hSeqBNonNone)
+                                                  rwa [__smtx_typeof.eq_119] at hSeqBNonNone)
                                             have hSeqTy' :
                                                 SmtType.Seq (__smtx_typeof (__eo_to_smt a1)) =
                                                   SmtType.Seq (__smtx_typeof (__eo_to_smt b1)) := by
@@ -145,10 +145,10 @@ private theorem smt_value_rel_of_seq_unit_rel (M : SmtModel) (a b : Term) :
           __smtx_model_eval M (SmtTerm.seq_unit (__eo_to_smt b)) = SmtValue.RegLan r2 := by
     intro hReg
     rcases hReg with ⟨r1, _r2, h1, _h2⟩
-    rw [__smtx_model_eval.eq_118] at h1
+    rw [__smtx_model_eval.eq_119] at h1
     simp at h1
   have hEq := (RuleProofs.smt_value_rel_iff_eq _ _ hNotReg).1 hRel
-  rw [__smtx_model_eval.eq_118, __smtx_model_eval.eq_118] at hEq
+  rw [__smtx_model_eval.eq_119, __smtx_model_eval.eq_119] at hEq
   injection hEq with hSeq
   injection hSeq with hHead _hTail
   rw [hHead]

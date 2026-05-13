@@ -56,7 +56,7 @@ private theorem eval_eo_str_len_of_seq
       SmtValue.Numeral (native_seq_len (native_unpack_seq ss)) := by
   change __smtx_model_eval M (SmtTerm.str_len (__eo_to_smt s)) =
     SmtValue.Numeral (native_seq_len (native_unpack_seq ss))
-  rw [__smtx_model_eval.eq_78, hEvalS]
+  rw [__smtx_model_eval.eq_79, hEvalS]
   rfl
 
 /-- Evaluates the translated EO numeral `0`. -/
@@ -173,7 +173,7 @@ private theorem empty_term_smt_info
                           rw [hSeqTy]
                           change __smtx_model_eval M (SmtTerm.seq_empty (__eo_to_smt_type U)) =
                             SmtValue.Seq (SmtSeq.empty (__eo_to_smt_type U))
-                          rw [__smtx_model_eval.eq_77]
+                          rw [__smtx_model_eval.eq_78]
                   | _ =>
                       simp [__str_is_empty] at hEmpty
               | _ =>
@@ -386,7 +386,7 @@ private theorem facts___eo_prog_string_length_non_empty_impl
                                               (Term.Apply Term.eq (Term.Apply Term.str_len s))
                                               (Term.Numeral 0))) =
                                         SmtValue.Boolean false := by
-                                    rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_133]
+                                    rw [eo_to_smt_eq_eq, __smtx_model_eval.eq_134]
                                     rw [hEvalLen]
                                     rw [eval_eo_zero M]
                                     unfold __smtx_model_eval_eq native_veq

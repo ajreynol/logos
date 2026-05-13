@@ -334,7 +334,7 @@ theorem smtx_bv_sizeof_term_non_none
       __smtx_typeof
           (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof t)
            native_ite (native_zleq 0 _v0)
-             (SmtTerm.plus (SmtTerm.Numeral _v0) (SmtTerm.Numeral 0))
+             (SmtTerm._at_purify (SmtTerm.Numeral _v0))
              SmtTerm.None) ≠
         SmtType.None) :
     ∃ w : native_Nat, __smtx_typeof t = SmtType.BitVec w := by
@@ -347,7 +347,7 @@ theorem smtx_bv_sizeof_term_non_none
           __smtx_typeof
               (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof t)
                native_ite (native_zleq 0 _v0)
-                 (SmtTerm.plus (SmtTerm.Numeral _v0) (SmtTerm.Numeral 0))
+                 (SmtTerm._at_purify (SmtTerm.Numeral _v0))
                  SmtTerm.None) =
             SmtType.None := by
         have hNeg : native_zleq 0 (native_zneg 1) = false := by

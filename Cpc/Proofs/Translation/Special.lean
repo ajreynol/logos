@@ -17,8 +17,9 @@ theorem eo_to_smt_typeof_matches_translation_purify
     (hx : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
     __smtx_typeof (__eo_to_smt (Term._at_purify x)) =
       __eo_to_smt_type (__eo_typeof (Term._at_purify x)) := by
-  change __smtx_typeof (__eo_to_smt x) =
+  change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) =
     __eo_to_smt_type (__eo_typeof (Term._at_purify x))
+  simp [__smtx_typeof]
   rw [hx]
   exact (eo_to_smt_type_typeof_purify x).symm
 
