@@ -11,6 +11,262 @@ set_option maxHeartbeats 10000000
 
 namespace RuleProofs
 
+/-- `smtTermKeyFree s T t` means the model key `(s,T)` does not occur free in `t`.
+Binders for the same key shadow occurrences in their bodies. -/
+def smtTermKeyFree (s : native_String) (T : SmtType) : SmtTerm -> Prop
+  | SmtTerm.None => True
+  | SmtTerm.Boolean _ => True
+  | SmtTerm.Numeral _ => True
+  | SmtTerm.Rational _ => True
+  | SmtTerm.String _ => True
+  | SmtTerm.Binary _ _ => True
+  | SmtTerm.Apply f a => smtTermKeyFree s T f ∧ smtTermKeyFree s T a
+  | SmtTerm.Var s' T' => __smtx_model_key s T ≠ __smtx_model_key s' T'
+  | SmtTerm.ite c t e =>
+      smtTermKeyFree s T c ∧ smtTermKeyFree s T t ∧ smtTermKeyFree s T e
+  | SmtTerm.eq a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.exists s' T' body =>
+      __smtx_model_key s T = __smtx_model_key s' T' ∨ smtTermKeyFree s T body
+  | SmtTerm.forall s' T' body =>
+      __smtx_model_key s T = __smtx_model_key s' T' ∨ smtTermKeyFree s T body
+  | SmtTerm.choice_nth s' T' body _ =>
+      __smtx_model_key s T = __smtx_model_key s' T' ∨ smtTermKeyFree s T body
+  | SmtTerm.DtCons _ _ _ => True
+  | SmtTerm.DtSel _ _ _ _ => True
+  | SmtTerm.DtTester _ _ _ => True
+  | SmtTerm.UConst s' T' => __smtx_model_key s T ≠ __smtx_model_key s' T'
+  | SmtTerm.not t => smtTermKeyFree s T t
+  | SmtTerm.or a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.and a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.imp a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.xor a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm._at_purify t => smtTermKeyFree s T t
+  | SmtTerm.plus a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.neg a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.mult a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.lt a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.leq a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.gt a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.geq a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.to_real t => smtTermKeyFree s T t
+  | SmtTerm.to_int t => smtTermKeyFree s T t
+  | SmtTerm.is_int t => smtTermKeyFree s T t
+  | SmtTerm.abs t => smtTermKeyFree s T t
+  | SmtTerm.uneg t => smtTermKeyFree s T t
+  | SmtTerm.div a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.mod a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.multmult a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.divisible a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.int_pow2 t => smtTermKeyFree s T t
+  | SmtTerm.int_log2 t => smtTermKeyFree s T t
+  | SmtTerm.div_total a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.mod_total a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.multmult_total a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.select a i => smtTermKeyFree s T a ∧ smtTermKeyFree s T i
+  | SmtTerm.store a i e =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T i ∧ smtTermKeyFree s T e
+  | SmtTerm.concat a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.extract a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.repeat a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvnot t => smtTermKeyFree s T t
+  | SmtTerm.bvand a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvor a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvnand a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvnor a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvxor a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvxnor a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvcomp a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvneg t => smtTermKeyFree s T t
+  | SmtTerm.bvadd a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvmul a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvudiv a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvurem a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsub a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsdiv a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsrem a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsmod a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvult a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvule a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvugt a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvuge a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvslt a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsle a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsgt a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsge a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvshl a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvlshr a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvashr a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.zero_extend a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.sign_extend a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.rotate_left a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.rotate_right a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvuaddo a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvnego t => smtTermKeyFree s T t
+  | SmtTerm.bvsaddo a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvumulo a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsmulo a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvusubo a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvssubo a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.bvsdivo a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.seq_empty _ => True
+  | SmtTerm.str_len t => smtTermKeyFree s T t
+  | SmtTerm.str_concat a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.str_substr a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.str_contains a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.str_replace a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.str_indexof a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.str_at a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.str_prefixof a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.str_suffixof a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.str_rev t => smtTermKeyFree s T t
+  | SmtTerm.str_update a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.str_to_lower t => smtTermKeyFree s T t
+  | SmtTerm.str_to_upper t => smtTermKeyFree s T t
+  | SmtTerm.str_to_code t => smtTermKeyFree s T t
+  | SmtTerm.str_from_code t => smtTermKeyFree s T t
+  | SmtTerm.str_is_digit t => smtTermKeyFree s T t
+  | SmtTerm.str_to_int t => smtTermKeyFree s T t
+  | SmtTerm.str_from_int t => smtTermKeyFree s T t
+  | SmtTerm.str_lt a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.str_leq a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.str_replace_all a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.str_replace_re a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.str_replace_re_all a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.str_indexof_re a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.re_allchar => True
+  | SmtTerm.re_none => True
+  | SmtTerm.re_all => True
+  | SmtTerm.str_to_re t => smtTermKeyFree s T t
+  | SmtTerm.re_mult t => smtTermKeyFree s T t
+  | SmtTerm.re_plus t => smtTermKeyFree s T t
+  | SmtTerm.re_exp a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.re_opt t => smtTermKeyFree s T t
+  | SmtTerm.re_comp t => smtTermKeyFree s T t
+  | SmtTerm.re_range a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.re_concat a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.re_inter a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.re_union a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.re_diff a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.re_loop a b c =>
+      smtTermKeyFree s T a ∧ smtTermKeyFree s T b ∧ smtTermKeyFree s T c
+  | SmtTerm.str_in_re a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.seq_unit t => smtTermKeyFree s T t
+  | SmtTerm.seq_nth a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.set_empty _ => True
+  | SmtTerm.set_singleton t => smtTermKeyFree s T t
+  | SmtTerm.set_union a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.set_inter a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.set_minus a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.set_member a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.set_subset a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.qdiv a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.qdiv_total a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.int_to_bv a b => smtTermKeyFree s T a ∧ smtTermKeyFree s T b
+  | SmtTerm.ubv_to_int t => smtTermKeyFree s T t
+  | SmtTerm.sbv_to_int t => smtTermKeyFree s T t
+
+theorem smt_model_lookup_push_of_ne
+    (M : SmtModel) (s s' : native_String) (T T' : SmtType) (v : SmtValue)
+    (hne : __smtx_model_key s T ≠ __smtx_model_key s' T') :
+    __smtx_model_lookup (__smtx_model_push M s T v) s' T' =
+      __smtx_model_lookup M s' T' := by
+  simp [__smtx_model_lookup, __smtx_model_push, hne.symm]
+
+theorem smt_model_key_ne_of_reserved_left
+    {s s' : native_String} {T T' : SmtType}
+    (hReserved : native_reserved_var_name s = true)
+    (hOther : native_reserved_var_name s' = false) :
+    __smtx_model_key s T ≠ __smtx_model_key s' T' := by
+  intro hKey
+  have hName : s = s' := by
+    cases hKey
+    rfl
+  subst s
+  rw [hOther] at hReserved
+  cases hReserved
+
+theorem smt_model_lookup_push_reserved_of_unreserved_name
+    (M : SmtModel) (s s' : native_String) (T T' : SmtType) (v : SmtValue)
+    (hReserved : native_reserved_var_name s = true)
+    (hOther : native_reserved_var_name s' = false) :
+    __smtx_model_lookup (__smtx_model_push M s T v) s' T' =
+      __smtx_model_lookup M s' T' :=
+  smt_model_lookup_push_of_ne M s s' T T' v
+    (smt_model_key_ne_of_reserved_left hReserved hOther)
+
+theorem smt_model_push_shadow_same
+    (M : SmtModel) (s : native_String) (T : SmtType) (v w : SmtValue) :
+    __smtx_model_push (__smtx_model_push M s T v) s T w =
+      __smtx_model_push M s T w := by
+  funext k
+  by_cases hk : k = __smtx_model_key s T <;>
+    simp [__smtx_model_push, hk]
+
+theorem smt_model_push_commute_of_ne
+    (M : SmtModel) (s s' : native_String) (T T' : SmtType) (v w : SmtValue)
+    (hne : __smtx_model_key s T ≠ __smtx_model_key s' T') :
+    __smtx_model_push (__smtx_model_push M s T v) s' T' w =
+      __smtx_model_push (__smtx_model_push M s' T' w) s T v := by
+  funext k
+  by_cases hk' : k = __smtx_model_key s' T'
+  · subst k
+    simp [__smtx_model_push, hne.symm]
+  · by_cases hk : k = __smtx_model_key s T
+    · subst k
+      simp [__smtx_model_push, hk']
+    · simp [__smtx_model_push, hk, hk']
+
+theorem smt_model_push_shadow_of_key_eq
+    (M : SmtModel) (s s' : native_String) (T T' : SmtType) (v w : SmtValue)
+    (hKey : __smtx_model_key s T = __smtx_model_key s' T') :
+    __smtx_model_push (__smtx_model_push M s T v) s' T' w =
+      __smtx_model_push M s' T' w := by
+  cases hKey
+  exact smt_model_push_shadow_same M s T v w
+
+theorem smt_model_eval_dt_sel_push_reserved_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue)
+    (hReserved : native_reserved_var_name s = true)
+    (name : native_String) (d : SmtDatatype) (n m : native_Nat) (x : SmtValue) :
+    __smtx_model_eval_dt_sel (__smtx_model_push M s T v) name d n m x =
+      __smtx_model_eval_dt_sel M name d n m x := by
+  simp [__smtx_model_eval_dt_sel,
+    smt_model_lookup_push_reserved_of_unreserved_name M s native_wrong_apply_sel_id T
+      (SmtType.Map SmtType.Int
+        (SmtType.Map SmtType.Int
+          (SmtType.Map (SmtType.Datatype name d) (__smtx_ret_typeof_sel name d n m))))
+      v hReserved (by native_decide)]
+
+theorem smt_seq_nth_wrong_push_reserved_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue)
+    (hReserved : native_reserved_var_name s = true)
+    (ss : SmtSeq) (n : native_Int) (U : SmtType) :
+    __smtx_seq_nth_wrong (__smtx_model_push M s T v) ss n U =
+      __smtx_seq_nth_wrong M ss n U := by
+  cases U <;>
+    simp [__smtx_seq_nth_wrong,
+      smt_model_lookup_push_reserved_of_unreserved_name M s native_oob_seq_nth_id T
+        (SmtType.Map (SmtType.Seq ‹SmtType›)
+          (SmtType.Map SmtType.Int ‹SmtType›))
+        v hReserved (by native_decide)]
+
+theorem smt_seq_nth_push_reserved_eq
+    (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue)
+    (hReserved : native_reserved_var_name s = true) (x y : SmtValue) :
+    __smtx_seq_nth (__smtx_model_push M s T v) x y =
+      __smtx_seq_nth M x y := by
+  cases x <;> cases y <;>
+    simp [__smtx_seq_nth, smt_seq_nth_wrong_push_reserved_eq M s T v hReserved]
+
 theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
   rfl
