@@ -2507,7 +2507,7 @@ private theorem arith_atom_denote_real_of_to_real
   unfold arith_atom_denote_real
   rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.to_real) t) =
     SmtTerm.to_real (__eo_to_smt t) by rfl]
-  rw [__smtx_model_eval.eq_18]
+  rw [__smtx_model_eval.eq_19]
   exact smtx_model_eval_to_real_idempotent (__smtx_model_eval M (__eo_to_smt t))
 
 private theorem native_to_real_neg
@@ -2605,7 +2605,7 @@ private theorem arith_atom_denote_real_of_plus
     unfold arith_atom_denote_real
     rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2) =
       SmtTerm.plus (__eo_to_smt t1) (__eo_to_smt t2) by rfl]
-    rw [__smtx_model_eval.eq_11, hEval1, hEval2]
+    rw [__smtx_model_eval.eq_12, hEval1, hEval2]
     simp [__smtx_model_eval_to_real, __smtx_model_eval_plus, native_to_real_add]
   · have hEval1Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
@@ -2622,7 +2622,7 @@ private theorem arith_atom_denote_real_of_plus
     unfold arith_atom_denote_real
     rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.plus) t1) t2) =
       SmtTerm.plus (__eo_to_smt t1) (__eo_to_smt t2) by rfl]
-    rw [__smtx_model_eval.eq_11, hEval1, hEval2]
+    rw [__smtx_model_eval.eq_12, hEval1, hEval2]
     simp [__smtx_model_eval_to_real, __smtx_model_eval_plus]
 
 private theorem arith_atom_denote_real_of_neg
@@ -2663,7 +2663,7 @@ private theorem arith_atom_denote_real_of_neg
     unfold arith_atom_denote_real
     rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2) =
       SmtTerm.neg (__eo_to_smt t1) (__eo_to_smt t2) by rfl]
-    rw [__smtx_model_eval.eq_12, hEval1, hEval2]
+    rw [__smtx_model_eval.eq_13, hEval1, hEval2]
     simp [__smtx_model_eval_to_real, __smtx_model_eval_plus, __smtx_model_eval_uneg,
       __smtx_model_eval__, native_to_real_sub]
   · have hEval1Ty :
@@ -2681,7 +2681,7 @@ private theorem arith_atom_denote_real_of_neg
     unfold arith_atom_denote_real
     rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.neg) t1) t2) =
       SmtTerm.neg (__eo_to_smt t1) (__eo_to_smt t2) by rfl]
-    rw [__smtx_model_eval.eq_12, hEval1, hEval2]
+    rw [__smtx_model_eval.eq_13, hEval1, hEval2]
     simp [__smtx_model_eval_to_real, __smtx_model_eval_plus, __smtx_model_eval_uneg,
       __smtx_model_eval__]
 
@@ -3476,7 +3476,7 @@ private theorem arith_atom_denote_real_of_qdiv_rational
     simp [__smtx_model_eval]
   rw [hAtom1]
   unfold arith_atom_denote_real
-  rw [eo_to_smt_qdiv_eq, __smtx_model_eval.eq_127, hEvalQ, hEval1]
+  rw [eo_to_smt_qdiv_eq, __smtx_model_eval.eq_128, hEvalQ, hEval1]
   simp [__smtx_model_eval_to_real, __smtx_model_eval_qdiv_total, __smtx_model_eval_ite,
     __smtx_model_eval_eq, native_veq, hZero, hZero']
 

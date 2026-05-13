@@ -396,7 +396,7 @@ theorem model_eval_choice_nth_canonical
   classical
   induction n generalizing M s T body with
   | zero =>
-      rw [__smtx_model_eval.eq_136, smtx_model_eval_choice_nth_eq_1]
+      rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_1]
       exact native_eval_tchoice_canonical M s T body
   | succ n ih =>
       cases body with
@@ -404,21 +404,21 @@ theorem model_eval_choice_nth_canonical
           have hTyEq :
               __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
                 __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
-            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            rw [__smtx_typeof.eq_137, __smtx_typeof.eq_137]
             simp [__smtx_typeof_choice_nth]
           have hTy' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
             unfold term_has_non_none_type
             rw [← hTyEq]
             exact hTy
-          rw [__smtx_model_eval.eq_136, smtx_model_eval_choice_nth_eq_2]
-          simpa [__smtx_model_eval.eq_136, smtx_model_eval_choice_nth_eq_1,
+          rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_2]
+          simpa [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_1,
             smtx_model_eval_choice_nth_eq_2] using
             ih (__smtx_model_push M s T (native_eval_tchoice M s T (SmtTerm.exists s' U body')))
               s' U body' hTy'
       | _ =>
           exfalso
           apply hTy
-          rw [__smtx_typeof.eq_136]
+          rw [__smtx_typeof.eq_137]
           simp [__smtx_typeof_choice_nth]
 
 /-- Term-level store preserves canonicality modulo the strict-order laws of `native_vcmp`. -/
@@ -500,6 +500,9 @@ theorem model_eval_canonical_of_supported
             __smtx_value_canonical_bool, term_has_non_none_type,
             native_and, SmtEval.native_and,
             native_ite, hw, hn] at hTy ⊢
+  case purify ht hs ih =>
+      simpa [__smtx_model_eval, __smtx_model_eval__at_purify] using
+        ih M hM ht
   case var s T hT =>
       exact model_eval_var_canonical M hM s T hT
   case uconst s T hT =>

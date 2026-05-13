@@ -95,7 +95,7 @@ private theorem seq_unpack_length_eq_of_str_len_eq
         __eo_to_smt (mkStrLen y) = SmtTerm.str_len (__eo_to_smt y) := by
       rfl
     rw [hxLenTranslate, hyLenTranslate] at hLenRel
-    rw [__smtx_model_eval.eq_78, __smtx_model_eval.eq_78] at hLenRel
+    rw [__smtx_model_eval.eq_79, __smtx_model_eval.eq_79] at hLenRel
     unfold RuleProofs.smt_value_rel at hLenRel
     simp [hxEval, hyEval, __smtx_model_eval_str_len, __smtx_model_eval_eq,
       native_seq_len] at hLenRel
