@@ -15,12 +15,10 @@ private theorem set_singleton_arg_non_none (x : Term) :
     SmtType.None at hSingleton
   rw [__smtx_typeof.eq_122] at hSingleton
   have hSingletonNone :
-      __smtx_typeof_guard_wf SmtType.None (SmtType.Set SmtType.None) =
+      __smtx_typeof_guard_wf (SmtType.Set SmtType.None) (SmtType.Set SmtType.None) =
         SmtType.None := by
-    have hWfNone : __smtx_type_wf SmtType.None = false := by
-      unfold __smtx_type_wf
-      change native_and (native_inhabited_type SmtType.None) false = false
-      cases native_inhabited_type SmtType.None <;> rfl
+    have hWfNone : __smtx_type_wf (SmtType.Set SmtType.None) = false := by
+      simp [__smtx_type_wf, __smtx_type_wf_rec, SmtEval.native_and]
     simp [__smtx_typeof_guard_wf, hWfNone, native_ite]
   rw [hNone] at hSingleton
   exact hSingleton hSingletonNone
@@ -34,7 +32,7 @@ private theorem set_singleton_type_of_non_none (x : Term)
     SmtType.Set (__smtx_typeof (__eo_to_smt x))
   rw [__smtx_typeof.eq_122]
   exact smtx_typeof_guard_wf_of_non_none
-    (__smtx_typeof (__eo_to_smt x))
+    (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
     (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
     (by
       change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt x)) ≠

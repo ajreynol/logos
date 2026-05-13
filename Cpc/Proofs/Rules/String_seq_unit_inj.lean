@@ -16,10 +16,8 @@ private theorem seq_unit_arg_non_none (x : Term) :
   have hSeqNone :
       __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt x)) = SmtType.None := by
     rw [__smtx_typeof.eq_119]
-    have hWfNone : __smtx_type_wf SmtType.None = false := by
-      unfold __smtx_type_wf
-      change native_and (native_inhabited_type SmtType.None) false = false
-      cases native_inhabited_type SmtType.None <;> rfl
+    have hWfNone : __smtx_type_wf (SmtType.Seq SmtType.None) = false := by
+      simp [__smtx_type_wf, __smtx_type_wf_rec, SmtEval.native_and]
     rw [hNone]
     simp [__smtx_typeof_guard_wf, hWfNone, native_ite]
   exact hSeq hSeqNone
@@ -75,7 +73,7 @@ private theorem typed___eo_prog_string_seq_unit_inj_impl (x1 : Term) :
                                                   SmtType.Seq (__smtx_typeof (__eo_to_smt a1))
                                               rw [__smtx_typeof.eq_119]
                                               exact smtx_typeof_guard_wf_of_non_none
-                                                (__smtx_typeof (__eo_to_smt a1))
+                                                (SmtType.Seq (__smtx_typeof (__eo_to_smt a1)))
                                                 (SmtType.Seq (__smtx_typeof (__eo_to_smt a1)))
                                                 (by
                                                   change
@@ -90,7 +88,7 @@ private theorem typed___eo_prog_string_seq_unit_inj_impl (x1 : Term) :
                                                   SmtType.Seq (__smtx_typeof (__eo_to_smt b1))
                                               rw [__smtx_typeof.eq_119]
                                               exact smtx_typeof_guard_wf_of_non_none
-                                                (__smtx_typeof (__eo_to_smt b1))
+                                                (SmtType.Seq (__smtx_typeof (__eo_to_smt b1)))
                                                 (SmtType.Seq (__smtx_typeof (__eo_to_smt b1)))
                                                 (by
                                                   change
