@@ -13,49 +13,49 @@ theorem typeof_str_len_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.str_len t) =
       __smtx_typeof_seq_op_1_ret (__smtx_typeof t) SmtType.Int := by
-  rw [__smtx_typeof.eq_78]
+  rw [__smtx_typeof.eq_79]
 
 /-- Lemma about `typeof_str_concat_eq`. -/
 theorem typeof_str_concat_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_concat t1 t2) =
       __smtx_typeof_seq_op_2 (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_79]
+  rw [__smtx_typeof.eq_80]
 
 /-- Lemma about `typeof_str_substr_eq`. -/
 theorem typeof_str_substr_eq
     (t1 t2 t3 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_substr t1 t2 t3) =
       __smtx_typeof_str_substr (__smtx_typeof t1) (__smtx_typeof t2) (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_80]
+  rw [__smtx_typeof.eq_81]
 
 /-- Lemma about `typeof_str_contains_eq`. -/
 theorem typeof_str_contains_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_contains t1 t2) =
       __smtx_typeof_seq_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) SmtType.Bool := by
-  rw [__smtx_typeof.eq_81]
+  rw [__smtx_typeof.eq_82]
 
 /-- Lemma about `typeof_str_replace_eq`. -/
 theorem typeof_str_replace_eq
     (t1 t2 t3 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_replace t1 t2 t3) =
       __smtx_typeof_seq_op_3 (__smtx_typeof t1) (__smtx_typeof t2) (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_82]
+  rw [__smtx_typeof.eq_83]
 
 /-- Lemma about `typeof_str_indexof_eq`. -/
 theorem typeof_str_indexof_eq
     (t1 t2 t3 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_indexof t1 t2 t3) =
       __smtx_typeof_str_indexof (__smtx_typeof t1) (__smtx_typeof t2) (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_83]
+  rw [__smtx_typeof.eq_84]
 
 /-- Lemma about `typeof_str_at_eq`. -/
 theorem typeof_str_at_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_at t1 t2) =
       __smtx_typeof_str_at (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_84]
+  rw [__smtx_typeof.eq_85]
 
 /-- Lemma about `typeof_str_prefixof_eq`. -/
 theorem typeof_str_prefixof_eq
@@ -65,7 +65,7 @@ theorem typeof_str_prefixof_eq
         (native_ite (native_Teq (__smtx_typeof t2) (SmtType.Seq SmtType.Char)) SmtType.Bool
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_85]
+  rw [__smtx_typeof.eq_86]
 
 /-- Lemma about `typeof_str_suffixof_eq`. -/
 theorem typeof_str_suffixof_eq
@@ -75,21 +75,21 @@ theorem typeof_str_suffixof_eq
         (native_ite (native_Teq (__smtx_typeof t2) (SmtType.Seq SmtType.Char)) SmtType.Bool
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_86]
+  rw [__smtx_typeof.eq_87]
 
 /-- Lemma about `typeof_str_rev_eq`. -/
 theorem typeof_str_rev_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.str_rev t) =
       __smtx_typeof_seq_op_1 (__smtx_typeof t) := by
-  rw [__smtx_typeof.eq_87]
+  rw [__smtx_typeof.eq_88]
 
 /-- Lemma about `typeof_str_update_eq`. -/
 theorem typeof_str_update_eq
     (t1 t2 t3 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_update t1 t2 t3) =
       __smtx_typeof_str_update (__smtx_typeof t1) (__smtx_typeof t2) (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_88]
+  rw [__smtx_typeof.eq_89]
 
 /-- Lemma about `typeof_str_to_lower_eq`. -/
 theorem typeof_str_to_lower_eq
@@ -98,7 +98,7 @@ theorem typeof_str_to_lower_eq
       native_ite (native_Teq (__smtx_typeof t) (SmtType.Seq SmtType.Char))
         (SmtType.Seq SmtType.Char)
         SmtType.None := by
-  rw [__smtx_typeof.eq_89]
+  rw [__smtx_typeof.eq_90]
 
 /-- Lemma about `typeof_str_to_upper_eq`. -/
 theorem typeof_str_to_upper_eq
@@ -107,7 +107,7 @@ theorem typeof_str_to_upper_eq
       native_ite (native_Teq (__smtx_typeof t) (SmtType.Seq SmtType.Char))
         (SmtType.Seq SmtType.Char)
         SmtType.None := by
-  rw [__smtx_typeof.eq_90]
+  rw [__smtx_typeof.eq_91]
 
 /-- Lemma about `typeof_str_to_code_eq`. -/
 theorem typeof_str_to_code_eq
@@ -115,7 +115,7 @@ theorem typeof_str_to_code_eq
     __smtx_typeof (SmtTerm.str_to_code t) =
       native_ite (native_Teq (__smtx_typeof t) (SmtType.Seq SmtType.Char)) SmtType.Int
         SmtType.None := by
-  rw [__smtx_typeof.eq_91]
+  rw [__smtx_typeof.eq_92]
 
 /-- Lemma about `typeof_str_from_code_eq`. -/
 theorem typeof_str_from_code_eq
@@ -123,7 +123,7 @@ theorem typeof_str_from_code_eq
     __smtx_typeof (SmtTerm.str_from_code t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Int) (SmtType.Seq SmtType.Char)
         SmtType.None := by
-  rw [__smtx_typeof.eq_92]
+  rw [__smtx_typeof.eq_93]
 
 /-- Lemma about `typeof_str_is_digit_eq`. -/
 theorem typeof_str_is_digit_eq
@@ -131,7 +131,7 @@ theorem typeof_str_is_digit_eq
     __smtx_typeof (SmtTerm.str_is_digit t) =
       native_ite (native_Teq (__smtx_typeof t) (SmtType.Seq SmtType.Char)) SmtType.Bool
         SmtType.None := by
-  rw [__smtx_typeof.eq_93]
+  rw [__smtx_typeof.eq_94]
 
 /-- Lemma about `typeof_str_to_int_eq`. -/
 theorem typeof_str_to_int_eq
@@ -139,7 +139,7 @@ theorem typeof_str_to_int_eq
     __smtx_typeof (SmtTerm.str_to_int t) =
       native_ite (native_Teq (__smtx_typeof t) (SmtType.Seq SmtType.Char)) SmtType.Int
         SmtType.None := by
-  rw [__smtx_typeof.eq_94]
+  rw [__smtx_typeof.eq_95]
 
 /-- Lemma about `typeof_str_from_int_eq`. -/
 theorem typeof_str_from_int_eq
@@ -147,7 +147,7 @@ theorem typeof_str_from_int_eq
     __smtx_typeof (SmtTerm.str_from_int t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Int) (SmtType.Seq SmtType.Char)
         SmtType.None := by
-  rw [__smtx_typeof.eq_95]
+  rw [__smtx_typeof.eq_96]
 
 /-- Lemma about `typeof_str_lt_eq`. -/
 theorem typeof_str_lt_eq
@@ -157,7 +157,7 @@ theorem typeof_str_lt_eq
         (native_ite (native_Teq (__smtx_typeof t2) (SmtType.Seq SmtType.Char)) SmtType.Bool
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_96]
+  rw [__smtx_typeof.eq_97]
 
 /-- Lemma about `typeof_str_leq_eq`. -/
 theorem typeof_str_leq_eq
@@ -167,14 +167,14 @@ theorem typeof_str_leq_eq
         (native_ite (native_Teq (__smtx_typeof t2) (SmtType.Seq SmtType.Char)) SmtType.Bool
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_97]
+  rw [__smtx_typeof.eq_98]
 
 /-- Lemma about `typeof_str_replace_all_eq`. -/
 theorem typeof_str_replace_all_eq
     (t1 t2 t3 : SmtTerm) :
     __smtx_typeof (SmtTerm.str_replace_all t1 t2 t3) =
       __smtx_typeof_seq_op_3 (__smtx_typeof t1) (__smtx_typeof t2) (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_98]
+  rw [__smtx_typeof.eq_99]
 
 /-- Lemma about `typeof_str_replace_re_eq`. -/
 theorem typeof_str_replace_re_eq
@@ -186,7 +186,7 @@ theorem typeof_str_replace_re_eq
             (SmtType.Seq SmtType.Char) SmtType.None)
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_99]
+  rw [__smtx_typeof.eq_100]
 
 /-- Lemma about `typeof_str_replace_re_all_eq`. -/
 theorem typeof_str_replace_re_all_eq
@@ -198,7 +198,7 @@ theorem typeof_str_replace_re_all_eq
             (SmtType.Seq SmtType.Char) SmtType.None)
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_100]
+  rw [__smtx_typeof.eq_101]
 
 /-- Lemma about `typeof_str_indexof_re_eq`. -/
 theorem typeof_str_indexof_re_eq
@@ -210,7 +210,7 @@ theorem typeof_str_indexof_re_eq
             SmtType.None)
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_101]
+  rw [__smtx_typeof.eq_102]
 
 /-- Lemma about `typeof_str_to_re_eq`. -/
 theorem typeof_str_to_re_eq
@@ -218,7 +218,7 @@ theorem typeof_str_to_re_eq
     __smtx_typeof (SmtTerm.str_to_re t) =
       native_ite (native_Teq (__smtx_typeof t) (SmtType.Seq SmtType.Char)) SmtType.RegLan
         SmtType.None := by
-  rw [__smtx_typeof.eq_105]
+  rw [__smtx_typeof.eq_106]
 
 /-- Lemma about `typeof_re_mult_eq`. -/
 theorem typeof_re_mult_eq
@@ -226,7 +226,7 @@ theorem typeof_re_mult_eq
     __smtx_typeof (SmtTerm.re_mult t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.RegLan) SmtType.RegLan
         SmtType.None := by
-  rw [__smtx_typeof.eq_106]
+  rw [__smtx_typeof.eq_107]
 
 /-- Lemma about `typeof_re_plus_eq`. -/
 theorem typeof_re_plus_eq
@@ -234,14 +234,14 @@ theorem typeof_re_plus_eq
     __smtx_typeof (SmtTerm.re_plus t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.RegLan) SmtType.RegLan
         SmtType.None := by
-  rw [__smtx_typeof.eq_107]
+  rw [__smtx_typeof.eq_108]
 
 /-- Lemma about `typeof_re_exp_eq`. -/
 theorem typeof_re_exp_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.re_exp t1 t2) =
       __smtx_typeof_re_exp t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_108]
+  rw [__smtx_typeof.eq_109]
 
 /-- Lemma about `typeof_re_opt_eq`. -/
 theorem typeof_re_opt_eq
@@ -249,7 +249,7 @@ theorem typeof_re_opt_eq
     __smtx_typeof (SmtTerm.re_opt t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.RegLan) SmtType.RegLan
         SmtType.None := by
-  rw [__smtx_typeof.eq_109]
+  rw [__smtx_typeof.eq_110]
 
 /-- Lemma about `typeof_re_comp_eq`. -/
 theorem typeof_re_comp_eq
@@ -257,7 +257,7 @@ theorem typeof_re_comp_eq
     __smtx_typeof (SmtTerm.re_comp t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.RegLan) SmtType.RegLan
         SmtType.None := by
-  rw [__smtx_typeof.eq_110]
+  rw [__smtx_typeof.eq_111]
 
 /-- Lemma about `typeof_re_range_eq`. -/
 theorem typeof_re_range_eq
@@ -268,7 +268,7 @@ theorem typeof_re_range_eq
           SmtType.RegLan
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_111]
+  rw [__smtx_typeof.eq_112]
 
 /-- Lemma about `typeof_re_concat_eq`. -/
 theorem typeof_re_concat_eq
@@ -278,7 +278,7 @@ theorem typeof_re_concat_eq
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.RegLan) SmtType.RegLan
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_112]
+  rw [__smtx_typeof.eq_113]
 
 /-- Lemma about `typeof_re_inter_eq`. -/
 theorem typeof_re_inter_eq
@@ -288,7 +288,7 @@ theorem typeof_re_inter_eq
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.RegLan) SmtType.RegLan
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_113]
+  rw [__smtx_typeof.eq_114]
 
 /-- Lemma about `typeof_re_union_eq`. -/
 theorem typeof_re_union_eq
@@ -298,7 +298,7 @@ theorem typeof_re_union_eq
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.RegLan) SmtType.RegLan
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_114]
+  rw [__smtx_typeof.eq_115]
 
 /-- Lemma about `typeof_re_diff_eq`. -/
 theorem typeof_re_diff_eq
@@ -308,14 +308,14 @@ theorem typeof_re_diff_eq
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.RegLan) SmtType.RegLan
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_115]
+  rw [__smtx_typeof.eq_116]
 
 /-- Lemma about `typeof_re_loop_eq`. -/
 theorem typeof_re_loop_eq
     (t1 t2 t3 : SmtTerm) :
     __smtx_typeof (SmtTerm.re_loop t1 t2 t3) =
       __smtx_typeof_re_loop t1 t2 (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_116]
+  rw [__smtx_typeof.eq_117]
 
 /-- Lemma about `typeof_str_in_re_eq`. -/
 theorem typeof_str_in_re_eq
@@ -325,14 +325,14 @@ theorem typeof_str_in_re_eq
         (native_ite (native_Teq (__smtx_typeof t2) SmtType.RegLan) SmtType.Bool
           SmtType.None)
         SmtType.None := by
-  rw [__smtx_typeof.eq_117]
+  rw [__smtx_typeof.eq_118]
 
 /-- Lemma about `typeof_seq_nth_eq`. -/
 theorem typeof_seq_nth_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.seq_nth t1 t2) =
       __smtx_typeof_seq_nth (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_119]
+  rw [__smtx_typeof.eq_120]
 
 /-- Derives `seq_arg` from `non_none`. -/
 theorem seq_arg_of_non_none
@@ -938,7 +938,7 @@ theorem typeof_value_model_eval_str_len
   rw [show __smtx_typeof (SmtTerm.str_len t) = SmtType.Int by
     rw [typeof_str_len_eq]
     simp [__smtx_typeof_seq_op_1_ret, hArg]]
-  rw [__smtx_model_eval.eq_78]
+  rw [__smtx_model_eval.eq_79]
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
   rw [hss]
   rfl
@@ -956,7 +956,7 @@ theorem typeof_value_model_eval_str_to_lower
   rw [show __smtx_typeof (SmtTerm.str_to_lower t) = SmtType.Seq SmtType.Char by
     rw [typeof_str_to_lower_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_89]
+  rw [__smtx_model_eval.eq_90]
   change __smtx_typeof_value (__smtx_model_eval_str_to_lower (__smtx_model_eval M t)) =
     SmtType.Seq SmtType.Char
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
@@ -979,7 +979,7 @@ theorem typeof_value_model_eval_str_to_upper
   rw [show __smtx_typeof (SmtTerm.str_to_upper t) = SmtType.Seq SmtType.Char by
     rw [typeof_str_to_upper_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_90]
+  rw [__smtx_model_eval.eq_91]
   change __smtx_typeof_value (__smtx_model_eval_str_to_upper (__smtx_model_eval M t)) =
     SmtType.Seq SmtType.Char
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
@@ -1002,7 +1002,7 @@ theorem typeof_value_model_eval_str_concat
   rw [show __smtx_typeof (SmtTerm.str_concat t1 t2) = SmtType.Seq T by
     rw [typeof_str_concat_eq]
     simp [__smtx_typeof_seq_op_2, native_ite, native_Teq, h1, h2]]
-  rw [__smtx_model_eval.eq_79]
+  rw [__smtx_model_eval.eq_80]
   change __smtx_typeof_value (__smtx_model_eval_str_concat (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Seq T
   rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
@@ -1044,7 +1044,7 @@ theorem typeof_value_model_eval_str_substr
         SmtType.Seq T by
     rw [typeof_str_substr_eq]
     simp [__smtx_typeof_str_substr, h1, h2, h3]]
-  rw [__smtx_model_eval.eq_80]
+  rw [__smtx_model_eval.eq_81]
   change __smtx_typeof_value
       (__smtx_model_eval_str_substr (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) = SmtType.Seq T
@@ -1078,7 +1078,7 @@ theorem typeof_value_model_eval_str_contains
   rw [show __smtx_typeof (SmtTerm.str_contains t1 t2) = SmtType.Bool by
     rw [typeof_str_contains_eq]
     simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq, h1, h2]]
-  rw [__smtx_model_eval.eq_81]
+  rw [__smtx_model_eval.eq_82]
   change __smtx_typeof_value (__smtx_model_eval_str_contains (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
   rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
@@ -1107,7 +1107,7 @@ theorem typeof_value_model_eval_str_indexof
         SmtType.Int by
     rw [typeof_str_indexof_eq]
     simp [__smtx_typeof_str_indexof, native_ite, native_Teq, h1, h2, h3]]
-  rw [__smtx_model_eval.eq_83]
+  rw [__smtx_model_eval.eq_84]
   change __smtx_typeof_value
       (__smtx_model_eval_str_indexof (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) = SmtType.Int
@@ -1130,7 +1130,7 @@ theorem typeof_value_model_eval_str_at
   rw [show __smtx_typeof (SmtTerm.str_at t1 t2) = SmtType.Seq T by
     rw [typeof_str_at_eq]
     simp [__smtx_typeof_str_at, h1, h2]]
-  rw [__smtx_model_eval.eq_84]
+  rw [__smtx_model_eval.eq_85]
   change __smtx_typeof_value (__smtx_model_eval_str_at (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Seq T
   rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss1, hss1⟩
@@ -1168,7 +1168,7 @@ theorem typeof_value_model_eval_str_replace
         SmtType.Seq T by
     rw [typeof_str_replace_eq]
     simp [__smtx_typeof_seq_op_3, native_ite, native_Teq, h1, h2, h3]]
-  rw [__smtx_model_eval.eq_82]
+  rw [__smtx_model_eval.eq_83]
   change __smtx_typeof_value
       (__smtx_model_eval_str_replace (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) = SmtType.Seq T
@@ -1205,7 +1205,7 @@ theorem typeof_value_model_eval_str_rev
   rw [show __smtx_typeof (SmtTerm.str_rev t) = SmtType.Seq T by
     rw [typeof_str_rev_eq]
     simp [__smtx_typeof_seq_op_1, hArg]]
-  rw [__smtx_model_eval.eq_87]
+  rw [__smtx_model_eval.eq_88]
   change __smtx_typeof_value (__smtx_model_eval_str_rev (__smtx_model_eval M t)) = SmtType.Seq T
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
   have hty : __smtx_typeof_seq_value ss = SmtType.Seq T := by
@@ -1241,7 +1241,7 @@ theorem typeof_value_model_eval_str_update
         SmtType.Seq T by
     rw [typeof_str_update_eq]
     simp [__smtx_typeof_str_update, native_ite, native_Teq, h1, h2, h3]]
-  rw [__smtx_model_eval.eq_88]
+  rw [__smtx_model_eval.eq_89]
   change __smtx_typeof_value
       (__smtx_model_eval_str_update (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) = SmtType.Seq T
@@ -1285,7 +1285,7 @@ theorem typeof_value_model_eval_str_replace_all
         SmtType.Seq T by
     rw [typeof_str_replace_all_eq]
     simp [__smtx_typeof_seq_op_3, native_ite, native_Teq, h1, h2, h3]]
-  rw [__smtx_model_eval.eq_98]
+  rw [__smtx_model_eval.eq_99]
   change __smtx_typeof_value
       (__smtx_model_eval_str_replace_all (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) = SmtType.Seq T
@@ -1331,7 +1331,7 @@ theorem typeof_value_model_eval_str_replace_re
         SmtType.Seq SmtType.Char by
     rw [typeof_str_replace_re_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]]
-  rw [__smtx_model_eval.eq_99]
+  rw [__smtx_model_eval.eq_100]
   change __smtx_typeof_value
       (__smtx_model_eval_str_replace_re (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) = SmtType.Seq SmtType.Char
@@ -1366,7 +1366,7 @@ theorem typeof_value_model_eval_str_replace_re_all
         SmtType.Seq SmtType.Char by
     rw [typeof_str_replace_re_all_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]]
-  rw [__smtx_model_eval.eq_100]
+  rw [__smtx_model_eval.eq_101]
   change __smtx_typeof_value
       (__smtx_model_eval_str_replace_re_all (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) = SmtType.Seq SmtType.Char
@@ -1401,7 +1401,7 @@ theorem typeof_value_model_eval_str_indexof_re
         SmtType.Int by
     rw [typeof_str_indexof_re_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2.1, hArgs.2.2]]
-  rw [__smtx_model_eval.eq_101]
+  rw [__smtx_model_eval.eq_102]
   change __smtx_typeof_value
       (__smtx_model_eval_str_indexof_re (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) = SmtType.Int
@@ -1424,7 +1424,7 @@ theorem typeof_value_model_eval_str_to_code
   rw [show __smtx_typeof (SmtTerm.str_to_code t) = SmtType.Int by
     rw [typeof_str_to_code_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_91]
+  rw [__smtx_model_eval.eq_92]
   change __smtx_typeof_value (__smtx_model_eval_str_to_code (__smtx_model_eval M t)) =
     SmtType.Int
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
@@ -1444,7 +1444,7 @@ theorem typeof_value_model_eval_str_to_int
   rw [show __smtx_typeof (SmtTerm.str_to_int t) = SmtType.Int by
     rw [typeof_str_to_int_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_94]
+  rw [__smtx_model_eval.eq_95]
   change __smtx_typeof_value (__smtx_model_eval_str_to_int (__smtx_model_eval M t)) =
     SmtType.Int
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
@@ -1464,7 +1464,7 @@ theorem typeof_value_model_eval_str_from_code
   rw [show __smtx_typeof (SmtTerm.str_from_code t) = SmtType.Seq SmtType.Char by
     rw [typeof_str_from_code_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_92]
+  rw [__smtx_model_eval.eq_93]
   change __smtx_typeof_value (__smtx_model_eval_str_from_code (__smtx_model_eval M t)) =
     SmtType.Seq SmtType.Char
   rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
@@ -1486,7 +1486,7 @@ theorem typeof_value_model_eval_str_from_int
   rw [show __smtx_typeof (SmtTerm.str_from_int t) = SmtType.Seq SmtType.Char by
     rw [typeof_str_from_int_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_95]
+  rw [__smtx_model_eval.eq_96]
   change __smtx_typeof_value (__smtx_model_eval_str_from_int (__smtx_model_eval M t)) =
     SmtType.Seq SmtType.Char
   rcases int_value_canonical (by simpa [hArg] using hpres) with ⟨n, hn⟩
@@ -1508,7 +1508,7 @@ theorem typeof_value_model_eval_str_to_re
   rw [show __smtx_typeof (SmtTerm.str_to_re t) = SmtType.RegLan by
     rw [typeof_str_to_re_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_105]
+  rw [__smtx_model_eval.eq_106]
   change __smtx_typeof_value (__smtx_model_eval_str_to_re (__smtx_model_eval M t)) =
     SmtType.RegLan
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
@@ -1528,7 +1528,7 @@ theorem typeof_value_model_eval_re_mult
   rw [show __smtx_typeof (SmtTerm.re_mult t) = SmtType.RegLan by
     rw [typeof_re_mult_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_106]
+  rw [__smtx_model_eval.eq_107]
   change __smtx_typeof_value (__smtx_model_eval_re_mult (__smtx_model_eval M t)) =
     SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
@@ -1548,7 +1548,7 @@ theorem typeof_value_model_eval_re_plus
   rw [show __smtx_typeof (SmtTerm.re_plus t) = SmtType.RegLan by
     rw [typeof_re_plus_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_107]
+  rw [__smtx_model_eval.eq_108]
   change __smtx_typeof_value (__smtx_model_eval_re_plus (__smtx_model_eval M t)) =
     SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
@@ -1592,7 +1592,7 @@ theorem typeof_value_model_eval_re_exp
       SmtType.RegLan by
     rw [typeof_re_exp_eq]
     simp [__smtx_typeof_re_exp, hArg, hn, native_ite]]
-  rw [__smtx_model_eval.eq_108, __smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_109, __smtx_model_eval.eq_2]
   change __smtx_typeof_value (__smtx_model_eval_re_exp (SmtValue.Numeral n) (__smtx_model_eval M t)) =
     SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
@@ -1614,7 +1614,7 @@ theorem typeof_value_model_eval_re_opt
   rw [show __smtx_typeof (SmtTerm.re_opt t) = SmtType.RegLan by
     rw [typeof_re_opt_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_109]
+  rw [__smtx_model_eval.eq_110]
   change __smtx_typeof_value (__smtx_model_eval_re_opt (__smtx_model_eval M t)) =
     SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
@@ -1634,7 +1634,7 @@ theorem typeof_value_model_eval_re_comp
   rw [show __smtx_typeof (SmtTerm.re_comp t) = SmtType.RegLan by
     rw [typeof_re_comp_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_110]
+  rw [__smtx_model_eval.eq_111]
   change __smtx_typeof_value (__smtx_model_eval_re_comp (__smtx_model_eval M t)) =
     SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArg] using hpres) with ⟨r, hr⟩
@@ -1655,7 +1655,7 @@ theorem typeof_value_model_eval_re_range
       SmtType.RegLan by
     rw [typeof_re_range_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_111]
+  rw [__smtx_model_eval.eq_112]
   change __smtx_typeof_value (__smtx_model_eval_re_range (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.RegLan
   rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
@@ -1677,7 +1677,7 @@ theorem typeof_value_model_eval_re_concat
       SmtType.RegLan by
     rw [typeof_re_concat_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_112]
+  rw [__smtx_model_eval.eq_113]
   change __smtx_typeof_value (__smtx_model_eval_re_concat (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨r1, hr1⟩
@@ -1699,7 +1699,7 @@ theorem typeof_value_model_eval_re_inter
       SmtType.RegLan by
     rw [typeof_re_inter_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_113]
+  rw [__smtx_model_eval.eq_114]
   change __smtx_typeof_value (__smtx_model_eval_re_inter (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨r1, hr1⟩
@@ -1721,7 +1721,7 @@ theorem typeof_value_model_eval_re_union
       SmtType.RegLan by
     rw [typeof_re_union_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_114]
+  rw [__smtx_model_eval.eq_115]
   change __smtx_typeof_value (__smtx_model_eval_re_union (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨r1, hr1⟩
@@ -1743,7 +1743,7 @@ theorem typeof_value_model_eval_re_diff
       SmtType.RegLan by
     rw [typeof_re_diff_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_115]
+  rw [__smtx_model_eval.eq_116]
   change __smtx_typeof_value (__smtx_model_eval_re_diff (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.RegLan
   rcases reglan_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨r1, hr1⟩
@@ -1787,7 +1787,7 @@ theorem typeof_value_model_eval_re_loop
       (SmtTerm.re_loop (SmtTerm.Numeral n1) (SmtTerm.Numeral n2) t) = SmtType.RegLan by
     rw [typeof_re_loop_eq]
     simp [__smtx_typeof_re_loop, hArg, hn1, hn2, native_ite]]
-  rw [__smtx_model_eval.eq_116, __smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
+  rw [__smtx_model_eval.eq_117, __smtx_model_eval.eq_2, __smtx_model_eval.eq_2]
   change __smtx_typeof_value
       (__smtx_model_eval_re_loop (SmtValue.Numeral n1) (SmtValue.Numeral n2)
         (__smtx_model_eval M t)) = SmtType.RegLan
@@ -1815,7 +1815,7 @@ theorem typeof_value_model_eval_str_in_re
       SmtType.Bool by
     rw [typeof_str_in_re_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_117]
+  rw [__smtx_model_eval.eq_118]
   change __smtx_typeof_value (__smtx_model_eval_str_in_re (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
   rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss, hss⟩
@@ -1837,7 +1837,7 @@ theorem typeof_value_model_eval_str_lt
       SmtType.Bool by
     rw [typeof_str_lt_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_96]
+  rw [__smtx_model_eval.eq_97]
   change __smtx_typeof_value (__smtx_model_eval_str_lt (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
   rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
@@ -1859,7 +1859,7 @@ theorem typeof_value_model_eval_str_leq
       SmtType.Bool by
     rw [typeof_str_leq_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_97]
+  rw [__smtx_model_eval.eq_98]
   change __smtx_typeof_value (__smtx_model_eval_str_leq (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
   rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
@@ -1887,7 +1887,7 @@ theorem typeof_value_model_eval_str_prefixof
       SmtType.Bool by
     rw [typeof_str_prefixof_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_85]
+  rw [__smtx_model_eval.eq_86]
   change __smtx_typeof_value (__smtx_model_eval_str_prefixof (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
   rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
@@ -1915,7 +1915,7 @@ theorem typeof_value_model_eval_str_suffixof
       SmtType.Bool by
     rw [typeof_str_suffixof_eq]
     simp [native_ite, native_Teq, hArgs.1, hArgs.2]]
-  rw [__smtx_model_eval.eq_86]
+  rw [__smtx_model_eval.eq_87]
   change __smtx_typeof_value (__smtx_model_eval_str_suffixof (__smtx_model_eval M t1)
       (__smtx_model_eval M t2)) = SmtType.Bool
   rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
@@ -1943,7 +1943,7 @@ theorem typeof_value_model_eval_str_is_digit
   rw [show __smtx_typeof (SmtTerm.str_is_digit t) = SmtType.Bool by
     rw [typeof_str_is_digit_eq]
     simp [native_ite, native_Teq, hArg]]
-  rw [__smtx_model_eval.eq_93]
+  rw [__smtx_model_eval.eq_94]
   change __smtx_typeof_value (__smtx_model_eval_str_is_digit (__smtx_model_eval M t)) =
     SmtType.Bool
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
@@ -1974,7 +1974,7 @@ theorem typeof_value_model_eval_seq_nth
     rw [typeof_seq_nth_eq t1 t2]
     simpa [__smtx_typeof_seq_nth, h1, h2] using hTy'
   rw [hTy]
-  rw [__smtx_model_eval.eq_119]
+  rw [__smtx_model_eval.eq_120]
   change __smtx_typeof_value (__smtx_seq_nth M (__smtx_model_eval M t1) (__smtx_model_eval M t2)) = T
   rcases seq_value_canonical (by simpa [h1] using hpres1) with ⟨ss, hss⟩
   rcases int_value_canonical (by simpa [h2] using hpres2) with ⟨n, hn⟩

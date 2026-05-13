@@ -294,7 +294,7 @@ private theorem generic_apply_type_of_non_special_head
     (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x := by
   unfold generic_apply_type
-  exact __smtx_typeof.eq_140 f x hSel hTester
+  exact __smtx_typeof.eq_141 f x hSel hTester
 
 private theorem eo_to_smt_distinct_ne_dt_sel
     (xs : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
@@ -661,9 +661,9 @@ private theorem eo_to_smt_apply_ne_dt_sel
       exact eo_to_smt_distinct_top_ne_dt_sel x s d i j h
     case _at_bvsize =>
       change native_ite (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
-          (SmtTerm.plus
-            (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
-            (SmtTerm.Numeral 0)) SmtTerm.None =
+          (SmtTerm._at_purify
+            (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+          SmtTerm.None =
         SmtTerm.DtSel s d i j at h
       unfold native_ite at h
       split at h <;> cases h
@@ -714,9 +714,9 @@ private theorem eo_to_smt_apply_ne_dt_tester
       exact eo_to_smt_distinct_top_ne_dt_tester x s d i h
     case _at_bvsize =>
       change native_ite (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
-          (SmtTerm.plus
-            (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
-            (SmtTerm.Numeral 0)) SmtTerm.None =
+          (SmtTerm._at_purify
+            (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+          SmtTerm.None =
         SmtTerm.DtTester s d i at h
       unfold native_ite at h
       split at h <;> cases h
@@ -761,28 +761,28 @@ private theorem typeof_bvnot_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.bvnot t) =
       __smtx_typeof_bv_op_1 (__smtx_typeof t) := by
-  rw [__smtx_typeof.eq_37]
+  rw [__smtx_typeof.eq_38]
 
 /-- Rewrites the typing equation for `bvcomp`. -/
 private theorem typeof_bvcomp_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.bvcomp t1 t2) =
       __smtx_typeof_bv_op_2_ret (__smtx_typeof t1) (__smtx_typeof t2) (SmtType.BitVec 1) := by
-  rw [__smtx_typeof.eq_44]
+  rw [__smtx_typeof.eq_45]
 
 /-- Rewrites the typing equation for `bvneg`. -/
 private theorem typeof_bvneg_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.bvneg t) =
       __smtx_typeof_bv_op_1 (__smtx_typeof t) := by
-  rw [__smtx_typeof.eq_45]
+  rw [__smtx_typeof.eq_46]
 
 /-- Rewrites the typing equation for `bvnego`. -/
 private theorem typeof_bvnego_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.bvnego t) =
       __smtx_typeof_bv_op_1_ret (__smtx_typeof t) SmtType.Bool := by
-  rw [__smtx_typeof.eq_70]
+  rw [__smtx_typeof.eq_71]
 
 /-- Rewrites the typing equation for `seq_unit`. -/
 private theorem typeof_seq_unit_eq
@@ -790,14 +790,14 @@ private theorem typeof_seq_unit_eq
     __smtx_typeof (SmtTerm.seq_unit t) =
       __smtx_typeof_guard_wf (__smtx_typeof t)
         (SmtType.Seq (__smtx_typeof t)) := by
-  rw [__smtx_typeof.eq_118]
+  rw [__smtx_typeof.eq_119]
 
 /-- Rewrites the typing equation for `set_empty`. -/
 private theorem typeof_set_empty_eq
     (T : SmtType) :
     __smtx_typeof (SmtTerm.set_empty T) =
       __smtx_typeof_guard_wf T (SmtType.Set T) := by
-  rw [__smtx_typeof.eq_120]
+  rw [__smtx_typeof.eq_121]
 
 /-- Rewrites the typing equation for `set_singleton`. -/
 private theorem typeof_set_singleton_eq
@@ -805,14 +805,14 @@ private theorem typeof_set_singleton_eq
     __smtx_typeof (SmtTerm.set_singleton t) =
       __smtx_typeof_guard_wf (__smtx_typeof t)
         (SmtType.Set (__smtx_typeof t)) := by
-  rw [__smtx_typeof.eq_121]
+  rw [__smtx_typeof.eq_122]
 
 /-- Rewrites the typing equation for `exists`. -/
 private theorem typeof_exists_eq
     (s : native_String) (T : SmtType) (t : SmtTerm) :
     __smtx_typeof (SmtTerm.exists s T t) =
       native_ite (native_Teq (__smtx_typeof t) SmtType.Bool) SmtType.Bool SmtType.None := by
-  rw [__smtx_typeof.eq_134]
+  rw [__smtx_typeof.eq_135]
 
 /-- Computes the type of applying `none`. -/
 private theorem typeof_apply_none_eq
@@ -932,7 +932,7 @@ private theorem typeof_uneg_eq
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.uneg t) =
       __smtx_typeof_arith_overload_op_1 (__smtx_typeof t) := by
-  rw [__smtx_typeof.eq_22]
+  rw [__smtx_typeof.eq_23]
 
 /-- Computes the type of applying a regular-language constant as a head. -/
 private theorem typeof_apply_reglan_head_eq_none
@@ -1288,15 +1288,15 @@ private theorem choice_nth_fun_like_arg_field_wf_any
               __smtx_typeof
                   (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
                 __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
-            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            rw [__smtx_typeof.eq_137, __smtx_typeof.eq_137]
             simp [__smtx_typeof_choice_nth]
           exact ih s' U body' (by simpa [hTyEq] using hHead)
       | _ =>
           exfalso
           rcases hHead with hHead | hHead
-          · rw [__smtx_typeof.eq_136] at hHead
+          · rw [__smtx_typeof.eq_137] at hHead
             simp [__smtx_typeof_choice_nth] at hHead
-          · rw [__smtx_typeof.eq_136] at hHead
+          · rw [__smtx_typeof.eq_137] at hHead
             simp [__smtx_typeof_choice_nth] at hHead
 
 /-- Skolemization is either a `choice_nth` chain or `none`, so function-like results have well-formed arguments. -/
@@ -5435,7 +5435,7 @@ private theorem choice_nth_fun_like_domains_no_reglan_any
           have hTyEq :
               __smtx_typeof (SmtTerm.choice_nth s T (SmtTerm.exists s' U body') (Nat.succ n)) =
                 __smtx_typeof (SmtTerm.choice_nth s' U body' n) := by
-            rw [__smtx_typeof.eq_136, __smtx_typeof.eq_136]
+            rw [__smtx_typeof.eq_137, __smtx_typeof.eq_137]
             simp [__smtx_typeof_choice_nth]
           have hNN' : term_has_non_none_type (SmtTerm.choice_nth s' U body' n) := by
             unfold term_has_non_none_type at hNN ⊢
@@ -5445,7 +5445,7 @@ private theorem choice_nth_fun_like_domains_no_reglan_any
       | _ =>
           exfalso
           unfold term_has_non_none_type at hNN
-          rw [__smtx_typeof.eq_136] at hNN
+          rw [__smtx_typeof.eq_137] at hNN
           simp [__smtx_typeof_choice_nth] at hNN
 
 private theorem smtx_term_has_non_none_of_type_eq_no_reglan
@@ -5568,36 +5568,36 @@ theorem smtx_term_fun_like_arg_ne_reglan_of_non_none :
     case seq_unit t =>
         have hArgNN : term_has_non_none_type t := by
           unfold term_has_non_none_type at hNN ⊢
-          rw [__smtx_typeof.eq_118] at hNN
+          rw [__smtx_typeof.eq_119] at hNN
           by_cases hTy : __smtx_typeof t = SmtType.None
           · simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
               native_and, native_ite, hTy] at hNN
           · exact hTy
         have hTy :
             __smtx_typeof (SmtTerm.seq_unit t) = SmtType.Seq (__smtx_typeof t) := by
-          rw [__smtx_typeof.eq_118]
+          rw [__smtx_typeof.eq_119]
           exact smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
             (SmtType.Seq (__smtx_typeof t)) (by
               unfold term_has_non_none_type at hNN
-              rw [__smtx_typeof.eq_118] at hNN
+              rw [__smtx_typeof.eq_119] at hNN
               exact hNN)
         rw [hTy]
         exact go t hArgNN
     case set_singleton t =>
         have hArgNN : term_has_non_none_type t := by
           unfold term_has_non_none_type at hNN ⊢
-          rw [__smtx_typeof.eq_121] at hNN
+          rw [__smtx_typeof.eq_122] at hNN
           by_cases hTy : __smtx_typeof t = SmtType.None
           · simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
               native_and, native_ite, hTy] at hNN
           · exact hTy
         have hTy :
             __smtx_typeof (SmtTerm.set_singleton t) = SmtType.Set (__smtx_typeof t) := by
-          rw [__smtx_typeof.eq_121]
+          rw [__smtx_typeof.eq_122]
           exact smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
             (SmtType.Set (__smtx_typeof t)) (by
               unfold term_has_non_none_type at hNN
-              rw [__smtx_typeof.eq_121] at hNN
+              rw [__smtx_typeof.eq_122] at hNN
               exact hNN)
         rw [hTy]
         exact go t hArgNN
@@ -5712,6 +5712,12 @@ theorem smtx_term_fun_like_arg_ne_reglan_of_non_none :
           simp [__smtx_typeof_sets_op_2, native_ite, native_Teq]
         rw [hTy]
         simpa [h1] using go t1 ht1
+    case _at_purify t1 =>
+        have ht1 : term_has_non_none_type t1 := by
+          intro hNone
+          apply hNN
+          simpa [__smtx_typeof] using hNone
+        simpa [__smtx_typeof] using go t1 ht1
     all_goals
       simp only [__smtx_typeof, native_ite,
         __smtx_typeof_bv_op_1, __smtx_typeof_bv_op_1_ret,
@@ -6926,9 +6932,6 @@ private theorem eo_to_smt_eq_dt_sel_cases
       simp [eo_to_smt_term_dt_cons, native_ite, hReserved] at hy
   case UOp1 op z =>
     cases op <;> try (exfalso; cases hy)
-    case _at_purify =>
-      have hz : __eo_to_smt z = SmtTerm.DtSel s d i j := hy
-      exact Or.inr ⟨z, rfl, hz⟩
     case seq_empty =>
       exfalso
       change __eo_to_smt_seq_empty (__eo_to_smt_type z) = SmtTerm.DtSel s d i j at hy
@@ -6975,8 +6978,6 @@ private theorem eo_to_smt_ne_dt_tester
   cases y
   case UOp1 op z =>
     cases op <;> try (exfalso; cases hy)
-    case _at_purify =>
-      exact eo_to_smt_ne_dt_tester z s d i hy
     case seq_empty =>
       exfalso
       change __eo_to_smt_seq_empty (__eo_to_smt_type z) = SmtTerm.DtTester s d i at hy
@@ -7097,46 +7098,23 @@ private theorem eo_to_smt_typeof_matches_translation_apply_purify
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
     (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_purify y) x)) ≠
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_purify y) x)) ≠
         SmtType.None) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_purify y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term._at_purify y) x)) := by
-  by_cases hSel : ∃ s d i j, __eo_to_smt y = SmtTerm.DtSel s d i j
-  · rcases hSel with ⟨s, d, i, j, hy⟩
-    have hTranslate :
-        __eo_to_smt (Term.Apply (Term._at_purify y) x) =
-          SmtTerm.Apply (SmtTerm.DtSel s d i j) (__eo_to_smt x) := by
-      change SmtTerm.Apply (__eo_to_smt (Term._at_purify y)) (__eo_to_smt x) =
-        SmtTerm.Apply (SmtTerm.DtSel s d i j) (__eo_to_smt x)
-      change SmtTerm.Apply (__eo_to_smt y) (__eo_to_smt x) =
-        SmtTerm.Apply (SmtTerm.DtSel s d i j) (__eo_to_smt x)
-      rw [hy]
-    have hApplyNN :
-        term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) (__eo_to_smt x)) := by
-      unfold term_has_non_none_type
-      rw [← hTranslate]
-      exact hNonNone
-    have hx :
-        __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s d :=
-      dt_sel_arg_datatype_of_non_none hApplyNN
-    have hSmt :
-        __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_purify y) x)) =
-          __smtx_ret_typeof_sel s d i j := by
-      rw [hTranslate]
-      exact dt_sel_term_typeof_of_non_none hApplyNN
-    exact hSmt.trans
-      (eo_to_smt_type_typeof_apply_purify_of_dt_sel_translation
-        x y s d i j ihX hy hx hApplyNN).symm
-  · have hNonSel : ∀ s d i j, __eo_to_smt y ≠ SmtTerm.DtSel s d i j := by
-      intro s d i j hy
-      exact hSel ⟨s, d, i, j, hy⟩
-    have hGeneric :
-        generic_apply_type (__eo_to_smt (Term._at_purify y)) (__eo_to_smt x) := by
-      change generic_apply_type (__eo_to_smt y) (__eo_to_smt x)
-      exact generic_apply_type_of_non_special_head _ _ hNonSel
-        (by intro s d i hy; exact eo_to_smt_ne_dt_tester y s d i hy)
-    exact eo_to_smt_typeof_matches_translation_apply_generic_from_bridge
-      (Term._at_purify y) x ihPurify ihX hGeneric (by rfl) (by rfl) hNonNone
+  have hGeneric :
+      generic_apply_type (__eo_to_smt (Term._at_purify y)) (__eo_to_smt x) := by
+    exact generic_apply_type_of_non_special_head _ _
+      (by
+        intro s d i j hy
+        change SmtTerm._at_purify (__eo_to_smt y) = SmtTerm.DtSel s d i j at hy
+        cases hy)
+      (by
+        intro s d i hy
+        change SmtTerm._at_purify (__eo_to_smt y) = SmtTerm.DtTester s d i at hy
+        cases hy)
+  exact eo_to_smt_typeof_matches_translation_apply_generic_from_bridge
+    (Term._at_purify y) x ihPurify ihX hGeneric (by rfl) (by rfl) hNonNone
 
 /-- A non-`None` regex-unfold component always returns a string. -/
 private theorem smtx_typeof_re_unfold_pos_component_of_non_none
@@ -7367,7 +7345,7 @@ private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
       rw [show __smtx_typeof (__eo_to_smt_set_empty (SmtType.Set U)) =
           __smtx_typeof_guard_wf U (SmtType.Set U) by
         simp [__eo_to_smt_set_empty]
-        rw [__smtx_typeof.eq_120]]
+        rw [__smtx_typeof.eq_121]]
       cases hInh : native_inhabited_type U <;>
       cases hWf : __smtx_type_wf U <;>
         simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hWf]
@@ -8595,7 +8573,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvand) SmtTerm.bvand x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_38])
+      (by rw [__smtx_typeof.eq_39])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvand_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8605,7 +8583,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvor) SmtTerm.bvor x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_39])
+      (by rw [__smtx_typeof.eq_40])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvor_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8615,7 +8593,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvnand) SmtTerm.bvnand x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_40])
+      (by rw [__smtx_typeof.eq_41])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvnand_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8625,7 +8603,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvnor) SmtTerm.bvnor x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_41])
+      (by rw [__smtx_typeof.eq_42])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvnor_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8635,7 +8613,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvxor) SmtTerm.bvxor x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_42])
+      (by rw [__smtx_typeof.eq_43])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvxor_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8645,7 +8623,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvxnor) SmtTerm.bvxnor x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_43])
+      (by rw [__smtx_typeof.eq_44])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvxnor_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8655,7 +8633,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvcomp) SmtTerm.bvcomp (SmtType.BitVec 1) x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_44])
+      (by rw [__smtx_typeof.eq_45])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvcomp_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8665,7 +8643,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvadd) SmtTerm.bvadd x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_46])
+      (by rw [__smtx_typeof.eq_47])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvadd_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8675,7 +8653,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvmul) SmtTerm.bvmul x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_47])
+      (by rw [__smtx_typeof.eq_48])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvmul_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8685,7 +8663,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvudiv) SmtTerm.bvudiv x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_48])
+      (by rw [__smtx_typeof.eq_49])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvudiv_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8695,7 +8673,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvurem) SmtTerm.bvurem x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_49])
+      (by rw [__smtx_typeof.eq_50])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvurem_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8705,7 +8683,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvsub) SmtTerm.bvsub x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_50])
+      (by rw [__smtx_typeof.eq_51])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsub_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8715,7 +8693,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvsdiv) SmtTerm.bvsdiv x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_51])
+      (by rw [__smtx_typeof.eq_52])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsdiv_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8725,7 +8703,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvsrem) SmtTerm.bvsrem x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_52])
+      (by rw [__smtx_typeof.eq_53])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsrem_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8735,7 +8713,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvsmod) SmtTerm.bvsmod x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_53])
+      (by rw [__smtx_typeof.eq_54])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsmod_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8745,7 +8723,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvult) SmtTerm.bvult SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_54])
+      (by rw [__smtx_typeof.eq_55])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvult_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8755,7 +8733,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvule) SmtTerm.bvule SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_55])
+      (by rw [__smtx_typeof.eq_56])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvule_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8765,7 +8743,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvugt) SmtTerm.bvugt SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_56])
+      (by rw [__smtx_typeof.eq_57])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvugt_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8775,7 +8753,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvuge) SmtTerm.bvuge SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_57])
+      (by rw [__smtx_typeof.eq_58])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvuge_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8785,7 +8763,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvslt) SmtTerm.bvslt SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_58])
+      (by rw [__smtx_typeof.eq_59])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvslt_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8795,7 +8773,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvsle) SmtTerm.bvsle SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_59])
+      (by rw [__smtx_typeof.eq_60])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsle_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8805,7 +8783,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvsgt) SmtTerm.bvsgt SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_60])
+      (by rw [__smtx_typeof.eq_61])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsgt_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8815,7 +8793,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvsge) SmtTerm.bvsge SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_61])
+      (by rw [__smtx_typeof.eq_62])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsge_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8825,7 +8803,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvshl) SmtTerm.bvshl x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_62])
+      (by rw [__smtx_typeof.eq_63])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvshl_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8835,7 +8813,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvlshr) SmtTerm.bvlshr x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_63])
+      (by rw [__smtx_typeof.eq_64])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvlshr_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8845,7 +8823,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop
       (Term.UOp UserOp.bvashr) SmtTerm.bvashr x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_64])
+      (by rw [__smtx_typeof.eq_65])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvashr_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8855,7 +8833,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvuaddo) SmtTerm.bvuaddo SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_69])
+      (by rw [__smtx_typeof.eq_70])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvuaddo_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8865,7 +8843,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvsaddo) SmtTerm.bvsaddo SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_71])
+      (by rw [__smtx_typeof.eq_72])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsaddo_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8875,7 +8853,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvumulo) SmtTerm.bvumulo SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_72])
+      (by rw [__smtx_typeof.eq_73])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvumulo_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8885,7 +8863,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvsmulo) SmtTerm.bvsmulo SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_73])
+      (by rw [__smtx_typeof.eq_74])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsmulo_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8895,7 +8873,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvusubo) SmtTerm.bvusubo SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_74])
+      (by rw [__smtx_typeof.eq_75])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvusubo_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8905,7 +8883,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvssubo) SmtTerm.bvssubo SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_75])
+      (by rw [__smtx_typeof.eq_76])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvssubo_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8915,7 +8893,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_binop_ret
       (Term.UOp UserOp.bvsdivo) SmtTerm.bvsdivo SmtType.Bool x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_76])
+      (by rw [__smtx_typeof.eq_77])
       (fun w hy hx => eo_to_smt_type_typeof_apply_apply_bvsdivo_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih x ihX w hx)
@@ -8925,7 +8903,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_cmp_to_bv1
       (Term.UOp UserOp.bvultbv) SmtTerm.bvult x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_54])
+      (by rw [__smtx_typeof.eq_55])
       (fun w hy hx => by
         simpa using eo_to_smt_type_typeof_apply_apply_bvcomp_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
@@ -8936,7 +8914,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_bv_cmp_to_bv1
       (Term.UOp UserOp.bvsltbv) SmtTerm.bvslt x y
       (by rfl)
-      (by rw [__smtx_typeof.eq_58])
+      (by rw [__smtx_typeof.eq_59])
       (fun w hy hx => by
         simpa using eo_to_smt_type_typeof_apply_apply_bvcomp_of_bitvec_type x y (Term.Numeral (native_nat_to_int w))
           (eo_typeof_eq_bitvec_of_smt_bitvec_from_ih y ihY w hy)
@@ -11763,14 +11741,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
           __eo_to_smt (Term.Apply (Term.UOp UserOp._at_bvsize) x) =
             let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
             native_ite (native_zleq 0 _v0)
-              (SmtTerm.plus (SmtTerm.Numeral _v0) (SmtTerm.Numeral 0))
+              (SmtTerm._at_purify (SmtTerm.Numeral _v0))
               SmtTerm.None := by
         rfl
       have hApplyNN :
           term_has_non_none_type
             (let _v0 := __smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))
              native_ite (native_zleq 0 _v0)
-               (SmtTerm.plus (SmtTerm.Numeral _v0) (SmtTerm.Numeral 0))
+               (SmtTerm._at_purify (SmtTerm.Numeral _v0))
                SmtTerm.None) := by
         unfold term_has_non_none_type
         rw [← hTranslate]
@@ -11793,8 +11771,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         have hWNonneg : native_zleq 0 (native_nat_to_int w) = true := by
           simp [native_zleq, SmtEval.native_zleq, native_nat_to_int, SmtEval.native_nat_to_int]
         rw [hTranslate, hArg]
-        simp [__smtx_bv_sizeof_type, __smtx_typeof, native_ite, hWNonneg,
-          __smtx_typeof_arith_overload_op_2]
+        simp [__smtx_bv_sizeof_type, __smtx_typeof, native_ite, hWNonneg]
       exact hSmt.trans (eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec x w hxEo).symm
     case bvnot =>
       have hTranslate :
@@ -12557,7 +12534,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rw [← hTranslate]
         exact hNonNone
       rcases bv_unop_ret_arg_of_non_none (op := SmtTerm.ubv_to_int) (ret := SmtType.Int)
-          (by rw [__smtx_typeof.eq_130]) hApplyNN with
+          (by rw [__smtx_typeof.eq_131]) hApplyNN with
         ⟨w, hArg⟩
       have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
         rw [hArg]
@@ -12569,7 +12546,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       have hxEo : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w)) :=
         eo_to_smt_type_eq_bitvec hxSmt
       have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.ubv_to_int) x)) = SmtType.Int := by
-        rw [hTranslate, __smtx_typeof.eq_130, hArg]
+        rw [hTranslate, __smtx_typeof.eq_131, hArg]
         simp [__smtx_typeof_bv_op_1_ret]
       exact hSmt.trans (eo_to_smt_type_typeof_apply_ubv_to_int_of_bitvec x w hxEo).symm
     case sbv_to_int =>
@@ -12582,7 +12559,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         rw [← hTranslate]
         exact hNonNone
       rcases bv_unop_ret_arg_of_non_none (op := SmtTerm.sbv_to_int) (ret := SmtType.Int)
-          (by rw [__smtx_typeof.eq_131]) hApplyNN with
+          (by rw [__smtx_typeof.eq_132]) hApplyNN with
         ⟨w, hArg⟩
       have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
         rw [hArg]
@@ -12594,7 +12571,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
       have hxEo : __eo_typeof x = Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w)) :=
         eo_to_smt_type_eq_bitvec hxSmt
       have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.sbv_to_int) x)) = SmtType.Int := by
-        rw [hTranslate, __smtx_typeof.eq_131, hArg]
+        rw [hTranslate, __smtx_typeof.eq_132, hArg]
         simp [__smtx_typeof_bv_op_1_ret]
       exact hSmt.trans (eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec x w hxEo).symm
     all_goals

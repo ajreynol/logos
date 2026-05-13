@@ -724,7 +724,7 @@ theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
   rw [eo_to_smt_eq_eq x y] at hEq
   cases hEq with
   | intro_true _ hEval =>
-      rw [__smtx_model_eval.eq_133] at hEval
+      rw [__smtx_model_eval.eq_134] at hEval
       exact hEval
 
 /-- Derives `eo_interprets_eq` from `rel`. -/
@@ -755,7 +755,7 @@ theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
       (smt_value_rel_iff_model_eval_eq_true
         (__smtx_model_eval M (__eo_to_smt x))
         (__smtx_model_eval M (__eo_to_smt y))).mp hRel
-    rw [__smtx_model_eval.eq_133]
+    rw [__smtx_model_eval.eq_134]
     exact hEvalEq
 
 /-- Establishes an equality relating `eo_interprets` and `trans`. -/

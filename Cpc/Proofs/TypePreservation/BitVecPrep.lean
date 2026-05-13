@@ -13,56 +13,56 @@ theorem typeof_concat_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.concat t1 t2) =
       __smtx_typeof_concat (__smtx_typeof t1) (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_34]
+  rw [__smtx_typeof.eq_35]
 
 /-- Lemma about `typeof_extract_eq`. -/
 theorem typeof_extract_eq
     (t1 t2 t3 : SmtTerm) :
     __smtx_typeof (SmtTerm.extract t1 t2 t3) =
       __smtx_typeof_extract t1 t2 (__smtx_typeof t3) := by
-  rw [__smtx_typeof.eq_35]
+  rw [__smtx_typeof.eq_36]
 
 /-- Lemma about `typeof_repeat_eq`. -/
 theorem typeof_repeat_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.repeat t1 t2) =
       __smtx_typeof_repeat t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_36]
+  rw [__smtx_typeof.eq_37]
 
 /-- Lemma about `typeof_zero_extend_eq`. -/
 theorem typeof_zero_extend_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.zero_extend t1 t2) =
       __smtx_typeof_zero_extend t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_65]
+  rw [__smtx_typeof.eq_66]
 
 /-- Lemma about `typeof_sign_extend_eq`. -/
 theorem typeof_sign_extend_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.sign_extend t1 t2) =
       __smtx_typeof_sign_extend t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_66]
+  rw [__smtx_typeof.eq_67]
 
 /-- Lemma about `typeof_rotate_left_eq`. -/
 theorem typeof_rotate_left_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.rotate_left t1 t2) =
       __smtx_typeof_rotate_left t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_67]
+  rw [__smtx_typeof.eq_68]
 
 /-- Lemma about `typeof_rotate_right_eq`. -/
 theorem typeof_rotate_right_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.rotate_right t1 t2) =
       __smtx_typeof_rotate_right t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_68]
+  rw [__smtx_typeof.eq_69]
 
 /-- Lemma about `typeof_int_to_bv_eq`. -/
 theorem typeof_int_to_bv_eq
     (t1 t2 : SmtTerm) :
     __smtx_typeof (SmtTerm.int_to_bv t1 t2) =
       __smtx_typeof_int_to_bv t1 (__smtx_typeof t2) := by
-  rw [__smtx_typeof.eq_129]
+  rw [__smtx_typeof.eq_130]
 
 /-- Derives `bv_concat_args` from `non_none`. -/
 theorem bv_concat_args_of_non_none

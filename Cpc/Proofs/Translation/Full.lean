@@ -385,7 +385,7 @@ private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
                             simpa [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] using hNN
                           have hBodyBool : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool :=
                             choice_nth_body_bool_of_non_none hChoiceNN
-                          rw [__eo_to_smt_exists, __smtx_typeof.eq_134]
+                          rw [__eo_to_smt_exists, __smtx_typeof.eq_135]
                           simp [hBodyBool, native_ite, native_Teq]
                       | _ =>
                           exfalso
@@ -437,7 +437,7 @@ private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
                             exact hChoiceSucc
                           have hTailBool : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool :=
                             ih a body hBodyNoExists hTailNN
-                          rw [__eo_to_smt_exists, __smtx_typeof.eq_134]
+                          rw [__eo_to_smt_exists, __smtx_typeof.eq_135]
                           simp [hTailBool, native_ite, native_Teq]
                       | _ =>
                           exfalso
@@ -820,7 +820,12 @@ theorem eo_to_smt_typeof_matches_translation
             exact go z)
           hNonNone
     | Term._at_purify x, hNonNone => by
-        exact eo_to_smt_typeof_matches_translation_purify x (go x hNonNone)
+        have hx : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+          intro hNone
+          apply hNonNone
+          change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt x)) = SmtType.None
+          simpa [__smtx_typeof] using hNone
+        exact eo_to_smt_typeof_matches_translation_purify x (go x hx)
     | Term._at_array_deq_diff x1 x2, hNonNone => by
         exact eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2 hNonNone
     | Term.seq_empty T, hNonNone => by
