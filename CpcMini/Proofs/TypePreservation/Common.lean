@@ -1817,6 +1817,52 @@ private theorem datatype_suffix_at_tail
           simpa [datatype_suffix_at] using
             datatype_suffix_at_tail d0Tail n c dTail h
 
+private theorem datatype_suffix_at_unique
+    (d0 : SmtDatatype) :
+    (n : native_Nat) ->
+      (d1 d2 : SmtDatatype) ->
+        datatype_suffix_at d0 n d1 ->
+          datatype_suffix_at d0 n d2 ->
+            d1 = d2
+  | native_nat_zero, d1, d2, h1, h2 => by
+      simp [datatype_suffix_at] at h1 h2
+      subst h1
+      subst h2
+      rfl
+  | native_nat_succ n, d1, d2, h1, h2 => by
+      cases d0 with
+      | null =>
+          simp [datatype_suffix_at] at h1
+      | sum c dTail =>
+          exact datatype_suffix_at_unique dTail n d1 d2
+            (by simpa [datatype_suffix_at] using h1)
+            (by simpa [datatype_suffix_at] using h2)
+
+private theorem datatype_suffix_at_null_no_succ
+    (d0 : SmtDatatype) :
+    (n : native_Nat) ->
+      datatype_suffix_at d0 n SmtDatatype.null ->
+        (k : native_Nat) ->
+          (d : SmtDatatype) ->
+            ¬ datatype_suffix_at d0 (n + native_nat_succ k) d
+  | native_nat_zero, hNull, k, d, hSuffix => by
+      simp [datatype_suffix_at] at hNull
+      subst hNull
+      cases k <;> simp [datatype_suffix_at] at hSuffix
+  | native_nat_succ n, hNull, k, d, hSuffix => by
+      cases d0 with
+      | null =>
+          simp [datatype_suffix_at] at hNull
+      | sum c dTail =>
+          have hNullTail :
+              datatype_suffix_at dTail n SmtDatatype.null := by
+            simpa [datatype_suffix_at] using hNull
+          have hSuffixTail :
+              datatype_suffix_at dTail (n + native_nat_succ k) d := by
+            simpa [datatype_suffix_at, Nat.succ_add] using hSuffix
+          exact datatype_suffix_at_null_no_succ dTail n hNullTail k d
+            hSuffixTail
+
 private theorem typeof_dt_cons_value_rec_substitute_of_suffix_at
     (s : native_String)
     (d0 : SmtDatatype)
@@ -1907,6 +1953,158 @@ private theorem typeof_dt_cons_value_of_suffix_at
     typeof_dt_cons_value_rec_substitute_of_suffix_at s d0
       (SmtType.Datatype s d0) d0 n d hSuffix
 
+private theorem dt_applied_type_rec_non_none_base
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    ∀ d i n,
+      dt_applied_type_rec s d0 d i n ≠ SmtType.None ->
+        __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d i ≠
+          SmtType.None
+  | d, i, 0, h => by
+      simpa [dt_applied_type_rec] using h
+  | SmtDatatype.null, i, Nat.succ n, h => by
+      cases i <;> simp [dt_applied_type_rec] at h
+  | SmtDatatype.sum SmtDatatypeCons.unit d, 0, Nat.succ n, h => by
+      simp [dt_applied_type_rec] at h
+  | SmtDatatype.sum (SmtDatatypeCons.cons U c) d, 0, Nat.succ n, _h => by
+      simp [__smtx_typeof_dt_cons_value_rec]
+  | SmtDatatype.sum c d, Nat.succ i, n, h => by
+      cases n with
+      | zero =>
+          simpa [dt_applied_type_rec] using h
+      | succ n =>
+          have hTail :
+              __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0) d i ≠
+                SmtType.None :=
+            dt_applied_type_rec_non_none_base s d0 d i (Nat.succ n) (by
+              simpa [dt_applied_type_rec] using h)
+          simpa [__smtx_typeof_dt_cons_value_rec] using hTail
+
+private theorem datatype_suffix_at_of_typeof_dt_cons_value_rec_non_none
+    (T : SmtType) :
+    ∀ d i,
+      __smtx_typeof_dt_cons_value_rec T d i ≠ SmtType.None ->
+        ∃ dSuffix, datatype_suffix_at d i dSuffix
+  | SmtDatatype.null, i, h => by
+      cases i <;> simp [__smtx_typeof_dt_cons_value_rec] at h
+  | SmtDatatype.sum c dTail, native_nat_zero, _h => by
+      exact ⟨SmtDatatype.sum c dTail,
+        datatype_suffix_at_self (SmtDatatype.sum c dTail)⟩
+  | SmtDatatype.sum c dTail, native_nat_succ i, h => by
+      have hTail :
+          __smtx_typeof_dt_cons_value_rec T dTail i ≠ SmtType.None := by
+        simpa [__smtx_typeof_dt_cons_value_rec] using h
+      rcases datatype_suffix_at_of_typeof_dt_cons_value_rec_non_none T
+          dTail i hTail with
+        ⟨dSuffix, hSuffix⟩
+      exact ⟨dSuffix, by simpa [datatype_suffix_at] using hSuffix⟩
+
+private theorem datatype_cons_suffix_at_of_typeof_dt_cons_value_rec_non_none
+    (T : SmtType) :
+    ∀ d i,
+      __smtx_typeof_dt_cons_value_rec T d i ≠ SmtType.None ->
+        ∃ c dTail, datatype_suffix_at d i (SmtDatatype.sum c dTail)
+  | SmtDatatype.null, i, h => by
+      cases i <;> simp [__smtx_typeof_dt_cons_value_rec] at h
+  | SmtDatatype.sum c dTail, native_nat_zero, _h => by
+      exact ⟨c, dTail, datatype_suffix_at_self (SmtDatatype.sum c dTail)⟩
+  | SmtDatatype.sum c dTail, native_nat_succ i, h => by
+      have hTail :
+          __smtx_typeof_dt_cons_value_rec T dTail i ≠ SmtType.None := by
+        simpa [__smtx_typeof_dt_cons_value_rec] using h
+      rcases datatype_cons_suffix_at_of_typeof_dt_cons_value_rec_non_none T
+          dTail i hTail with
+        ⟨cSuffix, dSuffixTail, hSuffix⟩
+      exact ⟨cSuffix, dSuffixTail,
+        by simpa [datatype_suffix_at] using hSuffix⟩
+
+private theorem datatype_suffix_at_of_substitute
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    ∀ d i dSubSuffix,
+      datatype_suffix_at (__smtx_dt_substitute s d0 d) i dSubSuffix ->
+        ∃ dSuffix, datatype_suffix_at d i dSuffix
+  | d, native_nat_zero, _dSubSuffix, _hSuffix => by
+      exact ⟨d, datatype_suffix_at_self d⟩
+  | SmtDatatype.null, native_nat_succ i, dSubSuffix, hSuffix => by
+      simp [__smtx_dt_substitute, datatype_suffix_at] at hSuffix
+  | SmtDatatype.sum c dTail, native_nat_succ i, dSubSuffix, hSuffix => by
+      rcases datatype_suffix_at_of_substitute s d0 dTail i dSubSuffix
+          (by simpa [__smtx_dt_substitute, datatype_suffix_at] using hSuffix) with
+        ⟨dSuffix, hSuffixTail⟩
+      exact ⟨dSuffix, by simpa [datatype_suffix_at] using hSuffixTail⟩
+
+private theorem datatype_cons_suffix_at_of_substitute
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    ∀ d i cSub dSubTail,
+      datatype_suffix_at (__smtx_dt_substitute s d0 d) i
+          (SmtDatatype.sum cSub dSubTail) ->
+        ∃ c dTail, datatype_suffix_at d i (SmtDatatype.sum c dTail)
+  | d, native_nat_zero, cSub, dSubTail, _hSuffix => by
+      cases d with
+      | null =>
+          simp [__smtx_dt_substitute, datatype_suffix_at] at _hSuffix
+      | sum c dTail =>
+          exact ⟨c, dTail, datatype_suffix_at_self (SmtDatatype.sum c dTail)⟩
+  | SmtDatatype.null, native_nat_succ i, cSub, dSubTail, hSuffix => by
+      simp [__smtx_dt_substitute, datatype_suffix_at] at hSuffix
+  | SmtDatatype.sum c dTail, native_nat_succ i, cSub, dSubTail, hSuffix => by
+      rcases datatype_cons_suffix_at_of_substitute s d0 dTail i cSub dSubTail
+          (by simpa [__smtx_dt_substitute, datatype_suffix_at] using hSuffix) with
+        ⟨cSuffix, dSuffixTail, hSuffixTail⟩
+      exact ⟨cSuffix, dSuffixTail,
+        by simpa [datatype_suffix_at] using hSuffixTail⟩
+
+private theorem datatype_suffix_at_of_datatype_value_head
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    {v : SmtValue}
+    (hHead : __vsm_apply_head v = SmtValue.DtCons s d i)
+    (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
+    ∃ dSuffix, datatype_suffix_at d i dSuffix := by
+  have hChain := dt_chain_type_of_non_none hHead (by simp [hTy])
+  have hFinalNN :
+      dt_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (value_num_apply_args v) ≠ SmtType.None := by
+    rw [← hChain]
+    simp [hTy]
+  have hRawNN :
+      __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d)
+          (__smtx_dt_substitute s d d) i ≠ SmtType.None :=
+    dt_applied_type_rec_non_none_base s d (__smtx_dt_substitute s d d) i
+      (value_num_apply_args v) hFinalNN
+  rcases datatype_suffix_at_of_typeof_dt_cons_value_rec_non_none
+      (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i hRawNN with
+    ⟨dSubSuffix, hSubSuffix⟩
+  exact datatype_suffix_at_of_substitute s d d i dSubSuffix hSubSuffix
+
+private theorem datatype_cons_suffix_at_of_datatype_value_head
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    {v : SmtValue}
+    (hHead : __vsm_apply_head v = SmtValue.DtCons s d i)
+    (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
+    ∃ c dTail, datatype_suffix_at d i (SmtDatatype.sum c dTail) := by
+  have hChain := dt_chain_type_of_non_none hHead (by simp [hTy])
+  have hFinalNN :
+      dt_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (value_num_apply_args v) ≠ SmtType.None := by
+    rw [← hChain]
+    simp [hTy]
+  have hRawNN :
+      __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d)
+          (__smtx_dt_substitute s d d) i ≠ SmtType.None :=
+    dt_applied_type_rec_non_none_base s d (__smtx_dt_substitute s d d) i
+      (value_num_apply_args v) hFinalNN
+  rcases datatype_cons_suffix_at_of_typeof_dt_cons_value_rec_non_none
+      (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i hRawNN with
+    ⟨cSub, dSubTail, hSubSuffix⟩
+  exact datatype_cons_suffix_at_of_substitute s d d i cSub dSubTail
+    hSubSuffix
+
 private def datatype_default_has_typed_constructor_from
     (s : native_String)
     (d0 : SmtDatatype) :
@@ -1969,6 +2167,33 @@ private def datatype_typeRef_prefix_at : SmtDatatype -> native_Nat -> Prop
       datatype_cons_has_typeRef_field c ∧
         datatype_typeRef_prefix_at dTail n
   | SmtDatatype.null, native_nat_succ _ => False
+
+private theorem datatype_typeRef_prefix_at_succ_of_suffix
+    (d0 : SmtDatatype) :
+    (n : native_Nat) ->
+      (c : SmtDatatypeCons) ->
+        (dTail : SmtDatatype) ->
+          datatype_typeRef_prefix_at d0 n ->
+            datatype_suffix_at d0 n (SmtDatatype.sum c dTail) ->
+              datatype_cons_has_typeRef_field c ->
+                datatype_typeRef_prefix_at d0 (native_nat_succ n)
+  | native_nat_zero, c, dTail, _hPrefix, hSuffix, hHas => by
+      simp [datatype_suffix_at] at hSuffix
+      subst hSuffix
+      simp [datatype_typeRef_prefix_at, hHas]
+  | native_nat_succ n, c, dTail, hPrefix, hSuffix, hHas => by
+      cases d0 with
+      | null =>
+          simp [datatype_typeRef_prefix_at] at hPrefix
+      | sum c0 d0Tail =>
+          have hTailPrefix :
+              datatype_typeRef_prefix_at d0Tail n := hPrefix.2
+          have hTailSuffix :
+              datatype_suffix_at d0Tail n (SmtDatatype.sum c dTail) := by
+            simpa [datatype_suffix_at] using hSuffix
+          exact ⟨hPrefix.1,
+            datatype_typeRef_prefix_at_succ_of_suffix d0Tail n c dTail
+              hTailPrefix hTailSuffix hHas⟩
 
 private theorem datatype_default_typed_suffix_of_typeRef_prefix_at
     (s : native_String)
@@ -2427,6 +2652,154 @@ private theorem recursive_arg_progress_of_suffix_typeRef
   exact ⟨__vsm_apply_arg_nth v j (value_num_apply_args v),
     hRecursiveArgTy, hRecursiveArgSmall⟩
 
+private theorem datatype_default_has_typed_constructor_from_of_current_witness
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (n : native_Nat)
+    (c : SmtDatatypeCons)
+    (dTail : SmtDatatype)
+    (v : SmtValue)
+    (hPrefix : datatype_typeRef_prefix_at d0 n)
+    (hSuffix : datatype_suffix_at d0 n (SmtDatatype.sum c dTail))
+    (hHead : __vsm_apply_head v = SmtValue.DtCons s d0 n)
+    (hTy : __smtx_typeof_value v = SmtType.Datatype s d0)
+    (hConsWf :
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) =
+        true)
+    (hArgsNoTypeRef :
+      __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) =
+          true ->
+        ¬ datatype_cons_has_typeRef_field c ->
+          datatype_cons_default_args_typed s d0 c)
+    (hSmallTop :
+      ∀ a,
+        __smtx_typeof_value a = SmtType.Datatype s d0 ->
+          smt_value_size a < smt_value_size v ->
+            datatype_default_has_typed_constructor_from s d0 d0) :
+    datatype_default_has_typed_constructor_from s d0
+      (SmtDatatype.sum c dTail) := by
+  by_cases hHasTypeRef : datatype_cons_has_typeRef_field c
+  · have hSelf : datatype_cons_typeRef_fields_self s c :=
+      datatype_cons_typeRef_fields_self_of_wf_singleton s c hConsWf
+    rcases recursive_arg_progress_of_suffix_typeRef s d0 n c dTail v
+        hSuffix hHead hTy hSelf hHasTypeRef with
+      ⟨a, hATy, hASmall⟩
+    have hTop : datatype_default_has_typed_constructor_from s d0 d0 :=
+      hSmallTop a hATy hASmall
+    have hCurrent :
+        datatype_default_has_typed_constructor_from s d0
+          (SmtDatatype.sum c dTail) :=
+      datatype_default_typed_suffix_of_typeRef_prefix_at s d0 d0 n
+        (SmtDatatype.sum c dTail) hPrefix hSuffix hTop
+    exact Or.inr ⟨hHasTypeRef,
+      datatype_default_tail_of_typed_constructor_from_of_has_typeRef s d0
+        c dTail hHasTypeRef hCurrent⟩
+  · exact Or.inl (hArgsNoTypeRef hConsWf hHasTypeRef)
+
+private theorem datatype_default_has_typed_constructor_from_of_witness_scan
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (v : SmtValue)
+    (hTy : __smtx_typeof_value v = SmtType.Datatype s d0)
+    (hArgsNoTypeRef :
+      ∀ c,
+        __smtx_dt_cons_wf_rec c (native_reflist_insert native_reflist_nil s) =
+            true ->
+          ¬ datatype_cons_has_typeRef_field c ->
+            datatype_cons_default_args_typed s d0 c)
+    (hSmallTop :
+      ∀ a,
+        __smtx_typeof_value a = SmtType.Datatype s d0 ->
+          smt_value_size a < smt_value_size v ->
+            datatype_default_has_typed_constructor_from s d0 d0) :
+    (d : SmtDatatype) ->
+      (n iRel : native_Nat) ->
+        datatype_suffix_at d0 n d ->
+          datatype_typeRef_prefix_at d0 n ->
+            __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) =
+                true ->
+              __vsm_apply_head v = SmtValue.DtCons s d0 (n + iRel) ->
+                datatype_default_has_typed_constructor_from s d0 d
+  | SmtDatatype.null, n, iRel, _hSuffix, _hPrefix, hWF, _hHead => by
+      simp [__smtx_dt_wf_rec] at hWF
+  | SmtDatatype.sum c dTail, n, iRel, hSuffix, hPrefix, hWF, hHead => by
+      have hConsWf :
+          __smtx_dt_cons_wf_rec c
+              (native_reflist_insert native_reflist_nil s) =
+            true :=
+        dt_wf_cons_of_wf hWF
+      by_cases hHasTypeRef : datatype_cons_has_typeRef_field c
+      · cases iRel with
+        | zero =>
+            have hHeadCurrent :
+                __vsm_apply_head v = SmtValue.DtCons s d0 n := by
+              simpa using hHead
+            exact datatype_default_has_typed_constructor_from_of_current_witness
+              s d0 n c dTail v hPrefix hSuffix hHeadCurrent hTy hConsWf
+              (hArgsNoTypeRef c) hSmallTop
+        | succ iTail =>
+            cases dTail with
+            | null =>
+                rcases datatype_cons_suffix_at_of_datatype_value_head hHead hTy with
+                  ⟨cWitness, dWitnessTail, hWitnessSuffix⟩
+                have hIndex :
+                    n + Nat.succ iTail = Nat.succ n + iTail := by
+                  rw [Nat.add_succ, Nat.succ_add]
+                have hWitnessSuffix' :
+                    datatype_suffix_at d0 (Nat.succ n + iTail)
+                      (SmtDatatype.sum cWitness dWitnessTail) := by
+                  simpa [hIndex] using hWitnessSuffix
+                have hTailSuffix :
+                    datatype_suffix_at d0 (Nat.succ n) SmtDatatype.null :=
+                  datatype_suffix_at_tail d0 n c SmtDatatype.null hSuffix
+                cases iTail with
+                | zero =>
+                    have hUniq :
+                        SmtDatatype.null =
+                          SmtDatatype.sum cWitness dWitnessTail :=
+                      datatype_suffix_at_unique d0 (Nat.succ n)
+                        SmtDatatype.null
+                        (SmtDatatype.sum cWitness dWitnessTail)
+                        hTailSuffix (by simpa using hWitnessSuffix')
+                    cases hUniq
+                | succ k =>
+                    exact False.elim
+                      ((datatype_suffix_at_null_no_succ d0 (Nat.succ n)
+                        hTailSuffix k (SmtDatatype.sum cWitness dWitnessTail))
+                        (by
+                          simpa [Nat.succ_add] using hWitnessSuffix'))
+            | sum cNext dRest =>
+                have hTailWf :
+                    __smtx_dt_wf_rec (SmtDatatype.sum cNext dRest)
+                        (native_reflist_insert native_reflist_nil s) =
+                      true :=
+                  dt_wf_tail_of_nonempty_tail_wf
+                    (c := c) (cTail := cNext) (dTail := dRest)
+                    (refs := native_reflist_insert native_reflist_nil s)
+                    hWF
+                have hTailSuffix :
+                    datatype_suffix_at d0 (Nat.succ n)
+                      (SmtDatatype.sum cNext dRest) :=
+                  datatype_suffix_at_tail d0 n c
+                    (SmtDatatype.sum cNext dRest) hSuffix
+                have hTailPrefix :
+                    datatype_typeRef_prefix_at d0 (Nat.succ n) :=
+                  datatype_typeRef_prefix_at_succ_of_suffix d0 n c
+                    (SmtDatatype.sum cNext dRest) hPrefix hSuffix hHasTypeRef
+                have hIndex :
+                    n + Nat.succ iTail = Nat.succ n + iTail := by
+                  rw [Nat.add_succ, Nat.succ_add]
+                have hHeadTail :
+                    __vsm_apply_head v =
+                      SmtValue.DtCons s d0 (Nat.succ n + iTail) := by
+                  simpa [hIndex] using hHead
+                exact Or.inr ⟨hHasTypeRef,
+                  datatype_default_has_typed_constructor_from_of_witness_scan
+                    s d0 v hTy hArgsNoTypeRef hSmallTop
+                    (SmtDatatype.sum cNext dRest) (Nat.succ n) iTail
+                    hTailSuffix hTailPrefix hTailWf hHeadTail⟩
+      · exact Or.inl (hArgsNoTypeRef c hConsWf hHasTypeRef)
+
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
     (d : SmtDatatype)
@@ -2440,47 +2813,70 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     | null =>
         simp [__smtx_type_wf_rec, __smtx_dt_wf_rec] at hRec
     | sum c dTail =>
-        have hWitness : type_inhabited (SmtType.Datatype s (SmtDatatype.sum c dTail)) :=
-          (smtx_inhabited_type_eq_true_iff
-            (SmtType.Datatype s (SmtDatatype.sum c dTail))).1 hInh
-        rcases hWitness with ⟨v, hv⟩
-        rcases value_head_dtCons_of_datatype_type hv with ⟨i, hHead⟩
-        have hArgCount :
-            value_num_apply_args v =
-              __smtx_dt_num_sels
-                (__smtx_dt_substitute s (SmtDatatype.sum c dTail)
-                  (SmtDatatype.sum c dTail)) i :=
-          value_num_apply_args_eq_dt_num_sels_of_datatype hHead hv
         have hDtWf :
             __smtx_dt_wf_rec (SmtDatatype.sum c dTail)
                 (native_reflist_insert native_reflist_nil s) =
               true := by
           simpa [__smtx_type_wf_rec] using hRec
-        have hConsWf :
-            __smtx_dt_cons_wf_rec c
-                (native_reflist_insert native_reflist_nil s) =
-              true :=
-          dt_wf_cons_of_wf hDtWf
-        have hSelf : datatype_cons_typeRef_fields_self s c :=
-          datatype_cons_typeRef_fields_self_of_wf_singleton s c hConsWf
-        have hFirstRecursiveArgProgress :
-            i = native_nat_zero ->
-              datatype_cons_has_typeRef_field c ->
-                ∃ a,
-                  __smtx_typeof_value a =
-                      SmtType.Datatype s (SmtDatatype.sum c dTail) ∧
-                    smt_value_size a < smt_value_size v := by
-          intro hI0 hHasTypeRef
-          subst i
-          exact recursive_arg_progress_of_suffix_typeRef s
-            (SmtDatatype.sum c dTail) native_nat_zero c dTail v
-            (datatype_suffix_at_self (SmtDatatype.sum c dTail))
-            hHead hv hSelf hHasTypeRef
-        -- The remaining semantic productivity step is now localized to this
-        -- constructor-headed inhabitant: following any self-recursive argument
-        -- in the finite application spine must eventually reach a suffix whose
-        -- generated default arguments are typed.
-        sorry
+        have hWitness : type_inhabited (SmtType.Datatype s (SmtDatatype.sum c dTail)) :=
+          (smtx_inhabited_type_eq_true_iff
+            (SmtType.Datatype s (SmtDatatype.sum c dTail))).1 hInh
+        rcases hWitness with ⟨v, hv⟩
+        have hTypedBySize :
+            ∀ n,
+              ∀ v',
+                smt_value_size v' = n ->
+                  __smtx_typeof_value v' =
+                    SmtType.Datatype s (SmtDatatype.sum c dTail) ->
+                    datatype_default_has_typed_constructor_from s
+                      (SmtDatatype.sum c dTail)
+                      (SmtDatatype.sum c dTail) := by
+          intro n
+          induction n using Nat.strongRecOn with
+          | ind n ih =>
+              intro v' hSize hv'
+              rcases value_head_dtCons_of_datatype_type hv' with
+                ⟨i, hHead⟩
+              have hArgsNoTypeRef :
+                  ∀ cCur,
+                    __smtx_dt_cons_wf_rec cCur
+                        (native_reflist_insert native_reflist_nil s) =
+                        true ->
+                      ¬ datatype_cons_has_typeRef_field cCur ->
+                        datatype_cons_default_args_typed s
+                          (SmtDatatype.sum c dTail) cCur := by
+                intro cCur hConsWf hNoTypeRef
+                exact
+                  datatype_cons_default_args_typed_of_no_typeRef_with_field_defaults
+                    s (SmtDatatype.sum c dTail)
+                    (native_reflist_insert native_reflist_nil s)
+                    (by
+                      intro T hNotTypeRef hFieldInh hFieldRec
+                      -- This is the remaining field-default obligation:
+                      -- every non-TypeRef field admitted by the current ref
+                      -- context must have a substituted default of the
+                      -- substituted field type.
+                      sorry)
+                    cCur hConsWf hNoTypeRef
+              have hSmallTop :
+                  ∀ a,
+                    __smtx_typeof_value a =
+                      SmtType.Datatype s (SmtDatatype.sum c dTail) ->
+                      smt_value_size a < smt_value_size v' ->
+                        datatype_default_has_typed_constructor_from s
+                          (SmtDatatype.sum c dTail)
+                          (SmtDatatype.sum c dTail) := by
+                intro a hATy hASmall
+                exact ih (smt_value_size a) (by omega) a rfl hATy
+              have hScan :=
+                datatype_default_has_typed_constructor_from_of_witness_scan
+                  s (SmtDatatype.sum c dTail) v' hv' hArgsNoTypeRef
+                  hSmallTop (SmtDatatype.sum c dTail) native_nat_zero i
+                  (datatype_suffix_at_self (SmtDatatype.sum c dTail))
+                  (by simp [datatype_typeRef_prefix_at]) hDtWf
+                  (by simpa using hHead)
+              exact hScan
+        exact hTypedBySize (smt_value_size v) v rfl hv
   exact datatype_type_default_typed_canonical_of_typed_constructor_from_self s d
     hTyped
 
