@@ -1190,6 +1190,12 @@ private theorem tp_smt_seq_component_wf_rec_of_non_none_type
       native_and] using hGood
   exact hSeqParts.2.2
 
+theorem smt_seq_component_wf_rec_of_non_none_type
+    (x : SmtTerm) (T : SmtType)
+    (hxTy : __smtx_typeof x = SmtType.Seq T) :
+    __smtx_type_wf_rec T native_reflist_nil = true :=
+  tp_smt_seq_component_wf_rec_of_non_none_type x T hxTy
+
 private theorem tp_smt_datatype_wf_of_non_none_type
     (x : SmtTerm) (s : native_String) (d : SmtDatatype)
     (hxTy : __smtx_typeof x = SmtType.Datatype s d) :
