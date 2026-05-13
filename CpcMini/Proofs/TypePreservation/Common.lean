@@ -322,6 +322,61 @@ private theorem value_dt_substitute_ne_notValue
   intro hSub
   exact h ((value_dt_substitute_eq_notValue s d v).1 hSub)
 
+private theorem value_dt_substitute_shadow_of_apply_head
+    (s : native_String)
+    (d : SmtDatatype) :
+    (v : SmtValue) ->
+      (∃ dHead i, __vsm_apply_head v = SmtValue.DtCons s dHead i) ->
+        __smtx_value_dt_substitute s d v = v
+  | SmtValue.NotValue, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Boolean b, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Numeral n, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Rational q, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Binary w n, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Map m, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Fun m, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Set m, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Seq ss, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.Char c, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.UValue u e, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.RegLan r, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | SmtValue.DtCons s' d' i', hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+      rcases hHead with ⟨rfl, hEq⟩
+      rcases hEq with ⟨rfl, rfl⟩
+      simp [__smtx_value_dt_substitute, native_streq, native_ite]
+  | SmtValue.Apply f a, hHead => by
+      rcases hHead with ⟨dHead, i, hHead⟩
+      have hHeadF : __vsm_apply_head f = SmtValue.DtCons s dHead i := by
+        simpa [__vsm_apply_head] using hHead
+      simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
+        hHeadF, native_streq, native_ite]
+
 private theorem native_veq_notValue_false_of_ne
     {v : SmtValue}
     (h : v ≠ SmtValue.NotValue) :
@@ -2800,6 +2855,174 @@ private theorem datatype_default_has_typed_constructor_from_of_witness_scan
                     hTailSuffix hTailPrefix hTailWf hHeadTail⟩
       · exact Or.inl (hArgsNoTypeRef c hConsWf hHasTypeRef)
 
+private theorem type_default_typed_canonical_with_datatype_callback
+    (hDatatype :
+      ∀ s d,
+        native_inhabited_type (SmtType.Datatype s d) = true ->
+          __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true ->
+            __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
+                SmtType.Datatype s d ∧
+              __smtx_value_canonical
+                (__smtx_type_default (SmtType.Datatype s d))) :
+    (T : SmtType) ->
+      native_inhabited_type T = true ->
+        __smtx_type_wf_rec T native_reflist_nil = true ->
+          __smtx_typeof_value (__smtx_type_default T) = T ∧
+            __smtx_value_canonical (__smtx_type_default T)
+  | SmtType.None, _hInh, hRec => by
+      simp [__smtx_type_wf_rec] at hRec
+  | SmtType.Bool, _hInh, _hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.Int, _hInh, _hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.Real, _hInh, _hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.RegLan, _hInh, hRec => by
+      simp [__smtx_type_wf_rec] at hRec
+  | SmtType.BitVec w, _hInh, _hRec => by
+      constructor
+      · simp [__smtx_type_default, __smtx_typeof_value, native_ite, native_and,
+          native_zleq, native_zeq, native_mod_total, native_int_pow2, native_zexp_total,
+          native_nat_to_int, native_int_to_nat]
+      · simp [__smtx_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, native_ite, native_zleq, native_zeq,
+          native_mod_total, native_int_pow2, native_zexp_total, native_nat_to_int]
+  | SmtType.Map A B, _hInh, hRec => by
+      simp [__smtx_type_wf_rec, native_and] at hRec
+      have hB :=
+        type_default_typed_canonical_with_datatype_callback hDatatype
+          B hRec.2.2.1 hRec.2.2.2
+      have hBCanon :
+          __smtx_value_canonical_bool (__smtx_type_default B) = true := by
+        simpa [__smtx_value_canonical] using hB.2
+      constructor
+      · simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_map_value, hB.1]
+      · simp [__smtx_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, native_and, hB.1, hBCanon]
+        cases hFin : __smtx_is_finite_type A <;>
+          simp [native_ite, native_veq]
+  | SmtType.Set A, _hInh, _hRec => by
+      constructor
+      · simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_map_value,
+          __smtx_map_to_set_type]
+      · simp [__smtx_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, native_and]
+        cases hFin : __smtx_is_finite_type A <;>
+          simp [native_ite, native_veq, __smtx_typeof_value, __smtx_type_default]
+  | SmtType.Seq A, _hInh, _hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_seq_value,
+        __smtx_value_canonical, __smtx_value_canonical_bool, __smtx_seq_canonical]
+  | SmtType.Char, _hInh, _hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.Datatype s d, hInh, hRec => by
+      exact hDatatype s d hInh hRec
+  | SmtType.TypeRef s, _hInh, hRec => by
+      simp [__smtx_type_wf_rec] at hRec
+  | SmtType.USort i, _hInh, _hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.FunType A B, _hInh, hRec => by
+      simp [__smtx_type_wf_rec, native_and] at hRec
+      have hB :=
+        type_default_typed_canonical_with_datatype_callback hDatatype
+          B hRec.2.2.1 hRec.2.2.2
+      have hBCanon :
+          __smtx_value_canonical_bool (__smtx_type_default B) = true := by
+        simpa [__smtx_value_canonical] using hB.2
+      constructor
+      · simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_map_value,
+          __smtx_map_to_fun_type, hB.1]
+      · simp [__smtx_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, native_and, hB.1, hBCanon]
+        cases hFin : __smtx_is_finite_type A <;>
+          simp [native_ite, native_veq]
+  | SmtType.DtcAppType A B, _hInh, hRec => by
+      simp [__smtx_type_wf_rec] at hRec
+termination_by T _ _ => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
+
+private theorem type_wf_rec_nil_of_non_datatype_non_typeRef_for_field
+    (T : SmtType)
+    (refs : RefList)
+    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d')
+    (hTypeRef : ∀ r, T ≠ SmtType.TypeRef r)
+    (hRec : __smtx_type_wf_rec T refs = true) :
+    __smtx_type_wf_rec T native_reflist_nil = true := by
+  cases T <;> simp_all [__smtx_type_wf_rec]
+
+private theorem field_default_substitute_typed_canonical_with_datatype_callback
+    (sub : native_String)
+    (base : SmtDatatype)
+    (refs : RefList)
+    (hTypeDatatype :
+      ∀ s d,
+        native_inhabited_type (SmtType.Datatype s d) = true ->
+          __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true ->
+            __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
+                SmtType.Datatype s d ∧
+              __smtx_value_canonical
+                (__smtx_type_default (SmtType.Datatype s d)))
+    (hFieldDatatype :
+      ∀ sNested dNested,
+        native_inhabited_type (SmtType.Datatype sNested dNested) = true ->
+          __smtx_type_wf_rec (SmtType.Datatype sNested dNested) refs = true ->
+            __smtx_typeof_value
+                (__smtx_value_dt_substitute sub base
+                  (__smtx_type_default (SmtType.Datatype sNested dNested))) =
+              smtx_dtc_field_substitute_type sub base
+                (SmtType.Datatype sNested dNested) ∧
+            smtx_dtc_field_substitute_type sub base
+                (SmtType.Datatype sNested dNested) ≠ SmtType.None ∧
+            __smtx_value_canonical
+              (__smtx_value_dt_substitute sub base
+                (__smtx_type_default (SmtType.Datatype sNested dNested)))) :
+    (T : SmtType) ->
+      (∀ r, T ≠ SmtType.TypeRef r) ->
+        native_inhabited_type T = true ->
+          __smtx_type_wf_rec T refs = true ->
+            __smtx_typeof_value
+                (__smtx_value_dt_substitute sub base (__smtx_type_default T)) =
+              smtx_dtc_field_substitute_type sub base T ∧
+            smtx_dtc_field_substitute_type sub base T ≠ SmtType.None ∧
+            __smtx_value_canonical
+              (__smtx_value_dt_substitute sub base (__smtx_type_default T))
+  | T, hTypeRef, hInh, hRec => by
+      by_cases hDatatype : ∃ sNested dNested, T = SmtType.Datatype sNested dNested
+      · rcases hDatatype with ⟨sNested, dNested, rfl⟩
+        exact hFieldDatatype sNested dNested hInh hRec
+      · have hNoDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d' := by
+          intro s' d' hEq
+          exact hDatatype ⟨s', d', hEq⟩
+        have hSubEq :
+            __smtx_value_dt_substitute sub base (__smtx_type_default T) =
+              __smtx_type_default T :=
+          value_dt_substitute_type_default_eq_of_not_datatype sub base T
+            hNoDatatype
+        have hFieldEq : smtx_dtc_field_substitute_type sub base T = T := by
+          cases T <;> simp_all [smtx_dtc_field_substitute_type, native_Teq,
+            native_ite]
+        have hRecNil :
+            __smtx_type_wf_rec T native_reflist_nil = true :=
+          type_wf_rec_nil_of_non_datatype_non_typeRef_for_field T refs
+            hNoDatatype hTypeRef hRec
+        have hDef :=
+          type_default_typed_canonical_with_datatype_callback hTypeDatatype
+            T hInh hRecNil
+        have hTWF : __smtx_type_wf T = true :=
+          type_wf_of_inhabited_and_wf_rec hInh hRecNil
+        exact ⟨by rw [hSubEq, hFieldEq]; exact hDef.1,
+          by rw [hFieldEq]; exact type_wf_non_none hTWF,
+          by rw [hSubEq]; exact hDef.2⟩
+
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
     (d : SmtDatatype)
@@ -2852,11 +3075,53 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
                     (native_reflist_insert native_reflist_nil s)
                     (by
                       intro T hNotTypeRef hFieldInh hFieldRec
-                      -- This is the remaining field-default obligation:
-                      -- every non-TypeRef field admitted by the current ref
-                      -- context must have a substituted default of the
-                      -- substituted field type.
-                      sorry)
+                      have hDatatypeDefaults :
+                          (∀ sD dD,
+                            native_inhabited_type (SmtType.Datatype sD dD) =
+                                true ->
+                              __smtx_type_wf_rec (SmtType.Datatype sD dD)
+                                  native_reflist_nil =
+                                true ->
+                                __smtx_typeof_value
+                                      (__smtx_type_default
+                                        (SmtType.Datatype sD dD)) =
+                                    SmtType.Datatype sD dD ∧
+                                  __smtx_value_canonical
+                                    (__smtx_type_default
+                                      (SmtType.Datatype sD dD))) ∧
+                            (∀ sNested dNested,
+                              native_inhabited_type
+                                  (SmtType.Datatype sNested dNested) =
+                                true ->
+                                __smtx_type_wf_rec
+                                    (SmtType.Datatype sNested dNested)
+                                    (native_reflist_insert native_reflist_nil s) =
+                                  true ->
+                                  __smtx_typeof_value
+                                      (__smtx_value_dt_substitute s
+                                        (SmtDatatype.sum c dTail)
+                                        (__smtx_type_default
+                                          (SmtType.Datatype sNested dNested))) =
+                                    smtx_dtc_field_substitute_type s
+                                      (SmtDatatype.sum c dTail)
+                                      (SmtType.Datatype sNested dNested) ∧
+                                  smtx_dtc_field_substitute_type s
+                                      (SmtDatatype.sum c dTail)
+                                      (SmtType.Datatype sNested dNested) ≠
+                                    SmtType.None ∧
+                                  __smtx_value_canonical
+                                    (__smtx_value_dt_substitute s
+                                      (SmtDatatype.sum c dTail)
+                                      (__smtx_type_default
+                                        (SmtType.Datatype sNested dNested)))) := by
+                        -- Remaining generalized datatype-default obligation.
+                        sorry
+                      exact
+                        field_default_substitute_typed_canonical_with_datatype_callback
+                          s (SmtDatatype.sum c dTail)
+                          (native_reflist_insert native_reflist_nil s)
+                          hDatatypeDefaults.1 hDatatypeDefaults.2
+                          T hNotTypeRef hFieldInh hFieldRec)
                     cCur hConsWf hNoTypeRef
               have hSmallTop :
                   ∀ a,
