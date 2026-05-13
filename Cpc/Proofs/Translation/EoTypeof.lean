@@ -370,9 +370,9 @@ private theorem eo_to_smt_apply_ne_numeral
       cases op <;> try cases h
       case _at_witness_string_length =>
         change native_ite (native_teq (__eo_typeof x) (Term.UOp UserOp.Int))
-            (SmtTerm.choice_nth "@x" (__eo_to_smt_type idx)
+            (SmtTerm.choice_nth "@@x" (__eo_to_smt_type idx)
               (SmtTerm.eq
-                (SmtTerm.str_len (SmtTerm.Var "@x" (__eo_to_smt_type idx)))
+                (SmtTerm.str_len (SmtTerm.Var "@@x" (__eo_to_smt_type idx)))
                 (__eo_to_smt y))
               native_nat_zero)
             SmtTerm.None =
@@ -2027,8 +2027,8 @@ theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
   have hHeadTranslate :
       __eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) =
         (let _v0 := __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x1 x2));
-         let _v2 := SmtTerm.Var "@x" _v0;
-         SmtTerm.choice_nth "@x" _v0
+         let _v2 := SmtTerm.Var "@@x" _v0;
+         SmtTerm.choice_nth "@@x" _v0
           (SmtTerm.not (SmtTerm.eq (SmtTerm.select (__eo_to_smt x1) _v2) (SmtTerm.select (__eo_to_smt x2) _v2))) 0) := by
     rfl
   have hTranslate :
@@ -2177,8 +2177,8 @@ theorem eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply
   have hHeadTranslate :
       __eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2) =
         let _v0 := __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2))
-        let _v2 := SmtTerm.Var "@x" _v0
-        SmtTerm.choice_nth "@x" _v0
+        let _v2 := SmtTerm.Var "@@x" _v0
+        SmtTerm.choice_nth "@@x" _v0
           (SmtTerm.not
             (SmtTerm.eq
               (SmtTerm.set_member _v2 (__eo_to_smt x1))

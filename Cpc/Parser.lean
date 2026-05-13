@@ -16,6 +16,12 @@ abbrev ParserM := StateT Parser.State (Except String)
 
 namespace Parser
 
+def reservedPrefix : String := "@@"
+
+def rejectReservedName (kind name : String) : ParserM Unit := do
+  if name.startsWith reservedPrefix then
+    throw s!"Error: {kind} {name} uses reserved prefix {reservedPrefix}"
+
 def registerAssumePush (id : Nat) : ParserM Unit := do
   modify fun s => { s with
     idToPos := s.idToPos.insert id s.stackHeight,
@@ -52,22 +58,22 @@ where
       return .Boolean true
     if let sexp!{(not {t})} := t then
       let t ← parseTerm t
-      return .Apply .not t
+      return .Apply (Term.UOp UserOp.not) t
     if let sexp!{(and ⦃ts⦄)} := t then
-      return ← rightAssocNil .and ts (.Boolean true)
+      return ← rightAssocNil (Term.UOp UserOp.and) ts (.Boolean true)
     if let sexp!{(or ⦃ts⦄)} := t then
-      return ← rightAssocNil .or ts (.Boolean false)
+      return ← rightAssocNil (Term.UOp UserOp.or) ts (.Boolean false)
     if let sexp!{(=> ⦃ts⦄)} := t then
-      return ← rightAssoc .imp ts
+      return ← rightAssoc (Term.UOp UserOp.imp) ts
     if let sexp!{(xor ⦃ts⦄)} := t then
-      return ← leftAssoc .xor ts
+      return ← leftAssoc (Term.UOp UserOp.xor) ts
     if let sexp!{(= {t1} {t2})} := t then
       -- TODO: support n-ary equality?
       let t1 ← parseTerm t1
       let t2 ← parseTerm t2
-      return .Apply (.Apply .eq t1) t2
+      return .Apply (.Apply (Term.UOp UserOp.eq) t1) t2
     if let sexp!{Int} := t then
-      return .Int
+      return Term.UOp UserOp.Int
     if let sexp!{(@list ⦃ts⦄)} := t then
       return ← rightAssocNil .__eo_List_cons ts .__eo_List_nil
     -- Function application. Note that this must come after all the special forms above,
@@ -100,6 +106,7 @@ where
 
 def parseDecl (s : Sexp) : ParserM Unit := do
   let sexp!{(declare-const {.atom x} {α})} := s | throw s!"Error: expected a declare-const, got {s}"
+  rejectReservedName "declare-const name" x
   let t ← parseTerm α
   match t with
   | .Type =>
@@ -110,6 +117,7 @@ def parseDecl (s : Sexp) : ParserM Unit := do
 
 def parseDef (s : Sexp) : ParserM Unit := do
   let sexp!{(define {.atom t} () {v})} := s | throw s!"Error: expected a define, got {s}"
+  rejectReservedName "define name" t
   let v ← parseTerm v
   modify fun st => { st with terms := st.terms.insert t v }
 
