@@ -1862,9 +1862,23 @@ def __smtx_is_finite_type : SmtType -> native_Bool
   | T => false
 
 
+def __smtx_value_dt_substitute_apply
+    (s : native_String)
+    (f : SmtValue)
+    (a : SmtValue)
+    (f' : SmtValue)
+    (a' : SmtValue) : SmtValue -> SmtValue
+  | (SmtValue.DtCons s2 d2 i) =>
+    (native_ite (native_streq s s2) (SmtValue.Apply f a) (SmtValue.Apply f' a'))
+  | _ => (SmtValue.Apply f' a')
+
+
 def __smtx_value_dt_substitute (s : native_String) (d : SmtDatatype) : SmtValue -> SmtValue
   | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2)) i)
-  | (SmtValue.Apply f a) => (SmtValue.Apply (__smtx_value_dt_substitute s d f) (__smtx_value_dt_substitute s d a))
+  | (SmtValue.Apply f a) =>
+    (__smtx_value_dt_substitute_apply s f a
+      (__smtx_value_dt_substitute s d f) (__smtx_value_dt_substitute s d a)
+      (__vsm_apply_head f))
   | v => v
 
 
