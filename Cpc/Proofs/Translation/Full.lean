@@ -855,6 +855,9 @@ theorem eo_to_smt_typeof_matches_translation
             (eo_to_smt_type_typeof_uconst i T).symm
     | Term.Apply f x, hNonNone => by
         exact eo_to_smt_typeof_matches_translation_apply f x (go f) (go x)
+          (fun op y h => by
+            subst f
+            exact go y)
           (fun g y h => by
             subst f
             exact go y)
