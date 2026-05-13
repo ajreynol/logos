@@ -62,6 +62,11 @@ inductive supported_preservation_term : SmtTerm -> Prop
   | dt_sel {s : native_String} {d : SmtDatatype} {i j : native_Nat} {x : SmtTerm}
       (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
       (hT : type_inhabited (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)))
+      (hWrongMapWF :
+        __smtx_type_wf
+          (SmtType.Map SmtType.Int
+            (SmtType.Map SmtType.Int
+              (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))) = true)
       (htx : term_has_non_none_type x)
       (hsx : supported_preservation_term x) :
       supported_preservation_term (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)

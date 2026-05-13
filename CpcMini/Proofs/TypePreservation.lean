@@ -62,8 +62,8 @@ private theorem supported_type_preservation
       exact typeof_value_model_eval_eq M t1 t2 ht
   | dt_cons s d i =>
       exact typeof_value_model_eval_dt_cons M s d i ht
-  | dt_sel ht1 hT htx hsx =>
-      exact typeof_value_model_eval_dt_sel M hM _ _ _ _ _ ht1 hT
+  | dt_sel ht1 hT hWrongMapWF htx hsx =>
+      exact typeof_value_model_eval_dt_sel M hM _ _ _ _ _ ht1 hWrongMapWF hT
         (supported_type_preservation M hM _ htx hsx)
   | dt_tester s d i x =>
       exact typeof_value_model_eval_dt_tester M s d i x ht
@@ -320,6 +320,7 @@ theorem supported_preservation_term_of_non_none :
             exact supported_preservation_term.dt_sel
               ht
               (dt_sel_term_inhabited_of_non_none (s := s) (d := d) (i := i) (j := j) (x := x) ht)
+              (dt_sel_wrong_map_type_wf_of_non_none (s := s) (d := d) (i := i) (j := j) (x := x) ht)
               htx
               (go x htx)
         | DtTester s d i =>
