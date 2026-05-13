@@ -105,9 +105,10 @@ section DeferredTypeRecovery
 /--
 Recovers the EO translated type from an SMT typing equality.
 
-TODO: as stated this is false for indexed operators when an index translates
-to a numeral without being a syntactic EO numeral, for example `_at_purify 2`
-used as the index of `repeat`.
+TODO: the old `_at_purify` counterexample is blocked now that purify translates
+to an SMT purify wrapper instead of aliasing its argument.  The remaining hard
+part is proving numeral reflection for indexed operators without creating an
+`EoTypeof` -> `Apply` -> `EoTypeof` dependency cycle.
 -/
 theorem eo_to_smt_type_typeof_of_smt_type
     (t : Term) {T : SmtType}

@@ -4797,47 +4797,6 @@ private theorem smtx_value_dt_substitute_typeof_of_non_chain_apply
   | SmtValue.Apply f a, T, hT, hv => by
       exact False.elim (apply_value_non_chain_result_impossible hT hv)
 
-private theorem smtx_value_dt_substitute_apply_non_none
-    (v : SmtValue)
-    {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
-    (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
-    (hBaseWf :
-      __smtx_dt_wf_rec base
-        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
-    (hTargetWf :
-      __smtx_dt_wf_rec d
-        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
-    (hv : __smtx_typeof_value v = SmtType.Datatype s2 d)
-    (hSubWf :
-      __smtx_dt_wf_rec (__smtx_dt_substitute s base d)
-        (native_reflist_insert refs s2) = true)
-    (hNe : s ≠ s2) :
-    __smtx_typeof_value (smtx_value_dt_substitute_apply s base v) ≠ SmtType.None := by
-  sorry
-
-private theorem smtx_value_dt_substitute_typeof_apply
-    (v : SmtValue)
-    {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
-    (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
-    (hBaseWf :
-      __smtx_dt_wf_rec base
-        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
-    (hTargetWf :
-      __smtx_dt_wf_rec d
-        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
-    (hv : __smtx_typeof_value v = SmtType.Datatype s2 d)
-    (hSubWf :
-      __smtx_dt_wf_rec (__smtx_dt_substitute s base d)
-        (native_reflist_insert refs s2) = true)
-    (hNe : s ≠ s2) :
-    __smtx_typeof_value (smtx_value_dt_substitute_apply s base v) =
-      SmtType.Datatype s2 (__smtx_dt_substitute s base d) := by
-  rcases smtx_value_dt_substitute_apply_datatype_head_full_args v hv hNe with
-    ⟨i, hHead, hCount⟩
-  exact smtx_value_typeof_full_dt_cons_chain_apply hHead hCount
-    (smtx_value_dt_substitute_apply_non_none
-      v hBaseInh hBaseWf hTargetWf hv hSubWf hNe)
-
 private theorem smtx_value_dt_context_substitute_typeof_of_non_chain_apply
     (sub : native_String) (base : SmtDatatype)
     (root : native_String) (oldRoot newRoot : SmtDatatype) :
