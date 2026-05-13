@@ -1147,6 +1147,21 @@ private theorem function_like_head_components_non_none
       simpa [hHead] using hNoNone
     exact Smtm.type_has_no_none_components_dtc_app_components_non_none hDtc
 
+private theorem eo_to_smt_type_injective_of_type_wf
+    {T U : Term} {A : SmtType}
+    (hT : __eo_to_smt_type T = A)
+    (hU : __eo_to_smt_type U = A)
+    (hWF : __smtx_type_wf A = true) :
+    T = U := by
+  by_cases hReg : A = SmtType.RegLan
+  · have hTReg : __eo_to_smt_type T = SmtType.RegLan := hT.trans hReg
+    have hUReg : __eo_to_smt_type U = SmtType.RegLan := hU.trans hReg
+    exact (eo_to_smt_type_eq_reglan hTReg).trans
+      (eo_to_smt_type_eq_reglan hUReg).symm
+  · exact eo_to_smt_type_injective_of_field_wf_rec hT hU
+      (smtx_type_field_wf_rec_of_type_wf_rec
+        (smtx_type_wf_rec_of_type_wf hReg hWF))
+
 /--
 Bridge-free EO-side application typing for function-like SMT heads.
 
@@ -6170,64 +6185,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_itos_resul
     eo_typeof_eq_int_of_smt_int_from_ih y ihY hArgs.1
   have hXEo : __eo_typeof x = Term.UOp UserOp.Int :=
     eo_typeof_eq_int_of_smt_int_from_ih x ihX hMulArgs.2
-  have hEo :
-      __eo_to_smt_type
-          (__eo_typeof (Term.Apply (Term._at_strings_itos_result y) x)) =
-        SmtType.Int := by
-    change __eo_to_smt_type (__eo_typeof_div (__eo_typeof y) (__eo_typeof x)) = SmtType.Int
-    rw [hYEo, hXEo]
-    rfl
-  exact hSmt.trans hEo.symm
-
-/-- Bridge-based proof for the opaque `_at_strings_itos_result` application. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_itos_result_bridge
-    (x y : Term)
-    (hNonNone :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term._at_strings_itos_result y) x)) ≠
-        SmtType.None) :
-    __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term._at_strings_itos_result y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term._at_strings_itos_result y) x)) := by
-  let rhs := SmtTerm.mod (__eo_to_smt y)
-    (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term._at_strings_itos_result y) x) =
-        rhs := by
-    rfl
-  have hApplyNN : term_has_non_none_type rhs := by
-    unfold term_has_non_none_type
-    rw [← hTranslate]
-    exact hNonNone
-  have hArgs := int_binop_args_of_non_none (op := SmtTerm.mod) (R := SmtType.Int)
-    (typeof_mod_eq (__eo_to_smt y)
-      (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))) hApplyNN
-  have hSmt :
-      __smtx_typeof
-          (__eo_to_smt (Term.Apply (Term._at_strings_itos_result y) x)) =
-        SmtType.Int := by
-    rw [hTranslate]
-    change __smtx_typeof
-        (SmtTerm.mod (__eo_to_smt y)
-          (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))) = SmtType.Int
-    rw [typeof_mod_eq (__eo_to_smt y)
-      (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))]
-    simp [hArgs.1, hArgs.2, native_ite, native_Teq]
-  have hMulNN :
-      term_has_non_none_type
-        (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x)) := by
-    unfold term_has_non_none_type
-    rw [hArgs.2]
-    simp
-  have hMulArgs := int_binop_args_of_non_none (op := SmtTerm.multmult) (R := SmtType.Int)
-    (typeof_multmult_eq (SmtTerm.Numeral 10) (__eo_to_smt x)) hMulNN
-  have hYEo : __eo_typeof y = Term.UOp UserOp.Int :=
-    eo_to_smt_type_eq_int
-      (eo_to_smt_type_typeof_of_smt_type y hArgs.1 (by simp))
-  have hXEo : __eo_typeof x = Term.UOp UserOp.Int :=
-    eo_to_smt_type_eq_int
-      (eo_to_smt_type_typeof_of_smt_type x hMulArgs.2 (by simp))
   have hEo :
       __eo_to_smt_type
           (__eo_typeof (Term.Apply (Term._at_strings_itos_result y) x)) =
@@ -11276,17 +11233,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
       cases hT with
       | inl hTFun =>
           rcases eo_to_smt_type_eq_fun hTFun with ⟨U, V, hTEq, hU, hV⟩
-          have hFunWF :
-              smtx_type_field_wf_rec (SmtType.FunType A B) native_reflist_nil := by
-            exact smtx_type_field_wf_rec_of_type_wf_rec (by
-              have h := hTWF
-              rw [hTFun] at h
-              exact smtx_type_wf_rec_of_type_wf (by simp) h)
-          have hArgWF := (fun_type_field_wf_rec_components_of_wf hFunWF).1
+          have hArgTypeWF : __smtx_type_wf A = true := by
+            have h := hTWF
+            rw [hTFun] at h
+            exact (fun_type_wf_components_of_wf h).1
           have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
             eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
           have hxEo : __eo_typeof x = U :=
-            eo_to_smt_type_injective_of_field_wf_rec hXTrans hU hArgWF
+            eo_to_smt_type_injective_of_type_wf hXTrans hU hArgTypeWF
           have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
             rw [hU]
             exact hA
@@ -11466,17 +11420,14 @@ theorem eo_to_smt_typeof_matches_translation_apply
     cases hT with
     | inl hTFun =>
         rcases eo_to_smt_type_eq_fun hTFun with ⟨U, V, hTEq, hU, hV⟩
-        have hFunWF :
-            smtx_type_field_wf_rec (SmtType.FunType A B) native_reflist_nil := by
-          exact smtx_type_field_wf_rec_of_type_wf_rec (by
-            have h := hTWF
-            rw [hTFun] at h
-            exact smtx_type_wf_rec_of_type_wf (by simp) h)
-        have hArgWF := (fun_type_field_wf_rec_components_of_wf hFunWF).1
+        have hArgTypeWF : __smtx_type_wf A = true := by
+          have h := hTWF
+          rw [hTFun] at h
+          exact (fun_type_wf_components_of_wf h).1
         have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
           eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
         have hxEo : __eo_typeof x = U :=
-          eo_to_smt_type_injective_of_field_wf_rec hXTrans hU hArgWF
+          eo_to_smt_type_injective_of_type_wf hXTrans hU hArgTypeWF
         have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
           rw [hU]
           exact hA
