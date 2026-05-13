@@ -13,6 +13,7 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
@@ -99,15 +100,357 @@ theorem eo_requires_eo_and_eq_self_of_non_stuck
   rw [eo_eq_self_of_non_stuck T hT, eo_eq_self_of_non_stuck U hU]
   simpa [__eo_and] using eo_requires_self_of_non_stuck (Term.Boolean true) V (by simp)
 
+private theorem eo_to_smt_seq_empty_ne_numeral
+    (T : SmtType) (n : native_Int) :
+    __eo_to_smt_seq_empty T ≠ SmtTerm.Numeral n := by
+  intro h
+  cases T <;> simp [__eo_to_smt_seq_empty] at h
+
+private theorem eo_to_smt_set_empty_ne_numeral
+    (T : SmtType) (n : native_Int) :
+    __eo_to_smt_set_empty T ≠ SmtTerm.Numeral n := by
+  intro h
+  cases T <;> simp [__eo_to_smt_set_empty] at h
+
+private theorem eo_to_smt_at_bv_ne_numeral
+    (a b : SmtTerm) (n : native_Int) :
+    __eo_to_smt__at_bv a b ≠ SmtTerm.Numeral n := by
+  intro h
+  cases a <;> cases b <;>
+    simp [__eo_to_smt__at_bv] at h
+  case Numeral.Numeral x w =>
+    cases hw : native_zleq 0 w
+    · simp [native_ite, hw] at h
+    · simp [native_ite, hw] at h
+
+/-- A non-`None` `_at_bv` translation comes from two SMT numerals. -/
+theorem eo_to_smt_at_bv_of_non_none
+    {a b : SmtTerm}
+    (hNN : __smtx_typeof (__eo_to_smt__at_bv a b) ≠ SmtType.None) :
+    ∃ n w : native_Int,
+      a = SmtTerm.Numeral n ∧
+        b = SmtTerm.Numeral w ∧
+          native_zleq 0 w = true ∧
+            __smtx_typeof (__eo_to_smt__at_bv a b) =
+              SmtType.BitVec (native_int_to_nat w) := by
+  cases a <;> cases b
+  case Numeral.Numeral n w =>
+    cases hw : native_zleq 0 w
+    · exact False.elim (hNN (by
+        simp [__eo_to_smt__at_bv, native_ite, hw, smtx_typeof_none]))
+    · have hBinaryNN :
+          __smtx_typeof (SmtTerm.Binary w (native_mod_total n (native_int_pow2 w))) ≠
+            SmtType.None := by
+        simpa [__eo_to_smt__at_bv, native_ite, hw] using hNN
+      exact ⟨n, w, rfl, rfl, hw, by
+        simpa [__eo_to_smt__at_bv, native_ite, hw] using
+          smtx_typeof_binary_of_non_none w
+            (native_mod_total n (native_int_pow2 w)) hBinaryNN⟩
+  all_goals
+    exact False.elim (hNN (by
+      simp [__eo_to_smt__at_bv, smtx_typeof_none]))
+
+private theorem eo_to_smt_quantifiers_skolemize_ne_numeral
+    (t : SmtTerm) (k : native_Nat) (n : native_Int) :
+    __eo_to_smt_quantifiers_skolemize t k ≠ SmtTerm.Numeral n := by
+  intro h
+  cases t <;> simp [__eo_to_smt_quantifiers_skolemize] at h
+
+private theorem eo_to_smt_re_unfold_pos_component_ne_numeral
+    (s r : SmtTerm) (k : native_Nat) (n : native_Int) :
+    __eo_to_smt_re_unfold_pos_component s r k ≠ SmtTerm.Numeral n := by
+  induction k generalizing s r with
+  | zero =>
+      intro h
+      cases r <;> simp [__eo_to_smt_re_unfold_pos_component] at h
+  | succ k ih =>
+      intro h
+      cases r <;> simp [__eo_to_smt_re_unfold_pos_component] at h
+      case re_concat r1 r2 =>
+        exact ih _ _ h
+
+private theorem eo_to_smt_quantifier_term_ne_numeral
+    (x y : Term) (n : native_Int) :
+    __eo_to_smt (Term.UOp2 UserOp2._at_quantifiers_skolemize x y) ≠
+      SmtTerm.Numeral n := by
+  intro h
+  cases x <;> try cases h
+  case Apply f body =>
+    cases f <;> try cases h
+    case Apply g vars =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> try cases h
+        case «forall» =>
+          change native_ite (native_teq (__eo_is_z y) (Term.Boolean true))
+              (native_ite (native_teq (__eo_is_neg y) (Term.Boolean false))
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat y))
+                SmtTerm.None)
+              SmtTerm.None =
+            SmtTerm.Numeral n at h
+          cases hz : native_teq (__eo_is_z y) (Term.Boolean true) <;>
+            simp [native_ite, hz] at h
+          cases hn : native_teq (__eo_is_neg y) (Term.Boolean false) <;>
+            simp [hn] at h
+          exact False.elim (eo_to_smt_quantifiers_skolemize_ne_numeral
+            (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
+            (__eo_to_smt_nat y) n h)
+
+private theorem eo_to_smt_distinct_pairs_ne_numeral
+    (s : SmtTerm) (xs : Term) (n : native_Int) :
+    __eo_to_smt_distinct_pairs s xs ≠ SmtTerm.Numeral n := by
+  intro h
+  cases xs <;> try cases h
+  case Apply f a =>
+    cases f <;> try cases h
+    case UOp op =>
+      cases op <;> cases h
+    case Apply g x =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> cases h
+
+private theorem eo_to_smt_distinct_ne_numeral
+    (xs : Term) (n : native_Int) :
+    __eo_to_smt_distinct xs ≠ SmtTerm.Numeral n := by
+  intro h
+  cases xs <;> try cases h
+  case Apply f a =>
+    cases f <;> try cases h
+    case UOp op =>
+      cases op <;> cases h
+    case Apply g x =>
+      cases g <;> try cases h
+      case UOp op =>
+        cases op <;> cases h
+
+private theorem eo_to_smt_tuple_select_ne_numeral
+    (T : SmtType) (i t : SmtTerm) (n : native_Int) :
+    __eo_to_smt_tuple_select T i t ≠ SmtTerm.Numeral n := by
+  intro h
+  cases T <;> cases i <;> simp [__eo_to_smt_tuple_select, native_ite] at h
+  case Datatype.Numeral s d k =>
+    by_cases hs : s = "@Tuple"
+    · subst hs
+      cases hk : native_zleq 0 k <;> simp [native_ite, hk] at h
+    · simp [__eo_to_smt_tuple_select, hs] at h
+
+private theorem eo_to_smt_updater_ne_numeral
+    (sel t u : SmtTerm) (n : native_Int) :
+    __eo_to_smt_updater sel t u ≠ SmtTerm.Numeral n := by
+  intro h
+  cases sel <;> cases h
+
+private theorem eo_to_smt_tuple_update_ne_numeral
+    (T : SmtType) (i t u : SmtTerm) (n : native_Int) :
+    __eo_to_smt_tuple_update T i t u ≠ SmtTerm.Numeral n := by
+  intro h
+  cases T <;> cases i <;> simp [__eo_to_smt_tuple_update, native_ite] at h
+  case Datatype.Numeral s d k =>
+    by_cases hs : s = "@Tuple"
+    · subst hs
+      cases hk : native_zleq 0 k
+      · simp [__eo_to_smt_tuple_update, native_ite, hk] at h
+      · simp [__eo_to_smt_tuple_update, native_ite, hk] at h
+        exact False.elim (eo_to_smt_updater_ne_numeral
+          (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat k)) t u n h)
+    · simp [__eo_to_smt_tuple_update, hs] at h
+
+private theorem eo_to_smt_set_insert_ne_numeral_of_not_nil
+    (xs : Term) (base : SmtTerm) (n : native_Int)
+    (hxs : xs ≠ Term.__eo_List_nil) :
+    __eo_to_smt_set_insert xs base ≠ SmtTerm.Numeral n := by
+  intro h
+  cases xs <;> try cases h
+  case __eo_List_nil =>
+    exact False.elim (hxs rfl)
+  case Apply f a =>
+    cases f <;> try cases h
+    case Apply g x =>
+      cases g <;> cases h
+
+private theorem eo_to_smt_exists_ne_numeral_of_not_nil
+    (xs : Term) (body : SmtTerm) (n : native_Int)
+    (hxs : xs ≠ Term.__eo_List_nil) :
+    __eo_to_smt_exists xs body ≠ SmtTerm.Numeral n := by
+  intro h
+  cases xs <;> try cases h
+  case __eo_List_nil =>
+    exact False.elim (hxs rfl)
+  case Apply f a =>
+    cases f <;> try cases h
+    case Apply g x =>
+      cases g <;> try cases h
+      case __eo_List_cons =>
+        cases x <;> try cases h
+        case Var name T =>
+          cases name <;> cases h
+
+private theorem eo_to_smt_apply_set_insert_ne_numeral
+    (xs x : Term) (n : native_Int) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ≠
+      SmtTerm.Numeral n := by
+  intro h
+  cases xs
+  case __eo_List_nil =>
+    change SmtTerm.None = SmtTerm.Numeral n at h
+    cases h
+  all_goals
+    exact False.elim (eo_to_smt_set_insert_ne_numeral_of_not_nil _ (__eo_to_smt x) n
+      (by intro hnil; cases hnil) h)
+
+private theorem eo_to_smt_apply_forall_ne_numeral
+    (xs body : Term) (n : native_Int) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ≠
+      SmtTerm.Numeral n := by
+  intro h
+  cases xs
+  case __eo_List_nil =>
+    change SmtTerm.None = SmtTerm.Numeral n at h
+    cases h
+  all_goals
+    cases h
+
+private theorem eo_to_smt_apply_exists_ne_numeral
+    (xs body : Term) (n : native_Int) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ≠
+      SmtTerm.Numeral n := by
+  intro h
+  cases xs
+  case __eo_List_nil =>
+    change SmtTerm.None = SmtTerm.Numeral n at h
+    cases h
+  all_goals
+    exact False.elim (eo_to_smt_exists_ne_numeral_of_not_nil _ (__eo_to_smt body) n
+      (by intro hnil; cases hnil) h)
+
+private theorem eo_to_smt_apply_ne_numeral
+    (f x : Term) (n : native_Int) :
+    __eo_to_smt (Term.Apply f x) ≠ SmtTerm.Numeral n := by
+  intro h
+  cases f <;> try cases h
+  case UOp op =>
+    cases op <;> try cases h
+    case distinct =>
+      change native_ite (__eo_to_smt_type_is_tlist (__eo_typeof x))
+          (__eo_to_smt_distinct x) SmtTerm.None =
+        SmtTerm.Numeral n at h
+      cases ht : __eo_to_smt_type_is_tlist (__eo_typeof x) <;>
+        simp [native_ite, ht] at h
+      exact False.elim (eo_to_smt_distinct_ne_numeral x n h)
+    case _at_bvsize =>
+      change native_ite
+          (native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+          (SmtTerm._at_purify
+            (SmtTerm.Numeral (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+          SmtTerm.None =
+        SmtTerm.Numeral n at h
+      cases hw : native_zleq 0 (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))) <;>
+        simp [native_ite, hw] at h
+  case UOp1 op idx =>
+    cases op <;> try cases h
+    case tuple_select =>
+      exact False.elim (eo_to_smt_tuple_select_ne_numeral
+        (__eo_to_smt_type (__eo_typeof x)) (__eo_to_smt idx) (__eo_to_smt x) n h)
+  case UOp2 op idx1 idx2 =>
+    cases op <;> try cases h
+  case Apply g y =>
+    cases g <;> try cases h
+    case UOp op =>
+      cases op <;> try cases h
+      case set_insert =>
+        exact False.elim (eo_to_smt_apply_set_insert_ne_numeral y x n h)
+      case «forall» =>
+        exact False.elim (eo_to_smt_apply_forall_ne_numeral y x n h)
+      case «exists» =>
+        exact False.elim (eo_to_smt_apply_exists_ne_numeral y x n h)
+    case UOp1 op idx =>
+      cases op <;> try cases h
+      case _at_witness_string_length =>
+        change native_ite (native_teq (__eo_typeof x) (Term.UOp UserOp.Int))
+            (SmtTerm.choice_nth "@x" (__eo_to_smt_type idx)
+              (SmtTerm.eq
+                (SmtTerm.str_len (SmtTerm.Var "@x" (__eo_to_smt_type idx)))
+                (__eo_to_smt y))
+              native_nat_zero)
+            SmtTerm.None =
+          SmtTerm.Numeral n at h
+        cases ht : native_teq (__eo_typeof x) (Term.UOp UserOp.Int) <;>
+          simp [native_ite, ht] at h
+      case update =>
+        exact False.elim (eo_to_smt_updater_ne_numeral
+          (__eo_to_smt idx) (__eo_to_smt y) (__eo_to_smt x) n h)
+      case tuple_update =>
+        exact False.elim (eo_to_smt_tuple_update_ne_numeral
+          (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt idx)
+          (__eo_to_smt y) (__eo_to_smt x) n h)
+    case Apply g2 z =>
+      cases g2 <;> try cases h
+      case UOp op =>
+        cases op <;> try cases h
+
+/-- The only EO terms that translate to SMT numerals are EO numerals. -/
+theorem eo_to_smt_eq_numeral
+    (t : Term) (n : native_Int)
+    (h : __eo_to_smt t = SmtTerm.Numeral n) :
+    t = Term.Numeral n := by
+  cases t with
+  | Numeral m =>
+      change SmtTerm.Numeral m = SmtTerm.Numeral n at h
+      cases h
+      rfl
+  | UOp op => cases op <;> cases h
+  | UOp1 op x =>
+      cases op <;> try cases h
+      · exact False.elim (eo_to_smt_seq_empty_ne_numeral (__eo_to_smt_type x) n h)
+      · exact False.elim (eo_to_smt_set_empty_ne_numeral (__eo_to_smt_type x) n h)
+  | UOp2 op x y =>
+      cases op <;> try cases h
+      · exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
+      · exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
+  | Var name T => cases name <;> cases h
+  | DtCons s d i =>
+      change native_ite (native_reserved_datatype_name s) SmtTerm.None
+          (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) =
+        SmtTerm.Numeral n at h
+      cases hs : native_reserved_datatype_name s <;>
+        simp [native_ite, hs] at h
+  | DtSel s d i j =>
+      change native_ite (native_reserved_datatype_name s) SmtTerm.None
+          (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) =
+        SmtTerm.Numeral n at h
+      cases hs : native_reserved_datatype_name s <;>
+        simp [native_ite, hs] at h
+  | UOp3 op x y z =>
+      cases op
+      change native_ite (native_teq (__eo_is_z z) (Term.Boolean true))
+          (native_ite (native_teq (__eo_is_neg z) (Term.Boolean false))
+            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt_nat z))
+            SmtTerm.None)
+          SmtTerm.None =
+        SmtTerm.Numeral n at h
+      cases hz : native_teq (__eo_is_z z) (Term.Boolean true) <;>
+        simp [native_ite, hz] at h
+      cases hn : native_teq (__eo_is_neg z) (Term.Boolean false) <;>
+        simp [native_ite, hn] at h
+      exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
+        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
+  | Apply f x => exact False.elim (eo_to_smt_apply_ne_numeral f x n h)
+  | _ => cases h
+
 section DeferredTypeRecovery
 
 
 /--
 Recovers the EO translated type from an SMT typing equality.
 
-TODO: as stated this is false for indexed operators when an index translates
-to a numeral without being a syntactic EO numeral, for example `_at_purify 2`
-used as the index of `repeat`.
+TODO: the old `_at_purify` counterexample is blocked now that purify translates
+to an SMT purify wrapper instead of aliasing its argument.  The remaining hard
+part is proving numeral reflection for indexed operators without creating an
+`EoTypeof` -> `Apply` -> `EoTypeof` dependency cycle.
 -/
 theorem eo_to_smt_type_typeof_of_smt_type
     (t : Term) {T : SmtType}
@@ -170,7 +513,8 @@ private theorem eo_typeof_eq_int_of_smt_numeral
     (t : Term) (n : native_Int)
     (h : __eo_to_smt t = SmtTerm.Numeral n) :
     __eo_typeof t = Term.UOp UserOp.Int := by
-  exact eo_typeof_eq_int_of_smt_int t (by rw [h]; simp [__smtx_typeof])
+  rw [eo_to_smt_eq_numeral t n h]
+  rfl
 
 /-- Computes the type of the one-bit literal used by `bvite`. -/
 private theorem typeof_binary_one_eq :

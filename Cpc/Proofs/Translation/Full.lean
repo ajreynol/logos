@@ -677,53 +677,96 @@ theorem eo_to_smt_typeof_matches_translation
             change __smtx_typeof SmtTerm.None = SmtType.None
             exact smtx_typeof_none))
     | Term.UOp1 UserOp1.repeat x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.repeat x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.zero_extend x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.zero_extend x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.sign_extend x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.sign_extend x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.rotate_left x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.rotate_left x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.rotate_right x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.rotate_right x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1._at_bit x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1._at_bit x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.re_exp x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.re_exp x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1._at_witness_string_length x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1._at_witness_string_length x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.is x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.is x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.update x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.update x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.tuple_select x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.tuple_select x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.tuple_update x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.tuple_update x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp1 UserOp1.int_to_bv x, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp1 UserOp1.int_to_bv x) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp2 UserOp2.extract x y, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp2 UserOp2.extract x y) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.UOp2 UserOp2._at_bv x y, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp2 UserOp2._at_bv x y) rfl hNonNone).symm
+        have hTranslate :
+            __eo_to_smt (Term.UOp2 UserOp2._at_bv x y) =
+              __eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y) := by
+          rfl
+        have hAtNN :
+            __smtx_typeof (__eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y)) ≠
+              SmtType.None := by
+          rwa [← hTranslate]
+        rcases eo_to_smt_at_bv_of_non_none hAtNN with
+          ⟨n, w, hx, hy, hw, hSmtAt⟩
+        have hXTerm : x = Term.Numeral n :=
+          eo_to_smt_eq_numeral x n hx
+        have hYTerm : y = Term.Numeral w :=
+          eo_to_smt_eq_numeral y w hy
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) =
+              SmtType.BitVec (native_int_to_nat w) := by
+          rw [hTranslate]
+          exact hSmtAt
+        have hEo :
+            __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_bv x y)) =
+              SmtType.BitVec (native_int_to_nat w) := by
+          rw [hXTerm, hYTerm]
+          change
+            __eo_to_smt_type
+                (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
+                  (Term.Numeral w)) =
+              SmtType.BitVec (native_int_to_nat w)
+          simp [__eo_typeof__at_bv, native_ite, hw]
+        exact hSmt.trans hEo.symm
     | Term.UOp2 UserOp2.re_loop x y, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp2 UserOp2.re_loop x y) rfl hNonNone).symm
+        exact False.elim (hNonNone (by
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact smtx_typeof_none))
     | Term.Boolean b, hNonNone => by
         rw [eo_to_smt_boolean, eo_typeof_boolean, eo_to_smt_type_bool]
         unfold __smtx_typeof
