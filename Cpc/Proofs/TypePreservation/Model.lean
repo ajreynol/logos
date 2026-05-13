@@ -278,6 +278,17 @@ private theorem value_dt_substitute_apply_no_shadow
   simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
     hHead, hShadow, native_ite]
 
+private theorem value_dt_substitute_type_default_eq_of_not_datatype
+    (s : native_String)
+    (d : SmtDatatype)
+    (T : SmtType)
+    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d') :
+    __smtx_value_dt_substitute s d (__smtx_type_default T) =
+      __smtx_type_default T := by
+  cases T <;> simp [__smtx_type_default, __smtx_value_dt_substitute]
+  case Datatype s' d' =>
+    exact False.elim (hDatatype s' d' rfl)
+
 private theorem dt_wf_cons_of_wf
     {c : SmtDatatypeCons}
     {d : SmtDatatype}
@@ -290,6 +301,28 @@ private theorem dt_wf_cons_of_wf
       cases d <;> simp [__smtx_dt_wf_rec, native_ite, hc]
     rw [hFalse] at h
     simp at h
+
+private theorem dt_cons_wf_rec_tail_of_true
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    {refs : RefList}
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
+    __smtx_dt_cons_wf_rec c refs = true := by
+  cases T <;> simp [__smtx_dt_cons_wf_rec, native_ite] at h ⊢
+  case TypeRef s =>
+    exact h.2
+  all_goals
+    exact h.2.2
+
+private theorem dt_wf_tail_of_nonempty_tail_wf
+    {c cTail : SmtDatatypeCons}
+    {dTail : SmtDatatype}
+    {refs : RefList}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
+    __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
+  have hc : __smtx_dt_cons_wf_rec c refs = true :=
+    dt_wf_cons_of_wf h
+  simpa [__smtx_dt_wf_rec, native_ite, hc] using h
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
@@ -385,6 +418,25 @@ termination_by T _ _ => sizeOf T
 decreasing_by
   all_goals simp_wf
   all_goals omega
+
+private theorem non_datatype_type_default_substitute_typed_canonical_of_wf_rec_deferred
+    (s : native_String)
+    (d : SmtDatatype)
+    (T : SmtType)
+    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d')
+    (hInh : native_inhabited_type T = true)
+    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    __smtx_typeof_value
+        (__smtx_value_dt_substitute s d (__smtx_type_default T)) = T ∧
+      __smtx_value_canonical
+        (__smtx_value_dt_substitute s d (__smtx_type_default T)) := by
+  have hEq :=
+    value_dt_substitute_type_default_eq_of_not_datatype s d T hDatatype
+  have hDef :=
+    type_default_typed_canonical_of_wf_rec_deferred_datatype T hInh hRec
+  constructor
+  · simpa [hEq] using hDef.1
+  · simpa [hEq] using hDef.2
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
