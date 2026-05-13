@@ -733,8 +733,36 @@ theorem eo_to_smt_typeof_matches_translation
           change __smtx_typeof SmtTerm.None = SmtType.None
           exact smtx_typeof_none))
     | Term.UOp2 UserOp2._at_bv x y, hNonNone => by
-        exact (eo_to_smt_type_typeof_of_smt_type
-          (Term.UOp2 UserOp2._at_bv x y) rfl hNonNone).symm
+        have hTranslate :
+            __eo_to_smt (Term.UOp2 UserOp2._at_bv x y) =
+              __eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y) := by
+          rfl
+        have hAtNN :
+            __smtx_typeof (__eo_to_smt__at_bv (__eo_to_smt x) (__eo_to_smt y)) ≠
+              SmtType.None := by
+          rwa [← hTranslate]
+        rcases eo_to_smt_at_bv_of_non_none hAtNN with
+          ⟨n, w, hx, hy, hw, hSmtAt⟩
+        have hXTerm : x = Term.Numeral n :=
+          eo_to_smt_eq_numeral x n hx
+        have hYTerm : y = Term.Numeral w :=
+          eo_to_smt_eq_numeral y w hy
+        have hSmt :
+            __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_bv x y)) =
+              SmtType.BitVec (native_int_to_nat w) := by
+          rw [hTranslate]
+          exact hSmtAt
+        have hEo :
+            __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_bv x y)) =
+              SmtType.BitVec (native_int_to_nat w) := by
+          rw [hXTerm, hYTerm]
+          change
+            __eo_to_smt_type
+                (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
+                  (Term.Numeral w)) =
+              SmtType.BitVec (native_int_to_nat w)
+          simp [__eo_typeof__at_bv, native_ite, hw]
+        exact hSmt.trans hEo.symm
     | Term.UOp2 UserOp2.re_loop x y, hNonNone => by
         exact False.elim (hNonNone (by
           change __smtx_typeof SmtTerm.None = SmtType.None

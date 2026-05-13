@@ -6362,15 +6362,28 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_bv
     unfold term_has_non_none_type
     rw [← hTranslate]
     exact hNonNone
-  rcases at_bv_typeof_of_non_none hApplyNN with ⟨w, hSmt'⟩
+  rcases eo_to_smt_at_bv_of_non_none hApplyNN with
+    ⟨n, w, hYNum, hXNum, hWidth, hSmt'⟩
+  have hYTerm : y = Term.Numeral n :=
+    eo_to_smt_eq_numeral y n hYNum
+  have hXTerm : x = Term.Numeral w :=
+    eo_to_smt_eq_numeral x w hXNum
   have hSmt :
       __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_bv y x)) =
-        SmtType.BitVec w := by
+        SmtType.BitVec (native_int_to_nat w) := by
     rw [hTranslate]
     exact hSmt'
-  exact hSmt.trans
-    (eo_to_smt_type_typeof_of_smt_type
-      (Term.UOp2 UserOp2._at_bv y x) hSmt (by simp)).symm
+  have hEo :
+      __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_bv y x)) =
+        SmtType.BitVec (native_int_to_nat w) := by
+    rw [hYTerm, hXTerm]
+    change
+      __eo_to_smt_type
+          (__eo_typeof__at_bv (Term.UOp UserOp.Int) (Term.UOp UserOp.Int)
+            (Term.Numeral w)) =
+        SmtType.BitVec (native_int_to_nat w)
+    simp [__eo_typeof__at_bv, native_ite, hWidth]
+  exact hSmt.trans hEo.symm
 
 /-- Simplifies EO-to-SMT translation for `_at_strings_deq_diff`. -/
 theorem eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
