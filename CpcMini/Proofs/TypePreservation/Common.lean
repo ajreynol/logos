@@ -356,6 +356,62 @@ private theorem value_dt_substitute_type_default_eq_of_not_datatype
   case Datatype s' d' =>
     exact False.elim (hDatatype s' d' rfl)
 
+private def smtx_dtc_field_substitute_type
+    (s : native_String)
+    (d : SmtDatatype) :
+    SmtType -> SmtType
+  | SmtType.Datatype s' d' =>
+      SmtType.Datatype s'
+        (native_ite (native_streq s s') d' (__smtx_dt_substitute s d d'))
+  | T =>
+      native_ite (native_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T
+
+private theorem dtc_substitute_cons_eq
+    (s : native_String)
+    (d : SmtDatatype)
+    (T : SmtType)
+    (c : SmtDatatypeCons) :
+    __smtx_dtc_substitute s d (SmtDatatypeCons.cons T c) =
+      SmtDatatypeCons.cons (smtx_dtc_field_substitute_type s d T)
+        (__smtx_dtc_substitute s d c) := by
+  cases T <;>
+    simp [smtx_dtc_field_substitute_type, __smtx_dtc_substitute]
+
+private theorem typeof_dt_cons_value_rec_dtc_substitute_cons_zero
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (T : SmtType)
+    (c : SmtDatatypeCons)
+    (dTail : SmtDatatype) :
+    __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0)
+        (SmtDatatype.sum
+          (__smtx_dtc_substitute s d0 (SmtDatatypeCons.cons T c))
+          dTail)
+        native_nat_zero =
+      SmtType.DtcAppType (smtx_dtc_field_substitute_type s d0 T)
+        (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0)
+          (SmtDatatype.sum (__smtx_dtc_substitute s d0 c) dTail)
+          native_nat_zero) := by
+  simp [dtc_substitute_cons_eq, __smtx_typeof_dt_cons_value_rec]
+
+private theorem typeof_apply_value_dtc_app
+    {f v : SmtValue}
+    {A B : SmtType}
+    (hA : A ≠ SmtType.None)
+    (hf : __smtx_typeof_value f = SmtType.DtcAppType A B)
+    (hv : __smtx_typeof_value v = A) :
+    __smtx_typeof_value (SmtValue.Apply f v) = B := by
+  simp [__smtx_typeof_value, __smtx_typeof_apply_value, __smtx_typeof_guard,
+    hf, hv, native_Teq, native_ite, hA]
+
+private theorem value_canonical_apply
+    {f v : SmtValue}
+    (hf : __smtx_value_canonical f)
+    (hv : __smtx_value_canonical v) :
+    __smtx_value_canonical (SmtValue.Apply f v) := by
+  simpa [__smtx_value_canonical, __smtx_value_canonical_bool, native_and] using
+    And.intro hf hv
+
 private theorem dt_cons_wf_rec_tail_of_true
     {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
     (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
@@ -402,6 +458,152 @@ private def datatype_default_productive_from
   | SmtDatatype.sum c d =>
       datatype_cons_default_productive s d0 c ∨
       datatype_default_productive_from s d0 d
+
+private def datatype_cons_no_deferred_fields : SmtDatatypeCons -> Prop
+  | SmtDatatypeCons.unit => True
+  | SmtDatatypeCons.cons (SmtType.Datatype _ _) _ => False
+  | SmtDatatypeCons.cons (SmtType.TypeRef _) _ => False
+  | SmtDatatypeCons.cons _ c => datatype_cons_no_deferred_fields c
+
+private def datatype_cons_default_args_typed
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    SmtDatatypeCons -> Prop
+  | SmtDatatypeCons.unit => True
+  | SmtDatatypeCons.cons T c =>
+      __smtx_typeof_value
+          (__smtx_value_dt_substitute s d0 (__smtx_type_default T)) =
+        smtx_dtc_field_substitute_type s d0 T ∧
+      smtx_dtc_field_substitute_type s d0 T ≠ SmtType.None ∧
+      __smtx_value_canonical
+          (__smtx_value_dt_substitute s d0 (__smtx_type_default T)) ∧
+      datatype_cons_default_args_typed s d0 c
+
+private theorem datatype_cons_default_typed_canonical_of_args_typed
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (dTail : SmtDatatype) :
+    (c : SmtDatatypeCons) ->
+      (v : SmtValue) ->
+        datatype_cons_default_args_typed s d0 c ->
+          __smtx_typeof_value v =
+            __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0)
+              (SmtDatatype.sum (__smtx_dtc_substitute s d0 c) dTail)
+              native_nat_zero ->
+            __smtx_value_canonical v ->
+              __smtx_typeof_value
+                    (__smtx_datatype_cons_default s d0 v c) =
+                  SmtType.Datatype s d0 ∧
+                __smtx_value_canonical
+                  (__smtx_datatype_cons_default s d0 v c)
+  | SmtDatatypeCons.unit, v, _hArgs, hTy, hCan => by
+      simpa [__smtx_datatype_cons_default, __smtx_typeof_dt_cons_value_rec,
+        __smtx_dtc_substitute] using
+        And.intro hTy hCan
+  | SmtDatatypeCons.cons T c, v, hArgs, hTy, hCan => by
+      let arg := __smtx_value_dt_substitute s d0 (__smtx_type_default T)
+      have hArgTy :
+          __smtx_typeof_value arg = smtx_dtc_field_substitute_type s d0 T :=
+        hArgs.1
+      have hArgNotNone :
+          smtx_dtc_field_substitute_type s d0 T ≠ SmtType.None :=
+        hArgs.2.1
+      have hArgCan : __smtx_value_canonical arg :=
+        hArgs.2.2.1
+      have hTailArgs : datatype_cons_default_args_typed s d0 c :=
+        hArgs.2.2.2
+      have hArgNV : arg ≠ SmtValue.NotValue := by
+        intro hEq
+        have hFieldNone :
+            smtx_dtc_field_substitute_type s d0 T = SmtType.None := by
+          rw [← hArgTy]
+          simpa [hEq, __smtx_typeof_value]
+        exact hArgNotNone hFieldNone
+      have hArgVeq : native_veq arg SmtValue.NotValue = false :=
+        native_veq_notValue_false_of_ne hArgNV
+      have hHeadTy :
+          __smtx_typeof_value v =
+            SmtType.DtcAppType (smtx_dtc_field_substitute_type s d0 T)
+              (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0)
+                (SmtDatatype.sum (__smtx_dtc_substitute s d0 c) dTail)
+                native_nat_zero) := by
+        simpa [typeof_dt_cons_value_rec_dtc_substitute_cons_zero] using hTy
+      have hApplyTy :
+          __smtx_typeof_value (SmtValue.Apply v arg) =
+            __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0)
+              (SmtDatatype.sum (__smtx_dtc_substitute s d0 c) dTail)
+              native_nat_zero :=
+        typeof_apply_value_dtc_app hArgNotNone hHeadTy hArgTy
+      have hApplyCan : __smtx_value_canonical (SmtValue.Apply v arg) :=
+        value_canonical_apply hCan hArgCan
+      simpa [__smtx_datatype_cons_default, arg, hArgVeq, native_ite] using
+        datatype_cons_default_typed_canonical_of_args_typed s d0 dTail c
+          (SmtValue.Apply v arg) hTailArgs hApplyTy hApplyCan
+
+private theorem datatype_default_typed_canonical_of_first_args_typed
+    (s : native_String)
+    (c : SmtDatatypeCons)
+    (dTail : SmtDatatype)
+    (hArgs :
+      datatype_cons_default_args_typed s (SmtDatatype.sum c dTail) c) :
+    __smtx_typeof_value
+          (__smtx_type_default (SmtType.Datatype s (SmtDatatype.sum c dTail))) =
+        SmtType.Datatype s (SmtDatatype.sum c dTail) ∧
+      __smtx_value_canonical
+        (__smtx_type_default (SmtType.Datatype s (SmtDatatype.sum c dTail))) := by
+  let d0 := SmtDatatype.sum c dTail
+  let v0 := SmtValue.DtCons s d0 native_nat_zero
+  have hvTy :
+      __smtx_typeof_value v0 =
+        __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0)
+          (SmtDatatype.sum (__smtx_dtc_substitute s d0 c)
+            (__smtx_dt_substitute s d0 dTail))
+          native_nat_zero := by
+    simp [v0, d0, __smtx_typeof_value, __smtx_dt_substitute]
+  have hvCan : __smtx_value_canonical v0 := by
+    simp [v0, __smtx_value_canonical, __smtx_value_canonical_bool]
+  have hCons :=
+    datatype_cons_default_typed_canonical_of_args_typed s d0
+      (__smtx_dt_substitute s d0 dTail) c v0 hArgs hvTy hvCan
+  have hConsNV :
+      __smtx_datatype_cons_default s d0 v0 c ≠ SmtValue.NotValue := by
+    intro hEq
+    have hTyNone :
+        __smtx_typeof_value (__smtx_datatype_cons_default s d0 v0 c) =
+          SmtType.None := by
+      simp [hEq, __smtx_typeof_value]
+    have hBad : SmtType.Datatype s d0 = SmtType.None :=
+      hCons.1.symm.trans hTyNone
+    cases hBad
+  have hConsVeq :
+      native_veq (__smtx_datatype_cons_default s d0 v0 c) SmtValue.NotValue =
+        false :=
+    native_veq_notValue_false_of_ne hConsNV
+  simpa [__smtx_type_default, __smtx_datatype_default, d0, v0, hConsVeq,
+    native_not, native_ite] using hCons
+
+private theorem datatype_cons_head_wf_rec_nil_of_no_deferred
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    {refs : RefList}
+    (hWF : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true)
+    (hNo : datatype_cons_no_deferred_fields (SmtDatatypeCons.cons T c)) :
+    native_inhabited_type T = true ∧
+      __smtx_type_wf_rec T native_reflist_nil = true := by
+  cases T <;>
+    simp_all [datatype_cons_no_deferred_fields, __smtx_dt_cons_wf_rec,
+      __smtx_type_wf_rec, native_ite, native_and]
+
+private theorem dtc_field_substitute_type_eq_self_of_no_deferred
+    (s : native_String)
+    (d0 : SmtDatatype)
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    (hNo : datatype_cons_no_deferred_fields (SmtDatatypeCons.cons T c)) :
+    smtx_dtc_field_substitute_type s d0 T = T := by
+  cases T <;>
+    simp_all [datatype_cons_no_deferred_fields, smtx_dtc_field_substitute_type,
+      native_Teq, native_ite]
 
 private theorem datatype_cons_default_ne_notValue_of_productive
     (s : native_String)
@@ -562,6 +764,47 @@ termination_by T _ _ => sizeOf T
 decreasing_by
   all_goals simp_wf
   all_goals omega
+
+private theorem datatype_cons_default_args_typed_of_wf_rec_no_deferred
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (refs : RefList) :
+    (c : SmtDatatypeCons) ->
+      __smtx_dt_cons_wf_rec c refs = true ->
+        datatype_cons_no_deferred_fields c ->
+          datatype_cons_default_args_typed s d0 c
+  | SmtDatatypeCons.unit, _hWF, _hNo => by
+      simp [datatype_cons_default_args_typed]
+  | SmtDatatypeCons.cons T c, hWF, hNo => by
+      have hHead :=
+        datatype_cons_head_wf_rec_nil_of_no_deferred (T := T) (c := c)
+          (refs := refs) hWF hNo
+      have hDef :=
+        type_default_typed_canonical_of_wf_rec_deferred_datatype T hHead.1 hHead.2
+      have hNoDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d' := by
+        intro s' d' hEq
+        subst T
+        simp [datatype_cons_no_deferred_fields] at hNo
+      have hSubEq :
+          __smtx_value_dt_substitute s d0 (__smtx_type_default T) =
+            __smtx_type_default T :=
+        value_dt_substitute_type_default_eq_of_not_datatype s d0 T hNoDatatype
+      have hField :
+          smtx_dtc_field_substitute_type s d0 T = T :=
+        dtc_field_substitute_type_eq_self_of_no_deferred s d0 hNo
+      have hTWF : __smtx_type_wf T = true :=
+        type_wf_of_inhabited_and_wf_rec hHead.1 hHead.2
+      have hTailWF : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_cons_wf_rec_tail_of_true hWF
+      have hTailNo : datatype_cons_no_deferred_fields c := by
+        cases T <;> simpa [datatype_cons_no_deferred_fields] using hNo
+      have hTail :=
+        datatype_cons_default_args_typed_of_wf_rec_no_deferred s d0 refs c
+          hTailWF hTailNo
+      simp [datatype_cons_default_args_typed]
+      exact ⟨by rw [hSubEq, hField]; exact hDef.1,
+        by rw [hField]; exact type_wf_non_none hTWF,
+        by rw [hSubEq]; exact hDef.2, hTail⟩
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
@@ -755,10 +998,42 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                   exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
                     _ _hInh _hRec
           | cons U cRest =>
-              -- Multi-argument constructors need the constructor-chain version
-              -- of the same productivity argument.
-              exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
-                _ _hInh _hRec
+              by_cases hNoDeferred :
+                  datatype_cons_no_deferred_fields
+                    (SmtDatatypeCons.cons T
+                      (SmtDatatypeCons.cons U cRest))
+              · have hCons :
+                    __smtx_dt_cons_wf_rec
+                        (SmtDatatypeCons.cons T
+                          (SmtDatatypeCons.cons U cRest))
+                        (native_reflist_insert native_reflist_nil s) = true :=
+                  dt_wf_cons_of_wf (d := dTail) (by
+                    simpa [__smtx_type_wf_rec] using _hRec)
+                have hArgs :
+                    datatype_cons_default_args_typed s
+                        (SmtDatatype.sum
+                          (SmtDatatypeCons.cons T
+                            (SmtDatatypeCons.cons U cRest))
+                          dTail)
+                        (SmtDatatypeCons.cons T
+                          (SmtDatatypeCons.cons U cRest)) :=
+                  datatype_cons_default_args_typed_of_wf_rec_no_deferred s
+                    (SmtDatatype.sum
+                      (SmtDatatypeCons.cons T
+                        (SmtDatatypeCons.cons U cRest))
+                      dTail)
+                    (native_reflist_insert native_reflist_nil s)
+                    (SmtDatatypeCons.cons T
+                      (SmtDatatypeCons.cons U cRest))
+                    hCons hNoDeferred
+                exact datatype_default_typed_canonical_of_first_args_typed s
+                  (SmtDatatypeCons.cons T (SmtDatatypeCons.cons U cRest))
+                  dTail hArgs
+              · -- The remaining multi-argument cases contain a direct
+                -- `TypeRef` or a nested datatype field, so they still need
+                -- the semantic descent/productivity argument.
+                exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
+                  _ _hInh _hRec
 
 private theorem type_default_typed_canonical_of_wf_rec :
     (T : SmtType) ->
