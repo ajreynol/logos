@@ -1913,7 +1913,7 @@ def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
 
 
 def __smtx_map_default_canonical (T : SmtType) (e : SmtValue) : native_Bool :=
-  (native_ite (__smtx_is_finite_type T) (native_veq e (__smtx_type_default (__smtx_typeof_value e))) true)
+  (native_veq e (__smtx_type_default (__smtx_typeof_value e)))
 
 def __smtx_map_canonical : SmtMap -> native_Bool
   | (SmtMap.default T e) => (native_and (__smtx_map_default_canonical T e) (__smtx_value_canonical_bool e))

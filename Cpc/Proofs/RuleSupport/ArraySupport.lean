@@ -203,6 +203,72 @@ theorem smt_value_rel_map_of_lookup_eq
   subst m2
   exact smt_value_rel_refl (SmtValue.Map m1)
 
+theorem map_default_leaf_eq_of_canonical_typed :
+    ∀ {m : SmtMap} {A B : SmtType},
+      __smtx_map_canonical m = true ->
+        __smtx_typeof_map_value m = SmtType.Map A B ->
+          Smtm.smt_map_default_leaf m =
+            SmtMap.default A (__smtx_type_default B)
+  | SmtMap.default T e, A, B, hm, hTy => by
+      have hParts := hm
+      simp [__smtx_map_canonical, __smtx_map_default_canonical,
+        SmtEval.native_and] at hParts
+      cases hTy
+      have hDefault : e = __smtx_type_default (__smtx_typeof_value e) := by
+        simpa [native_veq] using hParts.1
+      simpa [Smtm.smt_map_default_leaf] using congrArg (SmtMap.default T) hDefault
+  | SmtMap.cons i e m, A, B, hm, hTy => by
+      have hmTail : __smtx_map_canonical m = true := by
+        have hParts := hm
+        simp [__smtx_map_canonical, SmtEval.native_and] at hParts
+        exact hParts.1.1.2
+      by_cases hEq :
+          native_Teq (SmtType.Map (__smtx_typeof_value i) (__smtx_typeof_value e))
+            (__smtx_typeof_map_value m)
+      · have hTailTy : __smtx_typeof_map_value m = SmtType.Map A B := by
+          simpa [__smtx_typeof_map_value, native_ite, hEq] using hTy
+        simpa [Smtm.smt_map_default_leaf] using
+          map_default_leaf_eq_of_canonical_typed hmTail hTailTy
+      · simp [__smtx_typeof_map_value, native_ite, hEq] at hTy
+
+theorem smt_value_rel_map_of_lookup_eq_same_type
+    (m1 m2 : SmtMap)
+    (hm1 : __smtx_map_canonical m1 = true)
+    (hm2 : __smtx_map_canonical m2 = true)
+    (hTy1 : __smtx_typeof_map_value m1 = SmtType.Map A B)
+    (hTy2 : __smtx_typeof_map_value m2 = SmtType.Map A B)
+    (h : ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v) :
+    smt_value_rel (SmtValue.Map m1) (SmtValue.Map m2) := by
+  have hDef1 := map_default_leaf_eq_of_canonical_typed hm1 hTy1
+  have hDef2 := map_default_leaf_eq_of_canonical_typed hm2 hTy2
+  exact smt_value_rel_map_of_lookup_eq m1 m2 hm1 hm2 (hDef1.trans hDef2.symm) h
+
+theorem exists_lookup_ne_of_map_native_veq_false_same_type
+    (m1 m2 : SmtMap)
+    (hm1 : __smtx_map_canonical m1 = true)
+    (hm2 : __smtx_map_canonical m2 = true)
+    (hTy1 : __smtx_typeof_map_value m1 = SmtType.Map A B)
+    (hTy2 : __smtx_typeof_map_value m2 = SmtType.Map A B)
+    (hNe : native_veq (SmtValue.Map m1) (SmtValue.Map m2) = false) :
+    ∃ v : SmtValue, __smtx_msm_lookup m1 v ≠ __smtx_msm_lookup m2 v := by
+  classical
+  by_cases hExists :
+      ∃ v : SmtValue, __smtx_msm_lookup m1 v ≠ __smtx_msm_lookup m2 v
+  · exact hExists
+  have hLookups : ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v := by
+    intro v
+    by_cases hLookup : __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v
+    · exact hLookup
+    · exfalso
+      exact hExists ⟨v, hLookup⟩
+  have hRel :
+      smt_value_rel (SmtValue.Map m1) (SmtValue.Map m2) :=
+    smt_value_rel_map_of_lookup_eq_same_type m1 m2 hm1 hm2 hTy1 hTy2 hLookups
+  have hEqTrue : native_veq (SmtValue.Map m1) (SmtValue.Map m2) = true := by
+    simpa [smt_value_rel, __smtx_model_eval_eq] using hRel
+  rw [hEqTrue] at hNe
+  cases hNe
+
 theorem smt_value_rel_set_of_lookup_eq
     (m1 m2 : SmtMap)
     (hm1 : __smtx_map_canonical m1 = true)
