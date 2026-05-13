@@ -92,8 +92,11 @@ theorem typeof_value_model_eval_var
   have hGuard : __smtx_typeof_guard_wf T T = T :=
     smtx_typeof_guard_wf_of_non_none T T (by
       simpa [term_has_non_none_type, __smtx_typeof] using ht)
+  have hWF : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T T (by
+      simpa [term_has_non_none_type, __smtx_typeof] using ht)
   simpa [__smtx_model_eval, __smtx_typeof] using
-    (Eq.trans (model_total_typed_lookup hM s T hT) hGuard.symm)
+    (Eq.trans (model_total_typed_lookup hM s T hWF) hGuard.symm)
 
 /-- Shows that evaluating `uconst` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_uconst
@@ -108,8 +111,11 @@ theorem typeof_value_model_eval_uconst
   have hGuard : __smtx_typeof_guard_wf T T = T :=
     smtx_typeof_guard_wf_of_non_none T T (by
       simpa [term_has_non_none_type, __smtx_typeof] using ht)
+  have hWF : __smtx_type_wf T = true :=
+    smtx_typeof_guard_wf_wf_of_non_none T T (by
+      simpa [term_has_non_none_type, __smtx_typeof] using ht)
   simpa [__smtx_model_eval, __smtx_typeof] using
-    (Eq.trans (model_total_typed_lookup hM s T hT) hGuard.symm)
+    (Eq.trans (model_total_typed_lookup hM s T hWF) hGuard.symm)
 
 /-- Derives `model_eval_var` from `uninhabited`. -/
 theorem model_eval_var_of_uninhabited
@@ -117,7 +123,7 @@ theorem model_eval_var_of_uninhabited
     (hM : model_total_typed M)
     (s : native_String)
     (T : SmtType)
-    (hT : ¬ type_inhabited T) :
+    (hT : __smtx_type_wf T = false) :
     __smtx_model_eval M (SmtTerm.Var s T) = SmtValue.NotValue := by
   simpa [__smtx_model_eval] using model_total_typed_lookup_uninhabited hM s T hT
 
@@ -127,7 +133,7 @@ theorem model_eval_uconst_of_uninhabited
     (hM : model_total_typed M)
     (s : native_String)
     (T : SmtType)
-    (hT : ¬ type_inhabited T) :
+    (hT : __smtx_type_wf T = false) :
     __smtx_model_eval M (SmtTerm.UConst s T) = SmtValue.NotValue := by
   simpa [__smtx_model_eval] using model_total_typed_lookup_uninhabited hM s T hT
 
@@ -223,8 +229,8 @@ theorem choice_nth_zero_has_witness
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
     simp [__smtx_typeof, __smtx_typeof_choice_nth, native_ite, native_Teq, h] at ht ⊢
-  · exact canonical_type_inhabited_of_type_inhabited
-      (smtx_typeof_guard_wf_inhabited_of_non_none T T ht)
+  · exact canonical_type_inhabited_of_type_wf T
+      (smtx_typeof_guard_wf_wf_of_non_none T T ht)
 
 /-- Derives the type of `choice_nth` at depth `0`. -/
 theorem choice_nth_zero_typeof_of_non_none

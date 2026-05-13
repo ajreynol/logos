@@ -833,6 +833,19 @@ private theorem cong_smt_type_ne_guard_wf_set_self
       simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
     exact hT hNone
 
+private theorem cong_smt_type_ne_guard_wf_set_full_self
+    {T : SmtType}
+    (hT : T ≠ SmtType.None) :
+    T ≠ __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) := by
+  intro h
+  by_cases hWf : __smtx_type_wf (SmtType.Set T) = true
+  · have hSet : T = SmtType.Set T := by
+      simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
+    exact cong_smt_type_ne_set_self T hSet
+  · have hNone : T = SmtType.None := by
+      simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
+    exact hT hNone
+
 private theorem smt_eval_seq_of_smt_type_seq
     (M : SmtModel) (hM : model_total_typed M) (t : SmtTerm)
     (T : SmtType) :
@@ -7840,7 +7853,7 @@ private theorem set_is_empty_translation_no_type (x : Term) :
       __smtx_typeof_eq
           (__smtx_typeof (__eo_to_smt x))
           (__smtx_typeof_guard_wf
-            (__smtx_typeof (__eo_to_smt x))
+            (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
             (SmtType.Set (__smtx_typeof (__eo_to_smt x)))) ≠
         SmtType.None := by
     change
@@ -7850,7 +7863,7 @@ private theorem set_is_empty_translation_no_type (x : Term) :
         SmtType.None at hNN
     rwa [typeof_eq_eq, __smtx_typeof.eq_121] at hNN
   have hEqArgs := cong_smtx_typeof_eq_non_none hEqNN
-  exact cong_smt_type_ne_guard_wf_set_self hEqArgs.2 hEqArgs.1
+  exact cong_smt_type_ne_guard_wf_set_full_self hEqArgs.2 hEqArgs.1
 
 private theorem congTrueSpine_set_is_empty_eq_true
     (M : SmtModel) (x rhs : Term) :
