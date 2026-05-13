@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,7 +17,11 @@ MAIN_THEOREM_RE = re.compile(
 PROG_DEF_RE = re.compile(r"(?m)^(partial\s+def|def)\s+__eo_prog_([A-Za-z0-9_]+)\b")
 CRULE_START_RE = re.compile(r"(?m)^inductive\s+CRule\s*:\s*Type\s+where\b")
 CRULE_CONSTRUCTOR_RE = re.compile(r"^\s*\|\s+([A-Za-z0-9_]+)\s*:\s*CRule\b")
-SORRY_RE = re.compile(r"\b(?:sorry|admit)\b")
+PRINT_AXIOMS_RE = re.compile(r"depends on axioms:\s*\[(.*?)\]", re.S)
+# Foundational Lean axioms and generated native-decide witnesses are not proof gaps
+# for this status report. `sorryAx` and any other reported axiom are.
+TRUSTED_AXIOMS = {"propext", "Classical.choice", "Quot.sound"}
+NATIVE_DECIDE_AXIOM_RE = re.compile(r"(?:^|\.)_native\.native_decide\.ax_\d")
 
 
 @dataclass(frozen=True)
@@ -24,6 +29,15 @@ class RuleStatus:
     rule: str
     status: str
     file: Path
+
+
+@dataclass(frozen=True)
+class AxiomReport:
+    axioms: tuple[str, ...]
+
+    @property
+    def unsafe_axioms(self) -> tuple[str, ...]:
+        return tuple(axiom for axiom in self.axioms if not is_trusted_axiom(axiom))
 
 
 def strip_comments_and_strings(text: str) -> str:
@@ -102,6 +116,68 @@ def module_root(path: Path, root: Path) -> str | None:
         return None
 
 
+def lean_module_name(path: Path, root: Path) -> str:
+    rel_path = path.resolve().relative_to(root)
+    if rel_path.suffix != ".lean":
+        raise ValueError(f"{path} is not a Lean source file")
+
+    return ".".join(rel_path.with_suffix("").parts)
+
+
+def parse_print_axioms_output(output: str) -> AxiomReport:
+    match = PRINT_AXIOMS_RE.search(output)
+    if match is None:
+        if "does not depend on any axioms" in output:
+            return AxiomReport(())
+        raise ValueError(f"Could not parse Lean axiom output:\n{output.strip()}")
+
+    axioms = []
+    for item in match.group(1).split(","):
+        axiom = item.strip().rstrip("✝").strip()
+        if axiom:
+            axioms.append(axiom)
+
+    return AxiomReport(tuple(axioms))
+
+
+def is_trusted_axiom(axiom: str) -> bool:
+    return axiom in TRUSTED_AXIOMS or NATIVE_DECIDE_AXIOM_RE.search(axiom) is not None
+
+
+def load_axiom_report(
+    path: Path,
+    root: Path,
+    theorem: str,
+    axiom_cache: dict[tuple[Path, str], AxiomReport],
+) -> AxiomReport:
+    key = (path.resolve(), theorem)
+    if key in axiom_cache:
+        return axiom_cache[key]
+
+    module = lean_module_name(path, root)
+    query = f"import {module}\n#print axioms {theorem}\n"
+    try:
+        completed = subprocess.run(
+            ["lake", "env", "lean", "--stdin"],
+            cwd=root,
+            input=query,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"Could not run `lake env lean --stdin`: {exc}") from exc
+    output = "\n".join(part for part in (completed.stdout, completed.stderr) if part)
+    if completed.returncode != 0:
+        raise ValueError(
+            f"Could not ask Lean for axioms of {theorem} in {module}:\n{output.strip()}"
+        )
+
+    report = parse_print_axioms_output(output)
+    axiom_cache[key] = report
+    return report
+
+
 def load_prog_kinds(root: Path, module: str) -> dict[str, str]:
     logos_path = root / module / "Logos.lean"
     if not logos_path.is_file():
@@ -144,6 +220,7 @@ def classify_file(
     root: Path,
     prog_cache: dict[str, dict[str, str]],
     c_rule_cache: dict[str, set[str]],
+    axiom_cache: dict[tuple[Path, str], AxiomReport],
 ) -> list[RuleStatus]:
     module = module_root(path, root)
     if module is None:
@@ -158,15 +235,16 @@ def classify_file(
     matches = list(MAIN_THEOREM_RE.finditer(text))
     results: list[RuleStatus] = []
     file_rule = path.stem.lower()
-    file_has_sorry = SORRY_RE.search(text) is not None
 
     if file_rule not in c_rule_cache[module]:
         return results
 
-    for _match in matches:
+    for match in matches:
         rule = file_rule
+        theorem = match.group(1)
+        axiom_report = load_axiom_report(path, root, theorem, axiom_cache)
 
-        if file_has_sorry:
+        if axiom_report.unsafe_axioms:
             prog_kind = prog_cache[module].get(rule)
             if prog_kind == "partial def":
                 status = "OutOfScope"
@@ -195,7 +273,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Classify Lean proof rules as Proven, Unproven, or OutOfScope based on "
-            "their cmd_step_<rule>_properties theorem and __eo_prog_<rule> definition."
+            "the recursive axioms of their cmd_step_<rule>_properties theorem and "
+            "the __eo_prog_<rule> definition kind."
         )
     )
     parser.add_argument("path", help="Rule file or directory to scan")
@@ -236,11 +315,14 @@ def main() -> int:
 
     prog_cache: dict[str, dict[str, str]] = {}
     c_rule_cache: dict[str, set[str]] = {}
+    axiom_cache: dict[tuple[Path, str], AxiomReport] = {}
     statuses: list[RuleStatus] = []
 
     try:
         for file_path in iter_rule_files(target):
-            statuses.extend(classify_file(file_path, root, prog_cache, c_rule_cache))
+            statuses.extend(
+                classify_file(file_path, root, prog_cache, c_rule_cache, axiom_cache)
+            )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
