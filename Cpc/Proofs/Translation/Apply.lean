@@ -6152,9 +6152,6 @@ private theorem re_exp_args_of_non_none
 /-- Simplifies EO-to-SMT translation for `re_exp`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_re_exp
     (x y : Term)
-    (ihY :
-      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
@@ -6182,8 +6179,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_re_exp
     rw [hYNum]
     unfold __smtx_typeof
     rfl
-  have hYEo : __eo_typeof y = Term.UOp UserOp.Int :=
-    eo_typeof_eq_int_of_smt_int_from_ih y ihY hYInt
+  have hYTerm : y = Term.Numeral n :=
+    eo_to_smt_eq_numeral y n hYNum
+  have hYEo : __eo_typeof y = Term.UOp UserOp.Int := by
+    rw [hYTerm]
+    rfl
   have hXEo : __eo_typeof x = Term.UOp UserOp.RegLan :=
     eo_typeof_eq_reglan_of_smt_reglan_from_ih x ihX hXRegLan
   have hEo :
@@ -6326,12 +6326,34 @@ private theorem at_bv_typeof_of_non_none
         simpa [__eo_to_smt__at_bv, hWidth, native_ite] using
           smtx_typeof_binary_of_non_none w (native_mod_total n (native_int_pow2 w)) hBinaryNN⟩
 
+/-- Applying an `_at_bv` translation as a function is ill-typed. -/
+private theorem typeof_apply_eo_to_smt_at_bv_eq_none
+    (a b x : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (__eo_to_smt__at_bv a b) x) = SmtType.None := by
+  exact typeof_generic_apply_non_function_head_eq_none _ _
+    (generic_apply_type_of_non_special_head _ _
+      (eo_to_smt_at_bv_ne_dt_sel a b)
+      (eo_to_smt_at_bv_ne_dt_tester a b))
+    (by
+      intro A B hFun
+      have hNN : __smtx_typeof (__eo_to_smt__at_bv a b) ≠ SmtType.None := by
+        rw [hFun]
+        simp
+      rcases eo_to_smt_at_bv_of_non_none hNN with ⟨_n, w, _ha, _hb, _hw, hTy⟩
+      rw [hTy] at hFun
+      cases hFun)
+    (by
+      intro A B hDtc
+      have hNN : __smtx_typeof (__eo_to_smt__at_bv a b) ≠ SmtType.None := by
+        rw [hDtc]
+        simp
+      rcases eo_to_smt_at_bv_of_non_none hNN with ⟨_n, w, _ha, _hb, _hw, hTy⟩
+      rw [hTy] at hDtc
+      cases hDtc)
+
 /-- Simplifies EO-to-SMT translation for `_at_bit`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_at_bit
     (x y : Term)
-    (ihY :
-      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
@@ -6397,8 +6419,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_bit
     rw [hYNum]
     unfold __smtx_typeof
     rfl
-  have hYEo : __eo_typeof y = Term.UOp UserOp.Int :=
-    eo_typeof_eq_int_of_smt_int_from_ih y ihY hYSmt
+  have hYTerm : y = Term.Numeral i :=
+    eo_to_smt_eq_numeral y i hYNum
+  have hYEo : __eo_typeof y = Term.UOp UserOp.Int := by
+    rw [hYTerm]
+    rfl
   have hXEo :
       __eo_typeof x =
         Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w)) :=
@@ -9728,12 +9753,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_store_fro
 /-- Simplifies EO-to-SMT translation for ternary `re_loop`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_loop
     (x y z : Term)
-    (ihZ :
-      __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
-    (ihY :
-      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
@@ -9783,10 +9802,16 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_loop
             rw [hy]
             unfold __smtx_typeof
             rfl
-          have hZEo : __eo_typeof z = Term.UOp UserOp.Int :=
-            eo_typeof_eq_int_of_smt_int_from_ih z ihZ hZInt
-          have hYEo : __eo_typeof y = Term.UOp UserOp.Int :=
-            eo_typeof_eq_int_of_smt_int_from_ih y ihY hYInt
+          have hZTerm : z = Term.Numeral n1 :=
+            eo_to_smt_eq_numeral z n1 hz
+          have hYTerm : y = Term.Numeral n2 :=
+            eo_to_smt_eq_numeral y n2 hy
+          have hZEo : __eo_typeof z = Term.UOp UserOp.Int := by
+            rw [hZTerm]
+            rfl
+          have hYEo : __eo_typeof y = Term.UOp UserOp.Int := by
+            rw [hYTerm]
+            rfl
           have hXEo : __eo_typeof x = Term.UOp UserOp.RegLan :=
             eo_typeof_eq_reglan_of_smt_reglan_from_ih x ihX hX
           have hEo :
@@ -11560,6 +11585,10 @@ theorem eo_to_smt_typeof_matches_translation_apply
     cases op
     case _at_purify =>
       exact eo_to_smt_typeof_matches_translation_apply_purify x y ihF ihX hNonNone
+    case re_exp =>
+      exact eo_to_smt_typeof_matches_translation_apply_re_exp x y ihX hNonNone
+    case _at_bit =>
+      exact eo_to_smt_typeof_matches_translation_apply_at_bit x y ihX hNonNone
     case _at_strings_stoi_result =>
       exact eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_result x y hNonNone
     case _at_strings_stoi_non_digit =>
@@ -11602,6 +11631,17 @@ theorem eo_to_smt_typeof_matches_translation_apply
     cases op
     case extract =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_extract x z y hNonNone
+    case _at_bv =>
+      exfalso
+      apply hNonNone
+      change
+        __smtx_typeof
+            (SmtTerm.Apply (__eo_to_smt__at_bv (__eo_to_smt y) (__eo_to_smt z))
+              (__eo_to_smt x)) =
+          SmtType.None
+      exact typeof_apply_eo_to_smt_at_bv_eq_none (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x)
+    case re_loop =>
+      exact eo_to_smt_typeof_matches_translation_apply_apply_apply_re_loop x z y ihX hNonNone
     case _at_quantifiers_skolemize =>
       have hTranslate :
           __eo_to_smt (Term.Apply (Term._at_quantifiers_skolemize y z) x) =
