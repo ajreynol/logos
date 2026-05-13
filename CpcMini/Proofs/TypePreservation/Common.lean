@@ -1128,6 +1128,65 @@ private theorem datatype_default_typed_canonical_of_typed_constructor_from
             datatype_default_typed_canonical_of_typed_constructor_from s d0
               dTail (native_nat_succ n) hTailSuffix hTail.2
 
+private theorem datatype_cons_default_productive_of_args_typed
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (c : SmtDatatypeCons) ->
+      datatype_cons_default_args_typed s d0 c ->
+        datatype_cons_default_productive s d0 c
+  | SmtDatatypeCons.unit, _hArgs => by
+      simp [datatype_cons_default_productive]
+  | SmtDatatypeCons.cons T c, hArgs => by
+      have hArgTy :
+          __smtx_typeof_value
+              (__smtx_value_dt_substitute s d0 (__smtx_type_default T)) =
+            smtx_dtc_field_substitute_type s d0 T :=
+        hArgs.1
+      have hArgNotNone :
+          smtx_dtc_field_substitute_type s d0 T ≠ SmtType.None :=
+        hArgs.2.1
+      have hArgNV :
+          __smtx_value_dt_substitute s d0 (__smtx_type_default T) ≠
+            SmtValue.NotValue := by
+        intro hEq
+        have hNone :
+            smtx_dtc_field_substitute_type s d0 T = SmtType.None := by
+          rw [← hArgTy]
+          simp [hEq, __smtx_typeof_value]
+        exact hArgNotNone hNone
+      exact ⟨hArgNV,
+        datatype_cons_default_productive_of_args_typed s d0 c hArgs.2.2.2⟩
+
+private theorem datatype_default_productive_from_of_typed_constructor_from
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (d : SmtDatatype) ->
+      datatype_default_has_typed_constructor_from s d0 d ->
+        datatype_default_productive_from s d0 d
+  | SmtDatatype.null, hTyped => by
+      simp [datatype_default_has_typed_constructor_from] at hTyped
+  | SmtDatatype.sum c dTail, hTyped => by
+      cases hTyped with
+      | inl hArgs =>
+          exact Or.inl
+            (datatype_cons_default_productive_of_args_typed s d0 c hArgs)
+      | inr hTail =>
+          exact Or.inr
+            (datatype_default_productive_from_of_typed_constructor_from s d0
+              dTail hTail.2)
+
+private theorem datatype_type_default_typed_canonical_of_typed_constructor_from_self
+    (s : native_String)
+    (d : SmtDatatype)
+    (hTyped : datatype_default_has_typed_constructor_from s d d) :
+    __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
+        SmtType.Datatype s d ∧
+      __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
+  have hDefault :=
+    datatype_default_typed_canonical_of_typed_constructor_from s d d
+      native_nat_zero (datatype_suffix_at_self d) hTyped
+  simpa [__smtx_type_default] using hDefault
+
 private theorem datatype_cons_head_wf_rec_nil_of_no_deferred
     {T : SmtType}
     {c : SmtDatatypeCons}
@@ -1245,6 +1304,100 @@ private theorem datatype_default_ne_notValue_of_productive_from
               datatype_default_ne_notValue_of_productive_from s d0 d
                 (native_nat_succ n) hTail
 
+private theorem datatype_cons_default_productive_of_ne_notValue
+    (s : native_String)
+    (d : SmtDatatype) :
+    (c : SmtDatatypeCons) ->
+      (v : SmtValue) ->
+        __smtx_datatype_cons_default s d v c ≠ SmtValue.NotValue ->
+          datatype_cons_default_productive s d c
+  | SmtDatatypeCons.unit, v, _hNV => by
+      simp [datatype_cons_default_productive]
+  | SmtDatatypeCons.cons T c, v, hNV => by
+      cases hArg :
+          native_veq
+            (__smtx_value_dt_substitute s d (__smtx_type_default T))
+            SmtValue.NotValue
+      · have hArgNV :
+            __smtx_value_dt_substitute s d (__smtx_type_default T) ≠
+              SmtValue.NotValue :=
+          ne_notValue_of_native_veq_notValue_false hArg
+        have hTailNV :
+            __smtx_datatype_cons_default s d
+                (SmtValue.Apply v
+                  (__smtx_value_dt_substitute s d (__smtx_type_default T))) c ≠
+              SmtValue.NotValue := by
+          simpa [__smtx_datatype_cons_default, hArg, native_ite] using hNV
+        exact ⟨hArgNV,
+          datatype_cons_default_productive_of_ne_notValue s d c
+            (SmtValue.Apply v
+              (__smtx_value_dt_substitute s d (__smtx_type_default T)))
+            hTailNV⟩
+      · have hBad :
+            __smtx_datatype_cons_default s d v
+                (SmtDatatypeCons.cons T c) =
+              SmtValue.NotValue := by
+          simp [__smtx_datatype_cons_default, hArg, native_ite]
+        exact False.elim (hNV hBad)
+
+private theorem datatype_default_productive_from_of_ne_notValue
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (d : SmtDatatype) ->
+      (n : native_Nat) ->
+        __smtx_datatype_default s d0 d n ≠ SmtValue.NotValue ->
+          datatype_default_productive_from s d0 d
+  | SmtDatatype.null, n, hNV => by
+      exact False.elim (hNV (by simp [__smtx_datatype_default]))
+  | SmtDatatype.sum c d, n, hNV => by
+      cases hConsVeq :
+          native_veq
+            (__smtx_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c)
+            SmtValue.NotValue
+      · have hConsNV :
+            __smtx_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c ≠
+              SmtValue.NotValue :=
+          ne_notValue_of_native_veq_notValue_false hConsVeq
+        exact Or.inl
+          (datatype_cons_default_productive_of_ne_notValue s d0 c
+            (SmtValue.DtCons s d0 n) hConsNV)
+      · have hTailNV :
+            __smtx_datatype_default s d0 d (native_nat_succ n) ≠
+              SmtValue.NotValue := by
+          simpa [__smtx_datatype_default, hConsVeq, native_not, native_ite]
+            using hNV
+        exact Or.inr
+          (datatype_default_productive_from_of_ne_notValue s d0 d
+            (native_nat_succ n) hTailNV)
+
+private theorem datatype_cons_default_ne_notValue_iff_productive
+    (s : native_String)
+    (d : SmtDatatype)
+    {v : SmtValue}
+    (hv : v ≠ SmtValue.NotValue)
+    (c : SmtDatatypeCons) :
+    __smtx_datatype_cons_default s d v c ≠ SmtValue.NotValue ↔
+      datatype_cons_default_productive s d c :=
+  ⟨datatype_cons_default_productive_of_ne_notValue s d c v,
+    datatype_cons_default_ne_notValue_of_productive s d hv c⟩
+
+private theorem datatype_default_ne_notValue_iff_productive_from
+    (s : native_String)
+    (d0 d : SmtDatatype)
+    (n : native_Nat) :
+    __smtx_datatype_default s d0 d n ≠ SmtValue.NotValue ↔
+      datatype_default_productive_from s d0 d :=
+  ⟨datatype_default_productive_from_of_ne_notValue s d0 d n,
+    datatype_default_ne_notValue_of_productive_from s d0 d n⟩
+
+private theorem datatype_type_default_ne_notValue_iff_productive
+    (s : native_String)
+    (d : SmtDatatype) :
+    __smtx_type_default (SmtType.Datatype s d) ≠ SmtValue.NotValue ↔
+      datatype_default_productive_from s d d := by
+  simpa [__smtx_type_default] using
+    datatype_default_ne_notValue_iff_productive_from s d d native_nat_zero
+
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
     (d : SmtDatatype)
@@ -1253,8 +1406,13 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  -- Central remaining generated-default completeness fact.
-  sorry
+  have hTyped : datatype_default_has_typed_constructor_from s d d := by
+    -- Central remaining semantic productivity fact: a well-formed inhabited
+    -- datatype has a constructor suffix whose generated default arguments are
+    -- typed.
+    sorry
+  exact datatype_type_default_typed_canonical_of_typed_constructor_from_self s d
+    hTyped
 
 private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype :
     (T : SmtType) ->
