@@ -216,6 +216,257 @@ theorem fun_type_wf_components_of_wf
   exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
     type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
 
+private theorem value_dt_substitute_canonical
+    (s : native_String)
+    (d : SmtDatatype) :
+    (v : SmtValue) ->
+      __smtx_value_canonical v ->
+        __smtx_value_canonical (__smtx_value_dt_substitute s d v)
+  | SmtValue.NotValue, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Boolean b, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Numeral n, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Rational q, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Binary w n, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Map m, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Fun m, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Set m, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Seq ss, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Char c, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.UValue i e, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.RegLan r, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.DtCons s' d' i, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Apply f a, h => by
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_and] at h
+      have hOrig : __smtx_value_canonical (SmtValue.Apply f a) := by
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_and]
+        exact h
+      have hf := value_dt_substitute_canonical s d f h.1
+      have ha := value_dt_substitute_canonical s d a h.2
+      cases hHead : __vsm_apply_head f with
+      | DtCons s' d' i =>
+          cases hShadow : native_streq s s'
+          · simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
+              hHead, hShadow, native_ite,
+              __smtx_value_canonical, __smtx_value_canonical_bool, native_and]
+            exact ⟨by simpa [__smtx_value_canonical] using hf,
+              by simpa [__smtx_value_canonical] using ha⟩
+          · simpa [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
+              hHead, hShadow, native_ite] using hOrig
+      | _ =>
+          simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
+            hHead, __smtx_value_canonical, __smtx_value_canonical_bool,
+            native_and] at hf ha ⊢
+          exact ⟨hf, ha⟩
+
+private theorem value_dt_substitute_eq_notValue
+    (s : native_String)
+    (d : SmtDatatype) :
+    (v : SmtValue) ->
+      __smtx_value_dt_substitute s d v = SmtValue.NotValue ↔
+        v = SmtValue.NotValue
+  | SmtValue.NotValue => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Boolean b => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Numeral n => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Rational q => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Binary w n => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Map m => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Fun m => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Set m => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Seq ss => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Char c => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.UValue i e => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.RegLan r => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.DtCons s' d' i => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.Apply f a => by
+      cases hHead : __vsm_apply_head f with
+      | DtCons s' d' i =>
+          cases hShadow : native_streq s s' <;>
+            simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
+              hHead, hShadow, native_ite]
+      | _ =>
+          simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
+            hHead]
+
+private theorem value_dt_substitute_ne_notValue
+    (s : native_String)
+    (d : SmtDatatype)
+    {v : SmtValue}
+    (h : v ≠ SmtValue.NotValue) :
+    __smtx_value_dt_substitute s d v ≠ SmtValue.NotValue := by
+  intro hSub
+  exact h ((value_dt_substitute_eq_notValue s d v).1 hSub)
+
+private theorem native_veq_notValue_false_of_ne
+    {v : SmtValue}
+    (h : v ≠ SmtValue.NotValue) :
+    native_veq v SmtValue.NotValue = false := by
+  simpa [native_veq] using h
+
+private theorem ne_notValue_of_native_veq_notValue_false
+    {v : SmtValue}
+    (h : native_veq v SmtValue.NotValue = false) :
+    v ≠ SmtValue.NotValue := by
+  intro hEq
+  subst hEq
+  simp [native_veq] at h
+
+private theorem native_veq_value_dt_substitute_notValue_false
+    (s : native_String)
+    (d : SmtDatatype)
+    {v : SmtValue}
+    (h : v ≠ SmtValue.NotValue) :
+    native_veq (__smtx_value_dt_substitute s d v) SmtValue.NotValue = false := by
+  have hSub := value_dt_substitute_ne_notValue s d h
+  exact native_veq_notValue_false_of_ne hSub
+
+private theorem value_dt_substitute_type_default_eq_of_not_datatype
+    (s : native_String)
+    (d : SmtDatatype)
+    (T : SmtType)
+    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d') :
+    __smtx_value_dt_substitute s d (__smtx_type_default T) =
+      __smtx_type_default T := by
+  cases T <;> simp [__smtx_type_default, __smtx_value_dt_substitute]
+  case Datatype s' d' =>
+    exact False.elim (hDatatype s' d' rfl)
+
+private theorem dt_cons_wf_rec_tail_of_true
+    {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
+    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
+    __smtx_dt_cons_wf_rec c refs = true := by
+  cases T <;> simp [__smtx_dt_cons_wf_rec, native_ite] at h ⊢
+  all_goals first | exact h.2 | exact h.2.2
+
+private theorem dt_wf_cons_of_wf
+    {c : SmtDatatypeCons} {d : SmtDatatype} {refs : RefList}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum c d) refs = true) :
+    __smtx_dt_cons_wf_rec c refs = true := by
+  cases d with
+  | null =>
+      simpa [__smtx_dt_wf_rec] using h
+  | sum cTail dTail =>
+      cases hc : __smtx_dt_cons_wf_rec c refs <;>
+        simp [__smtx_dt_wf_rec, native_ite, hc] at h ⊢
+
+private theorem dt_wf_tail_of_nonempty_tail_wf
+    {c cTail : SmtDatatypeCons}
+    {dTail : SmtDatatype}
+    {refs : RefList}
+    (h : __smtx_dt_wf_rec (SmtDatatype.sum c (SmtDatatype.sum cTail dTail)) refs = true) :
+    __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true := by
+  have hc : __smtx_dt_cons_wf_rec c refs = true :=
+    dt_wf_cons_of_wf h
+  simpa [__smtx_dt_wf_rec, native_ite, hc] using h
+
+private def datatype_cons_default_productive
+    (s : native_String)
+    (d : SmtDatatype) :
+    SmtDatatypeCons -> Prop
+  | SmtDatatypeCons.unit => True
+  | SmtDatatypeCons.cons T c =>
+      __smtx_value_dt_substitute s d (__smtx_type_default T) ≠
+        SmtValue.NotValue ∧
+      datatype_cons_default_productive s d c
+
+private def datatype_default_productive_from
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    SmtDatatype -> Prop
+  | SmtDatatype.null => False
+  | SmtDatatype.sum c d =>
+      datatype_cons_default_productive s d0 c ∨
+      datatype_default_productive_from s d0 d
+
+private theorem datatype_cons_default_ne_notValue_of_productive
+    (s : native_String)
+    (d : SmtDatatype)
+    {v : SmtValue}
+    (hv : v ≠ SmtValue.NotValue) :
+    (c : SmtDatatypeCons) ->
+      datatype_cons_default_productive s d c ->
+        __smtx_datatype_cons_default s d v c ≠ SmtValue.NotValue
+  | SmtDatatypeCons.unit, _hProd => by
+      simpa [__smtx_datatype_cons_default] using hv
+  | SmtDatatypeCons.cons T c, hProd => by
+      have hArg :
+          __smtx_value_dt_substitute s d (__smtx_type_default T) ≠
+            SmtValue.NotValue := hProd.1
+      have hArgVeq :
+          native_veq
+              (__smtx_value_dt_substitute s d (__smtx_type_default T))
+              SmtValue.NotValue = false :=
+        native_veq_notValue_false_of_ne hArg
+      have hApply :
+          SmtValue.Apply v
+              (__smtx_value_dt_substitute s d (__smtx_type_default T)) ≠
+            SmtValue.NotValue := by
+        intro hEq
+        cases hEq
+      simpa [__smtx_datatype_cons_default, hArgVeq, native_ite] using
+        datatype_cons_default_ne_notValue_of_productive s d hApply c hProd.2
+
+private theorem datatype_default_ne_notValue_of_productive_from
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (d : SmtDatatype) ->
+      (n : native_Nat) ->
+        datatype_default_productive_from s d0 d ->
+          __smtx_datatype_default s d0 d n ≠ SmtValue.NotValue
+  | SmtDatatype.null, n, hProd => by
+      simp [datatype_default_productive_from] at hProd
+  | SmtDatatype.sum c d, n, hProd => by
+      cases hProd with
+      | inl hCons =>
+          have hConsNV :
+              __smtx_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c ≠
+                SmtValue.NotValue :=
+            datatype_cons_default_ne_notValue_of_productive s d0 (by intro h; cases h) c hCons
+          have hConsVeq :
+              native_veq
+                  (__smtx_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c)
+                  SmtValue.NotValue = false :=
+            native_veq_notValue_false_of_ne hConsNV
+          simpa [__smtx_datatype_default, hConsVeq, native_not, native_ite] using hConsNV
+      | inr hTail =>
+          cases hConsVeq :
+              native_veq
+                (__smtx_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c)
+                SmtValue.NotValue
+          · have hConsNV :
+                __smtx_datatype_cons_default s d0 (SmtValue.DtCons s d0 n) c ≠
+                  SmtValue.NotValue :=
+              ne_notValue_of_native_veq_notValue_false hConsVeq
+            simpa [__smtx_datatype_default, hConsVeq, native_not, native_ite] using hConsNV
+          · simpa [__smtx_datatype_default, hConsVeq, native_not, native_ite] using
+              datatype_default_ne_notValue_of_productive_from s d0 d
+                (native_nat_succ n) hTail
+
 private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
     (d : SmtDatatype)
@@ -224,10 +475,23 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  -- The generated datatype default scans constructors and skips failing recursive
-  -- defaults. Its completeness proof is independent of the model-totality drift
-  -- repaired here, and remains isolated to this generated datatype default fact.
-  sorry
+  cases d with
+  | null =>
+      simp [__smtx_type_wf_rec, __smtx_dt_wf_rec] at _hRec
+  | sum c dTail =>
+      cases c with
+      | unit =>
+          simp [__smtx_type_default, __smtx_datatype_default,
+            __smtx_datatype_cons_default, __smtx_typeof_value,
+            __smtx_dt_substitute, __smtx_dtc_substitute,
+            __smtx_typeof_dt_cons_value_rec, __smtx_value_canonical,
+            __smtx_value_canonical_bool, native_veq, native_not, native_ite]
+      | cons T cTail =>
+          -- Remaining case: the scanner begins with an argument-bearing
+          -- constructor. The proof now needs the semantic descent/productivity
+          -- argument above to show the scanner reaches a constructor whose
+          -- packaged defaults are non-`NotValue`.
+          sorry
 
 private theorem type_default_typed_canonical_of_wf_rec :
     (T : SmtType) ->
