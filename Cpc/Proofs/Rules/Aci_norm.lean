@@ -6565,6 +6565,37 @@ private def BvAndListCanonical (M : SmtModel) (w : Nat) : Term -> Prop
       BvEvalCanonicalWidth M w x ∧ BvAndListCanonical M w xs
   | t => BvEvalCanonicalWidth M w t
 
+private def BvAndHeadFlat : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvand) _) _ => False
+  | _ => True
+
+private def BvAndFlatList : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvand) x) xs =>
+      BvAndHeadFlat x ∧ BvAndFlatList xs
+  | _ => True
+
+private theorem bvAndListCanonical_of_head_flat
+    (M : SmtModel) (w : Nat) (t : Term) :
+    BvAndHeadFlat t ->
+    BvEvalCanonicalWidth M w t ->
+    BvAndListCanonical M w t := by
+  intro hFlat hCan
+  cases t with
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              cases op <;> try simpa [BvAndListCanonical] using hCan
+              case bvand =>
+                simp [BvAndHeadFlat] at hFlat
+          | _ =>
+              simpa [BvAndListCanonical] using hCan
+      | _ =>
+          simpa [BvAndListCanonical] using hCan
+  | _ =>
+      simpa [BvAndListCanonical] using hCan
+
 private theorem bvEvalCanonicalWidth_of_smt_type_bitvec
     (M : SmtModel) (hM : model_total_typed M) (t : Term) (w : native_Nat) :
     __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
@@ -8389,6 +8420,374 @@ private theorem bvAnd_get_ai_norm_rec_rel_eval
           bvAnd_l1_norm_rec_rel_eval M hM id w hIdList hIdEval hIdCan hIdNe
             _ hTy
 
+private theorem bvAnd_flat_list_concat_rec :
+    (a z : Term) ->
+    __eo_is_list (Term.UOp UserOp.bvand) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvand) z = Term.Boolean true ->
+    BvAndFlatList a ->
+    BvAndFlatList z ->
+    BvAndFlatList (__eo_list_concat_rec a z)
+  | a, z, hAList, hZList, hAFlat, hZFlat => by
+      induction a, z using __eo_list_concat_rec.induct with
+      | case1 z =>
+          simp [__eo_is_list] at hAList
+      | case2 a hA =>
+          simp [__eo_is_list] at hZList
+      | case3 g x y z _hZ ih =>
+          have hg : g = Term.UOp UserOp.bvand :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvand) g x y hAList
+          subst g
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.bvand) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvand) x y hAList
+          have hTailFlat :
+              BvAndFlatList (__eo_list_concat_rec y z) :=
+            ih hYList hZList hAFlat.2 hZFlat
+          have hTailNe :
+              __eo_list_concat_rec y z ≠ Term.Stuck :=
+            eo_list_concat_rec_ne_stuck_of_list
+              (Term.UOp UserOp.bvand) y z hYList _hZ
+          rw [eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+            (Term.UOp UserOp.bvand) x y z hTailNe]
+          exact ⟨hAFlat.1, hTailFlat⟩
+      | case4 nil z _hNil hZ _hNot =>
+          have hNilTrue :
+              __eo_is_list_nil (Term.UOp UserOp.bvand) nil =
+                Term.Boolean true := by
+            have hGet :=
+              eo_get_nil_rec_ne_stuck_of_is_list_true
+                (Term.UOp UserOp.bvand) nil hAList
+            have hReq :
+                __eo_requires
+                    (__eo_is_list_nil (Term.UOp UserOp.bvand) nil)
+                    (Term.Boolean true) nil ≠ Term.Stuck := by
+              simpa [__eo_get_nil_rec] using hGet
+            exact eo_requires_eq_of_ne_stuck
+              (__eo_is_list_nil (Term.UOp UserOp.bvand) nil)
+              (Term.Boolean true) nil hReq
+          rw [show __eo_list_concat_rec nil z = z by
+            cases nil <;> cases z <;>
+              simp [__eo_is_list_nil, __eo_list_concat_rec] at hNilTrue hZ ⊢]
+          exact hZFlat
+
+private theorem bvAnd_l1_norm_rec_flat_list_of_head_flat
+    (id t : Term) :
+    BvAndFlatList id ->
+    id ≠ Term.Stuck ->
+    BvAndHeadFlat t ->
+    BvAndFlatList
+      (__eo_l_1___get_ai_norm_rec (Term.UOp UserOp.bvand) id t) := by
+  intro hIdFlat hIdNe hTFlat
+  by_cases hTStuck : t = Term.Stuck
+  · subst t
+    simp [__eo_l_1___get_ai_norm_rec, BvAndFlatList]
+  · by_cases hEq : t = id
+    · subst t
+      rw [bvAnd_l1_eq_self_of_eq id hIdNe]
+      exact hIdFlat
+    · rw [bvAnd_l1_eq_and_of_ne_id id t hIdNe hTStuck hEq]
+      exact ⟨hTFlat, hIdFlat⟩
+
+private theorem bvAndHeadFlat_of_not_bvand (t : Term) :
+    (∀ y x, t ≠ mkBvAnd y x) ->
+    BvAndHeadFlat t := by
+  intro hNot
+  cases t with
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              cases op <;> simp [BvAndHeadFlat]
+              case bvand =>
+                exact False.elim (hNot y x rfl)
+          | _ =>
+              simp [BvAndHeadFlat]
+      | _ =>
+          simp [BvAndHeadFlat]
+  | _ =>
+      simp [BvAndHeadFlat]
+
+private theorem bvAnd_l1_norm_rec_flat_list_of_not_bvand
+    (id t : Term) :
+    BvAndFlatList id ->
+    id ≠ Term.Stuck ->
+    (∀ y x, t ≠ mkBvAnd y x) ->
+    BvAndFlatList
+      (__eo_l_1___get_ai_norm_rec (Term.UOp UserOp.bvand) id t) := by
+  intro hIdFlat hIdNe hNot
+  exact bvAnd_l1_norm_rec_flat_list_of_head_flat id t hIdFlat hIdNe
+    (bvAndHeadFlat_of_not_bvand t hNot)
+
+private theorem bvAnd_get_ai_norm_rec_non_apply
+    (id t : Term) :
+    (∀ f x, t ≠ Term.Apply f x) ->
+    __get_ai_norm_rec (Term.UOp UserOp.bvand) id t =
+      __eo_l_1___get_ai_norm_rec (Term.UOp UserOp.bvand) id t := by
+  intro hNot
+  cases t
+  case Apply f x =>
+    exact False.elim (hNot f x rfl)
+  all_goals
+    cases id <;> simp [__get_ai_norm_rec, __eo_l_1___get_ai_norm_rec]
+
+private theorem bvAnd_get_ai_norm_rec_apply_non_apply
+    (id f x : Term) :
+    (∀ g y, f ≠ Term.Apply g y) ->
+    __get_ai_norm_rec (Term.UOp UserOp.bvand) id (Term.Apply f x) =
+      __eo_l_1___get_ai_norm_rec
+        (Term.UOp UserOp.bvand) id (Term.Apply f x) := by
+  intro hNot
+  cases f
+  case Apply g y =>
+    exact False.elim (hNot g y rfl)
+  all_goals
+    cases id <;> simp [__get_ai_norm_rec, __eo_l_1___get_ai_norm_rec]
+
+private theorem bvAnd_get_ai_norm_rec_apply_apply_ne_bvand
+    (id g y x : Term) :
+    g ≠ Term.UOp UserOp.bvand ->
+    g ≠ Term.Stuck ->
+    __get_ai_norm_rec (Term.UOp UserOp.bvand) id
+        (Term.Apply (Term.Apply g y) x) =
+      __eo_l_1___get_ai_norm_rec (Term.UOp UserOp.bvand) id
+        (Term.Apply (Term.Apply g y) x) := by
+  intro hG hGNe
+  have hEq :
+      __eo_eq (Term.UOp UserOp.bvand) g = Term.Boolean false :=
+    eo_eq_eq_false_of_ne_local
+      (x := Term.UOp UserOp.bvand) (y := g)
+      (by
+        intro h
+        exact hG h.symm)
+      (by intro h; cases h)
+      hGNe
+  by_cases hIdStuck : id = Term.Stuck
+  · subst id
+    simp [__get_ai_norm_rec, __eo_l_1___get_ai_norm_rec]
+  · cases id <;>
+      simp [__get_ai_norm_rec, __eo_l_1___get_ai_norm_rec, hEq,
+        __eo_ite, native_ite, native_teq] at hIdStuck ⊢
+
+private theorem bvAnd_erase_all_rec_flat_list
+    (M : SmtModel) (w : Nat) :
+    (c e : Term) ->
+    __eo_is_list (Term.UOp UserOp.bvand) c = Term.Boolean true ->
+    BvAndListCanonical M w c ->
+    BvAndFlatList c ->
+    BvEvalCanonicalWidth M w e ->
+    BvAndFlatList (__eo_list_erase_all_rec c e)
+  | c, e, hCList, hCCan, hCFlat, hECan => by
+      induction c, e using __eo_list_erase_all_rec.induct with
+      | case1 e =>
+          simp [BvAndFlatList, __eo_list_erase_all_rec]
+      | case2 c hC =>
+          exact False.elim ((bvEvalCanonicalWidth_ne_stuck hECan) rfl)
+      | case3 f x y e _hENotStuck ih =>
+          have hf : f = Term.UOp UserOp.bvand :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvand) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.bvand) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvand) x y hCList
+          have hXCan : BvEvalCanonicalWidth M w x := hCCan.1
+          have hYCan : BvAndListCanonical M w y := hCCan.2
+          have hXFlat : BvAndHeadFlat x := hCFlat.1
+          have hYFlat : BvAndFlatList y := hCFlat.2
+          have hTailFlat :
+              BvAndFlatList (__eo_list_erase_all_rec y e) :=
+            ih hYList hYCan hYFlat hECan
+          have hXNe : x ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hXCan
+          have hENe : e ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hECan
+          by_cases hEq : e = x
+          · have hEqTerm : __eo_eq e x = Term.Boolean true :=
+              eo_eq_eq_true_of_eq_local hEq hENe hXNe
+            cases hTail : __eo_list_erase_all_rec y e <;>
+              simp [__eo_list_erase_all_rec, __eo_prepend_if, hEqTerm,
+                __eo_not, native_not, native_ite, native_teq, hTail,
+                BvAndFlatList] at hTailFlat ⊢
+            all_goals simpa [BvAndFlatList] using hTailFlat
+          · have hEqTerm : __eo_eq e x = Term.Boolean false :=
+              eo_eq_eq_false_of_ne_local hEq hENe hXNe
+            cases hTail : __eo_list_erase_all_rec y e <;>
+              simp [__eo_list_erase_all_rec, __eo_prepend_if, hEqTerm,
+                __eo_not, native_not, native_ite, native_teq, hTail,
+                BvAndFlatList] at hTailFlat ⊢
+            all_goals first
+              | exact ⟨hXFlat, by simpa [BvAndFlatList] using hTailFlat⟩
+              | exact hXFlat
+              | simpa [BvAndFlatList] using hTailFlat
+      | case4 nil e =>
+          have hENe : e ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hECan
+          cases e <;>
+            simp [BvAndFlatList, __eo_list_erase_all_rec] at hENe hCFlat ⊢
+          all_goals simpa [BvAndFlatList] using hCFlat
+
+private theorem bvAnd_setof_rec_flat_list
+    (M : SmtModel) (w : Nat) :
+    (c : Term) ->
+    __eo_is_list (Term.UOp UserOp.bvand) c = Term.Boolean true ->
+    BvAndListCanonical M w c ->
+    BvAndFlatList c ->
+    BvAndFlatList (__eo_list_setof_rec c)
+  | c, hCList, hCCan, hCFlat => by
+      induction c using __eo_list_setof_rec.induct with
+      | case1 =>
+          simp [__eo_is_list] at hCList
+      | case2 f x y ih =>
+          have hf : f = Term.UOp UserOp.bvand :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvand) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.bvand) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvand) x y hCList
+          have hXCan : BvEvalCanonicalWidth M w x := hCCan.1
+          have hYCan : BvAndListCanonical M w y := hCCan.2
+          have hYSet := bvAnd_list_setof_rec_rel_eval M w y hYList hYCan
+          have hYSetFlat : BvAndFlatList (__eo_list_setof_rec y) :=
+            ih hYList hYCan hCFlat.2
+          have hErase := bvAnd_list_erase_all_rec_rel_eval M w
+            (__eo_list_setof_rec y) x hYSet.1 hYSet.2.1 hXCan
+          have hEraseFlat : BvAndFlatList
+              (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) :=
+            bvAnd_erase_all_rec_flat_list M w (__eo_list_setof_rec y) x
+              hYSet.1 hYSet.2.1 hYSetFlat hXCan
+          have hEraseNe :
+              __eo_list_erase_all_rec (__eo_list_setof_rec y) x ≠
+                Term.Stuck :=
+            bvAnd_is_list_true_ne_stuck hErase.1
+          have hSetEq :
+              __eo_list_setof_rec (mkBvAnd x y) =
+                mkBvAnd x
+                  (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := by
+            simp [mkBvAnd, __eo_list_setof_rec, __eo_mk_apply, hEraseNe]
+          rw [hSetEq]
+          exact ⟨hCFlat.1, hEraseFlat⟩
+      | case3 nil _hNil _hNot =>
+          simpa [__eo_list_setof_rec] using hCFlat
+
+private theorem bvAnd_get_ai_norm_rec_flat_list
+    (M : SmtModel) (hM : model_total_typed M) (id : Term) (w : Nat)
+    (hIdList :
+      __eo_is_list (Term.UOp UserOp.bvand) id = Term.Boolean true)
+    (hIdEval :
+      __smtx_model_eval M (__eo_to_smt id) =
+        SmtValue.Binary (native_nat_to_int w)
+          (native_int_pow2 (native_nat_to_int w) - 1))
+    (hIdCan : BvAndListCanonical M w id)
+    (hIdFlat : BvAndFlatList id)
+    (hIdNe : id ≠ Term.Stuck) :
+    (t : Term) ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
+      BvAndFlatList
+        (__get_ai_norm_rec (Term.UOp UserOp.bvand) id t)
+  | t, hTy => by
+      by_cases hApp : ∃ f x, t = Term.Apply f x
+      · rcases hApp with ⟨f, x, rfl⟩
+        by_cases hF : ∃ g y, f = Term.Apply g y
+        · rcases hF with ⟨g, y, rfl⟩
+          by_cases hG : g = Term.UOp UserOp.bvand
+          · subst g
+            have hTypes := bvAnd_args_of_bitvec_type y x w hTy
+            have hYRec :=
+              bvAnd_get_ai_norm_rec_rel_eval M hM id w
+                hIdList hIdEval hIdCan hIdNe y hTypes.1
+            have hXRec :=
+              bvAnd_get_ai_norm_rec_rel_eval M hM id w
+                hIdList hIdEval hIdCan hIdNe x hTypes.2
+            have hYFlat :=
+              bvAnd_get_ai_norm_rec_flat_list M hM id w hIdList
+                hIdEval hIdCan hIdFlat hIdNe y hTypes.1
+            have hXFlat :=
+              bvAnd_get_ai_norm_rec_flat_list M hM id w hIdList
+                hIdEval hIdCan hIdFlat hIdNe x hTypes.2
+            let ry := __get_ai_norm_rec (Term.UOp UserOp.bvand) id y
+            let rx := __get_ai_norm_rec (Term.UOp UserOp.bvand) id x
+            have hListConcat :
+                __eo_is_list (Term.UOp UserOp.bvand)
+                    (__eo_list_concat_rec ry rx) =
+                  Term.Boolean true :=
+              eo_list_concat_rec_is_list_true_of_lists
+                (Term.UOp UserOp.bvand) ry rx hYRec.1 hXRec.1
+            have hListConcatRaw :
+                __eo_is_list (Term.UOp UserOp.bvand)
+                    (__eo_list_concat_rec
+                      (__get_ai_norm_rec (Term.UOp UserOp.bvand) id y)
+                      (__get_ai_norm_rec (Term.UOp UserOp.bvand) id x)) =
+                  Term.Boolean true := by
+              simpa [ry, rx] using hListConcat
+            have hConcatFlat :
+                BvAndFlatList (__eo_list_concat_rec ry rx) :=
+              bvAnd_flat_list_concat_rec ry rx hYRec.1 hXRec.1
+                hYFlat hXFlat
+            have hListRel :=
+              bvAnd_list_concat_rec_rel_eval M w ry rx hYRec.1 hXRec.1
+                hYRec.2.1 hXRec.2.1
+            have hSetFlat :
+                BvAndFlatList
+                  (__eo_list_setof_rec (__eo_list_concat_rec ry rx)) :=
+              bvAnd_setof_rec_flat_list M w (__eo_list_concat_rec ry rx)
+                hListConcat hListRel.1 hConcatFlat
+            simpa [ry, rx, __get_ai_norm_rec, __eo_eq, __eo_ite,
+              native_ite, native_teq, native_not, SmtEval.native_not,
+              __eo_list_concat, __eo_list_setof, __eo_requires,
+              hYRec.1, hXRec.1, hListConcatRaw] using hSetFlat
+          · have hGNe : g ≠ Term.Stuck := by
+              intro hStuck
+              subst g
+              have hBad :
+                  __smtx_typeof
+                    (__eo_to_smt
+                      (Term.Apply (Term.Apply Term.Stuck y) x)) =
+                    SmtType.None := by
+                change __smtx_typeof
+                  (SmtTerm.Apply
+                    (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
+                    (__eo_to_smt x)) = SmtType.None
+                exact smtx_typeof_apply_apply_none
+                  (__eo_to_smt x) (__eo_to_smt y)
+              rw [hBad] at hTy
+              cases hTy
+            rw [bvAnd_get_ai_norm_rec_apply_apply_ne_bvand
+              id g y x hG hGNe]
+            exact
+              bvAnd_l1_norm_rec_flat_list_of_not_bvand id
+                (Term.Apply (Term.Apply g y) x) hIdFlat hIdNe (by
+                  intro y' x' h
+                  apply hG
+                  cases h
+                  rfl)
+        · rw [bvAnd_get_ai_norm_rec_apply_non_apply id f x
+            (by
+              intro g y h
+              exact hF ⟨g, y, h⟩)]
+          exact
+            bvAnd_l1_norm_rec_flat_list_of_not_bvand id
+              (Term.Apply f x) hIdFlat hIdNe (by
+                intro y' x' h
+                apply hF
+                injection h with hFn _hx
+                exact ⟨Term.UOp UserOp.bvand, y', hFn⟩)
+      · rw [bvAnd_get_ai_norm_rec_non_apply id t
+          (by
+            intro f x h
+            exact hApp ⟨f, x, h⟩)]
+        exact
+          bvAnd_l1_norm_rec_flat_list_of_not_bvand id t
+            hIdFlat hIdNe (by
+              intro y' x' h
+              apply hApp
+              exact ⟨Term.Apply (Term.UOp UserOp.bvand) y', x', h⟩)
+
 private theorem bvAnd_nil_allOnes_of_is_list_nil_true
     (M : SmtModel) (nil : Term) (w : Nat) (nnil : Int) :
     __eo_is_list_nil (Term.UOp UserOp.bvand) nil = Term.Boolean true ->
@@ -8557,9 +8956,10 @@ private theorem bvAnd_singleton_elim_list_canonical
     (M : SmtModel) (c : Term) (w : Nat) :
     __eo_is_list (Term.UOp UserOp.bvand) c = Term.Boolean true ->
     BvAndListCanonical M w c ->
+    BvAndFlatList c ->
     BvAndListCanonical M w
       (__eo_list_singleton_elim (Term.UOp UserOp.bvand) c) := by
-  intro hList hCan
+  intro hList hCan hFlat
   change BvAndListCanonical M w
     (__eo_requires (__eo_is_list (Term.UOp UserOp.bvand) c)
       (Term.Boolean true) (__eo_list_singleton_elim_2 c))
@@ -8575,6 +8975,7 @@ private theorem bvAnd_singleton_elim_list_canonical
               (Term.UOp UserOp.bvand) g head tail hList
           subst g
           have hHeadCan : BvEvalCanonicalWidth M w head := hCan.1
+          have hHeadFlat : BvAndHeadFlat head := hFlat.1
           have hTailList :
               __eo_is_list (Term.UOp UserOp.bvand) tail =
                 Term.Boolean true :=
@@ -8588,7 +8989,8 @@ private theorem bvAnd_singleton_elim_list_canonical
             simp [__eo_list_singleton_elim_2, hNil, __eo_ite, native_ite,
               native_teq]
           · exact hCan
-          · sorry
+          · exact bvAndListCanonical_of_head_flat M w head
+              hHeadFlat hHeadCan
       | _ =>
           simpa [__eo_list_singleton_elim_2] using hCan
   | _ =>
@@ -11049,6 +11451,37 @@ private def BvOrListCanonical (M : SmtModel) (w : Nat) : Term -> Prop
       BvEvalCanonicalWidth M w x ∧ BvOrListCanonical M w xs
   | t => BvEvalCanonicalWidth M w t
 
+private def BvOrHeadFlat : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvor) _) _ => False
+  | _ => True
+
+private def BvOrFlatList : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.bvor) x) xs =>
+      BvOrHeadFlat x ∧ BvOrFlatList xs
+  | _ => True
+
+private theorem bvOrListCanonical_of_head_flat
+    (M : SmtModel) (w : Nat) (t : Term) :
+    BvOrHeadFlat t ->
+    BvEvalCanonicalWidth M w t ->
+    BvOrListCanonical M w t := by
+  intro hFlat hCan
+  cases t with
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              cases op <;> try simpa [BvOrListCanonical] using hCan
+              case bvor =>
+                simp [BvOrHeadFlat] at hFlat
+          | _ =>
+              simpa [BvOrListCanonical] using hCan
+      | _ =>
+          simpa [BvOrListCanonical] using hCan
+  | _ =>
+      simpa [BvOrListCanonical] using hCan
+
 private theorem bvOr_eval_canonical_width_of_canonical_args
     (M : SmtModel) (x y : Term) (w : Nat) :
     BvEvalCanonicalWidth M w x ->
@@ -12476,6 +12909,373 @@ private theorem bvOr_get_ai_norm_rec_rel_eval
           bvOr_l1_norm_rec_rel_eval M hM id w hIdList hIdEval hIdCan hIdNe
             _ hTy
 
+private theorem bvOr_flat_list_concat_rec :
+    (a z : Term) ->
+    __eo_is_list (Term.UOp UserOp.bvor) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.bvor) z = Term.Boolean true ->
+    BvOrFlatList a ->
+    BvOrFlatList z ->
+    BvOrFlatList (__eo_list_concat_rec a z)
+  | a, z, hAList, hZList, hAFlat, hZFlat => by
+      induction a, z using __eo_list_concat_rec.induct with
+      | case1 z =>
+          simp [__eo_is_list] at hAList
+      | case2 a hA =>
+          simp [__eo_is_list] at hZList
+      | case3 g x y z _hZ ih =>
+          have hg : g = Term.UOp UserOp.bvor :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvor) g x y hAList
+          subst g
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.bvor) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvor) x y hAList
+          have hTailFlat :
+              BvOrFlatList (__eo_list_concat_rec y z) :=
+            ih hYList hZList hAFlat.2 hZFlat
+          have hTailNe :
+              __eo_list_concat_rec y z ≠ Term.Stuck :=
+            eo_list_concat_rec_ne_stuck_of_list
+              (Term.UOp UserOp.bvor) y z hYList _hZ
+          rw [eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+            (Term.UOp UserOp.bvor) x y z hTailNe]
+          exact ⟨hAFlat.1, hTailFlat⟩
+      | case4 nil z _hNil hZ _hNot =>
+          have hNilTrue :
+              __eo_is_list_nil (Term.UOp UserOp.bvor) nil =
+                Term.Boolean true := by
+            have hGet :=
+              eo_get_nil_rec_ne_stuck_of_is_list_true
+                (Term.UOp UserOp.bvor) nil hAList
+            have hReq :
+                __eo_requires
+                    (__eo_is_list_nil (Term.UOp UserOp.bvor) nil)
+                    (Term.Boolean true) nil ≠ Term.Stuck := by
+              simpa [__eo_get_nil_rec] using hGet
+            exact eo_requires_eq_of_ne_stuck
+              (__eo_is_list_nil (Term.UOp UserOp.bvor) nil)
+              (Term.Boolean true) nil hReq
+          rw [show __eo_list_concat_rec nil z = z by
+            cases nil <;> cases z <;>
+              simp [__eo_is_list_nil, __eo_list_concat_rec] at hNilTrue hZ ⊢]
+          exact hZFlat
+
+private theorem bvOr_l1_norm_rec_flat_list_of_head_flat
+    (id t : Term) :
+    BvOrFlatList id ->
+    id ≠ Term.Stuck ->
+    BvOrHeadFlat t ->
+    BvOrFlatList
+      (__eo_l_1___get_ai_norm_rec (Term.UOp UserOp.bvor) id t) := by
+  intro hIdFlat hIdNe hTFlat
+  by_cases hTStuck : t = Term.Stuck
+  · subst t
+    simp [__eo_l_1___get_ai_norm_rec, BvOrFlatList]
+  · by_cases hEq : t = id
+    · subst t
+      rw [bvOr_l1_eq_self_of_eq id hIdNe]
+      exact hIdFlat
+    · rw [bvOr_l1_eq_or_of_ne_id id t hIdNe hTStuck hEq]
+      exact ⟨hTFlat, hIdFlat⟩
+
+private theorem bvOrHeadFlat_of_not_bvor (t : Term) :
+    (∀ y x, t ≠ mkBvOr y x) ->
+    BvOrHeadFlat t := by
+  intro hNot
+  cases t with
+  | Apply f x =>
+      cases f with
+      | Apply g y =>
+          cases g with
+          | UOp op =>
+              cases op <;> simp [BvOrHeadFlat]
+              case bvor =>
+                exact False.elim (hNot y x rfl)
+          | _ =>
+              simp [BvOrHeadFlat]
+      | _ =>
+          simp [BvOrHeadFlat]
+  | _ =>
+      simp [BvOrHeadFlat]
+
+private theorem bvOr_l1_norm_rec_flat_list_of_not_bvor
+    (id t : Term) :
+    BvOrFlatList id ->
+    id ≠ Term.Stuck ->
+    (∀ y x, t ≠ mkBvOr y x) ->
+    BvOrFlatList
+      (__eo_l_1___get_ai_norm_rec (Term.UOp UserOp.bvor) id t) := by
+  intro hIdFlat hIdNe hNot
+  exact bvOr_l1_norm_rec_flat_list_of_head_flat id t hIdFlat hIdNe
+    (bvOrHeadFlat_of_not_bvor t hNot)
+
+private theorem bvOr_get_ai_norm_rec_non_apply
+    (id t : Term) :
+    (∀ f x, t ≠ Term.Apply f x) ->
+    __get_ai_norm_rec (Term.UOp UserOp.bvor) id t =
+      __eo_l_1___get_ai_norm_rec (Term.UOp UserOp.bvor) id t := by
+  intro hNot
+  cases t
+  case Apply f x =>
+    exact False.elim (hNot f x rfl)
+  all_goals
+    cases id <;> simp [__get_ai_norm_rec, __eo_l_1___get_ai_norm_rec]
+
+private theorem bvOr_get_ai_norm_rec_apply_non_apply
+    (id f x : Term) :
+    (∀ g y, f ≠ Term.Apply g y) ->
+    __get_ai_norm_rec (Term.UOp UserOp.bvor) id (Term.Apply f x) =
+      __eo_l_1___get_ai_norm_rec
+        (Term.UOp UserOp.bvor) id (Term.Apply f x) := by
+  intro hNot
+  cases f
+  case Apply g y =>
+    exact False.elim (hNot g y rfl)
+  all_goals
+    cases id <;> simp [__get_ai_norm_rec, __eo_l_1___get_ai_norm_rec]
+
+private theorem bvOr_get_ai_norm_rec_apply_apply_ne_bvor
+    (id g y x : Term) :
+    g ≠ Term.UOp UserOp.bvor ->
+    g ≠ Term.Stuck ->
+    __get_ai_norm_rec (Term.UOp UserOp.bvor) id
+        (Term.Apply (Term.Apply g y) x) =
+      __eo_l_1___get_ai_norm_rec (Term.UOp UserOp.bvor) id
+        (Term.Apply (Term.Apply g y) x) := by
+  intro hG hGNe
+  have hEq :
+      __eo_eq (Term.UOp UserOp.bvor) g = Term.Boolean false :=
+    eo_eq_eq_false_of_ne_local
+      (x := Term.UOp UserOp.bvor) (y := g)
+      (by
+        intro h
+        exact hG h.symm)
+      (by intro h; cases h)
+      hGNe
+  by_cases hIdStuck : id = Term.Stuck
+  · subst id
+    simp [__get_ai_norm_rec, __eo_l_1___get_ai_norm_rec]
+  · cases id <;>
+      simp [__get_ai_norm_rec, __eo_l_1___get_ai_norm_rec, hEq,
+        __eo_ite, native_ite, native_teq] at hIdStuck ⊢
+
+private theorem bvOr_erase_all_rec_flat_list
+    (M : SmtModel) (w : Nat) :
+    (c e : Term) ->
+    __eo_is_list (Term.UOp UserOp.bvor) c = Term.Boolean true ->
+    BvOrListCanonical M w c ->
+    BvOrFlatList c ->
+    BvEvalCanonicalWidth M w e ->
+    BvOrFlatList (__eo_list_erase_all_rec c e)
+  | c, e, hCList, hCCan, hCFlat, hECan => by
+      induction c, e using __eo_list_erase_all_rec.induct with
+      | case1 e =>
+          simp [BvOrFlatList, __eo_list_erase_all_rec]
+      | case2 c hC =>
+          exact False.elim ((bvEvalCanonicalWidth_ne_stuck hECan) rfl)
+      | case3 f x y e _hENotStuck ih =>
+          have hf : f = Term.UOp UserOp.bvor :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvor) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.bvor) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvor) x y hCList
+          have hXCan : BvEvalCanonicalWidth M w x := hCCan.1
+          have hYCan : BvOrListCanonical M w y := hCCan.2
+          have hXFlat : BvOrHeadFlat x := hCFlat.1
+          have hYFlat : BvOrFlatList y := hCFlat.2
+          have hTailFlat :
+              BvOrFlatList (__eo_list_erase_all_rec y e) :=
+            ih hYList hYCan hYFlat hECan
+          have hXNe : x ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hXCan
+          have hENe : e ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hECan
+          by_cases hEq : e = x
+          · have hEqTerm : __eo_eq e x = Term.Boolean true :=
+              eo_eq_eq_true_of_eq_local hEq hENe hXNe
+            cases hTail : __eo_list_erase_all_rec y e <;>
+              simp [__eo_list_erase_all_rec, __eo_prepend_if, hEqTerm,
+                __eo_not, native_not, native_ite, native_teq, hTail,
+                BvOrFlatList] at hTailFlat ⊢
+            all_goals simpa [BvOrFlatList] using hTailFlat
+          · have hEqTerm : __eo_eq e x = Term.Boolean false :=
+              eo_eq_eq_false_of_ne_local hEq hENe hXNe
+            cases hTail : __eo_list_erase_all_rec y e <;>
+              simp [__eo_list_erase_all_rec, __eo_prepend_if, hEqTerm,
+                __eo_not, native_not, native_ite, native_teq, hTail,
+                BvOrFlatList] at hTailFlat ⊢
+            all_goals first
+              | exact ⟨hXFlat, by simpa [BvOrFlatList] using hTailFlat⟩
+              | exact hXFlat
+              | simpa [BvOrFlatList] using hTailFlat
+      | case4 nil e =>
+          have hENe : e ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hECan
+          cases e <;>
+            simp [BvOrFlatList, __eo_list_erase_all_rec] at hENe hCFlat ⊢
+          all_goals simpa [BvOrFlatList] using hCFlat
+
+private theorem bvOr_setof_rec_flat_list
+    (M : SmtModel) (w : Nat) :
+    (c : Term) ->
+    __eo_is_list (Term.UOp UserOp.bvor) c = Term.Boolean true ->
+    BvOrListCanonical M w c ->
+    BvOrFlatList c ->
+    BvOrFlatList (__eo_list_setof_rec c)
+  | c, hCList, hCCan, hCFlat => by
+      induction c using __eo_list_setof_rec.induct with
+      | case1 =>
+          simp [__eo_is_list] at hCList
+      | case2 f x y ih =>
+          have hf : f = Term.UOp UserOp.bvor :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.bvor) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.bvor) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.bvor) x y hCList
+          have hXCan : BvEvalCanonicalWidth M w x := hCCan.1
+          have hYCan : BvOrListCanonical M w y := hCCan.2
+          have hYSet := bvOr_list_setof_rec_rel_eval M w y hYList hYCan
+          have hYSetFlat : BvOrFlatList (__eo_list_setof_rec y) :=
+            ih hYList hYCan hCFlat.2
+          have hErase := bvOr_list_erase_all_rec_rel_eval M w
+            (__eo_list_setof_rec y) x hYSet.1 hYSet.2.1 hXCan
+          have hEraseFlat : BvOrFlatList
+              (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) :=
+            bvOr_erase_all_rec_flat_list M w (__eo_list_setof_rec y) x
+              hYSet.1 hYSet.2.1 hYSetFlat hXCan
+          have hEraseNe :
+              __eo_list_erase_all_rec (__eo_list_setof_rec y) x ≠
+                Term.Stuck :=
+            bvOr_is_list_true_ne_stuck hErase.1
+          have hSetEq :
+              __eo_list_setof_rec (mkBvOr x y) =
+                mkBvOr x
+                  (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := by
+            simp [mkBvOr, __eo_list_setof_rec, __eo_mk_apply, hEraseNe]
+          rw [hSetEq]
+          exact ⟨hCFlat.1, hEraseFlat⟩
+      | case3 nil _hNil _hNot =>
+          simpa [__eo_list_setof_rec] using hCFlat
+
+private theorem bvOr_get_ai_norm_rec_flat_list
+    (M : SmtModel) (hM : model_total_typed M) (id : Term) (w : Nat)
+    (hIdList :
+      __eo_is_list (Term.UOp UserOp.bvor) id = Term.Boolean true)
+    (hIdEval :
+      __smtx_model_eval M (__eo_to_smt id) =
+        SmtValue.Binary (native_nat_to_int w) 0)
+    (hIdCan : BvOrListCanonical M w id)
+    (hIdFlat : BvOrFlatList id)
+    (hIdNe : id ≠ Term.Stuck) :
+    (t : Term) ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.BitVec w ->
+      BvOrFlatList
+        (__get_ai_norm_rec (Term.UOp UserOp.bvor) id t)
+  | t, hTy => by
+      by_cases hApp : ∃ f x, t = Term.Apply f x
+      · rcases hApp with ⟨f, x, rfl⟩
+        by_cases hF : ∃ g y, f = Term.Apply g y
+        · rcases hF with ⟨g, y, rfl⟩
+          by_cases hG : g = Term.UOp UserOp.bvor
+          · subst g
+            have hTypes := bvOr_args_of_bitvec_type y x w hTy
+            have hYRec :=
+              bvOr_get_ai_norm_rec_rel_eval M hM id w
+                hIdList hIdEval hIdCan hIdNe y hTypes.1
+            have hXRec :=
+              bvOr_get_ai_norm_rec_rel_eval M hM id w
+                hIdList hIdEval hIdCan hIdNe x hTypes.2
+            have hYFlat :=
+              bvOr_get_ai_norm_rec_flat_list M hM id w hIdList
+                hIdEval hIdCan hIdFlat hIdNe y hTypes.1
+            have hXFlat :=
+              bvOr_get_ai_norm_rec_flat_list M hM id w hIdList
+                hIdEval hIdCan hIdFlat hIdNe x hTypes.2
+            let ry := __get_ai_norm_rec (Term.UOp UserOp.bvor) id y
+            let rx := __get_ai_norm_rec (Term.UOp UserOp.bvor) id x
+            have hListConcat :
+                __eo_is_list (Term.UOp UserOp.bvor)
+                    (__eo_list_concat_rec ry rx) =
+                  Term.Boolean true :=
+              eo_list_concat_rec_is_list_true_of_lists
+                (Term.UOp UserOp.bvor) ry rx hYRec.1 hXRec.1
+            have hListConcatRaw :
+                __eo_is_list (Term.UOp UserOp.bvor)
+                    (__eo_list_concat_rec
+                      (__get_ai_norm_rec (Term.UOp UserOp.bvor) id y)
+                      (__get_ai_norm_rec (Term.UOp UserOp.bvor) id x)) =
+                  Term.Boolean true := by
+              simpa [ry, rx] using hListConcat
+            have hConcatFlat :
+                BvOrFlatList (__eo_list_concat_rec ry rx) :=
+              bvOr_flat_list_concat_rec ry rx hYRec.1 hXRec.1
+                hYFlat hXFlat
+            have hListRel :=
+              bvOr_list_concat_rec_rel_eval M w ry rx hYRec.1 hXRec.1
+                hYRec.2.1 hXRec.2.1
+            have hSetFlat :
+                BvOrFlatList
+                  (__eo_list_setof_rec (__eo_list_concat_rec ry rx)) :=
+              bvOr_setof_rec_flat_list M w (__eo_list_concat_rec ry rx)
+                hListConcat hListRel.1 hConcatFlat
+            simpa [ry, rx, __get_ai_norm_rec, __eo_eq, __eo_ite,
+              native_ite, native_teq, native_not, SmtEval.native_not,
+              __eo_list_concat, __eo_list_setof, __eo_requires,
+              hYRec.1, hXRec.1, hListConcatRaw] using hSetFlat
+          · have hGNe : g ≠ Term.Stuck := by
+              intro hStuck
+              subst g
+              have hBad :
+                  __smtx_typeof
+                    (__eo_to_smt
+                      (Term.Apply (Term.Apply Term.Stuck y) x)) =
+                    SmtType.None := by
+                change __smtx_typeof
+                  (SmtTerm.Apply
+                    (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
+                    (__eo_to_smt x)) = SmtType.None
+                exact smtx_typeof_apply_apply_none
+                  (__eo_to_smt x) (__eo_to_smt y)
+              rw [hBad] at hTy
+              cases hTy
+            rw [bvOr_get_ai_norm_rec_apply_apply_ne_bvor
+              id g y x hG hGNe]
+            exact
+              bvOr_l1_norm_rec_flat_list_of_not_bvor id
+                (Term.Apply (Term.Apply g y) x) hIdFlat hIdNe (by
+                  intro y' x' h
+                  apply hG
+                  cases h
+                  rfl)
+        · rw [bvOr_get_ai_norm_rec_apply_non_apply id f x
+            (by
+              intro g y h
+              exact hF ⟨g, y, h⟩)]
+          exact
+            bvOr_l1_norm_rec_flat_list_of_not_bvor id
+              (Term.Apply f x) hIdFlat hIdNe (by
+                intro y' x' h
+                apply hF
+                injection h with hFn _hx
+                exact ⟨Term.UOp UserOp.bvor, y', hFn⟩)
+      · rw [bvOr_get_ai_norm_rec_non_apply id t
+          (by
+            intro f x h
+            exact hApp ⟨f, x, h⟩)]
+        exact
+          bvOr_l1_norm_rec_flat_list_of_not_bvor id t
+            hIdFlat hIdNe (by
+              intro y' x' h
+              apply hApp
+              exact ⟨Term.Apply (Term.UOp UserOp.bvor) y', x', h⟩)
+
 private theorem bvOr_is_list_nil_boolean_of_ne_stuck (t : Term) :
     t ≠ Term.Stuck ->
     ∃ b, __eo_is_list_nil (Term.UOp UserOp.bvor) t = Term.Boolean b := by
@@ -12548,9 +13348,10 @@ private theorem bvOr_singleton_elim_list_canonical
     (M : SmtModel) (c : Term) (w : Nat) :
     __eo_is_list (Term.UOp UserOp.bvor) c = Term.Boolean true ->
     BvOrListCanonical M w c ->
+    BvOrFlatList c ->
     BvOrListCanonical M w
       (__eo_list_singleton_elim (Term.UOp UserOp.bvor) c) := by
-  intro hList hCan
+  intro hList hCan hFlat
   change BvOrListCanonical M w
     (__eo_requires (__eo_is_list (Term.UOp UserOp.bvor) c)
       (Term.Boolean true) (__eo_list_singleton_elim_2 c))
@@ -12566,6 +13367,7 @@ private theorem bvOr_singleton_elim_list_canonical
               (Term.UOp UserOp.bvor) g head tail hList
           subst g
           have hHeadCan : BvEvalCanonicalWidth M w head := hCan.1
+          have hHeadFlat : BvOrHeadFlat head := hFlat.1
           have hTailList :
               __eo_is_list (Term.UOp UserOp.bvor) tail =
                 Term.Boolean true :=
@@ -12579,7 +13381,8 @@ private theorem bvOr_singleton_elim_list_canonical
             simp [__eo_list_singleton_elim_2, hNil, __eo_ite, native_ite,
               native_teq]
           · exact hCan
-          · sorry
+          · exact bvOrListCanonical_of_head_flat M w head
+              hHeadFlat hHeadCan
       | _ =>
           simpa [__eo_list_singleton_elim_2] using hCan
   | _ =>
@@ -12726,18 +13529,26 @@ private theorem bvOr_get_ai_norm_list_canonical_of_type
     rw [hIdEq]
     exact ⟨0, by simpa [hIdEq] using hIdEval, by
       simp [native_zeq, native_mod_total]⟩
+  have hIdFlat : BvOrFlatList id := by
+    rw [hIdEq]
+    simp [BvOrFlatList]
   have hRec :=
     bvOr_get_ai_norm_rec_rel_eval M hM id w hIdList hIdEval hIdCan hIdNe
       t htTy
+  have hRecFlat :
+      BvOrFlatList
+        (__get_ai_norm_rec (Term.UOp UserOp.bvor) id t) :=
+    bvOr_get_ai_norm_rec_flat_list M hM id w hIdList hIdEval hIdCan
+      hIdFlat hIdNe t htTy
   change BvOrListCanonical M w
     (__eo_list_singleton_elim (Term.UOp UserOp.bvor)
       (__get_ai_norm_rec (Term.UOp UserOp.bvor)
         (__eo_nil (Term.UOp UserOp.bvor) (__eo_typeof t)) t))
-  dsimp [id] at hRec
+  dsimp [id] at hRec hRecFlat
   exact bvOr_singleton_elim_list_canonical M
     (__get_ai_norm_rec (Term.UOp UserOp.bvor)
       (__eo_nil (Term.UOp UserOp.bvor) (__eo_typeof t)) t)
-    w hRec.1 hRec.2.1
+    w hRec.1 hRec.2.1 hRecFlat
 
 private theorem bvOr_get_ai_norm_eval_canonical
     (M : SmtModel) (hM : model_total_typed M) (y x : Term) :
@@ -12918,18 +13729,26 @@ private theorem bvAnd_get_ai_norm_list_canonical_of_type
     exact ⟨native_int_pow2 (native_nat_to_int w) - 1,
       by simpa [hIdEq] using hIdEval, by
       simp [native_zeq, native_pow2_minus_one_mod_self_nat]⟩
+  have hIdFlat : BvAndFlatList id := by
+    rw [hIdEq]
+    simp [BvAndFlatList]
   have hRec :=
     bvAnd_get_ai_norm_rec_rel_eval M hM id w hIdList hIdEval hIdCan hIdNe
       t htTy
+  have hRecFlat :
+      BvAndFlatList
+        (__get_ai_norm_rec (Term.UOp UserOp.bvand) id t) :=
+    bvAnd_get_ai_norm_rec_flat_list M hM id w hIdList hIdEval hIdCan
+      hIdFlat hIdNe t htTy
   change BvAndListCanonical M w
     (__eo_list_singleton_elim (Term.UOp UserOp.bvand)
       (__get_ai_norm_rec (Term.UOp UserOp.bvand)
         (__eo_nil (Term.UOp UserOp.bvand) (__eo_typeof t)) t))
-  dsimp [id] at hRec
+  dsimp [id] at hRec hRecFlat
   exact bvAnd_singleton_elim_list_canonical M
     (__get_ai_norm_rec (Term.UOp UserOp.bvand)
       (__eo_nil (Term.UOp UserOp.bvand) (__eo_typeof t)) t)
-    w hRec.1 hRec.2.1
+    w hRec.1 hRec.2.1 hRecFlat
 
 private theorem bvAnd_get_ai_norm_eval_canonical
     (M : SmtModel) (hM : model_total_typed M) (y x : Term) :
