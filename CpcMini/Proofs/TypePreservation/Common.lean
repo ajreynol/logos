@@ -872,6 +872,20 @@ private theorem dtc_num_sels_substitute
           dtc_num_sels_substitute s d c, native_ite, native_Teq,
           native_streq]
 
+private theorem dt_num_sels_substitute
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    ∀ d i, __smtx_dt_num_sels (__smtx_dt_substitute s d0 d) i =
+      __smtx_dt_num_sels d i
+  | SmtDatatype.null, i => by
+      cases i <;> simp [__smtx_dt_substitute, __smtx_dt_num_sels]
+  | SmtDatatype.sum c d, native_nat_zero => by
+      simp [__smtx_dt_substitute, __smtx_dt_num_sels,
+        dtc_num_sels_substitute]
+  | SmtDatatype.sum c d, native_nat_succ i => by
+      simp [__smtx_dt_substitute, __smtx_dt_num_sels,
+        dt_num_sels_substitute s d0 d i]
+
 private theorem typeof_value_dt_cons_inner_eq_of_eq_non_none
     {s : native_String}
     {d : SmtDatatype}
@@ -1534,6 +1548,50 @@ private theorem datatype_cons_default_args_typed_false_of_has_typeRef_field
               __smtx_typeof_value, smtx_dtc_field_substitute_type,
               native_ite, hEq] at hTy
 
+private theorem datatype_cons_default_args_typed_of_no_typeRef_with_field_defaults
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (refs : RefList)
+    (hField :
+      ∀ T,
+        (∀ r, T ≠ SmtType.TypeRef r) ->
+          native_inhabited_type T = true ->
+            __smtx_type_wf_rec T refs = true ->
+              __smtx_typeof_value
+                  (__smtx_value_dt_substitute s d0 (__smtx_type_default T)) =
+                smtx_dtc_field_substitute_type s d0 T ∧
+              smtx_dtc_field_substitute_type s d0 T ≠ SmtType.None ∧
+              __smtx_value_canonical
+                (__smtx_value_dt_substitute s d0 (__smtx_type_default T))) :
+    (c : SmtDatatypeCons) ->
+      __smtx_dt_cons_wf_rec c refs = true ->
+        ¬ datatype_cons_has_typeRef_field c ->
+          datatype_cons_default_args_typed s d0 c
+  | SmtDatatypeCons.unit, _hWF, _hNo => by
+      simp [datatype_cons_default_args_typed]
+  | SmtDatatypeCons.cons T c, hWF, hNo => by
+      have hNotTypeRef : ∀ r, T ≠ SmtType.TypeRef r := by
+        intro r hEq
+        apply hNo
+        subst hEq
+        simp [datatype_cons_has_typeRef_field]
+      have hTailNo : ¬ datatype_cons_has_typeRef_field c := by
+        intro hTail
+        apply hNo
+        cases T <;> simp [datatype_cons_has_typeRef_field, hTail]
+      have hParts :
+          native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T refs = true ∧
+            __smtx_dt_cons_wf_rec c refs = true := by
+        cases T <;>
+          simp_all [__smtx_dt_cons_wf_rec, datatype_cons_has_typeRef_field,
+            native_ite]
+      have hHead := hField T hNotTypeRef hParts.1 hParts.2.1
+      have hTail :=
+        datatype_cons_default_args_typed_of_no_typeRef_with_field_defaults
+          s d0 refs hField c hParts.2.2 hTailNo
+      exact ⟨hHead.1, hHead.2.1, hHead.2.2, hTail⟩
+
 private theorem datatype_cons_default_typed_canonical_of_args_typed
     (s : native_String)
     (d0 : SmtDatatype)
@@ -1786,6 +1844,57 @@ private theorem typeof_dt_cons_value_rec_substitute_of_suffix_at
         __smtx_typeof_dt_cons_value_rec] using
         typeof_dt_cons_value_rec_substitute_of_suffix_at s d0 T dTail n d h
 
+private theorem ret_typeof_sel_rec_substitute_of_suffix_at
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (dBase : SmtDatatype) ->
+      (n : native_Nat) ->
+        (d : SmtDatatype) ->
+          (j : native_Nat) ->
+            datatype_suffix_at dBase n d ->
+              __smtx_ret_typeof_sel_rec
+                  (__smtx_dt_substitute s d0 dBase) n j =
+                __smtx_ret_typeof_sel_rec
+                  (__smtx_dt_substitute s d0 d) native_nat_zero j
+  | SmtDatatype.null, native_nat_zero, d, j, h => by
+      simp [datatype_suffix_at] at h
+      subst h
+      simp [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec]
+  | SmtDatatype.null, native_nat_succ n, d, j, h => by
+      simp [datatype_suffix_at] at h
+  | SmtDatatype.sum c dTail, native_nat_zero, d, j, h => by
+      simp [datatype_suffix_at] at h
+      subst h
+      simp
+  | SmtDatatype.sum c dTail, native_nat_succ n, d, j, h => by
+      simpa [datatype_suffix_at, __smtx_dt_substitute,
+        __smtx_ret_typeof_sel_rec] using
+        ret_typeof_sel_rec_substitute_of_suffix_at s d0 dTail n d j h
+
+private theorem dt_num_sels_substitute_of_suffix_at
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (dBase : SmtDatatype) ->
+      (n : native_Nat) ->
+        (d : SmtDatatype) ->
+          datatype_suffix_at dBase n d ->
+            __smtx_dt_num_sels (__smtx_dt_substitute s d0 dBase) n =
+              __smtx_dt_num_sels (__smtx_dt_substitute s d0 d) native_nat_zero
+  | SmtDatatype.null, native_nat_zero, d, h => by
+      simp [datatype_suffix_at] at h
+      subst h
+      simp [__smtx_dt_substitute, __smtx_dt_num_sels]
+  | SmtDatatype.null, native_nat_succ n, d, h => by
+      simp [datatype_suffix_at] at h
+  | SmtDatatype.sum c dTail, native_nat_zero, d, h => by
+      simp [datatype_suffix_at] at h
+      subst h
+      simp
+  | SmtDatatype.sum c dTail, native_nat_succ n, d, h => by
+      simpa [datatype_suffix_at, __smtx_dt_substitute,
+        __smtx_dt_num_sels] using
+        dt_num_sels_substitute_of_suffix_at s d0 dTail n d h
+
 private theorem typeof_dt_cons_value_of_suffix_at
     (s : native_String)
     (d0 d : SmtDatatype)
@@ -1853,6 +1962,62 @@ private theorem datatype_default_tail_of_typed_constructor_from_self_of_has_type
       dTail :=
   datatype_default_tail_of_typed_constructor_from_of_has_typeRef s
     (SmtDatatype.sum c dTail) c dTail hHas hTyped
+
+private def datatype_typeRef_prefix_at : SmtDatatype -> native_Nat -> Prop
+  | _d, native_nat_zero => True
+  | SmtDatatype.sum c dTail, native_nat_succ n =>
+      datatype_cons_has_typeRef_field c ∧
+        datatype_typeRef_prefix_at dTail n
+  | SmtDatatype.null, native_nat_succ _ => False
+
+private theorem datatype_default_typed_suffix_of_typeRef_prefix_at
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (d : SmtDatatype) ->
+      (n : native_Nat) ->
+        (dSuffix : SmtDatatype) ->
+          datatype_typeRef_prefix_at d n ->
+            datatype_suffix_at d n dSuffix ->
+              datatype_default_has_typed_constructor_from s d0 d ->
+                datatype_default_has_typed_constructor_from s d0 dSuffix
+  | d, native_nat_zero, dSuffix, _hPrefix, hSuffix, hTyped => by
+      simp [datatype_suffix_at] at hSuffix
+      subst hSuffix
+      exact hTyped
+  | SmtDatatype.null, native_nat_succ n, dSuffix, hPrefix, _hSuffix, _hTyped => by
+      simp [datatype_typeRef_prefix_at] at hPrefix
+  | SmtDatatype.sum c dTail, native_nat_succ n, dSuffix, hPrefix, hSuffix,
+      hTyped => by
+      have hTailTyped :
+          datatype_default_has_typed_constructor_from s d0 dTail :=
+        datatype_default_tail_of_typed_constructor_from_of_has_typeRef s d0
+          c dTail hPrefix.1 hTyped
+      exact datatype_default_typed_suffix_of_typeRef_prefix_at s d0 dTail n
+        dSuffix hPrefix.2 (by simpa [datatype_suffix_at] using hSuffix)
+        hTailTyped
+
+private theorem datatype_default_typed_of_typeRef_prefix_at_suffix
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (d : SmtDatatype) ->
+      (n : native_Nat) ->
+        (dSuffix : SmtDatatype) ->
+          datatype_typeRef_prefix_at d n ->
+            datatype_suffix_at d n dSuffix ->
+              datatype_default_has_typed_constructor_from s d0 dSuffix ->
+                datatype_default_has_typed_constructor_from s d0 d
+  | d, native_nat_zero, dSuffix, _hPrefix, hSuffix, hTyped => by
+      simp [datatype_suffix_at] at hSuffix
+      subst hSuffix
+      exact hTyped
+  | SmtDatatype.null, native_nat_succ n, dSuffix, hPrefix, _hSuffix, _hTyped => by
+      simp [datatype_typeRef_prefix_at] at hPrefix
+  | SmtDatatype.sum c dTail, native_nat_succ n, dSuffix, hPrefix, hSuffix,
+      hTyped => by
+      exact Or.inr ⟨hPrefix.1,
+        datatype_default_typed_of_typeRef_prefix_at_suffix s d0 dTail n
+          dSuffix hPrefix.2 (by simpa [datatype_suffix_at] using hSuffix)
+          hTyped⟩
 
 private def datatype_typeRef_prefix_to_no_deferred : SmtDatatype -> Prop
   | SmtDatatype.null => False
@@ -2205,6 +2370,63 @@ private theorem datatype_type_default_ne_notValue_iff_productive
   simpa [__smtx_type_default] using
     datatype_default_ne_notValue_iff_productive_from s d d native_nat_zero
 
+private theorem recursive_arg_progress_of_suffix_typeRef
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (n : native_Nat)
+    (c : SmtDatatypeCons)
+    (dTail : SmtDatatype)
+    (v : SmtValue)
+    (hSuffix : datatype_suffix_at d0 n (SmtDatatype.sum c dTail))
+    (hHead : __vsm_apply_head v = SmtValue.DtCons s d0 n)
+    (hTy : __smtx_typeof_value v = SmtType.Datatype s d0)
+    (hSelf : datatype_cons_typeRef_fields_self s c)
+    (hHasTypeRef : datatype_cons_has_typeRef_field c) :
+    ∃ a,
+      __smtx_typeof_value a = SmtType.Datatype s d0 ∧
+        smt_value_size a < smt_value_size v := by
+  have hArgCount :
+      value_num_apply_args v =
+        __smtx_dt_num_sels (__smtx_dt_substitute s d0 d0) n :=
+    value_num_apply_args_eq_dt_num_sels_of_datatype hHead hTy
+  rcases typeRef_field_selector_type_of_has_typeRef_field s d0 c
+      (__smtx_dt_substitute s d0 dTail) hSelf hHasTypeRef with
+    ⟨j, hjLt, hjTy⟩
+  have hNumSuffix :
+      __smtx_dt_num_sels (__smtx_dt_substitute s d0 d0) n =
+        __smtx_dt_num_sels
+          (__smtx_dt_substitute s d0 (SmtDatatype.sum c dTail))
+          native_nat_zero :=
+    dt_num_sels_substitute_of_suffix_at s d0 d0 n
+      (SmtDatatype.sum c dTail) hSuffix
+  have hjLtValue : j < value_num_apply_args v := by
+    rw [hArgCount, hNumSuffix]
+    simpa [__smtx_dt_substitute, __smtx_dt_num_sels,
+      dtc_num_sels_substitute] using hjLt
+  have hRecursiveArgTy :
+      __smtx_typeof_value
+          (__vsm_apply_arg_nth v j (value_num_apply_args v)) =
+        SmtType.Datatype s d0 := by
+    have hArgTy :=
+      apply_arg_nth_type_of_non_none hHead (by simp [hTy]) hjLtValue
+    have hSelSuffix :
+        __smtx_ret_typeof_sel_rec
+            (__smtx_dt_substitute s d0 d0) n j =
+          __smtx_ret_typeof_sel_rec
+            (__smtx_dt_substitute s d0 (SmtDatatype.sum c dTail))
+            native_nat_zero j :=
+      ret_typeof_sel_rec_substitute_of_suffix_at s d0 d0 n
+        (SmtDatatype.sum c dTail) j hSuffix
+    rw [hSelSuffix] at hArgTy
+    simpa [__smtx_dt_substitute, hjTy] using hArgTy
+  have hRecursiveArgSmall :
+      smt_value_size
+          (__vsm_apply_arg_nth v j (value_num_apply_args v)) <
+        smt_value_size v :=
+    apply_arg_nth_size_lt v hjLtValue
+  exact ⟨__vsm_apply_arg_nth v j (value_num_apply_args v),
+    hRecursiveArgTy, hRecursiveArgSmall⟩
+
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
     (d : SmtDatatype)
@@ -2250,30 +2472,10 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
                     smt_value_size a < smt_value_size v := by
           intro hI0 hHasTypeRef
           subst i
-          rcases typeRef_field_selector_type_of_has_typeRef_field s
-              (SmtDatatype.sum c dTail) c
-              (__smtx_dt_substitute s (SmtDatatype.sum c dTail) dTail)
-              hSelf hHasTypeRef with
-            ⟨j, hjLt, hjTy⟩
-          have hjLtValue : j < value_num_apply_args v := by
-            rw [hArgCount]
-            simpa [__smtx_dt_substitute, __smtx_dt_num_sels,
-              dtc_num_sels_substitute] using hjLt
-          have hRecursiveArgTy :
-              __smtx_typeof_value
-                  (__vsm_apply_arg_nth v j (value_num_apply_args v)) =
-                SmtType.Datatype s (SmtDatatype.sum c dTail) := by
-            have hArgTy :=
-              apply_arg_nth_type_of_non_none hHead (by simp [hv])
-                hjLtValue
-            simpa [__smtx_dt_substitute, hjTy] using hArgTy
-          have hRecursiveArgSmall :
-              smt_value_size
-                  (__vsm_apply_arg_nth v j (value_num_apply_args v)) <
-                smt_value_size v :=
-            apply_arg_nth_size_lt v hjLtValue
-          exact ⟨__vsm_apply_arg_nth v j (value_num_apply_args v),
-            hRecursiveArgTy, hRecursiveArgSmall⟩
+          exact recursive_arg_progress_of_suffix_typeRef s
+            (SmtDatatype.sum c dTail) native_nat_zero c dTail v
+            (datatype_suffix_at_self (SmtDatatype.sum c dTail))
+            hHead hv hSelf hHasTypeRef
         -- The remaining semantic productivity step is now localized to this
         -- constructor-headed inhabitant: following any self-recursive argument
         -- in the finite application spine must eventually reach a suffix whose
@@ -2366,6 +2568,97 @@ termination_by T _ _ => sizeOf T
 decreasing_by
   all_goals simp_wf
   all_goals omega
+
+private theorem non_datatype_type_default_substitute_typed_canonical_of_wf_rec_deferred
+    (s : native_String)
+    (d : SmtDatatype)
+    (T : SmtType)
+    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d')
+    (hInh : native_inhabited_type T = true)
+    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    __smtx_typeof_value
+        (__smtx_value_dt_substitute s d (__smtx_type_default T)) = T ∧
+      __smtx_value_canonical
+        (__smtx_value_dt_substitute s d (__smtx_type_default T)) := by
+  have hEq :=
+    value_dt_substitute_type_default_eq_of_not_datatype s d T hDatatype
+  have hDef :=
+    type_default_typed_canonical_of_wf_rec_deferred_datatype T hInh hRec
+  constructor
+  · simpa [hEq] using hDef.1
+  · simpa [hEq] using hDef.2
+
+private theorem type_wf_rec_nil_of_non_datatype_non_typeRef
+    (T : SmtType)
+    (refs : RefList)
+    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d')
+    (hTypeRef : ∀ r, T ≠ SmtType.TypeRef r)
+    (hRec : __smtx_type_wf_rec T refs = true) :
+    __smtx_type_wf_rec T native_reflist_nil = true := by
+  cases T <;> simp_all [__smtx_type_wf_rec]
+
+private theorem non_datatype_non_typeRef_field_default_substitute_typed_canonical
+    (s : native_String)
+    (d : SmtDatatype)
+    (refs : RefList)
+    (T : SmtType)
+    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d')
+    (hTypeRef : ∀ r, T ≠ SmtType.TypeRef r)
+    (hInh : native_inhabited_type T = true)
+    (hRec : __smtx_type_wf_rec T refs = true) :
+    __smtx_typeof_value
+        (__smtx_value_dt_substitute s d (__smtx_type_default T)) =
+      smtx_dtc_field_substitute_type s d T ∧
+    smtx_dtc_field_substitute_type s d T ≠ SmtType.None ∧
+    __smtx_value_canonical
+      (__smtx_value_dt_substitute s d (__smtx_type_default T)) := by
+  have hRecNil :
+      __smtx_type_wf_rec T native_reflist_nil = true :=
+    type_wf_rec_nil_of_non_datatype_non_typeRef T refs hDatatype hTypeRef hRec
+  have hDef :=
+    non_datatype_type_default_substitute_typed_canonical_of_wf_rec_deferred
+      s d T hDatatype hInh hRecNil
+  have hField : smtx_dtc_field_substitute_type s d T = T := by
+    cases T <;> simp_all [smtx_dtc_field_substitute_type, native_Teq,
+      native_ite]
+  have hTWF : __smtx_type_wf T = true :=
+    type_wf_of_inhabited_and_wf_rec hInh hRecNil
+  exact ⟨by rw [hField]; exact hDef.1,
+    by rw [hField]; exact type_wf_non_none hTWF,
+    hDef.2⟩
+
+private theorem datatype_cons_default_args_typed_of_no_typeRef_with_datatype_defaults
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (refs : RefList)
+    (hDatatypeField :
+      ∀ sNested dNested,
+        native_inhabited_type (SmtType.Datatype sNested dNested) = true ->
+          __smtx_type_wf_rec (SmtType.Datatype sNested dNested) refs = true ->
+            __smtx_typeof_value
+                (__smtx_value_dt_substitute s d0
+                  (__smtx_type_default (SmtType.Datatype sNested dNested))) =
+              smtx_dtc_field_substitute_type s d0
+                (SmtType.Datatype sNested dNested) ∧
+            smtx_dtc_field_substitute_type s d0
+                (SmtType.Datatype sNested dNested) ≠ SmtType.None ∧
+            __smtx_value_canonical
+              (__smtx_value_dt_substitute s d0
+                (__smtx_type_default (SmtType.Datatype sNested dNested)))) :
+    (c : SmtDatatypeCons) ->
+      __smtx_dt_cons_wf_rec c refs = true ->
+        ¬ datatype_cons_has_typeRef_field c ->
+          datatype_cons_default_args_typed s d0 c := by
+  apply datatype_cons_default_args_typed_of_no_typeRef_with_field_defaults
+  intro T hNoTypeRef hInh hRec
+  by_cases hDatatype : ∃ sNested dNested, T = SmtType.Datatype sNested dNested
+  · rcases hDatatype with ⟨sNested, dNested, rfl⟩
+    exact hDatatypeField sNested dNested hInh hRec
+  · exact non_datatype_non_typeRef_field_default_substitute_typed_canonical
+      s d0 refs T (by
+        intro sNested dNested hEq
+        exact hDatatype ⟨sNested, dNested, hEq⟩)
+      hNoTypeRef hInh hRec
 
 private theorem datatype_cons_default_args_typed_of_wf_rec_no_deferred
     (s : native_String)
