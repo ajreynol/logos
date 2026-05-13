@@ -1529,9 +1529,11 @@ theorem eo_to_smt_typeof_matches_translation_seq_empty
   case Seq A =>
     have hSmt : __smtx_typeof (SmtTerm.seq_empty A) = SmtType.Seq A :=
       smtx_typeof_seq_empty_of_non_none A h
-    have hWF : __smtx_type_wf A = true :=
-      Smtm.smtx_typeof_guard_wf_wf_of_non_none A (SmtType.Seq A) (by
+    have hSeqWF : __smtx_type_wf (SmtType.Seq A) = true :=
+      Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq A) (SmtType.Seq A) (by
         simpa [__smtx_typeof] using h)
+    have hWF : __smtx_type_wf A = true :=
+      Smtm.seq_type_wf_component_of_wf hSeqWF
     rcases eo_to_smt_type_eq_seq hTy with ⟨U, hTEq, hU⟩
     subst T
     have hUWF : __smtx_type_wf (__eo_to_smt_type U) = true := by
@@ -1595,9 +1597,11 @@ theorem eo_to_smt_typeof_matches_translation_set_empty
   case Set A =>
     have hSmt : __smtx_typeof (SmtTerm.set_empty A) = SmtType.Set A :=
       smtx_typeof_set_empty_of_non_none A h
-    have hWF : __smtx_type_wf A = true :=
-      Smtm.smtx_typeof_guard_wf_wf_of_non_none A (SmtType.Set A) (by
+    have hSetWF : __smtx_type_wf (SmtType.Set A) = true :=
+      Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set A) (SmtType.Set A) (by
         simpa [__smtx_typeof] using h)
+    have hWF : __smtx_type_wf A = true :=
+      Smtm.set_type_wf_component_of_wf hSetWF
     rcases eo_to_smt_type_eq_set hTy with ⟨U, hTEq, hU⟩
     subst T
     have hUWF : __smtx_type_wf (__eo_to_smt_type U) = true := by

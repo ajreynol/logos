@@ -274,7 +274,7 @@ theorem smtx_typeof_seq_empty_of_non_none
     __smtx_typeof (SmtTerm.seq_empty T) = SmtType.Seq T := by
   intro h
   unfold __smtx_typeof at h ⊢
-  exact smtx_typeof_guard_wf_of_non_none T (SmtType.Seq T) h
+  exact smtx_typeof_guard_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) h
 
 /-- Computes `__smtx_typeof` for `set_empty_of_non_none`. -/
 theorem smtx_typeof_set_empty_of_non_none
@@ -283,7 +283,7 @@ theorem smtx_typeof_set_empty_of_non_none
     __smtx_typeof (SmtTerm.set_empty T) = SmtType.Set T := by
   intro h
   unfold __smtx_typeof at h ⊢
-  exact smtx_typeof_guard_wf_of_non_none T (SmtType.Set T) h
+  exact smtx_typeof_guard_wf_of_non_none (SmtType.Set T) (SmtType.Set T) h
 
 /-- Derives `smtx_binary_well_formed` from `non_none`. -/
 theorem smtx_binary_well_formed_of_non_none

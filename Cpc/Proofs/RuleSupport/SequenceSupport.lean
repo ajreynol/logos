@@ -40,7 +40,7 @@ theorem seq_component_inhabited_wf_of_seq_wf (T : SmtType)
     type_inhabited T ∧ __smtx_type_wf T = true := by
   have hTWf : __smtx_type_wf T = true :=
     seq_type_wf_component_of_wf h
-  exact ⟨type_inhabited_of_type_wf T hTWf, hTWf⟩
+  exact ⟨_root_.type_inhabited_of_type_wf T hTWf, hTWf⟩
 
 theorem term_has_non_none_of_type_eq
     {t : SmtTerm}
@@ -53,7 +53,7 @@ theorem term_has_non_none_of_type_eq
   exact hT
 
 def type_result_seq_components_wf : SmtType -> Prop
-  | SmtType.Seq A => __smtx_type_wf A = true
+  | SmtType.Seq A => __smtx_type_wf (SmtType.Seq A) = true
   | SmtType.Map _ B => type_result_seq_components_wf B
   | SmtType.FunType _ B => type_result_seq_components_wf B
   | SmtType.DtcAppType _ B => type_result_seq_components_wf B
@@ -255,8 +255,7 @@ theorem type_result_seq_components_wf_of_type_wf
       type_result_seq_components_wf T := by
     cases T
     case Seq A =>
-      have hA : __smtx_type_wf A = true := seq_type_wf_component_of_wf h
-      exact hA
+      exact h
     case Set A =>
       simp [type_result_seq_components_wf]
     case Map A B =>
@@ -313,53 +312,53 @@ theorem smt_term_result_seq_components_wf_of_non_none
         smtx_typeof_guard_wf_of_non_none T T hGuardNN]
       exact type_result_seq_components_wf_of_type_wf hWf
     case seq_empty T =>
-      have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Seq T) ≠
+      have hGuardNN : __smtx_typeof_guard_wf (SmtType.Seq T) (SmtType.Seq T) ≠
           SmtType.None := by
         unfold term_has_non_none_type at hxNN
         simpa [__smtx_typeof] using hxNN
-      have hWf : __smtx_type_wf T = true :=
-        smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Seq T) hGuardNN
+      have hWf : __smtx_type_wf (SmtType.Seq T) = true :=
+        smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN
       rw [__smtx_typeof.eq_77,
-        smtx_typeof_guard_wf_of_non_none T (SmtType.Seq T) hGuardNN]
+        smtx_typeof_guard_wf_of_non_none (SmtType.Seq T) (SmtType.Seq T) hGuardNN]
       exact hWf
     case set_empty T =>
-      have hGuardNN : __smtx_typeof_guard_wf T (SmtType.Set T) ≠
+      have hGuardNN : __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) ≠
           SmtType.None := by
         unfold term_has_non_none_type at hxNN
         simpa [__smtx_typeof] using hxNN
-      have hWf : __smtx_type_wf T = true :=
-        smtx_typeof_guard_wf_wf_of_non_none T (SmtType.Set T) hGuardNN
+      have hWf : __smtx_type_wf (SmtType.Set T) = true :=
+        smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN
       rw [__smtx_typeof.eq_120,
-        smtx_typeof_guard_wf_of_non_none T (SmtType.Set T) hGuardNN]
-      simpa [type_result_seq_components_wf] using
-        type_result_seq_components_wf_of_type_wf hWf
+        smtx_typeof_guard_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN]
+      simp [type_result_seq_components_wf]
     case seq_unit t =>
       have hGuardNN :
-          __smtx_typeof_guard_wf (__smtx_typeof t)
+          __smtx_typeof_guard_wf
+              (SmtType.Seq (__smtx_typeof t))
               (SmtType.Seq (__smtx_typeof t)) ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
         simpa [__smtx_typeof] using hxNN
-      have hWf : __smtx_type_wf (__smtx_typeof t) = true :=
-        smtx_typeof_guard_wf_wf_of_non_none (__smtx_typeof t)
+      have hWf : __smtx_type_wf (SmtType.Seq (__smtx_typeof t)) = true :=
+        smtx_typeof_guard_wf_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN
       rw [__smtx_typeof.eq_118,
-        smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+        smtx_typeof_guard_wf_of_non_none (SmtType.Seq (__smtx_typeof t))
           (SmtType.Seq (__smtx_typeof t)) hGuardNN]
       exact hWf
     case set_singleton t =>
       have hGuardNN :
-          __smtx_typeof_guard_wf (__smtx_typeof t)
+          __smtx_typeof_guard_wf
+              (SmtType.Set (__smtx_typeof t))
               (SmtType.Set (__smtx_typeof t)) ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
         simpa [__smtx_typeof] using hxNN
-      have hWf : __smtx_type_wf (__smtx_typeof t) = true :=
-        smtx_typeof_guard_wf_wf_of_non_none (__smtx_typeof t)
+      have hWf : __smtx_type_wf (SmtType.Set (__smtx_typeof t)) = true :=
+        smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN
       rw [__smtx_typeof.eq_121,
-        smtx_typeof_guard_wf_of_non_none (__smtx_typeof t)
+        smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN]
-      simpa [type_result_seq_components_wf] using
-        type_result_seq_components_wf_of_type_wf hWf
+      simp [type_result_seq_components_wf]
     case str_concat x y =>
       rcases seq_binop_args_of_non_none (op := SmtTerm.str_concat)
           (typeof_str_concat_eq x y) hxNN with ⟨T, hxT, hyT⟩
@@ -666,7 +665,9 @@ theorem smt_seq_component_wf_of_non_none_type
     exact seq_ne_none T
   have hGood := smt_term_result_seq_components_wf_of_non_none x hxNN
   rw [hxTy] at hGood
-  exact ⟨type_inhabited_of_type_wf T hGood, hGood⟩
+  have hTWf : __smtx_type_wf T = true :=
+    seq_type_wf_component_of_wf hGood
+  exact ⟨_root_.type_inhabited_of_type_wf T hTWf, hTWf⟩
 
 theorem eval_seq_empty_of_type (M : SmtModel) (A : Term) (T : SmtType) :
     __eo_to_smt_type A = SmtType.Seq T ->
@@ -860,6 +861,10 @@ theorem seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
     TranslationProofs.eo_to_smt_typeof_matches_translation x hTrans
   have hA : __eo_to_smt_type (__eo_typeof x) = SmtType.Seq T := by
     rw [← hTypeMatch, hxTy]
+  have hSeqWF : __smtx_type_wf (SmtType.Seq T) = true := by
+    have hGood :=
+      smt_term_result_seq_components_wf_of_non_none (__eo_to_smt x) hTrans
+    simpa [hxTy] using hGood
   by_cases hSpecial :
       __eo_typeof x =
         Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
@@ -888,10 +893,7 @@ theorem seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
           (__eo_to_smt_type (__eo_typeof x))) ≠ SmtType.None
       rw [hA]
       change __smtx_typeof (SmtTerm.seq_empty T) ≠ SmtType.None
-      have hInh : native_inhabited_type T = true :=
-        (smtx_inhabited_type_eq_true_iff T).2 hTInh
-      simp [__smtx_typeof, __smtx_typeof_guard_wf, native_ite, hInh,
-        hTWf]
+      simp [__smtx_typeof, __smtx_typeof_guard_wf, native_ite, hSeqWF]
 
 theorem eo_disamb_type_seq_empty_stuck_of_not_seq
     (A : Term)

@@ -133,17 +133,122 @@ theorem exists_total_typed_model_of_canonical_type_inhabited
     · intro s T hT
       simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT]
 
+private theorem datatype_type_default_typed_canonical_of_wf_rec
+    (s : native_String)
+    (d : SmtDatatype)
+    (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+    __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
+        SmtType.Datatype s d ∧
+      __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
+  sorry
+
+private theorem type_default_typed_canonical_of_wf_rec :
+    (T : SmtType) ->
+      native_inhabited_type T = true ->
+        __smtx_type_wf_rec T native_reflist_nil = true ->
+          __smtx_typeof_value (__smtx_type_default T) = T ∧
+            __smtx_value_canonical (__smtx_type_default T)
+  | SmtType.None, hInh, hRec => by
+      simp [__smtx_type_wf_rec] at hRec
+  | SmtType.Bool, hInh, hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.Int, hInh, hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.Real, hInh, hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.RegLan, hInh, hRec => by
+      simp [__smtx_type_wf_rec] at hRec
+  | SmtType.BitVec w, hInh, hRec => by
+      constructor
+      · simp [__smtx_type_default, __smtx_typeof_value, native_ite, native_and,
+          native_zleq, native_zeq, native_mod_total, native_int_pow2, native_zexp_total,
+          native_nat_to_int, native_int_to_nat]
+      · simp [__smtx_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, native_ite, native_zleq, native_zeq,
+          native_mod_total, native_int_pow2, native_zexp_total, native_nat_to_int]
+  | SmtType.Map A B, hInh, hRec => by
+      simp [__smtx_type_wf_rec, native_and] at hRec
+      have hB := type_default_typed_canonical_of_wf_rec B hRec.2.2.1 hRec.2.2.2
+      have hBCanon :
+          __smtx_value_canonical_bool (__smtx_type_default B) = true := by
+        simpa [__smtx_value_canonical] using hB.2
+      constructor
+      · simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_map_value, hB.1]
+      · simp [__smtx_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, native_and, hB.1, hBCanon]
+        cases hFin : __smtx_is_finite_type A <;>
+          simp [native_ite, native_veq]
+  | SmtType.Set A, hInh, hRec => by
+      constructor
+      · simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_map_value,
+          __smtx_map_to_set_type]
+      · simp [__smtx_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, native_and]
+        cases hFin : __smtx_is_finite_type A <;>
+          simp [native_ite, native_veq, __smtx_typeof_value, __smtx_type_default]
+  | SmtType.Seq A, hInh, hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_seq_value,
+        __smtx_value_canonical, __smtx_value_canonical_bool, __smtx_seq_canonical]
+  | SmtType.Char, hInh, hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.Datatype s d, hInh, hRec => by
+      exact datatype_type_default_typed_canonical_of_wf_rec s d hInh hRec
+  | SmtType.TypeRef s, hInh, hRec => by
+      simp [__smtx_type_wf_rec] at hRec
+  | SmtType.USort i, hInh, hRec => by
+      simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
+        __smtx_value_canonical_bool]
+  | SmtType.FunType A B, hInh, hRec => by
+      simp [__smtx_type_wf_rec, native_and] at hRec
+      have hB := type_default_typed_canonical_of_wf_rec B hRec.2.2.1 hRec.2.2.2
+      have hBCanon :
+          __smtx_value_canonical_bool (__smtx_type_default B) = true := by
+        simpa [__smtx_value_canonical] using hB.2
+      constructor
+      · simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_map_value,
+          __smtx_map_to_fun_type, hB.1]
+      · simp [__smtx_type_default, __smtx_value_canonical,
+          __smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, native_and, hB.1, hBCanon]
+        cases hFin : __smtx_is_finite_type A <;>
+          simp [native_ite, native_veq]
+  | SmtType.DtcAppType A B, hInh, hRec => by
+      simp [__smtx_type_wf_rec] at hRec
+termination_by T _ _ => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
+
 /--
 Every well-formed SMT type has a canonical inhabitant.
 
-The remaining hard cases are generated datatype defaults, and finite-domain
-map/function defaults whose canonicality is tied to `__smtx_type_default`.
+The proof reduces finite-domain map/function defaults to canonicality of
+`__smtx_type_default`; the remaining isolated gap is generated datatype
+defaults.
 -/
 theorem canonical_type_inhabited_of_type_wf
     (T : SmtType)
     (hWF : __smtx_type_wf T = true) :
     ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v := by
-  sorry
+  by_cases hReg : T = SmtType.RegLan
+  · subst T
+    exact ⟨SmtValue.RegLan native_re_none, rfl, by
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
+  · have hParts :
+        native_inhabited_type T = true ∧
+          __smtx_type_wf_rec T native_reflist_nil = true := by
+      cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hWF hReg ⊢ <;>
+        exact hWF
+    have hDef :=
+      type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
+    exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩
 
 /-- Choice-based model that returns a canonical inhabitant for every well-formed SMT type. -/
 noncomputable def default_typed_model : SmtModel :=
