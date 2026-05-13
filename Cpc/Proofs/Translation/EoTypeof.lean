@@ -286,7 +286,13 @@ private theorem eo_to_smt_exists_ne_numeral_of_not_nil
       case __eo_List_cons =>
         cases x <;> try cases h
         case Var name T =>
-          cases name <;> cases h
+          cases name <;> try cases h
+          case String s =>
+            change native_ite (native_reserved_var_name s) SmtTerm.None
+                (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists _ body)) =
+              SmtTerm.Numeral n at h
+            cases hs : native_reserved_var_name s <;>
+              simp [native_ite, hs] at h
 
 private theorem eo_to_smt_apply_set_insert_ne_numeral
     (xs x : Term) (n : native_Int) :
@@ -410,7 +416,14 @@ theorem eo_to_smt_eq_numeral
       cases op <;> try cases h
       · exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
       · exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
-  | Var name T => cases name <;> cases h
+  | Var name T =>
+      cases name <;> try cases h
+      case String s =>
+        change native_ite (native_reserved_var_name s) SmtTerm.None
+            (SmtTerm.Var s (__eo_to_smt_type T)) =
+          SmtTerm.Numeral n at h
+        cases hs : native_reserved_var_name s <;>
+          simp [native_ite, hs] at h
   | DtCons s d i =>
       change native_ite (native_reserved_datatype_name s) SmtTerm.None
           (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) =
@@ -612,6 +625,7 @@ theorem eo_to_smt_type_typeof_uconst
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_var_of_smt_apply`. -/
 theorem eo_to_smt_type_typeof_apply_var_of_smt_apply
     (x T : Term) (s : native_String) (A B : SmtType)
+    (hVar : __eo_reserved_var_name s = false)
     (hHead :
       __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) = SmtType.FunType A B ∨
         __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) = SmtType.DtcAppType A B)
@@ -626,7 +640,7 @@ theorem eo_to_smt_type_typeof_apply_var_of_smt_apply
         __eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x) =
           SmtTerm.Apply (__eo_to_smt (Term.Var (Term.String s) T)) (__eo_to_smt x) := by
       rfl
-    simpa [eo_to_smt_var] using hGeneric
+    simpa [eo_to_smt_var, hVar, native_ite] using hGeneric
   have hGeneric :
       generic_apply_type (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x) := by
     exact generic_apply_type_of_non_special_head _ _

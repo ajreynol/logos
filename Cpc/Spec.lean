@@ -40,6 +40,9 @@ noncomputable section
 def native_reserved_datatype_name (s : native_String) : native_Bool :=
   s.startsWith "@"
 
+def native_reserved_var_name (s : native_String) : native_Bool :=
+  s.startsWith "@@"
+
 mutual
 
 def __eo_to_smt_distinct_pairs (s : SmtTerm) : Term -> SmtTerm
@@ -189,7 +192,7 @@ def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTe
 
 def __eo_to_smt_exists : Term -> SmtTerm -> SmtTerm
   | Term.__eo_List_nil, F => F
-  | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs), F => (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F))
+  | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs), F => (native_ite (native_reserved_var_name s) SmtTerm.None (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F)))
   | vs, F => SmtTerm.None
 
 
@@ -199,7 +202,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Rational r) => (SmtTerm.Rational r)
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
-  | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
+  | (Term.Var (Term.String s) T) => (native_ite (native_reserved_var_name s) SmtTerm.None (SmtTerm.Var s (__eo_to_smt_type T)))
   | (Term.DtCons s d i) => (native_ite (native_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
   | (Term.DtSel s d i j) => (native_ite (native_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
   | (Term.UConst i T) => (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))

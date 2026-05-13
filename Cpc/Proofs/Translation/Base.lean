@@ -14,6 +14,10 @@ namespace TranslationProofs
 abbrev __eo_reserved_datatype_name : native_String -> native_Bool :=
   native_reserved_datatype_name
 
+/-- Proof-local compatibility name for the reserved variable-name guard. -/
+abbrev __eo_reserved_var_name : native_String -> native_Bool :=
+  native_reserved_var_name
+
 /-- Computes `__eo_typeof` for `boolean`. -/
 @[simp] theorem eo_typeof_boolean (b : native_Bool) :
     __eo_typeof (Term.Boolean b) = Term.Bool := by
@@ -52,7 +56,9 @@ abbrev __eo_reserved_datatype_name : native_String -> native_Bool :=
 
 /-- Simplifies EO-to-SMT translation for `var`. -/
 @[simp] theorem eo_to_smt_var (s : native_String) (T : Term) :
-    __eo_to_smt (Term.Var (Term.String s) T) = SmtTerm.Var s (__eo_to_smt_type T) := rfl
+    __eo_to_smt (Term.Var (Term.String s) T) =
+      native_ite (__eo_reserved_var_name s) SmtTerm.None
+        (SmtTerm.Var s (__eo_to_smt_type T)) := rfl
 
 /-- Simplifies EO-to-SMT translation for `uconst`. -/
 @[simp] theorem eo_to_smt_uconst (i : native_Nat) (T : Term) :
