@@ -133,6 +133,44 @@ theorem exists_total_typed_model_of_canonical_type_inhabited
     · intro s T hT
       simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT]
 
+private theorem value_dt_substitute_canonical
+    (s : native_String)
+    (d : SmtDatatype) :
+    (v : SmtValue) ->
+      __smtx_value_canonical v ->
+        __smtx_value_canonical (__smtx_value_dt_substitute s d v)
+  | SmtValue.NotValue, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Boolean b, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Numeral n, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Rational q, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Binary w n, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Map m, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Fun m, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Set m, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Seq ss, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Char c, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.UValue i e, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.RegLan r, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.DtCons s' d' i, h => by
+      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Apply f a, h => by
+      simp [__smtx_value_dt_substitute, __smtx_value_canonical,
+        __smtx_value_canonical_bool, native_and] at h ⊢
+      exact ⟨value_dt_substitute_canonical s d f h.1,
+        value_dt_substitute_canonical s d a h.2⟩
+
 private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
     (d : SmtDatatype)
