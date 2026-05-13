@@ -278,7 +278,7 @@ private theorem value_dt_substitute_apply_no_shadow
   simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
     hHead, hShadow, native_ite]
 
-private theorem datatype_type_default_typed_canonical_of_wf_rec
+private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
     (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
@@ -287,6 +287,107 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
   sorry
+
+private theorem datatype_type_default_typed_canonical_of_wf_rec
+    (s : native_String)
+    (d : SmtDatatype)
+    (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
+    (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+    __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
+        SmtType.Datatype s d ∧
+      __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
+  cases d with
+  | null =>
+      simp [__smtx_type_wf_rec, __smtx_dt_wf_rec] at _hRec
+  | sum c dTail =>
+      cases c with
+      | unit =>
+          simp [__smtx_type_default, __smtx_datatype_default,
+            __smtx_datatype_cons_default, __smtx_typeof_value,
+            __smtx_dt_substitute, __smtx_dtc_substitute,
+            __smtx_typeof_dt_cons_value_rec, __smtx_value_canonical,
+            __smtx_value_canonical_bool, native_veq, native_not, native_ite]
+      | cons T cTail =>
+          cases cTail with
+          | unit =>
+              cases T with
+              | Bool =>
+                  simp [__smtx_type_default, __smtx_datatype_default,
+                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
+                    __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
+                    __smtx_typeof_guard, __smtx_value_canonical,
+                    __smtx_value_canonical_bool, native_veq, native_not,
+                    native_ite, native_Teq, native_and]
+              | Int =>
+                  simp [__smtx_type_default, __smtx_datatype_default,
+                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
+                    __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
+                    __smtx_typeof_guard, __smtx_value_canonical,
+                    __smtx_value_canonical_bool, native_veq, native_not,
+                    native_ite, native_Teq, native_and]
+              | Real =>
+                  simp [__smtx_type_default, __smtx_datatype_default,
+                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
+                    __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
+                    __smtx_typeof_guard, __smtx_value_canonical,
+                    __smtx_value_canonical_bool, native_veq, native_not,
+                    native_ite, native_Teq, native_and]
+              | BitVec w =>
+                  simp [__smtx_type_default, __smtx_datatype_default,
+                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
+                    __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
+                    __smtx_typeof_guard, __smtx_value_canonical,
+                    __smtx_value_canonical_bool, native_veq, native_not,
+                    native_ite, native_Teq, native_and, native_zleq,
+                    native_zeq, native_mod_total, native_int_pow2,
+                    native_zexp_total, native_nat_to_int, native_int_to_nat]
+              | Char =>
+                  simp [__smtx_type_default, __smtx_datatype_default,
+                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
+                    __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
+                    __smtx_typeof_guard, __smtx_value_canonical,
+                    __smtx_value_canonical_bool, native_veq, native_not,
+                    native_ite, native_Teq, native_and]
+              | Set A =>
+                  simp [__smtx_type_default, __smtx_datatype_default,
+                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_typeof_value, __smtx_typeof_map_value,
+                    __smtx_map_to_set_type, __smtx_dt_substitute,
+                    __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+                    __smtx_typeof_apply_value, __smtx_typeof_guard,
+                    __smtx_value_canonical, __smtx_value_canonical_bool,
+                    __smtx_map_canonical, __smtx_map_default_canonical,
+                    native_veq, native_not, native_ite, native_Teq,
+                    native_and]
+              | Seq A =>
+                  simp [__smtx_type_default, __smtx_datatype_default,
+                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_typeof_value, __smtx_typeof_seq_value,
+                    __smtx_dt_substitute, __smtx_dtc_substitute,
+                    __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
+                    __smtx_typeof_guard, __smtx_value_canonical,
+                    __smtx_value_canonical_bool, __smtx_seq_canonical,
+                    native_veq, native_not, native_ite, native_Teq,
+                    native_and]
+              | USort i =>
+                  simp [__smtx_type_default, __smtx_datatype_default,
+                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
+                    __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
+                    __smtx_typeof_guard, __smtx_value_canonical,
+                    __smtx_value_canonical_bool, native_veq, native_not,
+                    native_ite, native_Teq, native_and]
+              | _ =>
+                  exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
+                    _ _hInh _hRec
+          | cons U cRest =>
+              exact datatype_type_default_typed_canonical_of_wf_rec_deferred s
+                _ _hInh _hRec
 
 private theorem type_default_typed_canonical_of_wf_rec :
     (T : SmtType) ->
