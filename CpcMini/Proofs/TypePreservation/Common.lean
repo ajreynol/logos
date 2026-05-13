@@ -1508,6 +1508,32 @@ private def datatype_cons_default_args_typed
           (__smtx_value_dt_substitute s d0 (__smtx_type_default T)) ∧
       datatype_cons_default_args_typed s d0 c
 
+private theorem datatype_cons_default_args_typed_false_of_has_typeRef_field
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (c : SmtDatatypeCons) ->
+      datatype_cons_has_typeRef_field c ->
+        datatype_cons_default_args_typed s d0 c ->
+          False
+  | SmtDatatypeCons.unit, hHas, _hArgs => by
+      simp [datatype_cons_has_typeRef_field] at hHas
+  | SmtDatatypeCons.cons T c, hHas, hArgs => by
+      cases T <;> try
+        exact datatype_cons_default_args_typed_false_of_has_typeRef_field s d0 c
+          (by simpa [datatype_cons_has_typeRef_field] using hHas)
+          hArgs.2.2.2
+      case TypeRef r =>
+          have hTy :
+              __smtx_typeof_value
+                  (__smtx_value_dt_substitute s d0
+                    (__smtx_type_default (SmtType.TypeRef r))) =
+                smtx_dtc_field_substitute_type s d0 (SmtType.TypeRef r) :=
+            hArgs.1
+          cases hEq : native_Teq (SmtType.TypeRef r) (SmtType.TypeRef s) <;>
+            simp [__smtx_type_default, __smtx_value_dt_substitute,
+              __smtx_typeof_value, smtx_dtc_field_substitute_type,
+              native_ite, hEq] at hTy
+
 private theorem datatype_cons_default_typed_canonical_of_args_typed
     (s : native_String)
     (d0 : SmtDatatype)
@@ -1781,6 +1807,52 @@ private def datatype_default_has_typed_constructor_from
       datatype_cons_default_args_typed s d0 c ∨
         datatype_cons_has_typeRef_field c ∧
           datatype_default_has_typed_constructor_from s d0 d
+
+private theorem datatype_default_tail_of_typed_constructor_from_of_has_typeRef
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (c : SmtDatatypeCons)
+    (dTail : SmtDatatype)
+    (hHas : datatype_cons_has_typeRef_field c)
+    (hTyped :
+      datatype_default_has_typed_constructor_from s d0
+        (SmtDatatype.sum c dTail)) :
+    datatype_default_has_typed_constructor_from s d0 dTail := by
+  simp [datatype_default_has_typed_constructor_from] at hTyped
+  cases hTyped with
+  | inl hArgs =>
+      exact False.elim
+        (datatype_cons_default_args_typed_false_of_has_typeRef_field s
+          d0 c hHas hArgs)
+  | inr hTail =>
+      exact hTail.2
+
+private theorem datatype_default_has_typed_constructor_from_typeRef_iff
+    (s : native_String)
+    (d0 : SmtDatatype)
+    (c : SmtDatatypeCons)
+    (dTail : SmtDatatype)
+    (hHas : datatype_cons_has_typeRef_field c) :
+    datatype_default_has_typed_constructor_from s d0 (SmtDatatype.sum c dTail) ↔
+      datatype_default_has_typed_constructor_from s d0 dTail := by
+  constructor
+  · exact datatype_default_tail_of_typed_constructor_from_of_has_typeRef s d0
+      c dTail hHas
+  · intro hTail
+    exact Or.inr ⟨hHas, hTail⟩
+
+private theorem datatype_default_tail_of_typed_constructor_from_self_of_has_typeRef
+    (s : native_String)
+    (c : SmtDatatypeCons)
+    (dTail : SmtDatatype)
+    (hHas : datatype_cons_has_typeRef_field c)
+    (hTyped :
+      datatype_default_has_typed_constructor_from s (SmtDatatype.sum c dTail)
+        (SmtDatatype.sum c dTail)) :
+    datatype_default_has_typed_constructor_from s (SmtDatatype.sum c dTail)
+      dTail :=
+  datatype_default_tail_of_typed_constructor_from_of_has_typeRef s
+    (SmtDatatype.sum c dTail) c dTail hHas hTyped
 
 private def datatype_typeRef_prefix_to_no_deferred : SmtDatatype -> Prop
   | SmtDatatype.null => False
@@ -2174,7 +2246,8 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
               datatype_cons_has_typeRef_field c ->
                 ∃ a,
                   __smtx_typeof_value a =
-                    SmtType.Datatype s (SmtDatatype.sum c dTail) := by
+                      SmtType.Datatype s (SmtDatatype.sum c dTail) ∧
+                    smt_value_size a < smt_value_size v := by
           intro hI0 hHasTypeRef
           subst i
           rcases typeRef_field_selector_type_of_has_typeRef_field s
@@ -2194,8 +2267,13 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
               apply_arg_nth_type_of_non_none hHead (by simp [hv])
                 hjLtValue
             simpa [__smtx_dt_substitute, hjTy] using hArgTy
+          have hRecursiveArgSmall :
+              smt_value_size
+                  (__vsm_apply_arg_nth v j (value_num_apply_args v)) <
+                smt_value_size v :=
+            apply_arg_nth_size_lt v hjLtValue
           exact ⟨__vsm_apply_arg_nth v j (value_num_apply_args v),
-            hRecursiveArgTy⟩
+            hRecursiveArgTy, hRecursiveArgSmall⟩
         -- The remaining semantic productivity step is now localized to this
         -- constructor-headed inhabitant: following any self-recursive argument
         -- in the finite application spine must eventually reach a suffix whose
