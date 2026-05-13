@@ -787,6 +787,20 @@ private def dt_applied_type_rec
       dt_applied_type_rec s d0 d i n
   | _, _, _ => SmtType.None
 
+private theorem dt_applied_type_rec_succ_index
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (c : SmtDatatypeCons) ->
+      (d : SmtDatatype) ->
+        (i n : Nat) ->
+          dt_applied_type_rec s d0 (SmtDatatype.sum c d) (Nat.succ i) n =
+            dt_applied_type_rec s d0 d i n
+  | c, d, i, 0 => by
+      cases c <;>
+        simp [dt_applied_type_rec, __smtx_typeof_dt_cons_value_rec]
+  | c, d, i, Nat.succ n => by
+      cases c <;> simp [dt_applied_type_rec]
+
 private theorem dt_result_num_args_typeof_dt_cons_value_rec
     (s : native_String)
     (d0 : SmtDatatype) :
@@ -1198,6 +1212,48 @@ private theorem value_num_apply_args_eq_dt_num_sels_of_datatype
     dt_applied_type_rec_non_none_implies_le s d (__smtx_dt_substitute s d d) i
       (value_num_apply_args v) (by rw [hEq]; simp)
   omega
+
+private theorem value_dt_substitute_datatype_head_full_args
+    (sub : native_String)
+    (base : SmtDatatype)
+    {v : SmtValue}
+    {s : native_String}
+    {d : SmtDatatype}
+    (hv : __smtx_typeof_value v = SmtType.Datatype s d)
+    (hNe : native_streq sub s = false) :
+    ∃ i,
+      __vsm_apply_head (__smtx_value_dt_substitute sub base v) =
+          SmtValue.DtCons s (__smtx_dt_substitute sub base d) i ∧
+        value_num_apply_args (__smtx_value_dt_substitute sub base v) =
+          __smtx_dt_num_sels
+            (__smtx_dt_substitute s
+              (__smtx_dt_substitute sub base d)
+              (__smtx_dt_substitute sub base d)) i := by
+  rcases value_head_dtCons_of_datatype_type hv with ⟨i, hHead⟩
+  refine ⟨i, ?_, ?_⟩
+  · have hHeadSub :=
+      value_dt_substitute_apply_head_of_dtCons sub base v hHead
+    simpa [hNe, native_ite] using hHeadSub
+  · have hArgsSub := value_num_apply_args_dt_substitute sub base v
+    have hArgsOrig :
+        value_num_apply_args v =
+          __smtx_dt_num_sels (__smtx_dt_substitute s d d) i :=
+      value_num_apply_args_eq_dt_num_sels_of_datatype hHead hv
+    calc
+      value_num_apply_args (__smtx_value_dt_substitute sub base v) =
+          value_num_apply_args v := hArgsSub
+      _ = __smtx_dt_num_sels (__smtx_dt_substitute s d d) i := hArgsOrig
+      _ = __smtx_dt_num_sels d i := dt_num_sels_substitute s d d i
+      _ = __smtx_dt_num_sels (__smtx_dt_substitute sub base d) i := by
+          exact (dt_num_sels_substitute sub base d i).symm
+      _ =
+          __smtx_dt_num_sels
+            (__smtx_dt_substitute s
+              (__smtx_dt_substitute sub base d)
+              (__smtx_dt_substitute sub base d)) i := by
+          exact (dt_num_sels_substitute s
+            (__smtx_dt_substitute sub base d)
+            (__smtx_dt_substitute sub base d) i).symm
 
 private theorem apply_arg_nth_type_of_non_none :
     ∀ {v : SmtValue} {s : native_String} {d : SmtDatatype}
@@ -2308,6 +2364,60 @@ private theorem dt_applied_type_rec_non_none_base
               simpa [dt_applied_type_rec] using h)
           simpa [__smtx_typeof_dt_cons_value_rec] using hTail
 
+private theorem dt_applied_type_rec_full_zero
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (c : SmtDatatypeCons) ->
+      (dTail : SmtDatatype) ->
+        dt_applied_type_rec s d0 (SmtDatatype.sum c dTail) native_nat_zero
+            (__smtx_dtc_num_sels c) =
+          SmtType.Datatype s d0
+  | SmtDatatypeCons.unit, dTail => by
+      simp [dt_applied_type_rec, __smtx_dtc_num_sels,
+        __smtx_typeof_dt_cons_value_rec]
+  | SmtDatatypeCons.cons T c, dTail => by
+      simpa [dt_applied_type_rec, __smtx_dtc_num_sels] using
+        dt_applied_type_rec_full_zero s d0 c dTail
+
+private theorem dt_applied_type_rec_full_of_cons_suffix
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (d : SmtDatatype) ->
+      (i : native_Nat) ->
+        (c : SmtDatatypeCons) ->
+          (dTail : SmtDatatype) ->
+            datatype_suffix_at d i (SmtDatatype.sum c dTail) ->
+              dt_applied_type_rec s d0 d i (__smtx_dt_num_sels d i) =
+                SmtType.Datatype s d0
+  | SmtDatatype.null, native_nat_zero, c, dTail, hSuffix => by
+      simp [datatype_suffix_at] at hSuffix
+  | SmtDatatype.null, native_nat_succ i, c, dTail, hSuffix => by
+      simp [datatype_suffix_at] at hSuffix
+  | SmtDatatype.sum c0 d0Tail, native_nat_zero, c, dTail, hSuffix => by
+      simp [datatype_suffix_at] at hSuffix
+      rcases hSuffix with ⟨rfl, rfl⟩
+      simpa [__smtx_dt_num_sels] using
+        dt_applied_type_rec_full_zero s d0 c dTail
+  | SmtDatatype.sum c0 d0Tail, native_nat_succ i, c, dTail, hSuffix => by
+      have hTailSuffix :
+          datatype_suffix_at d0Tail i (SmtDatatype.sum c dTail) := by
+        simpa [datatype_suffix_at] using hSuffix
+      have hNum :
+          __smtx_dt_num_sels (SmtDatatype.sum c0 d0Tail) (Nat.succ i) =
+            __smtx_dt_num_sels d0Tail i := by
+        simp [__smtx_dt_num_sels]
+      rw [hNum]
+      have hReduce :
+          dt_applied_type_rec s d0 (SmtDatatype.sum c0 d0Tail) (Nat.succ i)
+              (__smtx_dt_num_sels d0Tail i) =
+            dt_applied_type_rec s d0 d0Tail i (__smtx_dt_num_sels d0Tail i) := by
+        exact dt_applied_type_rec_succ_index s d0 c0 d0Tail i
+          (__smtx_dt_num_sels d0Tail i)
+      rw [hReduce]
+      exact
+        dt_applied_type_rec_full_of_cons_suffix s d0 d0Tail i c dTail
+          hTailSuffix
+
 private theorem datatype_suffix_at_of_typeof_dt_cons_value_rec_non_none
     (T : SmtType) :
     ∀ d i,
@@ -2361,6 +2471,28 @@ private theorem datatype_suffix_at_of_substitute
           (by simpa [__smtx_dt_substitute, datatype_suffix_at] using hSuffix) with
         ⟨dSuffix, hSuffixTail⟩
       exact ⟨dSuffix, by simpa [datatype_suffix_at] using hSuffixTail⟩
+
+private theorem datatype_suffix_at_substitute
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    (d : SmtDatatype) ->
+      (i : native_Nat) ->
+        (dSuffix : SmtDatatype) ->
+          datatype_suffix_at d i dSuffix ->
+            datatype_suffix_at (__smtx_dt_substitute s d0 d) i
+              (__smtx_dt_substitute s d0 dSuffix)
+  | d, native_nat_zero, dSuffix, hSuffix => by
+      simp [datatype_suffix_at] at hSuffix
+      subst hSuffix
+      simp [datatype_suffix_at]
+  | SmtDatatype.null, native_nat_succ i, dSuffix, hSuffix => by
+      simp [datatype_suffix_at] at hSuffix
+  | SmtDatatype.sum c dTail, native_nat_succ i, dSuffix, hSuffix => by
+      have hTail :
+          datatype_suffix_at dTail i dSuffix := by
+        simpa [datatype_suffix_at] using hSuffix
+      simpa [__smtx_dt_substitute, datatype_suffix_at] using
+        datatype_suffix_at_substitute s d0 dTail i dSuffix hTail
 
 private theorem datatype_cons_suffix_at_of_substitute
     (s : native_String)
@@ -2432,6 +2564,117 @@ private theorem datatype_cons_suffix_at_of_datatype_value_head
     ⟨cSub, dSubTail, hSubSuffix⟩
   exact datatype_cons_suffix_at_of_substitute s d d i cSub dSubTail
     hSubSuffix
+
+private theorem value_dt_substitute_datatype_type_of_non_none
+    (sub : native_String)
+    (base : SmtDatatype)
+    {v : SmtValue}
+    {s : native_String}
+    {d : SmtDatatype}
+    (hv : __smtx_typeof_value v = SmtType.Datatype s d)
+    (hNe : native_streq sub s = false)
+    (hNN :
+      __smtx_typeof_value (__smtx_value_dt_substitute sub base v) ≠
+        SmtType.None) :
+    __smtx_typeof_value (__smtx_value_dt_substitute sub base v) =
+      SmtType.Datatype s (__smtx_dt_substitute sub base d) := by
+  rcases value_head_dtCons_of_datatype_type hv with ⟨i, hHead⟩
+  have hHeadSub :=
+    value_dt_substitute_apply_head_of_dtCons sub base v hHead
+  have hHeadSub' :
+      __vsm_apply_head (__smtx_value_dt_substitute sub base v) =
+        SmtValue.DtCons s (__smtx_dt_substitute sub base d) i := by
+    simpa [hNe, native_ite] using hHeadSub
+  have hArgsSub := value_num_apply_args_dt_substitute sub base v
+  have hArgsOrig :
+      value_num_apply_args v =
+        __smtx_dt_num_sels (__smtx_dt_substitute s d d) i :=
+    value_num_apply_args_eq_dt_num_sels_of_datatype hHead hv
+  have hCount :
+      value_num_apply_args (__smtx_value_dt_substitute sub base v) =
+        __smtx_dt_num_sels
+          (__smtx_dt_substitute s
+            (__smtx_dt_substitute sub base d)
+            (__smtx_dt_substitute sub base d)) i := by
+    calc
+      value_num_apply_args (__smtx_value_dt_substitute sub base v) =
+          value_num_apply_args v := hArgsSub
+      _ = __smtx_dt_num_sels (__smtx_dt_substitute s d d) i := hArgsOrig
+      _ = __smtx_dt_num_sels d i := dt_num_sels_substitute s d d i
+      _ = __smtx_dt_num_sels (__smtx_dt_substitute sub base d) i := by
+          exact (dt_num_sels_substitute sub base d i).symm
+      _ =
+          __smtx_dt_num_sels
+            (__smtx_dt_substitute s
+              (__smtx_dt_substitute sub base d)
+              (__smtx_dt_substitute sub base d)) i := by
+          exact (dt_num_sels_substitute s
+            (__smtx_dt_substitute sub base d)
+            (__smtx_dt_substitute sub base d) i).symm
+  rcases datatype_cons_suffix_at_of_datatype_value_head hHead hv with
+    ⟨c, dTail, hSuffix⟩
+  have hSubSuffix :
+      datatype_suffix_at (__smtx_dt_substitute sub base d) i
+        (__smtx_dt_substitute sub base (SmtDatatype.sum c dTail)) :=
+    datatype_suffix_at_substitute sub base d i (SmtDatatype.sum c dTail)
+      hSuffix
+  have hSelfSuffix :
+      datatype_suffix_at
+        (__smtx_dt_substitute s
+          (__smtx_dt_substitute sub base d)
+          (__smtx_dt_substitute sub base d)) i
+        (__smtx_dt_substitute s
+          (__smtx_dt_substitute sub base d)
+          (__smtx_dt_substitute sub base (SmtDatatype.sum c dTail))) :=
+    datatype_suffix_at_substitute s (__smtx_dt_substitute sub base d)
+      (__smtx_dt_substitute sub base d) i
+      (__smtx_dt_substitute sub base (SmtDatatype.sum c dTail))
+      hSubSuffix
+  have hFull :
+      dt_applied_type_rec s (__smtx_dt_substitute sub base d)
+          (__smtx_dt_substitute s
+            (__smtx_dt_substitute sub base d)
+            (__smtx_dt_substitute sub base d)) i
+          (__smtx_dt_num_sels
+            (__smtx_dt_substitute s
+              (__smtx_dt_substitute sub base d)
+              (__smtx_dt_substitute sub base d)) i) =
+        SmtType.Datatype s (__smtx_dt_substitute sub base d) := by
+    cases hSub :
+        __smtx_dt_substitute s
+          (__smtx_dt_substitute sub base d)
+          (__smtx_dt_substitute sub base (SmtDatatype.sum c dTail)) with
+    | null =>
+        simp [__smtx_dt_substitute] at hSub
+    | sum cSub dSubTail =>
+        exact
+          dt_applied_type_rec_full_of_cons_suffix s
+            (__smtx_dt_substitute sub base d)
+            (__smtx_dt_substitute s
+              (__smtx_dt_substitute sub base d)
+              (__smtx_dt_substitute sub base d))
+            i cSub dSubTail
+            (by simpa [hSub] using hSelfSuffix)
+  have hChain := dt_chain_type_of_non_none hHeadSub' hNN
+  calc
+    __smtx_typeof_value (__smtx_value_dt_substitute sub base v) =
+        dt_applied_type_rec s (__smtx_dt_substitute sub base d)
+          (__smtx_dt_substitute s
+            (__smtx_dt_substitute sub base d)
+            (__smtx_dt_substitute sub base d)) i
+          (value_num_apply_args (__smtx_value_dt_substitute sub base v)) :=
+      hChain
+    _ =
+        dt_applied_type_rec s (__smtx_dt_substitute sub base d)
+          (__smtx_dt_substitute s
+            (__smtx_dt_substitute sub base d)
+            (__smtx_dt_substitute sub base d)) i
+          (__smtx_dt_num_sels
+            (__smtx_dt_substitute s
+              (__smtx_dt_substitute sub base d)
+              (__smtx_dt_substitute sub base d)) i) := by
+      rw [hCount]
+    _ = SmtType.Datatype s (__smtx_dt_substitute sub base d) := hFull
 
 private def datatype_default_has_typed_constructor_from
     (s : native_String)
@@ -3821,7 +4064,12 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
                                 rw [hSubEq, hFieldEq]
                                 exact hDef.1,
                               hFieldNotNone, hSubCanon⟩
-                          · -- Remaining bounded non-shadow substituted datatype-default obligation.
+                          · -- Remaining non-shadow obligation: this is now the
+                            -- generic datatype-value substitution typing step.
+                            -- The head/full-arity part is
+                            -- `value_dt_substitute_datatype_head_full_args`;
+                            -- what remains is showing the substituted default
+                            -- cannot typecheck to `None`.
                             have hShadowFalse :
                                 native_streq s sNested = false := by
                               cases hEq : native_streq s sNested
