@@ -4797,6 +4797,47 @@ private theorem smtx_value_dt_substitute_typeof_of_non_chain_apply
   | SmtValue.Apply f a, T, hT, hv => by
       exact False.elim (apply_value_non_chain_result_impossible hT hv)
 
+private theorem smtx_value_dt_substitute_apply_non_none
+    (v : SmtValue)
+    {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
+    (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
+    (hBaseWf :
+      __smtx_dt_wf_rec base
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hTargetWf :
+      __smtx_dt_wf_rec d
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hv : __smtx_typeof_value v = SmtType.Datatype s2 d)
+    (hSubWf :
+      __smtx_dt_wf_rec (__smtx_dt_substitute s base d)
+        (native_reflist_insert refs s2) = true)
+    (hNe : s ≠ s2) :
+    __smtx_typeof_value (smtx_value_dt_substitute_apply s base v) ≠ SmtType.None := by
+  sorry
+
+private theorem smtx_value_dt_substitute_typeof_apply
+    (v : SmtValue)
+    {base d : SmtDatatype} {s s2 : native_String} {refs : RefList}
+    (hBaseInh : native_inhabited_type (SmtType.Datatype s base) = true)
+    (hBaseWf :
+      __smtx_dt_wf_rec base
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hTargetWf :
+      __smtx_dt_wf_rec d
+        (native_reflist_insert (native_reflist_insert refs s2) s) = true)
+    (hv : __smtx_typeof_value v = SmtType.Datatype s2 d)
+    (hSubWf :
+      __smtx_dt_wf_rec (__smtx_dt_substitute s base d)
+        (native_reflist_insert refs s2) = true)
+    (hNe : s ≠ s2) :
+    __smtx_typeof_value (smtx_value_dt_substitute_apply s base v) =
+      SmtType.Datatype s2 (__smtx_dt_substitute s base d) := by
+  rcases smtx_value_dt_substitute_apply_datatype_head_full_args v hv hNe with
+    ⟨i, hHead, hCount⟩
+  exact smtx_value_typeof_full_dt_cons_chain_apply hHead hCount
+    (smtx_value_dt_substitute_apply_non_none
+      v hBaseInh hBaseWf hTargetWf hv hSubWf hNe)
+
 private theorem smtx_value_dt_context_substitute_typeof_of_non_chain_apply
     (sub : native_String) (base : SmtDatatype)
     (root : native_String) (oldRoot newRoot : SmtDatatype) :
@@ -7201,10 +7242,9 @@ private theorem typeof_apply_re_unfold_top_eq_none
           (__eo_to_smt x)) =
       SmtType.None
   cases hZ : native_teq (__eo_is_z idx) (Term.Boolean true) <;>
-    simp [native_ite, hZ, typeof_apply_none_eq]
+    simp [native_ite, typeof_apply_none_eq]
   cases hNeg : native_teq (__eo_is_neg idx) (Term.Boolean false) <;>
-    simp [native_ite, hNeg, typeof_apply_none_eq,
-      typeof_apply_re_unfold_pos_component_head_eq_none]
+    simp [typeof_apply_none_eq, typeof_apply_re_unfold_pos_component_head_eq_none]
 
 /-- Extracts the top-level string and regex types from the base regex-unfold component. -/
 private theorem re_unfold_pos_component_zero_args_of_non_none

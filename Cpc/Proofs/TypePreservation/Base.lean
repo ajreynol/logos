@@ -758,7 +758,7 @@ theorem typeof_value_model_eval_choice
   have hTyIf : ∃ v : SmtValue, __smtx_typeof_value v = T ∧
       __smtx_value_canonical_bool v := by
     rcases hTy with ⟨v, hvTy, hvCanon⟩
-    exact ⟨v, hvTy, by simpa [hvCanon]⟩
+    exact ⟨v, hvTy, by simp [hvCanon]⟩
   rw [choice_term_typeof_of_non_none ht]
   by_cases hSat :
       ∃ v : SmtValue,
