@@ -517,7 +517,7 @@ theorem model_eval_eq_false_of_eo_eq_false
   rw [eo_interprets_iff_smt_interprets, eo_to_smt_eq_eq] at h
   cases h with
   | intro_false _ hEval =>
-      rw [__smtx_model_eval.eq_133] at hEval
+      rw [__smtx_model_eval.eq_134] at hEval
       exact hEval
 
 theorem native_veq_false_of_model_eval_eq_false
@@ -555,12 +555,12 @@ theorem model_eval_eq_false_of_eq_false_eq_true
   rw [eo_to_smt_eq_eq, eo_to_smt_eq_eq, eo_to_smt_false_eq] at h
   cases h with
   | intro_true _ hEval =>
-      rw [__smtx_model_eval.eq_133] at hEval
+      rw [__smtx_model_eval.eq_134] at hEval
       have hEqEval :
           __smtx_model_eval M ((__eo_to_smt x).eq (__eo_to_smt y)) =
             __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt x))
               (__smtx_model_eval M (__eo_to_smt y)) := by
-        rw [__smtx_model_eval.eq_133]
+        rw [__smtx_model_eval.eq_134]
       have hFalseEval :
           __smtx_model_eval M (SmtTerm.Boolean false) =
             SmtValue.Boolean false := by

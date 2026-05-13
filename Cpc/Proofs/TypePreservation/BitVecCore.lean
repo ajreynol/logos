@@ -23,7 +23,7 @@ theorem typeof_value_model_eval_concat
         (native_int_to_nat (native_zplus (native_nat_to_int w1) (native_nat_to_int w2))) by
     rw [typeof_concat_eq]
     simp [__smtx_typeof_concat, h1, h2]]
-  rw [__smtx_model_eval.eq_34]
+  rw [__smtx_model_eval.eq_35]
   change __smtx_typeof_value
       (__smtx_model_eval_concat (__smtx_model_eval M t1) (__smtx_model_eval M t2)) =
     SmtType.BitVec
@@ -69,7 +69,7 @@ theorem typeof_value_model_eval_extract
           (native_int_to_nat (native_zplus (native_zplus i 1) (native_zneg j))) by
     rw [typeof_extract_eq, h1, h2, h3]
     simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw, hWidthEq]]
-  rw [__smtx_model_eval.eq_35]
+  rw [__smtx_model_eval.eq_36]
   change __smtx_typeof_value
       (__smtx_model_eval_extract (__smtx_model_eval M t1) (__smtx_model_eval M t2)
         (__smtx_model_eval M t3)) =

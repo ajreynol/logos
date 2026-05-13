@@ -400,7 +400,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
       cases hA : __eo_to_smt_type A <;>
         simp [__eo_to_smt_seq_empty, hA] at hNilEval ⊢
       case Seq U =>
-        rw [__smtx_model_eval.eq_77] at hNilEval ⊢
+        rw [__smtx_model_eval.eq_78] at hNilEval ⊢
         simp [__smtx_model_eval_str_concat, native_seq_concat]
         rw [native_unpack_seq, List.append_nil]
         change RuleProofs.smt_seq_rel
@@ -434,7 +434,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
 
 theorem smtx_model_eval_none (M : SmtModel) :
     __smtx_model_eval M SmtTerm.None = SmtValue.NotValue := by
-  rw [__smtx_model_eval.eq_143]
+  rw [__smtx_model_eval.eq_144]
   all_goals
     intros
     contradiction

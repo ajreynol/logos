@@ -203,7 +203,7 @@ private theorem generic_apply_type_of_non_special_head
     generic_apply_type f x := by
   unfold generic_apply_type
   simpa using
-    (__smtx_typeof.eq_140 f x
+    (__smtx_typeof.eq_141 f x
       (by
         intro s d i j h
         exact hSel s d i j h)
@@ -476,10 +476,11 @@ private theorem smtx_dtc_substitute_of_wf_rec
               __smtx_type_wf_rec (SmtType.Datatype s d) refs = true ∧
                 __smtx_dt_cons_wf_rec c refs = true := by
             have hField :
-                smtx_type_field_wf_rec (SmtType.Datatype s d) refs :=
-              smtx_type_field_wf_rec_of_cons_wf hWf
-            exact ⟨by simpa [smtx_type_field_wf_rec] using hField,
-              smtx_dt_cons_wf_rec_tail_of_true hWf⟩
+                native_inhabited_type (SmtType.Datatype s d) = true ∧
+                  __smtx_type_wf_rec (SmtType.Datatype s d) refs = true ∧
+                    __smtx_dt_cons_wf_rec c refs = true := by
+              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+            exact ⟨hField.2.1, hField.2.2⟩
           have hT := smtx_type_substitute_top_of_wf_rec sub d0 (SmtType.Datatype s d) refs hNot hPair.1
           have hC := smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hPair.2
           simpa [smtx_type_substitute_top, __smtx_dtc_substitute, hC] using
@@ -1633,29 +1634,27 @@ theorem eo_to_smt_type_typeof_apply_purify_of_smt_apply
     (hA : A ≠ SmtType.None)
     (hB : B ≠ SmtType.None) :
     __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1._at_purify y) x)) = B := by
-  have hHeadTranslate : __eo_to_smt (Term.UOp1 UserOp1._at_purify y) = __eo_to_smt y := by
-    rfl
+  have hHeadType :
+      __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) =
+        __smtx_typeof (__eo_to_smt y) := by
+    change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt y)) =
+      __smtx_typeof (__eo_to_smt y)
+    simp [__smtx_typeof]
   have hHead' :
       __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) = SmtType.FunType A B ∨
         __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) = SmtType.DtcAppType A B := by
-    rw [hHeadTranslate]
+    rw [hHeadType]
     exact hHead
   have hNonSel :
       ∀ s d i j, __eo_to_smt (Term.UOp1 UserOp1._at_purify y) ≠ SmtTerm.DtSel s d i j := by
     intro s d i j hSel
-    have hNone : __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) = SmtType.None := by
-      rw [hSel]
-      simp
-    rw [hHeadTranslate] at hNone
-    rcases hHead with hHead | hHead <;> rw [hHead] at hNone <;> cases hNone
+    change SmtTerm._at_purify (__eo_to_smt y) = SmtTerm.DtSel s d i j at hSel
+    cases hSel
   have hNonTester :
       ∀ s d i, __eo_to_smt (Term.UOp1 UserOp1._at_purify y) ≠ SmtTerm.DtTester s d i := by
     intro s d i hTester
-    have hNone : __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) = SmtType.None := by
-      rw [hTester]
-      simp
-    rw [hHeadTranslate] at hNone
-    rcases hHead with hHead | hHead <;> rw [hHead] at hNone <;> cases hNone
+    change SmtTerm._at_purify (__eo_to_smt y) = SmtTerm.DtTester s d i at hTester
+    cases hTester
   have hTranslate :
       __eo_to_smt (Term.Apply (Term.UOp1 UserOp1._at_purify y) x) =
         SmtTerm.Apply (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) (__eo_to_smt x) := by

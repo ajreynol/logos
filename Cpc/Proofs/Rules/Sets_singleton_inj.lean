@@ -13,7 +13,7 @@ private theorem set_singleton_arg_non_none (x : Term) :
   intro hSingleton hNone
   change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt x)) ≠
     SmtType.None at hSingleton
-  rw [__smtx_typeof.eq_121] at hSingleton
+  rw [__smtx_typeof.eq_122] at hSingleton
   have hSingletonNone :
       __smtx_typeof_guard_wf SmtType.None (SmtType.Set SmtType.None) =
         SmtType.None := by
@@ -32,14 +32,14 @@ private theorem set_singleton_type_of_non_none (x : Term)
       SmtType.Set (__smtx_typeof (__eo_to_smt x)) := by
   change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt x)) =
     SmtType.Set (__smtx_typeof (__eo_to_smt x))
-  rw [__smtx_typeof.eq_121]
+  rw [__smtx_typeof.eq_122]
   exact smtx_typeof_guard_wf_of_non_none
     (__smtx_typeof (__eo_to_smt x))
     (SmtType.Set (__smtx_typeof (__eo_to_smt x)))
     (by
       change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt x)) ≠
         SmtType.None at h
-      rwa [__smtx_typeof.eq_121] at h)
+      rwa [__smtx_typeof.eq_122] at h)
 
 private theorem singleton_rel_implies_eq
     {v w : SmtValue}
@@ -156,7 +156,7 @@ private theorem singleton_term_rel_implies_eq
   change RuleProofs.smt_value_rel
     (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt a)))
     (__smtx_model_eval M (SmtTerm.set_singleton (__eo_to_smt b))) at h
-  rw [__smtx_model_eval.eq_121, __smtx_model_eval.eq_121] at h
+  rw [__smtx_model_eval.eq_122, __smtx_model_eval.eq_122] at h
   exact singleton_rel_implies_eq h
 
 private theorem facts___eo_prog_sets_singleton_inj_impl

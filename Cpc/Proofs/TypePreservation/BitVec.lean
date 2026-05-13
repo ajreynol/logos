@@ -17,7 +17,7 @@ theorem typeof_value_model_eval_ubv_to_int
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.ubv_to_int t)) =
       __smtx_typeof (SmtTerm.ubv_to_int t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.ubv_to_int __smtx_model_eval_ubv_to_int
-    SmtType.Int t (by rw [__smtx_typeof.eq_130]) (by rw [__smtx_model_eval.eq_130]) ht hpres (fun w n hWidth _hMod => by
+    SmtType.Int t (by rw [__smtx_typeof.eq_131]) (by rw [__smtx_model_eval.eq_131]) ht hpres (fun w n hWidth _hMod => by
       simp [__smtx_model_eval_ubv_to_int, __smtx_typeof_value])
 
 /-- Shows that evaluating `sbv_to_int` terms produces values of the expected type. -/
@@ -29,7 +29,7 @@ theorem typeof_value_model_eval_sbv_to_int
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.sbv_to_int t)) =
       __smtx_typeof (SmtTerm.sbv_to_int t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.sbv_to_int __smtx_model_eval_sbv_to_int
-    SmtType.Int t (by rw [__smtx_typeof.eq_131]) (by rw [__smtx_model_eval.eq_131]) ht hpres (fun w n hWidth _hMod => by
+    SmtType.Int t (by rw [__smtx_typeof.eq_132]) (by rw [__smtx_model_eval.eq_132]) ht hpres (fun w n hWidth _hMod => by
       simp [__smtx_model_eval_sbv_to_int, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvshl` terms produces values of the expected type. -/
@@ -42,7 +42,7 @@ theorem typeof_value_model_eval_bvshl
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvshl t1 t2)) =
       __smtx_typeof (SmtTerm.bvshl t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvshl __smtx_model_eval_bvshl t1 t2
-    (by rw [__smtx_typeof.eq_62]) (by rw [__smtx_model_eval.eq_62]) ht hpres1 hpres2 (fun w n1 n2 hWidth _hMod1 _hMod2 => by
+    (by rw [__smtx_typeof.eq_63]) (by rw [__smtx_model_eval.eq_63]) ht hpres1 hpres2 (fun w n1 n2 hWidth _hMod1 _hMod2 => by
       simpa [__smtx_model_eval_bvshl] using
         typeof_value_binary_mod_of_nonneg w (native_zmult n1 (native_int_pow2 n2)) hWidth)
 
@@ -56,7 +56,7 @@ theorem typeof_value_model_eval_bvlshr
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvlshr t1 t2)) =
       __smtx_typeof (SmtTerm.bvlshr t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvlshr __smtx_model_eval_bvlshr t1 t2
-    (by rw [__smtx_typeof.eq_63]) (by rw [__smtx_model_eval.eq_63]) ht hpres1 hpres2 (fun w n1 n2 hWidth _hMod1 _hMod2 => by
+    (by rw [__smtx_typeof.eq_64]) (by rw [__smtx_model_eval.eq_64]) ht hpres1 hpres2 (fun w n1 n2 hWidth _hMod1 _hMod2 => by
       simpa [__smtx_model_eval_bvlshr] using
         typeof_value_binary_mod_of_nonneg w (native_div_total n1 (native_int_pow2 n2)) hWidth)
 
@@ -145,7 +145,7 @@ theorem typeof_value_model_eval_bvsdiv
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsdiv t1 t2)) =
       __smtx_typeof (SmtTerm.bvsdiv t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvsdiv __smtx_model_eval_bvsdiv t1 t2
-    (by rw [__smtx_typeof.eq_51]) (by rw [__smtx_model_eval.eq_51]) ht hpres1 hpres2 typeof_value_model_eval_bvsdiv_value
+    (by rw [__smtx_typeof.eq_52]) (by rw [__smtx_model_eval.eq_52]) ht hpres1 hpres2 typeof_value_model_eval_bvsdiv_value
 
 /-- Shows that evaluating `bvsrem_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsrem_value
@@ -220,7 +220,7 @@ theorem typeof_value_model_eval_bvsrem
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsrem t1 t2)) =
       __smtx_typeof (SmtTerm.bvsrem t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvsrem __smtx_model_eval_bvsrem t1 t2
-    (by rw [__smtx_typeof.eq_52]) (by rw [__smtx_model_eval.eq_52]) ht hpres1 hpres2 typeof_value_model_eval_bvsrem_value
+    (by rw [__smtx_typeof.eq_53]) (by rw [__smtx_model_eval.eq_53]) ht hpres1 hpres2 typeof_value_model_eval_bvsrem_value
 
 /-- Shows that evaluating `bvsmod_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsmod_value
@@ -305,7 +305,7 @@ theorem typeof_value_model_eval_bvsmod
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsmod t1 t2)) =
       __smtx_typeof (SmtTerm.bvsmod t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvsmod __smtx_model_eval_bvsmod t1 t2
-    (by rw [__smtx_typeof.eq_53]) (by rw [__smtx_model_eval.eq_53]) ht hpres1 hpres2 typeof_value_model_eval_bvsmod_value
+    (by rw [__smtx_typeof.eq_54]) (by rw [__smtx_model_eval.eq_54]) ht hpres1 hpres2 typeof_value_model_eval_bvsmod_value
 
 /-- Shows that evaluating `bvashr_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvashr_value
@@ -354,7 +354,7 @@ theorem typeof_value_model_eval_bvashr
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvashr t1 t2)) =
       __smtx_typeof (SmtTerm.bvashr t1 t2) := by
   exact typeof_value_model_eval_bv_binop M SmtTerm.bvashr __smtx_model_eval_bvashr t1 t2
-    (by rw [__smtx_typeof.eq_64]) (by rw [__smtx_model_eval.eq_64]) ht hpres1 hpres2 typeof_value_model_eval_bvashr_value
+    (by rw [__smtx_typeof.eq_65]) (by rw [__smtx_model_eval.eq_65]) ht hpres1 hpres2 typeof_value_model_eval_bvashr_value
 
 /-- Shows that evaluating `bvssubo_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvssubo_value
@@ -394,7 +394,7 @@ theorem typeof_value_model_eval_bvssubo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvssubo t1 t2)) =
       __smtx_typeof (SmtTerm.bvssubo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvssubo __smtx_model_eval_bvssubo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_75]) (by rw [__smtx_model_eval.eq_75]) ht hpres1 hpres2 typeof_value_model_eval_bvssubo_value
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_76]) (by rw [__smtx_model_eval.eq_76]) ht hpres1 hpres2 typeof_value_model_eval_bvssubo_value
 
 /-- Shows that evaluating `bvsdivo_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_bvsdivo_value
@@ -427,7 +427,7 @@ theorem typeof_value_model_eval_bvsdivo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsdivo t1 t2)) =
       __smtx_typeof (SmtTerm.bvsdivo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvsdivo __smtx_model_eval_bvsdivo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_76]) (by rw [__smtx_model_eval.eq_76]) ht hpres1 hpres2
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_77]) (by rw [__smtx_model_eval.eq_77]) ht hpres1 hpres2
       (fun w n1 n2 hWidth _hMod1 _hMod2 => typeof_value_model_eval_bvsdivo_value w n1 n2 hWidth)
 
 /-- Lemma about `model_eval_repeat_rec_binary`. -/
@@ -483,7 +483,7 @@ theorem typeof_value_model_eval_repeat
       SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w))) by
     rw [typeof_repeat_eq, h1, h2]
     simp [__smtx_typeof_repeat, native_ite, hi1]]
-  rw [__smtx_model_eval.eq_36]
+  rw [__smtx_model_eval.eq_37]
   rw [h1]
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
@@ -589,7 +589,7 @@ theorem typeof_value_model_eval_rotate_left
       SmtType.BitVec w by
     rw [typeof_rotate_left_eq, h1, h2]
     simp [__smtx_typeof_rotate_left, native_ite, hi0]]
-  rw [__smtx_model_eval.eq_67]
+  rw [__smtx_model_eval.eq_68]
   rw [h1]
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
@@ -673,7 +673,7 @@ theorem typeof_value_model_eval_rotate_right
       SmtType.BitVec w by
     rw [typeof_rotate_right_eq, h1, h2]
     simp [__smtx_typeof_rotate_right, native_ite, hi0]]
-  rw [__smtx_model_eval.eq_68]
+  rw [__smtx_model_eval.eq_69]
   rw [h1]
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
@@ -700,7 +700,7 @@ theorem typeof_value_model_eval_bvuaddo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvuaddo t1 t2)) =
       __smtx_typeof (SmtTerm.bvuaddo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvuaddo __smtx_model_eval_bvuaddo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_69]) (by rw [__smtx_model_eval.eq_69]) ht hpres1 hpres2 (fun _ _ _ _ _ _ => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_70]) (by rw [__smtx_model_eval.eq_70]) ht hpres1 hpres2 (fun _ _ _ _ _ _ => by
       simp [__smtx_model_eval_bvuaddo, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvnego` terms produces values of the expected type. -/
@@ -712,7 +712,7 @@ theorem typeof_value_model_eval_bvnego
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvnego t)) =
       __smtx_typeof (SmtTerm.bvnego t) := by
   exact typeof_value_model_eval_bv_unop_ret M SmtTerm.bvnego __smtx_model_eval_bvnego
-    SmtType.Bool t (by rw [__smtx_typeof.eq_70]) (by rw [__smtx_model_eval.eq_70]) ht hpres (fun _ _ _ => by
+    SmtType.Bool t (by rw [__smtx_typeof.eq_71]) (by rw [__smtx_model_eval.eq_71]) ht hpres (fun _ _ _ => by
       simp [__smtx_model_eval_bvnego, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvsaddo` terms produces values of the expected type. -/
@@ -725,7 +725,7 @@ theorem typeof_value_model_eval_bvsaddo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsaddo t1 t2)) =
       __smtx_typeof (SmtTerm.bvsaddo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvsaddo __smtx_model_eval_bvsaddo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_71]) (by rw [__smtx_model_eval.eq_71]) ht hpres1 hpres2 (fun _ _ _ _ _ _ => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_72]) (by rw [__smtx_model_eval.eq_72]) ht hpres1 hpres2 (fun _ _ _ _ _ _ => by
       simp [__smtx_model_eval_bvsaddo, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvumulo` terms produces values of the expected type. -/
@@ -738,7 +738,7 @@ theorem typeof_value_model_eval_bvumulo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvumulo t1 t2)) =
       __smtx_typeof (SmtTerm.bvumulo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvumulo __smtx_model_eval_bvumulo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_72]) (by rw [__smtx_model_eval.eq_72]) ht hpres1 hpres2 (fun _ _ _ _ _ _ => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_73]) (by rw [__smtx_model_eval.eq_73]) ht hpres1 hpres2 (fun _ _ _ _ _ _ => by
       simp [__smtx_model_eval_bvumulo, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvsmulo` terms produces values of the expected type. -/
@@ -751,7 +751,7 @@ theorem typeof_value_model_eval_bvsmulo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvsmulo t1 t2)) =
       __smtx_typeof (SmtTerm.bvsmulo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvsmulo __smtx_model_eval_bvsmulo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_73]) (by rw [__smtx_model_eval.eq_73]) ht hpres1 hpres2 (fun _ _ _ _ _ _ => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_74]) (by rw [__smtx_model_eval.eq_74]) ht hpres1 hpres2 (fun _ _ _ _ _ _ => by
       simp [__smtx_model_eval_bvsmulo, __smtx_typeof_value])
 
 /-- Shows that evaluating `bvusubo` terms produces values of the expected type. -/
@@ -764,7 +764,7 @@ theorem typeof_value_model_eval_bvusubo
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.bvusubo t1 t2)) =
       __smtx_typeof (SmtTerm.bvusubo t1 t2) := by
   exact typeof_value_model_eval_bv_binop_ret M SmtTerm.bvusubo __smtx_model_eval_bvusubo
-    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_74]) (by rw [__smtx_model_eval.eq_74]) ht hpres1 hpres2 (fun w n1 n2 hWidth _hMod1 _hMod2 => by
+    SmtType.Bool t1 t2 (by rw [__smtx_typeof.eq_75]) (by rw [__smtx_model_eval.eq_75]) ht hpres1 hpres2 (fun w n1 n2 hWidth _hMod1 _hMod2 => by
       simpa [__smtx_model_eval_bvusubo, __smtx_model_eval_bvult] using
         typeof_value_model_eval_bvugt_value w n2 n1 hWidth)
 
@@ -781,7 +781,7 @@ theorem typeof_value_model_eval_zero_extend
       SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) by
     rw [typeof_zero_extend_eq, h1, h2]
     simp [__smtx_typeof_zero_extend, native_ite, hi0]]
-  rw [__smtx_model_eval.eq_65]
+  rw [__smtx_model_eval.eq_66]
   rw [h1]
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
@@ -817,7 +817,7 @@ theorem typeof_value_model_eval_sign_extend
       SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) by
     rw [typeof_sign_extend_eq, h1, h2]
     simp [__smtx_typeof_sign_extend, native_ite, hi0]]
-  rw [__smtx_model_eval.eq_66]
+  rw [__smtx_model_eval.eq_67]
   rw [h1]
   rw [__smtx_model_eval.eq_2]
   rcases bitvec_value_canonical (by simpa [h2] using hpres2) with ⟨n, hv⟩
@@ -848,7 +848,7 @@ theorem typeof_value_model_eval_int_to_bv
       SmtType.BitVec (native_int_to_nat i) by
     rw [typeof_int_to_bv_eq, h1, h2]
     simp [__smtx_typeof_int_to_bv, native_ite, hi0]]
-  rw [__smtx_model_eval.eq_129]
+  rw [__smtx_model_eval.eq_130]
   rw [h1]
   rw [__smtx_model_eval.eq_2]
   rcases int_value_canonical (by simpa [h2] using hpres2) with ⟨n, hn⟩
