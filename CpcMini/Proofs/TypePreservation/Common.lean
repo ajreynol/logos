@@ -11,21 +11,39 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
-/-- Establishes an equality relating `smtx_inhabited_type` and `true_iff`. -/
-theorem smtx_inhabited_type_eq_true_iff (T : SmtType) :
-    native_inhabited_type T = true ↔ type_inhabited T := by
+/-- Extracts semantic inhabitation from the generated Boolean inhabitation check. -/
+theorem type_inhabited_of_native_inhabited_type
+    (T : SmtType)
+    (h : native_inhabited_type T = true) :
+    type_inhabited T := by
   classical
-  unfold native_inhabited_type type_inhabited
-  simp
+  cases T <;> simp [native_inhabited_type, type_inhabited, native_and] at h ⊢
+  case Datatype s d =>
+    exact ⟨__smtx_type_default (SmtType.Datatype s d), h.1⟩
+  all_goals exact h
 
-/-- Establishes an equality relating `smtx_inhabited_type` and `false_iff`. -/
-theorem smtx_inhabited_type_eq_false_iff (T : SmtType) :
-    native_inhabited_type T = false ↔ ¬ type_inhabited T := by
+/-- Converts semantic inhabitation into the generated Boolean check for non-datatype types. -/
+theorem native_inhabited_type_of_type_inhabited_non_datatype
+    {T : SmtType}
+    (hNotDatatype : ∀ s d, T ≠ SmtType.Datatype s d)
+    (h : type_inhabited T) :
+    native_inhabited_type T = true := by
   classical
-  unfold native_inhabited_type type_inhabited
-  by_cases h : ∃ v : SmtValue, __smtx_typeof_value v = T
-  · simp [h]
-  · simp [h]
+  rcases h with ⟨v, hv⟩
+  cases T <;> simp [native_inhabited_type, type_inhabited, native_and] at hv ⊢
+  case Datatype s d =>
+    exact False.elim (hNotDatatype s d rfl)
+  all_goals exact ⟨v, hv⟩
+
+/-- Non-inhabited types fail the generated Boolean inhabitation check. -/
+theorem native_inhabited_type_eq_false_of_not_type_inhabited
+    (T : SmtType)
+    (h : ¬ type_inhabited T) :
+    native_inhabited_type T = false := by
+  classical
+  cases hNative : native_inhabited_type T
+  · rfl
+  · exact False.elim (h (type_inhabited_of_native_inhabited_type T hNative))
 
 /-- Computes the well-formedness/inhabitation guard from a non-`None` result. -/
 theorem smtx_typeof_guard_wf_of_non_none
@@ -52,7 +70,7 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
       __smtx_type_wf_rec T native_reflist_nil = true := by
       cases T <;> simp [__smtx_type_wf, native_and] at hWf hReg ⊢
       all_goals first | contradiction | assumption
-    exact (smtx_inhabited_type_eq_true_iff T).1 hPair.1
+    exact type_inhabited_of_native_inhabited_type T hPair.1
 
 /-- Extracts well-formedness of the guarded source type from a non-`None` guarded type. -/
 theorem smtx_typeof_guard_wf_wf_of_non_none
@@ -125,13 +143,6 @@ theorem type_inhabited_map {A B : SmtType} (hB : type_inhabited B) :
   rcases hB with ⟨v, hv⟩
   exact ⟨SmtValue.Map (SmtMap.default A v), by simp [__smtx_typeof_value, __smtx_typeof_map_value, hv]⟩
 
-/-- Converts semantic inhabitation into the generated Boolean inhabitation test. -/
-theorem native_inhabited_type_of_type_inhabited
-    {T : SmtType}
-    (h : type_inhabited T) :
-    native_inhabited_type T = true :=
-  (smtx_inhabited_type_eq_true_iff T).2 h
-
 /-- Every well-formed SMT type is semantically inhabited. -/
 theorem type_inhabited_of_type_wf
     (T : SmtType)
@@ -143,7 +154,7 @@ theorem type_inhabited_of_type_wf
   · have hInh : native_inhabited_type T = true := by
       cases T <;> simp [__smtx_type_wf, native_and] at hWF hReg ⊢
       all_goals first | contradiction | exact hWF.1
-    exact (smtx_inhabited_type_eq_true_iff T).1 hInh
+    exact type_inhabited_of_native_inhabited_type T hInh
 
 /-- Extracts well-formedness of the element type of a well-formed sequence type. -/
 theorem seq_type_wf_component_of_wf
