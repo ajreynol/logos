@@ -146,7 +146,7 @@ theorem smtx_typeof_var_of_non_none
   __smtx_typeof (SmtTerm.Var s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.Var s T) = T := by
   intro h
-  rw [__smtx_typeof.eq_19] at h ⊢
+  simp [__smtx_typeof] at h ⊢
   exact smtx_typeof_guard_wf_of_non_none T T h
 
 /-- Computes `__smtx_typeof` for `uconst_of_non_none`. -/
@@ -155,7 +155,7 @@ theorem smtx_typeof_uconst_of_non_none
   __smtx_typeof (SmtTerm.UConst s T) ≠ SmtType.None ->
     __smtx_typeof (SmtTerm.UConst s T) = T := by
   intro h
-  rw [__smtx_typeof.eq_20] at h ⊢
+  simp [__smtx_typeof] at h ⊢
   exact smtx_typeof_guard_wf_of_non_none T T h
 
 /-- Derives `smtx_binary_well_formed` from `non_none`. -/
