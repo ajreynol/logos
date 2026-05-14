@@ -450,19 +450,28 @@ private theorem eo_to_smt_updater_ne_dt_sel
     (sel t u : SmtTerm) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt_updater sel t u ≠ SmtTerm.DtSel s d i j := by
   intro h
-  cases sel <;> cases h
+  cases sel <;> try cases h
+  case DtSel s' d' i' j' =>
+    cases hIdx : native_zleq (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+      simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_updater_ne_dt_tester
     (sel t u : SmtTerm) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt_updater sel t u ≠ SmtTerm.DtTester s d i := by
   intro h
-  cases sel <;> cases h
+  cases sel <;> try cases h
+  case DtSel s' d' i' j' =>
+    cases hIdx : native_zleq (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+      simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_updater_ne_dt_cons
     (sel t u : SmtTerm) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt_updater sel t u ≠ SmtTerm.DtCons s d i := by
   intro h
-  cases sel <;> cases h
+  cases sel <;> try cases h
+  case DtSel s' d' i' j' =>
+    cases hIdx : native_zleq (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+      simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_tuple_update_ne_dt_sel
     (T : SmtType) (n t u : SmtTerm) (s : native_String) (d : SmtDatatype)
@@ -12635,6 +12644,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
           SmtType.None := by
       rw [← hTranslate]
       exact hNonNone
+    have hIdx :
+        native_zleq (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
+          true := by
+      exact eo_to_smt_updater_dt_sel_guard_of_non_none
+        s d i j (__eo_to_smt y) (__eo_to_smt x) hUpdaterNN
     have hIteNN :
         term_has_non_none_type
           (SmtTerm.ite
@@ -12644,7 +12658,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
               (__eo_to_smt x) (SmtTerm.DtCons s d i))
             (__eo_to_smt y)) := by
       unfold term_has_non_none_type
-      simpa [__eo_to_smt_updater] using hUpdaterNN
+      simpa [__eo_to_smt_updater, native_ite, hIdx] using hUpdaterNN
     rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, _hT⟩
     have hCondNN :
         term_has_non_none_type
@@ -12658,6 +12672,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
       hElse.symm.trans hYTy
     have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype s d := by
       rw [hTranslate, __eo_to_smt_updater]
+      simp [native_ite, hIdx]
       rw [typeof_ite_eq, hCond, hThen, hElse, hTTy]
       simp [__smtx_typeof_ite, native_ite, native_Teq]
     have hEo :=
@@ -12720,6 +12735,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
                   (__eo_to_smt y) (__eo_to_smt x)) ≠
               SmtType.None := by
           simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hTupleNN
+        have hIdx :
+            native_zleq
+                (native_nat_to_int (native_int_to_nat n))
+                (native_nat_to_int (__smtx_dt_num_sels d native_nat_zero)) =
+              true := by
+          exact eo_to_smt_updater_dt_sel_guard_of_non_none
+            "@Tuple" d native_nat_zero (native_int_to_nat n) (__eo_to_smt y) (__eo_to_smt x)
+            hUpdaterNN
         have hIteNN :
             term_has_non_none_type
               (SmtTerm.ite
@@ -12730,7 +12753,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
                   (__eo_to_smt x) (SmtTerm.DtCons "@Tuple" d native_nat_zero))
                 (__eo_to_smt y)) := by
           unfold term_has_non_none_type
-          simpa [__eo_to_smt_updater] using hUpdaterNN
+          simpa [__eo_to_smt_updater, native_ite, hIdx] using hUpdaterNN
         rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, _hT⟩
         have hCondNN :
             term_has_non_none_type
@@ -12749,6 +12772,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
                   (__eo_to_smt y) (__eo_to_smt x)) =
               SmtType.Datatype "@Tuple" d := by
           rw [__eo_to_smt_updater]
+          simp [native_ite, hIdx]
           rw [typeof_ite_eq, hCond, hThen, hElse, hTTy]
           simp [__smtx_typeof_ite, native_ite, native_Teq]
         have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d := by
