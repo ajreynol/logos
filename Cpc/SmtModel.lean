@@ -841,6 +841,13 @@ def __smtx_map_store : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | v, i, e => SmtValue.NotValue
 
 
+def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Map m1), (SmtValue.Map m2) => (native_eval_map_diff m1 m2)
+  | (SmtValue.Fun m1), (SmtValue.Fun m2) => (native_eval_map_diff m1 m2)
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff m1 m2)
+  | v1, v2 => SmtValue.NotValue
+
+
 def __smtx_set_inter : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Set m1), (SmtValue.Set m2) => (SmtValue.Set (__smtx_mss_op_internal true m1 m2 (SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1)) (SmtValue.Boolean false))))
   | v1, v2 => SmtValue.NotValue
@@ -2100,12 +2107,6 @@ def native_seq_contains (xs pat : List SmtValue) : native_Bool :=
 
 end
 
-def native_eval_map_diff : SmtValue -> SmtValue -> SmtValue
-  | SmtValue.Map m1, SmtValue.Map m2 => (native_eval_map_diff_msm m1 m2)
-  | SmtValue.Fun m1, SmtValue.Fun m2 => (native_eval_map_diff_msm m1 m2)
-  | SmtValue.Set m1, SmtValue.Set m2 => (native_eval_map_diff_msm m1 m2)
-  | v1, v2 => SmtValue.NotValue
-
 end
 
 noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
@@ -2262,7 +2263,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
   | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
   | (SmtTerm.choice_nth s T x1 i) => (native_eval_tchoice_nth M s T x1 i)
-  | (SmtTerm.map_diff x1 x2) => (native_eval_map_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.map_diff x1 x2) => (__smtx_model_eval_map_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
