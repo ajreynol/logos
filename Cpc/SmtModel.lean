@@ -596,7 +596,7 @@ macro_rules
                     evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
                 | _ => SmtValue.NotValue
           exact evalChoiceNth $M $s $T $body $n)
-  | `(native_eval_map_diff $v1 $v2) => do
+  | `(native_eval_map_diff_msm $m1 $m2) => do
       let lookupId := Lean.mkIdent `__smtx_msm_lookup
       let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
@@ -604,25 +604,19 @@ macro_rules
       let canonId := Lean.mkIdent `__smtx_value_canonical_bool
       `(by
           classical
-          let evalMapDiff (m1 m2 : SmtMap) : SmtValue :=
-            match ($typeofMapValueId m1, $typeofMapValueId m2) with
+          exact
+            match ($typeofMapValueId $m1, $typeofMapValueId $m2) with
             | (SmtType.Map T1 U1, SmtType.Map T2 U2) =>
                 native_ite (native_and (native_Teq T1 T2) (native_Teq U1 U2))
                   (if hDiff :
                       ∃ i : SmtValue,
                         $typeofValueId i = T1 ∧
                           $canonId i = true ∧
-                            native_veq ($lookupId m1 i) ($lookupId m2 i) = false then
+                            native_veq ($lookupId $m1 i) ($lookupId $m2 i) = false then
                     Classical.choose hDiff
                   else
                     $typeDefaultId T1)
                   SmtValue.NotValue
-            | _ => SmtValue.NotValue
-          exact
-            match ($v1, $v2) with
-            | (SmtValue.Map m1, SmtValue.Map m2) => evalMapDiff m1 m2
-            | (SmtValue.Fun m1, SmtValue.Fun m2) => evalMapDiff m1 m2
-            | (SmtValue.Set m1, SmtValue.Set m2) => evalMapDiff m1 m2
             | _ => SmtValue.NotValue)
 
 /- Definition of SMT-LIB model semantics -/
@@ -2105,6 +2099,12 @@ def native_seq_contains (xs pat : List SmtValue) : native_Bool :=
   (0 <= (native_seq_indexof xs pat 0))
 
 end
+
+def native_eval_map_diff : SmtValue -> SmtValue -> SmtValue
+  | SmtValue.Map m1, SmtValue.Map m2 => (native_eval_map_diff_msm m1 m2)
+  | SmtValue.Fun m1, SmtValue.Fun m2 => (native_eval_map_diff_msm m1 m2)
+  | SmtValue.Set m1, SmtValue.Set m2 => (native_eval_map_diff_msm m1 m2)
+  | v1, v2 => SmtValue.NotValue
 
 end
 
