@@ -471,7 +471,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                   simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hCons
               | Bool =>
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
                     __smtx_typeof_guard, __smtx_value_canonical,
@@ -479,7 +479,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                     native_ite, native_Teq, native_and]
               | Int =>
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
                     __smtx_typeof_guard, __smtx_value_canonical,
@@ -487,7 +487,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                     native_ite, native_Teq, native_and]
               | Real =>
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
                     __smtx_typeof_guard, __smtx_value_canonical,
@@ -503,7 +503,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                   simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_ite] at hCons
               | BitVec w =>
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
                     __smtx_typeof_guard, __smtx_value_canonical,
@@ -513,7 +513,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                     native_zexp_total, native_nat_to_int, native_int_to_nat]
               | Char =>
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
                     __smtx_typeof_guard, __smtx_value_canonical,
@@ -546,7 +546,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                       __smtx_map_canonical (SmtMap.default A (__smtx_type_default B)) = true := by
                     simpa [__smtx_value_canonical] using hDef.2
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
                     __smtx_typeof_guard, __smtx_value_canonical,
@@ -554,7 +554,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                     native_ite, native_Teq, native_and, hTy, hCan]
               | Set A =>
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_typeof_map_value,
                     __smtx_map_to_set_type, __smtx_dt_substitute,
                     __smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
@@ -565,7 +565,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                     native_and]
               | Seq A =>
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_typeof_seq_value,
                     __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
@@ -575,7 +575,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                     native_and]
               | USort i =>
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
                     __smtx_typeof_guard, __smtx_value_canonical,
@@ -609,7 +609,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
                       __smtx_map_canonical (SmtMap.default A (__smtx_type_default B)) = true := by
                     simpa [__smtx_value_canonical] using hDef.2
                   simp [__smtx_type_default, __smtx_datatype_default,
-                    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+                    __smtx_datatype_cons_default, __smtx_datatype_field_default, __smtx_value_dt_substitute,
                     __smtx_typeof_value, __smtx_dt_substitute, __smtx_dtc_substitute,
                     __smtx_typeof_dt_cons_value_rec, __smtx_typeof_apply_value,
                     __smtx_typeof_guard, __smtx_value_canonical,
