@@ -518,9 +518,4 @@ theorem smt_model_eval_bool_is_boolean_of_supported
   exact bool_value_canonical hPres
 
 
-/-- Shows that total typed SMT models exist. -/
-theorem total_typed_model_nonvacuous :
-    ∃ M : SmtModel, model_total_typed M :=
-  exists_total_typed_model
-
 end Smtm

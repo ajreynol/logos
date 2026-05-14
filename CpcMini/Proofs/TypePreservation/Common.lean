@@ -594,13 +594,4 @@ theorem canonical_type_inhabited_of_type_wf
       type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
     exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩
 
-/-- Choice-based model that returns a canonical inhabitant for every well-formed SMT type. -/
-noncomputable def default_typed_model : SmtModel := by
-  classical
-  exact fun k =>
-    if h : __smtx_type_wf k.ty = true then
-      some (Classical.choose (canonical_type_inhabited_of_type_wf k.ty h))
-    else
-      none
-
 end Smtm
