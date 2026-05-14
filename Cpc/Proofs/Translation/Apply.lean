@@ -3,7 +3,7 @@ import Cpc.Proofs.Translation.Quantifiers
 import Cpc.Proofs.Translation.Special
 import Cpc.Proofs.Translation.Inversions
 import Cpc.Proofs.Translation.Heads
-import Cpc.Proofs.Translation.EoTypeof
+import Cpc.Proofs.Translation.EoTypeofCore
 import Cpc.Proofs.TypePreservationFull
 
 open Eo
@@ -7326,9 +7326,15 @@ private theorem eo_to_smt_typeof_matches_translation_apply_re_exp
     rfl
   exact hSmt.trans hEo.symm
 
-/-- Bridge-based proof for the opaque `_at_strings_stoi_result` application. -/
+/-- Bridge-free proof for the opaque `_at_strings_stoi_result` application. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_result
     (x y : Term)
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
     (hNonNone :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term._at_strings_stoi_result y) x)) ≠
@@ -7372,9 +7378,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_resul
     cases hSeqEq
     rfl
   subst T
+  have hYEo :
+      __eo_typeof y = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char) :=
+    eo_typeof_eq_seq_char_of_smt_seq_char_from_ih y ihY hYSeq
+  have hXEo : __eo_typeof x = Term.UOp UserOp.Int :=
+    eo_typeof_eq_int_of_smt_int_from_ih x ihX hLen
   exact hSmt.trans
-    (eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_smt_seq_char_int
-      x y hYSeq hLen).symm
+    (eo_to_smt_type_typeof_apply_apply_at_strings_stoi_result_of_seq_char_int
+      x y hYEo hXEo).symm
 
 /-- Simplifies EO-to-SMT translation for `_at_strings_itos_result`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_itos_result
@@ -14093,7 +14104,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
     case int_to_bv =>
       exact eo_to_smt_typeof_matches_translation_apply_int_to_bv x y ihX hNonNone
     case _at_strings_stoi_result =>
-      exact eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_result x y hNonNone
+      exact eo_to_smt_typeof_matches_translation_apply_at_strings_stoi_result
+        x y (ihUOp1Arg UserOp1._at_strings_stoi_result y rfl) ihX hNonNone
     case _at_strings_itos_result =>
       exact eo_to_smt_typeof_matches_translation_apply_at_strings_itos_result
         x y (ihUOp1Arg UserOp1._at_strings_itos_result y rfl) ihX hNonNone

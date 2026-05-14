@@ -1,4 +1,4 @@
-import Cpc.Proofs.Translation.EoTypeof
+import Cpc.Proofs.Translation.EoTypeofCore
 import Cpc.Proofs.TypePreservationFull
 
 open Eo
