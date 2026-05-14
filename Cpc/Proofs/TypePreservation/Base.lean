@@ -167,7 +167,7 @@ theorem var_type_eq_seq_component_non_none
     {T A : SmtType}
     (h : __smtx_typeof (SmtTerm.Var s T) = SmtType.Seq A) :
     A ≠ SmtType.None := by
-  rw [__smtx_typeof.eq_142] at h
+  simp [__smtx_typeof] at h
   exact smtx_typeof_guard_wf_self_eq_seq_component_non_none h
 
 /-- If a variable has set type `Set A`, then `A` is non-`None`. -/
@@ -176,7 +176,7 @@ theorem var_type_eq_set_component_non_none
     {T A : SmtType}
     (h : __smtx_typeof (SmtTerm.Var s T) = SmtType.Set A) :
     A ≠ SmtType.None := by
-  rw [__smtx_typeof.eq_142] at h
+  simp [__smtx_typeof] at h
   exact smtx_typeof_guard_wf_self_eq_set_component_non_none h
 
 /-- If a variable has map type `Map A B`, then both components are non-`None`. -/
@@ -185,7 +185,7 @@ theorem var_type_eq_map_components_non_none
     {T A B : SmtType}
     (h : __smtx_typeof (SmtTerm.Var s T) = SmtType.Map A B) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
-  rw [__smtx_typeof.eq_142] at h
+  simp [__smtx_typeof] at h
   exact smtx_typeof_guard_wf_self_eq_map_components_non_none h
 
 /-- If a variable has function type `FunType A B`, then both components are non-`None`. -/
@@ -194,7 +194,7 @@ theorem var_type_eq_fun_components_non_none
     {T A B : SmtType}
     (h : __smtx_typeof (SmtTerm.Var s T) = SmtType.FunType A B) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
-  rw [__smtx_typeof.eq_142] at h
+  simp [__smtx_typeof] at h
   exact smtx_typeof_guard_wf_self_eq_fun_components_non_none h
 
 /-- If a uconst has sequence type `Seq A`, then `A` is non-`None`. -/
@@ -203,7 +203,7 @@ theorem uconst_type_eq_seq_component_non_none
     {T A : SmtType}
     (h : __smtx_typeof (SmtTerm.UConst s T) = SmtType.Seq A) :
     A ≠ SmtType.None := by
-  rw [__smtx_typeof.eq_143] at h
+  simp [__smtx_typeof] at h
   exact smtx_typeof_guard_wf_self_eq_seq_component_non_none h
 
 /-- If a uconst has set type `Set A`, then `A` is non-`None`. -/
@@ -212,7 +212,7 @@ theorem uconst_type_eq_set_component_non_none
     {T A : SmtType}
     (h : __smtx_typeof (SmtTerm.UConst s T) = SmtType.Set A) :
     A ≠ SmtType.None := by
-  rw [__smtx_typeof.eq_143] at h
+  simp [__smtx_typeof] at h
   exact smtx_typeof_guard_wf_self_eq_set_component_non_none h
 
 /-- If a uconst has map type `Map A B`, then both components are non-`None`. -/
@@ -221,7 +221,7 @@ theorem uconst_type_eq_map_components_non_none
     {T A B : SmtType}
     (h : __smtx_typeof (SmtTerm.UConst s T) = SmtType.Map A B) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
-  rw [__smtx_typeof.eq_143] at h
+  simp [__smtx_typeof] at h
   exact smtx_typeof_guard_wf_self_eq_map_components_non_none h
 
 /-- If a uconst has function type `FunType A B`, then both components are non-`None`. -/
@@ -230,7 +230,7 @@ theorem uconst_type_eq_fun_components_non_none
     {T A B : SmtType}
     (h : __smtx_typeof (SmtTerm.UConst s T) = SmtType.FunType A B) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
-  rw [__smtx_typeof.eq_143] at h
+  simp [__smtx_typeof] at h
   exact smtx_typeof_guard_wf_self_eq_fun_components_non_none h
 
 /-- If `seq_empty` has type `Seq A`, then `A` is non-`None`. -/

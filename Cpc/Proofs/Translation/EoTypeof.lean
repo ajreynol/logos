@@ -424,8 +424,30 @@ theorem eo_to_smt_eq_numeral
       · exact False.elim (eo_to_smt_set_empty_ne_numeral (__eo_to_smt_type x) n h)
   | UOp2 op x y =>
       cases op <;> try cases h
-      · exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
-      · exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
+      case _at_array_deq_diff =>
+        change
+          (let _v0 := __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x y))
+           native_ite (native_Teq _v0 SmtType.None) SmtTerm.None
+             (SmtTerm.map_diff (__eo_to_smt x) (__eo_to_smt y))) =
+            SmtTerm.Numeral n at h
+        cases hT : native_Teq
+            (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x y)))
+            SmtType.None <;>
+          simp [native_ite, hT] at h
+      case _at_bv =>
+        exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
+      case _at_sets_deq_diff =>
+        change
+          (let _v0 := __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff x y))
+           native_ite (native_Teq _v0 SmtType.None) SmtTerm.None
+             (SmtTerm.map_diff (__eo_to_smt x) (__eo_to_smt y))) =
+            SmtTerm.Numeral n at h
+        cases hT : native_Teq
+            (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff x y)))
+            SmtType.None <;>
+          simp [native_ite, hT] at h
+      case _at_quantifiers_skolemize =>
+        exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
   | Var name T => cases name <;> cases h
   | DtCons s d i =>
       change native_ite (native_reserved_datatype_name s) SmtTerm.None
@@ -563,14 +585,7 @@ private theorem generic_apply_type_of_non_special_head
     (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x := by
   unfold generic_apply_type
-  simpa using
-    (__smtx_typeof.eq_141 f x
-      (by
-        intro s d i j h
-        exact hSel s d i j h)
-      (by
-        intro s d i h
-        exact hTester s d i h))
+  cases f <;> simp [__smtx_typeof]
 
 /-- EO bitvector types at natural widths translate back to the matching SMT width. -/
 private theorem eo_to_smt_type_bitvec_nat

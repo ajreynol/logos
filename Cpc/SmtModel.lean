@@ -842,9 +842,9 @@ def __smtx_map_store : SmtValue -> SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Map m1), (SmtValue.Map m2) => (native_eval_map_diff m1 m2)
-  | (SmtValue.Fun m1), (SmtValue.Fun m2) => (native_eval_map_diff m1 m2)
-  | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff m1 m2)
+  | (SmtValue.Map m1), (SmtValue.Map m2) => (native_eval_map_diff_msm m1 m2)
+  | (SmtValue.Fun m1), (SmtValue.Fun m2) => (native_eval_map_diff_msm m1 m2)
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff_msm m1 m2)
   | v1, v2 => SmtValue.NotValue
 
 
