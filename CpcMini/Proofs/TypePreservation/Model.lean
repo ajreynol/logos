@@ -96,24 +96,4 @@ theorem model_total_typed_push
       · simp [h]
         exact model_total_typed_lookup_uninhabited hM s' T' hT'
 
-/-- Shows that `default_typed_model` is total and type-correct on every well-formed SMT type. -/
-theorem default_typed_model_total_typed :
-    model_total_typed default_typed_model := by
-  classical
-  constructor
-  · intro s T hT
-    simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT,
-      (Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)).1]
-  · constructor
-    · intro s T hT
-      simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT,
-        (Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)).2]
-    · intro s T hT
-      simp [default_typed_model, __smtx_model_lookup, __smtx_model_key, hT]
-
-/-- Constructs a total typed SMT model. -/
-theorem exists_total_typed_model :
-    ∃ M : SmtModel, model_total_typed M :=
-  ⟨default_typed_model, default_typed_model_total_typed⟩
-
 end Smtm

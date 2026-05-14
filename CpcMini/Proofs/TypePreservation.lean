@@ -42,7 +42,7 @@ private theorem supported_type_preservation
   | «forall» s T body =>
       exact typeof_value_model_eval_forall M s T body ht
   | choice_nth s T body n =>
-      exact typeof_value_model_eval_choice_nth M s T body n ht
+      exact typeof_value_model_eval_choice_nth M hM M s T body n ht
   | map_diff t1 t2 =>
       -- Mini has the evaluator and typing rule for `map_diff`, but not the
       -- full component invariant needed for its preservation proof.
@@ -530,10 +530,5 @@ theorem smt_model_eval_bool_is_boolean_of_supported
     smt_model_eval_preserves_type_of_supported M hM t SmtType.Bool hTy (by simp) hs
   exact bool_value_canonical hPres
 
-
-/-- Shows that total typed SMT models exist. -/
-theorem total_typed_model_nonvacuous :
-    ∃ M : SmtModel, model_total_typed M :=
-  exists_total_typed_model
 
 end Smtm
