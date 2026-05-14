@@ -477,7 +477,8 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
   cases d with
   | null =>
-      simp [__smtx_type_wf_rec, __smtx_dt_wf_rec] at _hRec
+      simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, native_reflist_contains,
+        native_ite] at _hRec
   | sum c dTail =>
       cases c with
       | unit =>

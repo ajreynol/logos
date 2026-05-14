@@ -506,7 +506,7 @@ def __smtx_dt_wf_rec : SmtDatatype -> RefList -> native_Bool
 
 
 def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
-  | (SmtType.Datatype s d), refs => (__smtx_dt_wf_rec d (native_reflist_insert refs s))
+  | (SmtType.Datatype s d), refs => (native_ite (native_reflist_contains refs s) false (__smtx_dt_wf_rec d (native_reflist_insert refs s)))
   | (SmtType.TypeRef s), refs => false
   | (SmtType.Seq x1), refs => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 native_reflist_nil))
   | (SmtType.Map x1 x2), refs => (native_and (native_inhabited_type x1) (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 native_reflist_nil))))
@@ -575,7 +575,7 @@ def __smtx_dt_num_sels : SmtDatatype -> native_Nat -> native_Nat
 
 
 def __smtx_dtc_substitute (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons (SmtType.Datatype s2 d2) c) => (SmtDatatypeCons.cons (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2))) (__smtx_dtc_substitute s d c))
+  | (SmtDatatypeCons.cons (SmtType.Datatype s2 d2) c) => (SmtDatatypeCons.cons (SmtType.Datatype s2 (__smtx_dt_substitute s d d2)) (__smtx_dtc_substitute s d c))
   | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (native_ite (native_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T) (__smtx_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
 
@@ -776,7 +776,7 @@ def __smtx_value_dt_substitute_apply (s : native_String) (v1 : SmtValue) (v2 : S
 
 
 def __smtx_value_dt_substitute (s : native_String) (d : SmtDatatype) : SmtValue -> SmtValue
-  | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2)) i)
+  | (SmtValue.DtCons s2 d2 i) => (SmtValue.DtCons s2 (__smtx_dt_substitute s d d2) i)
   | (SmtValue.Apply f v) => (__smtx_value_dt_substitute_apply s (SmtValue.Apply f v) (SmtValue.Apply (__smtx_value_dt_substitute s d f) (__smtx_value_dt_substitute s d v)) (__vsm_apply_head f))
   | v => v
 
