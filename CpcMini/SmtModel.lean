@@ -271,6 +271,7 @@ inductive SmtTerm : Type where
   | exists : native_String -> SmtType -> SmtTerm -> SmtTerm
   | forall : native_String -> SmtType -> SmtTerm -> SmtTerm
   | choice_nth : native_String -> SmtType -> SmtTerm -> native_Nat -> SmtTerm
+  | map_diff : SmtTerm -> SmtTerm -> SmtTerm
   | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtTerm
   | DtSel : native_String -> SmtDatatype -> native_Nat -> native_Nat -> SmtTerm
   | DtTester : native_String -> SmtDatatype -> native_Nat -> SmtTerm
@@ -700,6 +701,13 @@ def __smtx_typeof_choice_nth (T : SmtType) : SmtTerm -> native_Nat -> SmtType
   | F, n => SmtType.None
 
 
+def __smtx_typeof_map_diff : SmtType -> SmtType -> SmtType
+  | (SmtType.Map T1 U1), (SmtType.Map T2 U2) => (__smtx_typeof_guard (native_and (native_Teq T1 T2) (native_Teq U1 U2)) T1)
+  | (SmtType.FunType T1 U1), (SmtType.FunType T2 U2) => (__smtx_typeof_guard (native_and (native_Teq T1 T2) (native_Teq U1 U2)) T1)
+  | (SmtType.Set T1), (SmtType.Set T2) => (__smtx_typeof_guard (native_Teq T1 T2) T1)
+  | T1, T2 => SmtType.None
+
+
 def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
   | (SmtTerm.Numeral n) => SmtType.Int
@@ -715,13 +723,16 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.exists s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.forall s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.choice_nth s T x1 n) => (__smtx_typeof_choice_nth T x1 n)
+  | (SmtTerm.map_diff x1 x2) => (__smtx_typeof_map_diff (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.DtCons s d i) => 
     let _v0 := (SmtType.Datatype s d)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => 
     let _v0 := (__smtx_ret_typeof_sel s d i j)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (__smtx_typeof x1)))
-  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) SmtType.Bool) (__smtx_typeof x1))
+  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => 
+    let _v0 := (SmtType.Datatype s d)
+    (__smtx_typeof_guard (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i) (__smtx_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (__smtx_typeof x1)))
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
   | (SmtTerm.Var s T) => (__smtx_typeof_guard_wf T T)
   | (SmtTerm.UConst s T) => (__smtx_typeof_guard_wf T T)
@@ -985,6 +996,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
   | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
   | (SmtTerm.choice_nth s T x1 i) => (native_eval_tchoice_nth M s T x1 i)
+  | (SmtTerm.map_diff x1 x2) => (native_eval_map_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
