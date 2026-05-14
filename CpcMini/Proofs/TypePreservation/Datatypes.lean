@@ -622,9 +622,14 @@ private theorem result_datatype_components_wf_dt_tester_apply
     result_datatype_components_wf
       (__smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) := by
   rw [__smtx_typeof.eq_17]
+  by_cases hCons :
+      __smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+        SmtType.None
+  · simp [__smtx_typeof_apply, __smtx_typeof_guard,
+      result_datatype_components_wf, native_ite, native_Teq, hCons]
   cases __smtx_typeof x <;>
     (simp [__smtx_typeof_apply, __smtx_typeof_guard,
-      result_datatype_components_wf, native_ite, native_Teq] <;>
+      result_datatype_components_wf, native_ite, native_Teq, hCons] <;>
       repeat split <;>
       simp [result_datatype_components_wf])
 
@@ -1168,6 +1173,21 @@ theorem typeof_value_model_eval_dt_sel
   · simpa [v, native_ite, hHead] using
       typeof_value_model_eval_dt_sel_wrong M hM s d i j v hResInh hWrongMapWF hv
 
+/-- Derives that the tested constructor index is valid from `non_none`. -/
+theorem dt_tester_constructor_type_non_none_of_non_none
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) :
+    __smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i ≠
+      SmtType.None := by
+  intro hCons
+  unfold term_has_non_none_type at ht
+  apply ht
+  rw [__smtx_typeof.eq_17]
+  simp [__smtx_typeof_guard, native_ite, native_Teq, hCons]
+
 /-- Derives `dt_tester_arg_datatype` from `non_none`. -/
 theorem dt_tester_arg_datatype_of_non_none
     {s : native_String}
@@ -1176,12 +1196,14 @@ theorem dt_tester_arg_datatype_of_non_none
     {x : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) :
     __smtx_typeof x = SmtType.Datatype s d := by
+  have hCons : __smtx_typeof_dt_cons_rec
+      (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i ≠ SmtType.None :=
+    dt_tester_constructor_type_non_none_of_non_none ht
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof x <;>
     simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, native_ite,
-      native_Teq, h] at ht ⊢
-  rcases ht with ⟨rfl, rfl⟩
-  simp
+      native_Teq, h, hCons] at ht ⊢
+  exact ⟨ht.1.symm, ht.2.symm⟩
 
 /-- Derives `dt_tester_term_typeof` from `non_none`. -/
 theorem dt_tester_term_typeof_of_non_none
@@ -1191,8 +1213,12 @@ theorem dt_tester_term_typeof_of_non_none
     {x : SmtTerm}
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) = SmtType.Bool := by
+  have hCons : __smtx_typeof_dt_cons_rec
+      (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i ≠ SmtType.None :=
+    dt_tester_constructor_type_non_none_of_non_none ht
   have hx : __smtx_typeof x = SmtType.Datatype s d := dt_tester_arg_datatype_of_non_none ht
-  simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hx]
+  simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq,
+    hx, hCons]
 
 /-- Shows that evaluating `dt_tester` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_tester
