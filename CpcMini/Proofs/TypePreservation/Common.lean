@@ -1,4 +1,5 @@
 import CpcMini.SmtModel
+import CpcMini.Proofs.TypePreservation.CanonicalAssumptions
 
 open SmtEval
 open Smtm
@@ -250,26 +251,11 @@ private theorem value_dt_substitute_canonical
       simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Apply f a, h => by
       simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_and] at h
-      have hOrig : __smtx_value_canonical (SmtValue.Apply f a) := by
-        simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_and]
-        exact h
       have hf := value_dt_substitute_canonical s d f h.1
       have ha := value_dt_substitute_canonical s d a h.2
-      cases hHead : __vsm_apply_head f with
-      | DtCons s' d' i =>
-          cases hShadow : native_streq s s'
-          · simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
-              hHead, hShadow, native_ite,
-              __smtx_value_canonical, __smtx_value_canonical_bool, native_and]
-            exact ⟨by simpa [__smtx_value_canonical] using hf,
-              by simpa [__smtx_value_canonical] using ha⟩
-          · simpa [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
-              hHead, hShadow, native_ite] using hOrig
-      | _ =>
-          simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
-            hHead, __smtx_value_canonical, __smtx_value_canonical_bool,
-            native_and] at hf ha ⊢
-          exact ⟨hf, ha⟩
+      simp [__smtx_value_dt_substitute, __smtx_value_canonical,
+        __smtx_value_canonical_bool, native_and] at hf ha ⊢
+      exact ⟨hf, ha⟩
 
 private theorem value_dt_substitute_eq_notValue
     (s : native_String)
@@ -304,14 +290,7 @@ private theorem value_dt_substitute_eq_notValue
   | SmtValue.DtCons s' d' i => by
       simp [__smtx_value_dt_substitute]
   | SmtValue.Apply f a => by
-      cases hHead : __vsm_apply_head f with
-      | DtCons s' d' i =>
-          cases hShadow : native_streq s s' <;>
-            simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
-              hHead, hShadow, native_ite]
-      | _ =>
-          simp [__smtx_value_dt_substitute, __smtx_value_dt_substitute_apply,
-            hHead]
+      simp [__smtx_value_dt_substitute]
 
 private theorem value_dt_substitute_ne_notValue
     (s : native_String)
@@ -472,27 +451,10 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
     (d : SmtDatatype)
     (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
     (_hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
-    __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
+      __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  cases d with
-  | null =>
-      simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, native_reflist_contains,
-        native_ite] at _hRec
-  | sum c dTail =>
-      cases c with
-      | unit =>
-          simp [__smtx_type_default, __smtx_datatype_default,
-            __smtx_datatype_cons_default, __smtx_typeof_value,
-            __smtx_dt_substitute, __smtx_dtc_substitute,
-            __smtx_typeof_dt_cons_value_rec, __smtx_value_canonical,
-            __smtx_value_canonical_bool, native_veq, native_not, native_ite]
-      | cons T cTail =>
-          -- Remaining case: the scanner begins with an argument-bearing
-          -- constructor. The proof now needs the semantic descent/productivity
-          -- argument above to show the scanner reaches a constructor whose
-          -- packaged defaults are non-`NotValue`.
-          sorry
+  exact cpcmini_datatype_type_default_typed_canonical_assumption s d _hInh _hRec
 
 private theorem type_default_typed_canonical_of_wf_rec :
     (T : SmtType) ->
@@ -594,14 +556,5 @@ theorem canonical_type_inhabited_of_type_wf
     have hDef :=
       type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
     exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩
-
-/-- Choice-based model that returns a canonical inhabitant for every well-formed SMT type. -/
-noncomputable def default_typed_model : SmtModel := by
-  classical
-  exact fun k =>
-    if h : __smtx_type_wf k.ty = true then
-      some (Classical.choose (canonical_type_inhabited_of_type_wf k.ty h))
-    else
-      none
 
 end Smtm
