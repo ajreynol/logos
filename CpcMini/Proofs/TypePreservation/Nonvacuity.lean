@@ -1,4 +1,4 @@
-import CpcMini.Proofs.TypePreservation.Model
+import CpcMini.Proofs.TypePreservation.CanonicalAssumptions
 
 open SmtEval
 open Smtm
