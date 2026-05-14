@@ -374,6 +374,9 @@ def native_reflist_contains (xs : RefList) (s : native_String ) :=
 /- Type equality -/
 def native_Teq : SmtType -> SmtType -> native_Bool
   | x, y => decide (x = y)
+/- Datatype equality -/
+def native_dteq : SmtDatatype -> SmtDatatype -> native_Bool
+  | x, y => decide (x = y)
 /- Value equality -/
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
@@ -779,10 +782,44 @@ def __smtx_value_dt_substitute (s : native_String) (d : SmtDatatype) : SmtValue 
   | v => v
 
 
+def __smtx_type_context_substitute (sub : native_String) (base : SmtDatatype) (root : native_String) (oldRoot : SmtDatatype) (newRoot : SmtDatatype) (doSub : native_Bool) (doRoot : native_Bool) : SmtType -> SmtType
+  | (SmtType.TypeRef r) => (native_ite (native_and doSub (native_streq r sub)) (SmtType.Datatype sub (native_ite doRoot (__smtx_dt_substitute root newRoot base) base)) (SmtType.TypeRef r))
+  | (SmtType.Datatype r d) => (native_ite (native_and (native_and doRoot (native_streq r root)) (native_dteq d oldRoot)) (SmtType.Datatype r newRoot) (SmtType.Datatype r (__smtx_dt_context_substitute sub base root oldRoot newRoot (native_and doSub (native_not (native_streq r sub))) (native_and doRoot (native_not (native_streq r root))) d)))
+  | (SmtType.DtcAppType A B) => (SmtType.DtcAppType (__smtx_chain_type_context_substitute sub base root oldRoot newRoot doSub doRoot A) (__smtx_chain_type_context_substitute sub base root oldRoot newRoot doSub doRoot B))
+  | T => T
+
+
+def __smtx_dtc_context_substitute (sub : native_String) (base : SmtDatatype) (root : native_String) (oldRoot : SmtDatatype) (newRoot : SmtDatatype) (doSub : native_Bool) (doRoot : native_Bool) : SmtDatatypeCons -> SmtDatatypeCons
+  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (__smtx_type_context_substitute sub base root oldRoot newRoot doSub doRoot T) (__smtx_dtc_context_substitute sub base root oldRoot newRoot doSub doRoot c))
+  | SmtDatatypeCons.unit => SmtDatatypeCons.unit
+
+
+def __smtx_dt_context_substitute (sub : native_String) (base : SmtDatatype) (root : native_String) (oldRoot : SmtDatatype) (newRoot : SmtDatatype) (doSub : native_Bool) (doRoot : native_Bool) : SmtDatatype -> SmtDatatype
+  | (SmtDatatype.sum c d) => (SmtDatatype.sum (__smtx_dtc_context_substitute sub base root oldRoot newRoot doSub doRoot c) (__smtx_dt_context_substitute sub base root oldRoot newRoot doSub doRoot d))
+  | SmtDatatype.null => SmtDatatype.null
+
+
+def __smtx_chain_type_context_substitute (sub : native_String) (base : SmtDatatype) (root : native_String) (oldRoot : SmtDatatype) (newRoot : SmtDatatype) (doSub : native_Bool) (doRoot : native_Bool) : SmtType -> SmtType
+  | (SmtType.DtcAppType A B) => (SmtType.DtcAppType (__smtx_chain_type_context_substitute sub base root oldRoot newRoot doSub doRoot A) (__smtx_chain_type_context_substitute sub base root oldRoot newRoot doSub doRoot B))
+  | T => (__smtx_type_context_substitute sub base root oldRoot newRoot doSub doRoot T)
+
+
+def __smtx_value_dt_context_substitute (sub : native_String) (base : SmtDatatype) (root : native_String) (oldRoot : SmtDatatype) (newRoot : SmtDatatype) : SmtValue -> SmtValue
+  | (SmtValue.DtCons s d i) => (native_ite (native_and (native_streq s root) (native_dteq d oldRoot)) (SmtValue.DtCons s newRoot i) (SmtValue.DtCons s (__smtx_dt_context_substitute sub base root oldRoot newRoot (native_not (native_streq s sub)) (native_not (native_streq s root)) d) i))
+  | (SmtValue.Apply f v) => (SmtValue.Apply (__smtx_value_dt_context_substitute sub base root oldRoot newRoot f) (__smtx_value_dt_context_substitute sub base root oldRoot newRoot v))
+  | v => v
+
+
+def __smtx_datatype_field_default (s : native_String) (d : SmtDatatype) (T : SmtType) (default : SmtValue) : SmtValue :=
+  match T with
+  | (SmtType.Datatype s2 d2) => (native_ite (native_streq s s2) default (__smtx_value_dt_context_substitute s d s2 d2 (__smtx_dt_substitute s d d2) default))
+  | T => (__smtx_value_dt_substitute s d default)
+
+
 def __smtx_datatype_cons_default (s : native_String) (d : SmtDatatype) (v : SmtValue) : SmtDatatypeCons -> SmtValue
   | SmtDatatypeCons.unit => v
   | (SmtDatatypeCons.cons T c) => 
-    let _v0 := (__smtx_value_dt_substitute s d (__smtx_type_default T))
+    let _v0 := (__smtx_datatype_field_default s d T (__smtx_type_default T))
     (native_ite (native_veq _v0 SmtValue.NotValue) SmtValue.NotValue (__smtx_datatype_cons_default s d (SmtValue.Apply v _v0) c))
 
 

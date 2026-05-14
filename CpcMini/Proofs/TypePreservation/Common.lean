@@ -4399,33 +4399,6 @@ private theorem field_default_substitute_typed_canonical_with_datatype_bound
           by rw [hFieldEq]; exact type_wf_non_none hTWF,
           by rw [hSubEq]; exact hDef.2⟩
 
-private theorem datatype_field_default_substitute_typed_canonical_with_bound
-    (limit : Nat)
-    (sub : native_String)
-    (base : SmtDatatype)
-    (refs : RefList)
-    (s : native_String)
-    (d : SmtDatatype)
-    (hLt : sizeOf (SmtType.Datatype s d) < limit)
-    (hShadow : native_streq sub s = false)
-    (hInh : native_inhabited_type (SmtType.Datatype s d) = true)
-    (hRec : __smtx_type_wf_rec (SmtType.Datatype s d) refs = true) :
-    __smtx_typeof_value
-          (__smtx_value_dt_substitute sub base
-            (__smtx_type_default (SmtType.Datatype s d))) =
-        smtx_dtc_field_substitute_type sub base (SmtType.Datatype s d) ∧
-      __smtx_value_canonical
-        (__smtx_value_dt_substitute sub base
-          (__smtx_type_default (SmtType.Datatype s d))) := by
-  /-
-  This is the central deferred-field obligation. The intended proof is by
-  induction below `limit`: show that the constructor spine selected by
-  `__smtx_type_default (Datatype s d)` remains well typed after substituting
-  `sub` through its datatype declarations, using the chain-field substitution
-  lemmas above for constructor prefixes and field arguments.
-  -/
-  sorry
-
 private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     (s : native_String)
     (d : SmtDatatype)
@@ -4680,12 +4653,18 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
                                       (SmtDatatype.sum c dTail)
                                       (__smtx_type_default
                                         (SmtType.Datatype sNested dNested))) := by
-                              exact
-                                datatype_field_default_substitute_typed_canonical_with_bound
-                                  limit s (SmtDatatype.sum c dTail)
-                                  (native_reflist_insert native_reflist_nil s)
-                                  sNested dNested hLt hShadowFalse
-                                  hNestedInh hNestedRec
+                              /-
+                              This is the remaining obstruction for the current
+                              `SmtModel` definitions. Raw value substitution can
+                              stop at a shadowing nested datatype head while the
+                              expected substituted field type changes because
+                              the surrounding datatype body changed. The earlier
+                              factored helper for this obligation was too strong
+                              and is false; this should be discharged only after
+                              datatype-default substitution is made context
+                              aware.
+                              -/
+                              sorry
                             exact ⟨hSubTypedAndCanon.1, hFieldNotNone,
                               hSubTypedAndCanon.2⟩
                       exact
