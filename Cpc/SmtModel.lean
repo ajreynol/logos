@@ -596,6 +596,34 @@ macro_rules
                     evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
                 | _ => SmtValue.NotValue
           exact evalChoiceNth $M $s $T $body $n)
+  | `(native_eval_map_diff $v1 $v2) => do
+      let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let typeDefaultId := Lean.mkIdent `__smtx_type_default
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          let evalMapDiff (m1 m2 : SmtMap) : SmtValue :=
+            match ($typeofMapValueId m1, $typeofMapValueId m2) with
+            | (SmtType.Map T1 U1, SmtType.Map T2 U2) =>
+                native_ite (native_and (native_Teq T1 T2) (native_Teq U1 U2))
+                  (if hDiff :
+                      ∃ i : SmtValue,
+                        $typeofValueId i = T1 ∧
+                          $canonId i = true ∧
+                            native_veq ($lookupId m1 i) ($lookupId m2 i) = false then
+                    Classical.choose hDiff
+                  else
+                    $typeDefaultId T1)
+                  SmtValue.NotValue
+            | _ => SmtValue.NotValue
+          exact
+            match ($v1, $v2) with
+            | (SmtValue.Map m1, SmtValue.Map m2) => evalMapDiff m1 m2
+            | (SmtValue.Fun m1, SmtValue.Fun m2) => evalMapDiff m1 m2
+            | (SmtValue.Set m1, SmtValue.Set m2) => evalMapDiff m1 m2
+            | _ => SmtValue.NotValue)
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -1487,9 +1515,9 @@ def __smtx_typeof_choice_nth (T : SmtType) : SmtTerm -> native_Nat -> SmtType
 
 
 def __smtx_typeof_map_diff : SmtType -> SmtType -> SmtType
-  | (SmtType.Map T1 U1), (SmtType.Map T2 U2) => (__smtx_typeof_guard (native_and (native_Teq T1 T2) (native_Teq U1 U2)) T1)
-  | (SmtType.FunType T1 U1), (SmtType.FunType T2 U2) => (__smtx_typeof_guard (native_and (native_Teq T1 T2) (native_Teq U1 U2)) T1)
-  | (SmtType.Set T1), (SmtType.Set T2) => (__smtx_typeof_guard (native_Teq T1 T2) T1)
+  | (SmtType.Map T1 U1), (SmtType.Map T2 U2) => (native_ite (native_and (native_Teq T1 T2) (native_Teq U1 U2)) T1 SmtType.None)
+  | (SmtType.FunType T1 U1), (SmtType.FunType T2 U2) => (native_ite (native_and (native_Teq T1 T2) (native_Teq U1 U2)) T1 SmtType.None)
+  | (SmtType.Set T1), (SmtType.Set T2) => (native_ite (native_Teq T1 T2) T1 SmtType.None)
   | T1, T2 => SmtType.None
 
 
