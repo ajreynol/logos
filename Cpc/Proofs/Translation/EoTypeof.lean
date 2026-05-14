@@ -243,7 +243,7 @@ private theorem eo_to_smt_updater_ne_numeral
   intro h
   cases sel <;> try cases h
   case DtSel s d i j =>
-    cases hIdx : native_zleq (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) <;>
+    cases hIdx : native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) <;>
       simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 theorem eo_to_smt_updater_dt_sel_guard_of_non_none
@@ -251,9 +251,9 @@ theorem eo_to_smt_updater_dt_sel_guard_of_non_none
     (h :
       __smtx_typeof (__eo_to_smt_updater (SmtTerm.DtSel s d i j) t u) ≠
         SmtType.None) :
-    native_zleq (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
+    native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
       true := by
-  cases hIdx : native_zleq (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i))
+  cases hIdx : native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i))
   · exfalso
     apply h
     simp [__eo_to_smt_updater, native_ite, hIdx, smtx_typeof_none]
@@ -464,12 +464,10 @@ section DeferredTypeRecovery
 Recovers the EO translated type from an SMT typing equality.
 
 TODO: the old `_at_purify` counterexample is blocked now that purify translates
-to an SMT purify wrapper instead of aliasing its argument.  The remaining hard
-part is no longer just numeral reflection: updater-style translations can build
-well-typed SMT terms even when the selected field index is out of range.  In
-particular, `tuple_update 1 tuple_unit not` translates to an SMT `ite` over the
-unit tuple while the EO side is `None`, because the updater ignores the
-replacement when the selector has no corresponding field.
+to an SMT purify wrapper instead of aliasing its argument. Out-of-range updater
+selectors are blocked by the strict selector guard in `__eo_to_smt_updater`.
+The remaining hard part is proving this recovery theorem without creating an
+`EoTypeof` -> `Apply` -> `EoTypeof` cycle.
 -/
 theorem eo_to_smt_type_typeof_of_smt_type
     (t : Term) {T : SmtType}
@@ -1593,7 +1591,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_update_of_smt_dt_sel
     rw [← hTranslate]
     exact h
   have hIdx :
-      native_zleq (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
+      native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
         true := by
     exact eo_to_smt_updater_dt_sel_guard_of_non_none
       s d i j (__eo_to_smt y) (__eo_to_smt x) hUpdaterNN
@@ -1666,7 +1664,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tupl
         SmtType.None := by
     simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hTupleNN
   have hIdx :
-      native_zleq
+      native_zlt
           (native_nat_to_int (native_int_to_nat n))
           (native_nat_to_int (__smtx_dt_num_sels d native_nat_zero)) =
         true := by

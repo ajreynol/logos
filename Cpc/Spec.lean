@@ -180,7 +180,7 @@ def __eo_to_smt_updater_rec : SmtTerm -> native_Nat -> SmtTerm -> SmtTerm -> Smt
 def __eo_to_smt_updater : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
   | (SmtTerm.DtSel s d n m), t, u => 
     let _v0 := (__smtx_dt_num_sels d n)
-    (native_ite (native_zleq (native_nat_to_int m) (native_nat_to_int _v0)) (SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) t) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) _v0 t u (SmtTerm.DtCons s d n)) t) SmtTerm.None)
+    (native_ite (native_zlt (native_nat_to_int m) (native_nat_to_int _v0)) (SmtTerm.ite (SmtTerm.Apply (SmtTerm.DtTester s d n) t) (__eo_to_smt_updater_rec (SmtTerm.DtSel s d n m) _v0 t u (SmtTerm.DtCons s d n)) t) SmtTerm.None)
   | sel, t, d => SmtTerm.None
 
 

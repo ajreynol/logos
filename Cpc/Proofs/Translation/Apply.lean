@@ -452,7 +452,7 @@ private theorem eo_to_smt_updater_ne_dt_sel
   intro h
   cases sel <;> try cases h
   case DtSel s' d' i' j' =>
-    cases hIdx : native_zleq (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+    cases hIdx : native_zlt (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
       simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_updater_ne_dt_tester
@@ -461,7 +461,7 @@ private theorem eo_to_smt_updater_ne_dt_tester
   intro h
   cases sel <;> try cases h
   case DtSel s' d' i' j' =>
-    cases hIdx : native_zleq (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+    cases hIdx : native_zlt (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
       simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_updater_ne_dt_cons
@@ -470,7 +470,7 @@ private theorem eo_to_smt_updater_ne_dt_cons
   intro h
   cases sel <;> try cases h
   case DtSel s' d' i' j' =>
-    cases hIdx : native_zleq (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+    cases hIdx : native_zlt (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
       simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_tuple_update_ne_dt_sel
@@ -12645,7 +12645,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
       rw [← hTranslate]
       exact hNonNone
     have hIdx :
-        native_zleq (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
+        native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
           true := by
       exact eo_to_smt_updater_dt_sel_guard_of_non_none
         s d i j (__eo_to_smt y) (__eo_to_smt x) hUpdaterNN
@@ -12736,7 +12736,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
               SmtType.None := by
           simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hTupleNN
         have hIdx :
-            native_zleq
+            native_zlt
                 (native_nat_to_int (native_int_to_nat n))
                 (native_nat_to_int (__smtx_dt_num_sels d native_nat_zero)) =
               true := by
