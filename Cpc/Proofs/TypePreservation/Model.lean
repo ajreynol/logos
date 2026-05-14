@@ -1,4 +1,5 @@
 import Cpc.Proofs.TypePreservation.Support
+import Cpc.Proofs.TypePreservation.CanonicalAssumptions
 
 open SmtEval
 open Smtm
@@ -295,7 +296,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec_deferred
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  sorry
+  exact cpc_datatype_type_default_typed_canonical_assumption s d _hInh _hRec
 
 private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype :
     (T : SmtType) ->

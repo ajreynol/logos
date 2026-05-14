@@ -1,4 +1,5 @@
 import CpcMini.SmtModel
+import CpcMini.Proofs.TypePreservation.CanonicalAssumptions
 
 open SmtEval
 open Smtm
@@ -475,23 +476,7 @@ private theorem datatype_type_default_typed_canonical_of_wf_rec
     __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
-  cases d with
-  | null =>
-      simp [__smtx_type_wf_rec, __smtx_dt_wf_rec] at _hRec
-  | sum c dTail =>
-      cases c with
-      | unit =>
-          simp [__smtx_type_default, __smtx_datatype_default,
-            __smtx_datatype_cons_default, __smtx_typeof_value,
-            __smtx_dt_substitute, __smtx_dtc_substitute,
-            __smtx_typeof_dt_cons_value_rec, __smtx_value_canonical,
-            __smtx_value_canonical_bool, native_veq, native_not, native_ite]
-      | cons T cTail =>
-          -- Remaining case: the scanner begins with an argument-bearing
-          -- constructor. The proof now needs the semantic descent/productivity
-          -- argument above to show the scanner reaches a constructor whose
-          -- packaged defaults are non-`NotValue`.
-          sorry
+  exact cpcmini_datatype_type_default_typed_canonical_assumption s d _hInh _hRec
 
 private theorem type_default_typed_canonical_of_wf_rec :
     (T : SmtType) ->
