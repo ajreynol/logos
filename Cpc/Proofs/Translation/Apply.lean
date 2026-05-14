@@ -49,49 +49,52 @@ private theorem smtx_type_wf_fun_components
 
 private theorem native_inhabited_type_of_type_inhabited
     {T : SmtType}
+    (hNotDatatype : ∀ s d, T ≠ SmtType.Datatype s d)
     (h : type_inhabited T) :
     native_inhabited_type T = true :=
-  (Smtm.smtx_inhabited_type_eq_true_iff T).2 h
+  Smtm.native_inhabited_type_of_type_inhabited_non_datatype hNotDatatype h
 
 @[simp] private theorem native_inhabited_type_bool_apply :
     native_inhabited_type SmtType.Bool = true :=
-  native_inhabited_type_of_type_inhabited type_inhabited_bool
+  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_bool
 
 @[simp] private theorem native_inhabited_type_int_apply :
     native_inhabited_type SmtType.Int = true :=
-  native_inhabited_type_of_type_inhabited type_inhabited_int
+  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_int
 
 @[simp] private theorem native_inhabited_type_real_apply :
     native_inhabited_type SmtType.Real = true :=
-  native_inhabited_type_of_type_inhabited type_inhabited_real
+  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_real
 
 @[simp] private theorem native_inhabited_type_reglan_apply :
     native_inhabited_type SmtType.RegLan = true :=
-  native_inhabited_type_of_type_inhabited type_inhabited_reglan
+  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_reglan
 
 @[simp] private theorem native_inhabited_type_char_apply :
     native_inhabited_type SmtType.Char = true :=
-  native_inhabited_type_of_type_inhabited type_inhabited_char
+  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_char
 
 @[simp] private theorem native_inhabited_type_usort_apply
     (i : native_Nat) :
     native_inhabited_type (SmtType.USort i) = true :=
-  native_inhabited_type_of_type_inhabited (type_inhabited_usort i)
+  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) (type_inhabited_usort i)
 
 @[simp] private theorem native_inhabited_type_seq_apply
     (T : SmtType) :
     native_inhabited_type (SmtType.Seq T) = true :=
-  native_inhabited_type_of_type_inhabited (type_inhabited_seq T)
+  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) (type_inhabited_seq T)
 
 @[simp] private theorem native_inhabited_type_set_apply
     (T : SmtType) :
     native_inhabited_type (SmtType.Set T) = true :=
-  native_inhabited_type_of_type_inhabited (type_inhabited_set T)
+  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) (type_inhabited_set T)
 
 @[simp] private theorem native_inhabited_type_bitvec_apply
     (w : native_Nat) :
     native_inhabited_type (SmtType.BitVec w) = true := by
   apply native_inhabited_type_of_type_inhabited
+  · intro s d h
+    cases h
   refine ⟨SmtValue.Binary (native_nat_to_int w) 0, ?_⟩
   have hWidth : native_zleq 0 (native_nat_to_int w) = true := by
     simp [native_zleq, SmtEval.native_zleq, native_nat_to_int,

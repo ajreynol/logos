@@ -604,7 +604,13 @@ mutual
 
 def native_inhabited_type (T : SmtType) : native_Bool := by
   classical
-  exact decide (∃ v : SmtValue, __smtx_typeof_value v = T)
+  exact
+    match T with
+    | SmtType.Datatype _ _ =>
+        native_and
+          (decide (__smtx_typeof_value (__smtx_type_default T) = T))
+          (__smtx_value_canonical_bool (__smtx_type_default T))
+    | _ => decide (∃ v : SmtValue, __smtx_typeof_value v = T)
 
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
