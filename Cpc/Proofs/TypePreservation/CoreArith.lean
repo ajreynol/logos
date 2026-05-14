@@ -473,6 +473,27 @@ private theorem fun_value_canonical_map
       exact apply_value_non_chain_result_impossible
         (U := SmtType.FunType A B) (by simp [dt_cons_chain_result]) h
 
+private theorem native_eval_map_diff_msm_canonical
+    {m1 m2 : SmtMap}
+    {A B : SmtType}
+    (hm1 : __smtx_typeof_map_value m1 = SmtType.Map A B)
+    (hm2 : __smtx_typeof_map_value m2 = SmtType.Map A B)
+    (hDefault : __smtx_value_canonical (__smtx_type_default A)) :
+    __smtx_value_canonical (native_eval_map_diff_msm m1 m2) := by
+  classical
+  change __smtx_value_canonical (native_eval_map_diff_msm m1 m2)
+  rw [hm1, hm2]
+  simp [native_ite, native_Teq, SmtEval.native_and]
+  by_cases hDiff :
+      ∃ i : SmtValue,
+        __smtx_typeof_value i = A ∧
+          __smtx_value_canonical_bool i = true ∧
+          native_veq (__smtx_msm_lookup m1 i) (__smtx_msm_lookup m2 i) = false
+  · have hCan : __smtx_value_canonical (Classical.choose hDiff) := by
+      simpa [__smtx_value_canonical] using (Classical.choose_spec hDiff).2.1
+    simpa [hDiff] using hCan
+  · simpa [hDiff] using hDefault
+
 /-- Shows that evaluating `map_diff` terms produces values of the expected index type. -/
 theorem typeof_value_model_eval_map_diff
     (M : SmtModel)
@@ -527,6 +548,57 @@ theorem typeof_value_model_eval_map_diff
       set_map_value_typed (A := A) (by simpa [hm2, h2] using hpres2)
     rw [hm1, hm2]
     exact native_eval_map_diff_msm_typed hm1Ty hm2Ty (hDefault hTy)
+
+/-- Shows that evaluating `map_diff` terms produces canonical difference witnesses. -/
+theorem model_eval_map_diff_canonical
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.map_diff t1 t2))
+    (hDefault :
+      ∀ {A : SmtType},
+        __smtx_typeof (SmtTerm.map_diff t1 t2) = A ->
+          __smtx_value_canonical (__smtx_type_default A))
+    (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
+    (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
+    __smtx_value_canonical (__smtx_model_eval M (SmtTerm.map_diff t1 t2)) := by
+  rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+  · rcases hMap with ⟨A, B, h1, h2, hTy⟩
+    rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
+        __smtx_model_eval_map_diff (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+      simp [__smtx_model_eval]]
+    rcases map_value_canonical (A := A) (B := B)
+        (by simpa [h1] using hpres1) with ⟨m1, hm1⟩
+    rcases map_value_canonical (A := A) (B := B)
+        (by simpa [h2] using hpres2) with ⟨m2, hm2⟩
+    rw [hm1, hm2]
+    exact native_eval_map_diff_msm_canonical
+      (by simpa [hm1, h1, __smtx_typeof_value] using hpres1)
+      (by simpa [hm2, h2, __smtx_typeof_value] using hpres2)
+      (hDefault hTy)
+  · rcases hFun with ⟨A, B, h1, h2, hTy⟩
+    rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
+        __smtx_model_eval_map_diff (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+      simp [__smtx_model_eval]]
+    rcases fun_value_canonical_map (A := A) (B := B)
+        (by simpa [h1] using hpres1) with ⟨m1, hm1, hm1Ty⟩
+    rcases fun_value_canonical_map (A := A) (B := B)
+        (by simpa [h2] using hpres2) with ⟨m2, hm2, hm2Ty⟩
+    rw [hm1, hm2]
+    exact native_eval_map_diff_msm_canonical hm1Ty hm2Ty (hDefault hTy)
+  · rcases hSet with ⟨A, h1, h2, hTy⟩
+    rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
+        __smtx_model_eval_map_diff (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+      simp [__smtx_model_eval]]
+    rcases set_value_canonical (A := A)
+        (by simpa [h1] using hpres1) with ⟨m1, hm1⟩
+    rcases set_value_canonical (A := A)
+        (by simpa [h2] using hpres2) with ⟨m2, hm2⟩
+    have hm1Ty : __smtx_typeof_map_value m1 = SmtType.Map A SmtType.Bool :=
+      set_map_value_typed (A := A) (by simpa [hm1, h1] using hpres1)
+    have hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A SmtType.Bool :=
+      set_map_value_typed (A := A) (by simpa [hm2, h2] using hpres2)
+    rw [hm1, hm2]
+    exact native_eval_map_diff_msm_canonical hm1Ty hm2Ty (hDefault hTy)
 
 /-- Shows that evaluating `select` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_select
