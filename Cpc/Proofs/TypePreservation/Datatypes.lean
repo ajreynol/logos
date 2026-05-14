@@ -39,8 +39,10 @@ theorem typeof_dt_tester_apply_eq
     (i : native_Nat)
     (x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) =
-      __smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) SmtType.Bool)
-        (__smtx_typeof x) := by
+      __smtx_typeof_guard
+        (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
+        (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) SmtType.Bool)
+          (__smtx_typeof x)) := by
   rw [__smtx_typeof.eq_140]
 
 /-- Establishes an equality relating `typeof_dt_cons_value_rec` and `typeof_dt_cons_rec_zero`. -/
@@ -983,10 +985,26 @@ theorem dt_tester_arg_datatype_of_non_none
   unfold term_has_non_none_type at ht
   rw [typeof_dt_tester_apply_eq] at ht
   cases h : __smtx_typeof x <;>
-    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
-      native_Teq, h] at ht ⊢
-  rcases ht with ⟨rfl, rfl⟩
-  simp
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, h] at ht ⊢
+  case Datatype s' d' =>
+    rcases ht with ⟨_hCtor, hs, hd⟩
+    exact ⟨hs.symm, hd.symm⟩
+
+/-- Derives valid tester constructor typing from `non_none`. -/
+theorem dt_tester_ctor_type_non_none_of_non_none
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    {x : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) :
+    __smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i ≠
+      SmtType.None := by
+  unfold term_has_non_none_type at ht
+  rw [typeof_dt_tester_apply_eq] at ht
+  cases h : __smtx_typeof x <;>
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, h] at ht
+  case Datatype _s' _d' =>
+    exact ht.1
 
 /-- Derives `dt_tester_term_typeof` from `non_none`. -/
 theorem dt_tester_term_typeof_of_non_none
@@ -997,8 +1015,11 @@ theorem dt_tester_term_typeof_of_non_none
     (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtTester s d i) x)) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) x) = SmtType.Bool := by
   have hx : __smtx_typeof x = SmtType.Datatype s d := dt_tester_arg_datatype_of_non_none ht
+  have hCtor : __smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i ≠
+      SmtType.None :=
+    dt_tester_ctor_type_non_none_of_non_none ht
   rw [typeof_dt_tester_apply_eq]
-  simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hx]
+  simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hx, hCtor]
 
 /-- Shows that evaluating `dt_tester` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_tester

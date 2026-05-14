@@ -449,8 +449,11 @@ Recovers the EO translated type from an SMT typing equality.
 
 TODO: the old `_at_purify` counterexample is blocked now that purify translates
 to an SMT purify wrapper instead of aliasing its argument.  The remaining hard
-part is proving numeral reflection for indexed operators without creating an
-`EoTypeof` -> `Apply` -> `EoTypeof` dependency cycle.
+part is no longer just numeral reflection: updater-style translations can build
+well-typed SMT terms even when the selected field index is out of range.  In
+particular, `tuple_update 1 tuple_unit not` translates to an SMT `ite` over the
+unit tuple while the EO side is `None`, because the updater ignores the
+replacement when the selector has no corresponding field.
 -/
 theorem eo_to_smt_type_typeof_of_smt_type
     (t : Term) {T : SmtType}
@@ -608,84 +611,6 @@ theorem eo_to_smt_type_typeof_uconst
     __eo_to_smt_type (__eo_typeof (Term.UConst i T)) = __eo_to_smt_type T := by
   change __eo_to_smt_type T = __eo_to_smt_type T
   rfl
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_var_of_smt_apply`. -/
-theorem eo_to_smt_type_typeof_apply_var_of_smt_apply
-    (x T : Term) (s : native_String) (A B : SmtType)
-    (hHead :
-      __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) = SmtType.FunType A B ∨
-        __smtx_typeof (SmtTerm.Var s (__eo_to_smt_type T)) = SmtType.DtcAppType A B)
-    (hx : __smtx_typeof (__eo_to_smt x) = A)
-    (hA : A ≠ SmtType.None)
-    (hB : B ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Var (Term.String s) T) x)) = B := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x) =
-        SmtTerm.Apply (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x) := by
-    have hGeneric :
-        __eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x) =
-          SmtTerm.Apply (__eo_to_smt (Term.Var (Term.String s) T)) (__eo_to_smt x) := by
-      rfl
-    simpa [eo_to_smt_var] using hGeneric
-  have hGeneric :
-      generic_apply_type (SmtTerm.Var s (__eo_to_smt_type T)) (__eo_to_smt x) := by
-    exact generic_apply_type_of_non_special_head _ _
-      (by intro s' d i j h; cases h)
-      (by intro s' d i h; cases h)
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Var (Term.String s) T) x)) = B := by
-    rw [hTranslate, hGeneric]
-    exact smtx_typeof_apply_of_head_cases hHead hx hA
-  exact eo_to_smt_type_typeof_of_smt_type _ hSmt hB
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_uconst_of_smt_apply`. -/
-theorem eo_to_smt_type_typeof_apply_uconst_of_smt_apply
-    (x T : Term) (i : native_Nat) (A B : SmtType)
-    (hHead :
-      __smtx_typeof (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)) =
-          SmtType.FunType A B ∨
-        __smtx_typeof (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)) =
-          SmtType.DtcAppType A B)
-    (hx : __smtx_typeof (__eo_to_smt x) = A)
-    (hA : A ≠ SmtType.None)
-    (hB : B ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UConst i T) x)) = B := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.UConst i T) x) =
-        SmtTerm.Apply (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)) (__eo_to_smt x) := by
-    have hGeneric :
-        __eo_to_smt (Term.Apply (Term.UConst i T) x) =
-          SmtTerm.Apply (__eo_to_smt (Term.UConst i T)) (__eo_to_smt x) := by
-      rfl
-    simpa [eo_to_smt_uconst] using hGeneric
-  have hGeneric :
-      generic_apply_type (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T)) (__eo_to_smt x) := by
-    exact generic_apply_type_of_non_special_head _ _
-      (by intro s' d i' j h; cases h)
-      (by intro s' d i' h; cases h)
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.UConst i T) x)) = B := by
-    rw [hTranslate, hGeneric]
-    exact smtx_typeof_apply_of_head_cases hHead hx hA
-  exact eo_to_smt_type_typeof_of_smt_type _ hSmt hB
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_of_smt_apply`. -/
-theorem eo_to_smt_type_typeof_apply_of_smt_apply
-    (x f : Term) (A B : SmtType)
-    (hHead :
-      __smtx_typeof (__eo_to_smt f) = SmtType.FunType A B ∨
-        __smtx_typeof (__eo_to_smt f) = SmtType.DtcAppType A B)
-    (hx : __smtx_typeof (__eo_to_smt x) = A)
-    (hTranslate :
-      __eo_to_smt (Term.Apply f x) = SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
-    (hGeneric : generic_apply_type (__eo_to_smt f) (__eo_to_smt x))
-    (hA : A ≠ SmtType.None)
-    (hB : B ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply f x)) = B := by
-  have hSmt : __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
-    rw [hTranslate, hGeneric]
-    exact smtx_typeof_apply_of_head_cases hHead hx hA
-  exact eo_to_smt_type_typeof_of_smt_type _ hSmt hB
 
 /-- Stronger EO-side helper for successful function-like application. -/
 theorem eo_to_smt_type_typeof_apply_of_fun_like
@@ -1145,7 +1070,7 @@ private theorem eo_to_smt_datatype_cons_substitute
       simp [__eo_to_smt_datatype_cons, eo_to_smt_datatype_cons_substitute sub d0 c,
         smtx_dtc_substitute_cons_eq, eo_to_smt_type_substitute_field sub d0 U]
 
-private theorem eo_to_smt_datatype_substitute
+theorem eo_to_smt_datatype_substitute
     (sub : native_String) (d0 : Datatype) :
     (d : Datatype) ->
       __eo_to_smt_datatype (__eo_dt_substitute sub d0 d) =
@@ -1429,38 +1354,6 @@ theorem eo_to_smt_type_typeof_apply_dt_cons_of_fun_like
   · exact hx
   · exact hU
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_dt_sel_of_smt_datatype`. -/
-theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype
-    (x : Term) (s : native_String) (d : Datatype) (i j : native_Nat)
-    (hReserved : __eo_reserved_datatype_name s = false)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Datatype s (__eo_to_smt_datatype d))
-    (hApplyNN :
-      term_has_non_none_type
-        (SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x))) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.DtSel s d i j) x)) =
-      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
-        SmtTerm.Apply (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j) (__eo_to_smt x) := by
-    have hGeneric :
-        __eo_to_smt (Term.Apply (Term.DtSel s d i j) x) =
-          SmtTerm.Apply (__eo_to_smt (Term.DtSel s d i j)) (__eo_to_smt x) := by
-      rfl
-    simpa [eo_to_smt_term_dt_sel, native_ite, hReserved] using hGeneric
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) =
-        __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j := by
-    rw [hTranslate]
-    exact dt_sel_term_typeof_of_non_none hApplyNN
-  have hApplyNN' :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) ≠ SmtType.None := by
-    simpa [hTranslate] using hApplyNN
-  have hRet :
-      __smtx_ret_typeof_sel s (__eo_to_smt_datatype d) i j ≠ SmtType.None := by
-    rw [hSmt] at hApplyNN'
-    exact hApplyNN'
-  exact eo_to_smt_type_typeof_of_smt_type _ hSmt hRet
-
 /-- Stronger EO-side helper for `typeof_apply_dt_sel`. -/
 theorem eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type
     (x : Term) (s : native_String) (d : Datatype) (i j : native_Nat)
@@ -1493,28 +1386,6 @@ theorem eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type_smt_ret
     (eo_to_smt_type_typeof_apply_dt_sel_of_datatype_type x s d i j hx).trans
       (eo_to_smt_typeof_dt_sel_return_substitute_self s d i j)
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_select_of_smt_map`. -/
-theorem eo_to_smt_type_typeof_apply_apply_select_of_smt_map
-    (x y : Term) (A B : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Map A B)
-    (hx : __smtx_typeof (__eo_to_smt x) = A)
-    (hApplyNN : term_has_non_none_type (SmtTerm.select (__eo_to_smt y) (__eo_to_smt x))) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.select) y) x)) = B := by
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.select) y) x)) = B := by
-    change __smtx_typeof (SmtTerm.select (__eo_to_smt y) (__eo_to_smt x)) = B
-    rw [typeof_select_eq (__eo_to_smt y) (__eo_to_smt x), hy, hx]
-    simp [__smtx_typeof_select, native_ite, native_Teq]
-  have hApplyNN' :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.select) y) x)) ≠
-        SmtType.None := by
-    change __smtx_typeof (SmtTerm.select (__eo_to_smt y) (__eo_to_smt x)) ≠ SmtType.None
-    exact hApplyNN
-  have hBNN : B ≠ SmtType.None := by
-    rw [hSmt] at hApplyNN'
-    exact hApplyNN'
-  exact eo_to_smt_type_typeof_of_smt_type _ hSmt hBNN
-
 /-- Stronger EO-side helper for `typeof_apply_apply_select`. -/
 theorem eo_to_smt_type_typeof_apply_apply_select_of_array
     (x y U T : Term)
@@ -1530,24 +1401,6 @@ theorem eo_to_smt_type_typeof_apply_apply_select_of_array
     __eo_to_smt_type T
   rw [hy, hx]
   simpa [__eo_typeof_select, hUNS] using congrArg __eo_to_smt_type hReq
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_store_of_smt_map`. -/
-theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_smt_map
-    (x y z : Term) (A B : SmtType)
-    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Map A B)
-    (hy : __smtx_typeof (__eo_to_smt y) = A)
-    (hx : __smtx_typeof (__eo_to_smt x) = B)
-    (hApplyNN : term_has_non_none_type (SmtTerm.store (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x))) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x)) =
-      SmtType.Map A B := by
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) z) y) x)) =
-        SmtType.Map A B := by
-    change __smtx_typeof (SmtTerm.store (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) =
-      SmtType.Map A B
-    rw [typeof_store_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)]
-    simp [__smtx_typeof_store, native_ite, native_Teq, hz, hy, hx]
-  exact eo_to_smt_type_typeof_of_smt_type _ hSmt (by simp)
 
 /-- Stronger EO-side helper for `typeof_apply_apply_apply_store`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_store_of_array
@@ -1827,19 +1680,6 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_smt_numeral_tupl
     simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hInnerTy
   exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
-/-- Simplifies EO-to-SMT type translation for `typeof_seq_empty`. -/
-theorem eo_to_smt_type_typeof_seq_empty
-    (x : Term)
-    (h : __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.UOp1 UserOp1.seq_empty x)) =
-      __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) := by
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1.seq_empty x)) =
-        __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type x)) := by
-    rfl
-  exact eo_to_smt_type_typeof_of_smt_type
-    (Term.UOp1 UserOp1.seq_empty x) hSmt (by simpa [hSmt] using h)
-
 /-- Stronger EO-side helper for `typeof_seq_empty`. -/
 theorem eo_to_smt_type_typeof_seq_empty_of_seq_type
     (T : Term)
@@ -1894,19 +1734,6 @@ theorem eo_to_smt_typeof_matches_translation_seq_empty
     change SmtType.Seq A =
       __eo_to_smt_type (__eo_typeof (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)))
     rw [hEo, hU]
-
-/-- Simplifies EO-to-SMT type translation for `typeof_set_empty`. -/
-theorem eo_to_smt_type_typeof_set_empty
-    (x : Term)
-    (h : __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type x)) ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.UOp1 UserOp1.set_empty x)) =
-      __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type x)) := by
-  have hSmt :
-      __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1.set_empty x)) =
-        __smtx_typeof (__eo_to_smt_set_empty (__eo_to_smt_type x)) := by
-    rfl
-  exact eo_to_smt_type_typeof_of_smt_type
-    (Term.UOp1 UserOp1.set_empty x) hSmt (by simpa [hSmt] using h)
 
 /-- Stronger EO-side helper for `typeof_set_empty`. -/
 theorem eo_to_smt_type_typeof_set_empty_of_set_type
@@ -1971,79 +1798,6 @@ theorem eo_to_smt_type_typeof_purify
   change __eo_to_smt_type (__eo_typeof__at_purify (__eo_typeof x)) =
       __eo_to_smt_type (__eo_typeof x)
   cases h : __eo_typeof x <;> rfl
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_purify_of_smt_apply`. -/
-theorem eo_to_smt_type_typeof_apply_purify_of_smt_apply
-    (x y : Term) (A B : SmtType)
-    (hHead :
-      __smtx_typeof (__eo_to_smt y) = SmtType.FunType A B ∨
-        __smtx_typeof (__eo_to_smt y) = SmtType.DtcAppType A B)
-    (hx : __smtx_typeof (__eo_to_smt x) = A)
-    (hA : A ≠ SmtType.None)
-    (hB : B ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1._at_purify y) x)) = B := by
-  have hHeadType :
-      __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) =
-        __smtx_typeof (__eo_to_smt y) := by
-    change __smtx_typeof (SmtTerm._at_purify (__eo_to_smt y)) =
-      __smtx_typeof (__eo_to_smt y)
-    simp [__smtx_typeof]
-  have hHead' :
-      __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) = SmtType.FunType A B ∨
-        __smtx_typeof (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) = SmtType.DtcAppType A B := by
-    rw [hHeadType]
-    exact hHead
-  have hNonSel :
-      ∀ s d i j, __eo_to_smt (Term.UOp1 UserOp1._at_purify y) ≠ SmtTerm.DtSel s d i j := by
-    intro s d i j hSel
-    change SmtTerm._at_purify (__eo_to_smt y) = SmtTerm.DtSel s d i j at hSel
-    cases hSel
-  have hNonTester :
-      ∀ s d i, __eo_to_smt (Term.UOp1 UserOp1._at_purify y) ≠ SmtTerm.DtTester s d i := by
-    intro s d i hTester
-    change SmtTerm._at_purify (__eo_to_smt y) = SmtTerm.DtTester s d i at hTester
-    cases hTester
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.UOp1 UserOp1._at_purify y) x) =
-        SmtTerm.Apply (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) (__eo_to_smt x) := by
-    rfl
-  have hGeneric :
-      generic_apply_type (__eo_to_smt (Term.UOp1 UserOp1._at_purify y)) (__eo_to_smt x) := by
-    exact generic_apply_type_of_non_special_head _ _ hNonSel hNonTester
-  simpa using
-    eo_to_smt_type_typeof_apply_of_smt_apply
-      x (Term.UOp1 UserOp1._at_purify y) A B hHead' hx hTranslate hGeneric hA hB
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_at_array_deq_diff_of_smt_apply`. -/
-theorem eo_to_smt_type_typeof_apply_at_array_deq_diff_of_smt_apply
-    (x x1 x2 : Term) (A B : SmtType)
-    (hHead :
-      __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x1 x2)) = SmtType.FunType A B ∨
-        __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x1 x2)) = SmtType.DtcAppType A B)
-    (hx : __smtx_typeof (__eo_to_smt x) = A)
-    (hA : A ≠ SmtType.None)
-    (hB : B ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) x)) = B := by
-  have hHeadTranslate :
-      __eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) =
-        (let _v0 := __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x1 x2));
-         let _v2 := SmtTerm.Var "@x" _v0;
-         SmtTerm.choice_nth "@x" _v0
-          (SmtTerm.not (SmtTerm.eq (SmtTerm.select (__eo_to_smt x1) _v2) (SmtTerm.select (__eo_to_smt x2) _v2))) 0) := by
-    rfl
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) x) =
-        SmtTerm.Apply (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x1 x2)) (__eo_to_smt x) := by
-    rfl
-  have hGeneric :
-      generic_apply_type (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff x1 x2)) (__eo_to_smt x) := by
-    rw [hHeadTranslate]
-    exact generic_apply_type_of_non_special_head _ _
-      (by intro s d i j h; cases h)
-      (by intro s d i h; cases h)
-  simpa using
-    eo_to_smt_type_typeof_apply_of_smt_apply
-      x (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) A B hHead hx hTranslate hGeneric hA hB
 
 /-- Stronger EO-side helper for `typeof_apply_at_bvsize`. -/
 theorem eo_to_smt_type_typeof_apply_at_bvsize_of_bitvec_type
@@ -2163,40 +1917,6 @@ theorem eo_to_smt_type_typeof_apply_set_is_singleton_of_set
   change __eo_to_smt_type (__eo_typeof_set_is_empty (__eo_typeof x)) = SmtType.Bool
   rw [hx]
   rfl
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_at_sets_deq_diff_of_smt_apply`. -/
-theorem eo_to_smt_type_typeof_apply_at_sets_deq_diff_of_smt_apply
-    (x x1 x2 : Term) (A B : SmtType)
-    (hHead :
-      __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2)) = SmtType.FunType A B ∨
-        __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2)) = SmtType.DtcAppType A B)
-    (hx : __smtx_typeof (__eo_to_smt x) = A)
-    (hA : A ≠ SmtType.None)
-    (hB : B ≠ SmtType.None) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2) x)) = B := by
-  have hHeadTranslate :
-      __eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2) =
-        let _v0 := __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2))
-        let _v2 := SmtTerm.Var "@x" _v0
-        SmtTerm.choice_nth "@x" _v0
-          (SmtTerm.not
-            (SmtTerm.eq
-              (SmtTerm.set_member _v2 (__eo_to_smt x1))
-              (SmtTerm.set_member _v2 (__eo_to_smt x2)))) 0 := by
-    rfl
-  have hTranslate :
-      __eo_to_smt (Term.Apply (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2) x) =
-        SmtTerm.Apply (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2)) (__eo_to_smt x) := by
-    rfl
-  have hGeneric :
-      generic_apply_type (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2)) (__eo_to_smt x) := by
-    rw [hHeadTranslate]
-    exact generic_apply_type_of_non_special_head _ _
-      (by intro s d i j h; cases h)
-      (by intro s d i h; cases h)
-  simpa using
-    eo_to_smt_type_typeof_apply_of_smt_apply
-      x (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2) A B hHead hx hTranslate hGeneric hA hB
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_to_real_of_int`. -/
 theorem eo_to_smt_type_typeof_apply_to_real_of_int
@@ -2487,20 +2207,6 @@ theorem eo_to_smt_type_typeof_apply_sbv_to_int_of_bitvec
   change __eo_to_smt_type (__eo_typeof__at_bvsize (__eo_typeof x)) = SmtType.Int
   rw [hx]
   rfl
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_contains_of_smt_seq`. -/
-theorem eo_to_smt_type_typeof_apply_apply_str_contains_of_smt_seq
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) y) x)) =
-      SmtType.Bool := by
-  let t := Term.Apply (Term.Apply (Term.UOp UserOp.str_contains) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Bool := by
-    change __smtx_typeof (SmtTerm.str_contains (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Bool
-    rw [typeof_str_contains_eq (__eo_to_smt y) (__eo_to_smt x), hy, hx]
-    simp [__smtx_typeof_seq_op_2_ret, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_prefixof_of_smt_seq_char`. -/
 theorem eo_to_smt_type_typeof_apply_apply_str_prefixof_of_smt_seq
@@ -4536,60 +4242,6 @@ theorem eo_to_smt_type_typeof_apply_apply_bvsdivo_of_smt_bitvec
   simpa [__eo_typeof_bvult, __eo_eq, __eo_requires, native_teq, native_not, native_ite] using
     (rfl : __eo_to_smt_type Term.Bool = SmtType.Bool)
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_repeat_of_smt_numeral_bitvec`. -/
-theorem eo_to_smt_type_typeof_apply_apply_repeat_of_smt_numeral_bitvec
-    (x y : Term) (i : native_Int) (w : native_Nat)
-    (hy : __eo_to_smt y = SmtTerm.Numeral i)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
-    (hi : native_zleq 1 i = true) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.repeat y) x)) =
-      SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w))) := by
-  let t := Term.Apply (Term.UOp1 UserOp1.repeat y) x
-  have hSmt :
-      __smtx_typeof (__eo_to_smt t) =
-        SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w))) := by
-    change __smtx_typeof (SmtTerm.repeat (__eo_to_smt y) (__eo_to_smt x)) =
-      SmtType.BitVec (native_int_to_nat (native_zmult i (native_nat_to_int w)))
-    rw [typeof_repeat_eq, hy, hx]
-    simp [__smtx_typeof_repeat, native_ite, hi]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_zero_extend_of_smt_numeral_bitvec`. -/
-theorem eo_to_smt_type_typeof_apply_apply_zero_extend_of_smt_numeral_bitvec
-    (x y : Term) (i : native_Int) (w : native_Nat)
-    (hy : __eo_to_smt y = SmtTerm.Numeral i)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
-    (hi : native_zleq 0 i = true) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.zero_extend y) x)) =
-      SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
-  let t := Term.Apply (Term.UOp1 UserOp1.zero_extend y) x
-  have hSmt :
-      __smtx_typeof (__eo_to_smt t) =
-        SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
-    change __smtx_typeof (SmtTerm.zero_extend (__eo_to_smt y) (__eo_to_smt x)) =
-      SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w)))
-    rw [typeof_zero_extend_eq, hy, hx]
-    simp [__smtx_typeof_zero_extend, native_ite, hi]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_sign_extend_of_smt_numeral_bitvec`. -/
-theorem eo_to_smt_type_typeof_apply_apply_sign_extend_of_smt_numeral_bitvec
-    (x y : Term) (i : native_Int) (w : native_Nat)
-    (hy : __eo_to_smt y = SmtTerm.Numeral i)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
-    (hi : native_zleq 0 i = true) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.sign_extend y) x)) =
-      SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
-  let t := Term.Apply (Term.UOp1 UserOp1.sign_extend y) x
-  have hSmt :
-      __smtx_typeof (__eo_to_smt t) =
-        SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w))) := by
-    change __smtx_typeof (SmtTerm.sign_extend (__eo_to_smt y) (__eo_to_smt x)) =
-      SmtType.BitVec (native_int_to_nat (native_zplus i (native_nat_to_int w)))
-    rw [typeof_sign_extend_eq, hy, hx]
-    simp [__smtx_typeof_sign_extend, native_ite, hi]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_rotate_left_of_smt_numeral_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_apply_rotate_left_of_smt_numeral_bitvec
     (x y : Term) (i : native_Int) (w : native_Nat)
@@ -4614,22 +4266,6 @@ theorem eo_to_smt_type_typeof_apply_apply_rotate_right_of_smt_numeral_bitvec
   rw [eo_typeof_eq_int_of_smt_numeral y i hy, eo_typeof_eq_bitvec_of_smt_bitvec x w hx]
   exact eo_to_smt_type_bitvec_nat w
 
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_int_to_bv_of_smt_numeral_int`. -/
-theorem eo_to_smt_type_typeof_apply_apply_int_to_bv_of_smt_numeral_int
-    (x y : Term) (i : native_Int)
-    (hy : __eo_to_smt y = SmtTerm.Numeral i)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int)
-    (hi : native_zleq 0 i = true) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp1 UserOp1.int_to_bv y) x)) =
-      SmtType.BitVec (native_int_to_nat i) := by
-  let t := Term.Apply (Term.UOp1 UserOp1.int_to_bv y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.BitVec (native_int_to_nat i) := by
-    change __smtx_typeof (SmtTerm.int_to_bv (__eo_to_smt y) (__eo_to_smt x)) =
-      SmtType.BitVec (native_int_to_nat i)
-    rw [typeof_int_to_bv_eq, hy, hx]
-    simp [__smtx_typeof_int_to_bv, native_ite, hi]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_bvnego_of_bitvec`. -/
 theorem eo_to_smt_type_typeof_apply_bvnego_of_bitvec
     (x : Term) (w : native_Nat)
@@ -4638,142 +4274,6 @@ theorem eo_to_smt_type_typeof_apply_bvnego_of_bitvec
   change __eo_to_smt_type (__eo_typeof_bvnego (__eo_typeof x)) = SmtType.Bool
   rw [hx]
   rfl
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_concat_of_smt_seq`. -/
-theorem eo_to_smt_type_typeof_apply_apply_str_concat_of_smt_seq
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) y) x)) =
-      SmtType.Seq T := by
-  let t := Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T := by
-    change __smtx_typeof (SmtTerm.str_concat (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Seq T
-    rw [typeof_str_concat_eq (__eo_to_smt y) (__eo_to_smt x), hy, hx]
-    simp [__smtx_typeof_seq_op_2, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_str_at_of_smt_seq_int`. -/
-theorem eo_to_smt_type_typeof_apply_apply_str_at_of_smt_seq_int
-    (x y : Term) (T : SmtType)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.str_at) y) x)) =
-      SmtType.Seq T := by
-  rcases eo_typeof_eq_seq_of_smt_seq y hy with ⟨U, hy', hU⟩
-  have hT :
-      __smtx_typeof_guard T (SmtType.Seq T) = SmtType.Seq T := by
-    simpa [hy', hU, __eo_to_smt_type] using
-      eo_to_smt_type_typeof_of_smt_type y hy (by simp)
-  have hTNN : T ≠ SmtType.None := by
-    intro hNone
-    rw [hNone] at hT
-    simp [__smtx_typeof_guard, native_ite, native_Teq] at hT
-  simpa [hU, smtx_typeof_guard_of_non_none T (SmtType.Seq T) hTNN] using
-    eo_to_smt_type_typeof_apply_apply_str_at_of_seq_int
-      x y U hy' (eo_typeof_eq_int_of_smt_int x hx)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_extract_of_smt_numeral_numeral_bitvec`. -/
-theorem eo_to_smt_type_typeof_apply_apply_apply_extract_of_smt_numeral_numeral_bitvec
-    (x y z : Term) (i j : native_Int) (w : native_Nat)
-    (hz : __eo_to_smt z = SmtTerm.Numeral i)
-    (hy : __eo_to_smt y = SmtTerm.Numeral j)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.BitVec w)
-    (hj0 : native_zleq 0 j = true)
-    (hji : native_zleq j i = true)
-    (hiw : native_zlt i (native_nat_to_int w) = true) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp2 UserOp2.extract z y) x)) =
-      SmtType.BitVec (native_int_to_nat (native_zplus (native_zplus i (native_zneg j)) 1)) := by
-  let t := Term.Apply (Term.UOp2 UserOp2.extract z y) x
-  have hSmt :
-      __smtx_typeof (__eo_to_smt t) =
-        SmtType.BitVec (native_int_to_nat (native_zplus (native_zplus i (native_zneg j)) 1)) := by
-    change __smtx_typeof (SmtTerm.extract (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) =
-      SmtType.BitVec (native_int_to_nat (native_zplus (native_zplus i (native_zneg j)) 1))
-    rw [typeof_extract_eq, hz, hy, hx]
-    simp [__smtx_typeof_extract, native_ite, hj0, hji, hiw]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_str_substr_of_smt_seq_int_int`. -/
-theorem eo_to_smt_type_typeof_apply_apply_apply_str_substr_of_smt_seq_int_int
-    (x y z : Term) (T : SmtType)
-    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_substr) z) y) x)) =
-      SmtType.Seq T := by
-  rcases eo_typeof_eq_seq_of_smt_seq z hz with ⟨U, hz', hU⟩
-  have hT :
-      __smtx_typeof_guard T (SmtType.Seq T) = SmtType.Seq T := by
-    simpa [hz', hU, __eo_to_smt_type] using
-      eo_to_smt_type_typeof_of_smt_type z hz (by simp)
-  have hTNN : T ≠ SmtType.None := by
-    intro hNone
-    rw [hNone] at hT
-    simp [__smtx_typeof_guard, native_ite, native_Teq] at hT
-  simpa [hU, smtx_typeof_guard_of_non_none T (SmtType.Seq T) hTNN] using
-    eo_to_smt_type_typeof_apply_apply_apply_str_substr_of_seq_int_int
-      x y z U hz' (eo_typeof_eq_int_of_smt_int y hy) (eo_typeof_eq_int_of_smt_int x hx)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_str_indexof_of_smt_seq_seq_int`. -/
-theorem eo_to_smt_type_typeof_apply_apply_apply_str_indexof_of_smt_seq_seq_int
-    (x y z : Term) (T : SmtType)
-    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Int) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x)) =
-      SmtType.Int := by
-  let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof) z) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Int := by
-    change __smtx_typeof (SmtTerm.str_indexof (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Int
-    rw [typeof_str_indexof_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
-    simp [__smtx_typeof_str_indexof, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_str_update_of_smt_seq_int_seq`. -/
-theorem eo_to_smt_type_typeof_apply_apply_apply_str_update_of_smt_seq_int_seq
-    (x y z : Term) (T : SmtType)
-    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Int)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) z) y) x)) =
-      SmtType.Seq T := by
-  let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_update) z) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T := by
-    change __smtx_typeof (SmtTerm.str_update (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Seq T
-    rw [typeof_str_update_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
-    simp [__smtx_typeof_str_update, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_str_replace_of_smt_seq`. -/
-theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_of_smt_seq
-    (x y z : Term) (T : SmtType)
-    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) z) y) x)) =
-      SmtType.Seq T := by
-  let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace) z) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T := by
-    change __smtx_typeof (SmtTerm.str_replace (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Seq T
-    rw [typeof_str_replace_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
-    simp [__smtx_typeof_seq_op_3, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
-
-/-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_str_replace_all_of_smt_seq`. -/
-theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_all_of_smt_seq
-    (x y z : Term) (T : SmtType)
-    (hz : __smtx_typeof (__eo_to_smt z) = SmtType.Seq T)
-    (hy : __smtx_typeof (__eo_to_smt y) = SmtType.Seq T)
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.Seq T) :
-    __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_all) z) y) x)) =
-      SmtType.Seq T := by
-  let t := Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_all) z) y) x
-  have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Seq T := by
-    change __smtx_typeof (SmtTerm.str_replace_all (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x)) = SmtType.Seq T
-    rw [typeof_str_replace_all_eq (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt x), hz, hy, hx]
-    simp [__smtx_typeof_seq_op_3, native_ite, native_Teq]
-  exact eo_to_smt_type_typeof_of_smt_type t hSmt (by simp)
 
 /-- Simplifies EO-to-SMT type translation for `typeof_apply_apply_apply_str_replace_re_of_smt_seq_char_reglan`. -/
 theorem eo_to_smt_type_typeof_apply_apply_apply_str_replace_re_of_smt_seq_char_reglan
