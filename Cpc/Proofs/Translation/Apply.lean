@@ -6592,6 +6592,24 @@ private theorem smtx_typeof_dt_cons_field_wf_of_non_none_of_self_substitute_wf
   rw [hRawEq]
   exact smtx_type_fun_like_domains_field_wf_of_chain_field_wf_rec raw hChain
 
+private theorem smtx_typeof_dt_cons_field_wf_of_non_none_of_self_substitute_wf_principle
+    (hSelfWf :
+      ∀ (s : native_String) (d : SmtDatatype),
+        __smtx_type_wf (SmtType.Datatype s d) = true ->
+          __smtx_dt_wf_rec (__smtx_dt_substitute s d d) native_reflist_nil = true)
+    (s : native_String) (d : SmtDatatype) (i : native_Nat)
+    (hNN : term_has_non_none_type (SmtTerm.DtCons s d i)) :
+    smtx_type_fun_like_domains_field_wf
+      (__smtx_typeof (SmtTerm.DtCons s d i)) := by
+  let raw := __smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i
+  have hGuardNN : __smtx_typeof_guard_wf (SmtType.Datatype s d) raw ≠ SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    simpa [Smtm.typeof_dt_cons_eq, raw] using hNN
+  have hBaseTypeWf : __smtx_type_wf (SmtType.Datatype s d) = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
+  exact smtx_typeof_dt_cons_field_wf_of_non_none_of_self_substitute_wf
+    s d i hNN (hSelfWf s d hBaseTypeWf)
+
 private theorem smtx_typeof_apply_dt_sel_field_wf_of_non_none
     (s : native_String) (d : SmtDatatype) (i j : native_Nat) (x : SmtTerm)
     (hNN : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :
@@ -6994,6 +7012,37 @@ private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_dt
     eo_to_smt_type_typeof_apply_from_ih_of_fun_like
       f x A B ihF ihX hHead hX hEoApply hArgWF hA
   exact hSmt.trans hEo.symm
+
+private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_dt_cons_self_substitute_wf
+    (hSelfWf :
+      ∀ (s : native_String) (d : SmtDatatype),
+        __smtx_type_wf (SmtType.Datatype s d) = true ->
+          __smtx_dt_wf_rec (__smtx_dt_substitute s d d) native_reflist_nil = true)
+    (f x : Term)
+    (ihF :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hGeneric :
+      generic_apply_type (__eo_to_smt f) (__eo_to_smt x))
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hEoApply :
+      __eo_typeof (Term.Apply f x) =
+        __eo_typeof_apply (__eo_typeof f) (__eo_typeof x))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+      __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
+  exact eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_dt_cons_field_wf
+    (fun s d i hNN =>
+      smtx_typeof_dt_cons_field_wf_of_non_none_of_self_substitute_wf_principle
+        hSelfWf s d i hNN)
+    f x ihF ihX hGeneric hTranslate hEoApply hNonNone
 
 /-- Bridge-free selector application typing, using the local IH for the selector argument. -/
 private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
