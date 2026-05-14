@@ -191,7 +191,7 @@ private theorem generic_apply_type_of_non_special_head_local
     (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x := by
   unfold generic_apply_type
-  exact __smtx_typeof.eq_141 f x hSel hTester
+  cases f <;> simp [__smtx_typeof]
 
 private theorem smtx_typeof_apply_none (x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply SmtTerm.None x) = SmtType.None := by

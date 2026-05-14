@@ -434,10 +434,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
 
 theorem smtx_model_eval_none (M : SmtModel) :
     __smtx_model_eval M SmtTerm.None = SmtValue.NotValue := by
-  rw [__smtx_model_eval.eq_144]
-  all_goals
-    intros
-    contradiction
+  simp [__smtx_model_eval]
 
 theorem term_ne_stuck_of_seq_eval
     {M : SmtModel} {t : Term} :

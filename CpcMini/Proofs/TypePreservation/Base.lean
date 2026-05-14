@@ -221,6 +221,8 @@ theorem typeof_value_model_eval_forall
 
 /-- Provides a witness for `choice_nth` at depth `0`. -/
 theorem choice_nth_zero_has_witness
+    (Mw : SmtModel)
+    (hMw : model_total_typed Mw)
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
@@ -229,8 +231,11 @@ theorem choice_nth_zero_has_witness
   unfold term_has_non_none_type at ht
   cases h : __smtx_typeof body <;>
     simp [__smtx_typeof, __smtx_typeof_choice_nth, native_ite, native_Teq, h] at ht ⊢
-  · exact canonical_type_inhabited_of_type_wf T
-      (smtx_typeof_guard_wf_wf_of_non_none T T ht)
+  · have hWF : __smtx_type_wf T = true :=
+      smtx_typeof_guard_wf_wf_of_non_none T T ht
+    exact ⟨__smtx_model_lookup Mw s T,
+      model_total_typed_lookup hMw s T hWF,
+      model_total_typed_lookup_canonical hMw s T hWF⟩
 
 /-- Derives the type of `choice_nth` at depth `0`. -/
 theorem choice_nth_zero_typeof_of_non_none
@@ -246,6 +251,8 @@ theorem choice_nth_zero_typeof_of_non_none
 
 /-- Shows that evaluating `choice_nth` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_choice_nth
+    (Mw : SmtModel)
+    (hMw : model_total_typed Mw)
     (M : SmtModel)
     (s : native_String)
     (T : SmtType)
@@ -267,7 +274,7 @@ theorem typeof_value_model_eval_choice_nth
         simp [hSat]
         exact (Classical.choose_spec hSat).1
       · rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_1]
-        have hWitnessCanon := choice_nth_zero_has_witness ht
+        have hWitnessCanon := choice_nth_zero_has_witness Mw hMw ht
         have hWitnessBool :
             ∃ v : SmtValue,
               __smtx_typeof_value v = T ∧ __smtx_value_canonical_bool v := by

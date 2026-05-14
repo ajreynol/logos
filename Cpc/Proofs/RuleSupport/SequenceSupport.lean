@@ -54,8 +54,10 @@ theorem term_has_non_none_of_type_eq
 
 def type_result_seq_components_wf : SmtType -> Prop
   | SmtType.Seq A => __smtx_type_wf (SmtType.Seq A) = true
-  | SmtType.Map _ B => type_result_seq_components_wf B
-  | SmtType.FunType _ B => type_result_seq_components_wf B
+  | SmtType.Set A => __smtx_type_wf (SmtType.Set A) = true
+  | SmtType.Datatype s d => __smtx_type_wf (SmtType.Datatype s d) = true
+  | SmtType.Map A B => __smtx_type_wf (SmtType.Map A B) = true
+  | SmtType.FunType A B => __smtx_type_wf (SmtType.FunType A B) = true
   | SmtType.DtcAppType _ B => type_result_seq_components_wf B
   | _ => True
 
@@ -256,12 +258,14 @@ theorem type_result_seq_components_wf_of_type_wf
     cases T
     case Seq A =>
       exact h
+    case Datatype s d =>
+      exact h
     case Set A =>
-      simp [type_result_seq_components_wf]
+      exact h
     case Map A B =>
-      exact go B (map_type_wf_components_of_wf h).2
+      exact h
     case FunType A B =>
-      exact go B (fun_type_wf_components_of_wf h).2
+      exact h
     case DtcAppType A B =>
       simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
     all_goals
@@ -284,6 +288,20 @@ theorem type_result_seq_components_wf_dt_cons_rec
   | SmtDatatype.null, i => by
       cases i <;> simp [__smtx_typeof_dt_cons_rec, type_result_seq_components_wf]
 
+private theorem seq_char_wf :
+    __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
+  have hSeqInh :
+      native_inhabited_type (SmtType.Seq SmtType.Char) = true :=
+    native_inhabited_type_of_type_inhabited
+      (T := SmtType.Seq SmtType.Char)
+      ⟨SmtValue.Seq (SmtSeq.empty SmtType.Char), by
+        simp [__smtx_typeof_value, __smtx_typeof_seq_value]⟩
+  have hCharInh : native_inhabited_type SmtType.Char = true :=
+    native_inhabited_type_of_type_inhabited
+      (T := SmtType.Char)
+      ⟨SmtValue.Char (native_nat_to_char native_nat_zero), rfl⟩
+  simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hSeqInh, hCharInh]
+
 theorem smt_term_result_seq_components_wf_of_non_none
     (x : SmtTerm) (hxNN : term_has_non_none_type x) :
     type_result_seq_components_wf (__smtx_typeof x) := by
@@ -304,18 +322,18 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf T = true :=
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-      rw [__smtx_typeof.eq_142,
-        smtx_typeof_guard_wf_of_non_none T T hGuardNN]
-      exact type_result_seq_components_wf_of_type_wf hWf
+      simpa [__smtx_typeof,
+        smtx_typeof_guard_wf_of_non_none T T hGuardNN] using
+        type_result_seq_components_wf_of_type_wf hWf
     case UConst s T =>
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf T = true :=
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-      rw [__smtx_typeof.eq_143,
-        smtx_typeof_guard_wf_of_non_none T T hGuardNN]
-      exact type_result_seq_components_wf_of_type_wf hWf
+      simpa [__smtx_typeof,
+        smtx_typeof_guard_wf_of_non_none T T hGuardNN] using
+        type_result_seq_components_wf_of_type_wf hWf
     case seq_empty T =>
       have hGuardNN : __smtx_typeof_guard_wf (SmtType.Seq T) (SmtType.Seq T) ≠
           SmtType.None := by
@@ -335,7 +353,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         smtx_typeof_guard_wf_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN
       rw [__smtx_typeof.eq_121,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set T) (SmtType.Set T) hGuardNN]
-      simp [type_result_seq_components_wf]
+      exact hWf
     case seq_unit t =>
       have hGuardNN :
           __smtx_typeof_guard_wf
@@ -363,7 +381,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rw [__smtx_typeof.eq_122,
         smtx_typeof_guard_wf_of_non_none (SmtType.Set (__smtx_typeof t))
           (SmtType.Set (__smtx_typeof t)) hGuardNN]
-      simp [type_result_seq_components_wf]
+      exact hWf
     case str_concat x y =>
       rcases seq_binop_args_of_non_none (op := SmtTerm.str_concat)
           (typeof_str_concat_eq x y) hxNN with ⟨T, hxT, hyT⟩
@@ -429,37 +447,33 @@ theorem smt_term_result_seq_components_wf_of_non_none
         seq_char_arg_of_non_none (op := SmtTerm.str_to_lower)
           (typeof_str_to_lower_eq t) hxNN
       rw [typeof_str_to_lower_eq, ht]
-      simp [type_result_seq_components_wf, __smtx_type_wf,
-        __smtx_type_wf_rec, native_and, native_ite, native_Teq]
+      simpa [type_result_seq_components_wf] using seq_char_wf
     case str_to_upper t =>
       have ht : __smtx_typeof t = SmtType.Seq SmtType.Char :=
         seq_char_arg_of_non_none (op := SmtTerm.str_to_upper)
           (typeof_str_to_upper_eq t) hxNN
       rw [typeof_str_to_upper_eq, ht]
-      simp [type_result_seq_components_wf, __smtx_type_wf,
-        __smtx_type_wf_rec, native_and, native_ite, native_Teq]
+      simpa [type_result_seq_components_wf] using seq_char_wf
     case str_from_code t =>
       rw [typeof_str_from_code_eq]
       cases h : __smtx_typeof t <;>
-        simp [type_result_seq_components_wf, __smtx_type_wf,
-          __smtx_type_wf_rec, native_and, native_ite, native_Teq, h]
+        simp [type_result_seq_components_wf, native_ite, native_Teq, h]
+      exact seq_char_wf
     case str_from_int t =>
       rw [typeof_str_from_int_eq]
       cases h : __smtx_typeof t <;>
-        simp [type_result_seq_components_wf, __smtx_type_wf,
-          __smtx_type_wf_rec, native_and, native_ite, native_Teq, h]
+        simp [type_result_seq_components_wf, native_ite, native_Teq, h]
+      exact seq_char_wf
     case str_replace_re x y z =>
       rw [typeof_str_replace_re_eq x y z]
       rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re)
           (typeof_str_replace_re_eq x y z) hxNN with ⟨hx, hy, hz⟩
-      simp [hx, hy, hz, type_result_seq_components_wf, __smtx_type_wf,
-        __smtx_type_wf_rec, native_and, native_ite, native_Teq]
+      simpa [hx, hy, hz, type_result_seq_components_wf] using seq_char_wf
     case str_replace_re_all x y z =>
       rw [typeof_str_replace_re_all_eq x y z]
       rcases str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re_all)
           (typeof_str_replace_re_all_eq x y z) hxNN with ⟨hx, hy, hz⟩
-      simp [hx, hy, hz, type_result_seq_components_wf, __smtx_type_wf,
-        __smtx_type_wf_rec, native_and, native_ite, native_Teq]
+      simpa [hx, hy, hz, type_result_seq_components_wf] using seq_char_wf
     case seq_nth x y =>
       rcases seq_nth_args_of_non_none hxNN with ⟨T, hxT, hy⟩
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
@@ -477,9 +491,12 @@ theorem smt_term_result_seq_components_wf_of_non_none
       have hxNN' : term_has_non_none_type x :=
         term_has_non_none_of_type_eq hxMap (by simp)
       have hxGood := go x hxNN'
+      have hBGood : type_result_seq_components_wf B := by
+        rw [hxMap] at hxGood
+        exact type_result_seq_components_wf_of_type_wf
+          (map_type_wf_components_of_wf hxGood).2
       rw [typeof_select_eq x y]
-      simpa [__smtx_typeof_select, native_ite, native_Teq, hxMap, hyA,
-        type_result_seq_components_wf] using hxGood
+      simpa [__smtx_typeof_select, native_ite, native_Teq, hxMap, hyA] using hBGood
     case store x y z =>
       rcases store_args_of_non_none hxNN with ⟨A, B, hxMap, hyA, hzB⟩
       have hxNN' : term_has_non_none_type x :=
@@ -488,6 +505,35 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rw [typeof_store_eq x y z]
       simpa [__smtx_typeof_store, native_ite, native_Teq, hxMap, hyA, hzB,
         type_result_seq_components_wf] using hxGood
+    case map_diff x y =>
+      rcases map_diff_args_of_non_none hxNN with hMap | hFun | hSet
+      · rcases hMap with ⟨A, B, hxMap, hyMap, hTy⟩
+        have hxNN' : term_has_non_none_type x :=
+          term_has_non_none_of_type_eq hxMap (by simp)
+        have hxGood := go x hxNN'
+        have hMapWf : __smtx_type_wf (SmtType.Map A B) = true := by
+          simpa [hxMap, type_result_seq_components_wf] using hxGood
+        rw [hTy]
+        exact type_result_seq_components_wf_of_type_wf
+          (map_type_wf_components_of_wf hMapWf).1
+      · rcases hFun with ⟨A, B, hxFun, hyFun, hTy⟩
+        have hxNN' : term_has_non_none_type x :=
+          term_has_non_none_of_type_eq hxFun (by simp)
+        have hxGood := go x hxNN'
+        have hFunWf : __smtx_type_wf (SmtType.FunType A B) = true := by
+          simpa [hxFun, type_result_seq_components_wf] using hxGood
+        rw [hTy]
+        exact type_result_seq_components_wf_of_type_wf
+          (fun_type_wf_components_of_wf hFunWf).1
+      · rcases hSet with ⟨A, hxSet, hySet, hTy⟩
+        have hxNN' : term_has_non_none_type x :=
+          term_has_non_none_of_type_eq hxSet (by simp)
+        have hxGood := go x hxNN'
+        have hSetWf : __smtx_type_wf (SmtType.Set A) = true := by
+          simpa [hxSet, type_result_seq_components_wf] using hxGood
+        rw [hTy]
+        exact type_result_seq_components_wf_of_type_wf
+          (set_type_wf_component_of_wf hSetWf)
     case ite c x y =>
       rcases ite_args_of_non_none hxNN with ⟨T, hc, hxT, hyT, hTNN⟩
       have hxNN' : term_has_non_none_type x :=
@@ -544,8 +590,10 @@ theorem smt_term_result_seq_components_wf_of_non_none
       rw [Smtm.typeof_dt_cons_eq,
         smtx_typeof_guard_wf_of_non_none (SmtType.Datatype s d) raw
           hGuardNN]
+      have hBaseWf : __smtx_type_wf (SmtType.Datatype s d) = true :=
+        smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
       exact type_result_seq_components_wf_dt_cons_rec (SmtType.Datatype s d)
-        (by simp [type_result_seq_components_wf])
+        (by simpa [type_result_seq_components_wf] using hBaseWf)
         (__smtx_dt_substitute s d d) i
     case Apply f x =>
       by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
@@ -601,7 +649,10 @@ theorem smt_term_result_seq_components_wf_of_non_none
                 native_Teq, _hA]
           rw [hTyEq, hApplyTy]
           rcases hHead with hF | hF
-          · simpa [hF, type_result_seq_components_wf] using hfGood
+          · have hHeadGood : __smtx_type_wf (SmtType.FunType A B) = true := by
+              simpa [hF, type_result_seq_components_wf] using hfGood
+            exact type_result_seq_components_wf_of_type_wf
+              (fun_type_wf_components_of_wf hHeadGood).2
           · simpa [hF, type_result_seq_components_wf] using hfGood
     case set_union x y =>
       rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
