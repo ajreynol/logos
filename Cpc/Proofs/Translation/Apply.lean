@@ -450,19 +450,28 @@ private theorem eo_to_smt_updater_ne_dt_sel
     (sel t u : SmtTerm) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt_updater sel t u ≠ SmtTerm.DtSel s d i j := by
   intro h
-  cases sel <;> cases h
+  cases sel <;> try cases h
+  case DtSel s' d' i' j' =>
+    cases hIdx : native_zlt (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+      simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_updater_ne_dt_tester
     (sel t u : SmtTerm) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt_updater sel t u ≠ SmtTerm.DtTester s d i := by
   intro h
-  cases sel <;> cases h
+  cases sel <;> try cases h
+  case DtSel s' d' i' j' =>
+    cases hIdx : native_zlt (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+      simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_updater_ne_dt_cons
     (sel t u : SmtTerm) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt_updater sel t u ≠ SmtTerm.DtCons s d i := by
   intro h
-  cases sel <;> cases h
+  cases sel <;> try cases h
+  case DtSel s' d' i' j' =>
+    cases hIdx : native_zlt (native_nat_to_int j') (native_nat_to_int (__smtx_dt_num_sels d' i')) <;>
+      simp [__eo_to_smt_updater, native_ite, hIdx] at h
 
 private theorem eo_to_smt_tuple_update_ne_dt_sel
     (T : SmtType) (n t u : SmtTerm) (s : native_String) (d : SmtDatatype)
@@ -6583,6 +6592,24 @@ private theorem smtx_typeof_dt_cons_field_wf_of_non_none_of_self_substitute_wf
   rw [hRawEq]
   exact smtx_type_fun_like_domains_field_wf_of_chain_field_wf_rec raw hChain
 
+private theorem smtx_typeof_dt_cons_field_wf_of_non_none_of_self_substitute_wf_principle
+    (hSelfWf :
+      ∀ (s : native_String) (d : SmtDatatype),
+        __smtx_type_wf (SmtType.Datatype s d) = true ->
+          __smtx_dt_wf_rec (__smtx_dt_substitute s d d) native_reflist_nil = true)
+    (s : native_String) (d : SmtDatatype) (i : native_Nat)
+    (hNN : term_has_non_none_type (SmtTerm.DtCons s d i)) :
+    smtx_type_fun_like_domains_field_wf
+      (__smtx_typeof (SmtTerm.DtCons s d i)) := by
+  let raw := __smtx_typeof_dt_cons_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i
+  have hGuardNN : __smtx_typeof_guard_wf (SmtType.Datatype s d) raw ≠ SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    simpa [Smtm.typeof_dt_cons_eq, raw] using hNN
+  have hBaseTypeWf : __smtx_type_wf (SmtType.Datatype s d) = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
+  exact smtx_typeof_dt_cons_field_wf_of_non_none_of_self_substitute_wf
+    s d i hNN (hSelfWf s d hBaseTypeWf)
+
 private theorem smtx_typeof_apply_dt_sel_field_wf_of_non_none
     (s : native_String) (d : SmtDatatype) (i j : native_Nat) (x : SmtTerm)
     (hNN : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) :
@@ -6985,6 +7012,37 @@ private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_dt
     eo_to_smt_type_typeof_apply_from_ih_of_fun_like
       f x A B ihF ihX hHead hX hEoApply hArgWF hA
   exact hSmt.trans hEo.symm
+
+private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_dt_cons_self_substitute_wf
+    (hSelfWf :
+      ∀ (s : native_String) (d : SmtDatatype),
+        __smtx_type_wf (SmtType.Datatype s d) = true ->
+          __smtx_dt_wf_rec (__smtx_dt_substitute s d d) native_reflist_nil = true)
+    (f x : Term)
+    (ihF :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hGeneric :
+      generic_apply_type (__eo_to_smt f) (__eo_to_smt x))
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hEoApply :
+      __eo_typeof (Term.Apply f x) =
+        __eo_typeof_apply (__eo_typeof f) (__eo_typeof x))
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+      __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
+  exact eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_dt_cons_field_wf
+    (fun s d i hNN =>
+      smtx_typeof_dt_cons_field_wf_of_non_none_of_self_substitute_wf_principle
+        hSelfWf s d i hNN)
+    f x ihF ihX hGeneric hTranslate hEoApply hNonNone
 
 /-- Bridge-free selector application typing, using the local IH for the selector argument. -/
 private theorem eo_to_smt_type_typeof_apply_dt_sel_of_smt_datatype_from_ih
@@ -12635,6 +12693,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
           SmtType.None := by
       rw [← hTranslate]
       exact hNonNone
+    have hIdx :
+        native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
+          true := by
+      exact eo_to_smt_updater_dt_sel_guard_of_non_none
+        s d i j (__eo_to_smt y) (__eo_to_smt x) hUpdaterNN
     have hIteNN :
         term_has_non_none_type
           (SmtTerm.ite
@@ -12644,7 +12707,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
               (__eo_to_smt x) (SmtTerm.DtCons s d i))
             (__eo_to_smt y)) := by
       unfold term_has_non_none_type
-      simpa [__eo_to_smt_updater] using hUpdaterNN
+      simpa [__eo_to_smt_updater, native_ite, hIdx] using hUpdaterNN
     rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, _hT⟩
     have hCondNN :
         term_has_non_none_type
@@ -12658,6 +12721,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
       hElse.symm.trans hYTy
     have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype s d := by
       rw [hTranslate, __eo_to_smt_updater]
+      simp [native_ite, hIdx]
       rw [typeof_ite_eq, hCond, hThen, hElse, hTTy]
       simp [__smtx_typeof_ite, native_ite, native_Teq]
     have hEo :=
@@ -12720,6 +12784,14 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
                   (__eo_to_smt y) (__eo_to_smt x)) ≠
               SmtType.None := by
           simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hTupleNN
+        have hIdx :
+            native_zlt
+                (native_nat_to_int (native_int_to_nat n))
+                (native_nat_to_int (__smtx_dt_num_sels d native_nat_zero)) =
+              true := by
+          exact eo_to_smt_updater_dt_sel_guard_of_non_none
+            "@Tuple" d native_nat_zero (native_int_to_nat n) (__eo_to_smt y) (__eo_to_smt x)
+            hUpdaterNN
         have hIteNN :
             term_has_non_none_type
               (SmtTerm.ite
@@ -12730,7 +12802,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
                   (__eo_to_smt x) (SmtTerm.DtCons "@Tuple" d native_nat_zero))
                 (__eo_to_smt y)) := by
           unfold term_has_non_none_type
-          simpa [__eo_to_smt_updater] using hUpdaterNN
+          simpa [__eo_to_smt_updater, native_ite, hIdx] using hUpdaterNN
         rcases ite_args_of_non_none hIteNN with ⟨T, hCond, hThen, hElse, _hT⟩
         have hCondNN :
             term_has_non_none_type
@@ -12749,6 +12821,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
                   (__eo_to_smt y) (__eo_to_smt x)) =
               SmtType.Datatype "@Tuple" d := by
           rw [__eo_to_smt_updater]
+          simp [native_ite, hIdx]
           rw [typeof_ite_eq, hCond, hThen, hElse, hTTy]
           simp [__smtx_typeof_ite, native_ite, native_Teq]
         have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d := by
