@@ -1194,6 +1194,23 @@ theorem eo_to_smt_typeof_matches_translation
   exact go t
 
 /--
+Post-induction form of EO type recovery from SMT typing.
+
+This is the proof term we want for the deferred recovery theorem once the
+remaining early callers are rewritten to use explicit induction hypotheses
+instead of importing the full translation theorem.
+-/
+theorem eo_to_smt_type_typeof_of_smt_type_from_full
+    (t : Term) {T : SmtType}
+    (h : __smtx_typeof (__eo_to_smt t) = T)
+    (hT : T ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof t) = T := by
+  have hNonNone : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
+    rw [h]
+    exact hT
+  exact (eo_to_smt_typeof_matches_translation t hNonNone).symm.trans h
+
+/--
 Compatibility wrapper matching the more explicit theorem shape we used in the
 `CpcMini` development.
 -/
