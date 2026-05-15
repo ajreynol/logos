@@ -32,7 +32,7 @@ private theorem smtx_type_wf_rec_of_type_wf
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
   cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
-  all_goals exact h.2
+  all_goals first | exact h | exact h.2 | exact h.2.2
 
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
 theorem smtx_typeof_guard_of_non_none

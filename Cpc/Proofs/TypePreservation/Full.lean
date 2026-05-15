@@ -790,16 +790,9 @@ private theorem tp_seq_char_wf :
     __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
   have hSeqInh :
       native_inhabited_type (SmtType.Seq SmtType.Char) = true :=
-    native_inhabited_type_of_type_inhabited_non_datatype
-      (T := SmtType.Seq SmtType.Char)
-      (by intro s d h; cases h)
-      ⟨SmtValue.Seq (SmtSeq.empty SmtType.Char), by
-        simp [__smtx_typeof_value, __smtx_typeof_seq_value]⟩
+    native_inhabited_type_seq SmtType.Char
   have hCharInh : native_inhabited_type SmtType.Char = true :=
-    native_inhabited_type_of_type_inhabited_non_datatype
-      (T := SmtType.Char)
-      (by intro s d h; cases h)
-      ⟨SmtValue.Char (native_nat_to_char native_nat_zero), rfl⟩
+    native_inhabited_type_char
   simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hSeqInh, hCharInh]
 
 private theorem tp_smt_term_result_seq_components_wf_of_non_none
@@ -1409,8 +1402,7 @@ private theorem tp_type_wf_parts_of_wf_ne_reglan
 
 private theorem tp_int_inhabited :
     native_inhabited_type SmtType.Int = true :=
-  native_inhabited_type_of_type_inhabited_non_datatype
-    (T := SmtType.Int) (by intro s d h; cases h) ⟨SmtValue.Numeral 0, rfl⟩
+  native_inhabited_type_int
 
 private theorem tp_map_type_inhabited
     {A B : SmtType}
@@ -1516,24 +1508,21 @@ theorem dt_sel_wrong_map_type_wf_of_non_none
   have hM3Inh : type_inhabited M3 := by
     exact tp_map_type_inhabited (A := D) (B := R) hRInh
   have hM3InhBool : native_inhabited_type M3 = true :=
-    native_inhabited_type_of_type_inhabited_non_datatype
-      (T := M3) (by intro s d h; simp [M3] at h) hM3Inh
+    native_inhabited_type_map hRParts.1
   have hM3Rec : __smtx_type_wf_rec M3 native_reflist_nil = true := by
     simp [M3, __smtx_type_wf_rec, native_and, hDTParts.1,
       hDTParts.2, hRParts.1, hRParts.2]
   have hM2Inh : type_inhabited M2 := by
     exact tp_map_type_inhabited (A := SmtType.Int) (B := M3) hM3Inh
   have hM2InhBool : native_inhabited_type M2 = true :=
-    native_inhabited_type_of_type_inhabited_non_datatype
-      (T := M2) (by intro s d h; simp [M2] at h) hM2Inh
+    native_inhabited_type_map hM3InhBool
   have hM2Rec : __smtx_type_wf_rec M2 native_reflist_nil = true := by
     simp [M2, __smtx_type_wf_rec, native_and, tp_int_inhabited,
       hM3InhBool, hM3Rec]
   have hM1Inh : type_inhabited M1 := by
     exact tp_map_type_inhabited (A := SmtType.Int) (B := M2) hM2Inh
   have hM1InhBool : native_inhabited_type M1 = true :=
-    native_inhabited_type_of_type_inhabited_non_datatype
-      (T := M1) (by intro s d h; simp [M1] at h) hM1Inh
+    native_inhabited_type_map hM2InhBool
   have hM1Rec : __smtx_type_wf_rec M1 native_reflist_nil = true := by
     simp [M1, __smtx_type_wf_rec, native_and, tp_int_inhabited,
       hM2InhBool, hM2Rec]

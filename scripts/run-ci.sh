@@ -28,6 +28,12 @@ lake build Cpc.Proofs.Rules.Trans
 echo "Compiling CpcMini.Proofs.Checker..."
 lake build CpcMini.Proofs.Checker
 
+echo "Compiling Cpc.Proofs.TypePreservation.Nonvacuity..."
+lake build Cpc.Proofs.TypePreservation.Nonvacuity
+
+echo "Compiling CpcMini.Proofs.TypePreservation.Nonvacuity..."
+lake build CpcMini.Proofs.TypePreservation.Nonvacuity
+
 echo "Compiling CpcMini.Examples.TestSimpleCheckerAssumptions..."
 lake build CpcMini.Examples.TestSimpleCheckerAssumptions
 

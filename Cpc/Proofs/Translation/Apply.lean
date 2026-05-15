@@ -21,7 +21,7 @@ private theorem smtx_type_wf_rec_of_type_wf
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
   cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
-  all_goals exact h.2
+  all_goals first | exact h | exact h.2 | exact h.2.2
 
 private theorem smtx_type_wf_seq_component
     {A : SmtType}
@@ -47,66 +47,48 @@ private theorem smtx_type_wf_fun_components
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
   exact fun_type_wf_components_of_wf h
 
-private theorem native_inhabited_type_of_type_inhabited
-    {T : SmtType}
-    (hNotDatatype : ∀ s d, T ≠ SmtType.Datatype s d)
-    (h : type_inhabited T) :
-    native_inhabited_type T = true :=
-  Smtm.native_inhabited_type_of_type_inhabited_non_datatype hNotDatatype h
-
 @[simp] private theorem native_inhabited_type_bool_apply :
     native_inhabited_type SmtType.Bool = true :=
-  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_bool
+  native_inhabited_type_bool
 
 @[simp] private theorem native_inhabited_type_int_apply :
     native_inhabited_type SmtType.Int = true :=
-  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_int
+  native_inhabited_type_int
 
 @[simp] private theorem native_inhabited_type_real_apply :
     native_inhabited_type SmtType.Real = true :=
-  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_real
+  native_inhabited_type_real
 
 @[simp] private theorem native_inhabited_type_reglan_apply :
     native_inhabited_type SmtType.RegLan = true :=
-  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_reglan
+  native_inhabited_type_reglan
 
 @[simp] private theorem native_inhabited_type_char_apply :
     native_inhabited_type SmtType.Char = true :=
-  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) type_inhabited_char
+  native_inhabited_type_char
 
 @[simp] private theorem native_inhabited_type_usort_apply
     (i : native_Nat) :
     native_inhabited_type (SmtType.USort i) = true :=
-  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) (type_inhabited_usort i)
+  native_inhabited_type_usort i
 
 @[simp] private theorem native_inhabited_type_seq_apply
     (T : SmtType) :
     native_inhabited_type (SmtType.Seq T) = true :=
-  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) (type_inhabited_seq T)
+  native_inhabited_type_seq T
 
 @[simp] private theorem native_inhabited_type_set_apply
     (T : SmtType) :
     native_inhabited_type (SmtType.Set T) = true :=
-  native_inhabited_type_of_type_inhabited (by intro s d h; cases h) (type_inhabited_set T)
+  native_inhabited_type_set T
 
 @[simp] private theorem native_inhabited_type_bitvec_apply
     (w : native_Nat) :
     native_inhabited_type (SmtType.BitVec w) = true := by
-  apply native_inhabited_type_of_type_inhabited
-  · intro s d h
-    cases h
-  refine ⟨SmtValue.Binary (native_nat_to_int w) 0, ?_⟩
-  have hWidth : native_zleq 0 (native_nat_to_int w) = true := by
-    simp [native_zleq, SmtEval.native_zleq, native_nat_to_int,
-      SmtEval.native_nat_to_int]
-  have hMod :
-      native_zeq 0
-        (native_mod_total 0 (native_int_pow2 (native_nat_to_int w))) = true := by
-    simp [native_zeq, SmtEval.native_zeq, native_mod_total,
-      SmtEval.native_mod_total]
-  simpa [native_int_to_nat, SmtEval.native_int_to_nat, native_nat_to_int,
-    SmtEval.native_nat_to_int] using
-      typeof_value_binary_of_nonneg (native_nat_to_int w) 0 hWidth hMod
+  simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+    __smtx_value_canonical_bool, native_and, native_zleq, native_zeq,
+    native_mod_total, native_int_pow2, native_zexp_total, native_nat_to_int,
+    native_int_to_nat, native_ite]
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_apply_concat`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_concat

@@ -482,12 +482,9 @@ mutual
 def native_inhabited_type (T : SmtType) : native_Bool := by
   classical
   exact
-    match T with
-    | SmtType.Datatype _ _ =>
-        native_and
-          (decide (__smtx_typeof_value (__smtx_type_default T) = T))
-          (__smtx_value_canonical_bool (__smtx_type_default T))
-    | _ => decide (∃ v : SmtValue, __smtx_typeof_value v = T)
+    native_and
+      (decide (__smtx_typeof_value (__smtx_type_default T) = T))
+      (__smtx_value_canonical_bool (__smtx_type_default T))
 
 def __vsm_apply_head : SmtValue -> SmtValue
   | (SmtValue.Apply f a) => (__vsm_apply_head f)
@@ -800,6 +797,7 @@ def __smtx_type_default : SmtType -> SmtValue
   | SmtType.Bool => (SmtValue.Boolean false)
   | SmtType.Int => (SmtValue.Numeral 0)
   | SmtType.Real => (SmtValue.Rational (native_mk_rational 0 1))
+  | SmtType.RegLan => (SmtValue.RegLan native_re_none)
   | (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
   | SmtType.Char => (SmtValue.Char (native_nat_to_char native_nat_zero))
   | (SmtType.Datatype s d) => (__smtx_datatype_default s d d native_nat_zero)

@@ -9,8 +9,8 @@ namespace Smtm
 Datatype-default canonicity for the generated Mini model.
 
 The theorem keeps the historical `_assumption` name used by the downstream
-proof skeleton, but the datatype branch of `native_inhabited_type` now carries
-exactly this canonical default witness.
+proof skeleton, but `native_inhabited_type` now uniformly carries exactly this
+canonical default witness.
 -/
 theorem cpcmini_datatype_type_default_typed_canonical_assumption
     (s : native_String)

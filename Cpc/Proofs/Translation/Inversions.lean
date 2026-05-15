@@ -154,10 +154,7 @@ theorem smtx_dt_cons_wf_rec_tail_of_true
     (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
     __smtx_dt_cons_wf_rec c refs = true := by
   cases T <;> simp [__smtx_dt_cons_wf_rec, native_ite] at h ⊢
-  case TypeRef =>
-    exact h.2
-  all_goals
-    exact h.2.2
+  all_goals first | exact h.2 | exact h.2.2
 
 private theorem smtx_dt_wf_tail_of_sum_wf_of_tail_ne_null
     {C : SmtDatatypeCons}
