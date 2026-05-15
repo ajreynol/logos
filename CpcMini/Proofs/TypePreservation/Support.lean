@@ -33,7 +33,16 @@ inductive supported_preservation_term : SmtTerm -> Prop
       supported_preservation_term (SmtTerm.forall s T body)
   | choice_nth (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) :
       supported_preservation_term (SmtTerm.choice_nth s T body n)
-  | map_diff (t1 t2 : SmtTerm) :
+  | map_diff {t1 t2 : SmtTerm}
+      (ht1 : term_has_non_none_type t1)
+      (hs1 : supported_preservation_term t1)
+      (ht2 : term_has_non_none_type t2)
+      (hs2 : supported_preservation_term t2)
+      (hDefault :
+        ∀ {A : SmtType},
+          __smtx_typeof (SmtTerm.map_diff t1 t2) = A ->
+            __smtx_typeof_value (__smtx_type_default A) = A ∧
+              __smtx_value_canonical (__smtx_type_default A)) :
       supported_preservation_term (SmtTerm.map_diff t1 t2)
   | not {t : SmtTerm}
       (ht : term_has_non_none_type t)
