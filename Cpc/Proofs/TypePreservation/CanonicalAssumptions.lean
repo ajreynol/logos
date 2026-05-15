@@ -410,9 +410,74 @@ private theorem smt_fun_head_key_mem_of_mem (k e : SmtValue) (m : SmtMap) :
         exact ih h
 
 /--
+Residual low-level datatype/cardinality support.  The first component handles
+fresh witnesses for infinite datatypes; the second handles the remaining finite
+non-unit datatype case.
+-/
+theorem cpc_datatype_cardinality_support_assumption :
+    (∀ (s : native_String) (d : SmtDatatype),
+      native_inhabited_type (SmtType.Datatype s d) = true ->
+        __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true ->
+          __smtx_is_finite_type (SmtType.Datatype s d) = false ->
+            ∀ avoid : List SmtValue,
+              ∃ i : SmtValue,
+                __smtx_typeof_value i = SmtType.Datatype s d ∧
+                  __smtx_value_canonical_bool i = true ∧
+                    ∀ j : SmtValue, j ∈ avoid -> native_veq j i = false) ∧
+      (∀ (s : native_String) (d : SmtDatatype),
+        native_inhabited_type (SmtType.Datatype s d) = true ->
+          __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true ->
+            __smtx_is_finite_type (SmtType.Datatype s d) = true ->
+              __smtx_is_unit_type (SmtType.Datatype s d) = false ->
+                ∃ e : SmtValue,
+                  __smtx_typeof_value e = SmtType.Datatype s d ∧
+                    __smtx_value_canonical_bool e = true ∧
+                      native_veq e (__smtx_type_default (SmtType.Datatype s d)) = false) := by
+  sorry
+
+/--
+Residual datatype/cardinality support for infinite datatypes: a finite list of
+values can always be avoided by some typed canonical inhabitant.
+-/
+theorem cpc_infinite_datatype_fresh_value_assumption
+    (s : native_String)
+    (d : SmtDatatype)
+    (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
+    (_hRec :
+      __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true)
+    (_hInfinite : __smtx_is_finite_type (SmtType.Datatype s d) = false)
+    (avoid : List SmtValue) :
+    ∃ i : SmtValue,
+      __smtx_typeof_value i = SmtType.Datatype s d ∧
+        __smtx_value_canonical_bool i = true ∧
+          ∀ j : SmtValue, j ∈ avoid -> native_veq j i = false := by
+  exact (cpc_datatype_cardinality_support_assumption).1
+    s d _hInh _hRec _hInfinite avoid
+
+/--
+Residual datatype/cardinality support for the finite datatype case: a non-unit
+datatype has a typed canonical inhabitant distinct from its default.
+-/
+theorem cpc_finite_nonunit_datatype_nondefault_value_assumption
+    (s : native_String)
+    (d : SmtDatatype)
+    (_hInh : native_inhabited_type (SmtType.Datatype s d) = true)
+    (_hRec :
+      __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true)
+    (_hFinite : __smtx_is_finite_type (SmtType.Datatype s d) = true)
+    (_hNonUnit : __smtx_is_unit_type (SmtType.Datatype s d) = false) :
+    ∃ e : SmtValue,
+      __smtx_typeof_value e = SmtType.Datatype s d ∧
+        __smtx_value_canonical_bool e = true ∧
+          native_veq e (__smtx_type_default (SmtType.Datatype s d)) = false := by
+  exact (cpc_datatype_cardinality_support_assumption).2
+    s d _hInh _hRec _hFinite _hNonUnit
+
+/--
 Residual datatype/cardinality support facts. The first component is datatype
 infinitude; the second says non-unit datatypes have a non-default canonical
-value.
+value.  The non-unit part is now proved from infinite freshness plus the
+finite-specific residual fact above.
 -/
 theorem cpc_datatype_value_support_assumption :
     (∀ (s : native_String) (d : SmtDatatype),
@@ -432,7 +497,26 @@ theorem cpc_datatype_value_support_assumption :
                 __smtx_typeof_value e = SmtType.Datatype s d ∧
                   __smtx_value_canonical_bool e = true ∧
                     native_veq e (__smtx_type_default (SmtType.Datatype s d)) = false) := by
-  sorry
+  constructor
+  · intro s d hInh hRec hInfinite avoid
+    exact cpc_infinite_datatype_fresh_value_assumption
+      s d hInh hRec hInfinite avoid
+  · intro s d hInh hRec hNonUnit
+    by_cases hFinite :
+        __smtx_is_finite_type (SmtType.Datatype s d) = true
+    · exact cpc_finite_nonunit_datatype_nondefault_value_assumption
+        s d hInh hRec hFinite hNonUnit
+    · have hInfinite :
+          __smtx_is_finite_type (SmtType.Datatype s d) = false := by
+        cases h : __smtx_is_finite_type (SmtType.Datatype s d) <;>
+          simp [h] at hFinite ⊢
+      rcases cpc_infinite_datatype_fresh_value_assumption
+          s d hInh hRec hInfinite
+          [__smtx_type_default (SmtType.Datatype s d)] with
+        ⟨e, heTy, heCan, heFresh⟩
+      refine ⟨e, heTy, heCan, ?_⟩
+      exact native_veq_false_symm
+        (heFresh (__smtx_type_default (SmtType.Datatype s d)) (by simp))
 
 theorem cpc_nonunit_typed_canonical_nondefault_value
     (A : SmtType)
@@ -543,7 +627,21 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
           __smtx_type_default, native_nat_to_char, native_veq]
   | Datatype s d =>
-      exact (cpc_datatype_value_support_assumption).2 s d _hInh _hRec _hNonUnit
+      by_cases hFinite :
+          __smtx_is_finite_type (SmtType.Datatype s d) = true
+      · exact cpc_finite_nonunit_datatype_nondefault_value_assumption
+          s d _hInh _hRec hFinite _hNonUnit
+      · have hInfinite :
+            __smtx_is_finite_type (SmtType.Datatype s d) = false := by
+          cases h : __smtx_is_finite_type (SmtType.Datatype s d) <;>
+            simp [h] at hFinite ⊢
+        rcases cpc_infinite_datatype_fresh_value_assumption
+            s d _hInh _hRec hInfinite
+            [__smtx_type_default (SmtType.Datatype s d)] with
+          ⟨e, heTy, heCan, heFresh⟩
+        refine ⟨e, heTy, heCan, ?_⟩
+        exact native_veq_false_symm
+          (heFresh (__smtx_type_default (SmtType.Datatype s d)) (by simp))
   | TypeRef s =>
       simp [__smtx_type_wf_rec] at _hRec
   | USort u =>
@@ -789,7 +887,7 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
       simp [__smtx_is_finite_type] at _hInfinite
   | Datatype s d =>
       exact
-        (cpc_datatype_value_support_assumption).1
+        cpc_infinite_datatype_fresh_value_assumption
           s d _hInh _hRec _hInfinite avoid
   | TypeRef s =>
       simp [__smtx_type_wf_rec] at _hRec
