@@ -112,6 +112,15 @@ private theorem eo_to_smt_set_empty_ne_numeral
   intro h
   cases T <;> simp [__eo_to_smt_set_empty] at h
 
+private theorem eo_to_smt_map_diff_guard_ne_numeral
+    (T : SmtType) (a b : SmtTerm) (n : native_Int) :
+    native_ite (native_Teq T SmtType.None) SmtTerm.None
+        (SmtTerm.map_diff a b) ≠
+      SmtTerm.Numeral n := by
+  intro h
+  cases hT : native_Teq T SmtType.None <;>
+    simp [native_ite, hT] at h
+
 private theorem eo_to_smt_at_bv_ne_numeral
     (a b : SmtTerm) (n : native_Int) :
     __eo_to_smt__at_bv a b ≠ SmtTerm.Numeral n := by
@@ -424,6 +433,11 @@ theorem eo_to_smt_eq_numeral
       · exact False.elim (eo_to_smt_set_empty_ne_numeral (__eo_to_smt_type x) n h)
   | UOp2 op x y =>
       cases op <;> try cases h
+      case _at_array_deq_diff =>
+        exact False.elim
+          (eo_to_smt_map_diff_guard_ne_numeral
+            (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x y)))
+            (__eo_to_smt x) (__eo_to_smt y) n h)
       case _at_bv =>
         exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
       case _at_quantifiers_skolemize =>

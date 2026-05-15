@@ -292,14 +292,9 @@ private theorem seq_char_wf :
     __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
   have hSeqInh :
       native_inhabited_type (SmtType.Seq SmtType.Char) = true :=
-    native_inhabited_type_of_type_inhabited
-      (T := SmtType.Seq SmtType.Char)
-      ⟨SmtValue.Seq (SmtSeq.empty SmtType.Char), by
-        simp [__smtx_typeof_value, __smtx_typeof_seq_value]⟩
+    native_inhabited_type_seq SmtType.Char
   have hCharInh : native_inhabited_type SmtType.Char = true :=
-    native_inhabited_type_of_type_inhabited
-      (T := SmtType.Char)
-      ⟨SmtValue.Char (native_nat_to_char native_nat_zero), rfl⟩
+    native_inhabited_type_char
   simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hSeqInh, hCharInh]
 
 theorem smt_term_result_seq_components_wf_of_non_none
