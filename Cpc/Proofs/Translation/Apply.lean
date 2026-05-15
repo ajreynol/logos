@@ -31,7 +31,7 @@ private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
     __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
   cases hRefs : native_reflist_contains refs s <;>
     simp [__smtx_type_wf_rec, native_ite, hRefs] at h ⊢
-  exact h
+  all_goals exact h
 
 private theorem smtx_type_wf_seq_component
     {A : SmtType}
@@ -1973,12 +1973,6 @@ private theorem smtx_dt_wf_tail_of_sum_wf_apply
 
 private def reflist_subset_apply (xs ys : RefList) : Prop :=
   ∀ s, native_reflist_contains xs s = true -> native_reflist_contains ys s = true
-
-private axiom smtx_type_wf_rec_mono_datatype_apply
-    {s : native_String} {d : SmtDatatype} {refs refs' : RefList} :
-    reflist_subset_apply refs refs' ->
-      __smtx_type_wf_rec (SmtType.Datatype s d) refs = true ->
-        __smtx_type_wf_rec (SmtType.Datatype s d) refs' = true
 
 private theorem reflist_subset_insert_same_apply
     {xs ys : RefList} {s : native_String}
@@ -4190,7 +4184,7 @@ private theorem smtx_type_wf_rec_mono_apply :
       __smtx_type_wf_rec T refs = true ->
       __smtx_type_wf_rec T refs' = true
   | SmtType.Datatype s d, refs, refs', hSub, hWf => by
-      exact smtx_type_wf_rec_mono_datatype_apply hSub hWf
+      sorry
   | SmtType.TypeRef _s, refs, refs', hSub, hWf => by
       simp [__smtx_type_wf_rec] at hWf
   | SmtType.DtcAppType _A _B, refs, refs', hSub, hWf => by
@@ -5977,21 +5971,41 @@ private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_he
   exact eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_head_field_wf
     f x ihF ihX hGeneric hTranslate hEoApply (hHeadWF hFNN) hNonNone
 
-private axiom eo_to_smt_array_deq_diff_fun_like_domains_field_wf
+private theorem eo_to_smt_array_deq_diff_fun_like_domains_field_wf
     (y z : Term)
     (hNN :
       term_has_non_none_type
         (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff y z))) :
     smtx_type_fun_like_domains_field_wf
-      (__smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff y z)))
+      (__smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff y z))) := by
+  exfalso
+  apply hNN
+  change
+    __smtx_typeof
+        (native_ite
+          (native_Teq (__eo_to_smt_type (Term.UOp2 UserOp2._at_array_deq_diff y z))
+            SmtType.None)
+          SmtTerm.None (SmtTerm.map_diff (__eo_to_smt y) (__eo_to_smt z))) =
+      SmtType.None
+  simp [__eo_to_smt_type, native_ite, native_Teq]
 
-private axiom eo_to_smt_sets_deq_diff_fun_like_domains_field_wf
+private theorem eo_to_smt_sets_deq_diff_fun_like_domains_field_wf
     (y z : Term)
     (hNN :
       term_has_non_none_type
         (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff y z))) :
     smtx_type_fun_like_domains_field_wf
-      (__smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff y z)))
+      (__smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff y z))) := by
+  exfalso
+  apply hNN
+  change
+    __smtx_typeof
+        (native_ite
+          (native_Teq (__eo_to_smt_type (Term.UOp2 UserOp2._at_sets_deq_diff y z))
+            SmtType.None)
+          SmtTerm.None (SmtTerm.map_diff (__eo_to_smt y) (__eo_to_smt z))) =
+      SmtType.None
+  simp [__eo_to_smt_type, native_ite, native_Teq]
 
 private theorem smtx_type_fun_like_domains_no_reglan_of_type_wf_rec :
     ∀ {T : SmtType} {refs : RefList},
