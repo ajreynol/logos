@@ -17,9 +17,9 @@ private theorem smtx_typeof_apply_generic_of_head_not_special
     (hDtTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x := by
   unfold generic_apply_type
-  exact __smtx_typeof.eq_18 f x
-    (by intro s d i j hEq; exact hDtSel s d i j hEq)
-    (by intro s d i hEq; exact hDtTester s d i hEq)
+  cases f <;> simp [__smtx_typeof]
+  · exact False.elim (hDtSel _ _ _ _ rfl)
+  · exact False.elim (hDtTester _ _ _ rfl)
 
 /-- Shows that generic EO application translation satisfies `generic_apply_type`. -/
 theorem eo_to_smt_apply_generic_type

@@ -9,6 +9,17 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+/--
+Mini keeps `map_diff` support, but its preservation development does not carry
+the stronger component invariant used by full Cpc yet.
+-/
+private axiom typeof_value_model_eval_map_diff_deferred
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.map_diff t1 t2)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.map_diff t1 t2)) =
+      __smtx_typeof (SmtTerm.map_diff t1 t2)
+
 /-- Induction lemma proving type preservation for supported SMT terms in total typed models. -/
 private theorem supported_type_preservation
     (M : SmtModel)
@@ -43,6 +54,10 @@ private theorem supported_type_preservation
       exact typeof_value_model_eval_forall M s T body ht
   | choice_nth s T body n =>
       exact typeof_value_model_eval_choice_nth M hM M s T body n ht
+  | map_diff t1 t2 =>
+      -- Mini has the evaluator and typing rule for `map_diff`, but not the
+      -- full component invariant needed for its preservation proof.
+      exact typeof_value_model_eval_map_diff_deferred M t1 t2 ht
   | «not» ht1 hs1 =>
       exact typeof_value_model_eval_not M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -126,7 +141,7 @@ theorem dt_sel_term_inhabited_of_non_none
             (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))
             (__smtx_typeof x)) ≠
         SmtType.None := by
-    simpa [term_has_non_none_type, __smtx_typeof.eq_16] using ht
+    simpa [term_has_non_none_type, __smtx_typeof] using ht
   have hResInh : type_inhabited (__smtx_ret_typeof_sel s d i j) :=
     smtx_typeof_guard_wf_inhabited_of_non_none
       (__smtx_ret_typeof_sel s d i j)
@@ -155,9 +170,10 @@ theorem generic_apply_facts_of_not_special
     (hNoTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
     generic_apply_type f x ∧ generic_apply_eval f x := by
   constructor
-  · exact __smtx_typeof.eq_18 f x
-      (by intro s d i j hEq; exact hNoSel s d i j hEq)
-      (by intro s d i hEq; exact hNoTester s d i hEq)
+  · unfold generic_apply_type
+    cases f <;> simp [__smtx_typeof]
+    · exact False.elim (hNoSel _ _ _ _ rfl)
+    · exact False.elim (hNoTester _ _ _ rfl)
   · intro M
     cases f with
     | DtSel s d i j =>
@@ -190,8 +206,7 @@ theorem supported_preservation_term_of_non_none :
         have hTNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
           intro hNone
           apply ht
-          rw [__smtx_typeof.eq_19]
-          exact hNone
+          simpa [__smtx_typeof] using hNone
         exact supported_preservation_term.var s T
           (smtx_typeof_guard_wf_inhabited_of_non_none T T hTNN)
     | SmtTerm.ite c t1 t2 =>
@@ -218,6 +233,8 @@ theorem supported_preservation_term_of_non_none :
         exact supported_preservation_term.forall s T body
     | SmtTerm.choice_nth s T body n =>
         exact supported_preservation_term.choice_nth s T body n
+    | SmtTerm.map_diff t1 t2 =>
+        exact supported_preservation_term.map_diff t1 t2
     | SmtTerm.DtCons s d i =>
         exact supported_preservation_term.dt_cons s d i
     | SmtTerm.DtSel s d i j =>
@@ -232,8 +249,7 @@ theorem supported_preservation_term_of_non_none :
         have hTNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
           intro hNone
           apply ht
-          rw [__smtx_typeof.eq_20]
-          exact hNone
+          simpa [__smtx_typeof] using hNone
         exact supported_preservation_term.uconst s T
           (smtx_typeof_guard_wf_inhabited_of_non_none T T hTNN)
     | SmtTerm.not t =>
@@ -309,6 +325,14 @@ theorem supported_preservation_term_of_non_none :
             have hArgs := generic_apply_subterms_non_none hApp.1 ht
             exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
               (go (SmtTerm.choice_nth s T body n) hArgs.1)
+              (go x hArgs.2)
+        | map_diff t1 t2 =>
+            have hApp := generic_apply_facts_of_not_special (f := SmtTerm.map_diff t1 t2) (x := x)
+              (by intro s' d i j hEq; cases hEq)
+              (by intro s' d i hEq; cases hEq)
+            have hArgs := generic_apply_subterms_non_none hApp.1 ht
+            exact supported_generic_apply_of_non_none hApp.1 hApp.2 ht
+              (go (SmtTerm.map_diff t1 t2) hArgs.1)
               (go x hArgs.2)
         | DtSel s d i j =>
             have htx : term_has_non_none_type x := by

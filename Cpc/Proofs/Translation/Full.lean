@@ -873,7 +873,8 @@ theorem eo_to_smt_typeof_matches_translation
           simpa [__smtx_typeof] using hNone
         exact eo_to_smt_typeof_matches_translation_purify x (go x hx)
     | Term._at_array_deq_diff x1 x2, hNonNone => by
-        exact eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2 hNonNone
+        exact eo_to_smt_typeof_matches_translation_array_deq_diff x1 x2
+          (go x1) (go x2) hNonNone
     | Term.seq_empty T, hNonNone => by
         change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type T)) ≠
           SmtType.None at hNonNone
@@ -887,7 +888,8 @@ theorem eo_to_smt_typeof_matches_translation
           __eo_to_smt_type (__eo_typeof (Term.set_empty T))
         exact eo_to_smt_typeof_matches_translation_set_empty T hNonNone
     | Term._at_sets_deq_diff x1 x2, hNonNone => by
-        exact eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2 hNonNone
+        exact eo_to_smt_typeof_matches_translation_sets_deq_diff x1 x2
+          (go x1) (go x2) hNonNone
     | Term._at_quantifiers_skolemize q idx, hNonNone => by
         cases q with
         | Apply qf body =>

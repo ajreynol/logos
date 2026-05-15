@@ -89,6 +89,11 @@ private theorem supported_type_preservation
         (supported_type_preservation M hM _ ht1 hs1)
         (supported_type_preservation M hM _ ht2 hs2)
         (supported_type_preservation M hM _ ht3 hs3)
+  | map_diff ht1 hs1 ht2 hs2 hDefault =>
+      exact typeof_value_model_eval_map_diff M _ _ ht
+        (fun {A} hA => (hDefault (A := A) hA).1)
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
   | ite htc hsc ht1 hs1 ht2 hs2 =>
       exact typeof_value_model_eval_ite M _ _ _ ht
         (supported_type_preservation M hM _ htc hsc)
@@ -814,18 +819,18 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf T = true :=
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-      rw [__smtx_typeof.eq_142,
-        smtx_typeof_guard_wf_of_non_none T T hGuardNN]
-      exact tp_result_seq_components_wf_of_type_wf hWf
+      simpa [__smtx_typeof,
+        smtx_typeof_guard_wf_of_non_none T T hGuardNN] using
+        tp_result_seq_components_wf_of_type_wf hWf
     case UConst s T =>
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
         simpa [__smtx_typeof] using hxNN
       have hWf : __smtx_type_wf T = true :=
         smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
-      rw [__smtx_typeof.eq_143,
-        smtx_typeof_guard_wf_of_non_none T T hGuardNN]
-      exact tp_result_seq_components_wf_of_type_wf hWf
+      simpa [__smtx_typeof,
+        smtx_typeof_guard_wf_of_non_none T T hGuardNN] using
+        tp_result_seq_components_wf_of_type_wf hWf
     case seq_empty T =>
       have hGuardNN : __smtx_typeof_guard_wf (SmtType.Seq T) (SmtType.Seq T) ≠
           SmtType.None := by
@@ -997,6 +1002,35 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
       rw [typeof_store_eq x y z]
       simpa [__smtx_typeof_store, native_ite, native_Teq, hxMap, hyA, hzB,
         tp_result_seq_components_wf] using hxGood
+    case map_diff x y =>
+      rcases map_diff_args_of_non_none hxNN with hMap | hFun | hSet
+      · rcases hMap with ⟨A, B, hxMap, hyMap, hTy⟩
+        have hxNN' : term_has_non_none_type x :=
+          term_has_non_none_of_type_eq hxMap (by simp)
+        have hxGood := go x hxNN'
+        have hMapWf : __smtx_type_wf (SmtType.Map A B) = true := by
+          simpa [hxMap, tp_result_seq_components_wf] using hxGood
+        rw [hTy]
+        exact tp_result_seq_components_wf_of_type_wf
+          (map_type_wf_components_of_wf hMapWf).1
+      · rcases hFun with ⟨A, B, hxFun, hyFun, hTy⟩
+        have hxNN' : term_has_non_none_type x :=
+          term_has_non_none_of_type_eq hxFun (by simp)
+        have hxGood := go x hxNN'
+        have hFunWf : __smtx_type_wf (SmtType.FunType A B) = true := by
+          simpa [hxFun, tp_result_seq_components_wf] using hxGood
+        rw [hTy]
+        exact tp_result_seq_components_wf_of_type_wf
+          (fun_type_wf_components_of_wf hFunWf).1
+      · rcases hSet with ⟨A, hxSet, hySet, hTy⟩
+        have hxNN' : term_has_non_none_type x :=
+          term_has_non_none_of_type_eq hxSet (by simp)
+        have hxGood := go x hxNN'
+        have hSetWf : __smtx_type_wf (SmtType.Set A) = true := by
+          simpa [hxSet, tp_result_seq_components_wf] using hxGood
+        rw [hTy]
+        exact tp_result_seq_components_wf_of_type_wf
+          (set_type_wf_component_of_wf hSetWf)
     case ite c x y =>
       rcases ite_args_of_non_none hxNN with ⟨T, hc, hxT, hyT, hTNN⟩
       have hxNN' : term_has_non_none_type x :=
@@ -2038,6 +2072,120 @@ private theorem supported_store_of_non_none
     term_has_non_none_of_type_eq h3 hMapNN.2
   exact supported_preservation_term.store ht1 hs1 ht2 hs2 ht3 hs3
 
+private theorem type_default_typed_of_map_domain_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.Map A B) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A := by
+  have hAll :
+      native_inhabited_type (SmtType.Map A B) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
+
+private theorem type_default_typed_of_fun_domain_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A := by
+  have hAll :
+      native_inhabited_type (SmtType.FunType A B) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
+
+private theorem type_default_typed_of_set_element_wf
+    {A : SmtType}
+    (h : __smtx_type_wf (SmtType.Set A) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A := by
+  have hAll :
+      native_inhabited_type (SmtType.Set A) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_of_inhabited_wf_rec A hAll.2.1 hAll.2.2
+
+private theorem type_default_typed_canonical_of_map_domain_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.Map A B) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A ∧
+      __smtx_value_canonical (__smtx_type_default A) := by
+  have hAll :
+      native_inhabited_type (SmtType.Map A B) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
+
+private theorem type_default_typed_canonical_of_fun_domain_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A ∧
+      __smtx_value_canonical (__smtx_type_default A) := by
+  have hAll :
+      native_inhabited_type (SmtType.FunType A B) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
+
+private theorem type_default_typed_canonical_of_set_element_wf
+    {A : SmtType}
+    (h : __smtx_type_wf (SmtType.Set A) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A ∧
+      __smtx_value_canonical (__smtx_type_default A) := by
+  have hAll :
+      native_inhabited_type (SmtType.Set A) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2
+
+private theorem map_diff_default_typed_canonical_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.map_diff t1 t2)) :
+    ∀ {A : SmtType},
+      __smtx_typeof (SmtTerm.map_diff t1 t2) = A ->
+        __smtx_typeof_value (__smtx_type_default A) = A ∧
+          __smtx_value_canonical (__smtx_type_default A) := by
+  intro A hA
+  rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+  · rcases hMap with ⟨D, R, h1, h2, hRes⟩
+    have ht1 : term_has_non_none_type t1 :=
+      term_has_non_none_of_type_eq h1 (by simp)
+    have hGood := tp_smt_term_result_seq_components_wf_of_non_none t1 ht1
+    have hMapWf : __smtx_type_wf (SmtType.Map D R) = true := by
+      simpa [h1, tp_result_seq_components_wf] using hGood
+    have hDA : D = A := hRes.symm.trans hA
+    rw [← hDA]
+    exact type_default_typed_canonical_of_map_domain_wf hMapWf
+  · rcases hFun with ⟨D, R, h1, h2, hRes⟩
+    have ht1 : term_has_non_none_type t1 :=
+      term_has_non_none_of_type_eq h1 (by simp)
+    have hGood := tp_smt_term_result_seq_components_wf_of_non_none t1 ht1
+    have hFunWf : __smtx_type_wf (SmtType.FunType D R) = true := by
+      simpa [h1, tp_result_seq_components_wf] using hGood
+    have hDA : D = A := hRes.symm.trans hA
+    rw [← hDA]
+    exact type_default_typed_canonical_of_fun_domain_wf hFunWf
+  · rcases hSet with ⟨D, h1, h2, hRes⟩
+    have ht1 : term_has_non_none_type t1 :=
+      term_has_non_none_of_type_eq h1 (by simp)
+    have hGood := tp_smt_term_result_seq_components_wf_of_non_none t1 ht1
+    have hSetWf : __smtx_type_wf (SmtType.Set D) = true := by
+      simpa [h1, tp_result_seq_components_wf] using hGood
+    have hDA : D = A := hRes.symm.trans hA
+    rw [← hDA]
+    exact type_default_typed_canonical_of_set_element_wf hSetWf
+
 private theorem binary_type_has_no_none_components_of_non_none
     {w n : native_Int}
     (ht : term_has_non_none_type (SmtTerm.Binary w n)) :
@@ -2136,6 +2284,28 @@ private theorem store_type_has_no_none_components_of_non_none
     simpa [h1] using hMapTy
   rw [typeof_store_eq]
   simpa [__smtx_typeof_store, native_ite, native_Teq, h1, h2, h3] using hMapTy'
+
+private theorem map_diff_type_has_no_none_components_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.map_diff t1 t2))
+    (hTy : type_has_no_none_components (__smtx_typeof t1)) :
+    type_has_no_none_components (__smtx_typeof (SmtTerm.map_diff t1 t2)) := by
+  rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+  · rcases hMap with ⟨A, B, h1, h2, hRes⟩
+    have hMapTy : type_has_no_none_components (SmtType.Map A B) := by
+      simpa [h1] using hTy
+    rw [hRes]
+    exact hMapTy.1
+  · rcases hFun with ⟨A, B, h1, h2, hRes⟩
+    have hFunTy : type_has_no_none_components (SmtType.FunType A B) := by
+      simpa [h1] using hTy
+    rw [hRes]
+    exact hFunTy.1
+  · rcases hSet with ⟨A, h1, h2, hRes⟩
+    have hSetTy : type_has_no_none_components (SmtType.Set A) := by
+      simpa [h1] using hTy
+    rw [hRes]
+    simpa [type_has_no_none_components] using hSetTy
 
 private theorem dt_wf_cons_of_wf
     {c : SmtDatatypeCons}
@@ -3181,6 +3351,16 @@ theorem term_type_has_no_none_components_of_non_none :
           rcases store_args_of_non_none ht with ⟨A, B, h1, h2, h3⟩
           exact term_has_non_none_of_type_eq h1 (by simp)
         exact store_type_has_no_none_components_of_non_none ht (go t1 ht1)
+    | SmtTerm.map_diff t1 t2 =>
+        have ht1 : term_has_non_none_type t1 := by
+          rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+          · rcases hMap with ⟨A, B, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h1 (by simp)
+          · rcases hFun with ⟨A, B, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h1 (by simp)
+          · rcases hSet with ⟨A, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h1 (by simp)
+        exact map_diff_type_has_no_none_components_of_non_none ht (go t1 ht1)
     | SmtTerm.concat _ _ =>
         exact concat_type_has_no_none_components_of_non_none ht
     | SmtTerm.extract _ _ _ =>
@@ -3820,6 +4000,25 @@ theorem supported_preservation_term_of_non_none :
         have ht2 : term_has_non_none_type t2 := term_has_non_none_of_type_eq h2 hMapNN.1
         have ht3 : term_has_non_none_type t3 := term_has_non_none_of_type_eq h3 hMapNN.2
         exact supported_store_of_non_none ht hMapTy (go t1 ht1) (go t2 ht2) (go t3 ht3)
+    | SmtTerm.map_diff t1 t2 =>
+        have ht1 : term_has_non_none_type t1 := by
+          rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+          · rcases hMap with ⟨A, B, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h1 (by simp)
+          · rcases hFun with ⟨A, B, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h1 (by simp)
+          · rcases hSet with ⟨A, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h1 (by simp)
+        have ht2 : term_has_non_none_type t2 := by
+          rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+          · rcases hMap with ⟨A, B, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h2 (by simp)
+          · rcases hFun with ⟨A, B, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h2 (by simp)
+          · rcases hSet with ⟨A, h1, h2, hRes⟩
+            exact term_has_non_none_of_type_eq h2 (by simp)
+        exact supported_preservation_term.map_diff ht1 (go t1 ht1) ht2 (go t2 ht2)
+          (map_diff_default_typed_canonical_of_non_none ht)
     | SmtTerm.concat t1 t2 =>
         rcases bv_concat_args_of_non_none ht with ⟨w1, w2, h1, h2⟩
         have ht1 : term_has_non_none_type t1 := term_has_non_none_of_type_eq h1 (by simp)

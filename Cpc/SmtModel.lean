@@ -271,6 +271,7 @@ inductive SmtTerm : Type where
   | exists : native_String -> SmtType -> SmtTerm -> SmtTerm
   | forall : native_String -> SmtType -> SmtTerm -> SmtTerm
   | choice_nth : native_String -> SmtType -> SmtTerm -> native_Nat -> SmtTerm
+  | map_diff : SmtTerm -> SmtTerm -> SmtTerm
   | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtTerm
   | DtSel : native_String -> SmtDatatype -> native_Nat -> native_Nat -> SmtTerm
   | DtTester : native_String -> SmtDatatype -> native_Nat -> SmtTerm
@@ -595,6 +596,28 @@ macro_rules
                     evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
                 | _ => SmtValue.NotValue
           exact evalChoiceNth $M $s $T $body $n)
+  | `(native_eval_map_diff_msm $m1 $m2) => do
+      let lookupId := Lean.mkIdent `__smtx_msm_lookup
+      let typeofMapValueId := Lean.mkIdent `__smtx_typeof_map_value
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let typeDefaultId := Lean.mkIdent `__smtx_type_default
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          exact
+            match ($typeofMapValueId $m1, $typeofMapValueId $m2) with
+            | (SmtType.Map T1 U1, SmtType.Map T2 U2) =>
+                native_ite (native_and (native_Teq T1 T2) (native_Teq U1 U2))
+                  (if hDiff :
+                      ∃ i : SmtValue,
+                        $typeofValueId i = T1 ∧
+                          $canonId i = true ∧
+                            native_veq ($lookupId $m1 i) ($lookupId $m2 i) = false then
+                    Classical.choose hDiff
+                  else
+                    $typeDefaultId T1)
+                  SmtValue.NotValue
+            | _ => SmtValue.NotValue)
 
 /- Definition of SMT-LIB model semantics -/
 
@@ -819,6 +842,13 @@ def __smtx_map_store : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m), i, e => (SmtValue.Map (__smtx_msm_update_aux (__smtx_msm_get_default m) m i e))
   | (SmtValue.Set m), i, e => (SmtValue.Set (__smtx_msm_update_aux (__smtx_msm_get_default m) m i e))
   | v, i, e => SmtValue.NotValue
+
+
+def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Map m1), (SmtValue.Map m2) => (native_eval_map_diff_msm m1 m2)
+  | (SmtValue.Fun m1), (SmtValue.Fun m2) => (native_eval_map_diff_msm m1 m2)
+  | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff_msm m1 m2)
+  | v1, v2 => SmtValue.NotValue
 
 
 def __smtx_set_inter : SmtValue -> SmtValue -> SmtValue
@@ -1488,6 +1518,13 @@ def __smtx_typeof_choice_nth (T : SmtType) : SmtTerm -> native_Nat -> SmtType
   | F, n => SmtType.None
 
 
+def __smtx_typeof_map_diff : SmtType -> SmtType -> SmtType
+  | (SmtType.Map T1 U1), (SmtType.Map T2 U2) => (native_ite (native_and (native_Teq T1 T2) (native_Teq U1 U2)) T1 SmtType.None)
+  | (SmtType.FunType T1 U1), (SmtType.FunType T2 U2) => (native_ite (native_and (native_Teq T1 T2) (native_Teq U1 U2)) T1 SmtType.None)
+  | (SmtType.Set T1), (SmtType.Set T2) => (native_ite (native_Teq T1 T2) T1 SmtType.None)
+  | T1, T2 => SmtType.None
+
+
 def __smtx_typeof_bv_op_2 : SmtType -> SmtType -> SmtType
   | (SmtType.BitVec n1), (SmtType.BitVec n2) => (native_ite (native_nateq n1 n2) (SmtType.BitVec n1) SmtType.None)
   | T, U => SmtType.None
@@ -1817,6 +1854,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.exists s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.forall s T x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.choice_nth s T x1 n) => (__smtx_typeof_choice_nth T x1 n)
+  | (SmtTerm.map_diff x1 x2) => (__smtx_typeof_map_diff (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.DtCons s d i) => 
     let _v0 := (SmtType.Datatype s d)
     (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
@@ -2229,6 +2267,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
   | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
   | (SmtTerm.choice_nth s T x1 i) => (native_eval_tchoice_nth M s T x1 i)
+  | (SmtTerm.map_diff x1 x2) => (__smtx_model_eval_map_diff (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))

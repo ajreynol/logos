@@ -557,6 +557,11 @@ theorem model_eval_canonical_of_supported
   case store ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
       exact model_eval_store_term_canonical M _ _ _
         (ih1 M hM ht1) (ih2 M hM ht2) (ih3 M hM ht3)
+  case map_diff ht1 hs1 ht2 hs2 hDefault ih1 ih2 =>
+      exact model_eval_map_diff_canonical M _ _ hTy
+        (fun {A} hA => (hDefault (A := A) hA).2)
+        (smt_model_eval_preserves_type_of_non_none M hM _ ht1)
+        (smt_model_eval_preserves_type_of_non_none M hM _ ht2)
   case ite htc hsc ht1 hs1 ht2 hs2 ihc ih1 ih2 =>
       exact model_eval_ite_term_canonical M _ _ _
         (ih1 M hM ht1) (ih2 M hM ht2)
