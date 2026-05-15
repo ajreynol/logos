@@ -584,9 +584,10 @@ private theorem term_has_non_none_of_type_eq
   exact hT
 
 private def result_datatype_components_wf : SmtType -> Prop
+  | SmtType.Set A => __smtx_type_wf (SmtType.Set A) = true
   | SmtType.Datatype s d => __smtx_type_wf (SmtType.Datatype s d) = true
-  | SmtType.Map _ B => result_datatype_components_wf B
-  | SmtType.FunType _ B => result_datatype_components_wf B
+  | SmtType.Map A B => __smtx_type_wf (SmtType.Map A B) = true
+  | SmtType.FunType A B => __smtx_type_wf (SmtType.FunType A B) = true
   | SmtType.DtcAppType _ B => result_datatype_components_wf B
   | _ => True
 
@@ -598,10 +599,12 @@ private theorem result_datatype_components_wf_of_type_wf
     cases T
     case Datatype s d =>
       exact h
+    case Set A =>
+      exact h
     case Map A B =>
-      exact go B (map_type_wf_components_of_wf h).2
+      exact h
     case FunType A B =>
-      exact go B (fun_type_wf_components_of_wf h).2
+      exact h
     case DtcAppType A B =>
       simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
     all_goals
@@ -754,10 +757,34 @@ private theorem term_result_datatype_components_wf_of_non_none
         (by simpa [result_datatype_components_wf] using hBaseWf)
         (__smtx_dt_substitute s d d) i
     case map_diff t1 t2 =>
-      -- `map_diff` returns a domain/element type, while this Mini invariant
-      -- only tracked datatype well-formedness through result positions.
-      -- The full Cpc proof carries the stronger component invariant.
-      sorry
+      rcases map_diff_args_of_non_none hxNN with hMap | hFun | hSet
+      · rcases hMap with ⟨A, B, h1, h2, hTy⟩
+        have ht1 : term_has_non_none_type t1 :=
+          term_has_non_none_of_type_eq h1 (by simp)
+        have hGood := go t1 ht1
+        have hMapWf : __smtx_type_wf (SmtType.Map A B) = true := by
+          simpa [h1, result_datatype_components_wf] using hGood
+        rw [hTy]
+        exact result_datatype_components_wf_of_type_wf
+          (map_type_wf_components_of_wf hMapWf).1
+      · rcases hFun with ⟨A, B, h1, h2, hTy⟩
+        have ht1 : term_has_non_none_type t1 :=
+          term_has_non_none_of_type_eq h1 (by simp)
+        have hGood := go t1 ht1
+        have hFunWf : __smtx_type_wf (SmtType.FunType A B) = true := by
+          simpa [h1, result_datatype_components_wf] using hGood
+        rw [hTy]
+        exact result_datatype_components_wf_of_type_wf
+          (fun_type_wf_components_of_wf hFunWf).1
+      · rcases hSet with ⟨A, h1, h2, hTy⟩
+        have ht1 : term_has_non_none_type t1 :=
+          term_has_non_none_of_type_eq h1 (by simp)
+        have hGood := go t1 ht1
+        have hSetWf : __smtx_type_wf (SmtType.Set A) = true := by
+          simpa [h1, result_datatype_components_wf] using hGood
+        rw [hTy]
+        exact result_datatype_components_wf_of_type_wf
+          (set_type_wf_component_of_wf hSetWf)
     case Apply f x =>
       by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
       · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
@@ -810,7 +837,10 @@ private theorem term_result_datatype_components_wf_of_non_none
                 native_Teq, hA]
           rw [hTyEq, hApplyTy]
           rcases hHead with hF | hF
-          · simpa [hF, result_datatype_components_wf] using hfGood
+          · have hFWf : __smtx_type_wf (SmtType.FunType A B) = true := by
+              simpa [hF, result_datatype_components_wf] using hfGood
+            exact result_datatype_components_wf_of_type_wf
+              (fun_type_wf_components_of_wf hFWf).2
           · simpa [hF, result_datatype_components_wf] using hfGood
     case not t =>
       cases h : __smtx_typeof t <;>
@@ -833,6 +863,45 @@ private theorem term_result_datatype_components_wf_of_non_none
       simp [result_datatype_components_wf, __smtx_typeof, __smtx_typeof_eq,
         __smtx_typeof_guard, native_ite, native_Teq]
   exact go x hxNN
+
+/-- Extracts well-formedness of a map-typed term. -/
+theorem smt_map_wf_of_non_none_type
+    (x : SmtTerm) (A B : SmtType)
+    (hxTy : __smtx_typeof x = SmtType.Map A B) :
+    __smtx_type_wf (SmtType.Map A B) = true := by
+  have hxNN : term_has_non_none_type x := by
+    unfold term_has_non_none_type
+    rw [hxTy]
+    simp
+  have hGood := term_result_datatype_components_wf_of_non_none x hxNN
+  rw [hxTy] at hGood
+  simpa [result_datatype_components_wf] using hGood
+
+/-- Extracts well-formedness of a function-typed term. -/
+theorem smt_fun_wf_of_non_none_type
+    (x : SmtTerm) (A B : SmtType)
+    (hxTy : __smtx_typeof x = SmtType.FunType A B) :
+    __smtx_type_wf (SmtType.FunType A B) = true := by
+  have hxNN : term_has_non_none_type x := by
+    unfold term_has_non_none_type
+    rw [hxTy]
+    simp
+  have hGood := term_result_datatype_components_wf_of_non_none x hxNN
+  rw [hxTy] at hGood
+  simpa [result_datatype_components_wf] using hGood
+
+/-- Extracts well-formedness of a set-typed term. -/
+theorem smt_set_wf_of_non_none_type
+    (x : SmtTerm) (A : SmtType)
+    (hxTy : __smtx_typeof x = SmtType.Set A) :
+    __smtx_type_wf (SmtType.Set A) = true := by
+  have hxNN : term_has_non_none_type x := by
+    unfold term_has_non_none_type
+    rw [hxTy]
+    simp
+  have hGood := term_result_datatype_components_wf_of_non_none x hxNN
+  rw [hxTy] at hGood
+  simpa [result_datatype_components_wf] using hGood
 
 /-- Extracts well-formedness of a datatype-typed term. -/
 private theorem smt_datatype_wf_of_non_none_type

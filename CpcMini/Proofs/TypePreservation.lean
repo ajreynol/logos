@@ -9,6 +9,71 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+private theorem type_default_typed_canonical_of_map_domain_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.Map A B) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A ∧
+      __smtx_value_canonical (__smtx_type_default A) := by
+  have hAll :
+      native_inhabited_type (SmtType.Map A B) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
+
+private theorem type_default_typed_canonical_of_fun_domain_wf
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A ∧
+      __smtx_value_canonical (__smtx_type_default A) := by
+  have hAll :
+      native_inhabited_type (SmtType.FunType A B) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
+
+private theorem type_default_typed_canonical_of_set_element_wf
+    {A : SmtType}
+    (h : __smtx_type_wf (SmtType.Set A) = true) :
+    __smtx_typeof_value (__smtx_type_default A) = A ∧
+      __smtx_value_canonical (__smtx_type_default A) := by
+  have hAll :
+      native_inhabited_type (SmtType.Set A) = true ∧
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true := by
+    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2
+
+private theorem map_diff_default_typed_canonical_of_non_none
+    {t1 t2 : SmtTerm}
+    (ht : term_has_non_none_type (SmtTerm.map_diff t1 t2)) :
+    ∀ {A : SmtType},
+      __smtx_typeof (SmtTerm.map_diff t1 t2) = A ->
+        __smtx_typeof_value (__smtx_type_default A) = A ∧
+          __smtx_value_canonical (__smtx_type_default A) := by
+  intro A hA
+  rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+  · rcases hMap with ⟨D, R, h1, h2, hRes⟩
+    have hMapWf := smt_map_wf_of_non_none_type t1 D R h1
+    have hDA : D = A := hRes.symm.trans hA
+    rw [← hDA]
+    exact type_default_typed_canonical_of_map_domain_wf hMapWf
+  · rcases hFun with ⟨D, R, h1, h2, hRes⟩
+    have hFunWf := smt_fun_wf_of_non_none_type t1 D R h1
+    have hDA : D = A := hRes.symm.trans hA
+    rw [← hDA]
+    exact type_default_typed_canonical_of_fun_domain_wf hFunWf
+  · rcases hSet with ⟨D, h1, h2, hRes⟩
+    have hSetWf := smt_set_wf_of_non_none_type t1 D h1
+    have hDA : D = A := hRes.symm.trans hA
+    rw [← hDA]
+    exact type_default_typed_canonical_of_set_element_wf hSetWf
+
 /-- Induction lemma proving type preservation for supported SMT terms in total typed models. -/
 private theorem supported_type_preservation
     (M : SmtModel)
@@ -43,10 +108,11 @@ private theorem supported_type_preservation
       exact typeof_value_model_eval_forall M s T body ht
   | choice_nth s T body n =>
       exact typeof_value_model_eval_choice_nth M hM M s T body n ht
-  | map_diff t1 t2 =>
-      -- Mini has the evaluator and typing rule for `map_diff`, but not the
-      -- full component invariant needed for its preservation proof.
-      sorry
+  | map_diff ht1 hs1 ht2 hs2 hDefault =>
+      exact typeof_value_model_eval_map_diff M _ _ ht
+        (fun {A} hA => (hDefault (A := A) hA).1)
+        (supported_type_preservation M hM _ ht1 hs1)
+        (supported_type_preservation M hM _ ht2 hs2)
   | «not» ht1 hs1 =>
       exact typeof_value_model_eval_not M _ ht
         (supported_type_preservation M hM _ ht1 hs1)
@@ -223,7 +289,43 @@ theorem supported_preservation_term_of_non_none :
     | SmtTerm.choice_nth s T body n =>
         exact supported_preservation_term.choice_nth s T body n
     | SmtTerm.map_diff t1 t2 =>
-        exact supported_preservation_term.map_diff t1 t2
+        rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+        · rcases hMap with ⟨A, B, h1, h2, hTy⟩
+          have ht1 : term_has_non_none_type t1 := by
+            unfold term_has_non_none_type
+            rw [h1]
+            simp
+          have ht2 : term_has_non_none_type t2 := by
+            unfold term_has_non_none_type
+            rw [h2]
+            simp
+          exact supported_preservation_term.map_diff
+            ht1 (go t1 ht1) ht2 (go t2 ht2)
+            (map_diff_default_typed_canonical_of_non_none ht)
+        · rcases hFun with ⟨A, B, h1, h2, hTy⟩
+          have ht1 : term_has_non_none_type t1 := by
+            unfold term_has_non_none_type
+            rw [h1]
+            simp
+          have ht2 : term_has_non_none_type t2 := by
+            unfold term_has_non_none_type
+            rw [h2]
+            simp
+          exact supported_preservation_term.map_diff
+            ht1 (go t1 ht1) ht2 (go t2 ht2)
+            (map_diff_default_typed_canonical_of_non_none ht)
+        · rcases hSet with ⟨A, h1, h2, hTy⟩
+          have ht1 : term_has_non_none_type t1 := by
+            unfold term_has_non_none_type
+            rw [h1]
+            simp
+          have ht2 : term_has_non_none_type t2 := by
+            unfold term_has_non_none_type
+            rw [h2]
+            simp
+          exact supported_preservation_term.map_diff
+            ht1 (go t1 ht1) ht2 (go t2 ht2)
+            (map_diff_default_typed_canonical_of_non_none ht)
     | SmtTerm.DtCons s d i =>
         exact supported_preservation_term.dt_cons s d i
     | SmtTerm.DtSel s d i j =>

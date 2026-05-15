@@ -579,4 +579,13 @@ theorem canonical_type_inhabited_of_type_wf
       type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
     exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩
 
+/-- The default value of an inhabited recursively well-formed Mini SMT type is canonical. -/
+theorem type_default_typed_canonical_of_inhabited_wf_rec
+    (T : SmtType)
+    (hInh : native_inhabited_type T = true)
+    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    __smtx_typeof_value (__smtx_type_default T) = T ∧
+      __smtx_value_canonical (__smtx_type_default T) := by
+  exact type_default_typed_canonical_of_wf_rec T hInh hRec
+
 end Smtm

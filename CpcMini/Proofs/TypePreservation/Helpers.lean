@@ -717,6 +717,84 @@ theorem map_value_canonical
       exact apply_value_non_chain_result_impossible
         (U := SmtType.Map A B) (by simp [dt_cons_chain_result]) h
 
+/-- Canonical-form lemma for `set_value`. -/
+theorem set_value_canonical
+    {v : SmtValue}
+    {A : SmtType}
+    (h : __smtx_typeof_value v = SmtType.Set A) :
+    ∃ m : SmtMap, v = SmtValue.Set m := by
+  cases v with
+  | Set m =>
+      exact ⟨m, rfl⟩
+  | NotValue =>
+      simp [__smtx_typeof_value] at h
+  | Boolean _ =>
+      simp [__smtx_typeof_value] at h
+  | Numeral _ =>
+      simp [__smtx_typeof_value] at h
+  | Rational _ =>
+      simp [__smtx_typeof_value] at h
+  | Binary w n =>
+      cases hWidth : native_zleq 0 w <;>
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
+  | Map m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A', B', hMap⟩
+          simp [__smtx_typeof_value, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at h
+  | Fun m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A', B', hMap⟩
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
+  | Seq ss =>
+      cases typeof_seq_value_shape ss with
+      | inl hSeq =>
+          rcases hSeq with ⟨T, hSeq⟩
+          simp [__smtx_typeof_value, hSeq] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at h
+  | Char _ =>
+      simp [__smtx_typeof_value] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
+  | RegLan _ =>
+      simp [__smtx_typeof_value] at h
+  | DtCons s d i =>
+      have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+      have hInner :
+          __smtx_typeof_dt_cons_value_rec
+              (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+            SmtType.Set A :=
+        typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
+      rw [hInner] at hShape
+      simp [dt_cons_chain_result] at hShape
+  | Apply f x =>
+      exfalso
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.Set A) (by simp [dt_cons_chain_result]) h
+
+/-- Extracts the underlying map type from a canonical set value. -/
+theorem set_map_value_typed
+    {m : SmtMap}
+    {A : SmtType}
+    (h : __smtx_typeof_value (SmtValue.Set m) = SmtType.Set A) :
+    __smtx_typeof_map_value m = SmtType.Map A SmtType.Bool := by
+  cases typeof_map_value_shape m with
+  | inl hMap =>
+      rcases hMap with ⟨A', B', hMap⟩
+      cases B' <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
+      case Bool =>
+        cases h
+        simp [hMap]
+  | inr hNone =>
+      simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
+
 /-- Canonical-form lemma for `seq_value`. -/
 theorem seq_value_canonical
     {v : SmtValue}
