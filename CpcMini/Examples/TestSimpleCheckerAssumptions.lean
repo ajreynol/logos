@@ -49,7 +49,7 @@ def proof : CCmdList :=
 private theorem uconst_int_smt_type (i : native_Nat) :
     __smtx_typeof (__eo_to_smt (Term.UConst i (Term.UOp UserOp.Int))) = SmtType.Int := by
   have hInh : native_inhabited_type SmtType.Int = true :=
-    (smtx_inhabited_type_eq_true_iff SmtType.Int).2 type_inhabited_int
+    native_inhabited_type_int
   have hWf : __smtx_type_wf SmtType.Int = true := by
     simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hInh]
   have hNonNone :

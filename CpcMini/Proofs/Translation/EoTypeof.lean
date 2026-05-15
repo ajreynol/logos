@@ -1327,7 +1327,13 @@ theorem eo_type_valid_of_smt_wf_rec
               cases hName : native_reserved_datatype_name s <;> simp [hName] at hReserved ⊢
             have hDt :
                 __smtx_dt_wf_rec (__eo_to_smt_datatype d) (s :: refs) = true := by
-              simpa [__eo_to_smt_type, __smtx_type_wf_rec, hReservedFalse] using h
+              have hParts :
+                  native_reflist_contains refs s = false ∧
+                    __smtx_dt_wf_rec (__eo_to_smt_datatype d)
+                        (native_reflist_insert refs s) = true := by
+                simpa [__eo_to_smt_type, __smtx_type_wf_rec, hReservedFalse,
+                  native_ite] using h
+              simpa [native_reflist_insert] using hParts.2
             exact ⟨hReservedFalse, eo_datatype_valid_of_smt_wf_rec (s :: refs) hDt⟩
       | DatatypeTypeRef s =>
           have : False := by
@@ -1737,9 +1743,10 @@ private theorem eo_to_smt_substitute_aux
         · have hReservedFalse : native_reserved_datatype_name s2 = false := by
             cases hName : native_reserved_datatype_name s2 <;> simp [hName] at hReserved ⊢
           by_cases hst : native_streq s s2 = true
-          · have hc := eo_to_smt_substitute_aux s d (.inl c)
+          · have hd2 := eo_to_smt_substitute_aux s d (.inr d2)
+            have hc := eo_to_smt_substitute_aux s d (.inl c)
             simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
-              __eo_to_smt_type, native_ite, native_Teq, hst, hReservedFalse] using hc
+              __eo_to_smt_type, native_ite, native_Teq, hst, hReservedFalse] using And.intro hd2 hc
           · have hd2 := eo_to_smt_substitute_aux s d (.inr d2)
             have hc := eo_to_smt_substitute_aux s d (.inl c)
             simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,

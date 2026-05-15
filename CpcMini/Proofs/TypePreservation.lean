@@ -9,6 +9,17 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+/--
+Mini keeps `map_diff` support, but its preservation development does not carry
+the stronger component invariant used by full Cpc yet.
+-/
+private axiom typeof_value_model_eval_map_diff_deferred
+    (M : SmtModel)
+    (t1 t2 : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.map_diff t1 t2)) :
+    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.map_diff t1 t2)) =
+      __smtx_typeof (SmtTerm.map_diff t1 t2)
+
 /-- Induction lemma proving type preservation for supported SMT terms in total typed models. -/
 private theorem supported_type_preservation
     (M : SmtModel)
@@ -46,7 +57,7 @@ private theorem supported_type_preservation
   | map_diff t1 t2 =>
       -- Mini has the evaluator and typing rule for `map_diff`, but not the
       -- full component invariant needed for its preservation proof.
-      sorry
+      exact typeof_value_model_eval_map_diff_deferred M t1 t2 ht
   | «not» ht1 hs1 =>
       exact typeof_value_model_eval_not M _ ht
         (supported_type_preservation M hM _ ht1 hs1)

@@ -1098,20 +1098,20 @@ theorem int_binop_args_of_non_none
 theorem fun_type_wf_int_int :
     __smtx_type_wf (SmtType.FunType SmtType.Int SmtType.Int) = true := by
   have hIntInh : native_inhabited_type SmtType.Int = true :=
-    native_inhabited_type_of_type_inhabited type_inhabited_int
+    native_inhabited_type_int
   have hFunInh :
       native_inhabited_type (SmtType.FunType SmtType.Int SmtType.Int) = true :=
-    native_inhabited_type_of_type_inhabited (type_inhabited_fun type_inhabited_int)
+    native_inhabited_type_fun hIntInh
   simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hIntInh, hFunInh]
 
 /-- The real-to-real total-function type used for arithmetic defaults is well formed. -/
 theorem fun_type_wf_real_real :
     __smtx_type_wf (SmtType.FunType SmtType.Real SmtType.Real) = true := by
   have hRealInh : native_inhabited_type SmtType.Real = true :=
-    native_inhabited_type_of_type_inhabited type_inhabited_real
+    native_inhabited_type_real
   have hFunInh :
       native_inhabited_type (SmtType.FunType SmtType.Real SmtType.Real) = true :=
-    native_inhabited_type_of_type_inhabited (type_inhabited_fun type_inhabited_real)
+    native_inhabited_type_fun hRealInh
   simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hRealInh, hFunInh]
 
 /-- Shows that evaluating `apply_lookup_fun` terms produces values of the expected type. -/
