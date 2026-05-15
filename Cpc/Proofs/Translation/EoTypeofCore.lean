@@ -34,6 +34,23 @@ private theorem smtx_type_wf_rec_of_type_wf
   cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
   all_goals first | exact h | exact h.2 | exact h.2.2
 
+private theorem smtx_datatype_type_wf_rec_parts_local
+    {s : native_String} {d : SmtDatatype} {refs : RefList}
+    (h : __smtx_type_wf_rec (SmtType.Datatype s d) refs = true) :
+    native_reflist_contains refs s = false ∧
+      __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
+  cases hRefs : native_reflist_contains refs s <;>
+    simp [__smtx_type_wf_rec, native_ite, hRefs] at h ⊢
+  exact h
+
+private theorem smtx_datatype_field_wf_rec_parts_local
+    {s : native_String} {d : SmtDatatype} {refs : RefList}
+    (h : smtx_type_field_wf_rec (SmtType.Datatype s d) refs) :
+    native_reflist_contains refs s = false ∧
+      __smtx_dt_wf_rec d (native_reflist_insert refs s) = true :=
+  smtx_datatype_type_wf_rec_parts_local (by
+    simpa [smtx_type_field_wf_rec] using h)
+
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
 theorem smtx_typeof_guard_of_non_none
     (T U : SmtType) (h : T ≠ SmtType.None) :
@@ -496,6 +513,137 @@ private theorem eo_datatype_valid_rec_weaken
 
 end
 
+/- EO validity can discard references to reserved datatype names. -/
+mutual
+
+private theorem eo_type_valid_rec_refine_reserved
+    {refs refs' : List native_String} {r : native_String}
+    (hr : __eo_reserved_datatype_name r = true)
+    (hsub : ∀ t, t ∈ refs -> t ∈ refs' ∨ t = r) :
+    ∀ {T : Term}, eo_type_valid_rec refs T -> eo_type_valid_rec refs' T
+  | Term.UOp op, h => by
+      cases op <;> simp [eo_type_valid_rec] at h ⊢
+  | Term.Bool, _h => by
+      simp [eo_type_valid_rec]
+  | Term.DatatypeType s d, h => by
+      rcases h with ⟨hReserved, hD⟩
+      have hsubCons : ∀ t, t ∈ s :: refs -> t ∈ s :: refs' ∨ t = r := by
+        intro t ht
+        simp at ht ⊢
+        rcases ht with rfl | ht
+        · exact Or.inl (Or.inl rfl)
+        · rcases hsub t ht with ht' | hr'
+          · exact Or.inl (Or.inr ht')
+          · exact Or.inr hr'
+      exact ⟨hReserved, eo_datatype_valid_rec_refine_reserved hr hsubCons hD⟩
+  | Term.DatatypeTypeRef s, h => by
+      rcases h with ⟨hReserved, hMem⟩
+      rcases hsub s hMem with hMem' | hs
+      · exact ⟨hReserved, hMem'⟩
+      · subst s
+        rw [hr] at hReserved
+        cases hReserved
+  | Term.DtcAppType T U, h => by
+      simpa [eo_type_valid_rec] using h
+  | Term.USort i, _h => by
+      simp [eo_type_valid_rec]
+  | Term.Apply (Term.Apply Term.FunType T1) T2, h => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.UOp UserOp.Seq) T, h => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U, h => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.UOp UserOp.Set) T, h => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U, h => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply f x, h => by
+      cases f with
+      | UOp op =>
+          cases op <;>
+            try (cases x <;> simp [eo_type_valid_rec] at h)
+          all_goals simpa [eo_type_valid_rec] using h
+      | Apply g y =>
+          cases g with
+          | FunType =>
+              simpa [eo_type_valid_rec] using h
+          | UOp op =>
+              cases op <;>
+                try (simpa [eo_type_valid_rec] using h)
+              all_goals simp [eo_type_valid_rec] at h
+          | _ =>
+              simp [eo_type_valid_rec] at h
+      | _ =>
+          simp [eo_type_valid_rec] at h
+  | Term.__eo_List, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.__eo_List_nil, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.__eo_List_cons, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.Boolean b, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.Numeral n, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.Rational q, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.String s, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.Binary w n, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.Type, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.Stuck, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.FunType, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.Var name T, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.DtCons s d i, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.DtSel s d i j, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.UConst i T, h => by
+      simp [eo_type_valid_rec] at h
+  | Term.UOp1 op x, h => by
+      cases op <;> simp [eo_type_valid_rec] at h
+  | Term.UOp2 op x y, h => by
+      cases op <;> simp [eo_type_valid_rec] at h
+  | Term.UOp3 op x y z, h => by
+      cases op <;> simp [eo_type_valid_rec] at h
+
+private theorem eo_datatype_cons_valid_rec_refine_reserved
+    {refs refs' : List native_String} {r : native_String}
+    (hr : __eo_reserved_datatype_name r = true)
+    (hsub : ∀ t, t ∈ refs -> t ∈ refs' ∨ t = r) :
+    ∀ {c : DatatypeCons},
+      eo_datatype_cons_valid_rec refs c ->
+      eo_datatype_cons_valid_rec refs' c
+  | DatatypeCons.unit, _h => by
+      simp [eo_datatype_cons_valid_rec]
+  | DatatypeCons.cons T c, h => by
+      rcases h with ⟨hT, hC⟩
+      exact ⟨eo_type_valid_rec_refine_reserved hr hsub hT,
+        eo_datatype_cons_valid_rec_refine_reserved hr hsub hC⟩
+
+private theorem eo_datatype_valid_rec_refine_reserved
+    {refs refs' : List native_String} {r : native_String}
+    (hr : __eo_reserved_datatype_name r = true)
+    (hsub : ∀ t, t ∈ refs -> t ∈ refs' ∨ t = r) :
+    ∀ {d : Datatype},
+      eo_datatype_valid_rec refs d ->
+      eo_datatype_valid_rec refs' d
+  | Datatype.null, _h => by
+      simp [eo_datatype_valid_rec]
+  | Datatype.sum c d, h => by
+      rcases h with ⟨hC, hD⟩
+      exact ⟨eo_datatype_cons_valid_rec_refine_reserved hr hsub hC,
+        eo_datatype_valid_rec_refine_reserved hr hsub hD⟩
+
+end
+
 /- Substituting a valid datatype for a valid type-reference preserves datatype validity. -/
 mutual
 
@@ -950,11 +1098,86 @@ theorem eo_type_valid_of_smt_field_wf_rec
         cases hRaw : __smtx_type_wf raw <;>
           simp [raw, __eo_to_smt_type, hRaw, native_ite, smtx_type_field_wf_rec,
             __smtx_type_wf_rec] at h ⊢
-      refine ⟨?_, ?_, by simpa [raw] using hWf⟩
-      · -- Tuple component recovery is the full-Cpc extension over CpcMini.
-        sorry
-      · -- The tail component must itself be a valid tuple type.
-        sorry
+      have hRawField :
+          smtx_type_field_wf_rec raw native_reflist_nil :=
+        smtx_type_field_wf_rec_of_type_wf_rec
+          (smtx_type_wf_rec_of_type_wf (by
+            simpa [raw] using
+              eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type T) (__eo_to_smt_type U))
+            hWf)
+      have hParts : eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U := by
+        cases hUTrans : __eo_to_smt_type U <;>
+          try
+            (exfalso
+             simpa [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
+               __smtx_type_wf_rec] using hRawField)
+        case Datatype s d =>
+          by_cases hs : s = "@Tuple"
+          · subst s
+            cases d with
+            | null =>
+                exfalso
+                simpa [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
+                  __smtx_type_wf_rec] using hRawField
+            | sum c dTail =>
+                cases dTail with
+                | null =>
+                    have hRawField' :
+                        smtx_type_field_wf_rec
+                          (SmtType.Datatype "@Tuple"
+                            (SmtDatatype.sum
+                              (SmtDatatypeCons.cons (__eo_to_smt_type T) c)
+                              SmtDatatype.null))
+                          native_reflist_nil := by
+                      simpa [raw, __eo_to_smt_type_tuple, hUTrans] using hRawField
+                    have hWFParts := smtx_datatype_field_wf_rec_parts_local hRawField'
+                    have hConsWF :
+                        __smtx_dt_cons_wf_rec
+                            (SmtDatatypeCons.cons (__eo_to_smt_type T) c)
+                            (native_reflist_insert native_reflist_nil "@Tuple") =
+                          true := by
+                      simpa [__smtx_dt_wf_rec] using hWFParts.2
+                    have hHeadFieldWF :
+                        smtx_type_field_wf_rec (__eo_to_smt_type T)
+                          (native_reflist_insert native_reflist_nil "@Tuple") :=
+                      smtx_type_field_wf_rec_of_cons_wf hConsWF
+                    have hHeadValidInTuple :
+                        eo_type_valid_rec (native_reflist_insert native_reflist_nil "@Tuple") T :=
+                      eo_type_valid_of_smt_field_wf_rec
+                        (native_reflist_insert native_reflist_nil "@Tuple") hHeadFieldWF
+                    have hHeadValid : eo_type_valid_rec [] T := by
+                      simpa [native_reflist_nil] using
+                        (eo_type_valid_rec_refine_reserved
+                          (refs := native_reflist_insert native_reflist_nil "@Tuple")
+                          (refs' := native_reflist_nil)
+                          (r := "@Tuple") eo_reserved_datatype_name_tuple
+                          (by
+                            intro t ht
+                            right
+                            simpa [native_reflist_insert, native_reflist_nil] using ht)
+                          hHeadValidInTuple)
+                    have hTailWF :
+                        __smtx_dt_cons_wf_rec c
+                            (native_reflist_insert native_reflist_nil "@Tuple") =
+                          true :=
+                      smtx_dt_cons_wf_rec_tail_of_true hConsWF
+                    have hTailFieldWF :
+                        smtx_type_field_wf_rec (__eo_to_smt_type U) native_reflist_nil := by
+                      rw [hUTrans]
+                      simp [smtx_type_field_wf_rec, __smtx_type_wf_rec, __smtx_dt_wf_rec,
+                        hWFParts.1, hTailWF, native_ite]
+                    have hTailValid : eo_type_valid_rec [] U := by
+                      simpa [native_reflist_nil] using
+                        (eo_type_valid_of_smt_field_wf_rec native_reflist_nil hTailFieldWF)
+                    exact ⟨hHeadValid, hTailValid⟩
+                | sum cTail dTailTail =>
+                    exfalso
+                    simpa [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
+                      __smtx_type_wf_rec] using hRawField
+          · exfalso
+            simpa [raw, __eo_to_smt_type_tuple, hUTrans, hs, smtx_type_field_wf_rec,
+              __smtx_type_wf_rec] using hRawField
+      exact ⟨hParts.1, hParts.2, by simpa [raw] using hWf⟩
   | Term.Apply f x, h => by
       cases f with
       | UOp op =>
@@ -1086,9 +1309,92 @@ theorem eo_type_valid_of_smt_field_wf_rec
                     cases hRaw : __smtx_type_wf raw <;>
                       simp [raw, __eo_to_smt_type, hRaw, native_ite, smtx_type_field_wf_rec,
                         __smtx_type_wf_rec] at h ⊢
-                  refine ⟨?_, ?_, by simpa [raw] using hWf⟩
-                  · sorry
-                  · sorry
+                  have hRawField :
+                      smtx_type_field_wf_rec raw native_reflist_nil :=
+                    smtx_type_field_wf_rec_of_type_wf_rec
+                      (smtx_type_wf_rec_of_type_wf (by
+                        simpa [raw] using
+                          eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type y)
+                            (__eo_to_smt_type x))
+                        hWf)
+                  have hParts : eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x := by
+                    cases hXTrans : __eo_to_smt_type x <;>
+                      try
+                        (exfalso
+                         simpa [raw, __eo_to_smt_type_tuple, hXTrans, smtx_type_field_wf_rec,
+                           __smtx_type_wf_rec] using hRawField)
+                    case Datatype s d =>
+                      by_cases hs : s = "@Tuple"
+                      · subst s
+                        cases d with
+                        | null =>
+                            exfalso
+                            simpa [raw, __eo_to_smt_type_tuple, hXTrans,
+                              smtx_type_field_wf_rec, __smtx_type_wf_rec] using hRawField
+                        | sum c dTail =>
+                            cases dTail with
+                            | null =>
+                                have hRawField' :
+                                    smtx_type_field_wf_rec
+                                      (SmtType.Datatype "@Tuple"
+                                        (SmtDatatype.sum
+                                          (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
+                                          SmtDatatype.null))
+                                      native_reflist_nil := by
+                                  simpa [raw, __eo_to_smt_type_tuple, hXTrans] using hRawField
+                                have hWFParts :=
+                                  smtx_datatype_field_wf_rec_parts_local hRawField'
+                                have hConsWF :
+                                    __smtx_dt_cons_wf_rec
+                                        (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
+                                        (native_reflist_insert native_reflist_nil "@Tuple") =
+                                      true := by
+                                  simpa [__smtx_dt_wf_rec] using hWFParts.2
+                                have hHeadFieldWF :
+                                    smtx_type_field_wf_rec (__eo_to_smt_type y)
+                                      (native_reflist_insert native_reflist_nil "@Tuple") :=
+                                  smtx_type_field_wf_rec_of_cons_wf hConsWF
+                                have hHeadValidInTuple :
+                                    eo_type_valid_rec
+                                        (native_reflist_insert native_reflist_nil "@Tuple") y :=
+                                  eo_type_valid_of_smt_field_wf_rec
+                                    (native_reflist_insert native_reflist_nil "@Tuple")
+                                    hHeadFieldWF
+                                have hHeadValid : eo_type_valid_rec [] y := by
+                                  simpa [native_reflist_nil] using
+                                    (eo_type_valid_rec_refine_reserved
+                                      (refs := native_reflist_insert native_reflist_nil "@Tuple")
+                                      (refs' := native_reflist_nil)
+                                      (r := "@Tuple") eo_reserved_datatype_name_tuple
+                                      (by
+                                        intro t ht
+                                        right
+                                        simpa [native_reflist_insert, native_reflist_nil] using ht)
+                                      hHeadValidInTuple)
+                                have hTailWF :
+                                    __smtx_dt_cons_wf_rec c
+                                        (native_reflist_insert native_reflist_nil "@Tuple") =
+                                      true :=
+                                  smtx_dt_cons_wf_rec_tail_of_true hConsWF
+                                have hTailFieldWF :
+                                    smtx_type_field_wf_rec (__eo_to_smt_type x)
+                                      native_reflist_nil := by
+                                  rw [hXTrans]
+                                  simp [smtx_type_field_wf_rec, __smtx_type_wf_rec,
+                                    __smtx_dt_wf_rec, hWFParts.1, hTailWF, native_ite]
+                                have hTailValid : eo_type_valid_rec [] x := by
+                                  simpa [native_reflist_nil] using
+                                    (eo_type_valid_of_smt_field_wf_rec native_reflist_nil
+                                      hTailFieldWF)
+                                exact ⟨hHeadValid, hTailValid⟩
+                            | sum cTail dTailTail =>
+                                exfalso
+                                simpa [raw, __eo_to_smt_type_tuple, hXTrans,
+                                  smtx_type_field_wf_rec, __smtx_type_wf_rec] using hRawField
+                      · exfalso
+                        simpa [raw, __eo_to_smt_type_tuple, hXTrans, hs,
+                          smtx_type_field_wf_rec, __smtx_type_wf_rec] using hRawField
+                  exact ⟨hParts.1, hParts.2, by simpa [raw] using hWf⟩
               | _ =>
                   exfalso
                   simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
