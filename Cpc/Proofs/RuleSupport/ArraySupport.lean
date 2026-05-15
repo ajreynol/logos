@@ -663,6 +663,8 @@ private theorem map_defaults_eq_of_no_typed_canonical_lookup_diff
     (hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A B)
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
+    (hAInh : native_inhabited_type A = true)
+    (hARec : __smtx_type_wf_rec A native_reflist_nil = true)
     (hNoDiff :
       ¬ ∃ i : SmtValue,
         __smtx_typeof_value i = A ∧
@@ -672,7 +674,7 @@ private theorem map_defaults_eq_of_no_typed_canonical_lookup_diff
     __smtx_msm_get_default m1 = __smtx_msm_get_default m2 := by
   cases hFin : __smtx_is_finite_type A
   · rcases Smtm.cpc_fresh_default_lookup_for_infinite_map_domain_assumption
-        m1 m2 A B hm1Ty hm2Ty hm1Can hm2Can hFin with
+        m1 m2 A B hm1Ty hm2Ty hm1Can hm2Can hAInh hARec hFin with
       ⟨i, hiTy, hiCan, hiLookup1, hiLookup2⟩
     cases hVeq :
         native_veq (__smtx_msm_get_default m1)
@@ -694,6 +696,8 @@ private theorem map_diff_typed_canonical_lookup_witness
     (hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A B)
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
+    (hAInh : native_inhabited_type A = true)
+    (hARec : __smtx_type_wf_rec A native_reflist_nil = true)
     (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
       SmtValue.Boolean false) :
     ∃ i : SmtValue,
@@ -712,7 +716,7 @@ private theorem map_diff_typed_canonical_lookup_witness
     have hDefaultEq :
         __smtx_msm_get_default m1 = __smtx_msm_get_default m2 :=
       map_defaults_eq_of_no_typed_canonical_lookup_diff
-        hm1Ty hm2Ty hm1Can hm2Can hDiff
+        hm1Ty hm2Ty hm1Can hm2Can hAInh hARec hDiff
     have hLeafEq :
         Smtm.smt_map_default_leaf m1 = Smtm.smt_map_default_leaf m2 :=
       map_default_leaf_eq_of_get_default_eq hm1Ty hm2Ty hDefaultEq
@@ -748,6 +752,8 @@ theorem map_diff_selects_model_eval_eq_false
     (hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A B)
     (hm1Can : __smtx_map_canonical m1 = true)
     (hm2Can : __smtx_map_canonical m2 = true)
+    (hAInh : native_inhabited_type A = true)
+    (hARec : __smtx_type_wf_rec A native_reflist_nil = true)
     (hBNeRegLan : B ≠ SmtType.RegLan)
     (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
       SmtValue.Boolean false) :
@@ -788,7 +794,7 @@ theorem map_diff_selects_model_eval_eq_false
     simpa [hDiff] using hFalse
   · exact False.elim (hDiff
       (map_diff_typed_canonical_lookup_witness
-        m1 m2 A B hm1Ty hm2Ty hm1Can hm2Can hNe))
+        m1 m2 A B hm1Ty hm2Ty hm1Can hm2Can hAInh hARec hNe))
 
 private theorem model_eval_eq_is_boolean (v1 v2 : SmtValue) :
     ∃ b : Bool, __smtx_model_eval_eq v1 v2 = SmtValue.Boolean b :=

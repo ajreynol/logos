@@ -192,6 +192,33 @@ private theorem smt_map_elem_type_ne_reglan_of_typeof
   exact Smtm.type_wf_rec_ne_reglan
     (Smtm.smt_map_components_wf_rec_of_non_none_type t A B hTy).2
 
+private theorem smt_map_domain_inhabited_wf_rec_of_typeof
+    (t : SmtTerm) (A B : SmtType)
+    (hTy : __smtx_typeof t = SmtType.Map A B) :
+    native_inhabited_type A = true ∧
+      __smtx_type_wf_rec A native_reflist_nil = true := by
+  have hNN : term_has_non_none_type t := by
+    unfold term_has_non_none_type
+    rw [hTy]
+    simp
+  have hWF : __smtx_type_wf (SmtType.Map A B) = true := by
+    have hGood := smt_term_result_seq_components_wf_of_non_none t hNN
+    simpa [hTy, type_result_seq_components_wf] using hGood
+  have hParts :
+      native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A native_reflist_nil = true ∧
+          native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true := by
+    have hAll :
+        native_inhabited_type (SmtType.Map A B) = true ∧
+          native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A native_reflist_nil = true ∧
+              native_inhabited_type B = true ∧
+                __smtx_type_wf_rec B native_reflist_nil = true := by
+      simpa [__smtx_type_wf, __smtx_type_wf_rec, SmtEval.native_and] using hWF
+    exact hAll.2
+  exact ⟨hParts.1, hParts.2.1⟩
+
 private theorem typed___eo_prog_arrays_ext_impl
     (a b : Term) :
   RuleProofs.eo_has_bool_type
@@ -294,6 +321,11 @@ private theorem facts___eo_prog_arrays_ext_impl
   have hENeRegLan : __eo_to_smt_type E ≠ SmtType.RegLan :=
     smt_map_elem_type_ne_reglan_of_typeof
       (__eo_to_smt a) (__eo_to_smt_type I) (__eo_to_smt_type E) hSmtA
+  have hADomain :
+      native_inhabited_type (__eo_to_smt_type I) = true ∧
+        __smtx_type_wf_rec (__eo_to_smt_type I) native_reflist_nil = true :=
+    smt_map_domain_inhabited_wf_rec_of_typeof
+      (__eo_to_smt a) (__eo_to_smt_type I) (__eo_to_smt_type E) hSmtA
   have hSelectEqFalse :
       __smtx_model_eval_eq
           (__smtx_msm_lookup m1 (native_eval_map_diff_msm m1 m2))
@@ -301,7 +333,7 @@ private theorem facts___eo_prog_arrays_ext_impl
         SmtValue.Boolean false :=
     RuleProofs.map_diff_selects_model_eval_eq_false
       m1 m2 (__eo_to_smt_type I) (__eo_to_smt_type E)
-      hm1Ty hm2Ty hm1Can hm2Can hENeRegLan hMapsEqFalse
+      hm1Ty hm2Ty hm1Can hm2Can hADomain.1 hADomain.2 hENeRegLan hMapsEqFalse
   have hEqEvalFalse :
       __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply Term.eq lhs) rhs)) =
         SmtValue.Boolean false := by

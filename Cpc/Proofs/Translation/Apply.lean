@@ -434,6 +434,36 @@ private theorem eo_to_smt_at_bv_ne_dt_cons
       unfold native_ite at h
       split at h <;> cases h
 
+private theorem eo_to_smt_map_diff_guard_ne_dt_sel
+    (T : SmtType) (a b : SmtTerm)
+    (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
+    native_ite (native_Teq T SmtType.None) SmtTerm.None
+        (SmtTerm.map_diff a b) ≠
+      SmtTerm.DtSel s d i j := by
+  intro h
+  cases hT : native_Teq T SmtType.None <;>
+    simp [native_ite, hT] at h
+
+private theorem eo_to_smt_map_diff_guard_ne_dt_tester
+    (T : SmtType) (a b : SmtTerm)
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    native_ite (native_Teq T SmtType.None) SmtTerm.None
+        (SmtTerm.map_diff a b) ≠
+      SmtTerm.DtTester s d i := by
+  intro h
+  cases hT : native_Teq T SmtType.None <;>
+    simp [native_ite, hT] at h
+
+private theorem eo_to_smt_map_diff_guard_ne_dt_cons
+    (T : SmtType) (a b : SmtTerm)
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    native_ite (native_Teq T SmtType.None) SmtTerm.None
+        (SmtTerm.map_diff a b) ≠
+      SmtTerm.DtCons s d i := by
+  intro h
+  cases hT : native_Teq T SmtType.None <;>
+    simp [native_ite, hT] at h
+
 private theorem eo_to_smt_tuple_select_ne_dt_sel
     (T : SmtType) (n t : SmtTerm) (s : native_String) (d : SmtDatatype)
     (i j : native_Nat) :
@@ -8401,6 +8431,10 @@ private theorem eo_to_smt_eq_dt_cons_cases
     exact (eo_to_smt_apply_ne_dt_cons f x s d i hy).elim
   case UOp2 op q idx =>
     cases op <;> try (exfalso; cases hy)
+    case _at_array_deq_diff =>
+      exact (eo_to_smt_map_diff_guard_ne_dt_cons
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff q idx)))
+        (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_cons _ _ _ _ _ hy).elim
     case _at_quantifiers_skolemize =>
@@ -9239,6 +9273,10 @@ private theorem eo_to_smt_eq_dt_sel_cases
     cases name <;> cases hy
   case UOp2 op q idx =>
     cases op <;> try (exfalso; cases hy)
+    case _at_array_deq_diff =>
+      exact (eo_to_smt_map_diff_guard_ne_dt_sel
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff q idx)))
+        (__eo_to_smt q) (__eo_to_smt idx) s d i j hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_sel _ _ _ _ _ _ hy).elim
     case _at_quantifiers_skolemize =>
@@ -9293,6 +9331,10 @@ private theorem eo_to_smt_ne_dt_tester
     cases name <;> cases hy
   case UOp2 op q idx =>
     cases op <;> try (exfalso; cases hy)
+    case _at_array_deq_diff =>
+      exact (eo_to_smt_map_diff_guard_ne_dt_tester
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff q idx)))
+        (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_tester _ _ _ _ _ hy).elim
     case _at_quantifiers_skolemize =>
