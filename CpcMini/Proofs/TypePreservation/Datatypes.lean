@@ -966,8 +966,7 @@ private theorem type_wf_parts_of_wf_ne_reglan
 
 private theorem int_inhabited_bool :
     native_inhabited_type SmtType.Int = true :=
-  native_inhabited_type_of_type_inhabited
-    (T := SmtType.Int) ⟨SmtValue.Numeral 0, rfl⟩
+  native_inhabited_type_int
 
 /-- The model fallback used for wrong datatype-selector applications is well-formed. -/
 theorem dt_sel_wrong_map_type_wf_of_non_none
@@ -1013,21 +1012,21 @@ theorem dt_sel_wrong_map_type_wf_of_non_none
   have hM3Inh : type_inhabited M3 := by
     exact type_inhabited_map (A := D) (B := R) hRInh
   have hM3InhBool : native_inhabited_type M3 = true :=
-    native_inhabited_type_of_type_inhabited hM3Inh
+    native_inhabited_type_map hRParts.1
   have hM3Rec : __smtx_type_wf_rec M3 native_reflist_nil = true := by
     simp [M3, __smtx_type_wf_rec, native_and, hDTParts.1,
       hDTParts.2, hRParts.1, hRParts.2]
   have hM2Inh : type_inhabited M2 := by
     exact type_inhabited_map (A := SmtType.Int) (B := M3) hM3Inh
   have hM2InhBool : native_inhabited_type M2 = true :=
-    native_inhabited_type_of_type_inhabited hM2Inh
+    native_inhabited_type_map hM3InhBool
   have hM2Rec : __smtx_type_wf_rec M2 native_reflist_nil = true := by
     simp [M2, __smtx_type_wf_rec, native_and, int_inhabited_bool,
       hM3InhBool, hM3Rec]
   have hM1Inh : type_inhabited M1 := by
     exact type_inhabited_map (A := SmtType.Int) (B := M2) hM2Inh
   have hM1InhBool : native_inhabited_type M1 = true :=
-    native_inhabited_type_of_type_inhabited hM1Inh
+    native_inhabited_type_map hM2InhBool
   have hM1Rec : __smtx_type_wf_rec M1 native_reflist_nil = true := by
     simp [M1, __smtx_type_wf_rec, native_and, int_inhabited_bool,
       hM2InhBool, hM2Rec]
