@@ -668,6 +668,15 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         tp_result_seq_components_wf_rotate_right]
   exact go x hxNN
 
+theorem smt_term_fun_type_wf_of_non_none
+    (x : SmtTerm)
+    (hxNN : term_has_non_none_type x)
+    {A B : SmtType}
+    (hxTy : __smtx_typeof x = SmtType.FunType A B) :
+    __smtx_type_wf (SmtType.FunType A B) = true := by
+  have hGood := tp_smt_term_result_seq_components_wf_of_non_none x hxNN
+  simpa [tp_result_seq_components_wf, hxTy] using hGood
+
 private theorem tp_smt_seq_component_wf_rec_of_non_none_type
     (x : SmtTerm) (T : SmtType)
     (hxTy : __smtx_typeof x = SmtType.Seq T) :

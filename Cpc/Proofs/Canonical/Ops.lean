@@ -187,21 +187,80 @@ theorem model_eval_qdiv_total_canonical
     simp [__smtx_model_eval_qdiv_total, __smtx_value_canonical,
       __smtx_value_canonical_bool]
 
+theorem model_eval_apply_fun_canonical
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (fid : native_Nat)
+    (A B : SmtType)
+    (x : SmtValue)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_value_canonical (__smtx_model_eval_apply M (SmtValue.Fun fid A B) x) := by
+  by_cases hxNot : x = SmtValue.NotValue
+  · subst x
+    simp [__smtx_model_eval_apply, __smtx_value_canonical,
+      __smtx_value_canonical_bool]
+  · by_cases hArg : native_Teq (__smtx_typeof_value x) A = true
+    · have hxTy : __smtx_typeof_value x = A := by
+        simpa [native_Teq] using hArg
+      have hCan :
+          __smtx_value_canonical (__smtx_model_eval_fun M fid B x) :=
+        (model_total_typed_native_fun_typed hM fid A B x hFunWF hxTy).2
+      have hApply :
+          __smtx_model_eval_apply M (SmtValue.Fun fid A B) x =
+            __smtx_model_eval_fun M fid B x := by
+        cases x <;> simp [__smtx_model_eval_apply, native_ite, hArg] at hxNot ⊢
+      simpa [hApply] using hCan
+    · have hApply :
+          __smtx_model_eval_apply M (SmtValue.Fun fid A B) x =
+            SmtValue.NotValue := by
+        cases x <;> simp [__smtx_model_eval_apply, native_ite, hArg] at hxNot ⊢
+      simpa [hApply] using value_canonical_notValue
+
+theorem model_eval_apply_lookup_fun_canonical
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (s : native_String)
+    (A B : SmtType)
+    (x : SmtValue)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_value_canonical
+      (__smtx_model_eval_apply M
+        (__smtx_model_lookup M s (SmtType.FunType A B)) x) := by
+  have hLookupTy :
+      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
+        SmtType.FunType A B :=
+    model_total_typed_lookup hM s (SmtType.FunType A B) hFunWF
+  rcases fun_value_canonical hLookupTy with ⟨fid, hLookupEq⟩
+  rw [hLookupEq]
+  exact model_eval_apply_fun_canonical M hM fid A B x hFunWF
+
 theorem model_eval_apply_canonical
+    (M : SmtModel)
+    (hM : model_total_typed M)
     {f x : SmtValue}
+    {A B : SmtType}
+    (hHead :
+      __smtx_typeof_value f = SmtType.FunType A B ∨
+        __smtx_typeof_value f = SmtType.DtcAppType A B)
+    (hFunWF :
+      __smtx_typeof_value f = SmtType.FunType A B ->
+        __smtx_type_wf (SmtType.FunType A B) = true)
     (hf : __smtx_value_canonical f)
     (hx : __smtx_value_canonical x) :
-    __smtx_value_canonical (__smtx_model_eval_apply f x) := by
-  cases f <;> cases x <;>
-    simp [__smtx_model_eval_apply, __smtx_map_select,
-      __smtx_value_canonical, __smtx_value_canonical_bool,
-      SmtEval.native_and] at hf hx ⊢
-  all_goals
-    first
-    | assumption
-    | exact ⟨hf, hx⟩
-    | simpa [__smtx_value_canonical] using
-        map_lookup_value_canonical (i := ?_) hf
+    __smtx_value_canonical (__smtx_model_eval_apply M f x) := by
+  cases hHead with
+  | inl hFun =>
+      rcases fun_value_canonical hFun with ⟨fid, rfl⟩
+      exact model_eval_apply_fun_canonical M hM fid A B x (hFunWF rfl)
+  | inr hDtc =>
+      cases f <;> cases x <;>
+        simp [__smtx_model_eval_apply, __smtx_typeof_value,
+          __smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hDtc hf hx ⊢
+      all_goals
+        first
+        | assumption
+        | exact ⟨hf, hx⟩
 
 /-- Value-level SMT `ite` preserves canonicality of the selected branch. -/
 theorem model_eval_ite_canonical
@@ -1246,7 +1305,7 @@ theorem vsm_apply_arg_nth_canonical :
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue
   | SmtValue.Map m, n, npos, hv => by
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Fun m, n, npos, hv => by
+  | SmtValue.Fun fid A B, n, npos, hv => by
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue
   | SmtValue.Set m, n, npos, hv => by
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue

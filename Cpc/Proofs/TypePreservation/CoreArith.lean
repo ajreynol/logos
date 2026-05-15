@@ -643,7 +643,7 @@ theorem typeof_value_model_eval_eq
   rw [__smtx_model_eval.eq_134]
   simpa using
     typeof_value_model_eval_eq_value
-      (__smtx_model_eval M t1) (__smtx_model_eval M t2) (M := M)
+      (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
 /-- Shows that evaluating `xor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_xor

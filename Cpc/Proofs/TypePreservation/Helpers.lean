@@ -1700,13 +1700,9 @@ theorem int_arg_of_non_none
 
 /-- Shows that evaluating `eq_value` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_eq_value
-    (v1 v2 : SmtValue)
-    (M : SmtModel := SmtModel.empty) :
-    __smtx_typeof_value (__smtx_model_eval_eq v1 v2 (M := M)) = SmtType.Bool := by
+    (v1 v2 : SmtValue) :
+    __smtx_typeof_value (__smtx_model_eval_eq v1 v2) = SmtType.Bool := by
   cases v1 <;> cases v2
-  case Fun.Fun fid1 A1 B1 fid2 A2 B2 =>
-    cases h : native_and (native_Teq A1 A2) (native_Teq B1 B2) <;>
-      simp [__smtx_model_eval_eq, __smtx_typeof_value, native_ite, h]
   case Seq.Seq ss1 ss2 =>
     cases ss1 <;> cases ss2 <;> simp [__smtx_model_eval_eq, __smtx_typeof_value]
   case Apply.Apply f1 a1 f2 a2 =>
