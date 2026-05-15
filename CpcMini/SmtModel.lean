@@ -293,7 +293,7 @@ inductive SmtValue : Type where
   | Rational : native_Rat -> SmtValue
   | Binary : native_Int -> native_Int -> SmtValue
   | Map : SmtMap -> SmtValue
-  | Fun : SmtMap -> SmtValue
+  | Fun : native_Nat -> SmtType -> SmtType -> SmtValue
   | Set : SmtMap -> SmtValue
   | Seq : SmtSeq -> SmtValue
   | Char : native_Char -> SmtValue
@@ -338,6 +338,10 @@ deriving Repr, DecidableEq, Inhabited, Ord
 
 end
 
+abbrev SmtNativeFun := SmtValue -> SmtValue
+
+def native_default_fun_id : native_Nat := 0
+
 
 /- SMT-LIB model -/
 structure SmtModelKey where
@@ -345,25 +349,39 @@ structure SmtModelKey where
   ty : SmtType
 deriving Repr, DecidableEq, Inhabited
 
-abbrev SmtModel := SmtModelKey -> Option SmtValue
+structure SmtModel where
+  values : SmtModelKey -> Option SmtValue
+  nativeFuns : native_Nat -> Option SmtNativeFun
+deriving Inhabited
 
 def SmtModel.empty : SmtModel :=
-  fun _ => none
+  { values := fun _ => none
+    nativeFuns := fun _ => none }
 
 def __smtx_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
   { name := s, ty := T }
 
 def __smtx_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  match M (__smtx_model_key s T) with
+  match M.values (__smtx_model_key s T) with
   | some v => v
   | none => SmtValue.NotValue
 
 def __smtx_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
-  fun k =>
-    if k = (__smtx_model_key s T) then
-      some v
-    else
-      M k
+  { M with values := fun k =>
+      if k = (__smtx_model_key s T) then
+        some v
+      else
+        M.values k }
+
+def __smtx_model_fun_lookup (M : SmtModel) (fid : native_Nat) : Option SmtNativeFun :=
+  M.nativeFuns fid
+
+def __smtx_model_fun_push (M : SmtModel) (fid : native_Nat) (f : SmtNativeFun) : SmtModel :=
+  { M with nativeFuns := fun fid' =>
+      if fid' = fid then
+        some f
+      else
+        M.nativeFuns fid' }
 
 abbrev RefList := List native_String
 
@@ -648,7 +666,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.RegLan r) => SmtType.RegLan
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
   | (SmtValue.Set m) => (__smtx_map_to_set_type (__smtx_typeof_map_value m))
-  | (SmtValue.Fun m) => (__smtx_map_to_fun_type (__smtx_typeof_map_value m))
+  | (SmtValue.Fun _ T U) => (SmtType.FunType T U)
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
   | (SmtValue.Char c) => SmtType.Char
   | (SmtValue.UValue i e) => (SmtType.USort i)
@@ -676,7 +694,12 @@ def __smtx_map_select : SmtValue -> SmtValue -> SmtValue
 
 def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Map m1), (SmtValue.Map m2) => (native_eval_map_diff_msm m1 m2)
-  | (SmtValue.Fun m1), (SmtValue.Fun m2) => (native_eval_map_diff_msm m1 m2)
+  | (SmtValue.Fun _ T1 U1), (SmtValue.Fun _ T2 U2) =>
+    -- Native functions are opaque; keep this typed until extensional diff is specified.
+    (native_ite
+      (native_and (native_Teq T1 T2) (native_Teq U1 U2))
+      (__smtx_type_default T1)
+      SmtValue.NotValue)
   | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff_msm m1 m2)
   | v1, v2 => SmtValue.NotValue
 
@@ -687,11 +710,22 @@ def __smtx_model_eval_dt_sel (M : SmtModel) (s : native_String) (d : SmtDatatype
 def __smtx_model_eval_dt_tester (s : native_String) (d : SmtDatatype) (n : native_Nat) (v1 : SmtValue) : SmtValue :=
   (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
 
-def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
+def __smtx_model_eval_fun (M : SmtModel) (fid : native_Nat) (U : SmtType) (i : SmtValue) : SmtValue :=
+  if fid = native_default_fun_id then
+    __smtx_type_default U
+  else
+    match __smtx_model_fun_lookup M fid with
+    | some f => f i
+    | none => SmtValue.NotValue
+
+def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
   | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
-  | (SmtValue.Fun m), i => (__smtx_map_select (SmtValue.Map m) i)
+  | (SmtValue.Fun fid T U), i =>
+    (native_ite (native_Teq (__smtx_typeof_value i) T)
+      (__smtx_model_eval_fun M fid U i)
+      SmtValue.NotValue)
   | v, i => SmtValue.NotValue
 
 
@@ -843,7 +877,7 @@ def __smtx_type_default : SmtType -> SmtValue
   | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
   | (SmtType.Seq T) => (SmtValue.Seq (SmtSeq.empty T))
   | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
-  | (SmtType.FunType T U) => (SmtValue.Fun (SmtMap.default T (__smtx_type_default U)))
+  | (SmtType.FunType T U) => (SmtValue.Fun native_default_fun_id T U)
   | T => SmtValue.NotValue
 
 
@@ -868,7 +902,7 @@ def __smtx_seq_canonical : SmtSeq -> native_Bool
 def __smtx_value_canonical_bool : SmtValue -> native_Bool
   | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) true)
   | (SmtValue.Map m) => (__smtx_map_canonical m)
-  | (SmtValue.Fun m) => (__smtx_map_canonical m)
+  | (SmtValue.Fun _ _ _) => true
   | (SmtValue.Set m) => (__smtx_map_canonical m)
   | (SmtValue.Seq s) => (__smtx_seq_canonical s)
   | (SmtValue.Apply f v) => (native_and (__smtx_value_canonical_bool f) (__smtx_value_canonical_bool v))
@@ -1028,7 +1062,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.DtCons s d i) => (SmtValue.DtCons s d i)
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
-  | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x1))
+  | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x1))
   | (SmtTerm.Var s T) => (__smtx_model_lookup M s T)
   | (SmtTerm.UConst s T) => (__smtx_model_lookup M s T)
   | x1 => SmtValue.NotValue
