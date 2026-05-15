@@ -45,6 +45,57 @@ private theorem type_default_typed_canonical_of_native_inhabited
       __smtx_value_canonical_bool (__smtx_type_default T) = true := by
   simpa [native_inhabited_type, native_and] using h
 
+private theorem one_mod_pow2_succ (w : Nat) :
+    (1 : Int) % (native_int_pow2 (native_nat_to_int (Nat.succ w))) = 1 := by
+  have hnot : ¬ ((w : Int) + 1 < 0) := by omega
+  have hpow :
+      native_int_pow2 (native_nat_to_int (Nat.succ w)) =
+        (2 : Int) ^ (Nat.succ w) := by
+    simp [native_int_pow2, native_zexp_total, native_nat_to_int, hnot]
+  rw [hpow]
+  exact Int.emod_eq_of_lt (by decide) (by
+    have hNat : (1 : Nat) < 2 ^ Nat.succ w :=
+      Nat.one_lt_pow (by simp) (by decide)
+    exact_mod_cast hNat)
+
+private theorem one_mod_pow2_succ_zeq (w : Nat) :
+    native_zeq (1 : Int)
+      (native_mod_total 1 (native_int_pow2 (native_nat_to_int (Nat.succ w)))) = true := by
+  simp [native_zeq, native_mod_total, one_mod_pow2_succ]
+
+private theorem bitvec_succ_one_typeof (w : Nat) :
+    __smtx_typeof_value
+      (SmtValue.Binary (native_nat_to_int (Nat.succ w)) 1) =
+        SmtType.BitVec (Nat.succ w) := by
+  have hmod :
+      native_zeq (1 : Int)
+        (native_mod_total 1 (native_int_pow2 ((w : Int) + 1))) = true := by
+    simpa [native_nat_to_int] using one_mod_pow2_succ_zeq w
+  have hnonneg : native_zleq 0 ((w : Int) + 1) = true := by
+    have hle : (0 : Int) <= (w : Int) + 1 :=
+      Int.add_nonneg (Int.natCast_nonneg w) (by decide)
+    simpa [native_zleq] using hle
+  simp [__smtx_typeof_value, native_and, native_ite, native_int_to_nat,
+    native_nat_to_int, Nat.succ_eq_add_one]
+  exact ⟨hnonneg, hmod⟩
+
+private theorem bitvec_succ_one_canonical (w : Nat) :
+    __smtx_value_canonical_bool
+      (SmtValue.Binary (native_nat_to_int (Nat.succ w)) 1) = true := by
+  have hmod :
+      native_zeq (1 : Int)
+        (native_mod_total 1 (native_int_pow2 ((w : Int) + 1))) = true := by
+    simpa [native_nat_to_int] using one_mod_pow2_succ_zeq w
+  simp [__smtx_value_canonical_bool, native_ite, native_nat_to_int,
+    Nat.succ_eq_add_one]
+  exact Or.inr hmod
+
+private theorem bitvec_succ_one_ne_default (w : Nat) :
+    native_veq
+      (SmtValue.Binary (native_nat_to_int (Nat.succ w)) 1)
+      (__smtx_type_default (SmtType.BitVec (Nat.succ w))) = false := by
+  simp [__smtx_type_default, native_nat_to_int, native_veq]
+
 private def fresh_numeral_index : List SmtValue -> Nat
   | [] => 0
   | SmtValue.Numeral n :: xs => Nat.max (Int.toNat n + 1) (fresh_numeral_index xs)
@@ -359,14 +410,11 @@ private theorem smt_fun_head_key_mem_of_mem (k e : SmtValue) (m : SmtMap) :
         exact ih h
 
 /--
-Residual datatype/cardinality support facts.
-
-The first component is the remaining datatype infinitude statement. The second
-component states that every inhabited, recursively well-formed non-unit type has
-a canonical value different from its generated default; this is what turns
-domain-infinitude into map/function infinitude.
+Residual datatype/cardinality support facts. The first component is datatype
+infinitude; the second says non-unit datatypes have a non-default canonical
+value.
 -/
-theorem cpc_datatype_and_nonunit_value_support_assumption :
+theorem cpc_datatype_value_support_assumption :
     (∀ (s : native_String) (d : SmtDatatype),
       native_inhabited_type (SmtType.Datatype s d) = true ->
         __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true ->
@@ -376,15 +424,168 @@ theorem cpc_datatype_and_nonunit_value_support_assumption :
                 __smtx_typeof_value i = SmtType.Datatype s d ∧
                   __smtx_value_canonical_bool i = true ∧
                     ∀ j : SmtValue, j ∈ avoid -> native_veq j i = false) ∧
-      (∀ A : SmtType,
-        native_inhabited_type A = true ->
-          __smtx_type_wf_rec A native_reflist_nil = true ->
-            __smtx_is_unit_type A = false ->
+      (∀ (s : native_String) (d : SmtDatatype),
+        native_inhabited_type (SmtType.Datatype s d) = true ->
+          __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true ->
+            __smtx_is_unit_type (SmtType.Datatype s d) = false ->
               ∃ e : SmtValue,
-                __smtx_typeof_value e = A ∧
+                __smtx_typeof_value e = SmtType.Datatype s d ∧
                   __smtx_value_canonical_bool e = true ∧
-                    native_veq e (__smtx_type_default A) = false) := by
+                    native_veq e (__smtx_type_default (SmtType.Datatype s d)) = false) := by
   sorry
+
+theorem cpc_nonunit_typed_canonical_nondefault_value
+    (A : SmtType)
+    (_hInh : native_inhabited_type A = true)
+    (_hRec : __smtx_type_wf_rec A native_reflist_nil = true)
+    (_hNonUnit : __smtx_is_unit_type A = false) :
+    ∃ e : SmtValue,
+      __smtx_typeof_value e = A ∧
+        __smtx_value_canonical_bool e = true ∧
+          native_veq e (__smtx_type_default A) = false := by
+  classical
+  cases A with
+  | None =>
+      simp [__smtx_type_wf_rec] at _hRec
+  | Bool =>
+      refine ⟨SmtValue.Boolean true, ?_, ?_, ?_⟩ <;>
+        simp [__smtx_typeof_value, __smtx_value_canonical_bool,
+          __smtx_type_default, native_veq]
+  | Int =>
+      refine ⟨SmtValue.Numeral 1, ?_, ?_, ?_⟩ <;>
+        simp [__smtx_typeof_value, __smtx_value_canonical_bool,
+          __smtx_type_default, native_veq]
+  | Real =>
+      refine ⟨SmtValue.Rational (1 : native_Rat), ?_, ?_, ?_⟩
+      · simp [__smtx_typeof_value]
+      · simp [__smtx_value_canonical_bool]
+      · exact native_veq_eq_false_of_ne (by native_decide)
+  | RegLan =>
+      simp [__smtx_type_wf_rec] at _hRec
+  | BitVec w =>
+      cases w with
+      | zero =>
+          simp [__smtx_is_unit_type, native_nateq] at _hNonUnit
+      | succ w =>
+          refine
+            ⟨SmtValue.Binary (native_nat_to_int (Nat.succ w)) 1, ?_, ?_, ?_⟩
+          · exact bitvec_succ_one_typeof w
+          · exact bitvec_succ_one_canonical w
+          · exact bitvec_succ_one_ne_default w
+  | Map T U =>
+      have hRecParts :
+          native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T native_reflist_nil = true ∧
+              native_inhabited_type U = true ∧
+                __smtx_type_wf_rec U native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using _hRec
+      have hUNonUnit : __smtx_is_unit_type U = false := by
+        simpa [__smtx_is_unit_type] using _hNonUnit
+      have hTDefault :=
+        type_default_typed_canonical_of_native_inhabited hRecParts.1
+      have hUDefault :=
+        type_default_typed_canonical_of_native_inhabited hRecParts.2.2.1
+      rcases cpc_nonunit_typed_canonical_nondefault_value
+          U hRecParts.2.2.1 hRecParts.2.2.2 hUNonUnit with
+        ⟨e, heTy, heCan, heNeDefault⟩
+      have heNeDefaultProp : e ≠ __smtx_type_default U := by
+        intro hEq
+        subst e
+        simp [native_veq] at heNeDefault
+      refine
+        ⟨SmtValue.Map
+          (SmtMap.cons (__smtx_type_default T) e
+            (SmtMap.default T (__smtx_type_default U))), ?_, ?_, ?_⟩
+      · simp [__smtx_typeof_value, __smtx_typeof_map_value,
+          hTDefault.1, heTy, hUDefault.1, native_ite, native_Teq]
+      · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
+          __smtx_msm_get_default, hTDefault.2, heCan, hUDefault.1,
+          hUDefault.2, heNeDefaultProp, native_and, native_ite, native_not,
+          native_veq]
+      · simp [__smtx_type_default, native_veq]
+  | Set T =>
+      have hRecParts :
+          native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using _hRec
+      have hTDefault :=
+        type_default_typed_canonical_of_native_inhabited hRecParts.1
+      refine
+        ⟨SmtValue.Set
+          (SmtMap.cons (__smtx_type_default T) (SmtValue.Boolean true)
+            (SmtMap.default T (SmtValue.Boolean false))), ?_, ?_, ?_⟩
+      · simp [__smtx_typeof_value, __smtx_typeof_map_value,
+          __smtx_map_to_set_type, hTDefault.1, native_ite, native_Teq]
+      · cases hFin : __smtx_is_finite_type T <;>
+          simp [__smtx_value_canonical_bool, __smtx_map_canonical,
+            __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
+            __smtx_msm_get_default, hTDefault.2, hFin, native_and, native_ite,
+            native_not, native_veq, __smtx_typeof_value, __smtx_type_default]
+      · simp [__smtx_type_default, native_veq]
+  | Seq T =>
+      have hRecParts :
+          native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using _hRec
+      have hTDefault :=
+        type_default_typed_canonical_of_native_inhabited hRecParts.1
+      refine
+        ⟨SmtValue.Seq (SmtSeq.cons (__smtx_type_default T) (SmtSeq.empty T)),
+          ?_, ?_, ?_⟩
+      · simp [__smtx_typeof_value, __smtx_typeof_seq_value,
+          hTDefault.1, native_ite, native_Teq]
+      · simp [__smtx_value_canonical_bool, __smtx_seq_canonical,
+          hTDefault.2, native_and]
+      · simp [__smtx_type_default, native_veq]
+  | Char =>
+      refine ⟨SmtValue.Char (Char.ofNat 1), ?_, ?_, ?_⟩ <;>
+        simp [__smtx_typeof_value, __smtx_value_canonical_bool,
+          __smtx_type_default, native_nat_to_char, native_veq]
+  | Datatype s d =>
+      exact (cpc_datatype_value_support_assumption).2 s d _hInh _hRec _hNonUnit
+  | TypeRef s =>
+      simp [__smtx_type_wf_rec] at _hRec
+  | USort u =>
+      refine ⟨SmtValue.UValue u 1, ?_, ?_, ?_⟩ <;>
+        simp [__smtx_typeof_value, __smtx_value_canonical_bool,
+          __smtx_type_default, native_veq]
+  | FunType T U =>
+      have hRecParts :
+          native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T native_reflist_nil = true ∧
+              native_inhabited_type U = true ∧
+                __smtx_type_wf_rec U native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using _hRec
+      have hUNonUnit : __smtx_is_unit_type U = false := by
+        simpa [__smtx_is_unit_type] using _hNonUnit
+      have hTDefault :=
+        type_default_typed_canonical_of_native_inhabited hRecParts.1
+      have hUDefault :=
+        type_default_typed_canonical_of_native_inhabited hRecParts.2.2.1
+      rcases cpc_nonunit_typed_canonical_nondefault_value
+          U hRecParts.2.2.1 hRecParts.2.2.2 hUNonUnit with
+        ⟨e, heTy, heCan, heNeDefault⟩
+      have heNeDefaultProp : e ≠ __smtx_type_default U := by
+        intro hEq
+        subst e
+        simp [native_veq] at heNeDefault
+      refine
+        ⟨SmtValue.Fun
+          (SmtMap.cons (__smtx_type_default T) e
+            (SmtMap.default T (__smtx_type_default U))), ?_, ?_, ?_⟩
+      · simp [__smtx_typeof_value, __smtx_typeof_map_value,
+          __smtx_map_to_fun_type, hTDefault.1, heTy, hUDefault.1,
+          native_ite, native_Teq]
+      · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
+          __smtx_msm_get_default, hTDefault.2, heCan, hUDefault.1,
+          hUDefault.2, heNeDefaultProp, native_and, native_ite, native_not,
+          native_veq]
+      · simp [__smtx_type_default, native_veq]
+  | DtcAppType T U =>
+      simp [__smtx_type_wf_rec] at _hRec
+termination_by sizeOf A
 
 /--
 Fresh value assumption for well-formed infinite SMT types.
@@ -505,7 +706,7 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
                 T hRecParts.1 hRecParts.2.1 hFiniteParts.2
                   (smt_map_head_keys avoid) with
               ⟨k, hkTy, hkCan, hkFresh⟩
-            rcases (cpc_datatype_and_nonunit_value_support_assumption).2
+            rcases cpc_nonunit_typed_canonical_nondefault_value
                 U hRecParts.2.2.1 hRecParts.2.2.2 hFiniteParts.1 with
               ⟨e, heTy, heCan, heNeDefault⟩
             have heNeDefaultProp : e ≠ __smtx_type_default U := by
@@ -588,7 +789,7 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
       simp [__smtx_is_finite_type] at _hInfinite
   | Datatype s d =>
       exact
-        (cpc_datatype_and_nonunit_value_support_assumption).1
+        (cpc_datatype_value_support_assumption).1
           s d _hInh _hRec _hInfinite avoid
   | TypeRef s =>
       simp [__smtx_type_wf_rec] at _hRec
@@ -679,7 +880,7 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
                 T hRecParts.1 hRecParts.2.1 hFiniteParts.2
                   (smt_fun_head_keys avoid) with
               ⟨k, hkTy, hkCan, hkFresh⟩
-            rcases (cpc_datatype_and_nonunit_value_support_assumption).2
+            rcases cpc_nonunit_typed_canonical_nondefault_value
                 U hRecParts.2.2.1 hRecParts.2.2.2 hFiniteParts.1 with
               ⟨e, heTy, heCan, heNeDefault⟩
             have heNeDefaultProp : e ≠ __smtx_type_default U := by
