@@ -211,6 +211,34 @@ private theorem value_dt_substitute_type_default_typeref
       SmtValue.NotValue := by
   simp [__smtx_type_default, __smtx_value_dt_substitute]
 
+private theorem ret_typeof_sel_rec_substitute_type_ref_current
+    (s : native_String)
+    (d0 d : SmtDatatype)
+    (i j : native_Nat)
+    (h : __smtx_ret_typeof_sel_rec d i j = SmtType.TypeRef s) :
+    __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d0 d) i j =
+      SmtType.Datatype s d0 := by
+  calc
+    __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d0 d) i j =
+        type_dt_substitute_head s d0 (__smtx_ret_typeof_sel_rec d i j) :=
+      ret_typeof_sel_rec_dt_substitute s d0 d i j
+    _ = SmtType.Datatype s d0 := by
+      simp [h, type_dt_substitute_head_typeref_eq_current]
+
+private theorem datatype_wf_rec_of_type_wf_rec_nil
+    {s : native_String}
+    {d : SmtDatatype}
+    (h : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+    __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
+  simpa [__smtx_type_wf_rec, native_ite, native_reflist_contains,
+    native_reflist_nil, native_reflist_insert] using h
+
+private theorem type_ref_eq_of_contains_singleton
+    {s r : native_String}
+    (h : native_reflist_contains (native_reflist_insert native_reflist_nil s) r = true) :
+    r = s := by
+  simpa [native_reflist_contains, native_reflist_insert, native_reflist_nil] using h
+
 private def datatype_cons_default_productive
     (s : native_String)
     (d : SmtDatatype) :
@@ -611,9 +639,10 @@ private theorem vsm_apply_arg_nth_size_lt :
 private theorem datatype_type_default_typed_canonical_of_typed_value
     (s : native_String)
     (d : SmtDatatype)
+    (refs : RefList)
     (v : SmtValue)
     (hTy : __smtx_typeof_value v = SmtType.Datatype s d)
-    (hRec : __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true) :
+    (hRec : __smtx_type_wf_rec (SmtType.Datatype s d) refs = true) :
       __smtx_typeof_value (__smtx_type_default (SmtType.Datatype s d)) =
         SmtType.Datatype s d ∧
       __smtx_value_canonical (__smtx_type_default (SmtType.Datatype s d)) := by
@@ -634,6 +663,11 @@ private theorem datatype_type_default_typed_canonical_of_typed_value
   have hArgCountOrig :
       vsm_num_apply_args v = __smtx_dt_num_sels d i := by
     simpa [dt_num_sels_substitute] using hArgCount
+  have hDtWf :
+      __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
+    cases hContains : native_reflist_contains refs s <;>
+      simp [__smtx_type_wf_rec, native_ite, hContains] at hRec
+    exact hRec
   -- The proof should now follow the constructor path exposed by `hHead`,
   -- using recursive arguments as evidence that some later constructor is
   -- productive, and non-recursive arguments to justify their default values.
@@ -656,7 +690,7 @@ theorem cpcmini_datatype_type_default_typed_canonical_assumption
       ∃ v : SmtValue, __smtx_typeof_value v = SmtType.Datatype s d := by
     simpa [native_inhabited_type] using _hInh
   rcases hInh with ⟨v, hTy⟩
-  exact datatype_type_default_typed_canonical_of_typed_value s d v hTy _hRec
+  exact datatype_type_default_typed_canonical_of_typed_value s d native_reflist_nil v hTy _hRec
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
@@ -750,6 +784,17 @@ termination_by T _ _ => sizeOf T
 decreasing_by
   all_goals simp_wf
   all_goals omega
+
+private theorem type_default_ne_notValue_of_wf_rec
+    (T : SmtType)
+    (hInh : native_inhabited_type T = true)
+    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
+    __smtx_type_default T ≠ SmtValue.NotValue := by
+  have hDef := type_default_typed_canonical_of_wf_rec T hInh hRec
+  have hT : T ≠ SmtType.None := by
+    intro hNone
+    cases T <;> simp [__smtx_type_wf_rec] at hRec hNone
+  exact value_ne_notValue_of_type_ne_none hDef.1 hT
 
 /-- Every well-formed Mini SMT type has a canonical inhabitant. -/
 theorem canonical_type_inhabited_of_type_wf
