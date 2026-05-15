@@ -1388,16 +1388,15 @@ theorem typeof_value_model_eval_dt_tester
 /-- Shows that evaluating `apply_fun` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_fun
     (M : SmtModel)
+    (hM : model_total_typed M)
     {fid : native_Nat}
     {i : SmtValue}
     {A B : SmtType}
     (hA : A ≠ SmtType.None)
-    (hBInh : native_inhabited_type B = true)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
     (hf : __smtx_typeof_value (SmtValue.Fun fid A B) = SmtType.FunType A B)
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value (__smtx_model_eval_apply M (SmtValue.Fun fid A B) i) = B := by
-  have hDefaultTy : __smtx_typeof_value (__smtx_type_default B) = B :=
-    (type_default_typed_canonical_of_native_inhabited_type B hBInh).1
   have hArg : native_Teq (__smtx_typeof_value i) A = true := by
     simpa [native_Teq, hi]
   have hiNN : i ≠ SmtValue.NotValue := by
@@ -1413,32 +1412,21 @@ theorem typeof_value_model_eval_apply_fun
     cases i <;> simp [__smtx_model_eval_apply] at hiNN ⊢
   rw [hApply]
   simp [native_ite, hArg]
-  by_cases hDefault : fid = native_default_fun_id
-  · simp [__smtx_model_eval_fun, native_ite, hDefault, hDefaultTy]
-  · simp [__smtx_model_eval_fun, native_ite, hDefault]
-    cases hLookup : __smtx_model_fun_lookup M fid with
-    | none =>
-        simp [hLookup, hDefaultTy]
-    | some fn =>
-        simp [hLookup]
-        cases hTy : native_Teq (__smtx_typeof_value (fn i)) B
-        · simp [native_ite, hTy, hDefaultTy]
-        · have hOut : __smtx_typeof_value (fn i) = B := by
-            simpa [native_Teq] using hTy
-          simp [native_ite, hTy, hOut]
+  exact (model_total_typed_native_fun_typed hM fid A B i hFunWF hi).1
 
 /-- Shows that applying any function-typed value produces a value of the codomain type. -/
 theorem typeof_value_model_eval_apply_fun_value
     (M : SmtModel)
+    (hM : model_total_typed M)
     {f i : SmtValue}
     {A B : SmtType}
     (hA : A ≠ SmtType.None)
-    (hBInh : native_inhabited_type B = true)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
     (hf : __smtx_typeof_value f = SmtType.FunType A B)
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value (__smtx_model_eval_apply M f i) = B := by
   rcases fun_value_canonical hf with ⟨fid, rfl⟩
-  exact typeof_value_model_eval_apply_fun M hA hBInh rfl hi
+  exact typeof_value_model_eval_apply_fun M hM hA hFunWF rfl hi
 
 /-- Shows that evaluating `apply_dt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_dt
@@ -1523,6 +1511,7 @@ theorem typeof_value_model_eval_apply_dt
 /-- Shows that evaluating `apply_generic` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_generic
     (M : SmtModel)
+    (hM : model_total_typed M)
     (f x : SmtTerm)
     (hNN : __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None)
     (hpresf : __smtx_typeof_value (__smtx_model_eval M f) = __smtx_typeof f)
@@ -1539,14 +1528,8 @@ theorem typeof_value_model_eval_apply_generic
         simpa [hFunTy] using hpresf
       have hFunWf : __smtx_type_wf (SmtType.FunType A B) = true :=
         smt_fun_wf_of_non_none_type f A B hFunTy
-      have hFunParts :
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
-        simpa [__smtx_type_wf, native_and] using hFunWf
       simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA] using
-        typeof_value_model_eval_apply_fun_value M hA hFunParts.2.2.1 hFun hArg
+        typeof_value_model_eval_apply_fun_value M hM hA hFunWf hFun hArg
   | inr hDtcTy =>
       rw [hDtcTy, hX]
       have hDtc : __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by

@@ -143,7 +143,7 @@ private theorem supported_type_preservation
         rw [hTy']
         exact hNone
       rw [hEval M, hTy']
-      exact typeof_value_model_eval_apply_generic M f x hNN
+      exact typeof_value_model_eval_apply_generic M hM f x hNN
         (supported_type_preservation M hM f htf hsf)
         (supported_type_preservation M hM x htx hsx)
 

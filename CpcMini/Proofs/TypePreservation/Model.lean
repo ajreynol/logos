@@ -33,7 +33,14 @@ theorem model_total_typed_lookup_not_wf
     (T : SmtType)
     (hT : __smtx_type_wf T = false) :
     __smtx_model_lookup M s T = SmtValue.NotValue :=
-  hM.2.2 s T hT
+  hM.2.2.1 s T hT
+
+/-- Describes how `model_total_typed` constrains native functions. -/
+theorem model_total_typed_native_fun_typed
+    {M : SmtModel}
+    (hM : model_total_typed M) :
+    native_fun_typed M :=
+  hM.2.2.2
 
 theorem model_total_typed_lookup_uninhabited
     {M : SmtModel}
@@ -87,13 +94,17 @@ theorem model_total_typed_push
         simp [hvCanon]
       · simp [h]
         exact model_total_typed_lookup_canonical hM s' T' hT'
-    · intro s' T' hT'
-      unfold __smtx_model_lookup __smtx_model_push
-      by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
-      · cases h
-        rw [hWF] at hT'
-        cases hT'
-      · simp [h]
-        exact model_total_typed_lookup_uninhabited hM s' T' hT'
+    · constructor
+      · intro s' T' hT'
+        unfold __smtx_model_lookup __smtx_model_push
+        by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
+        · cases h
+          rw [hWF] at hT'
+          cases hT'
+        · simp [h]
+          exact model_total_typed_lookup_uninhabited hM s' T' hT'
+      · intro fid A B i hFunWF hi
+        simpa [native_fun_typed, __smtx_model_eval_fun, __smtx_model_fun_lookup, __smtx_model_push]
+          using model_total_typed_native_fun_typed hM fid A B i hFunWF hi
 
 end Smtm
