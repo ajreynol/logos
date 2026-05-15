@@ -1743,10 +1743,9 @@ private theorem eo_to_smt_substitute_aux
         · have hReservedFalse : native_reserved_datatype_name s2 = false := by
             cases hName : native_reserved_datatype_name s2 <;> simp [hName] at hReserved ⊢
           by_cases hst : native_streq s s2 = true
-          · have hd2 := eo_to_smt_substitute_aux s d (.inr d2)
-            have hc := eo_to_smt_substitute_aux s d (.inl c)
+          · have hc := eo_to_smt_substitute_aux s d (.inl c)
             simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
-              __eo_to_smt_type, native_ite, native_Teq, hst, hReservedFalse] using And.intro hd2 hc
+              __eo_to_smt_type, native_ite, native_Teq, hst, hReservedFalse] using hc
           · have hd2 := eo_to_smt_substitute_aux s d (.inr d2)
             have hc := eo_to_smt_substitute_aux s d (.inl c)
             simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
