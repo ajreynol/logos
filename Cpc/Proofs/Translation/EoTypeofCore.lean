@@ -424,28 +424,8 @@ theorem eo_to_smt_eq_numeral
       · exact False.elim (eo_to_smt_set_empty_ne_numeral (__eo_to_smt_type x) n h)
   | UOp2 op x y =>
       cases op <;> try cases h
-      case _at_array_deq_diff =>
-        change
-          (let _v0 := __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x y))
-           native_ite (native_Teq _v0 SmtType.None) SmtTerm.None
-             (SmtTerm.map_diff (__eo_to_smt x) (__eo_to_smt y))) =
-            SmtTerm.Numeral n at h
-        cases hT : native_Teq
-            (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x y)))
-            SmtType.None <;>
-          simp [native_ite, hT] at h
       case _at_bv =>
         exact False.elim (eo_to_smt_at_bv_ne_numeral (__eo_to_smt x) (__eo_to_smt y) n h)
-      case _at_sets_deq_diff =>
-        change
-          (let _v0 := __eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff x y))
-           native_ite (native_Teq _v0 SmtType.None) SmtTerm.None
-             (SmtTerm.map_diff (__eo_to_smt x) (__eo_to_smt y))) =
-            SmtTerm.Numeral n at h
-        cases hT : native_Teq
-            (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff x y)))
-            SmtType.None <;>
-          simp [native_ite, hT] at h
       case _at_quantifiers_skolemize =>
         exact False.elim (eo_to_smt_quantifier_term_ne_numeral x y n h)
   | Var name T => cases name <;> cases h
@@ -650,7 +630,9 @@ private theorem smtx_type_substitute_top_of_wf_rec
       smtx_type_substitute_top sub d0 T = T
   | SmtType.Datatype s d, refs, hNot, hWf => by
       have hDt : __smtx_dt_wf_rec d (native_reflist_insert refs s) = true := by
-        simpa [__smtx_type_wf_rec] using hWf
+        cases hRefs : native_reflist_contains refs s <;>
+          simp [__smtx_type_wf_rec, native_ite, hRefs] at hWf ⊢
+        exact hWf
       by_cases hEq : sub = s
       · subst hEq
         simp [smtx_type_substitute_top, native_streq, native_ite]
@@ -872,7 +854,8 @@ private theorem eo_to_smt_type_substitute_field
           exact smtx_type_substitute_top_of_wf_rec sub (__eo_to_smt_datatype d0) tupleTy
             native_reflist_nil (by rfl)
             (by simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
-              __smtx_dt_cons_wf_rec])
+              __smtx_dt_cons_wf_rec, native_reflist_contains, native_reflist_nil,
+              native_ite])
         change tupleTy = smtx_type_substitute_top sub (__eo_to_smt_datatype d0) tupleTy
         exact hNoop.symm
       all_goals

@@ -132,7 +132,8 @@ theorem smtx_typeof_tuple_unit_translation :
       __smtx_value_canonical_bool]
   have hRec : __smtx_type_wf_rec tupleTy native_reflist_nil = true := by
     simp [tupleTy, __smtx_type_wf_rec, __smtx_dt_wf_rec,
-      __smtx_dt_cons_wf_rec]
+      __smtx_dt_cons_wf_rec, native_reflist_contains, native_reflist_nil,
+      native_ite]
   have hWf : __smtx_type_wf tupleTy = true := by
     simp [__smtx_type_wf, native_and, hInh, hRec]
   unfold __smtx_typeof
