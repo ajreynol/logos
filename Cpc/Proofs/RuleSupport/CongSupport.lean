@@ -2673,8 +2673,8 @@ private theorem smt_value_rel_model_eval_apply_of_rel_core
     (hFRel : RuleProofs.smt_value_rel (__smtx_model_eval M f) (__smtx_model_eval M g))
     (hXRel : RuleProofs.smt_value_rel (__smtx_model_eval M x) (__smtx_model_eval M y)) :
     RuleProofs.smt_value_rel
-      (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x))
-      (__smtx_model_eval_apply (__smtx_model_eval M g) (__smtx_model_eval M y)) := by
+      (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x))
+      (__smtx_model_eval_apply M (__smtx_model_eval M g) (__smtx_model_eval M y)) := by
   rcases typeof_apply_non_none_cases hAppNN with
     ⟨A, B, hHead, hX, hA, _hB⟩
   have hFNN : term_has_non_none_type f := by
@@ -5642,7 +5642,7 @@ private noncomputable abbrev smtEvalDiv
   let _v1 := x₁
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0))
-    (__smtx_model_eval_apply
+    (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_div_by_zero_id
         (SmtType.FunType SmtType.Int SmtType.Int))
       _v1)
@@ -5654,7 +5654,7 @@ private noncomputable abbrev smtEvalMod
   let _v1 := x₁
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0))
-    (__smtx_model_eval_apply
+    (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_mod_by_zero_id
         (SmtType.FunType SmtType.Int SmtType.Int))
       _v1)
@@ -5671,7 +5671,7 @@ private noncomputable abbrev smtEvalMultmult
     (__smtx_model_eval_multmult_total _v2 _v0)
     (__smtx_model_eval_ite
       (__smtx_model_eval_eq _v2 _v1)
-      (__smtx_model_eval_apply
+      (__smtx_model_eval_apply M
         (__smtx_model_lookup M native_div_by_zero_id
           (SmtType.FunType SmtType.Int SmtType.Int))
         _v3)
@@ -5686,7 +5686,7 @@ private noncomputable abbrev smtEvalQdiv
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0
       (SmtValue.Rational (native_mk_rational 0 1)))
-    (__smtx_model_eval_apply
+    (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_qdiv_by_zero_id
         (SmtType.FunType SmtType.Real SmtType.Real))
       _v1)
@@ -11268,7 +11268,7 @@ private theorem congTrueSpine_eq_true
         (fun a =>
           match __eo_to_smt_tester (__eo_to_smt c) with
           | SmtTerm.DtTester s d i => __smtx_model_eval_dt_tester s d i a
-          | tester => __smtx_model_eval_apply (__smtx_model_eval M tester) a)
+          | tester => __smtx_model_eval_apply M (__smtx_model_eval M tester) a)
         (by intro a; rfl)
         (is_arg_non_reg_of_non_none c)
         (by
@@ -11695,8 +11695,8 @@ theorem smt_value_rel_model_eval_apply_of_rel
     (hFRel : RuleProofs.smt_value_rel (__smtx_model_eval M f) (__smtx_model_eval M g))
     (hXRel : RuleProofs.smt_value_rel (__smtx_model_eval M x) (__smtx_model_eval M y)) :
     RuleProofs.smt_value_rel
-      (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x))
-      (__smtx_model_eval_apply (__smtx_model_eval M g) (__smtx_model_eval M y)) :=
+      (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x))
+      (__smtx_model_eval_apply M (__smtx_model_eval M g) (__smtx_model_eval M y)) :=
   smt_value_rel_model_eval_apply_of_rel_core M hM f g x y
     hAppNN hFy hXy hFRel hXRel
 

@@ -28,10 +28,13 @@ theorem type_inhabited_of_type_wf (T : SmtType)
   by_cases hReg : T = SmtType.RegLan
   · subst T
     exact type_inhabited_reglan
+  by_cases hFun : ∃ A B, T = SmtType.FunType A B
+  · rcases hFun with ⟨A, B, rfl⟩
+    exact ⟨SmtValue.Fun native_default_fun_id A B, rfl⟩
   have hPair :
       native_inhabited_type T = true ∧
         __smtx_type_wf_rec T native_reflist_nil = true := by
-    cases T <;> simp [__smtx_type_wf, native_and] at h hReg ⊢
+    cases T <;> simp [__smtx_type_wf, native_and] at h hReg hFun ⊢
     all_goals first | contradiction | assumption
   exact type_inhabited_of_native_inhabited_type T hPair.1
 
@@ -292,14 +295,9 @@ private theorem seq_char_wf :
     __smtx_type_wf (SmtType.Seq SmtType.Char) = true := by
   have hSeqInh :
       native_inhabited_type (SmtType.Seq SmtType.Char) = true :=
-    native_inhabited_type_of_type_inhabited
-      (T := SmtType.Seq SmtType.Char)
-      ⟨SmtValue.Seq (SmtSeq.empty SmtType.Char), by
-        simp [__smtx_typeof_value, __smtx_typeof_seq_value]⟩
+    native_inhabited_type_seq SmtType.Char
   have hCharInh : native_inhabited_type SmtType.Char = true :=
-    native_inhabited_type_of_type_inhabited
-      (T := SmtType.Char)
-      ⟨SmtValue.Char (native_nat_to_char native_nat_zero), rfl⟩
+    native_inhabited_type_char
   simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hSeqInh, hCharInh]
 
 theorem smt_term_result_seq_components_wf_of_non_none
@@ -506,7 +504,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       simpa [__smtx_typeof_store, native_ite, native_Teq, hxMap, hyA, hzB,
         type_result_seq_components_wf] using hxGood
     case map_diff x y =>
-      rcases map_diff_args_of_non_none hxNN with hMap | hFun | hSet
+      rcases map_diff_args_of_non_none hxNN with hMap | hSet
       · rcases hMap with ⟨A, B, hxMap, hyMap, hTy⟩
         have hxNN' : term_has_non_none_type x :=
           term_has_non_none_of_type_eq hxMap (by simp)
@@ -516,15 +514,6 @@ theorem smt_term_result_seq_components_wf_of_non_none
         rw [hTy]
         exact type_result_seq_components_wf_of_type_wf
           (map_type_wf_components_of_wf hMapWf).1
-      · rcases hFun with ⟨A, B, hxFun, hyFun, hTy⟩
-        have hxNN' : term_has_non_none_type x :=
-          term_has_non_none_of_type_eq hxFun (by simp)
-        have hxGood := go x hxNN'
-        have hFunWf : __smtx_type_wf (SmtType.FunType A B) = true := by
-          simpa [hxFun, type_result_seq_components_wf] using hxGood
-        rw [hTy]
-        exact type_result_seq_components_wf_of_type_wf
-          (fun_type_wf_components_of_wf hFunWf).1
       · rcases hSet with ⟨A, hxSet, hySet, hTy⟩
         have hxNN' : term_has_non_none_type x :=
           term_has_non_none_of_type_eq hxSet (by simp)
