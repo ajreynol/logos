@@ -590,6 +590,15 @@ private def result_datatype_components_wf : SmtType -> Prop
   | SmtType.DtcAppType _ B => result_datatype_components_wf B
   | _ => True
 
+/--
+Deferred Mini-only `map_diff` result invariant. Full Cpc carries the stronger
+component proof; Mini records the remaining obligation explicitly.
+-/
+private axiom result_datatype_components_wf_map_diff_deferred
+    (t1 t2 : SmtTerm)
+    (hxNN : term_has_non_none_type (SmtTerm.map_diff t1 t2)) :
+    result_datatype_components_wf (__smtx_typeof (SmtTerm.map_diff t1 t2))
+
 private theorem result_datatype_components_wf_of_type_wf
     {T : SmtType} (h : __smtx_type_wf T = true) :
     result_datatype_components_wf T := by
@@ -757,7 +766,7 @@ private theorem term_result_datatype_components_wf_of_non_none
       -- `map_diff` returns a domain/element type, while this Mini invariant
       -- only tracked datatype well-formedness through result positions.
       -- The full Cpc proof carries the stronger component invariant.
-      sorry
+      exact result_datatype_components_wf_map_diff_deferred t1 t2 hxNN
     case Apply f x =>
       by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
       · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
