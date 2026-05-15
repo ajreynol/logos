@@ -74,6 +74,264 @@ theorem eo_term_ne_stuck_of_smt_type_non_none
   subst hStuck
   exact h rfl
 
+/- Proof-side validity predicates for the EO type fragment meant to survive translation.
+
+This mirrors the CpcMini invariant, extended for Cpc's additional type
+constructors.  The tuple case carries the SMT tuple well-formedness check that
+`__eo_to_smt_type` itself performs; this keeps the first port small while still
+making the predicate strong enough to imply non-`None` translation.
+-/
+mutual
+
+def eo_type_valid_rec (refs : List native_String) : Term -> Prop
+  | Term.Bool => True
+  | Term.DatatypeType s d =>
+      __eo_reserved_datatype_name s = false ∧ eo_datatype_valid_rec (s :: refs) d
+  | Term.DatatypeTypeRef s => __eo_reserved_datatype_name s = false ∧ s ∈ refs
+  | Term.DtcAppType T U => eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U
+  | Term.USort _ => True
+  | Term.Apply (Term.Apply Term.FunType T1) T2 =>
+      eo_type_valid_rec [] T1 ∧ eo_type_valid_rec [] T2
+  | Term.UOp UserOp.Int => True
+  | Term.UOp UserOp.Real => True
+  | Term.UOp UserOp.Char => True
+  | Term.UOp UserOp.RegLan => True
+  | Term.UOp UserOp.UnitTuple => True
+  | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n) => native_zleq 0 n = true
+  | Term.Apply (Term.UOp UserOp.Seq) T => eo_type_valid_rec [] T
+  | Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U =>
+      eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U
+  | Term.Apply (Term.UOp UserOp.Set) T => eo_type_valid_rec [] T
+  | Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U =>
+      eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U ∧
+        __smtx_type_wf (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)) =
+          true
+  | _ => False
+
+def eo_datatype_cons_valid_rec (refs : List native_String) : DatatypeCons -> Prop
+  | DatatypeCons.unit => True
+  | DatatypeCons.cons T c =>
+      eo_type_valid_rec refs T ∧ eo_datatype_cons_valid_rec refs c
+
+def eo_datatype_valid_rec (refs : List native_String) : Datatype -> Prop
+  | Datatype.null => True
+  | Datatype.sum c d =>
+      eo_datatype_cons_valid_rec refs c ∧ eo_datatype_valid_rec refs d
+
+end
+
+/-- Valid EO types always translate to a non-`None` SMT type. -/
+theorem eo_type_valid_rec_non_none :
+    ∀ {refs : List native_String} {T : Term},
+      eo_type_valid_rec refs T -> __eo_to_smt_type T ≠ SmtType.None
+  | refs, Term.UOp op, h => by
+      cases op with
+      | Int =>
+          simp [__eo_to_smt_type]
+      | Real =>
+          simp [__eo_to_smt_type]
+      | Char =>
+          simp [__eo_to_smt_type]
+      | RegLan =>
+          simp [__eo_to_smt_type]
+      | UnitTuple =>
+          simp [__eo_to_smt_type]
+      | _ =>
+          exfalso
+          simpa [eo_type_valid_rec] using h
+  | refs, Term.Bool, _ => by
+      simp [__eo_to_smt_type]
+  | refs, Term.USort i, _ => by
+      simp [__eo_to_smt_type]
+  | refs, Term.DatatypeType s d, h => by
+      rcases h with ⟨hReserved, _⟩
+      simp [__eo_to_smt_type, hReserved, native_ite]
+  | refs, Term.DatatypeTypeRef s, h => by
+      rcases h with ⟨hReserved, _⟩
+      simp [__eo_to_smt_type, hReserved, native_ite]
+  | refs, Term.DtcAppType T U, h => by
+      rcases h with ⟨hT, hU⟩
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None := eo_type_valid_rec_non_none hT
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None := eo_type_valid_rec_non_none hU
+      simp [__eo_to_smt_type, hTNN, hUNN, __smtx_typeof_guard, native_ite, native_Teq]
+  | refs, Term.Apply (Term.Apply Term.FunType T1) T2, h => by
+      rcases (by simpa [eo_type_valid_rec] using h :
+        eo_type_valid_rec [] T1 ∧ eo_type_valid_rec [] T2) with ⟨hT1, hT2⟩
+      have hT1NN : __eo_to_smt_type T1 ≠ SmtType.None := eo_type_valid_rec_non_none hT1
+      have hT2NN : __eo_to_smt_type T2 ≠ SmtType.None := eo_type_valid_rec_non_none hT2
+      simp [eo_to_smt_type_fun, hT1NN, hT2NN, __smtx_typeof_guard, native_ite, native_Teq]
+  | refs, Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h => by
+      have hz : native_zleq 0 n = true := by
+        simpa [eo_type_valid_rec] using h
+      simp [__eo_to_smt_type, native_ite, hz]
+  | refs, Term.Apply (Term.UOp UserOp.Seq) T, h => by
+      have hT : eo_type_valid_rec [] T := by
+        simpa [eo_type_valid_rec] using h
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None := eo_type_valid_rec_non_none hT
+      simp [__eo_to_smt_type, hTNN, __smtx_typeof_guard, native_ite, native_Teq]
+  | refs, Term.Apply (Term.UOp UserOp.Set) T, h => by
+      have hT : eo_type_valid_rec [] T := by
+        simpa [eo_type_valid_rec] using h
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None := eo_type_valid_rec_non_none hT
+      simp [__eo_to_smt_type, hTNN, __smtx_typeof_guard, native_ite, native_Teq]
+  | refs, Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U, h => by
+      rcases (by simpa [eo_type_valid_rec] using h :
+        eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U) with ⟨hT, hU⟩
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None := eo_type_valid_rec_non_none hT
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None := eo_type_valid_rec_non_none hU
+      simp [__eo_to_smt_type, hTNN, hUNN, __smtx_typeof_guard, native_ite, native_Teq]
+  | refs, Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U, h => by
+      rcases (by simpa [eo_type_valid_rec] using h :
+        eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U ∧
+          __smtx_type_wf (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)) =
+            true) with ⟨_hT, _hU, hWf⟩
+      let raw := __eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)
+      have hRawNN : raw ≠ SmtType.None := by
+        intro hNone
+        have hWf' : __smtx_type_wf raw = true := by
+          simpa [raw] using hWf
+        simp [hNone, __smtx_type_wf, __smtx_type_wf_rec, native_and] at hWf'
+      have hWfRaw : __smtx_type_wf raw = true := by
+        simpa [raw] using hWf
+      change native_ite (__smtx_type_wf raw) raw SmtType.None ≠ SmtType.None
+      simp [native_ite, hWfRaw, hRawNN]
+  | refs, Term.Apply f x, h => by
+      cases f with
+      | UOp op =>
+          cases op with
+          | Int =>
+              exfalso
+              simpa [eo_type_valid_rec] using h
+          | Real =>
+              exfalso
+              simpa [eo_type_valid_rec] using h
+          | Char =>
+              exfalso
+              simpa [eo_type_valid_rec] using h
+          | RegLan =>
+              exfalso
+              simpa [eo_type_valid_rec] using h
+          | UnitTuple =>
+              exfalso
+              simpa [eo_type_valid_rec] using h
+          | BitVec =>
+              cases x with
+              | Numeral n =>
+                  have hz : native_zleq 0 n = true := by
+                    simpa [eo_type_valid_rec] using h
+                  simp [__eo_to_smt_type, native_ite, hz]
+              | _ =>
+                  exfalso
+                  simpa [eo_type_valid_rec] using h
+          | Seq =>
+              have hx : eo_type_valid_rec [] x := by
+                simpa [eo_type_valid_rec] using h
+              have hXNN : __eo_to_smt_type x ≠ SmtType.None :=
+                eo_type_valid_rec_non_none (refs := []) hx
+              simp [__eo_to_smt_type, hXNN, __smtx_typeof_guard, native_ite, native_Teq]
+          | Set =>
+              have hx : eo_type_valid_rec [] x := by
+                simpa [eo_type_valid_rec] using h
+              have hXNN : __eo_to_smt_type x ≠ SmtType.None :=
+                eo_type_valid_rec_non_none (refs := []) hx
+              simp [__eo_to_smt_type, hXNN, __smtx_typeof_guard, native_ite, native_Teq]
+          | _ =>
+              exfalso
+              simpa [eo_type_valid_rec] using h
+      | Apply g y =>
+          cases g with
+          | FunType =>
+              rcases (by simpa [eo_type_valid_rec] using h :
+                eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x) with ⟨hy, hx⟩
+              have hyNN : __eo_to_smt_type y ≠ SmtType.None := eo_type_valid_rec_non_none hy
+              have hxNN : __eo_to_smt_type x ≠ SmtType.None := eo_type_valid_rec_non_none hx
+              simp [eo_to_smt_type_fun, hyNN, hxNN, __smtx_typeof_guard, native_ite, native_Teq]
+          | UOp op =>
+              cases op with
+              | Array =>
+                  rcases (by simpa [eo_type_valid_rec] using h :
+                    eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x) with ⟨hy, hx⟩
+                  have hyNN : __eo_to_smt_type y ≠ SmtType.None := eo_type_valid_rec_non_none hy
+                  have hxNN : __eo_to_smt_type x ≠ SmtType.None := eo_type_valid_rec_non_none hx
+                  simp [__eo_to_smt_type, hyNN, hxNN, __smtx_typeof_guard,
+                    native_ite, native_Teq]
+              | Tuple =>
+                  rcases (by simpa [eo_type_valid_rec] using h :
+                    eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x ∧
+                      __smtx_type_wf
+                        (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) =
+                        true) with ⟨_hy, _hx, hWf⟩
+                  let raw := __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)
+                  have hRawNN : raw ≠ SmtType.None := by
+                    intro hNone
+                    have hWf' : __smtx_type_wf raw = true := by
+                      simpa [raw] using hWf
+                    simp [hNone, __smtx_type_wf, __smtx_type_wf_rec, native_and] at hWf'
+                  have hWfRaw : __smtx_type_wf raw = true := by
+                    simpa [raw] using hWf
+                  change native_ite (__smtx_type_wf raw) raw SmtType.None ≠ SmtType.None
+                  simp [native_ite, hWfRaw, hRawNN]
+              | _ =>
+                  exfalso
+                  simpa [eo_type_valid_rec] using h
+          | _ =>
+              exfalso
+              simpa [eo_type_valid_rec] using h
+      | _ =>
+          exfalso
+          simpa [eo_type_valid_rec] using h
+  | refs, Term.__eo_List, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.__eo_List_nil, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.__eo_List_cons, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.Boolean b, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.Numeral n, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.Rational q, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.String s, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.Binary w n, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.Type, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.Stuck, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.FunType, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.Var name T, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.DtCons s d i, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.DtSel s d i j, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.UConst i T, h => by
+      exfalso
+      simpa [eo_type_valid_rec] using h
+  | refs, Term.UOp1 op x, h => by
+      cases op <;> exfalso <;> simpa [eo_type_valid_rec] using h
+  | refs, Term.UOp2 op x y, h => by
+      cases op <;> exfalso <;> simpa [eo_type_valid_rec] using h
+  | refs, Term.UOp3 op x y z, h => by
+      cases op <;> exfalso <;> simpa [eo_type_valid_rec] using h
+
 /-- Reduces `__eo_requires` when the compared EO types are definitionally equal. -/
 theorem eo_requires_self_of_non_stuck
     (T U : Term) (h : T ≠ Term.Stuck) :
