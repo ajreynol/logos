@@ -409,17 +409,17 @@ private theorem eo_datatype_cons_valid_rec_substitute
           rcases hT with ⟨hReserved, hT⟩
           by_cases hs : s = s2
           · subst s2
-            have hD2 : TranslationProofs.eo_datatype_valid_rec (s :: s :: refs) d2 := by
-              exact hT
-            have hSub' : TranslationProofs.eo_datatype_valid_rec (s :: s :: refs) dsub := by
-              apply eo_datatype_valid_rec_weaken hSub
+            have hD2' : TranslationProofs.eo_datatype_valid_rec (s :: refs) d2 := by
+              apply eo_datatype_valid_rec_weaken hT
               intro t ht
-              exact List.mem_cons_of_mem s ht
-            have hD2' :=
-              eo_datatype_valid_rec_substitute s dsub (s :: refs) hSub' hD2
+              cases ht with
+              | head =>
+                  simp
+              | tail _ ht =>
+                  exact ht
             have hT' :
                 TranslationProofs.eo_type_valid_rec refs
-                  (Term.DatatypeType s (__eo_dt_substitute s dsub d2)) := by
+                  (Term.DatatypeType s d2) := by
               exact ⟨hReserved, hD2'⟩
             simpa [__eo_dtc_substitute, TranslationProofs.eo_datatype_cons_valid_rec,
               TranslationProofs.eo_type_valid_rec, native_ite, native_streq] using
