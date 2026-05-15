@@ -12844,9 +12844,161 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_funct
   exact eo_to_smt_typeof_matches_translation_apply_apply_apply_non_function_head_applied
     op head x y z hHeadTranslate hOuterTranslate hGeneric hHeadType hNonNone
 
+private theorem smtx_apply_arg_non_none_of_non_none
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof x ≠ SmtType.None := by
+  have hApply :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+    cases f
+    case DtSel s d i j =>
+      exact False.elim (hSel s d i j rfl)
+    case DtTester s d i =>
+      exact False.elim (hTester s d i rfl)
+    all_goals
+      simpa [__smtx_typeof] using hNN
+  rcases typeof_apply_non_none_cases hApply with ⟨A, _B, _hHead, hArg, hA, _hB⟩
+  rw [hArg]
+  exact hA
+
+private theorem smtx_apply_head_non_none_of_non_none
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof f ≠ SmtType.None := by
+  have hApply :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+    cases f
+    case DtSel s d i j =>
+      exact False.elim (hSel s d i j rfl)
+    case DtTester s d i =>
+      exact False.elim (hTester s d i rfl)
+    all_goals
+      simpa [__smtx_typeof] using hNN
+  rcases typeof_apply_non_none_cases hApply with ⟨A, B, hHead, _hArg, _hA, _hB⟩
+  cases hHead with
+  | inl hHead =>
+      rw [hHead]
+      simp
+  | inr hHead =>
+      rw [hHead]
+      simp
+
+private theorem eo_to_smt_updater_rec_acc_non_none_of_non_none
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
+    (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
+    (hAccTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u acc) ≠
+        SmtType.None) :
+    __smtx_typeof acc ≠ SmtType.None := by
+  induction n generalizing acc with
+  | zero =>
+      simpa [__eo_to_smt_updater_rec] using hNN
+  | succ k ih =>
+      have hAccApp :
+          __smtx_typeof
+              (SmtTerm.Apply acc
+                (native_ite (native_nateq j k) u
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i j) t))) ≠
+            SmtType.None := by
+        exact ih
+          (SmtTerm.Apply acc
+            (native_ite (native_nateq j k) u
+              (SmtTerm.Apply (SmtTerm.DtSel s d i j) t)))
+          (by intro s d i j h; cases h)
+          (by intro s d i h; cases h)
+          (by
+            simpa [__eo_to_smt_updater_rec] using hNN)
+      exact smtx_apply_head_non_none_of_non_none acc
+        (native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i j) t))
+        hAccSel hAccTester
+        hAccApp
+
+private theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
+    (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
+    (hAccTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
+    (hIdx : native_zlt (native_nat_to_int j) (native_nat_to_int n) = true)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u acc) ≠
+        SmtType.None) :
+    __smtx_typeof u ≠ SmtType.None := by
+  induction n generalizing acc with
+  | zero =>
+      have hj : (j : Int) < 0 := by
+        simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+          SmtEval.native_nat_to_int] using hIdx
+      have hjNonneg : (0 : Int) ≤ j := Int.natCast_nonneg j
+      omega
+  | succ k ih =>
+      by_cases hEq : native_nateq j k = true
+      · have hAccApp :
+            __smtx_typeof
+                (SmtTerm.Apply acc
+                  (native_ite (native_nateq j k) u
+                    (SmtTerm.Apply (SmtTerm.DtSel s d i j) t))) ≠
+              SmtType.None :=
+          eo_to_smt_updater_rec_acc_non_none_of_non_none
+            s d i j k t u
+            (SmtTerm.Apply acc
+              (native_ite (native_nateq j k) u
+                (SmtTerm.Apply (SmtTerm.DtSel s d i j) t)))
+            (by intro s d i j h; cases h)
+            (by intro s d i h; cases h)
+            (by
+              simpa [__eo_to_smt_updater_rec] using hNN)
+        have hArg :
+            __smtx_typeof
+                (native_ite (native_nateq j k) u
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i j) t)) ≠
+              SmtType.None :=
+          smtx_apply_arg_non_none_of_non_none acc
+            (native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i j) t))
+            hAccSel hAccTester
+            hAccApp
+        simpa [native_ite, hEq] using hArg
+      · have hIdxK :
+            native_zlt (native_nat_to_int j) (native_nat_to_int k) = true := by
+          have hjk : j < k := by
+            have hjSucc : j < Nat.succ k := by
+              have hjSuccInt : (j : Int) < (Nat.succ k : Int) := by
+                apply of_decide_eq_true
+                simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+                  SmtEval.native_nat_to_int] using hIdx
+              exact Int.ofNat_lt.mp hjSuccInt
+            have hne : j ≠ k := by
+              intro h
+              subst j
+              simp [native_nateq, SmtEval.native_nateq] at hEq
+            exact Nat.lt_of_le_of_ne (Nat.le_of_lt_succ hjSucc) hne
+          have hjkInt : (j : Int) < (k : Int) := Int.ofNat_lt.mpr hjk
+          simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+            SmtEval.native_nat_to_int] using hjkInt
+        exact ih
+          (SmtTerm.Apply acc
+            (native_ite (native_nateq j k) u
+              (SmtTerm.Apply (SmtTerm.DtSel s d i j) t)))
+          (by intro s d i j h; cases h)
+          (by intro s d i h; cases h)
+          hIdxK
+          (by
+            simpa [__eo_to_smt_updater_rec] using hNN)
+
 /-- Bridge-free `update`, reducing the selector head and reusing the EO-side update typing helper. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
     (x y z : Term)
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
     (hNonNone :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp1 UserOp1.update z) y) x)) ≠
@@ -12902,7 +13054,48 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
       simp [native_ite, hIdx]
       rw [typeof_ite_eq, hCond, hThen, hElse, hTTy]
       simp [__smtx_typeof_ite, native_ite, native_Teq]
-    sorry
+    have hYNN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None := by
+      rw [hYTy]
+      simp
+    have hYEo : __eo_to_smt_type (__eo_typeof y) = SmtType.Datatype s d := by
+      have h := ihY hYNN
+      rw [hYTy] at h
+      exact h.symm
+    have hXNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+      exact eo_to_smt_updater_rec_update_arg_non_none_of_non_none
+        s d i j (__smtx_dt_num_sels d i) (__eo_to_smt y) (__eo_to_smt x)
+        (SmtTerm.DtCons s d i)
+        (by intro s d i j h; cases h)
+        (by intro s d i h; cases h)
+        hIdx
+        (by
+          rw [hThen]
+          exact _hT)
+    have hxNonStuck : __eo_typeof x ≠ Term.Stuck :=
+      eo_term_ne_stuck_of_smt_type_non_none (__eo_typeof x) (by
+        have h := ihX hXNN
+        rw [← h]
+        exact hXNN)
+    have hzNonStuck : __eo_typeof z ≠ Term.Stuck := by
+      rcases eo_to_smt_eq_dt_sel_cases z s d i j hz with
+        ⟨d0, hd, hzEq, _hReserved⟩ | ⟨z0, hzEq, _hz0⟩
+      · subst z
+        intro hStuck
+        change
+          Term.Apply (Term.Apply Term.FunType (Term.DatatypeType s d0))
+              (__eo_typeof_dt_sel_return (__eo_dt_substitute s d0 d0) i j) =
+            Term.Stuck at hStuck
+        cases hStuck
+      · subst z
+        change SmtTerm._at_purify (__eo_to_smt z0) = SmtTerm.DtSel s d i j at hz
+        cases hz
+    have hEo :
+        __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype s d := by
+      have hCore :=
+        eo_to_smt_type_typeof_apply_apply_apply_update_of_middle_type
+          x y z (__eo_typeof y) hzNonStuck rfl hxNonStuck
+      exact hCore.trans hYEo
+    exact hSmt.trans hEo.symm
   all_goals
     exact False.elim (hNonNone (by
       change
@@ -13842,7 +14035,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
         x y z ihY hNonNone
     case update =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_update
-        x y z hNonNone
+        x y z ihY ihX hNonNone
     case tuple_update =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_update
         x y z hNonNone
