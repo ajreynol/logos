@@ -1290,20 +1290,24 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                     · exfalso
                       simp [native_ite, hWf] at hGuardNN
                   have hRetWfRec : __smtx_type_wf_rec R [] = true := by
-                    have hRetNotReg : R ≠ SmtType.RegLan := by
-                      have hNoReg :=
-                        TranslationProofs.eo_to_smt_type_ne_reglan
-                          (__eo_typeof (Term.Apply (Term.DtSel s d i j) x))
-                      rwa [hEoTy] at hNoReg
-                    have hPair :
-                        native_inhabited_type R = true ∧
-                          __smtx_type_wf_rec R native_reflist_nil = true := by
-                      cases hR : R <;> simp [__smtx_type_wf, native_and, hR] at hRetWf ⊢
-                      case RegLan =>
-                        exact False.elim (hRetNotReg hR)
-                      all_goals
-                        exact hRetWf
-                    exact hPair.2
+                    let D := SmtType.Datatype s (__eo_to_smt_datatype d)
+                    have hWrongMapWF :=
+                      dt_sel_wrong_map_type_wf_of_non_none hApplyNN
+                    have hM2Wf :
+                        __smtx_type_wf
+                          (SmtType.Map SmtType.Int (SmtType.Map D R)) = true :=
+                      (map_type_wf_components_of_wf
+                        (by simpa [D, R] using hWrongMapWF)).2
+                    have hM3Wf : __smtx_type_wf (SmtType.Map D R) = true :=
+                      (map_type_wf_components_of_wf hM2Wf).2
+                    have hParts :
+                        native_inhabited_type (SmtType.Map D R) = true ∧
+                          native_inhabited_type D = true ∧
+                            __smtx_type_wf_rec D native_reflist_nil = true ∧
+                              native_inhabited_type R = true ∧
+                                __smtx_type_wf_rec R native_reflist_nil = true := by
+                      simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using hM3Wf
+                    exact hParts.2.2.2.2
                   have hSelRetValid :
                       TranslationProofs.eo_type_valid_rec []
                         (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) := by

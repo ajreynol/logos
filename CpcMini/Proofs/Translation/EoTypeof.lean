@@ -1573,15 +1573,32 @@ theorem eo_type_valid_of_guard_wf_non_none
     · exact h1
     · exfalso
       simp [native_ite, h1] at h
-  have hPair :
-      native_inhabited_type (__eo_to_smt_type T) = true ∧
-        __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true := by
-    cases hTy : __eo_to_smt_type T <;> simp [__smtx_type_wf, native_and, hTy] at hWf ⊢
-    case RegLan =>
-      exact False.elim (eo_to_smt_type_ne_reglan T hTy)
-    all_goals
-      exact hWf
-  exact eo_type_valid_of_smt_wf_rec [] hPair.2
+  by_cases hFun : ∃ A B, __eo_to_smt_type T = SmtType.FunType A B
+  · rcases hFun with ⟨A, B, hTy⟩
+    rcases (eo_to_smt_type_eq_fun_iff.mp hTy) with
+      ⟨T1, T2, hTerm, hT1, hT2, _hT1NN, _hT2NN⟩
+    subst T
+    have hParts :
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+      simpa [__smtx_type_wf, native_and, hTy] using hWf
+    simp [eo_type_valid_rec]
+    exact ⟨
+      eo_type_valid_of_smt_wf_rec [] (by simpa [hT1] using hParts.2.1),
+      eo_type_valid_of_smt_wf_rec [] (by simpa [hT2] using hParts.2.2.2)⟩
+  · have hPair :
+        native_inhabited_type (__eo_to_smt_type T) = true ∧
+          __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true := by
+      cases hTy : __eo_to_smt_type T <;> simp [__smtx_type_wf, native_and, hTy] at hWf ⊢
+      case RegLan =>
+        exact False.elim (eo_to_smt_type_ne_reglan T hTy)
+      case FunType A B =>
+        exact False.elim (hFun ⟨A, B, hTy⟩)
+      all_goals
+        exact hWf
+    exact eo_type_valid_of_smt_wf_rec [] hPair.2
 
 /-- Translating EO type-reference substitution matches the corresponding SMT substitution step. -/
 theorem eo_to_smt_type_substitute_typeref

@@ -43,7 +43,7 @@ theorem correct___eo_prog_refl_of_smt_translation (M : SmtModel) (x1 : Term) :
   · simp [__eo_prog_refl, __eo_to_smt, __smtx_typeof]
     exact smtx_typeof_eq_refl (__smtx_typeof (__eo_to_smt x1)) hTy
   · simpa [__eo_prog_refl, hNotEqStuck, __eo_to_smt, __smtx_model_eval] using
-      smtx_model_eval_eq_refl (__smtx_model_eval M (__eo_to_smt x1))
+      smtx_model_eval_eq_refl M (__smtx_model_eval M (__eo_to_smt x1))
 
 /-- Lemma about `not_eo_interprets_prog_refl_or_true`. -/
 theorem not_eo_interprets_prog_refl_or_true (M : SmtModel) :

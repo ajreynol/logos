@@ -309,77 +309,156 @@ theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
           · simp [Smtm.__smtx_model_eval.eq_8, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
 
 /-- Semantic equality relation on SMT values, defined by evaluation of SMT equality. -/
-def smt_value_rel (v1 v2 : SmtValue) : Prop :=
-  __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true
+def smt_value_rel (M : SmtModel) (v1 v2 : SmtValue) : Prop :=
+  __smtx_model_eval_eq M v1 v2 = SmtValue.Boolean true
 
 /-- Semantic equality relation on SMT sequences, lifted through `SmtValue.Seq`. -/
 def smt_seq_rel (s1 s2 : SmtSeq) : Prop :=
-  __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true
+  __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true
 
 private theorem smtx_model_eval_seq_eq_true_iff {s1 s2 : SmtSeq} :
-    __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) =
+    __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s1) (SmtValue.Seq s2) =
       SmtValue.Boolean true ↔ s1 = s2 := by
   simp [__smtx_model_eval_eq, native_veq]
 
 private theorem smtx_model_eval_eq_refl_aux
+    (M : SmtModel)
     (v : SmtValue) :
-    __smtx_model_eval_eq v v = SmtValue.Boolean true := by
-  cases v <;> simp [__smtx_model_eval_eq, native_veq]
+    __smtx_model_eval_eq M v v = SmtValue.Boolean true := by
+  cases v <;> simp [__smtx_model_eval_eq, native_veq, native_ite, native_Teq,
+    SmtEval.native_and]
 
 private theorem smtx_model_eval_seq_eq_refl_aux
     (s : SmtSeq) :
-    __smtx_model_eval_eq (SmtValue.Seq s) (SmtValue.Seq s) = SmtValue.Boolean true :=
+    __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s) (SmtValue.Seq s) = SmtValue.Boolean true :=
   smtx_model_eval_seq_eq_true_iff.2 rfl
 
 private theorem smtx_model_eval_eq_true_symm
+    {M : SmtModel}
     {v1 v2 : SmtValue}
-    (h : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true) :
-    __smtx_model_eval_eq v2 v1 = SmtValue.Boolean true := by
-  cases v1 <;> cases v2 <;>
-    simp [__smtx_model_eval_eq, native_veq] at h ⊢
+    (h : __smtx_model_eval_eq M v1 v2 = SmtValue.Boolean true) :
+    __smtx_model_eval_eq M v2 v1 = SmtValue.Boolean true := by
+  cases v1 <;> cases v2
+  case Fun.Fun fid1 T1 U1 fid2 T2 U2 =>
+    by_cases hTypes : native_and (native_Teq T1 T2) (native_Teq U1 U2) = true
+    · have hEq : T1 = T2 ∧ U1 = U2 := by
+        simpa [native_Teq, SmtEval.native_and] using hTypes
+      rcases hEq with ⟨rfl, rfl⟩
+      have hExt :
+          ∀ v : SmtValue,
+            __smtx_typeof_value v = T1 ->
+              __smtx_value_canonical_bool v = true ->
+                __smtx_model_eval_apply M (SmtValue.Fun fid1 T1 U1) v =
+                  __smtx_model_eval_apply M (SmtValue.Fun fid2 T1 U1) v := by
+        simpa [__smtx_model_eval_eq, native_ite, native_Teq, SmtEval.native_and] using h
+      have hExtSymm :
+          ∀ v : SmtValue,
+            __smtx_typeof_value v = T1 ->
+              __smtx_value_canonical_bool v = true ->
+                __smtx_model_eval_apply M (SmtValue.Fun fid2 T1 U1) v =
+                  __smtx_model_eval_apply M (SmtValue.Fun fid1 T1 U1) v := by
+        intro v hv hc
+        exact (hExt v hv hc).symm
+      simpa [__smtx_model_eval_eq, native_ite, native_Teq, SmtEval.native_and] using hExtSymm
+    · have hTypesFalse :
+          native_and (native_Teq T1 T2) (native_Teq U1 U2) = false := by
+        cases hBool : native_and (native_Teq T1 T2) (native_Teq U1 U2) <;>
+          simp [hBool] at hTypes ⊢
+      have hContra : SmtValue.Boolean false = SmtValue.Boolean true := by
+        simpa [__smtx_model_eval_eq, native_ite, hTypesFalse] using h
+      cases hContra
   all_goals
-    simpa [eq_comm] using h
+    simp [__smtx_model_eval_eq, native_veq] at h ⊢
+    try simpa [eq_comm] using h
 
 private theorem smtx_model_eval_seq_eq_true_symm
     {s1 s2 : SmtSeq}
-    (h : __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true) :
-    __smtx_model_eval_eq (SmtValue.Seq s2) (SmtValue.Seq s1) = SmtValue.Boolean true :=
+    (h : __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true) :
+    __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s2) (SmtValue.Seq s1) = SmtValue.Boolean true :=
   smtx_model_eval_seq_eq_true_iff.2 (smtx_model_eval_seq_eq_true_iff.1 h).symm
 
 private theorem smtx_model_eval_eq_true_trans
+    {M : SmtModel}
     {v1 v2 v3 : SmtValue}
-    (h12 : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true)
-    (h23 : __smtx_model_eval_eq v2 v3 = SmtValue.Boolean true) :
-    __smtx_model_eval_eq v1 v3 = SmtValue.Boolean true := by
-  cases v1 <;> cases v2 <;> cases v3 <;>
-    simp [__smtx_model_eval_eq, native_veq] at h12 h23 ⊢
+    (h12 : __smtx_model_eval_eq M v1 v2 = SmtValue.Boolean true)
+    (h23 : __smtx_model_eval_eq M v2 v3 = SmtValue.Boolean true) :
+    __smtx_model_eval_eq M v1 v3 = SmtValue.Boolean true := by
+  cases v1 <;> cases v2 <;> cases v3
+  case Fun.Fun.Fun fid1 T1 U1 fid2 T2 U2 fid3 T3 U3 =>
+    by_cases hTypes12 : native_and (native_Teq T1 T2) (native_Teq U1 U2) = true
+    · have hEq12 : T1 = T2 ∧ U1 = U2 := by
+        simpa [native_Teq, SmtEval.native_and] using hTypes12
+      rcases hEq12 with ⟨rfl, rfl⟩
+      have hExt12 :
+          ∀ v : SmtValue,
+            __smtx_typeof_value v = T1 ->
+              __smtx_value_canonical_bool v = true ->
+                __smtx_model_eval_apply M (SmtValue.Fun fid1 T1 U1) v =
+                  __smtx_model_eval_apply M (SmtValue.Fun fid2 T1 U1) v := by
+        simpa [__smtx_model_eval_eq, native_ite, native_Teq, SmtEval.native_and] using h12
+      by_cases hTypes23 : native_and (native_Teq T1 T3) (native_Teq U1 U3) = true
+      · have hEq23 : T1 = T3 ∧ U1 = U3 := by
+          simpa [native_Teq, SmtEval.native_and] using hTypes23
+        rcases hEq23 with ⟨rfl, rfl⟩
+        have hExt23 :
+            ∀ v : SmtValue,
+              __smtx_typeof_value v = T1 ->
+                __smtx_value_canonical_bool v = true ->
+                  __smtx_model_eval_apply M (SmtValue.Fun fid2 T1 U1) v =
+                    __smtx_model_eval_apply M (SmtValue.Fun fid3 T1 U1) v := by
+          simpa [__smtx_model_eval_eq, native_ite, native_Teq, SmtEval.native_and] using h23
+        have hExt13 :
+            ∀ v : SmtValue,
+              __smtx_typeof_value v = T1 ->
+                __smtx_value_canonical_bool v = true ->
+                  __smtx_model_eval_apply M (SmtValue.Fun fid1 T1 U1) v =
+                    __smtx_model_eval_apply M (SmtValue.Fun fid3 T1 U1) v := by
+          intro v hv hc
+          exact (hExt12 v hv hc).trans (hExt23 v hv hc)
+        simpa [__smtx_model_eval_eq, native_ite, native_Teq, SmtEval.native_and] using hExt13
+      · have hTypes23False :
+            native_and (native_Teq T1 T3) (native_Teq U1 U3) = false := by
+          cases hBool : native_and (native_Teq T1 T3) (native_Teq U1 U3) <;>
+            simp [hBool] at hTypes23 ⊢
+        have hContra : SmtValue.Boolean false = SmtValue.Boolean true := by
+          simpa [__smtx_model_eval_eq, native_ite, hTypes23False] using h23
+        cases hContra
+    · have hTypes12False :
+          native_and (native_Teq T1 T2) (native_Teq U1 U2) = false := by
+        cases hBool : native_and (native_Teq T1 T2) (native_Teq U1 U2) <;>
+          simp [hBool] at hTypes12 ⊢
+      have hContra : SmtValue.Boolean false = SmtValue.Boolean true := by
+        simpa [__smtx_model_eval_eq, native_ite, hTypes12False] using h12
+      cases hContra
   all_goals
-    first
-    | intro s
-      exact (h12 s).trans (h23 s)
-    | simp_all
+    try simp [__smtx_model_eval_eq, native_veq] at h12 h23 ⊢
+    try
+      first
+      | intro s
+        exact (h12 s).trans (h23 s)
+      | simp_all
 
 private theorem smtx_model_eval_seq_eq_true_trans
     {s1 s2 s3 : SmtSeq}
-    (h12 : __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true)
-    (h23 : __smtx_model_eval_eq (SmtValue.Seq s2) (SmtValue.Seq s3) = SmtValue.Boolean true) :
-    __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s3) = SmtValue.Boolean true :=
+    (h12 : __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true)
+    (h23 : __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s2) (SmtValue.Seq s3) = SmtValue.Boolean true) :
+    __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s1) (SmtValue.Seq s3) = SmtValue.Boolean true :=
   smtx_model_eval_seq_eq_true_iff.2
     ((smtx_model_eval_seq_eq_true_iff.1 h12).trans
       (smtx_model_eval_seq_eq_true_iff.1 h23))
 
 /-- Reflexivity lemma for `smt_value_rel`. -/
-theorem smt_value_rel_refl (v : SmtValue) : smt_value_rel v v :=
-  smtx_model_eval_eq_refl_aux v
+theorem smt_value_rel_refl (M : SmtModel) (v : SmtValue) : smt_value_rel M v v :=
+  smtx_model_eval_eq_refl_aux M v
 
 /-- Reflexivity lemma for `smt_seq_rel`. -/
 theorem smt_seq_rel_refl (s : SmtSeq) : smt_seq_rel s s :=
   smtx_model_eval_seq_eq_refl_aux s
 
 /-- Symmetry lemma for `smt_value_rel`. -/
-theorem smt_value_rel_symm (v1 v2 : SmtValue) :
-    smt_value_rel v1 v2 ->
-    smt_value_rel v2 v1 :=
+theorem smt_value_rel_symm (M : SmtModel) (v1 v2 : SmtValue) :
+    smt_value_rel M v1 v2 ->
+    smt_value_rel M v2 v1 :=
   smtx_model_eval_eq_true_symm
 
 /-- Symmetry lemma for `smt_seq_rel`. -/
@@ -389,10 +468,10 @@ theorem smt_seq_rel_symm (s1 s2 : SmtSeq) :
   smtx_model_eval_seq_eq_true_symm
 
 /-- Transitivity lemma for `smt_value_rel`. -/
-theorem smt_value_rel_trans (v1 v2 v3 : SmtValue) :
-    smt_value_rel v1 v2 ->
-    smt_value_rel v2 v3 ->
-    smt_value_rel v1 v3 :=
+theorem smt_value_rel_trans (M : SmtModel) (v1 v2 v3 : SmtValue) :
+    smt_value_rel M v1 v2 ->
+    smt_value_rel M v2 v3 ->
+    smt_value_rel M v1 v3 :=
   smtx_model_eval_eq_true_trans
 
 /-- Transitivity lemma for `smt_seq_rel`. -/
@@ -404,15 +483,16 @@ theorem smt_seq_rel_trans (s1 s2 s3 : SmtSeq) :
 
 /-- Characterizes `smt_value_rel` in terms of `model_eval_eq_true`. -/
 theorem smt_value_rel_iff_model_eval_eq_true
+    (M : SmtModel)
     (v1 : SmtValue) (v2 : SmtValue) :
-    smt_value_rel v1 v2 ↔ __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true :=
+    smt_value_rel M v1 v2 ↔ __smtx_model_eval_eq M v1 v2 = SmtValue.Boolean true :=
   Iff.rfl
 
 /-- Characterizes `smt_seq_rel` in terms of `model_eval_eq_true`. -/
 theorem smt_seq_rel_iff_model_eval_eq_true
     (s1 : SmtSeq) (s2 : SmtSeq) :
     smt_seq_rel s1 s2 ↔
-      __smtx_model_eval_eq (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true :=
+      __smtx_model_eval_eq SmtModel.empty (SmtValue.Seq s1) (SmtValue.Seq s2) = SmtValue.Boolean true :=
   Iff.rfl
 
 /-- Computes `__smtx_typeof` for `eq_bool_iff`. -/
@@ -543,10 +623,10 @@ theorem eo_has_bool_type_eq_of_true (M : SmtModel) (x y : Term) :
 /-- Establishes an equality relating `eo_interprets` and `rel`. -/
 theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) true ->
-  smt_value_rel (__smtx_model_eval M (__eo_to_smt x))
+  smt_value_rel M (__smtx_model_eval M (__eo_to_smt x))
     (__smtx_model_eval M (__eo_to_smt y)) := by
   intro hEq
-  rw [smt_value_rel_iff_model_eval_eq_true]
+  rw [smt_value_rel_iff_model_eval_eq_true M]
   rw [eo_interprets_iff_smt_interprets] at hEq
   rw [eo_to_smt_eq_eq x y] at hEq
   cases hEq with
@@ -557,7 +637,7 @@ theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
 /-- Derives `eo_interprets_eq` from `rel`. -/
 theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
   eo_has_bool_type (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) ->
-  smt_value_rel (__smtx_model_eval M (__eo_to_smt x))
+  smt_value_rel M (__smtx_model_eval M (__eo_to_smt x))
     (__smtx_model_eval M (__eo_to_smt y)) ->
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) true := by
   intro hTy hRel
@@ -566,9 +646,9 @@ theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
   refine smt_interprets.intro_true M (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) ?_ ?_
   · simpa [eo_has_bool_type, eo_to_smt_eq_eq x y] using hTy
   · have hEvalEq :
-        __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt x))
+        __smtx_model_eval_eq M (__smtx_model_eval M (__eo_to_smt x))
           (__smtx_model_eval M (__eo_to_smt y)) = SmtValue.Boolean true :=
-      (smt_value_rel_iff_model_eval_eq_true
+      (smt_value_rel_iff_model_eval_eq_true M
         (__smtx_model_eval M (__eo_to_smt x))
         (__smtx_model_eval M (__eo_to_smt y))).mp hRel
     simpa [Smtm.__smtx_model_eval.eq_11] using hEvalEq
@@ -581,7 +661,7 @@ theorem eo_interprets_eq_trans (M : SmtModel) (x y z : Term) :
   intro hXY hYZ
   apply eo_interprets_eq_of_rel M x z
   · exact eo_has_bool_type_eq_of_true_chain M x y z hXY hYZ
-  · exact smt_value_rel_trans
+  · exact smt_value_rel_trans M
       (__smtx_model_eval M (__eo_to_smt x))
       (__smtx_model_eval M (__eo_to_smt y))
       (__smtx_model_eval M (__eo_to_smt z))
@@ -704,8 +784,8 @@ theorem smtx_typeof_eq_refl (T : SmtType) :
   simp [native_ite, native_Teq, hT]
 
 /-- Reflexivity lemma for `smtx_model_eval_eq`. -/
-theorem smtx_model_eval_eq_refl (v : SmtValue) :
-  __smtx_model_eval_eq v v = SmtValue.Boolean true := by
-  exact (smt_value_rel_iff_model_eval_eq_true v v).mp (smt_value_rel_refl v)
+theorem smtx_model_eval_eq_refl (M : SmtModel) (v : SmtValue) :
+  __smtx_model_eval_eq M v v = SmtValue.Boolean true := by
+  exact (smt_value_rel_iff_model_eval_eq_true M v v).mp (smt_value_rel_refl M v)
 
 end RuleProofs
