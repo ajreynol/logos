@@ -66,12 +66,15 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
   by_cases hReg : T = SmtType.RegLan
   · subst T
     exact ⟨SmtValue.RegLan native_re_none, rfl⟩
-  · have hPair :
-        native_inhabited_type T = true ∧
-          __smtx_type_wf_rec T native_reflist_nil = true := by
-      cases T <;> simp [__smtx_type_wf, native_and] at hWf hReg ⊢
-      all_goals first | contradiction | assumption
-    exact type_inhabited_of_native_inhabited_type T hPair.1
+  · by_cases hFun : ∃ A B, T = SmtType.FunType A B
+    · rcases hFun with ⟨A, B, rfl⟩
+      exact ⟨SmtValue.Fun native_default_fun_id A B, rfl⟩
+    · have hPair :
+          native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T native_reflist_nil = true := by
+        cases T <;> simp [__smtx_type_wf, native_and] at hWf hReg hFun ⊢
+        all_goals first | contradiction | assumption
+      exact type_inhabited_of_native_inhabited_type T hPair.1
 
 /-- Extracts well-formedness of the guarded source type from a non-`None` guarded type. -/
 theorem smtx_typeof_guard_wf_wf_of_non_none
@@ -105,7 +108,8 @@ theorem type_wf_of_inhabited_and_wf_rec
     (hInh : native_inhabited_type T = true)
     (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
     __smtx_type_wf T = true := by
-  cases T <;> simp [__smtx_type_wf, native_and, hInh, hRec]
+  cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hInh, hRec] at *
+  all_goals first | contradiction | exact hRec
 
 /-- Every well-formed SMT type is semantically inhabited. -/
 theorem type_inhabited_of_type_wf
@@ -115,10 +119,13 @@ theorem type_inhabited_of_type_wf
   by_cases hReg : T = SmtType.RegLan
   · subst T
     exact ⟨SmtValue.RegLan native_re_none, rfl⟩
-  · have hInh : native_inhabited_type T = true := by
-      cases T <;> simp [__smtx_type_wf, native_and] at hWF hReg ⊢
-      all_goals first | contradiction | exact hWF.1
-    exact type_inhabited_of_native_inhabited_type T hInh
+  · by_cases hFun : ∃ A B, T = SmtType.FunType A B
+    · rcases hFun with ⟨A, B, rfl⟩
+      exact ⟨SmtValue.Fun native_default_fun_id A B, rfl⟩
+    · have hInh : native_inhabited_type T = true := by
+        cases T <;> simp [__smtx_type_wf, native_and] at hWF hReg hFun ⊢
+        all_goals first | contradiction | exact hWF.1
+      exact type_inhabited_of_native_inhabited_type T hInh
 
 /-- Extracts well-formedness of the element type of a well-formed sequence type. -/
 theorem seq_type_wf_component_of_wf
@@ -182,13 +189,12 @@ theorem fun_type_wf_components_of_wf
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
     have hAll :
-        native_inhabited_type (SmtType.FunType A B) = true ∧
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
-      simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
-    exact hAll.2
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+      simpa [__smtx_type_wf, native_and] using h
+    exact hAll
   exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
     type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
 
@@ -204,13 +210,12 @@ theorem fun_type_wf_rec_components_of_wf
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
     have hAll :
-        native_inhabited_type (SmtType.FunType A B) = true ∧
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
-      simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
-    exact hAll.2
+        native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true ∧
+            native_inhabited_type B = true ∧
+              __smtx_type_wf_rec B native_reflist_nil = true := by
+      simpa [__smtx_type_wf, native_and] using h
+    exact hAll
   exact ⟨hPair.2.1, hPair.2.2.2⟩
 
 /-- The domain of a well-formed function type is not `RegLan`. -/
@@ -331,7 +336,7 @@ def generic_apply_type (f x : SmtTerm) : Prop :=
 def generic_apply_eval (f x : SmtTerm) : Prop :=
   ∀ M,
     __smtx_model_eval M (SmtTerm.Apply f x) =
-      __smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x)
+      __smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x)
 
 /-- Predicate asserting that a model returns a correctly typed value for well-formed types,
 or `NotValue` for non-well-formed types, at a given symbol and type. -/
@@ -414,9 +419,7 @@ theorem seq_nth_wrong_map_type_wf
 /-- Shows that the SMT type `fun` is inhabited when its result type is inhabited. -/
 theorem type_inhabited_fun {A B : SmtType} (hB : type_inhabited B) :
     type_inhabited (SmtType.FunType A B) := by
-  rcases hB with ⟨v, hv⟩
-  exact ⟨SmtValue.Fun (SmtMap.default A v), by
-    simp [__smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_fun_type, hv]⟩
+  exact ⟨SmtValue.Fun native_default_fun_id A B, rfl⟩
 
 /-- Shows that the SMT type `set` is inhabited. -/
 theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
@@ -479,13 +482,7 @@ theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
 theorem native_inhabited_type_fun {A B : SmtType}
     (hB : native_inhabited_type B = true) :
     native_inhabited_type (SmtType.FunType A B) = true := by
-  have hDef := type_default_typed_canonical_of_native_inhabited_type B hB
-  have hCanon :
-      __smtx_value_canonical_bool (__smtx_type_default B) = true := by
-    simpa [__smtx_value_canonical] using hDef.2
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
-    __smtx_typeof_map_value, __smtx_map_to_fun_type, __smtx_value_canonical_bool,
-    __smtx_map_canonical, __smtx_map_default_canonical, native_and, hDef.1, hCanon]
-  cases __smtx_is_finite_type A <;> simp [native_ite, native_veq]
+    __smtx_value_canonical_bool, native_and]
 
 end Smtm

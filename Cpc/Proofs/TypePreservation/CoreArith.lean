@@ -315,10 +315,6 @@ theorem map_diff_args_of_non_none
       __smtx_typeof t1 = SmtType.Map A B ∧
         __smtx_typeof t2 = SmtType.Map A B ∧
         __smtx_typeof (SmtTerm.map_diff t1 t2) = A) ∨
-    (∃ A B : SmtType,
-      __smtx_typeof t1 = SmtType.FunType A B ∧
-        __smtx_typeof t2 = SmtType.FunType A B ∧
-        __smtx_typeof (SmtTerm.map_diff t1 t2) = A) ∨
     (∃ A : SmtType,
       __smtx_typeof t1 = SmtType.Set A ∧
         __smtx_typeof t2 = SmtType.Set A ∧
@@ -347,28 +343,6 @@ theorem map_diff_args_of_non_none
       | _ =>
           exfalso
           exact ht (by simp [__smtx_typeof_map_diff, h1, h2])
-  | FunType A B =>
-      cases h2 : __smtx_typeof t2 with
-      | FunType A' B' =>
-          by_cases hEq : native_and (native_Teq A A') (native_Teq B B')
-          · have hEq' : A = A' ∧ B = B' := by
-              simpa [native_Teq, SmtEval.native_and] using hEq
-            have hAA' : A = A' := hEq'.1
-            have hBB' : B = B' := hEq'.2
-            subst A'
-            subst B'
-            right
-            left
-            refine ⟨A, B, rfl, rfl, ?_⟩
-            rw [typeof_map_diff_eq]
-            simp [__smtx_typeof_map_diff, h1, h2, native_ite, native_Teq,
-              SmtEval.native_and]
-          · exfalso
-            exact ht (by
-              simp [__smtx_typeof_map_diff, h1, h2, native_ite, hEq])
-      | _ =>
-          exfalso
-          exact ht (by simp [__smtx_typeof_map_diff, h1, h2])
   | Set A =>
       cases h2 : __smtx_typeof t2 with
       | Set A' =>
@@ -376,7 +350,6 @@ theorem map_diff_args_of_non_none
           · have hAA' : A = A' := by
               simpa [native_Teq] using hEq
             subst A'
-            right
             right
             refine ⟨A, rfl, rfl, ?_⟩
             rw [typeof_map_diff_eq]
@@ -409,69 +382,6 @@ private theorem native_eval_map_diff_msm_typed
           native_veq (__smtx_msm_lookup m1 i) (__smtx_msm_lookup m2 i) = false
   · simpa [hDiff] using (Classical.choose_spec hDiff).1
   · simpa [hDiff] using hDefault
-
-private theorem fun_value_canonical_map
-    {v : SmtValue}
-    {A B : SmtType}
-    (h : __smtx_typeof_value v = SmtType.FunType A B) :
-    ∃ m : SmtMap, v = SmtValue.Fun m ∧
-      __smtx_typeof_map_value m = SmtType.Map A B := by
-  cases v with
-  | Fun m =>
-      cases typeof_map_value_shape m with
-      | inl hMap =>
-          rcases hMap with ⟨A', B', hMap⟩
-          have hFun : SmtType.FunType A' B' = SmtType.FunType A B := by
-            simpa [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] using h
-          cases hFun
-          exact ⟨m, rfl, hMap⟩
-      | inr hNone =>
-          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at h
-  | NotValue =>
-      simp [__smtx_typeof_value] at h
-  | Boolean _ =>
-      simp [__smtx_typeof_value] at h
-  | Numeral _ =>
-      simp [__smtx_typeof_value] at h
-  | Rational _ =>
-      simp [__smtx_typeof_value] at h
-  | Binary w n =>
-      cases hWidth : native_zleq 0 w <;>
-        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
-          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
-  | Map m =>
-      cases typeof_map_value_shape m with
-      | inl hMap =>
-          rcases hMap with ⟨A', B', hMap⟩
-          simp [__smtx_typeof_value, hMap] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, hNone] at h
-  | Set m =>
-      cases typeof_map_value_shape m with
-      | inl hMap =>
-          rcases hMap with ⟨A', B', hMap⟩
-          cases B' <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
-  | Seq ss =>
-      cases typeof_seq_value_shape ss with
-      | inl hSeq =>
-          rcases hSeq with ⟨T, hSeq⟩
-          simp [__smtx_typeof_value, hSeq] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
-  | UValue _ _ =>
-      simp [__smtx_typeof_value] at h
-  | RegLan _ =>
-      simp [__smtx_typeof_value] at h
-  | DtCons s d i =>
-      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
-  | Apply f x =>
-      exfalso
-      exact apply_value_non_chain_result_impossible
-        (U := SmtType.FunType A B) (by simp [dt_cons_chain_result]) h
 
 private theorem native_eval_map_diff_msm_canonical
     {m1 m2 : SmtMap}
@@ -507,7 +417,7 @@ theorem typeof_value_model_eval_map_diff
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.map_diff t1 t2)) =
       __smtx_typeof (SmtTerm.map_diff t1 t2) := by
-  rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+  rcases map_diff_args_of_non_none ht with hMap | hSet
   · rcases hMap with ⟨A, B, h1, h2, hTy⟩
     rw [hTy]
     rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
@@ -522,17 +432,6 @@ theorem typeof_value_model_eval_map_diff
       (by simpa [hm1, h1, __smtx_typeof_value] using hpres1)
       (by simpa [hm2, h2, __smtx_typeof_value] using hpres2)
       (hDefault hTy)
-  · rcases hFun with ⟨A, B, h1, h2, hTy⟩
-    rw [hTy]
-    rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
-        __smtx_model_eval_map_diff (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
-      simp [__smtx_model_eval]]
-    rcases fun_value_canonical_map (A := A) (B := B)
-        (by simpa [h1] using hpres1) with ⟨m1, hm1, hm1Ty⟩
-    rcases fun_value_canonical_map (A := A) (B := B)
-        (by simpa [h2] using hpres2) with ⟨m2, hm2, hm2Ty⟩
-    rw [hm1, hm2]
-    exact native_eval_map_diff_msm_typed hm1Ty hm2Ty (hDefault hTy)
   · rcases hSet with ⟨A, h1, h2, hTy⟩
     rw [hTy]
     rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
@@ -561,7 +460,7 @@ theorem model_eval_map_diff_canonical
     (hpres1 : __smtx_typeof_value (__smtx_model_eval M t1) = __smtx_typeof t1)
     (hpres2 : __smtx_typeof_value (__smtx_model_eval M t2) = __smtx_typeof t2) :
     __smtx_value_canonical (__smtx_model_eval M (SmtTerm.map_diff t1 t2)) := by
-  rcases map_diff_args_of_non_none ht with hMap | hFun | hSet
+  rcases map_diff_args_of_non_none ht with hMap | hSet
   · rcases hMap with ⟨A, B, h1, h2, hTy⟩
     rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
         __smtx_model_eval_map_diff (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
@@ -575,16 +474,6 @@ theorem model_eval_map_diff_canonical
       (by simpa [hm1, h1, __smtx_typeof_value] using hpres1)
       (by simpa [hm2, h2, __smtx_typeof_value] using hpres2)
       (hDefault hTy)
-  · rcases hFun with ⟨A, B, h1, h2, hTy⟩
-    rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
-        __smtx_model_eval_map_diff (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
-      simp [__smtx_model_eval]]
-    rcases fun_value_canonical_map (A := A) (B := B)
-        (by simpa [h1] using hpres1) with ⟨m1, hm1, hm1Ty⟩
-    rcases fun_value_canonical_map (A := A) (B := B)
-        (by simpa [h2] using hpres2) with ⟨m2, hm2, hm2Ty⟩
-    rw [hm1, hm2]
-    exact native_eval_map_diff_msm_canonical hm1Ty hm2Ty (hDefault hTy)
   · rcases hSet with ⟨A, h1, h2, hTy⟩
     rw [show __smtx_model_eval M (SmtTerm.map_diff t1 t2) =
         __smtx_model_eval_map_diff (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
@@ -752,7 +641,9 @@ theorem typeof_value_model_eval_eq
       __smtx_typeof (SmtTerm.eq t1 t2) := by
   rw [eq_term_typeof_of_non_none ht]
   rw [__smtx_model_eval.eq_134]
-  simpa using typeof_value_model_eval_eq_value (__smtx_model_eval M t1) (__smtx_model_eval M t2)
+  simpa using
+    typeof_value_model_eval_eq_value
+      (__smtx_model_eval M t1) (__smtx_model_eval M t2) (M := M)
 
 /-- Shows that evaluating `xor` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_xor
@@ -1126,12 +1017,12 @@ theorem typeof_value_model_eval_apply_lookup_fun
     (i : SmtValue)
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value
-        (__smtx_model_eval_apply (__smtx_model_lookup M s (SmtType.FunType A B)) i) = B := by
+        (__smtx_model_eval_apply M (__smtx_model_lookup M s (SmtType.FunType A B)) i) = B := by
   have hLookup :
       __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
         SmtType.FunType A B :=
     model_total_typed_lookup hM s (SmtType.FunType A B) hFunWF
-  exact typeof_value_model_eval_apply_dt hA (Or.inl hLookup) hi
+  exact typeof_value_model_eval_apply_fun_value M hM hA hFunWF hLookup hi
 
 /-- Shows that evaluating `div_total` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_div_total

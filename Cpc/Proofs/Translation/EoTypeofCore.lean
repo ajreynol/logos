@@ -29,9 +29,12 @@ cases while we continue filling in the EO typing story separately.
 private theorem smtx_type_wf_rec_of_type_wf
     {T : SmtType}
     (hNotReg : T ≠ SmtType.RegLan)
+    (hNotFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
   cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
+  case FunType A B =>
+    exact False.elim (hNotFun A B rfl)
   all_goals first | exact h | exact h.2 | exact h.2.2
 
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
@@ -932,6 +935,9 @@ private theorem eo_to_smt_type_substitute_field
                   native_reflist_nil (by rfl)
                   (smtx_type_wf_rec_of_type_wf
                     (eo_to_smt_type_tuple_ne_reglan (__eo_to_smt_type x1) (__eo_to_smt_type x))
+                    (by
+                      intro A B
+                      exact eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type x1) (__eo_to_smt_type x) A B)
                     hWf)).symm
           all_goals
             simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,
