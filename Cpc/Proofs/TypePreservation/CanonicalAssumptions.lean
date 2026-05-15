@@ -147,6 +147,17 @@ private theorem native_veq_value_dt_substitute_notValue_false
     native_veq (__smtx_value_dt_substitute s d v) SmtValue.NotValue = false := by
   exact native_veq_eq_false_of_ne (value_dt_substitute_ne_notValue s d h)
 
+private theorem value_dt_substitute_type_default_eq_of_not_datatype
+    (s : native_String)
+    (d : SmtDatatype)
+    (T : SmtType)
+    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d') :
+    __smtx_value_dt_substitute s d (__smtx_type_default T) =
+      __smtx_type_default T := by
+  cases T <;> simp [__smtx_type_default, __smtx_value_dt_substitute]
+  case Datatype s' d' =>
+    exact False.elim (hDatatype s' d' rfl)
+
 private theorem dt_cons_wf_rec_tail_of_true
     {T : SmtType}
     {c : SmtDatatypeCons}
@@ -394,6 +405,168 @@ private theorem datatype_default_sum_first_of_cons_default_ne_notValue
           SmtValue.NotValue = false :=
     native_veq_eq_false_of_ne hNe
   simp [__smtx_datatype_default, native_ite, native_not, hFalse]
+
+private def dtc_substitute_field_type
+    (s : native_String)
+    (d : SmtDatatype) : SmtType -> SmtType
+  | SmtType.Datatype s' d' =>
+      SmtType.Datatype s'
+        (native_ite (native_streq s s') d' (__smtx_dt_substitute s d d'))
+  | T =>
+      native_ite (native_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T
+
+private def dtc_type_chain
+    (s : native_String)
+    (d : SmtDatatype) : SmtDatatypeCons -> SmtType -> SmtType
+  | SmtDatatypeCons.unit, R => R
+  | SmtDatatypeCons.cons T c, R =>
+      SmtType.DtcAppType (dtc_substitute_field_type s d T)
+        (dtc_type_chain s d c R)
+
+private def dtc_all_fields_non_datatype : SmtDatatypeCons -> Prop
+  | SmtDatatypeCons.unit => True
+  | SmtDatatypeCons.cons (SmtType.Datatype _ _) _ => False
+  | SmtDatatypeCons.cons _ c => dtc_all_fields_non_datatype c
+
+private theorem typeof_dt_cons_value_rec_substitute_zero_eq_chain
+    (s : native_String)
+    (d0 : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons) (dTail : SmtDatatype),
+      __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d0)
+          (SmtDatatype.sum (__smtx_dtc_substitute s d0 c) dTail) 0 =
+        dtc_type_chain s d0 c (SmtType.Datatype s d0)
+  | SmtDatatypeCons.unit, dTail => by
+      simp [__smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+        dtc_type_chain]
+  | SmtDatatypeCons.cons T c, dTail => by
+      cases T <;>
+        simp [__smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
+          dtc_type_chain, dtc_substitute_field_type, native_ite, native_Teq,
+          native_streq, typeof_dt_cons_value_rec_substitute_zero_eq_chain s d0 c dTail]
+
+private theorem typeof_dt_cons_second_eq_dtc_type_chain
+    (s : native_String)
+    (c cTail : SmtDatatypeCons)
+    (dTail : SmtDatatype) :
+    let d := SmtDatatype.sum c (SmtDatatype.sum cTail dTail)
+    __smtx_typeof_value (SmtValue.DtCons s d 1) =
+      dtc_type_chain s d cTail (SmtType.Datatype s d) := by
+  intro d
+  simpa [d, __smtx_typeof_value, __smtx_dt_substitute,
+    __smtx_typeof_dt_cons_value_rec] using
+    typeof_dt_cons_value_rec_substitute_zero_eq_chain
+      s d cTail (__smtx_dt_substitute s d dTail)
+
+private theorem dtc_substitute_field_type_eq_of_non_datatype_finite
+    (s : native_String)
+    (d : SmtDatatype)
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    (hNotDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d')
+    (hFin :
+      __smtx_is_finite_datatype_cons (SmtDatatypeCons.cons T c) = true) :
+    dtc_substitute_field_type s d T = T := by
+  cases T <;>
+    simp [dtc_substitute_field_type, __smtx_is_finite_datatype_cons,
+      __smtx_is_finite_type, native_and, native_ite, native_Teq] at hFin hNotDatatype ⊢
+
+private theorem type_ne_none_of_finite_datatype_cons_head
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    (hFin :
+      __smtx_is_finite_datatype_cons (SmtDatatypeCons.cons T c) = true) :
+    T ≠ SmtType.None := by
+  intro hEq
+  have hBad := hFin
+  rw [hEq] at hBad
+  simp [__smtx_is_finite_datatype_cons, __smtx_is_finite_type,
+    native_and] at hBad
+
+private theorem dtc_non_datatype_field_default_substitute_typeof
+    (s : native_String)
+    (d : SmtDatatype)
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    {refs : RefList}
+    (hNotDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d')
+    (hWf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true)
+    (hFin :
+      __smtx_is_finite_datatype_cons (SmtDatatypeCons.cons T c) = true) :
+    __smtx_typeof_value
+        (__smtx_value_dt_substitute s d (__smtx_type_default T)) =
+      dtc_substitute_field_type s d T := by
+  have hFieldEq := dtc_substitute_field_type_eq_of_non_datatype_finite
+    s d hNotDatatype hFin
+  have hTInh : native_inhabited_type T = true := by
+    cases T <;>
+      simp [__smtx_dt_cons_wf_rec, __smtx_is_finite_datatype_cons,
+        __smtx_is_finite_type, native_and, native_ite] at hWf hFin ⊢
+    all_goals first | exact hWf.1 | exact hWf.2.1
+  have hEq := value_dt_substitute_type_default_eq_of_not_datatype s d T hNotDatatype
+  have hDef := (type_default_typed_canonical_of_native_inhabited hTInh).1
+  simpa [hFieldEq, hEq] using hDef
+
+private theorem datatype_cons_default_typeof_all_non_datatype_fields
+    (s : native_String)
+    (d : SmtDatatype)
+    (refs : RefList) :
+    ∀ (c : SmtDatatypeCons) (v : SmtValue) (R : SmtType),
+      dtc_all_fields_non_datatype c ->
+        __smtx_dt_cons_wf_rec c refs = true ->
+          __smtx_is_finite_datatype_cons c = true ->
+            __smtx_typeof_value v = dtc_type_chain s d c R ->
+              __smtx_typeof_value (__smtx_datatype_cons_default s d v c) = R
+  | SmtDatatypeCons.unit, v, R, _hAll, _hWf, _hFin, hvTy => by
+      simpa [__smtx_datatype_cons_default, dtc_type_chain] using hvTy
+  | SmtDatatypeCons.cons T c, v, R, hAll, hWf, hFin, hvTy => by
+      have hNotDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d' := by
+        intro s' d' hEq
+        rw [hEq] at hAll
+        simp [dtc_all_fields_non_datatype] at hAll
+      have hAllTail : dtc_all_fields_non_datatype c := by
+        cases T <;> simp [dtc_all_fields_non_datatype] at hAll
+        all_goals first | exact hAll | exact False.elim hAll
+      let v0 := __smtx_value_dt_substitute s d (__smtx_type_default T)
+      have hV0Ne : v0 ≠ SmtValue.NotValue := by
+        simpa [v0] using
+          dt_cons_wf_finite_field_default_substitute_ne_notValue
+            s d (T := T) (c := c) hWf hFin
+      have hV0False : native_veq v0 SmtValue.NotValue = false :=
+        native_veq_eq_false_of_ne hV0Ne
+      have hTailWf : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_cons_wf_rec_tail_of_true hWf
+      have hTailFin : __smtx_is_finite_datatype_cons c = true :=
+        dt_cons_finite_tail_of_true hFin
+      have hFieldTy :
+          __smtx_typeof_value v0 = dtc_substitute_field_type s d T := by
+        simpa [v0] using
+          dtc_non_datatype_field_default_substitute_typeof
+            s d hNotDatatype hWf hFin
+      have hFieldEq :
+          dtc_substitute_field_type s d T = T :=
+        dtc_substitute_field_type_eq_of_non_datatype_finite
+          s d hNotDatatype hFin
+      have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None := by
+        rw [hFieldEq]
+        exact type_ne_none_of_finite_datatype_cons_head hFin
+      have hApplyTy :
+          __smtx_typeof_value (SmtValue.Apply v v0) = dtc_type_chain s d c R := by
+        have hvTy' :
+            __smtx_typeof_value v =
+              SmtType.DtcAppType (dtc_substitute_field_type s d T)
+                (dtc_type_chain s d c R) := by
+          simpa [dtc_type_chain] using hvTy
+        change
+          __smtx_typeof_apply_value (__smtx_typeof_value v)
+              (__smtx_typeof_value v0) =
+            dtc_type_chain s d c R
+        rw [hvTy', hFieldTy]
+        simp [__smtx_typeof_apply_value, __smtx_typeof_guard, native_Teq,
+          native_ite, hFieldNeNone]
+      have hRec :=
+        datatype_cons_default_typeof_all_non_datatype_fields s d refs c
+          (SmtValue.Apply v v0) R hAllTail hTailWf hTailFin hApplyTy
+      simpa [__smtx_datatype_cons_default, v0, hV0False, native_ite] using hRec
 
 private theorem one_mod_pow2_succ (w : Nat) :
     (1 : Int) % (native_int_pow2 (native_nat_to_int (Nat.succ w))) = 1 := by
@@ -764,7 +937,7 @@ Residual low-level datatype/cardinality support.  The first component handles
 fresh witnesses for infinite datatypes.  The second handles the single
 constructor finite non-unit case.  The third is the remaining typing fact for
 the concrete default value of the second constructor in a multi-constructor
-finite datatype.
+finite datatype when that constructor contains a datatype-valued field.
 -/
 theorem cpc_datatype_cardinality_residual_assumption :
     (∀ (s : native_String) (d : SmtDatatype),
@@ -795,12 +968,14 @@ theorem cpc_datatype_cardinality_residual_assumption :
                           (SmtType.Datatype s (SmtDatatype.sum c SmtDatatype.null))) =
                         false) ∧
         (∀ (s : native_String) (c cTail : SmtDatatypeCons) (dTail : SmtDatatype),
+          ¬ dtc_all_fields_non_datatype cTail ->
           let d := SmtDatatype.sum c (SmtDatatype.sum cTail dTail)
           native_inhabited_type (SmtType.Datatype s d) = true ->
             __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true ->
               __smtx_is_finite_type (SmtType.Datatype s d) = true ->
                 __smtx_typeof_value
-                    (__smtx_datatype_cons_default s d (SmtValue.DtCons s d 1) cTail) =
+                    (__smtx_datatype_cons_default s d (SmtValue.DtCons s d 1)
+                      cTail) =
                   SmtType.Datatype s d) := by
   sorry
 
@@ -847,8 +1022,42 @@ theorem cpc_datatype_cardinality_support_assumption :
             let e :=
               __smtx_datatype_cons_default s d (SmtValue.DtCons s d 1) cTail
             refine ⟨e, ?_, ?_, ?_⟩
-            · exact (cpc_datatype_cardinality_residual_assumption).2.2
-                s c cTail dTail hInh hRec hFinite
+            · by_cases hAll : dtc_all_fields_non_datatype cTail
+              · have hDtWf : __smtx_dt_wf_rec d refs = true := by
+                  have hParts :
+                      ¬ s ∈ native_reflist_nil ∧
+                        __smtx_dt_wf_rec d refs = true := by
+                    simpa [d, refs, __smtx_type_wf_rec,
+                      native_reflist_contains, native_reflist_insert,
+                      native_ite] using hRec
+                  exact hParts.2
+                have hFinDt : __smtx_is_finite_datatype d = true := by
+                  simpa [d, __smtx_is_finite_type] using hFinite
+                have hTailWf :
+                    __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs =
+                      true :=
+                  dt_wf_tail_of_nonempty_tail_wf hDtWf
+                have hTailConsWf :
+                    __smtx_dt_cons_wf_rec cTail refs = true :=
+                  dt_wf_cons_of_wf hTailWf
+                have hTailFin :
+                    __smtx_is_finite_datatype
+                        (SmtDatatype.sum cTail dTail) = true :=
+                  finite_dt_tail_of_finite_sum hFinDt
+                have hTailConsFin :
+                    __smtx_is_finite_datatype_cons cTail = true :=
+                  finite_dt_cons_of_finite_sum hTailFin
+                have hHeadTy :
+                    __smtx_typeof_value (SmtValue.DtCons s d 1) =
+                      dtc_type_chain s d cTail (SmtType.Datatype s d) := by
+                  exact typeof_dt_cons_second_eq_dtc_type_chain
+                    s c cTail dTail
+                exact datatype_cons_default_typeof_all_non_datatype_fields
+                  s d refs cTail (SmtValue.DtCons s d 1)
+                  (SmtType.Datatype s d) hAll hTailConsWf hTailConsFin
+                  hHeadTy
+              · exact (cpc_datatype_cardinality_residual_assumption).2.2
+                  s c cTail dTail hAll hInh hRec hFinite
             · have hDtWf : __smtx_dt_wf_rec d refs = true := by
                 have hParts :
                     ¬ s ∈ native_reflist_nil ∧
