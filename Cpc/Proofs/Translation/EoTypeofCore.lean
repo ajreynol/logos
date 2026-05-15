@@ -368,6 +368,386 @@ theorem eo_type_valid_not_stuck
       exact eo_type_valid_rec_not_stuck (refs := []) (by
         simpa [eo_type_valid] using h)
 
+private theorem cons_subset
+    {refs refs' : List native_String} {s : native_String}
+    (hsub : ∀ t, t ∈ refs -> t ∈ refs') :
+    ∀ t, t ∈ s :: refs -> t ∈ s :: refs' := by
+  intro t ht
+  simp at ht ⊢
+  rcases ht with rfl | ht
+  · exact Or.inl rfl
+  · exact Or.inr (hsub t ht)
+
+/- Weakening EO validity along ref-list inclusion. -/
+mutual
+
+private theorem eo_type_valid_rec_weaken
+    {refs refs' : List native_String} :
+    ∀ {T : Term},
+      eo_type_valid_rec refs T ->
+      (∀ t, t ∈ refs -> t ∈ refs') ->
+      eo_type_valid_rec refs' T
+  | Term.UOp op, h, _ => by
+      cases op <;> simp [eo_type_valid_rec] at h ⊢
+  | Term.Bool, _h, _ => by
+      simp [eo_type_valid_rec]
+  | Term.DatatypeType s d, h, hsub => by
+      rcases h with ⟨hReserved, hD⟩
+      exact ⟨hReserved, eo_datatype_valid_rec_weaken hD (cons_subset hsub)⟩
+  | Term.DatatypeTypeRef s, h, hsub => by
+      rcases h with ⟨hReserved, hMem⟩
+      exact ⟨hReserved, hsub s hMem⟩
+  | Term.DtcAppType T U, h, _ => by
+      simpa [eo_type_valid_rec] using h
+  | Term.USort i, _h, _ => by
+      simp [eo_type_valid_rec]
+  | Term.Apply (Term.Apply Term.FunType T1) T2, h, _ => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h, _ => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.UOp UserOp.Seq) T, h, _ => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U, h, _ => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.UOp UserOp.Set) T, h, _ => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U, h, _ => by
+      simpa [eo_type_valid_rec] using h
+  | Term.Apply f x, h, _ => by
+      cases f with
+      | UOp op =>
+          cases op <;>
+            try (cases x <;> simp [eo_type_valid_rec] at h)
+          all_goals simpa [eo_type_valid_rec] using h
+      | Apply g y =>
+          cases g with
+          | FunType =>
+              simpa [eo_type_valid_rec] using h
+          | UOp op =>
+              cases op <;>
+                try (simpa [eo_type_valid_rec] using h)
+              all_goals simp [eo_type_valid_rec] at h
+          | _ =>
+              simp [eo_type_valid_rec] at h
+      | _ =>
+          simp [eo_type_valid_rec] at h
+  | Term.__eo_List, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.__eo_List_nil, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.__eo_List_cons, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.Boolean b, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.Numeral n, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.Rational q, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.String s, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.Binary w n, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.Type, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.Stuck, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.FunType, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.Var name T, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.DtCons s d i, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.DtSel s d i j, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.UConst i T, h, _ => by
+      simp [eo_type_valid_rec] at h
+  | Term.UOp1 op x, h, _ => by
+      cases op <;> simp [eo_type_valid_rec] at h
+  | Term.UOp2 op x y, h, _ => by
+      cases op <;> simp [eo_type_valid_rec] at h
+  | Term.UOp3 op x y z, h, _ => by
+      cases op <;> simp [eo_type_valid_rec] at h
+
+private theorem eo_datatype_cons_valid_rec_weaken
+    {refs refs' : List native_String} :
+    ∀ {c : DatatypeCons},
+      eo_datatype_cons_valid_rec refs c ->
+      (∀ t, t ∈ refs -> t ∈ refs') ->
+      eo_datatype_cons_valid_rec refs' c
+  | DatatypeCons.unit, _h, _ => by
+      simp [eo_datatype_cons_valid_rec]
+  | DatatypeCons.cons T c, h, hsub => by
+      rcases h with ⟨hT, hC⟩
+      exact ⟨eo_type_valid_rec_weaken hT hsub,
+        eo_datatype_cons_valid_rec_weaken hC hsub⟩
+
+private theorem eo_datatype_valid_rec_weaken
+    {refs refs' : List native_String} :
+    ∀ {d : Datatype},
+      eo_datatype_valid_rec refs d ->
+      (∀ t, t ∈ refs -> t ∈ refs') ->
+      eo_datatype_valid_rec refs' d
+  | Datatype.null, _h, _ => by
+      simp [eo_datatype_valid_rec]
+  | Datatype.sum c d, h, hsub => by
+      rcases h with ⟨hC, hD⟩
+      exact ⟨eo_datatype_cons_valid_rec_weaken hC hsub,
+        eo_datatype_valid_rec_weaken hD hsub⟩
+
+end
+
+/- Substituting a valid datatype for a valid type-reference preserves datatype validity. -/
+mutual
+
+private theorem eo_datatype_cons_valid_rec_substitute
+    (s : native_String) (dsub : Datatype) (refs : List native_String)
+    (hSub : eo_datatype_valid_rec (s :: refs) dsub) :
+    ∀ {c : DatatypeCons},
+      eo_datatype_cons_valid_rec (s :: refs) c ->
+      eo_datatype_cons_valid_rec refs (__eo_dtc_substitute s dsub c)
+  | DatatypeCons.unit, _h => by
+      simp [eo_datatype_cons_valid_rec, __eo_dtc_substitute]
+  | DatatypeCons.cons T c, h => by
+      rcases h with ⟨hT, hC⟩
+      have hC' := eo_datatype_cons_valid_rec_substitute s dsub refs hSub hC
+      cases T with
+      | DatatypeType s2 d2 =>
+          rcases hT with ⟨hReserved, hD2⟩
+          by_cases hs : s = s2
+          · subst s2
+            have hD2' : eo_datatype_valid_rec (s :: refs) d2 := by
+              apply eo_datatype_valid_rec_weaken hD2
+              intro t ht
+              cases ht with
+              | head =>
+                  simp
+              | tail _ ht =>
+                  exact ht
+            have hT' : eo_type_valid_rec refs (Term.DatatypeType s d2) :=
+              ⟨hReserved, hD2'⟩
+            simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
+              native_ite, native_streq] using And.intro hT' hC'
+          · have hD2' : eo_datatype_valid_rec (s2 :: refs) (__eo_dt_substitute s dsub d2) := by
+              have hSub' : eo_datatype_valid_rec (s :: s2 :: refs) dsub := by
+                apply eo_datatype_valid_rec_weaken hSub
+                intro t ht
+                simp at ht ⊢
+                rcases ht with rfl | ht
+                · exact Or.inl rfl
+                · exact Or.inr (Or.inr ht)
+              have hD2swap : eo_datatype_valid_rec (s :: s2 :: refs) d2 := by
+                apply eo_datatype_valid_rec_weaken hD2
+                intro t ht
+                simp at ht ⊢
+                rcases ht with rfl | rfl | ht
+                · exact Or.inr (Or.inl rfl)
+                · exact Or.inl rfl
+                · exact Or.inr (Or.inr ht)
+              exact eo_datatype_valid_rec_substitute s dsub (s2 :: refs) hSub' hD2swap
+            have hT' :
+                eo_type_valid_rec refs
+                  (Term.DatatypeType s2 (__eo_dt_substitute s dsub d2)) :=
+              ⟨hReserved, hD2'⟩
+            simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
+              hs, native_ite, native_streq] using And.intro hT' hC'
+      | DatatypeTypeRef s2 =>
+          rcases hT with ⟨hReserved, hMem⟩
+          by_cases hs : s2 = s
+          · subst s2
+            have hT' : eo_type_valid_rec refs (Term.DatatypeType s dsub) :=
+              ⟨hReserved, hSub⟩
+            simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
+              native_ite, native_teq] using And.intro hT' hC'
+          · have hMem' : s2 ∈ refs := by
+              simpa [hs] using hMem
+            have hT' : eo_type_valid_rec refs (Term.DatatypeTypeRef s2) :=
+              ⟨hReserved, hMem'⟩
+            simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
+              native_ite, native_teq, hs] using And.intro hT' hC'
+      | UOp op =>
+          cases op <;>
+            try (simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec,
+              eo_type_valid_rec, native_ite, native_teq] using And.intro hT hC')
+          all_goals simp [eo_type_valid_rec] at hT
+      | Bool =>
+          simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
+            native_ite, native_teq] using And.intro trivial hC'
+      | USort i =>
+          simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
+            native_ite, native_teq] using And.intro trivial hC'
+      | DtcAppType T1 T2 =>
+          simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec, eo_type_valid_rec,
+            native_ite, native_teq] using And.intro hT hC'
+      | Apply f x =>
+          cases f with
+          | UOp op =>
+              cases op with
+              | BitVec =>
+                  cases x with
+                  | Numeral n =>
+                      simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec,
+                        eo_type_valid_rec, native_ite, native_teq] using And.intro hT hC'
+                  | _ =>
+                      simp [eo_type_valid_rec] at hT
+              | Seq =>
+                  simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec,
+                    eo_type_valid_rec, native_ite, native_teq] using And.intro hT hC'
+              | Set =>
+                  simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec,
+                    eo_type_valid_rec, native_ite, native_teq] using And.intro hT hC'
+              | _ =>
+                  simp [eo_type_valid_rec] at hT
+          | Apply g y =>
+              cases g with
+              | FunType =>
+                  simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec,
+                    eo_type_valid_rec, native_ite, native_teq] using And.intro hT hC'
+              | UOp op =>
+                  cases op with
+                  | Array =>
+                      simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec,
+                        eo_type_valid_rec, native_ite, native_teq] using And.intro hT hC'
+                  | Tuple =>
+                      simpa [__eo_dtc_substitute, eo_datatype_cons_valid_rec,
+                        eo_type_valid_rec, native_ite, native_teq] using And.intro hT hC'
+                  | _ =>
+                      simp [eo_type_valid_rec] at hT
+              | _ =>
+                  simp [eo_type_valid_rec] at hT
+          | _ =>
+              simp [eo_type_valid_rec] at hT
+      | __eo_List =>
+          simp [eo_type_valid_rec] at hT
+      | __eo_List_nil =>
+          simp [eo_type_valid_rec] at hT
+      | __eo_List_cons =>
+          simp [eo_type_valid_rec] at hT
+      | Boolean b =>
+          simp [eo_type_valid_rec] at hT
+      | Numeral n =>
+          simp [eo_type_valid_rec] at hT
+      | Rational q =>
+          simp [eo_type_valid_rec] at hT
+      | String str =>
+          simp [eo_type_valid_rec] at hT
+      | Binary w n =>
+          simp [eo_type_valid_rec] at hT
+      | «Type» =>
+          simp [eo_type_valid_rec] at hT
+      | Stuck =>
+          simp [eo_type_valid_rec] at hT
+      | FunType =>
+          simp [eo_type_valid_rec] at hT
+      | Var name ty =>
+          simp [eo_type_valid_rec] at hT
+      | DtCons s0 d0 i0 =>
+          simp [eo_type_valid_rec] at hT
+      | DtSel s0 d0 i0 j0 =>
+          simp [eo_type_valid_rec] at hT
+      | UConst i0 ty =>
+          simp [eo_type_valid_rec] at hT
+      | UOp1 op x =>
+          cases op <;> simp [eo_type_valid_rec] at hT
+      | UOp2 op x y =>
+          cases op <;> simp [eo_type_valid_rec] at hT
+      | UOp3 op x y z =>
+          cases op <;> simp [eo_type_valid_rec] at hT
+
+private theorem eo_datatype_valid_rec_substitute
+    (s : native_String) (dsub : Datatype) (refs : List native_String)
+    (hSub : eo_datatype_valid_rec (s :: refs) dsub) :
+    ∀ {d : Datatype},
+      eo_datatype_valid_rec (s :: refs) d ->
+      eo_datatype_valid_rec refs (__eo_dt_substitute s dsub d)
+  | Datatype.null, _h => by
+      simp [eo_datatype_valid_rec, __eo_dt_substitute]
+  | Datatype.sum c d, h => by
+      rcases h with ⟨hC, hD⟩
+      exact ⟨eo_datatype_cons_valid_rec_substitute s dsub refs hSub hC,
+        eo_datatype_valid_rec_substitute s dsub refs hSub hD⟩
+
+end
+
+private theorem eo_to_smt_type_typeof_dt_cons_rec_zero_of_valid
+    {T : Term}
+    (hT : eo_type_valid_rec [] T) :
+    ∀ {c : DatatypeCons} {d : Datatype},
+      eo_datatype_cons_valid_rec [] c ->
+      eo_datatype_valid_rec [] d ->
+      __eo_to_smt_type (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero) =
+        __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
+          (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
+          native_nat_zero ∧
+      eo_type_valid_rec [] (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero)
+  | DatatypeCons.unit, d, _hC, _hD => by
+      have hEq :
+          __eo_typeof_dt_cons_rec T (Datatype.sum DatatypeCons.unit d) native_nat_zero = T := by
+        cases T <;> simp [__eo_typeof_dt_cons_rec, eo_type_valid_rec] at hT ⊢
+      refine ⟨?_, ?_⟩
+      · rw [hEq]
+        simp [__smtx_typeof_dt_cons_rec]
+      · rw [hEq]
+        exact hT
+  | DatatypeCons.cons U c, d, hC, hD => by
+      rcases hC with ⟨hU, hC⟩
+      have hRec :=
+        eo_to_smt_type_typeof_dt_cons_rec_zero_of_valid (T := T) hT hC hD
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hU
+      have hRecNN :
+          __eo_to_smt_type
+              (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero) ≠
+            SmtType.None :=
+        eo_type_valid_rec_non_none hRec.2
+      have hEq :
+          __eo_typeof_dt_cons_rec T (Datatype.sum (DatatypeCons.cons U c) d) native_nat_zero =
+            Term.DtcAppType U (__eo_typeof_dt_cons_rec T (Datatype.sum c d) native_nat_zero) := by
+        cases T <;> simp [__eo_typeof_dt_cons_rec, eo_type_valid_rec] at hT ⊢
+      have hRecTyNN :
+          __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
+              (SmtDatatype.sum (__eo_to_smt_datatype_cons c) (__eo_to_smt_datatype d))
+              native_nat_zero ≠
+            SmtType.None := by
+        rw [← hRec.1]
+        exact hRecNN
+      refine ⟨?_, ?_⟩
+      · rw [hEq, eo_to_smt_type_dtc_app, hRec.1]
+        simp [__smtx_typeof_dt_cons_rec, __eo_to_smt_datatype_cons,
+          hUNN, hRecTyNN, __smtx_typeof_guard, native_ite, native_Teq]
+      · rw [hEq]
+        exact ⟨hU, hRec.2⟩
+
+private theorem eo_to_smt_type_typeof_dt_cons_rec_of_valid
+    {T : Term}
+    (hT : eo_type_valid_rec [] T) :
+    ∀ {d : Datatype} {i : native_Nat},
+      eo_datatype_valid_rec [] d ->
+      __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) (__eo_to_smt_datatype d) i ≠
+        SmtType.None ->
+      __eo_to_smt_type (__eo_typeof_dt_cons_rec T d i) =
+        __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) (__eo_to_smt_datatype d) i ∧
+      eo_type_valid_rec [] (__eo_typeof_dt_cons_rec T d i)
+  | Datatype.null, i, _hD, hNN => by
+      exact False.elim (hNN (by simp [__smtx_typeof_dt_cons_rec]))
+  | Datatype.sum c d, native_nat_zero, hD, _hNN => by
+      exact eo_to_smt_type_typeof_dt_cons_rec_zero_of_valid (T := T) hT hD.1 hD.2
+  | Datatype.sum c d, native_nat_succ i, hD, hNN => by
+      have hNN' :
+          __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) (__eo_to_smt_datatype d) i ≠
+            SmtType.None := by
+        simpa [__eo_to_smt_datatype, __smtx_typeof_dt_cons_rec] using hNN
+      have hEq :
+          __eo_typeof_dt_cons_rec T (Datatype.sum c d) (native_nat_succ i) =
+            __eo_typeof_dt_cons_rec T d i := by
+        cases T <;> cases c <;> simp [__eo_typeof_dt_cons_rec]
+      have hSmtEq :
+          __smtx_typeof_dt_cons_rec (__eo_to_smt_type T)
+              (__eo_to_smt_datatype (Datatype.sum c d)) (native_nat_succ i) =
+            __smtx_typeof_dt_cons_rec (__eo_to_smt_type T) (__eo_to_smt_datatype d) i := by
+        simp [__eo_to_smt_datatype, __smtx_typeof_dt_cons_rec]
+      rw [hEq, hSmtEq]
+      exact eo_to_smt_type_typeof_dt_cons_rec_of_valid (T := T) hT hD.2 hNN'
+
 theorem native_reflist_contains_true
     {refs : RefList} {s : native_String}
     (h : native_reflist_contains refs s = true) :
@@ -1846,6 +2226,60 @@ theorem eo_to_smt_typeof_dt_sel_return_substitute_self
   rw [eo_to_smt_typeof_dt_sel_return]
   rw [eo_to_smt_datatype_substitute]
   rfl
+
+theorem eo_to_smt_type_typeof_dt_cons_of_valid
+    (s : native_String) (d : Datatype) (i : native_Nat)
+    (hReserved : __eo_reserved_datatype_name s = false)
+    (hValid : eo_datatype_valid_rec [s] d)
+    (hNN : __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠ SmtType.None) :
+    __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) =
+      __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ∧
+    eo_type_valid_rec [] (__eo_typeof (Term.DtCons s d i)) := by
+  let D : SmtType := SmtType.Datatype s (__eo_to_smt_datatype d)
+  let inner : SmtType :=
+    __smtx_typeof_dt_cons_rec D
+      (__smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d)) i
+  have hGuardNN : __smtx_typeof_guard_wf D inner ≠ SmtType.None := by
+    simpa [D, inner, Smtm.typeof_dt_cons_eq] using hNN
+  have hInnerEq :
+      __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = inner := by
+    have hGuard : __smtx_typeof_guard_wf D inner = inner :=
+      smtx_typeof_guard_wf_of_non_none D inner hGuardNN
+    simpa [D, inner, Smtm.typeof_dt_cons_eq] using hGuard
+  have hInnerNN : inner ≠ SmtType.None := by
+    rw [← hInnerEq]
+    exact hNN
+  have hTyValid : eo_type_valid_rec [] (Term.DatatypeType s d) :=
+    ⟨hReserved, hValid⟩
+  have hSubValid : eo_datatype_valid_rec [] (__eo_dt_substitute s d d) :=
+    eo_datatype_valid_rec_substitute s d [] hValid hValid
+  have hSubEq :
+      __eo_to_smt_datatype (__eo_dt_substitute s d d) =
+        __smtx_dt_substitute s (__eo_to_smt_datatype d) (__eo_to_smt_datatype d) :=
+    eo_to_smt_datatype_substitute s d d
+  have hRec :=
+    eo_to_smt_type_typeof_dt_cons_rec_of_valid (T := Term.DatatypeType s d) hTyValid
+      hSubValid
+      (by
+        simpa [D, inner, __eo_to_smt_type, hReserved, native_ite, hSubEq] using hInnerNN)
+  refine ⟨?_, ?_⟩
+  · have hRec' :
+        __eo_to_smt_type (__eo_typeof (Term.DtCons s d i)) = inner := by
+      change
+        __eo_to_smt_type
+            (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i) =
+          inner
+      have hRhs :
+          __smtx_typeof_dt_cons_rec (__eo_to_smt_type (Term.DatatypeType s d))
+              (__eo_to_smt_datatype (__eo_dt_substitute s d d)) i =
+            inner := by
+        simp [D, inner, __eo_to_smt_type, hReserved, native_ite, hSubEq]
+      exact hRec.1.trans hRhs
+    exact hRec'.trans hInnerEq.symm
+  · change
+      eo_type_valid_rec []
+        (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
+    exact hRec.2
 
 private theorem eo_typeof_dt_cons_rec_null (T : Term) (i : native_Nat) :
     __eo_typeof_dt_cons_rec T Datatype.null i = Term.Stuck := by
