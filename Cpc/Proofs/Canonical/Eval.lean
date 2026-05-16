@@ -368,12 +368,22 @@ theorem model_eval_dt_sel_term_canonical
     (d : SmtDatatype)
     (i j : native_Nat)
     (x : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
     (hx : __smtx_value_canonical (__smtx_model_eval M x)) :
     __smtx_value_canonical
       (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) := by
+  have htx : term_has_non_none_type x :=
+    by
+      unfold term_has_non_none_type
+      rw [dt_sel_arg_datatype_of_non_none ht]
+      simp
+  have hxTy :
+      __smtx_typeof_value (__smtx_model_eval M x) = SmtType.Datatype s d := by
+    simpa [dt_sel_arg_datatype_of_non_none ht] using
+      smt_model_eval_preserves_type_of_non_none M hM x htx
   simpa [__smtx_model_eval] using
     model_eval_dt_sel_canonical M hM s d i j
-      (v := __smtx_model_eval M x) hx
+      (v := __smtx_model_eval M x) hxTy hx
 
 theorem native_eval_tchoice_canonical
     (M : SmtModel)
@@ -936,7 +946,7 @@ theorem model_eval_canonical_of_supported
   case dt_cons s d i =>
       simpa [__smtx_model_eval] using value_canonical_dt_cons s d i
   case dt_sel ht hT htx hsx ihx =>
-      exact model_eval_dt_sel_term_canonical M hM _ _ _ _ _ (ihx M hM htx)
+      exact model_eval_dt_sel_term_canonical M hM _ _ _ _ _ hTy (ihx M hM htx)
   case dt_tester s d i x =>
       simpa [__smtx_model_eval, __smtx_model_eval_dt_tester] using
         value_canonical_boolean (native_veq (__vsm_apply_head (__smtx_model_eval M x))
