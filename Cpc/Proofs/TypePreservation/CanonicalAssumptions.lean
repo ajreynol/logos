@@ -1369,6 +1369,127 @@ private theorem fresh_usort_veq_false_of_mem (sort : native_Nat) (xs : List SmtV
     subst j
     exact fresh_usort_not_mem sort xs hj)
 
+private noncomputable def smt_value_size_bound : List SmtValue -> Nat
+  | [] => 0
+  | v :: vs => Nat.max (sizeOf v + 1) (smt_value_size_bound vs)
+
+private theorem smt_value_size_lt_bound_of_mem :
+    ∀ {xs : List SmtValue} {v : SmtValue},
+      v ∈ xs -> sizeOf v < smt_value_size_bound xs := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro v h
+      cases h
+  | cons x xs ih =>
+      intro v h
+      simp [smt_value_size_bound] at h ⊢
+      rcases h with hEq | hTail
+      · subst v
+        exact Nat.lt_of_lt_of_le (Nat.lt_succ_self _) (Nat.le_max_left _ _)
+      · exact Nat.lt_of_lt_of_le (ih hTail) (Nat.le_max_right _ _)
+
+private theorem native_veq_false_of_mem_and_size_bound
+    {xs : List SmtValue}
+    {j i : SmtValue}
+    (hj : j ∈ xs)
+    (hi : smt_value_size_bound xs ≤ sizeOf i) :
+    native_veq j i = false := by
+  exact native_veq_eq_false_of_ne (by
+    intro hEq
+    subst i
+    have hLt := smt_value_size_lt_bound_of_mem (xs := xs) hj
+    exact Nat.not_lt_of_ge hi hLt)
+
+private theorem datatype_fresh_of_size_bound
+    {s : native_String}
+    {d : SmtDatatype}
+    {avoid : List SmtValue}
+    (hLarge :
+      ∃ i : SmtValue,
+        __smtx_typeof_value i = SmtType.Datatype s d ∧
+          __smtx_value_canonical_bool i = true ∧
+            smt_value_size_bound avoid ≤ sizeOf i) :
+    ∃ i : SmtValue,
+      __smtx_typeof_value i = SmtType.Datatype s d ∧
+        __smtx_value_canonical_bool i = true ∧
+          ∀ j : SmtValue, j ∈ avoid -> native_veq j i = false := by
+  rcases hLarge with ⟨i, hiTy, hiCan, hiSize⟩
+  refine ⟨i, hiTy, hiCan, ?_⟩
+  intro j hj
+  exact native_veq_false_of_mem_and_size_bound hj hiSize
+
+private theorem finite_datatype_sum_false_cases
+    {c : SmtDatatypeCons}
+    {d : SmtDatatype}
+    (hFin : __smtx_is_finite_datatype (SmtDatatype.sum c d) = false) :
+    __smtx_is_finite_datatype_cons c = false ∨
+      __smtx_is_finite_datatype d = false := by
+  cases hc : __smtx_is_finite_datatype_cons c <;>
+    cases hd : __smtx_is_finite_datatype d <;>
+      simp [__smtx_is_finite_datatype, native_and, hc, hd] at hFin ⊢
+
+private theorem finite_datatype_cons_false_cases
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    (hFin :
+      __smtx_is_finite_datatype_cons (SmtDatatypeCons.cons T c) = false) :
+    __smtx_is_finite_type T = false ∨
+      __smtx_is_finite_datatype_cons c = false := by
+  cases hT : __smtx_is_finite_type T <;>
+    cases hc : __smtx_is_finite_datatype_cons c <;>
+      simp [__smtx_is_finite_datatype_cons, native_and, hT, hc] at hFin ⊢
+
+private theorem infinite_datatype_large_witness_residual
+    (s : native_String)
+    (d : SmtDatatype)
+    (hInh : native_inhabited_type (SmtType.Datatype s d) = true)
+    (hRec :
+      __smtx_type_wf_rec (SmtType.Datatype s d) native_reflist_nil = true)
+    (hInfinite : __smtx_is_finite_type (SmtType.Datatype s d) = false)
+    (minSize : Nat) :
+    ∃ i : SmtValue,
+      __smtx_typeof_value i = SmtType.Datatype s d ∧
+        __smtx_value_canonical_bool i = true ∧
+          minSize ≤ sizeOf i := by
+  -- The missing constructor generator has to keep the original datatype `d`
+  -- fixed while walking constructor suffixes; tail constructors are indexed
+  -- relative to the original datatype, not to the suffix as a standalone type.
+  cases d with
+  | null =>
+      simp [__smtx_is_finite_type, __smtx_is_finite_datatype] at hInfinite
+  | sum c dTail =>
+      let refs := native_reflist_insert native_reflist_nil s
+      have hRoot : native_reflist_contains refs s = true := by
+        simp [refs, native_reflist_contains, native_reflist_insert]
+      have hDtWf :
+          __smtx_dt_wf_rec (SmtDatatype.sum c dTail) refs = true := by
+        have hParts :
+            ¬ s ∈ native_reflist_nil ∧
+              __smtx_dt_wf_rec (SmtDatatype.sum c dTail) refs = true := by
+          simpa [refs, __smtx_type_wf_rec, native_reflist_contains,
+            native_reflist_insert, native_ite] using hRec
+        exact hParts.2
+      have hConsWf : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_wf_cons_of_wf hDtWf
+      have hDtInfinite :
+          __smtx_is_finite_datatype (SmtDatatype.sum c dTail) = false := by
+        simpa [__smtx_is_finite_type] using hInfinite
+      have hInfCases :
+          __smtx_is_finite_datatype_cons c = false ∨
+            __smtx_is_finite_datatype dTail = false :=
+        finite_datatype_sum_false_cases hDtInfinite
+      have hDefault :
+          __smtx_typeof_value
+                (__smtx_type_default
+                  (SmtType.Datatype s (SmtDatatype.sum c dTail))) =
+              SmtType.Datatype s (SmtDatatype.sum c dTail) ∧
+            __smtx_value_canonical_bool
+                (__smtx_type_default
+                  (SmtType.Datatype s (SmtDatatype.sum c dTail))) = true :=
+        type_default_typed_canonical_of_native_inhabited hInh
+      sorry
+
 private def smt_seq_heads : List SmtValue -> List SmtValue
   | SmtValue.Seq (SmtSeq.cons v _) :: xs => v :: smt_seq_heads xs
   | _ :: xs => smt_seq_heads xs
@@ -1537,7 +1658,9 @@ theorem cpc_datatype_cardinality_residual_assumption :
                       (SmtType.Datatype sField dField)) := by
   constructor
   · intro s d hInh hRec hInfinite avoid
-    sorry
+    exact datatype_fresh_of_size_bound
+      (infinite_datatype_large_witness_residual
+        s d hInh hRec hInfinite (smt_value_size_bound avoid))
   · constructor
     · intro s c hInh hRec hFinite hNonUnit
       sorry
