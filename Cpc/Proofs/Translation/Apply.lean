@@ -630,44 +630,6 @@ private theorem eo_to_smt_tuple_ne_dt_cons
   exact eo_to_smt_tuple_cons_ne_dt_cons
     (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) s d i h
 
-private theorem eo_to_smt_tuple_app_extend_ne_dt_sel
-    (t : SmtTerm) (T : SmtType) (s : native_String) (d : SmtDatatype)
-    (i j : native_Nat) :
-    __eo_to_smt_tuple_app_extend t T ≠ SmtTerm.DtSel s d i j := by
-  intro h
-  cases t <;> try cases h
-  case DtCons s0 d0 i0 =>
-    cases d0
-    · simp [__eo_to_smt_tuple_app_extend] at h
-    · rename_i c dTail
-      cases dTail
-      · cases i0
-        · by_cases hs : s0 = "@Tuple"
-          · subst hs
-            simp [__eo_to_smt_tuple_app_extend] at h
-          · simp [__eo_to_smt_tuple_app_extend, hs] at h
-        · simp [__eo_to_smt_tuple_app_extend] at h
-      · simp [__eo_to_smt_tuple_app_extend] at h
-
-private theorem eo_to_smt_tuple_app_extend_ne_dt_tester
-    (t : SmtTerm) (T : SmtType) (s : native_String) (d : SmtDatatype)
-    (i : native_Nat) :
-    __eo_to_smt_tuple_app_extend t T ≠ SmtTerm.DtTester s d i := by
-  intro h
-  cases t <;> try cases h
-  case DtCons s0 d0 i0 =>
-    cases d0
-    · simp [__eo_to_smt_tuple_app_extend] at h
-    · rename_i c dTail
-      cases dTail
-      · cases i0
-        · by_cases hs : s0 = "@Tuple"
-          · subst hs
-            simp [__eo_to_smt_tuple_app_extend] at h
-          · simp [__eo_to_smt_tuple_app_extend, hs] at h
-        · simp [__eo_to_smt_tuple_app_extend] at h
-      · simp [__eo_to_smt_tuple_app_extend] at h
-
 private theorem eo_to_smt_re_unfold_ne_dt_sel
     (str re : SmtTerm) (n : native_Nat)
     (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
