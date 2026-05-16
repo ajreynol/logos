@@ -1917,11 +1917,6 @@ def __eo_prog_bv_poly_norm_eq : Term -> Proof -> Term
   | _, _ => Term.Stuck
 
 
-def __get_var_list : Term -> Term
-  | (Term.Apply (Term.Apply Q xs) G) => xs
-  | _ => Term.Stuck
-
-
 def __get_var_type : Term -> Term
   | (Term.Var s T) => T
   | _ => Term.Stuck
@@ -1983,11 +1978,6 @@ def __str_is_empty : Term -> Term
 
 def __seq_element_of_unit : Term -> Term
   | (Term.Apply (Term.UOp UserOp.seq_unit) x) => x
-  | _ => Term.Stuck
-
-
-def __char_type_of : Term -> Term
-  | (Term.Apply (Term.UOp UserOp.Seq) U) => U
   | _ => Term.Stuck
 
 
@@ -7290,13 +7280,6 @@ partial def __dt_get_selectors_of_app : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | T, (Term.Apply f a) => (__dt_get_selectors_of_app T f)
   | T, a => (__dt_get_selectors T a)
-
-
-partial def __tuple_nth : Term -> Term -> Term
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) s) ts), (Term.Numeral 0) => s
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) s) ts), n => (__tuple_nth ts (__eo_add n (Term.Numeral (-1 : native_Int))))
-  | _, _ => Term.Stuck
 
 
 partial def __some_pairwise_distinct_term : Term -> Term -> Term
