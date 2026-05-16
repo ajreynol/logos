@@ -217,7 +217,8 @@ def native_re_all : native_RegLan := .star .allchar
 def native_qdiv_by_zero_id : native_String := "@qdiv_by_zero"
 def native_div_by_zero_id : native_String := "@div_by_zero"
 def native_mod_by_zero_id : native_String := "@mod_by_zero"
-def native_wrong_apply_sel_id : native_String := "@wrong_apply_sel"
+def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
+  "@wrong_apply_sel_" ++ toString n ++ "_" ++ toString m
 def native_oob_seq_nth_id : native_String := "@oob_seq_nth"
 def native_uconst_id : native_Nat -> native_String
   | i => "@u." ++ toString i
@@ -703,9 +704,19 @@ def __smtx_model_eval_map_diff : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.Set m1), (SmtValue.Set m2) => (native_eval_map_diff_msm m1 m2)
   | v1, v2 => SmtValue.NotValue
 
+def __smtx_model_lookup_fun_type (T U : SmtType) : SmtType :=
+  native_ite (__smtx_is_finite_type (SmtType.FunType T U))
+    (SmtType.FunType T U)
+    (SmtType.IFunType T U)
+
+
+def __smtx_model_lookup_fun (M : SmtModel) (s : native_String) (T U : SmtType) : SmtValue :=
+  __smtx_model_lookup M s (__smtx_model_lookup_fun_type T U)
+
 
 def __smtx_model_eval_dt_sel (M : SmtModel) (s : native_String) (d : SmtDatatype) (n : native_Nat) (m : native_Nat) (v : SmtValue) : SmtValue :=
-  (native_ite (native_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m (__smtx_dt_num_sels d n)) (__smtx_map_select (__smtx_map_select (__smtx_map_select (__smtx_model_lookup M native_wrong_apply_sel_id (SmtType.Map SmtType.Int (SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m))))) (SmtValue.Numeral (native_nat_to_int n))) (SmtValue.Numeral (native_nat_to_int m))) v))
+  let R := __smtx_ret_typeof_sel s d n m
+  (native_ite (native_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m (__smtx_dt_num_sels d n)) (__smtx_model_eval_apply M (__smtx_model_lookup_fun M (native_wrong_apply_sel_id n m) (SmtType.Datatype s d) R) v))
 
 def __smtx_model_eval_dt_tester (s : native_String) (d : SmtDatatype) (n : native_Nat) (v1 : SmtValue) : SmtValue :=
   (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
