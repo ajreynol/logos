@@ -209,7 +209,7 @@ theorem model_eval_apply_fun_canonical
 theorem model_eval_apply_ifun_canonical
     (M : SmtModel)
     (hM : model_total_typed M)
-    (fid : native_Nat)
+    (fid : native_String)
     (A B : SmtType)
     (x : SmtValue)
     (hxTy : __smtx_typeof_value x = A)
@@ -222,11 +222,11 @@ theorem model_eval_apply_ifun_canonical
     simp [__smtx_typeof_value] at hxTy
     exact False.elim (hANN hxTy.symm)
   · have hCan :
-        __smtx_value_canonical (native_eval_ifun_apply M fid B x) :=
+        __smtx_value_canonical (native_eval_ifun_apply M fid A B x) :=
       (model_total_typed_native_fun_typed hM fid A B x hFunWF hxTy).2
     have hApply :
         __smtx_model_eval_apply M (SmtValue.IFun fid A B) x =
-          native_eval_ifun_apply M fid B x := by
+          native_eval_ifun_apply M fid A B x := by
       cases x <;> simp [__smtx_model_eval_apply] at hxNot ⊢
     simpa [hApply] using hCan
 

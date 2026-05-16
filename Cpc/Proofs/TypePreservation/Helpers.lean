@@ -932,7 +932,7 @@ theorem ifun_value_canonical
     {v : SmtValue}
     {A B : SmtType}
     (h : __smtx_typeof_value v = SmtType.IFunType A B) :
-    ∃ fid : native_Nat, v = SmtValue.IFun fid A B := by
+    ∃ fid : native_String, v = SmtValue.IFun fid A B := by
   cases v with
   | IFun fid A' B' =>
       simp [__smtx_typeof_value] at h

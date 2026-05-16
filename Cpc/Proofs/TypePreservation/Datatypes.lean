@@ -937,7 +937,7 @@ theorem typeof_value_model_eval_dt_sel_wrong
           simp [D, __smtx_typeof_value] at hvD
         have hApply :
             __smtx_model_eval_apply M (SmtValue.IFun fid D R) v =
-              native_eval_ifun_apply M fid R v := by
+              native_eval_ifun_apply M fid D R v := by
           cases v <;> simp [__smtx_model_eval_apply] at hvNN ⊢
         rw [hApply]
         exact (model_total_typed_native_fun_typed hM fid D R v hIFunWF hvD).1
@@ -1185,7 +1185,7 @@ theorem typeof_value_model_eval_apply_fun
 theorem typeof_value_model_eval_apply_ifun
     (M : SmtModel)
     (hM : model_total_typed M)
-    {fid : native_Nat}
+    {fid : native_String}
     {i : SmtValue}
     {A B : SmtType}
     (hA : A ≠ SmtType.None)
@@ -1201,7 +1201,7 @@ theorem typeof_value_model_eval_apply_ifun
     exact hA hi.symm
   have hApply :
       __smtx_model_eval_apply M (SmtValue.IFun fid A B) i =
-        native_eval_ifun_apply M fid B i := by
+        native_eval_ifun_apply M fid A B i := by
     cases i <;> simp [__smtx_model_eval_apply] at hiNN ⊢
   rw [hApply]
   exact (model_total_typed_native_fun_typed hM fid A B i hFunWF hi).1
