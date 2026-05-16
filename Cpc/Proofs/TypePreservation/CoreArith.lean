@@ -987,19 +987,15 @@ theorem int_binop_args_of_non_none
 
 /-- The integer-to-integer native-function type used for arithmetic defaults is well formed. -/
 theorem ifun_type_wf_int_int :
-    __smtx_type_wf (SmtType.IFunType SmtType.Int SmtType.Int) = true := by
-  have hIntInh : native_inhabited_type SmtType.Int = true :=
-    native_inhabited_type_int
-  simp [__smtx_type_wf, __smtx_type_wf_rec, __smtx_is_finite_type,
-    __smtx_is_unit_type, native_and, native_or, native_not, hIntInh]
+    __smtx_type_wf (SmtType.FunType SmtType.Int SmtType.Int) = true := by
+  simp [__smtx_type_wf, __smtx_type_wf_rec, native_and,
+    native_inhabited_type_int]
 
 /-- The real-to-real native-function type used for arithmetic defaults is well formed. -/
 theorem ifun_type_wf_real_real :
-    __smtx_type_wf (SmtType.IFunType SmtType.Real SmtType.Real) = true := by
-  have hRealInh : native_inhabited_type SmtType.Real = true :=
-    native_inhabited_type_real
-  simp [__smtx_type_wf, __smtx_type_wf_rec, __smtx_is_finite_type,
-    __smtx_is_unit_type, native_and, native_or, native_not, hRealInh]
+    __smtx_type_wf (SmtType.FunType SmtType.Real SmtType.Real) = true := by
+  simp [__smtx_type_wf, __smtx_type_wf_rec, native_and,
+    native_inhabited_type_real]
 
 /-- Shows that evaluating `apply_lookup_fun` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_lookup_fun
@@ -1028,15 +1024,15 @@ theorem typeof_value_model_eval_apply_lookup_ifun
     (A B : SmtType)
     (hA : A ≠ SmtType.None)
     (hB : type_inhabited B)
-    (hFunWF : __smtx_type_wf (SmtType.IFunType A B) = true)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
     (i : SmtValue)
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value
-        (__smtx_model_eval_apply M (__smtx_model_lookup M s (SmtType.IFunType A B)) i) = B := by
+        (__smtx_model_eval_apply M (__smtx_model_lookup M s (SmtType.FunType A B)) i) = B := by
   have hLookup :
-      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.IFunType A B)) =
-        SmtType.IFunType A B :=
-    model_total_typed_lookup hM s (SmtType.IFunType A B) hFunWF
+      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
+        SmtType.FunType A B :=
+    model_total_typed_lookup hM s (SmtType.FunType A B) hFunWF
   exact typeof_value_model_eval_apply_ifun_value M hM hA hFunWF hLookup hi
 
 /-- Shows that evaluating `div_total` terms produces values of the expected type. -/

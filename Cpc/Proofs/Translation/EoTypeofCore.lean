@@ -30,14 +30,12 @@ private theorem smtx_type_wf_rec_of_type_wf
     {T : SmtType}
     (hNotReg : T ≠ SmtType.RegLan)
     (hNotFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
-    (hNotIFun : ∀ A B : SmtType, T ≠ SmtType.IFunType A B)
+    (hNotIFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
   cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
   case FunType A B =>
     exact False.elim (hNotFun A B rfl)
-  case IFunType A B =>
-    exact False.elim (hNotIFun A B rfl)
   all_goals first | exact h | exact h.2 | exact h.2.2
 
 private theorem smtx_datatype_type_wf_rec_parts_local
@@ -995,7 +993,7 @@ theorem eo_type_valid_of_smt_field_wf_rec
           (__smtx_is_finite_type
             (SmtType.FunType (__eo_to_smt_type T1) (__eo_to_smt_type T2)))
           (SmtType.FunType (__eo_to_smt_type T1) (__eo_to_smt_type T2))
-          (SmtType.IFunType (__eo_to_smt_type T1) (__eo_to_smt_type T2))
+          (SmtType.FunType (__eo_to_smt_type T1) (__eo_to_smt_type T2))
       have hInnerNoRef :
           ∀ s,
             __smtx_typeof_guard (__eo_to_smt_type T2)
@@ -1260,7 +1258,7 @@ theorem eo_type_valid_of_smt_field_wf_rec
                   (__smtx_is_finite_type
                     (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)))
                   (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))
-                  (SmtType.IFunType (__eo_to_smt_type y) (__eo_to_smt_type x))
+                  (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))
               have hInnerNoRef :
                   ∀ s,
                     __smtx_typeof_guard (__eo_to_smt_type x)
@@ -1589,42 +1587,31 @@ theorem eo_type_valid_of_smt_wf
           (by simpa [hT1] using hParts.2.1)),
         eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec
           (by simpa [hT2] using hParts.2.2.2))⟩
-    · by_cases hIFun : ∃ A B, __eo_to_smt_type T = SmtType.IFunType A B
-      · rcases hIFun with ⟨A, B, hTy⟩
-        rcases eo_to_smt_type_eq_ifun hTy with ⟨T1, T2, hTerm, hT1, hT2⟩
-        subst T
-        have hParts := ifun_type_wf_parts (by simpa [hTy] using hWf)
-        simp [eo_type_valid]
-        exact ⟨
-          eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec
-            (by simpa [hT1] using hParts.2.1)),
-          eo_type_valid_of_smt_field_wf_rec [] (smtx_type_field_wf_rec_of_type_wf_rec
-            (by simpa [hT2] using hParts.2.2.2))⟩
-      · have hRecWf :
-            __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true :=
-          smtx_type_wf_rec_of_type_wf
-            (eo_to_smt_type_ne_reglan_of_ne_reglan_term hReg)
-            (by
-              intro A B hTy
-              exact hFun ⟨A, B, hTy⟩)
-            (by
-              intro A B hTy
-              exact hIFun ⟨A, B, hTy⟩)
-            hWf
-        have hField :
-            smtx_type_field_wf_rec (__eo_to_smt_type T) native_reflist_nil :=
-          smtx_type_field_wf_rec_of_type_wf_rec hRecWf
-        have hValidRec : eo_type_valid_rec native_reflist_nil T :=
-          eo_type_valid_of_smt_field_wf_rec native_reflist_nil hField
-        cases T with
-        | UOp op =>
-            cases op with
-            | RegLan =>
-                exact False.elim (hReg rfl)
-            | _ =>
-                simpa [eo_type_valid] using hValidRec
-        | _ =>
-            simpa [eo_type_valid] using hValidRec
+    · have hRecWf :
+          __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true :=
+        smtx_type_wf_rec_of_type_wf
+          (eo_to_smt_type_ne_reglan_of_ne_reglan_term hReg)
+          (by
+            intro A B hTy
+            exact hFun ⟨A, B, hTy⟩)
+          (by
+            intro A B hTy
+            exact hFun ⟨A, B, hTy⟩)
+          hWf
+      have hField :
+          smtx_type_field_wf_rec (__eo_to_smt_type T) native_reflist_nil :=
+        smtx_type_field_wf_rec_of_type_wf_rec hRecWf
+      have hValidRec : eo_type_valid_rec native_reflist_nil T :=
+        eo_type_valid_of_smt_field_wf_rec native_reflist_nil hField
+      cases T with
+      | UOp op =>
+          cases op with
+          | RegLan =>
+              exact False.elim (hReg rfl)
+          | _ =>
+              simpa [eo_type_valid] using hValidRec
+      | _ =>
+          simpa [eo_type_valid] using hValidRec
 
 /-- Reduces `__eo_requires` when the compared EO types are definitionally equal. -/
 theorem eo_requires_self_of_non_stuck
@@ -2225,7 +2212,6 @@ private theorem smtx_type_substitute_top_of_wf_rec
   | SmtType.Char, refs, hNot, hWf => by simp [smtx_type_substitute_top, native_ite, native_Teq]
   | SmtType.USort n, refs, hNot, hWf => by simp [smtx_type_substitute_top, native_ite, native_Teq]
   | SmtType.FunType A B, refs, hNot, hWf => by simp [smtx_type_substitute_top, native_ite, native_Teq]
-  | SmtType.IFunType A B, refs, hNot, hWf => by simp [__smtx_type_wf_rec] at hWf
 
 private theorem smtx_dtc_substitute_of_wf_rec
     (sub : native_String) (d0 : SmtDatatype) :
@@ -2322,11 +2308,6 @@ private theorem smtx_dtc_substitute_of_wf_rec
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | FunType A B =>
-          have hTail : __smtx_dt_cons_wf_rec c refs = true :=
-            smtx_dt_cons_wf_rec_tail_of_true hWf
-          simp [__smtx_dtc_substitute, native_Teq, native_ite,
-            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
-      | IFunType A B =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true :=
             smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
@@ -2469,7 +2450,7 @@ private theorem eo_to_smt_type_substitute_field
               (__smtx_is_finite_type
                 (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x)))
               (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x))
-              (SmtType.IFunType (__eo_to_smt_type x1) (__eo_to_smt_type x)))
+              (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x)))
           have hInner : smtx_type_substitute_top sub (__eo_to_smt_datatype d0) inner = inner := by
             exact smtx_type_substitute_top_of_guard sub (__eo_to_smt_datatype d0)
               (__eo_to_smt_type x)
@@ -2477,7 +2458,7 @@ private theorem eo_to_smt_type_substitute_field
                 (__smtx_is_finite_type
                   (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x)))
                 (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x))
-                (SmtType.IFunType (__eo_to_smt_type x1) (__eo_to_smt_type x)))
+                (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x)))
               (by
                 cases hFin :
                     __smtx_is_finite_type

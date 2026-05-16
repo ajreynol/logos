@@ -189,22 +189,27 @@ theorem model_eval_qdiv_total_canonical
 
 theorem model_eval_apply_fun_canonical
     (M : SmtModel)
-    (m : SmtMap)
+    (hM : model_total_typed M)
+    (fid : native_String)
     (A B : SmtType)
     (x : SmtValue)
-    (hm : __smtx_map_canonical m = true)
-    (hMapTy : __smtx_typeof_map_value m = SmtType.Map A B) :
-    __smtx_value_canonical (__smtx_model_eval_apply M (SmtValue.Fun m) x) := by
+    (hxTy : __smtx_typeof_value x = A)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_value_canonical (__smtx_model_eval_apply M (SmtValue.Fun fid A B) x) := by
   by_cases hxNot : x = SmtValue.NotValue
   · subst x
-    simp [__smtx_model_eval_apply, __smtx_value_canonical,
-      __smtx_value_canonical_bool]
-  · have hApply :
-        __smtx_model_eval_apply M (SmtValue.Fun m) x =
-          __smtx_msm_lookup m x := by
-      cases x <;> simp [__smtx_model_eval_apply, __smtx_map_select] at hxNot ⊢
-    rw [hApply]
-    exact map_lookup_value_canonical (m := m) hm
+    have hAWF : __smtx_type_wf A = true := (fun_type_wf_components_of_wf hFunWF).1
+    have hANN : A ≠ SmtType.None := type_wf_non_none hAWF
+    simp [__smtx_typeof_value] at hxTy
+    exact False.elim (hANN hxTy.symm)
+  · have hCan :
+        __smtx_value_canonical (native_eval_ifun_apply M fid A B x) :=
+      (model_total_typed_native_fun_typed hM fid A B x hFunWF hxTy).2
+    have hApply :
+        __smtx_model_eval_apply M (SmtValue.Fun fid A B) x =
+          native_eval_ifun_apply M fid A B x := by
+      cases x <;> simp [__smtx_model_eval_apply] at hxNot ⊢
+    simpa [hApply] using hCan
 
 theorem model_eval_apply_ifun_canonical
     (M : SmtModel)
@@ -213,22 +218,16 @@ theorem model_eval_apply_ifun_canonical
     (A B : SmtType)
     (x : SmtValue)
     (hxTy : __smtx_typeof_value x = A)
-    (hFunWF : __smtx_type_wf (SmtType.IFunType A B) = true) :
-    __smtx_value_canonical (__smtx_model_eval_apply M (SmtValue.IFun fid A B) x) := by
-  by_cases hxNot : x = SmtValue.NotValue
-  · subst x
-    have hAWF : __smtx_type_wf A = true := (ifun_type_wf_components_of_wf hFunWF).1
-    have hANN : A ≠ SmtType.None := type_wf_non_none hAWF
-    simp [__smtx_typeof_value] at hxTy
-    exact False.elim (hANN hxTy.symm)
-  · have hCan :
-        __smtx_value_canonical (native_eval_ifun_apply M fid A B x) :=
-      (model_total_typed_native_fun_typed hM fid A B x hFunWF hxTy).2
-    have hApply :
-        __smtx_model_eval_apply M (SmtValue.IFun fid A B) x =
-          native_eval_ifun_apply M fid A B x := by
-      cases x <;> simp [__smtx_model_eval_apply] at hxNot ⊢
-    simpa [hApply] using hCan
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true) :
+    __smtx_value_canonical (__smtx_model_eval_apply M (SmtValue.Fun fid A B) x) := by
+  exact model_eval_apply_fun_canonical M hM fid A B x hxTy hFunWF
+
+private theorem model_eval_apply_not_value_canonical
+    (M : SmtModel) (x : SmtValue) :
+    __smtx_value_canonical (__smtx_model_eval_apply M SmtValue.NotValue x) := by
+  cases x <;>
+    simp [__smtx_model_eval_apply, __smtx_value_canonical,
+      __smtx_value_canonical_bool]
 
 theorem model_eval_apply_lookup_fun_canonical
     (M : SmtModel)
@@ -236,7 +235,8 @@ theorem model_eval_apply_lookup_fun_canonical
     (s : native_String)
     (A B : SmtType)
     (x : SmtValue)
-    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true) :
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
+    (hxTy : __smtx_typeof_value x = A) :
     __smtx_value_canonical
       (__smtx_model_eval_apply M
         (__smtx_model_lookup M s (SmtType.FunType A B)) x) := by
@@ -247,11 +247,9 @@ theorem model_eval_apply_lookup_fun_canonical
   have hLookupCan :
       __smtx_value_canonical (__smtx_model_lookup M s (SmtType.FunType A B)) :=
     model_total_typed_lookup_canonical hM s (SmtType.FunType A B) hFunWF
-  rcases fun_value_canonical hLookupTy with ⟨m, hLookupEq, hMapTy⟩
+  rcases fun_value_canonical hLookupTy with ⟨fid, hLookupEq⟩
   rw [hLookupEq] at hLookupCan ⊢
-  have hm : __smtx_map_canonical m = true := by
-    simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hLookupCan
-  exact model_eval_apply_fun_canonical M m A B x hm hMapTy
+  exact model_eval_apply_fun_canonical M hM fid A B x hxTy hFunWF
 
 theorem model_eval_apply_lookup_ifun_canonical
     (M : SmtModel)
@@ -259,23 +257,12 @@ theorem model_eval_apply_lookup_ifun_canonical
     (s : native_String)
     (A B : SmtType)
     (x : SmtValue)
-    (hFunWF : __smtx_type_wf (SmtType.IFunType A B) = true)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
     (hxTy : __smtx_typeof_value x = A) :
     __smtx_value_canonical
       (__smtx_model_eval_apply M
-        (__smtx_model_lookup M s (SmtType.IFunType A B)) x) := by
-  have hLookupTy :
-      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.IFunType A B)) =
-        SmtType.IFunType A B :=
-    model_total_typed_lookup hM s (SmtType.IFunType A B) hFunWF
-  rcases ifun_value_canonical hLookupTy with ⟨fid, hLookupEq⟩
-  rw [hLookupEq]
-  exact model_eval_apply_ifun_canonical M hM fid A B x hxTy hFunWF
-
-private theorem smtx_map_to_fun_type_ne_dtc_app
-    {T A B : SmtType} :
-    __smtx_map_to_fun_type T ≠ SmtType.DtcAppType A B := by
-  cases T <;> simp [__smtx_map_to_fun_type]
+        (__smtx_model_lookup M s (SmtType.FunType A B)) x) := by
+  exact model_eval_apply_lookup_fun_canonical M hM s A B x hFunWF hxTy
 
 theorem model_eval_apply_canonical
     (M : SmtModel)
@@ -284,39 +271,27 @@ theorem model_eval_apply_canonical
     {A B : SmtType}
     (hHead :
       __smtx_typeof_value f = SmtType.FunType A B ∨
-        __smtx_typeof_value f = SmtType.IFunType A B ∨
-          __smtx_typeof_value f = SmtType.DtcAppType A B)
+        __smtx_typeof_value f = SmtType.DtcAppType A B)
     (hFunWF :
       __smtx_typeof_value f = SmtType.FunType A B ->
         __smtx_type_wf (SmtType.FunType A B) = true)
-    (hIFunWF :
-      __smtx_typeof_value f = SmtType.IFunType A B ->
-        __smtx_type_wf (SmtType.IFunType A B) = true)
     (hxTy : __smtx_typeof_value x = A)
     (hf : __smtx_value_canonical f)
     (hx : __smtx_value_canonical x) :
     __smtx_value_canonical (__smtx_model_eval_apply M f x) := by
   cases hHead with
   | inl hFun =>
-      rcases fun_value_canonical hFun with ⟨m, rfl, hMapTy⟩
-      have hm : __smtx_map_canonical m = true := by
-        simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hf
-      exact model_eval_apply_fun_canonical M m A B x hm hMapTy
+      rcases fun_value_canonical hFun with ⟨fid, rfl⟩
+      exact model_eval_apply_fun_canonical M hM fid A B x hxTy (hFunWF rfl)
   | inr hDtc =>
-      cases hDtc with
-      | inl hIFun =>
-          rcases ifun_value_canonical hIFun with ⟨fid, rfl⟩
-          exact model_eval_apply_ifun_canonical M hM fid A B x hxTy (hIFunWF rfl)
-      | inr hDtc =>
-          cases f <;> cases x <;>
-            simp [__smtx_model_eval_apply, __smtx_typeof_value,
-              __smtx_value_canonical, __smtx_value_canonical_bool,
-              SmtEval.native_and] at hDtc hf hx ⊢
-          all_goals
-            first
-            | assumption
-            | exact False.elim (smtx_map_to_fun_type_ne_dtc_app hDtc)
-            | constructor <;> assumption
+      cases f <;> cases x <;>
+        simp [__smtx_model_eval_apply, __smtx_typeof_value,
+          __smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hDtc hf hx ⊢
+      all_goals
+        first
+        | assumption
+        | constructor <;> assumption
 
 /-- Value-level SMT `ite` preserves canonicality of the selected branch. -/
 theorem model_eval_ite_canonical
@@ -1361,9 +1336,7 @@ theorem vsm_apply_arg_nth_canonical :
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue
   | SmtValue.Map m, n, npos, hv => by
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Fun m, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.IFun fid A B, n, npos, hv => by
+  | SmtValue.Fun fid A B, n, npos, hv => by
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue
   | SmtValue.Set m, n, npos, hv => by
       simpa [__vsm_apply_arg_nth] using value_canonical_notValue
@@ -1388,62 +1361,32 @@ theorem model_eval_dt_sel_wrong_canonical
     (hvTy : __smtx_typeof_value v = SmtType.Datatype s d) :
     __smtx_value_canonical
       (__smtx_model_eval_apply M
-        (__smtx_model_lookup_fun M (native_wrong_apply_sel_id n m)
-          (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m))
+        (__smtx_model_lookup M (native_wrong_apply_sel_id n m)
+          (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)))
         v) := by
   let D := SmtType.Datatype s d
   let R := __smtx_ret_typeof_sel s d n m
-  by_cases hFin : __smtx_is_finite_type (SmtType.FunType D R) = true
-  · by_cases hFunWF : __smtx_type_wf (SmtType.FunType D R) = true
-    · simpa [__smtx_model_lookup_fun, D, R, native_ite, hFin] using
-        model_eval_apply_lookup_fun_canonical M hM (native_wrong_apply_sel_id n m)
-          D R v hFunWF
-    · have hFunWFFalse :
-          __smtx_type_wf (SmtType.FunType D R) = false := by
-        cases hWF : __smtx_type_wf (SmtType.FunType D R) <;>
-          simp [hWF] at hFunWF ⊢
-      have hLookup :
-          __smtx_model_lookup_fun M (native_wrong_apply_sel_id n m) D R =
-            SmtValue.NotValue := by
-        simpa [__smtx_model_lookup_fun, D, R, native_ite, hFin] using
-          model_total_typed_lookup_not_wf hM (native_wrong_apply_sel_id n m)
-            (SmtType.FunType D R) hFunWFFalse
-      rw [show
-          __smtx_model_lookup_fun M (native_wrong_apply_sel_id n m)
-              (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m) =
-            SmtValue.NotValue by
-          simpa [D, R] using hLookup]
-      cases v <;>
-        simp [__smtx_model_eval_apply, __smtx_value_canonical,
-          __smtx_value_canonical_bool]
-  · have hFinFalse :
-        __smtx_is_finite_type (SmtType.FunType D R) = false := by
-      cases h : __smtx_is_finite_type (SmtType.FunType D R) <;>
-        simp [h] at hFin ⊢
-    by_cases hIFunWF : __smtx_type_wf (SmtType.IFunType D R) = true
-    · have hvTyD : __smtx_typeof_value v = D := by
-        simpa [D] using hvTy
-      simpa [__smtx_model_lookup_fun, D, R, native_ite, hFinFalse] using
-        model_eval_apply_lookup_ifun_canonical M hM (native_wrong_apply_sel_id n m)
-          D R v hIFunWF hvTyD
-    · have hIFunWFFalse :
-          __smtx_type_wf (SmtType.IFunType D R) = false := by
-        cases hWF : __smtx_type_wf (SmtType.IFunType D R) <;>
-          simp [hWF] at hIFunWF ⊢
-      have hLookup :
-          __smtx_model_lookup_fun M (native_wrong_apply_sel_id n m) D R =
-            SmtValue.NotValue := by
-        simpa [__smtx_model_lookup_fun, D, R, native_ite, hFinFalse] using
-          model_total_typed_lookup_not_wf hM (native_wrong_apply_sel_id n m)
-            (SmtType.IFunType D R) hIFunWFFalse
-      rw [show
-          __smtx_model_lookup_fun M (native_wrong_apply_sel_id n m)
-              (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m) =
-            SmtValue.NotValue by
-          simpa [D, R] using hLookup]
-      cases v <;>
-        simp [__smtx_model_eval_apply, __smtx_value_canonical,
-          __smtx_value_canonical_bool]
+  by_cases hFunWF : __smtx_type_wf (SmtType.FunType D R) = true
+  · have hvTyD : __smtx_typeof_value v = D := by
+      simpa [D] using hvTy
+    simpa [D, R] using
+      model_eval_apply_lookup_fun_canonical M hM (native_wrong_apply_sel_id n m)
+        D R v hFunWF hvTyD
+  · have hFunWFFalse :
+        __smtx_type_wf (SmtType.FunType D R) = false := by
+      cases hWF : __smtx_type_wf (SmtType.FunType D R) <;>
+        simp [hWF] at hFunWF ⊢
+    have hLookup :
+        __smtx_model_lookup M (native_wrong_apply_sel_id n m) (SmtType.FunType D R) =
+          SmtValue.NotValue :=
+      model_total_typed_lookup_not_wf hM (native_wrong_apply_sel_id n m)
+        (SmtType.FunType D R) hFunWFFalse
+    rw [show
+        __smtx_model_lookup M (native_wrong_apply_sel_id n m)
+            (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)) =
+          SmtValue.NotValue by
+        simpa [D, R] using hLookup]
+    exact model_eval_apply_not_value_canonical M v
 
 theorem model_eval_dt_sel_canonical
     (M : SmtModel)

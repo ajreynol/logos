@@ -573,6 +573,11 @@ def __smtx_msm_get_default : SmtMap -> SmtValue
   | (SmtMap.default T e) => e
 
 
+def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
+  | (SmtMap.cons j e m), i => (native_ite (native_veq j i) e (__smtx_msm_lookup m i))
+  | (SmtMap.default T e), i => e
+
+
 def __smtx_typeof_map_value : SmtMap -> SmtType
   | (SmtMap.cons i e m) => 
     let _v0 := (__smtx_typeof_map_value m)

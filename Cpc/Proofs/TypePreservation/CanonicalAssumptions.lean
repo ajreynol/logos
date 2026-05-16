@@ -67,10 +67,8 @@ private theorem value_dt_substitute_canonical_bool
       simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Map m, h => by
       simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Fun m, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.IFun fid A B, h => by
-      simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.Fun fid A B, h => by
+    simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Set m, h => by
       simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Seq ss, h => by
@@ -115,9 +113,7 @@ private theorem value_dt_substitute_eq_notValue
       simp [__smtx_value_dt_substitute]
   | SmtValue.Map m => by
       simp [__smtx_value_dt_substitute]
-  | SmtValue.Fun m => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.IFun fid A B => by
+  | SmtValue.Fun fid A B => by
       simp [__smtx_value_dt_substitute]
   | SmtValue.Set m => by
       simp [__smtx_value_dt_substitute]
@@ -1090,66 +1086,6 @@ private theorem smt_map_head_key_mem_of_mem (k e : SmtValue) (m : SmtMap) :
       all_goals
         exact ih h
 
-private def smt_fun_head_values : List SmtValue -> List SmtValue
-  | SmtValue.Fun (SmtMap.cons _ e _) :: xs => e :: smt_fun_head_values xs
-  | _ :: xs => smt_fun_head_values xs
-  | [] => []
-
-private theorem smt_fun_head_value_mem_of_mem (k e : SmtValue) (m : SmtMap) :
-    ∀ {xs : List SmtValue},
-      SmtValue.Fun (SmtMap.cons k e m) ∈ xs ->
-        e ∈ smt_fun_head_values xs := by
-  intro xs
-  induction xs with
-  | nil =>
-      intro h
-      cases h
-  | cons v xs ih =>
-      intro h
-      cases v <;> simp [smt_fun_head_values] at h ⊢
-      case Fun m' =>
-        cases m' <;> simp [smt_fun_head_values] at h ⊢
-        case default T' e' =>
-          exact ih h
-        case cons k' e' m'' =>
-          rcases h with hEq | hTail
-          · rcases hEq with ⟨_hKey, hValue, _hRest⟩
-            subst e
-            simp
-          · exact Or.inr (ih hTail)
-      all_goals
-        exact ih h
-
-private def smt_fun_head_keys : List SmtValue -> List SmtValue
-  | SmtValue.Fun (SmtMap.cons k _ _) :: xs => k :: smt_fun_head_keys xs
-  | _ :: xs => smt_fun_head_keys xs
-  | [] => []
-
-private theorem smt_fun_head_key_mem_of_mem (k e : SmtValue) (m : SmtMap) :
-    ∀ {xs : List SmtValue},
-      SmtValue.Fun (SmtMap.cons k e m) ∈ xs ->
-        k ∈ smt_fun_head_keys xs := by
-  intro xs
-  induction xs with
-  | nil =>
-      intro h
-      cases h
-  | cons v xs ih =>
-      intro h
-      cases v <;> simp [smt_fun_head_keys] at h ⊢
-      case Fun m' =>
-        cases m' <;> simp [smt_fun_head_keys] at h ⊢
-        case default T' e' =>
-          exact ih h
-        case cons k' e' m'' =>
-          rcases h with hEq | hTail
-          · rcases hEq with ⟨hKey, _hRest⟩
-            subst k
-            simp
-          · exact Or.inr (ih hTail)
-      all_goals
-        exact ih h
-
 /--
 Residual low-level datatype/cardinality support.  The first component handles
 fresh witnesses for infinite datatypes.  The second handles the single
@@ -1652,39 +1588,6 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
           __smtx_type_default, native_veq]
   | FunType T U =>
-      have hRecParts :
-          native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true ∧
-              native_inhabited_type U = true ∧
-                __smtx_type_wf_rec U native_reflist_nil = true := by
-        simpa [__smtx_type_wf_rec, native_and] using _hRec
-      have hUNonUnit : __smtx_is_unit_type U = false := by
-        simpa [__smtx_is_unit_type] using _hNonUnit
-      have hTDefault :=
-        type_default_typed_canonical_of_native_inhabited hRecParts.1
-      have hUDefault :=
-        type_default_typed_canonical_of_native_inhabited hRecParts.2.2.1
-      rcases cpc_nonunit_typed_canonical_nondefault_value
-          U hRecParts.2.2.1 hRecParts.2.2.2 hUNonUnit with
-        ⟨e, heTy, heCan, heNeDefault⟩
-      have heNeDefaultProp : e ≠ __smtx_type_default U := by
-        intro hEq
-        subst e
-        simp [native_veq] at heNeDefault
-      refine
-        ⟨SmtValue.Fun
-          (SmtMap.cons (__smtx_type_default T) e
-            (SmtMap.default T (__smtx_type_default U))), ?_, ?_, ?_⟩
-      · simp [__smtx_typeof_value, __smtx_typeof_map_value,
-          __smtx_map_to_fun_type, hTDefault.1, heTy, hUDefault.1,
-          native_ite, native_Teq]
-      · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
-          __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
-          __smtx_msm_get_default, hTDefault.2, heCan, hUDefault.1,
-          hUDefault.2, heNeDefaultProp, native_and, native_ite, native_not,
-          native_veq]
-      · simp [__smtx_type_default, native_veq]
-  | IFunType T U =>
       simp [__smtx_type_wf_rec] at _hRec
   | DtcAppType T U =>
       simp [__smtx_type_wf_rec] at _hRec
@@ -1902,116 +1805,6 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
       · simp [__smtx_value_canonical_bool]
       · exact fresh_usort_veq_false_of_mem u avoid
   | FunType T U =>
-      by_cases hUInfinite : __smtx_is_finite_type U = false
-      · have hRecParts :
-            native_inhabited_type T = true ∧
-              __smtx_type_wf_rec T native_reflist_nil = true ∧
-                native_inhabited_type U = true ∧
-                  __smtx_type_wf_rec U native_reflist_nil = true := by
-          simpa [__smtx_type_wf_rec, native_and] using _hRec
-        have hTDefault :
-            __smtx_typeof_value (__smtx_type_default T) = T ∧
-              __smtx_value_canonical_bool (__smtx_type_default T) = true := by
-          exact type_default_typed_canonical_of_native_inhabited hRecParts.1
-        have hUDefault :
-            __smtx_typeof_value (__smtx_type_default U) = U ∧
-              __smtx_value_canonical_bool (__smtx_type_default U) = true := by
-          exact type_default_typed_canonical_of_native_inhabited hRecParts.2.2.1
-        rcases cpc_fresh_typed_canonical_value_for_infinite_type_assumption
-            U hRecParts.2.2.1 hRecParts.2.2.2 hUInfinite
-              (__smtx_type_default U :: smt_fun_head_values avoid) with
-          ⟨e, heTy, heCan, heFresh⟩
-        have hDefaultNe : native_veq (__smtx_type_default U) e = false :=
-          heFresh (__smtx_type_default U) (by simp)
-        have hEntryNe : native_veq e (__smtx_type_default U) = false :=
-          native_veq_false_symm hDefaultNe
-        have hEntryNeProp : e ≠ __smtx_type_default U := by
-          intro hEq
-          subst e
-          simp [native_veq] at hEntryNe
-        refine
-          ⟨SmtValue.Fun
-            (SmtMap.cons (__smtx_type_default T) e
-              (SmtMap.default T (__smtx_type_default U))), ?_, ?_, ?_⟩
-        · simp [__smtx_typeof_value, __smtx_typeof_map_value,
-            __smtx_map_to_fun_type, hTDefault.1, hUDefault.1, heTy,
-            native_ite, native_Teq]
-        · by_cases hTFinite : __smtx_is_finite_type T = true
-          · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
-              __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
-              __smtx_msm_get_default, hTDefault.2, hUDefault.1, hUDefault.2,
-              heCan, hTFinite, hEntryNeProp, native_and, native_ite, native_not,
-              native_veq]
-          · have hTFiniteFalse : __smtx_is_finite_type T = false := by
-              cases hTF : __smtx_is_finite_type T <;> simp [hTF] at hTFinite ⊢
-            simp [__smtx_value_canonical_bool, __smtx_map_canonical,
-              __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
-              __smtx_msm_get_default, hTDefault.2, hUDefault.2, heCan,
-              hTFiniteFalse, hEntryNeProp, native_and, native_ite, native_not,
-              native_veq]
-        · intro j hj
-          exact native_veq_eq_false_of_ne (by
-            intro hEq
-            subst j
-            have heMem : e ∈ smt_fun_head_values avoid :=
-              smt_fun_head_value_mem_of_mem (__smtx_type_default T) e
-                (SmtMap.default T (__smtx_type_default U)) hj
-            have heFalse := heFresh e (by simp [heMem])
-            simp [native_veq] at heFalse)
-      · exact
-          by
-            have hRecParts :
-                native_inhabited_type T = true ∧
-                  __smtx_type_wf_rec T native_reflist_nil = true ∧
-                    native_inhabited_type U = true ∧
-                      __smtx_type_wf_rec U native_reflist_nil = true := by
-              simpa [__smtx_type_wf_rec, native_and] using _hRec
-            have hUFinite : __smtx_is_finite_type U = true := by
-              cases hUF : __smtx_is_finite_type U <;> simp [hUF] at hUInfinite ⊢
-            have hFiniteParts :
-                __smtx_is_unit_type U = false ∧
-                  __smtx_is_finite_type T = false := by
-              cases hUnit : __smtx_is_unit_type U <;>
-                cases hTFin : __smtx_is_finite_type T <;>
-                  simp [__smtx_is_finite_type, hUnit, hTFin, hUFinite,
-                    native_or, native_and] at _hInfinite ⊢
-            have hUDefault :
-                __smtx_typeof_value (__smtx_type_default U) = U ∧
-                  __smtx_value_canonical_bool (__smtx_type_default U) = true := by
-              exact type_default_typed_canonical_of_native_inhabited hRecParts.2.2.1
-            rcases cpc_fresh_typed_canonical_value_for_infinite_type_assumption
-                T hRecParts.1 hRecParts.2.1 hFiniteParts.2
-                  (smt_fun_head_keys avoid) with
-              ⟨k, hkTy, hkCan, hkFresh⟩
-            rcases cpc_nonunit_typed_canonical_nondefault_value
-                U hRecParts.2.2.1 hRecParts.2.2.2 hFiniteParts.1 with
-              ⟨e, heTy, heCan, heNeDefault⟩
-            have heNeDefaultProp : e ≠ __smtx_type_default U := by
-              intro hEq
-              subst e
-              simp [native_veq] at heNeDefault
-            refine
-              ⟨SmtValue.Fun
-                (SmtMap.cons k e
-                  (SmtMap.default T (__smtx_type_default U))), ?_, ?_, ?_⟩
-            · simp [__smtx_typeof_value, __smtx_typeof_map_value,
-                __smtx_map_to_fun_type, hkTy, heTy, hUDefault.1,
-                native_ite, native_Teq]
-            · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
-                __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
-                __smtx_msm_get_default, hkCan, heCan, hUDefault.2,
-                hFiniteParts.2, heNeDefaultProp, native_and, native_ite,
-                native_not, native_veq]
-            · intro j hj
-              exact native_veq_eq_false_of_ne (by
-                intro hEq
-                subst j
-                have hkMem : k ∈ smt_fun_head_keys avoid :=
-                  smt_fun_head_key_mem_of_mem k e
-                    (SmtMap.default T (__smtx_type_default U)) hj
-                have hkFalse := hkFresh k hkMem
-                simp [native_veq] at hkFalse)
-  | IFunType T U =>
       simp [__smtx_type_wf_rec] at _hRec
   | DtcAppType T U =>
       simp [__smtx_type_wf_rec] at _hRec

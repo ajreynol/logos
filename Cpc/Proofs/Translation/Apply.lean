@@ -22,14 +22,12 @@ private theorem smtx_type_wf_rec_of_type_wf
     {T : SmtType}
     (hNotReg : T ≠ SmtType.RegLan)
     (hNotFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
-    (hNotIFun : ∀ A B : SmtType, T ≠ SmtType.IFunType A B)
+    (hNotIFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
   cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
   case FunType A B =>
     exact False.elim (hNotFun A B rfl)
-  case IFunType A B =>
-    exact False.elim (hNotIFun A B rfl)
   all_goals first | exact h | exact h.2 | exact h.2.2
 
 private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
@@ -270,33 +268,26 @@ private theorem eo_to_smt_typeof_matches_translation_apply_bv_cmp_to_bv1
 private theorem smtx_head_non_none_of_apply_cases
     {T A B : SmtType}
     (hHead :
-      T = SmtType.FunType A B ∨
-        T = SmtType.IFunType A B ∨ T = SmtType.DtcAppType A B) :
+      T = SmtType.FunType A B ∨ T = SmtType.DtcAppType A B) :
   T ≠ SmtType.None := by
   intro hNone
   rcases hHead with hHead | hHead
   · cases hNone.symm.trans hHead
-  · rcases hHead with hHead | hHead
-    · cases hNone.symm.trans hHead
-    · cases hNone.symm.trans hHead
+  · cases hNone.symm.trans hHead
 
 /-- Computes `__smtx_typeof_apply` for function-like apply heads. -/
 private theorem smtx_typeof_apply_of_head_cases
     {F X A B : SmtType}
     (hHead :
-      F = SmtType.FunType A B ∨
-        F = SmtType.IFunType A B ∨ F = SmtType.DtcAppType A B)
+      F = SmtType.FunType A B ∨ F = SmtType.DtcAppType A B)
     (hX : X = A)
     (hA : A ≠ SmtType.None) :
     __smtx_typeof_apply F X = B := by
   rcases hHead with hHead | hHead
   · rw [hHead, hX]
     simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-  · rcases hHead with hHead | hHead
-    · rw [hHead, hX]
-      simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-    · rw [hHead, hX]
-      simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+  · rw [hHead, hX]
+    simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
 
 /-- Rewrites `generic_apply_type` for heads that are not datatype selectors/testers. -/
 private theorem generic_apply_type_of_non_special_head
@@ -1104,13 +1095,13 @@ private theorem typeof_generic_apply_non_function_head_eq_none
     (f x : SmtTerm)
     (hGeneric : generic_apply_type f x)
     (hFun : ∀ A B, __smtx_typeof f ≠ SmtType.FunType A B)
-    (hIFun : ∀ A B, __smtx_typeof f ≠ SmtType.IFunType A B)
+    (hIFun : ∀ A B, __smtx_typeof f ≠ SmtType.FunType A B)
     (hDtc : ∀ A B, __smtx_typeof f ≠ SmtType.DtcAppType A B) :
     __smtx_typeof (SmtTerm.Apply f x) = SmtType.None := by
+  have _ := hIFun
   rw [hGeneric]
   cases hF : __smtx_typeof f <;> try rfl
   · exact False.elim (hFun _ _ hF)
-  · exact False.elim (hIFun _ _ hF)
   · exact False.elim (hDtc _ _ hF)
 
 /-- Computes the type of applying a Boolean literal as a head. -/
@@ -1243,7 +1234,6 @@ private theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none
   | USort _
   | Map _ _
   | FunType _ _
-  | IFunType _ _
   | DtcAppType _ _ =>
       simp [__eo_to_smt_seq_empty, __smtx_typeof_apply]
   | Seq U =>
@@ -1420,27 +1410,23 @@ private theorem function_like_head_components_non_none
     (f : SmtTerm) {A B : SmtType}
     (hHead :
       __smtx_typeof f = SmtType.FunType A B ∨
-        __smtx_typeof f = SmtType.IFunType A B ∨
-          __smtx_typeof f = SmtType.DtcAppType A B) :
+        __smtx_typeof f = SmtType.DtcAppType A B) :
     A ≠ SmtType.None ∧ B ≠ SmtType.None := by
   have hNN : term_has_non_none_type f := by
     unfold term_has_non_none_type
     rcases hHead with hHead | hHead
     · rw [hHead]
       simp
-    · rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+    · rw [hHead]
+      simp
   have hNoNone := Smtm.term_type_has_no_none_components_of_non_none f hNN
   rcases hHead with hHead | hHead
   · have hFun : Smtm.type_has_no_none_components (SmtType.FunType A B) := by
       simpa [hHead] using hNoNone
     exact Smtm.type_has_no_none_components_fun_components_non_none hFun
-  · rcases hHead with hHead | hHead
-    · have hIFun : Smtm.type_has_no_none_components (SmtType.IFunType A B) := by
-        simpa [hHead] using hNoNone
-      exact Smtm.type_has_no_none_components_ifun_components_non_none hIFun
-    · have hDtc : Smtm.type_has_no_none_components (SmtType.DtcAppType A B) := by
-        simpa [hHead] using hNoNone
-      exact Smtm.type_has_no_none_components_dtc_app_components_non_none hDtc
+  · have hDtc : Smtm.type_has_no_none_components (SmtType.DtcAppType A B) := by
+      simpa [hHead] using hNoNone
+    exact Smtm.type_has_no_none_components_dtc_app_components_non_none hDtc
 
 private theorem eo_to_smt_type_injective_of_type_wf_rec
     {T U : Term} {A : SmtType}
@@ -1469,8 +1455,7 @@ private theorem eo_to_smt_type_typeof_apply_from_ih_of_fun_like
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
     (hHead :
       __smtx_typeof (__eo_to_smt f) = SmtType.FunType A B ∨
-        __smtx_typeof (__eo_to_smt f) = SmtType.IFunType A B ∨
-          __smtx_typeof (__eo_to_smt f) = SmtType.DtcAppType A B)
+        __smtx_typeof (__eo_to_smt f) = SmtType.DtcAppType A B)
     (hX : __smtx_typeof (__eo_to_smt x) = A)
     (hEoApply :
       __eo_typeof (Term.Apply f x) =
@@ -1482,7 +1467,8 @@ private theorem eo_to_smt_type_typeof_apply_from_ih_of_fun_like
     rcases hHead with hHead | hHead
     · rw [hHead]
       simp
-    · rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+    · rw [hHead]
+      simp
   have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
     eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
   rcases hHead with hHead | hHead
@@ -1501,52 +1487,36 @@ private theorem eo_to_smt_type_typeof_apply_from_ih_of_fun_like
         hEoApply
         (Or.inl hFEq)
         hxEo hUNonNone).trans hV
-  · rcases hHead with hHead | hHead
-    · have hFTrans : __eo_to_smt_type (__eo_typeof f) = SmtType.IFunType A B := by
-        rw [← ihF hFNN]
-        exact hHead
-      rcases eo_to_smt_type_eq_ifun hFTrans with ⟨U, V, hFEq, hU, hV⟩
-      have hxEo : __eo_typeof x = U :=
-        eo_to_smt_type_injective_of_field_wf_rec hXTrans hU hArgWF
-      have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
-        rw [hU]
-        exact hA
-      exact
-        (eo_to_smt_type_typeof_apply_of_fun_like
-          x f U V
-          hEoApply
-          (Or.inl hFEq)
-          hxEo hUNonNone).trans hV
-    · have hFTrans : __eo_to_smt_type (__eo_typeof f) = SmtType.DtcAppType A B := by
-        rw [← ihF hFNN]
-        exact hHead
-      rcases eo_to_smt_type_eq_dtc_app hFTrans with ⟨U, V, hFEq, hU, hV⟩
-      have hxEo : __eo_typeof x = U :=
-        eo_to_smt_type_injective_of_field_wf_rec hXTrans hU hArgWF
-      have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
-        rw [hU]
-        exact hA
-      exact
-        (eo_to_smt_type_typeof_apply_of_fun_like
-          x f U V
-          hEoApply
-          (Or.inr hFEq)
-          hxEo hUNonNone).trans hV
+  · have hFTrans : __eo_to_smt_type (__eo_typeof f) = SmtType.DtcAppType A B := by
+      rw [← ihF hFNN]
+      exact hHead
+    rcases eo_to_smt_type_eq_dtc_app hFTrans with ⟨U, V, hFEq, hU, hV⟩
+    have hxEo : __eo_typeof x = U :=
+      eo_to_smt_type_injective_of_field_wf_rec hXTrans hU hArgWF
+    have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
+      rw [hU]
+      exact hA
+    exact
+      (eo_to_smt_type_typeof_apply_of_fun_like
+        x f U V
+        hEoApply
+        (Or.inr hFEq)
+        hxEo hUNonNone).trans hV
 
 /-- A zero-index `choice_nth` function-like type has a well-formed argument field. -/
 private theorem choice_nth_fun_like_arg_field_wf
     (s : native_String) (T : SmtType) (body : SmtTerm) {A B : SmtType}
     (hHead :
       __smtx_typeof (SmtTerm.choice_nth s T body 0) = SmtType.FunType A B ∨
-        __smtx_typeof (SmtTerm.choice_nth s T body 0) = SmtType.IFunType A B ∨
-          __smtx_typeof (SmtTerm.choice_nth s T body 0) = SmtType.DtcAppType A B) :
+        __smtx_typeof (SmtTerm.choice_nth s T body 0) = SmtType.DtcAppType A B) :
     smtx_type_field_wf_rec A native_reflist_nil := by
   have hNN : term_has_non_none_type (SmtTerm.choice_nth s T body 0) := by
     unfold term_has_non_none_type
     rcases hHead with hHead | hHead
     · rw [hHead]
       simp
-    · rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+    · rw [hHead]
+      simp
   have hGuard :
       __smtx_typeof (SmtTerm.choice_nth s T body 0) =
         __smtx_typeof_guard_wf T T :=
@@ -1564,16 +1534,10 @@ private theorem choice_nth_fun_like_arg_field_wf
       simpa [hTFun] using hTWF
     exact smtx_type_field_wf_rec_of_type_wf_rec
       (fun_type_wf_rec_components_of_wf hTWF').1
-  · rcases hHead with hHead | hHead
-    · have hTIFun : T = SmtType.IFunType A B := hChoiceTy.symm.trans hHead
-      have hTWF' : __smtx_type_wf (SmtType.IFunType A B) = true := by
-        simpa [hTIFun] using hTWF
-      exact smtx_type_field_wf_rec_of_type_wf_rec
-        (ifun_type_wf_rec_components_of_wf hTWF').1
-    · have hTDtc : T = SmtType.DtcAppType A B := hChoiceTy.symm.trans hHead
-      have hBad := hTWF
-      rw [hTDtc] at hBad
-      simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hBad
+  · have hTDtc : T = SmtType.DtcAppType A B := hChoiceTy.symm.trans hHead
+    have hBad := hTWF
+    rw [hTDtc] at hBad
+    simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hBad
 
 /-- Generic application of a zero-index `choice_nth` head, using local IHs. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_choice_nth_head_from_ih
@@ -1619,8 +1583,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_choice_nth_head_from_
     exact smtx_typeof_apply_of_head_cases hHead hX hA
   have hChoiceHead :
       __smtx_typeof (SmtTerm.choice_nth s T body 0) = SmtType.FunType A B ∨
-        __smtx_typeof (SmtTerm.choice_nth s T body 0) = SmtType.IFunType A B ∨
-          __smtx_typeof (SmtTerm.choice_nth s T body 0) = SmtType.DtcAppType A B := by
+        __smtx_typeof (SmtTerm.choice_nth s T body 0) = SmtType.DtcAppType A B := by
     simpa [hHeadTranslate] using hHead
   have hArgWF :
       smtx_type_field_wf_rec A native_reflist_nil :=
@@ -1636,8 +1599,7 @@ private theorem choice_nth_fun_like_arg_field_wf_any
     (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) {A B : SmtType}
     (hHead :
       __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.FunType A B ∨
-        __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.IFunType A B ∨
-          __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.DtcAppType A B) :
+        __smtx_typeof (SmtTerm.choice_nth s T body n) = SmtType.DtcAppType A B) :
     smtx_type_field_wf_rec A native_reflist_nil := by
   induction n generalizing s T body with
   | zero =>
@@ -1657,19 +1619,15 @@ private theorem choice_nth_fun_like_arg_field_wf_any
           rcases hHead with hHead | hHead
           · rw [__smtx_typeof.eq_137] at hHead
             simp [__smtx_typeof_choice_nth] at hHead
-          · rcases hHead with hHead | hHead
-            · rw [__smtx_typeof.eq_137] at hHead
-              simp [__smtx_typeof_choice_nth] at hHead
-            · rw [__smtx_typeof.eq_137] at hHead
-              simp [__smtx_typeof_choice_nth] at hHead
+          · rw [__smtx_typeof.eq_137] at hHead
+            simp [__smtx_typeof_choice_nth] at hHead
 
 /-- Skolemization is either a `choice_nth` chain or `none`, so function-like results have well-formed arguments. -/
 private theorem eo_to_smt_quantifiers_skolemize_fun_like_arg_field_wf
     (body : SmtTerm) (n : native_Nat) {A B : SmtType}
     (hHead :
       __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) = SmtType.FunType A B ∨
-        __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) = SmtType.IFunType A B ∨
-          __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) = SmtType.DtcAppType A B) :
+        __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) = SmtType.DtcAppType A B) :
     smtx_type_field_wf_rec A native_reflist_nil := by
   cases body with
   | «exists» s T body' =>
@@ -1678,33 +1636,26 @@ private theorem eo_to_smt_quantifiers_skolemize_fun_like_arg_field_wf
       exfalso
       rcases hHead with hHead | hHead
       · simp [__eo_to_smt_quantifiers_skolemize] at hHead
-      · rcases hHead with hHead | hHead
-        · simp [__eo_to_smt_quantifiers_skolemize] at hHead
-        · simp [__eo_to_smt_quantifiers_skolemize] at hHead
+      · simp [__eo_to_smt_quantifiers_skolemize] at hHead
 
 private theorem smtx_typeof_none_not_fun_like
     {A B : SmtType}
     (hHead :
       __smtx_typeof SmtTerm.None = SmtType.FunType A B ∨
-        __smtx_typeof SmtTerm.None = SmtType.IFunType A B ∨
-          __smtx_typeof SmtTerm.None = SmtType.DtcAppType A B) :
+        __smtx_typeof SmtTerm.None = SmtType.DtcAppType A B) :
     False := by
   rcases hHead with hHead | hHead
   · rw [smtx_typeof_none] at hHead
     cases hHead
-  · rcases hHead with hHead | hHead
-    · rw [smtx_typeof_none] at hHead
-      cases hHead
-    · rw [smtx_typeof_none] at hHead
-      cases hHead
+  · rw [smtx_typeof_none] at hHead
+    cases hHead
 
 private theorem eo_to_smt_none_not_fun_like
     {t : Term} {A B : SmtType}
     (hNone : __eo_to_smt t = SmtTerm.None)
     (hHead :
       __smtx_typeof (__eo_to_smt t) = SmtType.FunType A B ∨
-        __smtx_typeof (__eo_to_smt t) = SmtType.IFunType A B ∨
-          __smtx_typeof (__eo_to_smt t) = SmtType.DtcAppType A B) :
+        __smtx_typeof (__eo_to_smt t) = SmtType.DtcAppType A B) :
     False := by
   rw [hNone] at hHead
   exact smtx_typeof_none_not_fun_like hHead
@@ -1728,9 +1679,7 @@ private theorem eo_to_smt_quantifiers_skolemize_top_fun_like_arg_field_wf
       __smtx_typeof (__eo_to_smt (Term._at_quantifiers_skolemize q idx)) =
           SmtType.FunType A B ∨
         __smtx_typeof (__eo_to_smt (Term._at_quantifiers_skolemize q idx)) =
-          SmtType.IFunType A B ∨
-            __smtx_typeof (__eo_to_smt (Term._at_quantifiers_skolemize q idx)) =
-              SmtType.DtcAppType A B) :
+          SmtType.DtcAppType A B) :
     smtx_type_field_wf_rec A native_reflist_nil := by
   cases q
   case Apply f body =>
@@ -1758,15 +1707,6 @@ private theorem eo_to_smt_quantifiers_skolemize_top_fun_like_arg_field_wf
                         (__eo_to_smt_nat idx))
                       SmtTerm.None)
                     SmtTerm.None) =
-                    SmtType.IFunType A B ∨
-                  __smtx_typeof
-                    (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                      (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                        (__eo_to_smt_quantifiers_skolemize
-                          (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                          (__eo_to_smt_nat idx))
-                        SmtTerm.None)
-                      SmtTerm.None) =
                     SmtType.DtcAppType A B := by
             change
               __smtx_typeof
@@ -1778,15 +1718,6 @@ private theorem eo_to_smt_quantifiers_skolemize_top_fun_like_arg_field_wf
                       SmtTerm.None)
                     SmtTerm.None) =
                     SmtType.FunType A B ∨
-                __smtx_typeof
-                  (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                    (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                      (__eo_to_smt_quantifiers_skolemize
-                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                        (__eo_to_smt_nat idx))
-                      SmtTerm.None)
-                    SmtTerm.None) =
-                    SmtType.IFunType A B ∨
                 __smtx_typeof
                   (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
                     (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
@@ -1851,7 +1782,7 @@ private theorem smtx_fun_components_field_wf_rec_of_non_none_type_apply
 
 private theorem smtx_ifun_components_field_wf_rec_of_non_none_type_apply
     (x : SmtTerm) (A B : SmtType)
-    (hxTy : __smtx_typeof x = SmtType.IFunType A B) :
+    (hxTy : __smtx_typeof x = SmtType.FunType A B) :
     smtx_type_field_wf_rec A native_reflist_nil ∧
       smtx_type_field_wf_rec B native_reflist_nil := by
   have hComps := smt_ifun_components_wf_rec_of_non_none_type x A B hxTy
@@ -2334,8 +2265,6 @@ private theorem smtx_type_context_substitute_off_apply
       simp [smtx_type_context_substitute_apply]
   | SmtType.FunType A B => by
       simp [smtx_type_context_substitute_apply]
-  | SmtType.IFunType A B => by
-      simp [smtx_type_context_substitute_apply]
 termination_by T => sizeOf T
 decreasing_by
   all_goals simp_wf
@@ -2454,9 +2383,6 @@ private theorem smtx_chain_type_context_substitute_off_apply
   | SmtType.FunType A B => by
       simp [smtx_chain_type_context_substitute_apply,
         smtx_type_context_substitute_apply]
-  | SmtType.IFunType A B => by
-      simp [smtx_chain_type_context_substitute_apply,
-        smtx_type_context_substitute_apply]
 termination_by T => sizeOf T
 decreasing_by
   all_goals simp_wf
@@ -2507,8 +2433,7 @@ private theorem smtx_value_dt_context_substitute_apply_num_args
   | SmtValue.Rational _ => rfl
   | SmtValue.Binary _ _ => rfl
   | SmtValue.Map _ => rfl
-  | SmtValue.Fun _ => rfl
-  | SmtValue.IFun _ _ _ => rfl
+  | SmtValue.Fun _ _ _ => rfl
   | SmtValue.Set _ => rfl
   | SmtValue.Seq _ => rfl
   | SmtValue.Char _ => rfl
@@ -2555,9 +2480,7 @@ private theorem smtx_value_dt_context_substitute_apply_head
       simp [__vsm_apply_head] at hHead
   | SmtValue.Map m, s, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
-  | SmtValue.Fun _, s, d, i, hHead => by
-      simp [__vsm_apply_head] at hHead
-  | SmtValue.IFun _ _ _, s, d, i, hHead => by
+  | SmtValue.Fun _ _ _, s, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
   | SmtValue.Set m, s, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
@@ -2603,9 +2526,7 @@ private theorem smtx_value_dt_context_substitute_apply_head_of_root
       simp [__vsm_apply_head] at hHead
   | SmtValue.Map _, i, hHead => by
       simp [__vsm_apply_head] at hHead
-  | SmtValue.Fun _, i, hHead => by
-      simp [__vsm_apply_head] at hHead
-  | SmtValue.IFun _ _ _, i, hHead => by
+  | SmtValue.Fun _ _ _, i, hHead => by
       simp [__vsm_apply_head] at hHead
   | SmtValue.Set _, i, hHead => by
       simp [__vsm_apply_head] at hHead
@@ -2649,8 +2570,7 @@ private theorem smtx_value_dt_context_substitute_apply_arg_nth
   | SmtValue.Rational _, _ => rfl
   | SmtValue.Binary _ _, _ => rfl
   | SmtValue.Map _, _ => rfl
-  | SmtValue.Fun _, _ => rfl
-  | SmtValue.IFun _ _ _, _ => rfl
+  | SmtValue.Fun _ _ _, _ => rfl
   | SmtValue.Set _, _ => rfl
   | SmtValue.Seq _, _ => rfl
   | SmtValue.Char _, _ => rfl
@@ -2901,8 +2821,6 @@ private theorem smtx_type_context_substitute_ne_none_apply
       simp [smtx_type_context_substitute_apply]
   | SmtType.FunType A B, _h => by
       simp [smtx_type_context_substitute_apply]
-  | SmtType.IFunType A B, _h => by
-      simp [smtx_type_context_substitute_apply]
 
 private theorem smtx_chain_type_context_substitute_ne_none_apply
     (sub : native_String) (base : SmtDatatype)
@@ -2969,10 +2887,6 @@ private theorem smtx_chain_type_context_substitute_ne_none_apply
       simpa [smtx_chain_type_context_substitute_apply] using
         smtx_type_context_substitute_ne_none_apply
           sub base root oldRoot newRoot doSub doRoot (SmtType.FunType A B) h
-  | SmtType.IFunType A B, h => by
-      simpa [smtx_chain_type_context_substitute_apply] using
-        smtx_type_context_substitute_ne_none_apply
-          sub base root oldRoot newRoot doSub doRoot (SmtType.IFunType A B) h
 
 private theorem smtx_chain_type_context_substitute_datatype_value_body_apply
     (sub : native_String) (base : SmtDatatype)
@@ -3125,9 +3039,6 @@ private theorem eo_to_smt_type_injective_of_chain_field_wf_rec
       exact eo_to_smt_type_injective_of_field_wf_rec hT hU
         (by simpa [smtx_type_chain_field_wf_rec] using hWF)
   | FunType A B =>
-      exact eo_to_smt_type_injective_of_field_wf_rec hT hU
-        (by simpa [smtx_type_chain_field_wf_rec] using hWF)
-  | IFunType A B =>
       exact eo_to_smt_type_injective_of_field_wf_rec hT hU
         (by simpa [smtx_type_chain_field_wf_rec] using hWF)
 termination_by A
@@ -4322,11 +4233,6 @@ private theorem smtx_ret_typeof_sel_rec_substitute_non_chain_or_datatype_of_wf_a
             simp [__smtx_dt_substitute, __smtx_dtc_substitute,
               __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
               native_ite, native_Teq])
-      | IFunType A B =>
-          exact Or.inl (by
-            simp [__smtx_dt_substitute, __smtx_dtc_substitute,
-              __smtx_ret_typeof_sel_rec, dt_cons_chain_result,
-              native_ite, native_Teq])
   | SmtDatatype.sum (SmtDatatypeCons.cons T c) d, native_nat_zero,
       native_nat_succ j, refs, hWf, hj => by
       have hCons :
@@ -4563,25 +4469,6 @@ private theorem smtx_dtc_wf_rec_congr_refs_apply :
             smtx_type_wf_rec_congr_refs_apply (SmtType.FunType A B) hEq hField
           have hTail' := smtx_dtc_wf_rec_congr_refs_apply c hEq hTail
           simp [__smtx_dt_cons_wf_rec, native_ite, hInh, hField', hTail']
-      | IFunType A B =>
-          have hInh :
-              native_inhabited_type (SmtType.IFunType A B) = true := by
-            have hAll :
-                native_inhabited_type (SmtType.IFunType A B) = true ∧
-                  __smtx_type_wf_rec (SmtType.IFunType A B) refs = true ∧
-                    __smtx_dt_cons_wf_rec c refs = true := by
-              simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
-            exact hAll.1
-          have hField :
-              __smtx_type_wf_rec (SmtType.IFunType A B) refs = true := by
-            have hField' : smtx_type_field_wf_rec (SmtType.IFunType A B) refs :=
-              smtx_type_field_wf_rec_of_cons_wf hWf
-            simpa [smtx_type_field_wf_rec] using hField'
-          have hTail := smtx_dt_cons_wf_rec_tail_of_true hWf
-          have hField' :=
-            smtx_type_wf_rec_congr_refs_apply (SmtType.IFunType A B) hEq hField
-          have hTail' := smtx_dtc_wf_rec_congr_refs_apply c hEq hTail
-          simp [__smtx_dt_cons_wf_rec, native_ite, hInh, hField', hTail']
 
 private theorem smtx_dt_wf_rec_congr_refs_apply :
     (d : SmtDatatype) -> {refs refs' : RefList} ->
@@ -4735,8 +4622,7 @@ private theorem smtx_value_dt_substitute_apply_num_args
   | SmtValue.Rational _ => rfl
   | SmtValue.Binary _ _ => rfl
   | SmtValue.Map _ => rfl
-  | SmtValue.Fun _ => rfl
-  | SmtValue.IFun _ _ _ => rfl
+  | SmtValue.Fun _ _ _ => rfl
   | SmtValue.Set _ => rfl
   | SmtValue.Seq _ => rfl
   | SmtValue.Char _ => rfl
@@ -4776,9 +4662,7 @@ private theorem smtx_value_dt_substitute_apply_head_of_dt_cons
       simp [__vsm_apply_head] at hHead
   | SmtValue.Map _, s, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
-  | SmtValue.Fun _, s, d, i, hHead => by
-      simp [__vsm_apply_head] at hHead
-  | SmtValue.IFun _ _ _, s, d, i, hHead => by
+  | SmtValue.Fun _ _ _, s, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
   | SmtValue.Set _, s, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
@@ -4817,9 +4701,7 @@ private theorem smtx_value_dt_substitute_apply_of_shadowed_head
       simp [__vsm_apply_head] at hHead
   | SmtValue.Map _, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
-  | SmtValue.Fun _, d, i, hHead => by
-      simp [__vsm_apply_head] at hHead
-  | SmtValue.IFun _ _ _, d, i, hHead => by
+  | SmtValue.Fun _ _ _, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
   | SmtValue.Set _, d, i, hHead => by
       simp [__vsm_apply_head] at hHead
@@ -4878,8 +4760,7 @@ private theorem smtx_value_dt_substitute_apply_arg_nth
   | SmtValue.Rational _, _, _ => rfl
   | SmtValue.Binary _ _, _, _ => rfl
   | SmtValue.Map _, _, _ => rfl
-  | SmtValue.Fun _, _, _ => rfl
-  | SmtValue.IFun _ _ _, _, _ => rfl
+  | SmtValue.Fun _ _ _, _, _ => rfl
   | SmtValue.Set _, _, _ => rfl
   | SmtValue.Seq _, _, _ => rfl
   | SmtValue.Char _, _, _ => rfl
@@ -4929,10 +4810,7 @@ private theorem smtx_value_dtc_app_type_head_exists_apply :
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | SmtValue.Fun m, A, B, h => by
-      cases hMap : __smtx_typeof_map_value m <;>
-        simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
-  | SmtValue.IFun _ _ _, A, B, h => by
+  | SmtValue.Fun _ _ _, A, B, h => by
       simp [__smtx_typeof_value] at h
   | SmtValue.Set m, A, B, h => by
       cases typeof_map_value_shape m with
@@ -5050,10 +4928,7 @@ private theorem smtx_value_datatype_type_head_exists_apply :
           simp [__smtx_typeof_value, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | SmtValue.Fun m, s, d, h => by
-      cases hMap : __smtx_typeof_map_value m <;>
-        simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at h
-  | SmtValue.IFun _ _ _, s, d, h => by
+  | SmtValue.Fun _ _ _, s, d, h => by
       simp [__smtx_typeof_value] at h
   | SmtValue.Set m, s, d, h => by
       cases typeof_map_value_shape m with
@@ -5535,9 +5410,7 @@ private theorem smtx_value_dt_substitute_typeof_of_non_chain_apply
       simpa [smtx_value_dt_substitute_apply] using hv
   | SmtValue.Map m, T, hT, hv => by
       simpa [smtx_value_dt_substitute_apply] using hv
-  | SmtValue.Fun m, T, hT, hv => by
-      simpa [smtx_value_dt_substitute_apply] using hv
-  | SmtValue.IFun fid A B, T, hT, hv => by
+  | SmtValue.Fun fid A B, T, hT, hv => by
       simpa [smtx_value_dt_substitute_apply] using hv
   | SmtValue.Set m, T, hT, hv => by
       simpa [smtx_value_dt_substitute_apply] using hv
@@ -5574,9 +5447,7 @@ private theorem smtx_value_dt_context_substitute_typeof_of_non_chain_apply
       simpa [smtx_value_dt_context_substitute_apply] using hv
   | SmtValue.Map m, T, hT, hv => by
       simpa [smtx_value_dt_context_substitute_apply] using hv
-  | SmtValue.Fun m, T, hT, hv => by
-      simpa [smtx_value_dt_context_substitute_apply] using hv
-  | SmtValue.IFun fid A B, T, hT, hv => by
+  | SmtValue.Fun fid A B, T, hT, hv => by
       simpa [smtx_value_dt_context_substitute_apply] using hv
   | SmtValue.Set m, T, hT, hv => by
       simpa [smtx_value_dt_context_substitute_apply] using hv
@@ -5646,9 +5517,6 @@ private theorem smtx_chain_type_context_substitute_eq_self_of_value_non_chain_ap
   | FunType A B =>
       simp [smtx_chain_type_context_substitute_apply,
         smtx_type_context_substitute_apply]
-  | IFunType A B =>
-      simp [smtx_chain_type_context_substitute_apply,
-        smtx_type_context_substitute_apply]
 
 private theorem smtx_value_dt_context_substitute_typeof_non_chain_top_apply
     (sub : native_String) (base : SmtDatatype)
@@ -5714,8 +5582,6 @@ private theorem smtx_value_dt_substitute_typeof_non_chain_top_apply
       simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
   | FunType A B =>
       simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
-  | IFunType A B =>
-      simpa [smtx_type_substitute_top_apply, native_ite, native_Teq] using hPres
 
 private theorem smtx_value_typeof_field_non_chain_or_datatype_apply
     {v : SmtValue} {T : SmtType} {refs : RefList}
@@ -5751,8 +5617,6 @@ private theorem smtx_value_typeof_field_non_chain_or_datatype_apply
   | USort i =>
       exact Or.inl (by simp [dt_cons_chain_result])
   | FunType A B =>
-      exact Or.inl (by simp [dt_cons_chain_result])
-  | IFunType A B =>
       exact Or.inl (by simp [dt_cons_chain_result])
   | DtcAppType A B =>
       simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at hField
@@ -5915,8 +5779,6 @@ private theorem smtx_value_chain_type_head_exists_apply
       simp [dt_cons_chain_result] at hChain
   | FunType A B =>
       simp [dt_cons_chain_result] at hChain
-  | IFunType A B =>
-      simp [dt_cons_chain_result] at hChain
 
 private def smtx_type_fun_like_domains_no_reglan : SmtType -> Prop
   | SmtType.Seq A => smtx_type_fun_like_domains_no_reglan A
@@ -5925,10 +5787,6 @@ private def smtx_type_fun_like_domains_no_reglan : SmtType -> Prop
       smtx_type_fun_like_domains_no_reglan A ∧
         smtx_type_fun_like_domains_no_reglan B
   | SmtType.FunType A B =>
-      A ≠ SmtType.RegLan ∧
-        smtx_type_fun_like_domains_no_reglan A ∧
-          smtx_type_fun_like_domains_no_reglan B
-  | SmtType.IFunType A B =>
       A ≠ SmtType.RegLan ∧
         smtx_type_fun_like_domains_no_reglan A ∧
           smtx_type_fun_like_domains_no_reglan B
@@ -5945,10 +5803,6 @@ private def smtx_type_fun_like_domains_field_wf : SmtType -> Prop
       smtx_type_fun_like_domains_field_wf A ∧
         smtx_type_fun_like_domains_field_wf B
   | SmtType.FunType A B =>
-      smtx_type_field_wf_rec A native_reflist_nil ∧
-        smtx_type_fun_like_domains_field_wf A ∧
-          smtx_type_fun_like_domains_field_wf B
-  | SmtType.IFunType A B =>
       smtx_type_field_wf_rec A native_reflist_nil ∧
         smtx_type_fun_like_domains_field_wf A ∧
           smtx_type_fun_like_domains_field_wf B
@@ -5996,8 +5850,6 @@ private theorem smtx_type_fun_like_domains_field_wf_of_type_wf_rec :
       simp [smtx_type_fun_like_domains_field_wf]
   | SmtType.FunType A B, _refs, h => by
       simp [__smtx_type_wf_rec] at h
-  | SmtType.IFunType A B, _refs, h => by
-      simp [__smtx_type_wf_rec] at h
   | SmtType.DtcAppType _A _B, _refs, h => by
       simp [__smtx_type_wf_rec] at h
 termination_by T refs h => sizeOf T
@@ -6021,25 +5873,16 @@ private theorem smtx_type_fun_like_domains_field_wf_of_type_wf
           (refs := native_reflist_nil) hA,
         smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := B)
           (refs := native_reflist_nil) hB⟩
-    · by_cases hIFun : ∃ A B : SmtType, T = SmtType.IFunType A B
-      · rcases hIFun with ⟨A, B, rfl⟩
-        rcases ifun_type_wf_rec_components_of_wf h with ⟨hA, hB⟩
-        exact ⟨
-          smtx_type_field_wf_rec_of_type_wf_rec hA,
-          smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := A)
-            (refs := native_reflist_nil) hA,
-          smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := B)
-            (refs := native_reflist_nil) hB⟩
-      · exact smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := T)
-          (refs := native_reflist_nil)
-          (smtx_type_wf_rec_of_type_wf hReg
-            (by
-              intro A B hEq
-              exact hFun ⟨A, B, hEq⟩)
-            (by
-              intro A B hEq
-              exact hIFun ⟨A, B, hEq⟩)
-            h)
+    · exact smtx_type_fun_like_domains_field_wf_of_type_wf_rec (T := T)
+        (refs := native_reflist_nil)
+        (smtx_type_wf_rec_of_type_wf hReg
+          (by
+            intro A B hEq
+            exact hFun ⟨A, B, hEq⟩)
+          (by
+            intro A B hEq
+            exact hFun ⟨A, B, hEq⟩)
+          h)
 
 private theorem smtx_type_fun_like_domains_field_wf_of_field_wf_rec
     {T : SmtType} {refs : RefList}
@@ -6054,17 +5897,13 @@ private theorem smtx_type_fun_like_domains_field_wf_of_field_wf_rec
 private theorem smtx_type_fun_like_arg_field_wf_of_domains_field_wf
     {T A B : SmtType}
     (hWF : smtx_type_fun_like_domains_field_wf T)
-    (hHead : T = SmtType.FunType A B ∨
-      T = SmtType.IFunType A B ∨ T = SmtType.DtcAppType A B) :
+    (hHead : T = SmtType.FunType A B ∨ T = SmtType.DtcAppType A B) :
     smtx_type_field_wf_rec A native_reflist_nil := by
   rcases hHead with hHead | hHead
   · rw [hHead] at hWF
     exact hWF.1
-  · rcases hHead with hHead | hHead
-    · rw [hHead] at hWF
-      exact hWF.1
-    · rw [hHead] at hWF
-      exact hWF.1
+  · rw [hHead] at hWF
+    exact hWF.1
 
 private theorem smtx_type_fun_like_domains_field_wf_of_chain_field_wf_rec :
     (T : SmtType) ->
@@ -6119,9 +5958,6 @@ private theorem smtx_type_fun_like_domains_field_wf_of_chain_field_wf_rec :
   | SmtType.FunType A B, hWF => by
       exact smtx_type_fun_like_domains_field_wf_of_field_wf_rec
         (by simpa [smtx_type_chain_field_wf_rec] using hWF)
-  | SmtType.IFunType A B, hWF => by
-      exact smtx_type_fun_like_domains_field_wf_of_field_wf_rec
-        (by simpa [smtx_type_chain_field_wf_rec] using hWF)
 termination_by T hWF => sizeOf T
 decreasing_by
   all_goals simp_wf
@@ -6140,11 +5976,8 @@ private theorem smtx_type_fun_like_domains_field_wf_apply
   rcases hHead with hHead | hHead
   · rw [hHead] at hF
     exact hF.2.2
-  · rcases hHead with hHead | hHead
-    · rw [hHead] at hF
-      exact hF.2.2
-    · rw [hHead] at hF
-      exact hF.2.2
+  · rw [hHead] at hF
+    exact hF.2.2
 
 /--
 Generic SMT application typing from local IHs, once the head type already carries
@@ -6349,8 +6182,6 @@ private theorem smtx_type_fun_like_domains_no_reglan_of_type_wf_rec :
       simp [smtx_type_fun_like_domains_no_reglan]
   | SmtType.FunType A B, _refs, h => by
       simp [__smtx_type_wf_rec] at h
-  | SmtType.IFunType A B, _refs, h => by
-      simp [__smtx_type_wf_rec] at h
   | SmtType.DtcAppType _A _B, _refs, h => by
       simp [__smtx_type_wf_rec] at h
 termination_by T refs h => sizeOf T
@@ -6375,26 +6206,16 @@ private theorem smtx_type_fun_like_domains_no_reglan_of_type_wf
           (refs := native_reflist_nil) hA,
         smtx_type_fun_like_domains_no_reglan_of_type_wf_rec (T := B)
           (refs := native_reflist_nil) hB⟩
-    · by_cases hIFun : ∃ A B : SmtType, T = SmtType.IFunType A B
-      · rcases hIFun with ⟨A, B, rfl⟩
-        rcases ifun_type_wf_rec_components_of_wf h with ⟨hA, hB⟩
-        exact ⟨
-          smtx_type_field_wf_rec_ne_reglan
-            (smtx_type_field_wf_rec_of_type_wf_rec hA),
-          smtx_type_fun_like_domains_no_reglan_of_type_wf_rec (T := A)
-            (refs := native_reflist_nil) hA,
-          smtx_type_fun_like_domains_no_reglan_of_type_wf_rec (T := B)
-            (refs := native_reflist_nil) hB⟩
-      · exact smtx_type_fun_like_domains_no_reglan_of_type_wf_rec (T := T)
-          (refs := native_reflist_nil)
-          (smtx_type_wf_rec_of_type_wf hReg
-            (by
-              intro A B hEq
-              exact hFun ⟨A, B, hEq⟩)
-            (by
-              intro A B hEq
-              exact hIFun ⟨A, B, hEq⟩)
-            h)
+    · exact smtx_type_fun_like_domains_no_reglan_of_type_wf_rec (T := T)
+        (refs := native_reflist_nil)
+        (smtx_type_wf_rec_of_type_wf hReg
+          (by
+            intro A B hEq
+            exact hFun ⟨A, B, hEq⟩)
+          (by
+            intro A B hEq
+            exact hFun ⟨A, B, hEq⟩)
+          h)
 
 private theorem smtx_type_fun_like_domains_no_reglan_of_field_wf_rec
     {T : SmtType} {refs : RefList}
@@ -6409,17 +6230,13 @@ private theorem smtx_type_fun_like_domains_no_reglan_of_field_wf_rec
 private theorem smtx_type_fun_like_arg_ne_reglan_of_no_reglan
     {T A B : SmtType}
     (hWF : smtx_type_fun_like_domains_no_reglan T)
-    (hHead : T = SmtType.FunType A B ∨
-      T = SmtType.IFunType A B ∨ T = SmtType.DtcAppType A B) :
+    (hHead : T = SmtType.FunType A B ∨ T = SmtType.DtcAppType A B) :
     A ≠ SmtType.RegLan := by
   rcases hHead with hHead | hHead
   · rw [hHead] at hWF
     exact hWF.1
-  · rcases hHead with hHead | hHead
-    · rw [hHead] at hWF
-      exact hWF.1
-    · rw [hHead] at hWF
-      exact hWF.1
+  · rw [hHead] at hWF
+    exact hWF.1
 
 private theorem smtx_type_fun_like_domains_no_reglan_apply
     {F X : SmtType}
@@ -6433,11 +6250,8 @@ private theorem smtx_type_fun_like_domains_no_reglan_apply
   rcases hHead with hHead | hHead
   · rw [hHead] at hF
     exact hF.2.2
-  · rcases hHead with hHead | hHead
-    · rw [hHead] at hF
-      exact hF.2.2
-    · rw [hHead] at hF
-      exact hF.2.2
+  · rw [hHead] at hF
+    exact hF.2.2
 
 private def smtx_dtc_substitute_field_type
     (s : native_String) (base : SmtDatatype) : SmtType -> SmtType
@@ -6636,8 +6450,7 @@ theorem smtx_term_fun_like_arg_ne_reglan_of_non_none :
     ∀ (t : SmtTerm), term_has_non_none_type t ->
       ∀ {A B : SmtType},
         (__smtx_typeof t = SmtType.FunType A B ∨
-          __smtx_typeof t = SmtType.IFunType A B ∨
-            __smtx_typeof t = SmtType.DtcAppType A B) ->
+          __smtx_typeof t = SmtType.DtcAppType A B) ->
         A ≠ SmtType.RegLan := by
   let rec go (t : SmtTerm) (hNN : term_has_non_none_type t) :
       smtx_type_fun_like_domains_no_reglan (__smtx_typeof t) := by
@@ -7056,8 +6869,7 @@ private theorem smtx_term_fun_like_arg_field_wf_of_non_none_of_dt_cons
     ∀ (t : SmtTerm), term_has_non_none_type t ->
       ∀ {A B : SmtType},
         (__smtx_typeof t = SmtType.FunType A B ∨
-          __smtx_typeof t = SmtType.IFunType A B ∨
-            __smtx_typeof t = SmtType.DtcAppType A B) ->
+          __smtx_typeof t = SmtType.DtcAppType A B) ->
         smtx_type_field_wf_rec A native_reflist_nil := by
   let rec go (t : SmtTerm) (hNN : term_has_non_none_type t) :
       smtx_type_fun_like_domains_field_wf (__smtx_typeof t) := by
@@ -7642,8 +7454,7 @@ private theorem eo_to_smt_type_typeof_apply_dt_cons_of_smt_apply_from_ih
     (hReserved : __eo_reserved_datatype_name s = false)
     (hHead :
       __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = SmtType.FunType A B ∨
-        __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = SmtType.IFunType A B ∨
-          __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = SmtType.DtcAppType A B)
+        __smtx_typeof (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) = SmtType.DtcAppType A B)
     (hx : __smtx_typeof (__eo_to_smt x) = A)
     (hA : A ≠ SmtType.None)
     (hB : B ≠ SmtType.None) :
@@ -9970,7 +9781,6 @@ private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
   | USort _
   | Map _ _
   | FunType _ _
-  | IFunType _ _
   | DtcAppType _ _ =>
       simp [__eo_to_smt_set_empty, __smtx_typeof_apply]
   | Set U =>
@@ -10811,22 +10621,6 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_ih_fiel
         rcases eo_to_smt_type_eq_fun hXF with ⟨X1, X2, hXEo, hX1, hX2⟩
         have hComps :=
           smtx_fun_components_field_wf_rec_of_non_none_type_apply
-            (__eo_to_smt y) A B (hY.trans hT)
-        have h1 : X1 = Y1 :=
-          eo_to_smt_type_injective_of_field_wf_rec hX1 hY1 hComps.1
-        have h2 : X2 = Y2 :=
-          eo_to_smt_type_injective_of_field_wf_rec hX2 hY2 hComps.2
-        have hEqEo : __eo_typeof x = __eo_typeof y := by
-          rw [hXEo, hYEo, h1, h2]
-        exact eo_to_smt_type_typeof_apply_apply_eq_of_same_type
-          x y (__eo_typeof y) rfl hEqEo hYTypeNN
-    | IFunType A B =>
-        have hYF : __eo_to_smt_type (__eo_typeof y) = SmtType.IFunType A B := hYTrans.trans hT
-        have hXF : __eo_to_smt_type (__eo_typeof x) = SmtType.IFunType A B := hXTrans.trans hT
-        rcases eo_to_smt_type_eq_ifun hYF with ⟨Y1, Y2, hYEo, hY1, hY2⟩
-        rcases eo_to_smt_type_eq_ifun hXF with ⟨X1, X2, hXEo, hX1, hX2⟩
-        have hComps :=
-          smtx_ifun_components_field_wf_rec_of_non_none_type_apply
             (__eo_to_smt y) A B (hY.trans hT)
         have h1 : X1 = Y1 :=
           eo_to_smt_type_injective_of_field_wf_rec hX1 hY1 hComps.1
@@ -12837,18 +12631,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bv_cmp_to
     exact hApplyNN'
   rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHead, hX, hA, hB⟩
   have hHeadNN : __smtx_typeof head ≠ SmtType.None := by
-    cases hHead with
-    | inl hHead =>
-        rw [hHead]
-        simp
-    | inr hHead =>
-        cases hHead with
-        | inl hHead =>
-            rw [hHead]
-            simp
-        | inr hHead =>
-            rw [hHead]
-            simp
+    rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
   have hIteNN : term_has_non_none_type head := by
     unfold term_has_non_none_type
     exact hHeadNN
@@ -12863,15 +12646,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bv_cmp_to
     rw [typeof_ite_eq]
     rw [hCond, hThen, hElse]
     simp [__smtx_typeof_ite, native_ite, native_Teq]
-  cases hHead with
-  | inl hHead =>
-      cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
-  | inr hHead =>
-      cases hHead with
-      | inl hHead =>
-          cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
-      | inr hHead =>
-          cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
+  rcases hHead with hHead | hHead
+  · cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
+  · cases (hBitVec1.symm.trans (hHeadTy.symm.trans hHead))
 
 /-- Simplifies EO-to-SMT translation for `_at_re_unfold_pos_component`. -/
 theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_component
@@ -13001,30 +12778,13 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_head
   have hHeadNN : term_has_non_none_type head := by
     unfold term_has_non_none_type
     rw [← hHeadTranslate]
-    cases hHead with
-    | inl hHead =>
-        rw [hHead]
-        simp
-    | inr hHead =>
-        cases hHead with
-        | inl hHead =>
-            rw [hHead]
-            simp
-        | inr hHead =>
-            rw [hHead]
-            simp
+    rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
   have hHeadTy := hHeadBool hHeadNN
-  cases hHead with
-  | inl hHead =>
-      cases (hHeadTy.symm.trans hHead)
-  | inr hHead =>
-      cases hHead with
-      | inl hHead =>
-          cases (hHeadTy.symm.trans hHead)
-      | inr hHead =>
-          cases (hHeadTy.symm.trans hHead)
+  rcases hHead with hHead | hHead
+  · cases (hHeadTy.symm.trans hHead)
+  · cases (hHeadTy.symm.trans hHead)
 
-/-- Closes attempts to apply a non-special binary head known to have SMT type `Bool`. -/
+/- Closes attempts to apply a non-special binary head known to have SMT type `Bool`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_non_special_head_applied
     (op : UserOp) (head : SmtTerm) (x y z : Term)
     (hHeadTranslate :
@@ -13069,7 +12829,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_funct
         ∃ T,
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) z) y)) = T ∧
             (∀ A B, T ≠ SmtType.FunType A B) ∧
-            (∀ A B, T ≠ SmtType.IFunType A B) ∧
+            (∀ A B, T ≠ SmtType.FunType A B) ∧
             (∀ A B, T ≠ SmtType.DtcAppType A B))
     (hNonNone :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp op) z) y) x)) ≠
@@ -13094,28 +12854,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_funct
   have hHeadNN : term_has_non_none_type head := by
     unfold term_has_non_none_type
     rw [← hHeadTranslate]
-    cases hHead with
-    | inl hHead =>
-        rw [hHead]
-        simp
-    | inr hHead =>
-        cases hHead with
-        | inl hHead =>
-            rw [hHead]
-            simp
-        | inr hHead =>
-            rw [hHead]
-            simp
+    rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
   rcases hHeadType hHeadNN with ⟨T, hHeadTy, hNotFun, hNotIFun, hNotDtcApp⟩
-  cases hHead with
-  | inl hHead =>
-      exact False.elim (hNotFun A B (hHeadTy.symm.trans hHead))
-  | inr hHead =>
-      cases hHead with
-      | inl hHead =>
-          exact False.elim (hNotIFun A B (hHeadTy.symm.trans hHead))
-      | inr hHead =>
-          exact False.elim (hNotDtcApp A B (hHeadTy.symm.trans hHead))
+  have _ := hNotIFun
+  rcases hHead with hHead | hHead
+  · exact False.elim (hNotFun A B (hHeadTy.symm.trans hHead))
+  · exact False.elim (hNotDtcApp A B (hHeadTy.symm.trans hHead))
 
 /-- Closes attempts to apply a non-special binary head with any non-function SMT type. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_function_non_special_head_applied
@@ -13131,7 +12875,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_funct
         ∃ T,
           __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) z) y)) = T ∧
             (∀ A B, T ≠ SmtType.FunType A B) ∧
-            (∀ A B, T ≠ SmtType.IFunType A B) ∧
+            (∀ A B, T ≠ SmtType.FunType A B) ∧
             (∀ A B, T ≠ SmtType.DtcAppType A B))
     (hSel : ∀ s d i j, head ≠ SmtTerm.DtSel s d i j)
     (hTester : ∀ s d i, head ≠ SmtTerm.DtTester s d i)
@@ -13147,6 +12891,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_non_funct
     exact generic_apply_type_of_non_special_head head (__eo_to_smt x) hSel hTester
   exact eo_to_smt_typeof_matches_translation_apply_apply_apply_non_function_head_applied
     op head x y z hHeadTranslate hOuterTranslate hGeneric hHeadType hNonNone
+
 
 private theorem smtx_apply_arg_non_none_of_non_none
     (f x : SmtTerm)
@@ -13183,18 +12928,11 @@ private theorem smtx_apply_head_non_none_of_non_none
     all_goals
       simpa [__smtx_typeof] using hNN
   rcases typeof_apply_non_none_cases hApply with ⟨A, B, hHead, _hArg, _hA, _hB⟩
-  cases hHead with
-  | inl hHead =>
-      rw [hHead]
-      simp
-  | inr hHead =>
-      cases hHead with
-      | inl hHead =>
-          rw [hHead]
-          simp
-      | inr hHead =>
-          rw [hHead]
-          simp
+  rcases hHead with hHead | hHead
+  · rw [hHead]
+    simp
+  · rw [hHead]
+    simp
 
 private theorem eo_to_smt_updater_rec_acc_non_none_of_non_none
     (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
@@ -14525,8 +14263,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         simpa using smtx_typeof_var_of_non_none s (__eo_to_smt_type T) hVarNN
       have hT :
           __eo_to_smt_type T = SmtType.FunType A B ∨
-            __eo_to_smt_type T = SmtType.IFunType A B ∨
-              __eo_to_smt_type T = SmtType.DtcAppType A B := by
+            __eo_to_smt_type T = SmtType.DtcAppType A B := by
         rw [← hHeadTy]
         exact hHead
       have hSmt :
@@ -14544,8 +14281,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
         Smtm.smtx_typeof_guard_wf_wf_of_non_none
           (__eo_to_smt_type T) (__eo_to_smt_type T) (by
             simpa [__smtx_typeof] using hVarNN)
-      cases hT with
-      | inl hTFun =>
+      rcases hT with hTFun | hTDtc
+      ·
           rcases eo_to_smt_type_eq_fun hTFun with ⟨U, V, hTEq, hU, hV⟩
           have hArgTypeWF : __smtx_type_wf A = true := by
             have h := hTWF
@@ -14568,35 +14305,9 @@ theorem eo_to_smt_typeof_matches_translation_apply
             (eo_to_smt_type_typeof_apply_var_of_fun_like
               x T U V s (Or.inl hTEq) hxEo hUNonNone).trans hV
           exact hSmt.trans hEo.symm
-      | inr hT =>
-          cases hT with
-          | inl hTIFun =>
-              rcases eo_to_smt_type_eq_ifun hTIFun with ⟨U, V, hTEq, hU, hV⟩
-              have hArgTypeWF : __smtx_type_wf A = true := by
-                have h := hTWF
-                rw [hTIFun] at h
-                exact (ifun_type_wf_components_of_wf h).1
-              have hArgTypeRec : __smtx_type_wf_rec A native_reflist_nil = true := by
-                have h := hTWF
-                rw [hTIFun] at h
-                exact (ifun_type_wf_rec_components_of_wf h).1
-              have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
-                eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
-              have hxEo : __eo_typeof x = U :=
-                eo_to_smt_type_injective_of_type_wf_rec hXTrans hU hArgTypeRec
-              have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
-                rw [hU]
-                exact hA
-              have hEo :
-                  __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Var (Term.String s) T) x)) =
-                    B :=
-                (eo_to_smt_type_typeof_apply_var_of_fun_like
-                  x T U V s (Or.inl hTEq) hxEo hUNonNone).trans hV
-              exact hSmt.trans hEo.symm
-          | inr hTDtc =>
-              have hBad := hTWF
-              rw [hTDtc] at hBad
-              simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hBad
+      · have hBad := hTWF
+        rw [hTDtc] at hBad
+        simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hBad
     all_goals
       have hVarNone : __eo_to_smt (Term.Var name T) = SmtTerm.None := by
         rw [hName]
@@ -14742,8 +14453,7 @@ theorem eo_to_smt_typeof_matches_translation_apply
         smtx_typeof_uconst_of_non_none (native_uconst_id i) (__eo_to_smt_type T) hUConstNN
     have hT :
         __eo_to_smt_type T = SmtType.FunType A B ∨
-          __eo_to_smt_type T = SmtType.IFunType A B ∨
-            __eo_to_smt_type T = SmtType.DtcAppType A B := by
+          __eo_to_smt_type T = SmtType.DtcAppType A B := by
       rw [← hHeadTy]
       exact hHead
     have hSmt :
@@ -14761,8 +14471,8 @@ theorem eo_to_smt_typeof_matches_translation_apply
       Smtm.smtx_typeof_guard_wf_wf_of_non_none
         (__eo_to_smt_type T) (__eo_to_smt_type T) (by
           simpa [__smtx_typeof] using hUConstNN)
-    cases hT with
-    | inl hTFun =>
+    rcases hT with hTFun | hTDtc
+    ·
         rcases eo_to_smt_type_eq_fun hTFun with ⟨U, V, hTEq, hU, hV⟩
         have hArgTypeWF : __smtx_type_wf A = true := by
           have h := hTWF
@@ -14784,34 +14494,9 @@ theorem eo_to_smt_typeof_matches_translation_apply
           (eo_to_smt_type_typeof_apply_uconst_of_fun_like
             x T U V i (Or.inl hTEq) hxEo hUNonNone).trans hV
         exact hSmt.trans hEo.symm
-    | inr hT =>
-        cases hT with
-        | inl hTIFun =>
-            rcases eo_to_smt_type_eq_ifun hTIFun with ⟨U, V, hTEq, hU, hV⟩
-            have hArgTypeWF : __smtx_type_wf A = true := by
-              have h := hTWF
-              rw [hTIFun] at h
-              exact (ifun_type_wf_components_of_wf h).1
-            have hArgTypeRec : __smtx_type_wf_rec A native_reflist_nil = true := by
-              have h := hTWF
-              rw [hTIFun] at h
-              exact (ifun_type_wf_rec_components_of_wf h).1
-            have hXTrans : __eo_to_smt_type (__eo_typeof x) = A :=
-              eo_to_smt_type_typeof_of_smt_type_from_ih x ihX hX hA
-            have hxEo : __eo_typeof x = U :=
-              eo_to_smt_type_injective_of_type_wf_rec hXTrans hU hArgTypeRec
-            have hUNonNone : __eo_to_smt_type U ≠ SmtType.None := by
-              rw [hU]
-              exact hA
-            have hEo :
-                __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UConst i T) x)) = B :=
-              (eo_to_smt_type_typeof_apply_uconst_of_fun_like
-                x T U V i (Or.inl hTEq) hxEo hUNonNone).trans hV
-            exact hSmt.trans hEo.symm
-        | inr hTDtc =>
-            have hBad := hTWF
-            rw [hTDtc] at hBad
-            simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hBad
+    · have hBad := hTWF
+      rw [hTDtc] at hBad
+      simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hBad
   case Apply f y =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_head f y x ihF
       (fun g z h => ihApplyApplyArg g z y (by rw [h]))

@@ -917,9 +917,7 @@ private theorem smtx_model_eval_eq_false_of_not_smt_value_rel
       cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
   | Map _ =>
       cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
-  | Fun _ =>
-      cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
-  | IFun _ _ _ =>
+  | Fun _ _ _ =>
       cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
   | Set _ =>
       cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
@@ -2669,34 +2667,24 @@ private theorem congTypeSpine_ite_eq_has_bool_type
 private theorem smt_type_ne_none_of_apply_head
     {F A B : SmtType}
     (hHead :
-      F = SmtType.FunType A B ∨
-        F = SmtType.IFunType A B ∨
-        F = SmtType.DtcAppType A B) :
+      F = SmtType.FunType A B ∨ F = SmtType.DtcAppType A B) :
     F ≠ SmtType.None := by
   rcases hHead with hHead | hHead
   · rw [hHead]
     simp
-  · rcases hHead with hHead | hHead
-    · rw [hHead]
-      simp
-    · rw [hHead]
-      simp
+  · rw [hHead]
+    simp
 
 private theorem smt_type_ne_reglan_of_apply_head
     {F A B : SmtType}
     (hHead :
-      F = SmtType.FunType A B ∨
-        F = SmtType.IFunType A B ∨
-        F = SmtType.DtcAppType A B) :
+      F = SmtType.FunType A B ∨ F = SmtType.DtcAppType A B) :
     F ≠ SmtType.RegLan := by
   rcases hHead with hHead | hHead
   · rw [hHead]
     simp
-  · rcases hHead with hHead | hHead
-    · rw [hHead]
-      simp
-    · rw [hHead]
-      simp
+  · rw [hHead]
+    simp
 
 private theorem smt_value_rel_model_eval_apply_of_rel_core
     (M : SmtModel) (hM : model_total_typed M)
@@ -5676,9 +5664,9 @@ private noncomputable abbrev smtEvalDiv
   let _v1 := x₁
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0))
-    (__smtx_model_eval_apply M
+      (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_div_by_zero_id
-        (SmtType.IFunType SmtType.Int SmtType.Int))
+        (SmtType.FunType SmtType.Int SmtType.Int))
       _v1)
     (__smtx_model_eval_div_total _v1 _v0)
 
@@ -5688,9 +5676,9 @@ private noncomputable abbrev smtEvalMod
   let _v1 := x₁
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0))
-    (__smtx_model_eval_apply M
+      (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_mod_by_zero_id
-        (SmtType.IFunType SmtType.Int SmtType.Int))
+        (SmtType.FunType SmtType.Int SmtType.Int))
       _v1)
     (__smtx_model_eval_mod_total _v1 _v0)
 
@@ -5707,7 +5695,7 @@ private noncomputable abbrev smtEvalMultmult
       (__smtx_model_eval_eq _v2 _v1)
       (__smtx_model_eval_apply M
         (__smtx_model_lookup M native_div_by_zero_id
-          (SmtType.IFunType SmtType.Int SmtType.Int))
+          (SmtType.FunType SmtType.Int SmtType.Int))
         _v3)
       (__smtx_model_eval_div_total _v3
         (__smtx_model_eval_multmult_total _v2
@@ -5720,9 +5708,9 @@ private noncomputable abbrev smtEvalQdiv
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0
       (SmtValue.Rational (native_mk_rational 0 1)))
-    (__smtx_model_eval_apply M
+      (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_qdiv_by_zero_id
-        (SmtType.IFunType SmtType.Real SmtType.Real))
+        (SmtType.FunType SmtType.Real SmtType.Real))
       _v1)
     (__smtx_model_eval_qdiv_total _v1 _v0)
 
