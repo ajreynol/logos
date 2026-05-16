@@ -748,11 +748,6 @@ def __smtx_elem_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.empty T) => T
 
 
-def __smtx_dtc_concat : SmtDatatypeCons -> SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons U c1), c2 => (SmtDatatypeCons.cons U (__smtx_dtc_concat c1 c2))
-  | SmtDatatypeCons.unit, c2 => c2
-
-
 def __smtx_dtc_num_sels : SmtDatatypeCons -> native_Nat
   | (SmtDatatypeCons.cons U c) => (native_nat_succ (__smtx_dtc_num_sels c))
   | SmtDatatypeCons.unit => native_nat_zero
@@ -1980,11 +1975,9 @@ def native_unpack_seq : SmtSeq -> List SmtValue
   | (SmtSeq.cons v vs) => v :: (native_unpack_seq vs)
   | (SmtSeq.empty _) => []
 
-
 def native_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
   | [] => (SmtSeq.empty T)
   | v :: vs => (SmtSeq.cons v (native_pack_seq T vs))
-
 
 def __smtx_ssm_char_values_of_string (s : native_String) : List SmtValue :=
   s.toList.map SmtValue.Char
@@ -2002,18 +1995,10 @@ def native_unpack_string (x : SmtSeq) : native_String :=
 def native_pack_string (s : native_String) : SmtSeq :=
   (native_pack_seq SmtType.Char (__smtx_ssm_char_values_of_string s))
 
-  
-def __smtx_value_eqb (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
-  match __smtx_model_eval_eq v1 v2 with
-  | (SmtValue.Boolean b) => b
-  | _ => false
-
-
 def native_seq_prefix_eq : List SmtValue -> List SmtValue -> native_Bool
   | [], _ => true
   | _ :: _, [] => false
-  | v1 :: vs1, v2 :: vs2 => (__smtx_value_eqb v1 v2) && (native_seq_prefix_eq vs1 vs2)
-
+  | v1 :: vs1, v2 :: vs2 => (native_veq v1 v2) && (native_seq_prefix_eq vs1 vs2)
 
 def native_seq_len : List SmtValue -> native_Int
   | x => Int.ofNat x.length
@@ -2030,7 +2015,6 @@ def native_seq_extract (xs : List SmtValue) (i : native_Int) (n : native_Int) : 
     let take : Nat := Int.toNat (min n (len - i))
     (xs.drop start).take take
 
-
 def native_seq_indexof_rec (xs pat : List SmtValue) (i fuel : Nat) : native_Int :=
   match fuel with
   | 0 => -1
@@ -2041,7 +2025,6 @@ def native_seq_indexof_rec (xs pat : List SmtValue) (i fuel : Nat) : native_Int 
         match xs with
         | [] => -1
         | _ :: ys => (native_seq_indexof_rec ys pat (i + 1) fuel)
-
 
 def native_seq_indexof (xs pat : List SmtValue) (i : native_Int) : native_Int :=
   if i < 0 then
@@ -2054,7 +2037,6 @@ def native_seq_indexof (xs pat : List SmtValue) (i : native_Int) : native_Int :=
       (native_seq_indexof_rec (xs.drop start) pat start (xsLen - (start + patLen) + 1))
     else
       -1
-
 
 def native_seq_replace (xs pat repl : List SmtValue) : List SmtValue :=
   match pat with
@@ -2085,10 +2067,8 @@ def native_seq_replace_all_aux (fuel : Nat) (pat repl : List SmtValue) :
                 (xs.take n) ++ repl ++
                   (native_seq_replace_all_aux fuel pat repl (xs.drop (n + pat.length)))
 
-
 def native_seq_replace_all (xs pat repl : List SmtValue) : List SmtValue :=
   (native_seq_replace_all_aux (xs.length + 1) pat repl xs)
-
 
 def native_seq_update (xs : List SmtValue) (i : native_Int) (ys : List SmtValue) : List SmtValue :=
   let len : native_Int := Int.ofNat xs.length
