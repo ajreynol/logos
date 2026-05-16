@@ -756,11 +756,6 @@ def __smtx_elem_typeof_seq_value : SmtSeq -> SmtType
   | (SmtSeq.empty T) => T
 
 
-def __smtx_dtc_concat : SmtDatatypeCons -> SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons U c1), c2 => (SmtDatatypeCons.cons U (__smtx_dtc_concat c1 c2))
-  | SmtDatatypeCons.unit, c2 => c2
-
-
 def __smtx_dtc_num_sels : SmtDatatypeCons -> native_Nat
   | (SmtDatatypeCons.cons U c) => (native_nat_succ (__smtx_dtc_num_sels c))
   | SmtDatatypeCons.unit => native_nat_zero
