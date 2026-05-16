@@ -1084,7 +1084,7 @@ theorem typeof_value_model_eval_apply_fun
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value (__smtx_model_eval_apply M (SmtValue.Fun m) i) = B := by
   have hArg : native_Teq (__smtx_typeof_value i) A = true := by
-    simpa [native_Teq, hi]
+    simp [native_Teq, hi]
   have hiNN : i ≠ SmtValue.NotValue := by
     intro h
     cases h
@@ -1109,7 +1109,7 @@ theorem typeof_value_model_eval_apply_ifun
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value (__smtx_model_eval_apply M (SmtValue.IFun fid A B) i) = B := by
   have hArg : native_Teq (__smtx_typeof_value i) A = true := by
-    simpa [native_Teq, hi]
+    simp [native_Teq, hi]
   have hiNN : i ≠ SmtValue.NotValue := by
     intro h
     cases h

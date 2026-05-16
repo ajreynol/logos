@@ -1743,8 +1743,8 @@ theorem eo_to_smt_type_eq_dtc_app
               cases x <;> try simp [__eo_to_smt_type] at h
               case Numeral n =>
                   by_cases hn : native_zleq 0 n = true
-                  · simp [native_ite, hn] at h
-                  · simp [native_ite, hn] at h
+                  · simp [hn] at h
+                  · simp [hn] at h
       | Apply f y =>
           cases f with
           | FunType =>
@@ -1933,7 +1933,7 @@ theorem eo_to_smt_type_eq_datatype_non_tuple
                   cases hwf :
                       __smtx_type_wf
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
-                    simp [native_ite, hwf] at h ⊢
+                    simp [hwf] at h ⊢
                   exact h
                 cases hx : __eo_to_smt_type x <;> simp [__eo_to_smt_type_tuple, hx] at hRaw
                 case Datatype s0 d0 =>
@@ -2011,7 +2011,7 @@ private theorem eo_to_smt_type_eq_tuple_datatype
                   cases hWf :
                       __smtx_type_wf
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
-                    simp [native_ite, hWf] at h ⊢
+                    simp [hWf] at h ⊢
                   exact h
                 cases hx : __eo_to_smt_type x <;> simp [__eo_to_smt_type_tuple, hx] at hRaw
                 case Datatype s0 d0 =>
@@ -2403,7 +2403,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                   cases hRaw :
                       __smtx_type_wf
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
-                    simp [native_ite, hRaw, __smtx_type_wf_rec] at hWF ⊢
+                    simp [hRaw, __smtx_type_wf_rec] at hWF ⊢
                 have hRawRec :
                     __smtx_type_wf_rec
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
