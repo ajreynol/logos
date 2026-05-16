@@ -104,11 +104,7 @@ theorem eo_to_smt_ne_dt_sel
     __eo_to_smt_type (Term.Apply (Term.Apply Term.FunType T) U) =
       __smtx_typeof_guard (__eo_to_smt_type T)
         (__smtx_typeof_guard (__eo_to_smt_type U)
-          (native_ite
-            (__smtx_is_finite_type
-              (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)))
-            (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U))
-            (SmtType.IFunType (__eo_to_smt_type T) (__eo_to_smt_type U)))) := by
+          (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U))) := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
