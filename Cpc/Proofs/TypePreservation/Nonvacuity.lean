@@ -33,12 +33,12 @@ private theorem default_typed_model_of_native_fun_typed
         __smtx_type_wf_rec A native_reflist_nil = true ∧
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using hFunWF
+    exact ifun_type_wf_parts hFunWF
   have hDefault :=
     type_default_typed_canonical_of_inhabited_wf_rec B hParts.2.2.1 hParts.2.2.2
-  by_cases hDefaultId : fid = native_default_fun_id
-  · simp [__smtx_model_eval_fun, hDefaultId, hDefault.1, hDefault.2]
-  · simp [__smtx_model_eval_fun, __smtx_model_fun_lookup,
+  by_cases hDefaultId : fid = native_default_ifun_id
+  · simp [native_eval_ifun_apply, hDefaultId, hDefault.1, hDefault.2]
+  · simp [native_eval_ifun_apply, __smtx_model_fun_lookup,
       default_typed_model_of, hDefaultId, hDefault.1, hDefault.2]
 
 /--

@@ -788,7 +788,7 @@ private theorem tp_smt_fun_components_wf_rec_of_non_none_type
         __smtx_type_wf_rec A native_reflist_nil = true ∧
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [tp_result_seq_components_wf, __smtx_type_wf, native_and] using hGood
+    exact fun_type_wf_parts (by simpa [tp_result_seq_components_wf] using hGood)
   exact ⟨hFunParts.2.1, hFunParts.2.2.2⟩
 
 theorem smt_fun_components_wf_rec_of_non_none_type
@@ -2329,7 +2329,7 @@ private theorem type_default_typed_of_fun_domain_wf
         __smtx_type_wf_rec A native_reflist_nil = true ∧
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
+    exact fun_type_wf_parts h
   exact type_default_typed_of_inhabited_wf_rec A hAll.1 hAll.2.1
 
 private theorem type_default_typed_of_set_element_wf
@@ -2367,7 +2367,7 @@ private theorem type_default_typed_canonical_of_fun_domain_wf
         __smtx_type_wf_rec A native_reflist_nil = true ∧
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
+    exact fun_type_wf_parts h
   exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.1 hAll.2.1
 
 private theorem type_default_typed_canonical_of_set_element_wf

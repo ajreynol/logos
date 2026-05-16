@@ -4579,8 +4579,8 @@ private theorem smtx_dtc_wf_rec_congr_refs_apply :
             simpa [smtx_type_field_wf_rec] using hField'
           have hTail := smtx_dt_cons_wf_rec_tail_of_true hWf
           have hField' :=
-            smtx_type_wf_rec_mono_apply (SmtType.IFunType A B) hSub hField
-          have hTail' := smtx_dtc_wf_rec_mono_apply c hSub hTail
+            smtx_type_wf_rec_congr_refs_apply (SmtType.IFunType A B) hEq hField
+          have hTail' := smtx_dtc_wf_rec_congr_refs_apply c hEq hTail
           simp [__smtx_dt_cons_wf_rec, native_ite, hInh, hField', hTail']
 
 private theorem smtx_dt_wf_rec_congr_refs_apply :
@@ -13188,8 +13188,13 @@ private theorem smtx_apply_head_non_none_of_non_none
       rw [hHead]
       simp
   | inr hHead =>
-      rw [hHead]
-      simp
+      cases hHead with
+      | inl hHead =>
+          rw [hHead]
+          simp
+      | inr hHead =>
+          rw [hHead]
+          simp
 
 private theorem eo_to_smt_updater_rec_acc_non_none_of_non_none
     (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)

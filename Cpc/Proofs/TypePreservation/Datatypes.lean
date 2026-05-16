@@ -1091,9 +1091,10 @@ theorem typeof_value_model_eval_apply_fun
     simp [__smtx_typeof_value] at hi
     exact hA hi.symm
   have hApply :
-      __smtx_model_eval_apply M (SmtValue.Fun m) i =
+    __smtx_model_eval_apply M (SmtValue.Fun m) i =
         __smtx_msm_lookup m i := by
-    cases i <;> simp [__smtx_model_eval_apply, hm, native_ite, hArg] at hiNN ⊢
+    cases i <;>
+      simp [__smtx_model_eval_apply, __smtx_map_select] at hiNN ⊢
   rw [hApply]
   exact map_lookup_typed hm hi
 
@@ -1117,12 +1118,9 @@ theorem typeof_value_model_eval_apply_ifun
     exact hA hi.symm
   have hApply :
       __smtx_model_eval_apply M (SmtValue.IFun fid A B) i =
-        native_ite (native_Teq (__smtx_typeof_value i) A)
-          (__smtx_model_eval_fun M fid B i)
-          SmtValue.NotValue := by
+        native_eval_ifun_apply M fid B i := by
     cases i <;> simp [__smtx_model_eval_apply] at hiNN ⊢
   rw [hApply]
-  simp [native_ite, hArg]
   exact (model_total_typed_native_fun_typed hM fid A B i hFunWF hi).1
 
 /-- Shows that applying any function-typed value produces a value of the codomain type. -/

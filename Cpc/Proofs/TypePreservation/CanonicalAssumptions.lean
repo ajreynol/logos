@@ -69,6 +69,8 @@ private theorem value_dt_substitute_canonical_bool
       simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Fun m, h => by
       simpa [__smtx_value_dt_substitute] using h
+  | SmtValue.IFun fid A B, h => by
+      simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Set m, h => by
       simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Seq ss, h => by
@@ -114,6 +116,8 @@ private theorem value_dt_substitute_eq_notValue
   | SmtValue.Map m => by
       simp [__smtx_value_dt_substitute]
   | SmtValue.Fun m => by
+      simp [__smtx_value_dt_substitute]
+  | SmtValue.IFun fid A B => by
       simp [__smtx_value_dt_substitute]
   | SmtValue.Set m => by
       simp [__smtx_value_dt_substitute]
@@ -1680,6 +1684,8 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
           hUDefault.2, heNeDefaultProp, native_and, native_ite, native_not,
           native_veq]
       · simp [__smtx_type_default, native_veq]
+  | IFunType T U =>
+      simp [__smtx_type_wf_rec] at _hRec
   | DtcAppType T U =>
       simp [__smtx_type_wf_rec] at _hRec
 termination_by sizeOf A
@@ -2005,6 +2011,8 @@ theorem cpc_fresh_typed_canonical_value_for_infinite_type_assumption
                     (SmtMap.default T (__smtx_type_default U)) hj
                 have hkFalse := hkFresh k hkMem
                 simp [native_veq] at hkFalse)
+  | IFunType T U =>
+      simp [__smtx_type_wf_rec] at _hRec
   | DtcAppType T U =>
       simp [__smtx_type_wf_rec] at _hRec
 termination_by sizeOf A

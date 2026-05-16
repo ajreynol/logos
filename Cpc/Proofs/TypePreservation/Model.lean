@@ -105,7 +105,8 @@ theorem model_total_typed_push
         · simp [h]
           exact model_total_typed_lookup_uninhabited hM s' T' hT'
       · intro fid A B i hFunWF hi
-        simpa [native_fun_typed, __smtx_model_eval_fun, __smtx_model_fun_lookup, __smtx_model_push]
+        simpa [native_fun_typed, native_eval_ifun_apply, __smtx_model_fun_lookup,
+          __smtx_model_push]
           using model_total_typed_native_fun_typed hM fid A B i hFunWF hi
 
 private theorem value_dt_substitute_canonical
@@ -462,14 +463,14 @@ theorem canonical_type_inhabited_of_type_wf
             __smtx_type_wf_rec A native_reflist_nil = true ∧
               native_inhabited_type B = true ∧
                 __smtx_type_wf_rec B native_reflist_nil = true := by
-        simpa [__smtx_type_wf, native_and] using hWF
+        exact fun_type_wf_parts hWF
       have hDef :=
         type_default_typed_canonical_of_native_inhabited_type
           (SmtType.FunType A B) (native_inhabited_type_fun hParts.2.2.1)
       exact ⟨__smtx_type_default (SmtType.FunType A B), hDef.1, hDef.2⟩
     · by_cases hIFun : ∃ A B, T = SmtType.IFunType A B
       · rcases hIFun with ⟨A, B, rfl⟩
-        exact ⟨SmtValue.IFun native_default_fun_id A B, rfl, by
+        exact ⟨SmtValue.IFun native_default_ifun_id A B, rfl, by
           simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
       · have hParts :
           native_inhabited_type T = true ∧

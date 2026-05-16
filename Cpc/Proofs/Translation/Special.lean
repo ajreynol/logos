@@ -49,7 +49,6 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
       hNonNone
     rcases map_diff_args_of_non_none hMapNN with
       ⟨A, B, hx1Ty, hx2Ty, hDiffTy⟩ |
-      ⟨A, B, hx1Ty, hx2Ty, hDiffTy⟩ |
       ⟨A, hx1Ty, hx2Ty, hDiffTy⟩
     · have hx1Eo :
           __eo_to_smt_type (__eo_typeof x1) = SmtType.Map A B :=
@@ -94,23 +93,6 @@ theorem eo_to_smt_typeof_matches_translation_array_deq_diff
             simp [native_teq, native_not, hCond] at hReq ⊢
         simp [__eo_typeof__at_array_deq_diff, __eo_requires, native_ite,
           hReq, hNotStuck, hU1]
-    · have hx1Eo :
-          __eo_to_smt_type (__eo_typeof x1) = SmtType.FunType A B :=
-        eo_to_smt_type_typeof_of_smt_type_from_ih x1 ih1 hx1Ty (by simp)
-      rcases eo_to_smt_type_eq_fun hx1Eo with
-        ⟨U, V, hx1EoTy, _hU, _hV⟩
-      have hNone :
-          __eo_to_smt_type
-              (__eo_typeof (Term._at_array_deq_diff x1 x2)) =
-            SmtType.None := by
-        change
-          __eo_to_smt_type
-              (__eo_typeof__at_array_deq_diff (__eo_typeof x1) (__eo_typeof x2)) =
-            SmtType.None
-        rw [hx1EoTy]
-        simp [__eo_typeof__at_array_deq_diff, __eo_to_smt_type]
-      rw [hNone] at hGuard
-      simp [native_Teq] at hGuard
     · have hx1Eo :
           __eo_to_smt_type (__eo_typeof x1) = SmtType.Set A :=
         eo_to_smt_type_typeof_of_smt_type_from_ih x1 ih1 hx1Ty (by simp)

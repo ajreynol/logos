@@ -5678,7 +5678,7 @@ private noncomputable abbrev smtEvalDiv
     (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0))
     (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_div_by_zero_id
-        (SmtType.FunType SmtType.Int SmtType.Int))
+        (SmtType.IFunType SmtType.Int SmtType.Int))
       _v1)
     (__smtx_model_eval_div_total _v1 _v0)
 
@@ -5690,7 +5690,7 @@ private noncomputable abbrev smtEvalMod
     (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0))
     (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_mod_by_zero_id
-        (SmtType.FunType SmtType.Int SmtType.Int))
+        (SmtType.IFunType SmtType.Int SmtType.Int))
       _v1)
     (__smtx_model_eval_mod_total _v1 _v0)
 
@@ -5707,7 +5707,7 @@ private noncomputable abbrev smtEvalMultmult
       (__smtx_model_eval_eq _v2 _v1)
       (__smtx_model_eval_apply M
         (__smtx_model_lookup M native_div_by_zero_id
-          (SmtType.FunType SmtType.Int SmtType.Int))
+          (SmtType.IFunType SmtType.Int SmtType.Int))
         _v3)
       (__smtx_model_eval_div_total _v3
         (__smtx_model_eval_multmult_total _v2
@@ -5722,7 +5722,7 @@ private noncomputable abbrev smtEvalQdiv
       (SmtValue.Rational (native_mk_rational 0 1)))
     (__smtx_model_eval_apply M
       (__smtx_model_lookup M native_qdiv_by_zero_id
-        (SmtType.FunType SmtType.Real SmtType.Real))
+        (SmtType.IFunType SmtType.Real SmtType.Real))
       _v1)
     (__smtx_model_eval_qdiv_total _v1 _v0)
 

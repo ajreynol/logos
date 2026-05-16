@@ -2155,17 +2155,17 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.div x1 x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
-    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply M (__smtx_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_div_total _v1 _v0))
+    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply M (__smtx_model_lookup M native_div_by_zero_id (SmtType.IFunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_div_total _v1 _v0))
   | (SmtTerm.mod x1 x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
-    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply M (__smtx_model_lookup M native_mod_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_mod_total _v1 _v0))
+    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply M (__smtx_model_lookup M native_mod_by_zero_id (SmtType.IFunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_mod_total _v1 _v0))
   | (SmtTerm.multmult x1 x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (SmtValue.Numeral 0)
     let _v2 := (__smtx_model_eval M x1)
     let _v3 := (SmtValue.Numeral 1)
-    (__smtx_model_eval_ite (__smtx_model_eval_geq _v0 _v1) (__smtx_model_eval_multmult_total _v2 _v0) (__smtx_model_eval_ite (__smtx_model_eval_eq _v2 _v1) (__smtx_model_eval_apply M (__smtx_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v3) (__smtx_model_eval_div_total _v3 (__smtx_model_eval_multmult_total _v2 (__smtx_model_eval__ _v1 _v0)))))
+    (__smtx_model_eval_ite (__smtx_model_eval_geq _v0 _v1) (__smtx_model_eval_multmult_total _v2 _v0) (__smtx_model_eval_ite (__smtx_model_eval_eq _v2 _v1) (__smtx_model_eval_apply M (__smtx_model_lookup M native_div_by_zero_id (SmtType.IFunType SmtType.Int SmtType.Int)) _v3) (__smtx_model_eval_div_total _v3 (__smtx_model_eval_multmult_total _v2 (__smtx_model_eval__ _v1 _v0)))))
   | (SmtTerm.divisible x1 x2) => (__smtx_model_eval_divisible (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.int_pow2 x1) => (__smtx_model_eval_int_pow2 (__smtx_model_eval M x1))
   | (SmtTerm.int_log2 x1) => (__smtx_model_eval_int_log2 (__smtx_model_eval M x1))
@@ -2272,7 +2272,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.qdiv x1 x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
-    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Rational (native_mk_rational 0 1))) (__smtx_model_eval_apply M (__smtx_model_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real)) _v1) (__smtx_model_eval_qdiv_total _v1 _v0))
+    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Rational (native_mk_rational 0 1))) (__smtx_model_eval_apply M (__smtx_model_lookup M native_qdiv_by_zero_id (SmtType.IFunType SmtType.Real SmtType.Real)) _v1) (__smtx_model_eval_qdiv_total _v1 _v0))
   | (SmtTerm.qdiv_total x1 x2) => (__smtx_model_eval_qdiv_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.int_to_bv x1 x2) => (__smtx_model_eval_int_to_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.ubv_to_int x1) => (__smtx_model_eval_ubv_to_int (__smtx_model_eval M x1))
