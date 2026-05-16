@@ -64,7 +64,10 @@ def __eo_to_smt_type : Term -> SmtType
   | (Term.Apply (Term.Apply Term.FunType T1) T2) => 
     let _v0 := (__eo_to_smt_type T2)
     let _v1 := (__eo_to_smt_type T1)
-    (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
+    (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0
+      (native_ite (__smtx_is_finite_type _v1)
+        (SmtType.FunType _v1 _v0)
+        (SmtType.IFunType _v1 _v0))))
   | (Term.UOp UserOp.Int) => SmtType.Int
   | (Term.UOp UserOp.Real) => SmtType.Real
   | (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n1)) => (native_ite (native_zleq 0 n1) (SmtType.BitVec (native_int_to_nat n1)) SmtType.None)
