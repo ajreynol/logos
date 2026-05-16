@@ -447,6 +447,23 @@ private def dtc_type_chain
       SmtType.DtcAppType (dtc_substitute_field_type s d T)
         (dtc_type_chain s d c R)
 
+private def dt_append : SmtDatatype -> SmtDatatype -> SmtDatatype
+  | SmtDatatype.null, d => d
+  | SmtDatatype.sum c rest, d => SmtDatatype.sum c (dt_append rest d)
+
+private def dt_constructor_offset : SmtDatatype -> Nat
+  | SmtDatatype.null => 0
+  | SmtDatatype.sum _ rest => Nat.succ (dt_constructor_offset rest)
+
+private theorem dt_append_singleton_tail
+    : ∀ (pre : SmtDatatype) (c : SmtDatatypeCons) (tail : SmtDatatype),
+    dt_append (dt_append pre (SmtDatatype.sum c SmtDatatype.null)) tail =
+      dt_append pre (SmtDatatype.sum c tail)
+  | SmtDatatype.null, c, tail => by
+      rfl
+  | SmtDatatype.sum cHead rest, c, tail => by
+      simp [dt_append, dt_append_singleton_tail rest c tail]
+
 private def dtc_all_fields_non_datatype : SmtDatatypeCons -> Prop
   | SmtDatatypeCons.unit => True
   | SmtDatatypeCons.cons (SmtType.Datatype _ _) _ => False
@@ -484,6 +501,39 @@ private theorem typeof_dt_cons_second_eq_dtc_type_chain
     __smtx_typeof_dt_cons_value_rec] using
     typeof_dt_cons_value_rec_substitute_zero_eq_chain
       s d cTail (__smtx_dt_substitute s d dTail)
+
+private theorem typeof_dt_cons_value_rec_append_offset_eq_dtc_type_chain
+    (s : native_String)
+    (dRoot : SmtDatatype) :
+    ∀ (pre : SmtDatatype) (c : SmtDatatypeCons) (dTail : SmtDatatype),
+      __smtx_typeof_dt_cons_value_rec (SmtType.Datatype s dRoot)
+          (__smtx_dt_substitute s dRoot
+            (dt_append pre (SmtDatatype.sum c dTail)))
+          (dt_constructor_offset pre) =
+        dtc_type_chain s dRoot c (SmtType.Datatype s dRoot)
+  | SmtDatatype.null, c, dTail => by
+      simpa [dt_append, dt_constructor_offset] using
+        typeof_dt_cons_value_rec_substitute_zero_eq_chain
+          s dRoot c (__smtx_dt_substitute s dRoot dTail)
+  | SmtDatatype.sum cHead rest, c, dTail => by
+      simpa [dt_append, dt_constructor_offset, __smtx_dt_substitute,
+        __smtx_typeof_dt_cons_value_rec] using
+        typeof_dt_cons_value_rec_append_offset_eq_dtc_type_chain
+          s dRoot rest c dTail
+
+private theorem typeof_dt_cons_append_offset_eq_dtc_type_chain
+    (s : native_String)
+    (dRoot pre : SmtDatatype)
+    (c : SmtDatatypeCons)
+    (dTail : SmtDatatype)
+    (hRoot : dRoot = dt_append pre (SmtDatatype.sum c dTail)) :
+    __smtx_typeof_value
+        (SmtValue.DtCons s dRoot (dt_constructor_offset pre)) =
+      dtc_type_chain s dRoot c (SmtType.Datatype s dRoot) := by
+  subst dRoot
+  simpa [__smtx_typeof_value] using
+    typeof_dt_cons_value_rec_append_offset_eq_dtc_type_chain
+      s (dt_append pre (SmtDatatype.sum c dTail)) pre c dTail
 
 private theorem typeof_dt_cons_first_eq_dtc_type_chain
     (s : native_String)
@@ -1442,6 +1492,102 @@ private theorem usort_large_witness (u : native_Nat) (minSize : Nat) :
         1 + sizeOf u + sizeOf minSize by rfl]
     simp [sizeOf]
 
+private def smt_type_simple_large_context : SmtType -> Prop
+  | SmtType.Int => True
+  | SmtType.Real => True
+  | SmtType.USort _ => True
+  | SmtType.Set T => smt_type_simple_large_context T
+  | SmtType.Seq T => smt_type_simple_large_context T
+  | _ => False
+
+private theorem smt_type_simple_large_context_infinite :
+    ∀ {T : SmtType},
+      smt_type_simple_large_context T ->
+        __smtx_is_finite_type T = false
+  | SmtType.Int, _ => by
+      simp [__smtx_is_finite_type]
+  | SmtType.Real, _ => by
+      simp [__smtx_is_finite_type]
+  | SmtType.USort _u, _ => by
+      simp [__smtx_is_finite_type]
+  | SmtType.Set T, hCtx => by
+      simpa [__smtx_is_finite_type] using
+        smt_type_simple_large_context_infinite (T := T) hCtx
+  | SmtType.Seq T, hCtx => by
+      simpa [__smtx_is_finite_type] using
+        smt_type_simple_large_context_infinite (T := T) hCtx
+
+private theorem simple_type_large_witness :
+    ∀ (T : SmtType),
+      smt_type_simple_large_context T ->
+        ∀ minSize : Nat,
+          ∃ i : SmtValue,
+            __smtx_typeof_value i = T ∧
+              __smtx_value_canonical_bool i = true ∧
+                minSize ≤ sizeOf i
+  | SmtType.Int, _hCtx, minSize => int_large_witness minSize
+  | SmtType.Real, _hCtx, minSize => real_large_witness minSize
+  | SmtType.USort u, _hCtx, minSize => usort_large_witness u minSize
+  | SmtType.Set T, hCtx, minSize => by
+      rcases simple_type_large_witness T hCtx minSize with
+        ⟨x, hxTy, hxCan, hxSize⟩
+      let e :=
+        SmtValue.Set
+          (SmtMap.cons x (SmtValue.Boolean true)
+            (SmtMap.default T (SmtValue.Boolean false)))
+      have hTInf : __smtx_is_finite_type T = false :=
+        smt_type_simple_large_context_infinite hCtx
+      refine ⟨e, ?_, ?_, ?_⟩
+      · simp [e, __smtx_typeof_value, __smtx_typeof_map_value,
+          __smtx_map_to_set_type, hxTy, native_ite, native_Teq]
+      · simp [e, __smtx_value_canonical_bool, __smtx_map_canonical,
+          __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
+          __smtx_msm_get_default, hxCan, hTInf, native_and, native_ite,
+          native_not, native_veq]
+      · rw [show
+          sizeOf e =
+            1 + sizeOf
+              (SmtMap.cons x (SmtValue.Boolean true)
+                (SmtMap.default T (SmtValue.Boolean false))) by rfl]
+        rw [show
+          sizeOf
+              (SmtMap.cons x (SmtValue.Boolean true)
+                (SmtMap.default T (SmtValue.Boolean false))) =
+            1 + sizeOf x + sizeOf (SmtValue.Boolean true) +
+              sizeOf (SmtMap.default T (SmtValue.Boolean false)) by rfl]
+        omega
+  | SmtType.Seq T, hCtx, minSize => by
+      rcases simple_type_large_witness T hCtx minSize with
+        ⟨x, hxTy, hxCan, hxSize⟩
+      let e := SmtValue.Seq (SmtSeq.cons x (SmtSeq.empty T))
+      refine ⟨e, ?_, ?_, ?_⟩
+      · simp [e, __smtx_typeof_value, __smtx_typeof_seq_value,
+          hxTy, native_ite, native_Teq]
+      · simp [e, __smtx_value_canonical_bool, __smtx_seq_canonical,
+          hxCan, native_and]
+      · rw [show
+          sizeOf e =
+            1 + sizeOf (SmtSeq.cons x (SmtSeq.empty T)) by rfl]
+        rw [show
+          sizeOf (SmtSeq.cons x (SmtSeq.empty T)) =
+            1 + sizeOf x + sizeOf (SmtSeq.empty T) by rfl]
+        omega
+  | SmtType.None, hCtx, _minSize => by cases hCtx
+  | SmtType.Bool, hCtx, _minSize => by cases hCtx
+  | SmtType.RegLan, hCtx, _minSize => by cases hCtx
+  | SmtType.BitVec _w, hCtx, _minSize => by cases hCtx
+  | SmtType.Map _T _U, hCtx, _minSize => by cases hCtx
+  | SmtType.Char, hCtx, _minSize => by cases hCtx
+  | SmtType.Datatype _s _d, hCtx, _minSize => by cases hCtx
+  | SmtType.TypeRef _s, hCtx, _minSize => by cases hCtx
+  | SmtType.FunType _T _U, hCtx, _minSize => by cases hCtx
+  | SmtType.DtcAppType _T _U, hCtx, _minSize => by cases hCtx
+termination_by T _ _ => sizeOf T
+decreasing_by
+  all_goals try simp_wf
+  all_goals try simp [sizeOf]
+  all_goals omega
+
 private theorem sizeOf_lt_apply_left (f a : SmtValue) :
     sizeOf f < sizeOf (SmtValue.Apply f a) := by
   rw [show sizeOf (SmtValue.Apply f a) = 1 + sizeOf f + sizeOf a by rfl]
@@ -2043,6 +2189,545 @@ private theorem datatype_cons_primitive_context_witness
         exact datatype_cons_primitive_context_witness s d refs hRoot minSize c
           (SmtValue.Apply v v0) hTailWf hTailCtx hApplyTy hApplyCan
 
+private def dtc_deferred_infinite_context
+    (root : native_String) : SmtDatatypeCons -> Prop
+  | SmtDatatypeCons.unit => False
+  | SmtDatatypeCons.cons T c =>
+      (∃ r, T = SmtType.TypeRef r ∧ r = root ∧
+        dtc_deferred_infinite_context root c) ∨
+      (T = SmtType.Int ∧
+        (__smtx_is_finite_datatype_cons c = true ∨
+          dtc_deferred_infinite_context root c)) ∨
+      (T = SmtType.Real ∧
+        (__smtx_is_finite_datatype_cons c = true ∨
+          dtc_deferred_infinite_context root c)) ∨
+      (∃ u, T = SmtType.USort u ∧
+        (__smtx_is_finite_datatype_cons c = true ∨
+          dtc_deferred_infinite_context root c)) ∨
+      (__smtx_is_finite_type T = true ∧
+        dtc_deferred_infinite_context root c)
+
+private theorem datatype_cons_deferred_context_witness
+    (s : native_String)
+    (d : SmtDatatype)
+    (refs : RefList)
+    (hRoot : native_reflist_contains refs s = true)
+    (minSize : Nat)
+    (hDefaultTy :
+      __smtx_typeof_value
+          (__smtx_type_default (SmtType.Datatype s d)) =
+        SmtType.Datatype s d)
+    (hDefaultCan :
+      __smtx_value_canonical_bool
+          (__smtx_type_default (SmtType.Datatype s d)) = true) :
+    ∀ (c : SmtDatatypeCons) (v : SmtValue),
+      __smtx_dt_cons_wf_rec c refs = true ->
+        dtc_deferred_infinite_context s c ->
+          __smtx_typeof_value v = dtc_type_chain s d c (SmtType.Datatype s d) ->
+            __smtx_value_canonical_bool v = true ->
+              ∃ e : SmtValue,
+                __smtx_typeof_value e = SmtType.Datatype s d ∧
+                  __smtx_value_canonical_bool e = true ∧
+                    minSize ≤ sizeOf e
+  | SmtDatatypeCons.unit, _v, _hWf, hCtx, _hvTy, _hvCan => by
+      cases hCtx
+  | SmtDatatypeCons.cons T c, v, hWf, hCtx, hvTy, hvCan => by
+      have hTailWf : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_cons_wf_rec_tail_of_true hWf
+      rcases hCtx with hSelf | hInt | hReal | hUSort | hPrefix
+      · rcases hSelf with ⟨r, hT, hr, hTailCtx⟩
+        subst T
+        subst r
+        let arg := __smtx_type_default (SmtType.Datatype s d)
+        have hvTy' :
+            __smtx_typeof_value v =
+              SmtType.DtcAppType (SmtType.Datatype s d)
+                (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+          simpa [dtc_type_chain, dtc_substitute_field_type, native_ite,
+            native_Teq] using hvTy
+        have hArgTy :
+            __smtx_typeof_value arg = SmtType.Datatype s d := by
+          simpa [arg] using hDefaultTy
+        have hApplyTy :
+            __smtx_typeof_value (SmtValue.Apply v arg) =
+              dtc_type_chain s d c (SmtType.Datatype s d) := by
+          change
+            __smtx_typeof_apply_value
+                (__smtx_typeof_value v) (__smtx_typeof_value arg) =
+              dtc_type_chain s d c (SmtType.Datatype s d)
+          rw [hvTy', hArgTy]
+          simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
+            native_Teq, native_ite]
+        have hApplyCan :
+            __smtx_value_canonical_bool (SmtValue.Apply v arg) = true := by
+          simp [__smtx_value_canonical_bool, native_and, hvCan,
+            hDefaultCan, arg]
+        exact datatype_cons_deferred_context_witness
+          s d refs hRoot minSize hDefaultTy hDefaultCan c
+          (SmtValue.Apply v arg) hTailWf hTailCtx hApplyTy hApplyCan
+      · rcases hInt with ⟨hT, hTail⟩
+        subst T
+        rcases hTail with hTailFin | hTailCtx
+        · rcases int_large_witness minSize with
+            ⟨arg, hArgTy, hArgCan, hArgSize⟩
+          have hvTy' :
+              __smtx_typeof_value v =
+                SmtType.DtcAppType (dtc_substitute_field_type s d SmtType.Int)
+                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+            simpa [dtc_type_chain] using hvTy
+          have hArgTy' :
+              __smtx_typeof_value arg =
+                dtc_substitute_field_type s d SmtType.Int := by
+            simpa [dtc_substitute_field_type, native_ite, native_Teq] using hArgTy
+          rcases datatype_cons_default_with_head_arg_witness
+              s d refs hRoot hTailWf hTailFin hvTy' hvCan hArgTy'
+              (by simp [dtc_substitute_field_type, native_ite, native_Teq])
+              hArgCan with
+            ⟨e, heTy, heCan, hGrow⟩
+          exact ⟨e, heTy, heCan, by omega⟩
+        · let arg := __smtx_type_default SmtType.Int
+          have hvTy' :
+              __smtx_typeof_value v =
+                SmtType.DtcAppType (dtc_substitute_field_type s d SmtType.Int)
+                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+            simpa [dtc_type_chain] using hvTy
+          have hArgTy :
+              __smtx_typeof_value arg =
+                dtc_substitute_field_type s d SmtType.Int := by
+            simp [arg, __smtx_type_default, __smtx_typeof_value,
+              dtc_substitute_field_type, native_ite, native_Teq]
+          have hApplyTy :
+              __smtx_typeof_value (SmtValue.Apply v arg) =
+                dtc_type_chain s d c (SmtType.Datatype s d) := by
+            change
+              __smtx_typeof_apply_value
+                  (__smtx_typeof_value v) (__smtx_typeof_value arg) =
+                dtc_type_chain s d c (SmtType.Datatype s d)
+            rw [hvTy', hArgTy]
+            simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
+              native_Teq, native_ite, dtc_substitute_field_type]
+          have hApplyCan :
+              __smtx_value_canonical_bool (SmtValue.Apply v arg) = true := by
+            simp [arg, __smtx_type_default, __smtx_value_canonical_bool,
+              native_and, hvCan]
+          exact datatype_cons_deferred_context_witness
+            s d refs hRoot minSize hDefaultTy hDefaultCan c
+            (SmtValue.Apply v arg) hTailWf hTailCtx hApplyTy hApplyCan
+      · rcases hReal with ⟨hT, hTail⟩
+        subst T
+        rcases hTail with hTailFin | hTailCtx
+        · rcases real_large_witness minSize with
+            ⟨arg, hArgTy, hArgCan, hArgSize⟩
+          have hvTy' :
+              __smtx_typeof_value v =
+                SmtType.DtcAppType (dtc_substitute_field_type s d SmtType.Real)
+                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+            simpa [dtc_type_chain] using hvTy
+          have hArgTy' :
+              __smtx_typeof_value arg =
+                dtc_substitute_field_type s d SmtType.Real := by
+            simpa [dtc_substitute_field_type, native_ite, native_Teq] using hArgTy
+          rcases datatype_cons_default_with_head_arg_witness
+              s d refs hRoot hTailWf hTailFin hvTy' hvCan hArgTy'
+              (by simp [dtc_substitute_field_type, native_ite, native_Teq])
+              hArgCan with
+            ⟨e, heTy, heCan, hGrow⟩
+          exact ⟨e, heTy, heCan, by omega⟩
+        · let arg := __smtx_type_default SmtType.Real
+          have hvTy' :
+              __smtx_typeof_value v =
+                SmtType.DtcAppType (dtc_substitute_field_type s d SmtType.Real)
+                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+            simpa [dtc_type_chain] using hvTy
+          have hArgTy :
+              __smtx_typeof_value arg =
+                dtc_substitute_field_type s d SmtType.Real := by
+            simp [arg, __smtx_type_default, __smtx_typeof_value,
+              dtc_substitute_field_type, native_ite, native_Teq]
+          have hApplyTy :
+              __smtx_typeof_value (SmtValue.Apply v arg) =
+                dtc_type_chain s d c (SmtType.Datatype s d) := by
+            change
+              __smtx_typeof_apply_value
+                  (__smtx_typeof_value v) (__smtx_typeof_value arg) =
+                dtc_type_chain s d c (SmtType.Datatype s d)
+            rw [hvTy', hArgTy]
+            simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
+              native_Teq, native_ite, dtc_substitute_field_type]
+          have hApplyCan :
+              __smtx_value_canonical_bool (SmtValue.Apply v arg) = true := by
+            simp [arg, __smtx_type_default, __smtx_value_canonical_bool,
+              native_and, hvCan]
+          exact datatype_cons_deferred_context_witness
+            s d refs hRoot minSize hDefaultTy hDefaultCan c
+            (SmtValue.Apply v arg) hTailWf hTailCtx hApplyTy hApplyCan
+      · rcases hUSort with ⟨u, hT, hTail⟩
+        subst T
+        rcases hTail with hTailFin | hTailCtx
+        · rcases usort_large_witness u minSize with
+            ⟨arg, hArgTy, hArgCan, hArgSize⟩
+          have hvTy' :
+              __smtx_typeof_value v =
+                SmtType.DtcAppType
+                  (dtc_substitute_field_type s d (SmtType.USort u))
+                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+            simpa [dtc_type_chain] using hvTy
+          have hArgTy' :
+              __smtx_typeof_value arg =
+                dtc_substitute_field_type s d (SmtType.USort u) := by
+            simpa [dtc_substitute_field_type, native_ite, native_Teq] using hArgTy
+          rcases datatype_cons_default_with_head_arg_witness
+              s d refs hRoot hTailWf hTailFin hvTy' hvCan hArgTy'
+              (by simp [dtc_substitute_field_type, native_ite, native_Teq])
+              hArgCan with
+            ⟨e, heTy, heCan, hGrow⟩
+          exact ⟨e, heTy, heCan, by omega⟩
+        · let arg := __smtx_type_default (SmtType.USort u)
+          have hvTy' :
+              __smtx_typeof_value v =
+                SmtType.DtcAppType
+                  (dtc_substitute_field_type s d (SmtType.USort u))
+                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+            simpa [dtc_type_chain] using hvTy
+          have hArgTy :
+              __smtx_typeof_value arg =
+                dtc_substitute_field_type s d (SmtType.USort u) := by
+            simp [arg, __smtx_type_default, __smtx_typeof_value,
+              dtc_substitute_field_type, native_ite, native_Teq]
+          have hApplyTy :
+              __smtx_typeof_value (SmtValue.Apply v arg) =
+                dtc_type_chain s d c (SmtType.Datatype s d) := by
+            change
+              __smtx_typeof_apply_value
+                  (__smtx_typeof_value v) (__smtx_typeof_value arg) =
+                dtc_type_chain s d c (SmtType.Datatype s d)
+            rw [hvTy', hArgTy]
+            simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
+              native_Teq, native_ite, dtc_substitute_field_type]
+          have hApplyCan :
+              __smtx_value_canonical_bool (SmtValue.Apply v arg) = true := by
+            simp [arg, __smtx_type_default, __smtx_value_canonical_bool,
+              native_and, hvCan]
+          exact datatype_cons_deferred_context_witness
+            s d refs hRoot minSize hDefaultTy hDefaultCan c
+            (SmtValue.Apply v arg) hTailWf hTailCtx hApplyTy hApplyCan
+      · rcases hPrefix with ⟨hHeadFin, hTailCtx⟩
+        let arg := __smtx_value_dt_substitute s d (__smtx_type_default T)
+        have hArgTy :
+            __smtx_typeof_value arg = dtc_substitute_field_type s d T := by
+          simpa [arg] using
+            dtc_head_default_substitute_typeof_of_wf_finite_head
+              s d (T := T) (c := c) hRoot hWf hHeadFin
+        have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None :=
+          dtc_substitute_field_type_ne_none_of_finite_type s d hHeadFin
+        have hArgCan :
+            __smtx_value_canonical_bool arg = true := by
+          simpa [arg] using
+            dt_cons_wf_field_default_substitute_canonical
+              s d (T := T) (c := c) hWf
+        have hApplyTy :
+            __smtx_typeof_value (SmtValue.Apply v arg) =
+              dtc_type_chain s d c (SmtType.Datatype s d) := by
+          have hvTy' :
+              __smtx_typeof_value v =
+                SmtType.DtcAppType (dtc_substitute_field_type s d T)
+                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+            simpa [dtc_type_chain] using hvTy
+          change
+            __smtx_typeof_apply_value
+                (__smtx_typeof_value v) (__smtx_typeof_value arg) =
+              dtc_type_chain s d c (SmtType.Datatype s d)
+          rw [hvTy', hArgTy]
+          simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
+            native_Teq, native_ite, hFieldNeNone]
+        have hApplyCan :
+            __smtx_value_canonical_bool (SmtValue.Apply v arg) = true := by
+          simp [__smtx_value_canonical_bool, native_and, hvCan, hArgCan]
+        exact datatype_cons_deferred_context_witness
+          s d refs hRoot minSize hDefaultTy hDefaultCan c
+          (SmtValue.Apply v arg) hTailWf hTailCtx hApplyTy hApplyCan
+termination_by c _ _ _ _ => sizeOf c
+decreasing_by
+  all_goals try simp_wf
+  all_goals try simp [sizeOf]
+  all_goals omega
+
+private def dtc_simple_type_source_context : SmtDatatypeCons -> Prop
+  | SmtDatatypeCons.unit => False
+  | SmtDatatypeCons.cons T c =>
+      (smt_type_simple_large_context T ∧
+        __smtx_is_finite_datatype_cons c = true) ∨
+      (__smtx_is_finite_type T = true ∧
+        dtc_simple_type_source_context c)
+
+private theorem datatype_cons_simple_type_source_witness
+    (s : native_String)
+    (d : SmtDatatype)
+    (refs : RefList)
+    (hRoot : native_reflist_contains refs s = true)
+    (minSize : Nat) :
+    ∀ (c : SmtDatatypeCons) (v : SmtValue),
+      __smtx_dt_cons_wf_rec c refs = true ->
+        dtc_simple_type_source_context c ->
+          __smtx_typeof_value v = dtc_type_chain s d c (SmtType.Datatype s d) ->
+            __smtx_value_canonical_bool v = true ->
+              ∃ e : SmtValue,
+                __smtx_typeof_value e = SmtType.Datatype s d ∧
+                  __smtx_value_canonical_bool e = true ∧
+                    minSize ≤ sizeOf e
+  | SmtDatatypeCons.unit, _v, _hWf, hCtx, _hvTy, _hvCan => by
+      cases hCtx
+  | SmtDatatypeCons.cons T c, v, hWf, hCtx, hvTy, hvCan => by
+      have hTailWf : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_cons_wf_rec_tail_of_true hWf
+      rcases hCtx with hSource | hPrefix
+      · rcases hSource with ⟨hTypeCtx, hTailFin⟩
+        rcases simple_type_large_witness T hTypeCtx minSize with
+          ⟨arg, hArgTy, hArgCan, hArgSize⟩
+        have hvTy' :
+            __smtx_typeof_value v =
+              SmtType.DtcAppType (dtc_substitute_field_type s d T)
+                (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+          simpa [dtc_type_chain] using hvTy
+        have hArgTy' :
+            __smtx_typeof_value arg = dtc_substitute_field_type s d T := by
+          cases T <;> simp [smt_type_simple_large_context,
+            dtc_substitute_field_type, native_ite, native_Teq] at hTypeCtx hArgTy ⊢
+          all_goals
+            exact hArgTy
+        have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None := by
+          cases T <;> simp [smt_type_simple_large_context,
+            dtc_substitute_field_type, native_ite, native_Teq] at hTypeCtx ⊢
+        rcases datatype_cons_default_with_head_arg_witness
+            s d refs hRoot hTailWf hTailFin hvTy' hvCan hArgTy'
+            hFieldNeNone hArgCan with
+          ⟨e, heTy, heCan, hGrow⟩
+        exact ⟨e, heTy, heCan, by omega⟩
+      · rcases hPrefix with ⟨hHeadFin, hTailCtx⟩
+        let arg := __smtx_value_dt_substitute s d (__smtx_type_default T)
+        have hArgTy :
+            __smtx_typeof_value arg = dtc_substitute_field_type s d T := by
+          simpa [arg] using
+            dtc_head_default_substitute_typeof_of_wf_finite_head
+              s d (T := T) (c := c) hRoot hWf hHeadFin
+        have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None :=
+          dtc_substitute_field_type_ne_none_of_finite_type s d hHeadFin
+        have hArgCan :
+            __smtx_value_canonical_bool arg = true := by
+          simpa [arg] using
+            dt_cons_wf_field_default_substitute_canonical
+              s d (T := T) (c := c) hWf
+        have hApplyTy :
+            __smtx_typeof_value (SmtValue.Apply v arg) =
+              dtc_type_chain s d c (SmtType.Datatype s d) := by
+          have hvTy' :
+              __smtx_typeof_value v =
+                SmtType.DtcAppType (dtc_substitute_field_type s d T)
+                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
+            simpa [dtc_type_chain] using hvTy
+          change
+            __smtx_typeof_apply_value
+                (__smtx_typeof_value v) (__smtx_typeof_value arg) =
+              dtc_type_chain s d c (SmtType.Datatype s d)
+          rw [hvTy', hArgTy]
+          simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
+            native_Teq, native_ite, hFieldNeNone]
+        have hApplyCan :
+            __smtx_value_canonical_bool (SmtValue.Apply v arg) = true := by
+          simp [__smtx_value_canonical_bool, native_and, hvCan, hArgCan]
+        exact datatype_cons_simple_type_source_witness
+          s d refs hRoot minSize c (SmtValue.Apply v arg)
+          hTailWf hTailCtx hApplyTy hApplyCan
+termination_by c _ _ _ _ => sizeOf c
+decreasing_by
+  all_goals try simp_wf
+  all_goals try simp [sizeOf]
+  all_goals omega
+
+private theorem infinite_datatype_suffix_large_witness_residual
+    (s : native_String)
+    (dRoot : SmtDatatype)
+    (refs : RefList)
+    (hRoot : native_reflist_contains refs s = true)
+    (minSize : Nat)
+    (hDefaultTy :
+      __smtx_typeof_value
+          (__smtx_type_default (SmtType.Datatype s dRoot)) =
+        SmtType.Datatype s dRoot)
+    (hDefaultCan :
+      __smtx_value_canonical_bool
+          (__smtx_type_default (SmtType.Datatype s dRoot)) = true) :
+    ∀ (pre dCur : SmtDatatype),
+      dRoot = dt_append pre dCur ->
+        __smtx_dt_wf_rec dCur refs = true ->
+          __smtx_is_finite_datatype dCur = false ->
+            ∃ i : SmtValue,
+              __smtx_typeof_value i = SmtType.Datatype s dRoot ∧
+                __smtx_value_canonical_bool i = true ∧
+                  minSize ≤ sizeOf i
+  | _pre, SmtDatatype.null, _hEq, _hWf, hInf => by
+      simp [__smtx_is_finite_datatype] at hInf
+  | pre, SmtDatatype.sum c SmtDatatype.null, hEq, hWf, hInf => by
+      have hConsWf : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_wf_cons_of_wf hWf
+      have hHeadTy :
+          __smtx_typeof_value
+              (SmtValue.DtCons s dRoot (dt_constructor_offset pre)) =
+            dtc_type_chain s dRoot c (SmtType.Datatype s dRoot) :=
+        typeof_dt_cons_append_offset_eq_dtc_type_chain
+          s dRoot pre c SmtDatatype.null hEq
+      by_cases hCtx : dtc_self_ref_finite_context s c
+      · induction minSize with
+        | zero =>
+            exact
+              ⟨__smtx_type_default (SmtType.Datatype s dRoot),
+                hDefaultTy, hDefaultCan, Nat.zero_le _⟩
+        | succ n ih =>
+            rcases ih with ⟨seed, hSeedTy, hSeedCan, hSeedSize⟩
+            rcases datatype_cons_self_ref_context_witness
+                s dRoot refs hRoot c
+                (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
+                seed hConsWf hCtx hHeadTy
+                (by simp [__smtx_value_canonical_bool])
+                hSeedTy hSeedCan with
+              ⟨e, heTy, heCan, hGrow⟩
+            exact ⟨e, heTy, heCan, by omega⟩
+      · by_cases hPrimCtx : dtc_primitive_infinite_finite_context c
+        · rcases datatype_cons_primitive_context_witness
+              s dRoot refs hRoot minSize c
+              (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
+              hConsWf hPrimCtx hHeadTy
+              (by simp [__smtx_value_canonical_bool]) with
+            ⟨e, heTy, heCan, heSize⟩
+          exact ⟨e, heTy, heCan, heSize⟩
+        · have hInfCases :
+              __smtx_is_finite_datatype_cons c = false ∨
+                __smtx_is_finite_datatype SmtDatatype.null = false :=
+            finite_datatype_sum_false_cases hInf
+          have _hConsInf :
+              __smtx_is_finite_datatype_cons c = false := by
+            rcases hInfCases with hConsInf | hTailInf
+            · exact hConsInf
+            · simp [__smtx_is_finite_datatype] at hTailInf
+          by_cases hDeferred : dtc_deferred_infinite_context s c
+          · exact datatype_cons_deferred_context_witness
+              s dRoot refs hRoot minSize hDefaultTy hDefaultCan c
+              (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
+              hConsWf hDeferred hHeadTy
+              (by simp [__smtx_value_canonical_bool])
+          · by_cases hSimple : dtc_simple_type_source_context c
+            · exact datatype_cons_simple_type_source_witness
+                s dRoot refs hRoot minSize c
+                (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
+                hConsWf hSimple hHeadTy
+                (by simp [__smtx_value_canonical_bool])
+            · sorry
+  | pre, SmtDatatype.sum c (SmtDatatype.sum cTail dTailTail), hEq, hWf, hInf => by
+      have hConsWf : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_wf_cons_of_wf hWf
+      have hHeadTy :
+          __smtx_typeof_value
+              (SmtValue.DtCons s dRoot (dt_constructor_offset pre)) =
+            dtc_type_chain s dRoot c (SmtType.Datatype s dRoot) :=
+        typeof_dt_cons_append_offset_eq_dtc_type_chain
+          s dRoot pre c (SmtDatatype.sum cTail dTailTail) hEq
+      by_cases hCtx : dtc_self_ref_finite_context s c
+      · induction minSize with
+        | zero =>
+            exact
+              ⟨__smtx_type_default (SmtType.Datatype s dRoot),
+                hDefaultTy, hDefaultCan, Nat.zero_le _⟩
+        | succ n ih =>
+            rcases ih with ⟨seed, hSeedTy, hSeedCan, hSeedSize⟩
+            rcases datatype_cons_self_ref_context_witness
+                s dRoot refs hRoot c
+                (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
+                seed hConsWf hCtx hHeadTy
+                (by simp [__smtx_value_canonical_bool])
+                hSeedTy hSeedCan with
+              ⟨e, heTy, heCan, hGrow⟩
+            exact ⟨e, heTy, heCan, by omega⟩
+      · by_cases hPrimCtx : dtc_primitive_infinite_finite_context c
+        · rcases datatype_cons_primitive_context_witness
+              s dRoot refs hRoot minSize c
+              (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
+              hConsWf hPrimCtx hHeadTy
+              (by simp [__smtx_value_canonical_bool]) with
+            ⟨e, heTy, heCan, heSize⟩
+          exact ⟨e, heTy, heCan, heSize⟩
+        · have hInfCases :
+              __smtx_is_finite_datatype_cons c = false ∨
+                __smtx_is_finite_datatype
+                  (SmtDatatype.sum cTail dTailTail) = false :=
+            finite_datatype_sum_false_cases hInf
+          by_cases hTailInf :
+              __smtx_is_finite_datatype
+                (SmtDatatype.sum cTail dTailTail) = false
+          · have hTailWf :
+                __smtx_dt_wf_rec
+                    (SmtDatatype.sum cTail dTailTail) refs = true :=
+              dt_wf_tail_of_nonempty_tail_wf hWf
+            let pre' := dt_append pre (SmtDatatype.sum c SmtDatatype.null)
+            have hEq' :
+                dRoot =
+                  dt_append pre' (SmtDatatype.sum cTail dTailTail) := by
+              exact hEq.trans
+                (dt_append_singleton_tail pre c
+                  (SmtDatatype.sum cTail dTailTail)).symm
+            have hDecr :
+                sizeOf (SmtDatatype.sum cTail dTailTail) <
+                  sizeOf
+                    (SmtDatatype.sum c
+                      (SmtDatatype.sum cTail dTailTail)) := by
+              rw [show
+                sizeOf (SmtDatatype.sum cTail dTailTail) =
+                  1 + sizeOf cTail + sizeOf dTailTail by rfl]
+              rw [show
+                sizeOf
+                    (SmtDatatype.sum c
+                      (SmtDatatype.sum cTail dTailTail)) =
+                  1 + sizeOf c +
+                    (1 + sizeOf cTail + sizeOf dTailTail) by rfl]
+              omega
+            exact
+              infinite_datatype_suffix_large_witness_residual
+                s dRoot refs hRoot minSize hDefaultTy hDefaultCan
+                pre' (SmtDatatype.sum cTail dTailTail) hEq'
+                hTailWf hTailInf
+          · have hTailFin :
+                __smtx_is_finite_datatype
+                  (SmtDatatype.sum cTail dTailTail) = true := by
+              cases h :
+                  __smtx_is_finite_datatype
+                    (SmtDatatype.sum cTail dTailTail) <;>
+                simp [h] at hTailInf ⊢
+            have _hConsInf :
+                __smtx_is_finite_datatype_cons c = false := by
+              rcases hInfCases with hConsInf | hTailInf'
+              · exact hConsInf
+              · rw [hTailFin] at hTailInf'
+                simp at hTailInf'
+            by_cases hDeferred : dtc_deferred_infinite_context s c
+            · exact datatype_cons_deferred_context_witness
+                s dRoot refs hRoot minSize hDefaultTy hDefaultCan c
+                (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
+                hConsWf hDeferred hHeadTy
+                (by simp [__smtx_value_canonical_bool])
+            · by_cases hSimple : dtc_simple_type_source_context c
+              · exact datatype_cons_simple_type_source_witness
+                  s dRoot refs hRoot minSize c
+                  (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
+                  hConsWf hSimple hHeadTy
+                  (by simp [__smtx_value_canonical_bool])
+              · sorry
+termination_by pre dCur _ _ _ => sizeOf dCur
+decreasing_by
+  simp_wf
+  first
+  | exact hDecr
+  | simpa using hDecr
+  | omega
+
 private theorem infinite_datatype_large_witness_residual
     (s : native_String)
     (d : SmtDatatype)
@@ -2055,9 +2740,6 @@ private theorem infinite_datatype_large_witness_residual
       __smtx_typeof_value i = SmtType.Datatype s d ∧
         __smtx_value_canonical_bool i = true ∧
           minSize ≤ sizeOf i := by
-  -- The missing constructor generator has to keep the original datatype `d`
-  -- fixed while walking constructor suffixes; tail constructors are indexed
-  -- relative to the original datatype, not to the suffix as a standalone type.
   cases d with
   | null =>
       simp [__smtx_is_finite_type, __smtx_is_finite_datatype] at hInfinite
@@ -2073,15 +2755,9 @@ private theorem infinite_datatype_large_witness_residual
           simpa [refs, __smtx_type_wf_rec, native_reflist_contains,
             native_reflist_insert, native_ite] using hRec
         exact hParts.2
-      have hConsWf : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_wf_cons_of_wf hDtWf
       have hDtInfinite :
           __smtx_is_finite_datatype (SmtDatatype.sum c dTail) = false := by
         simpa [__smtx_is_finite_type] using hInfinite
-      have hInfCases :
-          __smtx_is_finite_datatype_cons c = false ∨
-            __smtx_is_finite_datatype dTail = false :=
-        finite_datatype_sum_false_cases hDtInfinite
       have hDefault :
           __smtx_typeof_value
                 (__smtx_type_default
@@ -2091,39 +2767,11 @@ private theorem infinite_datatype_large_witness_residual
                 (__smtx_type_default
                   (SmtType.Datatype s (SmtDatatype.sum c dTail))) = true :=
         type_default_typed_canonical_of_native_inhabited hInh
-      by_cases hCtx : dtc_self_ref_finite_context s c
-      · induction minSize with
-        | zero =>
-            exact
-              ⟨__smtx_type_default (SmtType.Datatype s (SmtDatatype.sum c dTail)),
-                hDefault.1, hDefault.2, Nat.zero_le _⟩
-        | succ n ih =>
-            rcases ih with ⟨seed, hSeedTy, hSeedCan, hSeedSize⟩
-            let d := SmtDatatype.sum c dTail
-            have hHeadTy :
-                __smtx_typeof_value (SmtValue.DtCons s d 0) =
-                  dtc_type_chain s d c (SmtType.Datatype s d) := by
-              simpa [d] using typeof_dt_cons_first_eq_dtc_type_chain s c dTail
-            rcases datatype_cons_self_ref_context_witness
-                s d refs hRoot c (SmtValue.DtCons s d 0) seed
-                hConsWf hCtx hHeadTy (by simp [__smtx_value_canonical_bool])
-                (by simpa [d] using hSeedTy) hSeedCan with
-              ⟨e, heTy, heCan, hGrow⟩
-            refine ⟨e, ?_, heCan, ?_⟩
-            · simpa [d] using heTy
-            · omega
-      · by_cases hPrimCtx : dtc_primitive_infinite_finite_context c
-        · let d := SmtDatatype.sum c dTail
-          have hHeadTy :
-              __smtx_typeof_value (SmtValue.DtCons s d 0) =
-                dtc_type_chain s d c (SmtType.Datatype s d) := by
-            simpa [d] using typeof_dt_cons_first_eq_dtc_type_chain s c dTail
-          rcases datatype_cons_primitive_context_witness
-              s d refs hRoot minSize c (SmtValue.DtCons s d 0)
-              hConsWf hPrimCtx hHeadTy (by simp [__smtx_value_canonical_bool]) with
-            ⟨e, heTy, heCan, heSize⟩
-          exact ⟨e, by simpa [d] using heTy, heCan, heSize⟩
-        · sorry
+      exact
+        infinite_datatype_suffix_large_witness_residual
+          s (SmtDatatype.sum c dTail) refs hRoot minSize
+          hDefault.1 hDefault.2 SmtDatatype.null
+          (SmtDatatype.sum c dTail) rfl hDtWf hDtInfinite
 
 private def smt_seq_heads : List SmtValue -> List SmtValue
   | SmtValue.Seq (SmtSeq.cons v _) :: xs => v :: smt_seq_heads xs
