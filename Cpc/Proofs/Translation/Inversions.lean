@@ -1518,7 +1518,7 @@ theorem eo_to_smt_type_eq_datatype_non_tuple
       simp [__eo_to_smt_type] at h
 
 /-- Inverts translated EO tuple types. -/
-private theorem eo_to_smt_type_eq_tuple_datatype
+theorem eo_to_smt_type_eq_tuple_datatype
     {T : Term} {d : SmtDatatype}
     (h : __eo_to_smt_type T = SmtType.Datatype "@Tuple" d) :
     (T = Term.UOp UserOp.UnitTuple ∧
