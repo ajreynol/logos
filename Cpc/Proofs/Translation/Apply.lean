@@ -11026,6 +11026,147 @@ private theorem smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
     smtx_type_substitute_top_apply_tuple_of_eo_list_nth_rec_nat
       (T := T) (d := d) (base := d) j hT hValid
 
+private def smtx_tuple_cons_type (T : SmtType) : SmtType -> SmtType
+  | SmtType.DtcAppType A B => SmtType.DtcAppType A (smtx_tuple_cons_type T B)
+  | U =>
+      native_ite (__smtx_type_wf (__eo_to_smt_type_tuple T U))
+        (__eo_to_smt_type_tuple T U) SmtType.None
+
+private theorem smtx_tuple_cons_type_apply
+    (T F X : SmtType)
+    (hNN :
+      __smtx_typeof_apply (smtx_tuple_cons_type T F) X ≠ SmtType.None) :
+    __smtx_typeof_apply (smtx_tuple_cons_type T F) X =
+      smtx_tuple_cons_type T (__smtx_typeof_apply F X) := by
+  cases F with
+  | DtcAppType A B =>
+      cases A <;> cases X <;>
+        simp_all [smtx_tuple_cons_type, __smtx_typeof_apply, __smtx_typeof_guard,
+          native_ite, native_Teq]
+  | Datatype s d =>
+      exfalso
+      apply hNN
+      cases d with
+      | null =>
+          simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple, __smtx_typeof_apply,
+            native_ite]
+      | sum c rest =>
+          cases rest with
+          | null =>
+              by_cases hs : s = "@Tuple"
+              · subst s
+                cases hWf :
+                    __smtx_type_wf
+                      (SmtType.Datatype "@Tuple"
+                        (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) <;>
+                  simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple,
+                    __smtx_typeof_apply, native_ite, hWf]
+              · simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple,
+                  __smtx_typeof_apply, native_ite, hs]
+          | sum cTail restTail =>
+              simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple,
+                __smtx_typeof_apply, native_ite]
+  | _ =>
+      exfalso
+      apply hNN
+      simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple, __smtx_typeof_apply,
+        native_ite]
+
+private theorem smtx_apply_arg_non_none_of_non_none_tuple_cons
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof x ≠ SmtType.None := by
+  have hApply :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+    cases f
+    case DtSel s d i j =>
+      exact False.elim (hSel s d i j rfl)
+    case DtTester s d i =>
+      exact False.elim (hTester s d i rfl)
+    all_goals
+      simpa [__smtx_typeof] using hNN
+  rcases typeof_apply_non_none_cases hApply with ⟨A, _B, _hHead, hArg, hA, _hB⟩
+  rw [hArg]
+  exact hA
+
+private theorem smtx_apply_head_non_none_of_non_none_tuple_cons
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof f ≠ SmtType.None := by
+  have hApply :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+    cases f
+    case DtSel s d i j =>
+      exact False.elim (hSel s d i j rfl)
+    case DtTester s d i =>
+      exact False.elim (hTester s d i rfl)
+    all_goals
+      simpa [__smtx_typeof] using hNN
+  rcases typeof_apply_non_none_cases hApply with ⟨A, B, hHead, _hArg, _hA, _hB⟩
+  rcases hHead with hHead | hHead
+  · rw [hHead]
+    simp
+  · rw [hHead]
+    simp
+
+private theorem smtx_tuple_cons_head_non_none_of_non_none :
+    ∀ (tail head : SmtTerm) (T : SmtType),
+      __smtx_typeof (__eo_to_smt_tuple_cons tail T head) ≠ SmtType.None ->
+        __smtx_typeof head ≠ SmtType.None
+  | tail, head, T, hNN => by
+      cases tail with
+      | Apply f a =>
+          have hRecNN :
+              __smtx_typeof (__eo_to_smt_tuple_cons f T head) ≠ SmtType.None :=
+            smtx_apply_head_non_none_of_non_none_tuple_cons
+              (__eo_to_smt_tuple_cons f T head) a
+              (eo_to_smt_tuple_cons_ne_dt_sel f T head)
+              (eo_to_smt_tuple_cons_ne_dt_tester f T head)
+              (by simpa [__eo_to_smt_tuple_cons] using hNN)
+          exact smtx_tuple_cons_head_non_none_of_non_none f head T hRecNN
+      | DtCons s d i =>
+          by_cases hs : s = "@Tuple"
+          · subst s
+            cases d with
+            | null =>
+                exfalso
+                apply hNN
+                cases i <;> simp [__eo_to_smt_tuple_cons]
+            | sum c rest =>
+                cases rest with
+                | null =>
+                    cases i with
+                    | zero =>
+                        exact
+                          smtx_apply_arg_non_none_of_non_none_tuple_cons
+                            (SmtTerm.DtCons "@Tuple"
+                              (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)
+                              native_nat_zero)
+                            head
+                            (by intro s d i j h; cases h)
+                            (by intro s d i h; cases h)
+                            (by simpa [__eo_to_smt_tuple_cons] using hNN)
+                    | succ i =>
+                        exfalso
+                        apply hNN
+                        simp [__eo_to_smt_tuple_cons]
+                | sum cTail restTail =>
+                    exfalso
+                    apply hNN
+                    cases i <;> simp [__eo_to_smt_tuple_cons]
+          · exfalso
+            apply hNN
+            cases d <;> cases i <;> simp [__eo_to_smt_tuple_cons, hs]
+      | _ =>
+          exfalso
+          apply hNN
+          simp [__eo_to_smt_tuple_cons]
+termination_by tail head T hNN => tail
+
 /-- Simplifies EO-to-SMT translation for `tuple_select`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_tuple_select
     (x y : Term)
