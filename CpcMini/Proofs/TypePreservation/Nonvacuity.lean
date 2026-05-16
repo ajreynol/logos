@@ -13,11 +13,33 @@ noncomputable def default_typed_model_of
           ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v) :
     SmtModel := by
   classical
-  exact fun k =>
-    if hWF : __smtx_type_wf k.ty = true then
-      some (Classical.choose (hCan k.ty hWF))
-    else
-      none
+  exact
+    { values := fun k =>
+        if hWF : __smtx_type_wf k.ty = true then
+          some (Classical.choose (hCan k.ty hWF))
+        else
+          none
+      nativeFuns := fun _ => none }
+
+private theorem default_typed_model_of_native_fun_typed
+    (hCan :
+      ∀ T : SmtType,
+        __smtx_type_wf T = true ->
+          ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v) :
+    native_fun_typed (default_typed_model_of hCan) := by
+  intro fid A B i hFunWF hi
+  have hParts :
+      native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A native_reflist_nil = true ∧
+          native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true := by
+    exact ifun_type_wf_parts hFunWF
+  have hDefault :=
+    type_default_typed_canonical_of_inhabited_wf_rec B hParts.2.2.1 hParts.2.2.2
+  by_cases hDefaultId : fid = native_default_ifun_id
+  · simp [native_eval_ifun_apply, hDefaultId, hDefault.1, hDefault.2]
+  · simp [native_eval_ifun_apply, __smtx_model_fun_lookup,
+      default_typed_model_of, hDefaultId, hDefault.1, hDefault.2]
 
 /--
 Reduces nonvacuity of total typed models to the canonical-inhabitant theorem
@@ -39,8 +61,10 @@ theorem exists_total_typed_model_of_canonical_type_inhabited
     · intro s T hT
       simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT,
         (Classical.choose_spec (hCan T hT)).2]
-    · intro s T hT
-      simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT]
+    · constructor
+      · intro s T hT
+        simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT]
+      · exact default_typed_model_of_native_fun_typed hCan
 
 /-- Choice-based model that returns a canonical inhabitant for every well-formed SMT type. -/
 noncomputable def default_typed_model : SmtModel :=
@@ -59,8 +83,10 @@ theorem default_typed_model_total_typed :
     · intro s T hT
       simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT,
         (Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)).2]
-    · intro s T hT
-      simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT]
+    · constructor
+      · intro s T hT
+        simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT]
+      · exact default_typed_model_of_native_fun_typed canonical_type_inhabited_of_type_wf
 
 /-- Constructs a total typed SMT model. -/
 theorem exists_total_typed_model :

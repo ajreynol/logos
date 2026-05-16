@@ -767,13 +767,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_generic
     exact hApplyNN'
   rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hF, hX, hA, _hB⟩
   have hFNN : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None := by
-    cases hF with
-    | inl hFun =>
-        rw [hFun]
-        simp
-    | inr hDtc =>
-        rw [hDtc]
-        simp
+    rcases hF with hFun | hDtc
+    · rw [hFun]
+      simp
+    · rw [hDtc]
+      simp
   have hXNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
     rw [hX]
     exact hA
@@ -781,67 +779,65 @@ private theorem eo_to_smt_typeof_matches_translation_apply_generic
   have hXAll := ihX hXNN
   have hXEo : __eo_to_smt_type (__eo_typeof x) = A := by
     simpa [hXAll.1] using hX
-  cases hF with
-  | inl hFun =>
-      rcases TranslationProofs.eo_typeof_eq_translated_eo_fun_of_smt_fun hFAll.1 hFun with
-        ⟨T1, T2, hFunTy, hT1, hT2, _hT1NN, _hT2NN⟩
-      have hFValid' := hFAll.2
-      rw [hFunTy] at hFValid'
-      rcases (by
-        simpa [TranslationProofs.eo_type_valid_rec] using hFValid' :
-          TranslationProofs.eo_type_valid_rec [] T1 ∧
-            TranslationProofs.eo_type_valid_rec [] T2) with ⟨hT1Valid, hT2Valid⟩
-      have hArgTy : __eo_typeof x = T1 := by
-        have hArgTy' : T1 = __eo_typeof x := by
-          apply TranslationProofs.eo_to_smt_type_eq_of_valid hT1Valid
-          rw [hT1, ← hXEo]
-        exact hArgTy'.symm
-      have hT1NotStuck : T1 ≠ Term.Stuck :=
-        eo_type_valid_not_stuck hT1Valid
-      have hTypeApply :
-          __eo_typeof_apply (Term.Apply (Term.Apply Term.FunType T1) T2) T1 = T2 := by
-        rw [__eo_typeof_apply.eq_def]
-        by_cases hStuck : T1 = Term.Stuck
-        · exact False.elim (hT1NotStuck hStuck)
-        · simp [hStuck, __eo_requires.eq_def, native_teq, native_ite, native_not]
-      have hSmt :
-          __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
-        rw [hTranslate, hGeneric, hFun, hX]
-        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-      refine ⟨?_, ?_⟩
-      · rw [hSmt, hTypeof, hFunTy, hArgTy, hTypeApply, hT2]
-      · rw [hTypeof, hFunTy, hArgTy, hTypeApply]
-        exact hT2Valid
-  | inr hDtc =>
-      rcases TranslationProofs.eo_typeof_eq_translated_eo_dtc_app_of_smt_dtc_app hFAll.1 hDtc with
-        ⟨T1, T2, hDtcTy, hT1, hT2, _hT1NN, _hT2NN⟩
-      have hFValid' := hFAll.2
-      rw [hDtcTy] at hFValid'
-      rcases (by
-        simpa [TranslationProofs.eo_type_valid_rec] using hFValid' :
-          TranslationProofs.eo_type_valid_rec [] T1 ∧
-            TranslationProofs.eo_type_valid_rec [] T2) with ⟨hT1Valid, hT2Valid⟩
-      have hArgTy : __eo_typeof x = T1 := by
-        have hArgTy' : T1 = __eo_typeof x := by
-          apply TranslationProofs.eo_to_smt_type_eq_of_valid hT1Valid
-          rw [hT1, ← hXEo]
-        exact hArgTy'.symm
-      have hT1NotStuck : T1 ≠ Term.Stuck :=
-        eo_type_valid_not_stuck hT1Valid
-      have hTypeApply :
-          __eo_typeof_apply (Term.DtcAppType T1 T2) T1 = T2 := by
-        rw [__eo_typeof_apply.eq_def]
-        by_cases hStuck : T1 = Term.Stuck
-        · exact False.elim (hT1NotStuck hStuck)
-        · simp [hStuck, __eo_requires.eq_def, native_teq, native_ite, native_not]
-      have hSmt :
-          __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
-        rw [hTranslate, hGeneric, hDtc, hX]
-        simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
-      refine ⟨?_, ?_⟩
-      · rw [hSmt, hTypeof, hDtcTy, hArgTy, hTypeApply, hT2]
-      · rw [hTypeof, hDtcTy, hArgTy, hTypeApply]
-        exact hT2Valid
+  rcases hF with hFun | hRest
+  · rcases TranslationProofs.eo_typeof_eq_translated_eo_fun_of_smt_fun hFAll.1 hFun with
+      ⟨T1, T2, hFunTy, hT1, hT2, _hT1NN, _hT2NN⟩
+    have hFValid' := hFAll.2
+    rw [hFunTy] at hFValid'
+    rcases (by
+      simpa [TranslationProofs.eo_type_valid_rec] using hFValid' :
+        TranslationProofs.eo_type_valid_rec [] T1 ∧
+          TranslationProofs.eo_type_valid_rec [] T2) with ⟨hT1Valid, hT2Valid⟩
+    have hArgTy : __eo_typeof x = T1 := by
+      have hArgTy' : T1 = __eo_typeof x := by
+        apply TranslationProofs.eo_to_smt_type_eq_of_valid hT1Valid
+        rw [hT1, ← hXEo]
+      exact hArgTy'.symm
+    have hT1NotStuck : T1 ≠ Term.Stuck :=
+      eo_type_valid_not_stuck hT1Valid
+    have hTypeApply :
+        __eo_typeof_apply (Term.Apply (Term.Apply Term.FunType T1) T2) T1 = T2 := by
+      rw [__eo_typeof_apply.eq_def]
+      by_cases hStuck : T1 = Term.Stuck
+      · exact False.elim (hT1NotStuck hStuck)
+      · simp [hStuck, __eo_requires.eq_def, native_teq, native_ite, native_not]
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
+      rw [hTranslate, hGeneric, hFun, hX]
+      simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+    refine ⟨?_, ?_⟩
+    · rw [hSmt, hTypeof, hFunTy, hArgTy, hTypeApply, hT2]
+    · rw [hTypeof, hFunTy, hArgTy, hTypeApply]
+      exact hT2Valid
+  · rcases TranslationProofs.eo_typeof_eq_translated_eo_dtc_app_of_smt_dtc_app hFAll.1 hRest with
+      ⟨T1, T2, hDtcTy, hT1, hT2, _hT1NN, _hT2NN⟩
+    have hFValid' := hFAll.2
+    rw [hDtcTy] at hFValid'
+    rcases (by
+      simpa [TranslationProofs.eo_type_valid_rec] using hFValid' :
+        TranslationProofs.eo_type_valid_rec [] T1 ∧
+          TranslationProofs.eo_type_valid_rec [] T2) with ⟨hT1Valid, hT2Valid⟩
+    have hArgTy : __eo_typeof x = T1 := by
+      have hArgTy' : T1 = __eo_typeof x := by
+        apply TranslationProofs.eo_to_smt_type_eq_of_valid hT1Valid
+        rw [hT1, ← hXEo]
+      exact hArgTy'.symm
+    have hT1NotStuck : T1 ≠ Term.Stuck :=
+      eo_type_valid_not_stuck hT1Valid
+    have hTypeApply :
+        __eo_typeof_apply (Term.DtcAppType T1 T2) T1 = T2 := by
+      rw [__eo_typeof_apply.eq_def]
+      by_cases hStuck : T1 = Term.Stuck
+      · exact False.elim (hT1NotStuck hStuck)
+      · simp [hStuck, __eo_requires.eq_def, native_teq, native_ite, native_not]
+    have hSmt :
+        __smtx_typeof (__eo_to_smt (Term.Apply f x)) = B := by
+      rw [hTranslate, hGeneric, hRest, hX]
+      simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA]
+    refine ⟨?_, ?_⟩
+    · rw [hSmt, hTypeof, hDtcTy, hArgTy, hTypeApply, hT2]
+    · rw [hTypeof, hDtcTy, hArgTy, hTypeApply]
+      exact hT2Valid
 
 /-- Shows that translated SMT terms carry the type predicted by EO typing when the translation is defined. -/
 private theorem eo_to_smt_typeof_matches_translation_and_valid :
@@ -1290,20 +1286,24 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
                     · exfalso
                       simp [native_ite, hWf] at hGuardNN
                   have hRetWfRec : __smtx_type_wf_rec R [] = true := by
-                    have hRetNotReg : R ≠ SmtType.RegLan := by
-                      have hNoReg :=
-                        TranslationProofs.eo_to_smt_type_ne_reglan
-                          (__eo_typeof (Term.Apply (Term.DtSel s d i j) x))
-                      rwa [hEoTy] at hNoReg
-                    have hPair :
-                        native_inhabited_type R = true ∧
-                          __smtx_type_wf_rec R native_reflist_nil = true := by
-                      cases hR : R <;> simp [__smtx_type_wf, native_and, hR] at hRetWf ⊢
-                      case RegLan =>
-                        exact False.elim (hRetNotReg hR)
-                      all_goals
-                        exact hRetWf
-                    exact hPair.2
+                    let D := SmtType.Datatype s (__eo_to_smt_datatype d)
+                    have hWrongMapWF :=
+                      dt_sel_wrong_map_type_wf_of_non_none hApplyNN
+                    have hM2Wf :
+                        __smtx_type_wf
+                          (SmtType.Map SmtType.Int (SmtType.Map D R)) = true :=
+                      (map_type_wf_components_of_wf
+                        (by simpa [D, R] using hWrongMapWF)).2
+                    have hM3Wf : __smtx_type_wf (SmtType.Map D R) = true :=
+                      (map_type_wf_components_of_wf hM2Wf).2
+                    have hParts :
+                        native_inhabited_type (SmtType.Map D R) = true ∧
+                          native_inhabited_type D = true ∧
+                            __smtx_type_wf_rec D native_reflist_nil = true ∧
+                              native_inhabited_type R = true ∧
+                                __smtx_type_wf_rec R native_reflist_nil = true := by
+                      simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using hM3Wf
+                    exact hParts.2.2.2.2
                   have hSelRetValid :
                       TranslationProofs.eo_type_valid_rec []
                         (__eo_typeof_dt_sel_return (__eo_dt_substitute s d d) i j) := by

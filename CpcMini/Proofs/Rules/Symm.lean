@@ -119,7 +119,7 @@ private theorem eo_interprets_eq_symm_true (M : SmtModel) (a b : Term) :
     simpa [RuleProofs.eo_has_bool_type, __eo_to_smt, __smtx_typeof] using hEqTy
   apply RuleProofs.eo_interprets_eq_of_rel M a b
   · exact hTySymm
-  · exact RuleProofs.smt_value_rel_symm _ _ (RuleProofs.eo_interprets_eq_rel M b a hEqTrue)
+  · exact RuleProofs.smt_value_rel_symm M _ _ (RuleProofs.eo_interprets_eq_rel M b a hEqTrue)
 
 /-- Proves correctness of the EO program for `symm_impl`. -/
 theorem correct___eo_prog_symm_impl

@@ -43,7 +43,7 @@ private theorem eo_interprets_of_not_false (M : SmtModel) (F : Term) :
       | Map _ =>
           exfalso
           simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
-      | Fun _ =>
+      | Fun _ _ _ =>
           exfalso
           simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
       | Set _ =>

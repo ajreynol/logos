@@ -25,15 +25,7 @@ theorem seq_ne_none (T : SmtType) : SmtType.Seq T ≠ SmtType.None := by
 theorem type_inhabited_of_type_wf (T : SmtType)
     (h : __smtx_type_wf T = true) :
     type_inhabited T := by
-  by_cases hReg : T = SmtType.RegLan
-  · subst T
-    exact type_inhabited_reglan
-  have hPair :
-      native_inhabited_type T = true ∧
-        __smtx_type_wf_rec T native_reflist_nil = true := by
-    cases T <;> simp [__smtx_type_wf, native_and] at h hReg ⊢
-    all_goals first | contradiction | assumption
-  exact type_inhabited_of_native_inhabited_type T hPair.1
+  exact Smtm.type_inhabited_of_type_wf T h
 
 theorem seq_component_inhabited_wf_of_seq_wf (T : SmtType)
     (h : __smtx_type_wf (SmtType.Seq T) = true) :
@@ -501,7 +493,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
       simpa [__smtx_typeof_store, native_ite, native_Teq, hxMap, hyA, hzB,
         type_result_seq_components_wf] using hxGood
     case map_diff x y =>
-      rcases map_diff_args_of_non_none hxNN with hMap | hFun | hSet
+      rcases map_diff_args_of_non_none hxNN with hMap | hSet
       · rcases hMap with ⟨A, B, hxMap, hyMap, hTy⟩
         have hxNN' : term_has_non_none_type x :=
           term_has_non_none_of_type_eq hxMap (by simp)
@@ -511,15 +503,6 @@ theorem smt_term_result_seq_components_wf_of_non_none
         rw [hTy]
         exact type_result_seq_components_wf_of_type_wf
           (map_type_wf_components_of_wf hMapWf).1
-      · rcases hFun with ⟨A, B, hxFun, hyFun, hTy⟩
-        have hxNN' : term_has_non_none_type x :=
-          term_has_non_none_of_type_eq hxFun (by simp)
-        have hxGood := go x hxNN'
-        have hFunWf : __smtx_type_wf (SmtType.FunType A B) = true := by
-          simpa [hxFun, type_result_seq_components_wf] using hxGood
-        rw [hTy]
-        exact type_result_seq_components_wf_of_type_wf
-          (fun_type_wf_components_of_wf hFunWf).1
       · rcases hSet with ⟨A, hxSet, hySet, hTy⟩
         have hxNN' : term_has_non_none_type x :=
           term_has_non_none_of_type_eq hxSet (by simp)

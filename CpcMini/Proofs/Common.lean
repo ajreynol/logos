@@ -309,7 +309,7 @@ theorem eo_interprets_and_intro (M : SmtModel) (A B : Term) :
           · simp [Smtm.__smtx_model_eval.eq_8, __smtx_model_eval_and, hEvalA, hEvalB, SmtEval.native_and]
 
 /-- Semantic equality relation on SMT values, defined by evaluation of SMT equality. -/
-def smt_value_rel (v1 v2 : SmtValue) : Prop :=
+def smt_value_rel (M : SmtModel) (v1 v2 : SmtValue) : Prop :=
   __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true
 
 /-- Semantic equality relation on SMT sequences, lifted through `SmtValue.Seq`. -/
@@ -322,6 +322,7 @@ private theorem smtx_model_eval_seq_eq_true_iff {s1 s2 : SmtSeq} :
   simp [__smtx_model_eval_eq, native_veq]
 
 private theorem smtx_model_eval_eq_refl_aux
+    (M : SmtModel)
     (v : SmtValue) :
     __smtx_model_eval_eq v v = SmtValue.Boolean true := by
   cases v <;> simp [__smtx_model_eval_eq, native_veq]
@@ -335,10 +336,10 @@ private theorem smtx_model_eval_eq_true_symm
     {v1 v2 : SmtValue}
     (h : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true) :
     __smtx_model_eval_eq v2 v1 = SmtValue.Boolean true := by
-  cases v1 <;> cases v2 <;>
-    simp [__smtx_model_eval_eq, native_veq] at h ⊢
+  cases v1 <;> cases v2
   all_goals
-    simpa [eq_comm] using h
+    simp [__smtx_model_eval_eq, native_veq] at h ⊢
+    try simpa [eq_comm] using h
 
 private theorem smtx_model_eval_seq_eq_true_symm
     {s1 s2 : SmtSeq}
@@ -351,13 +352,14 @@ private theorem smtx_model_eval_eq_true_trans
     (h12 : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true)
     (h23 : __smtx_model_eval_eq v2 v3 = SmtValue.Boolean true) :
     __smtx_model_eval_eq v1 v3 = SmtValue.Boolean true := by
-  cases v1 <;> cases v2 <;> cases v3 <;>
-    simp [__smtx_model_eval_eq, native_veq] at h12 h23 ⊢
+  cases v1 <;> cases v2 <;> cases v3
   all_goals
-    first
-    | intro s
-      exact (h12 s).trans (h23 s)
-    | simp_all
+    try simp [__smtx_model_eval_eq, native_veq] at h12 h23 ⊢
+    try
+      first
+      | intro s
+        exact (h12 s).trans (h23 s)
+      | simp_all
 
 private theorem smtx_model_eval_seq_eq_true_trans
     {s1 s2 s3 : SmtSeq}
@@ -369,17 +371,17 @@ private theorem smtx_model_eval_seq_eq_true_trans
       (smtx_model_eval_seq_eq_true_iff.1 h23))
 
 /-- Reflexivity lemma for `smt_value_rel`. -/
-theorem smt_value_rel_refl (v : SmtValue) : smt_value_rel v v :=
-  smtx_model_eval_eq_refl_aux v
+theorem smt_value_rel_refl (M : SmtModel) (v : SmtValue) : smt_value_rel M v v :=
+  smtx_model_eval_eq_refl_aux M v
 
 /-- Reflexivity lemma for `smt_seq_rel`. -/
 theorem smt_seq_rel_refl (s : SmtSeq) : smt_seq_rel s s :=
   smtx_model_eval_seq_eq_refl_aux s
 
 /-- Symmetry lemma for `smt_value_rel`. -/
-theorem smt_value_rel_symm (v1 v2 : SmtValue) :
-    smt_value_rel v1 v2 ->
-    smt_value_rel v2 v1 :=
+theorem smt_value_rel_symm (M : SmtModel) (v1 v2 : SmtValue) :
+    smt_value_rel M v1 v2 ->
+    smt_value_rel M v2 v1 :=
   smtx_model_eval_eq_true_symm
 
 /-- Symmetry lemma for `smt_seq_rel`. -/
@@ -389,10 +391,10 @@ theorem smt_seq_rel_symm (s1 s2 : SmtSeq) :
   smtx_model_eval_seq_eq_true_symm
 
 /-- Transitivity lemma for `smt_value_rel`. -/
-theorem smt_value_rel_trans (v1 v2 v3 : SmtValue) :
-    smt_value_rel v1 v2 ->
-    smt_value_rel v2 v3 ->
-    smt_value_rel v1 v3 :=
+theorem smt_value_rel_trans (M : SmtModel) (v1 v2 v3 : SmtValue) :
+    smt_value_rel M v1 v2 ->
+    smt_value_rel M v2 v3 ->
+    smt_value_rel M v1 v3 :=
   smtx_model_eval_eq_true_trans
 
 /-- Transitivity lemma for `smt_seq_rel`. -/
@@ -404,8 +406,9 @@ theorem smt_seq_rel_trans (s1 s2 s3 : SmtSeq) :
 
 /-- Characterizes `smt_value_rel` in terms of `model_eval_eq_true`. -/
 theorem smt_value_rel_iff_model_eval_eq_true
+    (M : SmtModel)
     (v1 : SmtValue) (v2 : SmtValue) :
-    smt_value_rel v1 v2 ↔ __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true :=
+    smt_value_rel M v1 v2 ↔ __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true :=
   Iff.rfl
 
 /-- Characterizes `smt_seq_rel` in terms of `model_eval_eq_true`. -/
@@ -543,10 +546,10 @@ theorem eo_has_bool_type_eq_of_true (M : SmtModel) (x y : Term) :
 /-- Establishes an equality relating `eo_interprets` and `rel`. -/
 theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) true ->
-  smt_value_rel (__smtx_model_eval M (__eo_to_smt x))
+  smt_value_rel M (__smtx_model_eval M (__eo_to_smt x))
     (__smtx_model_eval M (__eo_to_smt y)) := by
   intro hEq
-  rw [smt_value_rel_iff_model_eval_eq_true]
+  rw [smt_value_rel_iff_model_eval_eq_true M]
   rw [eo_interprets_iff_smt_interprets] at hEq
   rw [eo_to_smt_eq_eq x y] at hEq
   cases hEq with
@@ -557,7 +560,7 @@ theorem eo_interprets_eq_rel (M : SmtModel) (x y : Term) :
 /-- Derives `eo_interprets_eq` from `rel`. -/
 theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
   eo_has_bool_type (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) ->
-  smt_value_rel (__smtx_model_eval M (__eo_to_smt x))
+  smt_value_rel M (__smtx_model_eval M (__eo_to_smt x))
     (__smtx_model_eval M (__eo_to_smt y)) ->
   eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) true := by
   intro hTy hRel
@@ -568,7 +571,7 @@ theorem eo_interprets_eq_of_rel (M : SmtModel) (x y : Term) :
   · have hEvalEq :
         __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt x))
           (__smtx_model_eval M (__eo_to_smt y)) = SmtValue.Boolean true :=
-      (smt_value_rel_iff_model_eval_eq_true
+      (smt_value_rel_iff_model_eval_eq_true M
         (__smtx_model_eval M (__eo_to_smt x))
         (__smtx_model_eval M (__eo_to_smt y))).mp hRel
     simpa [Smtm.__smtx_model_eval.eq_11] using hEvalEq
@@ -581,7 +584,7 @@ theorem eo_interprets_eq_trans (M : SmtModel) (x y z : Term) :
   intro hXY hYZ
   apply eo_interprets_eq_of_rel M x z
   · exact eo_has_bool_type_eq_of_true_chain M x y z hXY hYZ
-  · exact smt_value_rel_trans
+  · exact smt_value_rel_trans M
       (__smtx_model_eval M (__eo_to_smt x))
       (__smtx_model_eval M (__eo_to_smt y))
       (__smtx_model_eval M (__eo_to_smt z))
@@ -671,7 +674,7 @@ theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
       | Map m =>
           exfalso
           simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
-      | Fun m =>
+      | Fun fid A B =>
           exfalso
           simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Set m =>
@@ -704,8 +707,8 @@ theorem smtx_typeof_eq_refl (T : SmtType) :
   simp [native_ite, native_Teq, hT]
 
 /-- Reflexivity lemma for `smtx_model_eval_eq`. -/
-theorem smtx_model_eval_eq_refl (v : SmtValue) :
+theorem smtx_model_eval_eq_refl (M : SmtModel) (v : SmtValue) :
   __smtx_model_eval_eq v v = SmtValue.Boolean true := by
-  exact (smt_value_rel_iff_model_eval_eq_true v v).mp (smt_value_rel_refl v)
+  exact (smt_value_rel_iff_model_eval_eq_true M v v).mp (smt_value_rel_refl M v)
 
 end RuleProofs

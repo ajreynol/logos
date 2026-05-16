@@ -276,12 +276,13 @@ theorem typeof_apply_value_non_none_cases
 /-- Enumerates the cases for `typeof_apply_non_none`. -/
 theorem typeof_apply_non_none_cases
     {F X : SmtType}
-    (h : __smtx_typeof_apply F X ≠ SmtType.None) :
-    ∃ A B,
-      (F = SmtType.FunType A B ∨ F = SmtType.DtcAppType A B) ∧
-      X = A ∧
-      A ≠ SmtType.None ∧
-      B ≠ SmtType.None := by
+  (h : __smtx_typeof_apply F X ≠ SmtType.None) :
+  ∃ A B,
+    (F = SmtType.FunType A B ∨
+        F = SmtType.DtcAppType A B) ∧
+    X = A ∧
+    A ≠ SmtType.None ∧
+    B ≠ SmtType.None := by
   cases F with
   | None => simp [__smtx_typeof_apply] at h
   | Bool => simp [__smtx_typeof_apply] at h
@@ -757,7 +758,7 @@ private theorem term_result_datatype_components_wf_of_non_none
         (by simpa [result_datatype_components_wf] using hBaseWf)
         (__smtx_dt_substitute s d d) i
     case map_diff t1 t2 =>
-      rcases map_diff_args_of_non_none hxNN with hMap | hFun | hSet
+      rcases map_diff_args_of_non_none hxNN with hMap | hSet
       · rcases hMap with ⟨A, B, h1, h2, hTy⟩
         have ht1 : term_has_non_none_type t1 :=
           term_has_non_none_of_type_eq h1 (by simp)
@@ -767,15 +768,6 @@ private theorem term_result_datatype_components_wf_of_non_none
         rw [hTy]
         exact result_datatype_components_wf_of_type_wf
           (map_type_wf_components_of_wf hMapWf).1
-      · rcases hFun with ⟨A, B, h1, h2, hTy⟩
-        have ht1 : term_has_non_none_type t1 :=
-          term_has_non_none_of_type_eq h1 (by simp)
-        have hGood := go t1 ht1
-        have hFunWf : __smtx_type_wf (SmtType.FunType A B) = true := by
-          simpa [h1, result_datatype_components_wf] using hGood
-        rw [hTy]
-        exact result_datatype_components_wf_of_type_wf
-          (fun_type_wf_components_of_wf hFunWf).1
       · rcases hSet with ⟨A, h1, h2, hTy⟩
         have ht1 : term_has_non_none_type t1 :=
           term_has_non_none_of_type_eq h1 (by simp)
@@ -828,11 +820,8 @@ private theorem term_result_datatype_components_wf_of_non_none
           have hfGood := go f hfNN
           have hApplyTy :
               __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) = B := by
-            rcases hHead with hF | hF
-            · rw [hF, hX]
-              simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
-                native_Teq, hA]
-            · rw [hF, hX]
+            rcases hHead with hF | hF <;>
+              rw [hF, hX] <;>
               simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
                 native_Teq, hA]
           rw [hTyEq, hApplyTy]
@@ -889,6 +878,13 @@ theorem smt_fun_wf_of_non_none_type
   have hGood := term_result_datatype_components_wf_of_non_none x hxNN
   rw [hxTy] at hGood
   simpa [result_datatype_components_wf] using hGood
+
+/-- Compatibility name for the former native-function well-formedness helper. -/
+theorem smt_ifun_wf_of_non_none_type
+    (x : SmtTerm) (A B : SmtType)
+    (hxTy : __smtx_typeof x = SmtType.FunType A B) :
+    __smtx_type_wf (SmtType.FunType A B) = true :=
+  smt_fun_wf_of_non_none_type x A B hxTy
 
 /-- Extracts well-formedness of a set-typed term. -/
 theorem smt_set_wf_of_non_none_type
@@ -1015,13 +1011,91 @@ private theorem ret_typeof_sel_ne_reglan_of_datatype_wf
   simpa [__smtx_ret_typeof_sel] using
     ret_typeof_sel_rec_substitute_ne_reglan_of_dt_wf s d d i j hDtWf
 
+/-- Selector return types of well-formed datatypes are never top-level `FunType`. -/
+private theorem ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf
+    (sub : native_String) (base : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons) (d : SmtDatatype) (j : native_Nat) {refs : RefList},
+      __smtx_dt_cons_wf_rec c refs = true ->
+        ∀ A B : SmtType,
+          __smtx_ret_typeof_sel_rec
+              (SmtDatatype.sum (__smtx_dtc_substitute sub base c)
+                (__smtx_dt_substitute sub base d)) native_nat_zero j ≠
+            SmtType.FunType A B
+  | SmtDatatypeCons.unit, d, j, refs, _hWf => by
+      intro A B
+      cases j <;> simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec]
+  | SmtDatatypeCons.cons T c, d, native_nat_zero, refs, hWf => by
+      intro A B
+      cases T
+      case TypeRef r =>
+        by_cases hEq : r = sub <;>
+          simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
+            __smtx_type_wf_rec, __smtx_ret_typeof_sel_rec, native_ite,
+            native_Teq, native_streq, hEq] at hWf ⊢
+      all_goals
+        simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
+          __smtx_type_wf_rec, __smtx_ret_typeof_sel_rec, native_ite,
+          native_Teq, native_streq] at hWf ⊢
+  | SmtDatatypeCons.cons T c, d, native_nat_succ j, refs, hWf => by
+      intro A B
+      have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_cons_wf_rec_tail_of_true hWf
+      cases T <;>
+        simpa [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec] using
+          ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf sub base
+            c d j hTail A B
+
+private theorem ret_typeof_sel_rec_substitute_ne_funtype_of_dt_wf
+    (sub : native_String) (base : SmtDatatype) :
+    ∀ (d : SmtDatatype) (i j : native_Nat) {refs : RefList},
+      __smtx_dt_wf_rec d refs = true ->
+        ∀ A B : SmtType,
+          __smtx_ret_typeof_sel_rec (__smtx_dt_substitute sub base d) i j ≠
+            SmtType.FunType A B
+  | SmtDatatype.null, i, j, refs, _hWf => by
+      intro A B
+      cases i <;> cases j <;>
+        simp [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec]
+  | SmtDatatype.sum c d, native_nat_zero, j, refs, hWf => by
+      have hCons : __smtx_dt_cons_wf_rec c refs = true :=
+        dt_wf_cons_of_wf hWf
+      simpa [__smtx_dt_substitute] using
+        ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf sub base
+          c d j hCons
+  | SmtDatatype.sum c d, native_nat_succ i, j, refs, hWf => by
+      cases d with
+      | null =>
+          intro A B
+          simp [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec]
+      | sum cTail dTail =>
+          have hTail :
+              __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refs = true :=
+            dt_wf_tail_of_nonempty_tail_wf hWf
+          simpa [__smtx_dt_substitute, __smtx_ret_typeof_sel_rec] using
+            ret_typeof_sel_rec_substitute_ne_funtype_of_dt_wf sub base
+              (SmtDatatype.sum cTail dTail) i j hTail
+
+private theorem ret_typeof_sel_ne_funtype_of_datatype_wf
+    {s : native_String}
+    {d : SmtDatatype}
+    {i j : native_Nat}
+    (hWf : __smtx_type_wf (SmtType.Datatype s d) = true) :
+    ∀ A B : SmtType, __smtx_ret_typeof_sel s d i j ≠ SmtType.FunType A B := by
+  have hDtWf : __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true :=
+    datatype_wf_rec_of_type_wf hWf
+  simpa [__smtx_ret_typeof_sel] using
+    ret_typeof_sel_rec_substitute_ne_funtype_of_dt_wf s d d i j hDtWf
+
 private theorem type_wf_parts_of_wf_ne_reglan
     {T : SmtType}
     (hWf : __smtx_type_wf T = true)
-    (hNe : T ≠ SmtType.RegLan) :
+    (hNe : T ≠ SmtType.RegLan)
+    (hNeFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B) :
     native_inhabited_type T = true ∧
       __smtx_type_wf_rec T native_reflist_nil = true := by
   cases T <;> simp [__smtx_type_wf, native_and] at hWf hNe ⊢
+  case FunType A B =>
+    exact False.elim (hNeFun A B rfl)
   all_goals first | contradiction | exact hWf | exact ⟨hWf, rfl⟩
 
 private theorem int_inhabited_bool :
@@ -1059,14 +1133,21 @@ theorem dt_sel_wrong_map_type_wf_of_non_none
     simpa [R, D] using
       ret_typeof_sel_ne_reglan_of_datatype_wf
         (s := s) (d := d) (i := i) (j := j) hDTWf
+  have hRNeFun : ∀ A B : SmtType, R ≠ SmtType.FunType A B := by
+    intro A B
+    simpa [R, D] using
+      ret_typeof_sel_ne_funtype_of_datatype_wf
+        (s := s) (d := d) (i := i) (j := j) hDTWf A B
   have hRParts :
       native_inhabited_type R = true ∧
         __smtx_type_wf_rec R native_reflist_nil = true :=
-    type_wf_parts_of_wf_ne_reglan hRWf hRNe
+    type_wf_parts_of_wf_ne_reglan hRWf hRNe hRNeFun
   have hDTParts :
       native_inhabited_type D = true ∧
         __smtx_type_wf_rec D native_reflist_nil = true :=
-    type_wf_parts_of_wf_ne_reglan hDTWf (by simp [D])
+    type_wf_parts_of_wf_ne_reglan hDTWf (by simp [D]) (by
+      intro A B h
+      simp [D] at h)
   have hRInh : type_inhabited R :=
     type_inhabited_of_type_wf R hRWf
   have hM3Inh : type_inhabited M3 := by
@@ -1109,77 +1190,72 @@ theorem typeof_value_model_eval_dt_sel_wrong
             (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))) = true)
     (hv : __smtx_typeof_value v = SmtType.Datatype s d) :
     __smtx_typeof_value
-      (__smtx_map_select
-        (__smtx_map_select
-          (__smtx_map_select
-            (__smtx_model_lookup M native_wrong_apply_sel_id
-              (SmtType.Map SmtType.Int
-                (SmtType.Map SmtType.Int
-                  (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))))
-            (SmtValue.Numeral (native_nat_to_int i)))
-          (SmtValue.Numeral (native_nat_to_int j)))
+      (__smtx_model_eval_apply M
+        (__smtx_model_lookup M (native_wrong_apply_sel_id i j)
+          (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))
         v) = __smtx_ret_typeof_sel s d i j := by
+  let D := SmtType.Datatype s d
+  let R := __smtx_ret_typeof_sel s d i j
+  have hM2WF :
+      __smtx_type_wf
+        (SmtType.Map SmtType.Int (SmtType.Map D R)) = true := by
+    exact (map_type_wf_components_of_wf (A := SmtType.Int)
+      (B := SmtType.Map SmtType.Int (SmtType.Map D R))
+      (by simpa [D, R] using hMapWF)).2
+  have hM3WF : __smtx_type_wf (SmtType.Map D R) = true := by
+    exact (map_type_wf_components_of_wf (A := SmtType.Int)
+      (B := SmtType.Map D R) hM2WF).2
+  have hDWF : __smtx_type_wf D = true := by
+    exact (map_type_wf_components_of_wf (A := D) (B := R) hM3WF).1
+  have hRWF : __smtx_type_wf R = true := by
+    exact (map_type_wf_components_of_wf (A := D) (B := R) hM3WF).2
+  have hDParts :
+      native_inhabited_type D = true ∧
+        __smtx_type_wf_rec D native_reflist_nil = true :=
+    type_wf_parts_of_wf_ne_reglan hDWF (by simp [D]) (by
+      intro A B h
+      simp [D] at h)
+  have hRNe : R ≠ SmtType.RegLan := by
+    simpa [D, R] using
+      ret_typeof_sel_ne_reglan_of_datatype_wf
+        (s := s) (d := d) (i := i) (j := j) hDWF
+  have hRNeFun : ∀ A B : SmtType, R ≠ SmtType.FunType A B := by
+    intro A B
+    simpa [D, R] using
+      ret_typeof_sel_ne_funtype_of_datatype_wf
+        (s := s) (d := d) (i := i) (j := j) hDWF A B
+  have hRParts :
+      native_inhabited_type R = true ∧
+        __smtx_type_wf_rec R native_reflist_nil = true :=
+    type_wf_parts_of_wf_ne_reglan hRWF hRNe hRNeFun
+  have hFunWF : __smtx_type_wf (SmtType.FunType D R) = true := by
+    simp [__smtx_type_wf, native_and, hDParts.1, hDParts.2,
+      hRParts.1, hRParts.2]
   have hLookup :
       __smtx_typeof_value
-        (__smtx_model_lookup M native_wrong_apply_sel_id
-          (SmtType.Map SmtType.Int
-            (SmtType.Map SmtType.Int
-              (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))))) =
-        SmtType.Map SmtType.Int
-          (SmtType.Map SmtType.Int
-            (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))) :=
-    model_total_typed_lookup hM native_wrong_apply_sel_id
-      (SmtType.Map SmtType.Int
-        (SmtType.Map SmtType.Int
-          (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))))
-      hMapWF
-  rcases map_value_canonical
-      (A := SmtType.Int)
-      (B := SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))
-      hLookup with ⟨m0, hm0⟩
-  rw [hm0]
-  have hInner0 :
-      __smtx_typeof_value
-        (__smtx_map_select (SmtValue.Map m0) (SmtValue.Numeral (native_nat_to_int i))) =
-        SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)) := by
-    simpa [__smtx_map_select] using
-      map_lookup_typed
-        (m := m0)
-        (A := SmtType.Int)
-        (B := SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))
-        (i := SmtValue.Numeral (native_nat_to_int i))
-        (by simpa [hm0] using hLookup)
-        rfl
-  rcases map_value_canonical
-      (A := SmtType.Int)
-      (B := SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))
-      hInner0 with ⟨m1, hm1⟩
-  rw [hm1]
-  have hInner1 :
-      __smtx_typeof_value
-        (__smtx_map_select (SmtValue.Map m1) (SmtValue.Numeral (native_nat_to_int j))) =
-        SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j) := by
-    simpa [__smtx_map_select] using
-      map_lookup_typed
-        (m := m1)
-        (A := SmtType.Int)
-        (B := SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j))
-        (i := SmtValue.Numeral (native_nat_to_int j))
-        (by simpa [hm1] using hInner0)
-        rfl
-  rcases map_value_canonical
-      (A := SmtType.Datatype s d)
-      (B := __smtx_ret_typeof_sel s d i j)
-      hInner1 with ⟨m2, hm2⟩
-  rw [hm2]
-  simpa [__smtx_map_select] using
-    map_lookup_typed
-      (m := m2)
-      (A := SmtType.Datatype s d)
-      (B := __smtx_ret_typeof_sel s d i j)
-      (i := v)
-      (by simpa [hm2] using hInner1)
-      hv
+        (__smtx_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R)) =
+          SmtType.FunType D R := by
+    simpa [D, R] using
+      model_total_typed_lookup hM (native_wrong_apply_sel_id i j)
+        (SmtType.FunType D R) hFunWF
+  generalize hfDef :
+    __smtx_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R) = f
+  have hf : __smtx_typeof_value f = SmtType.FunType D R := by
+    simpa [← hfDef] using hLookup
+  have hvD : __smtx_typeof_value v = D := by
+    simpa [D] using hv
+  change __smtx_typeof_value (__smtx_model_eval_apply M f v) = R
+  rcases fun_value_canonical hf with ⟨fid, rfl⟩
+  have hvNN : v ≠ SmtValue.NotValue := by
+    intro h
+    subst v
+    simp [D, __smtx_typeof_value] at hvD
+  have hApply :
+      __smtx_model_eval_apply M (SmtValue.Fun fid D R) v =
+        native_eval_ifun_apply M fid D R v := by
+    cases v <;> simp [__smtx_model_eval_apply] at hvNN ⊢
+  rw [hApply]
+  exact (model_total_typed_native_fun_typed hM fid D R v hFunWF hvD).1
 
 /-- Shows that evaluating `dt_sel` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_dt_sel
@@ -1311,50 +1387,78 @@ theorem typeof_value_model_eval_dt_tester
 
 /-- Shows that evaluating `apply_fun` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_fun
-    {m : SmtMap}
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    {fid : native_String}
     {i : SmtValue}
     {A B : SmtType}
     (hA : A ≠ SmtType.None)
-    (hf : __smtx_typeof_value (SmtValue.Fun m) = SmtType.FunType A B)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
     (hi : __smtx_typeof_value i = A) :
-    __smtx_typeof_value (__smtx_model_eval_apply (SmtValue.Fun m) i) = B := by
+    __smtx_typeof_value (__smtx_model_eval_apply M (SmtValue.Fun fid A B) i) = B := by
+  have hArg : native_Teq (__smtx_typeof_value i) A = true := by
+    simpa [native_Teq, hi]
   have hiNN : i ≠ SmtValue.NotValue := by
     intro h
     cases h
     simp [__smtx_typeof_value] at hi
     exact hA hi.symm
-  cases typeof_map_value_shape m with
-  | inl hMap =>
-      rcases hMap with ⟨T, U, hMap⟩
-      have hFun : SmtType.FunType T U = SmtType.FunType A B := by
-        simpa [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] using hf
-      cases hFun
-      cases i <;> first
-        | exact (hiNN rfl).elim
-        | simpa [__smtx_model_eval_apply, __smtx_map_select] using
-            map_lookup_typed (m := m) (A := A) (B := B) (by simpa using hMap) hi
-  | inr hNone =>
-      simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at hf
+  have hApply :
+      __smtx_model_eval_apply M (SmtValue.Fun fid A B) i =
+        native_eval_ifun_apply M fid A B i := by
+    cases i <;> simp [__smtx_model_eval_apply] at hiNN ⊢
+  rw [hApply]
+  exact (model_total_typed_native_fun_typed hM fid A B i hFunWF hi).1
+
+/-- Shows that evaluating `apply_ifun` terms produces values of the expected type. -/
+theorem typeof_value_model_eval_apply_ifun
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    {fid : native_String}
+    {i : SmtValue}
+    {A B : SmtType}
+    (hA : A ≠ SmtType.None)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
+    (hi : __smtx_typeof_value i = A) :
+    __smtx_typeof_value (__smtx_model_eval_apply M (SmtValue.Fun fid A B) i) = B :=
+  typeof_value_model_eval_apply_fun M hM hA hFunWF hi
 
 /-- Shows that applying any function-typed value produces a value of the codomain type. -/
 theorem typeof_value_model_eval_apply_fun_value
+    (M : SmtModel)
+    (hM : model_total_typed M)
     {f i : SmtValue}
     {A B : SmtType}
     (hA : A ≠ SmtType.None)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
     (hf : __smtx_typeof_value f = SmtType.FunType A B)
     (hi : __smtx_typeof_value i = A) :
-    __smtx_typeof_value (__smtx_model_eval_apply f i) = B := by
-  rcases fun_value_canonical hf with ⟨m, rfl⟩
-  exact typeof_value_model_eval_apply_fun hA hf hi
+    __smtx_typeof_value (__smtx_model_eval_apply M f i) = B := by
+  rcases fun_value_canonical hf with ⟨fid, rfl⟩
+  exact typeof_value_model_eval_apply_fun M hM hA hFunWF hi
+
+/-- Shows that applying any native-function-typed value produces a value of the codomain type. -/
+theorem typeof_value_model_eval_apply_ifun_value
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    {f i : SmtValue}
+    {A B : SmtType}
+    (hA : A ≠ SmtType.None)
+    (hFunWF : __smtx_type_wf (SmtType.FunType A B) = true)
+    (hf : __smtx_typeof_value f = SmtType.FunType A B)
+    (hi : __smtx_typeof_value i = A) :
+    __smtx_typeof_value (__smtx_model_eval_apply M f i) = B :=
+  typeof_value_model_eval_apply_fun_value M hM hA hFunWF hf hi
 
 /-- Shows that evaluating `apply_dt` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_dt
+    (M : SmtModel)
     {f i : SmtValue}
     {A B : SmtType}
     (hA : A ≠ SmtType.None)
     (hf : __smtx_typeof_value f = SmtType.DtcAppType A B)
     (hi : __smtx_typeof_value i = A) :
-    __smtx_typeof_value (__smtx_model_eval_apply f i) = B := by
+    __smtx_typeof_value (__smtx_model_eval_apply M f i) = B := by
   have hiNN : i ≠ SmtValue.NotValue := by
     intro h
     cases h
@@ -1363,14 +1467,14 @@ theorem typeof_value_model_eval_apply_dt
   have hDtConsApply :
       ∀ {s : native_String} {d : SmtDatatype} {n : native_Nat} {j : SmtValue},
         j ≠ SmtValue.NotValue ->
-        __smtx_model_eval_apply (SmtValue.DtCons s d n) j =
+        __smtx_model_eval_apply M (SmtValue.DtCons s d n) j =
           SmtValue.Apply (SmtValue.DtCons s d n) j := by
     intro s d n j hj
     cases j <;> simp [__smtx_model_eval_apply] at hj ⊢
   have hApplyApply :
       ∀ {f v j : SmtValue},
         j ≠ SmtValue.NotValue ->
-        __smtx_model_eval_apply (SmtValue.Apply f v) j =
+        __smtx_model_eval_apply M (SmtValue.Apply f v) j =
           SmtValue.Apply (SmtValue.Apply f v) j := by
     intro f v j hj
     cases j <;> simp [__smtx_model_eval_apply] at hj ⊢
@@ -1390,13 +1494,8 @@ theorem typeof_value_model_eval_apply_dt
           simp [__smtx_typeof_value, hMap] at hf
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at hf
-  | Fun m =>
-      cases typeof_map_value_shape m with
-      | inl hMap =>
-          rcases hMap with ⟨T, U, hMap⟩
-          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hMap] at hf
-      | inr hNone =>
-          simp [__smtx_typeof_value, __smtx_map_to_fun_type, hNone] at hf
+  | Fun fid A B =>
+      simp [__smtx_typeof_value] at hf
   | Set m =>
       cases typeof_map_value_shape m with
       | inl hMap =>
@@ -1434,27 +1533,30 @@ theorem typeof_value_model_eval_apply_dt
 /-- Shows that evaluating `apply_generic` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_apply_generic
     (M : SmtModel)
+    (hM : model_total_typed M)
     (f x : SmtTerm)
     (hNN : __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None)
     (hpresf : __smtx_typeof_value (__smtx_model_eval M f) = __smtx_typeof f)
     (hpresx : __smtx_typeof_value (__smtx_model_eval M x) = __smtx_typeof x) :
-    __smtx_typeof_value (__smtx_model_eval_apply (__smtx_model_eval M f) (__smtx_model_eval M x)) =
+    __smtx_typeof_value (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x)) =
       __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) := by
   rcases typeof_apply_non_none_cases hNN with ⟨A, B, hF, hX, hA, hB⟩
   have hArg : __smtx_typeof_value (__smtx_model_eval M x) = A := by
     simpa [hX] using hpresx
-  cases hF with
-  | inl hFunTy =>
+  rcases hF with hFunTy | hDtcTy
+  ·
       rw [hFunTy, hX]
       have hFun : __smtx_typeof_value (__smtx_model_eval M f) = SmtType.FunType A B := by
         simpa [hFunTy] using hpresf
+      have hFunWf : __smtx_type_wf (SmtType.FunType A B) = true :=
+        smt_fun_wf_of_non_none_type f A B hFunTy
       simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA] using
-        typeof_value_model_eval_apply_fun_value hA hFun hArg
-  | inr hDtcTy =>
+        typeof_value_model_eval_apply_fun_value M hM hA hFunWf hFun hArg
+  ·
       rw [hDtcTy, hX]
       have hDtc : __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
         simpa [hDtcTy] using hpresf
       simpa [__smtx_typeof_apply, __smtx_typeof_guard, native_ite, native_Teq, hA] using
-        typeof_value_model_eval_apply_dt hA hDtc hArg
+        typeof_value_model_eval_apply_dt M hA hDtc hArg
 
 end Smtm

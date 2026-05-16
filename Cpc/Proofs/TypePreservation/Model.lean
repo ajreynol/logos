@@ -34,7 +34,14 @@ theorem model_total_typed_lookup_not_wf
     (T : SmtType)
     (hT : __smtx_type_wf T = false) :
     __smtx_model_lookup M s T = SmtValue.NotValue :=
-  hM.2.2 s T hT
+  hM.2.2.1 s T hT
+
+/-- Describes how `model_total_typed` constrains native functions. -/
+theorem model_total_typed_native_fun_typed
+    {M : SmtModel}
+    (hM : model_total_typed M) :
+    native_fun_typed M :=
+  hM.2.2.2
 
 theorem model_total_typed_lookup_uninhabited
     {M : SmtModel}
@@ -88,14 +95,19 @@ theorem model_total_typed_push
         simp [hvCanon]
       · simp [h]
         exact model_total_typed_lookup_canonical hM s' T' hT'
-    · intro s' T' hT'
-      unfold __smtx_model_lookup __smtx_model_push
-      by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
-      · cases h
-        rw [hWF] at hT'
-        cases hT'
-      · simp [h]
-        exact model_total_typed_lookup_uninhabited hM s' T' hT'
+    · constructor
+      · intro s' T' hT'
+        unfold __smtx_model_lookup __smtx_model_push
+        by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
+        · cases h
+          rw [hWF] at hT'
+          cases hT'
+        · simp [h]
+          exact model_total_typed_lookup_uninhabited hM s' T' hT'
+      · intro fid A B i hFunWF hi
+        simpa [native_fun_typed, native_eval_ifun_apply, __smtx_model_fun_lookup,
+          __smtx_model_push]
+          using model_total_typed_native_fun_typed hM fid A B i hFunWF hi
 
 private theorem value_dt_substitute_canonical
     (s : native_String)
@@ -115,7 +127,7 @@ private theorem value_dt_substitute_canonical
       simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Map m, h => by
       simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Fun m, h => by
+  | SmtValue.Fun fid T U, h => by
       simpa [__smtx_value_dt_substitute] using h
   | SmtValue.Set m, h => by
       simpa [__smtx_value_dt_substitute] using h
@@ -155,7 +167,7 @@ private theorem value_dt_substitute_eq_notValue
       simp [__smtx_value_dt_substitute]
   | SmtValue.Map m => by
       simp [__smtx_value_dt_substitute]
-  | SmtValue.Fun m => by
+  | SmtValue.Fun fid T U => by
       simp [__smtx_value_dt_substitute]
   | SmtValue.Set m => by
       simp [__smtx_value_dt_substitute]
@@ -313,26 +325,9 @@ private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype :
       simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
         __smtx_value_canonical_bool]
   | SmtType.FunType A B, hInh, hRec => by
-      simp [__smtx_type_wf_rec, native_and] at hRec
-      have hB := type_default_typed_canonical_of_wf_rec_deferred_datatype
-        B hRec.2.2.1 hRec.2.2.2
-      have hBCanon :
-          __smtx_value_canonical_bool (__smtx_type_default B) = true := by
-        simpa [__smtx_value_canonical] using hB.2
-      constructor
-      · simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_map_value,
-          __smtx_map_to_fun_type, hB.1]
-      · simp [__smtx_type_default, __smtx_value_canonical,
-          __smtx_value_canonical_bool, __smtx_map_canonical,
-          __smtx_map_default_canonical, native_and, hB.1, hBCanon]
-        cases hFin : __smtx_is_finite_type A <;>
-          simp [native_ite, native_veq]
+      simp [__smtx_type_wf_rec] at hRec
   | SmtType.DtcAppType A B, hInh, hRec => by
       simp [__smtx_type_wf_rec] at hRec
-termination_by T _ _ => sizeOf T
-decreasing_by
-  all_goals simp_wf
-  all_goals omega
 
 private theorem non_datatype_type_default_substitute_typed_canonical_of_wf_rec_deferred
     (s : native_String)
@@ -426,25 +421,9 @@ private theorem type_default_typed_canonical_of_wf_rec :
       simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
         __smtx_value_canonical_bool]
   | SmtType.FunType A B, hInh, hRec => by
-      simp [__smtx_type_wf_rec, native_and] at hRec
-      have hB := type_default_typed_canonical_of_wf_rec B hRec.2.2.1 hRec.2.2.2
-      have hBCanon :
-          __smtx_value_canonical_bool (__smtx_type_default B) = true := by
-        simpa [__smtx_value_canonical] using hB.2
-      constructor
-      · simp [__smtx_type_default, __smtx_typeof_value, __smtx_typeof_map_value,
-          __smtx_map_to_fun_type, hB.1]
-      · simp [__smtx_type_default, __smtx_value_canonical,
-          __smtx_value_canonical_bool, __smtx_map_canonical,
-          __smtx_map_default_canonical, native_and, hB.1, hBCanon]
-        cases hFin : __smtx_is_finite_type A <;>
-          simp [native_ite, native_veq]
+      simp [__smtx_type_wf_rec] at hRec
   | SmtType.DtcAppType A B, hInh, hRec => by
       simp [__smtx_type_wf_rec] at hRec
-termination_by T _ _ => sizeOf T
-decreasing_by
-  all_goals simp_wf
-  all_goals omega
 
 /--
 Every well-formed SMT type has a canonical inhabitant.
@@ -461,14 +440,26 @@ theorem canonical_type_inhabited_of_type_wf
   · subst T
     exact ⟨SmtValue.RegLan native_re_none, rfl, by
       simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
-  · have hParts :
+  · by_cases hFun : ∃ A B, T = SmtType.FunType A B
+    · rcases hFun with ⟨A, B, rfl⟩
+      have hParts :
+          native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A native_reflist_nil = true ∧
+              native_inhabited_type B = true ∧
+                __smtx_type_wf_rec B native_reflist_nil = true := by
+        exact fun_type_wf_parts hWF
+      have hDef :=
+        type_default_typed_canonical_of_native_inhabited_type
+          (SmtType.FunType A B) (native_inhabited_type_fun hParts.2.2.1)
+      exact ⟨__smtx_type_default (SmtType.FunType A B), hDef.1, hDef.2⟩
+    · have hParts :
         native_inhabited_type T = true ∧
           __smtx_type_wf_rec T native_reflist_nil = true := by
-      cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hWF hReg ⊢ <;>
-        exact hWF
-    have hDef :=
-      type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
-    exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩
+        cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hWF hReg hFun ⊢ <;>
+          exact hWF
+      have hDef :=
+        type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
+      exact ⟨__smtx_type_default T, hDef.1, hDef.2⟩
 
 /-- The syntactic default is well-typed and canonical for recursively well-formed inhabited types. -/
 theorem type_default_typed_canonical_of_inhabited_wf_rec

@@ -368,12 +368,22 @@ theorem model_eval_dt_sel_term_canonical
     (d : SmtDatatype)
     (i j : native_Nat)
     (x : SmtTerm)
+    (ht : term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s d i j) x))
     (hx : __smtx_value_canonical (__smtx_model_eval M x)) :
     __smtx_value_canonical
       (__smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtSel s d i j) x)) := by
+  have htx : term_has_non_none_type x :=
+    by
+      unfold term_has_non_none_type
+      rw [dt_sel_arg_datatype_of_non_none ht]
+      simp
+  have hxTy :
+      __smtx_typeof_value (__smtx_model_eval M x) = SmtType.Datatype s d := by
+    simpa [dt_sel_arg_datatype_of_non_none ht] using
+      smt_model_eval_preserves_type_of_non_none M hM x htx
   simpa [__smtx_model_eval] using
     model_eval_dt_sel_canonical M hM s d i j
-      (v := __smtx_model_eval M x) hx
+      (v := __smtx_model_eval M x) hxTy hx
 
 theorem native_eval_tchoice_canonical
     (M : SmtModel)
@@ -607,45 +617,35 @@ theorem model_eval_canonical_of_supported
       exact model_eval_abs_term_canonical M _
   case uneg ht hs ih =>
       exact model_eval_uneg_term_canonical M _
-  case div ht1 hs1 ht2 hs2 ih1 ih2 =>
-      have hLookup :
-          __smtx_value_canonical
-            (__smtx_model_lookup M native_div_by_zero_id
-              (SmtType.FunType SmtType.Int SmtType.Int)) :=
-        model_total_typed_lookup_canonical hM native_div_by_zero_id
-          (SmtType.FunType SmtType.Int SmtType.Int)
-          fun_type_wf_int_int
+  case div t1 t2 ht1 hs1 ht2 hs2 ih1 ih2 =>
+      have hArgs := int_binop_args_of_non_none (op := SmtTerm.div) (typeof_div_eq t1 t2) hTy
+      have hxTy :
+          __smtx_typeof_value (__smtx_model_eval M t1) = SmtType.Int := by
+        simpa [hArgs.1] using smt_model_eval_preserves_type_of_non_none M hM t1 ht1
       simpa [__smtx_model_eval] using
         model_eval_ite_canonical
-          (model_eval_apply_canonical hLookup (ih1 M hM ht1))
+          (model_eval_apply_lookup_ifun_canonical M hM native_div_by_zero_id
+            SmtType.Int SmtType.Int (__smtx_model_eval M t1) ifun_type_wf_int_int hxTy)
           (model_eval_div_total_canonical _ _)
-  case mod ht1 hs1 ht2 hs2 ih1 ih2 =>
-      have hLookup :
-          __smtx_value_canonical
-            (__smtx_model_lookup M native_mod_by_zero_id
-              (SmtType.FunType SmtType.Int SmtType.Int)) :=
-        model_total_typed_lookup_canonical hM native_mod_by_zero_id
-          (SmtType.FunType SmtType.Int SmtType.Int)
-          fun_type_wf_int_int
+  case mod t1 t2 ht1 hs1 ht2 hs2 ih1 ih2 =>
+      have hArgs := int_binop_args_of_non_none (op := SmtTerm.mod) (typeof_mod_eq t1 t2) hTy
+      have hxTy :
+          __smtx_typeof_value (__smtx_model_eval M t1) = SmtType.Int := by
+        simpa [hArgs.1] using smt_model_eval_preserves_type_of_non_none M hM t1 ht1
       simpa [__smtx_model_eval] using
         model_eval_ite_canonical
-          (model_eval_apply_canonical hLookup (ih1 M hM ht1))
+          (model_eval_apply_lookup_ifun_canonical M hM native_mod_by_zero_id
+            SmtType.Int SmtType.Int (__smtx_model_eval M t1) ifun_type_wf_int_int hxTy)
           (model_eval_mod_total_canonical _ _)
   case multmult ht1 hs1 ht2 hs2 ih1 ih2 =>
-      have hLookup :
-          __smtx_value_canonical
-            (__smtx_model_lookup M native_div_by_zero_id
-              (SmtType.FunType SmtType.Int SmtType.Int)) :=
-        model_total_typed_lookup_canonical hM native_div_by_zero_id
-          (SmtType.FunType SmtType.Int SmtType.Int)
-          fun_type_wf_int_int
       have hApply :
           __smtx_value_canonical
-            (__smtx_model_eval_apply
-              (__smtx_model_lookup M native_div_by_zero_id
+              (__smtx_model_eval_apply M
+                (__smtx_model_lookup M native_div_by_zero_id
                 (SmtType.FunType SmtType.Int SmtType.Int))
               (SmtValue.Numeral 1)) :=
-        model_eval_apply_canonical hLookup (value_canonical_numeral 1)
+        model_eval_apply_lookup_ifun_canonical M hM native_div_by_zero_id
+          SmtType.Int SmtType.Int (SmtValue.Numeral 1) ifun_type_wf_int_int rfl
       simpa [__smtx_model_eval] using
         model_eval_ite_canonical
           (model_eval_multmult_total_canonical _ _)
@@ -668,18 +668,27 @@ theorem model_eval_canonical_of_supported
   case multmult_total ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
         model_eval_multmult_total_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
-  case qdiv ht1 hs1 ht2 hs2 ih1 ih2 =>
-      have hLookup :
-          __smtx_value_canonical
-            (__smtx_model_lookup M native_qdiv_by_zero_id
-              (SmtType.FunType SmtType.Real SmtType.Real)) :=
-        model_total_typed_lookup_canonical hM native_qdiv_by_zero_id
-          (SmtType.FunType SmtType.Real SmtType.Real)
-          fun_type_wf_real_real
-      simpa [__smtx_model_eval] using
-        model_eval_ite_canonical
-          (model_eval_apply_canonical hLookup (ih1 M hM ht1))
-          (model_eval_qdiv_total_canonical _ _)
+  case qdiv t1 t2 ht1 hs1 ht2 hs2 ih1 ih2 =>
+      rcases arith_binop_ret_args_of_non_none (op := SmtTerm.qdiv) (typeof_qdiv_eq t1 t2) hTy with hArgs | hArgs
+      · have hpres1 :=
+          smt_model_eval_preserves_type_of_non_none M hM t1 ht1
+        have hpres2 :=
+          smt_model_eval_preserves_type_of_non_none M hM t2 ht2
+        rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
+        rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
+        rw [__smtx_model_eval.eq_128]
+        rw [hn1, hn2]
+        simp [__smtx_model_eval_ite, __smtx_model_eval_eq,
+          __smtx_model_eval_qdiv_total, __smtx_value_canonical,
+          __smtx_value_canonical_bool, native_veq]
+      · have hxTy :
+            __smtx_typeof_value (__smtx_model_eval M t1) = SmtType.Real := by
+          simpa [hArgs.1] using smt_model_eval_preserves_type_of_non_none M hM t1 ht1
+        simpa [__smtx_model_eval] using
+          model_eval_ite_canonical
+            (model_eval_apply_lookup_ifun_canonical M hM native_qdiv_by_zero_id
+              SmtType.Real SmtType.Real (__smtx_model_eval M t1) ifun_type_wf_real_real hxTy)
+            (model_eval_qdiv_total_canonical _ _)
   case qdiv_total ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
         model_eval_qdiv_total_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
@@ -937,18 +946,58 @@ theorem model_eval_canonical_of_supported
   case dt_cons s d i =>
       simpa [__smtx_model_eval] using value_canonical_dt_cons s d i
   case dt_sel ht hT htx hsx ihx =>
-      exact model_eval_dt_sel_term_canonical M hM _ _ _ _ _ (ihx M hM htx)
+      exact model_eval_dt_sel_term_canonical M hM _ _ _ _ _ hTy (ihx M hM htx)
   case dt_tester s d i x =>
       simpa [__smtx_model_eval, __smtx_model_eval_dt_tester] using
         value_canonical_boolean (native_veq (__vsm_apply_head (__smtx_model_eval M x))
           (SmtValue.DtCons s d i))
-  case apply hTyApp hEval htf hsf htx hsx ihf ihx =>
+  case apply f x hTyApp hEval htf hsf htx hsx ihf ihx =>
       have hf := ihf M hM htf
       have hx := ihx M hM htx
+      have hApplyNN :
+          __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+        unfold term_has_non_none_type at hTy
+        rw [hTyApp] at hTy
+        exact hTy
+      rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHeadTerm, hX, _hA, _hB⟩
+      have hPresF :
+          __smtx_typeof_value (__smtx_model_eval M f) = __smtx_typeof f :=
+        smt_model_eval_preserves_type_of_non_none M hM f htf
+      have hPresX :
+          __smtx_typeof_value (__smtx_model_eval M x) = __smtx_typeof x :=
+        smt_model_eval_preserves_type_of_non_none M hM x htx
+      have hxTy :
+          __smtx_typeof_value (__smtx_model_eval M x) = A := by
+        simpa [hX] using hPresX
+      have hHeadVal :
+          __smtx_typeof_value (__smtx_model_eval M f) = SmtType.FunType A B ∨
+            __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
+        cases hHeadTerm with
+        | inl hFun =>
+            exact Or.inl (by simpa [hFun] using hPresF)
+        | inr hDtc =>
+            exact Or.inr (by simpa [hDtc] using hPresF)
+      have hFunWF :
+          __smtx_typeof_value (__smtx_model_eval M f) = SmtType.FunType A B ->
+            __smtx_type_wf (SmtType.FunType A B) = true := by
+        intro hValFun
+        cases hHeadTerm with
+        | inl hFun =>
+            exact smt_term_fun_type_wf_of_non_none f htf hFun
+        | inr hDtc =>
+            have hValDtc :
+                __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
+              simpa [hDtc] using hPresF
+            rw [hValFun] at hValDtc
+            cases hValDtc
       simpa [hEval M] using
-        model_eval_apply_canonical
-          (f := __smtx_model_eval M _)
-          (x := __smtx_model_eval M _) hf hx
+        model_eval_apply_canonical M hM
+          (f := __smtx_model_eval M f)
+          (x := __smtx_model_eval M x)
+          (hHead := hHeadVal)
+          (hFunWF := hFunWF)
+          (hxTy := hxTy)
+          hf hx
   all_goals
     first
     | exact model_eval_canonical_of_bool_type M hM _ (by
