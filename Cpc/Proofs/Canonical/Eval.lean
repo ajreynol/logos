@@ -932,12 +932,17 @@ theorem model_eval_canonical_of_supported
         smt_model_eval_preserves_type_of_non_none M hM f htf
       have hHeadVal :
           __smtx_typeof_value (__smtx_model_eval M f) = SmtType.FunType A B ∨
-            __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
+            __smtx_typeof_value (__smtx_model_eval M f) = SmtType.IFunType A B ∨
+              __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
         cases hHeadTerm with
         | inl hFun =>
             exact Or.inl (by simpa [hFun] using hPresF)
-        | inr hDtc =>
-            exact Or.inr (by simpa [hDtc] using hPresF)
+        | inr hRest =>
+            cases hRest with
+            | inl hIFun =>
+                exact Or.inr (Or.inl (by simpa [hIFun] using hPresF))
+            | inr hDtc =>
+                exact Or.inr (Or.inr (by simpa [hDtc] using hPresF))
       have hFunWF :
           __smtx_typeof_value (__smtx_model_eval M f) = SmtType.FunType A B ->
             __smtx_type_wf (SmtType.FunType A B) = true := by
@@ -945,18 +950,48 @@ theorem model_eval_canonical_of_supported
         cases hHeadTerm with
         | inl hFun =>
             exact smt_term_fun_type_wf_of_non_none f htf hFun
-        | inr hDtc =>
-            have hValDtc :
-                __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
-              simpa [hDtc] using hPresF
-            rw [hValFun] at hValDtc
-            cases hValDtc
+        | inr hRest =>
+            cases hRest with
+            | inl hIFun =>
+                have hValIFun :
+                    __smtx_typeof_value (__smtx_model_eval M f) = SmtType.IFunType A B := by
+                  simpa [hIFun] using hPresF
+                rw [hValFun] at hValIFun
+                cases hValIFun
+            | inr hDtc =>
+                have hValDtc :
+                    __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
+                  simpa [hDtc] using hPresF
+                rw [hValFun] at hValDtc
+                cases hValDtc
+      have hIFunWF :
+          __smtx_typeof_value (__smtx_model_eval M f) = SmtType.IFunType A B ->
+            __smtx_type_wf (SmtType.IFunType A B) = true := by
+        intro hValIFun
+        cases hHeadTerm with
+        | inl hFun =>
+            have hValFun :
+                __smtx_typeof_value (__smtx_model_eval M f) = SmtType.FunType A B := by
+              simpa [hFun] using hPresF
+            rw [hValIFun] at hValFun
+            cases hValFun
+        | inr hRest =>
+            cases hRest with
+            | inl hIFun =>
+                exact smt_term_ifun_type_wf_of_non_none f htf hIFun
+            | inr hDtc =>
+                have hValDtc :
+                    __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
+                  simpa [hDtc] using hPresF
+                rw [hValIFun] at hValDtc
+                cases hValDtc
       simpa [hEval M] using
         model_eval_apply_canonical M hM
           (f := __smtx_model_eval M f)
           (x := __smtx_model_eval M x)
           (hHead := hHeadVal)
           (hFunWF := hFunWF)
+          (hIFunWF := hIFunWF)
           hf hx
   all_goals
     first

@@ -856,6 +856,9 @@ theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
       | Fun m =>
           exfalso
           simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+      | IFun fid T U =>
+          exfalso
+          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Set m =>
           exfalso
           simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval

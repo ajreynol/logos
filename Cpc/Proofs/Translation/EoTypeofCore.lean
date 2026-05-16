@@ -30,11 +30,14 @@ private theorem smtx_type_wf_rec_of_type_wf
     {T : SmtType}
     (hNotReg : T ≠ SmtType.RegLan)
     (hNotFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B)
+    (hNotIFun : ∀ A B : SmtType, T ≠ SmtType.IFunType A B)
     (h : __smtx_type_wf T = true) :
     __smtx_type_wf_rec T native_reflist_nil = true := by
   cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h hNotReg ⊢
   case FunType A B =>
     exact False.elim (hNotFun A B rfl)
+  case IFunType A B =>
+    exact False.elim (hNotIFun A B rfl)
   all_goals first | exact h | exact h.2 | exact h.2.2
 
 /-- Computes `__smtx_typeof_guard` under a non-`None` premise. -/
@@ -662,6 +665,7 @@ private theorem smtx_type_substitute_top_of_wf_rec
   | SmtType.Char, refs, hNot, hWf => by simp [smtx_type_substitute_top, native_ite, native_Teq]
   | SmtType.USort n, refs, hNot, hWf => by simp [smtx_type_substitute_top, native_ite, native_Teq]
   | SmtType.FunType A B, refs, hNot, hWf => by simp [smtx_type_substitute_top, native_ite, native_Teq]
+  | SmtType.IFunType A B, refs, hNot, hWf => by simp [__smtx_type_wf_rec] at hWf
 
 private theorem smtx_dtc_substitute_of_wf_rec
     (sub : native_String) (d0 : SmtDatatype) :
@@ -758,6 +762,11 @@ private theorem smtx_dtc_substitute_of_wf_rec
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
             smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
       | FunType A B =>
+          have hTail : __smtx_dt_cons_wf_rec c refs = true :=
+            smtx_dt_cons_wf_rec_tail_of_true hWf
+          simp [__smtx_dtc_substitute, native_Teq, native_ite,
+            smtx_dtc_substitute_of_wf_rec sub d0 c refs hNot hTail]
+      | IFunType A B =>
           have hTail : __smtx_dt_cons_wf_rec c refs = true :=
             smtx_dt_cons_wf_rec_tail_of_true hWf
           simp [__smtx_dtc_substitute, native_Teq, native_ite,
@@ -896,11 +905,18 @@ private theorem eo_to_smt_type_substitute_field
         cases f1
         case FunType =>
           let inner := __smtx_typeof_guard (__eo_to_smt_type x)
-            (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x))
+            (native_ite (__smtx_is_finite_type (__eo_to_smt_type x1))
+              (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x))
+              (SmtType.IFunType (__eo_to_smt_type x1) (__eo_to_smt_type x)))
           have hInner : smtx_type_substitute_top sub (__eo_to_smt_datatype d0) inner = inner := by
             exact smtx_type_substitute_top_of_guard sub (__eo_to_smt_datatype d0)
-              (__eo_to_smt_type x) (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x))
-              (by simp [smtx_type_substitute_top, native_ite, native_Teq])
+              (__eo_to_smt_type x)
+              (native_ite (__smtx_is_finite_type (__eo_to_smt_type x1))
+                (SmtType.FunType (__eo_to_smt_type x1) (__eo_to_smt_type x))
+                (SmtType.IFunType (__eo_to_smt_type x1) (__eo_to_smt_type x)))
+              (by
+                cases hFin : __smtx_is_finite_type (__eo_to_smt_type x1) <;>
+                  simp [smtx_type_substitute_top, native_ite, native_Teq, hFin])
           change
             __smtx_typeof_guard (__eo_to_smt_type x1) inner =
               smtx_type_substitute_top sub (__eo_to_smt_datatype d0)
@@ -938,6 +954,9 @@ private theorem eo_to_smt_type_substitute_field
                     (by
                       intro A B
                       exact eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type x1) (__eo_to_smt_type x) A B)
+                    (by
+                      intro A B
+                      exact eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type x1) (__eo_to_smt_type x) A B)
                     hWf)).symm
           all_goals
             simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type,

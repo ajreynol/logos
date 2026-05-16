@@ -25,18 +25,7 @@ theorem seq_ne_none (T : SmtType) : SmtType.Seq T ≠ SmtType.None := by
 theorem type_inhabited_of_type_wf (T : SmtType)
     (h : __smtx_type_wf T = true) :
     type_inhabited T := by
-  by_cases hReg : T = SmtType.RegLan
-  · subst T
-    exact type_inhabited_reglan
-  by_cases hFun : ∃ A B, T = SmtType.FunType A B
-  · rcases hFun with ⟨A, B, rfl⟩
-    exact ⟨SmtValue.Fun native_default_fun_id A B, rfl⟩
-  have hPair :
-      native_inhabited_type T = true ∧
-        __smtx_type_wf_rec T native_reflist_nil = true := by
-    cases T <;> simp [__smtx_type_wf, native_and] at h hReg hFun ⊢
-    all_goals first | contradiction | assumption
-  exact type_inhabited_of_native_inhabited_type T hPair.1
+  exact Smtm.type_inhabited_of_type_wf T h
 
 theorem seq_component_inhabited_wf_of_seq_wf (T : SmtType)
     (h : __smtx_type_wf (SmtType.Seq T) = true) :
@@ -61,6 +50,7 @@ def type_result_seq_components_wf : SmtType -> Prop
   | SmtType.Datatype s d => __smtx_type_wf (SmtType.Datatype s d) = true
   | SmtType.Map A B => __smtx_type_wf (SmtType.Map A B) = true
   | SmtType.FunType A B => __smtx_type_wf (SmtType.FunType A B) = true
+  | SmtType.IFunType A B => __smtx_type_wf (SmtType.IFunType A B) = true
   | SmtType.DtcAppType _ B => type_result_seq_components_wf B
   | _ => True
 
@@ -268,6 +258,8 @@ theorem type_result_seq_components_wf_of_type_wf
     case Map A B =>
       exact h
     case FunType A B =>
+      exact h
+    case IFunType A B =>
       exact h
     case DtcAppType A B =>
       simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
@@ -625,24 +617,36 @@ theorem smt_term_result_seq_components_wf_of_non_none
             ⟨A, B, hHead, hX, _hA, _hB⟩
           have hfNN : term_has_non_none_type f := by
             unfold term_has_non_none_type
-            rcases hHead with hF | hF <;> rw [hF] <;> simp
+            rcases hHead with hF | hHead
+            · rw [hF]
+              simp
+            · rcases hHead with hF | hF <;> rw [hF] <;> simp
           have hfGood := go f hfNN
           have hApplyTy : __smtx_typeof_apply (__smtx_typeof f)
                 (__smtx_typeof x) = B := by
-            rcases hHead with hF | hF
+            rcases hHead with hF | hHead
             · rw [hF, hX]
               simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
                 native_Teq, _hA]
-            · rw [hF, hX]
-              simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
-                native_Teq, _hA]
+            · rcases hHead with hF | hF
+              · rw [hF, hX]
+                simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+                  native_Teq, _hA]
+              · rw [hF, hX]
+                simp [__smtx_typeof_apply, __smtx_typeof_guard, native_ite,
+                  native_Teq, _hA]
           rw [hTyEq, hApplyTy]
-          rcases hHead with hF | hF
+          rcases hHead with hF | hHead
           · have hHeadGood : __smtx_type_wf (SmtType.FunType A B) = true := by
               simpa [hF, type_result_seq_components_wf] using hfGood
             exact type_result_seq_components_wf_of_type_wf
               (fun_type_wf_components_of_wf hHeadGood).2
-          · simpa [hF, type_result_seq_components_wf] using hfGood
+          · rcases hHead with hF | hF
+            · have hHeadGood : __smtx_type_wf (SmtType.IFunType A B) = true := by
+                simpa [hF, type_result_seq_components_wf] using hfGood
+              exact type_result_seq_components_wf_of_type_wf
+                (ifun_type_wf_components_of_wf hHeadGood).2
+            · simpa [hF, type_result_seq_components_wf] using hfGood
     case set_union x y =>
       rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
           (typeof_set_union_eq x y) hxNN with ⟨A, hxSet, hySet⟩

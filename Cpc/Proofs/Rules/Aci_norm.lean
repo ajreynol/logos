@@ -6770,6 +6770,9 @@ private theorem bvEvalCanonicalWidth_of_smt_value_rel_left
   | Fun m =>
       rw [hBEval] at hRel
       simp [__smtx_model_eval_eq, native_veq] at hRel
+  | IFun fid A B =>
+      rw [hBEval] at hRel
+      simp [__smtx_model_eval_eq, native_veq] at hRel
   | Set m =>
       rw [hBEval] at hRel
       simp [__smtx_model_eval_eq, native_veq] at hRel

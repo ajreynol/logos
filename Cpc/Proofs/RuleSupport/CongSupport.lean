@@ -919,6 +919,8 @@ private theorem smtx_model_eval_eq_false_of_not_smt_value_rel
       cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
   | Fun _ =>
       cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
+  | IFun _ _ _ =>
+      cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
   | Set _ =>
       cases a <;> cases b <;> simp [__smtx_model_eval_eq] at hEq
   | Seq _ =>
@@ -2664,6 +2666,38 @@ private theorem congTypeSpine_ite_eq_has_bool_type
       rw [typeof_ite_eq, typeof_ite_eq, ha, hb, hc])
     c t e rhs
 
+private theorem smt_type_ne_none_of_apply_head
+    {F A B : SmtType}
+    (hHead :
+      F = SmtType.FunType A B ∨
+        F = SmtType.IFunType A B ∨
+        F = SmtType.DtcAppType A B) :
+    F ≠ SmtType.None := by
+  rcases hHead with hHead | hHead
+  · rw [hHead]
+    simp
+  · rcases hHead with hHead | hHead
+    · rw [hHead]
+      simp
+    · rw [hHead]
+      simp
+
+private theorem smt_type_ne_reglan_of_apply_head
+    {F A B : SmtType}
+    (hHead :
+      F = SmtType.FunType A B ∨
+        F = SmtType.IFunType A B ∨
+        F = SmtType.DtcAppType A B) :
+    F ≠ SmtType.RegLan := by
+  rcases hHead with hHead | hHead
+  · rw [hHead]
+    simp
+  · rcases hHead with hHead | hHead
+    · rw [hHead]
+      simp
+    · rw [hHead]
+      simp
+
 private theorem smt_value_rel_model_eval_apply_of_rel_core
     (M : SmtModel) (hM : model_total_typed M)
     (f g x y : SmtTerm)
@@ -2679,7 +2713,7 @@ private theorem smt_value_rel_model_eval_apply_of_rel_core
     ⟨A, B, hHead, hX, hA, _hB⟩
   have hFNN : term_has_non_none_type f := by
     unfold term_has_non_none_type
-    rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+    exact smt_type_ne_none_of_apply_head hHead
   have hGNN : term_has_non_none_type g := by
     unfold term_has_non_none_type
     rw [← hFy]
@@ -2705,7 +2739,7 @@ private theorem smt_value_rel_model_eval_apply_of_rel_core
       __smtx_typeof_value (__smtx_model_eval M y) = __smtx_typeof y :=
     smt_model_eval_preserves_type_of_non_none M hM y hYNN
   have hFNeReg : __smtx_typeof f ≠ SmtType.RegLan := by
-    rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+    exact smt_type_ne_reglan_of_apply_head hHead
   have hANeReg : A ≠ SmtType.RegLan :=
     TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
       f hFNN hHead
@@ -2730,7 +2764,7 @@ private theorem smt_apply_head_non_none_of_apply_non_none
     __smtx_typeof f ≠ SmtType.None := by
   rcases typeof_apply_non_none_cases hAppNN with
     ⟨A, B, hHead, _hX, _hA, _hB⟩
-  rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+  exact smt_type_ne_none_of_apply_head hHead
 
 private theorem mkSmtAppSpineRev_ne_dt_sel
     {F : SmtTerm}
@@ -4315,7 +4349,7 @@ private theorem congTrueSpine_var_apply_apply_eq_true
         __smtx_typeof (SmtTerm.Apply F X₁) ≠ SmtType.None := by
       rcases typeof_apply_non_none_cases hOuterAppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hInnerAppNN :
         __smtx_typeof_apply (__smtx_typeof F) (__smtx_typeof X₁) ≠
           SmtType.None := by
@@ -4390,7 +4424,7 @@ private theorem congTrueSpine_uconst_apply_apply_eq_true
         __smtx_typeof (SmtTerm.Apply F X₁) ≠ SmtType.None := by
       rcases typeof_apply_non_none_cases hOuterAppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hInnerAppNN :
         __smtx_typeof_apply (__smtx_typeof F) (__smtx_typeof X₁) ≠
           SmtType.None := by
@@ -4506,7 +4540,7 @@ private theorem congTrueSpine_var_apply_apply_apply_eq_true
           SmtType.None := by
       rcases typeof_apply_non_none_cases hOuterAppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hMidAppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply F X₁)) (__smtx_typeof X₂) ≠
@@ -4516,7 +4550,7 @@ private theorem congTrueSpine_var_apply_apply_apply_eq_true
         __smtx_typeof (SmtTerm.Apply F X₁) ≠ SmtType.None := by
       rcases typeof_apply_non_none_cases hMidAppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hInnerAppNN :
         __smtx_typeof_apply (__smtx_typeof F) (__smtx_typeof X₁) ≠
           SmtType.None := by
@@ -4624,7 +4658,7 @@ private theorem congTrueSpine_uconst_apply_apply_apply_eq_true
           SmtType.None := by
       rcases typeof_apply_non_none_cases hOuterAppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hMidAppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply F X₁)) (__smtx_typeof X₂) ≠
@@ -4634,7 +4668,7 @@ private theorem congTrueSpine_uconst_apply_apply_apply_eq_true
         __smtx_typeof (SmtTerm.Apply F X₁) ≠ SmtType.None := by
       rcases typeof_apply_non_none_cases hMidAppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hInnerAppNN :
         __smtx_typeof_apply (__smtx_typeof F) (__smtx_typeof X₁) ≠
           SmtType.None := by
@@ -4767,7 +4801,7 @@ private theorem congTrueSpine_var_apply_apply_apply_apply_eq_true
           SmtType.None := by
       rcases typeof_apply_non_none_cases hOuterAppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hMid3AppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂))
@@ -4778,7 +4812,7 @@ private theorem congTrueSpine_var_apply_apply_apply_apply_eq_true
           SmtType.None := by
       rcases typeof_apply_non_none_cases hMid3AppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hMid2AppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply F X₁)) (__smtx_typeof X₂) ≠
@@ -4788,7 +4822,7 @@ private theorem congTrueSpine_var_apply_apply_apply_apply_eq_true
         __smtx_typeof (SmtTerm.Apply F X₁) ≠ SmtType.None := by
       rcases typeof_apply_non_none_cases hMid2AppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hInnerAppNN :
         __smtx_typeof_apply (__smtx_typeof F) (__smtx_typeof X₁) ≠
           SmtType.None := by
@@ -4934,7 +4968,7 @@ private theorem congTrueSpine_uconst_apply_apply_apply_apply_eq_true
           SmtType.None := by
       rcases typeof_apply_non_none_cases hOuterAppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hMid3AppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply (SmtTerm.Apply F X₁) X₂))
@@ -4945,7 +4979,7 @@ private theorem congTrueSpine_uconst_apply_apply_apply_apply_eq_true
           SmtType.None := by
       rcases typeof_apply_non_none_cases hMid3AppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hMid2AppNN :
         __smtx_typeof_apply
             (__smtx_typeof (SmtTerm.Apply F X₁)) (__smtx_typeof X₂) ≠
@@ -4955,7 +4989,7 @@ private theorem congTrueSpine_uconst_apply_apply_apply_apply_eq_true
         __smtx_typeof (SmtTerm.Apply F X₁) ≠ SmtType.None := by
       rcases typeof_apply_non_none_cases hMid2AppNN with
         ⟨A, B, hHead, _hX, _hA, _hB⟩
-      rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      exact smt_type_ne_none_of_apply_head hHead
     have hInnerAppNN :
         __smtx_typeof_apply (__smtx_typeof F) (__smtx_typeof X₁) ≠
           SmtType.None := by
