@@ -537,17 +537,74 @@ private theorem eo_to_smt_tuple_update_ne_dt_cons
     · exact eo_to_smt_updater_ne_dt_cons _ _ _ _ _ _ h
     · cases h
 
+private theorem eo_to_smt_tuple_cons_ne_dt_sel
+    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (s : native_String) (d : SmtDatatype)
+    (i j : native_Nat) :
+    __eo_to_smt_tuple_cons t T v ≠ SmtTerm.DtSel s d i j := by
+  intro h
+  cases t <;> try cases h
+  case DtCons s0 d0 i0 =>
+    cases d0
+    · simp [__eo_to_smt_tuple_cons] at h
+    · rename_i c dTail
+      cases dTail
+      · cases i0
+        · by_cases hs : s0 = "@Tuple"
+          · subst hs
+            simp [__eo_to_smt_tuple_cons] at h
+          · simp [__eo_to_smt_tuple_cons, hs] at h
+        · simp [__eo_to_smt_tuple_cons] at h
+      · simp [__eo_to_smt_tuple_cons] at h
+
+private theorem eo_to_smt_tuple_cons_ne_dt_tester
+    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (s : native_String) (d : SmtDatatype)
+    (i : native_Nat) :
+    __eo_to_smt_tuple_cons t T v ≠ SmtTerm.DtTester s d i := by
+  intro h
+  cases t <;> try cases h
+  case DtCons s0 d0 i0 =>
+    cases d0
+    · simp [__eo_to_smt_tuple_cons] at h
+    · rename_i c dTail
+      cases dTail
+      · cases i0
+        · by_cases hs : s0 = "@Tuple"
+          · subst hs
+            simp [__eo_to_smt_tuple_cons] at h
+          · simp [__eo_to_smt_tuple_cons, hs] at h
+        · simp [__eo_to_smt_tuple_cons] at h
+      · simp [__eo_to_smt_tuple_cons] at h
+
+private theorem eo_to_smt_tuple_cons_ne_dt_cons
+    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (s : native_String) (d : SmtDatatype)
+    (i : native_Nat) :
+    __eo_to_smt_tuple_cons t T v ≠ SmtTerm.DtCons s d i := by
+  intro h
+  cases t <;> try cases h
+  case DtCons s0 d0 i0 =>
+    cases d0
+    · simp [__eo_to_smt_tuple_cons] at h
+    · rename_i c dTail
+      cases dTail
+      · cases i0
+        · by_cases hs : s0 = "@Tuple"
+          · subst hs
+            simp [__eo_to_smt_tuple_cons] at h
+          · simp [__eo_to_smt_tuple_cons, hs] at h
+        · simp [__eo_to_smt_tuple_cons] at h
+      · simp [__eo_to_smt_tuple_cons] at h
+
 private theorem eo_to_smt_tuple_ne_dt_sel
     (x y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x) ≠
       SmtTerm.DtSel s d i j := by
   intro h
   change
-    SmtTerm.Apply
-        (__eo_to_smt_tuple_app_extend (__eo_to_smt y) (__eo_to_smt_type (__eo_typeof x)))
-        (__eo_to_smt x) =
+    __eo_to_smt_tuple_cons (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y))
+        (__eo_to_smt y) =
       SmtTerm.DtSel s d i j at h
-  cases h
+  exact eo_to_smt_tuple_cons_ne_dt_sel
+    (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) s d i j h
 
 private theorem eo_to_smt_tuple_ne_dt_tester
     (x y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
@@ -555,11 +612,23 @@ private theorem eo_to_smt_tuple_ne_dt_tester
       SmtTerm.DtTester s d i := by
   intro h
   change
-    SmtTerm.Apply
-        (__eo_to_smt_tuple_app_extend (__eo_to_smt y) (__eo_to_smt_type (__eo_typeof x)))
-        (__eo_to_smt x) =
+    __eo_to_smt_tuple_cons (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y))
+        (__eo_to_smt y) =
       SmtTerm.DtTester s d i at h
-  cases h
+  exact eo_to_smt_tuple_cons_ne_dt_tester
+    (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) s d i h
+
+private theorem eo_to_smt_tuple_ne_dt_cons
+    (x y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x) ≠
+      SmtTerm.DtCons s d i := by
+  intro h
+  change
+    __eo_to_smt_tuple_cons (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y))
+        (__eo_to_smt y) =
+      SmtTerm.DtCons s d i at h
+  exact eo_to_smt_tuple_cons_ne_dt_cons
+    (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) s d i h
 
 private theorem eo_to_smt_tuple_app_extend_ne_dt_sel
     (t : SmtTerm) (T : SmtType) (s : native_String) (d : SmtDatatype)
@@ -878,6 +947,8 @@ private theorem eo_to_smt_apply_ne_dt_sel
         exact eo_to_smt_forall_top_ne_dt_sel _ _ _ _ _ _ h
       case «exists» =>
         exact eo_to_smt_exists_top_ne_dt_sel _ _ _ _ _ _ h
+      case tuple =>
+        exact eo_to_smt_tuple_ne_dt_sel x y s d i j h
     case Apply k z =>
       cases k <;> try cases h
       case UOp op =>
@@ -931,6 +1002,8 @@ private theorem eo_to_smt_apply_ne_dt_tester
         exact eo_to_smt_forall_top_ne_dt_tester _ _ _ _ _ h
       case «exists» =>
         exact eo_to_smt_exists_top_ne_dt_tester _ _ _ _ _ h
+      case tuple =>
+        exact eo_to_smt_tuple_ne_dt_tester x y s d i h
     case Apply k z =>
       cases k <;> try cases h
       case UOp op =>
@@ -984,6 +1057,8 @@ private theorem eo_to_smt_apply_ne_dt_cons
         exact eo_to_smt_forall_top_ne_dt_cons _ _ _ _ _ h
       case «exists» =>
         exact eo_to_smt_exists_top_ne_dt_cons _ _ _ _ _ h
+      case tuple =>
+        exact eo_to_smt_tuple_ne_dt_cons x y s d i h
     case Apply k z =>
       cases k <;> try cases h
       case UOp op =>
@@ -10345,6 +10420,529 @@ private theorem eo_tuple_is_list_true_of_smt_tuple_type :
           hTailGet, native_ite, native_teq, native_not, SmtEval.native_not]
 termination_by T d h => T
 
+private theorem eo_to_smt_type_tuple_eq_tuple_datatype_of_wf
+    {A B : SmtType}
+    (hWf : __smtx_type_wf (__eo_to_smt_type_tuple A B) = true) :
+    ∃ d, __eo_to_smt_type_tuple A B = SmtType.Datatype "@Tuple" d := by
+  cases B <;> simp [__eo_to_smt_type_tuple, __smtx_type_wf,
+    __smtx_type_wf_rec, native_and] at hWf ⊢
+  case Datatype s d =>
+    by_cases hs : s = "@Tuple"
+    · subst s
+      cases d with
+      | null =>
+          simp [__eo_to_smt_type_tuple, __smtx_type_wf,
+            __smtx_type_wf_rec, native_and] at hWf
+      | sum c rest =>
+          cases rest with
+          | null =>
+              simp [__eo_to_smt_type_tuple]
+          | sum c' rest' =>
+              simp [__eo_to_smt_type_tuple, __smtx_type_wf,
+                __smtx_type_wf_rec, native_and] at hWf
+    · cases d <;> simp [__eo_to_smt_type_tuple, hs, __smtx_type_wf,
+        __smtx_type_wf_rec, native_and] at hWf
+
+mutual
+
+private theorem smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
+    (base : SmtDatatype) :
+    {refs : RefList} -> "@Tuple" ∉ refs -> {T : Term} ->
+      eo_type_valid_rec refs T ->
+        smtx_type_substitute_top_apply "@Tuple" base (__eo_to_smt_type T) =
+          __eo_to_smt_type T
+  | refs, hNo, Term.Bool, _hValid => by
+      simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.DatatypeType s d, hValid => by
+      rcases hValid with ⟨hReserved, hD⟩
+      have hNe : s ≠ "@Tuple" := by
+        intro hs
+        subst s
+        rw [eo_reserved_datatype_name_tuple] at hReserved
+        cases hReserved
+      have hNo' : "@Tuple" ∉ s :: refs := by
+        intro hMem
+        simp at hMem
+        rcases hMem with hEq | hMem
+        · exact hNe hEq.symm
+        · exact hNo hMem
+      have hDSub :
+          __smtx_dt_substitute "@Tuple" base (__eo_to_smt_datatype d) =
+            __eo_to_smt_datatype d :=
+        smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
+          base hNo' hD
+      simp [__eo_to_smt_type, hReserved, smtx_type_substitute_top_apply,
+        native_ite, native_streq, hNe, hDSub]
+  | refs, hNo, Term.DatatypeTypeRef s, hValid => by
+      rcases hValid with ⟨hReserved, _hMem⟩
+      have hNe : s ≠ "@Tuple" := by
+        intro hs
+        subst s
+        rw [eo_reserved_datatype_name_tuple] at hReserved
+        cases hReserved
+      simp [__eo_to_smt_type, hReserved, smtx_type_substitute_top_apply,
+        native_ite, native_Teq, hNe]
+  | refs, hNo, Term.DtcAppType T U, hValid => by
+      rcases hValid with ⟨hT, hU⟩
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hT
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hU
+      simp [__eo_to_smt_type, hTNN, hUNN, __smtx_typeof_guard,
+        smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.USort i, _hValid => by
+      simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.Apply (Term.Apply Term.FunType T) U, hValid => by
+      rcases (by simpa [eo_type_valid_rec] using hValid :
+        eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U) with ⟨hT, hU⟩
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hT
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hU
+      simp [eo_to_smt_type_fun, hTNN, hUNN, __smtx_typeof_guard,
+        smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.UOp UserOp.Int, _hValid => by
+      simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.UOp UserOp.Real, _hValid => by
+      simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.UOp UserOp.Char, _hValid => by
+      simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.UOp UserOp.UnitTuple, _hValid => by
+      simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite, native_streq]
+  | refs, hNo, Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), hValid => by
+      have hn : native_zleq 0 n = true := by
+        simpa [eo_type_valid_rec] using hValid
+      simp [__eo_to_smt_type, hn, smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.Apply (Term.UOp UserOp.Seq) T, hValid => by
+      have hT : eo_type_valid_rec [] T := by
+        simpa [eo_type_valid_rec] using hValid
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hT
+      simp [__eo_to_smt_type, hTNN, __smtx_typeof_guard,
+        smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U, hValid => by
+      rcases (by simpa [eo_type_valid_rec] using hValid :
+        eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U) with ⟨hT, hU⟩
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hT
+      have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hU
+      simp [__eo_to_smt_type, hTNN, hUNN, __smtx_typeof_guard,
+        smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.Apply (Term.UOp UserOp.Set) T, hValid => by
+      have hT : eo_type_valid_rec [] T := by
+        simpa [eo_type_valid_rec] using hValid
+      have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
+        eo_type_valid_rec_non_none hT
+      simp [__eo_to_smt_type, hTNN, __smtx_typeof_guard,
+        smtx_type_substitute_top_apply, native_ite, native_Teq]
+  | refs, hNo, Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U, hValid => by
+      rcases (by simpa [eo_type_valid_rec] using hValid :
+        eo_type_valid_rec [] T ∧ eo_type_valid_rec [] U ∧
+          __smtx_type_wf
+            (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)) =
+            true) with ⟨_hT, _hU, hWf⟩
+      rcases eo_to_smt_type_tuple_eq_tuple_datatype_of_wf hWf with ⟨d, hRaw⟩
+      have hWfRaw : __smtx_type_wf (SmtType.Datatype "@Tuple" d) = true := by
+        simpa [hRaw] using hWf
+      change
+        smtx_type_substitute_top_apply "@Tuple" base
+            (native_ite
+              (__smtx_type_wf
+                (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)))
+              (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U))
+              SmtType.None) =
+          native_ite
+            (__smtx_type_wf
+              (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U)))
+            (__eo_to_smt_type_tuple (__eo_to_smt_type T) (__eo_to_smt_type U))
+            SmtType.None
+      simp [native_ite, hWf, hRaw, hWfRaw, smtx_type_substitute_top_apply,
+        native_streq]
+  | refs, hNo, T, hValid => by
+      cases T with
+      | Bool =>
+          simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite, native_Teq]
+      | USort i =>
+          simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite, native_Teq]
+      | UOp op =>
+          cases op <;> simp [eo_type_valid_rec, __eo_to_smt_type,
+            smtx_type_substitute_top_apply, native_ite, native_Teq, native_streq] at hValid ⊢
+      | DatatypeType s d =>
+          rcases hValid with ⟨hReserved, hD⟩
+          have hNe : s ≠ "@Tuple" := by
+            intro hs
+            subst s
+            rw [eo_reserved_datatype_name_tuple] at hReserved
+            cases hReserved
+          have hNo' : "@Tuple" ∉ s :: refs := by
+            intro hMem
+            simp at hMem
+            rcases hMem with hEq | hMem
+            · exact hNe hEq.symm
+            · exact hNo hMem
+          have hDSub :
+              __smtx_dt_substitute "@Tuple" base (__eo_to_smt_datatype d) =
+                __eo_to_smt_datatype d :=
+            smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
+              base hNo' hD
+          simp [__eo_to_smt_type, hReserved, smtx_type_substitute_top_apply,
+            native_ite, native_streq, hNe, hDSub]
+      | DatatypeTypeRef s =>
+          rcases hValid with ⟨hReserved, _hMem⟩
+          have hNe : s ≠ "@Tuple" := by
+            intro hs
+            subst s
+            rw [eo_reserved_datatype_name_tuple] at hReserved
+            cases hReserved
+          simp [__eo_to_smt_type, hReserved, smtx_type_substitute_top_apply,
+            native_ite, native_Teq, hNe]
+      | DtcAppType T U =>
+          rcases hValid with ⟨hT, hU⟩
+          have hTNN : __eo_to_smt_type T ≠ SmtType.None :=
+            eo_type_valid_rec_non_none hT
+          have hUNN : __eo_to_smt_type U ≠ SmtType.None :=
+            eo_type_valid_rec_non_none hU
+          simp [__eo_to_smt_type, hTNN, hUNN, __smtx_typeof_guard,
+            smtx_type_substitute_top_apply, native_ite, native_Teq]
+      | Apply f x =>
+          cases f with
+          | UOp op =>
+              cases op <;>
+                try simp [eo_type_valid_rec] at hValid
+              case BitVec =>
+                cases x with
+                | Numeral n =>
+                    have hn : native_zleq 0 n = true := by
+                      simpa [eo_type_valid_rec] using hValid
+                    simp [__eo_to_smt_type, hn, smtx_type_substitute_top_apply,
+                      native_ite, native_Teq]
+                | _ =>
+                    simp [eo_type_valid_rec] at hValid
+              case Seq =>
+                have hx : eo_type_valid_rec [] x := by
+                  simpa [eo_type_valid_rec] using hValid
+                have hxNN : __eo_to_smt_type x ≠ SmtType.None :=
+                  eo_type_valid_rec_non_none hx
+                simp [__eo_to_smt_type, hxNN, __smtx_typeof_guard,
+                  smtx_type_substitute_top_apply, native_ite, native_Teq]
+              case Set =>
+                have hx : eo_type_valid_rec [] x := by
+                  simpa [eo_type_valid_rec] using hValid
+                have hxNN : __eo_to_smt_type x ≠ SmtType.None :=
+                  eo_type_valid_rec_non_none hx
+                simp [__eo_to_smt_type, hxNN, __smtx_typeof_guard,
+                  smtx_type_substitute_top_apply, native_ite, native_Teq]
+          | Apply g y =>
+              cases g with
+              | FunType =>
+                  rcases (by simpa [eo_type_valid_rec] using hValid :
+                    eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x) with ⟨hy, hx⟩
+                  have hyNN : __eo_to_smt_type y ≠ SmtType.None :=
+                    eo_type_valid_rec_non_none hy
+                  have hxNN : __eo_to_smt_type x ≠ SmtType.None :=
+                    eo_type_valid_rec_non_none hx
+                  simp [eo_to_smt_type_fun, hyNN, hxNN, __smtx_typeof_guard,
+                    smtx_type_substitute_top_apply, native_ite, native_Teq]
+              | UOp op =>
+                  cases op <;>
+                    try simp [eo_type_valid_rec] at hValid
+                  case Array =>
+                    rcases (by simpa [eo_type_valid_rec] using hValid :
+                      eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x) with ⟨hy, hx⟩
+                    have hyNN : __eo_to_smt_type y ≠ SmtType.None :=
+                      eo_type_valid_rec_non_none hy
+                    have hxNN : __eo_to_smt_type x ≠ SmtType.None :=
+                      eo_type_valid_rec_non_none hx
+                    simp [__eo_to_smt_type, hyNN, hxNN, __smtx_typeof_guard,
+                      smtx_type_substitute_top_apply, native_ite, native_Teq]
+                  case Tuple =>
+                    rcases (by simpa [eo_type_valid_rec] using hValid :
+                      eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x ∧
+                        __smtx_type_wf
+                          (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) =
+                          true) with ⟨_hy, _hx, hWf⟩
+                    rcases eo_to_smt_type_tuple_eq_tuple_datatype_of_wf hWf with ⟨d, hRaw⟩
+                    have hWfRaw :
+                        __smtx_type_wf (SmtType.Datatype "@Tuple" d) = true := by
+                      simpa [hRaw] using hWf
+                    change
+                      smtx_type_substitute_top_apply "@Tuple" base
+                          (native_ite
+                            (__smtx_type_wf
+                              (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)))
+                            (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
+                            SmtType.None) =
+                        native_ite
+                          (__smtx_type_wf
+                            (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)))
+                          (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
+                          SmtType.None
+                    simp [native_ite, hWf, hRaw, hWfRaw, smtx_type_substitute_top_apply,
+                      native_streq]
+              | _ =>
+                  simp [eo_type_valid_rec] at hValid
+          | _ =>
+              simp [eo_type_valid_rec] at hValid
+      | _ =>
+          simp [eo_type_valid_rec] at hValid
+
+private theorem smtx_dtc_substitute_tuple_of_eo_datatype_cons_valid_rec
+    (base : SmtDatatype) :
+    {refs : RefList} -> "@Tuple" ∉ refs -> {c : DatatypeCons} ->
+      eo_datatype_cons_valid_rec refs c ->
+        __smtx_dtc_substitute "@Tuple" base (__eo_to_smt_datatype_cons c) =
+          __eo_to_smt_datatype_cons c
+  | refs, hNo, DatatypeCons.unit, _hValid => by
+      simp [__eo_to_smt_datatype_cons, __smtx_dtc_substitute]
+  | refs, hNo, DatatypeCons.cons T c, hValid => by
+      rcases hValid with ⟨hT, hC⟩
+      have hTSub :
+          smtx_type_substitute_top_apply "@Tuple" base (__eo_to_smt_type T) =
+            __eo_to_smt_type T :=
+        smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
+          base hNo hT
+      have hCSub :
+          __smtx_dtc_substitute "@Tuple" base (__eo_to_smt_datatype_cons c) =
+            __eo_to_smt_datatype_cons c :=
+        smtx_dtc_substitute_tuple_of_eo_datatype_cons_valid_rec
+          base hNo hC
+      cases hTy : __eo_to_smt_type T <;>
+        simpa [__eo_to_smt_datatype_cons, __smtx_dtc_substitute,
+          smtx_type_substitute_top_apply, hTy, hCSub] using hTSub
+
+private theorem smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
+    (base : SmtDatatype) :
+    {refs : RefList} -> "@Tuple" ∉ refs -> {d : Datatype} ->
+      eo_datatype_valid_rec refs d ->
+        __smtx_dt_substitute "@Tuple" base (__eo_to_smt_datatype d) =
+          __eo_to_smt_datatype d
+  | refs, hNo, Datatype.null, _hValid => by
+      simp [__eo_to_smt_datatype, __smtx_dt_substitute]
+  | refs, hNo, Datatype.sum c d, hValid => by
+      rcases hValid with ⟨hC, hD⟩
+      have hCSub :
+          __smtx_dtc_substitute "@Tuple" base (__eo_to_smt_datatype_cons c) =
+            __eo_to_smt_datatype_cons c :=
+        smtx_dtc_substitute_tuple_of_eo_datatype_cons_valid_rec
+          base hNo hC
+      have hDSub :
+          __smtx_dt_substitute "@Tuple" base (__eo_to_smt_datatype d) =
+            __eo_to_smt_datatype d :=
+        smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
+          base hNo hD
+      simp [__eo_to_smt_datatype, __smtx_dt_substitute, hCSub, hDSub]
+
+end
+
+private theorem smtx_ret_typeof_tuple_sel_rec_eq_eo_list_nth_rec_nat :
+    ∀ {T : Term} {d : SmtDatatype} (j : native_Nat),
+      __eo_to_smt_type T = SmtType.Datatype "@Tuple" d ->
+        eo_type_valid_rec [] T ->
+          __smtx_ret_typeof_sel_rec d native_nat_zero j =
+            __eo_to_smt_type
+              (__eo_list_nth_rec T (Term.Numeral (native_nat_to_int j)))
+  | T, d, j, hT, hValid => by
+      rcases eo_to_smt_type_eq_tuple_datatype hT with hUnit | hCons
+      · rcases hUnit with ⟨hEq, hD⟩
+        subst T
+        subst d
+        cases j <;>
+          simp [__smtx_ret_typeof_sel_rec, __eo_list_nth_rec,
+            __eo_to_smt_type, native_nat_to_int, SmtEval.native_nat_to_int]
+      · rcases hCons with ⟨y, x0, c, hEq, hTail, hD⟩
+        subst T
+        subst d
+        rcases (by simpa [eo_type_valid_rec] using hValid :
+          eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x0 ∧
+            __smtx_type_wf
+              (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x0)) =
+              true) with ⟨_hy, hx, _hWf⟩
+        cases j with
+        | zero =>
+            simp [__smtx_ret_typeof_sel_rec, __eo_list_nth_rec,
+              native_nat_to_int, SmtEval.native_nat_to_int]
+        | succ j =>
+            have hStep :
+                native_zplus (native_nat_to_int (native_nat_succ j)) (-1 : native_Int) =
+                  native_nat_to_int j := by
+              have hInt : ((j : Int) + 1) + (-1 : Int) = j := by
+                omega
+              simpa [native_zplus, SmtEval.native_zplus, native_nat_to_int,
+                SmtEval.native_nat_to_int] using hInt
+            have hNe :
+                native_nat_to_int (native_nat_succ j) ≠ (0 : native_Int) := by
+              have hInt : ((j : Int) + 1) ≠ 0 := by
+                omega
+              simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hInt
+            have hIH :=
+              smtx_ret_typeof_tuple_sel_rec_eq_eo_list_nth_rec_nat
+                (T := x0) (d := SmtDatatype.sum c SmtDatatype.null) j hTail hx
+            have hNth :
+                __eo_list_nth_rec
+                    (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) y) x0)
+                    (Term.Numeral (native_nat_to_int (native_nat_succ j))) =
+                  __eo_list_nth_rec x0 (Term.Numeral (native_nat_to_int j)) := by
+              simpa [__eo_add, hStep] using
+                (__eo_list_nth_rec.eq_3
+                  (Term.Numeral (native_nat_to_int (native_nat_succ j)))
+                  (Term.UOp UserOp.Tuple) y x0
+                  (by intro h; cases h)
+                  (by
+                    intro h
+                    injection h with hInt
+                    exact hNe hInt))
+            rw [hNth]
+            simpa [__smtx_ret_typeof_sel_rec] using hIH
+termination_by T d j hT hValid => T
+
+private theorem smtx_type_substitute_top_apply_tuple_of_eo_list_nth_rec_nat :
+    ∀ {T : Term} {d base : SmtDatatype} (j : native_Nat),
+      __eo_to_smt_type T = SmtType.Datatype "@Tuple" d ->
+        eo_type_valid_rec [] T ->
+          smtx_type_substitute_top_apply "@Tuple" base
+              (__eo_to_smt_type
+                (__eo_list_nth_rec T (Term.Numeral (native_nat_to_int j)))) =
+            __eo_to_smt_type
+              (__eo_list_nth_rec T (Term.Numeral (native_nat_to_int j)))
+  | T, d, base, j, hT, hValid => by
+      rcases eo_to_smt_type_eq_tuple_datatype hT with hUnit | hCons
+      · rcases hUnit with ⟨hEq, hD⟩
+        subst T
+        cases j <;>
+          simp [__eo_list_nth_rec, smtx_type_substitute_top_apply,
+            __eo_to_smt_type, native_nat_to_int, SmtEval.native_nat_to_int,
+            native_ite, native_Teq]
+      · rcases hCons with ⟨y, x0, c, hEq, hTail, hD⟩
+        subst T
+        rcases (by simpa [eo_type_valid_rec] using hValid :
+          eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x0 ∧
+            __smtx_type_wf
+              (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x0)) =
+              true) with ⟨hy, hx, _hWf⟩
+        cases j with
+        | zero =>
+            exact
+              smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
+                base (by simp) hy
+        | succ j =>
+            have hStep :
+                native_zplus (native_nat_to_int (native_nat_succ j)) (-1 : native_Int) =
+                  native_nat_to_int j := by
+              have hInt : ((j : Int) + 1) + (-1 : Int) = j := by
+                omega
+              simpa [native_zplus, SmtEval.native_zplus, native_nat_to_int,
+                SmtEval.native_nat_to_int] using hInt
+            have hNe :
+                native_nat_to_int (native_nat_succ j) ≠ (0 : native_Int) := by
+              have hInt : ((j : Int) + 1) ≠ 0 := by
+                omega
+              simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hInt
+            have hIH :=
+              smtx_type_substitute_top_apply_tuple_of_eo_list_nth_rec_nat
+                (T := x0) (d := SmtDatatype.sum c SmtDatatype.null) (base := base)
+                j hTail hx
+            have hNth :
+                __eo_list_nth_rec
+                    (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) y) x0)
+                    (Term.Numeral (native_nat_to_int (native_nat_succ j))) =
+                  __eo_list_nth_rec x0 (Term.Numeral (native_nat_to_int j)) := by
+              simpa [__eo_add, hStep] using
+                (__eo_list_nth_rec.eq_3
+                  (Term.Numeral (native_nat_to_int (native_nat_succ j)))
+                  (Term.UOp UserOp.Tuple) y x0
+                  (by intro h; cases h)
+                  (by
+                    intro h
+                    injection h with hInt
+                    exact hNe hInt))
+            rw [hNth]
+            exact hIH
+termination_by T d base j hT hValid => T
+
+private theorem eo_type_valid_rec_of_tuple_smt_type
+    {T : Term} {d : SmtDatatype}
+    (hT : __eo_to_smt_type T = SmtType.Datatype "@Tuple" d)
+    (hValid : eo_type_valid T) :
+    eo_type_valid_rec [] T := by
+  cases T <;> try simpa [eo_type_valid] using hValid
+  case UOp op =>
+    cases op <;> try simpa [eo_type_valid] using hValid
+    case RegLan =>
+      simp [__eo_to_smt_type] at hT
+
+private theorem eo_type_valid_rec_tuple_list_nth_rec_nat :
+    ∀ {T : Term} {d : SmtDatatype} (j : native_Nat),
+      __eo_to_smt_type T = SmtType.Datatype "@Tuple" d ->
+        eo_type_valid_rec [] T ->
+          j < __smtx_dt_num_sels d native_nat_zero ->
+            eo_type_valid_rec []
+              (__eo_list_nth_rec T (Term.Numeral (native_nat_to_int j)))
+  | T, d, j, hT, hValid, hj => by
+      rcases eo_to_smt_type_eq_tuple_datatype hT with hUnit | hCons
+      · rcases hUnit with ⟨hEq, hD⟩
+        subst T
+        subst d
+        simp [__smtx_dt_num_sels, __smtx_dtc_num_sels] at hj
+      · rcases hCons with ⟨y, x0, c, hEq, hTail, hD⟩
+        subst T
+        subst d
+        rcases (by simpa [eo_type_valid_rec] using hValid :
+          eo_type_valid_rec [] y ∧ eo_type_valid_rec [] x0 ∧
+            __smtx_type_wf
+              (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x0)) =
+              true) with ⟨hy, hx, _hWf⟩
+        cases j with
+        | zero =>
+            simpa [__eo_list_nth_rec, native_nat_to_int, SmtEval.native_nat_to_int] using hy
+        | succ j =>
+            have hjTail : j < __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+                native_nat_zero := by
+              simpa [__smtx_dt_num_sels, __smtx_dtc_num_sels] using hj
+            have hStep :
+                native_zplus (native_nat_to_int (native_nat_succ j)) (-1 : native_Int) =
+                  native_nat_to_int j := by
+              have hInt : ((j : Int) + 1) + (-1 : Int) = j := by
+                omega
+              simpa [native_zplus, SmtEval.native_zplus, native_nat_to_int,
+                SmtEval.native_nat_to_int] using hInt
+            have hNe :
+                native_nat_to_int (native_nat_succ j) ≠ (0 : native_Int) := by
+              have hInt : ((j : Int) + 1) ≠ 0 := by
+                omega
+              simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hInt
+            have hNth :
+                __eo_list_nth_rec
+                    (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) y) x0)
+                    (Term.Numeral (native_nat_to_int (native_nat_succ j))) =
+                  __eo_list_nth_rec x0 (Term.Numeral (native_nat_to_int j)) := by
+              simpa [__eo_add, hStep] using
+                (__eo_list_nth_rec.eq_3
+                  (Term.Numeral (native_nat_to_int (native_nat_succ j)))
+                  (Term.UOp UserOp.Tuple) y x0
+                  (by intro h; cases h)
+                  (by
+                    intro h
+                    injection h with hInt
+                    exact hNe hInt))
+            rw [hNth]
+            exact eo_type_valid_rec_tuple_list_nth_rec_nat
+              (T := x0) (d := SmtDatatype.sum c SmtDatatype.null) j hTail hx hjTail
+termination_by T d j hT hValid hj => T
+
+private theorem smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
+    {T : Term} {d : SmtDatatype} (j : native_Nat)
+    (hT : __eo_to_smt_type T = SmtType.Datatype "@Tuple" d)
+    (hValid : eo_type_valid_rec [] T) :
+    __smtx_ret_typeof_sel "@Tuple" d native_nat_zero j =
+      __eo_to_smt_type (__eo_list_nth_rec T (Term.Numeral (native_nat_to_int j))) := by
+  rw [__smtx_ret_typeof_sel]
+  rw [smtx_ret_typeof_sel_rec_substitute_apply]
+  rw [smtx_ret_typeof_tuple_sel_rec_eq_eo_list_nth_rec_nat j hT hValid]
+  exact
+    smtx_type_substitute_top_apply_tuple_of_eo_list_nth_rec_nat
+      (T := T) (d := d) (base := d) j hT hValid
+
 /-- Simplifies EO-to-SMT translation for `tuple_select`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_tuple_select
     (x y : Term)
@@ -10437,11 +11035,28 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_select
                   __eo_is_list (Term.UOp UserOp.Tuple) (__eo_typeof x) =
                     Term.Boolean true :=
                 eo_tuple_is_list_true_of_smt_tuple_type hTyFromIH
+              have hTupleWf :
+                  __smtx_type_wf (SmtType.Datatype "@Tuple" d) = true :=
+                Smtm.smt_datatype_wf_of_non_none_type
+                  (__eo_to_smt x) "@Tuple" d hArgTy
+              have hXValidTop : eo_type_valid (__eo_typeof x) :=
+                eo_type_valid_of_smt_wf (__eo_typeof x) (by
+                  simpa [hTyFromIH] using hTupleWf)
+              have hXValidRec : eo_type_valid_rec [] (__eo_typeof x) :=
+                eo_type_valid_rec_of_tuple_smt_type hTyFromIH hXValidTop
               simp [__eo_list_nth, __eo_requires, hList, native_ite, native_teq,
                 native_not, SmtEval.native_not]
-              -- Remaining tuple datatype fact: SMT selector return after `@Tuple`
-              -- substitution must agree with EO list indexing.
-              sorry
+              have hnNonneg : (0 : Int) ≤ n := by
+                simpa [native_zleq, SmtEval.native_zleq] using hNonneg
+              have hNatInt :
+                  native_nat_to_int (native_int_to_nat n) = n := by
+                simp [native_nat_to_int, native_int_to_nat,
+                  SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
+                  Int.toNat_of_nonneg hnNonneg]
+              simpa [hNatInt] using
+                smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
+                  (T := __eo_typeof x) (d := d) (j := native_int_to_nat n)
+                  hTyFromIH hXValidRec
         | _ =>
             exact eo_to_smt_typeof_matches_translation_of_smt_none
               (Term.Apply (Term.UOp1 UserOp1.tuple_select y) x)
@@ -13134,6 +13749,32 @@ private theorem smtx_apply_head_non_none_of_non_none
       rw [hHead]
       simp
 
+private theorem eo_to_smt_updater_rec_ne_dt_sel
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
+    (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
+    (s0 : native_String) (d0 : SmtDatatype) (i0 j0 : native_Nat) :
+    __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u acc ≠
+      SmtTerm.DtSel s0 d0 i0 j0 := by
+  intro h
+  cases n with
+  | zero =>
+      simpa [__eo_to_smt_updater_rec] using hAccSel s0 d0 i0 j0 h
+  | succ k =>
+      cases h
+
+private theorem eo_to_smt_updater_rec_ne_dt_tester
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
+    (hAccTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
+    (s0 : native_String) (d0 : SmtDatatype) (i0 : native_Nat) :
+    __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u acc ≠
+      SmtTerm.DtTester s0 d0 i0 := by
+  intro h
+  cases n with
+  | zero =>
+      simpa [__eo_to_smt_updater_rec] using hAccTester s0 d0 i0 h
+  | succ k =>
+      cases h
+
 private theorem eo_to_smt_updater_rec_acc_non_none_of_non_none
     (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
     (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
@@ -13147,24 +13788,18 @@ private theorem eo_to_smt_updater_rec_acc_non_none_of_non_none
   | zero =>
       simpa [__eo_to_smt_updater_rec] using hNN
   | succ k ih =>
-      have hAccApp :
+      have hRecNN :
           __smtx_typeof
-              (SmtTerm.Apply acc
-                (native_ite (native_nateq j k) u
-                  (SmtTerm.Apply (SmtTerm.DtSel s d i j) t))) ≠
-            SmtType.None := by
-        exact ih
-          (SmtTerm.Apply acc
-            (native_ite (native_nateq j k) u
-              (SmtTerm.Apply (SmtTerm.DtSel s d i j) t)))
-          (by intro s d i j h; cases h)
-          (by intro s d i h; cases h)
+              (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc) ≠
+            SmtType.None :=
+        smtx_apply_head_non_none_of_non_none
+          (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc)
+          (native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i k) t))
+          (eo_to_smt_updater_rec_ne_dt_sel s d i j k t u acc hAccSel)
+          (eo_to_smt_updater_rec_ne_dt_tester s d i j k t u acc hAccTester)
           (by
             simpa [__eo_to_smt_updater_rec] using hNN)
-      exact smtx_apply_head_non_none_of_non_none acc
-        (native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i j) t))
-        hAccSel hAccTester
-        hAccApp
+      exact ih acc hAccSel hAccTester hRecNN
 
 private theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
     (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
@@ -13185,30 +13820,27 @@ private theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
       omega
   | succ k ih =>
       by_cases hEq : native_nateq j k = true
-      · have hAccApp :
-            __smtx_typeof
-                (SmtTerm.Apply acc
-                  (native_ite (native_nateq j k) u
-                    (SmtTerm.Apply (SmtTerm.DtSel s d i j) t))) ≠
-              SmtType.None :=
-          eo_to_smt_updater_rec_acc_non_none_of_non_none
-            s d i j k t u
-            (SmtTerm.Apply acc
-              (native_ite (native_nateq j k) u
-                (SmtTerm.Apply (SmtTerm.DtSel s d i j) t)))
-            (by intro s d i j h; cases h)
-            (by intro s d i h; cases h)
-            (by
-              simpa [__eo_to_smt_updater_rec] using hNN)
+      · have hRecSel :
+            ∀ s0 d0 i0 j0,
+              __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc ≠
+                SmtTerm.DtSel s0 d0 i0 j0 :=
+          eo_to_smt_updater_rec_ne_dt_sel s d i j k t u acc hAccSel
+        have hRecTester :
+            ∀ s0 d0 i0,
+              __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc ≠
+                SmtTerm.DtTester s0 d0 i0 :=
+          eo_to_smt_updater_rec_ne_dt_tester s d i j k t u acc hAccTester
         have hArg :
             __smtx_typeof
                 (native_ite (native_nateq j k) u
-                  (SmtTerm.Apply (SmtTerm.DtSel s d i j) t)) ≠
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i k) t)) ≠
               SmtType.None :=
-          smtx_apply_arg_non_none_of_non_none acc
-            (native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i j) t))
-            hAccSel hAccTester
-            hAccApp
+          smtx_apply_arg_non_none_of_non_none
+            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc)
+            (native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i k) t))
+            hRecSel hRecTester
+            (by
+              simpa [__eo_to_smt_updater_rec] using hNN)
         simpa [native_ite, hEq] using hArg
       · have hIdxK :
             native_zlt (native_nat_to_int j) (native_nat_to_int k) = true := by
@@ -13227,15 +13859,224 @@ private theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
           have hjkInt : (j : Int) < (k : Int) := Int.ofNat_lt.mpr hjk
           simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
             SmtEval.native_nat_to_int] using hjkInt
-        exact ih
-          (SmtTerm.Apply acc
-            (native_ite (native_nateq j k) u
-              (SmtTerm.Apply (SmtTerm.DtSel s d i j) t)))
-          (by intro s d i j h; cases h)
-          (by intro s d i h; cases h)
-          hIdxK
-          (by
-            simpa [__eo_to_smt_updater_rec] using hNN)
+        have hRecNN :
+            __smtx_typeof
+                (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc) ≠
+              SmtType.None :=
+          smtx_apply_head_non_none_of_non_none
+            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc)
+            (native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i k) t))
+            (eo_to_smt_updater_rec_ne_dt_sel s d i j k t u acc hAccSel)
+            (eo_to_smt_updater_rec_ne_dt_tester s d i j k t u acc hAccTester)
+            (by
+              simpa [__eo_to_smt_updater_rec] using hNN)
+        exact ih acc hAccSel hAccTester hIdxK hRecNN
+
+private theorem eo_to_smt_updater_rec_type_of_non_none
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u : SmtTerm)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u
+            (SmtTerm.DtCons s d i)) ≠
+        SmtType.None) :
+    __smtx_typeof
+        (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u
+          (SmtTerm.DtCons s d i)) =
+      dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i n := by
+  induction n with
+  | zero =>
+      let raw :=
+        __smtx_typeof_dt_cons_rec (SmtType.Datatype s d)
+          (__smtx_dt_substitute s d d) i
+      have hGuardNN :
+          __smtx_typeof_guard_wf (SmtType.Datatype s d) raw ≠
+            SmtType.None := by
+        simpa [__eo_to_smt_updater_rec, Smtm.typeof_dt_cons_eq, raw] using hNN
+      have hGuard :
+          __smtx_typeof_guard_wf (SmtType.Datatype s d) raw = raw :=
+        smtx_typeof_guard_wf_of_non_none (SmtType.Datatype s d) raw hGuardNN
+      simpa [__eo_to_smt_updater_rec, Smtm.typeof_dt_cons_eq, raw,
+        dt_cons_applied_type_rec, typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec]
+        using hGuard
+  | succ k ih =>
+      let recTerm :=
+        __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u
+          (SmtTerm.DtCons s d i)
+      let argTerm :=
+        native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i k) t)
+      have hTermNN :
+          __smtx_typeof (SmtTerm.Apply recTerm argTerm) ≠ SmtType.None := by
+        simpa [__eo_to_smt_updater_rec, recTerm, argTerm] using hNN
+      have hRecSel :
+          ∀ s0 d0 i0 j0, recTerm ≠ SmtTerm.DtSel s0 d0 i0 j0 := by
+        exact eo_to_smt_updater_rec_ne_dt_sel s d i j k t u
+          (SmtTerm.DtCons s d i) (by intro s0 d0 i0 j0 h; cases h)
+      have hRecTester :
+          ∀ s0 d0 i0, recTerm ≠ SmtTerm.DtTester s0 d0 i0 := by
+        exact eo_to_smt_updater_rec_ne_dt_tester s d i j k t u
+          (SmtTerm.DtCons s d i) (by intro s0 d0 i0 h; cases h)
+      have hGeneric : generic_apply_type recTerm argTerm :=
+        generic_apply_type_of_non_special_head recTerm argTerm hRecSel hRecTester
+      have hApplyNN :
+          __smtx_typeof_apply (__smtx_typeof recTerm) (__smtx_typeof argTerm) ≠
+            SmtType.None := by
+        unfold generic_apply_type at hGeneric
+        rw [hGeneric] at hTermNN
+        exact hTermNN
+      have hRecNN : __smtx_typeof recTerm ≠ SmtType.None := by
+        exact smtx_apply_head_non_none_of_non_none recTerm argTerm hRecSel hRecTester hTermNN
+      have hRecTy :
+          __smtx_typeof recTerm =
+            dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i k := by
+        simpa [recTerm] using ih hRecNN
+      rcases typeof_apply_non_none_cases hApplyNN with
+        ⟨A, B, hHead, hArg, hA, _hB⟩
+      have hlt :
+          k < __smtx_dt_num_sels (__smtx_dt_substitute s d d) i := by
+        rcases hHead with hHead | hHead
+        · have hArgs := congrArg dt_cons_type_num_args hHead
+          rw [hRecTy, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+          simp [dt_cons_type_num_args] at hArgs
+          omega
+        · have hArgs := congrArg dt_cons_type_num_args hHead
+          rw [hRecTy, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+          simp [dt_cons_type_num_args] at hArgs
+          omega
+      let R := __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) i k
+      let Rest :=
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i (Nat.succ k)
+      have hStep :
+          dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i k =
+            SmtType.DtcAppType R Rest := by
+        simpa [R, Rest] using
+          dt_cons_applied_type_rec_step s d (__smtx_dt_substitute s d d) i k hlt
+      have hArgR : __smtx_typeof argTerm = R := by
+        rcases hHead with hHead | hHead
+        · have hBad :
+            SmtType.DtcAppType R Rest = SmtType.FunType A B := by
+            exact (hRecTy.trans hStep).symm.trans hHead
+          cases hBad
+        · have hCmp :
+              SmtType.DtcAppType R Rest = SmtType.DtcAppType A B := by
+            exact (hRecTy.trans hStep).symm.trans hHead
+          injection hCmp with hAeq _hBeq
+          exact hArg.trans hAeq.symm
+      have hRNN : R ≠ SmtType.None := by
+        rw [← hArgR]
+        exact smtx_apply_arg_non_none_of_non_none recTerm argTerm hRecSel hRecTester hTermNN
+      have hApplyTy :
+          __smtx_typeof (SmtTerm.Apply recTerm argTerm) = Rest := by
+        rw [hGeneric]
+        exact smtx_typeof_apply_of_head_cases (Or.inr (hRecTy.trans hStep)) hArgR hRNN
+      simpa [__eo_to_smt_updater_rec, recTerm, argTerm, Rest] using hApplyTy
+
+private theorem eo_to_smt_updater_rec_update_arg_type_of_non_none
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u : SmtTerm)
+    (hIdx : native_zlt (native_nat_to_int j) (native_nat_to_int n) = true)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u
+            (SmtTerm.DtCons s d i)) ≠
+        SmtType.None) :
+    __smtx_typeof u = __smtx_ret_typeof_sel s d i j := by
+  induction n with
+  | zero =>
+      have hj : (j : Int) < 0 := by
+        simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+          SmtEval.native_nat_to_int] using hIdx
+      have hjNonneg : (0 : Int) ≤ j := Int.natCast_nonneg j
+      omega
+  | succ k ih =>
+      let recTerm :=
+        __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u
+          (SmtTerm.DtCons s d i)
+      let argTerm :=
+        native_ite (native_nateq j k) u (SmtTerm.Apply (SmtTerm.DtSel s d i k) t)
+      have hTermNN :
+          __smtx_typeof (SmtTerm.Apply recTerm argTerm) ≠ SmtType.None := by
+        simpa [__eo_to_smt_updater_rec, recTerm, argTerm] using hNN
+      have hRecSel :
+          ∀ s0 d0 i0 j0, recTerm ≠ SmtTerm.DtSel s0 d0 i0 j0 := by
+        exact eo_to_smt_updater_rec_ne_dt_sel s d i j k t u
+          (SmtTerm.DtCons s d i) (by intro s0 d0 i0 j0 h; cases h)
+      have hRecTester :
+          ∀ s0 d0 i0, recTerm ≠ SmtTerm.DtTester s0 d0 i0 := by
+        exact eo_to_smt_updater_rec_ne_dt_tester s d i j k t u
+          (SmtTerm.DtCons s d i) (by intro s0 d0 i0 h; cases h)
+      by_cases hEq : native_nateq j k = true
+      · have hjk : j = k := by
+          simpa [native_nateq, SmtEval.native_nateq] using hEq
+        have hGeneric : generic_apply_type recTerm argTerm :=
+          generic_apply_type_of_non_special_head recTerm argTerm hRecSel hRecTester
+        have hApplyNN :
+            __smtx_typeof_apply (__smtx_typeof recTerm) (__smtx_typeof argTerm) ≠
+              SmtType.None := by
+          unfold generic_apply_type at hGeneric
+          rw [hGeneric] at hTermNN
+          exact hTermNN
+        have hRecNN : __smtx_typeof recTerm ≠ SmtType.None := by
+          exact smtx_apply_head_non_none_of_non_none recTerm argTerm hRecSel hRecTester
+            hTermNN
+        have hRecTy :
+            __smtx_typeof recTerm =
+              dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i k := by
+          exact eo_to_smt_updater_rec_type_of_non_none s d i j k t u hRecNN
+        rcases typeof_apply_non_none_cases hApplyNN with
+          ⟨A, B, hHead, hArg, _hA, _hB⟩
+        have hlt :
+            k < __smtx_dt_num_sels (__smtx_dt_substitute s d d) i := by
+          rcases hHead with hHead | hHead
+          · have hArgs := congrArg dt_cons_type_num_args hHead
+            rw [hRecTy, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+            simp [dt_cons_type_num_args] at hArgs
+            omega
+          · have hArgs := congrArg dt_cons_type_num_args hHead
+            rw [hRecTy, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+            simp [dt_cons_type_num_args] at hArgs
+            omega
+        let R := __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) i k
+        let Rest :=
+          dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i (Nat.succ k)
+        have hStep :
+            dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i k =
+              SmtType.DtcAppType R Rest := by
+          simpa [R, Rest] using
+            dt_cons_applied_type_rec_step s d (__smtx_dt_substitute s d d) i k hlt
+        have hArgR : __smtx_typeof argTerm = R := by
+          rcases hHead with hHead | hHead
+          · have hBad :
+              SmtType.DtcAppType R Rest = SmtType.FunType A B := by
+              exact (hRecTy.trans hStep).symm.trans hHead
+            cases hBad
+          · have hCmp :
+                SmtType.DtcAppType R Rest = SmtType.DtcAppType A B := by
+              exact (hRecTy.trans hStep).symm.trans hHead
+            injection hCmp with hAeq _hBeq
+            exact hArg.trans hAeq.symm
+        have hArgU : argTerm = u := by
+          simp [argTerm, native_ite, hEq]
+        subst hjk
+        simpa [hArgU, R, __smtx_ret_typeof_sel] using hArgR
+      · have hIdxK :
+            native_zlt (native_nat_to_int j) (native_nat_to_int k) = true := by
+          have hjk : j < k := by
+            have hjSucc : j < Nat.succ k := by
+              have hjSuccInt : (j : Int) < (Nat.succ k : Int) := by
+                apply of_decide_eq_true
+                simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+                  SmtEval.native_nat_to_int] using hIdx
+              exact Int.ofNat_lt.mp hjSuccInt
+            have hne : j ≠ k := by
+              intro h
+              subst j
+              simp [native_nateq, SmtEval.native_nateq] at hEq
+            exact Nat.lt_of_le_of_ne (Nat.le_of_lt_succ hjSucc) hne
+          have hjkInt : (j : Int) < (k : Int) := Int.ofNat_lt.mpr hjk
+          simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+            SmtEval.native_nat_to_int] using hjkInt
+        have hRecNN : __smtx_typeof recTerm ≠ SmtType.None := by
+          exact smtx_apply_head_non_none_of_non_none recTerm argTerm hRecSel hRecTester hTermNN
+        exact ih hIdxK hRecNN
 
 /-- `update`, reducing the selector head and reusing the EO-side update typing helper. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_update
@@ -13448,7 +14289,122 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
         have hSmt : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d := by
           rw [hTranslate]
           simpa [__eo_to_smt_tuple_update, hGe, native_ite] using hInnerTy
-        sorry
+        have hRecNN :
+            __smtx_typeof
+                (__eo_to_smt_updater_rec
+                  (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat n))
+                  (__smtx_dt_num_sels d native_nat_zero) (__eo_to_smt y)
+                  (__eo_to_smt x) (SmtTerm.DtCons "@Tuple" d native_nat_zero)) ≠
+              SmtType.None := by
+          rw [hThen]
+          exact _hT
+        have hXRetSmt :
+            __smtx_typeof (__eo_to_smt x) =
+              __smtx_ret_typeof_sel "@Tuple" d native_nat_zero (native_int_to_nat n) :=
+          eo_to_smt_updater_rec_update_arg_type_of_non_none
+            "@Tuple" d native_nat_zero (native_int_to_nat n)
+            (__smtx_dt_num_sels d native_nat_zero) (__eo_to_smt y) (__eo_to_smt x)
+            hIdx hRecNN
+        have hXNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+          exact eo_to_smt_updater_rec_update_arg_non_none_of_non_none
+            "@Tuple" d native_nat_zero (native_int_to_nat n)
+            (__smtx_dt_num_sels d native_nat_zero) (__eo_to_smt y) (__eo_to_smt x)
+            (SmtTerm.DtCons "@Tuple" d native_nat_zero)
+            (by intro s d i j h; cases h)
+            (by intro s d i h; cases h)
+            hIdx hRecNN
+        have hXEo :
+            __eo_to_smt_type (__eo_typeof x) =
+              __smtx_ret_typeof_sel "@Tuple" d native_nat_zero (native_int_to_nat n) :=
+          (ihX hXNN).symm.trans hXRetSmt
+        have hYN : z = Term.Numeral n :=
+          eo_to_smt_eq_numeral z n hz
+        subst z
+        have hTupleWf :
+            __smtx_type_wf (SmtType.Datatype "@Tuple" d) = true :=
+          Smtm.smt_datatype_wf_of_non_none_type
+            (__eo_to_smt y) "@Tuple" d hYTy
+        have hYValidTop : eo_type_valid (__eo_typeof y) :=
+          eo_type_valid_of_smt_wf (__eo_typeof y) (by
+            simpa [hTy] using hTupleWf)
+        have hYValidRec : eo_type_valid_rec [] (__eo_typeof y) :=
+          eo_type_valid_rec_of_tuple_smt_type hTy hYValidTop
+        have hList :
+            __eo_is_list (Term.UOp UserOp.Tuple) (__eo_typeof y) =
+              Term.Boolean true :=
+          eo_tuple_is_list_true_of_smt_tuple_type hTy
+        have hnNonneg : (0 : Int) ≤ n := by
+          simpa [native_zleq, SmtEval.native_zleq] using hGe
+        have hNatInt :
+            native_nat_to_int (native_int_to_nat n) = n := by
+          simp [native_nat_to_int, native_int_to_nat,
+            SmtEval.native_nat_to_int, SmtEval.native_int_to_nat,
+            Int.toNat_of_nonneg hnNonneg]
+        have hRetNth :
+            __smtx_ret_typeof_sel "@Tuple" d native_nat_zero (native_int_to_nat n) =
+              __eo_to_smt_type
+                (__eo_list_nth (Term.UOp UserOp.Tuple) (__eo_typeof y)
+                  (Term.Numeral n)) := by
+          simp [__eo_list_nth, __eo_requires, hList, native_ite, native_teq,
+            native_not, SmtEval.native_not]
+          simpa [hNatInt] using
+            smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
+              (T := __eo_typeof y) (d := d) (j := native_int_to_nat n)
+              hTy hYValidRec
+        have hIdxNat :
+            native_int_to_nat n < __smtx_dt_num_sels d native_nat_zero := by
+          have hIdxInt :
+              (native_int_to_nat n : Int) <
+                (__smtx_dt_num_sels d native_nat_zero : Int) := by
+            apply of_decide_eq_true
+            simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+              SmtEval.native_nat_to_int] using hIdx
+          exact Int.ofNat_lt.mp hIdxInt
+        have hNthValidRec :
+            eo_type_valid_rec []
+              (__eo_list_nth_rec (__eo_typeof y)
+                (Term.Numeral (native_nat_to_int (native_int_to_nat n)))) :=
+          eo_type_valid_rec_tuple_list_nth_rec_nat
+            (T := __eo_typeof y) (d := d) (j := native_int_to_nat n)
+            hTy hYValidRec hIdxNat
+        have hNthValid :
+            eo_type_valid_rec []
+              (__eo_list_nth (Term.UOp UserOp.Tuple) (__eo_typeof y)
+                (Term.Numeral n)) := by
+          simp [__eo_list_nth, __eo_requires, hList, native_ite, native_teq,
+            native_not, SmtEval.native_not]
+          simpa [hNatInt] using hNthValidRec
+        have hNthEqX :
+            __eo_list_nth (Term.UOp UserOp.Tuple) (__eo_typeof y)
+                (Term.Numeral n) =
+              __eo_typeof x :=
+          eo_to_smt_type_eq_of_valid_rec hNthValid (hRetNth.symm.trans hXEo.symm)
+        have hTNN : __eo_to_smt_type (__eo_typeof y) ≠ SmtType.None := by
+          rw [hTy]
+          simp
+        have hRetNN :
+            __smtx_ret_typeof_sel "@Tuple" d native_nat_zero (native_int_to_nat n) ≠
+              SmtType.None := by
+          rw [← hXRetSmt]
+          exact hXNN
+        have hNthNN :
+            __eo_to_smt_type
+                (__eo_list_nth (Term.UOp UserOp.Tuple) (__eo_typeof y)
+                  (Term.Numeral n)) ≠
+              SmtType.None := by
+          rw [← hRetNth]
+          exact hRetNN
+        have hEo : __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype "@Tuple" d := by
+          have hCore :=
+            eo_to_smt_type_typeof_apply_apply_apply_tuple_update_of_int_list_nth_type
+              x y (Term.Numeral n) (__eo_typeof y) rfl rfl hNthEqX.symm
+              hTNN hNthNN
+          have hCore' :
+              __eo_to_smt_type (__eo_typeof t) =
+                __eo_to_smt_type (__eo_typeof y) := by
+            simpa [t] using hCore
+          exact hCore'.trans hTy
+        exact hSmt.trans hEo.symm
       · exact False.elim (hNonNone (by
           change
             __smtx_typeof

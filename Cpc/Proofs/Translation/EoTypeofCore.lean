@@ -2230,6 +2230,24 @@ private theorem eo_to_smt_tuple_update_ne_numeral
           (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat k)) t u n h)
     · simp [__eo_to_smt_tuple_update, hs] at h
 
+private theorem eo_to_smt_tuple_cons_ne_numeral
+    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (n : native_Int) :
+    __eo_to_smt_tuple_cons t T v ≠ SmtTerm.Numeral n := by
+  intro h
+  cases t <;> try cases h
+  case DtCons s d i =>
+    cases d
+    · simp [__eo_to_smt_tuple_cons] at h
+    · rename_i c dTail
+      cases dTail
+      · cases i
+        · by_cases hs : s = "@Tuple"
+          · subst hs
+            simp [__eo_to_smt_tuple_cons] at h
+          · simp [__eo_to_smt_tuple_cons, hs] at h
+        · simp [__eo_to_smt_tuple_cons] at h
+      · simp [__eo_to_smt_tuple_cons] at h
+
 private theorem eo_to_smt_set_insert_ne_numeral_of_not_nil
     (xs : Term) (base : SmtTerm) (n : native_Int)
     (hxs : xs ≠ Term.__eo_List_nil) :
@@ -2338,6 +2356,9 @@ private theorem eo_to_smt_apply_ne_numeral
         exact False.elim (eo_to_smt_apply_forall_ne_numeral y x n h)
       case «exists» =>
         exact False.elim (eo_to_smt_apply_exists_ne_numeral y x n h)
+      case tuple =>
+        exact False.elim (eo_to_smt_tuple_cons_ne_numeral
+          (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) n h)
     case UOp1 op idx =>
       cases op <;> try cases h
       case _at_witness_string_length =>
