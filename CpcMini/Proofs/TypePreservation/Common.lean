@@ -55,6 +55,40 @@ theorem smtx_typeof_guard_wf_of_non_none
   unfold __smtx_typeof_guard_wf at h ⊢
   cases hWf : __smtx_type_wf T <;> simp [native_ite, hWf] at h ⊢
 
+/-- Extracts the component well-formedness facts from a well-formed finite function type. -/
+theorem fun_type_wf_parts
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
+    native_inhabited_type A = true ∧
+      __smtx_type_wf_rec A native_reflist_nil = true ∧
+        native_inhabited_type B = true ∧
+          __smtx_type_wf_rec B native_reflist_nil = true := by
+  have hAll :
+      __smtx_is_finite_type (SmtType.FunType A B) = true ∧
+        (native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true) ∧
+          (native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true) := by
+    simpa [__smtx_type_wf, native_and] using h
+  exact ⟨hAll.2.1.1, hAll.2.1.2, hAll.2.2.1, hAll.2.2.2⟩
+
+/-- Extracts the component well-formedness facts from a well-formed native function type. -/
+theorem ifun_type_wf_parts
+    {A B : SmtType}
+    (h : __smtx_type_wf (SmtType.IFunType A B) = true) :
+    native_inhabited_type A = true ∧
+      __smtx_type_wf_rec A native_reflist_nil = true ∧
+        native_inhabited_type B = true ∧
+          __smtx_type_wf_rec B native_reflist_nil = true := by
+  have hAll :
+      native_not (__smtx_is_finite_type (SmtType.IFunType A B)) = true ∧
+        (native_inhabited_type A = true ∧
+          __smtx_type_wf_rec A native_reflist_nil = true) ∧
+          (native_inhabited_type B = true ∧
+            __smtx_type_wf_rec B native_reflist_nil = true) := by
+    simpa [__smtx_type_wf, native_and] using h
+  exact ⟨hAll.2.1.1, hAll.2.1.2, hAll.2.2.1, hAll.2.2.2⟩
+
 /-- Extracts semantic inhabitation from a non-`None` guarded type. -/
 theorem smtx_typeof_guard_wf_inhabited_of_non_none
     (T U : SmtType) :
@@ -73,14 +107,14 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
             __smtx_type_wf_rec A native_reflist_nil = true ∧
               native_inhabited_type B = true ∧
                 __smtx_type_wf_rec B native_reflist_nil = true := by
-        simpa [__smtx_type_wf, native_and] using hWf
+        exact fun_type_wf_parts hWf
       have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun (SmtMap.default A (__smtx_type_default B)), by
         simp [__smtx_typeof_value, __smtx_typeof_map_value, __smtx_map_to_fun_type,
           hDef.1]⟩
     · by_cases hIFun : ∃ A B, T = SmtType.IFunType A B
       · rcases hIFun with ⟨A, B, rfl⟩
-        exact ⟨SmtValue.IFun native_default_fun_id A B, rfl⟩
+        exact ⟨SmtValue.IFun native_default_ifun_id A B, rfl⟩
       · have hPair :
           native_inhabited_type T = true ∧
         __smtx_type_wf_rec T native_reflist_nil = true := by
@@ -260,12 +294,12 @@ theorem type_inhabited_of_type_wf
             __smtx_type_wf_rec A native_reflist_nil = true ∧
               native_inhabited_type B = true ∧
                 __smtx_type_wf_rec B native_reflist_nil = true := by
-        simpa [__smtx_type_wf, native_and] using hWF
+        exact fun_type_wf_parts hWF
       exact type_inhabited_of_native_inhabited_type
         (SmtType.FunType A B) (native_inhabited_type_fun hParts.2.2.1)
     · by_cases hIFun : ∃ A B, T = SmtType.IFunType A B
       · rcases hIFun with ⟨A, B, rfl⟩
-        exact ⟨SmtValue.IFun native_default_fun_id A B, rfl⟩
+        exact ⟨SmtValue.IFun native_default_ifun_id A B, rfl⟩
       · have hInh : native_inhabited_type T = true := by
           cases T <;> simp [__smtx_type_wf, native_and] at hWF hReg hFun hIFun ⊢
           all_goals first | contradiction | exact hWF.1 | simp [native_inhabited_type,
@@ -334,7 +368,7 @@ theorem fun_type_wf_components_of_wf
         __smtx_type_wf_rec A native_reflist_nil = true ∧
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
+    exact fun_type_wf_parts h
   exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
     type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
 
@@ -348,7 +382,7 @@ theorem ifun_type_wf_components_of_wf
         __smtx_type_wf_rec A native_reflist_nil = true ∧
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
+    exact ifun_type_wf_parts h
   exact ⟨type_wf_of_inhabited_and_wf_rec hPair.1 hPair.2.1,
     type_wf_of_inhabited_and_wf_rec hPair.2.2.1 hPair.2.2.2⟩
 
@@ -684,14 +718,14 @@ theorem canonical_type_inhabited_of_type_wf
             __smtx_type_wf_rec A native_reflist_nil = true ∧
               native_inhabited_type B = true ∧
                 __smtx_type_wf_rec B native_reflist_nil = true := by
-        simpa [__smtx_type_wf, native_and] using hWF
+        exact fun_type_wf_parts hWF
       have hDef :=
         type_default_typed_canonical_of_native_inhabited_type
           (SmtType.FunType A B) (native_inhabited_type_fun hParts.2.2.1)
       exact ⟨__smtx_type_default (SmtType.FunType A B), hDef.1, hDef.2⟩
     · by_cases hIFun : ∃ A B, T = SmtType.IFunType A B
       · rcases hIFun with ⟨A, B, rfl⟩
-        exact ⟨SmtValue.IFun native_default_fun_id A B, rfl, by
+        exact ⟨SmtValue.IFun native_default_ifun_id A B, rfl, by
           simp [__smtx_value_canonical, __smtx_value_canonical_bool]⟩
       · have hParts :
           native_inhabited_type T = true ∧

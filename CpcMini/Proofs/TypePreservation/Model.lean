@@ -104,7 +104,8 @@ theorem model_total_typed_push
         · simp [h]
           exact model_total_typed_lookup_uninhabited hM s' T' hT'
       · intro fid A B i hFunWF hi
-        simpa [native_fun_typed, __smtx_model_eval_fun, __smtx_model_fun_lookup, __smtx_model_push]
+        simpa [native_fun_typed, native_eval_ifun_apply, __smtx_model_fun_lookup,
+          __smtx_model_push]
           using model_total_typed_native_fun_typed hM fid A B i hFunWF hi
 
 end Smtm

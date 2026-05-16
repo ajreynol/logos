@@ -33,7 +33,7 @@ private theorem type_default_typed_canonical_of_fun_domain_wf
         __smtx_type_wf_rec A native_reflist_nil = true ∧
           native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf, native_and] using h
+    exact fun_type_wf_parts h
   exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.1 hAll.2.1
 
 private theorem type_default_typed_canonical_of_set_element_wf

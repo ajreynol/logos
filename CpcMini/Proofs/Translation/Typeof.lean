@@ -115,7 +115,7 @@ private theorem eo_to_smt_type_eq_fun_iff
         __eo_to_smt_type T2 = B ∧
         __eo_to_smt_type T1 ≠ SmtType.None ∧
         __eo_to_smt_type T2 ≠ SmtType.None ∧
-        __smtx_is_finite_type A = true :=
+        __smtx_is_finite_type (SmtType.FunType A B) = true :=
   TranslationProofs.eo_to_smt_type_eq_fun_iff
 
 /-- Characterizes `__smtx_typeof_guard` producing a constructor-application type. -/
