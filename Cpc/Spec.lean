@@ -245,7 +245,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.UOp UserOp._at_mod_by_zero) x1) => (SmtTerm.mod (__eo_to_smt x1) (SmtTerm.Numeral 0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.select) x1) x2) => (SmtTerm.select (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) x1) x2) x3) => (SmtTerm.store (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
-  | (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) => (native_ite (native_Teq (__eo_to_smt_type (Term.UOp2 UserOp2._at_array_deq_diff x1 x2)) SmtType.None) SmtTerm.None (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)))
+  | (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) => (native_ite (native_Teq (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x1 x2))) SmtType.None) SmtTerm.None (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)))
   | (Term.Apply (Term.UOp UserOp._at_bvsize) x1) => 
     let _v0 := (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x1)))
     (native_ite (native_zleq 0 _v0) (SmtTerm._at_purify (SmtTerm.Numeral _v0)) SmtTerm.None)
