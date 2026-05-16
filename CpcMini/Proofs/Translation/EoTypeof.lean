@@ -26,13 +26,13 @@ attribute [local simp] native_ite
 @[simp] private theorem guarded_datatype_type_ne_ifun
     (s : native_String) (d : SmtDatatype) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.Datatype s d) ≠
-      SmtType.IFunType A B := by
+      SmtType.FunType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_typeref_type_ne_ifun
     (s : native_String) (A B : SmtType) :
     (if native_reserved_datatype_name s = true then SmtType.None else SmtType.TypeRef s) ≠
-      SmtType.IFunType A B := by
+      SmtType.FunType A B := by
   by_cases h : native_reserved_datatype_name s = true <;> simp [h]
 
 @[simp] private theorem guarded_datatype_type_ne_dtc_app
@@ -153,84 +153,84 @@ theorem smtx_typeof_guard_of_non_none
 @[simp] private theorem smt_fun_choice_ne_none
     (T U : SmtType) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.None := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.None := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces an SMT type reference. -/
 @[simp] private theorem smt_fun_choice_ne_typeref
     (T U : SmtType) (s : native_String) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.TypeRef s := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.TypeRef s := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces an SMT datatype. -/
 @[simp] private theorem smt_fun_choice_ne_datatype
     (T U : SmtType) (s : native_String) (d : SmtDatatype) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.Datatype s d := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.Datatype s d := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces a constructor application type. -/
 @[simp] private theorem smt_fun_choice_ne_dtc_app
     (T U A B : SmtType) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.DtcAppType A B := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.DtcAppType A B := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces a sequence type. -/
 @[simp] private theorem smt_fun_choice_ne_seq
     (T U A : SmtType) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.Seq A := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.Seq A := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces `Bool`. -/
 @[simp] private theorem smt_fun_choice_ne_bool
     (T U : SmtType) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.Bool := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.Bool := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces `Int`. -/
 @[simp] private theorem smt_fun_choice_ne_int
     (T U : SmtType) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.Int := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.Int := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces `Real`. -/
 @[simp] private theorem smt_fun_choice_ne_real
     (T U : SmtType) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.Real := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.Real := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces `Char`. -/
 @[simp] private theorem smt_fun_choice_ne_char
     (T U : SmtType) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.Char := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.Char := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces a universe sort. -/
 @[simp] private theorem smt_fun_choice_ne_usort
     (T U : SmtType) (i : native_Nat) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.USort i := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.USort i := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces a bit-vector type. -/
 @[simp] private theorem smt_fun_choice_ne_bitvec
     (T U : SmtType) (w : native_Nat) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.BitVec w := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.BitVec w := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 /-- The finite/infinite EO function-type lowering never produces a regular-language type. -/
 @[simp] private theorem smt_fun_choice_ne_reglan
     (T U : SmtType) :
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U) ≠ SmtType.RegLan := by
+      (SmtType.FunType T U) (SmtType.FunType T U) ≠ SmtType.RegLan := by
   cases __smtx_is_finite_type (SmtType.FunType T U) <;> simp [native_ite]
 
 @[simp] private theorem smt_fun_choice_if_ne_none
@@ -238,7 +238,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.None := by
+        SmtType.FunType T U) ≠ SmtType.None := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_typeref
@@ -246,7 +246,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.TypeRef s := by
+        SmtType.FunType T U) ≠ SmtType.TypeRef s := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_datatype
@@ -254,7 +254,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.Datatype s d := by
+        SmtType.FunType T U) ≠ SmtType.Datatype s d := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_dtc_app
@@ -262,7 +262,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.DtcAppType A B := by
+        SmtType.FunType T U) ≠ SmtType.DtcAppType A B := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_seq
@@ -270,7 +270,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.Seq A := by
+        SmtType.FunType T U) ≠ SmtType.Seq A := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_bool
@@ -278,7 +278,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.Bool := by
+        SmtType.FunType T U) ≠ SmtType.Bool := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_int
@@ -286,7 +286,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.Int := by
+        SmtType.FunType T U) ≠ SmtType.Int := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_real
@@ -294,7 +294,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.Real := by
+        SmtType.FunType T U) ≠ SmtType.Real := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_char
@@ -302,7 +302,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.Char := by
+        SmtType.FunType T U) ≠ SmtType.Char := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_usort
@@ -310,7 +310,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.USort i := by
+        SmtType.FunType T U) ≠ SmtType.USort i := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_bitvec
@@ -318,7 +318,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.BitVec w := by
+        SmtType.FunType T U) ≠ SmtType.BitVec w := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 @[simp] private theorem smt_fun_choice_if_ne_reglan
@@ -326,7 +326,7 @@ theorem smtx_typeof_guard_of_non_none
     (if __smtx_is_finite_type (SmtType.FunType T U) = true then
         SmtType.FunType T U
       else
-        SmtType.IFunType T U) ≠ SmtType.RegLan := by
+        SmtType.FunType T U) ≠ SmtType.RegLan := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
 /-- A translated sequence type is never an SMT type reference. -/
@@ -347,7 +347,7 @@ theorem smtx_typeof_guard_fun_ne_typeref
     __smtx_typeof_guard T
         (__smtx_typeof_guard U
           (native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-            (SmtType.FunType T U) (SmtType.IFunType T U))) ≠ SmtType.TypeRef s := by
+            (SmtType.FunType T U) (SmtType.FunType T U))) ≠ SmtType.TypeRef s := by
   cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
 
 /-- A translated function type is never an SMT datatype. -/
@@ -356,7 +356,7 @@ theorem smtx_typeof_guard_fun_ne_datatype
     __smtx_typeof_guard T
         (__smtx_typeof_guard U
           (native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-            (SmtType.FunType T U) (SmtType.IFunType T U))) ≠ SmtType.Datatype s d := by
+            (SmtType.FunType T U) (SmtType.FunType T U))) ≠ SmtType.Datatype s d := by
   cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
 
 /-- A translated datatype-constructor application type is never an SMT type reference. -/
@@ -386,7 +386,7 @@ theorem smtx_typeof_guard_fun_ne_dtc_app
     __smtx_typeof_guard T
         (__smtx_typeof_guard U
           (native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-            (SmtType.FunType T U) (SmtType.IFunType T U))) ≠ SmtType.DtcAppType A B := by
+            (SmtType.FunType T U) (SmtType.FunType T U))) ≠ SmtType.DtcAppType A B := by
   cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
 
 /-- A translated sequence type is never an SMT constructor-application type. -/
@@ -471,8 +471,8 @@ private theorem smtx_typeof_guard_eq_fun_iff
 /-- Characterizes `__smtx_typeof_guard` producing an interpreted function type. -/
 private theorem smtx_typeof_guard_eq_ifun_iff
     {T U A B : SmtType} :
-    __smtx_typeof_guard T U = SmtType.IFunType A B ↔
-      T ≠ SmtType.None ∧ U = SmtType.IFunType A B := by
+    __smtx_typeof_guard T U = SmtType.FunType A B ↔
+      T ≠ SmtType.None ∧ U = SmtType.FunType A B := by
   unfold __smtx_typeof_guard
   by_cases hT : T = SmtType.None
   · simp [hT, native_ite, native_Teq]
@@ -487,8 +487,7 @@ theorem eo_to_smt_type_eq_fun_iff
         __eo_to_smt_type T1 = A ∧
         __eo_to_smt_type T2 = B ∧
         __eo_to_smt_type T1 ≠ SmtType.None ∧
-        __eo_to_smt_type T2 ≠ SmtType.None ∧
-        __smtx_is_finite_type (SmtType.FunType A B) = true := by
+        __eo_to_smt_type T2 ≠ SmtType.None := by
   constructor
   · intro h
     cases T with
@@ -519,19 +518,19 @@ theorem eo_to_smt_type_eq_fun_iff
                           (__smtx_is_finite_type
                             (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)))
                           (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))
-                          (SmtType.IFunType (__eo_to_smt_type y) (__eo_to_smt_type x)))) =
+                          (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)))) =
                       SmtType.FunType A B := by
                   simpa [__eo_to_smt_type] using h
                 rcases smtx_typeof_guard_eq_fun_iff.mp hOuter with ⟨hyNN, hInner⟩
                 rcases smtx_typeof_guard_eq_fun_iff.mp hInner with ⟨hxNN, hFun⟩
-                by_cases hFin :
+                cases hFin :
                     __smtx_is_finite_type
-                      (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)) = true
-                · simp [native_ite, hFin] at hFun
-                  rcases hFun with ⟨hA, hB⟩
-                  exact ⟨y, x, rfl, hA, hB, hyNN, hxNN,
-                    by simpa [hA, hB] using hFin⟩
-                · simp [native_ite, hFin] at hFun
+                      (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
+                  simp [native_ite, hFin] at hFun
+                · rcases hFun with ⟨hA, hB⟩
+                  exact ⟨y, x, rfl, hA, hB, hyNN, hxNN⟩
+                · rcases hFun with ⟨hA, hB⟩
+                  exact ⟨y, x, rfl, hA, hB, hyNN, hxNN⟩
             | _ =>
                 simp [__eo_to_smt_type] at h
         | _ =>
@@ -545,18 +544,18 @@ theorem eo_to_smt_type_eq_fun_iff
         cases op <;> simp [__eo_to_smt_type] at h
     | _ =>
         simp [__eo_to_smt_type] at h
-  · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN, hFin⟩
+  · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
     have hANN : A ≠ SmtType.None := by
       rwa [← hT1]
     have hBNN : B ≠ SmtType.None := by
       rwa [← hT2]
-    simp [eo_to_smt_type_fun, hT1, hT2, hANN, hBNN, hFin,
+    simp [eo_to_smt_type_fun, hT1, hT2, hANN, hBNN,
       __smtx_typeof_guard, native_ite, native_Teq]
 
 /-- Characterizes translated EO types equal to an SMT interpreted function type. -/
 theorem eo_to_smt_type_eq_ifun_iff
     {T : Term} {A B : SmtType} :
-    __eo_to_smt_type T = SmtType.IFunType A B ↔
+    __eo_to_smt_type T = SmtType.FunType A B ↔
       ∃ T1 T2,
         T = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
         __eo_to_smt_type T1 = A ∧
@@ -566,72 +565,11 @@ theorem eo_to_smt_type_eq_ifun_iff
         __smtx_is_finite_type (SmtType.FunType A B) = false := by
   constructor
   · intro h
-    cases T with
-    | Apply f x =>
-        cases f with
-        | UOp op =>
-            cases op with
-            | BitVec =>
-                cases x with
-                | Numeral n =>
-                    by_cases hz : native_zleq 0 n = true <;>
-                      simp [__eo_to_smt_type, native_ite, hz] at h
-                | _ =>
-                    simp [__eo_to_smt_type] at h
-            | Seq =>
-                by_cases hx : __eo_to_smt_type x = SmtType.None
-                · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
-                · simp [__eo_to_smt_type, hx, __smtx_typeof_guard, native_ite, native_Teq] at h
-            | _ =>
-                simp [__eo_to_smt_type] at h
-        | Apply g y =>
-            cases g with
-            | FunType =>
-                have hOuter :
-                    __smtx_typeof_guard (__eo_to_smt_type y)
-                      (__smtx_typeof_guard (__eo_to_smt_type x)
-                        (native_ite
-                          (__smtx_is_finite_type
-                            (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)))
-                          (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x))
-                          (SmtType.IFunType (__eo_to_smt_type y) (__eo_to_smt_type x)))) =
-                      SmtType.IFunType A B := by
-                  simpa [__eo_to_smt_type] using h
-                rcases smtx_typeof_guard_eq_ifun_iff.mp hOuter with ⟨hyNN, hInner⟩
-                rcases smtx_typeof_guard_eq_ifun_iff.mp hInner with ⟨hxNN, hFun⟩
-                by_cases hFin :
-                    __smtx_is_finite_type
-                      (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)) = true
-                · simp [native_ite, hFin] at hFun
-                · have hFinFalse :
-                      __smtx_is_finite_type
-                        (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)) = false := by
-                    cases hFin' :
-                        __smtx_is_finite_type
-                          (SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
-                      simp [hFin'] at hFin ⊢
-                  simp [native_ite, hFinFalse] at hFun
-                  rcases hFun with ⟨hA, hB⟩
-                  exact ⟨y, x, rfl, hA, hB, hyNN, hxNN,
-                    by simpa [hA, hB] using hFinFalse⟩
-            | _ =>
-                simp [__eo_to_smt_type] at h
-        | _ =>
-            simp [__eo_to_smt_type] at h
-    | DtcAppType T1 T2 =>
-        cases hT : __eo_to_smt_type T1 <;> cases hU : __eo_to_smt_type T2 <;>
-          simp [__eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hT, hU] at h
-    | UOp op =>
-        cases op <;> simp [__eo_to_smt_type] at h
-    | _ =>
-        simp [__eo_to_smt_type] at h
+    rcases eo_to_smt_type_eq_fun_iff.mp h with
+      ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN⟩
+    exact ⟨T1, T2, hT, hT1, hT2, hT1NN, hT2NN, by simp [__smtx_is_finite_type]⟩
   · rintro ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN, hFin⟩
-    have hANN : A ≠ SmtType.None := by
-      rwa [← hT1]
-    have hBNN : B ≠ SmtType.None := by
-      rwa [← hT2]
-    simp [eo_to_smt_type_fun, hT1, hT2, hANN, hBNN, hFin,
-      __smtx_typeof_guard, native_ite, native_Teq]
+    exact eo_to_smt_type_eq_fun_iff.mpr ⟨T1, T2, rfl, hT1, hT2, hT1NN, hT2NN⟩
 
 /-- Characterizes `__smtx_typeof_guard` producing a constructor-application type. -/
 private theorem smtx_typeof_guard_eq_dtc_app_iff
@@ -774,7 +712,7 @@ private theorem smtx_typeof_guard_fun_ne_seq
     __smtx_typeof_guard T
         (__smtx_typeof_guard U
           (native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-            (SmtType.FunType T U) (SmtType.IFunType T U))) ≠ SmtType.Seq V := by
+            (SmtType.FunType T U) (SmtType.FunType T U))) ≠ SmtType.Seq V := by
   cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
 
 /-- A translated datatype-constructor application type is never an SMT sequence type. -/
@@ -1093,8 +1031,7 @@ theorem eo_typeof_eq_translated_eo_fun_of_smt_fun
       __eo_to_smt_type T1 = A ∧
       __eo_to_smt_type T2 = B ∧
       __eo_to_smt_type T1 ≠ SmtType.None ∧
-      __eo_to_smt_type T2 ≠ SmtType.None ∧
-      __smtx_is_finite_type (SmtType.FunType A B) = true := by
+      __eo_to_smt_type T2 ≠ SmtType.None := by
   have hTy : __eo_to_smt_type (__eo_typeof x) = SmtType.FunType A B := by
     rw [← hRec, hx]
   exact eo_to_smt_type_eq_fun_iff.mp hTy
@@ -1106,7 +1043,7 @@ function typing equality.
 theorem eo_typeof_eq_translated_eo_ifun_of_smt_ifun
     {x : Term} {A B : SmtType}
     (hRec : __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
-    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.IFunType A B) :
+    (hx : __smtx_typeof (__eo_to_smt x) = SmtType.FunType A B) :
     ∃ T1 T2,
       __eo_typeof x = Term.Apply (Term.Apply Term.FunType T1) T2 ∧
       __eo_to_smt_type T1 = A ∧
@@ -1114,7 +1051,7 @@ theorem eo_typeof_eq_translated_eo_ifun_of_smt_ifun
       __eo_to_smt_type T1 ≠ SmtType.None ∧
       __eo_to_smt_type T2 ≠ SmtType.None ∧
       __smtx_is_finite_type (SmtType.FunType A B) = false := by
-  have hTy : __eo_to_smt_type (__eo_typeof x) = SmtType.IFunType A B := by
+  have hTy : __eo_to_smt_type (__eo_typeof x) = SmtType.FunType A B := by
     rw [← hRec, hx]
   exact eo_to_smt_type_eq_ifun_iff.mp hTy
 
@@ -1389,7 +1326,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
           simpa [eo_to_smt_type_fun, hT1NN, hT2NN, __smtx_typeof_guard,
             native_ite, native_Teq, hFin] using hEq.symm
         rcases eo_to_smt_type_eq_fun_iff.mp hU with
-          ⟨U1, U2, hU', hU1, hU2, _, _, _⟩
+          ⟨U1, U2, hU', hU1, hU2, _, _⟩
         subst hU'
         have hSub1 : T1 = U1 :=
           eo_to_smt_type_unique_of_valid_rec [] hT1 hU1.symm
@@ -1407,7 +1344,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
             simp [hFin'] at hFin ⊢
         have hU :
             __eo_to_smt_type U =
-              SmtType.IFunType (__eo_to_smt_type T1) (__eo_to_smt_type T2) := by
+              SmtType.FunType (__eo_to_smt_type T1) (__eo_to_smt_type T2) := by
           simpa [eo_to_smt_type_fun, hT1NN, hT2NN, __smtx_typeof_guard,
             native_ite, native_Teq, hFinFalse] using hEq.symm
         rcases eo_to_smt_type_eq_ifun_iff.mp hU with
@@ -1491,7 +1428,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
                   simpa [eo_to_smt_type_fun, hyNN, hxNN, __smtx_typeof_guard,
                     native_ite, native_Teq, hFin] using hEq.symm
                 rcases eo_to_smt_type_eq_fun_iff.mp hU with
-                  ⟨U1, U2, hU', hU1, hU2, _, _, _⟩
+                  ⟨U1, U2, hU', hU1, hU2, _, _⟩
                 subst hU'
                 have hSub1 : y = U1 := eo_to_smt_type_unique_of_valid_rec [] hy hU1.symm
                 have hSub2 : x = U2 := eo_to_smt_type_unique_of_valid_rec [] hx hU2.symm
@@ -1507,7 +1444,7 @@ private theorem eo_to_smt_type_unique_of_valid_rec
                     simp [hFin'] at hFin ⊢
                 have hU :
                     __eo_to_smt_type U =
-                      SmtType.IFunType (__eo_to_smt_type y) (__eo_to_smt_type x) := by
+                      SmtType.FunType (__eo_to_smt_type y) (__eo_to_smt_type x) := by
                   simpa [eo_to_smt_type_fun, hyNN, hxNN, __smtx_typeof_guard,
                     native_ite, native_Teq, hFinFalse] using hEq.symm
                 rcases eo_to_smt_type_eq_ifun_iff.mp hU with
@@ -1653,12 +1590,12 @@ private theorem smtx_type_wf_rec_guard_fun_true
         (__smtx_typeof_guard T
           (__smtx_typeof_guard U
             (native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-              (SmtType.FunType T U) (SmtType.IFunType T U)))) refs = true) :
+              (SmtType.FunType T U) (SmtType.FunType T U)))) refs = true) :
     __smtx_type_wf_rec T [] = true ∧
       __smtx_type_wf_rec U [] = true := by
   let choice :=
     native_ite (__smtx_is_finite_type (SmtType.FunType T U))
-      (SmtType.FunType T U) (SmtType.IFunType T U)
+      (SmtType.FunType T U) (SmtType.FunType T U)
   have hInner :
       __smtx_type_wf_rec (__smtx_typeof_guard U choice) refs = true :=
     smtx_type_wf_rec_guard_of_true T (__smtx_typeof_guard U choice) refs h
@@ -1911,13 +1848,13 @@ theorem eo_to_smt_type_ne_reglan (T : Term) :
                     (__smtx_is_finite_type
                       (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x)))
                     (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x))
-                    (SmtType.IFunType (__eo_to_smt_type f2) (__eo_to_smt_type x))))
+                    (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x))))
                 (smtx_typeof_guard_ne_reglan (__eo_to_smt_type x)
                   (native_ite
                     (__smtx_is_finite_type
                       (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x)))
                     (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x))
-                    (SmtType.IFunType (__eo_to_smt_type f2) (__eo_to_smt_type x)))
+                    (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x)))
                     (by
                       cases __smtx_is_finite_type
                           (SmtType.FunType (__eo_to_smt_type f2) (__eo_to_smt_type x)) <;>
@@ -1960,30 +1897,22 @@ private theorem smtx_fun_type_wf_parts
         native_inhabited_type B = true ∧
           __smtx_type_wf_rec B native_reflist_nil = true := by
   have hAll :
-      __smtx_is_finite_type (SmtType.FunType A B) = true ∧
-        (native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true) ∧
+      (native_inhabited_type A = true ∧
+        __smtx_type_wf_rec A native_reflist_nil = true) ∧
           (native_inhabited_type B = true ∧
             __smtx_type_wf_rec B native_reflist_nil = true) := by
     simpa [__smtx_type_wf, native_and] using h
-  exact ⟨hAll.2.1.1, hAll.2.1.2, hAll.2.2.1, hAll.2.2.2⟩
+  exact ⟨hAll.1.1, hAll.1.2, hAll.2.1, hAll.2.2⟩
 
 /-- Extracts component wf facts from top-level interpreted function type wf. -/
 private theorem smtx_ifun_type_wf_parts
     {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.IFunType A B) = true) :
+    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
     native_inhabited_type A = true ∧
       __smtx_type_wf_rec A native_reflist_nil = true ∧
         native_inhabited_type B = true ∧
           __smtx_type_wf_rec B native_reflist_nil = true := by
-  have hAll :
-      native_not (__smtx_is_finite_type (SmtType.IFunType A B)) = true ∧
-        (native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true) ∧
-          (native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true) := by
-    simpa [__smtx_type_wf, native_and] using h
-  exact ⟨hAll.2.1.1, hAll.2.1.2, hAll.2.2.1, hAll.2.2.2⟩
+  exact smtx_fun_type_wf_parts h
 
 /-- A non-`None` well-formedness guard witnesses proof-side EO type validity. -/
 theorem eo_type_valid_of_guard_wf_non_none
@@ -1999,7 +1928,7 @@ theorem eo_type_valid_of_guard_wf_non_none
   by_cases hFun : ∃ A B, __eo_to_smt_type T = SmtType.FunType A B
   · rcases hFun with ⟨A, B, hTy⟩
     rcases (eo_to_smt_type_eq_fun_iff.mp hTy) with
-      ⟨T1, T2, hTerm, hT1, hT2, _hT1NN, _hT2NN, _hFin⟩
+      ⟨T1, T2, hTerm, hT1, hT2, _hT1NN, _hT2NN⟩
     subst T
     have hParts :
         native_inhabited_type A = true ∧
@@ -2011,22 +1940,7 @@ theorem eo_type_valid_of_guard_wf_non_none
     exact ⟨
       eo_type_valid_of_smt_wf_rec [] (by simpa [hT1] using hParts.2.1),
       eo_type_valid_of_smt_wf_rec [] (by simpa [hT2] using hParts.2.2.2)⟩
-  · by_cases hIFun : ∃ A B, __eo_to_smt_type T = SmtType.IFunType A B
-    · rcases hIFun with ⟨A, B, hTy⟩
-      rcases (eo_to_smt_type_eq_ifun_iff.mp hTy) with
-        ⟨T1, T2, hTerm, hT1, hT2, _hT1NN, _hT2NN, _hFin⟩
-      subst T
-      have hParts :
-          native_inhabited_type A = true ∧
-            __smtx_type_wf_rec A native_reflist_nil = true ∧
-              native_inhabited_type B = true ∧
-                __smtx_type_wf_rec B native_reflist_nil = true := by
-        exact smtx_ifun_type_wf_parts (by simpa [hTy] using hWf)
-      simp [eo_type_valid_rec]
-      exact ⟨
-        eo_type_valid_of_smt_wf_rec [] (by simpa [hT1] using hParts.2.1),
-        eo_type_valid_of_smt_wf_rec [] (by simpa [hT2] using hParts.2.2.2)⟩
-    · have hPair :
+  · have hPair :
         native_inhabited_type (__eo_to_smt_type T) = true ∧
           __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true := by
         cases hTy : __eo_to_smt_type T <;> simp [__smtx_type_wf, native_and, hTy] at hWf ⊢
@@ -2034,11 +1948,9 @@ theorem eo_type_valid_of_guard_wf_non_none
           exact False.elim (eo_to_smt_type_ne_reglan T hTy)
         case FunType A B =>
           exact False.elim (hFun ⟨A, B, hTy⟩)
-        case IFunType A B =>
-          exact False.elim (hIFun ⟨A, B, hTy⟩)
         all_goals
           exact hWf
-      exact eo_type_valid_of_smt_wf_rec [] hPair.2
+    exact eo_type_valid_of_smt_wf_rec [] hPair.2
 
 /-- Translating EO type-reference substitution matches the corresponding SMT substitution step. -/
 theorem eo_to_smt_type_substitute_typeref

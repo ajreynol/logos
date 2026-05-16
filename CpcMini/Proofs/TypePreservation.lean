@@ -160,14 +160,7 @@ theorem generic_apply_subterms_non_none
   rcases typeof_apply_non_none_cases hApply with ⟨A, B, hF, hX, hA, hB⟩
   constructor
   · unfold term_has_non_none_type
-    rcases hF with hF | hF | hF
-    · rw [hF]
-      simp
-    · rw [hF]
-      simp
-    ·
-        rw [hF]
-        simp
+    rcases hF with hF | hF <;> rw [hF] <;> simp
   · unfold term_has_non_none_type
     rw [hX]
     exact hA
