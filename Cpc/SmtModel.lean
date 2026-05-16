@@ -217,7 +217,8 @@ def native_re_all : native_RegLan := .star .allchar
 def native_qdiv_by_zero_id : native_String := "@qdiv_by_zero"
 def native_div_by_zero_id : native_String := "@div_by_zero"
 def native_mod_by_zero_id : native_String := "@mod_by_zero"
-def native_wrong_apply_sel_id : native_String := "@wrong_apply_sel"
+def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
+  "@wrong_apply_sel_" ++ toString n ++ "_" ++ toString m
 def native_oob_seq_nth_id : native_String := "@oob_seq_nth"
 def native_uconst_id : native_Nat -> native_String
   | i => "@u." ++ toString i
@@ -662,6 +663,11 @@ def __vsm_apply_arg_nth : SmtValue -> native_Nat -> native_Nat -> SmtValue
   | a, n, npos => SmtValue.NotValue
 
 
+def __smtx_model_lookup_fun (M : SmtModel) (s : native_String) (T : SmtType) (U : SmtType) : SmtValue :=
+  
+    let _v0 := (SmtType.FunType T U)
+    (__smtx_model_lookup M s (native_ite (__smtx_is_finite_type _v0) _v0 (SmtType.IFunType T U)))
+
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs => (native_ite (native_reflist_contains refs s) (__smtx_dt_cons_wf_rec c refs) false)
   | (SmtDatatypeCons.cons T c), refs => (native_ite (native_inhabited_type T) (native_ite (__smtx_type_wf_rec T refs) (__smtx_dt_cons_wf_rec c refs) false) false)
@@ -909,12 +915,6 @@ def __smtx_bv_sizeof_value : SmtValue -> native_Int
   | t1 => (native_zneg 1)
 
 
-def __smtx_model_eval_dt_sel (M : SmtModel) (s : native_String) (d : SmtDatatype) (n : native_Nat) (m : native_Nat) (v : SmtValue) : SmtValue :=
-  (native_ite (native_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m (__smtx_dt_num_sels d n)) (__smtx_map_select (__smtx_map_select (__smtx_map_select (__smtx_model_lookup M native_wrong_apply_sel_id (SmtType.Map SmtType.Int (SmtType.Map SmtType.Int (SmtType.Map (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m))))) (SmtValue.Numeral (native_nat_to_int n))) (SmtValue.Numeral (native_nat_to_int m))) v))
-
-def __smtx_model_eval_dt_tester (s : native_String) (d : SmtDatatype) (n : native_Nat) (v1 : SmtValue) : SmtValue :=
-  (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
-
 def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | v, SmtValue.NotValue => SmtValue.NotValue
   | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
@@ -923,6 +923,12 @@ def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.IFun n T U), i => (native_eval_ifun_apply M n U i)
   | v, i => SmtValue.NotValue
 
+
+def __smtx_model_eval_dt_sel (M : SmtModel) (s : native_String) (d : SmtDatatype) (n : native_Nat) (m : native_Nat) (v : SmtValue) : SmtValue :=
+  (native_ite (native_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m (__smtx_dt_num_sels d n)) (__smtx_model_eval_apply M (__smtx_model_lookup_fun M (native_wrong_apply_sel_id n m) (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)) v))
+
+def __smtx_model_eval_dt_tester (s : native_String) (d : SmtDatatype) (n : native_Nat) (v1 : SmtValue) : SmtValue :=
+  (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
 
 def __smtx_model_eval_not : SmtValue -> SmtValue
   | (SmtValue.Boolean x1) => (SmtValue.Boolean (native_not x1))
