@@ -702,9 +702,8 @@ def __smtx_model_eval_ite : SmtValue -> SmtValue -> SmtValue -> SmtValue
   | t1, t2, t3 => SmtValue.NotValue
 
 
-def __smtx_model_eval_eq (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
+def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
-  | (SmtValue.Fun m1), (SmtValue.Fun m2) => (SmtValue.Boolean (native_veq_ext m1 m2))
   | v1, v2 => (SmtValue.Boolean (native_veq v1 v2))
 
 
@@ -842,6 +841,7 @@ def __smtx_is_unit_datatype : SmtDatatype -> native_Bool
 def __smtx_is_unit_type : SmtType -> native_Bool
   | (SmtType.BitVec w) => (native_nateq w native_nat_zero)
   | (SmtType.Datatype s d) => (__smtx_is_unit_datatype d)
+  | (SmtType.FunType T U) => (__smtx_is_unit_type U)
   | (SmtType.Map T U) => (__smtx_is_unit_type U)
   | T => false
 
@@ -963,16 +963,10 @@ def native_pack_string (s : native_String) : SmtSeq :=
   (native_pack_seq SmtType.Char (__smtx_ssm_char_values_of_string s))
 
   
-def __smtx_value_eqb (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
-  match __smtx_model_eval_eq SmtModel.empty v1 v2 with
-  | (SmtValue.Boolean b) => b
-  | _ => false
-
-
 def native_seq_prefix_eq : List SmtValue -> List SmtValue -> native_Bool
   | [], _ => true
   | _ :: _, [] => false
-  | v1 :: vs1, v2 :: vs2 => (__smtx_value_eqb v1 v2) && (native_seq_prefix_eq vs1 vs2)
+  | v1 :: vs1, v2 :: vs2 => (native_veq v1 v2) && (native_seq_prefix_eq vs1 vs2)
 
 
 def native_seq_len : List SmtValue -> native_Int
@@ -1079,7 +1073,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.and x1 x2) => (__smtx_model_eval_and (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.imp x1 x2) => (__smtx_model_eval_imp (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.ite x1 x2 x3) => (__smtx_model_eval_ite (__smtx_model_eval M x1) (__smtx_model_eval M x2) (__smtx_model_eval M x3))
-  | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq M (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
   | (SmtTerm.forall s T x1) => (native_eval_tforall M s T x1)
   | (SmtTerm.choice_nth s T x1 i) => (native_eval_tchoice_nth M s T x1 i)

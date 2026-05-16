@@ -902,7 +902,7 @@ theorem map_lookup_typed :
 theorem typeof_value_model_eval_eq_value
     (M : SmtModel)
     (v1 v2 : SmtValue) :
-    __smtx_typeof_value (__smtx_model_eval_eq M v1 v2) = SmtType.Bool := by
+    __smtx_typeof_value (__smtx_model_eval_eq v1 v2) = SmtType.Bool := by
   cases v1 <;> cases v2
   case Seq.Seq ss1 ss2 =>
     cases ss1 <;> cases ss2 <;> simp [__smtx_model_eval_eq, __smtx_typeof_value]

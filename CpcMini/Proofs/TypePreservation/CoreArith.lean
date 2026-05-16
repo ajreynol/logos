@@ -250,7 +250,7 @@ theorem typeof_value_model_eval_eq
       __smtx_typeof (SmtTerm.eq t1 t2) := by
   rw [eq_term_typeof_of_non_none ht]
   rw [show __smtx_model_eval M (SmtTerm.eq t1 t2) =
-      __smtx_model_eval_eq M (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
+      __smtx_model_eval_eq (__smtx_model_eval M t1) (__smtx_model_eval M t2) by
     simp [__smtx_model_eval]]
   simpa using typeof_value_model_eval_eq_value M (__smtx_model_eval M t1) (__smtx_model_eval M t2)
 
