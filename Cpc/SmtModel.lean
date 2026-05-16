@@ -690,8 +690,8 @@ def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
 
 def __smtx_type_wf : SmtType -> native_Bool
   | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (native_and (__smtx_is_finite_type (SmtType.FunType T U)) (native_and (__smtx_type_wf T) (__smtx_type_wf U)))
-  | (SmtType.IFunType T U) => (native_and (native_not (__smtx_is_finite_type (SmtType.IFunType T U))) (native_and (__smtx_type_wf T) (__smtx_type_wf U)))
+  | (SmtType.FunType T U) => (native_and (__smtx_is_finite_type (SmtType.FunType T U)) (native_and (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil)) (native_and (native_inhabited_type U) (__smtx_type_wf_rec U native_reflist_nil))))
+  | (SmtType.IFunType T U) => (native_and (native_not (__smtx_is_finite_type (SmtType.IFunType T U))) (native_and (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil)) (native_and (native_inhabited_type U) (__smtx_type_wf_rec U native_reflist_nil))))
   | T => (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil))
 
 
@@ -920,7 +920,7 @@ def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.DtCons s d n), i => (SmtValue.Apply (SmtValue.DtCons s d n) i)
   | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
   | (SmtValue.Fun m), i => (__smtx_map_select (SmtValue.Map m) i)
-  | (SmtValue.IFun n T U), i => (native_eval_ifun_apply M n T U)
+  | (SmtValue.IFun n T U), i => (native_eval_ifun_apply M n U i)
   | v, i => SmtValue.NotValue
 
 
@@ -2004,7 +2004,7 @@ def __smtx_value_canonical_bool : SmtValue -> native_Bool
 
 def native_eval_ifun_apply (M : SmtModel) (fid : native_Nat) (U : SmtType) (i : SmtValue) : SmtValue :=
   let fallback := __smtx_type_default U
-  if fid = native_default_fun_id then
+  if fid = native_default_ifun_id then
     fallback
   else
     match __smtx_model_fun_lookup M fid with
@@ -2314,13 +2314,13 @@ def native_fun_typed (M : SmtModel) : Prop :=
   ∀ fid A B i,
     __smtx_type_wf (SmtType.IFunType A B) = true ->
     __smtx_typeof_value i = A ->
-    __smtx_typeof_value (__smtx_model_eval_fun M fid B i) = B ∧
-      __smtx_value_canonical (__smtx_model_eval_fun M fid B i)
+    __smtx_typeof_value (native_eval_ifun_apply M fid B i) = B ∧
+      __smtx_value_canonical (native_eval_ifun_apply M fid B i)
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, __smtx_type_wf T = true -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
   (∀ s T, __smtx_type_wf T = true -> __smtx_value_canonical (__smtx_model_lookup M s T)) ∧
-  (∀ s T, __smtx_type_wf T = false -> __smtx_model_lookup M s T = SmtValue.NotValue)
+  (∀ s T, __smtx_type_wf T = false -> __smtx_model_lookup M s T = SmtValue.NotValue) ∧
   native_fun_typed M
 
 /-
