@@ -1100,17 +1100,23 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             (T := T) (U := T) (by
               simpa [__smtx_typeof] using hNonNone)
     | Term.Apply f x, hNonNone => by
-        exact eo_to_smt_typeof_matches_translation_apply f x (go f) (go x)
-          (fun op y h => by
-            subst f
-            exact go y)
-          (fun g y h => by
-            subst f
-            exact go y)
-          (fun g z y h => by
-            subst f
-            exact go z)
-          hNonNone
+        have ihXTuple : eo_to_smt_tuple_tail_recoverable x := by
+          sorry
+        have hEq :=
+          eo_to_smt_typeof_matches_translation_apply f x (go f) (go x)
+            ihXTuple
+            (fun op y h hNN => by
+              subst f
+              exact go y hNN)
+            (fun g y h hNN => by
+              subst f
+              exact go y hNN)
+            (fun g z y h hNN => by
+              subst f
+              exact go z hNN)
+            hNonNone
+        refine ⟨hEq, ?_⟩
+        sorry
     | Term._at_purify x, hNonNone => by
         have hx : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
           intro hNone
