@@ -11838,6 +11838,41 @@ private theorem smtx_num_apply_args_eq_dt_num_sels_of_datatype
     (Nat.sub_eq_zero_iff_le).1 hArgsZero
   exact Nat.le_antisymm hle hge
 
+private theorem smtx_term_typeof_full_dt_cons_chain_apply
+    {t : SmtTerm}
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    (hHead : smtx_apply_head t = SmtTerm.DtCons s d i)
+    (hCount :
+      smtx_num_apply_args t =
+        __smtx_dt_num_sels (__smtx_dt_substitute s d d) i)
+    (hNN : __smtx_typeof t ≠ SmtType.None) :
+    __smtx_typeof t = SmtType.Datatype s d := by
+  have hChain := smtx_dt_cons_chain_type_of_non_none hHead hNN
+  have hRecNN :
+      dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (smtx_num_apply_args t) ≠
+        SmtType.None := by
+    intro hNone
+    apply hNN
+    rw [hChain, hNone]
+  have hFull :
+      dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (__smtx_dt_num_sels (__smtx_dt_substitute s d d) i) =
+        SmtType.Datatype s d :=
+    dt_cons_applied_type_rec_full_arity s d (__smtx_dt_substitute s d d) i
+      (by simpa [hCount] using hRecNN)
+  calc
+    __smtx_typeof t =
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (smtx_num_apply_args t) := hChain
+    _ =
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (__smtx_dt_num_sels (__smtx_dt_substitute s d d) i) := by
+        rw [hCount]
+    _ = SmtType.Datatype s d := hFull
+
 private theorem smtx_tuple_cons_result_apply_head_of_tail_head :
     ∀ (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons),
       smtx_apply_head tail =
@@ -12071,6 +12106,39 @@ private theorem smtx_tuple_cons_tail_args_le_sels_of_non_none
         Nat.succ (__smtx_dt_num_sels tailD native_nat_zero) := by
     simpa [tailD, fullD, __smtx_dt_num_sels, __smtx_dtc_num_sels] using hResultLe
   exact Nat.le_of_succ_le_succ hSucc
+
+private theorem smtx_tuple_tail_type_of_head_bounds_non_none
+    (tail : SmtTerm) (c : SmtDatatypeCons)
+    (hTailHead :
+      smtx_apply_head tail =
+        SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero)
+    (hTailLower :
+      __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero ≤
+        smtx_num_apply_args tail)
+    (hTailUpper :
+      smtx_num_apply_args tail ≤
+        __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero)
+    (hTailNN : __smtx_typeof tail ≠ SmtType.None) :
+    __smtx_typeof tail =
+      SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) := by
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  have hCountPlain :
+      smtx_num_apply_args tail =
+        __smtx_dt_num_sels tailD native_nat_zero :=
+    Nat.le_antisymm hTailUpper hTailLower
+  have hCount :
+      smtx_num_apply_args tail =
+        __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" tailD tailD)
+          native_nat_zero := by
+    rw [hCountPlain]
+    exact (dt_num_sels_substitute "@Tuple" tailD tailD native_nat_zero).symm
+  exact
+    smtx_term_typeof_full_dt_cons_chain_apply
+      (t := tail) (s := "@Tuple") (d := tailD) (i := native_nat_zero)
+      (by simpa [tailD] using hTailHead) hCount hTailNN
 
 private theorem smtx_tuple_cons_typeof_of_tail_tuple_type
     (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons)
