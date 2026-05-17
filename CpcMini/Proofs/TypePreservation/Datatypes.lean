@@ -208,7 +208,7 @@ theorem dtc_num_sels_substitute
   | SmtDatatypeCons.cons T c => by
       cases T <;>
         simp [__smtx_dtc_substitute, __smtx_dtc_num_sels,
-          dtc_num_sels_substitute s d c, native_ite, native_Teq, native_streq]
+          dtc_num_sels_substitute s d c]
 
 /-- Lemma about `dt_num_sels_substitute`. -/
 theorem dt_num_sels_substitute
@@ -957,14 +957,16 @@ private theorem ret_typeof_sel_rec_substitute_ne_reglan_of_cons_wf
   | SmtDatatypeCons.cons T c, d, native_nat_zero, refs, hWf => by
       cases T
       case TypeRef r =>
-        by_cases hEq : r = sub <;>
+        by_cases hEq : sub = r <;>
           simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
-            __smtx_type_wf_rec, __smtx_ret_typeof_sel_rec, native_ite,
-            native_Teq, native_streq, hEq] at hWf ⊢
+            __smtx_type_substitute, __smtx_type_wf_rec,
+            __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
+            native_streq, hEq] at hWf ⊢
       all_goals
         simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
-          __smtx_type_wf_rec, __smtx_ret_typeof_sel_rec, native_ite,
-          native_Teq, native_streq] at hWf ⊢
+          __smtx_type_substitute, __smtx_type_wf_rec,
+          __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
+          native_streq] at hWf ⊢
   | SmtDatatypeCons.cons T c, d, native_nat_succ j, refs, hWf => by
       have hTail : __smtx_dt_cons_wf_rec c refs = true :=
         dt_cons_wf_rec_tail_of_true hWf
@@ -1028,14 +1030,16 @@ private theorem ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf
       intro A B
       cases T
       case TypeRef r =>
-        by_cases hEq : r = sub <;>
+        by_cases hEq : sub = r <;>
           simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
-            __smtx_type_wf_rec, __smtx_ret_typeof_sel_rec, native_ite,
-            native_Teq, native_streq, hEq] at hWf ⊢
+            __smtx_type_substitute, __smtx_type_wf_rec,
+            __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
+            native_streq, hEq] at hWf ⊢
       all_goals
         simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
-          __smtx_type_wf_rec, __smtx_ret_typeof_sel_rec, native_ite,
-          native_Teq, native_streq] at hWf ⊢
+          __smtx_type_substitute, __smtx_type_wf_rec,
+          __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
+          native_streq] at hWf ⊢
   | SmtDatatypeCons.cons T c, d, native_nat_succ j, refs, hWf => by
       intro A B
       have hTail : __smtx_dt_cons_wf_rec c refs = true :=

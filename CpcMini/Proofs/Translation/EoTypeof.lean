@@ -2052,7 +2052,13 @@ private theorem smtx_dtc_substitute_non_datatype
       SmtDatatypeCons.cons
         (native_ite (native_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T)
         (__smtx_dtc_substitute s d c) := by
-  cases T <;> simp [__smtx_dtc_substitute, native_ite, native_Teq] at hT ⊢
+  cases T <;> simp [__smtx_dtc_substitute, __smtx_type_substitute,
+    native_ite, native_Teq, native_streq] at hT ⊢
+  case TypeRef r =>
+    by_cases hEq : s = r
+    · simp [hEq]
+    · have hEq' : r ≠ s := fun h => hEq h.symm
+      simp [hEq, hEq']
 
 /-- Recursive calls from a datatype-constructor tail decrease the `Sum` measure. -/
 private theorem sum_size_inl_lt_cons (T : Term) (c : DatatypeCons) :
@@ -2108,17 +2114,20 @@ private theorem eo_to_smt_substitute_aux
         by_cases hReserved : native_reserved_datatype_name s2 = true
         · have hc := eo_to_smt_substitute_aux s d (.inl c)
           simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
-            __eo_to_smt_type, native_ite, native_Teq, hReserved] using hc
+            __smtx_type_substitute, __eo_to_smt_type, native_ite, native_Teq,
+            hReserved] using hc
         · have hReservedFalse : native_reserved_datatype_name s2 = false := by
             cases hName : native_reserved_datatype_name s2 <;> simp [hName] at hReserved ⊢
           by_cases hst : native_streq s s2 = true
           · have hc := eo_to_smt_substitute_aux s d (.inl c)
             simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
-              __eo_to_smt_type, native_ite, native_Teq, hst, hReservedFalse] using hc
+              __smtx_type_substitute, __eo_to_smt_type, native_ite, native_Teq,
+              hst, hReservedFalse] using hc
           · have hd2 := eo_to_smt_substitute_aux s d (.inr d2)
             have hc := eo_to_smt_substitute_aux s d (.inl c)
             simpa [__eo_dtc_substitute, __eo_to_smt_datatype_cons, __smtx_dtc_substitute,
-              __eo_to_smt_type, native_ite, native_Teq, hst, hReservedFalse] using And.intro hd2 hc
+              __smtx_type_substitute, __eo_to_smt_type, native_ite, native_Teq,
+              hst, hReservedFalse] using And.intro hd2 hc
       case Apply f x =>
         have hc := eo_to_smt_substitute_aux s d (.inl c)
         dsimp [Sum.elim, __eo_dtc_substitute, __eo_to_smt_datatype_cons]
