@@ -436,8 +436,10 @@ private def dtc_substitute_field_type
   | SmtType.Datatype s' d' =>
       SmtType.Datatype s'
         (native_ite (native_streq s s') d' (__smtx_dt_substitute s d d'))
-  | T =>
-      native_ite (native_Teq T (SmtType.TypeRef s)) (SmtType.Datatype s d) T
+  | SmtType.TypeRef s' =>
+      native_ite (native_streq s s') (SmtType.Datatype s d)
+        (SmtType.TypeRef s')
+  | T => T
 
 private def dtc_type_chain
     (s : native_String)
@@ -486,8 +488,9 @@ private theorem typeof_dt_cons_value_rec_substitute_zero_eq_chain
   | SmtDatatypeCons.cons T c, dTail => by
       cases T <;>
         simp [__smtx_dtc_substitute, __smtx_typeof_dt_cons_value_rec,
-          dtc_type_chain, dtc_substitute_field_type, native_ite, native_Teq,
-          native_streq, typeof_dt_cons_value_rec_substitute_zero_eq_chain s d0 c dTail]
+          __smtx_type_substitute, dtc_type_chain, dtc_substitute_field_type,
+          native_ite, native_streq,
+          typeof_dt_cons_value_rec_substitute_zero_eq_chain s d0 c dTail]
 
 private theorem typeof_dt_cons_second_eq_dtc_type_chain
     (s : native_String)
@@ -559,7 +562,7 @@ private theorem dtc_substitute_field_type_eq_of_non_datatype_finite
     dtc_substitute_field_type s d T = T := by
   cases T <;>
     simp [dtc_substitute_field_type, __smtx_is_finite_datatype_cons,
-      __smtx_is_finite_type, native_and, native_ite, native_Teq] at hFin hNotDatatype ⊢
+      __smtx_is_finite_type, native_and] at hFin hNotDatatype ⊢
 
 private theorem type_ne_none_of_finite_datatype_cons_head
     {T : SmtType}
@@ -583,7 +586,7 @@ private theorem dtc_substitute_field_type_ne_none_of_finite
     dtc_substitute_field_type s d T ≠ SmtType.None := by
   cases T <;>
     simp [dtc_substitute_field_type, __smtx_is_finite_datatype_cons,
-      __smtx_is_finite_type, native_and, native_ite, native_Teq] at hFin ⊢
+      __smtx_is_finite_type, native_and, native_ite] at hFin ⊢
 
 private theorem value_dt_substitute_datatype_cons_default_eq_of_all_non_datatype
     (s : native_String)
@@ -652,8 +655,9 @@ private theorem dtc_substitute_eq_self_of_all_non_datatype_finite
           s d c hAllTail hFinTail
       cases T <;>
         simp [dtc_all_fields_non_datatype, __smtx_dtc_substitute,
-          __smtx_is_finite_datatype_cons, __smtx_is_finite_type,
-          native_and, native_ite, native_Teq, hTail] at hAll hFin ⊢
+          __smtx_type_substitute, __smtx_is_finite_datatype_cons,
+          __smtx_is_finite_type, native_and, hTail]
+          at hAll hFin ⊢
 
 private theorem datatype_field_name_ne_of_wf_rec_contains
     {s sField : native_String}
@@ -688,9 +692,9 @@ private theorem dtc_substitute_eq_self_of_wf_rec_finite_contains
         dtc_substitute_eq_self_of_wf_rec_finite_contains
           s d c refs hRoot hTailWf hTailFin
       cases T <;>
-        simp [__smtx_dtc_substitute, __smtx_is_finite_datatype_cons,
-          __smtx_is_finite_type, native_and, native_ite, native_Teq,
-          hTailSub] at hWf hFin ⊢
+        simp [__smtx_dtc_substitute, __smtx_type_substitute,
+          __smtx_is_finite_datatype_cons, __smtx_is_finite_type,
+          native_and, native_streq, hTailSub] at hWf hFin ⊢
       case Datatype sField dField =>
         have hParts :
             native_inhabited_type (SmtType.Datatype sField dField) = true ∧
@@ -720,7 +724,7 @@ private theorem dtc_substitute_eq_self_of_wf_rec_finite_contains
           dt_substitute_eq_self_of_wf_rec_finite_contains
             s d dField (native_reflist_insert refs sField)
             hRefsRoot hDtWf hDtFin
-        simp [hNameNe, hDtSub]
+        simp [native_ite, hDtSub]
 
 private theorem dt_substitute_eq_self_of_wf_rec_finite_contains
     (s : native_String)
@@ -788,7 +792,8 @@ private theorem dtc_substitute_eq_self_of_wf_rec_not_contains
         dtc_substitute_eq_self_of_wf_rec_not_contains
           s d c refs hNot hTailWf
       cases T <;>
-        simp [__smtx_dtc_substitute, native_Teq, native_ite, hTailSub]
+        simp [__smtx_dtc_substitute, __smtx_type_substitute,
+          native_streq, hTailSub]
           at hWf ⊢
       case TypeRef r =>
         have hParts :
@@ -800,7 +805,8 @@ private theorem dtc_substitute_eq_self_of_wf_rec_not_contains
           subst r
           rw [hNot] at hParts
           simp at hParts
-        simp [hNe]
+        have hNe' : s ≠ r := fun hEq => hNe hEq.symm
+        simp [native_ite, hNe']
       case Datatype sField dField =>
         have hParts :
             native_inhabited_type (SmtType.Datatype sField dField) = true ∧
@@ -809,7 +815,7 @@ private theorem dtc_substitute_eq_self_of_wf_rec_not_contains
           simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
         by_cases hEq : s = sField
         · subst sField
-          simp [native_streq]
+          simp [native_ite]
         · have hDtWf :
               __smtx_dt_wf_rec dField
                   (native_reflist_insert refs sField) = true := by
@@ -830,7 +836,7 @@ private theorem dtc_substitute_eq_self_of_wf_rec_not_contains
             dt_substitute_eq_self_of_wf_rec_not_contains
               s d dField (native_reflist_insert refs sField)
               hNotInserted hDtWf
-          simp [native_streq, hEq, hDtSub]
+          simp [native_ite, hEq, hDtSub]
 
 private theorem dt_substitute_eq_self_of_wf_rec_not_contains
     (s : native_String)
@@ -1157,8 +1163,8 @@ private theorem dtc_substitute_field_type_eq_self_of_wf_rec_finite_contains
     (hFinite : __smtx_is_finite_type T = true) :
     dtc_substitute_field_type s d T = T := by
   cases T <;>
-    simp [dtc_substitute_field_type, __smtx_is_finite_type, native_ite,
-      native_Teq] at hRec hFinite ⊢
+    simp [dtc_substitute_field_type, __smtx_is_finite_type, native_ite]
+      at hRec hFinite ⊢
   case Datatype sField dField =>
     have hNameNe : native_streq s sField = false :=
       datatype_field_name_ne_of_wf_rec_contains hRoot hRec
@@ -1991,7 +1997,7 @@ private theorem dtc_substitute_field_type_ne_none_of_finite_type
     (hFin : __smtx_is_finite_type T = true) :
     dtc_substitute_field_type s d T ≠ SmtType.None := by
   cases T <;> simp [dtc_substitute_field_type, __smtx_is_finite_type,
-    native_ite, native_Teq] at hFin ⊢
+    native_ite] at hFin ⊢
 
 private theorem dt_cons_wf_finite_head_default_substitute_ne_notValue
     (s : native_String)
@@ -2027,7 +2033,7 @@ private theorem dtc_head_default_substitute_typeof_of_wf_finite_head
   cases T <;>
     simp [__smtx_dt_cons_wf_rec, __smtx_is_finite_type,
       __smtx_type_default, __smtx_value_dt_substitute,
-      dtc_substitute_field_type, native_ite, native_Teq, native_and] at hWf hFin ⊢
+      dtc_substitute_field_type, native_ite, native_and] at hWf hFin ⊢
   case Datatype sField dField =>
       have hParts :
           native_inhabited_type (SmtType.Datatype sField dField) = true ∧
@@ -2150,7 +2156,7 @@ private theorem datatype_cons_default_typeof_self_ref_head
         SmtType.DtcAppType (SmtType.Datatype s d)
           (dtc_type_chain s d cTail (SmtType.Datatype s d)) := by
     simpa [d, dtc_type_chain, dtc_substitute_field_type, native_ite,
-      native_Teq] using
+      native_streq] using
       typeof_dt_cons_first_eq_dtc_type_chain s
         (SmtDatatypeCons.cons (SmtType.TypeRef s) cTail) dRest
   have hSeedTy' : __smtx_typeof_value seed = SmtType.Datatype s d := by
@@ -2370,7 +2376,7 @@ private theorem datatype_cons_self_ref_context_witness
                 SmtType.DtcAppType (SmtType.Datatype s d)
                   (dtc_type_chain s d c (SmtType.Datatype s d)) := by
             simpa [dtc_type_chain, dtc_substitute_field_type, native_ite,
-              native_Teq] using hvTy
+              native_streq] using hvTy
           have hApplyTy :
               __smtx_typeof_value (SmtValue.Apply v seed) =
                 dtc_type_chain s d c (SmtType.Datatype s d) := by
@@ -2491,7 +2497,7 @@ private theorem datatype_cons_deferred_context_witness
               SmtType.DtcAppType (SmtType.Datatype s d)
                 (dtc_type_chain s d c (SmtType.Datatype s d)) := by
           simpa [dtc_type_chain, dtc_substitute_field_type, native_ite,
-            native_Teq] using hvTy
+            native_streq] using hvTy
         have hArgTy :
             __smtx_typeof_value arg = SmtType.Datatype s d := by
           simpa [arg] using hDefaultTy
@@ -2529,12 +2535,12 @@ private theorem datatype_cons_deferred_context_witness
           have hArgTy' :
               __smtx_typeof_value arg = dtc_substitute_field_type s d T := by
             cases T <;> simp [smt_type_simple_large_context,
-              dtc_substitute_field_type, native_ite, native_Teq] at hTypeCtx hArgTy ⊢
+              dtc_substitute_field_type] at hTypeCtx hArgTy ⊢
             all_goals
               exact hArgTy
           have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None := by
             cases T <;> simp [smt_type_simple_large_context,
-              dtc_substitute_field_type, native_ite, native_Teq] at hTypeCtx ⊢
+              dtc_substitute_field_type] at hTypeCtx ⊢
           rcases datatype_cons_default_with_head_arg_witness
               s d refs hRoot hTailWf hTailFin hvTy' hvCan hArgTy'
               hFieldNeNone hArgCan with
@@ -2556,12 +2562,12 @@ private theorem datatype_cons_deferred_context_witness
           have hArgTy :
               __smtx_typeof_value arg = dtc_substitute_field_type s d T := by
             cases T <;> simp [smt_type_simple_large_context, arg,
-              dtc_substitute_field_type, native_ite, native_Teq] at hTypeCtx hDef ⊢
+              dtc_substitute_field_type] at hTypeCtx hDef ⊢
             all_goals
               exact hDef.1
           have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None := by
             cases T <;> simp [smt_type_simple_large_context,
-              dtc_substitute_field_type, native_ite, native_Teq] at hTypeCtx ⊢
+              dtc_substitute_field_type] at hTypeCtx ⊢
           have hApplyTy :
               __smtx_typeof_value (SmtValue.Apply v arg) =
                 dtc_type_chain s d c (SmtType.Datatype s d) := by
@@ -2665,12 +2671,12 @@ private theorem datatype_cons_simple_type_source_witness
         have hArgTy' :
             __smtx_typeof_value arg = dtc_substitute_field_type s d T := by
           cases T <;> simp [smt_type_simple_large_context,
-            dtc_substitute_field_type, native_ite, native_Teq] at hTypeCtx hArgTy ⊢
+            dtc_substitute_field_type] at hTypeCtx hArgTy ⊢
           all_goals
             exact hArgTy
         have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None := by
           cases T <;> simp [smt_type_simple_large_context,
-            dtc_substitute_field_type, native_ite, native_Teq] at hTypeCtx ⊢
+            dtc_substitute_field_type] at hTypeCtx ⊢
         rcases datatype_cons_default_with_head_arg_witness
             s d refs hRoot hTailWf hTailFin hvTy' hvCan hArgTy'
             hFieldNeNone hArgCan with

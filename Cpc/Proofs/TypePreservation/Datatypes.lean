@@ -336,7 +336,7 @@ theorem dtc_num_sels_substitute
   | SmtDatatypeCons.cons T c => by
       cases T <;>
         simp [__smtx_dtc_substitute, __smtx_dtc_num_sels,
-          dtc_num_sels_substitute s d c, native_ite, native_Teq, native_streq]
+          dtc_num_sels_substitute s d c]
 
 /-- Lemma about `dt_num_sels_substitute`. -/
 theorem dt_num_sels_substitute
