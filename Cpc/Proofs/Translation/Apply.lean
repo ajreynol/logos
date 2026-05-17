@@ -87,6 +87,12 @@ private theorem smtx_type_wf_fun_components
     native_inhabited_type (SmtType.USort i) = true :=
   native_inhabited_type_usort i
 
+@[simp] private theorem native_inhabited_type_typeref_apply
+    (s : native_String) :
+    native_inhabited_type (SmtType.TypeRef s) = false := by
+  simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+    native_and]
+
 @[simp] private theorem native_inhabited_type_seq_apply
     (T : SmtType) :
     native_inhabited_type (SmtType.Seq T) = true :=
