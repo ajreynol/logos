@@ -93,6 +93,238 @@ private theorem smtx_type_wf_fun_components
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
     native_and]
 
+private theorem smtx_tuple_type_wf_head_typeref_false
+    (c : SmtDatatypeCons) :
+    __smtx_type_wf
+        (SmtType.Datatype "@Tuple"
+          (SmtDatatype.sum (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c)
+            SmtDatatype.null)) =
+      false := by
+  simp [__smtx_type_wf, native_and, native_inhabited_type,
+    __smtx_type_default, __smtx_datatype_default,
+    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+    __smtx_typeof_value, native_ite, native_veq]
+
+private theorem smtx_tuple_type_wf_second_typeref_false
+    (T : SmtType) (c : SmtDatatypeCons) :
+    __smtx_type_wf
+        (SmtType.Datatype "@Tuple"
+          (SmtDatatype.sum
+            (SmtDatatypeCons.cons T
+              (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c))
+            SmtDatatype.null)) =
+      false := by
+  cases hT :
+      __smtx_value_dt_substitute "@Tuple"
+        (SmtDatatype.sum
+          (SmtDatatypeCons.cons T
+            (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c))
+          SmtDatatype.null)
+        (__smtx_type_default T) <;>
+    simp [__smtx_type_wf, native_and, native_inhabited_type,
+      __smtx_type_default, __smtx_datatype_default,
+      __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+      __smtx_typeof_value, native_ite, native_veq, hT]
+
+private theorem smtx_tuple_type_wf_head_ne_typeref
+    {T : SmtType} {c : SmtDatatypeCons}
+    (hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) =
+        true) :
+    T ≠ SmtType.TypeRef "@Tuple" := by
+  intro hT
+  subst T
+  rw [smtx_tuple_type_wf_head_typeref_false] at hWf
+  cases hWf
+
+private theorem smtx_tuple_type_wf_second_ne_typeref
+    {T U : SmtType} {c : SmtDatatypeCons}
+    (hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T (SmtDatatypeCons.cons U c))
+              SmtDatatype.null)) =
+        true) :
+    U ≠ SmtType.TypeRef "@Tuple" := by
+  intro hU
+  subst U
+  rw [smtx_tuple_type_wf_second_typeref_false] at hWf
+  cases hWf
+
+private theorem native_veq_apply_notvalue_false
+    (v a : SmtValue) :
+    native_veq (SmtValue.Apply v a) SmtValue.NotValue = false := by
+  simp [native_veq]
+
+private theorem native_veq_value_dt_substitute_notvalue
+    (s : native_String) (d : SmtDatatype) :
+    ∀ v : SmtValue,
+      native_veq (__smtx_value_dt_substitute s d v) SmtValue.NotValue =
+        native_veq v SmtValue.NotValue
+  | SmtValue.NotValue => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Boolean b => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Numeral n => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Rational q => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Binary w n => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Map m => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Fun fid T U => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Set m => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Seq ss => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Char c => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.UValue i n => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.RegLan r => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.DtCons s' d' i => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Apply f a => by
+      simp [__smtx_value_dt_substitute, native_veq]
+
+private theorem smtx_datatype_cons_default_notvalue_independent
+    (s : native_String) (d : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons) (v w : SmtValue),
+      native_veq v SmtValue.NotValue = false ->
+      native_veq w SmtValue.NotValue = false ->
+      native_veq (__smtx_datatype_cons_default s d v c) SmtValue.NotValue =
+        native_veq (__smtx_datatype_cons_default s d w c) SmtValue.NotValue
+  | SmtDatatypeCons.unit, v, w, hv, hw => by
+      simp [__smtx_datatype_cons_default, hv, hw]
+  | SmtDatatypeCons.cons T c, v, w, hv, hw => by
+      let field :=
+        __smtx_value_dt_substitute s d (__smtx_type_default T)
+      cases hField : native_veq field SmtValue.NotValue with
+      | false =>
+        simpa [__smtx_datatype_cons_default, native_ite, field, hField] using
+          smtx_datatype_cons_default_notvalue_independent s d c
+            (SmtValue.Apply v field) (SmtValue.Apply w field)
+            (native_veq_apply_notvalue_false v field)
+            (native_veq_apply_notvalue_false w field)
+      | true =>
+          simp [__smtx_datatype_cons_default, native_ite, field, hField]
+
+private theorem smtx_datatype_cons_default_notvalue_transfer
+    (s : native_String) :
+    ∀ (c : SmtDatatypeCons) (d d' : SmtDatatype) (v w : SmtValue),
+      native_veq v SmtValue.NotValue = false ->
+      native_veq w SmtValue.NotValue = false ->
+      native_veq (__smtx_datatype_cons_default s d v c) SmtValue.NotValue =
+        false ->
+      native_veq (__smtx_datatype_cons_default s d' w c) SmtValue.NotValue =
+        false
+  | SmtDatatypeCons.unit, d, d', v, w, hv, hw, hDefault => by
+      simpa [__smtx_datatype_cons_default] using hw
+  | SmtDatatypeCons.cons T c, d, d', v, w, hv, hw, hDefault => by
+      let field := __smtx_value_dt_substitute s d (__smtx_type_default T)
+      let field' := __smtx_value_dt_substitute s d' (__smtx_type_default T)
+      cases hField : native_veq field SmtValue.NotValue with
+      | false =>
+          have hField' : native_veq field' SmtValue.NotValue = false := by
+            rw [native_veq_value_dt_substitute_notvalue]
+            rw [← native_veq_value_dt_substitute_notvalue s d (__smtx_type_default T)]
+            exact hField
+          have hTail :
+              native_veq
+                  (__smtx_datatype_cons_default s d
+                    (SmtValue.Apply v field) c)
+                  SmtValue.NotValue =
+                false := by
+            simpa [__smtx_datatype_cons_default, native_ite, field, hField] using
+              hDefault
+          simpa [__smtx_datatype_cons_default, native_ite, field', hField'] using
+            smtx_datatype_cons_default_notvalue_transfer s c d d'
+              (SmtValue.Apply v field) (SmtValue.Apply w field')
+              (native_veq_apply_notvalue_false v field)
+              (native_veq_apply_notvalue_false w field') hTail
+      | true =>
+          have hDefault' := hDefault
+          simp [__smtx_datatype_cons_default, native_ite, field, hField, native_veq] at hDefault'
+          have hFieldEq : field = SmtValue.NotValue := by
+            simpa [native_veq] using hField
+          exact False.elim (hDefault'.1 (by simpa [field] using hFieldEq))
+
+private theorem smtx_tuple_tail_default_notvalue_of_cons_wf
+    {T : SmtType} {c : SmtDatatypeCons}
+    (hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) =
+        true) :
+    native_veq
+        (__smtx_datatype_cons_default "@Tuple"
+          (SmtDatatype.sum c SmtDatatype.null)
+          (SmtValue.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            native_nat_zero)
+          c)
+        SmtValue.NotValue =
+      false := by
+  let fullD := SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  let fullTy := SmtType.Datatype "@Tuple" fullD
+  have hInh : native_inhabited_type fullTy = true := by
+    have hParts :
+        native_inhabited_type fullTy = true ∧
+          __smtx_type_wf_rec fullTy native_reflist_nil = true := by
+      simpa [fullTy, __smtx_type_wf, native_and] using hWf
+    exact hParts.1
+  have hTyped :
+      __smtx_typeof_value (__smtx_type_default fullTy) = fullTy := by
+    have hParts :
+        __smtx_typeof_value (__smtx_type_default fullTy) = fullTy ∧
+          __smtx_value_canonical_bool (__smtx_type_default fullTy) = true := by
+      simpa [native_inhabited_type, native_and] using hInh
+    exact hParts.1
+  let fullStart := SmtValue.DtCons "@Tuple" fullD native_nat_zero
+  let fullDefault :=
+    __smtx_datatype_cons_default "@Tuple" fullD fullStart
+      (SmtDatatypeCons.cons T c)
+  have hFullDefault :
+      native_veq fullDefault SmtValue.NotValue = false := by
+    cases hDefault : native_veq fullDefault SmtValue.NotValue with
+    | false =>
+        rfl
+    | true =>
+        have hBad := hTyped
+        simp [fullTy, fullD, fullDefault, fullStart, __smtx_type_default,
+          __smtx_datatype_default, native_ite, native_not, hDefault,
+          __smtx_typeof_value] at hBad
+  let field := __smtx_value_dt_substitute "@Tuple" fullD (__smtx_type_default T)
+  cases hField : native_veq field SmtValue.NotValue with
+  | false =>
+      have hTailFull :
+          native_veq
+              (__smtx_datatype_cons_default "@Tuple" fullD
+                (SmtValue.Apply fullStart field) c)
+              SmtValue.NotValue =
+            false := by
+        simpa [fullDefault, __smtx_datatype_cons_default, native_ite, field,
+          hField] using hFullDefault
+      simpa [tailD] using
+        smtx_datatype_cons_default_notvalue_transfer "@Tuple" c fullD tailD
+          (SmtValue.Apply fullStart field)
+          (SmtValue.DtCons "@Tuple" tailD native_nat_zero)
+          (native_veq_apply_notvalue_false fullStart field)
+          (by simp [native_veq])
+          hTailFull
+  | true =>
+      have hBad := hFullDefault
+      simp [fullDefault, __smtx_datatype_cons_default, native_ite, field,
+        hField, native_veq] at hBad
+      have hFieldEq : field = SmtValue.NotValue := by
+        simpa [native_veq] using hField
+      exact False.elim (hBad.1 (by simpa [field] using hFieldEq))
+
 @[simp] private theorem native_inhabited_type_seq_apply
     (T : SmtType) :
     native_inhabited_type (SmtType.Seq T) = true :=
