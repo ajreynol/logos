@@ -8789,7 +8789,8 @@ theorem eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
     __smtx_typeof
         (__eo_to_smt (Term._at_strings_deq_diff y x)) =
       __eo_to_smt_type
-        (__eo_typeof (Term._at_strings_deq_diff y x)) := by
+        (__eo_typeof (Term._at_strings_deq_diff y x)) ∧
+      eo_type_valid (__eo_typeof (Term._at_strings_deq_diff y x)) := by
   let one := SmtTerm.Numeral 1
   let idx := SmtTerm.Var "@x" SmtType.Int
   let ySub := SmtTerm.str_substr (__eo_to_smt y) idx one
@@ -8877,7 +8878,9 @@ theorem eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
     simpa [__eo_typeof__at_strings_deq_diff] using
       congrArg __eo_to_smt_type
         (eo_requires_eo_eq_self_of_non_stuck U (Term.UOp UserOp.Int) hUNS)
-  exact hSmt.trans hEo.symm
+  refine ⟨hSmt.trans hEo.symm, ?_⟩
+  rw [eo_to_smt_type_eq_int hEo]
+  simp [eo_type_valid, eo_type_valid_rec]
 
 /-- Simplifies EO-to-SMT translation for `_at_strings_num_occur`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_num_occur
@@ -15179,7 +15182,8 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
     __smtx_typeof
         (__eo_to_smt (Term._at_re_unfold_pos_component z y x)) =
       __eo_to_smt_type
-        (__eo_typeof (Term._at_re_unfold_pos_component z y x)) := by
+        (__eo_typeof (Term._at_re_unfold_pos_component z y x)) ∧
+      eo_type_valid (__eo_typeof (Term._at_re_unfold_pos_component z y x)) := by
   cases x with
   | Numeral n =>
       have hTranslate :
@@ -15236,7 +15240,9 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
             (eo_typeof_eq_seq_char_of_smt_seq_char_from_ih z ihZ hArgs.1)
             (eo_typeof_eq_reglan_of_smt_reglan_from_ih y ihY hArgs.2)
             (by rfl)
-        exact hSmt.trans hEo.symm
+        refine ⟨hSmt.trans hEo.symm, ?_⟩
+        rw [eo_to_smt_type_eq_seq_char hEo]
+        simp [eo_type_valid, eo_type_valid_rec]
   | _ =>
       exfalso
       apply hNonNone
