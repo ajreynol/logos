@@ -13,7 +13,6 @@ open Smtm
 set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
 set_option linter.unusedSimpArgs false
-set_option warn.sorry false
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
@@ -86,6 +85,327 @@ private theorem smtx_type_wf_fun_components
     (i : native_Nat) :
     native_inhabited_type (SmtType.USort i) = true :=
   native_inhabited_type_usort i
+
+@[simp] private theorem native_inhabited_type_typeref_apply
+    (s : native_String) :
+    native_inhabited_type (SmtType.TypeRef s) = false := by
+  simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+    native_and]
+
+private theorem smtx_tuple_type_wf_head_typeref_false
+    (c : SmtDatatypeCons) :
+    __smtx_type_wf
+        (SmtType.Datatype "@Tuple"
+          (SmtDatatype.sum (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c)
+            SmtDatatype.null)) =
+      false := by
+  simp [__smtx_type_wf, native_and, native_inhabited_type,
+    __smtx_type_default, __smtx_datatype_default,
+    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+    __smtx_typeof_value, native_ite, native_veq]
+
+private theorem smtx_tuple_type_wf_second_typeref_false
+    (T : SmtType) (c : SmtDatatypeCons) :
+    __smtx_type_wf
+        (SmtType.Datatype "@Tuple"
+          (SmtDatatype.sum
+            (SmtDatatypeCons.cons T
+              (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c))
+            SmtDatatype.null)) =
+      false := by
+  cases hT :
+      __smtx_value_dt_substitute "@Tuple"
+        (SmtDatatype.sum
+          (SmtDatatypeCons.cons T
+            (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c))
+          SmtDatatype.null)
+        (__smtx_type_default T) <;>
+    simp [__smtx_type_wf, native_and, native_inhabited_type,
+      __smtx_type_default, __smtx_datatype_default,
+      __smtx_datatype_cons_default, __smtx_value_dt_substitute,
+      __smtx_typeof_value, native_ite, native_veq, hT]
+
+private theorem smtx_tuple_type_wf_head_ne_typeref
+    {T : SmtType} {c : SmtDatatypeCons}
+    (hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) =
+        true) :
+    T ≠ SmtType.TypeRef "@Tuple" := by
+  intro hT
+  subst T
+  rw [smtx_tuple_type_wf_head_typeref_false] at hWf
+  cases hWf
+
+private theorem smtx_tuple_type_wf_second_ne_typeref
+    {T U : SmtType} {c : SmtDatatypeCons}
+    (hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T (SmtDatatypeCons.cons U c))
+              SmtDatatype.null)) =
+        true) :
+    U ≠ SmtType.TypeRef "@Tuple" := by
+  intro hU
+  subst U
+  rw [smtx_tuple_type_wf_second_typeref_false] at hWf
+  cases hWf
+
+private theorem native_veq_apply_notvalue_false
+    (v a : SmtValue) :
+    native_veq (SmtValue.Apply v a) SmtValue.NotValue = false := by
+  simp [native_veq]
+
+private theorem native_veq_value_dt_substitute_notvalue
+    (s : native_String) (d : SmtDatatype) :
+    ∀ v : SmtValue,
+      native_veq (__smtx_value_dt_substitute s d v) SmtValue.NotValue =
+        native_veq v SmtValue.NotValue
+  | SmtValue.NotValue => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Boolean b => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Numeral n => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Rational q => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Binary w n => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Map m => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Fun fid T U => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Set m => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Seq ss => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Char c => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.UValue i n => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.RegLan r => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.DtCons s' d' i => by
+      simp [__smtx_value_dt_substitute, native_veq]
+  | SmtValue.Apply f a => by
+      simp [__smtx_value_dt_substitute, native_veq]
+
+private theorem smtx_datatype_cons_default_notvalue_independent
+    (s : native_String) (d : SmtDatatype) :
+    ∀ (c : SmtDatatypeCons) (v w : SmtValue),
+      native_veq v SmtValue.NotValue = false ->
+      native_veq w SmtValue.NotValue = false ->
+      native_veq (__smtx_datatype_cons_default s d v c) SmtValue.NotValue =
+        native_veq (__smtx_datatype_cons_default s d w c) SmtValue.NotValue
+  | SmtDatatypeCons.unit, v, w, hv, hw => by
+      simp [__smtx_datatype_cons_default, hv, hw]
+  | SmtDatatypeCons.cons T c, v, w, hv, hw => by
+      let field :=
+        __smtx_value_dt_substitute s d (__smtx_type_default T)
+      cases hField : native_veq field SmtValue.NotValue with
+      | false =>
+        simpa [__smtx_datatype_cons_default, native_ite, field, hField] using
+          smtx_datatype_cons_default_notvalue_independent s d c
+            (SmtValue.Apply v field) (SmtValue.Apply w field)
+            (native_veq_apply_notvalue_false v field)
+            (native_veq_apply_notvalue_false w field)
+      | true =>
+          simp [__smtx_datatype_cons_default, native_ite, field, hField]
+
+private theorem smtx_datatype_cons_default_notvalue_transfer
+    (s : native_String) :
+    ∀ (c : SmtDatatypeCons) (d d' : SmtDatatype) (v w : SmtValue),
+      native_veq v SmtValue.NotValue = false ->
+      native_veq w SmtValue.NotValue = false ->
+      native_veq (__smtx_datatype_cons_default s d v c) SmtValue.NotValue =
+        false ->
+      native_veq (__smtx_datatype_cons_default s d' w c) SmtValue.NotValue =
+        false
+  | SmtDatatypeCons.unit, d, d', v, w, hv, hw, hDefault => by
+      simpa [__smtx_datatype_cons_default] using hw
+  | SmtDatatypeCons.cons T c, d, d', v, w, hv, hw, hDefault => by
+      let field := __smtx_value_dt_substitute s d (__smtx_type_default T)
+      let field' := __smtx_value_dt_substitute s d' (__smtx_type_default T)
+      cases hField : native_veq field SmtValue.NotValue with
+      | false =>
+          have hField' : native_veq field' SmtValue.NotValue = false := by
+            rw [native_veq_value_dt_substitute_notvalue]
+            rw [← native_veq_value_dt_substitute_notvalue s d (__smtx_type_default T)]
+            exact hField
+          have hTail :
+              native_veq
+                  (__smtx_datatype_cons_default s d
+                    (SmtValue.Apply v field) c)
+                  SmtValue.NotValue =
+                false := by
+            simpa [__smtx_datatype_cons_default, native_ite, field, hField] using
+              hDefault
+          simpa [__smtx_datatype_cons_default, native_ite, field', hField'] using
+            smtx_datatype_cons_default_notvalue_transfer s c d d'
+              (SmtValue.Apply v field) (SmtValue.Apply w field')
+              (native_veq_apply_notvalue_false v field)
+              (native_veq_apply_notvalue_false w field') hTail
+      | true =>
+          have hDefault' := hDefault
+          simp [__smtx_datatype_cons_default, native_ite, field, hField, native_veq] at hDefault'
+          have hFieldEq : field = SmtValue.NotValue := by
+            simpa [native_veq] using hField
+          exact False.elim (hDefault'.1 (by simpa [field] using hFieldEq))
+
+private theorem smtx_tuple_tail_default_notvalue_of_cons_wf
+    {T : SmtType} {c : SmtDatatypeCons}
+    (hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) =
+        true) :
+    native_veq
+        (__smtx_datatype_cons_default "@Tuple"
+          (SmtDatatype.sum c SmtDatatype.null)
+          (SmtValue.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            native_nat_zero)
+          c)
+        SmtValue.NotValue =
+      false := by
+  let fullD := SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  let fullTy := SmtType.Datatype "@Tuple" fullD
+  have hInh : native_inhabited_type fullTy = true := by
+    have hParts :
+        native_inhabited_type fullTy = true ∧
+          __smtx_type_wf_rec fullTy native_reflist_nil = true := by
+      simpa [fullTy, __smtx_type_wf, native_and] using hWf
+    exact hParts.1
+  have hTyped :
+      __smtx_typeof_value (__smtx_type_default fullTy) = fullTy := by
+    have hParts :
+        __smtx_typeof_value (__smtx_type_default fullTy) = fullTy ∧
+          __smtx_value_canonical_bool (__smtx_type_default fullTy) = true := by
+      simpa [native_inhabited_type, native_and] using hInh
+    exact hParts.1
+  let fullStart := SmtValue.DtCons "@Tuple" fullD native_nat_zero
+  let fullDefault :=
+    __smtx_datatype_cons_default "@Tuple" fullD fullStart
+      (SmtDatatypeCons.cons T c)
+  have hFullDefault :
+      native_veq fullDefault SmtValue.NotValue = false := by
+    cases hDefault : native_veq fullDefault SmtValue.NotValue with
+    | false =>
+        rfl
+    | true =>
+        have hBad := hTyped
+        simp [fullTy, fullD, fullDefault, fullStart, __smtx_type_default,
+          __smtx_datatype_default, native_ite, native_not, hDefault,
+          __smtx_typeof_value] at hBad
+  let field := __smtx_value_dt_substitute "@Tuple" fullD (__smtx_type_default T)
+  cases hField : native_veq field SmtValue.NotValue with
+  | false =>
+      have hTailFull :
+          native_veq
+              (__smtx_datatype_cons_default "@Tuple" fullD
+                (SmtValue.Apply fullStart field) c)
+              SmtValue.NotValue =
+            false := by
+        simpa [fullDefault, __smtx_datatype_cons_default, native_ite, field,
+          hField] using hFullDefault
+      simpa [tailD] using
+        smtx_datatype_cons_default_notvalue_transfer "@Tuple" c fullD tailD
+          (SmtValue.Apply fullStart field)
+          (SmtValue.DtCons "@Tuple" tailD native_nat_zero)
+          (native_veq_apply_notvalue_false fullStart field)
+          (by simp [native_veq])
+          hTailFull
+  | true =>
+      have hBad := hFullDefault
+      simp [fullDefault, __smtx_datatype_cons_default, native_ite, field,
+        hField, native_veq] at hBad
+      have hFieldEq : field = SmtValue.NotValue := by
+        simpa [native_veq] using hField
+      exact False.elim (hBad.1 (by simpa [field] using hFieldEq))
+
+private theorem smtx_tuple_type_wf_tail_of_cons_wf
+    {T : SmtType} {c : SmtDatatypeCons}
+    (hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) =
+        true) :
+    __smtx_type_wf
+        (SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) =
+      true := by
+  let fullTy :=
+    SmtType.Datatype "@Tuple"
+      (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)
+  let tailTy :=
+    SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+  have hFullParts :
+      native_inhabited_type fullTy = true ∧
+        __smtx_type_wf_rec fullTy native_reflist_nil = true := by
+    simpa [fullTy, __smtx_type_wf, native_and] using hWf
+  have hConsWf :
+      __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c)
+          (native_reflist_insert native_reflist_nil "@Tuple") =
+        true := by
+    have hDtWf :
+        __smtx_dt_wf_rec
+            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)
+            (native_reflist_insert native_reflist_nil "@Tuple") =
+          true := by
+      have hParts :
+          ¬ "@Tuple" ∈ native_reflist_nil ∧
+            __smtx_dt_wf_rec
+                (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)
+                (native_reflist_insert native_reflist_nil "@Tuple") =
+              true := by
+        simpa [fullTy, __smtx_type_wf_rec, native_reflist_contains,
+          native_reflist_insert, native_ite] using hFullParts.2
+      exact hParts.2
+    simpa [__smtx_dt_wf_rec] using hDtWf
+  have hTailConsWf :
+      __smtx_dt_cons_wf_rec c
+          (native_reflist_insert native_reflist_nil "@Tuple") =
+        true :=
+    smtx_dt_cons_wf_rec_tail_of_true hConsWf
+  have hTailRec :
+      __smtx_type_wf_rec tailTy native_reflist_nil = true := by
+    have hNoRec : ¬ "@Tuple" ∈ native_reflist_nil := by
+      intro h
+      cases h
+    have hTailDt :
+        __smtx_dt_wf_rec (SmtDatatype.sum c SmtDatatype.null)
+            (native_reflist_insert native_reflist_nil "@Tuple") =
+          true := by
+      simpa [__smtx_dt_wf_rec] using hTailConsWf
+    have hParts :
+        ¬ "@Tuple" ∈ native_reflist_nil ∧
+          __smtx_dt_wf_rec (SmtDatatype.sum c SmtDatatype.null)
+              (native_reflist_insert native_reflist_nil "@Tuple") =
+            true :=
+      And.intro hNoRec hTailDt
+    simpa [tailTy, __smtx_type_wf_rec, native_reflist_contains,
+      native_reflist_insert, native_ite] using hParts
+  have hDefaultNN :=
+    smtx_tuple_tail_default_notvalue_of_cons_wf hWf
+  have hDefaultTC :=
+    Smtm.cpc_tuple_tail_default_typed_canonical_assumption T c hWf
+  have hTailInh : native_inhabited_type tailTy = true := by
+    let tailD := SmtDatatype.sum c SmtDatatype.null
+    let tailDefault :=
+      __smtx_datatype_cons_default "@Tuple" tailD
+        (SmtValue.DtCons "@Tuple" tailD native_nat_zero) c
+    have hTypeDefault :
+        __smtx_type_default tailTy = tailDefault := by
+      simpa [tailTy, tailD, tailDefault, __smtx_type_default,
+        __smtx_datatype_default, native_ite, native_not, hDefaultNN]
+    have hTy :
+        __smtx_typeof_value (__smtx_type_default tailTy) = tailTy := by
+      simpa [tailTy, tailD, tailDefault, hTypeDefault] using hDefaultTC.1
+    have hCan :
+        __smtx_value_canonical_bool (__smtx_type_default tailTy) = true := by
+      simpa [tailD, tailDefault, hTypeDefault] using hDefaultTC.2
+    simpa [native_inhabited_type, native_and, hTy, hCan]
+  exact type_wf_of_inhabited_and_wf_rec hTailInh hTailRec
 
 @[simp] private theorem native_inhabited_type_seq_apply
     (T : SmtType) :
@@ -7232,13 +7552,6 @@ private theorem eo_to_smt_type_eq_of_valid_rec_apply
     T = U := by
   exact eo_to_smt_type_eq_of_valid_rec hValid hEq
 
-private theorem eo_type_valid_of_matches_translation_apply
-    (t : Term)
-    (hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None)
-    (hEq : __smtx_typeof (__eo_to_smt t) = __eo_to_smt_type (__eo_typeof t)) :
-    eo_type_valid (__eo_typeof t) := by
-  sorry
-
 private theorem eo_type_valid_of_valid_rec_top_apply
     {T : Term}
     (h : eo_type_valid_rec [] T) :
@@ -7362,10 +7675,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_va
     (f x : Term)
     (ihF :
       __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f) ∧
+        eo_type_valid (__eo_typeof f))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
     (hGeneric :
       generic_apply_type (__eo_to_smt f) (__eo_to_smt x))
     (hTranslate :
@@ -7381,11 +7696,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_va
       __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
   exact
     (eo_to_smt_typeof_matches_translation_apply_generic_from_valid_ih
-      f x
-      (fun hNN =>
-        ⟨ihF hNN, eo_type_valid_of_matches_translation_apply f hNN (ihF hNN)⟩)
-      (fun hNN =>
-        ⟨ihX hNN, eo_type_valid_of_matches_translation_apply x hNN (ihX hNN)⟩)
+      f x ihF ihX
       hGeneric hTranslate hEoApply hNonNone).1
 
 /-- Selector application typing, using the local IH for the selector argument. -/
@@ -7495,10 +7806,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic_from_ih
     (ihHead :
       __smtx_typeof (__eo_to_smt (Term.Apply g y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply g y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply g y)))
+        __eo_to_smt_type (__eo_typeof (Term.Apply g y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply g y)))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
     (hGeneric :
       generic_apply_type (__eo_to_smt (Term.Apply g y)) (__eo_to_smt x))
     (hTranslate :
@@ -7523,10 +7836,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_f
     (ihHead :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)))
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply (Term.Apply g z) y)))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
     (hGeneric :
       generic_apply_type (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x))
     (hTranslate :
@@ -7549,10 +7864,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head
     (ihHead :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp op) y)))
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp op) y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply (Term.UOp op) y)))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
     (hHeadTranslate :
       __eo_to_smt (Term.Apply (Term.UOp op) y) = head)
     (hOuterTranslate :
@@ -8506,7 +8823,8 @@ theorem eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
     __smtx_typeof
         (__eo_to_smt (Term._at_strings_deq_diff y x)) =
       __eo_to_smt_type
-        (__eo_typeof (Term._at_strings_deq_diff y x)) := by
+        (__eo_typeof (Term._at_strings_deq_diff y x)) ∧
+      eo_type_valid (__eo_typeof (Term._at_strings_deq_diff y x)) := by
   let one := SmtTerm.Numeral 1
   let idx := SmtTerm.Var "@x" SmtType.Int
   let ySub := SmtTerm.str_substr (__eo_to_smt y) idx one
@@ -8594,7 +8912,9 @@ theorem eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
     simpa [__eo_typeof__at_strings_deq_diff] using
       congrArg __eo_to_smt_type
         (eo_requires_eo_eq_self_of_non_stuck U (Term.UOp UserOp.Int) hUNS)
-  exact hSmt.trans hEo.symm
+  refine ⟨hSmt.trans hEo.symm, ?_⟩
+  rw [eo_to_smt_type_eq_int hEo]
+  simp [eo_type_valid, eo_type_valid_rec]
 
 /-- Simplifies EO-to-SMT translation for `_at_strings_num_occur`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_num_occur
@@ -9738,10 +10058,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_purify
     (ihPurify :
       __smtx_typeof (__eo_to_smt (Term._at_purify y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term._at_purify y)) =
-        __eo_to_smt_type (__eo_typeof (Term._at_purify y)))
+        __eo_to_smt_type (__eo_typeof (Term._at_purify y)) ∧
+        eo_type_valid (__eo_typeof (Term._at_purify y)))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
     (hNonNone :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term._at_purify y) x)) ≠
         SmtType.None) :
@@ -10858,6 +11180,60 @@ private theorem smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
 
 end
 
+private theorem smtx_type_substitute_top_apply_tuple_of_eo_valid
+    (base : SmtDatatype) {T : Term}
+    (hValid : eo_type_valid T) :
+    smtx_type_substitute_top_apply "@Tuple" base (__eo_to_smt_type T) =
+      __eo_to_smt_type T := by
+  cases T with
+  | UOp op =>
+      cases op with
+      | Int =>
+          have hNo : ("@Tuple" : native_String) ∉ ([] : RefList) := by
+            intro h
+            exact List.not_mem_nil h
+          exact
+            smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
+              base (refs := []) (T := Term.UOp UserOp.Int) hNo
+              (by simpa [eo_type_valid] using hValid)
+      | Real =>
+          have hNo : ("@Tuple" : native_String) ∉ ([] : RefList) := by
+            intro h
+            exact List.not_mem_nil h
+          exact
+            smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
+              base (refs := []) (T := Term.UOp UserOp.Real) hNo
+              (by simpa [eo_type_valid] using hValid)
+      | Char =>
+          have hNo : ("@Tuple" : native_String) ∉ ([] : RefList) := by
+            intro h
+            exact List.not_mem_nil h
+          exact
+            smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
+              base (refs := []) (T := Term.UOp UserOp.Char) hNo
+              (by simpa [eo_type_valid] using hValid)
+      | UnitTuple =>
+          have hNo : ("@Tuple" : native_String) ∉ ([] : RefList) := by
+            intro h
+            exact List.not_mem_nil h
+          exact
+            smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
+              base (refs := []) (T := Term.UOp UserOp.UnitTuple) hNo
+              (by simpa [eo_type_valid] using hValid)
+      | RegLan =>
+          simp [__eo_to_smt_type, smtx_type_substitute_top_apply, native_ite,
+            native_Teq]
+      | _ =>
+          exfalso
+          simpa [eo_type_valid, eo_type_valid_rec] using hValid
+  | _ =>
+      have hNo : ("@Tuple" : native_String) ∉ ([] : RefList) := by
+        intro h
+        exact List.not_mem_nil h
+      exact
+        smtx_type_substitute_top_apply_tuple_of_eo_valid_rec
+          base (refs := []) hNo (by simpa [eo_type_valid] using hValid)
+
 private theorem smtx_ret_typeof_tuple_sel_rec_eq_eo_list_nth_rec_nat :
     ∀ {T : Term} {d : SmtDatatype} (j : native_Nat),
       __eo_to_smt_type T = SmtType.Datatype "@Tuple" d ->
@@ -11066,6 +11442,1041 @@ private theorem smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
     smtx_type_substitute_top_apply_tuple_of_eo_list_nth_rec_nat
       (T := T) (d := d) (base := d) j hT hValid
 
+private def smtx_tuple_cons_type (T : SmtType) : SmtType -> SmtType
+  | SmtType.DtcAppType A B => SmtType.DtcAppType A (smtx_tuple_cons_type T B)
+  | U =>
+      native_ite (__smtx_type_wf (__eo_to_smt_type_tuple T U))
+        (__eo_to_smt_type_tuple T U) SmtType.None
+
+private def smtx_apply_head : SmtTerm -> SmtTerm
+  | SmtTerm.Apply f _ => smtx_apply_head f
+  | t => t
+
+private def smtx_num_apply_args : SmtTerm -> Nat
+  | SmtTerm.Apply f _ => Nat.succ (smtx_num_apply_args f)
+  | _ => 0
+
+private theorem smtx_tuple_cons_type_apply
+    (T F X : SmtType)
+    (hNN :
+      __smtx_typeof_apply (smtx_tuple_cons_type T F) X ≠ SmtType.None) :
+    __smtx_typeof_apply (smtx_tuple_cons_type T F) X =
+      smtx_tuple_cons_type T (__smtx_typeof_apply F X) := by
+  cases F with
+  | DtcAppType A B =>
+      cases A <;> cases X <;>
+        simp_all [smtx_tuple_cons_type, __smtx_typeof_apply, __smtx_typeof_guard,
+          native_ite, native_Teq]
+  | Datatype s d =>
+      exfalso
+      apply hNN
+      cases d with
+      | null =>
+          simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple, __smtx_typeof_apply,
+            native_ite]
+      | sum c rest =>
+          cases rest with
+          | null =>
+              by_cases hs : s = "@Tuple"
+              · subst s
+                cases hWf :
+                    __smtx_type_wf
+                      (SmtType.Datatype "@Tuple"
+                        (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) <;>
+                  simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple,
+                    __smtx_typeof_apply, native_ite, hWf]
+              · simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple,
+                  __smtx_typeof_apply, native_ite, hs]
+          | sum cTail restTail =>
+              simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple,
+                __smtx_typeof_apply, native_ite]
+  | _ =>
+      exfalso
+      apply hNN
+      simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple, __smtx_typeof_apply,
+        native_ite]
+
+private theorem smtx_apply_arg_non_none_of_non_none_tuple_cons
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof x ≠ SmtType.None := by
+  have hApply :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+    cases f
+    case DtSel s d i j =>
+      exact False.elim (hSel s d i j rfl)
+    case DtTester s d i =>
+      exact False.elim (hTester s d i rfl)
+    all_goals
+      simpa [__smtx_typeof] using hNN
+  rcases typeof_apply_non_none_cases hApply with ⟨A, _B, _hHead, hArg, hA, _hB⟩
+  rw [hArg]
+  exact hA
+
+private theorem smtx_apply_head_non_none_of_non_none_tuple_cons
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof f ≠ SmtType.None := by
+  have hApply :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠ SmtType.None := by
+    cases f
+    case DtSel s d i j =>
+      exact False.elim (hSel s d i j rfl)
+    case DtTester s d i =>
+      exact False.elim (hTester s d i rfl)
+    all_goals
+      simpa [__smtx_typeof] using hNN
+  rcases typeof_apply_non_none_cases hApply with ⟨A, B, hHead, _hArg, _hA, _hB⟩
+  rcases hHead with hHead | hHead
+  · rw [hHead]
+    simp
+  · rw [hHead]
+    simp
+
+private theorem smtx_tuple_cons_apply_head_tuple_of_non_none :
+    ∀ (tail head : SmtTerm) (T : SmtType),
+      __smtx_typeof (__eo_to_smt_tuple_cons tail T head) ≠ SmtType.None ->
+        ∃ c,
+          smtx_apply_head tail =
+            SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+              native_nat_zero
+  | tail, head, T, hNN => by
+      cases tail with
+      | Apply f a =>
+          have hRecNN :
+              __smtx_typeof (__eo_to_smt_tuple_cons f T head) ≠ SmtType.None :=
+            smtx_apply_head_non_none_of_non_none_tuple_cons
+              (__eo_to_smt_tuple_cons f T head) a
+              (eo_to_smt_tuple_cons_ne_dt_sel f T head)
+              (eo_to_smt_tuple_cons_ne_dt_tester f T head)
+              (by simpa [__eo_to_smt_tuple_cons] using hNN)
+          exact smtx_tuple_cons_apply_head_tuple_of_non_none f head T hRecNN
+      | DtCons s d i =>
+          by_cases hs : s = "@Tuple"
+          · subst s
+            cases d with
+            | null =>
+                exfalso
+                apply hNN
+                cases i <;> simp [__eo_to_smt_tuple_cons]
+            | sum c rest =>
+                cases rest with
+                | null =>
+                    cases i with
+                    | zero =>
+                        exact ⟨c, rfl⟩
+                    | succ i =>
+                        exfalso
+                        apply hNN
+                        simp [__eo_to_smt_tuple_cons]
+                | sum cTail restTail =>
+                    exfalso
+                    apply hNN
+                    cases i <;> simp [__eo_to_smt_tuple_cons]
+          · exfalso
+            apply hNN
+            cases d <;> cases i <;> simp [__eo_to_smt_tuple_cons, hs]
+      | _ =>
+          exfalso
+          apply hNN
+          simp [__eo_to_smt_tuple_cons]
+termination_by tail head T hNN => tail
+
+private theorem smtx_tuple_cons_num_apply_args_of_non_none :
+    ∀ (tail head : SmtTerm) (T : SmtType),
+      __smtx_typeof (__eo_to_smt_tuple_cons tail T head) ≠ SmtType.None ->
+        smtx_num_apply_args (__eo_to_smt_tuple_cons tail T head) =
+          Nat.succ (smtx_num_apply_args tail)
+  | tail, head, T, hNN => by
+      cases tail with
+      | Apply f a =>
+          have hRecNN :
+              __smtx_typeof (__eo_to_smt_tuple_cons f T head) ≠ SmtType.None :=
+            smtx_apply_head_non_none_of_non_none_tuple_cons
+              (__eo_to_smt_tuple_cons f T head) a
+              (eo_to_smt_tuple_cons_ne_dt_sel f T head)
+              (eo_to_smt_tuple_cons_ne_dt_tester f T head)
+              (by simpa [__eo_to_smt_tuple_cons] using hNN)
+          have hRec :=
+            smtx_tuple_cons_num_apply_args_of_non_none f head T hRecNN
+          simpa [__eo_to_smt_tuple_cons, smtx_num_apply_args, hRec]
+      | DtCons s d i =>
+          by_cases hs : s = "@Tuple"
+          · subst s
+            cases d with
+            | null =>
+                exfalso
+                apply hNN
+                cases i <;> simp [__eo_to_smt_tuple_cons]
+            | sum c rest =>
+                cases rest with
+                | null =>
+                    cases i with
+                    | zero =>
+                        simp [__eo_to_smt_tuple_cons, smtx_num_apply_args]
+                    | succ i =>
+                        exfalso
+                        apply hNN
+                        simp [__eo_to_smt_tuple_cons]
+                | sum cTail restTail =>
+                    exfalso
+                    apply hNN
+                    cases i <;> simp [__eo_to_smt_tuple_cons]
+          · exfalso
+            apply hNN
+            cases d <;> cases i <;> simp [__eo_to_smt_tuple_cons, hs]
+      | _ =>
+          exfalso
+          apply hNN
+          simp [__eo_to_smt_tuple_cons]
+termination_by tail head T hNN => tail
+
+private theorem smtx_tuple_cons_result_apply_head_tuple_of_non_none :
+    ∀ (tail head : SmtTerm) (T : SmtType),
+      __smtx_typeof (__eo_to_smt_tuple_cons tail T head) ≠ SmtType.None ->
+        ∃ c,
+          smtx_apply_head (__eo_to_smt_tuple_cons tail T head) =
+            SmtTerm.DtCons "@Tuple"
+              (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)
+              native_nat_zero
+  | tail, head, T, hNN => by
+      cases tail with
+      | Apply f a =>
+          have hRecNN :
+              __smtx_typeof (__eo_to_smt_tuple_cons f T head) ≠ SmtType.None :=
+            smtx_apply_head_non_none_of_non_none_tuple_cons
+              (__eo_to_smt_tuple_cons f T head) a
+              (eo_to_smt_tuple_cons_ne_dt_sel f T head)
+              (eo_to_smt_tuple_cons_ne_dt_tester f T head)
+              (by simpa [__eo_to_smt_tuple_cons] using hNN)
+          rcases smtx_tuple_cons_result_apply_head_tuple_of_non_none f head T hRecNN with
+            ⟨c, hHead⟩
+          exact ⟨c, by simpa [__eo_to_smt_tuple_cons, smtx_apply_head] using hHead⟩
+      | DtCons s d i =>
+          by_cases hs : s = "@Tuple"
+          · subst s
+            cases d with
+            | null =>
+                exfalso
+                apply hNN
+                cases i <;> simp [__eo_to_smt_tuple_cons]
+            | sum c rest =>
+                cases rest with
+                | null =>
+                    cases i with
+                    | zero =>
+                        exact ⟨c, by simp [__eo_to_smt_tuple_cons, smtx_apply_head]⟩
+                    | succ i =>
+                        exfalso
+                        apply hNN
+                        simp [__eo_to_smt_tuple_cons]
+                | sum cTail restTail =>
+                    exfalso
+                    apply hNN
+                    cases i <;> simp [__eo_to_smt_tuple_cons]
+          · exfalso
+            apply hNN
+            cases d <;> cases i <;> simp [__eo_to_smt_tuple_cons, hs]
+      | _ =>
+          exfalso
+          apply hNN
+          simp [__eo_to_smt_tuple_cons]
+termination_by tail head T hNN => tail
+
+private theorem smtx_dt_cons_chain_type_of_non_none_aux :
+    ∀ (n : Nat) (t : SmtTerm) (s : native_String) (d : SmtDatatype) (i : native_Nat),
+      smtx_num_apply_args t = n ->
+      smtx_apply_head t = SmtTerm.DtCons s d i ->
+      __smtx_typeof t ≠ SmtType.None ->
+      __smtx_typeof t =
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (smtx_num_apply_args t) := by
+  intro n
+  induction n with
+  | zero =>
+      intro t s d i hN hHead hNN
+      cases t <;> simp [smtx_num_apply_args, smtx_apply_head] at hN hHead
+      case DtCons s' d' i' =>
+      rcases hHead with ⟨rfl, hEq⟩
+      rcases hEq with ⟨rfl, rfl⟩
+      rw [typeof_dt_cons_eq]
+      have hGuard :
+          __smtx_typeof_guard_wf (SmtType.Datatype s' d')
+              (__smtx_typeof_dt_cons_rec
+                (SmtType.Datatype s' d') (__smtx_dt_substitute s' d' d') i') =
+            __smtx_typeof_dt_cons_rec
+              (SmtType.Datatype s' d') (__smtx_dt_substitute s' d' d') i' :=
+        smtx_typeof_guard_wf_of_non_none
+          (SmtType.Datatype s' d')
+          (__smtx_typeof_dt_cons_rec
+            (SmtType.Datatype s' d') (__smtx_dt_substitute s' d' d') i')
+          (by simpa [typeof_dt_cons_eq] using hNN)
+      simp [hGuard, smtx_num_apply_args, dt_cons_applied_type_rec,
+        typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec]
+  | succ n ih =>
+      intro t s d i hN hHead hNN
+      cases t <;> simp [smtx_num_apply_args, smtx_apply_head] at hN hHead
+      case Apply f a =>
+      have hHeadF : smtx_apply_head f = SmtTerm.DtCons s d i := by
+        simpa using hHead
+      have hRecSel : ∀ s0 d0 i0 j0, f ≠ SmtTerm.DtSel s0 d0 i0 j0 := by
+        intro s0 d0 i0 j0 hf
+        subst f
+        simp [smtx_apply_head] at hHeadF
+      have hRecTester : ∀ s0 d0 i0, f ≠ SmtTerm.DtTester s0 d0 i0 := by
+        intro s0 d0 i0 hf
+        subst f
+        simp [smtx_apply_head] at hHeadF
+      have hGeneric : generic_apply_type f a :=
+        generic_apply_type_of_non_special_head f a hRecSel hRecTester
+      have hApplyNN :
+          __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof a) ≠ SmtType.None := by
+        unfold generic_apply_type at hGeneric
+        rw [hGeneric] at hNN
+        exact hNN
+      rcases typeof_apply_non_none_cases hApplyNN with ⟨A, B, hHeadTy, hArg, hA, _hB⟩
+      have hFunNN : __smtx_typeof f ≠ SmtType.None := by
+        rcases hHeadTy with hHeadTy | hHeadTy
+        · rw [hHeadTy]
+          simp
+        · rw [hHeadTy]
+          simp
+      have ihEq := ih f s d i hN hHeadF hFunNN
+      have hlt :
+          smtx_num_apply_args f < __smtx_dt_num_sels (__smtx_dt_substitute s d d) i := by
+        rcases hHeadTy with hHeadTy | hHeadTy
+        · have hArgs := congrArg dt_cons_type_num_args hHeadTy
+          rw [ihEq, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+          simp [dt_cons_type_num_args] at hArgs
+          omega
+        · have hArgs := congrArg dt_cons_type_num_args hHeadTy
+          rw [ihEq, dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+          simp [dt_cons_type_num_args] at hArgs
+          omega
+      let R := __smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) i
+        (smtx_num_apply_args f)
+      let Rest :=
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (Nat.succ (smtx_num_apply_args f))
+      have hStep :
+          dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+              (smtx_num_apply_args f) =
+            SmtType.DtcAppType R Rest := by
+        simpa [R, Rest] using
+          dt_cons_applied_type_rec_step s d (__smtx_dt_substitute s d d) i
+            (smtx_num_apply_args f) hlt
+      have hArgR : __smtx_typeof a = R := by
+        rcases hHeadTy with hHeadTy | hHeadTy
+        · have hBad : SmtType.DtcAppType R Rest = SmtType.FunType A B := by
+            exact (ihEq.trans hStep).symm.trans hHeadTy
+          cases hBad
+        · have hCmp : SmtType.DtcAppType R Rest = SmtType.DtcAppType A B := by
+            exact (ihEq.trans hStep).symm.trans hHeadTy
+          injection hCmp with hAeq _hBeq
+          exact hArg.trans hAeq.symm
+      have hRNN : R ≠ SmtType.None := by
+        rw [← hArgR]
+        rw [hArg]
+        exact hA
+      have hApplyTy : __smtx_typeof (SmtTerm.Apply f a) = Rest := by
+        rw [hGeneric]
+        exact smtx_typeof_apply_of_head_cases (Or.inr (ihEq.trans hStep)) hArgR hRNN
+      simpa [smtx_num_apply_args, Rest] using hApplyTy
+
+private theorem smtx_dt_cons_chain_type_of_non_none :
+    ∀ {t : SmtTerm} {s : native_String} {d : SmtDatatype} {i : native_Nat},
+      smtx_apply_head t = SmtTerm.DtCons s d i ->
+      __smtx_typeof t ≠ SmtType.None ->
+      __smtx_typeof t =
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (smtx_num_apply_args t)
+  | t, s, d, i, hHead, hNN =>
+      smtx_dt_cons_chain_type_of_non_none_aux
+        (smtx_num_apply_args t) t s d i rfl hHead hNN
+
+private theorem smtx_term_datatype_type_head_base_apply
+    {t : SmtTerm}
+    {s sh : native_String}
+    {d dh : SmtDatatype}
+    {i : native_Nat}
+    (hHead : smtx_apply_head t = SmtTerm.DtCons sh dh i)
+    (hTy : __smtx_typeof t = SmtType.Datatype s d) :
+    sh = s ∧ dh = d := by
+  have hNN : __smtx_typeof t ≠ SmtType.None := by
+    rw [hTy]
+    simp
+  have hChain := smtx_dt_cons_chain_type_of_non_none hHead hNN
+  have hRes :
+      dt_cons_applied_type_rec sh dh (__smtx_dt_substitute sh dh dh) i
+          (smtx_num_apply_args t) =
+        SmtType.Datatype s d := by
+    exact hChain.symm.trans hTy
+  have hArgsZero :
+      __smtx_dt_num_sels (__smtx_dt_substitute sh dh dh) i -
+          smtx_num_apply_args t =
+        0 := by
+    have hArgs := congrArg dt_cons_type_num_args hRes
+    rw [dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+    simpa [dt_cons_type_num_args] using hArgs
+  have hle :
+      smtx_num_apply_args t ≤
+        __smtx_dt_num_sels (__smtx_dt_substitute sh dh dh) i :=
+    dt_cons_applied_type_rec_non_none_implies_le sh dh
+      (__smtx_dt_substitute sh dh dh) i (smtx_num_apply_args t)
+      (by rw [hRes]; simp)
+  have hCount :
+      smtx_num_apply_args t =
+        __smtx_dt_num_sels (__smtx_dt_substitute sh dh dh) i := by
+    have hge :
+        __smtx_dt_num_sels (__smtx_dt_substitute sh dh dh) i ≤
+          smtx_num_apply_args t :=
+      (Nat.sub_eq_zero_iff_le).1 hArgsZero
+    exact Nat.le_antisymm hle hge
+  have hFull :
+      dt_cons_applied_type_rec sh dh (__smtx_dt_substitute sh dh dh) i
+          (__smtx_dt_num_sels (__smtx_dt_substitute sh dh dh) i) =
+        SmtType.Datatype sh dh :=
+    dt_cons_applied_type_rec_full_arity sh dh (__smtx_dt_substitute sh dh dh) i
+      (by rw [← hCount, hRes]; simp)
+  have hCmp : SmtType.Datatype sh dh = SmtType.Datatype s d := by
+    calc
+      SmtType.Datatype sh dh =
+          dt_cons_applied_type_rec sh dh (__smtx_dt_substitute sh dh dh) i
+            (__smtx_dt_num_sels (__smtx_dt_substitute sh dh dh) i) := by
+        exact hFull.symm
+      _ =
+          dt_cons_applied_type_rec sh dh (__smtx_dt_substitute sh dh dh) i
+            (smtx_num_apply_args t) := by
+        rw [← hCount]
+      _ = SmtType.Datatype s d := hRes
+  injection hCmp with hs hd
+  exact ⟨hs, hd⟩
+
+private theorem smtx_num_apply_args_eq_dt_num_sels_of_datatype
+    {t : SmtTerm}
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    (hHead : smtx_apply_head t = SmtTerm.DtCons s d i)
+    (hTy : __smtx_typeof t = SmtType.Datatype s d) :
+    smtx_num_apply_args t =
+      __smtx_dt_num_sels (__smtx_dt_substitute s d d) i := by
+  have hNN : __smtx_typeof t ≠ SmtType.None := by
+    rw [hTy]
+    simp
+  have hChain := smtx_dt_cons_chain_type_of_non_none hHead hNN
+  have hRes :
+      dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (smtx_num_apply_args t) =
+        SmtType.Datatype s d := by
+    exact hChain.symm.trans hTy
+  have hArgsZero :
+      __smtx_dt_num_sels (__smtx_dt_substitute s d d) i -
+          smtx_num_apply_args t =
+        0 := by
+    have hArgs := congrArg dt_cons_type_num_args hRes
+    rw [dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+    simpa [dt_cons_type_num_args] using hArgs
+  have hle :
+      smtx_num_apply_args t ≤
+        __smtx_dt_num_sels (__smtx_dt_substitute s d d) i :=
+    dt_cons_applied_type_rec_non_none_implies_le s d
+      (__smtx_dt_substitute s d d) i (smtx_num_apply_args t)
+      (by rw [hRes]; simp)
+  have hge :
+      __smtx_dt_num_sels (__smtx_dt_substitute s d d) i ≤
+        smtx_num_apply_args t :=
+    (Nat.sub_eq_zero_iff_le).1 hArgsZero
+  exact Nat.le_antisymm hle hge
+
+private theorem smtx_term_typeof_full_dt_cons_chain_apply
+    {t : SmtTerm}
+    {s : native_String}
+    {d : SmtDatatype}
+    {i : native_Nat}
+    (hHead : smtx_apply_head t = SmtTerm.DtCons s d i)
+    (hCount :
+      smtx_num_apply_args t =
+        __smtx_dt_num_sels (__smtx_dt_substitute s d d) i)
+    (hNN : __smtx_typeof t ≠ SmtType.None) :
+    __smtx_typeof t = SmtType.Datatype s d := by
+  have hChain := smtx_dt_cons_chain_type_of_non_none hHead hNN
+  have hRecNN :
+      dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (smtx_num_apply_args t) ≠
+        SmtType.None := by
+    intro hNone
+    apply hNN
+    rw [hChain, hNone]
+  have hFull :
+      dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (__smtx_dt_num_sels (__smtx_dt_substitute s d d) i) =
+        SmtType.Datatype s d :=
+    dt_cons_applied_type_rec_full_arity s d (__smtx_dt_substitute s d d) i
+      (by simpa [hCount] using hRecNN)
+  calc
+    __smtx_typeof t =
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (smtx_num_apply_args t) := hChain
+    _ =
+        dt_cons_applied_type_rec s d (__smtx_dt_substitute s d d) i
+          (__smtx_dt_num_sels (__smtx_dt_substitute s d d) i) := by
+        rw [hCount]
+    _ = SmtType.Datatype s d := hFull
+
+private theorem smtx_tuple_cons_result_apply_head_of_tail_head :
+    ∀ (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons),
+      smtx_apply_head tail =
+          SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            native_nat_zero ->
+        smtx_apply_head (__eo_to_smt_tuple_cons tail T head) =
+          SmtTerm.DtCons "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)
+            native_nat_zero
+  | SmtTerm.Apply f a, head, T, c, hHead => by
+      have hHeadF :
+          smtx_apply_head f =
+            SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+              native_nat_zero := by
+        simpa [smtx_apply_head] using hHead
+      simpa [__eo_to_smt_tuple_cons, smtx_apply_head] using
+        smtx_tuple_cons_result_apply_head_of_tail_head f head T c hHeadF
+  | SmtTerm.DtCons s d i, head, T, c, hHead => by
+      simp [smtx_apply_head] at hHead
+      rcases hHead with ⟨rfl, hRest⟩
+      rcases hRest with ⟨rfl, rfl⟩
+      simp [__eo_to_smt_tuple_cons, smtx_apply_head]
+  | tail, head, T, c, hHead => by
+      cases tail with
+      | Apply f a =>
+          have hHeadF :
+              smtx_apply_head f =
+                SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+                  native_nat_zero := by
+            simpa [smtx_apply_head] using hHead
+          simpa [__eo_to_smt_tuple_cons, smtx_apply_head] using
+            smtx_tuple_cons_result_apply_head_of_tail_head f head T c hHeadF
+      | DtCons s d i =>
+          simp [smtx_apply_head] at hHead
+          rcases hHead with ⟨rfl, hRest⟩
+          rcases hRest with ⟨rfl, rfl⟩
+          simp [__eo_to_smt_tuple_cons, smtx_apply_head]
+      | _ =>
+          simp [smtx_apply_head] at hHead
+termination_by tail head T c hHead => tail
+
+private theorem smtx_tuple_cons_num_apply_args_of_tail_head :
+    ∀ (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons),
+      smtx_apply_head tail =
+          SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            native_nat_zero ->
+        smtx_num_apply_args (__eo_to_smt_tuple_cons tail T head) =
+          Nat.succ (smtx_num_apply_args tail)
+  | SmtTerm.Apply f a, head, T, c, hHead => by
+      have hHeadF :
+          smtx_apply_head f =
+            SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+              native_nat_zero := by
+        simpa [smtx_apply_head] using hHead
+      simpa [__eo_to_smt_tuple_cons, smtx_num_apply_args] using
+        smtx_tuple_cons_num_apply_args_of_tail_head f head T c hHeadF
+  | SmtTerm.DtCons s d i, head, T, c, hHead => by
+      simp [smtx_apply_head] at hHead
+      rcases hHead with ⟨rfl, hRest⟩
+      rcases hRest with ⟨rfl, rfl⟩
+      simp [__eo_to_smt_tuple_cons, smtx_num_apply_args]
+  | tail, head, T, c, hHead => by
+      cases tail with
+      | Apply f a =>
+          have hHeadF :
+              smtx_apply_head f =
+                SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+                  native_nat_zero := by
+            simpa [smtx_apply_head] using hHead
+          simpa [__eo_to_smt_tuple_cons, smtx_num_apply_args] using
+            smtx_tuple_cons_num_apply_args_of_tail_head f head T c hHeadF
+      | DtCons s d i =>
+          simp [smtx_apply_head] at hHead
+          rcases hHead with ⟨rfl, hRest⟩
+          rcases hRest with ⟨rfl, rfl⟩
+          simp [__eo_to_smt_tuple_cons, smtx_num_apply_args]
+      | _ =>
+          simp [smtx_apply_head] at hHead
+termination_by tail head T c hHead => tail
+
+private theorem smtx_tuple_cons_tail_head_of_result_head :
+    ∀ (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons),
+      smtx_apply_head (__eo_to_smt_tuple_cons tail T head) =
+          SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            native_nat_zero ->
+        ∃ cTail,
+          c = SmtDatatypeCons.cons T cTail ∧
+            smtx_apply_head tail =
+              SmtTerm.DtCons "@Tuple" (SmtDatatype.sum cTail SmtDatatype.null)
+                native_nat_zero
+  | SmtTerm.Apply f a, head, T, c, hHead => by
+      have hHeadF :
+          smtx_apply_head (__eo_to_smt_tuple_cons f T head) =
+            SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+              native_nat_zero := by
+        simpa [__eo_to_smt_tuple_cons, smtx_apply_head] using hHead
+      rcases smtx_tuple_cons_tail_head_of_result_head f head T c hHeadF with
+        ⟨cTail, hC, hTail⟩
+      exact ⟨cTail, hC, by simpa [smtx_apply_head] using hTail⟩
+  | SmtTerm.DtCons s d i, head, T, c, hHead => by
+      by_cases hs : s = "@Tuple"
+      · subst s
+        cases d with
+        | null =>
+            cases i <;> simp [__eo_to_smt_tuple_cons, smtx_apply_head] at hHead
+        | sum cTail rest =>
+            cases rest with
+            | null =>
+                cases i with
+                | zero =>
+                    have hC' : SmtDatatypeCons.cons T cTail = c := by
+                      simpa [__eo_to_smt_tuple_cons, smtx_apply_head] using
+                        congrArg
+                          (fun t =>
+                            match t with
+                            | SmtTerm.DtCons _ (SmtDatatype.sum c' SmtDatatype.null) _ => c'
+                            | _ => c)
+                          hHead
+                    exact ⟨cTail, hC'.symm, by simp [smtx_apply_head]⟩
+                | succ i =>
+                    simp [__eo_to_smt_tuple_cons, smtx_apply_head] at hHead
+            | sum cRest restTail =>
+                cases i <;> simp [__eo_to_smt_tuple_cons, smtx_apply_head] at hHead
+      · cases d <;> cases i <;>
+          simp [__eo_to_smt_tuple_cons, smtx_apply_head, hs] at hHead
+  | tail, head, T, c, hHead => by
+      cases tail with
+      | Apply f a =>
+          have hHeadF :
+              smtx_apply_head (__eo_to_smt_tuple_cons f T head) =
+                SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+                  native_nat_zero := by
+            simpa [__eo_to_smt_tuple_cons, smtx_apply_head] using hHead
+          rcases smtx_tuple_cons_tail_head_of_result_head f head T c hHeadF with
+            ⟨cTail, hC, hTail⟩
+          exact ⟨cTail, hC, by simpa [smtx_apply_head] using hTail⟩
+      | DtCons s d i =>
+          by_cases hs : s = "@Tuple"
+          · subst s
+            cases d with
+            | null =>
+                cases i <;> simp [__eo_to_smt_tuple_cons, smtx_apply_head] at hHead
+            | sum cTail rest =>
+                cases rest with
+                | null =>
+                    cases i with
+                    | zero =>
+                        have hC' : SmtDatatypeCons.cons T cTail = c := by
+                          simpa [__eo_to_smt_tuple_cons, smtx_apply_head] using
+                            congrArg
+                              (fun t =>
+                                match t with
+                                | SmtTerm.DtCons _ (SmtDatatype.sum c' SmtDatatype.null) _ => c'
+                                | _ => c)
+                              hHead
+                        exact ⟨cTail, hC'.symm, by simp [smtx_apply_head]⟩
+                    | succ i =>
+                        simp [__eo_to_smt_tuple_cons, smtx_apply_head] at hHead
+                | sum cRest restTail =>
+                    cases i <;> simp [__eo_to_smt_tuple_cons, smtx_apply_head] at hHead
+          · cases d <;> cases i <;>
+              simp [__eo_to_smt_tuple_cons, smtx_apply_head, hs] at hHead
+      | _ =>
+          simp [__eo_to_smt_tuple_cons, smtx_apply_head] at hHead
+termination_by tail head T c hHead => tail
+
+private theorem smtx_tuple_cons_result_args_ge_sels_of_tail_lower
+    (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons)
+    (hHead :
+      smtx_apply_head (__eo_to_smt_tuple_cons tail T head) =
+        SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero)
+    (hTailLower :
+      ∀ cTail : SmtDatatypeCons,
+        smtx_apply_head tail =
+            SmtTerm.DtCons "@Tuple" (SmtDatatype.sum cTail SmtDatatype.null)
+              native_nat_zero ->
+          __smtx_dt_num_sels (SmtDatatype.sum cTail SmtDatatype.null)
+              native_nat_zero ≤
+            smtx_num_apply_args tail) :
+    __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+        native_nat_zero ≤
+      smtx_num_apply_args (__eo_to_smt_tuple_cons tail T head) := by
+  rcases smtx_tuple_cons_tail_head_of_result_head tail head T c hHead with
+    ⟨cTail, hC, hTailHead⟩
+  subst c
+  have hArgs :=
+    smtx_tuple_cons_num_apply_args_of_tail_head tail head T cTail hTailHead
+  rw [hArgs]
+  exact Nat.succ_le_succ (hTailLower cTail hTailHead)
+
+private theorem smtx_tuple_cons_tail_args_le_sels_of_non_none
+    (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons)
+    (hTailHead :
+      smtx_apply_head tail =
+        SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero)
+    (hNN :
+      __smtx_typeof (__eo_to_smt_tuple_cons tail T head) ≠ SmtType.None) :
+    smtx_num_apply_args tail ≤
+      __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null) native_nat_zero := by
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  let fullD := SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null
+  have hResultHead :
+      smtx_apply_head (__eo_to_smt_tuple_cons tail T head) =
+        SmtTerm.DtCons "@Tuple" fullD native_nat_zero := by
+    simpa [tailD, fullD] using
+      smtx_tuple_cons_result_apply_head_of_tail_head tail head T c hTailHead
+  have hResultChain :=
+    smtx_dt_cons_chain_type_of_non_none hResultHead hNN
+  have hArgs :=
+    smtx_tuple_cons_num_apply_args_of_tail_head tail head T c hTailHead
+  have hResultLe :
+      smtx_num_apply_args (__eo_to_smt_tuple_cons tail T head) ≤
+        __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" fullD fullD)
+          native_nat_zero :=
+    dt_cons_applied_type_rec_non_none_implies_le "@Tuple" fullD
+      (__smtx_dt_substitute "@Tuple" fullD fullD) native_nat_zero
+      (smtx_num_apply_args (__eo_to_smt_tuple_cons tail T head))
+      (by
+        rw [← hResultChain]
+        exact hNN)
+  have hFullSels :
+      __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" fullD fullD)
+          native_nat_zero =
+        __smtx_dt_num_sels fullD native_nat_zero :=
+    dt_num_sels_substitute "@Tuple" fullD fullD native_nat_zero
+  rw [hArgs, hFullSels] at hResultLe
+  have hSucc :
+      Nat.succ (smtx_num_apply_args tail) ≤
+        Nat.succ (__smtx_dt_num_sels tailD native_nat_zero) := by
+    simpa [tailD, fullD, __smtx_dt_num_sels, __smtx_dtc_num_sels] using hResultLe
+  exact Nat.le_of_succ_le_succ hSucc
+
+private theorem smtx_tuple_tail_type_of_head_bounds_non_none
+    (tail : SmtTerm) (c : SmtDatatypeCons)
+    (hTailHead :
+      smtx_apply_head tail =
+        SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero)
+    (hTailLower :
+      __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero ≤
+        smtx_num_apply_args tail)
+    (hTailUpper :
+      smtx_num_apply_args tail ≤
+        __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero)
+    (hTailNN : __smtx_typeof tail ≠ SmtType.None) :
+    __smtx_typeof tail =
+      SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) := by
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  have hCountPlain :
+      smtx_num_apply_args tail =
+        __smtx_dt_num_sels tailD native_nat_zero :=
+    Nat.le_antisymm hTailUpper hTailLower
+  have hCount :
+      smtx_num_apply_args tail =
+        __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" tailD tailD)
+          native_nat_zero := by
+    rw [hCountPlain]
+    exact (dt_num_sels_substitute "@Tuple" tailD tailD native_nat_zero).symm
+  exact
+    smtx_term_typeof_full_dt_cons_chain_apply
+      (t := tail) (s := "@Tuple") (d := tailD) (i := native_nat_zero)
+      (by simpa [tailD] using hTailHead) hCount hTailNN
+
+private theorem eo_to_smt_tuple_unit_head_args_ge_sels
+    (c : SmtDatatypeCons)
+    (hHead :
+      smtx_apply_head (__eo_to_smt (Term.UOp UserOp.tuple_unit)) =
+          SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            native_nat_zero) :
+    __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+        native_nat_zero ≤
+      smtx_num_apply_args (__eo_to_smt (Term.UOp UserOp.tuple_unit)) := by
+  simp [eo_to_smt_term_tuple_unit, smtx_apply_head, smtx_num_apply_args] at hHead ⊢
+  subst c
+  simp [__smtx_dt_num_sels, __smtx_dtc_num_sels]
+
+def eo_type_tuple_subst_stable (U : Term) : Prop :=
+  ∀ base : SmtDatatype,
+    smtx_type_substitute_top_apply "@Tuple" base (__eo_to_smt_type U) =
+      __eo_to_smt_type U
+
+theorem eo_type_tuple_subst_stable_of_valid
+    {U : Term}
+    (hValid : eo_type_valid U) :
+    eo_type_tuple_subst_stable U := by
+  intro base
+  exact smtx_type_substitute_top_apply_tuple_of_eo_valid base hValid
+
+def eo_to_smt_tuple_tail_recoverable (x : Term) : Prop :=
+  ∀ (head : SmtTerm) (U : Term),
+    eo_type_tuple_subst_stable U ->
+      __smtx_typeof
+          (__eo_to_smt_tuple_cons (__eo_to_smt x) (__eo_to_smt_type U) head) ≠
+        SmtType.None ->
+        ∃ c,
+          __smtx_typeof (__eo_to_smt x) =
+            SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+
+theorem eo_to_smt_tuple_tail_recoverable_of_none
+    {x : Term}
+    (h : __eo_to_smt x = SmtTerm.None) :
+    eo_to_smt_tuple_tail_recoverable x := by
+  intro head U _hStable hNN
+  exfalso
+  apply hNN
+  rw [h]
+  simp [__eo_to_smt_tuple_cons]
+
+theorem eo_to_smt_tuple_tail_recoverable_of_tuple_cons_none
+    {x : Term}
+    (h :
+      ∀ (head : SmtTerm) (T : SmtType),
+        __eo_to_smt_tuple_cons (__eo_to_smt x) T head = SmtTerm.None) :
+    eo_to_smt_tuple_tail_recoverable x := by
+  intro head U _hStable hNN
+  exfalso
+  apply hNN
+  rw [h head (__eo_to_smt_type U)]
+  exact smtx_typeof_none
+
+theorem eo_to_smt_tuple_tail_recoverable_tuple_unit :
+    eo_to_smt_tuple_tail_recoverable (Term.UOp UserOp.tuple_unit) := by
+  intro head U _hStable hNN
+  refine ⟨SmtDatatypeCons.unit, ?_⟩
+  rw [eo_to_smt_term_tuple_unit]
+  exact smtx_typeof_tuple_unit_translation
+
+theorem eo_to_smt_tuple_tail_recoverable_of_tuple_type
+    {x : Term} {c : SmtDatatypeCons}
+    (hTy :
+      __smtx_typeof (__eo_to_smt x) =
+        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) :
+    eo_to_smt_tuple_tail_recoverable x := by
+  intro _head _U _hStable _hNN
+  exact ⟨c, hTy⟩
+
+private theorem smtx_tuple_cons_typeof_of_tail_tuple_type
+    (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons)
+    (hTailTy :
+      __smtx_typeof tail =
+        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null))
+    (hNN :
+      __smtx_typeof (__eo_to_smt_tuple_cons tail T head) ≠ SmtType.None) :
+    __smtx_typeof (__eo_to_smt_tuple_cons tail T head) =
+      SmtType.Datatype "@Tuple"
+        (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null) := by
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  let fullD := SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null
+  rcases smtx_tuple_cons_apply_head_tuple_of_non_none tail head T hNN with
+    ⟨cHead, hTailHeadRaw⟩
+  have hBase :=
+    smtx_term_datatype_type_head_base_apply hTailHeadRaw (by
+      simpa [tailD] using hTailTy)
+  rcases hBase with ⟨_hName, hData⟩
+  have hTailHead :
+      smtx_apply_head tail =
+        SmtTerm.DtCons "@Tuple" tailD native_nat_zero := by
+    simpa [tailD, hData] using hTailHeadRaw
+  have hResultHead :
+      smtx_apply_head (__eo_to_smt_tuple_cons tail T head) =
+        SmtTerm.DtCons "@Tuple" fullD native_nat_zero := by
+    simpa [tailD, fullD] using
+      smtx_tuple_cons_result_apply_head_of_tail_head tail head T c hTailHead
+  have hResultChain :=
+    smtx_dt_cons_chain_type_of_non_none hResultHead hNN
+  have hTailCount :
+      smtx_num_apply_args tail =
+        __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" tailD tailD)
+          native_nat_zero := by
+    simpa [tailD] using
+      smtx_num_apply_args_eq_dt_num_sels_of_datatype hTailHead
+        (by simpa [tailD] using hTailTy)
+  have hResultCount :
+      smtx_num_apply_args (__eo_to_smt_tuple_cons tail T head) =
+        __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" fullD fullD)
+          native_nat_zero := by
+    have hArgs := smtx_tuple_cons_num_apply_args_of_non_none tail head T hNN
+    rw [hArgs, hTailCount]
+    have hTailSels :
+        __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" tailD tailD)
+            native_nat_zero =
+          __smtx_dt_num_sels tailD native_nat_zero := by
+      exact dt_num_sels_substitute "@Tuple" tailD tailD native_nat_zero
+    have hFullSels :
+        __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" fullD fullD)
+            native_nat_zero =
+          __smtx_dt_num_sels fullD native_nat_zero := by
+      exact dt_num_sels_substitute "@Tuple" fullD fullD native_nat_zero
+    rw [hTailSels, hFullSels]
+    simp [fullD, tailD, __smtx_dt_num_sels, __smtx_dtc_num_sels]
+  have hChainNN :
+      dt_cons_applied_type_rec "@Tuple" fullD
+          (__smtx_dt_substitute "@Tuple" fullD fullD) native_nat_zero
+          (__smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" fullD fullD)
+            native_nat_zero) ≠
+        SmtType.None := by
+    rw [← hResultCount]
+    rw [← hResultChain]
+    exact hNN
+  have hFull :
+      dt_cons_applied_type_rec "@Tuple" fullD
+          (__smtx_dt_substitute "@Tuple" fullD fullD) native_nat_zero
+          (__smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" fullD fullD)
+            native_nat_zero) =
+        SmtType.Datatype "@Tuple" fullD :=
+    dt_cons_applied_type_rec_full_arity "@Tuple" fullD
+      (__smtx_dt_substitute "@Tuple" fullD fullD) native_nat_zero hChainNN
+  calc
+    __smtx_typeof (__eo_to_smt_tuple_cons tail T head) =
+        dt_cons_applied_type_rec "@Tuple" fullD
+          (__smtx_dt_substitute "@Tuple" fullD fullD) native_nat_zero
+          (smtx_num_apply_args (__eo_to_smt_tuple_cons tail T head)) := hResultChain
+    _ =
+        dt_cons_applied_type_rec "@Tuple" fullD
+          (__smtx_dt_substitute "@Tuple" fullD fullD) native_nat_zero
+          (__smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" fullD fullD)
+            native_nat_zero) := by
+      rw [hResultCount]
+    _ = SmtType.Datatype "@Tuple" fullD := hFull
+
+private theorem smtx_tuple_dt_cons_non_none_of_wf
+    {c : SmtDatatypeCons}
+    (hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) =
+        true) :
+    __smtx_typeof
+        (SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero) ≠
+      SmtType.None := by
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  let tailTy := SmtType.Datatype "@Tuple" tailD
+  let raw :=
+    __smtx_typeof_dt_cons_rec tailTy
+      (__smtx_dt_substitute "@Tuple" tailD tailD) native_nat_zero
+  have hRawNN : raw ≠ SmtType.None := by
+    cases c with
+    | unit =>
+        simp [raw, tailTy, tailD, __smtx_dt_substitute, __smtx_dtc_substitute,
+          __smtx_typeof_dt_cons_rec, native_streq, native_ite, native_Teq]
+    | cons U cTail =>
+        cases U <;>
+          simp [raw, tailTy, tailD, __smtx_dt_substitute, __smtx_dtc_substitute,
+            __smtx_typeof_dt_cons_rec, native_streq, native_ite, native_Teq]
+  rw [typeof_dt_cons_eq]
+  simpa [tailTy, tailD, raw, __smtx_typeof_guard_wf, hWf, native_ite]
+    using hRawNN
+
+private theorem smtx_tuple_cons_tail_non_none_dt_cons
+    (head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_tuple_cons
+            (SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+              native_nat_zero) T head) ≠
+        SmtType.None) :
+    __smtx_typeof
+        (SmtTerm.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero) ≠
+      SmtType.None := by
+  let fullD := SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null
+  let fullTy := SmtType.Datatype "@Tuple" fullD
+  let raw :=
+    __smtx_typeof_dt_cons_rec fullTy
+      (__smtx_dt_substitute "@Tuple" fullD fullD) native_nat_zero
+  have hCtorNN :
+      __smtx_typeof (SmtTerm.DtCons "@Tuple" fullD native_nat_zero) ≠
+        SmtType.None :=
+    smtx_apply_head_non_none_of_non_none_tuple_cons
+      (SmtTerm.DtCons "@Tuple" fullD native_nat_zero) head
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (by simpa [__eo_to_smt_tuple_cons, fullD] using hNN)
+  have hGuardNN :
+      __smtx_typeof_guard_wf fullTy raw ≠ SmtType.None := by
+    simpa [typeof_dt_cons_eq, fullTy, fullD, raw] using hCtorNN
+  have hFullWf : __smtx_type_wf fullTy = true :=
+    Smtm.smtx_typeof_guard_wf_wf_of_non_none fullTy raw hGuardNN
+  have hTailWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) =
+        true := by
+    exact smtx_tuple_type_wf_tail_of_cons_wf (T := T) (c := c)
+      (by simpa [fullTy, fullD] using hFullWf)
+  exact smtx_tuple_dt_cons_non_none_of_wf hTailWf
+
+private theorem smtx_tuple_cons_type_none (T : SmtType) :
+    smtx_tuple_cons_type T SmtType.None = SmtType.None := by
+  simp [smtx_tuple_cons_type, __eo_to_smt_type_tuple, __smtx_type_wf,
+    __smtx_type_wf_rec, native_and, native_ite]
+
+private theorem smtx_tuple_cons_head_non_none_of_non_none :
+    ∀ (tail head : SmtTerm) (T : SmtType),
+      __smtx_typeof (__eo_to_smt_tuple_cons tail T head) ≠ SmtType.None ->
+        __smtx_typeof head ≠ SmtType.None
+  | tail, head, T, hNN => by
+      cases tail with
+      | Apply f a =>
+          have hRecNN :
+              __smtx_typeof (__eo_to_smt_tuple_cons f T head) ≠ SmtType.None :=
+            smtx_apply_head_non_none_of_non_none_tuple_cons
+              (__eo_to_smt_tuple_cons f T head) a
+              (eo_to_smt_tuple_cons_ne_dt_sel f T head)
+              (eo_to_smt_tuple_cons_ne_dt_tester f T head)
+              (by simpa [__eo_to_smt_tuple_cons] using hNN)
+          exact smtx_tuple_cons_head_non_none_of_non_none f head T hRecNN
+      | DtCons s d i =>
+          by_cases hs : s = "@Tuple"
+          · subst s
+            cases d with
+            | null =>
+                exfalso
+                apply hNN
+                cases i <;> simp [__eo_to_smt_tuple_cons]
+            | sum c rest =>
+                cases rest with
+                | null =>
+                    cases i with
+                    | zero =>
+                        exact
+                          smtx_apply_arg_non_none_of_non_none_tuple_cons
+                            (SmtTerm.DtCons "@Tuple"
+                              (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)
+                              native_nat_zero)
+                            head
+                            (by intro s d i j h; cases h)
+                            (by intro s d i h; cases h)
+                            (by simpa [__eo_to_smt_tuple_cons] using hNN)
+                    | succ i =>
+                        exfalso
+                        apply hNN
+                        simp [__eo_to_smt_tuple_cons]
+                | sum cTail restTail =>
+                    exfalso
+                    apply hNN
+                    cases i <;> simp [__eo_to_smt_tuple_cons]
+          · exfalso
+            apply hNN
+            cases d <;> cases i <;> simp [__eo_to_smt_tuple_cons, hs]
+      | _ =>
+          exfalso
+          apply hNN
+          simp [__eo_to_smt_tuple_cons]
+termination_by tail head T hNN => tail
+
 /-- Simplifies EO-to-SMT translation for `tuple_select`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_tuple_select
     (x y : Term)
@@ -11217,21 +12628,166 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_select
         hNonNone
 
 /-- Localizes the remaining tuple-constructor recovery obligation. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_tuple
-    (x y : Term)
+private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
+    (x y : Term) (c : SmtDatatypeCons)
     (ihY :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hTailTy :
+      __smtx_typeof (__eo_to_smt x) =
+        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null))
     (hNonNone :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) ≠
         SmtType.None) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) =
       __eo_to_smt_type
         (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) := by
-  sorry
+  let headTy := __eo_to_smt_type (__eo_typeof y)
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  let fullD := SmtDatatype.sum (SmtDatatypeCons.cons headTy c) SmtDatatype.null
+  have hTupleNN :
+      __smtx_typeof (__eo_to_smt_tuple_cons (__eo_to_smt x) headTy (__eo_to_smt y)) ≠
+        SmtType.None := by
+    simpa [headTy] using hNonNone
+  have hSmt :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) =
+        SmtType.Datatype "@Tuple" fullD := by
+    change
+      __smtx_typeof (__eo_to_smt_tuple_cons (__eo_to_smt x) headTy (__eo_to_smt y)) =
+        SmtType.Datatype "@Tuple" fullD
+    exact
+      smtx_tuple_cons_typeof_of_tail_tuple_type
+        (__eo_to_smt x) (__eo_to_smt y) headTy c
+        (by simpa [tailD] using hTailTy) hTupleNN
+  have hYNN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None :=
+    smtx_tuple_cons_head_non_none_of_non_none
+      (__eo_to_smt x) (__eo_to_smt y) headTy hTupleNN
+  have hYEq := ihY hYNN
+  have hYTypeNN : __eo_to_smt_type (__eo_typeof y) ≠ SmtType.None := by
+    rw [← hYEq]
+    exact hYNN
+  have hYNotStuck : __eo_typeof y ≠ Term.Stuck :=
+    eo_term_ne_stuck_of_smt_type_non_none (__eo_typeof y) hYTypeNN
+  have hXNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+    rw [hTailTy]
+    simp
+  have hXEq := ihX hXNN
+  have hXTailType :
+      __eo_to_smt_type (__eo_typeof x) =
+        SmtType.Datatype "@Tuple" tailD := by
+    exact hXEq.symm.trans (by simpa [tailD] using hTailTy)
+  have hXTypeNN : __eo_to_smt_type (__eo_typeof x) ≠ SmtType.None := by
+    rw [hXTailType]
+    simp
+  have hXNotStuck : __eo_typeof x ≠ Term.Stuck :=
+    eo_term_ne_stuck_of_smt_type_non_none (__eo_typeof x) hXTypeNN
+  have hRaw :
+      __eo_to_smt_type_tuple headTy (__eo_to_smt_type (__eo_typeof x)) =
+        SmtType.Datatype "@Tuple" fullD := by
+    simp [headTy, tailD, fullD, hXTailType, __eo_to_smt_type_tuple]
+  have hFullWf : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD) = true :=
+    Smtm.smt_datatype_wf_of_non_none_type
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x))
+      "@Tuple" fullD hSmt
+  have hRawWf :
+      __smtx_type_wf
+          (__eo_to_smt_type_tuple headTy (__eo_to_smt_type (__eo_typeof x))) =
+        true := by
+    simpa [hRaw] using hFullWf
+  have hEo :
+      __eo_to_smt_type
+          (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) =
+        SmtType.Datatype "@Tuple" fullD := by
+    change
+      __eo_to_smt_type (__eo_typeof_tuple (__eo_typeof y) (__eo_typeof x)) =
+        SmtType.Datatype "@Tuple" fullD
+    rw [__eo_typeof_tuple.eq_def]
+    simp [hYNotStuck, hXNotStuck, headTy, hRaw, hRawWf, hFullWf, native_ite]
+  exact hSmt.trans hEo.symm
+
+/-- The remaining tuple-constructor recovery obligation.
+
+The SMT-only statement is too strong: a forged tuple datatype may contain private
+`@Tuple` references whose substitutions change under consing.  The valid-IH
+shape is the hypothesis that should rule those out for translated EO tails.
+-/
+private theorem eo_to_smt_tuple_tail_type_of_non_none_from_valid_ih
+    (x y : Term)
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+        __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+          eo_type_valid (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+        __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+          eo_type_valid (__eo_typeof x))
+    (ihXTuple : eo_to_smt_tuple_tail_recoverable x)
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) ≠
+        SmtType.None) :
+    ∃ c,
+      __smtx_typeof (__eo_to_smt x) =
+        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) := by
+  let headTy := __eo_to_smt_type (__eo_typeof y)
+  have hTupleNN :
+      __smtx_typeof (__eo_to_smt_tuple_cons (__eo_to_smt x) headTy (__eo_to_smt y)) ≠
+        SmtType.None := by
+    simpa [headTy] using hNonNone
+  have hHeadNN : __smtx_typeof (__eo_to_smt y) ≠ SmtType.None :=
+    smtx_tuple_cons_head_non_none_of_non_none
+      (__eo_to_smt x) (__eo_to_smt y) headTy hTupleNN
+  have hHeadIH := ihY hHeadNN
+  exact ihXTuple (__eo_to_smt y) (__eo_typeof y)
+    (eo_type_tuple_subst_stable_of_valid hHeadIH.2) (by
+      simpa [headTy] using hTupleNN)
+
+private theorem eo_to_smt_typeof_matches_translation_apply_tuple_from_valid_ih
+    (x y : Term)
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+        __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+          eo_type_valid (__eo_typeof x))
+    (ihXTuple : eo_to_smt_tuple_tail_recoverable x)
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) =
+      __eo_to_smt_type
+        (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) := by
+  rcases eo_to_smt_tuple_tail_type_of_non_none_from_valid_ih
+      x y ihY ihX ihXTuple hNonNone with ⟨c, hTailTy⟩
+  exact
+    eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
+      x y c (fun hYNN => (ihY hYNN).1) (fun hXNN => (ihX hXNN).1)
+        hTailTy hNonNone
+
+private theorem eo_to_smt_typeof_matches_translation_apply_tuple
+    (x y : Term)
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
+    (ihXTuple : eo_to_smt_tuple_tail_recoverable x)
+    (hNonNone :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) ≠
+        SmtType.None) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) =
+      __eo_to_smt_type
+        (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) := by
+  exact
+    eo_to_smt_typeof_matches_translation_apply_tuple_from_valid_ih
+      x y ihY ihX ihXTuple hNonNone
 
 /-- Simplifies EO-to-SMT translation for map `select`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_select
@@ -11288,11 +12844,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_select
   exact hSmt.trans hEo.symm
 
 /-- `eq` application, using the operand SMT type injectivity invariant. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_ih_field_wf
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_valid_ih_field_wf
     (y x : Term)
     (ihY :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
+        __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+          eo_type_valid (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
@@ -11321,7 +12878,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_ih_fiel
     rw [hX]
     exact hYNN
   have hYTrans : __eo_to_smt_type (__eo_typeof y) = T :=
-    (ihY hYNN).symm.trans hY
+    (ihY hYNN).1.symm.trans hY
   have hXTrans : __eo_to_smt_type (__eo_typeof x) = T :=
     (ihX hXNN).symm.trans hX
   have hSmt :
@@ -11473,7 +13030,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_ih_fiel
         rcases eo_to_smt_type_eq_dtc_app hYD with ⟨Y1, Y2, hYEo, hY1, hY2⟩
         rcases eo_to_smt_type_eq_dtc_app hXD with ⟨X1, X2, hXEo, hX1, hX2⟩
         have hYValidTop : eo_type_valid (__eo_typeof y) :=
-          eo_type_valid_of_matches_translation_apply y hYNN (ihY hYNN)
+          (ihY hYNN).2
         have hYValidDtc : eo_type_valid_rec [] (Term.DtcAppType Y1 Y2) := by
           have hYValidTop' := hYValidTop
           rw [hYEo] at hYValidTop'
@@ -11493,6 +13050,23 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_ih_fiel
         exact eo_to_smt_type_typeof_apply_apply_eq_of_same_type
           x y (__eo_typeof y) rfl hEqEo hYTypeNN
   exact hSmt.trans hEo.symm
+
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_eq_from_ih_field_wf
+    (y x : Term)
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y) x)) ≠
+      SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y) x)) =
+      __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.eq) y) x)) := by
+  exact
+    eo_to_smt_typeof_matches_translation_apply_apply_eq_from_valid_ih_field_wf
+      y x ihY ihX
 
 /-- Closes binary `UOp` branches whose translated head is `none`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_none_head
@@ -11537,24 +13111,31 @@ private theorem bv_width_term_nonstuck (w : native_Nat) :
 /-- Dispatches direct-special binary heads shaped as `(UOp op) y`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_obligation
     (op : UserOp) (y x : Term)
-    (ihF :
+    (ihFAll :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp op) y)))
-    (ihY :
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp op) y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply (Term.UOp op) y)))
+    (ihYAll :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
-    (ihX :
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
+    (ihXAll :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
+    (ihXTuple : eo_to_smt_tuple_tail_recoverable x) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) y) x)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp op) y) x)) := by
   intro hNonNone
+  let ihF := fun hNN => (ihFAll hNN).1
+  let ihY := fun hNN => (ihYAll hNN).1
+  let ihX := fun hNN => (ihXAll hNN).1
   cases op
   case eq =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_eq_from_ih_field_wf
-      y x ihY ihX hNonNone
+      y x ihYAll ihX hNonNone
   case distinct =>
     exfalso
     apply hNonNone
@@ -11566,77 +13147,77 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact smtx_typeof_eo_to_smt_distinct_top_apply_eq_none y (__eo_to_smt x)
   case not =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.not y x (SmtTerm.not (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.not y x (SmtTerm.not (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case to_real =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.to_real y x (SmtTerm.to_real (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.to_real y x (SmtTerm.to_real (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case to_int =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.to_int y x (SmtTerm.to_int (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.to_int y x (SmtTerm.to_int (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case is_int =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.is_int y x (SmtTerm.is_int (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.is_int y x (SmtTerm.is_int (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case abs =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.abs y x (SmtTerm.abs (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.abs y x (SmtTerm.abs (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case str_to_re =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.str_to_re y x (SmtTerm.str_to_re (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.str_to_re y x (SmtTerm.str_to_re (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case re_mult =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.re_mult y x (SmtTerm.re_mult (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.re_mult y x (SmtTerm.re_mult (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case re_plus =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.re_plus y x (SmtTerm.re_plus (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.re_plus y x (SmtTerm.re_plus (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case re_opt =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.re_opt y x (SmtTerm.re_opt (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.re_opt y x (SmtTerm.re_opt (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case re_comp =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.re_comp y x (SmtTerm.re_comp (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.re_comp y x (SmtTerm.re_comp (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
       hNonNone
   case set_singleton =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
-      UserOp.set_singleton y x (SmtTerm.set_singleton (__eo_to_smt y)) ihF ihX (by rfl)
+      UserOp.set_singleton y x (SmtTerm.set_singleton (__eo_to_smt y)) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
@@ -11645,7 +13226,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
       UserOp.set_is_empty y x
       (let _v0 := __eo_to_smt y
-       SmtTerm.eq _v0 (SmtTerm.set_empty (__smtx_typeof _v0))) ihF ihX (by rfl)
+       SmtTerm.eq _v0 (SmtTerm.set_empty (__smtx_typeof _v0))) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
@@ -11656,7 +13237,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
       UserOp.set_is_singleton y x
       (SmtTerm.exists "@x" T
         (SmtTerm.eq (__eo_to_smt y)
-          (SmtTerm.set_singleton (SmtTerm.Var "@x" T)))) ihF ihX (by rfl)
+          (SmtTerm.set_singleton (SmtTerm.Var "@x" T)))) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
@@ -12466,7 +14047,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     exact eo_to_smt_typeof_matches_translation_apply_at_strings_num_occur
       x y ihY ihX hNonNone
   case tuple =>
-    exact eo_to_smt_typeof_matches_translation_apply_tuple x y ihY ihX hNonNone
+    exact eo_to_smt_typeof_matches_translation_apply_tuple
+      x y ihYAll ihXAll ihXTuple hNonNone
   case set_union =>
     exact eo_to_smt_typeof_matches_translation_apply_set_binop
       UserOp.set_union SmtTerm.set_union x y ihY ihX (by rfl)
@@ -12496,8 +14078,8 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
       hNonNone
   case set_choose =>
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_from_ih
-      (Term.UOp UserOp.set_choose) y x ihF
-      ihX
+      (Term.UOp UserOp.set_choose) y x ihFAll
+      ihXAll
       (generic_apply_type_of_non_special_head _ _
         (by intro s d i j h; cases h)
         (by intro s d i h; cases h))
@@ -12537,7 +14119,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
       UserOp._at__at_aci_sorted y x (by rfl) hNonNone
   all_goals
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_from_ih
-      _ y x ihF ihX
+      _ y x ihFAll ihXAll
       (generic_apply_type_of_non_special_head _ _
         (by intro s d i j h; exact (eo_to_smt_apply_ne_dt_sel _ y s d i j h).elim)
         (by intro s d i h; exact (eo_to_smt_apply_ne_dt_tester _ y s d i h).elim))
@@ -12549,19 +14131,23 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head
     (ihF :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp op) y)))
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp op) y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply (Term.UOp op) y)))
     (ihY :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
+    (ihXTuple : eo_to_smt_tuple_tail_recoverable x) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) y) x)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp op) y) x)) := by
   intro hNonNone
   exact eo_to_smt_typeof_matches_translation_apply_uop_application_head_obligation
-    op y x ihF ihY ihX hNonNone
+    op y x ihF ihY ihX ihXTuple hNonNone
 
 /-- Top-level valid EO types are injective under translation, including `RegLan`. -/
 private theorem eo_to_smt_type_eq_of_top_valid_apply
@@ -12584,14 +14170,15 @@ private theorem eo_to_smt_type_eq_of_top_valid_apply
       exact (eo_to_smt_type_eq_reglan (T := U) hUReg).symm
 
 /-- Ternary `ite`, using local IHs to align branch EO types. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_ih
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_valid_ih
     (x y z : Term)
     (ihZ :
       __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
     (ihY :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
+        __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+          eo_type_valid (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
@@ -12633,11 +14220,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_
     apply eo_to_smt_type_eq_bool
     rw [← ihZ hZNN, hZ]
   have hYTrans : __eo_to_smt_type (__eo_typeof y) = T := by
-    rw [← ihY hYNN, hY]
+    rw [← (ihY hYNN).1, hY]
   have hXTrans : __eo_to_smt_type (__eo_typeof x) = T := by
     rw [← ihX hXNN, hX]
   have hYValidTop : eo_type_valid (__eo_typeof y) :=
-    eo_type_valid_of_matches_translation_apply y hYNN (ihY hYNN)
+    (ihY hYNN).2
   have hEqEo : __eo_typeof x = __eo_typeof y := by
     have hYX : __eo_typeof y = __eo_typeof x := by
       apply eo_to_smt_type_eq_of_top_valid_apply hYValidTop
@@ -12654,15 +14241,40 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_
       x y z (__eo_typeof y) hzEo rfl hEqEo hYTypeNN).trans hYTrans
   exact hSmt.trans hEo.symm
 
-/-- Ternary `bvite`, using local IHs to align branch EO types. -/
-private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_ih
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_ih
     (x y z : Term)
     (ihZ :
       __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
     (ihY :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hNonNone :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) z) y) x)) ≠
+        SmtType.None) :
+      __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) z) y) x)) =
+      __eo_to_smt_type
+        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) z) y) x)) := by
+  exact
+    eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_valid_ih
+      x y z ihZ ihY ihX hNonNone
+
+/-- Ternary `bvite`, using local IHs to align branch EO types. -/
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_valid_ih
+    (x y z : Term)
+    (ihZ :
+      __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+        __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+          eo_type_valid (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
@@ -12726,11 +14338,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_fro
     have hzEo' := eo_typeof_eq_bitvec_of_smt_bitvec_from_ih z ihZ 1 hZ
     simpa [native_nat_to_int, SmtEval.native_nat_to_int] using hzEo'
   have hYTrans : __eo_to_smt_type (__eo_typeof y) = T := by
-    rw [← ihY hYNN, hY]
+    rw [← (ihY hYNN).1, hY]
   have hXTrans : __eo_to_smt_type (__eo_typeof x) = T := by
     rw [← ihX hXNN, hX]
   have hYValidTop : eo_type_valid (__eo_typeof y) :=
-    eo_type_valid_of_matches_translation_apply y hYNN (ihY hYNN)
+    (ihY hYNN).2
   have hEqEo : __eo_typeof x = __eo_typeof y := by
     have hYX : __eo_typeof y = __eo_typeof x := by
       apply eo_to_smt_type_eq_of_top_valid_apply hYValidTop
@@ -12746,6 +14358,30 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_fro
     (eo_to_smt_type_typeof_apply_apply_apply_bvite_of_bitvec1_same_type
       x y z (__eo_typeof y) hzEo rfl hEqEo hYTypeNN).trans hYTrans
   exact hSmt.trans hEo.symm
+
+private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_ih
+    (x y z : Term)
+    (ihZ :
+      __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
+    (ihY :
+      __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
+    (ihX :
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+    (hNonNone :
+      __smtx_typeof
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) z) y) x)) ≠
+        SmtType.None) :
+      __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) z) y) x)) =
+      __eo_to_smt_type
+        (__eo_typeof (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.bvite) z) y) x)) := by
+  exact
+    eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_valid_ih
+      x y z ihZ ihY ihX hNonNone
 
 private theorem native_zlt_zero_succ_of_zleq_zero
     (j : native_Int)
@@ -13457,10 +15093,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_n
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) z) y)) ≠
         SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) z) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp op) z) y)))
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.UOp op) z) y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply (Term.Apply (Term.UOp op) z) y)))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
     (head : SmtTerm)
     (hHeadTranslate :
       __eo_to_smt (Term.Apply (Term.Apply (Term.UOp op) z) y) = head)
@@ -13492,10 +15130,12 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_a
     (ihF :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply g z) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)))
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply g z) y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply (Term.Apply g z) y)))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
     (hOuterTranslate :
       __eo_to_smt (Term.Apply (Term.Apply (Term.Apply g z) y) x) =
         SmtTerm.Apply (__eo_to_smt (Term.Apply (Term.Apply g z) y)) (__eo_to_smt x))
@@ -13582,7 +15222,8 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
     __smtx_typeof
         (__eo_to_smt (Term._at_re_unfold_pos_component z y x)) =
       __eo_to_smt_type
-        (__eo_typeof (Term._at_re_unfold_pos_component z y x)) := by
+        (__eo_typeof (Term._at_re_unfold_pos_component z y x)) ∧
+      eo_type_valid (__eo_typeof (Term._at_re_unfold_pos_component z y x)) := by
   cases x with
   | Numeral n =>
       have hTranslate :
@@ -13639,7 +15280,9 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
             (eo_typeof_eq_seq_char_of_smt_seq_char_from_ih z ihZ hArgs.1)
             (eo_typeof_eq_reglan_of_smt_reglan_from_ih y ihY hArgs.2)
             (by rfl)
-        exact hSmt.trans hEo.symm
+        refine ⟨hSmt.trans hEo.symm, ?_⟩
+        rw [eo_to_smt_type_eq_seq_char hEo]
+        simp [eo_type_valid, eo_type_valid_rec]
   | _ =>
       exfalso
       apply hNonNone
@@ -14536,32 +16179,40 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_upd
 /-- Dispatches special heads shaped as `(f z) y`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_head_obligation
     (f z y x : Term)
-    (ihF :
+    (ihFAll :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f z) y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f z) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply f z) y)))
-    (ihZ :
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply f z) y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply (Term.Apply f z) y)))
+    (ihZAll :
       __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
-    (ihY :
+      __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z) ∧
+        eo_type_valid (__eo_typeof z))
+    (ihYAll :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
-    (ihX :
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
+    (ihXAll :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x)) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply f z) y) x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply f z) y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply f z) y) x)) := by
   intro hNonNone
+  let ihF := fun hNN => (ihFAll hNN).1
+  let ihZ := fun hNN => (ihZAll hNN).1
+  let ihY := fun hNN => (ihYAll hNN).1
+  let ihX := fun hNN => (ihXAll hNN).1
   cases f
   case UOp op =>
     cases op
     case ite =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_ite_from_ih
-        x y z ihZ ihY ihX hNonNone
+        x y z ihZ ihYAll ihX hNonNone
     case bvite =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_bvite_from_ih
-        x y z ihZ ihY ihX hNonNone
+        x y z ihZ ihYAll ihX hNonNone
     case str_substr =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_str_substr_from_ih
         x y z ihZ ihY ihX hNonNone
@@ -14617,7 +16268,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         x y z ihZ ihY ihX hNonNone
     case _at_strings_num_occur =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp._at_strings_num_occur z y x ihF ihX
+        UserOp._at_strings_num_occur z y x ihFAll ihXAll
         (let _v0 := __eo_to_smt y
          let _v1 := __eo_to_smt z
          SmtTerm.div
@@ -14637,483 +16288,483 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         hNonNone
     case or =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.or z y x ihF ihX
+        UserOp.or z y x ihFAll ihXAll
         (SmtTerm.or (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case and =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.and z y x ihF ihX
+        UserOp.and z y x ihFAll ihXAll
         (SmtTerm.and (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case imp =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.imp z y x ihF ihX
+        UserOp.imp z y x ihFAll ihXAll
         (SmtTerm.imp (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case xor =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.xor z y x ihF ihX
+        UserOp.xor z y x ihFAll ihXAll
         (SmtTerm.xor (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case eq =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.eq z y x ihF ihX
+        UserOp.eq z y x ihFAll ihXAll
         (SmtTerm.eq (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case plus =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.plus z y x ihF ihX
+        UserOp.plus z y x ihFAll ihXAll
         (SmtTerm.plus (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case neg =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.neg z y x ihF ihX
+        UserOp.neg z y x ihFAll ihXAll
         (SmtTerm.neg (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case mult =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.mult z y x ihF ihX
+        UserOp.mult z y x ihFAll ihXAll
         (SmtTerm.mult (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case lt =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.lt z y x ihF ihX
+        UserOp.lt z y x ihFAll ihXAll
         (SmtTerm.lt (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case leq =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.leq z y x ihF ihX
+        UserOp.leq z y x ihFAll ihXAll
         (SmtTerm.leq (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case gt =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.gt z y x ihF ihX
+        UserOp.gt z y x ihFAll ihXAll
         (SmtTerm.gt (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case geq =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.geq z y x ihF ihX
+        UserOp.geq z y x ihFAll ihXAll
         (SmtTerm.geq (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case div =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.div z y x ihF ihX
+        UserOp.div z y x ihFAll ihXAll
         (SmtTerm.div (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case mod =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.mod z y x ihF ihX
+        UserOp.mod z y x ihFAll ihXAll
         (SmtTerm.mod (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case multmult =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.multmult z y x ihF ihX
+        UserOp.multmult z y x ihFAll ihXAll
         (SmtTerm.multmult (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case divisible =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.divisible z y x ihF ihX
+        UserOp.divisible z y x ihFAll ihXAll
         (SmtTerm.divisible (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case div_total =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.div_total z y x ihF ihX
+        UserOp.div_total z y x ihFAll ihXAll
         (SmtTerm.div_total (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case mod_total =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.mod_total z y x ihF ihX
+        UserOp.mod_total z y x ihFAll ihXAll
         (SmtTerm.mod_total (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case multmult_total =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.multmult_total z y x ihF ihX
+        UserOp.multmult_total z y x ihFAll ihXAll
         (SmtTerm.multmult_total (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case concat =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.concat z y x ihF ihX
+        UserOp.concat z y x ihFAll ihXAll
         (SmtTerm.concat (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvand =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvand z y x ihF ihX
+        UserOp.bvand z y x ihFAll ihXAll
         (SmtTerm.bvand (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvor =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvor z y x ihF ihX
+        UserOp.bvor z y x ihFAll ihXAll
         (SmtTerm.bvor (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvnand =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvnand z y x ihF ihX
+        UserOp.bvnand z y x ihFAll ihXAll
         (SmtTerm.bvnand (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvnor =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvnor z y x ihF ihX
+        UserOp.bvnor z y x ihFAll ihXAll
         (SmtTerm.bvnor (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvxor =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvxor z y x ihF ihX
+        UserOp.bvxor z y x ihFAll ihXAll
         (SmtTerm.bvxor (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvxnor =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvxnor z y x ihF ihX
+        UserOp.bvxnor z y x ihFAll ihXAll
         (SmtTerm.bvxnor (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvcomp =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvcomp z y x ihF ihX
+        UserOp.bvcomp z y x ihFAll ihXAll
         (SmtTerm.bvcomp (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvadd =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvadd z y x ihF ihX
+        UserOp.bvadd z y x ihFAll ihXAll
         (SmtTerm.bvadd (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvmul =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvmul z y x ihF ihX
+        UserOp.bvmul z y x ihFAll ihXAll
         (SmtTerm.bvmul (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvudiv =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvudiv z y x ihF ihX
+        UserOp.bvudiv z y x ihFAll ihXAll
         (SmtTerm.bvudiv (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvurem =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvurem z y x ihF ihX
+        UserOp.bvurem z y x ihFAll ihXAll
         (SmtTerm.bvurem (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsub =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsub z y x ihF ihX
+        UserOp.bvsub z y x ihFAll ihXAll
         (SmtTerm.bvsub (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsdiv =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsdiv z y x ihF ihX
+        UserOp.bvsdiv z y x ihFAll ihXAll
         (SmtTerm.bvsdiv (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsrem =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsrem z y x ihF ihX
+        UserOp.bvsrem z y x ihFAll ihXAll
         (SmtTerm.bvsrem (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsmod =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsmod z y x ihF ihX
+        UserOp.bvsmod z y x ihFAll ihXAll
         (SmtTerm.bvsmod (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvult =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvult z y x ihF ihX
+        UserOp.bvult z y x ihFAll ihXAll
         (SmtTerm.bvult (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvule =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvule z y x ihF ihX
+        UserOp.bvule z y x ihFAll ihXAll
         (SmtTerm.bvule (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvugt =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvugt z y x ihF ihX
+        UserOp.bvugt z y x ihFAll ihXAll
         (SmtTerm.bvugt (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvuge =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvuge z y x ihF ihX
+        UserOp.bvuge z y x ihFAll ihXAll
         (SmtTerm.bvuge (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvslt =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvslt z y x ihF ihX
+        UserOp.bvslt z y x ihFAll ihXAll
         (SmtTerm.bvslt (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsle =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsle z y x ihF ihX
+        UserOp.bvsle z y x ihFAll ihXAll
         (SmtTerm.bvsle (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsgt =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsgt z y x ihF ihX
+        UserOp.bvsgt z y x ihFAll ihXAll
         (SmtTerm.bvsgt (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsge =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsge z y x ihF ihX
+        UserOp.bvsge z y x ihFAll ihXAll
         (SmtTerm.bvsge (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvshl =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvshl z y x ihF ihX
+        UserOp.bvshl z y x ihFAll ihXAll
         (SmtTerm.bvshl (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvlshr =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvlshr z y x ihF ihX
+        UserOp.bvlshr z y x ihFAll ihXAll
         (SmtTerm.bvlshr (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvashr =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvashr z y x ihF ihX
+        UserOp.bvashr z y x ihFAll ihXAll
         (SmtTerm.bvashr (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvuaddo =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvuaddo z y x ihF ihX
+        UserOp.bvuaddo z y x ihFAll ihXAll
         (SmtTerm.bvuaddo (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsaddo =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsaddo z y x ihF ihX
+        UserOp.bvsaddo z y x ihFAll ihXAll
         (SmtTerm.bvsaddo (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvumulo =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvumulo z y x ihF ihX
+        UserOp.bvumulo z y x ihFAll ihXAll
         (SmtTerm.bvumulo (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsmulo =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsmulo z y x ihF ihX
+        UserOp.bvsmulo z y x ihFAll ihXAll
         (SmtTerm.bvsmulo (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvusubo =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvusubo z y x ihF ihX
+        UserOp.bvusubo z y x ihFAll ihXAll
         (SmtTerm.bvusubo (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvssubo =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvssubo z y x ihF ihX
+        UserOp.bvssubo z y x ihFAll ihXAll
         (SmtTerm.bvssubo (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case bvsdivo =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.bvsdivo z y x ihF ihX
+        UserOp.bvsdivo z y x ihFAll ihXAll
         (SmtTerm.bvsdivo (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case select =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.select z y x ihF ihX
+        UserOp.select z y x ihFAll ihXAll
         (SmtTerm.select (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case str_concat =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.str_concat z y x ihF ihX
+        UserOp.str_concat z y x ihFAll ihXAll
         (SmtTerm.str_concat (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case str_contains =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.str_contains z y x ihF ihX
+        UserOp.str_contains z y x ihFAll ihXAll
         (SmtTerm.str_contains (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case str_at =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.str_at z y x ihF ihX
+        UserOp.str_at z y x ihFAll ihXAll
         (SmtTerm.str_at (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case str_prefixof =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.str_prefixof z y x ihF ihX
+        UserOp.str_prefixof z y x ihFAll ihXAll
         (SmtTerm.str_prefixof (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case str_suffixof =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.str_suffixof z y x ihF ihX
+        UserOp.str_suffixof z y x ihFAll ihXAll
         (SmtTerm.str_suffixof (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case str_lt =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.str_lt z y x ihF ihX
+        UserOp.str_lt z y x ihFAll ihXAll
         (SmtTerm.str_lt (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case str_leq =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.str_leq z y x ihF ihX
+        UserOp.str_leq z y x ihFAll ihXAll
         (SmtTerm.str_leq (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case re_range =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.re_range z y x ihF ihX
+        UserOp.re_range z y x ihFAll ihXAll
         (SmtTerm.re_range (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case re_concat =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.re_concat z y x ihF ihX
+        UserOp.re_concat z y x ihFAll ihXAll
         (SmtTerm.re_concat (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case re_inter =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.re_inter z y x ihF ihX
+        UserOp.re_inter z y x ihFAll ihXAll
         (SmtTerm.re_inter (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case re_union =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.re_union z y x ihF ihX
+        UserOp.re_union z y x ihFAll ihXAll
         (SmtTerm.re_union (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case re_diff =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.re_diff z y x ihF ihX
+        UserOp.re_diff z y x ihFAll ihXAll
         (SmtTerm.re_diff (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case str_in_re =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.str_in_re z y x ihF ihX
+        UserOp.str_in_re z y x ihFAll ihXAll
         (SmtTerm.str_in_re (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case seq_nth =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.seq_nth z y x ihF ihX
+        UserOp.seq_nth z y x ihFAll ihXAll
         (SmtTerm.seq_nth (__eo_to_smt z) (__eo_to_smt y)) (by rfl) (by rfl)
         (by intro s d i j h; cases h) (by intro s d i h; cases h)
         (by rfl)
         hNonNone
     case _at_from_bools =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp._at_from_bools z y x ihF ihX
+        UserOp._at_from_bools z y x ihFAll ihXAll
         (SmtTerm.concat
           (SmtTerm.ite (__eo_to_smt z) (SmtTerm.Binary 1 1) (SmtTerm.Binary 1 0))
           (__eo_to_smt y))
@@ -15131,7 +16782,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         UserOp.bvsltbv SmtTerm.bvslt x y z (by rfl) hNonNone
     case set_union =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.set_union z y x ihF ihX
+        UserOp.set_union z y x ihFAll ihXAll
         (SmtTerm.set_union (__eo_to_smt z) (__eo_to_smt y)) (by rfl)
         (by rfl)
         (by intro s d i j h; cases h)
@@ -15140,7 +16791,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         hNonNone
     case set_inter =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.set_inter z y x ihF ihX
+        UserOp.set_inter z y x ihFAll ihXAll
         (SmtTerm.set_inter (__eo_to_smt z) (__eo_to_smt y)) (by rfl)
         (by rfl)
         (by intro s d i j h; cases h)
@@ -15149,7 +16800,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         hNonNone
     case set_minus =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_non_special_head
-        UserOp.set_minus z y x ihF ihX
+        UserOp.set_minus z y x ihFAll ihXAll
         (SmtTerm.set_minus (__eo_to_smt z) (__eo_to_smt y)) (by rfl)
         (by rfl)
         (by intro s d i j h; cases h)
@@ -15158,7 +16809,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         hNonNone
     case set_choose =>
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_application_head
-        (Term.UOp UserOp.set_choose) z y x ihF ihX (by rfl) (by rfl) hNonNone
+        (Term.UOp UserOp.set_choose) z y x ihFAll ihXAll (by rfl) (by rfl) hNonNone
     case set_member =>
       have hHeadTranslate :
           __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) z) y) =
@@ -15271,10 +16922,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
         UserOp._at_strings_occur_index z y x (by rfl) hNonNone
     all_goals
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_application_head
-        _ z y x ihF ihX (by rfl) (by rfl) hNonNone
+        _ z y x ihFAll ihXAll (by rfl) (by rfl) hNonNone
   all_goals
     exact eo_to_smt_typeof_matches_translation_apply_apply_apply_generic_application_head
-      _ z y x ihF ihX (by rfl) (by rfl) hNonNone
+      _ z y x ihFAll ihXAll (by rfl) (by rfl) hNonNone
 
 /-- Handles `(f z) y` heads in the nested-application apply proof. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_head
@@ -15282,16 +16933,20 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
     (ihF :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f z) y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f z) y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply f z) y)))
+        __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply f z) y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply (Term.Apply f z) y)))
     (ihZ :
       __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
+      __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z) ∧
+        eo_type_valid (__eo_typeof z))
     (ihY :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
     (ihX :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x)) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply f z) y) x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply f z) y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply (Term.Apply f z) y) x)) := by
@@ -15301,30 +16956,39 @@ private theorem eo_to_smt_typeof_matches_translation_apply_binary_application_he
 
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
     (f y x : Term)
-    (ihF :
+    (ihFAll :
       __smtx_typeof (__eo_to_smt (Term.Apply f y)) ≠ SmtType.None ->
       __smtx_typeof (__eo_to_smt (Term.Apply f y)) =
-        __eo_to_smt_type (__eo_typeof (Term.Apply f y)))
-    (ihFArg :
+        __eo_to_smt_type (__eo_typeof (Term.Apply f y)) ∧
+        eo_type_valid (__eo_typeof (Term.Apply f y)))
+    (ihFArgAll :
       ∀ g z,
         f = Term.Apply g z ->
           __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
-          __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z))
-    (ihY :
+          __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z) ∧
+            eo_type_valid (__eo_typeof z))
+    (ihYAll :
       __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
-    (ihX :
+      __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+        eo_type_valid (__eo_typeof y))
+    (ihXAll :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x)) :
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
+    (ihXTuple : eo_to_smt_tuple_tail_recoverable x) :
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f y) x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f y) x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply (Term.Apply f y) x)) := by
   intro hNonNone
+  let ihF := fun hNN => (ihFAll hNN).1
+  let ihY := fun hNN => (ihYAll hNN).1
+  let ihX := fun hNN => (ihXAll hNN).1
   have genericFallback :
       ∀ head : Term,
         (__smtx_typeof (__eo_to_smt head) ≠ SmtType.None ->
           __smtx_typeof (__eo_to_smt head) =
-            __eo_to_smt_type (__eo_typeof head)) ->
+            __eo_to_smt_type (__eo_typeof head) ∧
+            eo_type_valid (__eo_typeof head)) ->
         (∀ s d i j, __eo_to_smt head ≠ SmtTerm.DtSel s d i j) ->
         (∀ s d i, __eo_to_smt head ≠ SmtTerm.DtTester s d i) ->
         __eo_to_smt (Term.Apply head x) =
@@ -15339,10 +17003,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
         generic_apply_type (__eo_to_smt head) (__eo_to_smt x) :=
       generic_apply_type_of_non_special_head _ _ hNonSel hNonTester
     exact eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_valid
-      head x ihHead ihX hGeneric hTranslate hEoApply hNN
+      head x ihHead ihXAll hGeneric hTranslate hEoApply hNN
   cases f
   case UOp op =>
-    exact eo_to_smt_typeof_matches_translation_apply_uop_application_head op y x ihF ihY ihX hNonNone
+    exact eo_to_smt_typeof_matches_translation_apply_uop_application_head
+      op y x ihFAll ihYAll ihXAll ihXTuple hNonNone
   case UOp1 op z =>
     cases op
     case _at_witness_string_length =>
@@ -15355,15 +17020,15 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
       exact eo_to_smt_typeof_matches_translation_apply_apply_apply_tuple_update
         x y z ihY ihX hNonNone
     all_goals
-      exact genericFallback _ ihF
+      exact genericFallback _ ihFAll
         (by intro s d i j h; exact (eo_to_smt_apply_ne_dt_sel _ y s d i j h).elim)
         (by intro s d i h; exact (eo_to_smt_apply_ne_dt_tester _ y s d i h).elim)
         (by rfl)
         (by rfl)
         hNonNone
   case Apply f z =>
-    exact eo_to_smt_typeof_matches_translation_apply_binary_application_head f z y x ihF
-      (ihFArg f z rfl) ihY ihX hNonNone
+    exact eo_to_smt_typeof_matches_translation_apply_binary_application_head f z y x ihFAll
+      (ihFArgAll f z rfl) ihYAll ihXAll hNonNone
   case FunType =>
     have hTranslate :
         __eo_to_smt (Term.Apply (Term.Apply Term.FunType y) x) =
@@ -15378,7 +17043,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_head
     rw [hTranslate, hHeadTerm]
     simp only [__smtx_typeof, __smtx_typeof_apply]
   all_goals
-    exact genericFallback _ ihF
+    exact genericFallback _ ihFAll
         (by intro s d i j h; exact (eo_to_smt_apply_ne_dt_sel _ y s d i j h).elim)
         (by intro s d i h; exact (eo_to_smt_apply_ne_dt_tester _ y s d i h).elim)
         (by rfl)
@@ -15455,30 +17120,41 @@ private theorem eo_to_smt_typeof_matches_translation_apply_constructor_fallback_
 
 theorem eo_to_smt_typeof_matches_translation_apply
     (f x : Term)
-    (ihF :
+    (ihFAll :
       __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f))
-    (ihX :
+      __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f) ∧
+        eo_type_valid (__eo_typeof f))
+    (ihXAll :
       __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ->
-      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x))
-    (ihUOp1Arg :
+      __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) ∧
+        eo_type_valid (__eo_typeof x))
+    (ihXTuple : eo_to_smt_tuple_tail_recoverable x)
+    (ihUOp1ArgAll :
       ∀ op y,
         f = Term.UOp1 op y ->
           __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-          __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
-    (ihApplyArg :
+          __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+            eo_type_valid (__eo_typeof y))
+    (ihApplyArgAll :
       ∀ g y,
         f = Term.Apply g y ->
           __smtx_typeof (__eo_to_smt y) ≠ SmtType.None ->
-          __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y))
-    (ihApplyApplyArg :
+          __smtx_typeof (__eo_to_smt y) = __eo_to_smt_type (__eo_typeof y) ∧
+            eo_type_valid (__eo_typeof y))
+    (ihApplyApplyArgAll :
       ∀ g z y,
         f = Term.Apply (Term.Apply g z) y ->
           __smtx_typeof (__eo_to_smt z) ≠ SmtType.None ->
-          __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z)) :
+          __smtx_typeof (__eo_to_smt z) = __eo_to_smt_type (__eo_typeof z) ∧
+            eo_type_valid (__eo_typeof z)) :
     __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠ SmtType.None ->
     __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
       __eo_to_smt_type (__eo_typeof (Term.Apply f x)) := by
+  let ihF := fun hNN => (ihFAll hNN).1
+  let ihX := fun hNN => (ihXAll hNN).1
+  let ihUOp1Arg := fun op y h hNN => (ihUOp1ArgAll op y h hNN).1
+  let ihApplyArg := fun g y h hNN => (ihApplyArgAll g y h hNN).1
+  let ihApplyApplyArg := fun g z y h hNN => (ihApplyApplyArgAll g z y h hNN).1
   cases f <;> intro hNonNone
   case Var name T =>
     have hGeneric :
@@ -15758,13 +17434,13 @@ theorem eo_to_smt_typeof_matches_translation_apply
       rw [hTDtc] at hBad
       simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hBad
   case Apply f y =>
-    exact eo_to_smt_typeof_matches_translation_apply_apply_head f y x ihF
-      (fun g z h => ihApplyApplyArg g z y (by rw [h]))
-      (ihApplyArg f y rfl) ihX hNonNone
+    exact eo_to_smt_typeof_matches_translation_apply_apply_head f y x ihFAll
+      (fun g z h => ihApplyApplyArgAll g z y (by rw [h]))
+      (ihApplyArgAll f y rfl) ihXAll ihXTuple hNonNone
   case UOp1 op y =>
     cases op
     case _at_purify =>
-      exact eo_to_smt_typeof_matches_translation_apply_purify x y ihF ihX hNonNone
+      exact eo_to_smt_typeof_matches_translation_apply_purify x y ihFAll ihXAll hNonNone
     case «repeat» =>
       exact eo_to_smt_typeof_matches_translation_apply_repeat x y ihX hNonNone
     case zero_extend =>
