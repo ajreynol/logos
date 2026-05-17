@@ -1090,7 +1090,8 @@ private theorem smt_map_head_key_mem_of_mem (k e : SmtValue) (m : SmtMap) :
 Residual low-level datatype/cardinality support.  The first component handles
 fresh witnesses for infinite datatypes.  The second handles the single
 constructor finite non-unit case.  The third is the remaining datatype-field
-typing fact for substituted defaults.
+typing fact for substituted defaults.  The fourth exposes the tuple-specific
+default witness needed when peeling one field from a generated tuple type.
 -/
 theorem cpc_datatype_cardinality_residual_assumption :
     (∀ (s : native_String) (d : SmtDatatype),
@@ -1131,7 +1132,27 @@ theorem cpc_datatype_cardinality_residual_assumption :
                       (__smtx_value_dt_substitute s d
                         (__smtx_type_default (SmtType.Datatype sField dField))) =
                     dtc_substitute_field_type s d
-                      (SmtType.Datatype sField dField)) := by
+                      (SmtType.Datatype sField dField)) ∧
+        (∀ (T : SmtType) (c : SmtDatatypeCons),
+          __smtx_type_wf
+              (SmtType.Datatype "@Tuple"
+                (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) =
+            true ->
+              __smtx_typeof_value
+                  (__smtx_datatype_cons_default "@Tuple"
+                    (SmtDatatype.sum c SmtDatatype.null)
+                    (SmtValue.DtCons "@Tuple"
+                      (SmtDatatype.sum c SmtDatatype.null) native_nat_zero)
+                    c) =
+                SmtType.Datatype "@Tuple"
+                  (SmtDatatype.sum c SmtDatatype.null) ∧
+                __smtx_value_canonical_bool
+                    (__smtx_datatype_cons_default "@Tuple"
+                      (SmtDatatype.sum c SmtDatatype.null)
+                      (SmtValue.DtCons "@Tuple"
+                        (SmtDatatype.sum c SmtDatatype.null) native_nat_zero)
+                      c) =
+                  true) := by
   sorry
 
 private theorem dtc_field_default_substitute_typeof_of_residual
@@ -1164,11 +1185,35 @@ private theorem dtc_field_default_substitute_typeof_of_residual
       by_cases hAll : dt_first_constructor_all_fields_non_datatype dField
       · exact datatype_type_default_substitute_typeof_all_non_datatype_fields
           s d sField dField refs hAll hRoot hParts.1 hParts.2.1 hFieldFin
-      · exact (cpc_datatype_cardinality_residual_assumption).2.2
+      · exact (cpc_datatype_cardinality_residual_assumption).2.2.1
           s d sField dField refs hAll hRoot hParts.1 hParts.2.1 hFieldFin
   | _ =>
       exact dtc_non_datatype_field_default_substitute_typeof
         s d (by intro s' d' hEq; cases hEq) hWf hFin
+
+theorem cpc_tuple_tail_default_typed_canonical_assumption
+    (T : SmtType)
+    (c : SmtDatatypeCons)
+    (_hWf :
+      __smtx_type_wf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) =
+        true) :
+    __smtx_typeof_value
+        (__smtx_datatype_cons_default "@Tuple"
+          (SmtDatatype.sum c SmtDatatype.null)
+          (SmtValue.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            native_nat_zero)
+          c) =
+      SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ∧
+      __smtx_value_canonical_bool
+          (__smtx_datatype_cons_default "@Tuple"
+            (SmtDatatype.sum c SmtDatatype.null)
+            (SmtValue.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+              native_nat_zero)
+            c) =
+        true := by
+  exact (cpc_datatype_cardinality_residual_assumption).2.2.2 T c _hWf
 
 private theorem datatype_cons_default_typeof_of_wf_finite
     (s : native_String)
