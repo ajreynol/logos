@@ -1124,13 +1124,15 @@ theorem model_eval_set_empty_value_canonical
     __smtx_value_canonical (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false))) := by
   simp [__smtx_value_canonical, __smtx_value_canonical_bool,
     __smtx_map_canonical, __smtx_map_default_canonical, __smtx_typeof_value,
-    __smtx_type_default, native_ite, native_veq, SmtEval.native_and]
+    __smtx_type_default, __smtx_msm_get_default, native_ite, native_veq,
+    SmtEval.native_and]
 
 theorem set_empty_map_canonical
     (T : SmtType) :
     __smtx_map_canonical (SmtMap.default T (SmtValue.Boolean false)) = true := by
-  simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using
-    model_eval_set_empty_value_canonical T
+  simp [__smtx_map_canonical, __smtx_map_default_canonical, __smtx_typeof_value,
+    __smtx_type_default, __smtx_value_canonical_bool, native_ite, native_veq,
+    SmtEval.native_and]
 
 theorem model_eval_set_singleton_value_canonical
     {v : SmtValue}
@@ -1175,6 +1177,25 @@ theorem mss_op_internal_canonical
         simpa [__smtx_mss_op_internal, hCond] using
           mss_op_internal_canonical isInter hmTail hacc'
 
+theorem mss_op_internal_get_default
+    (isInter : native_Bool) :
+    ∀ {m1 m2 acc : SmtMap},
+      __smtx_msm_get_default (__smtx_mss_op_internal isInter m1 m2 acc) =
+        __smtx_msm_get_default acc
+  | SmtMap.default _ _, _m2, _acc => by
+      simp [__smtx_mss_op_internal]
+  | SmtMap.cons e _ m1, m2, acc => by
+      cases hCond :
+          native_iff (native_veq (__smtx_msm_lookup m2 e) (SmtValue.Boolean true)) isInter
+      · simpa [__smtx_mss_op_internal, hCond] using
+          mss_op_internal_get_default isInter (m1 := m1) (m2 := m2) (acc := acc)
+      · simpa [__smtx_mss_op_internal, hCond,
+          map_update_aux_get_default (__smtx_msm_get_default acc) acc e
+            (SmtValue.Boolean true)] using
+          mss_op_internal_get_default isInter (m1 := m1) (m2 := m2)
+            (acc := __smtx_msm_update_aux (__smtx_msm_get_default acc) acc e
+              (SmtValue.Boolean true))
+
 theorem model_eval_set_inter_canonical
     {v1 v2 : SmtValue}
     (hv1 : __smtx_value_canonical v1)
@@ -1186,10 +1207,19 @@ theorem model_eval_set_inter_canonical
         value_canonical_notValue
   case Set.Set m1 m2 =>
     have hm1 : __smtx_map_canonical m1 = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv1
+      have hParts := hv1
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+        SmtEval.native_and] at hParts
+      exact hParts.1
     exact value_canonical_set_of_map_canonical
       (mss_op_internal_canonical true hm1
         (set_empty_map_canonical (__smtx_index_typeof_map (__smtx_typeof_map_value m1))))
+      (by
+        simpa [__smtx_msm_get_default] using
+          mss_op_internal_get_default true (m1 := m1) (m2 := m2)
+            (acc := SmtMap.default
+              (__smtx_index_typeof_map (__smtx_typeof_map_value m1))
+              (SmtValue.Boolean false)))
 
 theorem model_eval_set_minus_canonical
     {v1 v2 : SmtValue}
@@ -1202,10 +1232,19 @@ theorem model_eval_set_minus_canonical
         value_canonical_notValue
   case Set.Set m1 m2 =>
     have hm1 : __smtx_map_canonical m1 = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv1
+      have hParts := hv1
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+        SmtEval.native_and] at hParts
+      exact hParts.1
     exact value_canonical_set_of_map_canonical
       (mss_op_internal_canonical false hm1
         (set_empty_map_canonical (__smtx_index_typeof_map (__smtx_typeof_map_value m1))))
+      (by
+        simpa [__smtx_msm_get_default] using
+          mss_op_internal_get_default false (m1 := m1) (m2 := m2)
+            (acc := SmtMap.default
+              (__smtx_index_typeof_map (__smtx_typeof_map_value m1))
+              (SmtValue.Boolean false)))
 
 theorem model_eval_set_union_canonical
     {v1 v2 : SmtValue}
@@ -1218,11 +1257,28 @@ theorem model_eval_set_union_canonical
         value_canonical_notValue
   case Set.Set m1 m2 =>
     have hm1 : __smtx_map_canonical m1 = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv1
+      have hParts := hv1
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+        SmtEval.native_and] at hParts
+      exact hParts.1
     have hm2 : __smtx_map_canonical m2 = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv2
+      have hParts := hv2
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+        SmtEval.native_and] at hParts
+      exact hParts.1
     exact value_canonical_set_of_map_canonical
       (mss_op_internal_canonical false hm1 hm2)
+      (by
+        have hParts := hv2
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hParts
+        have hDef : __smtx_msm_get_default m2 = SmtValue.Boolean false :=
+          eq_of_native_veq_true hParts.2
+        simpa [hDef] using
+          mss_op_internal_get_default false (m1 := m1)
+            (m2 := SmtMap.default (__smtx_index_typeof_map (__smtx_typeof_map_value m1))
+              (SmtValue.Boolean false))
+            (acc := m2))
 
 theorem model_eval_seq_nth_wrong_canonical
     (M : SmtModel)
@@ -1427,11 +1483,15 @@ theorem model_eval_store_canonical_of_set_update
     {i e : SmtValue}
     (hUpdate :
       __smtx_map_canonical
-        (__smtx_msm_update_aux (__smtx_msm_get_default m) m i e) = true) :
+        (__smtx_msm_update_aux (__smtx_msm_get_default m) m i e) = true)
+    (hDef : __smtx_msm_get_default m = SmtValue.Boolean false) :
     __smtx_value_canonical
       (__smtx_model_eval_store (SmtValue.Set m) i e) := by
-  simpa [__smtx_model_eval_store, __smtx_map_store,
-    __smtx_value_canonical, __smtx_value_canonical_bool] using hUpdate
+  exact value_canonical_set_of_map_canonical
+    (m := __smtx_msm_update_aux (__smtx_msm_get_default m) m i e)
+    hUpdate
+    (by
+      simpa [map_update_aux_get_default (__smtx_msm_get_default m) m i e] using hDef)
 
 /-- Map-store preserves canonicality, assuming the strict-order laws of `native_vcmp`. -/
 theorem model_eval_store_canonical_of_map
@@ -1470,12 +1530,13 @@ theorem model_eval_store_canonical_of_set
     {m : SmtMap}
     {i e : SmtValue}
     (hm : __smtx_map_canonical m = true)
+    (hDef : __smtx_msm_get_default m = SmtValue.Boolean false)
     (hi : __smtx_value_canonical i)
     (he : __smtx_value_canonical e) :
     __smtx_value_canonical
       (__smtx_model_eval_store (SmtValue.Set m) i e) := by
   exact model_eval_store_canonical_of_set_update
-    (map_update_aux_canonical_of_order_laws hFlip hTrans hm hi he)
+    (map_update_aux_canonical_of_order_laws hFlip hTrans hm hi he) hDef
 
 /-- Value-level store preserves canonicality modulo the strict-order laws of `native_vcmp`. -/
 theorem model_eval_store_canonical_of_order_laws
@@ -1502,8 +1563,16 @@ theorem model_eval_store_canonical_of_order_laws
       simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
     exact model_eval_store_canonical_of_map hFlip hTrans hm hi he
   · have hm : __smtx_map_canonical ‹SmtMap› = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
-    exact model_eval_store_canonical_of_set hFlip hTrans hm hi he
+      have hParts := hv
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+        SmtEval.native_and] at hParts
+      exact hParts.1
+    have hDef : __smtx_msm_get_default ‹SmtMap› = SmtValue.Boolean false := by
+      have hParts := hv
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+        SmtEval.native_and] at hParts
+      exact eq_of_native_veq_true hParts.2
+    exact model_eval_store_canonical_of_set hFlip hTrans hm hDef hi he
 
 /--
 Value-level store preserves canonicality, using the temporary `native_vcmp`

@@ -538,7 +538,8 @@ theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
     native_inhabited_type (SmtType.Set A) = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
     __smtx_typeof_map_value, __smtx_map_to_set_type, __smtx_value_canonical_bool,
-    __smtx_map_canonical, __smtx_map_default_canonical, native_and]
+    __smtx_map_canonical, __smtx_map_default_canonical, __smtx_msm_get_default,
+    native_and]
   cases __smtx_is_finite_type A <;>
     simp [native_ite, native_veq, __smtx_type_default, __smtx_typeof_value]
 
