@@ -10869,6 +10869,28 @@ private theorem congTypeSpine_refl_eq_has_bool_type (t : Term) :
   intro hTrans
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type t t rfl hTrans
 
+private theorem no_translation_of_eo_to_smt_none {t : Term} :
+    __eo_to_smt t = SmtTerm.None ->
+    RuleProofs.eo_has_smt_translation t ->
+    False := by
+  intro hNone hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  rw [hNone] at hTrans
+  exact hTrans (by simp [__smtx_typeof])
+
+private theorem no_bool_eq_left_of_eo_to_smt_none {t rhs : Term} :
+    __eo_to_smt t = SmtTerm.None ->
+    RuleProofs.eo_has_bool_type (mkEq t rhs) ->
+    False := by
+  intro hNone hBool
+  unfold RuleProofs.eo_has_bool_type at hBool
+  change
+    __smtx_typeof (SmtTerm.eq (__eo_to_smt t) (__eo_to_smt rhs)) =
+      SmtType.Bool at hBool
+  rw [hNone] at hBool
+  simp [__smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
+    native_ite, native_Teq] at hBool
+
 private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   RuleProofs.eo_has_smt_translation t ->
   CongTypeSpine t rhs ->
@@ -11642,6 +11664,21 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
           cases __eo_to_smt_tester (__eo_to_smt c) <;>
             simp [__smtx_typeof, h])
         x rhs hTrans hSpine
+  | Term.Apply (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) x =>
+      exact False.elim
+        (no_translation_of_eo_to_smt_none (t := Term.Apply
+          (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) x)
+          (by rfl) hTrans)
+  | Term.Apply (Term.Apply (Term.UOp UserOp.exists) Term.__eo_List_nil) x =>
+      exact False.elim
+        (no_translation_of_eo_to_smt_none (t := Term.Apply
+          (Term.Apply (Term.UOp UserOp.exists) Term.__eo_List_nil) x)
+          (by rfl) hTrans)
+  | Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) Term.__eo_List_nil) x =>
+      exact False.elim
+        (no_translation_of_eo_to_smt_none (t := Term.Apply
+          (Term.Apply (Term.UOp UserOp.set_insert) Term.__eo_List_nil) x)
+          (by rfl) hTrans)
   | lhs =>
       match hHead : (appSpineRev lhs).1 with
       | Term.Var (Term.String s) T =>
@@ -12494,6 +12531,21 @@ private theorem congTrueSpine_eq_true
             __smtx_model_eval.eq_59, __smtx_model_eval.eq_5,
             __smtx_model_eval.eq_5])
         x₁ x₂ rhs hEqBool hSpine
+  | Term.Apply (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_to_smt_none (t := Term.Apply
+          (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil) x)
+          (rhs := rhs) (by rfl) hEqBool)
+  | Term.Apply (Term.Apply (Term.UOp UserOp.exists) Term.__eo_List_nil) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_to_smt_none (t := Term.Apply
+          (Term.Apply (Term.UOp UserOp.exists) Term.__eo_List_nil) x)
+          (rhs := rhs) (by rfl) hEqBool)
+  | Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) Term.__eo_List_nil) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_to_smt_none (t := Term.Apply
+          (Term.Apply (Term.UOp UserOp.set_insert) Term.__eo_List_nil) x)
+          (rhs := rhs) (by rfl) hEqBool)
   | lhs =>
       match hHead : (appSpineRev lhs).1 with
       | Term.Var (Term.String s) T =>
