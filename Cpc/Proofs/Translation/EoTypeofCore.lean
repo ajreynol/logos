@@ -2322,6 +2322,44 @@ private theorem eo_to_smt_tuple_cons_ne_numeral
         · simp [__eo_to_smt_tuple_cons] at h
       · simp [__eo_to_smt_tuple_cons] at h
 
+private theorem eo_to_smt_tuple_cons_checked_ne_numeral
+    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (n : native_Int) :
+    __eo_to_smt_tuple_cons_checked t T v ≠ SmtTerm.Numeral n := by
+  intro h
+  unfold __eo_to_smt_tuple_cons_checked at h
+  cases hTail : __smtx_typeof t
+  case Datatype sTail dTail =>
+    by_cases hTailName : sTail = "@Tuple"
+    · subst sTail
+      cases dTail with
+      | null =>
+          simp [hTail] at h
+      | sum cTail restTail =>
+          cases restTail with
+          | null =>
+              cases hTy : __smtx_typeof (__eo_to_smt_tuple_cons t T v) <;>
+                try simp [hTail, hTy] at h
+              rename_i s d
+              by_cases hs : s = "@Tuple"
+              · subst s
+                cases d with
+                | null =>
+                    simp [hTail, hTy] at h
+                | sum c rest =>
+                    cases rest with
+                    | null =>
+                        exact False.elim
+                          (eo_to_smt_tuple_cons_ne_numeral t T v n
+                            (by simpa [hTail, hTy] using h))
+                    | sum cRest dRest =>
+                        simp [hTail, hTy] at h
+              · simp [hTail, hTy, hs] at h
+          | sum cRest dRest =>
+              simp [hTail] at h
+    · simp [hTail, hTailName] at h
+  all_goals
+    simp [hTail] at h
+
 private theorem eo_to_smt_set_insert_ne_numeral_of_not_nil
     (xs : Term) (base : SmtTerm) (n : native_Int)
     (hxs : xs ≠ Term.__eo_List_nil) :
@@ -2431,7 +2469,7 @@ private theorem eo_to_smt_apply_ne_numeral
       case «exists» =>
         exact False.elim (eo_to_smt_apply_exists_ne_numeral y x n h)
       case tuple =>
-        exact False.elim (eo_to_smt_tuple_cons_ne_numeral
+        exact False.elim (eo_to_smt_tuple_cons_checked_ne_numeral
           (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) n h)
     case UOp1 op idx =>
       cases op <;> try cases h
