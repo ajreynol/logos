@@ -10937,6 +10937,52 @@ private theorem no_bool_eq_left_of_eo_apply_type_none {f x rhs : Term} :
       rw [hToSmt]
       exact hTy)
 
+private theorem no_translation_of_eo_apply_none_head {f x : Term} :
+    __eo_to_smt (Term.Apply f x) =
+      SmtTerm.Apply SmtTerm.None (__eo_to_smt x) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f x) ->
+    False := by
+  intro hToSmt
+  exact no_translation_of_smt_type_none (t := Term.Apply f x) (by
+    rw [hToSmt]
+    simp [__smtx_typeof, __smtx_typeof_apply])
+
+private theorem no_bool_eq_left_of_eo_apply_none_head {f x rhs : Term} :
+    __eo_to_smt (Term.Apply f x) =
+      SmtTerm.Apply SmtTerm.None (__eo_to_smt x) ->
+    RuleProofs.eo_has_bool_type (mkEq (Term.Apply f x) rhs) ->
+    False := by
+  intro hToSmt
+  exact no_bool_eq_left_of_smt_type_none
+    (t := Term.Apply f x) (rhs := rhs) (by
+      rw [hToSmt]
+      simp [__smtx_typeof, __smtx_typeof_apply])
+
+private theorem congTypeSpine_uop_apply_none_head_eq_has_bool_type
+    (op : UserOp) (x rhs : Term)
+    (hToSmt :
+      __eo_to_smt (Term.Apply (Term.UOp op) x) =
+        SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) :
+    RuleProofs.eo_has_smt_translation (Term.Apply (Term.UOp op) x) ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.UOp op) x) rhs) := by
+  intro hTrans
+  exact False.elim
+    (no_translation_of_eo_apply_none_head
+      (f := Term.UOp op) (x := x) hToSmt hTrans)
+
+private theorem congTrueSpine_uop_apply_none_head_eq_true
+    (M : SmtModel) (op : UserOp) (x rhs : Term)
+    (hToSmt :
+      __eo_to_smt (Term.Apply (Term.UOp op) x) =
+        SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) :
+    RuleProofs.eo_has_bool_type (mkEq (Term.Apply (Term.UOp op) x) rhs) ->
+    eo_interprets M (mkEq (Term.Apply (Term.UOp op) x) rhs) true := by
+  intro hEqBool
+  exact False.elim
+    (no_bool_eq_left_of_eo_apply_none_head
+      (f := Term.UOp op) (x := x) (rhs := rhs) hToSmt hEqBool)
+
 private theorem smt_apply_binary_typeof_none
     (w n : native_Int) (x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.Binary w n) x) =
@@ -10954,6 +11000,60 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   match t with
   | Term.Apply (Term.UOp UserOp.not) x =>
       exact congTypeSpine_not_eq_has_bool_type x rhs hTrans hSpine
+  | Term.Apply (Term.UOp UserOp.ite) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.ite) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.or) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.or) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.and) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.and) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.imp) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.imp) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.xor) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.xor) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.eq) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.eq) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.Int) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.Int x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.Real) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.Real x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.BitVec) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.BitVec x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.Char) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.Char x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.Seq) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.Seq x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.Array) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.Array x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.RegLan) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.RegLan x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.UnitTuple) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.UnitTuple x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.Tuple) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.Tuple x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.Set) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.Set x rhs (by rfl) hTrans
   | Term.Apply (Term.Apply (Term.UOp UserOp.eq) x₁) x₂ =>
       exact congTypeSpine_eq_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) t) e =>
@@ -11027,6 +11127,34 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
       exact congTypeSpine_imp_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.xor) x₁) x₂ =>
       exact congTypeSpine_xor_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
+  | Term.Apply (Term.UOp UserOp.plus) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.plus) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.neg) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.neg) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.mult) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.mult) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.lt) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.lt) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.leq) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.leq) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.gt) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.gt) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.geq) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.geq) (x := x) (by rfl) hTrans)
   | Term.Apply (Term.Apply (Term.UOp UserOp.plus) x₁) x₂ =>
       exact congTypeSpine_plus_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.neg) x₁) x₂ =>
@@ -11051,6 +11179,34 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
       exact congTypeSpine_abs_eq_has_bool_type x rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp.__eoo_neg_2) x =>
       exact congTypeSpine_uneg_eq_has_bool_type x rhs hTrans hSpine
+  | Term.Apply (Term.UOp UserOp.div) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.div) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.mod) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.mod) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.multmult) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.multmult) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.div_total) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.div_total) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.mod_total) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.mod_total) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.multmult_total) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.multmult_total) (x := x) (by rfl) hTrans)
+  | Term.Apply (Term.UOp UserOp.divisible) x =>
+      exact False.elim
+        (no_translation_of_eo_apply_none_head
+          (f := Term.UOp UserOp.divisible) (x := x) (by rfl) hTrans)
   | Term.Apply (Term.Apply (Term.UOp UserOp.div) x₁) x₂ =>
       exact congTypeSpine_div_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.mod) x₁) x₂ =>
@@ -11075,6 +11231,12 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
       exact congTypeSpine_int_div_by_zero_eq_has_bool_type x rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp._at_mod_by_zero) x =>
       exact congTypeSpine_mod_by_zero_eq_has_bool_type x rhs hTrans hSpine
+  | Term.Apply (Term.UOp UserOp.select) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.select x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.store) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.store x rhs (by rfl) hTrans
   | Term.Apply (Term.Apply (Term.UOp UserOp.select) x₁) x₂ =>
       exact congTypeSpine_typecongr_binop_eq_has_bool_type UserOp.select
         SmtTerm.select
@@ -11093,6 +11255,12 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
         x₁ x₂ x₃ rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp._at_bvsize) x =>
       exact congTypeSpine_bvsize_eq_has_bool_type x rhs hTrans hSpine
+  | Term.Apply (Term.UOp UserOp.qdiv) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.qdiv x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.qdiv_total) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.qdiv_total x rhs (by rfl) hTrans
   | Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x₁) x₂ =>
       exact congTypeSpine_qdiv_eq_has_bool_type x₁ x₂ rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x₁) x₂ =>
@@ -11166,6 +11334,24 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
         (by intro a; rfl)
         (by intro a; exact typeof_str_to_re_eq a)
         x rhs hTrans hSpine
+  | Term.Apply (Term.UOp UserOp.re_range) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.re_range x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.re_concat) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.re_concat x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.re_inter) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.re_inter x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.re_union) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.re_union x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.re_diff) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.re_diff x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_in_re) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_in_re x rhs (by rfl) hTrans
   | Term.Apply (Term.UOp UserOp.re_mult) x =>
       exact congTypeSpine_typecongr_unop_eq_has_bool_type UserOp.re_mult
         SmtTerm.re_mult
@@ -11225,6 +11411,57 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x₁) x₂ =>
       exact congTypeSpine_str_in_re_eq_has_bool_type
         x₁ x₂ rhs hTrans hSpine
+  | Term.Apply (Term.UOp UserOp.str_concat) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_concat x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_substr) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_substr x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_contains) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_contains x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_replace) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_replace x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_indexof) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_indexof x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_at) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_at x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_prefixof) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_prefixof x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_suffixof) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_suffixof x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_update) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_update x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_lt) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_lt x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_leq) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_leq x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_replace_all) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_replace_all x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_replace_re) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_replace_re x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_replace_re_all) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_replace_re_all x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.str_indexof_re) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.str_indexof_re x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp.seq_nth) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp.seq_nth x rhs (by rfl) hTrans
+  | Term.Apply (Term.UOp UserOp._at_strings_num_occur) x =>
+      exact congTypeSpine_uop_apply_none_head_eq_has_bool_type
+        UserOp._at_strings_num_occur x rhs (by rfl) hTrans
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x₁) x₂ =>
       exact congTypeSpine_seq_binop_eq_has_bool_type UserOp.str_concat
         SmtTerm.str_concat
@@ -11965,6 +12202,66 @@ private theorem congTrueSpine_eq_true
   match t with
   | Term.Apply (Term.UOp UserOp.not) x =>
       exact congTrueSpine_not_eq_true M hM x rhs hEqBool hSpine
+  | Term.Apply (Term.UOp UserOp.ite) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.ite) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.or) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.or) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.and) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.and) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.imp) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.imp) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.xor) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.xor) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.eq) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.eq) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.Int) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.Int x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.Real) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.Real x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.BitVec) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.BitVec x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.Char) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.Char x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.Seq) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.Seq x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.Array) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.Array x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.RegLan) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.RegLan x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.UnitTuple) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.UnitTuple x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.Tuple) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.Tuple x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.Set) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.Set x rhs (by rfl) hEqBool
   | Term.Apply (Term.Apply (Term.UOp UserOp.eq) x₁) x₂ =>
       exact congTrueSpine_eq_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) c) t) e =>
@@ -12038,6 +12335,41 @@ private theorem congTrueSpine_eq_true
       exact congTrueSpine_imp_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.xor) x₁) x₂ =>
       exact congTrueSpine_xor_eq_true M hM x₁ x₂ rhs hEqBool hSpine
+  | Term.Apply (Term.UOp UserOp.plus) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.plus) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.neg) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.neg) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.mult) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.mult) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.lt) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.lt) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.leq) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.leq) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.gt) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.gt) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.geq) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.geq) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
   | Term.Apply (Term.Apply (Term.UOp UserOp.plus) x₁) x₂ =>
       exact congTrueSpine_plus_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.neg) x₁) x₂ =>
@@ -12062,6 +12394,41 @@ private theorem congTrueSpine_eq_true
       exact congTrueSpine_abs_eq_true M hM x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.__eoo_neg_2) x =>
       exact congTrueSpine_uneg_eq_true M hM x rhs hEqBool hSpine
+  | Term.Apply (Term.UOp UserOp.div) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.div) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.mod) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.mod) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.multmult) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.multmult) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.div_total) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.div_total) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.mod_total) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.mod_total) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.multmult_total) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.multmult_total) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
+  | Term.Apply (Term.UOp UserOp.divisible) x =>
+      exact False.elim
+        (no_bool_eq_left_of_eo_apply_none_head
+          (f := Term.UOp UserOp.divisible) (x := x) (rhs := rhs) (by rfl)
+          hEqBool)
   | Term.Apply (Term.Apply (Term.UOp UserOp.div) x₁) x₂ =>
       exact congTrueSpine_div_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.mod) x₁) x₂ =>
@@ -12086,8 +12453,20 @@ private theorem congTrueSpine_eq_true
       exact congTrueSpine_int_div_by_zero_eq_true M hM x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp._at_mod_by_zero) x =>
       exact congTrueSpine_mod_by_zero_eq_true M hM x rhs hEqBool hSpine
+  | Term.Apply (Term.UOp UserOp.select) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.select x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.store) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.store x rhs (by rfl) hEqBool
   | Term.Apply (Term.UOp UserOp._at_bvsize) x =>
       exact congTrueSpine_bvsize_eq_true M x rhs hEqBool hSpine
+  | Term.Apply (Term.UOp UserOp.qdiv) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.qdiv x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.qdiv_total) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.qdiv_total x rhs (by rfl) hEqBool
   | Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x₁) x₂ =>
       exact congTrueSpine_qdiv_eq_true M hM x₁ x₂ rhs hEqBool hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x₁) x₂ =>
@@ -12179,6 +12558,24 @@ private theorem congTrueSpine_eq_true
         (by intro a; exact typeof_str_to_re_eq a)
         (by intro a; rw [__smtx_model_eval.eq_106])
         x rhs hEqBool hSpine
+  | Term.Apply (Term.UOp UserOp.re_range) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.re_range x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.re_concat) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.re_concat x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.re_inter) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.re_inter x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.re_union) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.re_union x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.re_diff) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.re_diff x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_in_re) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_in_re x rhs (by rfl) hEqBool
   | Term.Apply (Term.UOp1 UserOp1.re_exp n) x =>
       exact congTrueSpine_re_exp_eq_true M hM n x rhs hEqBool hSpine
   | Term.Apply (Term.UOp UserOp.re_opt) x =>
@@ -12219,6 +12616,57 @@ private theorem congTrueSpine_eq_true
         seq_unit_arg_non_reg_of_non_none
         (by intro a; rw [__smtx_model_eval.eq_119])
         x rhs hEqBool hSpine
+  | Term.Apply (Term.UOp UserOp.str_concat) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_concat x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_substr) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_substr x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_contains) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_contains x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_replace) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_replace x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_indexof) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_indexof x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_at) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_at x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_prefixof) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_prefixof x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_suffixof) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_suffixof x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_update) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_update x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_lt) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_lt x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_leq) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_leq x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_replace_all) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_replace_all x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_replace_re) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_replace_re x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_replace_re_all) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_replace_re_all x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.str_indexof_re) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.str_indexof_re x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp.seq_nth) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp.seq_nth x rhs (by rfl) hEqBool
+  | Term.Apply (Term.UOp UserOp._at_strings_num_occur) x =>
+      exact congTrueSpine_uop_apply_none_head_eq_true
+        M UserOp._at_strings_num_occur x rhs (by rfl) hEqBool
   | Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) x₁) x₂ =>
       exact congTrueSpine_seq_binop_eq_true M hM UserOp.str_concat
         SmtTerm.str_concat __smtx_model_eval_str_concat
