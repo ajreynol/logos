@@ -12,7 +12,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
@@ -69,7 +68,7 @@ theorem smtx_type_wf_guard_of_true
   cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq] at h ⊢
   case None =>
     exact False.elim (by
-      simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h)
+      simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h)
   all_goals
     exact h
 
@@ -162,7 +161,7 @@ theorem eo_type_valid_rec_non_none :
           simp [__eo_to_smt_type]
       | _ =>
           exfalso
-          simpa [eo_type_valid_rec] using h
+          simp [eo_type_valid_rec] at h
   | refs, Term.Bool, _ => by
       simp [__eo_to_smt_type]
   | refs, Term.USort i, _ => by
@@ -225,16 +224,16 @@ theorem eo_type_valid_rec_non_none :
           cases op with
           | Int =>
               exfalso
-              simpa [eo_type_valid_rec] using h
+              simp [eo_type_valid_rec] at h
           | Real =>
               exfalso
-              simpa [eo_type_valid_rec] using h
+              simp [eo_type_valid_rec] at h
           | Char =>
               exfalso
-              simpa [eo_type_valid_rec] using h
+              simp [eo_type_valid_rec] at h
           | UnitTuple =>
               exfalso
-              simpa [eo_type_valid_rec] using h
+              simp [eo_type_valid_rec] at h
           | BitVec =>
               cases x with
               | Numeral n =>
@@ -243,7 +242,7 @@ theorem eo_type_valid_rec_non_none :
                   simp [__eo_to_smt_type, native_ite, hz]
               | _ =>
                   exfalso
-                  simpa [eo_type_valid_rec] using h
+                  simp [eo_type_valid_rec] at h
           | Seq =>
               have hx : eo_type_valid_rec [] x := by
                 simpa [eo_type_valid_rec] using h
@@ -258,7 +257,7 @@ theorem eo_type_valid_rec_non_none :
               simp [__eo_to_smt_type, hXNN, __smtx_typeof_guard, native_ite, native_Teq]
           | _ =>
               exfalso
-              simpa [eo_type_valid_rec] using h
+              simp [eo_type_valid_rec] at h
       | Apply g y =>
           cases g with
           | FunType =>
@@ -294,64 +293,64 @@ theorem eo_type_valid_rec_non_none :
                   simp [native_ite, hWfRaw, hRawNN]
               | _ =>
                   exfalso
-                  simpa [eo_type_valid_rec] using h
+                  simp [eo_type_valid_rec] at h
           | _ =>
               exfalso
-              simpa [eo_type_valid_rec] using h
+              simp [eo_type_valid_rec] at h
       | _ =>
           exfalso
-          simpa [eo_type_valid_rec] using h
+          simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List_nil, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.__eo_List_cons, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.Boolean b, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.Numeral n, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.Rational q, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.String s, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.Binary w n, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.Type, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.Stuck, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.FunType, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.Var name T, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.DtCons s d i, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.DtSel s d i j, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.UConst i T, h => by
       exfalso
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h
   | refs, Term.UOp1 op x, h => by
-      cases op <;> exfalso <;> simpa [eo_type_valid_rec] using h
+      cases op <;> exfalso <;> simp [eo_type_valid_rec] at h
   | refs, Term.UOp2 op x y, h => by
-      cases op <;> exfalso <;> simpa [eo_type_valid_rec] using h
+      cases op <;> exfalso <;> simp [eo_type_valid_rec] at h
   | refs, Term.UOp3 op x y z, h => by
-      cases op <;> exfalso <;> simpa [eo_type_valid_rec] using h
+      cases op <;> exfalso <;> simp [eo_type_valid_rec] at h
 
 /-- Top-level valid EO types always translate to a non-`None` SMT type. -/
 theorem eo_type_valid_non_none {T : Term} :
@@ -901,35 +900,47 @@ private theorem eo_type_valid_rec_weaken
       rcases h with ⟨hReserved, hMem⟩
       exact ⟨hReserved, hsub s hMem⟩
   | Term.DtcAppType T U, h, _ => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.USort i, _h, _ => by
       simp [eo_type_valid_rec]
   | Term.Apply (Term.Apply Term.FunType T1) T2, h, _ => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h, _ => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.UOp UserOp.Seq) T, h, _ => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U, h, _ => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.UOp UserOp.Set) T, h, _ => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U, h, _ => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply f x, h, _ => by
       cases f with
       | UOp op =>
           cases op <;>
             try (cases x <;> simp [eo_type_valid_rec] at h)
-          all_goals simpa [eo_type_valid_rec] using h
+          all_goals
+            try simp [eo_type_valid_rec] at h ⊢
+            try exact h
       | Apply g y =>
           cases g with
           | FunType =>
-              simpa [eo_type_valid_rec] using h
+              simp [eo_type_valid_rec] at h ⊢
+              exact h
           | UOp op =>
               cases op <;>
-                try (simpa [eo_type_valid_rec] using h)
-              all_goals simp [eo_type_valid_rec] at h
+                try (simp [eo_type_valid_rec] at h ⊢)
+              all_goals
+                try simp [eo_type_valid_rec] at h ⊢
+                try exact h
           | _ =>
               simp [eo_type_valid_rec] at h
       | _ =>
@@ -1030,35 +1041,47 @@ private theorem eo_type_valid_rec_refine_reserved
         rw [hr] at hReserved
         cases hReserved
   | Term.DtcAppType T U, h => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.USort i, _h => by
       simp [eo_type_valid_rec]
   | Term.Apply (Term.Apply Term.FunType T1) T2, h => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral n), h => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.UOp UserOp.Seq) T, h => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.Apply (Term.UOp UserOp.Array) T) U, h => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.UOp UserOp.Set) T, h => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U, h => by
-      simpa [eo_type_valid_rec] using h
+      simp [eo_type_valid_rec] at h ⊢
+      exact h
   | Term.Apply f x, h => by
       cases f with
       | UOp op =>
           cases op <;>
             try (cases x <;> simp [eo_type_valid_rec] at h)
-          all_goals simpa [eo_type_valid_rec] using h
+          all_goals
+            try simp [eo_type_valid_rec] at h ⊢
+            try exact h
       | Apply g y =>
           cases g with
           | FunType =>
-              simpa [eo_type_valid_rec] using h
+              simp [eo_type_valid_rec] at h ⊢
+              exact h
           | UOp op =>
               cases op <;>
-                try (simpa [eo_type_valid_rec] using h)
-              all_goals simp [eo_type_valid_rec] at h
+                try (simp [eo_type_valid_rec] at h ⊢)
+              all_goals
+                try simp [eo_type_valid_rec] at h ⊢
+                try exact h
           | _ =>
               simp [eo_type_valid_rec] at h
       | _ =>
@@ -1424,10 +1447,10 @@ theorem eo_type_valid_of_smt_field_wf_rec
       | Real => simp [eo_type_valid_rec]
       | Char => simp [eo_type_valid_rec]
       | UnitTuple => simp [eo_type_valid_rec]
-      | _ =>
-          exfalso
-          simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-            __smtx_type_wf_rec] using h
+            | _ =>
+                exfalso
+                simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+                  __smtx_type_wf_rec] at h
   | Term.Bool, _ => by
       simp [eo_type_valid_rec]
   | Term.USort i, _ => by
@@ -1435,8 +1458,8 @@ theorem eo_type_valid_of_smt_field_wf_rec
   | Term.DatatypeType s d, h => by
       by_cases hReservedTrue : __eo_reserved_datatype_name s = true
       · exfalso
-        simpa [__eo_to_smt_type, hReservedTrue, native_ite, smtx_type_field_wf_rec,
-          __smtx_type_wf_rec] using h
+        simp [__eo_to_smt_type, hReservedTrue, native_ite, smtx_type_field_wf_rec,
+          __smtx_type_wf_rec] at h
       · have hReservedFalse : __eo_reserved_datatype_name s = false := by
           cases hName : __eo_reserved_datatype_name s <;> simp [hName] at hReservedTrue ⊢
         have hTypeWf :
@@ -1457,8 +1480,8 @@ theorem eo_type_valid_of_smt_field_wf_rec
   | Term.DatatypeTypeRef s, h => by
       by_cases hReservedTrue : __eo_reserved_datatype_name s = true
       · exfalso
-        simpa [__eo_to_smt_type, hReservedTrue, native_ite, smtx_type_field_wf_rec,
-          __smtx_type_wf_rec] using h
+        simp [__eo_to_smt_type, hReservedTrue, native_ite, smtx_type_field_wf_rec,
+          __smtx_type_wf_rec] at h
       · have hReservedFalse : __eo_reserved_datatype_name s = false := by
           cases hName : __eo_reserved_datatype_name s <;> simp [hName] at hReservedTrue ⊢
         have hContains : native_reflist_contains refs s = true := by
@@ -1612,16 +1635,18 @@ theorem eo_type_valid_of_smt_field_wf_rec
         cases hUTrans : __eo_to_smt_type U <;>
           try
             (exfalso
-             simpa [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
-               __smtx_type_wf_rec] using hRawField)
+             simp [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
+               __smtx_type_wf_rec] at hRawField
+             all_goals exact hRawField)
         case Datatype s d =>
           by_cases hs : s = "@Tuple"
           · subst s
             cases d with
             | null =>
                 exfalso
-                simpa [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
-                  __smtx_type_wf_rec] using hRawField
+                simp [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
+                  __smtx_type_wf_rec] at hRawField
+                all_goals exact hRawField
             | sum c dTail =>
                 cases dTail with
                 | null =>
@@ -1675,11 +1700,13 @@ theorem eo_type_valid_of_smt_field_wf_rec
                     exact ⟨hHeadValid, hTailValid⟩
                 | sum cTail dTailTail =>
                     exfalso
-                    simpa [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
-                      __smtx_type_wf_rec] using hRawField
+                    simp [raw, __eo_to_smt_type_tuple, hUTrans, smtx_type_field_wf_rec,
+                      __smtx_type_wf_rec] at hRawField
+                    all_goals exact hRawField
           · exfalso
-            simpa [raw, __eo_to_smt_type_tuple, hUTrans, hs, smtx_type_field_wf_rec,
-              __smtx_type_wf_rec] using hRawField
+            simp [raw, __eo_to_smt_type_tuple, hUTrans, hs, smtx_type_field_wf_rec,
+              __smtx_type_wf_rec] at hRawField
+            all_goals exact hRawField
       exact ⟨hParts.1, hParts.2, by simpa [raw] using hWf⟩
   | Term.Apply f x, h => by
       cases f with
@@ -1695,9 +1722,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
                       simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec,
                         native_ite, hn] at h
                   simpa [eo_type_valid_rec] using hn
-              | _ =>
-                  exfalso
-                  simpa [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec] using h
+                | _ =>
+                    exfalso
+                    simp [__eo_to_smt_type, smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
           | Seq =>
               have hGuardWf :
                   __smtx_type_wf_rec
@@ -1728,10 +1755,10 @@ theorem eo_type_valid_of_smt_field_wf_rec
                   (SmtType.Set (__eo_to_smt_type x)) refs hGuardWf
               exact eo_type_valid_of_smt_field_wf_rec []
                 (smtx_type_field_wf_rec_of_type_wf_rec (set_type_wf_rec_component_of_wf hSet))
-          | _ =>
-              exfalso
-              simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-                __smtx_type_wf_rec] using h
+            | _ =>
+                exfalso
+                simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+                  __smtx_type_wf_rec] at h
       | Apply g y =>
           cases g with
           | FunType =>
@@ -1843,161 +1870,165 @@ theorem eo_type_valid_of_smt_field_wf_rec
                     cases hXTrans : __eo_to_smt_type x <;>
                       try
                         (exfalso
-                         simpa [raw, __eo_to_smt_type_tuple, hXTrans, smtx_type_field_wf_rec,
-                           __smtx_type_wf_rec] using hRawField)
+                         simp [raw, __eo_to_smt_type_tuple, hXTrans, smtx_type_field_wf_rec,
+                           __smtx_type_wf_rec] at hRawField
+                         all_goals exact hRawField)
                     case Datatype s d =>
                       by_cases hs : s = "@Tuple"
                       · subst s
                         cases d with
                         | null =>
                             exfalso
-                            simpa [raw, __eo_to_smt_type_tuple, hXTrans,
-                              smtx_type_field_wf_rec, __smtx_type_wf_rec] using hRawField
+                            simp [raw, __eo_to_smt_type_tuple, hXTrans,
+                              smtx_type_field_wf_rec, __smtx_type_wf_rec] at hRawField
+                            all_goals exact hRawField
                         | sum c dTail =>
                             cases dTail with
                             | null =>
-                                have hRawField' :
-                                    smtx_type_field_wf_rec
-                                      (SmtType.Datatype "@Tuple"
-                                        (SmtDatatype.sum
-                                          (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
-                                          SmtDatatype.null))
-                                      native_reflist_nil := by
-                                  simpa [raw, __eo_to_smt_type_tuple, hXTrans] using hRawField
-                                have hWFParts :=
-                                  smtx_datatype_field_wf_rec_parts_local hRawField'
-                                have hConsWF :
-                                    __smtx_dt_cons_wf_rec
+                              have hRawField' :
+                                  smtx_type_field_wf_rec
+                                    (SmtType.Datatype "@Tuple"
+                                      (SmtDatatype.sum
                                         (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
-                                        (native_reflist_insert native_reflist_nil "@Tuple") =
-                                      true := by
-                                  simpa [__smtx_dt_wf_rec] using hWFParts.2
-                                have hHeadFieldWF :
-                                    smtx_type_field_wf_rec (__eo_to_smt_type y)
-                                      (native_reflist_insert native_reflist_nil "@Tuple") :=
-                                  smtx_type_field_wf_rec_of_cons_wf hConsWF
-                                have hHeadValidInTuple :
-                                    eo_type_valid_rec
-                                        (native_reflist_insert native_reflist_nil "@Tuple") y :=
-                                  eo_type_valid_of_smt_field_wf_rec
-                                    (native_reflist_insert native_reflist_nil "@Tuple")
-                                    hHeadFieldWF
-                                have hHeadValid : eo_type_valid_rec [] y := by
-                                  simpa [native_reflist_nil] using
-                                    (eo_type_valid_rec_refine_reserved
-                                      (refs := native_reflist_insert native_reflist_nil "@Tuple")
-                                      (refs' := native_reflist_nil)
-                                      (r := "@Tuple") eo_reserved_datatype_name_tuple
-                                      (by
-                                        intro t ht
-                                        right
-                                        simpa [native_reflist_insert, native_reflist_nil] using ht)
-                                      hHeadValidInTuple)
-                                have hTailWF :
-                                    __smtx_dt_cons_wf_rec c
-                                        (native_reflist_insert native_reflist_nil "@Tuple") =
-                                      true :=
-                                  smtx_dt_cons_wf_rec_tail_of_true hConsWF
-                                have hTailFieldWF :
-                                    smtx_type_field_wf_rec (__eo_to_smt_type x)
-                                      native_reflist_nil := by
-                                  rw [hXTrans]
-                                  simp [smtx_type_field_wf_rec, __smtx_type_wf_rec,
-                                    __smtx_dt_wf_rec, hWFParts.1, hTailWF, native_ite]
-                                have hTailValid : eo_type_valid_rec [] x := by
-                                  simpa [native_reflist_nil] using
-                                    (eo_type_valid_of_smt_field_wf_rec native_reflist_nil
-                                      hTailFieldWF)
-                                exact ⟨hHeadValid, hTailValid⟩
+                                        SmtDatatype.null))
+                                    native_reflist_nil := by
+                                simpa [raw, __eo_to_smt_type_tuple, hXTrans] using hRawField
+                              have hWFParts :=
+                                smtx_datatype_field_wf_rec_parts_local hRawField'
+                              have hConsWF :
+                                  __smtx_dt_cons_wf_rec
+                                      (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
+                                      (native_reflist_insert native_reflist_nil "@Tuple") =
+                                    true := by
+                                simpa [__smtx_dt_wf_rec] using hWFParts.2
+                              have hHeadFieldWF :
+                                  smtx_type_field_wf_rec (__eo_to_smt_type y)
+                                    (native_reflist_insert native_reflist_nil "@Tuple") :=
+                                smtx_type_field_wf_rec_of_cons_wf hConsWF
+                              have hHeadValidInTuple :
+                                  eo_type_valid_rec
+                                      (native_reflist_insert native_reflist_nil "@Tuple") y :=
+                                eo_type_valid_of_smt_field_wf_rec
+                                  (native_reflist_insert native_reflist_nil "@Tuple")
+                                  hHeadFieldWF
+                              have hHeadValid : eo_type_valid_rec [] y := by
+                                simpa [native_reflist_nil] using
+                                  (eo_type_valid_rec_refine_reserved
+                                    (refs := native_reflist_insert native_reflist_nil "@Tuple")
+                                    (refs' := native_reflist_nil)
+                                    (r := "@Tuple") eo_reserved_datatype_name_tuple
+                                    (by
+                                      intro t ht
+                                      right
+                                      simpa [native_reflist_insert, native_reflist_nil] using ht)
+                                    hHeadValidInTuple)
+                              have hTailWF :
+                                  __smtx_dt_cons_wf_rec c
+                                      (native_reflist_insert native_reflist_nil "@Tuple") =
+                                    true :=
+                                smtx_dt_cons_wf_rec_tail_of_true hConsWF
+                              have hTailFieldWF :
+                                  smtx_type_field_wf_rec (__eo_to_smt_type x)
+                                    native_reflist_nil := by
+                                rw [hXTrans]
+                                simp [smtx_type_field_wf_rec, __smtx_type_wf_rec,
+                                  __smtx_dt_wf_rec, hWFParts.1, hTailWF, native_ite]
+                              have hTailValid : eo_type_valid_rec [] x := by
+                                simpa [native_reflist_nil] using
+                                  (eo_type_valid_of_smt_field_wf_rec native_reflist_nil
+                                    hTailFieldWF)
+                              exact ⟨hHeadValid, hTailValid⟩
                             | sum cTail dTailTail =>
                                 exfalso
-                                simpa [raw, __eo_to_smt_type_tuple, hXTrans,
-                                  smtx_type_field_wf_rec, __smtx_type_wf_rec] using hRawField
+                                simp [raw, __eo_to_smt_type_tuple, hXTrans,
+                                  smtx_type_field_wf_rec, __smtx_type_wf_rec] at hRawField
+                                all_goals exact hRawField
                       · exfalso
-                        simpa [raw, __eo_to_smt_type_tuple, hXTrans, hs,
-                          smtx_type_field_wf_rec, __smtx_type_wf_rec] using hRawField
+                        simp [raw, __eo_to_smt_type_tuple, hXTrans, hs,
+                          smtx_type_field_wf_rec, __smtx_type_wf_rec] at hRawField
+                        all_goals exact hRawField
                   exact ⟨hParts.1, hParts.2, by simpa [raw] using hWf⟩
               | _ =>
                   exfalso
-                  simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-                    __smtx_type_wf_rec] using h
+                  simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+                    __smtx_type_wf_rec] at h
           | _ =>
               exfalso
-              simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-                __smtx_type_wf_rec] using h
+              simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+                __smtx_type_wf_rec] at h
       | _ =>
           exfalso
-          simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-            __smtx_type_wf_rec] using h
+          simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+            __smtx_type_wf_rec] at h
   | Term.__eo_List, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.__eo_List_nil, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.__eo_List_cons, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.Boolean b, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.Numeral n, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.Rational q, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.String s, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.Binary w n, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.Type, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.Stuck, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.FunType, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.Var name T, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.DtCons s d i, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.DtSel s d i j, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.UConst i T, h => by
       exfalso
-      simpa [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
-        __smtx_type_wf_rec] using h
+      simp [eo_type_valid_rec, __eo_to_smt_type, smtx_type_field_wf_rec,
+        __smtx_type_wf_rec] at h
   | Term.UOp1 op x, h => by
-      cases op <;> exfalso <;> simpa [eo_type_valid_rec, __eo_to_smt_type,
-        smtx_type_field_wf_rec, __smtx_type_wf_rec] using h
+      cases op <;> exfalso <;> simp [eo_type_valid_rec, __eo_to_smt_type,
+        smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
   | Term.UOp2 op x y, h => by
-      cases op <;> exfalso <;> simpa [eo_type_valid_rec, __eo_to_smt_type,
-        smtx_type_field_wf_rec, __smtx_type_wf_rec] using h
+      cases op <;> exfalso <;> simp [eo_type_valid_rec, __eo_to_smt_type,
+        smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
   | Term.UOp3 op x y z, h => by
-      cases op <;> exfalso <;> simpa [eo_type_valid_rec, __eo_to_smt_type,
-        smtx_type_field_wf_rec, __smtx_type_wf_rec] using h
+      cases op <;> exfalso <;> simp [eo_type_valid_rec, __eo_to_smt_type,
+        smtx_type_field_wf_rec, __smtx_type_wf_rec] at h
 
 theorem eo_datatype_cons_valid_of_smt_wf_rec
     (refs : RefList) :
@@ -2283,11 +2314,11 @@ theorem eo_to_smt_updater_dt_sel_guard_of_non_none
         SmtType.None) :
     native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i)) =
       true := by
-  cases hIdx : native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i))
-  · exfalso
-    apply h
-    simp [__eo_to_smt_updater, native_ite, hIdx, smtx_typeof_none]
-  · simpa using hIdx
+    cases hIdx : native_zlt (native_nat_to_int j) (native_nat_to_int (__smtx_dt_num_sels d i))
+    · exfalso
+      apply h
+      simp [__eo_to_smt_updater, native_ite, hIdx, smtx_typeof_none]
+    · simp [hIdx]
 
 private theorem eo_to_smt_tuple_update_ne_numeral
     (T : SmtType) (i t u : SmtTerm) (n : native_Int) :
@@ -3317,11 +3348,11 @@ private theorem eo_to_smt_typeof_dt_cons_rec_substitute_of_wf
         smtx_dt_cons_tail_wf_of_wf_rec (__eo_to_smt_type U) cSmt refs hCons
       have hTailWf : __smtx_dt_wf_rec (__eo_to_smt_datatype (Datatype.sum c d)) refs = true := by
         by_cases hDnull : dSmt = SmtDatatype.null
-        · simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec, cSmt, dSmt, hDnull,
+        · simp [__eo_to_smt_datatype, __smtx_dt_wf_rec, cSmt, dSmt, hDnull,
             hTailCons, native_ite]
         · have hDtTail : __smtx_dt_wf_rec dSmt refs = true :=
             smtx_dt_wf_tail_of_sum_wf _ _ refs hDnull (by simpa [cSmt, dSmt] using hWf)
-          simpa [__eo_to_smt_datatype, __smtx_dt_wf_rec, cSmt, dSmt, hTailCons,
+          simp [__eo_to_smt_datatype, __smtx_dt_wf_rec, cSmt, dSmt, hTailCons,
             hDtTail, native_ite]
       have hRec := eo_to_smt_typeof_dt_cons_rec_substitute_of_wf sub d0 T hT
         (Datatype.sum c d) native_nat_zero refs hTailWf

@@ -12,7 +12,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
@@ -397,7 +396,7 @@ private theorem smtx_tuple_type_wf_tail_of_cons_wf
         (SmtValue.DtCons "@Tuple" tailD native_nat_zero) c
     have hTypeDefault :
         __smtx_type_default tailTy = tailDefault := by
-      simpa [tailTy, tailD, tailDefault, __smtx_type_default,
+      simp [tailTy, tailD, tailDefault, __smtx_type_default,
         __smtx_datatype_default, native_ite, native_not, hDefaultNN]
     have hTy :
         __smtx_typeof_value (__smtx_type_default tailTy) = tailTy := by
@@ -405,7 +404,7 @@ private theorem smtx_tuple_type_wf_tail_of_cons_wf
     have hCan :
         __smtx_value_canonical_bool (__smtx_type_default tailTy) = true := by
       simpa [tailD, tailDefault, hTypeDefault] using hDefaultTC.2
-    simpa [native_inhabited_type, native_and, hTy, hCan]
+    simp [native_inhabited_type, native_and, hTy, hCan]
   exact type_wf_of_inhabited_and_wf_rec hTailInh hTailRec
 
 @[simp] private theorem native_inhabited_type_seq_apply
@@ -3327,8 +3326,9 @@ private theorem smtx_type_chain_field_wf_rec_of_field_wf
     {T : SmtType} {refs : RefList}
     (h : smtx_type_field_wf_rec T refs) :
     smtx_type_chain_field_wf_rec refs T := by
-  cases T <;> simpa [smtx_type_chain_field_wf_rec,
-    smtx_type_field_wf_rec, __smtx_type_wf_rec] using h
+  cases T <;> simp [smtx_type_chain_field_wf_rec,
+    smtx_type_field_wf_rec, __smtx_type_wf_rec] at h ⊢
+  all_goals exact h
 
 private theorem smtx_type_chain_field_wf_rec_ne_none
     {T : SmtType} {refs : RefList}
@@ -4729,7 +4729,7 @@ private theorem smtx_type_wf_rec_congr_refs_apply :
   | SmtType.USort _i, refs, refs', hEq, hWf => by
       simp [__smtx_type_wf_rec]
   | SmtType.FunType _A _B, refs, refs', hEq, hWf => by
-      simpa [__smtx_type_wf_rec] using hWf
+      simp [__smtx_type_wf_rec] at hWf
 
 private theorem smtx_dtc_wf_rec_congr_refs_apply :
     (c : SmtDatatypeCons) -> {refs refs' : RefList} ->
@@ -6622,9 +6622,8 @@ private theorem smtx_dtc_substitute_field_no_reglan_of_cons_wf
       simp [smtx_dtc_substitute_field_type, smtx_type_fun_like_domains_no_reglan,
         native_ite, native_streq, hEq, hNe]
   all_goals
-    simpa [smtx_dtc_substitute_field_type, smtx_type_fun_like_domains_no_reglan,
-      native_ite, native_Teq]
-      using And.intro hUNe hUPred
+    simp [smtx_dtc_substitute_field_type, smtx_type_fun_like_domains_no_reglan,
+      native_ite, native_Teq, hUNe, hUPred]
 
 private theorem smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
     (s : native_String) (base : SmtDatatype) :
@@ -11195,9 +11194,10 @@ private theorem smtx_dtc_substitute_tuple_of_eo_datatype_cons_valid_rec
         smtx_dtc_substitute_tuple_of_eo_datatype_cons_valid_rec
           base hNo hC
       cases hTy : __eo_to_smt_type T <;>
-        simpa [__eo_to_smt_datatype_cons, __smtx_dtc_substitute,
+        simp [__eo_to_smt_datatype_cons, __smtx_dtc_substitute,
           smtx_type_substitute_top_apply, hTy, hCSub, native_ite,
-          native_Teq, native_streq] using hTSub
+          native_Teq, native_streq] at hTSub ⊢
+      all_goals exact hTSub
 
 private theorem smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
     (base : SmtDatatype) :
@@ -11268,7 +11268,7 @@ private theorem smtx_type_substitute_top_apply_tuple_of_eo_valid
             native_Teq]
       | _ =>
           exfalso
-          simpa [eo_type_valid, eo_type_valid_rec] using hValid
+          simp [eo_type_valid, eo_type_valid_rec] at hValid
   | _ =>
       have hNo : ("@Tuple" : native_String) ∉ ([] : RefList) := by
         intro h
@@ -11646,7 +11646,7 @@ private theorem smtx_tuple_cons_num_apply_args_of_non_none :
               (by simpa [__eo_to_smt_tuple_cons] using hNN)
           have hRec :=
             smtx_tuple_cons_num_apply_args_of_non_none f head T hRecNN
-          simpa [__eo_to_smt_tuple_cons, smtx_num_apply_args, hRec]
+          simp [__eo_to_smt_tuple_cons, smtx_num_apply_args, hRec]
       | DtCons s d i =>
           by_cases hs : s = "@Tuple"
           · subst s
@@ -12408,7 +12408,7 @@ private theorem smtx_typeof_apply_datatype_head_eq_none
   | DtTester s0 d0 i0 =>
       exact False.elim (hTester s0 d0 i0 rfl)
   | _ =>
-      simpa [__smtx_typeof, hTy, __smtx_typeof_apply]
+      simp [__smtx_typeof, hTy, __smtx_typeof_apply]
 
 theorem eo_to_smt_tuple_tail_recoverable_of_generic_apply
     {f x : Term}
@@ -14576,7 +14576,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_extract
       native_zleq_zero_extract_width i j hji
     rw [hEoRaw]
     rw [hZTerm, hYTerm]
-    simpa [__eo_to_smt_type, __eo_mk_apply, __eo_requires, __eo_gt,
+    simp [__eo_to_smt_type, __eo_mk_apply, __eo_requires, __eo_gt,
       __eo_add, __eo_neg, native_ite, native_teq, native_not,
       hLoSucc, hiw, hWidthNonneg]
   exact hSmt.trans hEo.symm
