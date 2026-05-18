@@ -113,6 +113,17 @@ inductive CongTypeSpine : Term -> Term -> Prop where
       RuleProofs.eo_has_bool_type (mkEq x y) ->
       CongTypeSpine (Term.Apply f x) (Term.Apply g y)
 
+private theorem congTypeSpine_of_congTrueSpine
+    (M : SmtModel) :
+    ∀ {t rhs : Term},
+      CongTrueSpine M t rhs ->
+      CongTypeSpine t rhs
+  | _, _, CongTrueSpine.refl t => CongTypeSpine.refl t
+  | _, _, CongTrueSpine.app hRec hArg =>
+      CongTypeSpine.app
+        (congTypeSpine_of_congTrueSpine M hRec)
+        (RuleProofs.eo_has_bool_type_of_interprets_true M _ hArg)
+
 private def appSpineRev : Term -> Term × List Term
   | Term.Apply f x =>
       let spine := appSpineRev f
@@ -3041,6 +3052,68 @@ private theorem smt_apply_head_non_none_of_apply_non_none
   rcases typeof_apply_non_none_cases hAppNN with
     ⟨A, B, hHead, _hX, _hA, _hB⟩
   exact smt_type_ne_none_of_apply_head hHead
+
+private theorem eo_to_smt_apply_generic_of_has_smt_translation
+    (f x : Term)
+    (hTransF : RuleProofs.eo_has_smt_translation f) :
+    __eo_to_smt (Term.Apply f x) =
+      SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x) := by
+  unfold RuleProofs.eo_has_smt_translation at hTransF
+  cases f <;> try rfl
+  case UOp op =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case UOp1 op i =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case UOp2 op i j =>
+    cases op <;> try rfl
+    all_goals
+      exfalso
+      apply hTransF
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case Apply f a =>
+    cases f <;> try rfl
+    case UOp op =>
+      cases op <;> try rfl
+      all_goals
+        exfalso
+        apply hTransF
+        change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
+          SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply,
+          TranslationProofs.smtx_typeof_none]
+    case UOp1 op i =>
+      cases op <;> try rfl
+      all_goals
+        exfalso
+        apply hTransF
+        change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt a)) =
+          SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply,
+          TranslationProofs.smtx_typeof_none]
+    case Apply f' b =>
+      cases f' <;> try rfl
+      case UOp op =>
+        cases op <;> try rfl
+        all_goals
+          exfalso
+          apply hTransF
+          change
+            __smtx_typeof
+              (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None (__eo_to_smt b))
+                (__eo_to_smt a)) = SmtType.None
+          simp [__smtx_typeof, __smtx_typeof_apply,
+            TranslationProofs.smtx_typeof_none]
 
 private theorem congTypeSpine_generic_apply_eq_has_bool_type
     (f g x y : Term)
@@ -11587,7 +11660,7 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
           cases hSpine with
           | refl _ =>
               exact congTypeSpine_refl_eq_has_bool_type rhs hTrans
-          | app _ _ =>
+          | @app f g x y hFn hArg =>
               sorry
 
 /--
