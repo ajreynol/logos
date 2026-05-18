@@ -12268,6 +12268,54 @@ private theorem congTrueSpine_uop_apply_not_unary_eq_true
       (uop_apply_typeof_none_of_not_unary_smt_translation op x hUnary)
       hEqBool)
 
+private theorem eo_to_smt_type_is_tlist_true_eq
+    {T : Term} :
+    __eo_to_smt_type_is_tlist T = true ->
+    ∃ U, T = Term.Apply (Term.UOp UserOp._at__at_TypedList) U := by
+  intro hGuard
+  cases T <;> try (change false = true at hGuard; cases hGuard)
+  case Apply f U =>
+    cases f <;> try (change false = true at hGuard; cases hGuard)
+    case UOp op =>
+      cases op <;> try (change false = true at hGuard; cases hGuard)
+      case _at__at_TypedList =>
+        exact ⟨U, rfl⟩
+
+private theorem eo_to_smt_type_is_tlist_true_type_none
+    {T : Term} :
+    __eo_to_smt_type_is_tlist T = true ->
+    __eo_to_smt_type T = SmtType.None := by
+  intro hGuard
+  rcases eo_to_smt_type_is_tlist_true_eq hGuard with ⟨U, hT⟩
+  rw [hT]
+  rfl
+
+private theorem no_bool_eq_arg_of_distinct_translation
+    (x y : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.distinct) x) ->
+    RuleProofs.eo_has_bool_type (mkEq x y) ->
+    False := by
+  intro hTrans hArg
+  by_cases hGuard : __eo_to_smt_type_is_tlist (__eo_typeof x) = true
+  · have hxNN :
+        __smtx_typeof (__eo_to_smt x) ≠ SmtType.None :=
+      (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type x y hArg).2
+    have hxMatch :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation x hxNN
+    have hxTypeNone :
+        __eo_to_smt_type (__eo_typeof x) = SmtType.None :=
+      eo_to_smt_type_is_tlist_true_type_none hGuard
+    rw [hxMatch, hxTypeNone] at hxNN
+    exact hxNN rfl
+  · apply hTrans
+    change
+      __smtx_typeof
+          (native_ite (__eo_to_smt_type_is_tlist (__eo_typeof x))
+            (__eo_to_smt_distinct x) SmtTerm.None) = SmtType.None
+    cases h : __eo_to_smt_type_is_tlist (__eo_typeof x) <;>
+      simp [native_ite, h] at hGuard ⊢
+
 private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   RuleProofs.eo_has_smt_translation t ->
   CongTypeSpine t rhs ->
@@ -13633,7 +13681,9 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                           (by intro a; rw [__smtx_typeof.eq_132])
                           x (Term.Apply g y) hTrans hApp
                       case distinct =>
-                        sorry
+                        exact False.elim
+                          (no_bool_eq_arg_of_distinct_translation
+                            x y hTrans hArg)
               | Term.__eo_List =>
                   exact False.elim
                     (no_translation_of_eo_apply_type_none
@@ -13924,6 +13974,9 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
               | Term.UOp1 UserOp1._at_strings_itos_result x₁ =>
                   exact congTypeSpine_strings_itos_result_eq_has_bool_type
                     x₁ x (Term.Apply g y) hTrans hApp
+              | Term.UOp1 UserOp1.tuple_select idx =>
+                  exact congTypeSpine_tuple_select_eq_has_bool_type
+                    idx x (Term.Apply g y) hTrans hApp
               | Term.UOp2 UserOp2.extract i j =>
                   exact congTypeSpine_typecongr_indexed2_unop_eq_has_bool_type
                     UserOp2.extract i j
@@ -14159,8 +14212,27 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                             (eo_to_smt_re_unfold_top_ne_dt_sel str re idx)
                             (eo_to_smt_re_unfold_top_ne_dt_tester str re idx))
                           hTrans hArg
-              | _ =>
-                  sorry
+              | Term.Apply f' z =>
+                  match hHead' :
+                      (appSpineRev ((Term.Apply f' z).Apply x)).1 with
+                  | Term.Var (Term.String s) T =>
+                      exact congTypeSpine_appSpineRev_var_eq_has_bool_type
+                        s T ((Term.Apply f' z).Apply x) (Term.Apply g y)
+                        hHead' hTrans hApp
+                  | Term.UConst i T =>
+                      exact congTypeSpine_appSpineRev_uconst_eq_has_bool_type
+                        i T ((Term.Apply f' z).Apply x) (Term.Apply g y)
+                        hHead' hTrans hApp
+                  | Term.DtCons s d i =>
+                      exact congTypeSpine_appSpineRev_dtcons_eq_has_bool_type
+                        s d i ((Term.Apply f' z).Apply x) (Term.Apply g y)
+                        hHead' hTrans hApp
+                  | Term.DtSel s d i j =>
+                      exact congTypeSpine_appSpineRev_dt_sel_eq_has_bool_type
+                        s d i j ((Term.Apply f' z).Apply x)
+                        (Term.Apply g y) hHead' hTrans hApp
+                  | _ =>
+                      sorry
 
 /--
 The remaining semantic core for congruence: a syntactic congruence spine
@@ -15447,7 +15519,9 @@ private theorem congTrueSpine_eq_true
                         exact congTrueSpine_set_choose_eq_true M hM
                           x (Term.Apply g y) hEqBool hApp
                       case set_is_singleton =>
-                        sorry
+                        cases hFn with
+                        | refl _ =>
+                            sorry
                       case _at_div_by_zero =>
                         exact congTrueSpine_qdiv_by_zero_eq_true M hM
                           x (Term.Apply g y) hEqBool hApp
@@ -15498,7 +15572,19 @@ private theorem congTrueSpine_eq_true
                           (by intro a; rw [__smtx_model_eval.eq_132])
                           x (Term.Apply g y) hEqBool hApp
                       case distinct =>
-                        sorry
+                        have hLeftTrans :
+                            RuleProofs.eo_has_smt_translation
+                              (Term.Apply (Term.UOp UserOp.distinct) x) :=
+                          (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                            (Term.Apply (Term.UOp UserOp.distinct) x)
+                            (Term.Apply g y) hEqBool).2
+                        have hArgBool :
+                            RuleProofs.eo_has_bool_type (mkEq x y) :=
+                          RuleProofs.eo_has_bool_type_of_interprets_true
+                            M (mkEq x y) hArg
+                        exact False.elim
+                          (no_bool_eq_arg_of_distinct_translation
+                            x y hLeftTrans hArgBool)
               | Term.__eo_List =>
                   exact False.elim
                     (no_bool_eq_left_of_eo_apply_type_none
@@ -15825,6 +15911,9 @@ private theorem congTrueSpine_eq_true
               | Term.UOp1 UserOp1._at_strings_itos_result x₁ =>
                   exact congTrueSpine_strings_itos_result_eq_true M hM
                     x₁ x (Term.Apply g y) hEqBool hApp
+              | Term.UOp1 UserOp1.tuple_select idx =>
+                  exact congTrueSpine_tuple_select_eq_true M hM
+                    idx x (Term.Apply g y) hEqBool hApp
               | Term.UOp2 UserOp2.extract i j =>
                   exact congTrueSpine_non_reg_indexed2_unop_eq_true M hM
                     UserOp2.extract i j
@@ -16117,8 +16206,27 @@ private theorem congTrueSpine_eq_true
                             (eo_to_smt_re_unfold_top_ne_dt_sel str re idx)
                             (eo_to_smt_re_unfold_top_ne_dt_tester str re idx))
                           hEqBool hArg
-              | _ =>
-                  sorry
+              | Term.Apply f' z =>
+                  match hHead' :
+                      (appSpineRev ((Term.Apply f' z).Apply x)).1 with
+                  | Term.Var (Term.String s) T =>
+                      exact congTrueSpine_appSpineRev_var_eq_true
+                        M hM s T ((Term.Apply f' z).Apply x)
+                        (Term.Apply g y) hHead' hEqBool hApp
+                  | Term.UConst i T =>
+                      exact congTrueSpine_appSpineRev_uconst_eq_true
+                        M hM i T ((Term.Apply f' z).Apply x)
+                        (Term.Apply g y) hHead' hEqBool hApp
+                  | Term.DtCons s d i =>
+                      exact congTrueSpine_appSpineRev_dtcons_eq_true
+                        M hM s d i ((Term.Apply f' z).Apply x)
+                        (Term.Apply g y) hHead' hEqBool hApp
+                  | Term.DtSel s d i j =>
+                      exact congTrueSpine_appSpineRev_dt_sel_eq_true
+                        M hM s d i j ((Term.Apply f' z).Apply x)
+                        (Term.Apply g y) hHead' hEqBool hApp
+                  | _ =>
+                      sorry
 
 /-- Typing for the generated EO implementation of `cong` over a premise list. -/
 theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
