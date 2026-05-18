@@ -12294,6 +12294,17 @@ theorem eo_to_smt_tuple_tail_recoverable_of_tuple_cons_none
   rw [h head (__eo_to_smt_type U)]
   exact smtx_typeof_none
 
+theorem eo_to_smt_tuple_tail_recoverable_of_tuple_cons_typeof_none
+    {x : Term}
+    (h :
+      ∀ (head : SmtTerm) (T : SmtType),
+        __smtx_typeof
+            (__eo_to_smt_tuple_cons (__eo_to_smt x) T head) =
+          SmtType.None) :
+    eo_to_smt_tuple_tail_recoverable x := by
+  intro head U _hStable hNN
+  exact False.elim (hNN (h head (__eo_to_smt_type U)))
+
 theorem eo_to_smt_tuple_tail_recoverable_tuple_unit :
     eo_to_smt_tuple_tail_recoverable (Term.UOp UserOp.tuple_unit) := by
   intro head U _hStable hNN
