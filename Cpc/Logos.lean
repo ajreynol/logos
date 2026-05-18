@@ -6797,7 +6797,7 @@ def __eo_typeof_update : Term -> Term -> Term -> Term
 def __eo_typeof_tuple : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | T, U => (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U)
+  | T, U => (__eo_requires (__eo_is_ok (__eo_list_len (Term.UOp UserOp.Tuple) U)) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U))
 
 
 def __eo_typeof_tuple_select : Term -> Term -> Term -> Term
