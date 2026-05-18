@@ -2488,11 +2488,6 @@ private def smtx_type_substitute_top_apply (sub : native_String) (d0 : SmtDataty
       native_ite (native_streq sub s2) (SmtType.Datatype sub d0) (SmtType.TypeRef s2)
   | T => T
 
-@[simp] private theorem smtx_type_substitute_apply_eq_top
-    (sub : native_String) (d0 : SmtDatatype) (T : SmtType) :
-    __smtx_type_substitute sub d0 T = smtx_type_substitute_top_apply sub d0 T := by
-  cases T <;> rfl
-
 private def smtx_chain_type_substitute_top_apply
     (sub : native_String) (d0 : SmtDatatype) : SmtType -> SmtType
   | SmtType.DtcAppType A B =>
@@ -2500,6 +2495,16 @@ private def smtx_chain_type_substitute_top_apply
         (smtx_chain_type_substitute_top_apply sub d0 A)
         (smtx_chain_type_substitute_top_apply sub d0 B)
   | T => smtx_type_substitute_top_apply sub d0 T
+
+@[simp] private theorem native_Teq_typeRef_typeRef_apply
+    (s t : native_String) :
+    native_Teq (SmtType.TypeRef s) (SmtType.TypeRef t) = native_streq s t := by
+  simp [native_Teq, native_streq]
+
+private theorem native_streq_comm_apply
+    (s t : native_String) :
+    native_streq s t = native_streq t s := by
+  simp [native_streq, eq_comm]
 
 mutual
 
@@ -3868,8 +3873,22 @@ private theorem smtx_dtc_context_substitute_no_root_of_wf_apply
         smtx_dtc_context_substitute_no_root_of_wf_apply
           sub base root oldRoot newRoot c hTail
       cases T <;>
-        simp [smtx_dtc_context_substitute_apply, __smtx_dtc_substitute,
-          smtx_type_substitute_top_apply, hT, hC]
+        try
+          simp [smtx_dtc_context_substitute_apply, __smtx_dtc_substitute,
+            smtx_type_substitute_top_apply, native_ite, native_Teq, native_streq,
+            hT, hC]
+      case TypeRef a =>
+        by_cases hEq : sub = a
+        · subst a
+          simp [smtx_dtc_context_substitute_apply, __smtx_dtc_substitute,
+            smtx_type_substitute_top_apply, native_ite, native_Teq, native_streq,
+            hT, hC]
+        · have hNe : a ≠ sub := by
+            intro h
+            exact hEq h.symm
+          simp [smtx_dtc_context_substitute_apply, __smtx_dtc_substitute,
+            smtx_type_substitute_top_apply, native_ite, native_Teq, native_streq,
+            hEq, hNe, hT, hC]
 
 private theorem smtx_dt_context_substitute_no_root_of_wf_apply
     (sub : native_String) (base : SmtDatatype)
@@ -4323,8 +4342,20 @@ private theorem smtx_ret_typeof_sel_rec_substitute_cons_apply
           smtx_type_substitute_top_apply, native_ite, native_Teq]
   | SmtDatatypeCons.cons T c, d, native_nat_zero => by
       cases T <;>
-        simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec,
-          smtx_type_substitute_top_apply, native_ite, native_Teq, native_streq]
+        try
+          simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec,
+            smtx_type_substitute_top_apply, native_ite, native_Teq, native_streq]
+      case TypeRef a =>
+        by_cases hEq : a = sub
+        · subst a
+          simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec,
+            smtx_type_substitute_top_apply, native_ite, native_Teq, native_streq]
+        · have hNe : sub ≠ a := by
+            intro h
+            exact hEq h.symm
+          simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec,
+            smtx_type_substitute_top_apply, native_ite, native_Teq, native_streq,
+            hEq, hNe]
   | SmtDatatypeCons.cons T c, d, native_nat_succ j => by
       cases T <;>
         simp [__smtx_dtc_substitute, __smtx_ret_typeof_sel_rec,
@@ -6660,9 +6691,23 @@ private theorem smtx_typeof_dt_cons_rec_no_reglan_of_substitute_wf
               (__smtx_typeof_dt_cons_rec (SmtType.Datatype s d0)
                 (__smtx_dt_substitute s base (SmtDatatype.sum c d)) native_nat_zero) := by
         cases U <;>
-          simp [field', smtx_dtc_substitute_field_type, __smtx_dt_substitute, __smtx_dtc_substitute,
-            __smtx_typeof_dt_cons_rec, smtx_type_substitute_top_apply, native_ite,
-            native_streq, native_Teq]
+          try
+            simp [field', smtx_dtc_substitute_field_type, __smtx_dt_substitute,
+              __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec,
+              smtx_type_substitute_top_apply, native_ite, native_streq, native_Teq]
+        case TypeRef a =>
+          by_cases hEq : a = s
+          · subst a
+            simp [field', smtx_dtc_substitute_field_type, __smtx_dt_substitute,
+              __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec,
+              smtx_type_substitute_top_apply, native_ite, native_streq, native_Teq]
+          · have hNe : s ≠ a := by
+              intro h
+              exact hEq h.symm
+            simp [field', smtx_dtc_substitute_field_type, __smtx_dt_substitute,
+              __smtx_dtc_substitute, __smtx_typeof_dt_cons_rec,
+              smtx_type_substitute_top_apply, native_ite, native_streq, native_Teq,
+              hEq, hNe]
       rw [hRecEq]
       have hFieldNe : field' ≠ SmtType.RegLan := by
         simpa [field'] using hField.1
@@ -11153,8 +11198,24 @@ private theorem smtx_dtc_substitute_tuple_of_eo_datatype_cons_valid_rec
         smtx_dtc_substitute_tuple_of_eo_datatype_cons_valid_rec
           base hNo hC
       cases hTy : __eo_to_smt_type T <;>
+        try
+          simpa [__eo_to_smt_datatype_cons, __smtx_dtc_substitute,
+            smtx_type_substitute_top_apply, hTy, hCSub, native_ite,
+            native_Teq, native_streq] using hTSub
+      case TypeRef a =>
+        have hTSub' :
+            native_ite (native_streq a "@Tuple")
+                (SmtType.Datatype "@Tuple" base) (SmtType.TypeRef a) =
+              SmtType.TypeRef a := by
+          have hTSubRaw :
+              native_ite (native_streq "@Tuple" a)
+                  (SmtType.Datatype "@Tuple" base) (SmtType.TypeRef a) =
+                SmtType.TypeRef a := by
+            simpa [smtx_type_substitute_top_apply, hTy] using hTSub
+          simpa [native_streq_comm_apply "@Tuple" a] using hTSubRaw
         simpa [__eo_to_smt_datatype_cons, __smtx_dtc_substitute,
-          smtx_type_substitute_top_apply, hTy, hCSub] using hTSub
+          smtx_type_substitute_top_apply, hTy, hCSub, native_ite, native_Teq,
+          native_streq] using hTSub'
 
 private theorem smtx_dt_substitute_tuple_of_eo_datatype_valid_rec
     (base : SmtDatatype) :
