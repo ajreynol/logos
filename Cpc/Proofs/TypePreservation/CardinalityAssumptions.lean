@@ -3086,9 +3086,13 @@ private theorem map_singleton_nondefault_value_witness
 
 private inductive smt_type_nondefault_context : SmtType -> Prop where
   | bool : smt_type_nondefault_context SmtType.Bool
+  | int : smt_type_nondefault_context SmtType.Int
+  | real : smt_type_nondefault_context SmtType.Real
   | bitvecSucc (w : Nat) :
       smt_type_nondefault_context (SmtType.BitVec (Nat.succ w))
   | char : smt_type_nondefault_context SmtType.Char
+  | usort (u : native_Nat) :
+      smt_type_nondefault_context (SmtType.USort u)
   | seq (T : SmtType) :
       smt_type_nondefault_context (SmtType.Seq T)
   | set (T : SmtType) :
@@ -3112,6 +3116,15 @@ private theorem nondefault_context_witness :
       intro hEq
       subst val
       simp [native_veq] at hValNeDefault
+  | SmtType.Int, _refs, _hCtx, _hWf => by
+      refine ⟨SmtValue.Numeral 1, ?_, ?_, ?_⟩ <;>
+        simp [__smtx_typeof_value, __smtx_value_canonical_bool,
+          __smtx_type_default]
+  | SmtType.Real, _refs, _hCtx, _hWf => by
+      refine ⟨SmtValue.Rational (1 : native_Rat), ?_, ?_, ?_⟩
+      · simp [__smtx_typeof_value]
+      · simp [__smtx_value_canonical_bool]
+      · native_decide
   | SmtType.BitVec (Nat.succ w), _refs, _hCtx, _hWf => by
       rcases simple_finite_nonunit_witness
           (SmtType.BitVec (Nat.succ w)) trivial with
@@ -3127,6 +3140,10 @@ private theorem nondefault_context_witness :
       intro hEq
       subst val
       simp [native_veq] at hValNeDefault
+  | SmtType.USort u, _refs, _hCtx, _hWf => by
+      refine ⟨SmtValue.UValue u 1, ?_, ?_, ?_⟩ <;>
+        simp [__smtx_typeof_value, __smtx_value_canonical_bool,
+          __smtx_type_default]
   | SmtType.Seq T, _refs, _hCtx, hWf => by
       have hParts :
           native_inhabited_type T = true ∧
@@ -3159,13 +3176,10 @@ private theorem nondefault_context_witness :
           exact map_singleton_nondefault_value_witness K V refs hWf
             ⟨entry, hEntryTy, hEntryCan, hEntryNeDefault⟩
   | SmtType.None, _refs, hCtx, _hWf => by cases hCtx
-  | SmtType.Int, _refs, hCtx, _hWf => by cases hCtx
-  | SmtType.Real, _refs, hCtx, _hWf => by cases hCtx
   | SmtType.RegLan, _refs, hCtx, _hWf => by cases hCtx
   | SmtType.BitVec 0, _refs, hCtx, _hWf => by cases hCtx
   | SmtType.Datatype _s _d, _refs, hCtx, _hWf => by cases hCtx
   | SmtType.TypeRef _s, _refs, hCtx, _hWf => by cases hCtx
-  | SmtType.USort _u, _refs, hCtx, _hWf => by cases hCtx
   | SmtType.FunType _T _U, _refs, hCtx, _hWf => by cases hCtx
   | SmtType.DtcAppType _T _U, _refs, hCtx, _hWf => by cases hCtx
 termination_by T _ _ _ => sizeOf T
@@ -3174,7 +3188,40 @@ decreasing_by
   all_goals try simp [sizeOf]
   all_goals omega
 
+private theorem simple_finite_nonunit_context_nondefault :
+    ∀ {T : SmtType},
+      smt_type_simple_finite_nonunit_context T ->
+        smt_type_nondefault_context T
+  | SmtType.Bool, _hCtx => smt_type_nondefault_context.bool
+  | SmtType.Char, _hCtx => smt_type_nondefault_context.char
+  | SmtType.BitVec (Nat.succ w), _hCtx =>
+      smt_type_nondefault_context.bitvecSucc w
+
+private theorem simple_large_context_nondefault :
+    ∀ {T : SmtType},
+      smt_type_simple_large_context T ->
+        smt_type_nondefault_context T
+  | SmtType.Int, _hCtx => smt_type_nondefault_context.int
+  | SmtType.Real, _hCtx => smt_type_nondefault_context.real
+  | SmtType.USort u, _hCtx => smt_type_nondefault_context.usort u
+  | SmtType.Set T, _hCtx => smt_type_nondefault_context.set T
+  | SmtType.Seq T, _hCtx => smt_type_nondefault_context.seq T
+  | SmtType.Map K V, hCtx => by
+      rcases hCtx with hValueLarge | hKeyLarge
+      · exact smt_type_nondefault_context.map
+          (simple_large_context_nondefault (T := V) hValueLarge)
+      · exact smt_type_nondefault_context.map
+          (simple_finite_nonunit_context_nondefault hKeyLarge.2)
+termination_by T _ => sizeOf T
+decreasing_by
+  all_goals try simp_wf
+  all_goals try simp [sizeOf]
+  all_goals omega
+
 private inductive smt_type_container_large_context : SmtType -> Prop where
+  | simple {T : SmtType}
+      (hSimple : smt_type_simple_large_context T) :
+      smt_type_container_large_context T
   | sequence {T : SmtType}
       (hSeq : smt_type_sequence_large_context T) :
       smt_type_container_large_context T
@@ -3200,8 +3247,10 @@ private theorem container_large_context_witness :
           ∀ minSize : Nat,
             ∃ i : SmtValue,
               __smtx_typeof_value i = T ∧
-                __smtx_value_canonical_bool i = true ∧
-                  minSize ≤ sizeOf i
+              __smtx_value_canonical_bool i = true ∧
+                minSize ≤ sizeOf i
+  | T, refs, smt_type_container_large_context.simple hSimple, hWf, minSize => by
+      exact simple_type_large_witness T refs hSimple hWf minSize
   | T, refs, smt_type_container_large_context.sequence hSeq, hWf, minSize => by
       exact sequence_large_context_witness T refs hSeq hWf minSize
   | SmtType.Set T, refs, smt_type_container_large_context.set hElem, hWf,
@@ -3363,6 +3412,23 @@ decreasing_by
   all_goals try simp_wf
   all_goals try simp [sizeOf]
   all_goals omega
+
+private theorem container_large_context_nondefault_witness
+    (T : SmtType)
+    (refs : RefList)
+    (hCtx : smt_type_container_large_context T)
+    (hWf : __smtx_type_wf_rec T refs = true) :
+    ∃ val : SmtValue,
+      __smtx_typeof_value val = T ∧
+        __smtx_value_canonical_bool val = true ∧
+          val ≠ __smtx_type_default T := by
+  rcases container_large_context_witness T refs hCtx hWf
+      (sizeOf (__smtx_type_default T) + 1) with
+    ⟨val, hValTy, hValCan, hValSize⟩
+  refine ⟨val, hValTy, hValCan, ?_⟩
+  intro hEq
+  subst val
+  exact Nat.not_succ_le_self _ hValSize
 
 private def smt_type_nested_residual_head : SmtType -> Prop
   | SmtType.Map _ _ => True
@@ -3652,7 +3718,50 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                         by simp [dtc_substitute_field_type]⟩
                   · -- Remaining work: nested map ranges whose non-default
                     -- value must itself come from a datatype.
-                    sorry
+                    by_cases hNestedMapContainerCtx :
+                        smt_type_container_large_context
+                          (SmtType.Map K'' V'')
+                    · have hNestedMapWf :
+                          __smtx_type_wf_rec (SmtType.Map K'' V'')
+                            native_reflist_nil = true := by
+                        have hParts :
+                            native_inhabited_type K' = true ∧
+                              __smtx_type_wf_rec K' native_reflist_nil =
+                                true ∧
+                                native_inhabited_type
+                                    (SmtType.Map K'' V'') = true ∧
+                                  __smtx_type_wf_rec
+                                      (SmtType.Map K'' V'')
+                                      native_reflist_nil = true := by
+                          simpa [__smtx_type_wf_rec, native_and] using hInnerWf
+                        exact hParts.2.2.2
+                      rcases container_large_context_nondefault_witness
+                          (SmtType.Map K'' V'') native_reflist_nil
+                          hNestedMapContainerCtx hNestedMapWf with
+                        ⟨entry, hEntryTy, hEntryCan, hEntryNeDef⟩
+                      rcases map_singleton_nondefault_value_witness
+                          K' (SmtType.Map K'' V'') native_reflist_nil
+                          hInnerWf
+                          ⟨entry, hEntryTy, hEntryCan, hEntryNeDef⟩ with
+                        ⟨val, hValTy, hValCan, hValNeDef⟩
+                      rcases map_key_sequence_large_nondefault_value_witness
+                          K (SmtType.Map K' (SmtType.Map K'' V'')) refs
+                          hKeySeqCtx hHeadWf minSize
+                          ⟨val, hValTy, hValCan, hValNeDef⟩ with
+                        ⟨arg, hArgTy, hArgCan, hArgSize⟩
+                      exact
+                        ⟨arg,
+                          by simpa [dtc_substitute_field_type] using hArgTy,
+                          hArgCan, hArgSize,
+                          by simp [dtc_substitute_field_type]⟩
+                    · by_cases hNestedMapSimpleCtx :
+                          smt_type_simple_large_context
+                            (SmtType.Map K'' V'')
+                      · exact False.elim
+                          (hNestedMapContainerCtx
+                            (smt_type_container_large_context.simple
+                              hNestedMapSimpleCtx))
+                      · sorry
               | Datatype sField dField =>
                   -- Remaining work: nested datatype ranges.
                   sorry
@@ -3695,6 +3804,10 @@ private theorem datatype_cons_nested_residual_head_arg_witness
           | None =>
               simp [__smtx_type_wf_rec, native_and] at hHeadWf
           | Bool =>
+              have hKeyInf : __smtx_is_finite_type K = false := by
+                cases hKFin : __smtx_is_finite_type K <;>
+                  simp [__smtx_is_finite_type, __smtx_is_unit_type,
+                    native_or, native_and, hKFin] at hHeadInf ⊢
               by_cases hKeyContainerCtx : smt_type_container_large_context K
               · rcases container_large_context_witness
                     (SmtType.Map K SmtType.Bool) refs
@@ -3707,7 +3820,12 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                     hArgCan, hArgSize, by simp [dtc_substitute_field_type]⟩
               · -- Remaining work: nested/non-container map keys with finite
                 -- non-unit ranges.
-                sorry
+                by_cases hKeySimpleCtx : smt_type_simple_large_context K
+                · exact False.elim
+                    (hKeyContainerCtx
+                      (smt_type_container_large_context.simple
+                        hKeySimpleCtx))
+                · sorry
           | Int =>
               exact False.elim
                 (hNotSimple (by simp [smt_type_simple_large_context]))
@@ -3727,6 +3845,11 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                   rw [hHeadInf] at hMapFin
                   simp at hMapFin
               | succ w =>
+                  have hKeyInf : __smtx_is_finite_type K = false := by
+                    cases hKFin : __smtx_is_finite_type K <;>
+                      simp [__smtx_is_finite_type, __smtx_is_unit_type,
+                        native_nateq, native_or, native_and, hKFin]
+                        at hHeadInf ⊢
                   by_cases hKeyContainerCtx : smt_type_container_large_context K
                   · rcases container_large_context_witness
                         (SmtType.Map K (SmtType.BitVec (Nat.succ w))) refs
@@ -3741,7 +3864,12 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                         by simp [dtc_substitute_field_type]⟩
                   · -- Remaining work: nested/non-container map keys with
                     -- finite non-unit ranges.
-                    sorry
+                    by_cases hKeySimpleCtx : smt_type_simple_large_context K
+                    · exact False.elim
+                        (hKeyContainerCtx
+                          (smt_type_container_large_context.simple
+                            hKeySimpleCtx))
+                    · sorry
           | Map K' V' =>
               by_cases hValueContainerCtx :
                   smt_type_container_large_context (SmtType.Map K' V')
@@ -3756,21 +3884,38 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                     hArgCan, hArgSize, by simp [dtc_substitute_field_type]⟩
               · -- Remaining work: map domains/ranges whose large witness comes
                 -- from a nested map rather than a container-large path.
-                by_cases hKeyContainerCtx : smt_type_container_large_context K
-                · by_cases hValueNondefaultCtx :
-                      smt_type_nondefault_context (SmtType.Map K' V')
-                  · rcases container_large_context_witness
-                        (SmtType.Map K (SmtType.Map K' V')) refs
-                        (smt_type_container_large_context.mapKeyLarge
-                          hKeyContainerCtx hValueNondefaultCtx)
-                        hHeadWf minSize with
-                      ⟨arg, hArgTy, hArgCan, hArgSize⟩
-                    exact
-                      ⟨arg, by simpa [dtc_substitute_field_type] using hArgTy,
-                        hArgCan, hArgSize,
-                        by simp [dtc_substitute_field_type]⟩
-                  · sorry
-                · sorry
+                by_cases hValueSimpleCtx :
+                    smt_type_simple_large_context (SmtType.Map K' V')
+                · exact False.elim
+                    (hValueContainerCtx
+                      (smt_type_container_large_context.simple
+                        hValueSimpleCtx))
+                · by_cases hKeyContainerCtx : smt_type_container_large_context K
+                  · by_cases hValueNondefaultCtx :
+                        smt_type_nondefault_context (SmtType.Map K' V')
+                    · rcases container_large_context_witness
+                          (SmtType.Map K (SmtType.Map K' V')) refs
+                          (smt_type_container_large_context.mapKeyLarge
+                            hKeyContainerCtx hValueNondefaultCtx)
+                          hHeadWf minSize with
+                        ⟨arg, hArgTy, hArgCan, hArgSize⟩
+                      exact
+                        ⟨arg, by simpa [dtc_substitute_field_type] using hArgTy,
+                          hArgCan, hArgSize,
+                          by simp [dtc_substitute_field_type]⟩
+                    · by_cases hValueSimpleNondefault :
+                          smt_type_simple_large_context (SmtType.Map K' V')
+                      · exact False.elim
+                          (hValueNondefaultCtx
+                            (simple_large_context_nondefault
+                              hValueSimpleNondefault))
+                      · sorry
+                  · by_cases hKeySimpleCtx : smt_type_simple_large_context K
+                    · exact False.elim
+                        (hKeyContainerCtx
+                          (smt_type_container_large_context.simple
+                            hKeySimpleCtx))
+                    · sorry
           | Set U =>
               by_cases hValueContainerCtx :
                   smt_type_container_large_context (SmtType.Set U)
@@ -3785,21 +3930,36 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                     hArgCan, hArgSize, by simp [dtc_substitute_field_type]⟩
               · -- Remaining work: map domains/ranges whose large witness comes
                 -- from a nested set rather than a container-large path.
-                by_cases hKeyContainerCtx : smt_type_container_large_context K
-                · rcases container_large_context_witness
-                      (SmtType.Map K (SmtType.Set U)) refs
-                      (smt_type_container_large_context.mapKeyLarge
-                        hKeyContainerCtx (smt_type_nondefault_context.set U))
-                      hHeadWf minSize with
-                    ⟨arg, hArgTy, hArgCan, hArgSize⟩
-                  exact
-                    ⟨arg, by simpa [dtc_substitute_field_type] using hArgTy,
-                      hArgCan, hArgSize, by simp [dtc_substitute_field_type]⟩
-                · sorry
+                by_cases hValueSimpleCtx :
+                    smt_type_simple_large_context (SmtType.Set U)
+                · exact False.elim
+                    (hValueContainerCtx
+                      (smt_type_container_large_context.simple
+                        hValueSimpleCtx))
+                · by_cases hKeyContainerCtx : smt_type_container_large_context K
+                  · rcases container_large_context_witness
+                        (SmtType.Map K (SmtType.Set U)) refs
+                        (smt_type_container_large_context.mapKeyLarge
+                          hKeyContainerCtx (smt_type_nondefault_context.set U))
+                        hHeadWf minSize with
+                      ⟨arg, hArgTy, hArgCan, hArgSize⟩
+                    exact
+                      ⟨arg, by simpa [dtc_substitute_field_type] using hArgTy,
+                        hArgCan, hArgSize, by simp [dtc_substitute_field_type]⟩
+                  · by_cases hKeySimpleCtx : smt_type_simple_large_context K
+                    · exact False.elim
+                        (hKeyContainerCtx
+                          (smt_type_container_large_context.simple
+                            hKeySimpleCtx))
+                    · sorry
           | Seq A =>
               exact False.elim (hValueSeqCtx
                 (smt_type_sequence_large_context.seq A))
           | Char =>
+              have hKeyInf : __smtx_is_finite_type K = false := by
+                cases hKFin : __smtx_is_finite_type K <;>
+                  simp [__smtx_is_finite_type, __smtx_is_unit_type,
+                    native_or, native_and, hKFin] at hHeadInf ⊢
               by_cases hKeyContainerCtx : smt_type_container_large_context K
               · rcases container_large_context_witness
                     (SmtType.Map K SmtType.Char) refs
@@ -3812,7 +3972,12 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                     hArgCan, hArgSize, by simp [dtc_substitute_field_type]⟩
               · -- Remaining work: nested/non-container map keys with finite
                 -- non-unit ranges.
-                sorry
+                by_cases hKeySimpleCtx : smt_type_simple_large_context K
+                · exact False.elim
+                    (hKeyContainerCtx
+                      (smt_type_container_large_context.simple
+                        hKeySimpleCtx))
+                · sorry
           | Datatype sField dField =>
               -- Remaining work: map domains/ranges whose large witness comes
               -- from a nested datatype.
@@ -3868,6 +4033,8 @@ private theorem datatype_cons_nested_residual_head_arg_witness
         | BitVec w =>
             simp [__smtx_is_finite_type] at hHeadInf
         | Map K V =>
+            have hElemInf : __smtx_is_finite_type (SmtType.Map K V) = false := by
+              simpa [__smtx_is_finite_type] using hHeadInf
             by_cases hElemContainerCtx :
                 smt_type_container_large_context (SmtType.Map K V)
             · rcases container_large_context_witness
@@ -3880,8 +4047,15 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                   hArgCan, hArgSize, by simp [dtc_substitute_field_type]⟩
             · -- Remaining work: set element types whose large witness comes
               -- from a nested map rather than a container-large path.
-              sorry
+              by_cases hElemSimpleCtx :
+                  smt_type_simple_large_context (SmtType.Map K V)
+              · exact False.elim
+                  (hElemContainerCtx
+                    (smt_type_container_large_context.simple hElemSimpleCtx))
+              · sorry
         | Set U' =>
+            have hElemInf : __smtx_is_finite_type (SmtType.Set U') = false := by
+              simpa [__smtx_is_finite_type] using hHeadInf
             by_cases hElemContainerCtx :
                 smt_type_container_large_context (SmtType.Set U')
             · rcases container_large_context_witness
@@ -3894,7 +4068,12 @@ private theorem datatype_cons_nested_residual_head_arg_witness
                   hArgCan, hArgSize, by simp [dtc_substitute_field_type]⟩
             · -- Remaining work: set element types whose large witness comes
               -- from a nested set rather than a container-large path.
-              sorry
+              by_cases hElemSimpleCtx :
+                  smt_type_simple_large_context (SmtType.Set U')
+              · exact False.elim
+                  (hElemContainerCtx
+                    (smt_type_container_large_context.simple hElemSimpleCtx))
+              · sorry
         | Seq A =>
             exact False.elim (hElemSeqCtx
               (smt_type_sequence_large_context.seq A))
