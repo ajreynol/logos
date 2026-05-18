@@ -230,7 +230,8 @@ theorem type_inhabited_map {A B : SmtType} (hB : type_inhabited B) :
     native_inhabited_type (SmtType.Set A) = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
     __smtx_typeof_map_value, __smtx_map_to_set_type, __smtx_value_canonical_bool,
-    __smtx_map_canonical, __smtx_map_default_canonical, native_and]
+    __smtx_map_canonical, __smtx_map_default_canonical, __smtx_msm_get_default,
+    native_and]
   cases __smtx_is_finite_type A <;>
     simp [native_ite, native_veq, __smtx_type_default, __smtx_typeof_value]
 
@@ -641,7 +642,7 @@ private theorem type_default_typed_canonical_of_wf_rec :
           __smtx_map_to_set_type]
       · simp [__smtx_type_default, __smtx_value_canonical,
           __smtx_value_canonical_bool, __smtx_map_canonical,
-          __smtx_map_default_canonical, native_and]
+          __smtx_map_default_canonical, __smtx_msm_get_default, native_and]
         cases hFin : __smtx_is_finite_type A <;>
           simp [native_ite, native_veq, __smtx_typeof_value, __smtx_type_default]
   | SmtType.Seq A, _hInh, _hRec => by
