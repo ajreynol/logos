@@ -10992,6 +10992,150 @@ private theorem smt_apply_binary_typeof_none
         (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
     simp [__smtx_typeof, native_ite, h, __smtx_typeof_apply]
 
+private theorem eo_to_smt_apply_var_non_string_none_head
+    {name T x : Term}
+    (hName : ∀ s : native_String, name ≠ Term.String s) :
+    __eo_to_smt (Term.Apply (Term.Var name T) x) =
+      SmtTerm.Apply SmtTerm.None (__eo_to_smt x) := by
+  cases name <;> try rfl
+  case String s =>
+    exact False.elim (hName s rfl)
+
+private def uopHasUnarySmtTranslation : UserOp -> Bool
+  | UserOp.not
+  | UserOp.distinct
+  | UserOp.to_real
+  | UserOp.to_int
+  | UserOp.is_int
+  | UserOp.abs
+  | UserOp.__eoo_neg_2
+  | UserOp.int_pow2
+  | UserOp.int_log2
+  | UserOp.int_ispow2
+  | UserOp._at_int_div_by_zero
+  | UserOp._at_mod_by_zero
+  | UserOp._at_bvsize
+  | UserOp.bvnot
+  | UserOp.bvneg
+  | UserOp.bvnego
+  | UserOp.bvredand
+  | UserOp.bvredor
+  | UserOp.str_len
+  | UserOp.str_rev
+  | UserOp.str_to_lower
+  | UserOp.str_to_upper
+  | UserOp.str_to_code
+  | UserOp.str_from_code
+  | UserOp.str_is_digit
+  | UserOp.str_to_int
+  | UserOp.str_from_int
+  | UserOp.str_to_re
+  | UserOp.re_mult
+  | UserOp.re_plus
+  | UserOp.re_opt
+  | UserOp.re_comp
+  | UserOp.seq_unit
+  | UserOp.set_singleton
+  | UserOp.set_choose
+  | UserOp.set_is_empty
+  | UserOp.set_is_singleton
+  | UserOp._at_div_by_zero
+  | UserOp.ubv_to_int
+  | UserOp.sbv_to_int => true
+  | _ => false
+
+private theorem typeof_apply_none_head_eq_none
+    (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply SmtTerm.None x) = SmtType.None := by
+  have hGeneric : generic_apply_type SmtTerm.None x :=
+    generic_apply_type_of_non_datatype_head
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+  rw [hGeneric]
+  simp [__smtx_typeof, __smtx_typeof_apply]
+
+private theorem typeof_apply_reglan_head_eq_none
+    (f x : SmtTerm)
+    (hF : __smtx_typeof f = SmtType.RegLan)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i) :
+    __smtx_typeof (SmtTerm.Apply f x) = SmtType.None := by
+  have hGeneric : generic_apply_type f x :=
+    generic_apply_type_of_non_datatype_head hSel hTester
+  rw [hGeneric, hF]
+  rfl
+
+private theorem typeof_apply_tuple_unit_head_eq_none
+    (x : SmtTerm) :
+    __smtx_typeof
+        (SmtTerm.Apply
+          (SmtTerm.DtCons "@Tuple"
+            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) x) =
+      SmtType.None := by
+  have hGeneric :
+      generic_apply_type
+        (SmtTerm.DtCons "@Tuple"
+          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) x :=
+    generic_apply_type_of_non_datatype_head
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+  rw [hGeneric, TranslationProofs.smtx_typeof_tuple_unit_translation]
+  rfl
+
+private theorem uop_apply_typeof_none_of_not_unary_smt_translation
+    (op : UserOp) (x : Term) :
+    uopHasUnarySmtTranslation op = false ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) x)) =
+      SmtType.None := by
+  intro hUnary
+  cases op <;>
+    simp [uopHasUnarySmtTranslation] at hUnary ⊢
+  case re_allchar =>
+    exact typeof_apply_reglan_head_eq_none _ _
+      (by unfold __smtx_typeof; rfl)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+  case re_none =>
+    exact typeof_apply_reglan_head_eq_none _ _
+      (by unfold __smtx_typeof; rfl)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+  case re_all =>
+    exact typeof_apply_reglan_head_eq_none _ _
+      (by unfold __smtx_typeof; rfl)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+  case tuple_unit =>
+    exact typeof_apply_tuple_unit_head_eq_none (__eo_to_smt x)
+  all_goals
+    first
+    | exact typeof_apply_none_head_eq_none (__eo_to_smt x)
+
+private theorem congTypeSpine_uop_apply_not_unary_eq_has_bool_type
+    (op : UserOp) (x rhs : Term)
+    (hUnary : uopHasUnarySmtTranslation op = false) :
+    RuleProofs.eo_has_smt_translation (Term.Apply (Term.UOp op) x) ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.UOp op) x) rhs) := by
+  intro hTrans
+  exact False.elim
+    (no_translation_of_smt_type_none
+      (t := Term.Apply (Term.UOp op) x)
+      (uop_apply_typeof_none_of_not_unary_smt_translation op x hUnary)
+      hTrans)
+
+private theorem congTrueSpine_uop_apply_not_unary_eq_true
+    (M : SmtModel) (op : UserOp) (x rhs : Term)
+    (hUnary : uopHasUnarySmtTranslation op = false) :
+    RuleProofs.eo_has_bool_type (mkEq (Term.Apply (Term.UOp op) x) rhs) ->
+    eo_interprets M (mkEq (Term.Apply (Term.UOp op) x) rhs) true := by
+  intro hEqBool
+  exact False.elim
+    (no_bool_eq_left_of_smt_type_none
+      (t := Term.Apply (Term.UOp op) x) (rhs := rhs)
+      (uop_apply_typeof_none_of_not_unary_smt_translation op x hUnary)
+      hEqBool)
+
 private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   RuleProofs.eo_has_smt_translation t ->
   CongTypeSpine t rhs ->
@@ -11997,6 +12141,20 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
               | Term.Var (Term.String s) T =>
                   exact congTypeSpine_var_apply_eq_has_bool_type
                     s T x (Term.Apply g y) hTrans hApp
+              | Term.Var name T =>
+                  by_cases hName : ∃ s : native_String, name = Term.String s
+                  · rcases hName with ⟨s, rfl⟩
+                    exact congTypeSpine_var_apply_eq_has_bool_type
+                      s T x (Term.Apply g y) hTrans hApp
+                  ·
+                    exact False.elim
+                      (no_translation_of_eo_apply_none_head
+                        (f := Term.Var name T) (x := x)
+                        (eo_to_smt_apply_var_non_string_none_head
+                          (by
+                            intro s hs
+                            exact hName ⟨s, hs⟩))
+                        hTrans)
               | Term.UConst i T =>
                   exact congTypeSpine_uconst_apply_eq_has_bool_type
                     i T x (Term.Apply g y) hTrans hApp
@@ -12007,6 +12165,14 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
               | Term.DtSel s d i j =>
                   exact congTypeSpine_dt_sel_eq_has_bool_type
                     s d i j x (Term.Apply g y) hTrans hApp
+              | Term.UOp op =>
+                  match hUnary : uopHasUnarySmtTranslation op with
+                  | false =>
+                      exact
+                        congTypeSpine_uop_apply_not_unary_eq_has_bool_type
+                          op x (Term.Apply g y) hUnary hTrans
+                  | true =>
+                      sorry
               | Term.__eo_List =>
                   exact False.elim
                     (no_translation_of_eo_apply_type_none
@@ -13264,6 +13430,21 @@ private theorem congTrueSpine_eq_true
               | Term.Var (Term.String s) T =>
                   exact congTrueSpine_var_apply_eq_true
                     M hM s T x (Term.Apply g y) hEqBool hApp
+              | Term.Var name T =>
+                  by_cases hName : ∃ s : native_String, name = Term.String s
+                  · rcases hName with ⟨s, rfl⟩
+                    exact congTrueSpine_var_apply_eq_true
+                      M hM s T x (Term.Apply g y) hEqBool hApp
+                  ·
+                    exact False.elim
+                      (no_bool_eq_left_of_eo_apply_none_head
+                        (f := Term.Var name T) (x := x)
+                        (rhs := Term.Apply g y)
+                        (eo_to_smt_apply_var_non_string_none_head
+                          (by
+                            intro s hs
+                            exact hName ⟨s, hs⟩))
+                        hEqBool)
               | Term.UConst i T =>
                   exact congTrueSpine_uconst_apply_eq_true
                     M hM i T x (Term.Apply g y) hEqBool hApp
@@ -13274,6 +13455,14 @@ private theorem congTrueSpine_eq_true
               | Term.DtSel s d i j =>
                   exact congTrueSpine_dt_sel_eq_true
                     M hM s d i j x (Term.Apply g y) hEqBool hApp
+              | Term.UOp op =>
+                  match hUnary : uopHasUnarySmtTranslation op with
+                  | false =>
+                      exact
+                        congTrueSpine_uop_apply_not_unary_eq_true
+                          M op x (Term.Apply g y) hUnary hEqBool
+                  | true =>
+                      sorry
               | Term.__eo_List =>
                   exact False.elim
                     (no_bool_eq_left_of_eo_apply_type_none
