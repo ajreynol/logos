@@ -12411,7 +12411,67 @@ private theorem smtx_tuple_cons_typeof_of_tail_tuple_type
           (__smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" fullD fullD)
             native_nat_zero) := by
       rw [hResultCount]
-    _ = SmtType.Datatype "@Tuple" fullD := hFull
+    _ = SmtType.Datatype "@Tuple" fullD := by
+      simpa [fullD] using hFull
+
+private theorem smtx_typeof_apply_datatype_head_eq_none
+    (f x : SmtTerm) (s : native_String) (d : SmtDatatype)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hTy : __smtx_typeof f = SmtType.Datatype s d) :
+    __smtx_typeof (SmtTerm.Apply f x) = SmtType.None := by
+  cases f with
+  | DtSel s0 d0 i0 j0 =>
+      exact False.elim (hSel s0 d0 i0 j0 rfl)
+  | DtTester s0 d0 i0 =>
+      exact False.elim (hTester s0 d0 i0 rfl)
+  | _ =>
+      simpa [__smtx_typeof, hTy, __smtx_typeof_apply]
+
+theorem eo_to_smt_tuple_tail_recoverable_of_generic_apply
+    {f x : Term}
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hFRec : eo_to_smt_tuple_tail_recoverable f) :
+    eo_to_smt_tuple_tail_recoverable (Term.Apply f x) := by
+  intro head U hStable hNN
+  have hConsFNN :
+      __smtx_typeof
+          (__eo_to_smt_tuple_cons (__eo_to_smt f) (__eo_to_smt_type U) head) ≠
+        SmtType.None :=
+    smtx_apply_head_non_none_of_non_none_tuple_cons
+      (__eo_to_smt_tuple_cons (__eo_to_smt f) (__eo_to_smt_type U) head)
+      (__eo_to_smt x)
+      (eo_to_smt_tuple_cons_ne_dt_sel (__eo_to_smt f) (__eo_to_smt_type U) head)
+      (eo_to_smt_tuple_cons_ne_dt_tester (__eo_to_smt f) (__eo_to_smt_type U) head)
+      (by simpa [hTranslate, __eo_to_smt_tuple_cons] using hNN)
+  rcases hFRec head U hStable hConsFNN with ⟨c, hFTy⟩
+  have hConsFTy :
+      __smtx_typeof
+          (__eo_to_smt_tuple_cons (__eo_to_smt f) (__eo_to_smt_type U) head) =
+        SmtType.Datatype "@Tuple"
+          (SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type U) c)
+            SmtDatatype.null) :=
+    smtx_tuple_cons_typeof_of_tail_tuple_type
+      (__eo_to_smt f) head (__eo_to_smt_type U) c hFTy hConsFNN
+  exfalso
+  apply hNN
+  have hApply :
+      __smtx_typeof
+          (SmtTerm.Apply
+            (__eo_to_smt_tuple_cons (__eo_to_smt f) (__eo_to_smt_type U) head)
+            (__eo_to_smt x)) =
+        SmtType.None :=
+    smtx_typeof_apply_datatype_head_eq_none
+      (__eo_to_smt_tuple_cons (__eo_to_smt f) (__eo_to_smt_type U) head)
+      (__eo_to_smt x) "@Tuple"
+      (SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type U) c)
+        SmtDatatype.null)
+      (eo_to_smt_tuple_cons_ne_dt_sel (__eo_to_smt f) (__eo_to_smt_type U) head)
+      (eo_to_smt_tuple_cons_ne_dt_tester (__eo_to_smt f) (__eo_to_smt_type U) head)
+      hConsFTy
+  simpa [hTranslate, __eo_to_smt_tuple_cons] using hApply
 
 private theorem smtx_tuple_dt_cons_non_none_of_wf
     {c : SmtDatatypeCons}
