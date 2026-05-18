@@ -7302,17 +7302,14 @@ private theorem choice_nth_fun_like_domains_field_wf_any
           rw [__smtx_typeof.eq_137] at hNN
           simp [__smtx_typeof_choice_nth] at hNN
 
-private theorem smtx_term_fun_like_arg_field_wf_of_non_none_of_dt_cons
+private theorem smtx_term_fun_like_domains_field_wf_of_non_none_of_dt_cons
     (hDtCons :
       ∀ (s : native_String) (d : SmtDatatype) (i : native_Nat),
         term_has_non_none_type (SmtTerm.DtCons s d i) ->
           smtx_type_fun_like_domains_field_wf
             (__smtx_typeof (SmtTerm.DtCons s d i))) :
     ∀ (t : SmtTerm), term_has_non_none_type t ->
-      ∀ {A B : SmtType},
-        (__smtx_typeof t = SmtType.FunType A B ∨
-          __smtx_typeof t = SmtType.DtcAppType A B) ->
-        smtx_type_field_wf_rec A native_reflist_nil := by
+      smtx_type_fun_like_domains_field_wf (__smtx_typeof t) := by
   let rec go (t : SmtTerm) (hNN : term_has_non_none_type t) :
       smtx_type_fun_like_domains_field_wf (__smtx_typeof t) := by
     cases t
@@ -7604,8 +7601,23 @@ private theorem smtx_term_fun_like_arg_field_wf_of_non_none_of_dt_cons
       (repeat split) <;> try simp [smtx_type_fun_like_domains_field_wf]
       all_goals
         split <;> simp [smtx_type_fun_like_domains_field_wf]
+  intro t hNN
+  exact go t hNN
+
+private theorem smtx_term_fun_like_arg_field_wf_of_non_none_of_dt_cons
+    (hDtCons :
+      ∀ (s : native_String) (d : SmtDatatype) (i : native_Nat),
+        term_has_non_none_type (SmtTerm.DtCons s d i) ->
+          smtx_type_fun_like_domains_field_wf
+            (__smtx_typeof (SmtTerm.DtCons s d i))) :
+    ∀ (t : SmtTerm), term_has_non_none_type t ->
+      ∀ {A B : SmtType},
+        (__smtx_typeof t = SmtType.FunType A B ∨
+          __smtx_typeof t = SmtType.DtcAppType A B) ->
+        smtx_type_field_wf_rec A native_reflist_nil := by
   intro t hNN A B hHead
-  exact smtx_type_fun_like_arg_field_wf_of_domains_field_wf (go t hNN) hHead
+  exact smtx_type_fun_like_arg_field_wf_of_domains_field_wf
+    (smtx_term_fun_like_domains_field_wf_of_non_none_of_dt_cons hDtCons t hNN) hHead
 
 private theorem eo_to_smt_typeof_matches_translation_apply_generic_from_ih_of_dt_cons_field_wf
     (hDtCons :

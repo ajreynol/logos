@@ -8,6 +8,7 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option linter.unnecessarySimpa false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
@@ -47,6 +48,235 @@ private theorem eo_type_valid_of_smt_type_eq_of_field_wf_full
   exact eo_type_valid_of_valid_rec_top_full
     (eo_type_valid_of_smt_field_wf_rec native_reflist_nil (by
       simpa [hEq] using hA))
+
+private theorem eo_type_valid_of_requires_eq_dtcapp_full
+    {T V U A B : Term}
+    (hU : eo_type_valid U)
+    (hReq : __eo_requires T V U = Term.DtcAppType A B) :
+    eo_type_valid (Term.DtcAppType A B) := by
+  unfold __eo_requires at hReq
+  cases hEq : native_teq T V <;> simp [native_ite, hEq] at hReq
+  cases hStuck : native_teq T Term.Stuck <;>
+    simp [native_ite, hStuck, native_not] at hReq
+  all_goals first
+    | rw [← hReq]; exact hU
+    | exact hU
+    | cases hReq
+
+private theorem eo_type_valid_of_typeof_apply_eq_dtcapp_full
+    {F X A B : Term}
+    (hF : eo_type_valid F)
+    (hTy : __eo_typeof_apply F X = Term.DtcAppType A B) :
+    eo_type_valid (Term.DtcAppType A B) := by
+  have hFun :
+      ∀ T U, F = Term.Apply (Term.Apply Term.FunType T) U ->
+        eo_type_valid U := by
+    intro T U hFU
+    subst F
+    have hF' := hF
+    simp [eo_type_valid, eo_type_valid_rec] at hF'
+    exact eo_type_valid_of_valid_rec_top_full hF'.2
+  have hDtc :
+      ∀ T U, F = Term.DtcAppType T U -> eo_type_valid U := by
+    intro T U hFU
+    subst F
+    have hF' := hF
+    simp [eo_type_valid, eo_type_valid_rec] at hF'
+    exact eo_type_valid_of_valid_rec_top_full hF'.2
+  clear hF
+  cases X <;> try cases hTy
+  all_goals
+    cases F <;> try cases hTy
+    case Apply f U =>
+      cases f <;> try cases hTy
+      case Apply g T =>
+        cases g <;> try cases hTy
+        case FunType =>
+          exact eo_type_valid_of_requires_eq_dtcapp_full
+            (hFun T U rfl) hTy
+    case DtcAppType T U =>
+      exact eo_type_valid_of_requires_eq_dtcapp_full
+        (hDtc T U rfl) hTy
+
+private theorem eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+    {F X A B : Term}
+    (hFun :
+      ∀ T U, F = Term.Apply (Term.Apply Term.FunType T) U ->
+        eo_type_valid U)
+    (hDtc :
+      ∀ T U, F = Term.DtcAppType T U -> eo_type_valid U)
+    (hTy : __eo_typeof_apply F X = Term.DtcAppType A B) :
+    eo_type_valid (Term.DtcAppType A B) := by
+  cases X <;> try cases hTy
+  all_goals
+    cases F <;> try cases hTy
+    case Apply f U =>
+      cases f <;> try cases hTy
+      case Apply g T =>
+        cases g <;> try cases hTy
+        case FunType =>
+          exact eo_type_valid_of_requires_eq_dtcapp_full
+            (hFun T U rfl) hTy
+    case DtcAppType T U =>
+      exact eo_type_valid_of_requires_eq_dtcapp_full
+        (hDtc T U rfl) hTy
+
+private theorem smtx_apply_head_non_none_of_non_special_full
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    __smtx_typeof f ≠ SmtType.None := by
+  have hApply :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠
+        SmtType.None := by
+    cases f
+    case DtSel s d i j =>
+      exact False.elim (hSel s d i j rfl)
+    case DtTester s d i =>
+      exact False.elim (hTester s d i rfl)
+    all_goals
+      simpa [__smtx_typeof] using hNN
+  rcases typeof_apply_non_none_cases hApply with ⟨A, B, hHead, _hArg, _hA, _hB⟩
+  rcases hHead with hHead | hHead
+  · rw [hHead]
+    simp
+  · rw [hHead]
+    simp
+
+private theorem eo_type_valid_of_generic_apply_eq_dtcapp_full
+    {f x A B : Term}
+    (ihF :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.None ->
+        __smtx_typeof (__eo_to_smt f) = __eo_to_smt_type (__eo_typeof f) ∧
+          eo_type_valid (__eo_typeof f))
+    (hSel : ∀ s d i j, __eo_to_smt f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, __eo_to_smt f ≠ SmtTerm.DtTester s d i)
+    (hTranslate :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x))
+    (hEoApply :
+      __eo_typeof (Term.Apply f x) =
+        __eo_typeof_apply (__eo_typeof f) (__eo_typeof x))
+    (hNN : term_has_non_none_type (__eo_to_smt (Term.Apply f x)))
+    (hTy : __eo_typeof (Term.Apply f x) = Term.DtcAppType A B) :
+    eo_type_valid (Term.DtcAppType A B) := by
+  have hApplyNN :
+      __smtx_typeof (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) ≠
+        SmtType.None := by
+    unfold term_has_non_none_type at hNN
+    rw [← hTranslate]
+    exact hNN
+  have hFNN : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None :=
+    smtx_apply_head_non_none_of_non_special_full
+      (__eo_to_smt f) (__eo_to_smt x) hSel hTester hApplyNN
+  exact eo_type_valid_of_typeof_apply_eq_dtcapp_full (ihF hFNN).2 (by
+    rw [← hEoApply]
+    exact hTy)
+
+private theorem smtx_typeof_guard_ne_dtcapp_of_ne
+    {T U A B : SmtType}
+    (hU : U ≠ SmtType.DtcAppType A B) :
+    __smtx_typeof_guard T U ≠ SmtType.DtcAppType A B := by
+  unfold __smtx_typeof_guard
+  cases native_Teq T SmtType.None <;> simp [native_ite, hU]
+
+private theorem native_ite_none_ne_dtcapp_of_ne
+    {c : native_Bool} {U A B : SmtType}
+    (hU : U ≠ SmtType.DtcAppType A B) :
+    native_ite c U SmtType.None ≠ SmtType.DtcAppType A B := by
+  cases c <;> simp [native_ite, hU]
+
+private theorem eo_to_smt_type_apply_ne_dtcapp
+    (a b : Term) (A B : SmtType) :
+    __eo_to_smt_type (Term.Apply a b) ≠ SmtType.DtcAppType A B := by
+  intro h
+  cases a
+  case UOp op =>
+    cases op
+    case BitVec =>
+      cases b <;> simp [__eo_to_smt_type] at h
+      case Numeral n =>
+        exact native_ite_none_ne_dtcapp_of_ne (by intro h'; cases h') h
+    case Seq =>
+      exact smtx_typeof_guard_ne_dtcapp_of_ne (by intro h'; cases h') h
+    case Set =>
+      exact smtx_typeof_guard_ne_dtcapp_of_ne (by intro h'; cases h') h
+    all_goals
+      simp [__eo_to_smt_type] at h
+  case Apply g y =>
+    cases g
+    case FunType =>
+      exact smtx_typeof_guard_ne_dtcapp_of_ne
+        (smtx_typeof_guard_ne_dtcapp_of_ne (by intro h'; cases h')) h
+    case UOp op =>
+      cases op
+      case Array =>
+        exact smtx_typeof_guard_ne_dtcapp_of_ne
+          (smtx_typeof_guard_ne_dtcapp_of_ne (by intro h'; cases h')) h
+      case Tuple =>
+        exact native_ite_none_ne_dtcapp_of_ne
+          (eo_to_smt_type_tuple_ne_dtc_app (__eo_to_smt_type y) (__eo_to_smt_type b) A B) h
+      all_goals
+        simp [__eo_to_smt_type] at h
+    all_goals
+      simp [__eo_to_smt_type] at h
+  all_goals
+    simp [__eo_to_smt_type] at h
+
+private theorem false_of_eq_eo_dtcapp_type_of_no_smt_dtcapp_full
+    {t : SmtTerm} {a b : Term}
+    (hEq : __smtx_typeof t = __eo_to_smt_type (Term.DtcAppType a b))
+    (hNN : __eo_to_smt_type (Term.DtcAppType a b) ≠ SmtType.None)
+    (hNe : ∀ A B, __smtx_typeof t ≠ SmtType.DtcAppType A B) :
+    False := by
+  change
+    __smtx_typeof t =
+      __smtx_typeof_guard (__eo_to_smt_type a)
+        (__smtx_typeof_guard (__eo_to_smt_type b)
+          (SmtType.DtcAppType (__eo_to_smt_type a) (__eo_to_smt_type b))) at hEq
+  change
+    __smtx_typeof_guard (__eo_to_smt_type a)
+        (__smtx_typeof_guard (__eo_to_smt_type b)
+          (SmtType.DtcAppType (__eo_to_smt_type a) (__eo_to_smt_type b))) ≠
+      SmtType.None at hNN
+  cases hA : __eo_to_smt_type a <;> cases hB : __eo_to_smt_type b <;>
+    simp [__smtx_typeof_guard, native_ite, native_Teq, hA, hB] at hEq hNN
+  all_goals
+    exact hNe _ _ hEq
+
+private theorem smtx_typeof_apply_dt_sel_ne_dtcapp_full
+    (s : native_String) (d : SmtDatatype) (i j : native_Nat)
+    (x : SmtTerm) (A B : SmtType) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.DtSel s d i j) x) ≠
+      SmtType.DtcAppType A B := by
+  intro h
+  cases hR : __smtx_ret_typeof_sel s d i j <;>
+    simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
+      __smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard,
+      native_and, native_ite, native_Teq, hR] at h
+  all_goals
+    repeat split at h
+    all_goals cases h
+
+private theorem eo_to_smt_apply_dt_sel_ne_dtcapp_full
+    (s : native_String) (d : Datatype) (i j : native_Nat) (x : Term)
+    (A B : SmtType) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) x)) ≠
+      SmtType.DtcAppType A B := by
+  intro h
+  change
+    __smtx_typeof
+        (SmtTerm.Apply
+          (native_ite (native_reserved_datatype_name s) SmtTerm.None
+            (SmtTerm.DtSel s (__eo_to_smt_datatype d) i j))
+          (__eo_to_smt x)) =
+      SmtType.DtcAppType A B at h
+  cases hRes : native_reserved_datatype_name s
+  · simp [native_ite, hRes] at h
+    exact smtx_typeof_apply_dt_sel_ne_dtcapp_full s (__eo_to_smt_datatype d) i j
+      (__eo_to_smt x) A B h
+  · simp [native_ite, hRes, __smtx_typeof, __smtx_typeof_apply] at h
 
 /-- Recovers Boolean typing of a zero-index `choice_nth` body from `non_none`. -/
 private theorem choice_nth_body_bool_of_non_none
@@ -1100,11 +1330,8 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             (T := T) (U := T) (by
               simpa [__smtx_typeof] using hNonNone)
     | Term.Apply f x, hNonNone => by
-        have ihXTuple : eo_to_smt_tuple_tail_recoverable x := by
-          sorry
         have hEq :=
           eo_to_smt_typeof_matches_translation_apply f x (go f) (go x)
-            ihXTuple
             (fun op y h hNN => by
               subst f
               exact go y hNN)
@@ -1116,7 +1343,412 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               exact go z hNN)
             hNonNone
         refine ⟨hEq, ?_⟩
-        sorry
+        have hTermNN :
+            term_has_non_none_type (__eo_to_smt (Term.Apply f x)) := by
+          unfold term_has_non_none_type
+          exact hNonNone
+        have hTypeNN :
+            __eo_to_smt_type (__eo_typeof (Term.Apply f x)) ≠ SmtType.None := by
+          rw [← hEq]
+          exact hNonNone
+        cases hTy : __eo_typeof (Term.Apply f x)
+        case UOp op =>
+          rw [hTy] at hTypeNN
+          cases op <;>
+            simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type] at hTypeNN ⊢
+        case DatatypeType s d =>
+          have hReserved : __eo_reserved_datatype_name s = false := by
+            have hTypeNN' := hTypeNN
+            rw [hTy] at hTypeNN'
+            simpa [__eo_to_smt_type, native_ite] using hTypeNN'
+          have hSmtTy :
+              __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                SmtType.Datatype s (__eo_to_smt_datatype d) := by
+            rw [hEq, hTy]
+            simp [__eo_to_smt_type, native_ite, hReserved]
+          exact eo_type_valid_of_smt_wf (Term.DatatypeType s d)
+            (by
+              simpa [__eo_to_smt_type, native_ite, hReserved] using
+                Smtm.smt_datatype_wf_of_non_none_type
+                  (__eo_to_smt (Term.Apply f x)) s (__eo_to_smt_datatype d) hSmtTy)
+        case DatatypeTypeRef s =>
+          have hReserved : __eo_reserved_datatype_name s = false := by
+            have hTypeNN' := hTypeNN
+            rw [hTy] at hTypeNN'
+            simpa [__eo_to_smt_type, native_ite] using hTypeNN'
+          have hSmtTy :
+              __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                SmtType.TypeRef s := by
+            rw [hEq, hTy]
+            simp [__eo_to_smt_type, native_ite, hReserved]
+          have hNoNone :=
+            Smtm.term_type_has_no_none_components_of_non_none
+              (__eo_to_smt (Term.Apply f x)) hTermNN
+          rw [hSmtTy] at hNoNone
+          exact False.elim (by
+            simpa [Smtm.type_has_no_none_components] using hNoNone)
+        case Apply a b =>
+          have hSmtTy :
+              __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                __eo_to_smt_type (Term.Apply a b) := by
+            rw [hEq, hTy]
+          cases hSmt : __eo_to_smt_type (Term.Apply a b)
+          case None =>
+            exact False.elim (hTypeNN (by rw [hTy, hSmt]))
+          case Bool =>
+            exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
+              simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+          case Int =>
+            exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
+              simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+          case Real =>
+            exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
+              simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+          case RegLan =>
+            exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
+              simp [hSmt, __smtx_type_wf])
+          case BitVec w =>
+            exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
+              simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and,
+                native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+                __smtx_value_canonical_bool, native_zleq, native_zeq,
+                native_mod_total, native_int_pow2, native_zexp_total,
+                native_nat_to_int, native_int_to_nat, native_ite])
+          case Map A B =>
+            have hMapTy :
+                __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                  SmtType.Map A B := by
+              simpa [hSmt] using hSmtTy
+            exact eo_type_valid_of_smt_wf (Term.Apply a b)
+              (by
+                simpa [hSmt] using
+                  Smtm.smt_term_map_type_wf_of_non_none
+                    (__eo_to_smt (Term.Apply f x)) hTermNN hMapTy)
+          case Set A =>
+            have hSetTy :
+                __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                  SmtType.Set A := by
+              simpa [hSmt] using hSmtTy
+            exact eo_type_valid_of_smt_wf (Term.Apply a b)
+              (by
+                simpa [hSmt] using
+                  Smtm.smt_term_set_type_wf_of_non_none
+                    (__eo_to_smt (Term.Apply f x)) hTermNN hSetTy)
+          case Seq A =>
+            have hSeqTy :
+                __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                  SmtType.Seq A := by
+              simpa [hSmt] using hSmtTy
+            exact eo_type_valid_of_smt_wf (Term.Apply a b)
+              (by
+                simpa [hSmt] using
+                  Smtm.smt_term_seq_type_wf_of_non_none
+                    (__eo_to_smt (Term.Apply f x)) hTermNN hSeqTy)
+          case Char =>
+            exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
+              simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+          case Datatype s d =>
+            have hDatatypeTy :
+                __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                  SmtType.Datatype s d := by
+              simpa [hSmt] using hSmtTy
+            exact eo_type_valid_of_smt_wf (Term.Apply a b)
+              (by
+                simpa [hSmt] using
+                  Smtm.smt_datatype_wf_of_non_none_type
+                    (__eo_to_smt (Term.Apply f x)) s d hDatatypeTy)
+          case TypeRef s =>
+            have hRefTy :
+                __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                  SmtType.TypeRef s := by
+              simpa [hSmt] using hSmtTy
+            have hNoNone :=
+              Smtm.term_type_has_no_none_components_of_non_none
+                (__eo_to_smt (Term.Apply f x)) hTermNN
+            rw [hRefTy] at hNoNone
+            exact False.elim (by
+              simpa [Smtm.type_has_no_none_components] using hNoNone)
+          case USort i =>
+            exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
+              simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
+          case FunType A B =>
+            have hFunTy :
+                __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+                  SmtType.FunType A B := by
+              simpa [hSmt] using hSmtTy
+            exact eo_type_valid_of_smt_wf (Term.Apply a b)
+              (by
+                simpa [hSmt] using
+                  Smtm.smt_term_fun_type_wf_of_non_none
+                    (__eo_to_smt (Term.Apply f x)) hTermNN hFunTy)
+          case DtcAppType A B =>
+            exact False.elim (eo_to_smt_type_apply_ne_dtcapp a b A B hSmt)
+        case DtcAppType a b =>
+          cases f <;> try dsimp [__eo_typeof] at hTy <;> try cases hTy
+          case UOp op =>
+            cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
+            all_goals first
+              | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
+                  (f := Term.UOp op) (x := x) (A := a) (B := b)
+                  (go (Term.UOp op))
+                  (by
+                    intro s d i j h
+                    cases op <;> simp [__eo_to_smt] at h)
+                  (by
+                    intro s d i h
+                    cases op <;> simp [__eo_to_smt] at h)
+                  rfl rfl hTermNN hTy
+              | exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+                  (by intro T U h; cases h)
+                  (by intro T U h; cases h)
+                  hTy
+              | simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
+                  __eo_typeof_apply, __eo_requires, __eo_typeof_BitVec,
+                  __eo_typeof_Seq, __eo_typeof__at__at_TypedList_nil,
+                  __eo_typeof_not, __eo_typeof_distinct, __eo_typeof_to_real,
+                  __eo_typeof_to_int, __eo_typeof_is_int, __eo_typeof_abs,
+                  __eo_typeof_int_pow2, __eo_typeof_int_ispow2,
+                  __eo_typeof__at_bvsize, __eo_typeof_bvnot,
+                  __eo_typeof_bvnego, __eo_typeof_bvredand,
+                  __eo_typeof_str_len, __eo_typeof_str_rev,
+                  __eo_typeof_str_to_lower, __eo_typeof_str_to_code,
+                  __eo_typeof_str_from_code, __eo_typeof_str_is_digit,
+                  __eo_typeof_str_to_re, __eo_typeof_re_mult,
+                  __eo_typeof_seq_unit, __eo_typeof_set_singleton,
+                  __eo_typeof_set_choose, __eo_typeof_set_is_empty,
+                  __eo_typeof__at_div_by_zero, __is_arith_type, __eo_eq,
+                  __eo_and, native_ite, native_teq, native_not] at hTy hTypeNN ⊢
+                cases hxTy : __eo_typeof x <;>
+                  simp [hxTy, eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
+                    __eo_typeof_apply, __eo_requires, __eo_typeof_BitVec,
+                    __eo_typeof_Seq, __eo_typeof__at__at_TypedList_nil,
+                    __eo_typeof_not, __eo_typeof_distinct, __eo_typeof_to_real,
+                    __eo_typeof_to_int, __eo_typeof_is_int, __eo_typeof_abs,
+                    __eo_typeof_int_pow2, __eo_typeof_int_ispow2,
+                    __eo_typeof__at_bvsize, __eo_typeof_bvnot,
+                    __eo_typeof_bvnego, __eo_typeof_bvredand,
+                    __eo_typeof_str_len, __eo_typeof_str_rev,
+                    __eo_typeof_str_to_lower, __eo_typeof_str_to_code,
+                    __eo_typeof_str_from_code, __eo_typeof_str_is_digit,
+                    __eo_typeof_str_to_re, __eo_typeof_re_mult,
+                    __eo_typeof_seq_unit, __eo_typeof_set_singleton,
+                    __eo_typeof_set_choose, __eo_typeof_set_is_empty,
+                    __eo_typeof__at_div_by_zero, __is_arith_type, __eo_eq,
+                    __eo_and, native_ite, native_teq, native_not] at hTy hTypeNN ⊢
+          case UOp1 op y =>
+            cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
+            all_goals first
+              | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
+                  (f := Term.UOp1 op y) (x := x) (A := a) (B := b)
+                  (go (Term.UOp1 op y))
+                  (by
+                    intro s d i j h
+                    cases op <;> simp [__eo_to_smt] at h)
+                  (by
+                    intro s d i h
+                    cases op <;> simp [__eo_to_smt] at h)
+                  rfl rfl hTermNN hTy
+              | exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+                  (by intro T U h; cases h)
+                  (by intro T U h; cases h)
+                  hTy
+              | simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
+                  __eo_typeof_apply, __eo_requires, __eo_typeof__at_purify,
+                  __eo_typeof_repeat, __eo_typeof_zero_extend,
+                  __eo_typeof_rotate_left, __eo_typeof__at_bit,
+                  __eo_typeof_seq_empty, __eo_typeof_re_exp,
+                  __eo_typeof__at_strings_stoi_result,
+                  __eo_typeof_str_to_code, __eo_typeof_div,
+                  __eo_typeof_str_at, __eo_typeof_is,
+                  __eo_typeof_tuple_select, __eo_typeof_set_empty,
+                  __eo_typeof_int_to_bv, __eo_mk_apply, __eo_requires,
+                  __eo_add, __eo_mul, __is_arith_type, __eo_eq, native_ite,
+                  native_teq, native_not] at hTy hTypeNN ⊢
+          case UOp2 op y z =>
+            cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
+            all_goals first
+              | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
+                  (f := Term.UOp2 op y z) (x := x) (A := a) (B := b)
+                  (go (Term.UOp2 op y z))
+                  (by
+                    intro s d i j h
+                    cases op <;> simp [__eo_to_smt] at h)
+                  (by
+                    intro s d i h
+                    cases op <;> simp [__eo_to_smt] at h)
+                  rfl rfl hTermNN hTy
+              | exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+                  (by intro T U h; cases h)
+                  (by intro T U h; cases h)
+                  hTy
+              | simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
+                  __eo_typeof_apply, __eo_requires,
+                  __eo_typeof__at_array_deq_diff, __eo_typeof_extract,
+                  __eo_typeof__at_bv, __eo_typeof_re_loop,
+                  __eo_typeof__at_strings_deq_diff,
+                  __eo_typeof__at_strings_num_occur_re,
+                  __eo_typeof__at_strings_occur_index_re,
+                  __eo_typeof__at_sets_deq_diff,
+                  __eo_typeof__at_quantifiers_skolemize,
+                  __eo_typeof__at_const, __eo_mk_apply, __eo_add, __eo_mul,
+                  __is_arith_type, __eo_eq, __eo_and, native_ite, native_teq,
+                  native_not] at hTy hTypeNN ⊢
+          case UOp3 op y z w =>
+            cases op <;> dsimp [__eo_typeof, __eo_typeof__at_re_unfold_pos_component] at hTy hTypeNN
+            all_goals first
+              | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
+                  (f := Term.UOp3 op y z w) (x := x) (A := a) (B := b)
+                  (go (Term.UOp3 op y z w))
+                  (by
+                    intro s d i j h
+                    cases op <;> simp [__eo_to_smt] at h)
+                  (by
+                    intro s d i h
+                    cases op <;> simp [__eo_to_smt] at h)
+                  rfl rfl hTermNN hTy
+              | exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+                  (by intro T U h; cases h)
+                  (by intro T U h; cases h)
+                  hTy
+              | simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
+                  __eo_typeof_apply, __eo_requires,
+                  __eo_typeof__at_re_unfold_pos_component, native_ite,
+                  native_teq, native_not] at hTy hTypeNN ⊢
+          case __eo_List =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case __eo_List_nil =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case Bool =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case Boolean =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case Numeral =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case Rational =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case String =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case Binary =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case «Type» =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case Stuck =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case FunType =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case DatatypeType =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case DatatypeTypeRef =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case DtcAppType =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case Var name T =>
+            exact eo_type_valid_of_generic_apply_eq_dtcapp_full
+              (f := Term.Var name T) (x := x) (A := a) (B := b)
+              (go (Term.Var name T))
+              (by
+                intro s d i j h
+                cases name <;>
+                  first
+                    | change SmtTerm.Var _ _ = SmtTerm.DtSel s d i j at h
+                      cases h
+                    | change SmtTerm.None = SmtTerm.DtSel s d i j at h
+                      cases h)
+              (by
+                intro s d i h
+                cases name <;>
+                  first
+                    | change SmtTerm.Var _ _ = SmtTerm.DtTester s d i at h
+                      cases h
+                    | change SmtTerm.None = SmtTerm.DtTester s d i at h
+                      cases h)
+              rfl rfl hTermNN hTy
+          case DtCons s d i =>
+            exact eo_type_valid_of_generic_apply_eq_dtcapp_full
+              (f := Term.DtCons s d i) (x := x) (A := a) (B := b)
+              (go (Term.DtCons s d i))
+              (by
+                intro s' d' i' j' h
+                change
+                  native_ite (native_reserved_datatype_name s) SmtTerm.None
+                      (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) =
+                    SmtTerm.DtSel s' d' i' j' at h
+                cases hRes : native_reserved_datatype_name s <;>
+                  simp [native_ite, hRes] at h)
+              (by
+                intro s' d' i' h
+                change
+                  native_ite (native_reserved_datatype_name s) SmtTerm.None
+                      (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) =
+                    SmtTerm.DtTester s' d' i' at h
+                cases hRes : native_reserved_datatype_name s <;>
+                  simp [native_ite, hRes] at h)
+              rfl rfl hTermNN hTy
+          case DtSel s d i j =>
+            exact False.elim (false_of_eq_eo_dtcapp_type_of_no_smt_dtcapp_full
+              (t := __eo_to_smt (Term.Apply (Term.DtSel s d i j) x))
+              (a := a) (b := b)
+              (by rw [hEq, hTy])
+              (by rw [← hTy]; exact hTypeNN)
+              (eo_to_smt_apply_dt_sel_ne_dtcapp_full s d i j x))
+          case USort =>
+            exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
+              (by intro T U h; cases h)
+              (by intro T U h; cases h)
+              hTy
+          case UConst i T =>
+            exact eo_type_valid_of_generic_apply_eq_dtcapp_full
+              (f := Term.UConst i T) (x := x) (A := a) (B := b)
+              (go (Term.UConst i T))
+              (by intro s d i j h; cases h)
+              (by intro s d i h; cases h)
+              rfl rfl hTermNN hTy
+        all_goals
+          rw [hTy] at hTypeNN
+          simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type, native_ite,
+            native_Teq] at hTypeNN ⊢
     | Term._at_purify x, hNonNone => by
         have hx : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
           intro hNone
