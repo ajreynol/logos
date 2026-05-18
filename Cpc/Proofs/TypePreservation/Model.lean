@@ -308,7 +308,7 @@ private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype :
           __smtx_map_to_set_type]
       · simp [__smtx_type_default, __smtx_value_canonical,
           __smtx_value_canonical_bool, __smtx_map_canonical,
-          __smtx_map_default_canonical, native_and]
+          __smtx_map_default_canonical, __smtx_msm_get_default, native_and]
         cases hFin : __smtx_is_finite_type A <;>
           simp [native_ite, native_veq, __smtx_typeof_value, __smtx_type_default]
   | SmtType.Seq A, hInh, hRec => by
@@ -404,7 +404,7 @@ private theorem type_default_typed_canonical_of_wf_rec :
           __smtx_map_to_set_type]
       · simp [__smtx_type_default, __smtx_value_canonical,
           __smtx_value_canonical_bool, __smtx_map_canonical,
-          __smtx_map_default_canonical, native_and]
+          __smtx_map_default_canonical, __smtx_msm_get_default, native_and]
         cases hFin : __smtx_is_finite_type A <;>
           simp [native_ite, native_veq, __smtx_typeof_value, __smtx_type_default]
   | SmtType.Seq A, hInh, hRec => by

@@ -78,9 +78,15 @@ theorem value_canonical_map_of_map_canonical
 /-- Canonical maps give canonical `Set` values. -/
 theorem value_canonical_set_of_map_canonical
     {m : SmtMap}
-    (h : __smtx_map_canonical m = true) :
+    (h : __smtx_map_canonical m = true)
+    (hDef : __smtx_msm_get_default m = SmtValue.Boolean false) :
     __smtx_value_canonical (SmtValue.Set m) := by
-  simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using h
+  have hDefVeq :
+      native_veq (__smtx_msm_get_default m) (SmtValue.Boolean false) = true := by
+    rw [hDef]
+    simp [native_veq]
+  simp [__smtx_value_canonical, __smtx_value_canonical_bool, h, hDefVeq,
+    SmtEval.native_and]
 
 /--
 The non-recursive insertion helper preserves map canonicality when it is used at
@@ -845,7 +851,10 @@ theorem model_eval_select_canonical
       simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
     exact model_eval_select_canonical_of_map (m := ‹SmtMap›) (i := i) hm
   · have hm : __smtx_map_canonical ‹SmtMap› = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      have hParts := hv
+      simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+        SmtEval.native_and] at hParts
+      exact hParts.1
     exact model_eval_select_canonical_of_set (m := ‹SmtMap›) (i := i) hm
 
 end Smtm

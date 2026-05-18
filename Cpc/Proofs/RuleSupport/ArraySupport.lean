@@ -257,7 +257,12 @@ theorem smt_value_rel_store_overwrite
       simpa [__smtx_model_eval_store, __smtx_map_store] using
         smt_value_rel_refl SmtValue.NotValue
   · have hm : __smtx_map_canonical ‹SmtMap› = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      first
+      | simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      | have hParts := hv
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hParts
+        exact hParts.1
     have hmInner :
         __smtx_map_canonical
           (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e) = true :=
@@ -291,7 +296,12 @@ theorem smt_value_rel_store_overwrite
           exact Smtm.map_lookup_update_aux_overwrite
             (m := ‹SmtMap›) (i := i) (e := e) (f := f) (x := x) hm hi he)
   · have hm : __smtx_map_canonical ‹SmtMap› = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      first
+      | simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      | have hParts := hv
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hParts
+        exact hParts.1
     have hmInner :
         __smtx_map_canonical
           (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e) = true :=
@@ -341,7 +351,12 @@ theorem smt_value_rel_store_swap_of_native_veq_false
       simpa [__smtx_model_eval_store, __smtx_map_store] using
         smt_value_rel_refl SmtValue.NotValue
   · have hm : __smtx_map_canonical ‹SmtMap› = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      first
+      | simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      | have hParts := hv
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hParts
+        exact hParts.1
     have hmi :
         __smtx_map_canonical
           (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e) = true :=
@@ -390,7 +405,12 @@ theorem smt_value_rel_store_swap_of_native_veq_false
             (m := ‹SmtMap›) (i := i) (j := j) (e := e) (f := f) (x := x)
             hm hi hj he hf hij)
   · have hm : __smtx_map_canonical ‹SmtMap› = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      first
+      | simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      | have hParts := hv
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hParts
+        exact hParts.1
     have hmi :
         __smtx_map_canonical
           (__smtx_msm_update_aux (__smtx_msm_get_default ‹SmtMap›) ‹SmtMap› i e) = true :=
@@ -455,7 +475,12 @@ theorem smt_value_rel_select_store_other_of_native_veq_false
         __smtx_map_select, __smtx_map_store] using
         smt_value_rel_refl SmtValue.NotValue
   · have hm : __smtx_map_canonical ‹SmtMap› = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      first
+      | simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      | have hParts := hv
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hParts
+        exact hParts.1
     have hLookup :
         __smtx_model_eval_select
             (__smtx_model_eval_store (SmtValue.Map ‹SmtMap›) i e) j =
@@ -467,7 +492,12 @@ theorem smt_value_rel_select_store_other_of_native_veq_false
     rw [hLookup]
     exact smt_value_rel_refl (__smtx_model_eval_select (SmtValue.Map ‹SmtMap›) j)
   · have hm : __smtx_map_canonical ‹SmtMap› = true := by
-      simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      first
+      | simpa [__smtx_value_canonical, __smtx_value_canonical_bool] using hv
+      | have hParts := hv
+        simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+          SmtEval.native_and] at hParts
+        exact hParts.1
     have hLookup :
         __smtx_model_eval_select
             (__smtx_model_eval_store (SmtValue.Set ‹SmtMap›) i e) j =
