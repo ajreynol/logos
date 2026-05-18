@@ -10891,6 +10891,61 @@ private theorem no_bool_eq_left_of_eo_to_smt_none {t rhs : Term} :
   simp [__smtx_typeof, __smtx_typeof_eq, __smtx_typeof_guard,
     native_ite, native_Teq] at hBool
 
+private theorem no_translation_of_smt_type_none {t : Term} :
+    __smtx_typeof (__eo_to_smt t) = SmtType.None ->
+    RuleProofs.eo_has_smt_translation t ->
+    False := by
+  intro hTy hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  exact hTrans hTy
+
+private theorem no_bool_eq_left_of_smt_type_none {t rhs : Term} :
+    __smtx_typeof (__eo_to_smt t) = SmtType.None ->
+    RuleProofs.eo_has_bool_type (mkEq t rhs) ->
+    False := by
+  intro hTy hBool
+  unfold RuleProofs.eo_has_bool_type at hBool
+  change
+    __smtx_typeof (SmtTerm.eq (__eo_to_smt t) (__eo_to_smt rhs)) =
+      SmtType.Bool at hBool
+  rw [typeof_eq_eq, hTy] at hBool
+  simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
+    at hBool
+
+private theorem no_translation_of_eo_apply_type_none {f x : Term} :
+    __eo_to_smt (Term.Apply f x) =
+      SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x) ->
+    __smtx_typeof (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) =
+      SmtType.None ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f x) ->
+    False := by
+  intro hToSmt hTy
+  exact no_translation_of_smt_type_none (t := Term.Apply f x) (by
+    rw [hToSmt]
+    exact hTy)
+
+private theorem no_bool_eq_left_of_eo_apply_type_none {f x rhs : Term} :
+    __eo_to_smt (Term.Apply f x) =
+      SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x) ->
+    __smtx_typeof (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) =
+      SmtType.None ->
+    RuleProofs.eo_has_bool_type (mkEq (Term.Apply f x) rhs) ->
+    False := by
+  intro hToSmt hTy
+  exact no_bool_eq_left_of_smt_type_none
+    (t := Term.Apply f x) (rhs := rhs) (by
+      rw [hToSmt]
+      exact hTy)
+
+private theorem smt_apply_binary_typeof_none
+    (w n : native_Int) (x : SmtTerm) :
+    __smtx_typeof (SmtTerm.Apply (SmtTerm.Binary w n) x) =
+      SmtType.None := by
+  cases h :
+      native_and (native_zleq 0 w)
+        (native_zeq n (native_mod_total n (native_int_pow2 w))) <;>
+    simp [__smtx_typeof, native_ite, h, __smtx_typeof_apply]
+
 private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   RuleProofs.eo_has_smt_translation t ->
   CongTypeSpine t rhs ->
@@ -11698,7 +11753,196 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
           | refl _ =>
               exact congTypeSpine_refl_eq_has_bool_type rhs hTrans
           | @app f g x y hFn hArg =>
-              sorry
+              have hApp :
+                  CongTypeSpine (Term.Apply f x) (Term.Apply g y) :=
+                CongTypeSpine.app hFn hArg
+              match f with
+              | Term.Var (Term.String s) T =>
+                  exact congTypeSpine_var_apply_eq_has_bool_type
+                    s T x (Term.Apply g y) hTrans hApp
+              | Term.UConst i T =>
+                  exact congTypeSpine_uconst_apply_eq_has_bool_type
+                    i T x (Term.Apply g y) hTrans hApp
+              | Term.DtCons s d i =>
+                  exact congTypeSpine_appSpineRev_dtcons_eq_has_bool_type
+                    s d i (Term.Apply (Term.DtCons s d i) x)
+                    (Term.Apply g y) (by rfl) hTrans hApp
+              | Term.DtSel s d i j =>
+                  exact congTypeSpine_dt_sel_eq_has_bool_type
+                    s d i j x (Term.Apply g y) hTrans hApp
+              | Term.__eo_List =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.__eo_List) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.__eo_List_nil =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.__eo_List_nil) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.__eo_List_cons =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.__eo_List_cons) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.Bool =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.Bool) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.Boolean b =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.Boolean b) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.Boolean b)
+                              (__eo_to_smt x)) = SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.Numeral n =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.Numeral n) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.Numeral n)
+                              (__eo_to_smt x)) = SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.Rational q =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.Rational q) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.Rational q)
+                              (__eo_to_smt x)) = SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.String s =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.String s) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.String s)
+                              (__eo_to_smt x)) = SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.Binary w n =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.Binary w n) (x := x) (by rfl)
+                      (smt_apply_binary_typeof_none w n (__eo_to_smt x))
+                      hTrans)
+              | Term.Type =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.Type) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.Stuck =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.Stuck) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.FunType =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.FunType) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.DatatypeType s d =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.DatatypeType s d) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.DatatypeTypeRef s =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.DatatypeTypeRef s) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.DtcAppType A B =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.DtcAppType A B) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | Term.USort i =>
+                  exact False.elim
+                    (no_translation_of_eo_apply_type_none
+                      (f := Term.USort i) (x := x) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hTrans)
+              | _ =>
+                  sorry
 
 /--
 The remaining semantic core for congruence: a syntactic congruence spine
@@ -12564,8 +12808,213 @@ private theorem congTrueSpine_eq_true
           cases hSpine with
           | refl _ =>
               exact congTrueSpine_refl_eq_true M rhs hEqBool
-          | app _ _ =>
-              sorry
+          | @app f g x y hFn hArg =>
+              have hApp :
+                  CongTrueSpine M (Term.Apply f x) (Term.Apply g y) :=
+                CongTrueSpine.app hFn hArg
+              match f with
+              | Term.Var (Term.String s) T =>
+                  exact congTrueSpine_var_apply_eq_true
+                    M hM s T x (Term.Apply g y) hEqBool hApp
+              | Term.UConst i T =>
+                  exact congTrueSpine_uconst_apply_eq_true
+                    M hM i T x (Term.Apply g y) hEqBool hApp
+              | Term.DtCons s d i =>
+                  exact congTrueSpine_appSpineRev_dtcons_eq_true
+                    M hM s d i (Term.Apply (Term.DtCons s d i) x)
+                    (Term.Apply g y) (by rfl) hEqBool hApp
+              | Term.DtSel s d i j =>
+                  exact congTrueSpine_dt_sel_eq_true
+                    M hM s d i j x (Term.Apply g y) hEqBool hApp
+              | Term.__eo_List =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.__eo_List) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.__eo_List_nil =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.__eo_List_nil) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.__eo_List_cons =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.__eo_List_cons) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.Bool =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.Bool) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.Boolean b =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.Boolean b) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.Boolean b)
+                              (__eo_to_smt x)) = SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.Numeral n =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.Numeral n) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.Numeral n)
+                              (__eo_to_smt x)) = SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.Rational q =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.Rational q) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.Rational q)
+                              (__eo_to_smt x)) = SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.String s =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.String s) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply (SmtTerm.String s)
+                              (__eo_to_smt x)) = SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.Binary w n =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.Binary w n) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (smt_apply_binary_typeof_none w n (__eo_to_smt x))
+                      hEqBool)
+              | Term.Type =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.Type) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.Stuck =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.Stuck) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.FunType =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.FunType) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.DatatypeType s d =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.DatatypeType s d) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.DatatypeTypeRef s =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.DatatypeTypeRef s) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.DtcAppType A B =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.DtcAppType A B) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | Term.USort i =>
+                  exact False.elim
+                    (no_bool_eq_left_of_eo_apply_type_none
+                      (f := Term.USort i) (x := x)
+                      (rhs := Term.Apply g y) (by rfl)
+                      (by
+                        change
+                          __smtx_typeof
+                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                              SmtType.None
+                        simp [__smtx_typeof, __smtx_typeof_apply])
+                      hEqBool)
+              | _ =>
+                  sorry
 
 /-- Typing for the generated EO implementation of `cong` over a premise list. -/
 theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
