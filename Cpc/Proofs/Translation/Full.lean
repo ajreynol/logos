@@ -830,15 +830,6 @@ private theorem eo_to_smt_quantifiers_skolemize_var_type_valid_of_non_none
             simp [__eo_to_smt_quantifiers_skolemize, __eo_to_smt_exists] at hNN ⊢
           exact hNoneNN smtx_typeof_none
 
-private axiom eo_to_smt_tuple_tail_recoverable_assumption
-    (x : Term) :
-    eo_to_smt_tuple_tail_recoverable x
-
-private axiom eo_type_valid_apply_of_translation_non_none_assumption
-    (f x : Term) :
-    __smtx_typeof (__eo_to_smt (Term.Apply f x)) ≠ SmtType.None ->
-      eo_type_valid (__eo_typeof (Term.Apply f x))
-
 /-- Strong induction form: translation typing plus proof-side validity. -/
 private theorem eo_to_smt_typeof_matches_translation_and_valid
     (t : Term) :
@@ -1097,7 +1088,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               simpa [__smtx_typeof] using hNonNone)
     | Term.Apply f x, hNonNone => by
         have ihXTuple : eo_to_smt_tuple_tail_recoverable x := by
-          exact eo_to_smt_tuple_tail_recoverable_assumption x
+          sorry
         have hEq :=
           eo_to_smt_typeof_matches_translation_apply f x (go f) (go x)
             ihXTuple
@@ -1112,7 +1103,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               exact go z hNN)
             hNonNone
         refine ⟨hEq, ?_⟩
-        exact eo_type_valid_apply_of_translation_non_none_assumption f x hNonNone
+        sorry
     | Term._at_purify x, hNonNone => by
         have hx : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
           intro hNone
