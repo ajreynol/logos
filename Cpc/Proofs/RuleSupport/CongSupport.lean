@@ -173,6 +173,214 @@ private theorem congTypeSpine_appSpineRev :
       rcases congTypeSpine_appSpineRev hRec with ⟨hHead, hArgs⟩
       exact ⟨hHead, ListRel.cons (by exact Or.inr hArg) hArgs⟩
 
+private theorem eo_to_smt_apply_generic_of_appSpineRev_var
+    (s : native_String) (T t : Term)
+    (x : Term)
+    (hHead : (appSpineRev t).1 = Term.Var (Term.String s) T) :
+    __eo_to_smt (Term.Apply t x) =
+      SmtTerm.Apply (__eo_to_smt t) (__eo_to_smt x) := by
+  cases t with
+  | Apply f y =>
+      dsimp [appSpineRev] at hHead
+      cases f with
+      | Apply f' y' =>
+          dsimp [appSpineRev] at hHead
+          cases f' with
+          | Apply f'' y'' =>
+              rfl
+          | Var name U =>
+              cases name with
+              | String name =>
+                  simp [appSpineRev] at hHead
+                  rcases hHead with ⟨rfl, rfl⟩
+                  rfl
+              | _ =>
+                  simp [appSpineRev] at hHead
+          | _ =>
+              simp [appSpineRev] at hHead
+      | Var name U =>
+          cases name with
+          | String name =>
+              simp [appSpineRev] at hHead
+              rcases hHead with ⟨rfl, rfl⟩
+              rfl
+          | _ =>
+              simp [appSpineRev] at hHead
+      | _ =>
+          simp [appSpineRev] at hHead
+  | Var name U =>
+      cases name with
+      | String name =>
+          simp [appSpineRev] at hHead
+          rcases hHead with ⟨rfl, rfl⟩
+          rfl
+      | _ =>
+          simp [appSpineRev] at hHead
+  | _ =>
+      simp [appSpineRev] at hHead
+
+private theorem eo_to_smt_appSpineRev_var
+    (s : native_String) (T t : Term)
+    (hHead : (appSpineRev t).1 = Term.Var (Term.String s) T) :
+    __eo_to_smt t =
+      mkSmtAppSpineRev (SmtTerm.Var s (__eo_to_smt_type T))
+        ((appSpineRev t).2.map __eo_to_smt) := by
+  cases t with
+  | Apply f x =>
+      dsimp [appSpineRev] at hHead ⊢
+      have hF :
+          (appSpineRev f).1 = Term.Var (Term.String s) T := hHead
+      rw [eo_to_smt_apply_generic_of_appSpineRev_var s T f x hF]
+      have ihF := eo_to_smt_appSpineRev_var s T f hF
+      rw [ihF]
+      rfl
+  | Var name U =>
+      cases name with
+      | String name =>
+          simp [appSpineRev] at hHead
+          rcases hHead with ⟨rfl, rfl⟩
+          rfl
+      | _ =>
+          simp [appSpineRev] at hHead
+  | _ =>
+      simp [appSpineRev] at hHead
+termination_by t
+
+private theorem eo_to_smt_apply_generic_of_appSpineRev_uconst
+    (i : native_Nat) (T t x : Term)
+    (hHead : (appSpineRev t).1 = Term.UConst i T) :
+    __eo_to_smt (Term.Apply t x) =
+      SmtTerm.Apply (__eo_to_smt t) (__eo_to_smt x) := by
+  cases t with
+  | Apply f y =>
+      dsimp [appSpineRev] at hHead
+      cases f with
+      | Apply f' y' =>
+          dsimp [appSpineRev] at hHead
+          cases f' with
+          | Apply f'' y'' =>
+              rfl
+          | UConst i' U =>
+              simp [appSpineRev] at hHead
+              rcases hHead with ⟨rfl, rfl⟩
+              rfl
+          | _ =>
+              simp [appSpineRev] at hHead
+      | UConst i' U =>
+          simp [appSpineRev] at hHead
+          rcases hHead with ⟨rfl, rfl⟩
+          rfl
+      | _ =>
+          simp [appSpineRev] at hHead
+  | UConst i' U =>
+      simp [appSpineRev] at hHead
+      rcases hHead with ⟨rfl, rfl⟩
+      rfl
+  | _ =>
+      simp [appSpineRev] at hHead
+
+private theorem eo_to_smt_appSpineRev_uconst
+    (i : native_Nat) (T t : Term)
+    (hHead : (appSpineRev t).1 = Term.UConst i T) :
+    __eo_to_smt t =
+      mkSmtAppSpineRev
+        (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
+        ((appSpineRev t).2.map __eo_to_smt) := by
+  cases t with
+  | Apply f x =>
+      dsimp [appSpineRev] at hHead ⊢
+      have hF :
+          (appSpineRev f).1 = Term.UConst i T := hHead
+      rw [eo_to_smt_apply_generic_of_appSpineRev_uconst i T f x hF]
+      have ihF := eo_to_smt_appSpineRev_uconst i T f hF
+      rw [ihF]
+      rfl
+  | UConst i' U =>
+      simp [appSpineRev] at hHead
+      rcases hHead with ⟨rfl, rfl⟩
+      rfl
+  | _ =>
+      simp [appSpineRev] at hHead
+termination_by t
+
+private theorem eo_to_smt_apply_generic_of_appSpineRev_dtcons
+    (s : native_String) (d : Datatype) (i : native_Nat) (t x : Term)
+    (hHead : (appSpineRev t).1 = Term.DtCons s d i) :
+    __eo_to_smt (Term.Apply t x) =
+      SmtTerm.Apply (__eo_to_smt t) (__eo_to_smt x) := by
+  cases t with
+  | Apply f y =>
+      dsimp [appSpineRev] at hHead
+      cases f with
+      | Apply f' y' =>
+          dsimp [appSpineRev] at hHead
+          cases f' with
+          | Apply f'' y'' =>
+              rfl
+          | DtCons s' d' i' =>
+              simp [appSpineRev] at hHead
+              rcases hHead with ⟨rfl, rfl, rfl⟩
+              rfl
+          | _ =>
+              simp [appSpineRev] at hHead
+      | DtCons s' d' i' =>
+          simp [appSpineRev] at hHead
+          rcases hHead with ⟨rfl, rfl, rfl⟩
+          rfl
+      | _ =>
+          simp [appSpineRev] at hHead
+  | DtCons s' d' i' =>
+      simp [appSpineRev] at hHead
+      rcases hHead with ⟨rfl, rfl, rfl⟩
+      rfl
+  | _ =>
+      simp [appSpineRev] at hHead
+
+private theorem eo_to_smt_appSpineRev_dtcons
+    (s : native_String) (d : Datatype) (i : native_Nat) (t : Term)
+    (hHead : (appSpineRev t).1 = Term.DtCons s d i) :
+    __eo_to_smt t =
+      mkSmtAppSpineRev (__eo_to_smt (Term.DtCons s d i))
+        ((appSpineRev t).2.map __eo_to_smt) := by
+  cases t with
+  | Apply f x =>
+      dsimp [appSpineRev] at hHead ⊢
+      have hF :
+          (appSpineRev f).1 = Term.DtCons s d i := hHead
+      rw [eo_to_smt_apply_generic_of_appSpineRev_dtcons s d i f x hF]
+      have ihF := eo_to_smt_appSpineRev_dtcons s d i f hF
+      rw [ihF]
+      rfl
+  | DtCons s' d' i' =>
+      simp [appSpineRev] at hHead
+      rcases hHead with ⟨rfl, rfl, rfl⟩
+      rfl
+  | _ =>
+      simp [appSpineRev] at hHead
+termination_by t
+
+private theorem eo_to_smt_dtcons_ne_dt_sel
+    (s : native_String) (d : Datatype) (i : native_Nat) :
+    ∀ s' d' i' j',
+      __eo_to_smt (Term.DtCons s d i) ≠ SmtTerm.DtSel s' d' i' j' := by
+  intro s' d' i' j'
+  change
+    native_ite (native_reserved_datatype_name s) SmtTerm.None
+        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠
+      SmtTerm.DtSel s' d' i' j'
+  cases native_reserved_datatype_name s <;> simp [native_ite]
+
+private theorem eo_to_smt_dtcons_ne_dt_tester
+    (s : native_String) (d : Datatype) (i : native_Nat) :
+    ∀ s' d' i',
+      __eo_to_smt (Term.DtCons s d i) ≠ SmtTerm.DtTester s' d' i' := by
+  intro s' d' i'
+  change
+    native_ite (native_reserved_datatype_name s) SmtTerm.None
+        (SmtTerm.DtCons s (__eo_to_smt_datatype d) i) ≠
+      SmtTerm.DtTester s' d' i'
+  cases native_reserved_datatype_name s <;> simp [native_ite]
+
 private theorem congTrueSpine_uop_eq
     (M : SmtModel) (op : UserOp) (rhs : Term) :
     CongTrueSpine M (Term.UOp op) rhs ->
@@ -2811,6 +3019,75 @@ private theorem smt_app_spine_type_eq_of_listRel_bool
       rw [hGenL, hGenR]
       simp [LF, RG, hTailTy, hArgTy]
 
+private theorem congTypeSpine_appSpineRev_var_eq_has_bool_type
+    (s : native_String) (T t rhs : Term)
+    (hHead : (appSpineRev t).1 = Term.Var (Term.String s) T)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hSpine : CongTypeSpine t rhs) :
+    RuleProofs.eo_has_bool_type (mkEq t rhs) := by
+  rcases congTypeSpine_appSpineRev hSpine with ⟨hHeadEq, hArgs⟩
+  have hRightHead :
+      (appSpineRev rhs).1 = Term.Var (Term.String s) T := by
+    rw [← hHeadEq]
+    exact hHead
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type t rhs
+    (by
+      rw [eo_to_smt_appSpineRev_var s T t hHead,
+        eo_to_smt_appSpineRev_var s T rhs hRightHead]
+      exact smt_app_spine_type_eq_of_listRel_bool rfl
+        (by intro s d i j h; cases h)
+        (by intro s d i h; cases h)
+        (by intro s d i j h; cases h)
+        (by intro s d i h; cases h)
+        hArgs)
+    hTrans
+
+private theorem congTypeSpine_appSpineRev_uconst_eq_has_bool_type
+    (i : native_Nat) (T t rhs : Term)
+    (hHead : (appSpineRev t).1 = Term.UConst i T)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hSpine : CongTypeSpine t rhs) :
+    RuleProofs.eo_has_bool_type (mkEq t rhs) := by
+  rcases congTypeSpine_appSpineRev hSpine with ⟨hHeadEq, hArgs⟩
+  have hRightHead :
+      (appSpineRev rhs).1 = Term.UConst i T := by
+    rw [← hHeadEq]
+    exact hHead
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type t rhs
+    (by
+      rw [eo_to_smt_appSpineRev_uconst i T t hHead,
+        eo_to_smt_appSpineRev_uconst i T rhs hRightHead]
+      exact smt_app_spine_type_eq_of_listRel_bool rfl
+        (by intro s d i j h; cases h)
+        (by intro s d i h; cases h)
+        (by intro s d i j h; cases h)
+        (by intro s d i h; cases h)
+        hArgs)
+    hTrans
+
+private theorem congTypeSpine_appSpineRev_dtcons_eq_has_bool_type
+    (s : native_String) (d : Datatype) (i : native_Nat) (t rhs : Term)
+    (hHead : (appSpineRev t).1 = Term.DtCons s d i)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hSpine : CongTypeSpine t rhs) :
+    RuleProofs.eo_has_bool_type (mkEq t rhs) := by
+  rcases congTypeSpine_appSpineRev hSpine with ⟨hHeadEq, hArgs⟩
+  have hRightHead :
+      (appSpineRev rhs).1 = Term.DtCons s d i := by
+    rw [← hHeadEq]
+    exact hHead
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type t rhs
+    (by
+      rw [eo_to_smt_appSpineRev_dtcons s d i t hHead,
+        eo_to_smt_appSpineRev_dtcons s d i rhs hRightHead]
+      exact smt_app_spine_type_eq_of_listRel_bool rfl
+        (eo_to_smt_dtcons_ne_dt_sel s d i)
+        (eo_to_smt_dtcons_ne_dt_tester s d i)
+        (eo_to_smt_dtcons_ne_dt_sel s d i)
+        (eo_to_smt_dtcons_ne_dt_tester s d i)
+        hArgs)
+    hTrans
+
 private theorem smt_app_spine_type_eq_and_rel_of_listRel_true
     (M : SmtModel) (hM : model_total_typed M)
     {F G : SmtTerm}
@@ -2896,6 +3173,100 @@ private theorem smt_app_spine_type_eq_and_rel_of_listRel_true
           hAppNN hTailTy hArgTy hTailRel hArgRel
       exact ⟨by simpa [LF, RG, X, Y, mkSmtAppSpineRev] using hTypeEq,
         by simpa [LF, RG, X, Y, mkSmtAppSpineRev] using hRel⟩
+
+private theorem congTrueSpine_appSpineRev_var_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (T t rhs : Term)
+    (hHead : (appSpineRev t).1 = Term.Var (Term.String s) T)
+    (hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs))
+    (hSpine : CongTrueSpine M t rhs) :
+    eo_interprets M (mkEq t rhs) true := by
+  rcases congTrueSpine_appSpineRev M hSpine with ⟨hHeadEq, hArgs⟩
+  have hRightHead :
+      (appSpineRev rhs).1 = Term.Var (Term.String s) T := by
+    rw [← hHeadEq]
+    exact hHead
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hEqBool
+  · rw [eo_to_smt_appSpineRev_var s T t hHead,
+      eo_to_smt_appSpineRev_var s T rhs hRightHead]
+    have hTypes :=
+      RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type t rhs hEqBool
+    have hLeftNN :
+        __smtx_typeof
+            (mkSmtAppSpineRev (SmtTerm.Var s (__eo_to_smt_type T))
+              ((appSpineRev t).2.map __eo_to_smt)) ≠ SmtType.None := by
+      simpa [eo_to_smt_appSpineRev_var s T t hHead] using hTypes.2
+    exact (smt_app_spine_type_eq_and_rel_of_listRel_true M hM rfl
+      (RuleProofs.smt_value_rel_refl _)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      hArgs hLeftNN).2
+
+private theorem congTrueSpine_appSpineRev_uconst_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (i : native_Nat) (T t rhs : Term)
+    (hHead : (appSpineRev t).1 = Term.UConst i T)
+    (hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs))
+    (hSpine : CongTrueSpine M t rhs) :
+    eo_interprets M (mkEq t rhs) true := by
+  rcases congTrueSpine_appSpineRev M hSpine with ⟨hHeadEq, hArgs⟩
+  have hRightHead :
+      (appSpineRev rhs).1 = Term.UConst i T := by
+    rw [← hHeadEq]
+    exact hHead
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hEqBool
+  · rw [eo_to_smt_appSpineRev_uconst i T t hHead,
+      eo_to_smt_appSpineRev_uconst i T rhs hRightHead]
+    have hTypes :=
+      RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type t rhs hEqBool
+    have hLeftNN :
+        __smtx_typeof
+            (mkSmtAppSpineRev
+              (SmtTerm.UConst (native_uconst_id i) (__eo_to_smt_type T))
+              ((appSpineRev t).2.map __eo_to_smt)) ≠ SmtType.None := by
+      simpa [eo_to_smt_appSpineRev_uconst i T t hHead] using hTypes.2
+    exact (smt_app_spine_type_eq_and_rel_of_listRel_true M hM rfl
+      (RuleProofs.smt_value_rel_refl _)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      (by intro s d i j h; cases h)
+      (by intro s d i h; cases h)
+      hArgs hLeftNN).2
+
+private theorem congTrueSpine_appSpineRev_dtcons_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (d : Datatype) (i : native_Nat) (t rhs : Term)
+    (hHead : (appSpineRev t).1 = Term.DtCons s d i)
+    (hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs))
+    (hSpine : CongTrueSpine M t rhs) :
+    eo_interprets M (mkEq t rhs) true := by
+  rcases congTrueSpine_appSpineRev M hSpine with ⟨hHeadEq, hArgs⟩
+  have hRightHead :
+      (appSpineRev rhs).1 = Term.DtCons s d i := by
+    rw [← hHeadEq]
+    exact hHead
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hEqBool
+  · rw [eo_to_smt_appSpineRev_dtcons s d i t hHead,
+      eo_to_smt_appSpineRev_dtcons s d i rhs hRightHead]
+    have hTypes :=
+      RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type t rhs hEqBool
+    have hLeftNN :
+        __smtx_typeof
+            (mkSmtAppSpineRev (__eo_to_smt (Term.DtCons s d i))
+              ((appSpineRev t).2.map __eo_to_smt)) ≠ SmtType.None := by
+      simpa [eo_to_smt_appSpineRev_dtcons s d i t hHead] using hTypes.2
+    exact (smt_app_spine_type_eq_and_rel_of_listRel_true M hM rfl
+      (RuleProofs.smt_value_rel_refl _)
+      (eo_to_smt_dtcons_ne_dt_sel s d i)
+      (eo_to_smt_dtcons_ne_dt_tester s d i)
+      (eo_to_smt_dtcons_ne_dt_sel s d i)
+      (eo_to_smt_dtcons_ne_dt_tester s d i)
+      hArgs hLeftNN).2
 
 private theorem congTrueSpine_var_apply_inv
     (M : SmtModel) (s : native_String) (T x rhs : Term) :
@@ -10757,12 +11128,23 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
           cases __eo_to_smt_tester (__eo_to_smt c) <;>
             simp [__smtx_typeof, h])
         x rhs hTrans hSpine
-  | _ =>
-      cases hSpine with
-      | refl _ =>
-          exact congTypeSpine_refl_eq_has_bool_type rhs hTrans
-      | app _ _ =>
-          sorry
+  | lhs =>
+      match hHead : (appSpineRev lhs).1 with
+      | Term.Var (Term.String s) T =>
+          exact congTypeSpine_appSpineRev_var_eq_has_bool_type
+            s T lhs rhs hHead hTrans hSpine
+      | Term.UConst i T =>
+          exact congTypeSpine_appSpineRev_uconst_eq_has_bool_type
+            i T lhs rhs hHead hTrans hSpine
+      | Term.DtCons s d i =>
+          exact congTypeSpine_appSpineRev_dtcons_eq_has_bool_type
+            s d i lhs rhs hHead hTrans hSpine
+      | _ =>
+          cases hSpine with
+          | refl _ =>
+              exact congTypeSpine_refl_eq_has_bool_type rhs hTrans
+          | app _ _ =>
+              sorry
 
 /--
 The remaining semantic core for congruence: a syntactic congruence spine
@@ -11595,12 +11977,23 @@ private theorem congTrueSpine_eq_true
             __smtx_model_eval.eq_59, __smtx_model_eval.eq_5,
             __smtx_model_eval.eq_5])
         x₁ x₂ rhs hEqBool hSpine
-  | _ =>
-      cases hSpine with
-      | refl _ =>
-          exact congTrueSpine_refl_eq_true M rhs hEqBool
-      | app _ _ =>
-          sorry
+  | lhs =>
+      match hHead : (appSpineRev lhs).1 with
+      | Term.Var (Term.String s) T =>
+          exact congTrueSpine_appSpineRev_var_eq_true
+            M hM s T lhs rhs hHead hEqBool hSpine
+      | Term.UConst i T =>
+          exact congTrueSpine_appSpineRev_uconst_eq_true
+            M hM i T lhs rhs hHead hEqBool hSpine
+      | Term.DtCons s d i =>
+          exact congTrueSpine_appSpineRev_dtcons_eq_true
+            M hM s d i lhs rhs hHead hEqBool hSpine
+      | _ =>
+          cases hSpine with
+          | refl _ =>
+              exact congTrueSpine_refl_eq_true M rhs hEqBool
+          | app _ _ =>
+              sorry
 
 /-- Typing for the generated EO implementation of `cong` over a premise list. -/
 theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
