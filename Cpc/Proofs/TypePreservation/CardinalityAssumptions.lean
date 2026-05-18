@@ -2646,6 +2646,57 @@ private theorem datatype_cons_infinite_source_witness
         simp [__smtx_value_canonical_bool, native_and, hvCan, hArgCan]
       exact ih (SmtValue.Apply v arg) hTailWf hApplyTy hApplyCan
 
+private def smt_seq_repeat_default (T : SmtType) : Nat -> SmtSeq
+  | 0 => SmtSeq.empty T
+  | Nat.succ n =>
+      SmtSeq.cons (__smtx_type_default T) (smt_seq_repeat_default T n)
+
+private theorem smt_seq_repeat_default_typeof
+    (T : SmtType)
+    (hTy : __smtx_typeof_value (__smtx_type_default T) = T) :
+    ∀ n : Nat,
+      __smtx_typeof_seq_value (smt_seq_repeat_default T n) =
+        SmtType.Seq T
+  | 0 => by
+      simp [smt_seq_repeat_default, __smtx_typeof_seq_value]
+  | Nat.succ n => by
+      have hRec := smt_seq_repeat_default_typeof T hTy n
+      simp [smt_seq_repeat_default, __smtx_typeof_seq_value, hTy,
+        hRec, native_Teq, native_ite]
+
+private theorem smt_seq_repeat_default_canonical
+    (T : SmtType)
+    (hCan : __smtx_value_canonical_bool (__smtx_type_default T) = true) :
+    ∀ n : Nat,
+      __smtx_value_canonical_bool
+          (SmtValue.Seq (smt_seq_repeat_default T n)) = true
+  | 0 => by
+      simp [smt_seq_repeat_default, __smtx_value_canonical_bool,
+        __smtx_seq_canonical]
+  | Nat.succ n => by
+      have hRec := smt_seq_repeat_default_canonical T hCan n
+      have hRecSeq :
+          __smtx_seq_canonical (smt_seq_repeat_default T n) = true := by
+        simpa [__smtx_value_canonical_bool] using hRec
+      simp [smt_seq_repeat_default, __smtx_value_canonical_bool,
+        __smtx_seq_canonical, hCan, hRecSeq, native_and]
+
+private theorem smt_seq_repeat_default_size
+    (T : SmtType) :
+    ∀ n : Nat, n ≤ sizeOf (SmtValue.Seq (smt_seq_repeat_default T n))
+  | 0 => by
+      omega
+  | Nat.succ n => by
+      have hRec := smt_seq_repeat_default_size T n
+      rw [show
+        sizeOf (SmtValue.Seq (smt_seq_repeat_default T (Nat.succ n))) =
+          1 + (1 + sizeOf (__smtx_type_default T) +
+            sizeOf (smt_seq_repeat_default T n)) by rfl]
+      rw [show
+        sizeOf (SmtValue.Seq (smt_seq_repeat_default T n)) =
+          1 + sizeOf (smt_seq_repeat_default T n) by rfl] at hRec
+      omega
+
 private def smt_type_nested_residual_head : SmtType -> Prop
   | SmtType.Map _ _ => True
   | SmtType.Set _ => True
@@ -2670,20 +2721,319 @@ private theorem datatype_cons_nested_residual_head_arg_witness
           (__smtx_type_default (SmtType.Datatype s d)) = true)
     {T : SmtType}
     {c : SmtDatatypeCons}
-    (_hNested : smt_type_nested_residual_head T)
-    (_hWf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true)
-    (_hHeadInf : __smtx_is_finite_type T = false)
-    (_hSelfRef : T ≠ SmtType.TypeRef s)
-    (_hNotSimple : ¬ smt_type_simple_large_context T)
+    (hNested : smt_type_nested_residual_head T)
+    (hWf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true)
+    (hHeadInf : __smtx_is_finite_type T = false)
+    (hSelfRef : T ≠ SmtType.TypeRef s)
+    (hNotSimple : ¬ smt_type_simple_large_context T)
     : ∃ arg : SmtValue,
       __smtx_typeof_value arg = dtc_substitute_field_type s d T ∧
         __smtx_value_canonical_bool arg = true ∧
           minSize ≤ sizeOf arg ∧
             dtc_substitute_field_type s d T ≠ SmtType.None := by
-  -- This is the remaining nested-type induction obligation.  The caller can
-  -- use any such argument to finish the outer constructor, so this theorem only
-  -- has to build a large value of the substituted field type.
-  sorry
+  cases T with
+  | Map K V =>
+      cases V with
+      | Seq A =>
+          by_cases hVInf : __smtx_is_finite_type (SmtType.Seq A) = false
+          · have hParts :
+                native_inhabited_type K = true ∧
+                  __smtx_type_wf_rec K native_reflist_nil = true ∧
+                    native_inhabited_type (SmtType.Seq A) = true ∧
+                      native_inhabited_type A = true ∧
+                        __smtx_type_wf_rec A native_reflist_nil = true := by
+              have hAll :
+                  native_inhabited_type (SmtType.Map K (SmtType.Seq A)) = true ∧
+                    (native_inhabited_type K = true ∧
+                      __smtx_type_wf_rec K native_reflist_nil = true ∧
+                        native_inhabited_type (SmtType.Seq A) = true ∧
+                          (native_inhabited_type A = true ∧
+                            __smtx_type_wf_rec A native_reflist_nil = true)) ∧
+                      __smtx_dt_cons_wf_rec c refs = true := by
+                simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_and,
+                  native_ite] using hWf
+              exact ⟨hAll.2.1.1, hAll.2.1.2.1, hAll.2.1.2.2.1,
+                hAll.2.1.2.2.2⟩
+            have hKDefault :=
+              type_default_typed_canonical_of_native_inhabited hParts.1
+            have hVDefault :=
+              type_default_typed_canonical_of_native_inhabited hParts.2.2.1
+            have hADefault :=
+              type_default_typed_canonical_of_native_inhabited hParts.2.2.2.1
+            let val := SmtValue.Seq
+              (smt_seq_repeat_default A (Nat.succ minSize))
+            have hValTy : __smtx_typeof_value val = SmtType.Seq A := by
+              simp [val, __smtx_typeof_value,
+                smt_seq_repeat_default_typeof A hADefault.1]
+            have hValCan : __smtx_value_canonical_bool val = true := by
+              simpa [val] using
+                smt_seq_repeat_default_canonical A hADefault.2
+                  (Nat.succ minSize)
+            have hValSize : minSize ≤ sizeOf val := by
+              have hSize :=
+                smt_seq_repeat_default_size A (Nat.succ minSize)
+              simpa [val] using Nat.le_trans (Nat.le_succ minSize) hSize
+            have hValNeDef : val ≠ __smtx_type_default (SmtType.Seq A) := by
+              simp [val, smt_seq_repeat_default, __smtx_type_default]
+            let arg :=
+              SmtValue.Map
+                (SmtMap.cons (__smtx_type_default K) val
+                  (SmtMap.default K (__smtx_type_default (SmtType.Seq A))))
+            refine ⟨arg, ?_, ?_, ?_, ?_⟩
+            · simp [arg, dtc_substitute_field_type, __smtx_typeof_value,
+                __smtx_typeof_map_value, hKDefault.1, hValTy,
+                hVDefault.1, native_Teq, native_ite]
+            · by_cases hKFin : __smtx_is_finite_type K = true
+              · simp [arg, __smtx_value_canonical_bool, __smtx_map_canonical,
+                  __smtx_map_default_canonical,
+                  __smtx_map_entries_ordered_after, __smtx_msm_get_default,
+                  hKDefault.2, hValCan, hVDefault.1, hVDefault.2,
+                  hKFin, hValNeDef, native_and, native_ite, native_not,
+                  native_veq]
+              · have hKInf : __smtx_is_finite_type K = false := by
+                  cases h : __smtx_is_finite_type K <;>
+                    simp [h] at hKFin ⊢
+                simp [arg, __smtx_value_canonical_bool, __smtx_map_canonical,
+                  __smtx_map_default_canonical,
+                  __smtx_map_entries_ordered_after, __smtx_msm_get_default,
+                  hKDefault.2, hValCan, hVDefault.2, hKInf, hValNeDef,
+                  native_and, native_ite, native_not, native_veq]
+            · rw [show
+                sizeOf arg =
+                  1 + sizeOf
+                    (SmtMap.cons (__smtx_type_default K) val
+                      (SmtMap.default K
+                        (__smtx_type_default (SmtType.Seq A)))) by
+                  rfl]
+              rw [show
+                sizeOf
+                    (SmtMap.cons (__smtx_type_default K) val
+                      (SmtMap.default K
+                        (__smtx_type_default (SmtType.Seq A)))) =
+                  1 + sizeOf (__smtx_type_default K) + sizeOf val +
+                    sizeOf
+                      (SmtMap.default K
+                        (__smtx_type_default (SmtType.Seq A))) by
+                  rfl]
+              omega
+            · simp [dtc_substitute_field_type]
+          · -- Remaining work: maps whose sequence value type is finite, so
+            -- infinitude must come from the key type.
+            cases K with
+            | Seq B =>
+                have hVFin :
+                    __smtx_is_finite_type (SmtType.Seq A) = true := by
+                  cases h : __smtx_is_finite_type (SmtType.Seq A) <;>
+                    simp [h] at hVInf ⊢
+                have hKInf :
+                    __smtx_is_finite_type (SmtType.Seq B) = false := by
+                  have hAFin : __smtx_is_finite_type A = true := by
+                    simpa [__smtx_is_finite_type] using hVFin
+                  cases hKFin : __smtx_is_finite_type (SmtType.Seq B)
+                  · rfl
+                  · have hBFin : __smtx_is_finite_type B = true := by
+                      simpa [__smtx_is_finite_type] using hKFin
+                    have hMapFin :
+                        __smtx_is_finite_type
+                            (SmtType.Map (SmtType.Seq B) (SmtType.Seq A)) =
+                          true := by
+                      simp [__smtx_is_finite_type, __smtx_is_unit_type,
+                        hBFin, hAFin, native_or, native_and]
+                    rw [hHeadInf] at hMapFin
+                    simp at hMapFin
+                have hParts :
+                    native_inhabited_type B = true ∧
+                      __smtx_type_wf_rec B native_reflist_nil = true ∧
+                        native_inhabited_type A = true ∧
+                          __smtx_type_wf_rec A native_reflist_nil = true := by
+                  have hAll :
+                      native_inhabited_type
+                          (SmtType.Map (SmtType.Seq B) (SmtType.Seq A)) =
+                          true ∧
+                        (native_inhabited_type (SmtType.Seq B) = true ∧
+                          (native_inhabited_type B = true ∧
+                            __smtx_type_wf_rec B native_reflist_nil = true) ∧
+                            native_inhabited_type (SmtType.Seq A) = true ∧
+                              (native_inhabited_type A = true ∧
+                                __smtx_type_wf_rec A native_reflist_nil =
+                                  true)) ∧
+                          __smtx_dt_cons_wf_rec c refs = true := by
+                    simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+                      native_and, native_ite] using hWf
+                  exact
+                    ⟨hAll.2.1.2.1.1, hAll.2.1.2.1.2,
+                      hAll.2.1.2.2.2.1, hAll.2.1.2.2.2.2⟩
+                have hBDefault :=
+                  type_default_typed_canonical_of_native_inhabited hParts.1
+                have hADefault :=
+                  type_default_typed_canonical_of_native_inhabited hParts.2.2.1
+                let key := SmtValue.Seq
+                  (smt_seq_repeat_default B (Nat.succ minSize))
+                let val := SmtValue.Seq
+                  (smt_seq_repeat_default A 1)
+                have hKeyTy : __smtx_typeof_value key = SmtType.Seq B := by
+                  simp [key, __smtx_typeof_value,
+                    smt_seq_repeat_default_typeof B hBDefault.1]
+                have hKeyCan : __smtx_value_canonical_bool key = true := by
+                  simpa [key] using
+                    smt_seq_repeat_default_canonical B hBDefault.2
+                      (Nat.succ minSize)
+                have hKeySize : minSize ≤ sizeOf key := by
+                  have hSize :=
+                    smt_seq_repeat_default_size B (Nat.succ minSize)
+                  simpa [key] using Nat.le_trans (Nat.le_succ minSize) hSize
+                have hValTy : __smtx_typeof_value val = SmtType.Seq A := by
+                  simp [val, __smtx_typeof_value,
+                    smt_seq_repeat_default_typeof A hADefault.1]
+                have hValCan : __smtx_value_canonical_bool val = true := by
+                  simpa [val] using
+                    smt_seq_repeat_default_canonical A hADefault.2 1
+                have hValNeDef :
+                    val ≠ __smtx_type_default (SmtType.Seq A) := by
+                  simp [val, smt_seq_repeat_default, __smtx_type_default]
+                have hVDefault :
+                    __smtx_typeof_value
+                        (__smtx_type_default (SmtType.Seq A)) =
+                        SmtType.Seq A ∧
+                      __smtx_value_canonical_bool
+                        (__smtx_type_default (SmtType.Seq A)) = true := by
+                  simp [__smtx_type_default, __smtx_typeof_value,
+                    __smtx_typeof_seq_value, __smtx_value_canonical_bool,
+                    __smtx_seq_canonical]
+                let arg :=
+                  SmtValue.Map
+                    (SmtMap.cons key val
+                      (SmtMap.default (SmtType.Seq B)
+                        (__smtx_type_default (SmtType.Seq A))))
+                refine ⟨arg, ?_, ?_, ?_, ?_⟩
+                · simp [arg, dtc_substitute_field_type, __smtx_typeof_value,
+                    __smtx_typeof_map_value, hKeyTy, hValTy,
+                    hVDefault.1, native_Teq, native_ite]
+                · simp [arg, __smtx_value_canonical_bool,
+                    __smtx_map_canonical, __smtx_map_default_canonical,
+                    __smtx_map_entries_ordered_after, __smtx_msm_get_default,
+                    hKeyCan, hValCan, hVDefault.2, hKInf, hValNeDef,
+                    native_and, native_ite, native_not, native_veq]
+                · rw [show
+                    sizeOf arg =
+                      1 + sizeOf
+                        (SmtMap.cons key val
+                          (SmtMap.default (SmtType.Seq B)
+                            (__smtx_type_default (SmtType.Seq A)))) by
+                    rfl]
+                  rw [show
+                    sizeOf
+                        (SmtMap.cons key val
+                          (SmtMap.default (SmtType.Seq B)
+                            (__smtx_type_default (SmtType.Seq A)))) =
+                      1 + sizeOf key + sizeOf val +
+                        sizeOf
+                          (SmtMap.default (SmtType.Seq B)
+                            (__smtx_type_default (SmtType.Seq A))) by
+                    rfl]
+                  omega
+                · simp [dtc_substitute_field_type]
+            | _ =>
+                -- Remaining work: non-sequence infinite map key types.
+                sorry
+      | _ =>
+          -- Remaining work: map domains/ranges whose large witness comes from
+          -- a nested datatype/map/set rather than an explicit sequence wrapper.
+          sorry
+  | Set U =>
+      cases U with
+      | Seq A =>
+          have hParts :
+              native_inhabited_type A = true ∧
+                __smtx_type_wf_rec A native_reflist_nil = true := by
+            have hAll :
+                native_inhabited_type (SmtType.Set (SmtType.Seq A)) = true ∧
+                  (native_inhabited_type (SmtType.Seq A) = true ∧
+                    (native_inhabited_type A = true ∧
+                      __smtx_type_wf_rec A native_reflist_nil = true)) ∧
+                    __smtx_dt_cons_wf_rec c refs = true := by
+              simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_and,
+                native_ite] using hWf
+            exact hAll.2.1.2
+          have hDef := type_default_typed_canonical_of_native_inhabited hParts.1
+          let x := SmtValue.Seq (smt_seq_repeat_default A minSize)
+          have hxTy : __smtx_typeof_value x = SmtType.Seq A := by
+            simp [x, __smtx_typeof_value,
+              smt_seq_repeat_default_typeof A hDef.1]
+          have hxCan : __smtx_value_canonical_bool x = true := by
+            simpa [x] using smt_seq_repeat_default_canonical A hDef.2 minSize
+          have hxSize : minSize ≤ sizeOf x := by
+            simpa [x] using smt_seq_repeat_default_size A minSize
+          have hSeqInf : __smtx_is_finite_type (SmtType.Seq A) = false := by
+            simpa [__smtx_is_finite_type] using hHeadInf
+          let arg :=
+            SmtValue.Set
+              (SmtMap.cons x (SmtValue.Boolean true)
+                (SmtMap.default (SmtType.Seq A) (SmtValue.Boolean false)))
+          refine ⟨arg, ?_, ?_, ?_, ?_⟩
+          · simp [arg, dtc_substitute_field_type, __smtx_typeof_value,
+              __smtx_typeof_map_value, __smtx_map_to_set_type, hxTy,
+              native_Teq, native_ite]
+          · simp [arg, __smtx_value_canonical_bool, __smtx_map_canonical,
+              __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
+              __smtx_msm_get_default, hxCan, hSeqInf, native_and, native_ite,
+              native_not, native_veq]
+          · rw [show
+              sizeOf arg =
+                1 + sizeOf
+                  (SmtMap.cons x (SmtValue.Boolean true)
+                    (SmtMap.default (SmtType.Seq A) (SmtValue.Boolean false))) by
+                rfl]
+            rw [show
+              sizeOf
+                  (SmtMap.cons x (SmtValue.Boolean true)
+                    (SmtMap.default (SmtType.Seq A) (SmtValue.Boolean false))) =
+                1 + sizeOf x + sizeOf (SmtValue.Boolean true) +
+                  sizeOf (SmtMap.default (SmtType.Seq A)
+                    (SmtValue.Boolean false)) by
+                rfl]
+            omega
+          · simp [dtc_substitute_field_type]
+      | _ =>
+          -- Remaining work: set element types whose large witness comes from a
+          -- nested datatype/map/set rather than an explicit sequence wrapper.
+          sorry
+  | Seq U =>
+      have hParts :
+          native_inhabited_type U = true ∧
+            __smtx_type_wf_rec U native_reflist_nil = true := by
+        have hAll :
+            native_inhabited_type (SmtType.Seq U) = true ∧
+              (native_inhabited_type U = true ∧
+                __smtx_type_wf_rec U native_reflist_nil = true) ∧
+                __smtx_dt_cons_wf_rec c refs = true := by
+          simpa [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec, native_and,
+            native_ite] using hWf
+        exact hAll.2.1
+      have hDef := type_default_typed_canonical_of_native_inhabited hParts.1
+      let arg := SmtValue.Seq (smt_seq_repeat_default U minSize)
+      refine ⟨arg, ?_, ?_, ?_, ?_⟩
+      · simp [arg, dtc_substitute_field_type, __smtx_typeof_value,
+          smt_seq_repeat_default_typeof U hDef.1]
+      · simpa [arg] using smt_seq_repeat_default_canonical U hDef.2 minSize
+      · simpa [arg] using smt_seq_repeat_default_size U minSize
+      · simp [dtc_substitute_field_type]
+  | Datatype sField dField =>
+      -- Remaining work: direct nested datatype fields.  This is the case that
+      -- needs a seed/context induction through the nested datatype after
+      -- substituting the root.
+      sorry
+  | None => cases hNested
+  | Bool => cases hNested
+  | Int => cases hNested
+  | Real => cases hNested
+  | RegLan => cases hNested
+  | BitVec _w => cases hNested
+  | Char => cases hNested
+  | TypeRef _r => cases hNested
+  | USort _u => cases hNested
+  | FunType _A _B => cases hNested
+  | DtcAppType _A _B => cases hNested
 
 private theorem datatype_cons_infinite_residual_witness
     (s : native_String)
