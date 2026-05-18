@@ -5,6 +5,7 @@ import Cpc.Proofs.Translation.Inversions
 import Cpc.Proofs.Translation.Heads
 import Cpc.Proofs.Translation.EoTypeofCore
 import Cpc.Proofs.TypePreservationFull
+import Cpc.Proofs.TypePreservation.CardinalityAssumptions
 
 open Eo
 open SmtEval
