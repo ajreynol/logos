@@ -2646,11 +2646,61 @@ private theorem datatype_cons_infinite_source_witness
         simp [__smtx_value_canonical_bool, native_and, hvCan, hArgCan]
       exact ih (SmtValue.Apply v arg) hTailWf hApplyTy hApplyCan
 
+private def smt_type_nested_residual_head : SmtType -> Prop
+  | SmtType.Map _ _ => True
+  | SmtType.Set _ => True
+  | SmtType.Seq _ => True
+  | SmtType.Datatype _ _ => True
+  | _ => False
+
+private theorem datatype_cons_nested_residual_head_witness
+    (s : native_String)
+    (d : SmtDatatype)
+    (refs : RefList)
+    (hRoot : native_reflist_contains refs s = true)
+    (hRefsOnlyRoot :
+      ∀ r : native_String, native_reflist_contains refs r = true -> r = s)
+    (minSize : Nat)
+    (hDefaultTy :
+      __smtx_typeof_value
+          (__smtx_type_default (SmtType.Datatype s d)) =
+        SmtType.Datatype s d)
+    (hDefaultCan :
+      __smtx_value_canonical_bool
+          (__smtx_type_default (SmtType.Datatype s d)) = true)
+    {T : SmtType}
+    {c : SmtDatatypeCons}
+    {v : SmtValue}
+    (_hNested : smt_type_nested_residual_head T)
+    (_hWf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true)
+    (_hInf :
+      __smtx_is_finite_datatype_cons (SmtDatatypeCons.cons T c) = false)
+    (_hNotSource :
+      ¬ dtc_infinite_source_context s (SmtDatatypeCons.cons T c))
+    (_hHeadInf : __smtx_is_finite_type T = false)
+    (_hSelfRef : T ≠ SmtType.TypeRef s)
+    (_hNotSimple : ¬ smt_type_simple_large_context T)
+    (_hvTy :
+      __smtx_typeof_value v =
+        dtc_type_chain s d (SmtDatatypeCons.cons T c)
+          (SmtType.Datatype s d))
+    (_hvCan : __smtx_value_canonical_bool v = true) :
+    ∃ e : SmtValue,
+      __smtx_typeof_value e = SmtType.Datatype s d ∧
+        __smtx_value_canonical_bool e = true ∧
+          minSize ≤ sizeOf e := by
+  -- This is the remaining nested-type induction obligation.  It should split
+  -- between closed infinite container fields and direct datatype fields whose
+  -- substituted constructors contain the root seed.
+  sorry
+
 private theorem datatype_cons_infinite_residual_witness
     (s : native_String)
     (d : SmtDatatype)
     (refs : RefList)
     (hRoot : native_reflist_contains refs s = true)
+    (hRefsOnlyRoot :
+      ∀ r : native_String, native_reflist_contains refs r = true -> r = s)
     (minSize : Nat)
     (hDefaultTy :
       __smtx_typeof_value
@@ -2716,7 +2766,7 @@ private theorem datatype_cons_infinite_residual_witness
             __smtx_value_canonical_bool (SmtValue.Apply v arg) = true := by
           simp [__smtx_value_canonical_bool, native_and, hvCan, hArgCan]
         exact datatype_cons_infinite_residual_witness
-          s d refs hRoot minSize hDefaultTy hDefaultCan c
+          s d refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan c
           (SmtValue.Apply v arg) hTailWf hTailInf
           hTailNotSource hApplyTy hApplyCan
       · have hHeadInf : __smtx_is_finite_type T = false := by
@@ -2760,7 +2810,7 @@ private theorem datatype_cons_infinite_residual_witness
                 simp [__smtx_value_canonical_bool, native_and, hvCan,
                   hDefaultCan, arg]
               exact datatype_cons_infinite_residual_witness
-                s d refs hRoot minSize hDefaultTy hDefaultCan c
+                s d refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan c
                 (SmtValue.Apply v arg) hTailWf hTailInf
                 hTailSource hApplyTy hApplyCan
         · by_cases hTypeCtx : smt_type_simple_large_context T
@@ -2815,11 +2865,84 @@ private theorem datatype_cons_infinite_residual_witness
                   simp [__smtx_value_canonical_bool, native_and, hvCan,
                     hDef.2, arg]
                 exact datatype_cons_infinite_residual_witness
-                  s d refs hRoot minSize hDefaultTy hDefaultCan c
+                  s d refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan c
                   (SmtValue.Apply v arg) hTailWf hTailInf
                   hTailSource hApplyTy hApplyCan
-          · -- Remaining work: nested datatype-shaped infinite head fields.
-            sorry
+          · cases T with
+            | None =>
+                simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+                  native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
+                  __smtx_value_canonical_bool, native_and, native_ite] at hWf
+            | Bool =>
+                simp [__smtx_is_finite_type] at hHeadInf
+            | Int =>
+                exact False.elim (hTypeCtx trivial)
+            | Real =>
+                exact False.elim (hTypeCtx trivial)
+            | RegLan =>
+                simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+                  native_inhabited_type, __smtx_type_default,
+                  __smtx_typeof_value, __smtx_value_canonical_bool,
+                  native_and, native_ite] at hWf
+            | BitVec _w =>
+                simp [__smtx_is_finite_type] at hHeadInf
+            | Map K V =>
+                -- Remaining work: closed infinite map domains/ranges whose
+                -- infinitude is witnessed by a nested datatype, not by the
+                -- simple-large predicate.
+                exact datatype_cons_nested_residual_head_witness
+                  s d refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan
+                  (T := SmtType.Map K V) (c := c) (v := v)
+                  trivial hWf hInf hNotSource hHeadInf hSelfRef
+                  hTypeCtx hvTy hvCan
+            | Set U =>
+                -- Remaining work: closed infinite set element types whose
+                -- infinitude is witnessed by a nested datatype.
+                exact datatype_cons_nested_residual_head_witness
+                  s d refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan
+                  (T := SmtType.Set U) (c := c) (v := v)
+                  trivial hWf hInf hNotSource hHeadInf hSelfRef
+                  hTypeCtx hvTy hvCan
+            | Seq U =>
+                -- Remaining work: closed infinite sequence element types whose
+                -- infinitude is witnessed by a nested datatype.
+                exact datatype_cons_nested_residual_head_witness
+                  s d refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan
+                  (T := SmtType.Seq U) (c := c) (v := v)
+                  trivial hWf hInf hNotSource hHeadInf hSelfRef
+                  hTypeCtx hvTy hvCan
+            | Char =>
+                simp [__smtx_is_finite_type] at hHeadInf
+            | Datatype sField dField =>
+                -- Remaining work: direct nested datatype fields.  This is the
+                -- case that needs a seed/context induction through the nested
+                -- datatype after substituting the root.
+                exact datatype_cons_nested_residual_head_witness
+                  s d refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan
+                  (T := SmtType.Datatype sField dField) (c := c) (v := v)
+                  trivial hWf hInf hNotSource hHeadInf hSelfRef
+                  hTypeCtx hvTy hvCan
+            | TypeRef r =>
+                have hContains : native_reflist_contains refs r = true := by
+                  have hParts :
+                      native_reflist_contains refs r = true ∧
+                        __smtx_dt_cons_wf_rec c refs = true := by
+                    simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
+                  exact hParts.1
+                have hr : r = s := hRefsOnlyRoot r hContains
+                exact False.elim (hSelfRef (by subst r; rfl))
+            | USort _u =>
+                exact False.elim (hTypeCtx trivial)
+            | FunType _A _B =>
+                simp [__smtx_dt_cons_wf_rec, __smtx_type_wf_rec,
+                  native_inhabited_type, __smtx_type_default,
+                  __smtx_typeof_value, __smtx_value_canonical_bool,
+                  native_and, native_ite] at hWf
+            | DtcAppType _A _B =>
+                simp [__smtx_dt_cons_wf_rec, native_inhabited_type,
+                  __smtx_type_default,
+                  __smtx_typeof_value, __smtx_value_canonical_bool,
+                  native_and, native_ite] at hWf
 termination_by c _ _ _ _ _ => sizeOf c
 decreasing_by
   all_goals try simp_wf
@@ -2831,6 +2954,8 @@ private theorem infinite_datatype_suffix_large_witness_residual
     (dRoot : SmtDatatype)
     (refs : RefList)
     (hRoot : native_reflist_contains refs s = true)
+    (hRefsOnlyRoot :
+      ∀ r : native_String, native_reflist_contains refs r = true -> r = s)
     (minSize : Nat)
     (hDefaultTy :
       __smtx_typeof_value
@@ -2873,7 +2998,7 @@ private theorem infinite_datatype_suffix_large_witness_residual
           · exact hConsInf
           · simp [__smtx_is_finite_datatype] at hTailInf
         exact datatype_cons_infinite_residual_witness
-          s dRoot refs hRoot minSize hDefaultTy hDefaultCan c
+          s dRoot refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan c
           (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
           hConsWf hConsInf hSource hHeadTy
           (by simp [__smtx_value_canonical_bool])
@@ -2927,7 +3052,7 @@ private theorem infinite_datatype_suffix_large_witness_residual
             omega
           exact
             infinite_datatype_suffix_large_witness_residual
-              s dRoot refs hRoot minSize hDefaultTy hDefaultCan
+              s dRoot refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan
               pre' (SmtDatatype.sum cTail dTailTail) hEq'
               hTailWf hTailInf
         · have hTailFin :
@@ -2944,7 +3069,7 @@ private theorem infinite_datatype_suffix_large_witness_residual
             · rw [hTailFin] at hTailInf'
               simp at hTailInf'
           exact datatype_cons_infinite_residual_witness
-            s dRoot refs hRoot minSize hDefaultTy hDefaultCan c
+            s dRoot refs hRoot hRefsOnlyRoot minSize hDefaultTy hDefaultCan c
             (SmtValue.DtCons s dRoot (dt_constructor_offset pre))
             hConsWf hConsInf hSource hHeadTy
             (by simp [__smtx_value_canonical_bool])
@@ -2975,6 +3100,13 @@ private theorem infinite_datatype_large_witness_residual
       let refs := native_reflist_insert native_reflist_nil s
       have hRoot : native_reflist_contains refs s = true := by
         simp [refs, native_reflist_contains, native_reflist_insert]
+      have hRefsOnlyRoot :
+          ∀ r : native_String, native_reflist_contains refs r = true -> r = s := by
+        intro r hr
+        simp [refs, native_reflist_contains, native_reflist_insert] at hr
+        rcases hr with hr | hNil
+        · exact hr
+        · cases hNil
       have hDtWf :
           __smtx_dt_wf_rec (SmtDatatype.sum c dTail) refs = true := by
         have hParts :
@@ -2997,7 +3129,7 @@ private theorem infinite_datatype_large_witness_residual
         type_default_typed_canonical_of_native_inhabited hInh
       exact
         infinite_datatype_suffix_large_witness_residual
-          s (SmtDatatype.sum c dTail) refs hRoot minSize
+          s (SmtDatatype.sum c dTail) refs hRoot hRefsOnlyRoot minSize
           hDefault.1 hDefault.2 SmtDatatype.null
           (SmtDatatype.sum c dTail) rfl hDtWf hDtInfinite
 
