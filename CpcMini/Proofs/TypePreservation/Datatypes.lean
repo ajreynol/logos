@@ -9,6 +9,8 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+attribute [local simp] __smtx_type_wf_component
+
 /-- Establishes an equality relating `typeof_dt_cons_value_rec` and `typeof_dt_cons_rec_zero`. -/
 theorem typeof_dt_cons_value_rec_eq_typeof_dt_cons_rec_zero
     (T : SmtType) :

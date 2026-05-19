@@ -13,6 +13,8 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+attribute [local simp] __smtx_type_wf_component
+
 private theorem term_has_non_none_of_type_eq
     {t : SmtTerm}
     {T : SmtType}

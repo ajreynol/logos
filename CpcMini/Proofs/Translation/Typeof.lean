@@ -13,6 +13,7 @@ set_option maxHeartbeats 10000000
 namespace RuleProofs
 
 attribute [local simp] native_ite
+attribute [local simp] Smtm.__smtx_type_wf_component
 
 /-- Derives `eo_typeof_eq_self` from `not_stuck`. -/
 private theorem eo_typeof_eq_self_of_not_stuck

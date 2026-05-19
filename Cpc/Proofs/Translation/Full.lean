@@ -13,6 +13,8 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
+attribute [local simp] Smtm.__smtx_type_wf_component
+
 /-!
 Full translation-proof surface corresponding to the lightweight stub in
 `Cpc.Proofs.Translation`.
