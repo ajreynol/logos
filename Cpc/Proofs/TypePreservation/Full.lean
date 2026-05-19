@@ -685,6 +685,33 @@ theorem smt_term_ifun_type_wf_of_non_none
   have hGood := tp_smt_term_result_seq_components_wf_of_non_none x hxNN
   simpa [tp_result_seq_components_wf, hxTy] using hGood
 
+theorem smt_term_seq_type_wf_of_non_none
+    (x : SmtTerm)
+    (hxNN : term_has_non_none_type x)
+    {A : SmtType}
+    (hxTy : __smtx_typeof x = SmtType.Seq A) :
+    __smtx_type_wf (SmtType.Seq A) = true := by
+  have hGood := tp_smt_term_result_seq_components_wf_of_non_none x hxNN
+  simpa [tp_result_seq_components_wf, hxTy] using hGood
+
+theorem smt_term_set_type_wf_of_non_none
+    (x : SmtTerm)
+    (hxNN : term_has_non_none_type x)
+    {A : SmtType}
+    (hxTy : __smtx_typeof x = SmtType.Set A) :
+    __smtx_type_wf (SmtType.Set A) = true := by
+  have hGood := tp_smt_term_result_seq_components_wf_of_non_none x hxNN
+  simpa [tp_result_seq_components_wf, hxTy] using hGood
+
+theorem smt_term_map_type_wf_of_non_none
+    (x : SmtTerm)
+    (hxNN : term_has_non_none_type x)
+    {A B : SmtType}
+    (hxTy : __smtx_typeof x = SmtType.Map A B) :
+    __smtx_type_wf (SmtType.Map A B) = true := by
+  have hGood := tp_smt_term_result_seq_components_wf_of_non_none x hxNN
+  simpa [tp_result_seq_components_wf, hxTy] using hGood
+
 private theorem tp_smt_seq_component_wf_rec_of_non_none_type
     (x : SmtTerm) (T : SmtType)
     (hxTy : __smtx_typeof x = SmtType.Seq T) :
