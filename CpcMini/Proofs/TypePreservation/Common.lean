@@ -10,6 +10,8 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+attribute [local simp] __smtx_type_wf_component
+
 /-- Extracts semantic inhabitation from the generated Boolean inhabitation check. -/
 theorem type_inhabited_of_native_inhabited_type
     (T : SmtType)

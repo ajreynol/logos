@@ -9,6 +9,8 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+attribute [local simp] __smtx_type_wf_component
+
 private theorem type_default_typed_canonical_of_map_domain_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.Map A B) = true) :
