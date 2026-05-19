@@ -17,6 +17,9 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
+attribute [local simp] _root_.__eo_to_smt_tuple_cons
+attribute [local simp] _root_.__eo_to_smt_tuple_cons_guarded
+
 private theorem smtx_type_wf_rec_of_type_wf
     {T : SmtType}
     (hNotReg : T ≠ SmtType.RegLan)
@@ -869,57 +872,85 @@ private theorem eo_to_smt_tuple_cons_ne_dt_sel
     (i j : native_Nat) :
     __eo_to_smt_tuple_cons t T v ≠ SmtTerm.DtSel s d i j := by
   intro h
-  cases t <;> try cases h
+  cases t <;>
+    simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
   case DtCons s0 d0 i0 =>
     cases d0
-    · simp [__eo_to_smt_tuple_cons] at h
+    · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
     · rename_i c dTail
       cases dTail
       · cases i0
         · by_cases hs : s0 = "@Tuple"
           · subst hs
-            simp [__eo_to_smt_tuple_cons] at h
-          · simp [__eo_to_smt_tuple_cons, hs] at h
-        · simp [__eo_to_smt_tuple_cons] at h
-      · simp [__eo_to_smt_tuple_cons] at h
+            simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
+          · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons, hs] at h
+        · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
+      · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
 
 private theorem eo_to_smt_tuple_cons_ne_dt_tester
     (t : SmtTerm) (T : SmtType) (v : SmtTerm) (s : native_String) (d : SmtDatatype)
     (i : native_Nat) :
     __eo_to_smt_tuple_cons t T v ≠ SmtTerm.DtTester s d i := by
   intro h
-  cases t <;> try cases h
+  cases t <;>
+    simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
   case DtCons s0 d0 i0 =>
     cases d0
-    · simp [__eo_to_smt_tuple_cons] at h
+    · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
     · rename_i c dTail
       cases dTail
       · cases i0
         · by_cases hs : s0 = "@Tuple"
           · subst hs
-            simp [__eo_to_smt_tuple_cons] at h
-          · simp [__eo_to_smt_tuple_cons, hs] at h
-        · simp [__eo_to_smt_tuple_cons] at h
-      · simp [__eo_to_smt_tuple_cons] at h
+            simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
+          · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons, hs] at h
+        · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
+      · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
 
 private theorem eo_to_smt_tuple_cons_ne_dt_cons
     (t : SmtTerm) (T : SmtType) (v : SmtTerm) (s : native_String) (d : SmtDatatype)
     (i : native_Nat) :
     __eo_to_smt_tuple_cons t T v ≠ SmtTerm.DtCons s d i := by
   intro h
-  cases t <;> try cases h
+  cases t <;>
+    simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
   case DtCons s0 d0 i0 =>
     cases d0
-    · simp [__eo_to_smt_tuple_cons] at h
+    · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
     · rename_i c dTail
       cases dTail
       · cases i0
         · by_cases hs : s0 = "@Tuple"
           · subst hs
-            simp [__eo_to_smt_tuple_cons] at h
-          · simp [__eo_to_smt_tuple_cons, hs] at h
-        · simp [__eo_to_smt_tuple_cons] at h
-      · simp [__eo_to_smt_tuple_cons] at h
+            simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
+          · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons, hs] at h
+        · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
+      · simp [__eo_to_smt_tuple_cons, _root_.__eo_to_smt_tuple_cons] at h
+
+private theorem eo_to_smt_tuple_cons_guarded_ne_term
+    (U : SmtType) (t target : SmtTerm)
+    (hRaw : t ≠ target) (hNone : SmtTerm.None ≠ target) :
+    _root_.__eo_to_smt_tuple_cons_guarded U t ≠ target := by
+  intro h
+  cases U <;> simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
+  case Datatype s d =>
+    by_cases hs : s = "@Tuple"
+    · subst s
+      cases d with
+      | null =>
+          simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
+          exact hNone h
+      | sum c rest =>
+          cases rest with
+          | null =>
+              exact hRaw (by
+                simpa [_root_.__eo_to_smt_tuple_cons_guarded] using h)
+          | sum cRest dRest =>
+              simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
+              exact hNone h
+    · simp [_root_.__eo_to_smt_tuple_cons_guarded, hs] at h
+      exact hNone h
+  all_goals exact hNone h
 
 private theorem eo_to_smt_tuple_cons_checked_ne_dt_sel
     (t : SmtTerm) (T : SmtType) (v : SmtTerm) (s : native_String) (d : SmtDatatype)
@@ -927,38 +958,18 @@ private theorem eo_to_smt_tuple_cons_checked_ne_dt_sel
     __eo_to_smt_tuple_cons_checked t T v ≠ SmtTerm.DtSel s d i j := by
   intro h
   unfold __eo_to_smt_tuple_cons_checked at h
-  cases hTail : __smtx_typeof t
-  case Datatype sTail dTail =>
-    by_cases hTailName : sTail = "@Tuple"
-    · subst sTail
-      cases dTail with
-      | null =>
-          simp [hTail] at h
-      | sum cTail restTail =>
-          cases restTail with
-          | null =>
-              cases hTy : __smtx_typeof (__eo_to_smt_tuple_cons t T v) <;>
-                try simp [hTail, hTy] at h
-              rename_i s0 d0
-              by_cases hs : s0 = "@Tuple"
-              · subst s0
-                cases d0 with
-                | null =>
-                    simp [hTail, hTy] at h
-                | sum c rest =>
-                    cases rest with
-                    | null =>
-                        exact False.elim
-                          (eo_to_smt_tuple_cons_ne_dt_sel t T v s d i j
-                            (by simpa [hTail, hTy] using h))
-                    | sum cRest dRest =>
-                        simp [hTail, hTy] at h
-              · simp [hTail, hTy, hs] at h
-          | sum cRest dRest =>
-              simp [hTail] at h
-    · simp [hTail, hTailName] at h
-  all_goals
-    simp [hTail] at h
+  exact
+    eo_to_smt_tuple_cons_guarded_ne_term (__smtx_typeof t)
+      (_root_.__eo_to_smt_tuple_cons_guarded
+        (__smtx_typeof (__eo_to_smt_tuple_cons t T v))
+        (__eo_to_smt_tuple_cons t T v))
+      (SmtTerm.DtSel s d i j)
+      (eo_to_smt_tuple_cons_guarded_ne_term
+        (__smtx_typeof (__eo_to_smt_tuple_cons t T v))
+        (__eo_to_smt_tuple_cons t T v) (SmtTerm.DtSel s d i j)
+        (eo_to_smt_tuple_cons_ne_dt_sel t T v s d i j)
+        (by intro hNone; cases hNone))
+      (by intro hNone; cases hNone) h
 
 private theorem eo_to_smt_tuple_cons_checked_ne_dt_tester
     (t : SmtTerm) (T : SmtType) (v : SmtTerm) (s : native_String) (d : SmtDatatype)
@@ -966,38 +977,18 @@ private theorem eo_to_smt_tuple_cons_checked_ne_dt_tester
     __eo_to_smt_tuple_cons_checked t T v ≠ SmtTerm.DtTester s d i := by
   intro h
   unfold __eo_to_smt_tuple_cons_checked at h
-  cases hTail : __smtx_typeof t
-  case Datatype sTail dTail =>
-    by_cases hTailName : sTail = "@Tuple"
-    · subst sTail
-      cases dTail with
-      | null =>
-          simp [hTail] at h
-      | sum cTail restTail =>
-          cases restTail with
-          | null =>
-              cases hTy : __smtx_typeof (__eo_to_smt_tuple_cons t T v) <;>
-                try simp [hTail, hTy] at h
-              rename_i s0 d0
-              by_cases hs : s0 = "@Tuple"
-              · subst s0
-                cases d0 with
-                | null =>
-                    simp [hTail, hTy] at h
-                | sum c rest =>
-                    cases rest with
-                    | null =>
-                        exact False.elim
-                          (eo_to_smt_tuple_cons_ne_dt_tester t T v s d i
-                            (by simpa [hTail, hTy] using h))
-                    | sum cRest dRest =>
-                        simp [hTail, hTy] at h
-              · simp [hTail, hTy, hs] at h
-          | sum cRest dRest =>
-              simp [hTail] at h
-    · simp [hTail, hTailName] at h
-  all_goals
-    simp [hTail] at h
+  exact
+    eo_to_smt_tuple_cons_guarded_ne_term (__smtx_typeof t)
+      (_root_.__eo_to_smt_tuple_cons_guarded
+        (__smtx_typeof (__eo_to_smt_tuple_cons t T v))
+        (__eo_to_smt_tuple_cons t T v))
+      (SmtTerm.DtTester s d i)
+      (eo_to_smt_tuple_cons_guarded_ne_term
+        (__smtx_typeof (__eo_to_smt_tuple_cons t T v))
+        (__eo_to_smt_tuple_cons t T v) (SmtTerm.DtTester s d i)
+        (eo_to_smt_tuple_cons_ne_dt_tester t T v s d i)
+        (by intro hNone; cases hNone))
+      (by intro hNone; cases hNone) h
 
 private theorem eo_to_smt_tuple_cons_checked_ne_dt_cons
     (t : SmtTerm) (T : SmtType) (v : SmtTerm) (s : native_String) (d : SmtDatatype)
@@ -1005,38 +996,18 @@ private theorem eo_to_smt_tuple_cons_checked_ne_dt_cons
     __eo_to_smt_tuple_cons_checked t T v ≠ SmtTerm.DtCons s d i := by
   intro h
   unfold __eo_to_smt_tuple_cons_checked at h
-  cases hTail : __smtx_typeof t
-  case Datatype sTail dTail =>
-    by_cases hTailName : sTail = "@Tuple"
-    · subst sTail
-      cases dTail with
-      | null =>
-          simp [hTail] at h
-      | sum cTail restTail =>
-          cases restTail with
-          | null =>
-              cases hTy : __smtx_typeof (__eo_to_smt_tuple_cons t T v) <;>
-                try simp [hTail, hTy] at h
-              rename_i s0 d0
-              by_cases hs : s0 = "@Tuple"
-              · subst s0
-                cases d0 with
-                | null =>
-                    simp [hTail, hTy] at h
-                | sum c rest =>
-                    cases rest with
-                    | null =>
-                        exact False.elim
-                          (eo_to_smt_tuple_cons_ne_dt_cons t T v s d i
-                            (by simpa [hTail, hTy] using h))
-                    | sum cRest dRest =>
-                        simp [hTail, hTy] at h
-              · simp [hTail, hTy, hs] at h
-          | sum cRest dRest =>
-              simp [hTail] at h
-    · simp [hTail, hTailName] at h
-  all_goals
-    simp [hTail] at h
+  exact
+    eo_to_smt_tuple_cons_guarded_ne_term (__smtx_typeof t)
+      (_root_.__eo_to_smt_tuple_cons_guarded
+        (__smtx_typeof (__eo_to_smt_tuple_cons t T v))
+        (__eo_to_smt_tuple_cons t T v))
+      (SmtTerm.DtCons s d i)
+      (eo_to_smt_tuple_cons_guarded_ne_term
+        (__smtx_typeof (__eo_to_smt_tuple_cons t T v))
+        (__eo_to_smt_tuple_cons t T v) (SmtTerm.DtCons s d i)
+        (eo_to_smt_tuple_cons_ne_dt_cons t T v s d i)
+        (by intro hNone; cases hNone))
+      (by intro hNone; cases hNone) h
 
 private theorem eo_to_smt_tuple_ne_dt_sel
     (x y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
