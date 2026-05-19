@@ -3666,6 +3666,28 @@ private theorem eo_to_smt_apply_generic_of_has_smt_translation
           simp [__smtx_typeof, __smtx_typeof_apply,
             TranslationProofs.smtx_typeof_none]
 
+private theorem eo_apply_apply_head_has_translation_of_generic_apply_translation
+    (f z x : Term)
+    (hToSmt :
+      __eo_to_smt ((Term.Apply f z).Apply x) =
+        SmtTerm.Apply (__eo_to_smt (Term.Apply f z)) (__eo_to_smt x)) :
+    RuleProofs.eo_has_smt_translation ((Term.Apply f z).Apply x) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f z) := by
+  intro hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans ⊢
+  have hGen :
+      generic_apply_type (__eo_to_smt (Term.Apply f z)) (__eo_to_smt x) :=
+    generic_apply_type_of_non_datatype_head
+      (TranslationProofs.eo_to_smt_apply_ne_dt_sel f z)
+      (TranslationProofs.eo_to_smt_apply_ne_dt_tester f z)
+  have hAppNN :
+      __smtx_typeof_apply
+          (__smtx_typeof (__eo_to_smt (Term.Apply f z)))
+          (__smtx_typeof (__eo_to_smt x)) ≠ SmtType.None := by
+    rw [hToSmt, hGen] at hTrans
+    exact hTrans
+  exact smt_apply_head_non_none_of_apply_non_none hAppNN
+
 private theorem congTypeSpine_generic_apply_eq_has_bool_type
     (f g x y : Term)
     (hTrans : RuleProofs.eo_has_smt_translation (Term.Apply f x))
@@ -14321,7 +14343,57 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                         s d i j ((Term.Apply f' z).Apply x)
                         (Term.Apply g y) hHead' hTrans hApp
                   | _ =>
-                      sorry
+                      by_cases hHeadTrans :
+                          RuleProofs.eo_has_smt_translation
+                            (Term.Apply f' z)
+                      · have hFnBool :
+                            RuleProofs.eo_has_bool_type
+                              (mkEq (Term.Apply f' z) g) :=
+                          congTypeSpine_eq_has_bool_type
+                            (Term.Apply f' z) g hHeadTrans hFn
+                        have hGTrans :
+                            RuleProofs.eo_has_smt_translation g :=
+                          by
+                            have hFnTypes :=
+                              RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                (Term.Apply f' z) g hFnBool
+                            intro hNone
+                            exact hFnTypes.2 (hFnTypes.1.trans hNone)
+                        exact
+                          congTypeSpine_generic_apply_eq_has_bool_type
+                            (Term.Apply f' z) g x y hTrans
+                            (eo_to_smt_apply_generic_of_has_smt_translation
+                              (Term.Apply f' z) x hHeadTrans)
+                            (eo_to_smt_apply_generic_of_has_smt_translation
+                              g y hGTrans)
+                            (generic_apply_type_of_non_datatype_head
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_sel f' z)
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_tester f' z))
+                            (generic_apply_type_of_non_datatype_head
+                              (by
+                                intro s d i j hSel
+                                cases hFn with
+                                | refl _ =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                        f' z s d i j hSel
+                                | app hHead hArg =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                        _ _ s d i j hSel)
+                              (by
+                                intro s d i hTester
+                                cases hFn with
+                                | refl _ =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                        f' z s d i hTester
+                                | app hHead hArg =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                        _ _ s d i hTester))
+                            hFnBool hArg
+                      · sorry
 
 /--
 The remaining semantic core for congruence: a syntactic congruence spine
@@ -16320,7 +16392,66 @@ private theorem congTrueSpine_eq_true
                         M hM s d i j ((Term.Apply f' z).Apply x)
                         (Term.Apply g y) hHead' hEqBool hApp
                   | _ =>
-                      sorry
+                      by_cases hHeadTrans :
+                          RuleProofs.eo_has_smt_translation
+                            (Term.Apply f' z)
+                      · have hFnBool :
+                            RuleProofs.eo_has_bool_type
+                              (mkEq (Term.Apply f' z) g) :=
+                          congTypeSpine_eq_has_bool_type
+                            (Term.Apply f' z) g hHeadTrans
+                            (congTypeSpine_of_congTrueSpine M hFn)
+                        have hFnTrue :
+                            eo_interprets M
+                              (mkEq (Term.Apply f' z) g) true :=
+                          congTrueSpine_eq_true M hM
+                            (Term.Apply f' z) g hFnBool hFn
+                        have hGTrans :
+                            RuleProofs.eo_has_smt_translation g :=
+                          by
+                            have hFnTypes :=
+                              RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                (Term.Apply f' z) g hFnBool
+                            intro hNone
+                            exact hFnTypes.2 (hFnTypes.1.trans hNone)
+                        exact
+                          congTrueSpine_generic_apply_eq_true
+                            M hM (Term.Apply f' z) g x y hEqBool
+                            (eo_to_smt_apply_generic_of_has_smt_translation
+                              (Term.Apply f' z) x hHeadTrans)
+                            (eo_to_smt_apply_generic_of_has_smt_translation
+                              g y hGTrans)
+                            (generic_apply_type_of_non_datatype_head
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_sel f' z)
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_tester f' z))
+                            (generic_apply_eval_of_non_datatype_head
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_sel f' z)
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_tester f' z))
+                            (generic_apply_eval_of_non_datatype_head
+                              (by
+                                intro s d i j hSel
+                                cases hFn with
+                                | refl _ =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                        f' z s d i j hSel
+                                | app hHead hArg =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                        _ _ s d i j hSel)
+                              (by
+                                intro s d i hTester
+                                cases hFn with
+                                | refl _ =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                        f' z s d i hTester
+                                | app hHead hArg =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                        _ _ s d i hTester))
+                            hFnTrue hArg
+                      · sorry
 
 /-- Typing for the generated EO implementation of `cong` over a premise list. -/
 theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
