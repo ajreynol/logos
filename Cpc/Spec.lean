@@ -161,7 +161,7 @@ def __eo_to_smt_tuple_cons (t : SmtTerm) (T : SmtType) : SmtTerm -> SmtTerm
 
 def __eo_to_smt_tuple_cons_guarded : SmtType -> SmtTerm -> SmtTerm
   | (SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)), t => t
-  | T, t => SmtType.None
+  | T, t => SmtTerm.None
 
 
 def __eo_to_smt_tuple_select : SmtType -> SmtTerm -> SmtTerm -> SmtTerm
