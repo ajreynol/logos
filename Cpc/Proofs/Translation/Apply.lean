@@ -8639,7 +8639,7 @@ theorem smtx_typeof_eq_non_none
         simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq, hNone, hEq])
 
 /-- Recovers Boolean typing of a zero-index `choice_nth` body from `non_none`. -/
-private theorem choice_nth_body_bool_of_non_none
+theorem choice_nth_body_bool_of_non_none
     {s : native_String}
     {T : SmtType}
     {body : SmtTerm}
@@ -10228,12 +10228,12 @@ private theorem smtx_typeof_exists_bool_or_none
     (rw [typeof_exists_eq]; simp [hBody, native_ite, native_Teq])
 
 /-- `None` is not Boolean-typed. -/
-private theorem smtx_typeof_none_ne_bool :
+theorem smtx_typeof_none_ne_bool :
     __smtx_typeof SmtTerm.None ≠ SmtType.Bool := by
   simp [smtx_typeof_none]
 
 /-- A Boolean `not` term has a Boolean argument. -/
-private theorem smtx_typeof_not_arg_bool
+theorem smtx_typeof_not_arg_bool
     (t : SmtTerm) :
     __smtx_typeof (SmtTerm.not t) = SmtType.Bool ->
     __smtx_typeof t = SmtType.Bool := by
@@ -10246,7 +10246,7 @@ private theorem smtx_typeof_not_arg_bool
     simpa [native_Teq] using hTest
 
 /-- Computes the EO type of a variable-headed list cons once the tail is a list. -/
-private theorem eo_typeof_list_cons_var
+theorem eo_typeof_list_cons_var
     (s : native_String) (T xs : Term)
     (hTail : __eo_typeof xs = Term.__eo_List) :
     __eo_typeof (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) xs) =
@@ -10259,7 +10259,7 @@ private theorem eo_typeof_list_cons_var
   rfl
 
 /-- Pulls the body Boolean fact back through nested `__eo_to_smt_exists`. -/
-private theorem eo_to_smt_exists_body_bool_of_bool
+theorem eo_to_smt_exists_body_bool_of_bool
     (xs : Term) (body : SmtTerm) :
     __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
     __smtx_typeof body = SmtType.Bool := by
@@ -10316,7 +10316,7 @@ private theorem eo_to_smt_exists_body_bool_of_bool
     simp [smtx_typeof_none, __eo_to_smt_exists] at hNone
 
 /-- Recovers EO list typing from a Boolean SMT existential chain. -/
-private theorem eo_typeof_var_list_of_exists_bool
+theorem eo_typeof_var_list_of_exists_bool
     (xs : Term) (body : SmtTerm) :
     __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
     __eo_typeof xs = Term.__eo_List := by

@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
@@ -54,7 +53,8 @@ private theorem smtx_type_field_wf_rec_of_type_wf_rec_full
     (h : __smtx_type_wf_rec T refs = true) :
     smtx_type_field_wf_rec T refs := by
   cases T <;>
-    simpa [smtx_type_field_wf_rec, __smtx_type_wf_rec] using h
+    simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at h ⊢ <;>
+    exact h
 
 private theorem eo_typeof_tuple_select_of_non_stuck_full
     (i T : Term)
@@ -1697,43 +1697,6 @@ private theorem smtx_typeof_extract_ne_dtcapp_full
         repeat split at h
         all_goals cases h
 
-/-- Recovers Boolean typing of a zero-index `choice_nth` body from `non_none`. -/
-private theorem choice_nth_body_bool_of_non_none
-    {s : native_String}
-    {T : SmtType}
-    {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
-    __smtx_typeof body = SmtType.Bool := by
-  unfold term_has_non_none_type at ht
-  have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
-    by_cases hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true
-    · exact hEq
-    · exfalso
-      have hEqFalse : native_Teq (__smtx_typeof body) SmtType.Bool = false := by
-        cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
-      apply ht
-      unfold __smtx_typeof
-      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
-  simpa [native_Teq] using hEq
-
-/-- Pulls the body Boolean fact back through nested `__eo_to_smt_exists`. -/
-private theorem smtx_typeof_none_ne_bool :
-    __smtx_typeof SmtTerm.None ≠ SmtType.Bool := by
-  simp [smtx_typeof_none]
-
-/-- A Boolean `not` term has a Boolean argument. -/
-private theorem smtx_typeof_not_arg_bool
-    (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.not t) = SmtType.Bool ->
-    __smtx_typeof t = SmtType.Bool := by
-  intro hTy
-  rw [typeof_not_eq] at hTy
-  by_cases hArg : __smtx_typeof t = SmtType.Bool
-  · exact hArg
-  · cases hTest : native_Teq (__smtx_typeof t) SmtType.Bool <;>
-      simp [hTest, native_ite] at hTy
-    simpa [native_Teq] using hTest
-
 /-- Typing a successor `choice_nth` is the same as skolemizing the body. -/
 private theorem smtx_typeof_choice_nth_succ_eq_skolemize
     (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) :
@@ -1741,19 +1704,6 @@ private theorem smtx_typeof_choice_nth_succ_eq_skolemize
       __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) := by
   cases body <;>
     simp [__smtx_typeof, __smtx_typeof_choice_nth, __eo_to_smt_quantifiers_skolemize]
-
-/-- Computes the EO type of a variable-headed list cons once the tail is a list. -/
-private theorem eo_typeof_list_cons_var
-    (s : native_String) (T xs : Term)
-    (hTail : __eo_typeof xs = Term.__eo_List) :
-    __eo_typeof (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) xs) =
-      Term.__eo_List := by
-  change
-    __eo_typeof_apply
-      (Term.Apply (Term.Apply Term.FunType Term.__eo_List) Term.__eo_List)
-      (__eo_typeof xs) = Term.__eo_List
-  rw [hTail]
-  rfl
 
 /-- A true EO list check implies the underlying nil search is non-stuck. -/
 private theorem eo_get_nil_rec_ok_of_is_list_true
@@ -1913,132 +1863,6 @@ private theorem get_var_type_list_nth_succ_cons_var_of_exists_bool
     calc
       (↑n + 1 + -1 : Int) = ↑n + (1 + -1) := by ac_rfl
       _ = ↑n := by rfl]
-
-/-- Pulls the body Boolean fact back through nested `__eo_to_smt_exists`. -/
-private theorem eo_to_smt_exists_body_bool_of_bool
-    (xs : Term) (body : SmtTerm) :
-    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
-    __smtx_typeof body = SmtType.Bool := by
-  intro hTy
-  cases hxs : xs
-  case __eo_List_nil =>
-    subst hxs
-    simpa [__eo_to_smt_exists] using hTy
-  case Apply f a =>
-    subst hxs
-    cases hf : f
-    case Apply g y =>
-      subst hf
-      cases hg : g
-      case __eo_List_cons =>
-        subst hg
-        cases hy : y
-        case Var name T =>
-          subst hy
-          cases hname : name
-          case String s =>
-            subst hname
-            have hExistsTy :
-                __smtx_typeof (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
-                  SmtType.Bool := by
-              simpa [__eo_to_smt_exists] using hTy
-            have hNN :
-                term_has_non_none_type (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := by
-              unfold term_has_non_none_type
-              rw [hExistsTy]
-              simp
-            have hSub : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool := by
-              simpa using exists_body_bool_of_non_none hNN
-            exact eo_to_smt_exists_body_bool_of_bool a body hSub
-          all_goals
-            subst hname
-            have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-              simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-            exact False.elim (smtx_typeof_none_ne_bool hNone)
-        all_goals
-          subst hy
-          have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-            simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-          exact False.elim (smtx_typeof_none_ne_bool hNone)
-      all_goals
-        subst hg
-        have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-          simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-        exact False.elim (smtx_typeof_none_ne_bool hNone)
-    all_goals
-      subst hf
-      have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-        simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-      exact False.elim (smtx_typeof_none_ne_bool hNone)
-  all_goals
-    subst hxs
-    have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-      simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-    exact False.elim (smtx_typeof_none_ne_bool hNone)
-
-/-- Recovers EO list typing from a Boolean SMT existential chain. -/
-private theorem eo_typeof_var_list_of_exists_bool
-    (xs : Term) (body : SmtTerm) :
-    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
-    __eo_typeof xs = Term.__eo_List := by
-  intro hTy
-  cases hxs : xs
-  case __eo_List_nil =>
-    subst hxs
-    rfl
-  case Apply f a =>
-    subst hxs
-    cases hf : f
-    case Apply g y =>
-      subst hf
-      cases hg : g
-      case __eo_List_cons =>
-        subst hg
-        cases hy : y
-        case Var name T =>
-          subst hy
-          cases hname : name
-          case String s =>
-            subst hname
-            have hExistsTy :
-                __smtx_typeof (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
-                  SmtType.Bool := by
-              simpa [__eo_to_smt_exists] using hTy
-            have hNN :
-                term_has_non_none_type (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := by
-              unfold term_has_non_none_type
-              rw [hExistsTy]
-              simp
-            have hSub : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool := by
-              simpa using exists_body_bool_of_non_none hNN
-            have hTail : __eo_typeof a = Term.__eo_List :=
-              eo_typeof_var_list_of_exists_bool a body hSub
-            exact eo_typeof_list_cons_var s T a hTail
-          all_goals
-            subst hname
-            have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-              simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-            exact False.elim (smtx_typeof_none_ne_bool hNone)
-        all_goals
-          subst hy
-          have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-            simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-          exact False.elim (smtx_typeof_none_ne_bool hNone)
-      all_goals
-        subst hg
-        have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-          simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-        exact False.elim (smtx_typeof_none_ne_bool hNone)
-    all_goals
-      subst hf
-      have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-        simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-      exact False.elim (smtx_typeof_none_ne_bool hNone)
-  all_goals
-    subst hxs
-    have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-      simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-    exact False.elim (smtx_typeof_none_ne_bool hNone)
 
 /-- Any well-typed skolemized choice forces the enclosing existential chain to be Boolean. -/
 private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
@@ -2793,7 +2617,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               (__eo_to_smt (Term.Apply f x)) hTermNN
           rw [hSmtTy] at hNoNone
           exact False.elim (by
-            simpa [Smtm.type_has_no_none_components] using hNoNone)
+            simp [Smtm.type_has_no_none_components] at hNoNone)
         case UOp1 op y =>
           exact False.elim (hTypeNN (by
             rw [hTy]
@@ -2950,7 +2774,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 (__eo_to_smt (Term.Apply f x)) hTermNN
             rw [hRefTy] at hNoNone
             exact False.elim (by
-              simpa [Smtm.type_has_no_none_components] using hNoNone)
+              simp [Smtm.type_has_no_none_components] at hNoNone)
           case USort i =>
             exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
               simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
