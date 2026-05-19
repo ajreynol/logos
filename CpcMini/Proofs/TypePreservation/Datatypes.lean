@@ -5,7 +5,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
-set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 namespace Smtm
@@ -1401,7 +1400,7 @@ theorem typeof_value_model_eval_apply_fun
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value (__smtx_model_eval_apply M (SmtValue.Fun fid A B) i) = B := by
   have hArg : native_Teq (__smtx_typeof_value i) A = true := by
-    simpa [native_Teq, hi]
+    simp [native_Teq, hi]
   have hiNN : i ≠ SmtValue.NotValue := by
     intro h
     cases h

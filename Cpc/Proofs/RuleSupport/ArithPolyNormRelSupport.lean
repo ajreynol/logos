@@ -8,7 +8,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
-set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 noncomputable def arith_atom_denote_real (M : SmtModel) (t : Term) : SmtValue :=

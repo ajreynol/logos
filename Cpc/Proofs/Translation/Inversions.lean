@@ -888,7 +888,7 @@ private theorem eo_to_smt_type_fun_ne_bool
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_int`. -/
 private theorem eo_to_smt_type_fun_ne_int
@@ -901,7 +901,7 @@ private theorem eo_to_smt_type_fun_ne_int
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_real`. -/
 private theorem eo_to_smt_type_fun_ne_real
@@ -914,7 +914,7 @@ private theorem eo_to_smt_type_fun_ne_real
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_reglan`. -/
 private theorem eo_to_smt_type_fun_ne_reglan
@@ -927,7 +927,7 @@ private theorem eo_to_smt_type_fun_ne_reglan
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_char`. -/
 private theorem eo_to_smt_type_fun_ne_char
@@ -940,7 +940,7 @@ private theorem eo_to_smt_type_fun_ne_char
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_bitvec`. -/
 private theorem eo_to_smt_type_fun_ne_bitvec
@@ -953,7 +953,7 @@ private theorem eo_to_smt_type_fun_ne_bitvec
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_seq`. -/
 private theorem eo_to_smt_type_fun_ne_seq
@@ -966,7 +966,7 @@ private theorem eo_to_smt_type_fun_ne_seq
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_set`. -/
 private theorem eo_to_smt_type_fun_ne_set
@@ -979,7 +979,7 @@ private theorem eo_to_smt_type_fun_ne_set
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_map`. -/
 private theorem eo_to_smt_type_fun_ne_map
@@ -992,7 +992,7 @@ private theorem eo_to_smt_type_fun_ne_map
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_dtc_app`. -/
 private theorem eo_to_smt_type_fun_ne_dtc_app
@@ -1005,7 +1005,7 @@ private theorem eo_to_smt_type_fun_ne_dtc_app
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_usort`. -/
 private theorem eo_to_smt_type_fun_ne_usort
@@ -1018,7 +1018,7 @@ private theorem eo_to_smt_type_fun_ne_usort
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for `fun_ne_typeref`. -/
 private theorem eo_to_smt_type_fun_ne_typeref
@@ -1031,7 +1031,7 @@ private theorem eo_to_smt_type_fun_ne_typeref
     · cases hFin :
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
-        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU, hFin]
+        simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
 private theorem eo_to_smt_type_dtc_app_ne_bool
