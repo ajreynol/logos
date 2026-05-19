@@ -1,5 +1,3 @@
-import Cpc.Spec
-import Cpc.Proofs.Translation.Datatypes
 import Cpc.Proofs.Translation.Apply
 
 open Eo

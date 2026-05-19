@@ -1656,9 +1656,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
               cases d with
               | null =>
                   exfalso
-                  simpa [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
+                  simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
                     __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
-                    native_ite] using hWf
+                    native_ite] at hWf
               | sum c dTail =>
                   cases dTail with
                   | null =>
@@ -1682,9 +1682,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
                             native_ite, native_reflist_nil,
                             native_reflist_contains] using hRawField
                         · exfalso
-                          simpa [raw, __eo_to_smt_type_tuple, hUTrans, hHeadComp,
+                          simp [raw, __eo_to_smt_type_tuple, hUTrans, hHeadComp,
                             __smtx_type_wf, __smtx_type_wf_component,
-                            __smtx_type_wf_rec, native_and, native_ite] using hWf
+                            __smtx_type_wf_rec, native_and, native_ite] at hWf
                       have hWFParts := smtx_datatype_field_wf_rec_parts_local hRawField'
                       have hConsWF :
                           __smtx_dt_cons_wf_rec
@@ -1727,18 +1727,18 @@ theorem eo_type_valid_of_smt_field_wf_rec
                       exact ⟨hHeadValid, hTailValid⟩
                   | sum cTail dTailTail =>
                       exfalso
-                      simpa [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
+                      simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
                         __smtx_type_wf_component, __smtx_type_wf_rec,
-                        native_and, native_ite] using hWf
+                        native_and, native_ite] at hWf
             · exfalso
-              simpa [raw, __eo_to_smt_type_tuple, hUTrans, hs, __smtx_type_wf,
+              simp [raw, __eo_to_smt_type_tuple, hUTrans, hs, __smtx_type_wf,
                 __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
-                native_ite] using hWf
+                native_ite] at hWf
         | _ =>
             exfalso
-            simpa [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
+            simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
               __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
-              native_ite] using hWf
+              native_ite] at hWf
       simpa [eo_type_valid_rec, raw] using
         (And.intro hParts.1 (And.intro hParts.2 (by simpa [raw] using hWf)))
   | Term.Apply f x, h => by
@@ -1907,9 +1907,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
                           cases d with
                           | null =>
                               exfalso
-                              simpa [raw, __eo_to_smt_type_tuple, hXTrans,
+                              simp [raw, __eo_to_smt_type_tuple, hXTrans,
                                 __smtx_type_wf, __smtx_type_wf_component,
-                                __smtx_type_wf_rec, native_and, native_ite] using hWf
+                                __smtx_type_wf_rec, native_and, native_ite] at hWf
                           | sum c dTail =>
                               cases dTail with
                               | null =>
@@ -1934,10 +1934,10 @@ theorem eo_type_valid_of_smt_field_wf_rec
                                         __smtx_type_wf_rec, native_ite,
                                         native_reflist_nil, native_reflist_contains] using hRawField
                                     · exfalso
-                                      simpa [raw, __eo_to_smt_type_tuple, hXTrans,
+                                      simp [raw, __eo_to_smt_type_tuple, hXTrans,
                                         hHeadComp, __smtx_type_wf,
                                         __smtx_type_wf_component, __smtx_type_wf_rec,
-                                        native_and, native_ite] using hWf
+                                        native_and, native_ite] at hWf
                                   have hWFParts :=
                                     smtx_datatype_field_wf_rec_parts_local hRawField'
                                   have hConsWF :
@@ -1985,18 +1985,18 @@ theorem eo_type_valid_of_smt_field_wf_rec
                                   exact ⟨hHeadValid, hTailValid⟩
                               | sum cTail dTailTail =>
                                   exfalso
-                                  simpa [raw, __eo_to_smt_type_tuple, hXTrans,
+                                  simp [raw, __eo_to_smt_type_tuple, hXTrans,
                                     __smtx_type_wf, __smtx_type_wf_component,
-                                    __smtx_type_wf_rec, native_and, native_ite] using hWf
+                                    __smtx_type_wf_rec, native_and, native_ite] at hWf
                         · exfalso
-                          simpa [raw, __eo_to_smt_type_tuple, hXTrans, hs,
+                          simp [raw, __eo_to_smt_type_tuple, hXTrans, hs,
                             __smtx_type_wf, __smtx_type_wf_component,
-                            __smtx_type_wf_rec, native_and, native_ite] using hWf
+                            __smtx_type_wf_rec, native_and, native_ite] at hWf
                     | _ =>
                         exfalso
-                        simpa [raw, __eo_to_smt_type_tuple, hXTrans, __smtx_type_wf,
+                        simp [raw, __eo_to_smt_type_tuple, hXTrans, __smtx_type_wf,
                           __smtx_type_wf_component, __smtx_type_wf_rec,
-                          native_and, native_ite] using hWf
+                          native_and, native_ite] at hWf
                   simpa [eo_type_valid_rec, raw] using
                     (And.intro hParts.1 (And.intro hParts.2 (by simpa [raw] using hWf)))
               | _ =>
