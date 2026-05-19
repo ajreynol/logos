@@ -10598,6 +10598,49 @@ private theorem set_choose_arg_non_reg_of_non_none (x : Term) :
   · rcases hSet with ⟨A, hX, _hEmpty, _hTy⟩
     exact ⟨SmtType.Set A, hX, by simp, by simp⟩
 
+private theorem set_is_singleton_arg_non_reg_of_non_none (x : Term) :
+    __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) ≠
+      SmtType.None ->
+      ∃ A,
+        __smtx_typeof (__eo_to_smt x) = A ∧
+          A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
+  intro hNN
+  let T :=
+    __eo_to_smt_type
+      (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x))
+  let diff := SmtTerm.map_diff (__eo_to_smt x) (SmtTerm.set_empty T)
+  have hEqNN :
+      __smtx_typeof_eq
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (SmtTerm.set_singleton diff)) ≠
+        SmtType.None := by
+    change
+      __smtx_typeof
+          (SmtTerm.eq (__eo_to_smt x)
+            (SmtTerm.set_singleton diff)) ≠
+        SmtType.None at hNN
+    simpa [T, diff, typeof_eq_eq] using hNN
+  have hEqArgs := cong_smtx_typeof_eq_non_none hEqNN
+  refine ⟨__smtx_typeof (__eo_to_smt x), rfl, hEqArgs.2, ?_⟩
+  intro hReg
+  have hSingletonNN :
+      __smtx_typeof (SmtTerm.set_singleton diff) ≠ SmtType.None := by
+    rw [← hEqArgs.1]
+    exact hEqArgs.2
+  have hSingletonTy :
+      __smtx_typeof (SmtTerm.set_singleton diff) =
+        SmtType.Set (__smtx_typeof diff) := by
+    rw [__smtx_typeof.eq_122]
+    exact smtx_typeof_guard_wf_of_non_none
+      (SmtType.Set (__smtx_typeof diff))
+      (SmtType.Set (__smtx_typeof diff)) (by
+        simpa [__smtx_typeof.eq_122] using hSingletonNN)
+  have hSetReg : SmtType.Set (__smtx_typeof diff) = SmtType.RegLan := by
+    rw [← hSingletonTy, ← hEqArgs.1]
+    exact hReg
+  cases hSetReg
+
 private theorem congTrueSpine_set_choose_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
     RuleProofs.eo_has_bool_type
@@ -10632,6 +10675,49 @@ private theorem congTrueSpine_set_choose_eq_true
             (SmtTerm.map_diff (__eo_to_smt b) (SmtTerm.set_empty T₂))
       rw [hT, __smtx_model_eval.eq_138, __smtx_model_eval.eq_138,
         hEval])
+    x rhs
+
+private theorem congTrueSpine_set_is_singleton_eq_true
+    (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.UOp UserOp.set_is_singleton) x) rhs) ->
+    CongTrueSpine M (Term.Apply (Term.UOp UserOp.set_is_singleton) x) rhs ->
+    eo_interprets M
+      (mkEq (Term.Apply (Term.UOp UserOp.set_is_singleton) x) rhs) true :=
+  congTrueSpine_eotype_non_reg_unop_eq_true_of_eval_congr
+    M hM UserOp.set_is_singleton
+    set_is_singleton_arg_non_reg_of_non_none
+    (by
+      intro a b _hSmt hEo hEval
+      have hChooseTy :
+          __eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a) =
+            __eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b) := by
+        change __eo_typeof_set_choose (__eo_typeof a) =
+          __eo_typeof_set_choose (__eo_typeof b)
+        rw [hEo]
+      let T₁ :=
+        __eo_to_smt_type
+          (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a))
+      let T₂ :=
+        __eo_to_smt_type
+          (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b))
+      have hT : T₁ = T₂ := by
+        dsimp [T₁, T₂]
+        rw [hChooseTy]
+      change
+        __smtx_model_eval M
+            (SmtTerm.eq (__eo_to_smt a)
+              (SmtTerm.set_singleton
+                (SmtTerm.map_diff (__eo_to_smt a)
+                  (SmtTerm.set_empty T₁)))) =
+          __smtx_model_eval M
+            (SmtTerm.eq (__eo_to_smt b)
+              (SmtTerm.set_singleton
+                (SmtTerm.map_diff (__eo_to_smt b)
+                  (SmtTerm.set_empty T₂))))
+      rw [hT, __smtx_model_eval.eq_134, __smtx_model_eval.eq_134,
+        __smtx_model_eval.eq_122, __smtx_model_eval.eq_122,
+        __smtx_model_eval.eq_138, __smtx_model_eval.eq_138, hEval])
     x rhs
 
 private theorem congTrueSpine_set_is_empty_eq_true
@@ -12980,15 +13066,18 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
             rw [hChooseTy]
           change
             __smtx_typeof
-                (SmtTerm.exists "@x" T₁
-                  (SmtTerm.eq (__eo_to_smt a)
-                    (SmtTerm.set_singleton (SmtTerm.Var "@x" T₁)))) =
+                (SmtTerm.eq (__eo_to_smt a)
+                  (SmtTerm.set_singleton
+                    (SmtTerm.map_diff (__eo_to_smt a)
+                      (SmtTerm.set_empty T₁)))) =
               __smtx_typeof
-                (SmtTerm.exists "@x" T₂
-                  (SmtTerm.eq (__eo_to_smt b)
-                    (SmtTerm.set_singleton (SmtTerm.Var "@x" T₂))))
-          rw [hT, __smtx_typeof.eq_135, __smtx_typeof.eq_135, typeof_eq_eq,
-            typeof_eq_eq, __smtx_typeof.eq_122, hSmt])
+                (SmtTerm.eq (__eo_to_smt b)
+                  (SmtTerm.set_singleton
+                    (SmtTerm.map_diff (__eo_to_smt b)
+                      (SmtTerm.set_empty T₂))))
+          rw [hT, typeof_eq_eq, typeof_eq_eq, __smtx_typeof.eq_122,
+            __smtx_typeof.eq_122, typeof_map_diff_eq, typeof_map_diff_eq,
+            hSmt])
         x rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.set_union) x₁) x₂ =>
       exact congTypeSpine_set_binop_eq_has_bool_type UserOp.set_union
@@ -13627,19 +13716,19 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                 rw [hChooseTy]
                               change
                                 __smtx_typeof
-                                    (SmtTerm.exists "@x" T₁
-                                      (SmtTerm.eq (__eo_to_smt a)
-                                        (SmtTerm.set_singleton
-                                          (SmtTerm.Var "@x" T₁)))) =
+                                    (SmtTerm.eq (__eo_to_smt a)
+                                      (SmtTerm.set_singleton
+                                        (SmtTerm.map_diff (__eo_to_smt a)
+                                          (SmtTerm.set_empty T₁)))) =
                                   __smtx_typeof
-                                    (SmtTerm.exists "@x" T₂
-                                      (SmtTerm.eq (__eo_to_smt b)
-                                        (SmtTerm.set_singleton
-                                          (SmtTerm.Var "@x" T₂))))
-                              rw [hT, __smtx_typeof.eq_135,
-                                __smtx_typeof.eq_135,
-                                typeof_eq_eq, typeof_eq_eq,
-                                __smtx_typeof.eq_122, hSmt])
+                                    (SmtTerm.eq (__eo_to_smt b)
+                                      (SmtTerm.set_singleton
+                                        (SmtTerm.map_diff (__eo_to_smt b)
+                                          (SmtTerm.set_empty T₂))))
+                              rw [hT, typeof_eq_eq, typeof_eq_eq,
+                                __smtx_typeof.eq_122, __smtx_typeof.eq_122,
+                                typeof_map_diff_eq, typeof_map_diff_eq,
+                                hSmt])
                             x (Term.Apply g y) hTrans hApp
                       case _at_div_by_zero =>
                         exact congTypeSpine_qdiv_by_zero_eq_has_bool_type
@@ -15521,7 +15610,12 @@ private theorem congTrueSpine_eq_true
                       case set_is_singleton =>
                         cases hFn with
                         | refl _ =>
-                            sorry
+                            exact
+                              congTrueSpine_set_is_singleton_eq_true M hM
+                                x
+                                (Term.Apply
+                                  (Term.UOp UserOp.set_is_singleton) y)
+                                hEqBool hApp
                       case _at_div_by_zero =>
                         exact congTrueSpine_qdiv_by_zero_eq_true M hM
                           x (Term.Apply g y) hEqBool hApp
