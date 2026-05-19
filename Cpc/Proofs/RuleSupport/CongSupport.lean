@@ -12632,6 +12632,565 @@ private theorem no_bool_eq_left_of_smt_type_none {t rhs : Term} :
   simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
     at hBool
 
+private theorem eo_to_smt_set_insert_type_congr_base :
+    ∀ xs a b,
+      __smtx_typeof a = __smtx_typeof b ->
+        __smtx_typeof (__eo_to_smt_set_insert xs a) =
+          __smtx_typeof (__eo_to_smt_set_insert xs b) := by
+  intro xs a b hTy
+  cases xs <;> try rfl
+  case __eo_List_nil =>
+    exact hTy
+  case Apply f tail =>
+    cases f <;> try rfl
+    case Apply f' head =>
+      cases f' <;> try rfl
+      case __eo_List_cons =>
+        change
+          __smtx_typeof
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail a)) =
+            __smtx_typeof
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail b))
+        rw [typeof_set_union_eq, typeof_set_union_eq,
+          eo_to_smt_set_insert_type_congr_base tail a b hTy]
+termination_by xs a b _ => xs
+
+private theorem set_insert_translation_arg_is_cons
+    (xs x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+    ∃ head tail,
+      xs = Term.Apply (Term.Apply Term.__eo_List_cons head) tail := by
+  intro hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  cases xs
+  all_goals
+    try
+      exfalso
+      apply hTrans
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    all_goals
+      try
+        exfalso
+        apply hTrans
+        change __smtx_typeof SmtTerm.None = SmtType.None
+        exact TranslationProofs.smtx_typeof_none
+    case Apply f' head =>
+      cases f'
+      all_goals
+        try
+          exfalso
+          apply hTrans
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none
+      case __eo_List_cons =>
+        exact ⟨head, tail, rfl⟩
+
+private theorem set_insert_arg_not_eq_bool_of_translation
+    (xs ys x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+    RuleProofs.eo_has_bool_type (mkEq xs ys) ->
+    False := by
+  intro hTrans hBool
+  rcases set_insert_translation_arg_is_cons xs x hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  exact
+    no_bool_eq_left_of_smt_type_none
+      (t := Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+      (rhs := ys)
+      (by
+        change
+          __smtx_typeof
+              (SmtTerm.Apply
+                (SmtTerm.Apply SmtTerm.None (__eo_to_smt head))
+                (__eo_to_smt tail)) = SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply])
+      hBool
+
+private theorem eo_to_smt_set_insert_type_congr_arg
+    (xs x y : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+    __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) ->
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) y)) := by
+  intro hTrans hTy
+  rcases set_insert_translation_arg_is_cons xs x hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  change
+    __smtx_typeof
+        (__eo_to_smt_set_insert
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt x)) =
+      __smtx_typeof
+        (__eo_to_smt_set_insert
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt y))
+  exact eo_to_smt_set_insert_type_congr_base
+    (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+    (__eo_to_smt x) (__eo_to_smt y) hTy
+
+private theorem congTypeSpine_set_insert_eq_has_bool_type
+    (xs x rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+        rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_binary_uop_inv UserOp.set_insert xs x rhs hSpine with
+    ⟨ys, y, hRhs, hList, hArg⟩
+  subst hRhs
+  cases hList with
+  | inl hSame =>
+      subst ys
+      have hArgTy :
+          __smtx_typeof (__eo_to_smt x) =
+            __smtx_typeof (__eo_to_smt y) :=
+        smt_type_eq_of_eq_bool_or_same x y hArg
+      exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) y)
+        (eo_to_smt_set_insert_type_congr_arg xs x y hTrans hArgTy)
+        hTrans
+  | inr hBool =>
+      exact False.elim
+        (set_insert_arg_not_eq_bool_of_translation xs ys x hTrans hBool)
+
+private theorem eo_to_smt_set_insert_eval_congr_base
+    (M : SmtModel) :
+    ∀ xs a b,
+      __smtx_model_eval M a = __smtx_model_eval M b ->
+        __smtx_model_eval M (__eo_to_smt_set_insert xs a) =
+          __smtx_model_eval M (__eo_to_smt_set_insert xs b) := by
+  intro xs a b hEval
+  cases xs <;> try rfl
+  case __eo_List_nil =>
+    exact hEval
+  case Apply f tail =>
+    cases f <;> try rfl
+    case Apply f' head =>
+      cases f' <;> try rfl
+      case __eo_List_cons =>
+        change
+          __smtx_model_eval M
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail a)) =
+            __smtx_model_eval M
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail b))
+        rw [__smtx_model_eval.eq_123, __smtx_model_eval.eq_123,
+          eo_to_smt_set_insert_eval_congr_base M tail a b hEval]
+termination_by xs a b _ => xs
+
+private theorem eo_to_smt_set_insert_base_set_type_of_set_type :
+    ∀ xs a A,
+      __smtx_typeof (__eo_to_smt_set_insert xs a) = SmtType.Set A ->
+        ∃ B, __smtx_typeof a = SmtType.Set B := by
+  intro xs a A hTy
+  cases xs <;> try (simp [__eo_to_smt_set_insert] at hTy)
+  case __eo_List_nil =>
+    exact ⟨A, hTy⟩
+  case Apply f tail =>
+    cases f <;> try (simp [__eo_to_smt_set_insert] at hTy)
+    case Apply f' head =>
+      cases f' <;> try (simp [__eo_to_smt_set_insert] at hTy)
+      case __eo_List_cons =>
+        have hNN : term_has_non_none_type
+            (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+              (__eo_to_smt_set_insert tail a)) := by
+          unfold term_has_non_none_type
+          rw [hTy]
+          simp
+        rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
+            (typeof_set_union_eq
+              (SmtTerm.set_singleton (__eo_to_smt head))
+              (__eo_to_smt_set_insert tail a))
+            hNN with
+          ⟨B, _hHead, hTail⟩
+        exact
+          eo_to_smt_set_insert_base_set_type_of_set_type tail a B hTail
+termination_by xs a A _ => xs
+
+private theorem set_insert_base_arg_non_reg_of_translation
+    (xs x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+      ∃ A,
+        __smtx_typeof (__eo_to_smt x) = A ∧
+          A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
+  intro hTrans
+  rcases set_insert_translation_arg_is_cons xs x hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  have hNN : term_has_non_none_type
+      (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+        (__eo_to_smt_set_insert tail (__eo_to_smt x))) := by
+    unfold term_has_non_none_type
+    change
+      __smtx_typeof
+          (__eo_to_smt_set_insert
+            (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+            (__eo_to_smt x)) ≠ SmtType.None at hTrans
+    exact hTrans
+  rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
+      (typeof_set_union_eq (SmtTerm.set_singleton (__eo_to_smt head))
+        (__eo_to_smt_set_insert tail (__eo_to_smt x)))
+      hNN with
+    ⟨A, _hHead, hTail⟩
+  rcases eo_to_smt_set_insert_base_set_type_of_set_type
+      tail (__eo_to_smt x) A hTail with
+    ⟨B, hBase⟩
+  exact ⟨SmtType.Set B, hBase, by simp, by simp⟩
+
+private theorem congTrueSpine_set_insert_eq_true
+    (M : SmtModel) (hM : model_total_typed M) (xs x rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+        rhs) ->
+    CongTrueSpine M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) rhs ->
+    eo_interprets M
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+        rhs) true := by
+  intro hEqBool hSpine
+  rcases congTrueSpine_binary_uop_inv M UserOp.set_insert xs x rhs hSpine with
+    ⟨ys, y, hRhs, hList, hArg⟩
+  subst hRhs
+  have hTypes :=
+    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) ys) y)
+      hEqBool
+  have hTrans : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) :=
+    hTypes.2
+  cases hList with
+  | inl hSame =>
+      subst ys
+      apply RuleProofs.eo_interprets_eq_of_rel M
+      · exact hEqBool
+      · rcases set_insert_base_arg_non_reg_of_translation xs x hTrans with
+          ⟨A, hxA, hANN, hAReg⟩
+        have hyA : __smtx_typeof (__eo_to_smt y) = A := by
+          rw [← smt_type_eq_of_eq_true_or_same M x y hArg]
+          exact hxA
+        have hEval :
+            __smtx_model_eval M (__eo_to_smt x) =
+              __smtx_model_eval M (__eo_to_smt y) :=
+          eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type
+            M hM x y A hxA hyA hANN hAReg hArg
+        rcases set_insert_translation_arg_is_cons xs x hTrans with
+          ⟨head, tail, hXs⟩
+        subst hXs
+        rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+        change
+          __smtx_model_eval_eq
+              (__smtx_model_eval M
+                (__eo_to_smt_set_insert
+                  (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                  (__eo_to_smt x)))
+              (__smtx_model_eval M
+                (__eo_to_smt_set_insert
+                  (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                  (__eo_to_smt y))) =
+            SmtValue.Boolean true
+        rw [eo_to_smt_set_insert_eval_congr_base M
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt x) (__eo_to_smt y) hEval]
+        exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
+          (RuleProofs.smt_value_rel_refl _)
+  | inr hBool =>
+      exact False.elim
+        (set_insert_arg_not_eq_bool_of_translation xs ys x hTrans
+          (RuleProofs.eo_has_bool_type_of_interprets_true M (mkEq xs ys)
+            hBool))
+
+private theorem eo_to_smt_exists_type_congr_body :
+    ∀ xs a b,
+      __smtx_typeof a = __smtx_typeof b ->
+        __smtx_typeof (__eo_to_smt_exists xs a) =
+          __smtx_typeof (__eo_to_smt_exists xs b) := by
+  intro xs a b hTy
+  cases xs <;> try rfl
+  case __eo_List_nil =>
+    exact hTy
+  case Apply f tail =>
+    cases f <;> try rfl
+    case Apply f' head =>
+      cases f' <;> try rfl
+      case __eo_List_cons =>
+        cases head <;> try rfl
+        case Var name T =>
+          cases name <;> try rfl
+          case String s =>
+            change
+              __smtx_typeof
+                  (SmtTerm.exists s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists tail a)) =
+                __smtx_typeof
+                  (SmtTerm.exists s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists tail b))
+            rw [__smtx_typeof.eq_135, __smtx_typeof.eq_135]
+            rw [eo_to_smt_exists_type_congr_body tail a b hTy]
+termination_by xs a b _ => xs
+
+private theorem exists_translation_arg_is_cons
+    (xs body : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ->
+    ∃ head tail,
+      xs = Term.Apply (Term.Apply Term.__eo_List_cons head) tail := by
+  intro hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  cases xs
+  all_goals
+    try
+      exfalso
+      apply hTrans
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    all_goals
+      try
+        exfalso
+        apply hTrans
+        change __smtx_typeof SmtTerm.None = SmtType.None
+        exact TranslationProofs.smtx_typeof_none
+    case Apply f' head =>
+      cases f'
+      all_goals
+        try
+          exfalso
+          apply hTrans
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none
+      case __eo_List_cons =>
+        exact ⟨head, tail, rfl⟩
+
+private theorem forall_translation_arg_is_cons
+    (xs body : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ->
+    ∃ head tail,
+      xs = Term.Apply (Term.Apply Term.__eo_List_cons head) tail := by
+  intro hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  cases xs
+  all_goals
+    try
+      exfalso
+      apply hTrans
+      change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+      rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+      rfl
+  case __eo_List_nil =>
+    exfalso
+    apply hTrans
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    all_goals
+      try
+        exfalso
+        apply hTrans
+        change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+        rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+        rfl
+    case Apply f' head =>
+      cases f'
+      all_goals
+        try
+          exfalso
+          apply hTrans
+          change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+          rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+          rfl
+      case __eo_List_cons =>
+        exact ⟨head, tail, rfl⟩
+
+private theorem exists_arg_not_eq_bool_of_translation
+    (xs ys body : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ->
+    RuleProofs.eo_has_bool_type (mkEq xs ys) ->
+    False := by
+  intro hTrans hBool
+  rcases exists_translation_arg_is_cons xs body hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  exact
+    no_bool_eq_left_of_smt_type_none
+      (t := Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+      (rhs := ys)
+      (by
+        change
+          __smtx_typeof
+              (SmtTerm.Apply
+                (SmtTerm.Apply SmtTerm.None (__eo_to_smt head))
+                (__eo_to_smt tail)) = SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply])
+      hBool
+
+private theorem forall_arg_not_eq_bool_of_translation
+    (xs ys body : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ->
+    RuleProofs.eo_has_bool_type (mkEq xs ys) ->
+    False := by
+  intro hTrans hBool
+  rcases forall_translation_arg_is_cons xs body hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  exact
+    no_bool_eq_left_of_smt_type_none
+      (t := Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+      (rhs := ys)
+      (by
+        change
+          __smtx_typeof
+              (SmtTerm.Apply
+                (SmtTerm.Apply SmtTerm.None (__eo_to_smt head))
+                (__eo_to_smt tail)) = SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply])
+      hBool
+
+private theorem eo_to_smt_exists_type_congr_arg
+    (xs body body' : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ->
+    __smtx_typeof (__eo_to_smt body) =
+      __smtx_typeof (__eo_to_smt body') ->
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body')) := by
+  intro hTrans hTy
+  rcases exists_translation_arg_is_cons xs body hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  change
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt body)) =
+      __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt body'))
+  exact eo_to_smt_exists_type_congr_body
+    (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+    (__eo_to_smt body) (__eo_to_smt body') hTy
+
+private theorem eo_to_smt_forall_type_congr_arg
+    (xs body body' : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ->
+    __smtx_typeof (__eo_to_smt body) =
+      __smtx_typeof (__eo_to_smt body') ->
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body')) := by
+  intro hTrans hTy
+  rcases forall_translation_arg_is_cons xs body hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  change
+    __smtx_typeof
+        (SmtTerm.not
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+            (SmtTerm.not (__eo_to_smt body)))) =
+      __smtx_typeof
+        (SmtTerm.not
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+            (SmtTerm.not (__eo_to_smt body'))))
+  rw [typeof_not_eq, typeof_not_eq]
+  rw [eo_to_smt_exists_type_congr_body
+    (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+    (SmtTerm.not (__eo_to_smt body)) (SmtTerm.not (__eo_to_smt body'))
+    (by rw [typeof_not_eq, typeof_not_eq, hTy])]
+
+private theorem congTypeSpine_exists_eq_has_bool_type
+    (xs body rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ->
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body)
+        rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_binary_uop_inv UserOp.exists xs body rhs hSpine with
+    ⟨ys, body', hRhs, hList, hBody⟩
+  subst hRhs
+  cases hList with
+  | inl _ =>
+      subst ys
+      have hBodyTy :
+          __smtx_typeof (__eo_to_smt body) =
+            __smtx_typeof (__eo_to_smt body') :=
+        smt_type_eq_of_eq_bool_or_same body body' hBody
+      exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+        (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body')
+        (eo_to_smt_exists_type_congr_arg xs body body' hTrans hBodyTy)
+        hTrans
+  | inr hBool =>
+      exact False.elim
+        (exists_arg_not_eq_bool_of_translation xs ys body hTrans hBool)
+
+private theorem congTypeSpine_forall_eq_has_bool_type
+    (xs body rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ->
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+        rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_binary_uop_inv UserOp.forall xs body rhs hSpine with
+    ⟨ys, body', hRhs, hList, hBody⟩
+  subst hRhs
+  cases hList with
+  | inl _ =>
+      subst ys
+      have hBodyTy :
+          __smtx_typeof (__eo_to_smt body) =
+            __smtx_typeof (__eo_to_smt body') :=
+        smt_type_eq_of_eq_bool_or_same body body' hBody
+      exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body')
+        (eo_to_smt_forall_type_congr_arg xs body body' hTrans hBodyTy)
+        hTrans
+  | inr hBool =>
+      exact False.elim
+        (forall_arg_not_eq_bool_of_translation xs ys body hTrans hBool)
+
 private theorem no_translation_of_eo_apply_type_none {f x : Term} :
     __eo_to_smt (Term.Apply f x) =
       SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x) ->
@@ -15630,11 +16189,14 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                             case tuple =>
                               sorry
                             case set_insert =>
-                              sorry
+                              exact congTypeSpine_set_insert_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
                             case «forall» =>
-                              sorry
+                              exact congTypeSpine_forall_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
                             case «exists» =>
-                              sorry
+                              exact congTypeSpine_exists_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
                         | Term.Apply (Term.UOp UserOp.ite) c =>
                             exact congTypeSpine_ite_eq_has_bool_type
                               c z x (Term.Apply g y) hTrans hApp
@@ -18319,7 +18881,8 @@ private theorem congTrueSpine_eq_true
                             case tuple =>
                               sorry
                             case set_insert =>
-                              sorry
+                              exact congTrueSpine_set_insert_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
                             case «forall» =>
                               sorry
                             case «exists» =>
