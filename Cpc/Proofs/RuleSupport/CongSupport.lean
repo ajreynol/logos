@@ -603,6 +603,40 @@ private theorem congTypeSpine_indexed2_unary_uop_inv
       subst hg
       exact ⟨_, rfl, Or.inr hArg⟩
 
+private theorem congTrueSpine_indexed_binary_uop1_inv
+    (M : SmtModel) (op : UserOp1) (idx x₁ x₂ rhs : Term) :
+    CongTrueSpine M
+      (Term.Apply (Term.Apply (Term.UOp1 op idx) x₁) x₂) rhs ->
+    ∃ y₁ y₂,
+      rhs = Term.Apply (Term.Apply (Term.UOp1 op idx) y₁) y₂ ∧
+        EqTrueOrSame M x₁ y₁ ∧ EqTrueOrSame M x₂ y₂ := by
+  intro h
+  cases h with
+  | refl _ =>
+      exact ⟨x₁, x₂, rfl, Or.inl rfl, Or.inl rfl⟩
+  | app hHead hArg₂ =>
+      rcases congTrueSpine_indexed_unary_uop_inv M op idx x₁ _ hHead with
+        ⟨y₁, hHeadRhs, hArg₁⟩
+      subst hHeadRhs
+      exact ⟨y₁, _, rfl, hArg₁, Or.inr hArg₂⟩
+
+private theorem congTypeSpine_indexed_binary_uop1_inv
+    (op : UserOp1) (idx x₁ x₂ rhs : Term) :
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp1 op idx) x₁) x₂) rhs ->
+    ∃ y₁ y₂,
+      rhs = Term.Apply (Term.Apply (Term.UOp1 op idx) y₁) y₂ ∧
+        EqBoolOrSame x₁ y₁ ∧ EqBoolOrSame x₂ y₂ := by
+  intro h
+  cases h with
+  | refl _ =>
+      exact ⟨x₁, x₂, rfl, Or.inl rfl, Or.inl rfl⟩
+  | app hHead hArg₂ =>
+      rcases congTypeSpine_indexed_unary_uop_inv op idx x₁ _ hHead with
+        ⟨y₁, hHeadRhs, hArg₁⟩
+      subst hHeadRhs
+      exact ⟨y₁, _, rfl, hArg₁, Or.inr hArg₂⟩
+
 private theorem congTrueSpine_dt_sel_inv
     (M : SmtModel) (s : native_String) (d : Datatype)
     (i j : native_Nat) (x rhs : Term) :
@@ -3157,6 +3191,54 @@ private theorem congTypeSpine_typecongr_indexed2_unop_eq_has_bool_type
     hOpTy
     hTrans
 
+private theorem congTypeSpine_typecongr_indexed_binary_uop1_eq_has_bool_type
+    (eoOp : UserOp1) (idx : Term)
+    (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      ∀ a b,
+        __eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) a) b) =
+          smtOp (__eo_to_smt a) (__eo_to_smt b))
+    (hTypeCong :
+      ∀ a b a' b',
+        __smtx_typeof a = __smtx_typeof a' ->
+        __smtx_typeof b = __smtx_typeof b' ->
+          __smtx_typeof (smtOp a b) = __smtx_typeof (smtOp a' b'))
+    (x₁ x₂ rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂) ->
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂) rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_indexed_binary_uop1_inv eoOp idx x₁ x₂ rhs hSpine with
+    ⟨y₁, y₂, hRhs, hArg₁, hArg₂⟩
+  subst hRhs
+  have hArgTy₁ :
+      __smtx_typeof (__eo_to_smt x₁) =
+        __smtx_typeof (__eo_to_smt y₁) :=
+    smt_type_eq_of_eq_bool_or_same x₁ y₁ hArg₁
+  have hArgTy₂ :
+      __smtx_typeof (__eo_to_smt x₂) =
+        __smtx_typeof (__eo_to_smt y₂) :=
+    smt_type_eq_of_eq_bool_or_same x₂ y₂ hArg₂
+  have hOpTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) y₁) y₂)) := by
+    rw [hToSmt x₁ x₂, hToSmt y₁ y₂]
+    exact hTypeCong (__eo_to_smt x₁) (__eo_to_smt x₂)
+      (__eo_to_smt y₁) (__eo_to_smt y₂) hArgTy₁ hArgTy₂
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+    (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂)
+    (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) y₁) y₂)
+    hOpTy
+    hTrans
+
 private theorem congTrueSpine_non_reg_binop_eq_true
     (M : SmtModel) (hM : model_total_typed M)
     (eoOp : UserOp) (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
@@ -3665,6 +3747,28 @@ private theorem eo_to_smt_apply_generic_of_has_smt_translation
                 (__eo_to_smt a)) = SmtType.None
           simp [__smtx_typeof, __smtx_typeof_apply,
             TranslationProofs.smtx_typeof_none]
+
+private theorem eo_apply_apply_head_has_translation_of_generic_apply_translation
+    (f z x : Term)
+    (hToSmt :
+      __eo_to_smt ((Term.Apply f z).Apply x) =
+        SmtTerm.Apply (__eo_to_smt (Term.Apply f z)) (__eo_to_smt x)) :
+    RuleProofs.eo_has_smt_translation ((Term.Apply f z).Apply x) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f z) := by
+  intro hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans ⊢
+  have hGen :
+      generic_apply_type (__eo_to_smt (Term.Apply f z)) (__eo_to_smt x) :=
+    generic_apply_type_of_non_datatype_head
+      (TranslationProofs.eo_to_smt_apply_ne_dt_sel f z)
+      (TranslationProofs.eo_to_smt_apply_ne_dt_tester f z)
+  have hAppNN :
+      __smtx_typeof_apply
+          (__smtx_typeof (__eo_to_smt (Term.Apply f z)))
+          (__smtx_typeof (__eo_to_smt x)) ≠ SmtType.None := by
+    rw [hToSmt, hGen] at hTrans
+    exact hTrans
+  exact smt_apply_head_non_none_of_apply_non_none hAppNN
 
 private theorem congTypeSpine_generic_apply_eq_has_bool_type
     (f g x y : Term)
@@ -7447,6 +7551,656 @@ private theorem dt_sel_arg_non_reg_of_non_none
     apply hNN
     simp [hSel, __smtx_typeof, __smtx_typeof_apply]
 
+private theorem smt_apply_same_head_type_congr
+    (f x y : SmtTerm) :
+    __smtx_typeof x = __smtx_typeof y ->
+      __smtx_typeof (SmtTerm.Apply f x) =
+        __smtx_typeof (SmtTerm.Apply f y) := by
+  intro h
+  cases f <;> simp [__smtx_typeof, __smtx_typeof_apply, h]
+
+private theorem eo_to_smt_updater_rec_type_congr
+    (sel : SmtTerm) (n : native_Nat)
+    (t u acc t' u' : SmtTerm) :
+    __smtx_typeof t = __smtx_typeof t' ->
+    __smtx_typeof u = __smtx_typeof u' ->
+      __smtx_typeof (__eo_to_smt_updater_rec sel n t u acc) =
+        __smtx_typeof (__eo_to_smt_updater_rec sel n t' u' acc) := by
+  intro ht hu
+  induction n generalizing acc with
+  | zero =>
+      cases sel <;> simp [__eo_to_smt_updater_rec]
+  | succ k ih =>
+      cases sel <;> simp [__eo_to_smt_updater_rec]
+      case DtSel s d i j =>
+        have hArg :
+            __smtx_typeof
+                (native_ite (native_nateq j k) u
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i k) t)) =
+              __smtx_typeof
+                (native_ite (native_nateq j k) u'
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i k) t')) := by
+          cases hEq : native_nateq j k <;>
+            simp [native_ite, hEq, ht, hu, __smtx_typeof,
+              __smtx_typeof_apply]
+        cases k with
+        | zero =>
+            simpa [__eo_to_smt_updater_rec] using
+              smt_apply_same_head_type_congr acc
+                (native_ite (native_nateq j 0) u
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i 0) t))
+                (native_ite (native_nateq j 0) u'
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i 0) t')) hArg
+        | succ k' =>
+            have hGeneric :
+                generic_apply_type
+                  (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                    (Nat.succ k') t u acc)
+                  (native_ite (native_nateq j (Nat.succ k')) u
+                    (SmtTerm.Apply (SmtTerm.DtSel s d i (Nat.succ k')) t)) :=
+              generic_apply_type_of_non_datatype_head
+                (by intro s0 d0 i0 j0 h; cases h)
+                (by intro s0 d0 i0 h; cases h)
+            have hGeneric' :
+                generic_apply_type
+                  (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                    (Nat.succ k') t' u' acc)
+                  (native_ite (native_nateq j (Nat.succ k')) u'
+                    (SmtTerm.Apply (SmtTerm.DtSel s d i (Nat.succ k')) t')) :=
+              generic_apply_type_of_non_datatype_head
+                (by intro s0 d0 i0 j0 h; cases h)
+                (by intro s0 d0 i0 h; cases h)
+            rw [hGeneric, hGeneric']
+            rw [ih acc]
+            rw [hArg]
+
+private theorem eo_to_smt_updater_type_congr
+    (sel t u t' u' : SmtTerm) :
+    __smtx_typeof t = __smtx_typeof t' ->
+    __smtx_typeof u = __smtx_typeof u' ->
+      __smtx_typeof (__eo_to_smt_updater sel t u) =
+        __smtx_typeof (__eo_to_smt_updater sel t' u') := by
+  intro ht hu
+  cases sel <;> simp [__eo_to_smt_updater]
+  case DtSel s d i j =>
+    cases hGuard :
+        native_zlt (native_nat_to_int j)
+          (native_nat_to_int (__smtx_dt_num_sels d i)) <;>
+      simp [native_ite, hGuard]
+    rw [typeof_ite_eq, typeof_ite_eq]
+    have hCond :
+        __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) t) =
+          __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) t') := by
+      simp [__smtx_typeof, __smtx_typeof_apply, ht]
+    have hThen :
+        __smtx_typeof
+            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+              (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)) =
+          __smtx_typeof
+            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+              (__smtx_dt_num_sels d i) t' u' (SmtTerm.DtCons s d i)) :=
+    eo_to_smt_updater_rec_type_congr
+      (SmtTerm.DtSel s d i j) (__smtx_dt_num_sels d i)
+      t u (SmtTerm.DtCons s d i) t' u' ht hu
+    rw [hCond, hThen, ht]
+
+private theorem eo_to_smt_tuple_update_type_congr
+    (T T' : SmtType) (idx t u t' u' : SmtTerm) :
+    T = T' ->
+    __smtx_typeof t = __smtx_typeof t' ->
+    __smtx_typeof u = __smtx_typeof u' ->
+      __smtx_typeof (__eo_to_smt_tuple_update T idx t u) =
+        __smtx_typeof (__eo_to_smt_tuple_update T' idx t' u') := by
+  intro hT ht hu
+  subst T'
+  cases T <;> cases idx <;> simp [__eo_to_smt_tuple_update]
+  case Datatype.Numeral s d n =>
+    by_cases hs : s = "@Tuple"
+    · subst s
+      cases hNonneg : native_zleq 0 n <;>
+        simp [__eo_to_smt_tuple_update, native_ite, hNonneg]
+      exact eo_to_smt_updater_type_congr
+        (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat n))
+        t u t' u' ht hu
+    · simp [__eo_to_smt_tuple_update, hs]
+
+private theorem congTypeSpine_tuple_update_eq_has_bool_type
+    (idx x₁ x₂ rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂) ->
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)
+      rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq
+        (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)
+        rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_indexed_binary_uop1_inv
+      UserOp1.tuple_update idx x₁ x₂ rhs hSpine with
+    ⟨y₁, y₂, hRhs, hArg₁, hArg₂⟩
+  subst hRhs
+  have hArgTy₁ :
+      __smtx_typeof (__eo_to_smt x₁) =
+        __smtx_typeof (__eo_to_smt y₁) :=
+    smt_type_eq_of_eq_bool_or_same x₁ y₁ hArg₁
+  have hArgTy₂ :
+      __smtx_typeof (__eo_to_smt x₂) =
+        __smtx_typeof (__eo_to_smt y₂) :=
+    smt_type_eq_of_eq_bool_or_same x₂ y₂ hArg₂
+  have hArgEoTy₁ : __eo_typeof x₁ = __eo_typeof y₁ :=
+    eo_type_eq_of_eq_bool_or_same x₁ y₁ hArg₁
+  have hOpTy :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply
+              (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) y₁) y₂)) := by
+    change
+      __smtx_typeof
+          (__eo_to_smt_tuple_update
+            (__eo_to_smt_type (__eo_typeof x₁)) (__eo_to_smt idx)
+            (__eo_to_smt x₁) (__eo_to_smt x₂)) =
+        __smtx_typeof
+          (__eo_to_smt_tuple_update
+            (__eo_to_smt_type (__eo_typeof y₁)) (__eo_to_smt idx)
+            (__eo_to_smt y₁) (__eo_to_smt y₂))
+    exact eo_to_smt_tuple_update_type_congr
+      (__eo_to_smt_type (__eo_typeof x₁))
+      (__eo_to_smt_type (__eo_typeof y₁))
+      (__eo_to_smt idx) (__eo_to_smt x₁) (__eo_to_smt x₂)
+      (__eo_to_smt y₁) (__eo_to_smt y₂)
+      (by rw [hArgEoTy₁]) hArgTy₁ hArgTy₂
+  exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+    (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)
+    (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) y₁) y₂)
+    hOpTy
+    hTrans
+
+private theorem smtx_apply_arg_non_reg_of_non_none
+    (f x : SmtTerm)
+    (hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j)
+    (hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i)
+    (hNN : __smtx_typeof (SmtTerm.Apply f x) ≠ SmtType.None) :
+    ∃ A,
+      __smtx_typeof x = A ∧ A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
+  have hApply :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠
+        SmtType.None := by
+    cases f
+    case DtSel s d i j =>
+      exact False.elim (hSel s d i j rfl)
+    case DtTester s d i =>
+      exact False.elim (hTester s d i rfl)
+    all_goals
+      simpa [__smtx_typeof] using hNN
+  rcases typeof_apply_non_none_cases hApply with
+    ⟨A, B, hHead, hArg, hA, _hB⟩
+  have hFNN : term_has_non_none_type f := by
+    unfold term_has_non_none_type
+    exact smt_type_ne_none_of_apply_head hHead
+  have hANeReg : A ≠ SmtType.RegLan :=
+    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
+      f hFNN hHead
+  exact ⟨A, hArg, hA, hANeReg⟩
+
+private theorem eo_to_smt_updater_rec_ne_dt_sel
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat)
+    (t u acc : SmtTerm)
+    (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
+    (s0 : native_String) (d0 : SmtDatatype) (i0 j0 : native_Nat) :
+    __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u acc ≠
+      SmtTerm.DtSel s0 d0 i0 j0 := by
+  intro h
+  cases n with
+  | zero =>
+      simpa [__eo_to_smt_updater_rec] using hAccSel s0 d0 i0 j0 h
+  | succ _ =>
+      cases h
+
+private theorem eo_to_smt_updater_rec_ne_dt_tester
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat)
+    (t u acc : SmtTerm)
+    (hAccTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
+    (s0 : native_String) (d0 : SmtDatatype) (i0 : native_Nat) :
+    __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u acc ≠
+      SmtTerm.DtTester s0 d0 i0 := by
+  intro h
+  cases n with
+  | zero =>
+      simpa [__eo_to_smt_updater_rec] using hAccTester s0 d0 i0 h
+  | succ _ =>
+      cases h
+
+private theorem eo_to_smt_updater_rec_update_arg_non_reg_of_non_none
+    (s : native_String) (d : SmtDatatype) (i j n : native_Nat)
+    (t u acc : SmtTerm)
+    (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
+    (hAccTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
+    (hIdx :
+      native_zlt (native_nat_to_int j) (native_nat_to_int n) = true)
+    (hNN :
+      __smtx_typeof
+          (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) n t u acc) ≠
+        SmtType.None) :
+    ∃ B,
+      __smtx_typeof u = B ∧ B ≠ SmtType.None ∧ B ≠ SmtType.RegLan := by
+  induction n generalizing acc with
+  | zero =>
+      have hj : (j : Int) < 0 := by
+        simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+          SmtEval.native_nat_to_int] using hIdx
+      have hjNonneg : (0 : Int) ≤ j := Int.natCast_nonneg j
+      omega
+  | succ k ih =>
+      let recTerm :=
+        __eo_to_smt_updater_rec (SmtTerm.DtSel s d i j) k t u acc
+      let argTerm :=
+        native_ite (native_nateq j k) u
+          (SmtTerm.Apply (SmtTerm.DtSel s d i k) t)
+      have hTermNN :
+          __smtx_typeof (SmtTerm.Apply recTerm argTerm) ≠ SmtType.None := by
+        simpa [__eo_to_smt_updater_rec, recTerm, argTerm] using hNN
+      have hRecSel :
+          ∀ s0 d0 i0 j0, recTerm ≠ SmtTerm.DtSel s0 d0 i0 j0 := by
+        exact eo_to_smt_updater_rec_ne_dt_sel s d i j k t u acc hAccSel
+      have hRecTester :
+          ∀ s0 d0 i0, recTerm ≠ SmtTerm.DtTester s0 d0 i0 := by
+        exact eo_to_smt_updater_rec_ne_dt_tester s d i j k t u acc
+          hAccTester
+      by_cases hEq : native_nateq j k = true
+      · rcases smtx_apply_arg_non_reg_of_non_none recTerm argTerm
+            hRecSel hRecTester hTermNN with
+          ⟨B, hArgB, hBNN, hBReg⟩
+        exact ⟨B, by simpa [argTerm, native_ite, hEq] using hArgB,
+          hBNN, hBReg⟩
+      · have hIdxK :
+            native_zlt (native_nat_to_int j) (native_nat_to_int k) = true := by
+          have hjk : j < k := by
+            have hjSucc : j < Nat.succ k := by
+              have hjSuccInt : (j : Int) < (Nat.succ k : Int) := by
+                apply of_decide_eq_true
+                simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+                  SmtEval.native_nat_to_int] using hIdx
+              exact Int.ofNat_lt.mp hjSuccInt
+            have hne : j ≠ k := by
+              intro h
+              subst j
+              simp [native_nateq, SmtEval.native_nateq] at hEq
+            exact Nat.lt_of_le_of_ne (Nat.le_of_lt_succ hjSucc) hne
+          have hjkInt : (j : Int) < (k : Int) := Int.ofNat_lt.mpr hjk
+          simpa [native_zlt, SmtEval.native_zlt, native_nat_to_int,
+            SmtEval.native_nat_to_int] using hjkInt
+        have hGeneric : generic_apply_type recTerm argTerm :=
+          generic_apply_type_of_non_datatype_head hRecSel hRecTester
+        have hApplyNN :
+            __smtx_typeof_apply (__smtx_typeof recTerm)
+                (__smtx_typeof argTerm) ≠
+              SmtType.None := by
+          unfold generic_apply_type at hGeneric
+          rw [hGeneric] at hTermNN
+          exact hTermNN
+        have hRecNN :
+            __smtx_typeof recTerm ≠ SmtType.None :=
+          smt_apply_head_non_none_of_apply_non_none hApplyNN
+        exact ih acc hAccSel hAccTester hIdxK
+          (by simpa [recTerm] using hRecNN)
+
+private theorem updater_args_non_reg_of_non_none
+    (sel t u : SmtTerm) :
+    __smtx_typeof (__eo_to_smt_updater sel t u) ≠ SmtType.None ->
+      ∃ A B,
+        __smtx_typeof t = A ∧ __smtx_typeof u = B ∧
+          A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
+          A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan := by
+  intro hNN
+  cases sel
+  case DtSel s d i j =>
+    have hIdx :
+        native_zlt (native_nat_to_int j)
+            (native_nat_to_int (__smtx_dt_num_sels d i)) =
+          true :=
+      TranslationProofs.eo_to_smt_updater_dt_sel_guard_of_non_none
+        s d i j t u hNN
+    have hIteNN :
+        term_has_non_none_type
+          (SmtTerm.ite
+            (SmtTerm.Apply (SmtTerm.DtTester s d i) t)
+            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+              (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i))
+            t) := by
+      unfold term_has_non_none_type
+      simpa [__eo_to_smt_updater, native_ite, hIdx] using hNN
+    rcases ite_args_of_non_none hIteNN with
+      ⟨T, hCond, hThen, _hElse, hTNN⟩
+    have hCondNN :
+        term_has_non_none_type
+          (SmtTerm.Apply (SmtTerm.DtTester s d i) t) := by
+      unfold term_has_non_none_type
+      rw [hCond]
+      simp
+    have htTy : __smtx_typeof t = SmtType.Datatype s d :=
+      dt_tester_arg_datatype_of_non_none hCondNN
+    have hRecNN :
+        __smtx_typeof
+            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+              (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)) ≠
+          SmtType.None := by
+      rw [hThen]
+      exact hTNN
+    rcases eo_to_smt_updater_rec_update_arg_non_reg_of_non_none
+        s d i j (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)
+        (by intro s d i j h; cases h)
+        (by intro s d i h; cases h)
+        hIdx hRecNN with
+      ⟨B, huB, hBNN, hBReg⟩
+    exact ⟨SmtType.Datatype s d, B, htTy, huB, by simp, hBNN,
+      by simp, hBReg⟩
+  all_goals
+    exfalso
+    apply hNN
+    simp [__eo_to_smt_updater]
+
+private theorem smt_apply_same_head_eval_congr
+    (M : SmtModel) (f x y : SmtTerm) :
+    __smtx_model_eval M x = __smtx_model_eval M y ->
+      __smtx_model_eval M (SmtTerm.Apply f x) =
+        __smtx_model_eval M (SmtTerm.Apply f y) := by
+  intro h
+  cases f <;> simp [__smtx_model_eval, h]
+
+private theorem eo_to_smt_updater_rec_eval_congr
+    (M : SmtModel) (sel : SmtTerm) (n : native_Nat)
+    (t u acc t' u' : SmtTerm) :
+    __smtx_model_eval M t = __smtx_model_eval M t' ->
+    __smtx_model_eval M u = __smtx_model_eval M u' ->
+      __smtx_model_eval M (__eo_to_smt_updater_rec sel n t u acc) =
+        __smtx_model_eval M (__eo_to_smt_updater_rec sel n t' u' acc) := by
+  intro ht hu
+  induction n generalizing acc with
+  | zero =>
+      cases sel <;> simp [__eo_to_smt_updater_rec]
+  | succ k ih =>
+      cases sel <;> simp [__eo_to_smt_updater_rec]
+      case DtSel s d i j =>
+        have hArg :
+            __smtx_model_eval M
+                (native_ite (native_nateq j k) u
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i k) t)) =
+              __smtx_model_eval M
+                (native_ite (native_nateq j k) u'
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i k) t')) := by
+          cases hEq : native_nateq j k <;>
+            simp [native_ite, hEq, ht, hu, __smtx_model_eval]
+        cases k with
+        | zero =>
+            simpa [__eo_to_smt_updater_rec] using
+              smt_apply_same_head_eval_congr M acc
+                (native_ite (native_nateq j 0) u
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i 0) t))
+                (native_ite (native_nateq j 0) u'
+                  (SmtTerm.Apply (SmtTerm.DtSel s d i 0) t')) hArg
+        | succ k' =>
+            have hGeneric :
+                generic_apply_eval
+                  (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                    (Nat.succ k') t u acc)
+                  (native_ite (native_nateq j (Nat.succ k')) u
+                    (SmtTerm.Apply (SmtTerm.DtSel s d i (Nat.succ k')) t)) :=
+              generic_apply_eval_of_non_datatype_head
+                (by intro s0 d0 i0 j0 h; cases h)
+                (by intro s0 d0 i0 h; cases h)
+            have hGeneric' :
+                generic_apply_eval
+                  (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+                    (Nat.succ k') t' u' acc)
+                  (native_ite (native_nateq j (Nat.succ k')) u'
+                    (SmtTerm.Apply (SmtTerm.DtSel s d i (Nat.succ k')) t')) :=
+              generic_apply_eval_of_non_datatype_head
+                (by intro s0 d0 i0 j0 h; cases h)
+                (by intro s0 d0 i0 h; cases h)
+            unfold generic_apply_eval at hGeneric hGeneric'
+            rw [hGeneric M, hGeneric' M]
+            rw [ih acc, hArg]
+
+private theorem eo_to_smt_updater_eval_congr
+    (M : SmtModel) (sel t u t' u' : SmtTerm) :
+    __smtx_model_eval M t = __smtx_model_eval M t' ->
+    __smtx_model_eval M u = __smtx_model_eval M u' ->
+      __smtx_model_eval M (__eo_to_smt_updater sel t u) =
+        __smtx_model_eval M (__eo_to_smt_updater sel t' u') := by
+  intro ht hu
+  cases sel <;> simp [__eo_to_smt_updater]
+  case DtSel s d i j =>
+    cases hGuard :
+        native_zlt (native_nat_to_int j)
+          (native_nat_to_int (__smtx_dt_num_sels d i)) <;>
+      simp [native_ite, hGuard]
+    have hCond :
+        __smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtTester s d i) t) =
+          __smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtTester s d i) t') :=
+      smt_apply_same_head_eval_congr M (SmtTerm.DtTester s d i) t t' ht
+    have hThen :
+        __smtx_model_eval M
+            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+              (__smtx_dt_num_sels d i) t u (SmtTerm.DtCons s d i)) =
+          __smtx_model_eval M
+            (__eo_to_smt_updater_rec (SmtTerm.DtSel s d i j)
+              (__smtx_dt_num_sels d i) t' u' (SmtTerm.DtCons s d i)) :=
+      eo_to_smt_updater_rec_eval_congr M
+        (SmtTerm.DtSel s d i j) (__smtx_dt_num_sels d i)
+        t u (SmtTerm.DtCons s d i) t' u' ht hu
+    rw [__smtx_model_eval.eq_133, __smtx_model_eval.eq_133]
+    rw [hCond, hThen, ht]
+
+private theorem congTrueSpine_non_reg_indexed_binary_uop1_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (eoOp : UserOp1) (idx : Term)
+    (smtOp : SmtTerm -> SmtTerm -> SmtTerm)
+    (hToSmt :
+      ∀ a b,
+        __eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) a) b) =
+          smtOp (__eo_to_smt a) (__eo_to_smt b))
+    (hArgsOfNN :
+      ∀ a b,
+        __smtx_typeof (smtOp a b) ≠ SmtType.None ->
+          ∃ A B,
+            __smtx_typeof a = A ∧ __smtx_typeof b = B ∧
+              A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
+              A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan)
+    (hEvalCong :
+      ∀ a b a' b',
+        __smtx_model_eval M a = __smtx_model_eval M a' ->
+        __smtx_model_eval M b = __smtx_model_eval M b' ->
+          __smtx_model_eval M (smtOp a b) =
+            __smtx_model_eval M (smtOp a' b'))
+    (x₁ x₂ rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂) rhs) ->
+    CongTrueSpine M
+      (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂) rhs ->
+    eo_interprets M
+      (mkEq (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂) rhs)
+      true := by
+  intro hEqBool hSpine
+  rcases congTrueSpine_indexed_binary_uop1_inv M eoOp idx x₁ x₂ rhs hSpine with
+    ⟨y₁, y₂, hRhs, hArg₁, hArg₂⟩
+  subst hRhs
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hEqBool
+  · have hTypes :=
+      RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) x₁) x₂)
+        (Term.Apply (Term.Apply (Term.UOp1 eoOp idx) y₁) y₂) hEqBool
+    have hxOpNN :
+        __smtx_typeof (smtOp (__eo_to_smt x₁) (__eo_to_smt x₂)) ≠
+          SmtType.None := by
+      rw [← hToSmt x₁ x₂]
+      exact hTypes.2
+    rcases hArgsOfNN (__eo_to_smt x₁) (__eo_to_smt x₂) hxOpNN with
+      ⟨A, B, hx₁A, hx₂B, hANN, hBNN, hAReg, hBReg⟩
+    have hy₁A : __smtx_typeof (__eo_to_smt y₁) = A := by
+      rw [← smt_type_eq_of_eq_true_or_same M x₁ y₁ hArg₁]
+      exact hx₁A
+    have hy₂B : __smtx_typeof (__eo_to_smt y₂) = B := by
+      rw [← smt_type_eq_of_eq_true_or_same M x₂ y₂ hArg₂]
+      exact hx₂B
+    have hEval₁ :
+        __smtx_model_eval M (__eo_to_smt x₁) =
+          __smtx_model_eval M (__eo_to_smt y₁) :=
+      eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type M hM x₁ y₁
+        A hx₁A hy₁A hANN hAReg hArg₁
+    have hEval₂ :
+        __smtx_model_eval M (__eo_to_smt x₂) =
+          __smtx_model_eval M (__eo_to_smt y₂) :=
+      eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type M hM x₂ y₂
+        B hx₂B hy₂B hBNN hBReg hArg₂
+    rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+    rw [hToSmt x₁ x₂, hToSmt y₁ y₂]
+    rw [hEvalCong (__eo_to_smt x₁) (__eo_to_smt x₂)
+      (__eo_to_smt y₁) (__eo_to_smt y₂) hEval₁ hEval₂]
+    exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
+      (RuleProofs.smt_value_rel_refl _)
+
+private theorem eo_to_smt_tuple_update_eval_congr
+    (M : SmtModel) (T T' : SmtType) (idx t u t' u' : SmtTerm) :
+    T = T' ->
+    __smtx_model_eval M t = __smtx_model_eval M t' ->
+    __smtx_model_eval M u = __smtx_model_eval M u' ->
+      __smtx_model_eval M (__eo_to_smt_tuple_update T idx t u) =
+        __smtx_model_eval M (__eo_to_smt_tuple_update T' idx t' u') := by
+  intro hT ht hu
+  subst T'
+  cases T <;> cases idx <;> simp [__eo_to_smt_tuple_update]
+  case Datatype.Numeral s d n =>
+    by_cases hs : s = "@Tuple"
+    · subst s
+      cases hNonneg : native_zleq 0 n <;>
+        simp [__eo_to_smt_tuple_update, native_ite, hNonneg]
+      exact eo_to_smt_updater_eval_congr M
+        (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat n))
+        t u t' u' ht hu
+    · simp [__eo_to_smt_tuple_update, hs]
+
+private theorem tuple_update_args_non_reg_of_non_none
+    (T : SmtType) (idx t u : SmtTerm) :
+    __smtx_typeof (__eo_to_smt_tuple_update T idx t u) ≠ SmtType.None ->
+      ∃ A B,
+        __smtx_typeof t = A ∧ __smtx_typeof u = B ∧
+          A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
+          A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan := by
+  intro hNN
+  cases T <;> cases idx
+  case Datatype.Numeral s d n =>
+    by_cases hs : s = "@Tuple"
+    · subst s
+      cases hNonneg : native_zleq 0 n
+      · exact False.elim (hNN (by
+          simp [__eo_to_smt_tuple_update, native_ite, hNonneg]))
+      · have hUpdaterNN :
+            __smtx_typeof
+                (__eo_to_smt_updater
+                  (SmtTerm.DtSel "@Tuple" d native_nat_zero
+                    (native_int_to_nat n)) t u) ≠
+              SmtType.None := by
+          simpa [__eo_to_smt_tuple_update, native_ite, hNonneg] using hNN
+        exact updater_args_non_reg_of_non_none
+          (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat n))
+          t u hUpdaterNN
+    · exact False.elim (hNN (by
+        simp [__eo_to_smt_tuple_update, hs]))
+  all_goals
+    exfalso
+    apply hNN
+    simp [__eo_to_smt_tuple_update]
+
+private theorem congTrueSpine_tuple_update_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (idx x₁ x₂ rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq
+        (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)
+        rhs) ->
+    CongTrueSpine M
+      (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)
+      rhs ->
+    eo_interprets M
+      (mkEq
+        (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)
+        rhs) true := by
+  intro hEqBool hSpine
+  rcases congTrueSpine_indexed_binary_uop1_inv
+      M UserOp1.tuple_update idx x₁ x₂ rhs hSpine with
+    ⟨y₁, y₂, hRhs, hArg₁, hArg₂⟩
+  subst hRhs
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hEqBool
+  · have hTypes :=
+      RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)
+        (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) y₁) y₂)
+        hEqBool
+    have hxOpNN :
+        __smtx_typeof
+            (__eo_to_smt_tuple_update
+              (__eo_to_smt_type (__eo_typeof x₁)) (__eo_to_smt idx)
+              (__eo_to_smt x₁) (__eo_to_smt x₂)) ≠
+          SmtType.None := by
+      change
+        __smtx_typeof
+            (__eo_to_smt
+              (Term.Apply
+                (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁)
+                x₂)) ≠
+          SmtType.None
+      exact hTypes.2
+    rcases tuple_update_args_non_reg_of_non_none
+        (__eo_to_smt_type (__eo_typeof x₁)) (__eo_to_smt idx)
+        (__eo_to_smt x₁) (__eo_to_smt x₂) hxOpNN with
+      ⟨A, B, hx₁A, hx₂B, hANN, hBNN, hAReg, hBReg⟩
+    have hy₁A : __smtx_typeof (__eo_to_smt y₁) = A := by
+      rw [← smt_type_eq_of_eq_true_or_same M x₁ y₁ hArg₁]
+      exact hx₁A
+    have hy₂B : __smtx_typeof (__eo_to_smt y₂) = B := by
+      rw [← smt_type_eq_of_eq_true_or_same M x₂ y₂ hArg₂]
+      exact hx₂B
+    have hEval₁ :
+        __smtx_model_eval M (__eo_to_smt x₁) =
+          __smtx_model_eval M (__eo_to_smt y₁) :=
+      eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type M hM x₁ y₁
+        A hx₁A hy₁A hANN hAReg hArg₁
+    have hEval₂ :
+        __smtx_model_eval M (__eo_to_smt x₂) =
+          __smtx_model_eval M (__eo_to_smt y₂) :=
+      eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type M hM x₂ y₂
+        B hx₂B hy₂B hBNN hBReg hArg₂
+    have hArgEoTy₁ : __eo_typeof x₁ = __eo_typeof y₁ :=
+      eo_type_eq_of_eq_true_or_same M x₁ y₁ hArg₁
+    rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+    change
+      __smtx_model_eval_eq
+        (__smtx_model_eval M
+          (__eo_to_smt_tuple_update
+            (__eo_to_smt_type (__eo_typeof x₁)) (__eo_to_smt idx)
+            (__eo_to_smt x₁) (__eo_to_smt x₂)))
+        (__smtx_model_eval M
+          (__eo_to_smt_tuple_update
+            (__eo_to_smt_type (__eo_typeof y₁)) (__eo_to_smt idx)
+            (__eo_to_smt y₁) (__eo_to_smt y₂))) =
+        SmtValue.Boolean true
+    rw [eo_to_smt_tuple_update_eval_congr M
+      (__eo_to_smt_type (__eo_typeof x₁))
+      (__eo_to_smt_type (__eo_typeof y₁))
+      (__eo_to_smt idx) (__eo_to_smt x₁) (__eo_to_smt x₂)
+      (__eo_to_smt y₁) (__eo_to_smt y₂)
+      (by rw [hArgEoTy₁]) hEval₁ hEval₂]
+    exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
+      (RuleProofs.smt_value_rel_refl _)
+
 private theorem bv_binop_args_non_reg_of_non_none
     (op : SmtTerm -> SmtTerm -> SmtTerm)
     (hTy :
@@ -7742,6 +8496,84 @@ private theorem set_singleton_arg_non_reg_of_non_none
       rw [hNone] at hArgWfRec
       simp [__smtx_type_wf_rec] at hArgWfRec,
     type_wf_rec_ne_reglan hArgWfRec⟩
+
+private theorem select_args_non_reg_of_non_none
+    (a b : SmtTerm) :
+    __smtx_typeof (SmtTerm.select a b) ≠ SmtType.None ->
+      ∃ A B,
+        __smtx_typeof a = A ∧ __smtx_typeof b = B ∧
+          A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
+          A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.select a b) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases select_args_of_non_none hTerm with ⟨K, V, ha, hb⟩
+  have hKWf :
+      __smtx_type_wf_rec K native_reflist_nil = true :=
+    (smt_map_components_wf_rec_of_non_none_type a K V ha).1
+  exact ⟨SmtType.Map K V, K, ha, hb,
+    by simp,
+    by
+      intro hNone
+      rw [hNone] at hKWf
+      simp [__smtx_type_wf_rec] at hKWf,
+    by simp,
+    type_wf_rec_ne_reglan hKWf⟩
+
+private theorem set_member_args_non_reg_of_non_none
+    (a b : SmtTerm) :
+    __smtx_typeof (SmtTerm.set_member a b) ≠ SmtType.None ->
+      ∃ A B,
+        __smtx_typeof a = A ∧ __smtx_typeof b = B ∧
+          A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
+          A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.set_member a b) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases set_member_args_of_non_none hTerm with ⟨K, ha, hb⟩
+  have hKWf :
+      __smtx_type_wf_rec K native_reflist_nil = true :=
+    smt_set_component_wf_rec_of_non_none_type b K hb
+  exact ⟨K, SmtType.Set K, ha, hb,
+    by
+      intro hNone
+      rw [hNone] at hKWf
+      simp [__smtx_type_wf_rec] at hKWf,
+    by simp,
+    type_wf_rec_ne_reglan hKWf,
+    by simp⟩
+
+private theorem store_args_non_reg_of_non_none
+    (a b c : SmtTerm) :
+    __smtx_typeof (SmtTerm.store a b c) ≠ SmtType.None ->
+      ∃ A B C,
+        __smtx_typeof a = A ∧ __smtx_typeof b = B ∧
+          __smtx_typeof c = C ∧
+          A ≠ SmtType.None ∧ B ≠ SmtType.None ∧ C ≠ SmtType.None ∧
+          A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan ∧
+          C ≠ SmtType.RegLan := by
+  intro hNN
+  have hTerm : term_has_non_none_type (SmtTerm.store a b c) := by
+    unfold term_has_non_none_type
+    exact hNN
+  rcases store_args_of_non_none hTerm with ⟨K, V, ha, hb, hc⟩
+  have hComps :=
+    smt_map_components_wf_rec_of_non_none_type a K V ha
+  exact ⟨SmtType.Map K V, K, V, ha, hb, hc,
+    by simp,
+    by
+      intro hNone
+      rw [hNone] at hComps
+      simp [__smtx_type_wf_rec] at hComps,
+    by
+      intro hNone
+      rw [hNone] at hComps
+      simp [__smtx_type_wf_rec] at hComps,
+    by simp,
+    type_wf_rec_ne_reglan hComps.1,
+    type_wf_rec_ne_reglan hComps.2⟩
 
 private theorem str_substr_args_non_reg_of_non_none
     (a b c : SmtTerm) :
@@ -10598,6 +11430,49 @@ private theorem set_choose_arg_non_reg_of_non_none (x : Term) :
   · rcases hSet with ⟨A, hX, _hEmpty, _hTy⟩
     exact ⟨SmtType.Set A, hX, by simp, by simp⟩
 
+private theorem set_is_singleton_arg_non_reg_of_non_none (x : Term) :
+    __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) ≠
+      SmtType.None ->
+      ∃ A,
+        __smtx_typeof (__eo_to_smt x) = A ∧
+          A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
+  intro hNN
+  let T :=
+    __eo_to_smt_type
+      (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x))
+  let diff := SmtTerm.map_diff (__eo_to_smt x) (SmtTerm.set_empty T)
+  have hEqNN :
+      __smtx_typeof_eq
+          (__smtx_typeof (__eo_to_smt x))
+          (__smtx_typeof (SmtTerm.set_singleton diff)) ≠
+        SmtType.None := by
+    change
+      __smtx_typeof
+          (SmtTerm.eq (__eo_to_smt x)
+            (SmtTerm.set_singleton diff)) ≠
+        SmtType.None at hNN
+    simpa [T, diff, typeof_eq_eq] using hNN
+  have hEqArgs := cong_smtx_typeof_eq_non_none hEqNN
+  refine ⟨__smtx_typeof (__eo_to_smt x), rfl, hEqArgs.2, ?_⟩
+  intro hReg
+  have hSingletonNN :
+      __smtx_typeof (SmtTerm.set_singleton diff) ≠ SmtType.None := by
+    rw [← hEqArgs.1]
+    exact hEqArgs.2
+  have hSingletonTy :
+      __smtx_typeof (SmtTerm.set_singleton diff) =
+        SmtType.Set (__smtx_typeof diff) := by
+    rw [__smtx_typeof.eq_122]
+    exact smtx_typeof_guard_wf_of_non_none
+      (SmtType.Set (__smtx_typeof diff))
+      (SmtType.Set (__smtx_typeof diff)) (by
+        simpa [__smtx_typeof.eq_122] using hSingletonNN)
+  have hSetReg : SmtType.Set (__smtx_typeof diff) = SmtType.RegLan := by
+    rw [← hSingletonTy, ← hEqArgs.1]
+    exact hReg
+  cases hSetReg
+
 private theorem congTrueSpine_set_choose_eq_true
     (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
     RuleProofs.eo_has_bool_type
@@ -10632,6 +11507,49 @@ private theorem congTrueSpine_set_choose_eq_true
             (SmtTerm.map_diff (__eo_to_smt b) (SmtTerm.set_empty T₂))
       rw [hT, __smtx_model_eval.eq_138, __smtx_model_eval.eq_138,
         hEval])
+    x rhs
+
+private theorem congTrueSpine_set_is_singleton_eq_true
+    (M : SmtModel) (hM : model_total_typed M) (x rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.UOp UserOp.set_is_singleton) x) rhs) ->
+    CongTrueSpine M (Term.Apply (Term.UOp UserOp.set_is_singleton) x) rhs ->
+    eo_interprets M
+      (mkEq (Term.Apply (Term.UOp UserOp.set_is_singleton) x) rhs) true :=
+  congTrueSpine_eotype_non_reg_unop_eq_true_of_eval_congr
+    M hM UserOp.set_is_singleton
+    set_is_singleton_arg_non_reg_of_non_none
+    (by
+      intro a b _hSmt hEo hEval
+      have hChooseTy :
+          __eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a) =
+            __eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b) := by
+        change __eo_typeof_set_choose (__eo_typeof a) =
+          __eo_typeof_set_choose (__eo_typeof b)
+        rw [hEo]
+      let T₁ :=
+        __eo_to_smt_type
+          (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a))
+      let T₂ :=
+        __eo_to_smt_type
+          (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b))
+      have hT : T₁ = T₂ := by
+        dsimp [T₁, T₂]
+        rw [hChooseTy]
+      change
+        __smtx_model_eval M
+            (SmtTerm.eq (__eo_to_smt a)
+              (SmtTerm.set_singleton
+                (SmtTerm.map_diff (__eo_to_smt a)
+                  (SmtTerm.set_empty T₁)))) =
+          __smtx_model_eval M
+            (SmtTerm.eq (__eo_to_smt b)
+              (SmtTerm.set_singleton
+                (SmtTerm.map_diff (__eo_to_smt b)
+                  (SmtTerm.set_empty T₂))))
+      rw [hT, __smtx_model_eval.eq_134, __smtx_model_eval.eq_134,
+        __smtx_model_eval.eq_122, __smtx_model_eval.eq_122,
+        __smtx_model_eval.eq_138, __smtx_model_eval.eq_138, hEval])
     x rhs
 
 private theorem congTrueSpine_set_is_empty_eq_true
@@ -11713,6 +12631,565 @@ private theorem no_bool_eq_left_of_smt_type_none {t rhs : Term} :
   rw [typeof_eq_eq, hTy] at hBool
   simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq]
     at hBool
+
+private theorem eo_to_smt_set_insert_type_congr_base :
+    ∀ xs a b,
+      __smtx_typeof a = __smtx_typeof b ->
+        __smtx_typeof (__eo_to_smt_set_insert xs a) =
+          __smtx_typeof (__eo_to_smt_set_insert xs b) := by
+  intro xs a b hTy
+  cases xs <;> try rfl
+  case __eo_List_nil =>
+    exact hTy
+  case Apply f tail =>
+    cases f <;> try rfl
+    case Apply f' head =>
+      cases f' <;> try rfl
+      case __eo_List_cons =>
+        change
+          __smtx_typeof
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail a)) =
+            __smtx_typeof
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail b))
+        rw [typeof_set_union_eq, typeof_set_union_eq,
+          eo_to_smt_set_insert_type_congr_base tail a b hTy]
+termination_by xs a b _ => xs
+
+private theorem set_insert_translation_arg_is_cons
+    (xs x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+    ∃ head tail,
+      xs = Term.Apply (Term.Apply Term.__eo_List_cons head) tail := by
+  intro hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  cases xs
+  all_goals
+    try
+      exfalso
+      apply hTrans
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    all_goals
+      try
+        exfalso
+        apply hTrans
+        change __smtx_typeof SmtTerm.None = SmtType.None
+        exact TranslationProofs.smtx_typeof_none
+    case Apply f' head =>
+      cases f'
+      all_goals
+        try
+          exfalso
+          apply hTrans
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none
+      case __eo_List_cons =>
+        exact ⟨head, tail, rfl⟩
+
+private theorem set_insert_arg_not_eq_bool_of_translation
+    (xs ys x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+    RuleProofs.eo_has_bool_type (mkEq xs ys) ->
+    False := by
+  intro hTrans hBool
+  rcases set_insert_translation_arg_is_cons xs x hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  exact
+    no_bool_eq_left_of_smt_type_none
+      (t := Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+      (rhs := ys)
+      (by
+        change
+          __smtx_typeof
+              (SmtTerm.Apply
+                (SmtTerm.Apply SmtTerm.None (__eo_to_smt head))
+                (__eo_to_smt tail)) = SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply])
+      hBool
+
+private theorem eo_to_smt_set_insert_type_congr_arg
+    (xs x y : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+    __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) ->
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) y)) := by
+  intro hTrans hTy
+  rcases set_insert_translation_arg_is_cons xs x hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  change
+    __smtx_typeof
+        (__eo_to_smt_set_insert
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt x)) =
+      __smtx_typeof
+        (__eo_to_smt_set_insert
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt y))
+  exact eo_to_smt_set_insert_type_congr_base
+    (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+    (__eo_to_smt x) (__eo_to_smt y) hTy
+
+private theorem congTypeSpine_set_insert_eq_has_bool_type
+    (xs x rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+        rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_binary_uop_inv UserOp.set_insert xs x rhs hSpine with
+    ⟨ys, y, hRhs, hList, hArg⟩
+  subst hRhs
+  cases hList with
+  | inl hSame =>
+      subst ys
+      have hArgTy :
+          __smtx_typeof (__eo_to_smt x) =
+            __smtx_typeof (__eo_to_smt y) :=
+        smt_type_eq_of_eq_bool_or_same x y hArg
+      exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) y)
+        (eo_to_smt_set_insert_type_congr_arg xs x y hTrans hArgTy)
+        hTrans
+  | inr hBool =>
+      exact False.elim
+        (set_insert_arg_not_eq_bool_of_translation xs ys x hTrans hBool)
+
+private theorem eo_to_smt_set_insert_eval_congr_base
+    (M : SmtModel) :
+    ∀ xs a b,
+      __smtx_model_eval M a = __smtx_model_eval M b ->
+        __smtx_model_eval M (__eo_to_smt_set_insert xs a) =
+          __smtx_model_eval M (__eo_to_smt_set_insert xs b) := by
+  intro xs a b hEval
+  cases xs <;> try rfl
+  case __eo_List_nil =>
+    exact hEval
+  case Apply f tail =>
+    cases f <;> try rfl
+    case Apply f' head =>
+      cases f' <;> try rfl
+      case __eo_List_cons =>
+        change
+          __smtx_model_eval M
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail a)) =
+            __smtx_model_eval M
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail b))
+        rw [__smtx_model_eval.eq_123, __smtx_model_eval.eq_123,
+          eo_to_smt_set_insert_eval_congr_base M tail a b hEval]
+termination_by xs a b _ => xs
+
+private theorem eo_to_smt_set_insert_base_set_type_of_set_type :
+    ∀ xs a A,
+      __smtx_typeof (__eo_to_smt_set_insert xs a) = SmtType.Set A ->
+        ∃ B, __smtx_typeof a = SmtType.Set B := by
+  intro xs a A hTy
+  cases xs <;> try (simp [__eo_to_smt_set_insert] at hTy)
+  case __eo_List_nil =>
+    exact ⟨A, hTy⟩
+  case Apply f tail =>
+    cases f <;> try (simp [__eo_to_smt_set_insert] at hTy)
+    case Apply f' head =>
+      cases f' <;> try (simp [__eo_to_smt_set_insert] at hTy)
+      case __eo_List_cons =>
+        have hNN : term_has_non_none_type
+            (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+              (__eo_to_smt_set_insert tail a)) := by
+          unfold term_has_non_none_type
+          rw [hTy]
+          simp
+        rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
+            (typeof_set_union_eq
+              (SmtTerm.set_singleton (__eo_to_smt head))
+              (__eo_to_smt_set_insert tail a))
+            hNN with
+          ⟨B, _hHead, hTail⟩
+        exact
+          eo_to_smt_set_insert_base_set_type_of_set_type tail a B hTail
+termination_by xs a A _ => xs
+
+private theorem set_insert_base_arg_non_reg_of_translation
+    (xs x : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) ->
+      ∃ A,
+        __smtx_typeof (__eo_to_smt x) = A ∧
+          A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
+  intro hTrans
+  rcases set_insert_translation_arg_is_cons xs x hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  have hNN : term_has_non_none_type
+      (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+        (__eo_to_smt_set_insert tail (__eo_to_smt x))) := by
+    unfold term_has_non_none_type
+    change
+      __smtx_typeof
+          (__eo_to_smt_set_insert
+            (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+            (__eo_to_smt x)) ≠ SmtType.None at hTrans
+    exact hTrans
+  rcases set_binop_args_of_non_none (op := SmtTerm.set_union)
+      (typeof_set_union_eq (SmtTerm.set_singleton (__eo_to_smt head))
+        (__eo_to_smt_set_insert tail (__eo_to_smt x)))
+      hNN with
+    ⟨A, _hHead, hTail⟩
+  rcases eo_to_smt_set_insert_base_set_type_of_set_type
+      tail (__eo_to_smt x) A hTail with
+    ⟨B, hBase⟩
+  exact ⟨SmtType.Set B, hBase, by simp, by simp⟩
+
+private theorem congTrueSpine_set_insert_eq_true
+    (M : SmtModel) (hM : model_total_typed M) (xs x rhs : Term) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+        rhs) ->
+    CongTrueSpine M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) rhs ->
+    eo_interprets M
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+        rhs) true := by
+  intro hEqBool hSpine
+  rcases congTrueSpine_binary_uop_inv M UserOp.set_insert xs x rhs hSpine with
+    ⟨ys, y, hRhs, hList, hArg⟩
+  subst hRhs
+  have hTypes :=
+    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) ys) y)
+      hEqBool
+  have hTrans : RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) xs) x) :=
+    hTypes.2
+  cases hList with
+  | inl hSame =>
+      subst ys
+      apply RuleProofs.eo_interprets_eq_of_rel M
+      · exact hEqBool
+      · rcases set_insert_base_arg_non_reg_of_translation xs x hTrans with
+          ⟨A, hxA, hANN, hAReg⟩
+        have hyA : __smtx_typeof (__eo_to_smt y) = A := by
+          rw [← smt_type_eq_of_eq_true_or_same M x y hArg]
+          exact hxA
+        have hEval :
+            __smtx_model_eval M (__eo_to_smt x) =
+              __smtx_model_eval M (__eo_to_smt y) :=
+          eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type
+            M hM x y A hxA hyA hANN hAReg hArg
+        rcases set_insert_translation_arg_is_cons xs x hTrans with
+          ⟨head, tail, hXs⟩
+        subst hXs
+        rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+        change
+          __smtx_model_eval_eq
+              (__smtx_model_eval M
+                (__eo_to_smt_set_insert
+                  (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                  (__eo_to_smt x)))
+              (__smtx_model_eval M
+                (__eo_to_smt_set_insert
+                  (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                  (__eo_to_smt y))) =
+            SmtValue.Boolean true
+        rw [eo_to_smt_set_insert_eval_congr_base M
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt x) (__eo_to_smt y) hEval]
+        exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
+          (RuleProofs.smt_value_rel_refl _)
+  | inr hBool =>
+      exact False.elim
+        (set_insert_arg_not_eq_bool_of_translation xs ys x hTrans
+          (RuleProofs.eo_has_bool_type_of_interprets_true M (mkEq xs ys)
+            hBool))
+
+private theorem eo_to_smt_exists_type_congr_body :
+    ∀ xs a b,
+      __smtx_typeof a = __smtx_typeof b ->
+        __smtx_typeof (__eo_to_smt_exists xs a) =
+          __smtx_typeof (__eo_to_smt_exists xs b) := by
+  intro xs a b hTy
+  cases xs <;> try rfl
+  case __eo_List_nil =>
+    exact hTy
+  case Apply f tail =>
+    cases f <;> try rfl
+    case Apply f' head =>
+      cases f' <;> try rfl
+      case __eo_List_cons =>
+        cases head <;> try rfl
+        case Var name T =>
+          cases name <;> try rfl
+          case String s =>
+            change
+              __smtx_typeof
+                  (SmtTerm.exists s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists tail a)) =
+                __smtx_typeof
+                  (SmtTerm.exists s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists tail b))
+            rw [__smtx_typeof.eq_135, __smtx_typeof.eq_135]
+            rw [eo_to_smt_exists_type_congr_body tail a b hTy]
+termination_by xs a b _ => xs
+
+private theorem exists_translation_arg_is_cons
+    (xs body : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ->
+    ∃ head tail,
+      xs = Term.Apply (Term.Apply Term.__eo_List_cons head) tail := by
+  intro hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  cases xs
+  all_goals
+    try
+      exfalso
+      apply hTrans
+      change __smtx_typeof SmtTerm.None = SmtType.None
+      exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    all_goals
+      try
+        exfalso
+        apply hTrans
+        change __smtx_typeof SmtTerm.None = SmtType.None
+        exact TranslationProofs.smtx_typeof_none
+    case Apply f' head =>
+      cases f'
+      all_goals
+        try
+          exfalso
+          apply hTrans
+          change __smtx_typeof SmtTerm.None = SmtType.None
+          exact TranslationProofs.smtx_typeof_none
+      case __eo_List_cons =>
+        exact ⟨head, tail, rfl⟩
+
+private theorem forall_translation_arg_is_cons
+    (xs body : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ->
+    ∃ head tail,
+      xs = Term.Apply (Term.Apply Term.__eo_List_cons head) tail := by
+  intro hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans
+  cases xs
+  all_goals
+    try
+      exfalso
+      apply hTrans
+      change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+      rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+      rfl
+  case __eo_List_nil =>
+    exfalso
+    apply hTrans
+    change __smtx_typeof SmtTerm.None = SmtType.None
+    exact TranslationProofs.smtx_typeof_none
+  case Apply f tail =>
+    cases f
+    all_goals
+      try
+        exfalso
+        apply hTrans
+        change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+        rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+        rfl
+    case Apply f' head =>
+      cases f'
+      all_goals
+        try
+          exfalso
+          apply hTrans
+          change __smtx_typeof (SmtTerm.not SmtTerm.None) = SmtType.None
+          rw [typeof_not_eq, TranslationProofs.smtx_typeof_none]
+          rfl
+      case __eo_List_cons =>
+        exact ⟨head, tail, rfl⟩
+
+private theorem exists_arg_not_eq_bool_of_translation
+    (xs ys body : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ->
+    RuleProofs.eo_has_bool_type (mkEq xs ys) ->
+    False := by
+  intro hTrans hBool
+  rcases exists_translation_arg_is_cons xs body hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  exact
+    no_bool_eq_left_of_smt_type_none
+      (t := Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+      (rhs := ys)
+      (by
+        change
+          __smtx_typeof
+              (SmtTerm.Apply
+                (SmtTerm.Apply SmtTerm.None (__eo_to_smt head))
+                (__eo_to_smt tail)) = SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply])
+      hBool
+
+private theorem forall_arg_not_eq_bool_of_translation
+    (xs ys body : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ->
+    RuleProofs.eo_has_bool_type (mkEq xs ys) ->
+    False := by
+  intro hTrans hBool
+  rcases forall_translation_arg_is_cons xs body hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  exact
+    no_bool_eq_left_of_smt_type_none
+      (t := Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+      (rhs := ys)
+      (by
+        change
+          __smtx_typeof
+              (SmtTerm.Apply
+                (SmtTerm.Apply SmtTerm.None (__eo_to_smt head))
+                (__eo_to_smt tail)) = SmtType.None
+        simp [__smtx_typeof, __smtx_typeof_apply])
+      hBool
+
+private theorem eo_to_smt_exists_type_congr_arg
+    (xs body body' : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ->
+    __smtx_typeof (__eo_to_smt body) =
+      __smtx_typeof (__eo_to_smt body') ->
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body')) := by
+  intro hTrans hTy
+  rcases exists_translation_arg_is_cons xs body hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  change
+    __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt body)) =
+      __smtx_typeof
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+          (__eo_to_smt body'))
+  exact eo_to_smt_exists_type_congr_body
+    (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+    (__eo_to_smt body) (__eo_to_smt body') hTy
+
+private theorem eo_to_smt_forall_type_congr_arg
+    (xs body body' : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ->
+    __smtx_typeof (__eo_to_smt body) =
+      __smtx_typeof (__eo_to_smt body') ->
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)) =
+        __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body')) := by
+  intro hTrans hTy
+  rcases forall_translation_arg_is_cons xs body hTrans with
+    ⟨head, tail, hXs⟩
+  subst hXs
+  change
+    __smtx_typeof
+        (SmtTerm.not
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+            (SmtTerm.not (__eo_to_smt body)))) =
+      __smtx_typeof
+        (SmtTerm.not
+          (__eo_to_smt_exists
+            (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+            (SmtTerm.not (__eo_to_smt body'))))
+  rw [typeof_not_eq, typeof_not_eq]
+  rw [eo_to_smt_exists_type_congr_body
+    (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+    (SmtTerm.not (__eo_to_smt body)) (SmtTerm.not (__eo_to_smt body'))
+    (by rw [typeof_not_eq, typeof_not_eq, hTy])]
+
+private theorem congTypeSpine_exists_eq_has_bool_type
+    (xs body rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) ->
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body)
+        rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_binary_uop_inv UserOp.exists xs body rhs hSpine with
+    ⟨ys, body', hRhs, hList, hBody⟩
+  subst hRhs
+  cases hList with
+  | inl _ =>
+      subst ys
+      have hBodyTy :
+          __smtx_typeof (__eo_to_smt body) =
+            __smtx_typeof (__eo_to_smt body') :=
+        smt_type_eq_of_eq_bool_or_same body body' hBody
+      exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+        (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body')
+        (eo_to_smt_exists_type_congr_arg xs body body' hTrans hBodyTy)
+        hTrans
+  | inr hBool =>
+      exact False.elim
+        (exists_arg_not_eq_bool_of_translation xs ys body hTrans hBool)
+
+private theorem congTypeSpine_forall_eq_has_bool_type
+    (xs body rhs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) ->
+    CongTypeSpine
+      (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) rhs ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+        rhs) := by
+  intro hTrans hSpine
+  rcases congTypeSpine_binary_uop_inv UserOp.forall xs body rhs hSpine with
+    ⟨ys, body', hRhs, hList, hBody⟩
+  subst hRhs
+  cases hList with
+  | inl _ =>
+      subst ys
+      have hBodyTy :
+          __smtx_typeof (__eo_to_smt body) =
+            __smtx_typeof (__eo_to_smt body') :=
+        smt_type_eq_of_eq_bool_or_same body body' hBody
+      exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body')
+        (eo_to_smt_forall_type_congr_arg xs body body' hTrans hBodyTy)
+        hTrans
+  | inr hBool =>
+      exact False.elim
+        (forall_arg_not_eq_bool_of_translation xs ys body hTrans hBool)
 
 private theorem no_translation_of_eo_apply_type_none {f x : Term} :
     __eo_to_smt (Term.Apply f x) =
@@ -13026,7 +14503,8 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                     (SmtTerm.map_diff (__eo_to_smt b)
                       (SmtTerm.set_empty T₂))))
           rw [hT, typeof_eq_eq, typeof_eq_eq, __smtx_typeof.eq_122,
-            __smtx_typeof.eq_122, typeof_map_diff_eq, typeof_map_diff_eq, hSmt])
+            __smtx_typeof.eq_122, typeof_map_diff_eq, typeof_map_diff_eq,
+            hSmt])
         x rhs hTrans hSpine
   | Term.Apply (Term.Apply (Term.UOp UserOp.set_union) x₁) x₂ =>
       exact congTypeSpine_set_binop_eq_has_bool_type UserOp.set_union
@@ -13676,7 +15154,8 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                           (SmtTerm.set_empty T₂))))
                               rw [hT, typeof_eq_eq, typeof_eq_eq,
                                 __smtx_typeof.eq_122, __smtx_typeof.eq_122,
-                                typeof_map_diff_eq, typeof_map_diff_eq, hSmt])
+                                typeof_map_diff_eq, typeof_map_diff_eq,
+                                hSmt])
                             x (Term.Apply g y) hTrans hApp
                       case _at_div_by_zero =>
                         exact congTypeSpine_qdiv_by_zero_eq_has_bool_type
@@ -14280,7 +15759,604 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                         s d i j ((Term.Apply f' z).Apply x)
                         (Term.Apply g y) hHead' hTrans hApp
                   | _ =>
-                      sorry
+                      by_cases hHeadTrans :
+                          RuleProofs.eo_has_smt_translation
+                            (Term.Apply f' z)
+                      · have hFnBool :
+                            RuleProofs.eo_has_bool_type
+                              (mkEq (Term.Apply f' z) g) :=
+                          congTypeSpine_eq_has_bool_type
+                            (Term.Apply f' z) g hHeadTrans hFn
+                        have hGTrans :
+                            RuleProofs.eo_has_smt_translation g :=
+                          by
+                            have hFnTypes :=
+                              RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                (Term.Apply f' z) g hFnBool
+                            intro hNone
+                            exact hFnTypes.2 (hFnTypes.1.trans hNone)
+                        exact
+                          congTypeSpine_generic_apply_eq_has_bool_type
+                            (Term.Apply f' z) g x y hTrans
+                            (eo_to_smt_apply_generic_of_has_smt_translation
+                              (Term.Apply f' z) x hHeadTrans)
+                            (eo_to_smt_apply_generic_of_has_smt_translation
+                              g y hGTrans)
+                            (generic_apply_type_of_non_datatype_head
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_sel f' z)
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_tester f' z))
+                            (generic_apply_type_of_non_datatype_head
+                              (by
+                                intro s d i j hSel
+                                cases hFn with
+                                | refl _ =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                        f' z s d i j hSel
+                                | app hHead hArg =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                        _ _ s d i j hSel)
+                              (by
+                                intro s d i hTester
+                                cases hFn with
+                                | refl _ =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                        f' z s d i hTester
+                                | app hHead hArg =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                        _ _ s d i hTester))
+                            hFnBool hArg
+                      · match f' with
+                        | Term.UOp op =>
+                            cases op <;>
+                              try
+                                exact False.elim
+                                  (hHeadTrans
+                                    (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                      _ z x (by rfl) hTrans))
+                            case eq =>
+                              exact congTypeSpine_eq_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case and =>
+                              exact congTypeSpine_and_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case or =>
+                              exact congTypeSpine_or_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case imp =>
+                              exact congTypeSpine_imp_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case xor =>
+                              exact congTypeSpine_xor_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case plus =>
+                              exact congTypeSpine_plus_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case neg =>
+                              exact congTypeSpine_neg_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case mult =>
+                              exact congTypeSpine_mult_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case lt =>
+                              exact congTypeSpine_lt_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case leq =>
+                              exact congTypeSpine_leq_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case gt =>
+                              exact congTypeSpine_gt_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case geq =>
+                              exact congTypeSpine_geq_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case div =>
+                              exact congTypeSpine_div_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case mod =>
+                              exact congTypeSpine_mod_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case multmult =>
+                              exact congTypeSpine_multmult_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case div_total =>
+                              exact congTypeSpine_div_total_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case mod_total =>
+                              exact congTypeSpine_mod_total_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case multmult_total =>
+                              exact congTypeSpine_multmult_total_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case divisible =>
+                              exact congTypeSpine_divisible_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case select =>
+                              exact
+                                congTypeSpine_typecongr_binop_eq_has_bool_type
+                                  UserOp.select SmtTerm.select
+                                  (by intro a b; rfl)
+                                  (by
+                                    intro a b a' b' ha hb
+                                    rw [typeof_select_eq, typeof_select_eq,
+                                      ha, hb])
+                                  z x (Term.Apply g y) hTrans hApp
+                            case concat =>
+                              exact congTypeSpine_bv_concat_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case qdiv =>
+                              exact congTypeSpine_qdiv_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case qdiv_total =>
+                              exact congTypeSpine_qdiv_total_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case str_concat =>
+                              exact
+                                congTypeSpine_seq_binop_eq_has_bool_type
+                                  UserOp.str_concat SmtTerm.str_concat
+                                  (by intro a b; rfl)
+                                  (by intro a b; exact typeof_str_concat_eq a b)
+                                  z x (Term.Apply g y) hTrans hApp
+                            case str_contains =>
+                              exact
+                                congTypeSpine_seq_binop_ret_eq_has_bool_type
+                                  UserOp.str_contains SmtTerm.str_contains
+                                  SmtType.Bool
+                                  (by intro a b; rfl)
+                                  (by intro a b; exact typeof_str_contains_eq a b)
+                                  z x (Term.Apply g y) hTrans hApp
+                            case str_at =>
+                              exact
+                                congTypeSpine_typecongr_binop_eq_has_bool_type
+                                  UserOp.str_at SmtTerm.str_at
+                                  (by intro a b; rfl)
+                                  (by
+                                    intro a b a' b' ha hb
+                                    rw [typeof_str_at_eq, typeof_str_at_eq,
+                                      ha, hb])
+                                  z x (Term.Apply g y) hTrans hApp
+                            case str_prefixof =>
+                              exact
+                                congTypeSpine_seq_char_binop_eq_has_bool_type
+                                  UserOp.str_prefixof SmtTerm.str_prefixof
+                                  SmtType.Bool
+                                  (by intro a b; rfl)
+                                  (by intro a b; exact typeof_str_prefixof_eq a b)
+                                  z x (Term.Apply g y) hTrans hApp
+                            case str_suffixof =>
+                              exact
+                                congTypeSpine_seq_char_binop_eq_has_bool_type
+                                  UserOp.str_suffixof SmtTerm.str_suffixof
+                                  SmtType.Bool
+                                  (by intro a b; rfl)
+                                  (by intro a b; exact typeof_str_suffixof_eq a b)
+                                  z x (Term.Apply g y) hTrans hApp
+                            case str_lt =>
+                              exact
+                                congTypeSpine_seq_char_binop_eq_has_bool_type
+                                  UserOp.str_lt SmtTerm.str_lt SmtType.Bool
+                                  (by intro a b; rfl)
+                                  (by intro a b; exact typeof_str_lt_eq a b)
+                                  z x (Term.Apply g y) hTrans hApp
+                            case str_leq =>
+                              exact
+                                congTypeSpine_seq_char_binop_eq_has_bool_type
+                                  UserOp.str_leq SmtTerm.str_leq SmtType.Bool
+                                  (by intro a b; rfl)
+                                  (by intro a b; exact typeof_str_leq_eq a b)
+                                  z x (Term.Apply g y) hTrans hApp
+                            case seq_nth =>
+                              exact
+                                congTypeSpine_typecongr_binop_eq_has_bool_type
+                                  UserOp.seq_nth SmtTerm.seq_nth
+                                  (by intro a b; rfl)
+                                  (by
+                                    intro a b a' b' ha hb
+                                    rw [typeof_seq_nth_eq, typeof_seq_nth_eq,
+                                      ha, hb])
+                                  z x (Term.Apply g y) hTrans hApp
+                            case _at_strings_num_occur =>
+                              exact congTypeSpine_strings_num_occur_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case re_range =>
+                              exact
+                                congTypeSpine_seq_char_binop_eq_has_bool_type
+                                  UserOp.re_range SmtTerm.re_range
+                                  SmtType.RegLan
+                                  (by intro a b; rfl)
+                                  (by intro a b; exact typeof_re_range_eq a b)
+                                  z x (Term.Apply g y) hTrans hApp
+                            case re_concat =>
+                              exact congTypeSpine_re_concat_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case re_union =>
+                              exact congTypeSpine_re_union_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case re_inter =>
+                              exact congTypeSpine_re_inter_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case re_diff =>
+                              exact congTypeSpine_re_diff_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case str_in_re =>
+                              exact congTypeSpine_str_in_re_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case set_union =>
+                              exact congTypeSpine_set_binop_eq_has_bool_type
+                                UserOp.set_union SmtTerm.set_union
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_set_union_eq a b)
+                                z x (Term.Apply g y) hTrans hApp
+                            case set_inter =>
+                              exact congTypeSpine_set_binop_eq_has_bool_type
+                                UserOp.set_inter SmtTerm.set_inter
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_set_inter_eq a b)
+                                z x (Term.Apply g y) hTrans hApp
+                            case set_minus =>
+                              exact congTypeSpine_set_binop_eq_has_bool_type
+                                UserOp.set_minus SmtTerm.set_minus
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_set_minus_eq a b)
+                                z x (Term.Apply g y) hTrans hApp
+                            case set_member =>
+                              exact
+                                congTypeSpine_typecongr_binop_eq_has_bool_type
+                                  UserOp.set_member SmtTerm.set_member
+                                  (by intro a b; rfl)
+                                  (by
+                                    intro a b a' b' ha hb
+                                    rw [typeof_set_member_eq,
+                                      typeof_set_member_eq, ha, hb])
+                                  z x (Term.Apply g y) hTrans hApp
+                            case set_subset =>
+                              exact congTypeSpine_set_binop_ret_eq_has_bool_type
+                                UserOp.set_subset SmtTerm.set_subset
+                                SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_set_subset_eq a b)
+                                z x (Term.Apply g y) hTrans hApp
+                            case _at_from_bools =>
+                              exact congTypeSpine_bv_from_bools_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvand =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvand SmtTerm.bvand
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_39])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvor =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvor SmtTerm.bvor
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_40])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvnand =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvnand SmtTerm.bvnand
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_41])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvnor =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvnor SmtTerm.bvnor
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_42])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvxor =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvxor SmtTerm.bvxor
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_43])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvxnor =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvxnor SmtTerm.bvxnor
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_44])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvcomp =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvcomp SmtTerm.bvcomp
+                                (SmtType.BitVec 1)
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_45])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvadd =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvadd SmtTerm.bvadd
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_47])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvmul =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvmul SmtTerm.bvmul
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_48])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvudiv =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvudiv SmtTerm.bvudiv
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_49])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvurem =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvurem SmtTerm.bvurem
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_50])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsub =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvsub SmtTerm.bvsub
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_51])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsdiv =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvsdiv SmtTerm.bvsdiv
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_52])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsrem =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvsrem SmtTerm.bvsrem
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_53])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsmod =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvsmod SmtTerm.bvsmod
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_54])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvult =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvult SmtTerm.bvult SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_55])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvule =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvule SmtTerm.bvule SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_56])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvugt =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvugt SmtTerm.bvugt SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_57])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvuge =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvuge SmtTerm.bvuge SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_58])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvslt =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvslt SmtTerm.bvslt SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_59])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsle =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvsle SmtTerm.bvsle SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_60])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsgt =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvsgt SmtTerm.bvsgt SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_61])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsge =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvsge SmtTerm.bvsge SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_62])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvshl =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvshl SmtTerm.bvshl
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_63])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvlshr =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvlshr SmtTerm.bvlshr
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_64])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvashr =>
+                              exact congTypeSpine_bv_binop_eq_has_bool_type
+                                UserOp.bvashr SmtTerm.bvashr
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_65])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvuaddo =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvuaddo SmtTerm.bvuaddo SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_70])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsaddo =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvsaddo SmtTerm.bvsaddo SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_72])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvumulo =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvumulo SmtTerm.bvumulo SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_73])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsmulo =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvsmulo SmtTerm.bvsmulo SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_74])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvusubo =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvusubo SmtTerm.bvusubo SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_75])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvssubo =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvssubo SmtTerm.bvssubo SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_76])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsdivo =>
+                              exact congTypeSpine_bv_binop_ret_eq_has_bool_type
+                                UserOp.bvsdivo SmtTerm.bvsdivo SmtType.Bool
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_77])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvultbv =>
+                              exact congTypeSpine_bv_pred_to_bv_eq_has_bool_type
+                                UserOp.bvultbv SmtTerm.bvult
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_55])
+                                z x (Term.Apply g y) hTrans hApp
+                            case bvsltbv =>
+                              exact congTypeSpine_bv_pred_to_bv_eq_has_bool_type
+                                UserOp.bvsltbv SmtTerm.bvslt
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_59])
+                                z x (Term.Apply g y) hTrans hApp
+                            case tuple =>
+                              sorry
+                            case set_insert =>
+                              exact congTypeSpine_set_insert_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case «forall» =>
+                              exact congTypeSpine_forall_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                            case «exists» =>
+                              exact congTypeSpine_exists_eq_has_bool_type
+                                z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.ite) c =>
+                            exact congTypeSpine_ite_eq_has_bool_type
+                              c z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.bvite) c =>
+                            exact congTypeSpine_bvite_eq_has_bool_type
+                              c z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.store) a =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.store SmtTerm.store
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_store_eq, typeof_store_eq,
+                                    ha, hb, hc])
+                                a z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.str_substr) s =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.str_substr SmtTerm.str_substr
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_str_substr_eq,
+                                    typeof_str_substr_eq, ha, hb, hc])
+                                s z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.str_replace) s =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.str_replace SmtTerm.str_replace
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_str_replace_eq,
+                                    typeof_str_replace_eq, ha, hb, hc])
+                                s z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.str_indexof) s =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.str_indexof SmtTerm.str_indexof
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_str_indexof_eq,
+                                    typeof_str_indexof_eq, ha, hb, hc])
+                                s z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.str_update) s =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.str_update SmtTerm.str_update
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_str_update_eq,
+                                    typeof_str_update_eq, ha, hb, hc])
+                                s z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.str_replace_all) s =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.str_replace_all SmtTerm.str_replace_all
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_str_replace_all_eq,
+                                    typeof_str_replace_all_eq, ha, hb, hc])
+                                s z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.str_replace_re) s =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.str_replace_re SmtTerm.str_replace_re
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_str_replace_re_eq,
+                                    typeof_str_replace_re_eq, ha, hb, hc])
+                                s z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.str_replace_re_all) s =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.str_replace_re_all
+                                SmtTerm.str_replace_re_all
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_str_replace_re_all_eq,
+                                    typeof_str_replace_re_all_eq, ha, hb, hc])
+                                s z x (Term.Apply g y) hTrans hApp
+                        | Term.Apply (Term.UOp UserOp.str_indexof_re) s =>
+                            exact
+                              congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                UserOp.str_indexof_re SmtTerm.str_indexof_re
+                                (by intro a b c; rfl)
+                                (by
+                                  intro a b c a' b' c' ha hb hc
+                                  rw [typeof_str_indexof_re_eq,
+                                    typeof_str_indexof_re_eq, ha, hb, hc])
+                                s z x (Term.Apply g y) hTrans hApp
+                        | Term.UOp1 UserOp1.update i =>
+                            exact
+                              congTypeSpine_typecongr_indexed_binary_uop1_eq_has_bool_type
+                                UserOp1.update i
+                                (fun a b =>
+                                  __eo_to_smt_updater (__eo_to_smt i) a b)
+                                (by intro a b; rfl)
+                                (by
+                                  intro a b a' b' ha hb
+                                  exact eo_to_smt_updater_type_congr
+                                    (__eo_to_smt i) a b a' b' ha hb)
+                                z x (Term.Apply g y) hTrans hApp
+                        | Term.UOp1 UserOp1.tuple_update i =>
+                            exact congTypeSpine_tuple_update_eq_has_bool_type
+                              i z x (Term.Apply g y) hTrans hApp
+                        | _ => sorry
 
 /--
 The remaining semantic core for congruence: a syntactic congruence spine
@@ -15569,7 +17645,12 @@ private theorem congTrueSpine_eq_true
                       case set_is_singleton =>
                         cases hFn with
                         | refl _ =>
-                            sorry
+                            exact
+                              congTrueSpine_set_is_singleton_eq_true M hM
+                                x
+                                (Term.Apply
+                                  (Term.UOp UserOp.set_is_singleton) y)
+                                hEqBool hApp
                       case _at_div_by_zero =>
                         exact congTrueSpine_qdiv_by_zero_eq_true M hM
                           x (Term.Apply g y) hEqBool hApp
@@ -16289,7 +18370,676 @@ private theorem congTrueSpine_eq_true
                         M hM s d i j ((Term.Apply f' z).Apply x)
                         (Term.Apply g y) hHead' hEqBool hApp
                   | _ =>
-                      sorry
+                      by_cases hHeadTrans :
+                          RuleProofs.eo_has_smt_translation
+                            (Term.Apply f' z)
+                      · have hFnBool :
+                            RuleProofs.eo_has_bool_type
+                              (mkEq (Term.Apply f' z) g) :=
+                          congTypeSpine_eq_has_bool_type
+                            (Term.Apply f' z) g hHeadTrans
+                            (congTypeSpine_of_congTrueSpine M hFn)
+                        have hFnTrue :
+                            eo_interprets M
+                              (mkEq (Term.Apply f' z) g) true :=
+                          congTrueSpine_eq_true M hM
+                            (Term.Apply f' z) g hFnBool hFn
+                        have hGTrans :
+                            RuleProofs.eo_has_smt_translation g :=
+                          by
+                            have hFnTypes :=
+                              RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                (Term.Apply f' z) g hFnBool
+                            intro hNone
+                            exact hFnTypes.2 (hFnTypes.1.trans hNone)
+                        exact
+                          congTrueSpine_generic_apply_eq_true
+                            M hM (Term.Apply f' z) g x y hEqBool
+                            (eo_to_smt_apply_generic_of_has_smt_translation
+                              (Term.Apply f' z) x hHeadTrans)
+                            (eo_to_smt_apply_generic_of_has_smt_translation
+                              g y hGTrans)
+                            (generic_apply_type_of_non_datatype_head
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_sel f' z)
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_tester f' z))
+                            (generic_apply_eval_of_non_datatype_head
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_sel f' z)
+                              (TranslationProofs.eo_to_smt_apply_ne_dt_tester f' z))
+                            (generic_apply_eval_of_non_datatype_head
+                              (by
+                                intro s d i j hSel
+                                cases hFn with
+                                | refl _ =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                        f' z s d i j hSel
+                                | app hHead hArg =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_sel
+                                        _ _ s d i j hSel)
+                              (by
+                                intro s d i hTester
+                                cases hFn with
+                                | refl _ =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                        f' z s d i hTester
+                                | app hHead hArg =>
+                                    exact
+                                      TranslationProofs.eo_to_smt_apply_ne_dt_tester
+                                        _ _ s d i hTester))
+                            hFnTrue hArg
+                      · match f' with
+                        | Term.UOp op =>
+                            cases op <;>
+                              try
+                                exact False.elim
+                                  (hHeadTrans
+                                    (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                      _ z x (by rfl)
+                                      ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                        _ _ hEqBool).2)))
+                            case eq =>
+                              exact congTrueSpine_eq_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case and =>
+                              exact congTrueSpine_and_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case or =>
+                              exact congTrueSpine_or_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case imp =>
+                              exact congTrueSpine_imp_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case xor =>
+                              exact congTrueSpine_xor_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case plus =>
+                              exact congTrueSpine_plus_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case neg =>
+                              exact congTrueSpine_neg_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case mult =>
+                              exact congTrueSpine_mult_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case lt =>
+                              exact congTrueSpine_lt_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case leq =>
+                              exact congTrueSpine_leq_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case gt =>
+                              exact congTrueSpine_gt_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case geq =>
+                              exact congTrueSpine_geq_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case div =>
+                              exact congTrueSpine_div_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case mod =>
+                              exact congTrueSpine_mod_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case multmult =>
+                              exact congTrueSpine_multmult_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case div_total =>
+                              exact congTrueSpine_div_total_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case mod_total =>
+                              exact congTrueSpine_mod_total_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case multmult_total =>
+                              exact congTrueSpine_multmult_total_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case divisible =>
+                              exact congTrueSpine_divisible_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case select =>
+                              exact congTrueSpine_non_reg_binop_eq_true M hM
+                                UserOp.select SmtTerm.select
+                                __smtx_model_eval_select
+                                (by intro a b; rfl)
+                                select_args_non_reg_of_non_none
+                                (by intro a b; simp [__smtx_model_eval])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case concat =>
+                              exact congTrueSpine_bv_concat_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case qdiv =>
+                              exact congTrueSpine_qdiv_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case qdiv_total =>
+                              exact congTrueSpine_qdiv_total_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case str_concat =>
+                              exact congTrueSpine_seq_binop_eq_true M hM
+                                UserOp.str_concat SmtTerm.str_concat
+                                __smtx_model_eval_str_concat
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_str_concat_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_80])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case str_contains =>
+                              exact congTrueSpine_seq_binop_ret_eq_true M hM
+                                UserOp.str_contains SmtTerm.str_contains
+                                SmtType.Bool __smtx_model_eval_str_contains
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_str_contains_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_82])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case str_at =>
+                              exact congTrueSpine_non_reg_binop_eq_true M hM
+                                UserOp.str_at SmtTerm.str_at
+                                __smtx_model_eval_str_at
+                                (by intro a b; rfl)
+                                str_at_args_non_reg_of_non_none
+                                (by intro a b; rw [__smtx_model_eval.eq_85])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case str_prefixof =>
+                              exact congTrueSpine_seq_char_binop_eq_true M hM
+                                UserOp.str_prefixof SmtTerm.str_prefixof
+                                SmtType.Bool __smtx_model_eval_str_prefixof
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_str_prefixof_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_86])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case str_suffixof =>
+                              exact congTrueSpine_seq_char_binop_eq_true M hM
+                                UserOp.str_suffixof SmtTerm.str_suffixof
+                                SmtType.Bool __smtx_model_eval_str_suffixof
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_str_suffixof_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_87])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case str_lt =>
+                              exact congTrueSpine_seq_char_binop_eq_true M hM
+                                UserOp.str_lt SmtTerm.str_lt SmtType.Bool
+                                __smtx_model_eval_str_lt
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_str_lt_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_97])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case str_leq =>
+                              exact congTrueSpine_seq_char_binop_eq_true M hM
+                                UserOp.str_leq SmtTerm.str_leq SmtType.Bool
+                                __smtx_model_eval_str_leq
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_str_leq_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_98])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case seq_nth =>
+                              exact congTrueSpine_non_reg_binop_eq_true M hM
+                                UserOp.seq_nth SmtTerm.seq_nth
+                                (fun a b => __smtx_seq_nth M a b)
+                                (by intro a b; rfl)
+                                seq_nth_args_non_reg_of_non_none
+                                (by intro a b; rw [__smtx_model_eval.eq_120])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case _at_strings_num_occur =>
+                              exact congTrueSpine_strings_num_occur_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case re_range =>
+                              exact congTrueSpine_seq_char_binop_eq_true M hM
+                                UserOp.re_range SmtTerm.re_range
+                                SmtType.RegLan __smtx_model_eval_re_range
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_re_range_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_112])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case re_concat =>
+                              exact congTrueSpine_re_concat_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case re_union =>
+                              exact congTrueSpine_re_union_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case re_inter =>
+                              exact congTrueSpine_re_inter_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case re_diff =>
+                              exact congTrueSpine_re_diff_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case str_in_re =>
+                              exact congTrueSpine_str_in_re_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case set_union =>
+                              exact congTrueSpine_set_binop_eq_true M hM
+                                UserOp.set_union SmtTerm.set_union
+                                __smtx_model_eval_set_union
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_set_union_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_123])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case set_inter =>
+                              exact congTrueSpine_set_binop_eq_true M hM
+                                UserOp.set_inter SmtTerm.set_inter
+                                __smtx_model_eval_set_inter
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_set_inter_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_124])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case set_minus =>
+                              exact congTrueSpine_set_binop_eq_true M hM
+                                UserOp.set_minus SmtTerm.set_minus
+                                __smtx_model_eval_set_minus
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_set_minus_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_125])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case set_member =>
+                              exact congTrueSpine_non_reg_binop_eq_true M hM
+                                UserOp.set_member SmtTerm.set_member
+                                __smtx_model_eval_set_member
+                                (by intro a b; rfl)
+                                set_member_args_non_reg_of_non_none
+                                (by intro a b; simp [__smtx_model_eval])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case set_subset =>
+                              exact congTrueSpine_set_binop_ret_eq_true M hM
+                                UserOp.set_subset SmtTerm.set_subset
+                                SmtType.Bool __smtx_model_eval_set_subset
+                                (by intro a b; rfl)
+                                (by intro a b; exact typeof_set_subset_eq a b)
+                                (by intro a b; rw [__smtx_model_eval.eq_127])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case _at_from_bools =>
+                              exact congTrueSpine_bv_from_bools_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvand =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvand SmtTerm.bvand
+                                __smtx_model_eval_bvand
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_39])
+                                (by intro a b; rw [__smtx_model_eval.eq_39])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvor =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvor SmtTerm.bvor
+                                __smtx_model_eval_bvor
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_40])
+                                (by intro a b; rw [__smtx_model_eval.eq_40])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvnand =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvnand SmtTerm.bvnand
+                                __smtx_model_eval_bvnand
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_41])
+                                (by intro a b; rw [__smtx_model_eval.eq_41])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvnor =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvnor SmtTerm.bvnor
+                                __smtx_model_eval_bvnor
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_42])
+                                (by intro a b; rw [__smtx_model_eval.eq_42])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvxor =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvxor SmtTerm.bvxor
+                                __smtx_model_eval_bvxor
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_43])
+                                (by intro a b; rw [__smtx_model_eval.eq_43])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvxnor =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvxnor SmtTerm.bvxnor
+                                __smtx_model_eval_bvxnor
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_44])
+                                (by intro a b; rw [__smtx_model_eval.eq_44])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvcomp =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvcomp SmtTerm.bvcomp
+                                (SmtType.BitVec 1) __smtx_model_eval_bvcomp
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_45])
+                                (by intro a b; rw [__smtx_model_eval.eq_45])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvadd =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvadd SmtTerm.bvadd
+                                __smtx_model_eval_bvadd
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_47])
+                                (by intro a b; rw [__smtx_model_eval.eq_47])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvmul =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvmul SmtTerm.bvmul
+                                __smtx_model_eval_bvmul
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_48])
+                                (by intro a b; rw [__smtx_model_eval.eq_48])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvudiv =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvudiv SmtTerm.bvudiv
+                                __smtx_model_eval_bvudiv
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_49])
+                                (by intro a b; rw [__smtx_model_eval.eq_49])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvurem =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvurem SmtTerm.bvurem
+                                __smtx_model_eval_bvurem
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_50])
+                                (by intro a b; rw [__smtx_model_eval.eq_50])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsub =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvsub SmtTerm.bvsub
+                                __smtx_model_eval_bvsub
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_51])
+                                (by intro a b; rw [__smtx_model_eval.eq_51])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsdiv =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvsdiv SmtTerm.bvsdiv
+                                __smtx_model_eval_bvsdiv
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_52])
+                                (by intro a b; rw [__smtx_model_eval.eq_52])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsrem =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvsrem SmtTerm.bvsrem
+                                __smtx_model_eval_bvsrem
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_53])
+                                (by intro a b; rw [__smtx_model_eval.eq_53])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsmod =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvsmod SmtTerm.bvsmod
+                                __smtx_model_eval_bvsmod
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_54])
+                                (by intro a b; rw [__smtx_model_eval.eq_54])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvult =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvult SmtTerm.bvult SmtType.Bool
+                                __smtx_model_eval_bvult
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_55])
+                                (by intro a b; rw [__smtx_model_eval.eq_55])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvule =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvule SmtTerm.bvule SmtType.Bool
+                                __smtx_model_eval_bvule
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_56])
+                                (by intro a b; rw [__smtx_model_eval.eq_56])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvugt =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvugt SmtTerm.bvugt SmtType.Bool
+                                __smtx_model_eval_bvugt
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_57])
+                                (by intro a b; rw [__smtx_model_eval.eq_57])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvuge =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvuge SmtTerm.bvuge SmtType.Bool
+                                __smtx_model_eval_bvuge
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_58])
+                                (by intro a b; rw [__smtx_model_eval.eq_58])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvslt =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvslt SmtTerm.bvslt SmtType.Bool
+                                __smtx_model_eval_bvslt
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_59])
+                                (by intro a b; rw [__smtx_model_eval.eq_59])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsle =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvsle SmtTerm.bvsle SmtType.Bool
+                                __smtx_model_eval_bvsle
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_60])
+                                (by intro a b; rw [__smtx_model_eval.eq_60])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsgt =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvsgt SmtTerm.bvsgt SmtType.Bool
+                                __smtx_model_eval_bvsgt
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_61])
+                                (by intro a b; rw [__smtx_model_eval.eq_61])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsge =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvsge SmtTerm.bvsge SmtType.Bool
+                                __smtx_model_eval_bvsge
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_62])
+                                (by intro a b; rw [__smtx_model_eval.eq_62])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvshl =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvshl SmtTerm.bvshl
+                                __smtx_model_eval_bvshl
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_63])
+                                (by intro a b; rw [__smtx_model_eval.eq_63])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvlshr =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvlshr SmtTerm.bvlshr
+                                __smtx_model_eval_bvlshr
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_64])
+                                (by intro a b; rw [__smtx_model_eval.eq_64])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvashr =>
+                              exact congTrueSpine_bv_binop_eq_true M hM
+                                UserOp.bvashr SmtTerm.bvashr
+                                __smtx_model_eval_bvashr
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_65])
+                                (by intro a b; rw [__smtx_model_eval.eq_65])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvuaddo =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvuaddo SmtTerm.bvuaddo SmtType.Bool
+                                __smtx_model_eval_bvuaddo
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_70])
+                                (by intro a b; rw [__smtx_model_eval.eq_70])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsaddo =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvsaddo SmtTerm.bvsaddo SmtType.Bool
+                                __smtx_model_eval_bvsaddo
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_72])
+                                (by intro a b; rw [__smtx_model_eval.eq_72])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvumulo =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvumulo SmtTerm.bvumulo SmtType.Bool
+                                __smtx_model_eval_bvumulo
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_73])
+                                (by intro a b; rw [__smtx_model_eval.eq_73])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsmulo =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvsmulo SmtTerm.bvsmulo SmtType.Bool
+                                __smtx_model_eval_bvsmulo
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_74])
+                                (by intro a b; rw [__smtx_model_eval.eq_74])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvusubo =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvusubo SmtTerm.bvusubo SmtType.Bool
+                                __smtx_model_eval_bvusubo
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_75])
+                                (by intro a b; rw [__smtx_model_eval.eq_75])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvssubo =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvssubo SmtTerm.bvssubo SmtType.Bool
+                                __smtx_model_eval_bvssubo
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_76])
+                                (by intro a b; rw [__smtx_model_eval.eq_76])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsdivo =>
+                              exact congTrueSpine_bv_binop_ret_eq_true M hM
+                                UserOp.bvsdivo SmtTerm.bvsdivo SmtType.Bool
+                                __smtx_model_eval_bvsdivo
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_77])
+                                (by intro a b; rw [__smtx_model_eval.eq_77])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvultbv =>
+                              exact congTrueSpine_bv_pred_to_bv_eq_true M hM
+                                UserOp.bvultbv SmtTerm.bvult
+                                __smtx_model_eval_bvult
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_55])
+                                (by
+                                  intro a b
+                                  rw [bvPredToBv, bvPredToBvEval,
+                                    __smtx_model_eval.eq_133,
+                                    __smtx_model_eval.eq_55,
+                                    __smtx_model_eval.eq_5,
+                                    __smtx_model_eval.eq_5])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case bvsltbv =>
+                              exact congTrueSpine_bv_pred_to_bv_eq_true M hM
+                                UserOp.bvsltbv SmtTerm.bvslt
+                                __smtx_model_eval_bvslt
+                                (by intro a b; rfl)
+                                (by intro a b; rw [__smtx_typeof.eq_59])
+                                (by
+                                  intro a b
+                                  rw [bvPredToBv, bvPredToBvEval,
+                                    __smtx_model_eval.eq_133,
+                                    __smtx_model_eval.eq_59,
+                                    __smtx_model_eval.eq_5,
+                                    __smtx_model_eval.eq_5])
+                                z x (Term.Apply g y) hEqBool hApp
+                            case tuple =>
+                              sorry
+                            case set_insert =>
+                              exact congTrueSpine_set_insert_eq_true M hM
+                                z x (Term.Apply g y) hEqBool hApp
+                            case «forall» =>
+                              sorry
+                            case «exists» =>
+                              sorry
+                        | Term.Apply (Term.UOp UserOp.ite) c =>
+                            exact congTrueSpine_ite_eq_true M hM
+                              c z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.bvite) c =>
+                            exact congTrueSpine_bvite_eq_true M hM
+                              c z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.store) a =>
+                            exact
+                              congTrueSpine_non_reg_ternop_eq_true M hM
+                                UserOp.store SmtTerm.store
+                                __smtx_model_eval_store
+                                (by intro a b c; rfl)
+                                store_args_non_reg_of_non_none
+                                (by intro a b c; simp [__smtx_model_eval])
+                                a z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.str_substr) s =>
+                            exact
+                              congTrueSpine_non_reg_ternop_eq_true M hM
+                                UserOp.str_substr SmtTerm.str_substr
+                                __smtx_model_eval_str_substr
+                                (by intro a b c; rfl)
+                                str_substr_args_non_reg_of_non_none
+                                (by intro a b c; rw [__smtx_model_eval.eq_81])
+                                s z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.str_replace) s =>
+                            exact
+                              congTrueSpine_non_reg_ternop_eq_true M hM
+                                UserOp.str_replace SmtTerm.str_replace
+                                __smtx_model_eval_str_replace
+                                (by intro a b c; rfl)
+                                (seq_triop_args_non_reg_of_non_none
+                                  SmtTerm.str_replace
+                                  (by intro a b c; exact typeof_str_replace_eq a b c))
+                                (by intro a b c; rw [__smtx_model_eval.eq_83])
+                                s z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.str_indexof) s =>
+                            exact
+                              congTrueSpine_non_reg_ternop_eq_true M hM
+                                UserOp.str_indexof SmtTerm.str_indexof
+                                __smtx_model_eval_str_indexof
+                                (by intro a b c; rfl)
+                                str_indexof_args_non_reg_of_non_none
+                                (by intro a b c; rw [__smtx_model_eval.eq_84])
+                                s z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.str_update) s =>
+                            exact
+                              congTrueSpine_non_reg_ternop_eq_true M hM
+                                UserOp.str_update SmtTerm.str_update
+                                __smtx_model_eval_str_update
+                                (by intro a b c; rfl)
+                                str_update_args_non_reg_of_non_none
+                                (by intro a b c; rw [__smtx_model_eval.eq_89])
+                                s z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.str_replace_all) s =>
+                            exact
+                              congTrueSpine_non_reg_ternop_eq_true M hM
+                                UserOp.str_replace_all SmtTerm.str_replace_all
+                                __smtx_model_eval_str_replace_all
+                                (by intro a b c; rfl)
+                                (seq_triop_args_non_reg_of_non_none
+                                  SmtTerm.str_replace_all
+                                  (by intro a b c; exact typeof_str_replace_all_eq a b c))
+                                (by intro a b c; rw [__smtx_model_eval.eq_99])
+                                s z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.str_replace_re) s =>
+                            exact congTrueSpine_str_replace_re_eq_true M hM
+                              s z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.str_replace_re_all) s =>
+                            exact congTrueSpine_str_replace_re_all_eq_true M hM
+                              s z x (Term.Apply g y) hEqBool hApp
+                        | Term.Apply (Term.UOp UserOp.str_indexof_re) s =>
+                            exact congTrueSpine_str_indexof_re_eq_true M hM
+                              s z x (Term.Apply g y) hEqBool hApp
+                        | Term.UOp1 UserOp1.update i =>
+                            exact
+                              congTrueSpine_non_reg_indexed_binary_uop1_eq_true
+                                M hM UserOp1.update i
+                                (fun a b =>
+                                  __eo_to_smt_updater (__eo_to_smt i) a b)
+                                (by intro a b; rfl)
+                                (by
+                                  intro a b hNN
+                                  exact updater_args_non_reg_of_non_none
+                                    (__eo_to_smt i) a b hNN)
+                                (by
+                                  intro a b a' b' ha hb
+                                  exact eo_to_smt_updater_eval_congr
+                                    M (__eo_to_smt i) a b a' b' ha hb)
+                                z x (Term.Apply g y) hEqBool hApp
+                        | Term.UOp1 UserOp1.tuple_update i =>
+                            exact congTrueSpine_tuple_update_eq_true M hM
+                              i z x (Term.Apply g y) hEqBool hApp
+                        | _ => sorry
 
 /-- Typing for the generated EO implementation of `cong` over a premise list. -/
 theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :

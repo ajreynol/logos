@@ -99,7 +99,7 @@ def __eo_to_smt_quantifiers_skolemize : SmtTerm -> native_Nat -> SmtTerm
 
 
 def __eo_to_smt_type_tuple (U : SmtType) : SmtType -> SmtType
-  | (SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) => (SmtType.Datatype "@Tuple" (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null))
+  | (SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) => (native_ite (__smtx_type_wf_component U) (SmtType.Datatype "@Tuple" (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null)) SmtType.None)
   | T => SmtType.None
 
 

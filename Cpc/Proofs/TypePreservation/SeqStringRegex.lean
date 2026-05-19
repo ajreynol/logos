@@ -1991,7 +1991,9 @@ theorem typeof_value_model_eval_seq_nth
   have hTWf : __smtx_type_wf T = true :=
     smtx_typeof_guard_wf_wf_of_non_none T T hGuardNN
   have hTInh : native_inhabited_type T = true := by
-    cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hTWf hRec ⊢
+    cases T <;>
+      simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] at hTWf hRec ⊢
     all_goals first | exact hTWf | exact hTWf.1 | contradiction
   have hd :
       __smtx_typeof_value

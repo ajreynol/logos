@@ -637,7 +637,8 @@ theorem datatype_wf_rec_of_type_wf
   have hPair :
       native_inhabited_type (SmtType.Datatype s d) = true ∧
         __smtx_dt_wf_rec d (native_reflist_insert native_reflist_nil s) = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
+    simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+      native_and] using h
   exact hPair.2
 
 /-- Empty datatypes are uninhabited. -/
@@ -855,7 +856,8 @@ theorem typeof_value_model_eval_dt_sel_wrong
             __smtx_type_wf_rec D native_reflist_nil = true ∧
               native_inhabited_type R = true ∧
                 __smtx_type_wf_rec R native_reflist_nil = true := by
-      simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using hM3WF
+      simpa [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] using hM3WF
     exact hAll.2
   have hDParts :
       native_inhabited_type D = true ∧
@@ -866,7 +868,7 @@ theorem typeof_value_model_eval_dt_sel_wrong
         __smtx_type_wf_rec R native_reflist_nil = true :=
     ⟨hDRParts.2.2.1, hDRParts.2.2.2⟩
   have hFunWF : __smtx_type_wf (SmtType.FunType D R) = true := by
-    simp [__smtx_type_wf, native_and, hDParts.1, hDParts.2,
+    simp [__smtx_type_wf, __smtx_type_wf_component, native_and, hDParts.1, hDParts.2,
       hRParts.1, hRParts.2]
   have hLookup :
       __smtx_typeof_value
