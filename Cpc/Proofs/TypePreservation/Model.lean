@@ -455,7 +455,9 @@ theorem canonical_type_inhabited_of_type_wf
     · have hParts :
         native_inhabited_type T = true ∧
           __smtx_type_wf_rec T native_reflist_nil = true := by
-        cases T <;> simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at hWF hReg hFun ⊢ <;>
+        cases T <;>
+          simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+            native_and] at hWF hReg hFun ⊢ <;>
           exact hWF
       have hDef :=
         type_default_typed_canonical_of_wf_rec T hParts.1 hParts.2
