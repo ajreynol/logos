@@ -1276,7 +1276,7 @@ private theorem typeof_exists_eq
   rw [__smtx_typeof.eq_135]
 
 /-- Computes the type of applying `none`. -/
-private theorem typeof_apply_none_eq
+theorem typeof_apply_none_eq
     (x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply SmtTerm.None x) = SmtType.None := by
   have hGeneric : generic_apply_type SmtTerm.None x := by
@@ -1287,7 +1287,7 @@ private theorem typeof_apply_none_eq
   simp [__smtx_typeof_apply]
 
 /-- Computes the type of applying a term whose head is itself `none`. -/
-private theorem typeof_apply_apply_none_head_eq
+theorem typeof_apply_apply_none_head_eq
     (y x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None y) x) = SmtType.None := by
   have hGeneric : generic_apply_type (SmtTerm.Apply SmtTerm.None y) x := by
@@ -1438,7 +1438,7 @@ private theorem typeof_apply_tuple_unit_eq_none
   rfl
 
 /-- Computes `__smtx_typeof_apply` for translated `seq_empty`. -/
-private theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none
+theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none
     (T X : SmtType) :
     __smtx_typeof_apply (__smtx_typeof (__eo_to_smt_seq_empty T)) X = SmtType.None := by
   cases T with
@@ -1465,7 +1465,7 @@ private theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none
         simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hWf]
 
 /-- Computes the type of applying a translated `seq_empty` as a head. -/
-private theorem typeof_apply_eo_to_smt_seq_empty_eq_none
+theorem typeof_apply_eo_to_smt_seq_empty_eq_none
     (T : SmtType) (x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (__eo_to_smt_seq_empty T) x) = SmtType.None := by
   have hGeneric : generic_apply_type (__eo_to_smt_seq_empty T) x := by
@@ -1478,7 +1478,7 @@ private theorem typeof_apply_eo_to_smt_seq_empty_eq_none
   exact smtx_typeof_apply_eo_to_smt_seq_empty_eq_none T (__smtx_typeof x)
 
 /-- Computes the type of applying a translated `set_empty` as a head. -/
-private theorem typeof_apply_eo_to_smt_set_empty_eq_none
+theorem typeof_apply_eo_to_smt_set_empty_eq_none
     (T : SmtType) (x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (__eo_to_smt_set_empty T) x) = SmtType.None := by
   cases T <;> simp [__eo_to_smt_set_empty]
@@ -1514,7 +1514,7 @@ private theorem typeof_apply_eo_to_smt_set_empty_eq_none
   all_goals exact typeof_apply_none_eq x
 
 /-- Applying a zero-index integer `choice_nth` as a function is ill-typed. -/
-private theorem typeof_apply_choice_nth_int_eq_none
+theorem typeof_apply_choice_nth_int_eq_none
     (body x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.choice_nth "@x" SmtType.Int body 0) x) =
       SmtType.None := by
@@ -1551,7 +1551,7 @@ private theorem typeof_apply_choice_nth_int_eq_none
       cases hDtc)
 
 /-- A non-`None` `str.indexof_re` term has integer type. -/
-private theorem smtx_typeof_str_indexof_re_of_non_none
+theorem smtx_typeof_str_indexof_re_of_non_none
     (s r n : SmtTerm)
     (hNN : term_has_non_none_type (SmtTerm.str_indexof_re s r n)) :
     __smtx_typeof (SmtTerm.str_indexof_re s r n) = SmtType.Int := by
@@ -1560,7 +1560,7 @@ private theorem smtx_typeof_str_indexof_re_of_non_none
   simp [native_ite, native_Teq]
 
 /-- Applying a `str.indexof_re` result as a function is ill-typed. -/
-private theorem typeof_apply_str_indexof_re_head_eq_none
+theorem typeof_apply_str_indexof_re_head_eq_none
     (s r n x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (SmtTerm.str_indexof_re s r n) x) =
       SmtType.None := by
