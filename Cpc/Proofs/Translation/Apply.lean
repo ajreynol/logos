@@ -1293,7 +1293,7 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_cons
           split at h <;> try cases h
           exact eo_to_smt_quant_skolemize_ne_dt_cons _ _ _ _ _ h
 
-private theorem eo_to_smt_apply_ne_dt_sel
+theorem eo_to_smt_apply_ne_dt_sel
     (f x : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt (Term.Apply f x) ≠ SmtTerm.DtSel s d i j := by
   intro h
@@ -1348,7 +1348,7 @@ private theorem eo_to_smt_apply_ne_dt_sel
       case UOp op =>
         cases op <;> try cases h
 
-private theorem eo_to_smt_apply_ne_dt_tester
+theorem eo_to_smt_apply_ne_dt_tester
     (f x : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt (Term.Apply f x) ≠ SmtTerm.DtTester s d i := by
   intro h
@@ -8339,7 +8339,7 @@ private theorem at_bv_typeof_of_non_none
           smtx_typeof_binary_of_non_none w (native_mod_total n (native_int_pow2 w)) hBinaryNN⟩
 
 /-- Applying an `_at_bv` translation as a function is ill-typed. -/
-private theorem typeof_apply_eo_to_smt_at_bv_eq_none
+theorem typeof_apply_eo_to_smt_at_bv_eq_none
     (a b x : SmtTerm) :
     __smtx_typeof (SmtTerm.Apply (__eo_to_smt__at_bv a b) x) = SmtType.None := by
   exact typeof_generic_apply_non_function_head_eq_none _ _
@@ -8865,7 +8865,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_from_bools
   exact hSmt.trans hEo.symm
 
 /-- Computes `__smtx_typeof` for `eq_non_none`. -/
-private theorem smtx_typeof_eq_non_none
+theorem smtx_typeof_eq_non_none
     {T U : SmtType}
     (h : __smtx_typeof_eq T U ≠ SmtType.None) :
     T = U ∧ T ≠ SmtType.None := by
@@ -9999,7 +9999,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_int_binop
   exact hSmt.trans (hEo hArgs.1 hArgs.2).symm
 
 /-- Purified selector heads keep the selector result EO type. -/
-private theorem eo_to_smt_eq_dt_sel_cases
+theorem eo_to_smt_eq_dt_sel_cases
     (y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat)
     (hy : __eo_to_smt y = SmtTerm.DtSel s d i j) :
     (∃ d0, d = __eo_to_smt_datatype d0 ∧ y = Term.DtSel s d0 i j ∧
@@ -10065,7 +10065,7 @@ private theorem eo_to_smt_eq_dt_sel_cases
     cases hy
 
 /-- EO translation never produces a bare datatype tester. -/
-private theorem eo_to_smt_ne_dt_tester
+theorem eo_to_smt_ne_dt_tester
     (y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt y ≠ SmtTerm.DtTester s d i := by
   intro hy
@@ -10966,7 +10966,7 @@ private theorem eo_get_nil_rec_ne_stuck_of_is_list_true
     simp [__eo_is_list, __eo_is_ok, hf, hx, hGet, native_teq, native_not,
       SmtEval.native_not] at h ⊢
 
-private theorem eo_tuple_is_list_true_of_smt_tuple_type :
+theorem eo_tuple_is_list_true_of_smt_tuple_type :
     ∀ {T : Term} {d : SmtDatatype},
       __eo_to_smt_type T = SmtType.Datatype "@Tuple" d ->
         __eo_is_list (Term.UOp UserOp.Tuple) T = Term.Boolean true
@@ -11518,7 +11518,7 @@ private theorem smtx_type_substitute_top_apply_tuple_of_eo_list_nth_rec_nat :
             exact hIH
 termination_by T d base j hT hValid => T
 
-private theorem eo_type_valid_rec_of_tuple_smt_type
+theorem eo_type_valid_rec_of_tuple_smt_type
     {T : Term} {d : SmtDatatype}
     (hT : __eo_to_smt_type T = SmtType.Datatype "@Tuple" d)
     (hValid : eo_type_valid T) :
@@ -11529,7 +11529,7 @@ private theorem eo_type_valid_rec_of_tuple_smt_type
     case RegLan =>
       simp [__eo_to_smt_type] at hT
 
-private theorem eo_type_valid_rec_tuple_list_nth_rec_nat :
+theorem eo_type_valid_rec_tuple_list_nth_rec_nat :
     ∀ {T : Term} {d : SmtDatatype} (j : native_Nat),
       __eo_to_smt_type T = SmtType.Datatype "@Tuple" d ->
         eo_type_valid_rec [] T ->
