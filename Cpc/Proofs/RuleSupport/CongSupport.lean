@@ -16356,7 +16356,11 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                         | Term.UOp1 UserOp1.tuple_update i =>
                             exact congTypeSpine_tuple_update_eq_has_bool_type
                               i z x (Term.Apply g y) hTrans hApp
-                        | _ => sorry
+                        | _ =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  f' z x (by rfl) hTrans))
 
 /--
 The remaining semantic core for congruence: a syntactic congruence spine
@@ -19039,7 +19043,13 @@ private theorem congTrueSpine_eq_true
                         | Term.UOp1 UserOp1.tuple_update i =>
                             exact congTrueSpine_tuple_update_eq_true M hM
                               i z x (Term.Apply g y) hEqBool hApp
-                        | _ => sorry
+                        | _ =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  f' z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
 
 /-- Typing for the generated EO implementation of `cong` over a premise list. -/
 theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
