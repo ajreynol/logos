@@ -1035,7 +1035,11 @@ private theorem eo_to_smt_tuple_ne_dt_sel
       eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x)
           (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) =
         SmtTerm.DtSel s d i j := by
-    simpa [__eo_to_smt, eo_to_smt_tuple_cons_checked_tail] using h
+    change
+      eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x)
+          (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) =
+        SmtTerm.DtSel s d i j at h
+    exact h
   exact eo_to_smt_tuple_cons_checked_ne_dt_sel
     (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) s d i j h'
 
@@ -1048,7 +1052,11 @@ private theorem eo_to_smt_tuple_ne_dt_tester
       eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x)
           (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) =
         SmtTerm.DtTester s d i := by
-    simpa [__eo_to_smt, eo_to_smt_tuple_cons_checked_tail] using h
+    change
+      eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x)
+          (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) =
+        SmtTerm.DtTester s d i at h
+    exact h
   exact eo_to_smt_tuple_cons_checked_ne_dt_tester
     (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) s d i h'
 
@@ -1061,7 +1069,11 @@ private theorem eo_to_smt_tuple_ne_dt_cons
       eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x)
           (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) =
         SmtTerm.DtCons s d i := by
-    simpa [__eo_to_smt, eo_to_smt_tuple_cons_checked_tail] using h
+    change
+      eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x)
+          (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) =
+        SmtTerm.DtCons s d i at h
+    exact h
   exact eo_to_smt_tuple_cons_checked_ne_dt_cons
     (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) s d i h'
 
@@ -11036,8 +11048,17 @@ private theorem eo_to_smt_type_tuple_eq_tuple_datatype_of_wf
       | sum c rest =>
           cases rest with
           | null =>
-              cases hComp : __smtx_type_wf_component A <;>
-                simp [__eo_to_smt_type_tuple, hComp, native_ite] at hWf ⊢
+              by_cases hComp :
+                  native_inhabited_type A = true ∧
+                    __smtx_type_wf_rec A native_reflist_nil = true
+              · exact ⟨
+                  SmtDatatype.sum (SmtDatatypeCons.cons A c) SmtDatatype.null,
+                  by
+                    simp [__eo_to_smt_type_tuple, hComp, native_ite]⟩
+              · exfalso
+                simp [__eo_to_smt_type_tuple, hComp, __smtx_type_wf,
+                  __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
+                  native_ite] at hWf
           | sum c' rest' =>
               simp [__eo_to_smt_type_tuple, __smtx_type_wf,
                 __smtx_type_wf_rec, native_and] at hWf
@@ -11775,7 +11796,7 @@ private theorem smtx_tuple_cons_num_apply_args_of_non_none :
               (by simpa [eo_to_smt_tuple_cons_tail] using hNN)
           have hRec :=
             smtx_tuple_cons_num_apply_args_of_non_none f head T hRecNN
-          simp [eo_to_smt_tuple_cons_tail, smtx_num_apply_args, hRec]
+          simp [smtx_num_apply_args, hRec]
       | DtCons s d i =>
           by_cases hs : s = "@Tuple"
           · subst s
@@ -12402,6 +12423,12 @@ def eo_to_smt_tuple_tail_recoverable (x : Term) : Prop :=
           __smtx_typeof (__eo_to_smt x) =
             SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
 
+private theorem smtx_typeof_tuple_cons_tail_none
+    (head : SmtTerm) (T : SmtType) :
+    __smtx_typeof (eo_to_smt_tuple_cons_tail SmtTerm.None T head) =
+      SmtType.None := by
+  simp [eo_to_smt_tuple_cons_tail]
+
 theorem eo_to_smt_tuple_tail_recoverable_of_none
     {x : Term}
     (h : __eo_to_smt x = SmtTerm.None) :
@@ -12443,6 +12470,14 @@ theorem eo_to_smt_tuple_tail_recoverable_of_checked_tuple_cons
   intro head U _hStable hNN
   rw [h] at hNN ⊢
   unfold eo_to_smt_tuple_cons_checked_tail at hNN ⊢
+  have hRawTypeEq :
+      __smtx_typeof (_root_.__eo_to_smt_tuple_cons head0 T tail) =
+        __smtx_typeof (eo_to_smt_tuple_cons_tail tail T head0) := by
+    rfl
+  have hRawTermEq :
+      _root_.__eo_to_smt_tuple_cons head0 T tail =
+        eo_to_smt_tuple_cons_tail tail T head0 := by
+    rfl
   cases hTail : __smtx_typeof tail with
   | Datatype s d =>
       by_cases hs : s = "@Tuple"
@@ -12456,25 +12491,33 @@ theorem eo_to_smt_tuple_tail_recoverable_of_checked_tuple_cons
             | null =>
                 cases hRaw :
                     __smtx_typeof (eo_to_smt_tuple_cons_tail tail T head0) with
-                | Datatype sRaw dRaw =>
-                    by_cases hRawName : sRaw = "@Tuple"
-                    · subst sRaw
-                      cases dRaw with
-                      | null =>
-                          exact False.elim (hNN (by
-                            simp [hTail, hRaw, eo_to_smt_tuple_cons_tail]))
-                      | sum cRaw restRaw =>
-                          cases restRaw with
-                          | null =>
-                              exact ⟨cRaw, by simp [hTail, hRaw]⟩
-                          | sum cRest dRest =>
-                              exact False.elim (hNN (by
-                                simp [hTail, hRaw, eo_to_smt_tuple_cons_tail]))
-                    · exact False.elim (hNN (by
-                        simp [hTail, hRaw, hRawName, eo_to_smt_tuple_cons_tail]))
-                | _ =>
-                    exact False.elim (hNN (by
-                      simp [hTail, hRaw, eo_to_smt_tuple_cons_tail]))
+                  | Datatype sRaw dRaw =>
+                      by_cases hRawName : sRaw = "@Tuple"
+                      · subst sRaw
+                        cases dRaw with
+                        | null =>
+                            exact False.elim (hNN (by
+                              simp [hTail, hRawTypeEq, hRawTermEq, hRaw,
+                                _root_.__eo_to_smt_tuple_cons,
+                                smtx_typeof_tuple_cons_tail_none]))
+                        | sum cRaw restRaw =>
+                            cases restRaw with
+                            | null =>
+                                exact ⟨cRaw, by simp [hTail, hRaw]⟩
+                            | sum cRest dRest =>
+                                exact False.elim (hNN (by
+                                  simp [hTail, hRawTypeEq, hRawTermEq, hRaw,
+                                    _root_.__eo_to_smt_tuple_cons,
+                                    smtx_typeof_tuple_cons_tail_none]))
+                      · exact False.elim (hNN (by
+                          simp [hTail, hRawTypeEq, hRawTermEq, hRaw, hRawName,
+                            _root_.__eo_to_smt_tuple_cons,
+                            smtx_typeof_tuple_cons_tail_none]))
+                  | _ =>
+                      exact False.elim (hNN (by
+                        simp [hTail, hRawTypeEq, hRawTermEq, hRaw,
+                          _root_.__eo_to_smt_tuple_cons,
+                          smtx_typeof_tuple_cons_tail_none]))
             | sum _ _ =>
                 exact False.elim (hNN (by
                   simp [hTail, eo_to_smt_tuple_cons_tail]))
@@ -12972,9 +13015,9 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
     (hNonNone :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) ≠
         SmtType.None) :
-    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) =
-      __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) := by
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) =
+        __eo_to_smt_type
+          (__eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) := by
   let headTy := __eo_to_smt_type (__eo_typeof y)
   let tailD := SmtDatatype.sum c SmtDatatype.null
   let fullD := SmtDatatype.sum (SmtDatatypeCons.cons headTy c) SmtDatatype.null
@@ -12982,7 +13025,11 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
       __smtx_typeof
           (eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x) headTy (__eo_to_smt y)) ≠
         SmtType.None := by
-    simpa [headTy, __eo_to_smt, eo_to_smt_tuple_cons_checked_tail] using hNonNone
+    change
+      __smtx_typeof
+          (eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x) headTy (__eo_to_smt y)) ≠
+        SmtType.None at hNonNone
+    exact hNonNone
   have hTupleNN :
       __smtx_typeof (eo_to_smt_tuple_cons_tail (__eo_to_smt x) headTy (__eo_to_smt y)) ≠
         SmtType.None :=
@@ -13001,7 +13048,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
     have hTerm :
         __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x) =
           eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x) headTy (__eo_to_smt y) := by
-      simp [__eo_to_smt, eo_to_smt_tuple_cons_checked_tail, headTy]
+      change
+        eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x) headTy (__eo_to_smt y) =
+          eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x) headTy (__eo_to_smt y)
+      rfl
     have hCheckedRaw :
         eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x) headTy (__eo_to_smt y) =
           eo_to_smt_tuple_cons_tail (__eo_to_smt x) headTy (__eo_to_smt y) := by
@@ -13042,7 +13092,21 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
   have hRaw :
       __eo_to_smt_type_tuple headTy (__eo_to_smt_type (__eo_typeof x)) =
         SmtType.Datatype "@Tuple" fullD := by
-    simp [headTy, tailD, fullD, hXTailType, __eo_to_smt_type_tuple]
+    have hFullWfFromRaw : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD) = true :=
+      Smtm.smt_datatype_wf_of_non_none_type
+        (eo_to_smt_tuple_cons_tail (__eo_to_smt x) headTy (__eo_to_smt y))
+        "@Tuple" fullD hRawSmt
+    have hHeadComp : __smtx_type_wf_component headTy = true := by
+      simpa [fullD, __smtx_type_wf, __smtx_type_wf_component,
+        __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+        native_and, native_ite, native_reflist_contains,
+        native_reflist_nil] using hFullWfFromRaw
+    have hHeadParts :
+        native_inhabited_type headTy = true ∧
+          __smtx_type_wf_rec headTy native_reflist_nil = true :=
+      Smtm.smtx_type_wf_component_parts hHeadComp
+    simp [headTy, tailD, fullD, hXTailType, __eo_to_smt_type_tuple,
+      hHeadParts.1, hHeadParts.2, native_and, native_ite]
   have hFullWf : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD) = true :=
     Smtm.smt_datatype_wf_of_non_none_type
       (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x))
@@ -13067,18 +13131,22 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
 /-- A non-`none` checked tuple constructor has a fully typed tuple tail. -/
 private theorem eo_to_smt_tuple_tail_type_of_non_none_from_checked
     (x y : Term)
-    (hNonNone :
-      __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) ≠
-        SmtType.None) :
-    ∃ c,
-      __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) := by
+      (hNonNone :
+        __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) ≠
+          SmtType.None) :
+      ∃ c,
+        __smtx_typeof (__eo_to_smt x) =
+          SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) := by
   let headTy := __eo_to_smt_type (__eo_typeof y)
   have hCheckedNN :
       __smtx_typeof
           (eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x) headTy (__eo_to_smt y)) ≠
         SmtType.None := by
-    simpa [headTy, __eo_to_smt, eo_to_smt_tuple_cons_checked_tail] using hNonNone
+    change
+      __smtx_typeof
+          (eo_to_smt_tuple_cons_checked_tail (__eo_to_smt x) headTy (__eo_to_smt y)) ≠
+        SmtType.None at hNonNone
+    exact hNonNone
   unfold eo_to_smt_tuple_cons_checked_tail at hCheckedNN
   cases hTail : __smtx_typeof (__eo_to_smt x) with
   | Datatype s d =>
