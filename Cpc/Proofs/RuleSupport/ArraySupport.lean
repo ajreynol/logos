@@ -1,7 +1,7 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.Canonical
 import Cpc.Proofs.TypePreservation.Helpers
-import Cpc.Proofs.TypePreservation.CardinalityAssumptions
+import Cpc.Proofs.Canonical.CardinalityAssumptions
 
 open Eo
 open SmtEval

@@ -10,6 +10,7 @@ set_option maxHeartbeats 10000000
 namespace TranslationProofs
 
 attribute [local simp] native_ite
+attribute [local simp] Smtm.__smtx_type_wf_component
 
 @[simp] private theorem guarded_datatype_type_ne_fun
     (s : native_String) (d : SmtDatatype) (A B : SmtType) :

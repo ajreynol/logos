@@ -227,7 +227,6 @@ inductive UserOp1 : Type where
   | _at_strings_stoi_non_digit : UserOp1
   | _at_strings_itos_result : UserOp1
   | _at_strings_replace_all_result : UserOp1
-  | _at_witness_string_length : UserOp1
   | is : UserOp1
   | update : UserOp1
   | tuple_select : UserOp1
@@ -259,6 +258,7 @@ User operators with three indices.
 -/
 inductive UserOp3 : Type where
   | _at_re_unfold_pos_component : UserOp3
+  | _at_witness_string_length : UserOp3
 
 deriving Repr, DecidableEq, Inhabited, Ord
 
@@ -1682,6 +1682,13 @@ def __strip_even_exponent : Term -> Term -> Term
   | __eo_dv_1, __eo_dv_2 => (__eo_l_1___strip_even_exponent __eo_dv_1 __eo_dv_2)
 
 
+def __to_cube : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F1) F2) => (Term.Apply (Term.Apply (Term.UOp UserOp.and) F1) F2)
+  | (Term.Boolean true) => (Term.Boolean true)
+  | F1 => (Term.Apply (Term.Apply (Term.UOp UserOp.and) F1) (Term.Boolean true))
+
+
 def __eo_l_2___mk_arith_mult_abs_comparison_rec : Term -> Term -> Term
   | (Term.Boolean true), (Term.Apply (Term.Apply r a) b) => (Term.Apply (Term.Apply r (Term.Apply (Term.UOp UserOp.abs) a)) (Term.Apply (Term.UOp UserOp.abs) b))
   | _, _ => Term.Stuck
@@ -2284,7 +2291,7 @@ def __eo_prog_string_decompose : Term -> Proof -> Proof -> Term
 def __eo_prog_exists_string_length : Term -> Term -> Term -> Term
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.UOp UserOp.Seq) U), n, id => (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.str_len) (Term.Apply (Term.Apply (Term.UOp1 UserOp1._at_witness_string_length (Term.Apply (Term.UOp UserOp.Seq) U)) n) id))) n))
+  | (Term.Apply (Term.UOp UserOp.Seq) U), n, id => (__eo_requires (__eo_gt n (Term.Numeral (-1 : native_Int))) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.str_len) (Term.UOp3 UserOp3._at_witness_string_length (Term.Apply (Term.UOp UserOp.Seq) U) n id))) n))
   | _, _, _ => Term.Stuck
 
 
@@ -7087,7 +7094,7 @@ def __eo_typeof : Term -> Term
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp._at_strings_occur_index) __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof_str_indexof (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.Apply (Term.UOp2 UserOp2._at_strings_occur_index_re __eo_x1 __eo_x2) __eo_x3) => (__eo_typeof__at_strings_occur_index_re (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.Apply (Term.UOp1 UserOp1._at_strings_replace_all_result __eo_x1) __eo_x2) => (__eo_typeof_str_at (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
-  | (Term.Apply (Term.Apply (Term.UOp1 UserOp1._at_witness_string_length __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof__at_witness_string_length (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
+  | (Term.UOp3 UserOp3._at_witness_string_length __eo_x1 __eo_x2 __eo_x3) => (__eo_typeof__at_witness_string_length (__eo_typeof __eo_x1) __eo_x1 (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.Apply (Term.UOp1 UserOp1.is __eo_x1) __eo_x2) => (__eo_typeof_is (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
   | (Term.Apply (Term.Apply (Term.UOp1 UserOp1.update __eo_x1) __eo_x2) __eo_x3) => (__eo_typeof_update (__eo_typeof __eo_x1) (__eo_typeof __eo_x2) (__eo_typeof __eo_x3))
   | (Term.UOp UserOp.UnitTuple) => Term.Type
@@ -7395,7 +7402,7 @@ partial def __eo_l_2___mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | sgn, (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.lt) t) z)) F), (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) m) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn (__eo_not sgn) F (__strip_even_exponent t m))) (__eo_l_3___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.lt) t) z)) F) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) m)))
+  | sgn, (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.lt) t) z)) F), (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) m) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_q z) (Term.Rational (native_mk_rational 0 1)) (__mk_arith_mult_sign_sgn (__eo_not sgn) F (__strip_even_exponent t m))) (__eo_l_3___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.lt) t) z)) F) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) m)))
   | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_3___mk_arith_mult_sign_sgn __eo_dv_1 __eo_dv_2 __eo_dv_3)
 
 
@@ -7403,7 +7410,7 @@ partial def __eo_l_1___mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | sgn, (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.gt) t) z)) F), (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) m) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn sgn F (__strip_even_exponent t m))) (__eo_l_2___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.gt) t) z)) F) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) m)))
+  | sgn, (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.gt) t) z)) F), (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) m) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_q z) (Term.Rational (native_mk_rational 0 1)) (__mk_arith_mult_sign_sgn sgn F (__strip_even_exponent t m))) (__eo_l_2___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.gt) t) z)) F) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) m)))
   | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_2___mk_arith_mult_sign_sgn __eo_dv_1 __eo_dv_2 __eo_dv_3)
 
 
@@ -7411,20 +7418,20 @@ partial def __mk_arith_mult_sign_sgn : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | sgn, (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) z))) F), (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_3) m)) => (__eo_ite (__eo_and (__eo_eq t __eo_lv_t_2) (__eo_eq t __eo_lv_t_3)) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_sign_sgn sgn F (__strip_even_exponent t m))) (__eo_l_1___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) z))) F) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_3) m))))
+  | sgn, (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) z))) F), (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_3) m)) => (__eo_ite (__eo_and (__eo_eq t __eo_lv_t_2) (__eo_eq t __eo_lv_t_3)) (__eo_requires (__eo_to_q z) (Term.Rational (native_mk_rational 0 1)) (__mk_arith_mult_sign_sgn sgn F (__strip_even_exponent t m))) (__eo_l_1___mk_arith_mult_sign_sgn sgn (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) z))) F) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_2) (Term.Apply (Term.Apply (Term.UOp UserOp.mult) __eo_lv_t_3) m))))
   | __eo_dv_1, __eo_dv_2, __eo_dv_3 => (__eo_l_1___mk_arith_mult_sign_sgn __eo_dv_1 __eo_dv_2 __eo_dv_3)
 
 
 partial def __eo_prog_arith_mult_sign : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | F, m => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.imp) F) (__eo_mk_apply (__eo_mk_apply (__eo_ite (__mk_arith_mult_sign_sgn (Term.Boolean true) F m) (Term.UOp UserOp.gt) (Term.UOp UserOp.lt)) m) (__arith_mk_zero (__eo_typeof m))))
+  | F, m => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.imp) F) (__eo_mk_apply (__eo_mk_apply (__eo_ite (__mk_arith_mult_sign_sgn (Term.Boolean true) (__to_cube F) m) (Term.UOp UserOp.gt) (Term.UOp UserOp.lt)) m) (__arith_mk_zero (__eo_typeof m))))
 
 
 partial def __eo_l_1___mk_arith_mult_abs_comparison_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.abs) t)) (Term.Apply (Term.UOp UserOp.abs) u))) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_t_2) z))) (Term.Boolean true)))) B), (Term.Apply (Term.Apply (Term.UOp UserOp.gt) a) b) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_z z) (Term.Numeral 0) (__mk_arith_mult_abs_comparison_rec B (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.gt) (__eo_list_concat (Term.UOp UserOp.mult) a (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) t) (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof t))))) (__eo_list_concat (Term.UOp UserOp.mult) b (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) u) (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof u))))))) (__eo_l_2___mk_arith_mult_abs_comparison_rec (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.abs) t)) (Term.Apply (Term.UOp UserOp.abs) u))) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_t_2) z))) (Term.Boolean true)))) B) (Term.Apply (Term.Apply (Term.UOp UserOp.gt) a) b)))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.abs) t)) (Term.Apply (Term.UOp UserOp.abs) u))) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_t_2) z))) (Term.Boolean true)))) B), (Term.Apply (Term.Apply (Term.UOp UserOp.gt) a) b) => (__eo_ite (__eo_eq t __eo_lv_t_2) (__eo_requires (__eo_to_q z) (Term.Rational (native_mk_rational 0 1)) (__mk_arith_mult_abs_comparison_rec B (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.gt) (__eo_list_concat (Term.UOp UserOp.mult) a (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) t) (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof t))))) (__eo_list_concat (Term.UOp UserOp.mult) b (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) u) (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof u))))))) (__eo_l_2___mk_arith_mult_abs_comparison_rec (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.UOp UserOp.abs) t)) (Term.Apply (Term.UOp UserOp.abs) u))) (Term.Apply (Term.Apply (Term.UOp UserOp.and) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_lv_t_2) z))) (Term.Boolean true)))) B) (Term.Apply (Term.Apply (Term.UOp UserOp.gt) a) b)))
   | __eo_dv_1, __eo_dv_2 => (__eo_l_2___mk_arith_mult_abs_comparison_rec __eo_dv_1 __eo_dv_2)
 
 
