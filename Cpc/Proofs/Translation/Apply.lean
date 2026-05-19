@@ -13097,10 +13097,101 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
         (eo_to_smt_tuple_cons_tail (__eo_to_smt x) headTy (__eo_to_smt y))
         "@Tuple" fullD hRawSmt
     have hHeadComp : __smtx_type_wf_component headTy = true := by
-      simpa [fullD, __smtx_type_wf, __smtx_type_wf_component,
-        __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
-        native_and, native_ite, native_reflist_contains,
-        native_reflist_nil] using hFullWfFromRaw
+      have hHeadNotTupleRef : headTy ≠ SmtType.TypeRef "@Tuple" := by
+        intro hRef
+        exact eo_to_smt_type_ne_tuple_typeref (__eo_typeof y) (by
+          simpa [headTy] using hRef)
+      cases hHeadTy : headTy with
+      | Map A B =>
+          have hParts :
+              native_inhabited_type (SmtType.Map A B) = true ∧
+                native_inhabited_type A = true ∧
+                  __smtx_type_wf_rec A native_reflist_nil = true ∧
+                    native_inhabited_type B = true ∧
+                      __smtx_type_wf_rec B native_reflist_nil = true := by
+            have hAll :
+                native_inhabited_type (SmtType.Datatype "@Tuple" fullD) = true ∧
+                  native_inhabited_type (SmtType.Map A B) = true ∧
+                    (native_inhabited_type A = true ∧
+                      __smtx_type_wf_rec A native_reflist_nil = true ∧
+                        native_inhabited_type B = true ∧
+                          __smtx_type_wf_rec B native_reflist_nil = true) ∧
+                      __smtx_dt_cons_wf_rec c
+                          (native_reflist_insert native_reflist_nil "@Tuple") =
+                        true := by
+              simpa [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+                __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+                native_and, native_ite, native_reflist_contains,
+                native_reflist_nil] using hFullWfFromRaw
+            exact ⟨hAll.2.1, hAll.2.2.1⟩
+          simpa [hHeadTy, __smtx_type_wf_component, __smtx_type_wf_rec,
+            native_and] using hParts
+      | Set A =>
+          have hParts :
+              native_inhabited_type A = true ∧
+                __smtx_type_wf_rec A native_reflist_nil = true := by
+            have hAll :
+                native_inhabited_type (SmtType.Datatype "@Tuple" fullD) = true ∧
+                  (native_inhabited_type A = true ∧
+                    __smtx_type_wf_rec A native_reflist_nil = true) ∧
+                    __smtx_dt_cons_wf_rec c
+                        (native_reflist_insert native_reflist_nil "@Tuple") =
+                      true := by
+              simpa [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+                __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+                native_and, native_ite, native_reflist_contains,
+                native_reflist_nil] using hFullWfFromRaw
+            exact hAll.2.1
+          simpa [hHeadTy, __smtx_type_wf_component, __smtx_type_wf_rec,
+            native_and] using hParts
+      | Seq A =>
+          have hParts :
+              native_inhabited_type A = true ∧
+                __smtx_type_wf_rec A native_reflist_nil = true := by
+            have hAll :
+                native_inhabited_type (SmtType.Datatype "@Tuple" fullD) = true ∧
+                  (native_inhabited_type A = true ∧
+                    __smtx_type_wf_rec A native_reflist_nil = true) ∧
+                    __smtx_dt_cons_wf_rec c
+                        (native_reflist_insert native_reflist_nil "@Tuple") =
+                      true := by
+              simpa [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+                __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+                native_and, native_ite, native_reflist_contains,
+                native_reflist_nil] using hFullWfFromRaw
+            exact hAll.2.1
+          simpa [hHeadTy, __smtx_type_wf_component, __smtx_type_wf_rec,
+            native_and] using hParts
+      | Datatype s d =>
+          have hYDatatype :
+              __smtx_typeof (__eo_to_smt y) = SmtType.Datatype s d := by
+            rw [hYEq]
+            exact hHeadTy
+          have hHeadWf :
+              __smtx_type_wf (SmtType.Datatype s d) = true :=
+            Smtm.smt_datatype_wf_of_non_none_type (__eo_to_smt y) s d hYDatatype
+          simpa [hHeadTy, __smtx_type_wf, __smtx_type_wf_component,
+            native_and] using hHeadWf
+      | TypeRef s =>
+          exfalso
+          have hAll :
+              native_inhabited_type (SmtType.Datatype "@Tuple" fullD) = true ∧
+                s ∈ native_reflist_insert native_reflist_nil "@Tuple" ∧
+                __smtx_dt_cons_wf_rec c
+                    (native_reflist_insert native_reflist_nil "@Tuple") =
+                  true := by
+            simpa [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+              __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+              native_and, native_ite, native_reflist_contains,
+              native_reflist_nil] using hFullWfFromRaw
+          have hs : s = "@Tuple" := by
+            simpa [native_reflist_insert, native_reflist_nil] using hAll.2.1
+          exact hHeadNotTupleRef (by simp [hHeadTy, hs])
+      | _ =>
+          simp [hHeadTy, fullD, __smtx_type_wf, __smtx_type_wf_component,
+            __smtx_type_wf_rec, __smtx_dt_wf_rec, __smtx_dt_cons_wf_rec,
+            native_and, native_ite, native_reflist_contains,
+            native_reflist_nil] at hFullWfFromRaw ⊢
     have hHeadParts :
         native_inhabited_type headTy = true ∧
           __smtx_type_wf_rec headTy native_reflist_nil = true :=
