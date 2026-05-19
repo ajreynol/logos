@@ -13572,9 +13572,10 @@ private theorem eo_to_smt_typeof_matches_translation_apply_uop_application_head_
     let T := __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) y))
     exact eo_to_smt_typeof_matches_translation_apply_apply_generic_of_head_from_ih
       UserOp.set_is_singleton y x
-      (SmtTerm.exists "@x" T
-        (SmtTerm.eq (__eo_to_smt y)
-          (SmtTerm.set_singleton (SmtTerm.Var "@x" T)))) ihFAll ihXAll (by rfl)
+      (let _v0 := __eo_to_smt y
+       SmtTerm.eq _v0
+         (SmtTerm.set_singleton
+           (SmtTerm.map_diff _v0 (SmtTerm.set_empty T)))) ihFAll ihXAll (by rfl)
       (by rfl) (by rfl)
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
@@ -19033,78 +19034,54 @@ theorem eo_to_smt_typeof_matches_translation_apply
         simpa [typeof_set_empty_eq] using hEqArgs.1
     case set_is_singleton =>
       let T := __eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x))
+      let diff :=
+        SmtTerm.map_diff (__eo_to_smt x) (SmtTerm.set_empty T)
       have hTranslate :
           __eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_singleton) x) =
-            SmtTerm.exists "@x" T
-              (SmtTerm.eq (__eo_to_smt x)
-                (SmtTerm.set_singleton (SmtTerm.Var "@x" T))) := by
+            SmtTerm.eq (__eo_to_smt x)
+              (SmtTerm.set_singleton diff) := by
         rfl
-      have hExistsNN :
-          term_has_non_none_type
-            (SmtTerm.exists "@x" T
-              (SmtTerm.eq (__eo_to_smt x)
-                (SmtTerm.set_singleton (SmtTerm.Var "@x" T)))) := by
-        unfold term_has_non_none_type
-        rw [← hTranslate]
-        exact hNonNone
-      have hBodyNN :
-          term_has_non_none_type
-            (SmtTerm.eq (__eo_to_smt x)
-              (SmtTerm.set_singleton (SmtTerm.Var "@x" T))) := by
-        unfold term_has_non_none_type
-        rw [exists_body_bool_of_non_none hExistsNN]
-        simp
       have hEqNN :
           __smtx_typeof_eq
               (__smtx_typeof (__eo_to_smt x))
-              (__smtx_typeof (SmtTerm.set_singleton (SmtTerm.Var "@x" T))) ≠
+              (__smtx_typeof (SmtTerm.set_singleton diff)) ≠
             SmtType.None := by
-        unfold term_has_non_none_type at hBodyNN
-        rw [typeof_eq_eq] at hBodyNN
-        exact hBodyNN
+        simpa [hTranslate, typeof_eq_eq] using hNonNone
       have hEqArgs := smtx_typeof_eq_non_none hEqNN
       have hSingletonNN :
-          __smtx_typeof (SmtTerm.set_singleton (SmtTerm.Var "@x" T)) ≠
-            SmtType.None := by
+          __smtx_typeof (SmtTerm.set_singleton diff) ≠ SmtType.None := by
         rw [← hEqArgs.1]
         exact hEqArgs.2
-      have hVarNN : __smtx_typeof (SmtTerm.Var "@x" T) ≠ SmtType.None := by
-        intro hVarNone
-        apply hSingletonNN
-        rw [typeof_set_singleton_eq, hVarNone]
-        simp [__smtx_typeof_guard_wf, __smtx_type_wf, __smtx_type_wf_rec,
-          native_and, native_ite]
-      have hTNonNone : T ≠ SmtType.None := by
-        intro hTNone
-        have hVarTyNone := smtx_typeof_var_of_non_none "@x" T hVarNN
-        exact hVarNN (hVarTyNone.trans hTNone)
-      have hVarTy : __smtx_typeof (SmtTerm.Var "@x" T) = T := by
-        simpa using smtx_typeof_var_of_non_none "@x" T hVarNN
       have hSingletonGuard :
-          __smtx_typeof_guard_wf (SmtType.Set T) (SmtType.Set T) = SmtType.Set T := by
-        rw [← hVarTy]
+          __smtx_typeof_guard_wf
+              (SmtType.Set (__smtx_typeof diff))
+              (SmtType.Set (__smtx_typeof diff)) =
+            SmtType.Set (__smtx_typeof diff) := by
         exact smtx_typeof_guard_wf_of_non_none
-          (SmtType.Set (__smtx_typeof (SmtTerm.Var "@x" T)))
-          (SmtType.Set (__smtx_typeof (SmtTerm.Var "@x" T))) (by
+          (SmtType.Set (__smtx_typeof diff))
+          (SmtType.Set (__smtx_typeof diff)) (by
             simpa [typeof_set_singleton_eq] using hSingletonNN)
       have hXTy :
-          __smtx_typeof (__eo_to_smt x) = SmtType.Set T := by
-        rw [hEqArgs.1, typeof_set_singleton_eq, hVarTy]
+          __smtx_typeof (__eo_to_smt x) =
+            SmtType.Set (__smtx_typeof diff) := by
+        rw [hEqArgs.1, typeof_set_singleton_eq]
         exact hSingletonGuard
       have hXNonNone : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
         rw [hXTy]
         simp
       have hXTyped := ihX hXNonNone
-      have hxSmt : __eo_to_smt_type (__eo_typeof x) = SmtType.Set T := by
+      have hxSmt :
+          __eo_to_smt_type (__eo_typeof x) =
+            SmtType.Set (__smtx_typeof diff) := by
         rw [← hXTyped]
         exact hXTy
-      rcases TranslationProofs.eo_to_smt_type_eq_set hxSmt with ⟨U, hxEo, hU⟩
+      rcases TranslationProofs.eo_to_smt_type_eq_set hxSmt with ⟨U, hxEo, _hU⟩
       have hSmt :
-          __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) = SmtType.Bool := by
-        rw [hTranslate, typeof_exists_eq]
-        rw [typeof_eq_eq, typeof_set_singleton_eq, hVarTy]
+          __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.set_is_singleton) x)) =
+            SmtType.Bool := by
+        rw [hTranslate, typeof_eq_eq]
         simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite, native_Teq,
-          hXTy, hSingletonGuard]
+          hEqArgs.1, hEqArgs.2, hSingletonNN]
       exact hSmt.trans
         (eo_to_smt_type_typeof_apply_set_is_singleton_of_set x U hxEo).symm
     case _at_div_by_zero =>
