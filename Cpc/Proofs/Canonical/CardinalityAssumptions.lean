@@ -1,8 +1,8 @@
 import Cpc.Proofs.TypePreservation.CanonicalAssumptions
 
 /-!
-Cardinality and freshness witnesses used by datatype cardinality reasoning and
-array extensionality.
+Canonical/cardinality and freshness witnesses used by datatype cardinality
+reasoning and array extensionality.
 
 This module is the intended boundary for the current residual `sorry` in that
 support development.
