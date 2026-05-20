@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.RuleSupport.BooleanElimSupport
 
 open Eo
 open SmtEval
@@ -16,4 +16,4 @@ theorem cmd_step_not_or_elim_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.not_or_elim args premises) :=
 by
-  sorry
+  exact BooleanElimSupport.cmd_step_not_or_elim_properties M hM s args premises
