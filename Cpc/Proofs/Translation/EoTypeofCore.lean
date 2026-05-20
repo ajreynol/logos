@@ -17,16 +17,6 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
-private abbrev eo_to_smt_tuple_cons_tail_core (tail : SmtTerm) (T : SmtType) (head : SmtTerm) :
-    SmtTerm :=
-  _root_.__eo_to_smt_tuple_cons head T tail
-
-private abbrev eo_to_smt_tuple_cons_checked_tail_core (tail : SmtTerm) (T : SmtType)
-    (head : SmtTerm) : SmtTerm :=
-  let raw := eo_to_smt_tuple_cons_tail_core tail T head
-  _root_.__eo_to_smt_tuple_cons_guarded (__smtx_typeof tail)
-    (_root_.__eo_to_smt_tuple_cons_guarded (__smtx_typeof raw) raw)
-
 /-!
 These lemmas isolate EO-side `__eo_typeof` facts that are awkward to reduce
 directly inside the translation proofs.
@@ -2362,61 +2352,6 @@ private theorem eo_to_smt_tuple_update_ne_numeral
         exact False.elim (eo_to_smt_updater_ne_numeral
           (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat k)) t u n h)
     · simp [__eo_to_smt_tuple_update, hs] at h
-
-private theorem eo_to_smt_tuple_cons_ne_numeral
-    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (n : native_Int) :
-    eo_to_smt_tuple_cons_tail_core t T v ≠ SmtTerm.Numeral n := by
-  intro h
-  cases t <;>
-    simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-  case DtCons s d i =>
-    cases d
-    · simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-    · rename_i c dTail
-      cases dTail
-      · cases i
-        · by_cases hs : s = "@Tuple"
-          · subst hs
-            simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-          · simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons, hs] at h
-        · simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-      · simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-
-private theorem eo_to_smt_tuple_cons_guarded_ne_numeral
-    (U : SmtType) (t : SmtTerm) (n : native_Int)
-    (hRaw : t ≠ SmtTerm.Numeral n) :
-    _root_.__eo_to_smt_tuple_cons_guarded U t ≠ SmtTerm.Numeral n := by
-  intro h
-  cases U <;> simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
-  case Datatype s d =>
-    by_cases hs : s = "@Tuple"
-    · subst s
-      cases d with
-      | null =>
-          simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
-      | sum c rest =>
-          cases rest with
-          | null =>
-              exact hRaw (by
-                simpa [_root_.__eo_to_smt_tuple_cons_guarded] using h)
-          | sum cRest dRest =>
-              simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
-    · simp [_root_.__eo_to_smt_tuple_cons_guarded, hs] at h
-
-private theorem eo_to_smt_tuple_cons_checked_ne_numeral
-    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (n : native_Int) :
-    eo_to_smt_tuple_cons_checked_tail_core t T v ≠ SmtTerm.Numeral n := by
-  intro h
-  unfold eo_to_smt_tuple_cons_checked_tail_core at h
-  exact
-    eo_to_smt_tuple_cons_guarded_ne_numeral (__smtx_typeof t)
-      (_root_.__eo_to_smt_tuple_cons_guarded
-        (__smtx_typeof (eo_to_smt_tuple_cons_tail_core t T v))
-        (eo_to_smt_tuple_cons_tail_core t T v)) n
-      (eo_to_smt_tuple_cons_guarded_ne_numeral
-        (__smtx_typeof (eo_to_smt_tuple_cons_tail_core t T v))
-        (eo_to_smt_tuple_cons_tail_core t T v) n
-        (eo_to_smt_tuple_cons_ne_numeral t T v n)) h
 
 private theorem eo_to_smt_tuple_prepend_rec_ne_numeral
     (tailD : SmtDatatype) (tail : SmtTerm) (k : native_Nat)
