@@ -73,6 +73,93 @@
 
 \begin{figure}[p]
 \begin{lstlisting}
+inductive SmtType : Type where
+  | None : SmtType
+  | Bool : SmtType
+  | Int : SmtType
+  | Real : SmtType
+  | RegLan : SmtType
+  | BitVec : Nat -> SmtType
+  | Map : SmtType -> SmtType -> SmtType
+  | Set : SmtType -> SmtType
+  | Seq : SmtType -> SmtType
+  | Char : SmtType
+  | Datatype : String -> SmtDatatype -> SmtType
+  | TypeRef : String -> SmtType
+  | USort : Nat -> SmtType
+  | FunType : SmtType -> SmtType -> SmtType
+  | DtcAppType : SmtType -> SmtType -> SmtType
+
+deriving Repr, DecidableEq, Inhabited, Ord
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive SmtTerm : Type where
+  -- literals, variables, and application
+  | None : SmtTerm
+  | Boolean : Bool -> SmtTerm
+  | Numeral : Int -> SmtTerm
+  | Rational : Rat -> SmtTerm
+  | String : String -> SmtTerm
+  | Binary : Int -> Int -> SmtTerm
+  | Var : String -> SmtType -> SmtTerm
+  | Apply : SmtTerm -> SmtTerm -> SmtTerm
+
+  -- core logical forms
+  | not : SmtTerm -> SmtTerm
+  | and : SmtTerm -> SmtTerm -> SmtTerm
+  | or : SmtTerm -> SmtTerm -> SmtTerm
+  | imp : SmtTerm -> SmtTerm -> SmtTerm
+  | ite : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | eq : SmtTerm -> SmtTerm -> SmtTerm
+  | exists : String -> SmtType -> SmtTerm -> SmtTerm
+  | forall : String -> SmtType -> SmtTerm -> SmtTerm
+  | choice_nth : String -> SmtType -> SmtTerm -> Nat -> SmtTerm
+
+  -- representative arithmetic, maps, and bit-vectors
+  | plus : SmtTerm -> SmtTerm -> SmtTerm
+  | mult : SmtTerm -> SmtTerm -> SmtTerm
+  | leq : SmtTerm -> SmtTerm -> SmtTerm
+  | select : SmtTerm -> SmtTerm -> SmtTerm
+  | store : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | map_diff : SmtTerm -> SmtTerm -> SmtTerm
+  | bvadd : SmtTerm -> SmtTerm -> SmtTerm
+  | bvult : SmtTerm -> SmtTerm -> SmtTerm
+  | extract : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+
+  -- representative strings, sequences, and regular languages
+  | seq_empty : SmtType -> SmtTerm
+  | seq_unit : SmtTerm -> SmtTerm
+  | str_len : SmtTerm -> SmtTerm
+  | str_concat : SmtTerm -> SmtTerm -> SmtTerm
+  | str_substr : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm
+  | str_to_re : SmtTerm -> SmtTerm
+  | re_none : SmtTerm
+  | re_all : SmtTerm
+  | re_concat : SmtTerm -> SmtTerm -> SmtTerm
+  | str_in_re : SmtTerm -> SmtTerm -> SmtTerm
+
+  -- representative datatypes, sets, and conversions
+  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
+  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
+  | DtTester : String -> SmtDatatype -> Nat -> SmtTerm
+  | UConst : String -> SmtType -> SmtTerm
+  | set_empty : SmtType -> SmtTerm
+  | set_member : SmtTerm -> SmtTerm -> SmtTerm
+  | int_to_bv : SmtTerm -> SmtTerm -> SmtTerm
+  | ubv_to_int : SmtTerm -> SmtTerm
+  | sbv_to_int : SmtTerm -> SmtTerm
+
+  -- Many further operators follow the same constructor pattern.
+
+deriving Repr, DecidableEq, Inhabited
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
 inductive SmtValue : Type where
   | NotValue : SmtValue
   | Boolean : Bool -> SmtValue
