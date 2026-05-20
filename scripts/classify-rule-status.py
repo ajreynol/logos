@@ -705,6 +705,21 @@ def load_crule_names(root: Path, module: str) -> set[str]:
     return names
 
 
+def load_rule_filter(path: Path) -> frozenset[str]:
+    rules: set[str] = set()
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        rule = line.strip()
+        if not rule or rule.startswith("#"):
+            continue
+        if any(ch.isspace() for ch in rule):
+            raise ValueError(
+                f"Invalid rule name in filter file {path} on line {line_number}: {line!r}"
+            )
+        rules.add(rule)
+
+    return frozenset(rules)
+
+
 def classify_file(
     path: Path,
     root: Path,
@@ -791,6 +806,14 @@ def parse_args() -> argparse.Namespace:
         help="Omit the TSV header row",
     )
     parser.add_argument(
+        "--filter-file",
+        type=Path,
+        help=(
+            "Only print rules named in this file. The file should contain one rule "
+            "name per line; blank lines and lines beginning with # are ignored."
+        ),
+    )
+    parser.add_argument(
         "-proven",
         action="store_true",
         dest="only_proven",
@@ -819,6 +842,20 @@ def main() -> int:
     if not target.exists():
         print(f"error: path does not exist: {target}", file=sys.stderr)
         return 2
+    rule_filter: frozenset[str] | None = None
+    if args.filter_file is not None:
+        filter_path = args.filter_file.resolve()
+        if not filter_path.exists():
+            print(f"error: filter file does not exist: {filter_path}", file=sys.stderr)
+            return 2
+        if not filter_path.is_file():
+            print(f"error: filter file is not a file: {filter_path}", file=sys.stderr)
+            return 2
+        try:
+            rule_filter = load_rule_filter(filter_path)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
 
     target_files = tuple(iter_rule_files(target))
     prog_cache: dict[str, dict[str, str]] = {}
@@ -853,6 +890,8 @@ def main() -> int:
         return 2
 
     statuses.sort(key=lambda entry: (entry.rule, str(entry.file)))
+    if rule_filter is not None:
+        statuses = [entry for entry in statuses if entry.rule in rule_filter]
 
     wanted_statuses: set[str] = set()
     if args.only_proven:
