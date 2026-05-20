@@ -1,0 +1,190 @@
+\documentclass[10pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\lstdefinelanguage{Lean}{
+  morekeywords={
+    abbrev, def, deriving, end, false, inductive, let, match, namespace,
+    noncomputable, open, Prop, structure, true, Type, where, with
+  },
+  sensitive=true,
+  morecomment=[l]{--},
+  morecomment=[s]{/-}{-/}
+}
+
+\lstset{
+  language=Lean,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\bfseries,
+  commentstyle=\color{gray},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=false,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!35},
+  xleftmargin=0.5em,
+  xrightmargin=0.5em,
+  aboveskip=0.75em,
+  belowskip=0.75em,
+  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1
+}
+
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive SmtValue : Type where
+  | NotValue : SmtValue
+  | Boolean : native_Bool -> SmtValue
+  | Numeral : native_Int -> SmtValue
+  | Rational : native_Rat -> SmtValue
+  | Binary : native_Int -> native_Int -> SmtValue
+  | Map : SmtMap -> SmtValue
+  | Fun : native_String -> SmtType -> SmtType -> SmtValue
+  | Set : SmtMap -> SmtValue
+  | Seq : SmtSeq -> SmtValue
+  | Char : native_Char -> SmtValue
+  | UValue : native_Nat -> native_Nat -> SmtValue
+  | RegLan : native_RegLan -> SmtValue
+  | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtValue
+  | Apply : SmtValue -> SmtValue -> SmtValue
+
+deriving Repr, DecidableEq, Inhabited, Ord
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+abbrev SmtNativeFun := SmtValue -> SmtValue
+
+def native_default_ifun_id : native_String := "@native_default_ifun"
+
+structure SmtModelKey where
+  name : native_String
+  ty : SmtType
+deriving Repr, DecidableEq, Inhabited
+
+structure SmtModel where
+  values : SmtModelKey -> Option SmtValue
+  nativeFuns : SmtModelKey -> Option SmtNativeFun
+deriving Inhabited
+
+def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
+  { name := s, ty := T }
+
+def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  match M.values (native_model_key s T) with
+  | some v => v
+  | none => SmtValue.NotValue
+
+def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : Option SmtNativeFun :=
+  M.nativeFuns (native_model_key fid (SmtType.FunType T U))
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __smtx_typeof_value : SmtValue -> SmtType
+
+def __smtx_typeof : SmtTerm -> SmtType
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
+  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs => (native_ite (native_reflist_contains refs s) (__smtx_dt_cons_wf_rec c refs) false)
+  | (SmtDatatypeCons.cons T c), refs => (native_ite (native_inhabited_type T) (native_ite (__smtx_type_wf_rec T refs) (__smtx_dt_cons_wf_rec c refs) false) false)
+  | SmtDatatypeCons.unit, refs => true
+
+def __smtx_dt_wf_rec : SmtDatatype -> RefList -> native_Bool
+  | SmtDatatype.null, refs => false
+  | (SmtDatatype.sum c SmtDatatype.null), refs => (__smtx_dt_cons_wf_rec c refs)
+  | (SmtDatatype.sum c d), refs => (native_ite (__smtx_dt_cons_wf_rec c refs) (__smtx_dt_wf_rec d refs) false)
+
+def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
+  | (SmtType.Datatype s d), refs => (native_ite (native_reflist_contains refs s) false (__smtx_dt_wf_rec d (native_reflist_insert refs s)))
+  | (SmtType.TypeRef s), refs => false
+  | (SmtType.Seq x1), refs => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 native_reflist_nil))
+  | (SmtType.Map x1 x2), refs => (native_and (native_inhabited_type x1) (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 native_reflist_nil))))
+  | (SmtType.FunType x1 x2), refs => false
+  | (SmtType.Set x1), refs => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 native_reflist_nil))
+  | (SmtType.DtcAppType x1 x2), refs => false
+  | SmtType.None, refs => false
+  | SmtType.RegLan, refs => false
+  | T, refs => true
+
+def __smtx_type_wf_component (T : SmtType) : native_Bool :=
+  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil))
+
+def __smtx_type_wf : SmtType -> native_Bool
+  | SmtType.RegLan => true
+  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf_component U))
+  | T => (__smtx_type_wf_component T)
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
+  | (SmtMap.cons j e m) => (native_vcmp j i)
+  | m => true
+
+def __smtx_map_default_canonical (T : SmtType) (e : SmtValue) : native_Bool :=
+  (native_ite (__smtx_is_finite_type T) (native_veq e (__smtx_type_default (__smtx_typeof_value e))) true)
+
+def __smtx_map_canonical : SmtMap -> native_Bool
+  | (SmtMap.default T e) => (native_and (__smtx_map_default_canonical T e) (__smtx_value_canonical_bool e))
+  | (SmtMap.cons i e m) => (native_and (native_and (native_and (native_and (__smtx_value_canonical_bool i) (__smtx_value_canonical_bool e)) (__smtx_map_canonical m)) (__smtx_map_entries_ordered_after i m)) (native_not (native_veq e (__smtx_msm_get_default m))))
+
+def __smtx_seq_canonical : SmtSeq -> native_Bool
+  | (SmtSeq.empty T) => true
+  | (SmtSeq.cons v s) => (native_and (__smtx_value_canonical_bool v) (__smtx_seq_canonical s))
+
+def __smtx_value_canonical_bool : SmtValue -> native_Bool
+  | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) true)
+  | (SmtValue.Map m) => (__smtx_map_canonical m)
+  | (SmtValue.Set m) => (native_and (__smtx_map_canonical m) (native_veq (__smtx_msm_get_default m) (SmtValue.Boolean false)))
+  | (SmtValue.Seq s) => (__smtx_seq_canonical s)
+  | (SmtValue.Apply f v) => (native_and (__smtx_value_canonical_bool f) (__smtx_value_canonical_bool v))
+  | v => true
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
+  | intro_true  (M : SmtModel) (t : SmtTerm) :
+      (__smtx_typeof t) = SmtType.Bool ->
+      (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
+      (smt_interprets M t true)
+  | intro_false (M : SmtModel) (t : SmtTerm) :
+      (__smtx_typeof t) = SmtType.Bool ->
+      (__smtx_model_eval M t) = (SmtValue.Boolean false)->
+      smt_interprets M t false
+
+def native_fun_typed (M : SmtModel) : Prop :=
+  ∀ fid A B i,
+    __smtx_type_wf (SmtType.FunType A B) = true ->
+    __smtx_typeof_value i = A ->
+    __smtx_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
+      __smtx_value_canonical_bool (native_eval_ifun_apply M fid A B i) = true
+
+def model_total_typed (M : SmtModel) : Prop :=
+  (∀ s T, __smtx_type_wf T = true -> __smtx_typeof_value (native_model_lookup M s T) = T) ∧
+  (∀ s T, __smtx_type_wf T = true -> __smtx_value_canonical_bool (native_model_lookup M s T)) = true ∧
+  (∀ s T, __smtx_type_wf T = false -> native_model_lookup M s T = SmtValue.NotValue) ∧
+  native_fun_typed M
+\end{lstlisting}
+\end{figure}
+
+\end{document}
