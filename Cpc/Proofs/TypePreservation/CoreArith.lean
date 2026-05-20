@@ -1009,9 +1009,9 @@ theorem typeof_value_model_eval_apply_lookup_fun
     (i : SmtValue)
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value
-        (__smtx_model_eval_apply M (__smtx_model_lookup M s (SmtType.FunType A B)) i) = B := by
+        (__smtx_model_eval_apply M (native_model_lookup M s (SmtType.FunType A B)) i) = B := by
   have hLookup :
-      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
+      __smtx_typeof_value (native_model_lookup M s (SmtType.FunType A B)) =
         SmtType.FunType A B :=
     model_total_typed_lookup hM s (SmtType.FunType A B) hFunWF
   exact typeof_value_model_eval_apply_fun_value M hM hA hFunWF hLookup hi
@@ -1028,9 +1028,9 @@ theorem typeof_value_model_eval_apply_lookup_ifun
     (i : SmtValue)
     (hi : __smtx_typeof_value i = A) :
     __smtx_typeof_value
-        (__smtx_model_eval_apply M (__smtx_model_lookup M s (SmtType.FunType A B)) i) = B := by
+        (__smtx_model_eval_apply M (native_model_lookup M s (SmtType.FunType A B)) i) = B := by
   have hLookup :
-      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
+      __smtx_typeof_value (native_model_lookup M s (SmtType.FunType A B)) =
         SmtType.FunType A B :=
     model_total_typed_lookup hM s (SmtType.FunType A B) hFunWF
   exact typeof_value_model_eval_apply_ifun_value M hM hA hFunWF hLookup hi

@@ -421,7 +421,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
         (__smtx_model_eval M (SmtTerm.String ""))) (SmtValue.Seq sx) =
       SmtValue.Boolean true
     rw [__smtx_model_eval.eq_4]
-    simp [native_pack_string, __smtx_ssm_char_values_of_string,
+    simp [native_pack_string, native_ssm_char_values_of_string,
       __smtx_model_eval_str_concat, native_pack_seq, native_seq_concat]
     rw [native_unpack_seq, List.append_nil]
     change RuleProofs.smt_seq_rel

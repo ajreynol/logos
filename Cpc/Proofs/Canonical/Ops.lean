@@ -239,13 +239,13 @@ theorem model_eval_apply_lookup_fun_canonical
     (hxTy : __smtx_typeof_value x = A) :
     __smtx_value_canonical
       (__smtx_model_eval_apply M
-        (__smtx_model_lookup M s (SmtType.FunType A B)) x) := by
+        (native_model_lookup M s (SmtType.FunType A B)) x) := by
   have hLookupTy :
-      __smtx_typeof_value (__smtx_model_lookup M s (SmtType.FunType A B)) =
+      __smtx_typeof_value (native_model_lookup M s (SmtType.FunType A B)) =
         SmtType.FunType A B :=
     model_total_typed_lookup hM s (SmtType.FunType A B) hFunWF
   have hLookupCan :
-      __smtx_value_canonical (__smtx_model_lookup M s (SmtType.FunType A B)) :=
+      __smtx_value_canonical (native_model_lookup M s (SmtType.FunType A B)) :=
     model_total_typed_lookup_canonical hM s (SmtType.FunType A B) hFunWF
   rcases fun_value_canonical hLookupTy with ⟨fid, hLookupEq⟩
   rw [hLookupEq] at hLookupCan ⊢
@@ -261,7 +261,7 @@ theorem model_eval_apply_lookup_ifun_canonical
     (hxTy : __smtx_typeof_value x = A) :
     __smtx_value_canonical
       (__smtx_model_eval_apply M
-        (__smtx_model_lookup M s (SmtType.FunType A B)) x) := by
+        (native_model_lookup M s (SmtType.FunType A B)) x) := by
   exact model_eval_apply_lookup_fun_canonical M hM s A B x hFunWF hxTy
 
 theorem model_eval_apply_canonical
@@ -1292,24 +1292,24 @@ theorem model_eval_seq_nth_wrong_canonical
       let mapTy := SmtType.Map (SmtType.Seq A) (SmtType.Map SmtType.Int A)
       by_cases hTy : __smtx_type_wf mapTy = true
       · have hLookup : __smtx_value_canonical
-            (__smtx_model_lookup M native_oob_seq_nth_id mapTy) :=
+            (native_model_lookup M native_oob_seq_nth_id mapTy) :=
           model_total_typed_lookup_canonical hM native_oob_seq_nth_id mapTy hTy
         have hFirst : __smtx_value_canonical
             (__smtx_model_eval_select
-              (__smtx_model_lookup M native_oob_seq_nth_id mapTy)
+              (native_model_lookup M native_oob_seq_nth_id mapTy)
               (SmtValue.Seq s)) :=
           model_eval_select_canonical hLookup
         have hSecond : __smtx_value_canonical
             (__smtx_model_eval_select
               (__smtx_model_eval_select
-                (__smtx_model_lookup M native_oob_seq_nth_id mapTy)
+                (native_model_lookup M native_oob_seq_nth_id mapTy)
                 (SmtValue.Seq s))
               (SmtValue.Numeral n)) :=
           model_eval_select_canonical hFirst
         simpa [__smtx_seq_nth_wrong, mapTy, __smtx_model_eval_select] using
           hSecond
       · have hLookup :
-            __smtx_model_lookup M native_oob_seq_nth_id mapTy = SmtValue.NotValue :=
+            native_model_lookup M native_oob_seq_nth_id mapTy = SmtValue.NotValue :=
           model_total_typed_lookup_not_wf hM native_oob_seq_nth_id mapTy (by
             cases hWF : __smtx_type_wf mapTy <;> simp [hWF] at hTy ⊢)
         simpa [__smtx_seq_nth_wrong, mapTy, hLookup, __smtx_map_select] using
@@ -1417,7 +1417,7 @@ theorem model_eval_dt_sel_wrong_canonical
     (hvTy : __smtx_typeof_value v = SmtType.Datatype s d) :
     __smtx_value_canonical
       (__smtx_model_eval_apply M
-        (__smtx_model_lookup M (native_wrong_apply_sel_id n m)
+        (native_model_lookup M (native_wrong_apply_sel_id n m)
           (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)))
         v) := by
   let D := SmtType.Datatype s d
@@ -1433,12 +1433,12 @@ theorem model_eval_dt_sel_wrong_canonical
       cases hWF : __smtx_type_wf (SmtType.FunType D R) <;>
         simp [hWF] at hFunWF ⊢
     have hLookup :
-        __smtx_model_lookup M (native_wrong_apply_sel_id n m) (SmtType.FunType D R) =
+        native_model_lookup M (native_wrong_apply_sel_id n m) (SmtType.FunType D R) =
           SmtValue.NotValue :=
       model_total_typed_lookup_not_wf hM (native_wrong_apply_sel_id n m)
         (SmtType.FunType D R) hFunWFFalse
     rw [show
-        __smtx_model_lookup M (native_wrong_apply_sel_id n m)
+        native_model_lookup M (native_wrong_apply_sel_id n m)
             (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m)) =
           SmtValue.NotValue by
         simpa [D, R] using hLookup]

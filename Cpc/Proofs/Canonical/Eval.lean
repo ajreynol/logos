@@ -43,7 +43,7 @@ theorem model_eval_var_canonical
   · simpa [__smtx_model_eval] using model_total_typed_lookup_canonical hM s T hWF
   · have hWF' : __smtx_type_wf T = false := by
       cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
-    have hLookup : __smtx_model_lookup M s T = SmtValue.NotValue :=
+    have hLookup : native_model_lookup M s T = SmtValue.NotValue :=
       model_total_typed_lookup_not_wf hM s T hWF'
     simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
 
@@ -58,7 +58,7 @@ theorem model_eval_uconst_canonical
   · simpa [__smtx_model_eval] using model_total_typed_lookup_canonical hM s T hWF
   · have hWF' : __smtx_type_wf T = false := by
       cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
-    have hLookup : __smtx_model_lookup M s T = SmtValue.NotValue :=
+    have hLookup : native_model_lookup M s T = SmtValue.NotValue :=
       model_total_typed_lookup_not_wf hM s T hWF'
     simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
 
@@ -396,7 +396,7 @@ theorem native_eval_tchoice_canonical
       ∃ v : SmtValue,
         __smtx_typeof_value v = T ∧
           __smtx_value_canonical_bool v = true ∧
-          __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
+          __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
   · have hCan : __smtx_value_canonical (Classical.choose hSat) := by
       simpa [__smtx_value_canonical] using (Classical.choose_spec hSat).2.1
     simpa [hSat] using hCan
@@ -435,7 +435,7 @@ theorem model_eval_choice_nth_canonical
           rw [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_2]
           simpa [__smtx_model_eval.eq_137, smtx_model_eval_choice_nth_eq_1,
             smtx_model_eval_choice_nth_eq_2] using
-            ih (__smtx_model_push M s T (native_eval_tchoice M s T (SmtTerm.exists s' U body')))
+            ih (native_model_push M s T (native_eval_tchoice M s T (SmtTerm.exists s' U body')))
               s' U body' hTy'
       | _ =>
           exfalso
@@ -641,7 +641,7 @@ theorem model_eval_canonical_of_supported
       have hApply :
           __smtx_value_canonical
               (__smtx_model_eval_apply M
-                (__smtx_model_lookup M native_div_by_zero_id
+                (native_model_lookup M native_div_by_zero_id
                 (SmtType.FunType SmtType.Int SmtType.Int))
               (SmtValue.Numeral 1)) :=
         model_eval_apply_lookup_ifun_canonical M hM native_div_by_zero_id

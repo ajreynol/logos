@@ -1,4 +1,4 @@
-import CpcMini.SmtModel
+import CpcMini.Proofs.TypePreservation.Predicates
 import CpcMini.Proofs.TypePreservation.CanonicalAssumptions
 
 open SmtEval
@@ -158,8 +158,8 @@ def generic_apply_eval (f x : SmtTerm) : Prop :=
 
 /-- Predicate asserting that a model returns a correctly typed value, or `NotValue`, at a given symbol and type. -/
 def model_typed_at (M : SmtModel) (s : native_String) (T : SmtType) : Prop :=
-  (__smtx_type_wf T = true -> __smtx_typeof_value (__smtx_model_lookup M s T) = T) ∧
-  (__smtx_type_wf T = false -> __smtx_model_lookup M s T = SmtValue.NotValue)
+  (__smtx_type_wf T = true -> __smtx_typeof_value (native_model_lookup M s T) = T) ∧
+  (__smtx_type_wf T = false -> native_model_lookup M s T = SmtValue.NotValue)
 
 /-- Shows that the SMT type `bool` is inhabited. -/
 theorem type_inhabited_bool : type_inhabited SmtType.Bool :=

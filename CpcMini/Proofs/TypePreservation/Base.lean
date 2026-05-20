@@ -172,7 +172,7 @@ theorem typeof_value_model_eval_exists
       ∃ v : SmtValue,
         __smtx_typeof_value v = T ∧
           __smtx_value_canonical_bool v = true ∧
-          __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
+          __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
   · unfold __smtx_model_eval
     simp [h, __smtx_typeof_value]
   · unfold __smtx_model_eval
@@ -213,7 +213,7 @@ theorem typeof_value_model_eval_forall
       ∀ v : SmtValue,
         __smtx_typeof_value v = T ->
           __smtx_value_canonical_bool v = true ->
-          __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
+          __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
   · unfold __smtx_model_eval
     simp [dif_pos h, __smtx_typeof_value]
   · unfold __smtx_model_eval
@@ -233,7 +233,7 @@ theorem choice_nth_zero_has_witness
     simp [__smtx_typeof, __smtx_typeof_choice_nth, native_ite, native_Teq, h] at ht ⊢
   · have hWF : __smtx_type_wf T = true :=
       smtx_typeof_guard_wf_wf_of_non_none T T ht
-    exact ⟨__smtx_model_lookup Mw s T,
+    exact ⟨native_model_lookup Mw s T,
       model_total_typed_lookup hMw s T hWF,
       model_total_typed_lookup_canonical hMw s T hWF⟩
 
@@ -269,7 +269,7 @@ theorem typeof_value_model_eval_choice_nth
           ∃ v : SmtValue,
             __smtx_typeof_value v = T ∧
               __smtx_value_canonical_bool v = true ∧
-              __smtx_model_eval (__smtx_model_push M s T v) body = SmtValue.Boolean true
+              __smtx_model_eval (native_model_push M s T v) body = SmtValue.Boolean true
       · rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_1]
         simp [hSat]
         exact (Classical.choose_spec hSat).1
@@ -293,13 +293,13 @@ theorem typeof_value_model_eval_choice_nth
                 ∃ v : SmtValue,
                   __smtx_typeof_value v = T ∧
                     __smtx_value_canonical_bool v = true ∧
-                    __smtx_model_eval (__smtx_model_push M s T v) (SmtTerm.exists s' U F) = SmtValue.Boolean true then
+                    __smtx_model_eval (native_model_push M s T v) (SmtTerm.exists s' U F) = SmtValue.Boolean true then
               Classical.choose hSat
             else if hTy : ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical_bool v then
               Classical.choose hTy
             else
               SmtValue.NotValue
-          have ih' := ih (__smtx_model_push M s T v) s' U F hRec
+          have ih' := ih (native_model_push M s T v) s' U F hRec
           rw [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_2]
           simpa [__smtx_model_eval.eq_14, smtx_model_eval_choice_nth_eq_2,
             __smtx_typeof, __smtx_typeof_choice_nth, v] using ih'

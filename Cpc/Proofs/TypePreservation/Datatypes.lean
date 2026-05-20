@@ -831,7 +831,7 @@ theorem typeof_value_model_eval_dt_sel_wrong
     (hv : __smtx_typeof_value v = SmtType.Datatype s d) :
     __smtx_typeof_value
       (__smtx_model_eval_apply M
-        (__smtx_model_lookup M (native_wrong_apply_sel_id i j)
+        (native_model_lookup M (native_wrong_apply_sel_id i j)
           (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d i j)))
         v) = __smtx_ret_typeof_sel s d i j := by
   let D := SmtType.Datatype s d
@@ -872,13 +872,13 @@ theorem typeof_value_model_eval_dt_sel_wrong
       hRParts.1, hRParts.2]
   have hLookup :
       __smtx_typeof_value
-        (__smtx_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R)) =
+        (native_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R)) =
           SmtType.FunType D R := by
     simpa [D, R] using
       model_total_typed_lookup hM (native_wrong_apply_sel_id i j)
         (SmtType.FunType D R) hFunWF
   generalize hfDef :
-    __smtx_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R) = f
+    native_model_lookup M (native_wrong_apply_sel_id i j) (SmtType.FunType D R) = f
   have hf : __smtx_typeof_value f = SmtType.FunType D R := by
     simpa [← hfDef] using hLookup
   have hvD : __smtx_typeof_value v = D := by

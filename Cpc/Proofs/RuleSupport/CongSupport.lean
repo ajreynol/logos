@@ -7269,7 +7269,7 @@ private noncomputable abbrev smtEvalDiv
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0))
       (__smtx_model_eval_apply M
-      (__smtx_model_lookup M native_div_by_zero_id
+      (native_model_lookup M native_div_by_zero_id
         (SmtType.FunType SmtType.Int SmtType.Int))
       _v1)
     (__smtx_model_eval_div_total _v1 _v0)
@@ -7281,7 +7281,7 @@ private noncomputable abbrev smtEvalMod
   __smtx_model_eval_ite
     (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0))
       (__smtx_model_eval_apply M
-      (__smtx_model_lookup M native_mod_by_zero_id
+      (native_model_lookup M native_mod_by_zero_id
         (SmtType.FunType SmtType.Int SmtType.Int))
       _v1)
     (__smtx_model_eval_mod_total _v1 _v0)
@@ -7298,7 +7298,7 @@ private noncomputable abbrev smtEvalMultmult
     (__smtx_model_eval_ite
       (__smtx_model_eval_eq _v2 _v1)
       (__smtx_model_eval_apply M
-        (__smtx_model_lookup M native_div_by_zero_id
+        (native_model_lookup M native_div_by_zero_id
           (SmtType.FunType SmtType.Int SmtType.Int))
         _v3)
       (__smtx_model_eval_div_total _v3
@@ -7313,7 +7313,7 @@ private noncomputable abbrev smtEvalQdiv
     (__smtx_model_eval_eq _v0
       (SmtValue.Rational (native_mk_rational 0 1)))
       (__smtx_model_eval_apply M
-      (__smtx_model_lookup M native_qdiv_by_zero_id
+      (native_model_lookup M native_qdiv_by_zero_id
         (SmtType.FunType SmtType.Real SmtType.Real))
       _v1)
     (__smtx_model_eval_qdiv_total _v1 _v0)
@@ -8452,10 +8452,13 @@ private theorem seq_unit_arg_non_reg_of_non_none
     smtx_typeof_guard_wf_wf_of_non_none
       (SmtType.Seq (__smtx_typeof a))
       (SmtType.Seq (__smtx_typeof a)) hGuardNN
+  have hSeqComponent :
+      __smtx_type_wf_component (SmtType.Seq (__smtx_typeof a)) = true := by
+    simpa [__smtx_type_wf] using hSeqWf
   have hSeqWfRec :
       __smtx_type_wf_rec (SmtType.Seq (__smtx_typeof a))
-        native_reflist_nil = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using hSeqWf
+        native_reflist_nil = true :=
+    (smtx_type_wf_component_parts hSeqComponent).2
   have hArgWfRec :
       __smtx_type_wf_rec (__smtx_typeof a) native_reflist_nil = true :=
     TranslationProofs.seq_type_wf_rec_component_of_wf hSeqWfRec
@@ -8483,10 +8486,13 @@ private theorem set_singleton_arg_non_reg_of_non_none
     smtx_typeof_guard_wf_wf_of_non_none
       (SmtType.Set (__smtx_typeof a))
       (SmtType.Set (__smtx_typeof a)) hGuardNN
+  have hSetComponent :
+      __smtx_type_wf_component (SmtType.Set (__smtx_typeof a)) = true := by
+    simpa [__smtx_type_wf] using hSetWf
   have hSetWfRec :
       __smtx_type_wf_rec (SmtType.Set (__smtx_typeof a))
-        native_reflist_nil = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using hSetWf
+        native_reflist_nil = true :=
+    (smtx_type_wf_component_parts hSetComponent).2
   have hArgWfRec :
       __smtx_type_wf_rec (__smtx_typeof a) native_reflist_nil = true :=
     TranslationProofs.set_type_wf_rec_component_of_wf hSetWfRec
@@ -16356,11 +16362,249 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                         | Term.UOp1 UserOp1.tuple_update i =>
                             exact congTypeSpine_tuple_update_eq_has_bool_type
                               i z x (Term.Apply g y) hTrans hApp
-                        | _ =>
+                        | Term.UOp1 op i =>
+                            cases op <;>
+                              try
+                                exact False.elim
+                                  (hHeadTrans
+                                    (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                      _ z x (by rfl) hTrans))
+                            case update =>
+                              exact
+                                congTypeSpine_typecongr_indexed_binary_uop1_eq_has_bool_type
+                                  UserOp1.update i
+                                  (fun a b =>
+                                    __eo_to_smt_updater (__eo_to_smt i) a b)
+                                  (by intro a b; rfl)
+                                  (by
+                                    intro a b a' b' ha hb
+                                    exact eo_to_smt_updater_type_congr
+                                      (__eo_to_smt i) a b a' b' ha hb)
+                                  z x (Term.Apply g y) hTrans hApp
+                            case tuple_update =>
+                              exact congTypeSpine_tuple_update_eq_has_bool_type
+                                i z x (Term.Apply g y) hTrans hApp
+                        | Term.UOp2 op i j =>
                             exact False.elim
                               (hHeadTrans
                                 (eo_apply_apply_head_has_translation_of_generic_apply_translation
-                                  f' z x (by rfl) hTrans))
+                                  (Term.UOp2 op i j) z x (by rfl) hTrans))
+                        | Term.UOp3 op i j k =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.UOp3 op i j k) z x (by rfl) hTrans))
+                        | Term.__eo_List =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.__eo_List z x (by rfl) hTrans))
+                        | Term.__eo_List_nil =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.__eo_List_nil z x (by rfl) hTrans))
+                        | Term.__eo_List_cons =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.__eo_List_cons z x (by rfl) hTrans))
+                        | Term.Bool =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.Bool z x (by rfl) hTrans))
+                        | Term.Boolean b =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Boolean b) z x (by rfl) hTrans))
+                        | Term.Numeral n =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Numeral n) z x (by rfl) hTrans))
+                        | Term.Rational r =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Rational r) z x (by rfl) hTrans))
+                        | Term.String s =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.String s) z x (by rfl) hTrans))
+                        | Term.Binary w n =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Binary w n) z x (by rfl) hTrans))
+                        | Term.Type =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.Type z x (by rfl) hTrans))
+                        | Term.Stuck =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.Stuck z x (by rfl) hTrans))
+                        | Term.Apply f0 a =>
+                            cases f0 <;>
+                              try
+                                exact False.elim
+                                  (hHeadTrans
+                                    (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                      _ z x (by rfl) hTrans))
+                            case UOp op =>
+                              cases op <;>
+                                try
+                                  exact False.elim
+                                    (hHeadTrans
+                                      (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                        _ z x (by rfl) hTrans))
+                              case ite =>
+                                exact congTypeSpine_ite_eq_has_bool_type
+                                  a z x (Term.Apply g y) hTrans hApp
+                              case bvite =>
+                                exact congTypeSpine_bvite_eq_has_bool_type
+                                  a z x (Term.Apply g y) hTrans hApp
+                              case store =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.store SmtTerm.store
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_store_eq, typeof_store_eq,
+                                        ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                              case str_substr =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.str_substr SmtTerm.str_substr
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_str_substr_eq,
+                                        typeof_str_substr_eq, ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                              case str_replace =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.str_replace SmtTerm.str_replace
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_str_replace_eq,
+                                        typeof_str_replace_eq, ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                              case str_indexof =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.str_indexof SmtTerm.str_indexof
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_str_indexof_eq,
+                                        typeof_str_indexof_eq, ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                              case str_update =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.str_update SmtTerm.str_update
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_str_update_eq,
+                                        typeof_str_update_eq, ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                              case str_replace_all =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.str_replace_all SmtTerm.str_replace_all
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_str_replace_all_eq,
+                                        typeof_str_replace_all_eq, ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                              case str_replace_re =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.str_replace_re SmtTerm.str_replace_re
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_str_replace_re_eq,
+                                        typeof_str_replace_re_eq, ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                              case str_replace_re_all =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.str_replace_re_all
+                                    SmtTerm.str_replace_re_all
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_str_replace_re_all_eq,
+                                        typeof_str_replace_re_all_eq, ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                              case str_indexof_re =>
+                                exact
+                                  congTypeSpine_typecongr_ternop_eq_has_bool_type
+                                    UserOp.str_indexof_re SmtTerm.str_indexof_re
+                                    (by intro a b c; rfl)
+                                    (by
+                                      intro a b c a' b' c' ha hb hc
+                                      rw [typeof_str_indexof_re_eq,
+                                        typeof_str_indexof_re_eq, ha, hb, hc])
+                                    a z x (Term.Apply g y) hTrans hApp
+                        | Term.FunType =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.FunType z x (by rfl) hTrans))
+                        | Term.Var name T =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Var name T) z x (by rfl) hTrans))
+                        | Term.DatatypeType s d =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DatatypeType s d) z x (by rfl) hTrans))
+                        | Term.DatatypeTypeRef s =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DatatypeTypeRef s) z x (by rfl) hTrans))
+                        | Term.DtcAppType T U =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DtcAppType T U) z x (by rfl) hTrans))
+                        | Term.DtCons s d i =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DtCons s d i) z x (by rfl) hTrans))
+                        | Term.DtSel s d i j =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DtSel s d i j) z x (by rfl) hTrans))
+                        | Term.USort u =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.USort u) z x (by rfl) hTrans))
+                        | Term.UConst u T =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.UConst u T) z x (by rfl) hTrans))
 
 /--
 The remaining semantic core for congruence: a syntactic congruence spine
@@ -19043,11 +19287,277 @@ private theorem congTrueSpine_eq_true
                         | Term.UOp1 UserOp1.tuple_update i =>
                             exact congTrueSpine_tuple_update_eq_true M hM
                               i z x (Term.Apply g y) hEqBool hApp
-                        | _ =>
+                        | Term.UOp1 op i =>
+                            cases op <;>
+                              try
+                                exact False.elim
+                                  (hHeadTrans
+                                    (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                      _ z x (by rfl)
+                                      ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                        _ _ hEqBool).2)))
+                            case update =>
+                              exact
+                                congTrueSpine_non_reg_indexed_binary_uop1_eq_true
+                                  M hM UserOp1.update i
+                                  (fun a b =>
+                                    __eo_to_smt_updater (__eo_to_smt i) a b)
+                                  (by intro a b; rfl)
+                                  (by
+                                    intro a b hNN
+                                    exact updater_args_non_reg_of_non_none
+                                      (__eo_to_smt i) a b hNN)
+                                  (by
+                                    intro a b a' b' ha hb
+                                    exact eo_to_smt_updater_eval_congr
+                                      M (__eo_to_smt i) a b a' b' ha hb)
+                                  z x (Term.Apply g y) hEqBool hApp
+                            case tuple_update =>
+                              exact congTrueSpine_tuple_update_eq_true M hM
+                                i z x (Term.Apply g y) hEqBool hApp
+                        | Term.UOp2 op i j =>
                             exact False.elim
                               (hHeadTrans
                                 (eo_apply_apply_head_has_translation_of_generic_apply_translation
-                                  f' z x (by rfl)
+                                  (Term.UOp2 op i j) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.UOp3 op i j k =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.UOp3 op i j k) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.__eo_List =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.__eo_List z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.__eo_List_nil =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.__eo_List_nil z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.__eo_List_cons =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.__eo_List_cons z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Bool =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.Bool z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Boolean b =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Boolean b) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Numeral n =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Numeral n) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Rational r =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Rational r) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.String s =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.String s) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Binary w n =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Binary w n) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Type =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.Type z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Stuck =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.Stuck z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Apply f0 a =>
+                            cases f0 <;>
+                              try
+                                exact False.elim
+                                  (hHeadTrans
+                                    (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                      _ z x (by rfl)
+                                      ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                        _ _ hEqBool).2)))
+                            case UOp op =>
+                              cases op <;>
+                                try
+                                  exact False.elim
+                                    (hHeadTrans
+                                      (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                        _ z x (by rfl)
+                                        ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                          _ _ hEqBool).2)))
+                              case ite =>
+                                exact congTrueSpine_ite_eq_true M hM
+                                  a z x (Term.Apply g y) hEqBool hApp
+                              case bvite =>
+                                exact congTrueSpine_bvite_eq_true M hM
+                                  a z x (Term.Apply g y) hEqBool hApp
+                              case store =>
+                                exact
+                                  congTrueSpine_non_reg_ternop_eq_true M hM
+                                    UserOp.store SmtTerm.store
+                                    __smtx_model_eval_store
+                                    (by intro a b c; rfl)
+                                    store_args_non_reg_of_non_none
+                                    (by intro a b c; simp [__smtx_model_eval])
+                                    a z x (Term.Apply g y) hEqBool hApp
+                              case str_substr =>
+                                exact
+                                  congTrueSpine_non_reg_ternop_eq_true M hM
+                                    UserOp.str_substr SmtTerm.str_substr
+                                    __smtx_model_eval_str_substr
+                                    (by intro a b c; rfl)
+                                    str_substr_args_non_reg_of_non_none
+                                    (by intro a b c; rw [__smtx_model_eval.eq_81])
+                                    a z x (Term.Apply g y) hEqBool hApp
+                              case str_replace =>
+                                exact
+                                  congTrueSpine_non_reg_ternop_eq_true M hM
+                                    UserOp.str_replace SmtTerm.str_replace
+                                    __smtx_model_eval_str_replace
+                                    (by intro a b c; rfl)
+                                    (seq_triop_args_non_reg_of_non_none
+                                      SmtTerm.str_replace
+                                      (by intro a b c; exact typeof_str_replace_eq a b c))
+                                    (by intro a b c; rw [__smtx_model_eval.eq_83])
+                                    a z x (Term.Apply g y) hEqBool hApp
+                              case str_indexof =>
+                                exact
+                                  congTrueSpine_non_reg_ternop_eq_true M hM
+                                    UserOp.str_indexof SmtTerm.str_indexof
+                                    __smtx_model_eval_str_indexof
+                                    (by intro a b c; rfl)
+                                    str_indexof_args_non_reg_of_non_none
+                                    (by intro a b c; rw [__smtx_model_eval.eq_84])
+                                    a z x (Term.Apply g y) hEqBool hApp
+                              case str_update =>
+                                exact
+                                  congTrueSpine_non_reg_ternop_eq_true M hM
+                                    UserOp.str_update SmtTerm.str_update
+                                    __smtx_model_eval_str_update
+                                    (by intro a b c; rfl)
+                                    str_update_args_non_reg_of_non_none
+                                    (by intro a b c; rw [__smtx_model_eval.eq_89])
+                                    a z x (Term.Apply g y) hEqBool hApp
+                              case str_replace_all =>
+                                exact
+                                  congTrueSpine_non_reg_ternop_eq_true M hM
+                                    UserOp.str_replace_all SmtTerm.str_replace_all
+                                    __smtx_model_eval_str_replace_all
+                                    (by intro a b c; rfl)
+                                    (seq_triop_args_non_reg_of_non_none
+                                      SmtTerm.str_replace_all
+                                      (by intro a b c; exact typeof_str_replace_all_eq a b c))
+                                    (by intro a b c; rw [__smtx_model_eval.eq_99])
+                                    a z x (Term.Apply g y) hEqBool hApp
+                              case str_replace_re =>
+                                exact congTrueSpine_str_replace_re_eq_true M hM
+                                  a z x (Term.Apply g y) hEqBool hApp
+                              case str_replace_re_all =>
+                                exact congTrueSpine_str_replace_re_all_eq_true M hM
+                                  a z x (Term.Apply g y) hEqBool hApp
+                              case str_indexof_re =>
+                                exact congTrueSpine_str_indexof_re_eq_true M hM
+                                  a z x (Term.Apply g y) hEqBool hApp
+                        | Term.FunType =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  Term.FunType z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.Var name T =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.Var name T) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.DatatypeType s d =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DatatypeType s d) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.DatatypeTypeRef s =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DatatypeTypeRef s) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.DtcAppType T U =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DtcAppType T U) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.DtCons s d i =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DtCons s d i) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.DtSel s d i j =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.DtSel s d i j) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.USort u =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.USort u) z x (by rfl)
+                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                    _ _ hEqBool).2)))
+                        | Term.UConst u T =>
+                            exact False.elim
+                              (hHeadTrans
+                                (eo_apply_apply_head_has_translation_of_generic_apply_translation
+                                  (Term.UConst u T) z x (by rfl)
                                   ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
                                     _ _ hEqBool).2)))
 
