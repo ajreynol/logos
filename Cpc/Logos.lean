@@ -2727,31 +2727,10 @@ def __str_mk_str_in_re_sigma_star_rec : Term -> Term -> Term -> Term
   | _, _, _ => Term.Stuck
 
 
-def __str_re_includes_lhs_union : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) r2), r3 => (__eo_ite (__str_re_includes r1 r3) (Term.Boolean true) (__str_re_includes_lhs_union r2 r3))
-  | r1, r3 => (Term.Boolean false)
-
-
-def __str_re_includes_rhs_inter : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | r1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r3) r2) => (__eo_ite (__str_re_includes r1 r3) (Term.Boolean true) (__str_re_includes_rhs_inter r1 r2))
-  | r1, r3 => (Term.Boolean false)
-
-
 def __str_maybe_get_star_body : Term -> Term
   | Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.UOp UserOp.re_mult) r) => r
   | r => r
-
-
-def __str_re_includes_lhs_star : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.UOp UserOp.re_mult) r1), r2 => (__eo_ite (__eo_eq r1 (Term.UOp UserOp.re_allchar)) (Term.Boolean true) (__str_re_includes r1 (__str_maybe_get_star_body r2)))
-  | r1, r2 => (Term.Boolean false)
 
 
 def __str_re_includes_is_rec : Term -> Term -> Term
@@ -8565,6 +8544,27 @@ partial def __re_str_from_flat_form : Term -> Term -> Term
   | rev, (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.Apply (Term.UOp UserOp.str_to_re) s)) r2) => (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.re_concat) (__eo_mk_apply (Term.UOp UserOp.str_to_re) (__str_nary_elim (__str_collect (__eo_ite rev (__eo_list_rev (Term.UOp UserOp.str_concat) s) s))))) (__re_str_from_flat_form rev r2))
   | rev, (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) r2) => (__eo_mk_apply (Term.Apply (Term.UOp UserOp.re_concat) r1) (__re_str_from_flat_form rev r2))
   | rev, r1 => r1
+
+
+partial def __str_re_includes_lhs_union : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) r2), r3 => (__eo_ite (__str_re_includes r1 r3) (Term.Boolean true) (__str_re_includes_lhs_union r2 r3))
+  | r1, r3 => (Term.Boolean false)
+
+
+partial def __str_re_includes_rhs_inter : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | r1, (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r3) r2) => (__eo_ite (__str_re_includes r1 r3) (Term.Boolean true) (__str_re_includes_rhs_inter r1 r2))
+  | r1, r3 => (Term.Boolean false)
+
+
+partial def __str_re_includes_lhs_star : Term -> Term -> Term
+  | Term.Stuck , _  => Term.Stuck
+  | _ , Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.UOp UserOp.re_mult) r1), r2 => (__eo_ite (__eo_eq r1 (Term.UOp UserOp.re_allchar)) (Term.Boolean true) (__str_re_includes r1 (__str_maybe_get_star_body r2)))
+  | r1, r2 => (Term.Boolean false)
 
 
 partial def __eo_l_1___str_re_includes_rec : Term -> Term -> Term
