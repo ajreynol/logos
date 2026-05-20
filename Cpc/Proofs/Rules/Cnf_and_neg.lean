@@ -37,13 +37,13 @@ by
               have hLowerNe : __lower_not_and Fs ≠ Term.Stuck := by
                 intro hLower
                 apply hProg
-                simp [__eo_prog_cnf_and_neg, hFsNe, hLower, __eo_mk_apply]
+                simp [__eo_prog_cnf_and_neg, hLower, __eo_mk_apply]
               have hFsList : CnfSupport.AndList Fs :=
                 CnfSupport.andList_of_lower_not_and_ne_stuck hLowerNe
               have hFsTrans : RuleProofs.eo_has_smt_translation Fs := by
                 simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
               have hTyData := hResultTy
-              simp [__eo_prog_cnf_and_neg, hFsNe, hLowerNe, __eo_mk_apply] at hTyData
+              simp [__eo_prog_cnf_and_neg, __eo_mk_apply] at hTyData
               change __eo_typeof_or (__eo_typeof Fs) (__eo_typeof (__lower_not_and Fs)) =
                   Term.Bool at hTyData
               have hFsTypeof : __eo_typeof Fs = Term.Bool :=

@@ -6,6 +6,8 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
 namespace CnfSupport
@@ -89,6 +91,43 @@ theorem typeof_or_eq_bool_right {t1 t2 : Term} :
     t2 = Term.Bool := by
   cases t1 <;> cases t2 <;> simp [__eo_typeof_or]
 
+/-- The first literal of a right-associated two-literal Boolean clause is Boolean. -/
+theorem typeof_clause2_left_eq_bool {A B : Term} :
+    __eo_typeof_or A (__eo_typeof_or B Term.Bool) = Term.Bool ->
+    A = Term.Bool := by
+  intro hTy
+  exact typeof_or_eq_bool_left hTy
+
+/-- The second literal of a right-associated two-literal Boolean clause is Boolean. -/
+theorem typeof_clause2_right_eq_bool {A B : Term} :
+    __eo_typeof_or A (__eo_typeof_or B Term.Bool) = Term.Bool ->
+    B = Term.Bool := by
+  intro hTy
+  exact typeof_or_eq_bool_left (typeof_or_eq_bool_right hTy)
+
+/-- The first literal of a right-associated three-literal Boolean clause is Boolean. -/
+theorem typeof_clause3_left_eq_bool {A B C : Term} :
+    __eo_typeof_or A (__eo_typeof_or B (__eo_typeof_or C Term.Bool)) = Term.Bool ->
+    A = Term.Bool := by
+  intro hTy
+  exact typeof_or_eq_bool_left hTy
+
+/-- The second literal of a right-associated three-literal Boolean clause is Boolean. -/
+theorem typeof_clause3_middle_eq_bool {A B C : Term} :
+    __eo_typeof_or A (__eo_typeof_or B (__eo_typeof_or C Term.Bool)) = Term.Bool ->
+    B = Term.Bool := by
+  intro hTy
+  exact typeof_or_eq_bool_left (typeof_or_eq_bool_right hTy)
+
+/-- The third literal of a right-associated three-literal Boolean clause is Boolean. -/
+theorem typeof_clause3_right_eq_bool {A B C : Term} :
+    __eo_typeof_or A (__eo_typeof_or B (__eo_typeof_or C Term.Bool)) = Term.Bool ->
+    C = Term.Bool := by
+  intro hTy
+  exact typeof_or_eq_bool_left
+    (typeof_or_eq_bool_right (typeof_or_eq_bool_right hTy))
+
+
 /-- A translated implication has Boolean translated arguments. -/
 theorem imp_args_have_bool_type_of_translation (A B : Term) :
     RuleProofs.eo_has_smt_translation
@@ -168,6 +207,73 @@ theorem ite_args_have_translation_of_translation (C T E : Term) :
     cases hT : __smtx_typeof (__eo_to_smt T) <;>
     cases hE : __smtx_typeof (__eo_to_smt E) <;>
     simp [__smtx_typeof_ite, hC, hT, hE, native_ite, native_Teq] at hIteNN ⊢
+  all_goals assumption
+
+/-- A translated EO `ite` has a Boolean condition. -/
+theorem ite_cond_has_bool_type_of_translation (C T E : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) C) T) E) ->
+    RuleProofs.eo_has_bool_type C := by
+  intro hTrans
+  rw [RuleProofs.eo_has_smt_translation] at hTrans
+  have hIteNN :
+      __smtx_typeof_ite
+        (__smtx_typeof (__eo_to_smt C))
+        (__smtx_typeof (__eo_to_smt T))
+        (__smtx_typeof (__eo_to_smt E)) ≠ SmtType.None := by
+    rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) C) T) E) =
+        SmtTerm.ite (__eo_to_smt C) (__eo_to_smt T) (__eo_to_smt E) by rfl] at hTrans
+    rw [Smtm.typeof_ite_eq] at hTrans
+    exact hTrans
+  unfold RuleProofs.eo_has_bool_type
+  cases hC : __smtx_typeof (__eo_to_smt C) <;>
+    cases hT : __smtx_typeof (__eo_to_smt T) <;>
+    cases hE : __smtx_typeof (__eo_to_smt E) <;>
+    simp [__smtx_typeof_ite, hC, hT, hE, native_ite, native_Teq] at hIteNN ⊢
+
+/-- A translated EO `ite` has equal SMT types for its branches. -/
+theorem ite_branches_same_smt_type_of_translation (C T E : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) C) T) E) ->
+    __smtx_typeof (__eo_to_smt T) = __smtx_typeof (__eo_to_smt E) := by
+  intro hTrans
+  rw [RuleProofs.eo_has_smt_translation] at hTrans
+  have hIteNN :
+      __smtx_typeof_ite
+        (__smtx_typeof (__eo_to_smt C))
+        (__smtx_typeof (__eo_to_smt T))
+        (__smtx_typeof (__eo_to_smt E)) ≠ SmtType.None := by
+    rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) C) T) E) =
+        SmtTerm.ite (__eo_to_smt C) (__eo_to_smt T) (__eo_to_smt E) by rfl] at hTrans
+    rw [Smtm.typeof_ite_eq] at hTrans
+    exact hTrans
+  cases hC : __smtx_typeof (__eo_to_smt C) <;>
+    cases hT : __smtx_typeof (__eo_to_smt T) <;>
+    cases hE : __smtx_typeof (__eo_to_smt E) <;>
+    simp [__smtx_typeof_ite, hC, hT, hE, native_ite, native_Teq] at hIteNN ⊢
+  all_goals assumption
+
+/-- In a translated `ite`, a Boolean then-branch makes the else-branch Boolean. -/
+theorem ite_else_has_bool_type_of_then_bool (C T E : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) C) T) E) ->
+    RuleProofs.eo_has_bool_type T ->
+    RuleProofs.eo_has_bool_type E := by
+  intro hTrans hTBool
+  have hSame := ite_branches_same_smt_type_of_translation C T E hTrans
+  unfold RuleProofs.eo_has_bool_type at hTBool ⊢
+  simpa [← hSame] using hTBool
+
+/-- In a translated `ite`, a Boolean else-branch makes the then-branch Boolean. -/
+theorem ite_then_has_bool_type_of_else_bool (C T E : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) C) T) E) ->
+    RuleProofs.eo_has_bool_type E ->
+    RuleProofs.eo_has_bool_type T := by
+  intro hTrans hEBool
+  have hSame := ite_branches_same_smt_type_of_translation C T E hTrans
+  unfold RuleProofs.eo_has_bool_type at hEBool ⊢
+  simpa [hSame] using hEBool
 
 /-- Builds translated Boolean type for EO implication from Boolean arguments. -/
 theorem eo_has_bool_type_imp_of_bool_args (A B : Term) :
@@ -538,6 +644,106 @@ theorem eo_interprets_ite_false_of_cond_false
               native_Teq, native_ite]
           · rw [__smtx_model_eval.eq_133, hCEval, hEEval]
             simp [__smtx_model_eval_ite]
+
+/-- A right-associated two-literal clause is true when its first literal is true. -/
+theorem clause2_left_true
+    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    eo_interprets M A true ->
+    RuleProofs.eo_has_bool_type B ->
+    eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) A)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) B) (Term.Boolean false))) true := by
+  intro hATrue hBBool
+  have hInnerBool : RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) B) (Term.Boolean false)) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args B (Term.Boolean false)
+      hBBool RuleProofs.eo_has_bool_type_false
+  exact RuleProofs.eo_interprets_or_left_intro M hM A
+    (Term.Apply (Term.Apply (Term.UOp UserOp.or) B) (Term.Boolean false))
+    hATrue hInnerBool
+
+/-- A right-associated two-literal clause is true when its second literal is true. -/
+theorem clause2_right_true
+    (M : SmtModel) (hM : model_total_typed M) (A B : Term) :
+    RuleProofs.eo_has_bool_type A ->
+    eo_interprets M B true ->
+    eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) A)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) B) (Term.Boolean false))) true := by
+  intro hABool hBTrue
+  have hInnerTrue : eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) B) (Term.Boolean false)) true :=
+    RuleProofs.eo_interprets_or_left_intro M hM B (Term.Boolean false)
+      hBTrue RuleProofs.eo_has_bool_type_false
+  exact RuleProofs.eo_interprets_or_right_intro M hM A
+    (Term.Apply (Term.Apply (Term.UOp UserOp.or) B) (Term.Boolean false))
+    hABool hInnerTrue
+
+/-- A right-associated three-literal clause is true when its first literal is true. -/
+theorem clause3_left_true
+    (M : SmtModel) (hM : model_total_typed M) (A B C : Term) :
+    eo_interprets M A true ->
+    RuleProofs.eo_has_bool_type B ->
+    RuleProofs.eo_has_bool_type C ->
+    eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) A)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false)))) true := by
+  intro hATrue hBBool hCBool
+  have hTailBool : RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false)) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args C (Term.Boolean false)
+      hCBool RuleProofs.eo_has_bool_type_false
+  have hInnerBool : RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false))) :=
+    RuleProofs.eo_has_bool_type_or_of_bool_args B
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false))
+      hBBool hTailBool
+  exact RuleProofs.eo_interprets_or_left_intro M hM A
+    (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false)))
+    hATrue hInnerBool
+
+/-- A right-associated three-literal clause is true when its second literal is true. -/
+theorem clause3_middle_true
+    (M : SmtModel) (hM : model_total_typed M) (A B C : Term) :
+    RuleProofs.eo_has_bool_type A ->
+    eo_interprets M B true ->
+    RuleProofs.eo_has_bool_type C ->
+    eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) A)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false)))) true := by
+  intro hABool hBTrue hCBool
+  have hInnerTrue : eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false))) true :=
+    clause2_left_true M hM B C hBTrue hCBool
+  exact RuleProofs.eo_interprets_or_right_intro M hM A
+    (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false)))
+    hABool hInnerTrue
+
+/-- A right-associated three-literal clause is true when its third literal is true. -/
+theorem clause3_right_true
+    (M : SmtModel) (hM : model_total_typed M) (A B C : Term) :
+    RuleProofs.eo_has_bool_type A ->
+    RuleProofs.eo_has_bool_type B ->
+    eo_interprets M C true ->
+    eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) A)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false)))) true := by
+  intro hABool hBBool hCTrue
+  have hInnerTrue : eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false))) true :=
+    clause2_right_true M hM B C hBBool hCTrue
+  exact RuleProofs.eo_interprets_or_right_intro M hM A
+    (Term.Apply (Term.Apply (Term.UOp UserOp.or) B)
+      (Term.Apply (Term.Apply (Term.UOp UserOp.or) C) (Term.Boolean false)))
+    hABool hInnerTrue
 
 private theorem is_ok_true_of_ne_stuck {x : Term} :
     x ≠ Term.Stuck ->
