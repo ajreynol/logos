@@ -17,16 +17,6 @@ set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
-private abbrev eo_to_smt_tuple_cons_tail_core (tail : SmtTerm) (T : SmtType) (head : SmtTerm) :
-    SmtTerm :=
-  _root_.__eo_to_smt_tuple_cons head T tail
-
-private abbrev eo_to_smt_tuple_cons_checked_tail_core (tail : SmtTerm) (T : SmtType)
-    (head : SmtTerm) : SmtTerm :=
-  let raw := eo_to_smt_tuple_cons_tail_core tail T head
-  _root_.__eo_to_smt_tuple_cons_guarded (__smtx_typeof tail)
-    (_root_.__eo_to_smt_tuple_cons_guarded (__smtx_typeof raw) raw)
-
 /-!
 These lemmas isolate EO-side `__eo_typeof` facts that are awkward to reduce
 directly inside the translation proofs.
@@ -2363,60 +2353,64 @@ private theorem eo_to_smt_tuple_update_ne_numeral
           (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat k)) t u n h)
     · simp [__eo_to_smt_tuple_update, hs] at h
 
-private theorem eo_to_smt_tuple_cons_ne_numeral
-    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (n : native_Int) :
-    eo_to_smt_tuple_cons_tail_core t T v ≠ SmtTerm.Numeral n := by
+private theorem eo_to_smt_tuple_prepend_rec_ne_numeral
+    (tailD : SmtDatatype) (tail : SmtTerm) (k : native_Nat)
+    (acc : SmtTerm) (n : native_Int)
+    (hAcc : acc ≠ SmtTerm.Numeral n) :
+    __eo_to_smt_tuple_prepend_rec tailD tail k acc ≠ SmtTerm.Numeral n := by
   intro h
-  cases t <;>
-    simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-  case DtCons s d i =>
-    cases d
-    · simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-    · rename_i c dTail
-      cases dTail
-      · cases i
-        · by_cases hs : s = "@Tuple"
-          · subst hs
-            simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-          · simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons, hs] at h
-        · simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
-      · simp [eo_to_smt_tuple_cons_tail_core, _root_.__eo_to_smt_tuple_cons] at h
+  cases k with
+  | zero =>
+      exact hAcc h
+  | succ k =>
+      simp [__eo_to_smt_tuple_prepend_rec] at h
 
-private theorem eo_to_smt_tuple_cons_guarded_ne_numeral
-    (U : SmtType) (t : SmtTerm) (n : native_Int)
-    (hRaw : t ≠ SmtTerm.Numeral n) :
-    _root_.__eo_to_smt_tuple_cons_guarded U t ≠ SmtTerm.Numeral n := by
+private theorem eo_to_smt_tuple_prepend_of_type_ne_numeral
+    (tailTy : SmtType) (head : SmtTerm) (headTy : SmtType)
+    (tail : SmtTerm) (n : native_Int) :
+    __eo_to_smt_tuple_prepend_of_type tailTy head headTy tail ≠
+      SmtTerm.Numeral n := by
   intro h
-  cases U <;> simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
+  cases tailTy <;> simp [__eo_to_smt_tuple_prepend_of_type] at h
   case Datatype s d =>
     by_cases hs : s = "@Tuple"
     · subst s
       cases d with
       | null =>
-          simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
+          simp [__eo_to_smt_tuple_prepend_of_type] at h
       | sum c rest =>
           cases rest with
           | null =>
-              exact hRaw (by
-                simpa [_root_.__eo_to_smt_tuple_cons_guarded] using h)
-          | sum cRest dRest =>
-              simp [_root_.__eo_to_smt_tuple_cons_guarded] at h
-    · simp [_root_.__eo_to_smt_tuple_cons_guarded, hs] at h
+              cases hWf :
+                  __smtx_type_wf
+                    (SmtType.Datatype "@Tuple"
+                      (SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
+                        SmtDatatype.null)) <;>
+                simp [__eo_to_smt_tuple_prepend_of_type, native_ite, hWf] at h
+              exact
+                eo_to_smt_tuple_prepend_rec_ne_numeral
+                  (SmtDatatype.sum c SmtDatatype.null) tail
+                  (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+                    native_nat_zero)
+                  (SmtTerm.Apply
+                    (SmtTerm.DtCons "@Tuple"
+                      (SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
+                        SmtDatatype.null) native_nat_zero)
+                    head)
+                  n
+                  (by intro hSeed; cases hSeed)
+                  h
+          | sum cRest restRest =>
+              simp [__eo_to_smt_tuple_prepend_of_type] at h
+    · simp [__eo_to_smt_tuple_prepend_of_type, hs] at h
 
-private theorem eo_to_smt_tuple_cons_checked_ne_numeral
-    (t : SmtTerm) (T : SmtType) (v : SmtTerm) (n : native_Int) :
-    eo_to_smt_tuple_cons_checked_tail_core t T v ≠ SmtTerm.Numeral n := by
+private theorem eo_to_smt_tuple_prepend_ne_numeral
+    (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm) (n : native_Int) :
+    __eo_to_smt_tuple_prepend head headTy tail ≠ SmtTerm.Numeral n := by
   intro h
-  unfold eo_to_smt_tuple_cons_checked_tail_core at h
   exact
-    eo_to_smt_tuple_cons_guarded_ne_numeral (__smtx_typeof t)
-      (_root_.__eo_to_smt_tuple_cons_guarded
-        (__smtx_typeof (eo_to_smt_tuple_cons_tail_core t T v))
-        (eo_to_smt_tuple_cons_tail_core t T v)) n
-      (eo_to_smt_tuple_cons_guarded_ne_numeral
-        (__smtx_typeof (eo_to_smt_tuple_cons_tail_core t T v))
-        (eo_to_smt_tuple_cons_tail_core t T v) n
-        (eo_to_smt_tuple_cons_ne_numeral t T v n)) h
+    eo_to_smt_tuple_prepend_of_type_ne_numeral
+      (__smtx_typeof tail) head headTy tail n h
 
 private theorem eo_to_smt_set_insert_ne_numeral_of_not_nil
     (xs : Term) (base : SmtTerm) (n : native_Int)
@@ -2527,11 +2521,8 @@ private theorem eo_to_smt_apply_ne_numeral
       case «exists» =>
         exact False.elim (eo_to_smt_apply_exists_ne_numeral y x n h)
       case tuple =>
-        exact False.elim (eo_to_smt_tuple_cons_checked_ne_numeral
-          (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) n
-          (by
-            simpa [eo_to_smt_tuple_cons_checked_tail_core, eo_to_smt_tuple_cons_tail_core]
-              using h))
+        exact False.elim (eo_to_smt_tuple_prepend_ne_numeral
+          (__eo_to_smt y) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt x) n h)
     case UOp1 op idx =>
       cases op <;> try cases h
       case update =>

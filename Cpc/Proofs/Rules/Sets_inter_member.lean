@@ -1,5 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.RuleSupport.ArraySupport
+import Cpc.Proofs.RuleSupport.CoreSupport
 import Cpc.Proofs.Canonical
 
 open Eo

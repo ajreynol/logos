@@ -1956,12 +1956,6 @@ theorem type_has_no_none_components_non_none
     T ≠ SmtType.None := by
   cases T <;> simp [type_has_no_none_components] at h ⊢
 
-private theorem type_has_no_none_components_seq_component_non_none
-    {A : SmtType}
-    (h : type_has_no_none_components (SmtType.Seq A)) :
-    A ≠ SmtType.None :=
-  type_has_no_none_components_non_none h
-
 private theorem type_has_no_none_components_set_component_non_none
     {A : SmtType}
     (h : type_has_no_none_components (SmtType.Set A)) :
@@ -2211,42 +2205,6 @@ private theorem supported_store_of_non_none
     term_has_non_none_of_type_eq h3 hMapNN.2
   exact supported_preservation_term.store ht1 hs1 ht2 hs2 ht3 hs3
 
-private theorem type_default_typed_of_map_domain_wf
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.Map A B) = true) :
-    __smtx_typeof_value (__smtx_type_default A) = A := by
-  have hAll :
-      native_inhabited_type (SmtType.Map A B) = true ∧
-        native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true ∧
-            native_inhabited_type B = true ∧
-              __smtx_type_wf_rec B native_reflist_nil = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
-  exact type_default_typed_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
-
-private theorem type_default_typed_of_fun_domain_wf
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_typeof_value (__smtx_type_default A) = A := by
-  have hAll :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
-    exact fun_type_wf_parts h
-  exact type_default_typed_of_inhabited_wf_rec A hAll.1 hAll.2.1
-
-private theorem type_default_typed_of_set_element_wf
-    {A : SmtType}
-    (h : __smtx_type_wf (SmtType.Set A) = true) :
-    __smtx_typeof_value (__smtx_type_default A) = A := by
-  have hAll :
-      native_inhabited_type (SmtType.Set A) = true ∧
-        native_inhabited_type A = true ∧
-          __smtx_type_wf_rec A native_reflist_nil = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
-  exact type_default_typed_of_inhabited_wf_rec A hAll.2.1 hAll.2.2
-
 private theorem type_default_typed_canonical_of_map_domain_wf
     {A B : SmtType}
     (h : __smtx_type_wf (SmtType.Map A B) = true) :
@@ -2260,19 +2218,6 @@ private theorem type_default_typed_canonical_of_map_domain_wf
               __smtx_type_wf_rec B native_reflist_nil = true := by
     simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
   exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
-
-private theorem type_default_typed_canonical_of_fun_domain_wf
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_typeof_value (__smtx_type_default A) = A ∧
-      __smtx_value_canonical (__smtx_type_default A) := by
-  have hAll :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
-    exact fun_type_wf_parts h
-  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.1 hAll.2.1
 
 private theorem type_default_typed_canonical_of_set_element_wf
     {A : SmtType}

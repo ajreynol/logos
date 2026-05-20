@@ -763,7 +763,7 @@ theorem map_ext_of_lookup_eq :
               (by simpa [__smtx_map_entries_ordered_after] using hijCmp)
           have hRightJ :
               __smtx_msm_lookup (SmtMap.cons j f n) j = f := by
-            simpa [__smtx_msm_lookup, native_ite, hJJ]
+            simp [__smtx_msm_lookup, native_ite, hJJ]
           have hFDefaultM : f = __smtx_msm_get_default m := by
             exact hRightJ.symm.trans (hLookupJ.symm.trans hLeftDefault)
           have hFDefaultN : f = __smtx_msm_get_default n :=
@@ -778,7 +778,7 @@ theorem map_ext_of_lookup_eq :
           have hjiNe : native_veq j i = false := native_veq_false_symm hij
           have hLeftI :
               __smtx_msm_lookup (SmtMap.cons i e m) i = e := by
-            simpa [__smtx_msm_lookup, native_ite, hII]
+            simp [__smtx_msm_lookup, native_ite, hII]
           have hRightDefault :
               __smtx_msm_lookup (SmtMap.cons j f n) i = __smtx_msm_get_default n :=
             map_lookup_eq_default_of_entries_ordered_after
