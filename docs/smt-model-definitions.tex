@@ -25,7 +25,7 @@
     Char, Datatype, Int, Nat, ObjectModel, ObjectTerm, Option, Prop, Rat,
     RefList, SmtDatatype,
     SmtDatatypeCons, SmtMap, SmtModel, SmtModelKey, SmtNativeFun, SmtSeq,
-    SmtTerm, SmtType, SmtValue, String, Term, Type, native_RegLan
+    SmtRegLan, SmtTerm, SmtType, SmtValue, String, Term, Type, native_RegLan
   },
   morekeywords=[3]{
     false, none, some, true
@@ -46,7 +46,7 @@
   stringstyle=\color{LeanString},
   emph={
     CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
-    SmtDatatype, SmtDatatypeCons, SmtMap, SmtModel, SmtSeq, SmtTerm,
+    SmtDatatype, SmtDatatypeCons, SmtMap, SmtModel, SmtRegLan, SmtSeq, SmtTerm,
     SmtType, SmtValue, Term
   },
   emphstyle=\color{LeanNamespace},
@@ -160,6 +160,21 @@ deriving Repr, DecidableEq, Inhabited
 
 \begin{figure}[p]
 \begin{lstlisting}
+inductive SmtRegLan : Type where
+  | empty : SmtRegLan
+  | epsilon : SmtRegLan
+  | char : Char -> SmtRegLan
+  | range : Char -> Char -> SmtRegLan
+  | allchar : SmtRegLan
+  | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | union : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | star : SmtRegLan -> SmtRegLan
+  | comp : SmtRegLan -> SmtRegLan
+deriving Repr, DecidableEq, Inhabited, Ord
+
+abbrev native_RegLan := SmtRegLan
+
 inductive SmtValue : Type where
   | NotValue : SmtValue
   | Boolean : Bool -> SmtValue
