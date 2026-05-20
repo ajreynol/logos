@@ -476,6 +476,23 @@ private theorem native_mk_rational_one :
     native_mk_rational 1 1 = (1 : Rat) := by
   native_decide
 
+private theorem rat_mkRat_one_eq_intCast
+    (n : native_Int) :
+  mkRat n 1 = (n : Rat) := by
+  unfold mkRat
+  simp
+  rw [Rat.normalize_eq]
+  simp
+
+private theorem rat_div_one_intCast
+    (n : native_Int) :
+  ((n : Rat) / (1 : Rat)) = (n : Rat) := by
+  change ((n : Rat) / ((1 : Int) : Rat)) = (n : Rat)
+  rw [← Rat.divInt_eq_div n 1]
+  change Rat.divInt n ((1 : Nat) : Int) = (n : Rat)
+  rw [Rat.divInt_ofNat]
+  exact rat_mkRat_one_eq_intCast n
+
 private theorem arith_atom_denote_real_rational_or_notValue
     (M : SmtModel) (t : Term) :
   (∃ q, arith_atom_denote_real M t = SmtValue.Rational q) ∨
@@ -4164,6 +4181,314 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
             SmtEval.native_and, SmtEval.native_not]
         simpa [hEq] using finishAtomic t hTy' hNorm
   exact (go t hTy).2.2
+
+private theorem native_qlt_false_nonneg {q : native_Rat} :
+    native_qlt q (native_mk_rational 0 1) = false ->
+  0 ≤ q := by
+  intro h
+  unfold native_qlt at h
+  rw [native_mk_rational_zero] at h
+  exact Rat.not_lt.mp (of_decide_eq_false h)
+
+private theorem arith_atom_denote_real_str_len_nonneg_of_rational
+    (M : SmtModel) (s : Term) {q : native_Rat} :
+  arith_atom_denote_real M (Term.Apply (Term.UOp UserOp.str_len) s) =
+      SmtValue.Rational q ->
+  0 ≤ q := by
+  intro h
+  unfold arith_atom_denote_real at h
+  change
+    __smtx_model_eval_to_real
+        (__smtx_model_eval M (SmtTerm.str_len (__eo_to_smt s))) =
+      SmtValue.Rational q at h
+  simp [__smtx_model_eval] at h
+  cases hEval : __smtx_model_eval M (__eo_to_smt s) <;>
+    simp [hEval, __smtx_model_eval_str_len, __smtx_model_eval_to_real] at h
+  case Seq x =>
+    rw [← h]
+    dsimp [native_to_real, native_mk_rational, native_seq_len]
+    rw [rat_div_one_intCast]
+    exact_mod_cast Int.natCast_nonneg (native_unpack_seq x).length
+
+private theorem str_arith_entail_simple_rec_mon_denote_nonneg
+    (M : SmtModel) (tail : Term)
+    (hTailNonneg :
+      ∀ q : native_Rat,
+        __str_arith_entail_simple_rec tail = Term.Boolean true ->
+        arith_poly_denote_real M tail = SmtValue.Rational q ->
+        0 ≤ q) :
+    (vars : Term) -> (c qm : native_Rat) ->
+      __str_arith_entail_simple_rec
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly)
+            (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
+              (Term.Rational c))) tail) = Term.Boolean true ->
+      arith_mon_denote_real M
+          (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) vars)
+            (Term.Rational c)) = SmtValue.Rational qm ->
+      0 ≤ qm ∧ __str_arith_entail_simple_rec tail = Term.Boolean true
+  | vars, c, qm, hSimple, hDen => by
+      cases vars with
+      | __eo_List_nil =>
+          have hParts :
+              native_qlt c (native_mk_rational 0 1) = false ∧
+                __str_arith_entail_simple_rec tail = Term.Boolean true := by
+            cases hNeg : native_qlt c (native_mk_rational 0 1) <;>
+              simp [__str_arith_entail_simple_rec, __eo_is_neg, __eo_ite, native_ite,
+                native_teq, hNeg] at hSimple ⊢
+            exact hSimple
+          simp [arith_mon_denote_real, arith_mvar_denote_real, __smtx_model_eval_mult,
+            native_qmult, native_mk_rational_one, Rat.mul_one] at hDen
+          subst qm
+          exact ⟨native_qlt_false_nonneg hParts.1, hParts.2⟩
+      | Apply f rest =>
+          cases f with
+          | Apply g a =>
+              cases g with
+              | __eo_List_cons =>
+                  cases a with
+                  | Apply fArg s =>
+                      cases fArg with
+                      | UOp op =>
+                          cases op <;> simp [__str_arith_entail_simple_rec] at hSimple
+                          case str_len =>
+                            cases hAtom :
+                                arith_atom_denote_real M
+                                  (Term.Apply (Term.UOp UserOp.str_len) s) <;>
+                              cases hRest : arith_mvar_denote_real M rest <;>
+                              simp [arith_mon_denote_real, arith_mvar_denote_real, hAtom,
+                                hRest, __smtx_model_eval_mult, native_qmult] at hDen
+                            case Rational.Rational qa qr =>
+                              have hRestMon :
+                                  arith_mon_denote_real M
+                                      (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon)
+                                        rest) (Term.Rational c)) =
+                                    SmtValue.Rational (native_qmult c qr) := by
+                                simp [arith_mon_denote_real, hRest, __smtx_model_eval_mult,
+                                  native_qmult]
+                              have hRec :=
+                                str_arith_entail_simple_rec_mon_denote_nonneg M tail
+                                  hTailNonneg rest c (native_qmult c qr) hSimple hRestMon
+                              have hAtomNonneg :
+                                  0 ≤ qa :=
+                                arith_atom_denote_real_str_len_nonneg_of_rational M s hAtom
+                              have hProdRaw : 0 ≤ c * (qa * qr) := by
+                                have hMul : 0 ≤ qa * (c * qr) :=
+                                  Rat.mul_nonneg hAtomNonneg hRec.1
+                                rw [show c * (qa * qr) = qa * (c * qr) by
+                                  rw [← Rat.mul_assoc, Rat.mul_comm c qa, Rat.mul_assoc]]
+                                exact hMul
+                              have hProd : 0 ≤ qm := by
+                                rw [← hDen]
+                                exact hProdRaw
+                              exact ⟨hProd, hRec.2⟩
+                      | _ =>
+                          simp [__str_arith_entail_simple_rec] at hSimple
+                  | _ =>
+                      simp [__str_arith_entail_simple_rec] at hSimple
+              | _ =>
+                  simp [__str_arith_entail_simple_rec] at hSimple
+          | _ =>
+              simp [__str_arith_entail_simple_rec] at hSimple
+      | _ =>
+          simp [__str_arith_entail_simple_rec] at hSimple
+termination_by vars c qm => sizeOf vars
+
+private theorem str_arith_entail_simple_rec_denote_nonneg
+    (M : SmtModel) :
+    (p : Term) -> (q : native_Rat) ->
+      __str_arith_entail_simple_rec p = Term.Boolean true ->
+      arith_poly_denote_real M p = SmtValue.Rational q ->
+      0 ≤ q
+  | p, q, hSimple, hDen => by
+      cases p with
+      | UOp op =>
+          cases op with
+          | _at__at_Polynomial =>
+              simp [arith_poly_denote_real] at hDen
+              subst q
+              simp [native_mk_rational_zero]
+          | _ =>
+              simp [__str_arith_entail_simple_rec] at hSimple
+      | Apply f tail =>
+          cases f with
+          | Apply g mon =>
+              cases g with
+              | UOp op =>
+                  cases op with
+                  | _at__at_poly =>
+                      cases mon with
+                      | Apply monF coeff =>
+                          cases monF with
+                          | Apply monHead vars =>
+                              cases monHead with
+                              | UOp monOp =>
+                                  cases monOp with
+                                  | _at__at_mon =>
+                                      cases coeff with
+                                      | Rational c =>
+                                          cases hMon :
+                                              arith_mon_denote_real M
+                                                (Term.Apply
+                                                  (Term.Apply
+                                                    (Term.UOp UserOp._at__at_mon) vars)
+                                                  (Term.Rational c)) <;>
+                                            cases hTail : arith_poly_denote_real M tail <;>
+                                            simp [arith_poly_denote_real, hMon, hTail,
+                                              __smtx_model_eval_plus, native_qplus] at hDen
+                                          case Rational.Rational qm qp =>
+                                            have hMonTail :=
+                                              str_arith_entail_simple_rec_mon_denote_nonneg
+                                                M tail
+                                                (str_arith_entail_simple_rec_denote_nonneg
+                                                  M tail)
+                                                vars c qm hSimple hMon
+                                            have hTailNonneg :=
+                                              str_arith_entail_simple_rec_denote_nonneg M
+                                                tail qp hMonTail.2 hTail
+                                            exact by
+                                              rw [← hDen]
+                                              exact Rat.add_nonneg hMonTail.1 hTailNonneg
+                                      | _ =>
+                                          simp [arith_poly_denote_real, arith_mon_denote_real,
+                                            __smtx_model_eval_plus] at hDen
+                                  | _ =>
+                                      simp [arith_poly_denote_real, arith_mon_denote_real,
+                                        __smtx_model_eval_plus] at hDen
+                              | _ =>
+                                  simp [arith_poly_denote_real, arith_mon_denote_real,
+                                    __smtx_model_eval_plus] at hDen
+                          | _ =>
+                              simp [arith_poly_denote_real, arith_mon_denote_real,
+                                __smtx_model_eval_plus] at hDen
+                      | _ =>
+                          simp [arith_poly_denote_real, arith_mon_denote_real,
+                            __smtx_model_eval_plus] at hDen
+                  | _ =>
+                      simp [__str_arith_entail_simple_rec] at hSimple
+              | _ =>
+                  simp [__str_arith_entail_simple_rec] at hSimple
+          | _ =>
+              simp [__str_arith_entail_simple_rec] at hSimple
+      | _ =>
+          simp [__str_arith_entail_simple_rec] at hSimple
+termination_by p q => sizeOf p
+
+private theorem geq_left_int_type_of_has_bool_type
+    (n : Term) :
+  RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)) ->
+  __smtx_typeof (__eo_to_smt n) = SmtType.Int := by
+  intro hTy
+  have hTy' :
+      __smtx_typeof (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt (Term.Numeral 0))) =
+        SmtType.Bool := by
+    simpa [RuleProofs.eo_has_bool_type] using hTy
+  have hNN : term_has_non_none_type
+      (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt (Term.Numeral 0))) := by
+    unfold term_has_non_none_type
+    rw [hTy']
+    simp
+  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.geq)
+      (typeof_geq_eq (__eo_to_smt n) (__eo_to_smt (Term.Numeral 0))) hNN with
+    hInt | hReal
+  · exact hInt.1
+  · have hZeroInt :
+        __smtx_typeof (__eo_to_smt (Term.Numeral 0)) = SmtType.Int := by
+      rw [show __eo_to_smt (Term.Numeral 0) = SmtTerm.Numeral 0 by rfl]
+      rw [__smtx_typeof.eq_2]
+    rw [hZeroInt] at hReal
+    cases hReal.2
+
+private theorem geq_zero_eval_true_of_int_denote_nonneg
+    (M : SmtModel) (hM : model_total_typed M)
+    (n : Term) (q : native_Rat) :
+  __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
+  arith_atom_denote_real M n = SmtValue.Rational q ->
+  0 ≤ q ->
+  __smtx_model_eval M
+      (__eo_to_smt
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0))) =
+    SmtValue.Boolean true := by
+  intro hTy hDen hq
+  have hEvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt n)) =
+        __smtx_typeof (__eo_to_smt n) := by
+    exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt n)
+      (by simp [term_has_non_none_type, hTy])
+  rcases int_value_canonical (by simpa [hTy] using hEvalTy) with ⟨z, hEval⟩
+  have hDenEq : native_to_real z = q := by
+    have h :
+        SmtValue.Rational (native_to_real z) = SmtValue.Rational q := by
+      simpa [arith_atom_denote_real, hEval, __smtx_model_eval_to_real] using hDen
+    simpa using h
+  have hzNonneg : (0 : Int) ≤ z := by
+    have hq' : (0 : Rat) ≤ native_to_real z := by
+      simpa [hDenEq] using hq
+    dsimp [native_to_real, native_mk_rational] at hq'
+    rw [rat_div_one_intCast z] at hq'
+    exact_mod_cast hq'
+  rw [show
+      __eo_to_smt
+          (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)) =
+        SmtTerm.geq (__eo_to_smt n) (SmtTerm.Numeral 0) by rfl]
+  rw [__smtx_model_eval.eq_18, hEval]
+  have hZle : native_zleq 0 z = true := by
+    simpa [native_zleq, SmtEval.native_zleq] using hzNonneg
+  have hZeroEval :
+      __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0 := by
+    rw [__smtx_model_eval.eq_2]
+  rw [hZeroEval]
+  simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hZle]
+
+theorem arith_string_pred_entail_formula_true
+    (M : SmtModel) (hM : model_total_typed M) (n : Term) :
+  RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)))
+        (Term.Boolean true)) ->
+  __str_arith_entail_simple_rec (__get_arith_poly_norm n) = Term.Boolean true ->
+  eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)))
+        (Term.Boolean true)) true := by
+  intro hEqBool hSimple
+  let geqTerm := Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)
+  have hGeqBool : RuleProofs.eo_has_bool_type geqTerm := by
+    rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        geqTerm (Term.Boolean true) (by simpa [geqTerm] using hEqBool) with
+      ⟨hTy, _hNonNone⟩
+    unfold RuleProofs.eo_has_bool_type
+    rw [hTy]
+    rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
+    rw [__smtx_typeof.eq_1]
+  have hNInt : __smtx_typeof (__eo_to_smt n) = SmtType.Int :=
+    geq_left_int_type_of_has_bool_type n hGeqBool
+  have hDenote :
+      arith_poly_denote_real M (__get_arith_poly_norm n) =
+        arith_atom_denote_real M n :=
+    arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
+      M hM n (Or.inl hNInt)
+  rcases arith_atom_denote_real_rational_of_smt_arith_type
+      M hM n (Or.inl hNInt) with
+    ⟨q, hAtomDenote⟩
+  have hPolyDenote :
+      arith_poly_denote_real M (__get_arith_poly_norm n) =
+        SmtValue.Rational q := by
+    rw [hDenote, hAtomDenote]
+  have hqNonneg : 0 ≤ q :=
+    str_arith_entail_simple_rec_denote_nonneg
+      M (__get_arith_poly_norm n) q hSimple hPolyDenote
+  have hGeqEval :
+      __smtx_model_eval M (__eo_to_smt geqTerm) = SmtValue.Boolean true := by
+    simpa [geqTerm] using
+      geq_zero_eval_true_of_int_denote_nonneg M hM n q hNInt hAtomDenote hqNonneg
+  apply RuleProofs.eo_interprets_eq_of_rel M geqTerm (Term.Boolean true)
+    (by simpa [geqTerm] using hEqBool)
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  rw [hGeqEval]
+  rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
+  rw [__smtx_model_eval.eq_1]
+  simp [__smtx_model_eval_eq, native_veq]
 
 private theorem smt_value_rel_of_eq_arith_atom_denote_real_of_smt_arith_type
     (M : SmtModel) (hM : model_total_typed M)
