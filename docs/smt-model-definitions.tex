@@ -33,12 +33,14 @@
   xrightmargin=0.5em,
   aboveskip=0.75em,
   belowskip=0.75em,
-  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1
+  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {≠}{{$\neq$}}1
 }
 
 \pagestyle{empty}
 
 \begin{document}
+
+\section*{SmtModel.lean}
 
 \begin{figure}[p]
 \begin{lstlisting}
@@ -184,6 +186,90 @@ def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, __smtx_type_wf T = true -> __smtx_value_canonical_bool (native_model_lookup M s T)) = true ∧
   (∀ s T, __smtx_type_wf T = false -> native_model_lookup M s T = SmtValue.NotValue) ∧
   native_fun_typed M
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def term_has_non_none_type (t : SmtTerm) : Prop :=
+  __smtx_typeof t ≠ SmtType.None
+
+def __smtx_value_canonical (v : SmtValue) : Prop :=
+  __smtx_value_canonical_bool v = true
+
+theorem type_preservation
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type t) :
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t
+
+theorem model_eval_canonical
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (hTy : term_has_non_none_type t) :
+    __smtx_value_canonical (__smtx_model_eval M t)
+\end{lstlisting}
+\end{figure}
+
+\clearpage
+
+\section*{Logos.lean / Spec.lean}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive Term : Type where
+  | UOp : UserOp -> Term
+  | UOp1 : UserOp1 -> Term -> Term
+  | UOp2 : UserOp2 -> Term -> Term -> Term
+  | UOp3 : UserOp3 -> Term -> Term -> Term -> Term
+  | __eo_List : Term
+  | __eo_List_nil : Term
+  | __eo_List_cons : Term
+  | Bool : Term
+  | Boolean : native_Bool -> Term
+  | Numeral : native_Int -> Term
+  | Rational : native_Rat -> Term
+  | String : native_String -> Term
+  | Binary : native_Int -> native_Int -> Term
+  | Type : Term
+  | Stuck : Term
+  | Apply : Term -> Term -> Term
+  | FunType : Term
+  | Var : Term -> Term -> Term
+  | DatatypeType : native_String -> Datatype -> Term
+  | DatatypeTypeRef : native_String -> Term
+  | DtcAppType : Term -> Term -> Term
+  | DtCons : native_String -> Datatype -> native_Nat -> Term
+  | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
+  | USort : native_Nat -> Term
+  | UConst : native_Nat -> Term -> Term
+
+deriving Repr, DecidableEq, Inhabited, Ord
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_to_smt_type : Term -> SmtType
+
+def __eo_to_smt : Term -> SmtTerm
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+namespace RuleProofs
+
+theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
+    (t T : Term) (s : SmtTerm) :
+  __eo_to_smt t = s ->
+  __smtx_typeof s ≠ SmtType.None ->
+  __eo_typeof t = T ->
+  __smtx_typeof s = __eo_to_smt_type T
+
+end RuleProofs
 \end{lstlisting}
 \end{figure}
 
