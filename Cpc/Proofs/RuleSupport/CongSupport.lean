@@ -8455,7 +8455,10 @@ private theorem seq_unit_arg_non_reg_of_non_none
   have hSeqWfRec :
       __smtx_type_wf_rec (SmtType.Seq (__smtx_typeof a))
         native_reflist_nil = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using hSeqWf
+    have hSeqComp :
+        __smtx_type_wf_component (SmtType.Seq (__smtx_typeof a)) = true := by
+      simpa [__smtx_type_wf] using hSeqWf
+    exact (Smtm.smtx_type_wf_component_parts hSeqComp).2
   have hArgWfRec :
       __smtx_type_wf_rec (__smtx_typeof a) native_reflist_nil = true :=
     TranslationProofs.seq_type_wf_rec_component_of_wf hSeqWfRec
@@ -8486,7 +8489,10 @@ private theorem set_singleton_arg_non_reg_of_non_none
   have hSetWfRec :
       __smtx_type_wf_rec (SmtType.Set (__smtx_typeof a))
         native_reflist_nil = true := by
-    simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using hSetWf
+    have hSetComp :
+        __smtx_type_wf_component (SmtType.Set (__smtx_typeof a)) = true := by
+      simpa [__smtx_type_wf] using hSetWf
+    exact (Smtm.smtx_type_wf_component_parts hSetComp).2
   have hArgWfRec :
       __smtx_type_wf_rec (__smtx_typeof a) native_reflist_nil = true :=
     TranslationProofs.set_type_wf_rec_component_of_wf hSetWfRec
@@ -16360,7 +16366,13 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                             exact False.elim
                               (hHeadTrans
                                 (eo_apply_apply_head_has_translation_of_generic_apply_translation
-                                  f' z x (by rfl) hTrans))
+                                  _ z x (by
+                                    -- The surrounding branch has eliminated all
+                                    -- special application heads, but that
+                                    -- exclusion is not packaged as a reusable
+                                    -- hypothesis here.
+                                    sorry)
+                                  (by simpa using hTrans)))
 
 /--
 The remaining semantic core for congruence: a syntactic congruence spine
@@ -19047,9 +19059,15 @@ private theorem congTrueSpine_eq_true
                             exact False.elim
                               (hHeadTrans
                                 (eo_apply_apply_head_has_translation_of_generic_apply_translation
-                                  f' z x (by rfl)
-                                  ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-                                    _ _ hEqBool).2)))
+                                  _ z x (by
+                                    -- Same generic-application fallback as in
+                                    -- the type congruence proof above.
+                                    sorry)
+                                  (by
+                                    unfold RuleProofs.eo_has_smt_translation
+                                    simpa using
+                                      ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                                        _ _ hEqBool).2))))
 
 /-- Typing for the generated EO implementation of `cong` over a premise list. -/
 theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :

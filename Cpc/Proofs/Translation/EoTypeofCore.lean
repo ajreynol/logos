@@ -2441,6 +2441,65 @@ private theorem eo_to_smt_tuple_cons_checked_ne_numeral
         (eo_to_smt_tuple_cons_tail_core t T v) n
         (eo_to_smt_tuple_cons_ne_numeral t T v n)) h
 
+private theorem eo_to_smt_tuple_prepend_rec_ne_numeral
+    (tailD : SmtDatatype) (tail : SmtTerm) (k : native_Nat)
+    (acc : SmtTerm) (n : native_Int)
+    (hAcc : acc ≠ SmtTerm.Numeral n) :
+    __eo_to_smt_tuple_prepend_rec tailD tail k acc ≠ SmtTerm.Numeral n := by
+  intro h
+  cases k with
+  | zero =>
+      exact hAcc h
+  | succ k =>
+      simp [__eo_to_smt_tuple_prepend_rec] at h
+
+private theorem eo_to_smt_tuple_prepend_of_type_ne_numeral
+    (tailTy : SmtType) (head : SmtTerm) (headTy : SmtType)
+    (tail : SmtTerm) (n : native_Int) :
+    __eo_to_smt_tuple_prepend_of_type tailTy head headTy tail ≠
+      SmtTerm.Numeral n := by
+  intro h
+  cases tailTy <;> simp [__eo_to_smt_tuple_prepend_of_type] at h
+  case Datatype s d =>
+    by_cases hs : s = "@Tuple"
+    · subst s
+      cases d with
+      | null =>
+          simp [__eo_to_smt_tuple_prepend_of_type] at h
+      | sum c rest =>
+          cases rest with
+          | null =>
+              cases hWf :
+                  __smtx_type_wf
+                    (SmtType.Datatype "@Tuple"
+                      (SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
+                        SmtDatatype.null)) <;>
+                simp [__eo_to_smt_tuple_prepend_of_type, native_ite, hWf] at h
+              exact
+                eo_to_smt_tuple_prepend_rec_ne_numeral
+                  (SmtDatatype.sum c SmtDatatype.null) tail
+                  (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+                    native_nat_zero)
+                  (SmtTerm.Apply
+                    (SmtTerm.DtCons "@Tuple"
+                      (SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
+                        SmtDatatype.null) native_nat_zero)
+                    head)
+                  n
+                  (by intro hSeed; cases hSeed)
+                  h
+          | sum cRest restRest =>
+              simp [__eo_to_smt_tuple_prepend_of_type] at h
+    · simp [__eo_to_smt_tuple_prepend_of_type, hs] at h
+
+private theorem eo_to_smt_tuple_prepend_ne_numeral
+    (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm) (n : native_Int) :
+    __eo_to_smt_tuple_prepend head headTy tail ≠ SmtTerm.Numeral n := by
+  intro h
+  exact
+    eo_to_smt_tuple_prepend_of_type_ne_numeral
+      (__smtx_typeof tail) head headTy tail n h
+
 private theorem eo_to_smt_set_insert_ne_numeral_of_not_nil
     (xs : Term) (base : SmtTerm) (n : native_Int)
     (hxs : xs ≠ Term.__eo_List_nil) :
@@ -2550,11 +2609,8 @@ private theorem eo_to_smt_apply_ne_numeral
       case «exists» =>
         exact False.elim (eo_to_smt_apply_exists_ne_numeral y x n h)
       case tuple =>
-        exact False.elim (eo_to_smt_tuple_cons_checked_ne_numeral
-          (__eo_to_smt x) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt y) n
-          (by
-            simpa [eo_to_smt_tuple_cons_checked_tail_core, eo_to_smt_tuple_cons_tail_core]
-              using h))
+        exact False.elim (eo_to_smt_tuple_prepend_ne_numeral
+          (__eo_to_smt y) (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt x) n h)
     case UOp1 op idx =>
       cases op <;> try cases h
       case update =>

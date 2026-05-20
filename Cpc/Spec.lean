@@ -164,6 +164,25 @@ def __eo_to_smt_tuple_cons_guarded : SmtType -> SmtTerm -> SmtTerm
   | T, t => SmtTerm.None
 
 
+def __eo_to_smt_tuple_prepend_rec (tailD : SmtDatatype) (tail : SmtTerm) : native_Nat -> SmtTerm -> SmtTerm
+  | native_nat_zero, acc => acc
+  | (native_nat_succ k), acc => (SmtTerm.Apply (__eo_to_smt_tuple_prepend_rec tailD tail k acc) (SmtTerm.Apply (SmtTerm.DtSel "@Tuple" tailD native_nat_zero k) tail))
+
+
+def __eo_to_smt_tuple_prepend_of_type : SmtType -> SmtTerm -> SmtType -> SmtTerm -> SmtTerm
+  | (SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)), head, headTy, tail =>
+    let _v0 := (SmtDatatype.sum c SmtDatatype.null)
+    let _v1 := (SmtDatatype.sum (SmtDatatypeCons.cons headTy c) SmtDatatype.null)
+    let _v2 := (SmtType.Datatype "@Tuple" _v1)
+    let _v3 := (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" _v1 native_nat_zero) head)
+    (native_ite (__smtx_type_wf _v2) (__eo_to_smt_tuple_prepend_rec _v0 tail (__smtx_dt_num_sels _v0 native_nat_zero) _v3) SmtTerm.None)
+  | T, head, headTy, tail => SmtTerm.None
+
+
+def __eo_to_smt_tuple_prepend (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm) : SmtTerm :=
+  (__eo_to_smt_tuple_prepend_of_type (__smtx_typeof tail) head headTy tail)
+
+
 def __eo_to_smt_tuple_select : SmtType -> SmtTerm -> SmtTerm -> SmtTerm
   | (SmtType.Datatype "@Tuple" d), (SmtTerm.Numeral n), t => (native_ite (native_zleq 0 n) (SmtTerm.Apply (SmtTerm.DtSel "@Tuple" d native_nat_zero (native_int_to_nat n)) t) SmtTerm.None)
   | T, n, t => SmtTerm.None
@@ -369,8 +388,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.UOp UserOp.tuple_unit) => (SmtTerm.DtCons "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) native_nat_zero)
   | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x1) x2) => 
     let _v0 := (__eo_to_smt x2)
-    let _v1 := (__eo_to_smt_tuple_cons (__eo_to_smt x1) (__eo_to_smt_type (__eo_typeof x1)) _v0)
-    (__eo_to_smt_tuple_cons_guarded (__smtx_typeof _v0) (__eo_to_smt_tuple_cons_guarded (__smtx_typeof _v1) _v1))
+    (__eo_to_smt_tuple_prepend (__eo_to_smt x1) (__eo_to_smt_type (__eo_typeof x1)) _v0)
   | (Term.Apply (Term.UOp1 UserOp1.tuple_select x1) x2) => (__eo_to_smt_tuple_select (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update x1) x2) x3) => (__eo_to_smt_tuple_update (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.UOp1 UserOp1.set_empty x1) => (__eo_to_smt_set_empty (__eo_to_smt_type x1))
