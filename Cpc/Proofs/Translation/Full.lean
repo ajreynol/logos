@@ -17,6 +17,25 @@ Full translation-proof surface corresponding to the lightweight stub in
 `Cpc.Proofs.Translation`.
 -/
 
+private theorem false_of_smtx_typeof_none_non_none_full {P : Prop}
+    (h : __smtx_typeof SmtTerm.None ≠ SmtType.None) :
+    P := by
+  exact False.elim (h smtx_typeof_none)
+
+private theorem false_of_typeof_apply_none_non_none_full {P : Prop}
+    (x : SmtTerm)
+    (h : __smtx_typeof (SmtTerm.Apply SmtTerm.None x) ≠ SmtType.None) :
+    P := by
+  exact False.elim (h (typeof_apply_none_eq x))
+
+private theorem false_of_typeof_apply_apply_none_head_non_none_full {P : Prop}
+    (y x : SmtTerm)
+    (h :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None y) x) ≠
+        SmtType.None) :
+    P := by
+  exact False.elim (h (typeof_apply_apply_none_head_eq y x))
+
 private theorem eo_type_valid_of_valid_rec_top_full
     {T : Term}
     (h : eo_type_valid_rec [] T) :
@@ -2184,65 +2203,35 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               eo_typeof_tuple_unit, eo_to_smt_type_unit_tuple]
           · simp [eo_typeof_tuple_unit, eo_type_valid, eo_type_valid_rec]
         all_goals
-          exact False.elim (hNonNone (by
-            change __smtx_typeof SmtTerm.None = SmtType.None
-            exact smtx_typeof_none))
+          exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.repeat x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.zero_extend x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.sign_extend x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.rotate_left x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.rotate_right x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1._at_bit x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.re_exp x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1._at_witness_string_length x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.is x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.update x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.tuple_select x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.tuple_update x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.int_to_bv x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2.extract x y, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_bv x y, hNonNone => by
         have hTranslate :
             __eo_to_smt (Term.UOp2 UserOp2._at_bv x y) =
@@ -2278,9 +2267,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         change eo_type_valid (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
         simp [eo_type_valid, eo_type_valid_rec, hw]
     | Term.UOp2 UserOp2.re_loop x y, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Boolean b, hNonNone => by
         refine ⟨?_, ?_⟩
         · rw [eo_to_smt_boolean, eo_typeof_boolean, eo_to_smt_type_bool]
@@ -2345,9 +2332,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 (T := T) (U := T) (by
                   simpa [__smtx_typeof] using hNonNone)
         | _ =>
-            exact False.elim (hNonNone (by
-              change __smtx_typeof SmtTerm.None = SmtType.None
-              exact smtx_typeof_none))
+            exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DtCons s d i, hNonNone => by
         have hReserved : __eo_reserved_datatype_name s = false := by
           cases hRes : __eo_reserved_datatype_name s
@@ -2894,17 +2879,9 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     SmtType.None
                 exact typeof_apply_choice_nth_int_eq_none _ _))
             case _at_strings_num_occur_re =>
-              exact False.elim (hNonNone (by
-                change
-                  __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
-                    SmtType.None
-                exact typeof_apply_none_eq (__eo_to_smt x)))
+              exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
             case _at_strings_occur_index_re =>
-              exact False.elim (hNonNone (by
-                change
-                  __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
-                    SmtType.None
-                exact typeof_apply_none_eq (__eo_to_smt x)))
+              exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
             case _at_sets_deq_diff =>
               exact False.elim (hNonNone (by
                 change
@@ -2946,11 +2923,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       Term.DtcAppType a b
                   exact hTy)
             case _at_const =>
-              exact False.elim (hNonNone (by
-                change
-                  __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
-                    SmtType.None
-                exact typeof_apply_none_eq (__eo_to_smt x)))
+              exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
             all_goals first
               | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
                   (f := Term.UOp2 op y z) (x := x) (A := a) (B := b)
@@ -3030,15 +3003,8 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               case mult =>
                 exact False.elim (false_of_typeof_plus_eq_dtcapp_full hTy)
               all_goals first
-                | exact False.elim (hNonNone (by
-                    change
-                      __smtx_typeof
-                          (SmtTerm.Apply
-                            (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                            (__eo_to_smt x)) =
-                        SmtType.None
-                    exact typeof_apply_apply_none_head_eq
-                      (__eo_to_smt y) (__eo_to_smt x)))
+                | exact false_of_typeof_apply_apply_none_head_non_none_full
+                    (__eo_to_smt y) (__eo_to_smt x) hNonNone
                 | exact eo_type_valid_of_nested_generic_apply_typeof_apply_eq_dtcapp_full
                     (go _) (by rfl) hTermNN hTy
                 | exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
@@ -4506,61 +4472,33 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                 simp [__eo_is_z, __eo_is_z_internal, native_teq,
                                   native_and, native_not] at hIdxZ
                     all_goals
-                      exact False.elim (hNonNone (by
-                        change __smtx_typeof SmtTerm.None = SmtType.None
-                        exact smtx_typeof_none))
+                      exact false_of_smtx_typeof_none_non_none_full hNonNone
                 | _ =>
-                    exact False.elim (hNonNone (by
-                      change __smtx_typeof SmtTerm.None = SmtType.None
-                      exact smtx_typeof_none))
+                    exact false_of_smtx_typeof_none_non_none_full hNonNone
             | _ =>
-                exact False.elim (hNonNone (by
-                  change __smtx_typeof SmtTerm.None = SmtType.None
-                  exact smtx_typeof_none))
+                exact false_of_smtx_typeof_none_non_none_full hNonNone
         | _ =>
-            exact False.elim (hNonNone (by
-              change __smtx_typeof SmtTerm.None = SmtType.None
-              exact smtx_typeof_none))
+            exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.__eo_List, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.__eo_List_nil, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.__eo_List_cons, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Bool, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Type, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Stuck, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.FunType, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DatatypeType s d, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DatatypeTypeRef s, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DtcAppType T U, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DtSel s d i j, hNonNone => by
         exfalso
         apply hNonNone
@@ -4568,9 +4506,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           rw [eo_to_smt_term_dt_sel, hRes] <;>
           simp [native_ite, smtx_typeof_none, smtx_typeof_dt_sel_head_none]
     | Term.USort i, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp3 UserOp3._at_re_unfold_pos_component x y z, hNonNone => by
           exact
             eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_component
@@ -4580,9 +4516,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
               y x (fun h => (go x h).1) (fun h => (go y h).1) hNonNone
     | Term.UOp1 UserOp1._at_strings_stoi_result x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1._at_strings_stoi_non_digit x, hNonNone => by
         let regex :=
           SmtTerm.re_comp (SmtTerm.re_range (SmtTerm.String "0") (SmtTerm.String "9"))
@@ -4612,25 +4546,15 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         rw [eo_to_smt_type_eq_int hEo]
         simp [eo_type_valid, eo_type_valid_rec]
     | Term.UOp1 UserOp1._at_strings_itos_result x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_strings_num_occur_re x y, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_strings_occur_index_re x y, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1._at_strings_replace_all_result x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_const v T, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     termination_by term _ => sizeOf term
     decreasing_by
       all_goals

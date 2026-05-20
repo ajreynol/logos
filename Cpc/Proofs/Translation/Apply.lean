@@ -56,30 +56,6 @@ private theorem smtx_dt_wf_rec_of_datatype_type_wf_rec_apply
     simp [__smtx_type_wf_rec, native_ite, hRefs] at h ⊢
   all_goals exact h
 
-private theorem smtx_type_wf_seq_component
-    {A : SmtType}
-    (h : __smtx_type_wf (SmtType.Seq A) = true) :
-    __smtx_type_wf A = true := by
-  exact seq_type_wf_component_of_wf h
-
-private theorem smtx_type_wf_set_component
-    {A : SmtType}
-    (h : __smtx_type_wf (SmtType.Set A) = true) :
-    __smtx_type_wf A = true := by
-  exact set_type_wf_component_of_wf h
-
-private theorem smtx_type_wf_map_components
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.Map A B) = true) :
-    __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  exact map_type_wf_components_of_wf h
-
-private theorem smtx_type_wf_fun_components
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
-  exact fun_type_wf_components_of_wf h
-
 @[simp] private theorem native_inhabited_type_bool_apply :
     native_inhabited_type SmtType.Bool = true :=
   native_inhabited_type_bool
@@ -110,66 +86,6 @@ private theorem smtx_type_wf_fun_components
     native_inhabited_type (SmtType.TypeRef s) = false := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
     native_and]
-
-private theorem smtx_tuple_type_wf_head_typeref_false
-    (c : SmtDatatypeCons) :
-    __smtx_type_wf
-        (SmtType.Datatype "@Tuple"
-          (SmtDatatype.sum (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c)
-            SmtDatatype.null)) =
-      false := by
-  simp [__smtx_type_wf, native_and, native_inhabited_type,
-    __smtx_type_default, __smtx_datatype_default,
-    __smtx_datatype_cons_default, __smtx_value_dt_substitute,
-    __smtx_typeof_value, native_ite, native_veq]
-
-private theorem smtx_tuple_type_wf_second_typeref_false
-    (T : SmtType) (c : SmtDatatypeCons) :
-    __smtx_type_wf
-        (SmtType.Datatype "@Tuple"
-          (SmtDatatype.sum
-            (SmtDatatypeCons.cons T
-              (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c))
-            SmtDatatype.null)) =
-      false := by
-  cases hT :
-      __smtx_value_dt_substitute "@Tuple"
-        (SmtDatatype.sum
-          (SmtDatatypeCons.cons T
-            (SmtDatatypeCons.cons (SmtType.TypeRef "@Tuple") c))
-          SmtDatatype.null)
-        (__smtx_type_default T) <;>
-    simp [__smtx_type_wf, native_and, native_inhabited_type,
-      __smtx_type_default, __smtx_datatype_default,
-      __smtx_datatype_cons_default, __smtx_value_dt_substitute,
-      __smtx_typeof_value, native_ite, native_veq, hT]
-
-private theorem smtx_tuple_type_wf_head_ne_typeref
-    {T : SmtType} {c : SmtDatatypeCons}
-    (hWf :
-      __smtx_type_wf
-          (SmtType.Datatype "@Tuple"
-            (SmtDatatype.sum (SmtDatatypeCons.cons T c) SmtDatatype.null)) =
-        true) :
-    T ≠ SmtType.TypeRef "@Tuple" := by
-  intro hT
-  subst T
-  rw [smtx_tuple_type_wf_head_typeref_false] at hWf
-  cases hWf
-
-private theorem smtx_tuple_type_wf_second_ne_typeref
-    {T U : SmtType} {c : SmtDatatypeCons}
-    (hWf :
-      __smtx_type_wf
-          (SmtType.Datatype "@Tuple"
-            (SmtDatatype.sum (SmtDatatypeCons.cons T (SmtDatatypeCons.cons U c))
-              SmtDatatype.null)) =
-        true) :
-    U ≠ SmtType.TypeRef "@Tuple" := by
-  intro hU
-  subst U
-  rw [smtx_tuple_type_wf_second_typeref_false] at hWf
-  cases hWf
 
 @[simp] private theorem native_inhabited_type_seq_apply
     (T : SmtType) :
@@ -1622,33 +1538,6 @@ private theorem typeof_binary_one_eq :
     native_decide
   simpa using smtx_typeof_binary_of_non_none 1 1 hNN
 
-/--
-Function-like SMT head types have non-`None` components. This is the
-strengthening needed when turning the generic apply case from a whole-term
-bridge argument into explicit IHs for the head and argument.
--/
-private theorem function_like_head_components_non_none
-    (f : SmtTerm) {A B : SmtType}
-    (hHead :
-      __smtx_typeof f = SmtType.FunType A B ∨
-        __smtx_typeof f = SmtType.DtcAppType A B) :
-    A ≠ SmtType.None ∧ B ≠ SmtType.None := by
-  have hNN : term_has_non_none_type f := by
-    unfold term_has_non_none_type
-    rcases hHead with hHead | hHead
-    · rw [hHead]
-      simp
-    · rw [hHead]
-      simp
-  have hNoNone := Smtm.term_type_has_no_none_components_of_non_none f hNN
-  rcases hHead with hHead | hHead
-  · have hFun : Smtm.type_has_no_none_components (SmtType.FunType A B) := by
-      simpa [hHead] using hNoNone
-    exact Smtm.type_has_no_none_components_fun_components_non_none hFun
-  · have hDtc : Smtm.type_has_no_none_components (SmtType.DtcAppType A B) := by
-      simpa [hHead] using hNoNone
-    exact Smtm.type_has_no_none_components_dtc_app_components_non_none hDtc
-
 private theorem eo_to_smt_type_injective_of_type_wf_rec
     {T U : Term} {A : SmtType}
     (hT : __eo_to_smt_type T = A)
@@ -2282,48 +2171,8 @@ private theorem smtx_dt_wf_tail_of_sum_wf_apply
         simp [__smtx_dt_wf_rec, native_ite, hC] at h ⊢
       exact h
 
-private def reflist_subset_apply (xs ys : RefList) : Prop :=
-  ∀ s, native_reflist_contains xs s = true -> native_reflist_contains ys s = true
-
 private def reflist_equiv_apply (xs ys : RefList) : Prop :=
   ∀ s, native_reflist_contains xs s = native_reflist_contains ys s
-
-private theorem reflist_subset_insert_same_apply
-    {xs ys : RefList} {s : native_String}
-    (h : reflist_subset_apply xs ys) :
-    reflist_subset_apply (native_reflist_insert xs s) (native_reflist_insert ys s) := by
-  intro t ht
-  by_cases hts : t = s
-  · subst t
-    simp [native_reflist_contains, native_reflist_insert]
-  · have htXs : native_reflist_contains xs t = true := by
-      simpa [native_reflist_contains, native_reflist_insert, hts] using ht
-    have htYs := h t htXs
-    simpa [native_reflist_contains, native_reflist_insert, hts] using htYs
-
-private theorem reflist_subset_insert_dup_apply
-    (refs : RefList) (s : native_String) :
-    reflist_subset_apply (native_reflist_insert (native_reflist_insert refs s) s)
-      (native_reflist_insert refs s) := by
-  intro t ht
-  by_cases hts : t = s <;> by_cases htr : t ∈ refs <;>
-    simp [native_reflist_contains, native_reflist_insert, hts, htr] at ht ⊢
-
-private theorem reflist_subset_insert_middle_apply
-    (refs : RefList) (s t : native_String) :
-    reflist_subset_apply (native_reflist_insert refs s)
-      (native_reflist_insert (native_reflist_insert refs t) s) := by
-  intro u hu
-  by_cases hus : u = s <;> by_cases hut : u = t <;> by_cases hur : u ∈ refs <;>
-    simp [native_reflist_contains, native_reflist_insert, hus, hut, hur] at hu ⊢
-
-private theorem reflist_subset_insert_swap_apply
-    (refs : RefList) (s t : native_String) :
-    reflist_subset_apply (native_reflist_insert (native_reflist_insert refs s) t)
-      (native_reflist_insert (native_reflist_insert refs t) s) := by
-  intro u hu
-  by_cases hus : u = s <;> by_cases hut : u = t <;> by_cases hur : u ∈ refs <;>
-    simp [native_reflist_contains, native_reflist_insert, hus, hut, hur] at hu ⊢
 
 private theorem reflist_equiv_insert_same_apply
     {xs ys : RefList} {s : native_String}
@@ -2370,11 +2219,6 @@ private def smtx_chain_type_substitute_top_apply
     (s t : native_String) :
     native_Teq (SmtType.TypeRef s) (SmtType.TypeRef t) = native_streq s t := by
   simp [native_Teq, native_streq]
-
-private theorem native_streq_comm_apply
-    (s t : native_String) :
-    native_streq s t = native_streq t s := by
-  simp [native_streq, eq_comm]
 
 mutual
 
@@ -3142,39 +2986,6 @@ private theorem smtx_chain_type_context_substitute_datatype_value_body_apply
       smtx_type_context_substitute_apply,
       smtx_dt_context_substitute_value_body_apply, h]
 
-private theorem smtx_ret_typeof_sel_rec_context_substitute_ne_none_apply
-    (sub : native_String) (base : SmtDatatype)
-    (root : native_String) (oldRoot newRoot : SmtDatatype)
-    (doSub doRoot : Bool)
-    (d : SmtDatatype) (i j : native_Nat)
-    (h :
-      __smtx_ret_typeof_sel_rec d i j ≠ SmtType.None) :
-    __smtx_ret_typeof_sel_rec
-        (smtx_dt_context_substitute_apply sub base root oldRoot newRoot
-          doSub doRoot d) i j ≠ SmtType.None := by
-  rw [smtx_ret_typeof_sel_rec_context_substitute_apply]
-  exact smtx_type_context_substitute_ne_none_apply
-    sub base root oldRoot newRoot doSub doRoot
-    (__smtx_ret_typeof_sel_rec d i j) h
-
-private theorem smtx_typeof_dt_cons_value_rec_context_substitute_ne_none_apply
-    (sub : native_String) (base : SmtDatatype)
-    (root : native_String) (oldRoot newRoot : SmtDatatype)
-    (doSub doRoot : Bool)
-    (T : SmtType) (d : SmtDatatype) (i : native_Nat)
-    (h :
-      __smtx_typeof_dt_cons_value_rec T d i ≠ SmtType.None) :
-    __smtx_typeof_dt_cons_value_rec
-        (smtx_chain_type_context_substitute_apply
-          sub base root oldRoot newRoot doSub doRoot T)
-        (smtx_dt_context_substitute_apply sub base root oldRoot newRoot
-          doSub doRoot d)
-        i ≠ SmtType.None := by
-  rw [smtx_typeof_dt_cons_value_rec_context_substitute_apply]
-  exact smtx_chain_type_context_substitute_ne_none_apply
-    sub base root oldRoot newRoot doSub doRoot
-    (__smtx_typeof_dt_cons_value_rec T d i) h
-
 private def smtx_type_chain_field_wf_rec (refs : RefList) : SmtType -> Prop
   | SmtType.DtcAppType A B =>
       smtx_type_field_wf_rec A refs ∧ smtx_type_chain_field_wf_rec refs B
@@ -3193,14 +3004,6 @@ private theorem smtx_type_chain_field_wf_rec_of_field_wf
   cases T <;> simp [smtx_type_chain_field_wf_rec,
     smtx_type_field_wf_rec, __smtx_type_wf_rec] at h ⊢
   all_goals exact h
-
-private theorem smtx_type_chain_field_wf_rec_ne_none
-    {T : SmtType} {refs : RefList}
-    (h : smtx_type_chain_field_wf_rec refs T) :
-    T ≠ SmtType.None := by
-  cases T <;>
-    simp [smtx_type_chain_field_wf_rec, smtx_type_field_wf_rec,
-      __smtx_type_wf_rec] at h ⊢
 
 private theorem smtx_type_chain_field_wf_rec_head_of_dtc_app
     {A B : SmtType} {refs : RefList}
@@ -10182,34 +9985,6 @@ private theorem smt_type_ne_guard_wf_set_self
   · have hNone : T = SmtType.None := by
       simpa [__smtx_typeof_guard_wf, hWf, native_ite] using h
     exact hT hNone
-
-/-- Computes `__smtx_typeof` for `apply_eo_to_smt_set_empty_eq_none`. -/
-private theorem smtx_typeof_apply_eo_to_smt_set_empty_eq_none
-    (T X : SmtType) :
-    __smtx_typeof_apply (__smtx_typeof (__eo_to_smt_set_empty T)) X = SmtType.None := by
-  cases T with
-  | None
-  | Bool
-  | Int
-  | Real
-  | RegLan
-  | BitVec _
-  | Seq _
-  | Char
-  | Datatype _ _
-  | TypeRef _
-  | USort _
-  | Map _ _
-  | FunType _ _
-  | DtcAppType _ _ =>
-      simp [__eo_to_smt_set_empty, __smtx_typeof_apply]
-  | Set U =>
-      rw [show __smtx_typeof (__eo_to_smt_set_empty (SmtType.Set U)) =
-          __smtx_typeof_guard_wf (SmtType.Set U) (SmtType.Set U) by
-        simp [__eo_to_smt_set_empty]
-        rw [__smtx_typeof.eq_121]]
-      cases hWf : __smtx_type_wf (SmtType.Set U) <;>
-        simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hWf]
 
 /-- Computes `__smtx_typeof` for `not` terms. -/
 private theorem smtx_typeof_not_bool_or_none
