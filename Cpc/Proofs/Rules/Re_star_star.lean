@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.ArraySupport
+import Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
