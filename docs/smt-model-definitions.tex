@@ -61,6 +61,26 @@ inductive SmtValue : Type where
   | Apply : SmtValue -> SmtValue -> SmtValue
 
 deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtMap : Type where
+  | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
+  | default : SmtType -> SmtValue -> SmtMap
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtSeq : Type where
+  | cons : SmtValue -> SmtSeq -> SmtSeq
+  | empty : SmtType -> SmtSeq
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtDatatype : Type where
+  | null : SmtDatatype
+  | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtDatatypeCons : Type where
+  | unit : SmtDatatypeCons
+  | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
+deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
 \end{figure}
 
@@ -96,8 +116,60 @@ def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType)
 \begin{figure}[p]
 \begin{lstlisting}
 def __smtx_typeof_value : SmtValue -> SmtType
+  | (SmtValue.Boolean b) => SmtType.Bool
+  | (SmtValue.Binary w n) => (native_ite (native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w)))) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
+  | (SmtValue.Map m) => (__smtx_typeof_map_value m)
+  | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
+  | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
+  | ... => ...
 
 def __smtx_typeof : SmtTerm -> SmtType
+  | (SmtTerm.Boolean b) => SmtType.Bool
+  | (SmtTerm.Binary w n) => (native_ite (native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w)))) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
+  | (SmtTerm.plus x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.select x1 x2) => (__smtx_typeof_select (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
+  | ... => ...
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def native_str_in_re : native_String -> native_RegLan -> native_Bool
+  | s, r =>
+      native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
+
+def native_veq : SmtValue -> SmtValue -> native_Bool
+  | x, y => decide (x = y)
+
+macro_rules
+  | `(native_re_ext_eq $r1 $r2) => do
+      let strInReId := Lean.mkIdent `native_str_in_re
+      `(by
+          classical
+          exact
+            if hExt :
+                ∀ s : native_String,
+                  $strInReId s $r1 = $strInReId s $r2 then
+              true
+            else
+              false)
+
+def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
+  | v1, v2 => (SmtValue.Boolean (native_veq v1 v2))
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
+  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
+  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
+  | (SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
+  | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.Var s T) => (native_model_lookup M s T)
+  | ... => ...
 \end{lstlisting}
 \end{figure}
 
@@ -253,8 +325,25 @@ deriving Repr, DecidableEq, Inhabited, Ord
 \begin{figure}[p]
 \begin{lstlisting}
 def __eo_to_smt_type : Term -> SmtType
+  | Term.Bool => SmtType.Bool
+  | (Term.DatatypeType s d) => (native_ite (native_reserved_datatype_name s) SmtType.None (SmtType.Datatype s (__eo_to_smt_datatype d)))
+  | (Term.Apply (Term.Apply Term.FunType T1) T2) =>
+    let _v0 := (__eo_to_smt_type T2)
+    let _v1 := (__eo_to_smt_type T1)
+    (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
+  | (Term.UOp UserOp.Int) => SmtType.Int
+  | (Term.Apply (Term.UOp UserOp.Seq) x1) =>
+    let _v0 := (__eo_to_smt_type x1)
+    (__smtx_typeof_guard _v0 (SmtType.Seq _v0))
+  | ... => ...
 
 def __eo_to_smt : Term -> SmtTerm
+  | (Term.Boolean b) => (SmtTerm.Boolean b)
+  | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
+  | (Term.DtCons s d i) => (native_ite (native_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
+  | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) x1) x2) x3) => (SmtTerm.ite (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
+  | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
+  | ... => ...
 \end{lstlisting}
 \end{figure}
 
