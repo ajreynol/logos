@@ -33,7 +33,7 @@
   xrightmargin=0.5em,
   aboveskip=0.75em,
   belowskip=0.75em,
-  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {≠}{{$\neq$}}1
+  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {≠}{{$\neq$}}1 {¬}{{$\neg$}}1
 }
 
 \pagestyle{empty}
@@ -790,6 +790,31 @@ theorem invoke_cmd_list_preserves_stateInvariant (M : SmtModel) :
     checkerStateInvariant M s ->
     CmdListTranslationOk cs ->
     checkerStateInvariant M (__eo_invoke_cmd_list s cs)
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive smt_satisfiability : SmtTerm -> Bool -> Prop
+  | intro_true  (t : SmtTerm) :
+      (exists M : SmtModel, model_total_typed M /\ (smt_interprets M t true)) ->
+      smt_satisfiability t true
+  | intro_false (t : SmtTerm) :
+      (forall M : SmtModel, model_total_typed M -> ¬ (smt_interprets M t true))->
+      smt_satisfiability t false
+
+abbrev ObjectTerm := SmtTerm
+abbrev ObjectModel := SmtModel
+abbrev obj_interprets := smt_interprets
+
+inductive eo_is_obj : Term -> ObjectTerm -> Prop
+  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)
+
+def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
+  exists (s : ObjectTerm), (eo_is_obj t s) /\ (obj_interprets M s b)
+
+def eo_satisfiability (t : Term) (b : Bool) : Prop :=
+  exists (s : ObjectTerm), (eo_is_obj t s) /\ (smt_satisfiability s b)
 \end{lstlisting}
 \end{figure}
 
