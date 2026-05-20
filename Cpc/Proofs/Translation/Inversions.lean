@@ -263,27 +263,6 @@ attribute [local simp] native_ite
       SmtType.USort i := by
   by_cases hFin : __smtx_is_finite_type (SmtType.FunType T U) = true <;> simp [hFin]
 
-private theorem tuple_ref_contains_eq
-    {s : native_String}
-    (h : native_reflist_contains (native_reflist_insert native_reflist_nil "@Tuple") s = true) :
-    s = "@Tuple" := by
-  have hOr : s = "@Tuple" ∨ s ∈ native_reflist_nil := by
-    simpa [native_reflist_contains, native_reflist_insert] using h
-  cases hOr with
-  | inl hs => exact hs
-  | inr hnil => cases hnil
-
-private theorem native_ite_true_cond {p q : native_Bool}
-    (h : native_ite p q false = true) :
-    p = true := by
-  cases p <;> simp [native_ite] at h ⊢
-
-private theorem native_ite_true_then {p q : native_Bool}
-    (h : native_ite p q false = true) :
-    q = true := by
-  cases p <;> simp [native_ite] at h ⊢
-  exact h
-
 private theorem smtx_datatype_type_wf_rec_parts
     {s : native_String} {d : SmtDatatype} {refs : RefList}
     (h : __smtx_type_wf_rec (SmtType.Datatype s d) refs = true) :
@@ -1046,41 +1025,6 @@ private theorem eo_to_smt_type_fun_ne_typeref
         __smtx_is_finite_type
           (SmtType.FunType (__eo_to_smt_type T) (__eo_to_smt_type U)) <;>
         simp [eo_to_smt_type_fun, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
-
-/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
-private theorem eo_to_smt_type_dtc_app_ne_bool
-    (T U : Term) :
-    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Bool := by
-  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
-    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
-
-/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
-private theorem eo_to_smt_type_dtc_app_ne_int
-    (T U : Term) :
-    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Int := by
-  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
-    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
-
-/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
-private theorem eo_to_smt_type_dtc_app_ne_real
-    (T U : Term) :
-    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Real := by
-  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
-    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
-
-/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
-private theorem eo_to_smt_type_dtc_app_ne_reglan
-    (T U : Term) :
-    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.RegLan := by
-  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
-    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
-
-/-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
-private theorem eo_to_smt_type_dtc_app_ne_char
-    (T U : Term) :
-    __eo_to_smt_type (Term.DtcAppType T U) ≠ SmtType.Char := by
-  cases hT : __eo_to_smt_type T <;> cases hU : __eo_to_smt_type U <;>
-    simp [eo_to_smt_type_dtc_app, __smtx_typeof_guard, native_ite, native_Teq, hT, hU]
 
 /-- Simplifies EO-to-SMT type translation for datatype-constructor application types. -/
 private theorem eo_to_smt_type_dtc_app_ne_bitvec
