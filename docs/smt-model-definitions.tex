@@ -92,6 +92,7 @@ inductive SmtType : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
+\caption{The SMT type language.}
 \end{figure}
 
 \begin{figure}[p]
@@ -156,6 +157,7 @@ inductive SmtTerm : Type where
 
 deriving Repr, DecidableEq, Inhabited
 \end{lstlisting}
+\caption{A representative template of SMT term constructors.}
 \end{figure}
 
 \begin{figure}[p]
@@ -213,6 +215,7 @@ inductive SmtDatatypeCons : Type where
   | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
 deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
+\caption{Regular-language, value, map, sequence, and datatype values.}
 \end{figure}
 
 \begin{figure}[p]
@@ -249,6 +252,7 @@ def native_model_push (M : SmtModel) (s : String) (T : SmtType) (v : SmtValue) :
 def native_model_fun_lookup (M : SmtModel) (fid : String) (T U : SmtType) : Option SmtNativeFun :=
   M.nativeFuns (native_model_key fid (SmtType.FunType T U))
 \end{lstlisting}
+\caption{Model keys, model storage, and lookup/update helpers.}
 \end{figure}
 
 \begin{figure}[p]
@@ -277,6 +281,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
   | ... => ...
 \end{lstlisting}
+\caption{Type inference for selected value and term forms.}
 \end{figure}
 
 \begin{figure}[p]
@@ -309,6 +314,7 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => let _v0 := (SmtType.Datatype s d); (__smtx_typeof_guard (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i) (__smtx_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (__smtx_typeof x1)))
   | ... => ...
 \end{lstlisting}
+\caption{Datatype substitution and typing for constructors and selectors.}
 \end{figure}
 
 \begin{figure}[p]
@@ -336,6 +342,7 @@ def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
   | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
 \end{lstlisting}
+\caption{Regular-language membership and value equality.}
 \end{figure}
 
 \begin{figure}[p]
@@ -411,6 +418,7 @@ macro_rules
                 | _ => SmtValue.NotValue
           exact evalChoiceNth $M $s $T $body $n)
 \end{lstlisting}
+\caption{Evaluation macros for quantifiers and choice.}
 \end{figure}
 
 \begin{figure}[p]
@@ -423,6 +431,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Var s T) => (native_model_lookup M s T)
   | ... => ...
 \end{lstlisting}
+\caption{Skeleton of SMT term evaluation in a model.}
 \end{figure}
 
 \begin{figure}[p]
@@ -482,6 +491,7 @@ def __smtx_type_wf : SmtType -> Bool
   | (SmtType.FunType T U) => (__smtx_type_wf_component T && __smtx_type_wf_component U)
   | T => (__smtx_type_wf_component T)
 \end{lstlisting}
+\caption{Default values, inhabitation, and type well-formedness.}
 \end{figure}
 
 \begin{figure}[p]
@@ -518,6 +528,7 @@ def __smtx_is_finite_type : SmtType -> Bool
   | (SmtType.Seq T) => (__smtx_is_finite_type T)
   | T => false
 \end{lstlisting}
+\caption{Unit and finite SMT type predicates.}
 \end{figure}
 
 \begin{figure}[p]
@@ -554,6 +565,7 @@ def __smtx_value_canonical_bool : SmtValue -> Bool
   | (SmtValue.Apply f v) => (__smtx_value_canonical_bool f && __smtx_value_canonical_bool v)
   | v => true
 \end{lstlisting}
+\caption{Canonicality checks for maps, sequences, and values.}
 \end{figure}
 
 \begin{figure}[p]
@@ -581,6 +593,7 @@ def model_total_typed (M : SmtModel) : Prop :=
   (∀ s T, __smtx_type_wf T = false -> native_model_lookup M s T = SmtValue.NotValue) ∧
   native_fun_typed M
 \end{lstlisting}
+\caption{SMT interpretation and total typed model conditions.}
 \end{figure}
 
 \begin{figure}[p]
@@ -615,6 +628,7 @@ theorem exists_total_typed_model_of_canonical_type_inhabited
 theorem total_typed_model_nonvacuous :
     ∃ M : SmtModel, model_total_typed M
 \end{lstlisting}
+\caption{Main type-preservation, canonicality, and model-existence statements.}
 \end{figure}
 
 \clearpage
@@ -652,6 +666,7 @@ inductive Term : Type where
 
 deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
+\caption{Core Eunoia term syntax.}
 \end{figure}
 
 \begin{figure}[p]
@@ -664,6 +679,7 @@ def __eo_typeof : Term -> Term
   | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
   | ... => ...
 \end{lstlisting}
+\caption{Selected Eunoia type-synthesis clauses.}
 \end{figure}
 
 \begin{figure}[p]
@@ -686,6 +702,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
   | ... => ...
 \end{lstlisting}
+\caption{Translation from Eunoia terms and types into SMT.}
 \end{figure}
 
 \begin{figure}[p]
@@ -701,6 +718,7 @@ theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
 
 end RuleProofs
 \end{lstlisting}
+\caption{A representative theorem connecting Eunoia and SMT types.}
 \end{figure}
 
 \clearpage
@@ -756,6 +774,7 @@ inductive CCmdList : Type where
   | cons : CCmd -> CCmdList -> CCmdList
 deriving Repr, Inhabited
 \end{lstlisting}
+\caption{Checker indices, arguments, states, rules, and commands.}
 \end{figure}
 
 \begin{figure}[p]
@@ -799,6 +818,7 @@ def __eo_invoke_cmd_check_proven : CState -> Term -> CState
   | (CState.cons (CStateObj.proven F) S), proven => (__eo_push_proven_check (__eo_eq F proven) F S)
   | S, proven => CState.Stuck
 \end{lstlisting}
+\caption{Basic checker stack and state operations.}
 \end{figure}
 
 \begin{figure}[p]
@@ -845,6 +865,7 @@ inductive eo_is_refutation : Term -> CCmdList -> Prop
   | intro (F : Term) (c : CCmdList) :
       (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 \end{lstlisting}
+\caption{Checker command execution and refutation recognition.}
 \end{figure}
 
 \begin{figure}[p]
@@ -875,6 +896,7 @@ inductive CmdListTranslationOk : CCmdList -> Prop
       CmdListTranslationOk cs ->
       CmdListTranslationOk (CCmdList.cons c cs)
 \end{lstlisting}
+\caption{Translation obligations for checker assumptions and commands.}
 \end{figure}
 
 \begin{figure}[p]
@@ -908,6 +930,7 @@ theorem invoke_cmd_list_preserves_stateInvariant (M : SmtModel) :
     CmdListTranslationOk cs ->
     checkerStateInvariant M (__eo_invoke_cmd_list s cs)
 \end{lstlisting}
+\caption{Checker invariants and preservation through command execution.}
 \end{figure}
 
 \begin{figure}[p]
@@ -933,6 +956,7 @@ def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
 def eo_satisfiability (t : Term) (b : Bool) : Prop :=
   exists (s : ObjectTerm), (eo_is_obj t s) /\ (smt_satisfiability s b)
 \end{lstlisting}
+\caption{Object-language interpretation and satisfiability via SMT.}
 \end{figure}
 
 \begin{figure}[p]
@@ -943,6 +967,7 @@ theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   (eo_is_refutation F pf) ->
   eo_satisfiability F false
 \end{lstlisting}
+\caption{Top-level checker soundness theorem.}
 \end{figure}
 
 \end{document}
