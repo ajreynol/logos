@@ -6,12 +6,32 @@
 \usepackage{xcolor}
 \usepackage{listings}
 
+\definecolor{LeanKeyword}{HTML}{005CC5}
+\definecolor{LeanType}{HTML}{6F42C1}
+\definecolor{LeanConst}{HTML}{032F62}
+\definecolor{LeanString}{HTML}{A31515}
+\definecolor{LeanComment}{HTML}{6A737D}
+\definecolor{LeanNamespace}{HTML}{22863A}
+
 \lstdefinelanguage{Lean}{
   morekeywords={
-    abbrev, def, deriving, end, false, inductive, let, match, namespace,
-    noncomputable, open, Prop, structure, true, Type, where, with
+    abbrev, by, classical, def, deriving, do, else, end, exact,
+    forall, fun, if, inductive, let, macro_rules, match, namespace,
+    noncomputable, open, private, section, set_option, structure, then,
+    theorem, where, with
+  },
+  morekeywords=[2]{
+    Bool, CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
+    Datatype, ObjectModel, ObjectTerm, Option, Prop, RefList, SmtDatatype,
+    SmtDatatypeCons, SmtMap, SmtModel, SmtModelKey, SmtNativeFun, SmtSeq,
+    SmtTerm, SmtType, SmtValue, Term, Type, native_Bool, native_Char,
+    native_Int, native_Nat, native_Rat, native_RegLan, native_String
+  },
+  morekeywords=[3]{
+    false, native_nat_succ, native_nat_zero, none, some, true
   },
   sensitive=true,
+  morestring=[b]",
   morecomment=[l]{--},
   morecomment=[s]{/-}{-/}
 }
@@ -19,8 +39,17 @@
 \lstset{
   language=Lean,
   basicstyle=\ttfamily\scriptsize,
-  keywordstyle=\bfseries,
-  commentstyle=\color{gray},
+  keywordstyle=\color{LeanKeyword}\bfseries,
+  keywordstyle=[2]\color{LeanType},
+  keywordstyle=[3]\color{LeanConst},
+  commentstyle=\itshape\color{LeanComment},
+  stringstyle=\color{LeanString},
+  emph={
+    CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
+    SmtDatatype, SmtDatatypeCons, SmtMap, SmtModel, SmtSeq, SmtTerm,
+    SmtType, SmtValue, Term
+  },
+  emphstyle=\color{LeanNamespace},
   columns=fullflexible,
   keepspaces=true,
   showstringspaces=false,
@@ -143,27 +172,21 @@ def __smtx_typeof : SmtTerm -> SmtType
 \begin{figure}[p]
 \begin{lstlisting}
 def __smtx_type_substitute (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) =>
-      (SmtType.Datatype s2
-        (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2)))
-  | (SmtType.TypeRef s2) =>
-      (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
+  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2)))
+  | (SmtType.TypeRef s2) => (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
   | T => T
 
 def __smtx_dtc_substitute (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
-  | (SmtDatatypeCons.cons T c) =>
-      (SmtDatatypeCons.cons (__smtx_type_substitute s d T) (__smtx_dtc_substitute s d c))
+  | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (__smtx_type_substitute s d T) (__smtx_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
 
 def __smtx_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
-  | (SmtDatatype.sum c d2) =>
-      (SmtDatatype.sum (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d d2))
+  | (SmtDatatype.sum c d2) => (SmtDatatype.sum (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d d2))
   | SmtDatatype.null => SmtDatatype.null
 
 def __smtx_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
   | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero =>
-      (SmtType.DtcAppType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => (SmtType.DtcAppType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
   | (SmtDatatype.sum c d), (native_nat_succ n) => (__smtx_typeof_dt_cons_rec T d n)
   | d, n => SmtType.None
 
@@ -171,18 +194,9 @@ def __smtx_ret_typeof_sel (s : native_String) (d : SmtDatatype) (n : native_Nat)
   (__smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) n m)
 
 def __smtx_typeof : SmtTerm -> SmtType
-  | (SmtTerm.DtCons s d i) =>
-    let _v0 := (SmtType.Datatype s d)
-    (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
-  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) =>
-    let _v0 := (__smtx_ret_typeof_sel s d i j)
-    (__smtx_typeof_guard_wf _v0
-      (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (__smtx_typeof x1)))
-  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) =>
-    let _v0 := (SmtType.Datatype s d)
-    (__smtx_typeof_guard
-      (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i)
-      (__smtx_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (__smtx_typeof x1)))
+  | (SmtTerm.DtCons s d i) => let _v0 := (SmtType.Datatype s d); (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
+  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => let _v0 := (__smtx_ret_typeof_sel s d i j); (__smtx_typeof_guard_wf _v0 (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (__smtx_typeof x1)))
+  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => let _v0 := (SmtType.Datatype s d); (__smtx_typeof_guard (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i) (__smtx_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (__smtx_typeof x1)))
   | ... => ...
 \end{lstlisting}
 \end{figure}
@@ -190,8 +204,7 @@ def __smtx_typeof : SmtTerm -> SmtType
 \begin{figure}[p]
 \begin{lstlisting}
 def native_str_in_re : native_String -> native_RegLan -> native_Bool
-  | s, r =>
-      native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
+  | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
 
 def native_veq : SmtValue -> SmtValue -> native_Bool
   | x, y => decide (x = y)
@@ -529,14 +542,9 @@ def __eo_typeof : Term -> Term
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | (Term.DatatypeType s d) => (native_ite (native_reserved_datatype_name s) SmtType.None (SmtType.Datatype s (__eo_to_smt_datatype d)))
-  | (Term.Apply (Term.Apply Term.FunType T1) T2) =>
-    let _v0 := (__eo_to_smt_type T2)
-    let _v1 := (__eo_to_smt_type T1)
-    (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
+  | (Term.Apply (Term.Apply Term.FunType T1) T2) => let _v0 := (__eo_to_smt_type T2); let _v1 := (__eo_to_smt_type T1); (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
   | (Term.UOp UserOp.Int) => SmtType.Int
-  | (Term.Apply (Term.UOp UserOp.Seq) x1) =>
-    let _v0 := (__eo_to_smt_type x1)
-    (__smtx_typeof_guard _v0 (SmtType.Seq _v0))
+  | (Term.Apply (Term.UOp UserOp.Seq) x1) => let _v0 := (__eo_to_smt_type x1); (__smtx_typeof_guard _v0 (SmtType.Seq _v0))
   | ... => ...
 
 def __eo_to_smt : Term -> SmtTerm
@@ -628,8 +636,7 @@ def __eo_StateObj_proven : CStateObj -> Term
 
 def __eo_state_proven_nth : CState -> native_Int -> Term
   | (CState.cons so s), 0 => (__eo_StateObj_proven so)
-  | (CState.cons so s), n =>
-      (__eo_state_proven_nth s (native_zplus n (native_zneg 1)))
+  | (CState.cons so s), n => (__eo_state_proven_nth s (native_zplus n (native_zneg 1)))
   | s, n => (Term.Boolean true)
 
 def __eo_state_is_closed : CState -> native_Bool
@@ -655,12 +662,10 @@ def __eo_push_proven : Term -> CState -> CState
 
 def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
   | f, CIndexList.nil, S => (__eo_nil f Term.Bool)
-  | f, (CIndexList.cons n pl), S =>
-      (__eo_cons f (__eo_state_proven_nth S n) (__eo_mk_premise_list f pl S))
+  | f, (CIndexList.cons n pl), S => (__eo_cons f (__eo_state_proven_nth S n) (__eo_mk_premise_list f pl S))
 
 def __eo_invoke_cmd_check_proven : CState -> Term -> CState
-  | (CState.cons (CStateObj.proven F) S), proven =>
-      (__eo_push_proven_check (__eo_eq F proven) F S)
+  | (CState.cons (CStateObj.proven F) S), proven => (__eo_push_proven_check (__eo_eq F proven) F S)
   | S, proven => CState.Stuck
 \end{lstlisting}
 \end{figure}
@@ -668,61 +673,42 @@ def __eo_invoke_cmd_check_proven : CState -> Term -> CState
 \begin{figure}[p]
 \begin{lstlisting}
 def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
-  | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) =>
-      (__eo_prog_contra
-        (Proof.pf (__eo_state_proven_nth S n1))
-        (Proof.pf (__eo_state_proven_nth S n2)))
-  | CRule.refl, (CArgList.cons a1 CArgList.nil), CIndexList.nil =>
-      (__eo_prog_refl a1)
-  | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) =>
-      (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1)))
-  | CRule.trans, CArgList.nil, premises =>
-      (__eo_prog_trans
-        (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises S)))
+  | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) => (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)))
+  | CRule.refl, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_refl a1)
+  | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1)))
+  | CRule.trans, CArgList.nil, premises => (__eo_prog_trans (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises S)))
   | ... => ...
 
 def __eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
-  | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) =>
-      (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
+  | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
   | ... => ...
 
 def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexList -> CState
-  | (CState.cons (CStateObj.assume_push A) s2), r, args, premises =>
-      (__eo_push_proven (__eo_cmd_step_pop_proven s r args A premises) s2)
-  | (CState.cons so s2), r, args, premises =>
-      (__eo_invoke_cmd_step_pop s s2 r args premises)
+  | (CState.cons (CStateObj.assume_push A) s2), r, args, premises => (__eo_push_proven (__eo_cmd_step_pop_proven s r args A premises) s2)
+  | (CState.cons so s2), r, args, premises => (__eo_invoke_cmd_step_pop s s2 r args premises)
   | s2, r, args, premises => CState.Stuck
 
 def __eo_invoke_cmd : CState -> CCmd -> CState
   | CState.Stuck, c => CState.Stuck
-  | S, (CCmd.assume_push proven) =>
-      (__eo_push_assume_check (__eo_is_bool_type proven) proven S)
-  | S, (CCmd.check_proven proven) =>
-      (__eo_invoke_cmd_check_proven S proven)
-  | S, (CCmd.step r args premises) =>
-      (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
-  | S, (CCmd.step_pop r args premises) =>
-      (__eo_invoke_cmd_step_pop S S r args premises)
+  | S, (CCmd.assume_push proven) => (__eo_push_assume_check (__eo_is_bool_type proven) proven S)
+  | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
+  | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
+  | S, (CCmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
 
 def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState
   | CCmdList.nil => S
-  | (CCmdList.cons c cmds) =>
-      (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
+  | (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
 
 def __eo_state_is_refutation (s : CState) : native_Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
 def __eo_invoke_assume_list (S : CState) : Term -> CState
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) =>
-      (__eo_push_input_assume_check
-        (__eo_is_bool_type F) F (__eo_invoke_assume_list S as))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (__eo_push_input_assume_check (__eo_is_bool_type F) F (__eo_invoke_assume_list S as))
   | (Term.Boolean true) => S
   | as => CState.Stuck
 
 def __eo_checker_is_refutation : Term -> CCmdList -> native_Bool
-  | as, cs =>
-      (__eo_state_is_refutation
-        (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
+  | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
 
 inductive eo_is_refutation : Term -> CCmdList -> Prop
   | intro (F : Term) (c : CCmdList) :
