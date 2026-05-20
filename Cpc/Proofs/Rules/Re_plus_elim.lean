@@ -30,14 +30,14 @@ private theorem smtx_model_eval_re_plus_elim
         native_re_plus, native_re_concat, native_re_mult, native_re_mk_concat,
         native_re_mk_star, native_str_to_re, native_re_of_list, native_pack_string,
         native_unpack_string, native_pack_seq, native_unpack_seq,
-        __smtx_ssm_char_values_of_string, __smtx_ssm_string_of_char_values]
+        native_ssm_char_values_of_string, native_ssm_string_of_char_values]
   all_goals
     simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
       __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_concat,
       native_re_mult, native_re_mk_concat, native_re_mk_star, native_str_to_re,
       native_re_of_list, native_pack_string, native_unpack_string, native_pack_seq,
-      native_unpack_seq, __smtx_ssm_char_values_of_string,
-      __smtx_ssm_string_of_char_values]
+      native_unpack_seq, native_ssm_char_values_of_string,
+      native_ssm_string_of_char_values]
 
 private theorem typed___eo_prog_re_plus_elim_impl
     (a1 : Term)

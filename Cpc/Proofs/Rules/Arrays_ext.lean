@@ -204,6 +204,9 @@ private theorem smt_map_domain_inhabited_wf_rec_of_typeof
   have hWF : __smtx_type_wf (SmtType.Map A B) = true := by
     have hGood := smt_term_result_seq_components_wf_of_non_none t hNN
     simpa [hTy, type_result_seq_components_wf] using hGood
+  have hComponent :
+      __smtx_type_wf_component (SmtType.Map A B) = true := by
+    simpa [__smtx_type_wf] using hWF
   have hParts :
       native_inhabited_type A = true ∧
         __smtx_type_wf_rec A native_reflist_nil = true ∧
@@ -215,7 +218,8 @@ private theorem smt_map_domain_inhabited_wf_rec_of_typeof
             __smtx_type_wf_rec A native_reflist_nil = true ∧
               native_inhabited_type B = true ∧
                 __smtx_type_wf_rec B native_reflist_nil = true := by
-      simpa [__smtx_type_wf, __smtx_type_wf_rec, SmtEval.native_and] using hWF
+      have hComponentParts := smtx_type_wf_component_parts hComponent
+      simpa [__smtx_type_wf_rec, SmtEval.native_and] using hComponentParts
     exact hAll.2
   exact ⟨hParts.1, hParts.2.1⟩
 

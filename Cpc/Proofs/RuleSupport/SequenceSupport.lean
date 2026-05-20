@@ -259,7 +259,8 @@ theorem type_result_seq_components_wf_of_type_wf
     case FunType A B =>
       exact h
     case DtcAppType A B =>
-      simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
+      simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        native_and] at h
     all_goals
       simp [type_result_seq_components_wf]
   exact go T h
@@ -287,7 +288,8 @@ private theorem seq_char_wf :
     native_inhabited_type_seq SmtType.Char
   have hCharInh : native_inhabited_type SmtType.Char = true :=
     native_inhabited_type_char
-  simp [__smtx_type_wf, __smtx_type_wf_rec, native_and, hSeqInh, hCharInh]
+  simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+    native_and, hSeqInh, hCharInh]
 
 theorem smt_term_result_seq_components_wf_of_non_none
     (x : SmtTerm) (hxNN : term_has_non_none_type x) :
@@ -301,8 +303,7 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       simpa [__smtx_typeof] using go t htNN
     case String s =>
-      simp [__smtx_typeof, type_result_seq_components_wf, __smtx_type_wf,
-        __smtx_type_wf_rec, native_and]
+      simpa [__smtx_typeof, type_result_seq_components_wf] using seq_char_wf
     case Var s T =>
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
@@ -715,7 +716,7 @@ theorem eval_seq_empty_of_type (M : SmtModel) (A : Term) (T : SmtType) :
     change __smtx_model_eval M (SmtTerm.String "") =
       SmtValue.Seq (SmtSeq.empty SmtType.Char)
     rw [__smtx_model_eval.eq_4]
-    simp [native_pack_string, __smtx_ssm_char_values_of_string, native_pack_seq]
+    simp [native_pack_string, native_ssm_char_values_of_string, native_pack_seq]
   · by_cases hStuck : A = Term.Stuck
     · subst hStuck
       simp [__eo_to_smt_type] at hA
@@ -3203,7 +3204,7 @@ theorem smt_value_rel_str_concat_nil_empty
         (__smtx_model_eval M (SmtTerm.String ""))
         (SmtValue.Seq (SmtSeq.empty SmtType.Char)) = SmtValue.Boolean true
       rw [__smtx_model_eval.eq_4]
-      simp [native_pack_string, __smtx_ssm_char_values_of_string,
+      simp [native_pack_string, native_ssm_char_values_of_string,
         native_pack_seq, __smtx_model_eval_eq, native_veq]
 
 theorem smt_value_rel_str_concat_right_empty

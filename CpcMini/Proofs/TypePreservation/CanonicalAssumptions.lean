@@ -1,4 +1,4 @@
-import CpcMini.SmtModel
+import CpcMini.Proofs.TypePreservation.Predicates
 
 open SmtEval
 open Smtm

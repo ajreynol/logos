@@ -18,7 +18,8 @@ private theorem set_singleton_arg_non_none (x : Term) :
       __smtx_typeof_guard_wf (SmtType.Set SmtType.None) (SmtType.Set SmtType.None) =
         SmtType.None := by
     have hWfNone : __smtx_type_wf (SmtType.Set SmtType.None) = false := by
-      simp [__smtx_type_wf, __smtx_type_wf_rec, SmtEval.native_and]
+      simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        SmtEval.native_and]
     simp [__smtx_typeof_guard_wf, hWfNone, native_ite]
   rw [hNone] at hSingleton
   exact hSingleton hSingletonNone

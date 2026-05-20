@@ -17,7 +17,8 @@ private theorem seq_unit_arg_non_none (x : Term) :
       __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt x)) = SmtType.None := by
     rw [__smtx_typeof.eq_119]
     have hWfNone : __smtx_type_wf (SmtType.Seq SmtType.None) = false := by
-      simp [__smtx_type_wf, __smtx_type_wf_rec, SmtEval.native_and]
+      simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+        SmtEval.native_and]
     rw [hNone]
     simp [__smtx_typeof_guard_wf, hWfNone, native_ite]
   exact hSeq hSeqNone

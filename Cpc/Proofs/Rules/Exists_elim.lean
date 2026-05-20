@@ -183,14 +183,14 @@ private theorem smtx_model_eval_eo_to_smt_exists_double_not_body_true_iff
               ∃ v : SmtValue,
                 __smtx_typeof_value v = __eo_to_smt_type T ∧
                   __smtx_value_canonical_bool v = true ∧
-                  __smtx_model_eval (__smtx_model_push M s (__eo_to_smt_type T) v)
+                  __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists a (SmtTerm.not (SmtTerm.not body))) =
                     SmtValue.Boolean true
             let Q : Prop :=
               ∃ v : SmtValue,
                 __smtx_typeof_value v = __eo_to_smt_type T ∧
                   __smtx_value_canonical_bool v = true ∧
-                  __smtx_model_eval (__smtx_model_push M s (__eo_to_smt_type T) v)
+                  __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists a body) = SmtValue.Boolean true
             have hPQ : P ↔ Q := by
               constructor
@@ -199,13 +199,13 @@ private theorem smtx_model_eval_eo_to_smt_exists_double_not_body_true_iff
                 refine ⟨v, hv, hCan, ?_⟩
                 exact
                   (smtx_model_eval_eo_to_smt_exists_double_not_body_true_iff
-                    (__smtx_model_push M s (__eo_to_smt_type T) v) a body).1 hEval
+                    (native_model_push M s (__eo_to_smt_type T) v) a body).1 hEval
               · intro hSat
                 rcases hSat with ⟨v, hv, hCan, hEval⟩
                 refine ⟨v, hv, hCan, ?_⟩
                 exact
                   (smtx_model_eval_eo_to_smt_exists_double_not_body_true_iff
-                    (__smtx_model_push M s (__eo_to_smt_type T) v) a body).2 hEval
+                    (native_model_push M s (__eo_to_smt_type T) v) a body).2 hEval
             have hPropEq : P = Q := propext hPQ
             simp [P, Q, __eo_to_smt_exists, __smtx_model_eval, hPropEq]
           all_goals
@@ -255,14 +255,14 @@ private theorem smtx_model_eval_eo_to_smt_exists_double_not_body
               ∃ v : SmtValue,
                 __smtx_typeof_value v = __eo_to_smt_type T ∧
                   __smtx_value_canonical_bool v = true ∧
-                  __smtx_model_eval (__smtx_model_push M s (__eo_to_smt_type T) v)
+                  __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists a (SmtTerm.not (SmtTerm.not body))) =
                     SmtValue.Boolean true
             let Q : Prop :=
               ∃ v : SmtValue,
                 __smtx_typeof_value v = __eo_to_smt_type T ∧
                   __smtx_value_canonical_bool v = true ∧
-                  __smtx_model_eval (__smtx_model_push M s (__eo_to_smt_type T) v)
+                  __smtx_model_eval (native_model_push M s (__eo_to_smt_type T) v)
                     (__eo_to_smt_exists a body) = SmtValue.Boolean true
             have hPQ : P ↔ Q := by
               constructor
@@ -271,13 +271,13 @@ private theorem smtx_model_eval_eo_to_smt_exists_double_not_body
                 refine ⟨v, hv, hCan, ?_⟩
                 exact
                   (smtx_model_eval_eo_to_smt_exists_double_not_body_true_iff
-                    (__smtx_model_push M s (__eo_to_smt_type T) v) a body).1 hEval
+                    (native_model_push M s (__eo_to_smt_type T) v) a body).1 hEval
               · intro hSat
                 rcases hSat with ⟨v, hv, hCan, hEval⟩
                 refine ⟨v, hv, hCan, ?_⟩
                 exact
                   (smtx_model_eval_eo_to_smt_exists_double_not_body_true_iff
-                    (__smtx_model_push M s (__eo_to_smt_type T) v) a body).2 hEval
+                    (native_model_push M s (__eo_to_smt_type T) v) a body).2 hEval
             have hPropEq : P = Q := propext hPQ
             simp [P, Q, __eo_to_smt_exists, __smtx_model_eval, hPropEq]
           all_goals
