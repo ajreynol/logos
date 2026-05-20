@@ -22,13 +22,13 @@
   },
   morekeywords=[2]{
     Bool, CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
-    Datatype, ObjectModel, ObjectTerm, Option, Prop, RefList, SmtDatatype,
+    Char, Datatype, Int, Nat, ObjectModel, ObjectTerm, Option, Prop, Rat,
+    RefList, SmtDatatype,
     SmtDatatypeCons, SmtMap, SmtModel, SmtModelKey, SmtNativeFun, SmtSeq,
-    SmtTerm, SmtType, SmtValue, Term, Type, native_Bool, native_Char,
-    native_Int, native_Nat, native_Rat, native_RegLan, native_String
+    SmtTerm, SmtType, SmtValue, String, Term, Type, native_RegLan
   },
   morekeywords=[3]{
-    false, native_nat_succ, native_nat_zero, none, some, true
+    false, none, some, true
   },
   sensitive=true,
   morestring=[b]",
@@ -62,7 +62,7 @@
   xrightmargin=0.5em,
   aboveskip=0.75em,
   belowskip=0.75em,
-  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {≠}{{$\neq$}}1 {¬}{{$\neg$}}1
+  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {∈}{{$\in$}}1 {≠}{{$\neq$}}1 {¬}{{$\neg$}}1
 }
 
 \pagestyle{empty}
@@ -75,18 +75,18 @@
 \begin{lstlisting}
 inductive SmtValue : Type where
   | NotValue : SmtValue
-  | Boolean : native_Bool -> SmtValue
-  | Numeral : native_Int -> SmtValue
-  | Rational : native_Rat -> SmtValue
-  | Binary : native_Int -> native_Int -> SmtValue
+  | Boolean : Bool -> SmtValue
+  | Numeral : Int -> SmtValue
+  | Rational : Rat -> SmtValue
+  | Binary : Int -> Int -> SmtValue
   | Map : SmtMap -> SmtValue
-  | Fun : native_String -> SmtType -> SmtType -> SmtValue
+  | Fun : String -> SmtType -> SmtType -> SmtValue
   | Set : SmtMap -> SmtValue
   | Seq : SmtSeq -> SmtValue
-  | Char : native_Char -> SmtValue
-  | UValue : native_Nat -> native_Nat -> SmtValue
+  | Char : Char -> SmtValue
+  | UValue : Nat -> Nat -> SmtValue
   | RegLan : native_RegLan -> SmtValue
-  | DtCons : native_String -> SmtDatatype -> native_Nat -> SmtValue
+  | DtCons : String -> SmtDatatype -> Nat -> SmtValue
   | Apply : SmtValue -> SmtValue -> SmtValue
 
 deriving Repr, DecidableEq, Inhabited, Ord
@@ -117,10 +117,10 @@ deriving Repr, DecidableEq, Inhabited, Ord
 \begin{lstlisting}
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
-def native_default_ifun_id : native_String := "@native_default_ifun"
+def native_default_ifun_id : String := "@native_default_ifun"
 
 structure SmtModelKey where
-  name : native_String
+  name : String
   ty : SmtType
 deriving Repr, DecidableEq, Inhabited
 
@@ -129,22 +129,22 @@ structure SmtModel where
   nativeFuns : SmtModelKey -> Option SmtNativeFun
 deriving Inhabited
 
-def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
+def native_model_key (s : String) (T : SmtType) : SmtModelKey :=
   { name := s, ty := T }
 
-def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+def native_model_lookup (M : SmtModel) (s : String) (T : SmtType) : SmtValue :=
   match M.values (native_model_key s T) with
   | some v => v
   | none => SmtValue.NotValue
 
-def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
+def native_model_push (M : SmtModel) (s : String) (T : SmtType) (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
       if k = (native_model_key s T) then
         some v
       else
         M.values k }
 
-def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : Option SmtNativeFun :=
+def native_model_fun_lookup (M : SmtModel) (fid : String) (T U : SmtType) : Option SmtNativeFun :=
   M.nativeFuns (native_model_key fid (SmtType.FunType T U))
 \end{lstlisting}
 \end{figure}
@@ -153,7 +153,11 @@ def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType)
 \begin{lstlisting}
 def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Boolean b) => SmtType.Bool
-  | (SmtValue.Binary w n) => (native_ite (native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w)))) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
+  | (SmtValue.Binary w n) =>
+      if 0 <= w ∧ n = n % (2 ^ Int.toNat w) then
+        SmtType.BitVec (Int.toNat w)
+      else
+        SmtType.None
   | (SmtValue.Map m) => (__smtx_typeof_map_value m)
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
   | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
@@ -161,7 +165,11 @@ def __smtx_typeof_value : SmtValue -> SmtType
 
 def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
-  | (SmtTerm.Binary w n) => (native_ite (native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w)))) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
+  | (SmtTerm.Binary w n) =>
+      if 0 <= w ∧ n = n % (2 ^ Int.toNat w) then
+        SmtType.BitVec (Int.toNat w)
+      else
+        SmtType.None
   | (SmtTerm.plus x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.select x1 x2) => (__smtx_typeof_select (__smtx_typeof x1) (__smtx_typeof x2))
   | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
@@ -171,26 +179,26 @@ def __smtx_typeof : SmtTerm -> SmtType
 
 \begin{figure}[p]
 \begin{lstlisting}
-def __smtx_type_substitute (s : native_String) (d : SmtDatatype) : SmtType -> SmtType
-  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (native_ite (native_streq s s2) d2 (__smtx_dt_substitute s d d2)))
-  | (SmtType.TypeRef s2) => (native_ite (native_streq s s2) (SmtType.Datatype s d) (SmtType.TypeRef s2))
+def __smtx_type_substitute (s : String) (d : SmtDatatype) : SmtType -> SmtType
+  | (SmtType.Datatype s2 d2) => (SmtType.Datatype s2 (if s = s2 then d2 else __smtx_dt_substitute s d d2))
+  | (SmtType.TypeRef s2) => (if s = s2 then SmtType.Datatype s d else SmtType.TypeRef s2)
   | T => T
 
-def __smtx_dtc_substitute (s : native_String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
+def __smtx_dtc_substitute (s : String) (d : SmtDatatype) : SmtDatatypeCons -> SmtDatatypeCons
   | (SmtDatatypeCons.cons T c) => (SmtDatatypeCons.cons (__smtx_type_substitute s d T) (__smtx_dtc_substitute s d c))
   | SmtDatatypeCons.unit => SmtDatatypeCons.unit
 
-def __smtx_dt_substitute (s : native_String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
+def __smtx_dt_substitute (s : String) (d : SmtDatatype) : SmtDatatype -> SmtDatatype
   | (SmtDatatype.sum c d2) => (SmtDatatype.sum (__smtx_dtc_substitute s d c) (__smtx_dt_substitute s d d2))
   | SmtDatatype.null => SmtDatatype.null
 
-def __smtx_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> native_Nat -> SmtType
-  | (SmtDatatype.sum SmtDatatypeCons.unit d), native_nat_zero => T
-  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), native_nat_zero => (SmtType.DtcAppType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) native_nat_zero))
-  | (SmtDatatype.sum c d), (native_nat_succ n) => (__smtx_typeof_dt_cons_rec T d n)
+def __smtx_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), 0 => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 => (SmtType.DtcAppType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) 0))
+  | (SmtDatatype.sum c d), (Nat.succ n) => (__smtx_typeof_dt_cons_rec T d n)
   | d, n => SmtType.None
 
-def __smtx_ret_typeof_sel (s : native_String) (d : SmtDatatype) (n : native_Nat) (m : native_Nat) : SmtType :=
+def __smtx_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
   (__smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) n m)
 
 def __smtx_typeof : SmtTerm -> SmtType
@@ -203,10 +211,10 @@ def __smtx_typeof : SmtTerm -> SmtType
 
 \begin{figure}[p]
 \begin{lstlisting}
-def native_str_in_re : native_String -> native_RegLan -> native_Bool
+def native_str_in_re : String -> native_RegLan -> Bool
   | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
 
-def native_veq : SmtValue -> SmtValue -> native_Bool
+def native_veq : SmtValue -> SmtValue -> Bool
   | x, y => decide (x = y)
 
 macro_rules
@@ -216,7 +224,7 @@ macro_rules
           classical
           exact
             if hExt :
-                ∀ s : native_String,
+                ∀ s : String,
                   $strInReId s $r1 = $strInReId s $r2 then
               true
             else
@@ -224,7 +232,7 @@ macro_rules
 
 def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
   | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
-  | v1, v2 => (SmtValue.Boolean (native_veq v1 v2))
+  | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
 \end{lstlisting}
 \end{figure}
 
@@ -290,10 +298,10 @@ macro_rules
       `(by
           classical
           let rec evalChoiceNth (M' : SmtModel)
-              (s' : native_String) (T' : SmtType) (body' : SmtTerm) : native_Nat -> SmtValue
-            | native_nat_zero =>
+              (s' : String) (T' : SmtType) (body' : SmtTerm) : Nat -> SmtValue
+            | 0 =>
                 $evalChoiceId M' s' T' body'
-            | native_nat_succ n' =>
+            | Nat.succ n' =>
                 let v := $evalChoiceId M' s' T' body'
                 match body' with
                 | SmtTerm.exists s'' T'' body'' =>
@@ -321,79 +329,89 @@ def __smtx_type_default : SmtType -> SmtValue
   | SmtType.Bool => (SmtValue.Boolean false)
   | SmtType.Int => (SmtValue.Numeral 0)
   | SmtType.RegLan => (SmtValue.RegLan native_re_none)
-  | (SmtType.Datatype s d) => (__smtx_datatype_default s d d native_nat_zero)
+  | (SmtType.Datatype s d) => (__smtx_datatype_default s d d 0)
   | (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
   | ... => ...
 
-def native_inhabited_type (T : SmtType) : native_Bool := by
+def native_inhabited_type (T : SmtType) : Bool := by
   classical
   exact
-    native_and
-      (decide (__smtx_typeof_value (__smtx_type_default T) = T))
+    decide (__smtx_typeof_value (__smtx_type_default T) = T) &&
       (__smtx_value_canonical_bool (__smtx_type_default T))
 
-def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
-  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs => (native_ite (native_reflist_contains refs s) (__smtx_dt_cons_wf_rec c refs) false)
-  | (SmtDatatypeCons.cons T c), refs => (native_ite (native_inhabited_type T) (native_ite (__smtx_type_wf_rec T refs) (__smtx_dt_cons_wf_rec c refs) false) false)
+def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
+  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
+      if s ∈ refs then __smtx_dt_cons_wf_rec c refs else false
+  | (SmtDatatypeCons.cons T c), refs =>
+      if native_inhabited_type T then
+        if __smtx_type_wf_rec T refs then __smtx_dt_cons_wf_rec c refs else false
+      else
+        false
   | SmtDatatypeCons.unit, refs => true
 
-def __smtx_dt_wf_rec : SmtDatatype -> RefList -> native_Bool
+def __smtx_dt_wf_rec : SmtDatatype -> RefList -> Bool
   | SmtDatatype.null, refs => false
   | (SmtDatatype.sum c SmtDatatype.null), refs => (__smtx_dt_cons_wf_rec c refs)
-  | (SmtDatatype.sum c d), refs => (native_ite (__smtx_dt_cons_wf_rec c refs) (__smtx_dt_wf_rec d refs) false)
+  | (SmtDatatype.sum c d), refs =>
+      if __smtx_dt_cons_wf_rec c refs then __smtx_dt_wf_rec d refs else false
 
-def __smtx_type_wf_rec : SmtType -> RefList -> native_Bool
-  | (SmtType.Datatype s d), refs => (native_ite (native_reflist_contains refs s) false (__smtx_dt_wf_rec d (native_reflist_insert refs s)))
+def __smtx_type_wf_rec : SmtType -> RefList -> Bool
+  | (SmtType.Datatype s d), refs =>
+      if s ∈ refs then false else __smtx_dt_wf_rec d (s :: refs)
   | (SmtType.TypeRef s), refs => false
-  | (SmtType.Seq x1), refs => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 native_reflist_nil))
-  | (SmtType.Map x1 x2), refs => (native_and (native_inhabited_type x1) (native_and (__smtx_type_wf_rec x1 native_reflist_nil) (native_and (native_inhabited_type x2) (__smtx_type_wf_rec x2 native_reflist_nil))))
+  | (SmtType.Seq x1), refs => (native_inhabited_type x1 && __smtx_type_wf_rec x1 [])
+  | (SmtType.Map x1 x2), refs =>
+      native_inhabited_type x1 &&
+        __smtx_type_wf_rec x1 [] &&
+        native_inhabited_type x2 &&
+        __smtx_type_wf_rec x2 []
   | (SmtType.FunType x1 x2), refs => false
-  | (SmtType.Set x1), refs => (native_and (native_inhabited_type x1) (__smtx_type_wf_rec x1 native_reflist_nil))
+  | (SmtType.Set x1), refs => (native_inhabited_type x1 && __smtx_type_wf_rec x1 [])
   | (SmtType.DtcAppType x1 x2), refs => false
   | SmtType.None, refs => false
   | SmtType.RegLan, refs => false
   | T, refs => true
 
-def __smtx_type_wf_component (T : SmtType) : native_Bool :=
-  (native_and (native_inhabited_type T) (__smtx_type_wf_rec T native_reflist_nil))
+def __smtx_type_wf_component (T : SmtType) : Bool :=
+  (native_inhabited_type T && __smtx_type_wf_rec T [])
 
-def __smtx_type_wf : SmtType -> native_Bool
+def __smtx_type_wf : SmtType -> Bool
   | SmtType.RegLan => true
-  | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf_component U))
+  | (SmtType.FunType T U) => (__smtx_type_wf_component T && __smtx_type_wf_component U)
   | T => (__smtx_type_wf_component T)
 \end{lstlisting}
 \end{figure}
 
 \begin{figure}[p]
 \begin{lstlisting}
-def __smtx_is_unit_datatype_cons : SmtDatatypeCons -> native_Bool
+def __smtx_is_unit_datatype_cons : SmtDatatypeCons -> Bool
   | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_unit_type T) (__smtx_is_unit_datatype_cons c))
+  | (SmtDatatypeCons.cons T c) => (__smtx_is_unit_type T && __smtx_is_unit_datatype_cons c)
 
-def __smtx_is_unit_datatype : SmtDatatype -> native_Bool
+def __smtx_is_unit_datatype : SmtDatatype -> Bool
   | (SmtDatatype.sum c SmtDatatype.null) => (__smtx_is_unit_datatype_cons c)
   | d => false
 
-def __smtx_is_unit_type : SmtType -> native_Bool
-  | (SmtType.BitVec w) => (native_nateq w native_nat_zero)
+def __smtx_is_unit_type : SmtType -> Bool
+  | (SmtType.BitVec w) => decide (w = 0)
   | (SmtType.Datatype s d) => (__smtx_is_unit_datatype d)
   | (SmtType.Map T U) => (__smtx_is_unit_type U)
   | T => false
 
-def __smtx_is_finite_datatype_cons : SmtDatatypeCons -> native_Bool
+def __smtx_is_finite_datatype_cons : SmtDatatypeCons -> Bool
   | SmtDatatypeCons.unit => true
-  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_finite_type T) (__smtx_is_finite_datatype_cons c))
+  | (SmtDatatypeCons.cons T c) => (__smtx_is_finite_type T && __smtx_is_finite_datatype_cons c)
 
-def __smtx_is_finite_datatype : SmtDatatype -> native_Bool
+def __smtx_is_finite_datatype : SmtDatatype -> Bool
   | SmtDatatype.null => true
-  | (SmtDatatype.sum c d) => (native_and (__smtx_is_finite_datatype_cons c) (__smtx_is_finite_datatype d))
+  | (SmtDatatype.sum c d) => (__smtx_is_finite_datatype_cons c && __smtx_is_finite_datatype d)
 
-def __smtx_is_finite_type : SmtType -> native_Bool
+def __smtx_is_finite_type : SmtType -> Bool
   | SmtType.Bool => true
   | (SmtType.BitVec w) => true
   | SmtType.Char => true
   | (SmtType.Datatype s d) => (__smtx_is_finite_datatype d)
-  | (SmtType.Map T U) => (native_or (__smtx_is_unit_type U) (native_and (__smtx_is_finite_type T) (__smtx_is_finite_type U)))
+  | (SmtType.Map T U) => (__smtx_is_unit_type U || (__smtx_is_finite_type T && __smtx_is_finite_type U))
   | (SmtType.Set T) => (__smtx_is_finite_type T)
   | (SmtType.Seq T) => (__smtx_is_finite_type T)
   | T => false
@@ -402,27 +420,36 @@ def __smtx_is_finite_type : SmtType -> native_Bool
 
 \begin{figure}[p]
 \begin{lstlisting}
-def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool
-  | (SmtMap.cons j e m) => (native_vcmp j i)
+def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
+  | (SmtMap.cons j e m) => decide (compare j i = Ordering.lt)
   | m => true
 
-def __smtx_map_default_canonical (T : SmtType) (e : SmtValue) : native_Bool :=
-  (native_ite (__smtx_is_finite_type T) (native_veq e (__smtx_type_default (__smtx_typeof_value e))) true)
+def __smtx_map_default_canonical (T : SmtType) (e : SmtValue) : Bool :=
+  if __smtx_is_finite_type T then
+    decide (e = __smtx_type_default (__smtx_typeof_value e))
+  else
+    true
 
-def __smtx_map_canonical : SmtMap -> native_Bool
-  | (SmtMap.default T e) => (native_and (__smtx_map_default_canonical T e) (__smtx_value_canonical_bool e))
-  | (SmtMap.cons i e m) => (native_and (native_and (native_and (native_and (__smtx_value_canonical_bool i) (__smtx_value_canonical_bool e)) (__smtx_map_canonical m)) (__smtx_map_entries_ordered_after i m)) (native_not (native_veq e (__smtx_msm_get_default m))))
+def __smtx_map_canonical : SmtMap -> Bool
+  | (SmtMap.default T e) => (__smtx_map_default_canonical T e && __smtx_value_canonical_bool e)
+  | (SmtMap.cons i e m) =>
+      __smtx_value_canonical_bool i &&
+        __smtx_value_canonical_bool e &&
+        __smtx_map_canonical m &&
+        __smtx_map_entries_ordered_after i m &&
+        !(decide (e = __smtx_msm_get_default m))
 
-def __smtx_seq_canonical : SmtSeq -> native_Bool
+def __smtx_seq_canonical : SmtSeq -> Bool
   | (SmtSeq.empty T) => true
-  | (SmtSeq.cons v s) => (native_and (__smtx_value_canonical_bool v) (__smtx_seq_canonical s))
+  | (SmtSeq.cons v s) => (__smtx_value_canonical_bool v && __smtx_seq_canonical s)
 
-def __smtx_value_canonical_bool : SmtValue -> native_Bool
-  | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) true)
+def __smtx_value_canonical_bool : SmtValue -> Bool
+  | (SmtValue.Binary w n) =>
+      if 0 <= w then decide (n = n % (2 ^ Int.toNat w)) else true
   | (SmtValue.Map m) => (__smtx_map_canonical m)
-  | (SmtValue.Set m) => (native_and (__smtx_map_canonical m) (native_veq (__smtx_msm_get_default m) (SmtValue.Boolean false)))
+  | (SmtValue.Set m) => (__smtx_map_canonical m && decide (__smtx_msm_get_default m = SmtValue.Boolean false))
   | (SmtValue.Seq s) => (__smtx_seq_canonical s)
-  | (SmtValue.Apply f v) => (native_and (__smtx_value_canonical_bool f) (__smtx_value_canonical_bool v))
+  | (SmtValue.Apply f v) => (__smtx_value_canonical_bool f && __smtx_value_canonical_bool v)
   | v => true
 \end{lstlisting}
 \end{figure}
@@ -503,23 +530,23 @@ inductive Term : Type where
   | __eo_List_nil : Term
   | __eo_List_cons : Term
   | Bool : Term
-  | Boolean : native_Bool -> Term
-  | Numeral : native_Int -> Term
-  | Rational : native_Rat -> Term
-  | String : native_String -> Term
-  | Binary : native_Int -> native_Int -> Term
+  | Boolean : Bool -> Term
+  | Numeral : Int -> Term
+  | Rational : Rat -> Term
+  | String : String -> Term
+  | Binary : Int -> Int -> Term
   | Type : Term
   | Stuck : Term
   | Apply : Term -> Term -> Term
   | FunType : Term
   | Var : Term -> Term -> Term
-  | DatatypeType : native_String -> Datatype -> Term
-  | DatatypeTypeRef : native_String -> Term
+  | DatatypeType : String -> Datatype -> Term
+  | DatatypeTypeRef : String -> Term
   | DtcAppType : Term -> Term -> Term
-  | DtCons : native_String -> Datatype -> native_Nat -> Term
-  | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
-  | USort : native_Nat -> Term
-  | UConst : native_Nat -> Term -> Term
+  | DtCons : String -> Datatype -> Nat -> Term
+  | DtSel : String -> Datatype -> Nat -> Nat -> Term
+  | USort : Nat -> Term
+  | UConst : Nat -> Term -> Term
 
 deriving Repr, DecidableEq, Inhabited, Ord
 \end{lstlisting}
@@ -541,7 +568,8 @@ def __eo_typeof : Term -> Term
 \begin{lstlisting}
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
-  | (Term.DatatypeType s d) => (native_ite (native_reserved_datatype_name s) SmtType.None (SmtType.Datatype s (__eo_to_smt_datatype d)))
+  | (Term.DatatypeType s d) =>
+      if s.startsWith "@" then SmtType.None else SmtType.Datatype s (__eo_to_smt_datatype d)
   | (Term.Apply (Term.Apply Term.FunType T1) T2) => let _v0 := (__eo_to_smt_type T2); let _v1 := (__eo_to_smt_type T1); (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
   | (Term.UOp UserOp.Int) => SmtType.Int
   | (Term.Apply (Term.UOp UserOp.Seq) x1) => let _v0 := (__eo_to_smt_type x1); (__smtx_typeof_guard _v0 (SmtType.Seq _v0))
@@ -550,7 +578,8 @@ def __eo_to_smt_type : Term -> SmtType
 def __eo_to_smt : Term -> SmtTerm
   | (Term.Boolean b) => (SmtTerm.Boolean b)
   | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | (Term.DtCons s d i) => (native_ite (native_reserved_datatype_name s) SmtTerm.None (SmtTerm.DtCons s (__eo_to_smt_datatype d) i))
+  | (Term.DtCons s d i) =>
+      if s.startsWith "@" then SmtTerm.None else SmtTerm.DtCons s (__eo_to_smt_datatype d) i
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) x1) x2) x3) => (SmtTerm.ite (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
   | ... => ...
@@ -578,7 +607,7 @@ end RuleProofs
 
 \begin{figure}[p]
 \begin{lstlisting}
-abbrev CIndex := native_Int
+abbrev CIndex := Int
 
 inductive CIndexList : Type where
   | nil : CIndexList
@@ -634,12 +663,12 @@ def __eo_StateObj_proven : CStateObj -> Term
   | (CStateObj.assume_push F) => F
   | (CStateObj.proven F) => F
 
-def __eo_state_proven_nth : CState -> native_Int -> Term
+def __eo_state_proven_nth : CState -> Int -> Term
   | (CState.cons so s), 0 => (__eo_StateObj_proven so)
-  | (CState.cons so s), n => (__eo_state_proven_nth s (native_zplus n (native_zneg 1)))
+  | (CState.cons so s), n => (__eo_state_proven_nth s (n - 1))
   | s, n => (Term.Boolean true)
 
-def __eo_state_is_closed : CState -> native_Bool
+def __eo_state_is_closed : CState -> Bool
   | (CState.cons (CStateObj.assume_push F) s) => false
   | (CState.cons so s) => (__eo_state_is_closed s)
   | CState.nil => true
@@ -699,7 +728,7 @@ def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState
   | CCmdList.nil => S
   | (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
 
-def __eo_state_is_refutation (s : CState) : native_Bool :=
+def __eo_state_is_refutation (s : CState) : Bool :=
   (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
 
 def __eo_invoke_assume_list (S : CState) : Term -> CState
@@ -707,7 +736,7 @@ def __eo_invoke_assume_list (S : CState) : Term -> CState
   | (Term.Boolean true) => S
   | as => CState.Stuck
 
-def __eo_checker_is_refutation : Term -> CCmdList -> native_Bool
+def __eo_checker_is_refutation : Term -> CCmdList -> Bool
   | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
 
 inductive eo_is_refutation : Term -> CCmdList -> Prop
