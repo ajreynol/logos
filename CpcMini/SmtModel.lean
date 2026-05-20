@@ -35,6 +35,7 @@ def native_str_from_int : native_Int -> native_String
 def native_str_to_int : native_String -> native_Int
   | s => match s.toList with
           | [] => -1
+          | '-' :: _ => -1
           | '0' :: _ :: _ => -1
           | cs => s.toInt?.getD (-1)
 def native_str_to_upper : native_String -> native_String
