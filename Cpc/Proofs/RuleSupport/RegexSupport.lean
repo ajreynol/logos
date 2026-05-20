@@ -74,6 +74,61 @@ theorem nativeListInRe_mk_union :
             exact nativeListInRe_mk_union cs
               (native_re_deriv c r) (native_re_deriv c s)
 
+theorem native_re_mk_inter_self (r : native_RegLan) :
+    native_re_mk_inter r r = r := by
+  cases r <;> simp [native_re_mk_inter]
+
+private theorem native_re_mk_inter_eq_inter_of_ne
+    (r s : native_RegLan) :
+    r ≠ SmtRegLan.empty ->
+    s ≠ SmtRegLan.empty ->
+    r ≠ s ->
+    native_re_mk_inter r s = SmtRegLan.inter r s := by
+  intro hr hs hrs
+  cases r <;> cases s <;>
+    simp [native_re_mk_inter] at hr hs ⊢
+  all_goals
+    try exact False.elim (hrs rfl)
+    try
+      intro h
+      subst h
+      exact False.elim (hrs rfl)
+    try
+      intro h1 h2
+      subst h1
+      subst h2
+      exact False.elim (hrs rfl)
+
+theorem native_re_nullable_mk_inter (r s : native_RegLan) :
+    native_re_nullable (native_re_mk_inter r s) =
+      (native_re_nullable r && native_re_nullable s) := by
+  cases r <;> cases s <;>
+    simp [native_re_mk_inter, native_re_nullable]
+  all_goals
+    split <;> simp_all [native_re_nullable]
+
+theorem nativeListInRe_mk_inter :
+    (xs : List Char) -> (r s : native_RegLan) ->
+      nativeListInRe xs (native_re_mk_inter r s) =
+        (nativeListInRe xs r && nativeListInRe xs s)
+  | [], r, s => by
+      simp [nativeListInRe, native_re_nullable_mk_inter]
+  | c :: cs, r, s => by
+      by_cases hr : r = SmtRegLan.empty
+      · subst r
+        simp [native_re_mk_inter, nativeListInRe_empty]
+      · by_cases hs : s = SmtRegLan.empty
+        · subst s
+          simp [native_re_mk_inter, nativeListInRe_empty]
+        · by_cases hEq : r = s
+          · subst s
+            rw [native_re_mk_inter_self]
+            simp [nativeListInRe]
+          · rw [native_re_mk_inter_eq_inter_of_ne r s hr hs hEq]
+            simp [nativeListInRe, native_re_deriv]
+            exact nativeListInRe_mk_inter cs
+              (native_re_deriv c r) (native_re_deriv c s)
+
 theorem native_re_nullable_mk_concat (r s : native_RegLan) :
     native_re_nullable (native_re_mk_concat r s) =
       (native_re_nullable r && native_re_nullable s) := by
@@ -253,6 +308,32 @@ theorem nativeListInRe_mk_concat_true_iff_exists_append
   rw [nativeListInRe_mk_concat xs r s]
   exact nativeListInReConcat_true_iff_exists_append xs r s
 
+theorem native_str_in_re_mk_inter
+    (str : native_String) (r s : native_RegLan) :
+    native_str_in_re str (native_re_mk_inter r s) =
+      (native_str_in_re str r && native_str_in_re str s) := by
+  simpa [native_str_in_re, nativeListInRe] using
+    nativeListInRe_mk_inter str.toList r s
+
+theorem native_str_in_re_re_inter
+    (str : native_String) (r s : native_RegLan) :
+    native_str_in_re str (native_re_inter r s) =
+      (native_str_in_re str r && native_str_in_re str s) := by
+  simp [native_re_inter, native_str_in_re_mk_inter]
+
+theorem native_str_in_re_re_concat_intro
+    (s1 s2 : native_String) (r1 r2 : native_RegLan) :
+    native_str_in_re s1 r1 = true ->
+    native_str_in_re s2 r2 = true ->
+    native_str_in_re (s1 ++ s2) (native_re_concat r1 r2) = true := by
+  intro h1 h2
+  have h := (nativeListInRe_mk_concat_true_iff_exists_append
+    ((s1 ++ s2).toList) r1 r2).2
+    ⟨s1.toList, s2.toList, by simp [String.toList_append],
+      by simpa [native_str_in_re, nativeListInRe] using h1,
+      by simpa [native_str_in_re, nativeListInRe] using h2⟩
+  simpa [native_str_in_re, nativeListInRe, native_re_concat] using h
+
 theorem nativeListInRe_mk_concat_congr
     (xs : List Char) (r r' s s' : native_RegLan)
     (hr : ∀ ys : List Char, nativeListInRe ys r = nativeListInRe ys r')
@@ -334,6 +415,10 @@ theorem nativeListInRe_re_all (xs : List Char) :
       simp [nativeListInRe, native_re_all, native_re_nullable]
   | cons c xs ih =>
       simpa [nativeListInRe, native_re_deriv_re_all] using ih
+
+theorem native_str_in_re_re_all (str : native_String) :
+    native_str_in_re str native_re_all = true := by
+  simpa [native_str_in_re, nativeListInRe] using nativeListInRe_re_all str.toList
 
 def nativeSigmaExact : Nat -> native_RegLan
   | 0 => SmtRegLan.epsilon
