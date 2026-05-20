@@ -29,7 +29,7 @@ private theorem native_str_in_re_allchar_seq (ss : SmtSeq) :
     native_str_in_re (native_unpack_string ss) native_re_allchar =
       decide (native_seq_len (native_unpack_seq ss) = (1 : Int)) := by
   simp [native_str_in_re, native_re_allchar, native_unpack_string,
-    __smtx_ssm_string_of_char_values, native_seq_len, native_str_in_re_allchar_list]
+    native_ssm_string_of_char_values, native_seq_len, native_str_in_re_allchar_list]
 
 private theorem smtx_model_eval_re_in_sigma (ss : SmtSeq) :
     __smtx_model_eval_str_in_re (SmtValue.Seq ss) (SmtValue.RegLan native_re_allchar) =
