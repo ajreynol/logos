@@ -1,5 +1,3 @@
-import Cpc.Spec
-import Cpc.Proofs.Translation.Datatypes
 import Cpc.Proofs.Translation.Apply
 
 open Eo
@@ -7,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unnecessarySimpa false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
@@ -19,6 +16,25 @@ attribute [local simp] Smtm.__smtx_type_wf_component
 Full translation-proof surface corresponding to the lightweight stub in
 `Cpc.Proofs.Translation`.
 -/
+
+private theorem false_of_smtx_typeof_none_non_none_full {P : Prop}
+    (h : __smtx_typeof SmtTerm.None ≠ SmtType.None) :
+    P := by
+  exact False.elim (h smtx_typeof_none)
+
+private theorem false_of_typeof_apply_none_non_none_full {P : Prop}
+    (x : SmtTerm)
+    (h : __smtx_typeof (SmtTerm.Apply SmtTerm.None x) ≠ SmtType.None) :
+    P := by
+  exact False.elim (h (typeof_apply_none_eq x))
+
+private theorem false_of_typeof_apply_apply_none_head_non_none_full {P : Prop}
+    (y x : SmtTerm)
+    (h :
+      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None y) x) ≠
+        SmtType.None) :
+    P := by
+  exact False.elim (h (typeof_apply_apply_none_head_eq y x))
 
 private theorem eo_type_valid_of_valid_rec_top_full
     {T : Term}
@@ -56,7 +72,8 @@ private theorem smtx_type_field_wf_rec_of_type_wf_rec_full
     (h : __smtx_type_wf_rec T refs = true) :
     smtx_type_field_wf_rec T refs := by
   cases T <;>
-    simpa [smtx_type_field_wf_rec, __smtx_type_wf_rec] using h
+    simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at h ⊢ <;>
+    exact h
 
 private theorem eo_typeof_tuple_select_of_non_stuck_full
     (i T : Term)
@@ -1241,162 +1258,6 @@ private theorem smtx_apply_head_non_none_of_non_special_full
   · rw [hHead]
     simp
 
-private theorem typeof_generic_apply_non_function_head_eq_none_full
-    (f x : SmtTerm)
-    (hGeneric : generic_apply_type f x)
-    (hFun : ∀ A B, __smtx_typeof f ≠ SmtType.FunType A B)
-    (hDtc : ∀ A B, __smtx_typeof f ≠ SmtType.DtcAppType A B) :
-    __smtx_typeof (SmtTerm.Apply f x) = SmtType.None := by
-  rw [hGeneric]
-  cases hF : __smtx_typeof f <;> try rfl
-  · exact False.elim (hFun _ _ hF)
-  · exact False.elim (hDtc _ _ hF)
-
-private theorem typeof_apply_none_eq_full
-    (x : SmtTerm) :
-    __smtx_typeof (SmtTerm.Apply SmtTerm.None x) = SmtType.None := by
-  exact typeof_generic_apply_non_function_head_eq_none_full _ _
-    (generic_apply_type_of_non_datatype_head
-      (by intro s d i j h; cases h)
-      (by intro s d i h; cases h))
-    (by intro A B h; rw [smtx_typeof_none] at h; cases h)
-    (by intro A B h; rw [smtx_typeof_none] at h; cases h)
-
-private theorem typeof_apply_apply_none_head_eq_full
-    (y x : SmtTerm) :
-    __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None y) x) =
-      SmtType.None := by
-  exact typeof_generic_apply_non_function_head_eq_none_full
-    (SmtTerm.Apply SmtTerm.None y) x
-    (generic_apply_type_of_non_datatype_head
-      (by intro s d i j h; cases h)
-      (by intro s d i h; cases h))
-    (by
-      intro A B h
-      rw [typeof_apply_none_eq_full y] at h
-      cases h)
-    (by
-      intro A B h
-      rw [typeof_apply_none_eq_full y] at h
-      cases h)
-
-private theorem smtx_typeof_apply_eo_to_smt_seq_empty_eq_none_full
-    (T X : SmtType) :
-    __smtx_typeof_apply (__smtx_typeof (__eo_to_smt_seq_empty T)) X =
-      SmtType.None := by
-  cases T <;> simp [__eo_to_smt_seq_empty, __smtx_typeof_apply]
-  case Seq U =>
-    change __smtx_typeof_apply (__smtx_typeof (SmtTerm.seq_empty U)) X =
-      SmtType.None
-    rw [show __smtx_typeof (SmtTerm.seq_empty U) =
-        __smtx_typeof_guard_wf (SmtType.Seq U) (SmtType.Seq U) by
-      simp [__smtx_typeof]]
-    cases hWf : __smtx_type_wf (SmtType.Seq U) <;>
-      simp [__smtx_typeof_apply, __smtx_typeof_guard_wf, native_ite, hWf]
-
-private theorem typeof_apply_eo_to_smt_seq_empty_eq_none_full
-    (T : SmtType) (x : SmtTerm) :
-    __smtx_typeof (SmtTerm.Apply (__eo_to_smt_seq_empty T) x) =
-      SmtType.None := by
-  have hGeneric : generic_apply_type (__eo_to_smt_seq_empty T) x := by
-    cases T <;> simp [__eo_to_smt_seq_empty]
-    all_goals
-      exact generic_apply_type_of_non_datatype_head
-        (by intro s d i j h; cases h)
-        (by intro s d i h; cases h)
-  rw [hGeneric]
-  exact smtx_typeof_apply_eo_to_smt_seq_empty_eq_none_full T (__smtx_typeof x)
-
-private theorem typeof_apply_eo_to_smt_set_empty_eq_none_full
-    (T : SmtType) (x : SmtTerm) :
-    __smtx_typeof (SmtTerm.Apply (__eo_to_smt_set_empty T) x) =
-      SmtType.None := by
-  cases T <;> simp [__eo_to_smt_set_empty]
-  case Set U =>
-    exact typeof_generic_apply_non_function_head_eq_none_full _ _
-      (generic_apply_type_of_non_datatype_head
-        (by intro s d i j h; cases h)
-        (by intro s d i h; cases h))
-      (by
-        intro A B hFun
-        have hNN : __smtx_typeof (SmtTerm.set_empty U) ≠ SmtType.None := by
-          rw [hFun]
-          simp
-        have hTy := smtx_typeof_set_empty_of_non_none U hNN
-        rw [hTy] at hFun
-        cases hFun)
-      (by
-        intro A B hDtc
-        have hNN : __smtx_typeof (SmtTerm.set_empty U) ≠ SmtType.None := by
-          rw [hDtc]
-          simp
-        have hTy := smtx_typeof_set_empty_of_non_none U hNN
-        rw [hTy] at hDtc
-        cases hDtc)
-  all_goals exact typeof_apply_none_eq_full x
-
-private theorem typeof_apply_choice_nth_int_eq_none_full
-    (body x : SmtTerm) :
-    __smtx_typeof (SmtTerm.Apply (SmtTerm.choice_nth "@x" SmtType.Int body 0) x) =
-      SmtType.None := by
-  exact typeof_generic_apply_non_function_head_eq_none_full _ _
-    (generic_apply_type_of_non_datatype_head
-      (by intro s d i j h; cases h)
-      (by intro s d i h; cases h))
-    (by
-      intro A B hFun
-      have hNN : term_has_non_none_type (SmtTerm.choice_nth "@x" SmtType.Int body 0) := by
-        unfold term_has_non_none_type
-        rw [hFun]
-        simp
-      have hTy := choice_term_typeof_of_non_none hNN
-      rw [hTy] at hFun
-      cases hFun)
-    (by
-      intro A B hDtc
-      have hNN : term_has_non_none_type (SmtTerm.choice_nth "@x" SmtType.Int body 0) := by
-        unfold term_has_non_none_type
-        rw [hDtc]
-        simp
-      have hTy := choice_term_typeof_of_non_none hNN
-      rw [hTy] at hDtc
-      cases hDtc)
-
-private theorem smtx_typeof_str_indexof_re_of_non_none_full
-    (s r n : SmtTerm)
-    (hNN : term_has_non_none_type (SmtTerm.str_indexof_re s r n)) :
-    __smtx_typeof (SmtTerm.str_indexof_re s r n) = SmtType.Int := by
-  have hArgs := str_indexof_re_args_of_non_none hNN
-  rw [typeof_str_indexof_re_eq s r n, hArgs.1, hArgs.2.1, hArgs.2.2]
-  simp [native_ite, native_Teq]
-
-private theorem typeof_apply_str_indexof_re_head_eq_none_full
-    (s r n x : SmtTerm) :
-    __smtx_typeof (SmtTerm.Apply (SmtTerm.str_indexof_re s r n) x) =
-      SmtType.None := by
-  exact typeof_generic_apply_non_function_head_eq_none_full _ _
-    (generic_apply_type_of_non_datatype_head
-      (by intro s' d i j h; cases h)
-      (by intro s' d i h; cases h))
-    (by
-      intro A B hFun
-      have hNN : term_has_non_none_type (SmtTerm.str_indexof_re s r n) := by
-        unfold term_has_non_none_type
-        rw [hFun]
-        simp
-      have hTy := smtx_typeof_str_indexof_re_of_non_none_full s r n hNN
-      rw [hTy] at hFun
-      cases hFun)
-    (by
-      intro A B hDtc
-      have hNN : term_has_non_none_type (SmtTerm.str_indexof_re s r n) := by
-        unfold term_has_non_none_type
-        rw [hDtc]
-        simp
-      have hTy := smtx_typeof_str_indexof_re_of_non_none_full s r n hNN
-      rw [hTy] at hDtc
-      cases hDtc)
-
 private theorem eo_type_valid_of_generic_apply_eq_dtcapp_full
     {f x A B : Term}
     (ihF :
@@ -1699,43 +1560,6 @@ private theorem smtx_typeof_extract_ne_dtcapp_full
         repeat split at h
         all_goals cases h
 
-/-- Recovers Boolean typing of a zero-index `choice_nth` body from `non_none`. -/
-private theorem choice_nth_body_bool_of_non_none
-    {s : native_String}
-    {T : SmtType}
-    {body : SmtTerm}
-    (ht : term_has_non_none_type (SmtTerm.choice_nth s T body 0)) :
-    __smtx_typeof body = SmtType.Bool := by
-  unfold term_has_non_none_type at ht
-  have hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true := by
-    by_cases hEq : native_Teq (__smtx_typeof body) SmtType.Bool = true
-    · exact hEq
-    · exfalso
-      have hEqFalse : native_Teq (__smtx_typeof body) SmtType.Bool = false := by
-        cases hTest : native_Teq (__smtx_typeof body) SmtType.Bool <;> simp [hTest] at hEq ⊢
-      apply ht
-      unfold __smtx_typeof
-      simp [__smtx_typeof_choice_nth, hEqFalse, native_ite]
-  simpa [native_Teq] using hEq
-
-/-- Pulls the body Boolean fact back through nested `__eo_to_smt_exists`. -/
-private theorem smtx_typeof_none_ne_bool :
-    __smtx_typeof SmtTerm.None ≠ SmtType.Bool := by
-  simp [smtx_typeof_none]
-
-/-- A Boolean `not` term has a Boolean argument. -/
-private theorem smtx_typeof_not_arg_bool
-    (t : SmtTerm) :
-    __smtx_typeof (SmtTerm.not t) = SmtType.Bool ->
-    __smtx_typeof t = SmtType.Bool := by
-  intro hTy
-  rw [typeof_not_eq] at hTy
-  by_cases hArg : __smtx_typeof t = SmtType.Bool
-  · exact hArg
-  · cases hTest : native_Teq (__smtx_typeof t) SmtType.Bool <;>
-      simp [hTest, native_ite] at hTy
-    simpa [native_Teq] using hTest
-
 /-- Typing a successor `choice_nth` is the same as skolemizing the body. -/
 private theorem smtx_typeof_choice_nth_succ_eq_skolemize
     (s : native_String) (T : SmtType) (body : SmtTerm) (n : native_Nat) :
@@ -1743,19 +1567,6 @@ private theorem smtx_typeof_choice_nth_succ_eq_skolemize
       __smtx_typeof (__eo_to_smt_quantifiers_skolemize body n) := by
   cases body <;>
     simp [__smtx_typeof, __smtx_typeof_choice_nth, __eo_to_smt_quantifiers_skolemize]
-
-/-- Computes the EO type of a variable-headed list cons once the tail is a list. -/
-private theorem eo_typeof_list_cons_var
-    (s : native_String) (T xs : Term)
-    (hTail : __eo_typeof xs = Term.__eo_List) :
-    __eo_typeof (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) xs) =
-      Term.__eo_List := by
-  change
-    __eo_typeof_apply
-      (Term.Apply (Term.Apply Term.FunType Term.__eo_List) Term.__eo_List)
-      (__eo_typeof xs) = Term.__eo_List
-  rw [hTail]
-  rfl
 
 /-- A true EO list check implies the underlying nil search is non-stuck. -/
 private theorem eo_get_nil_rec_ok_of_is_list_true
@@ -1915,132 +1726,6 @@ private theorem get_var_type_list_nth_succ_cons_var_of_exists_bool
     calc
       (↑n + 1 + -1 : Int) = ↑n + (1 + -1) := by ac_rfl
       _ = ↑n := by rfl]
-
-/-- Pulls the body Boolean fact back through nested `__eo_to_smt_exists`. -/
-private theorem eo_to_smt_exists_body_bool_of_bool
-    (xs : Term) (body : SmtTerm) :
-    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
-    __smtx_typeof body = SmtType.Bool := by
-  intro hTy
-  cases hxs : xs
-  case __eo_List_nil =>
-    subst hxs
-    simpa [__eo_to_smt_exists] using hTy
-  case Apply f a =>
-    subst hxs
-    cases hf : f
-    case Apply g y =>
-      subst hf
-      cases hg : g
-      case __eo_List_cons =>
-        subst hg
-        cases hy : y
-        case Var name T =>
-          subst hy
-          cases hname : name
-          case String s =>
-            subst hname
-            have hExistsTy :
-                __smtx_typeof (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
-                  SmtType.Bool := by
-              simpa [__eo_to_smt_exists] using hTy
-            have hNN :
-                term_has_non_none_type (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := by
-              unfold term_has_non_none_type
-              rw [hExistsTy]
-              simp
-            have hSub : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool := by
-              simpa using exists_body_bool_of_non_none hNN
-            exact eo_to_smt_exists_body_bool_of_bool a body hSub
-          all_goals
-            subst hname
-            have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-              simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-            exact False.elim (smtx_typeof_none_ne_bool hNone)
-        all_goals
-          subst hy
-          have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-            simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-          exact False.elim (smtx_typeof_none_ne_bool hNone)
-      all_goals
-        subst hg
-        have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-          simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-        exact False.elim (smtx_typeof_none_ne_bool hNone)
-    all_goals
-      subst hf
-      have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-        simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-      exact False.elim (smtx_typeof_none_ne_bool hNone)
-  all_goals
-    subst hxs
-    have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-      simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-    exact False.elim (smtx_typeof_none_ne_bool hNone)
-
-/-- Recovers EO list typing from a Boolean SMT existential chain. -/
-private theorem eo_typeof_var_list_of_exists_bool
-    (xs : Term) (body : SmtTerm) :
-    __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.Bool ->
-    __eo_typeof xs = Term.__eo_List := by
-  intro hTy
-  cases hxs : xs
-  case __eo_List_nil =>
-    subst hxs
-    rfl
-  case Apply f a =>
-    subst hxs
-    cases hf : f
-    case Apply g y =>
-      subst hf
-      cases hg : g
-      case __eo_List_cons =>
-        subst hg
-        cases hy : y
-        case Var name T =>
-          subst hy
-          cases hname : name
-          case String s =>
-            subst hname
-            have hExistsTy :
-                __smtx_typeof (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) =
-                  SmtType.Bool := by
-              simpa [__eo_to_smt_exists] using hTy
-            have hNN :
-                term_has_non_none_type (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists a body)) := by
-              unfold term_has_non_none_type
-              rw [hExistsTy]
-              simp
-            have hSub : __smtx_typeof (__eo_to_smt_exists a body) = SmtType.Bool := by
-              simpa using exists_body_bool_of_non_none hNN
-            have hTail : __eo_typeof a = Term.__eo_List :=
-              eo_typeof_var_list_of_exists_bool a body hSub
-            exact eo_typeof_list_cons_var s T a hTail
-          all_goals
-            subst hname
-            have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-              simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-            exact False.elim (smtx_typeof_none_ne_bool hNone)
-        all_goals
-          subst hy
-          have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-            simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-          exact False.elim (smtx_typeof_none_ne_bool hNone)
-      all_goals
-        subst hg
-        have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-          simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-        exact False.elim (smtx_typeof_none_ne_bool hNone)
-    all_goals
-      subst hf
-      have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-        simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-      exact False.elim (smtx_typeof_none_ne_bool hNone)
-  all_goals
-    subst hxs
-    have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-      simp [smtx_typeof_none, __eo_to_smt_exists] at hTy ⊢
-    exact False.elim (smtx_typeof_none_ne_bool hNone)
 
 /-- Any well-typed skolemized choice forces the enclosing existential chain to be Boolean. -/
 private theorem eo_to_smt_exists_bool_of_quantifiers_skolemize_non_none
@@ -2518,61 +2203,33 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               eo_typeof_tuple_unit, eo_to_smt_type_unit_tuple]
           · simp [eo_typeof_tuple_unit, eo_type_valid, eo_type_valid_rec]
         all_goals
-          exact False.elim (hNonNone (by
-            change __smtx_typeof SmtTerm.None = SmtType.None
-            exact smtx_typeof_none))
+          exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.repeat x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.zero_extend x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.sign_extend x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.rotate_left x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.rotate_right x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1._at_bit x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.re_exp x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.is x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.update x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.tuple_select x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.tuple_update x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1.int_to_bv x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2.extract x y, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_bv x y, hNonNone => by
         have hTranslate :
             __eo_to_smt (Term.UOp2 UserOp2._at_bv x y) =
@@ -2608,9 +2265,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         change eo_type_valid (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral w))
         simp [eo_type_valid, eo_type_valid_rec, hw]
     | Term.UOp2 UserOp2.re_loop x y, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Boolean b, hNonNone => by
         refine ⟨?_, ?_⟩
         · rw [eo_to_smt_boolean, eo_typeof_boolean, eo_to_smt_type_bool]
@@ -2675,9 +2330,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 (T := T) (U := T) (by
                   simpa [__smtx_typeof] using hNonNone)
         | _ =>
-            exact False.elim (hNonNone (by
-              change __smtx_typeof SmtTerm.None = SmtType.None
-              exact smtx_typeof_none))
+            exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DtCons s d i, hNonNone => by
         have hReserved : __eo_reserved_datatype_name s = false := by
           cases hRes : __eo_reserved_datatype_name s
@@ -2791,7 +2444,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               (__eo_to_smt (Term.Apply f x)) hTermNN
           rw [hSmtTy] at hNoNone
           exact False.elim (by
-            simpa [Smtm.type_has_no_none_components] using hNoNone)
+            simp [Smtm.type_has_no_none_components] at hNoNone)
         case UOp1 op y =>
           exact False.elim (hTypeNN (by
             rw [hTy]
@@ -2948,7 +2601,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 (__eo_to_smt (Term.Apply f x)) hTermNN
             rw [hRefTy] at hNoNone
             exact False.elim (by
-              simpa [Smtm.type_has_no_none_components] using hNoNone)
+              simp [Smtm.type_has_no_none_components] at hNoNone)
           case USort i =>
             exact eo_type_valid_of_smt_wf (Term.Apply a b) (by
               simp [hSmt, __smtx_type_wf, __smtx_type_wf_rec, native_and])
@@ -3073,7 +2726,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       (SmtTerm.Apply (__eo_to_smt_seq_empty (__eo_to_smt_type y))
                         (__eo_to_smt x)) =
                     SmtType.None
-                exact typeof_apply_eo_to_smt_seq_empty_eq_none_full
+                exact typeof_apply_eo_to_smt_seq_empty_eq_none
                   (__eo_to_smt_type y) (__eo_to_smt x)))
             case _at_strings_stoi_non_digit =>
               exact False.elim (hNonNone (by
@@ -3086,7 +2739,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                           (SmtTerm.Numeral 0))
                         (__eo_to_smt x)) =
                     SmtType.None
-                exact typeof_apply_str_indexof_re_head_eq_none_full _ _ _ _))
+                exact typeof_apply_str_indexof_re_head_eq_none _ _ _ _))
             case tuple_select =>
               exact eo_type_valid_of_tuple_select_eq_dtcapp_full
                 (go x) hTermNN hTy
@@ -3097,7 +2750,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       (SmtTerm.Apply (__eo_to_smt_set_empty (__eo_to_smt_type y))
                         (__eo_to_smt x)) =
                     SmtType.None
-                exact typeof_apply_eo_to_smt_set_empty_eq_none_full
+                exact typeof_apply_eo_to_smt_set_empty_eq_none
                   (__eo_to_smt_type y) (__eo_to_smt x)))
             all_goals first
               | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
@@ -3222,19 +2875,11 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                           native_nat_zero)
                         (__eo_to_smt x)) =
                     SmtType.None
-                exact typeof_apply_choice_nth_int_eq_none_full _ _))
+                exact typeof_apply_choice_nth_int_eq_none _ _))
             case _at_strings_num_occur_re =>
-              exact False.elim (hNonNone (by
-                change
-                  __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
-                    SmtType.None
-                exact typeof_apply_none_eq_full (__eo_to_smt x)))
+              exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
             case _at_strings_occur_index_re =>
-              exact False.elim (hNonNone (by
-                change
-                  __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
-                    SmtType.None
-                exact typeof_apply_none_eq_full (__eo_to_smt x)))
+              exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
             case _at_sets_deq_diff =>
               exact False.elim (hNonNone (by
                 change
@@ -3250,7 +2895,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                         (__eo_to_smt x)) =
                     SmtType.None
                 simpa [__eo_to_smt_type, native_ite, native_Teq] using
-                  typeof_apply_none_eq_full (__eo_to_smt x)))
+                  typeof_apply_none_eq (__eo_to_smt x)))
             case _at_quantifiers_skolemize =>
               exact eo_type_valid_of_generic_apply_eq_dtcapp_full
                 (f := Term.UOp2 UserOp2._at_quantifiers_skolemize y z)
@@ -3276,11 +2921,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       Term.DtcAppType a b
                   exact hTy)
             case _at_const =>
-              exact False.elim (hNonNone (by
-                change
-                  __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
-                    SmtType.None
-                exact typeof_apply_none_eq_full (__eo_to_smt x)))
+              exact false_of_typeof_apply_none_non_none_full (__eo_to_smt x) hNonNone
             all_goals first
               | exact eo_type_valid_of_generic_apply_eq_dtcapp_full
                   (f := Term.UOp2 op y z) (x := x) (A := a) (B := b)
@@ -3347,59 +2988,9 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             cases g <;> dsimp [__eo_typeof] at hTy hTypeNN
             case UOp op =>
               cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
-              case _at__at_Pair =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_apply_none_head_eq_full
-                    (__eo_to_smt y) (__eo_to_smt x)))
-              case _at__at_pair =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_apply_none_head_eq_full
-                    (__eo_to_smt y) (__eo_to_smt x)))
-              case _at__at_TypedList_cons =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_apply_none_head_eq_full
-                    (__eo_to_smt y) (__eo_to_smt x)))
-              case Array =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_apply_none_head_eq_full
-                    (__eo_to_smt y) (__eo_to_smt x)))
               case select =>
                 exact eo_type_valid_of_select_eq_dtcapp_full
                   (go y) (go x) hTermNN hTy
-              case Tuple =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_apply_none_head_eq_full
-                    (__eo_to_smt y) (__eo_to_smt x)))
               case seq_nth =>
                 exact eo_type_valid_of_seq_nth_eq_dtcapp_full
                   (go y) (go x) hTermNN hTy
@@ -3409,37 +3000,9 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                 exact False.elim (false_of_typeof_plus_eq_dtcapp_full hTy)
               case mult =>
                 exact False.elim (false_of_typeof_plus_eq_dtcapp_full hTy)
-              case _at__at_mon =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_apply_none_head_eq_full
-                    (__eo_to_smt y) (__eo_to_smt x)))
-              case _at__at_poly =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_apply_none_head_eq_full
-                    (__eo_to_smt y) (__eo_to_smt x)))
-              case _at__at_aci_sorted =>
-                exact False.elim (hNonNone (by
-                  change
-                    __smtx_typeof
-                        (SmtTerm.Apply
-                          (SmtTerm.Apply SmtTerm.None (__eo_to_smt y))
-                          (__eo_to_smt x)) =
-                      SmtType.None
-                  exact typeof_apply_apply_none_head_eq_full
-                    (__eo_to_smt y) (__eo_to_smt x)))
               all_goals first
+                | exact false_of_typeof_apply_apply_none_head_non_none_full
+                    (__eo_to_smt y) (__eo_to_smt x) hNonNone
                 | exact eo_type_valid_of_nested_generic_apply_typeof_apply_eq_dtcapp_full
                     (go _) (by rfl) hTermNN hTy
                 | exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
@@ -4830,61 +4393,33 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                 simp [__eo_is_z, __eo_is_z_internal, native_teq,
                                   native_and, native_not] at hIdxZ
                     all_goals
-                      exact False.elim (hNonNone (by
-                        change __smtx_typeof SmtTerm.None = SmtType.None
-                        exact smtx_typeof_none))
+                      exact false_of_smtx_typeof_none_non_none_full hNonNone
                 | _ =>
-                    exact False.elim (hNonNone (by
-                      change __smtx_typeof SmtTerm.None = SmtType.None
-                      exact smtx_typeof_none))
+                    exact false_of_smtx_typeof_none_non_none_full hNonNone
             | _ =>
-                exact False.elim (hNonNone (by
-                  change __smtx_typeof SmtTerm.None = SmtType.None
-                  exact smtx_typeof_none))
+                exact false_of_smtx_typeof_none_non_none_full hNonNone
         | _ =>
-            exact False.elim (hNonNone (by
-              change __smtx_typeof SmtTerm.None = SmtType.None
-              exact smtx_typeof_none))
+            exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.__eo_List, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.__eo_List_nil, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.__eo_List_cons, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Bool, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Type, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.Stuck, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.FunType, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DatatypeType s d, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DatatypeTypeRef s, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DtcAppType T U, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.DtSel s d i j, hNonNone => by
         exfalso
         apply hNonNone
@@ -4892,9 +4427,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
           rw [eo_to_smt_term_dt_sel, hRes] <;>
           simp [native_ite, smtx_typeof_none, smtx_typeof_dt_sel_head_none]
     | Term.USort i, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp3 UserOp3._at_re_unfold_pos_component x y z, hNonNone => by
           exact
             eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_component
@@ -4989,9 +4522,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
             eo_to_smt_typeof_matches_translation_apply_at_strings_deq_diff
             y x (fun h => (go x h).1) (fun h => (go y h).1) hNonNone
     | Term.UOp1 UserOp1._at_strings_stoi_result x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1._at_strings_stoi_non_digit x, hNonNone => by
         let regex :=
           SmtTerm.re_comp (SmtTerm.re_range (SmtTerm.String "0") (SmtTerm.String "9"))
@@ -5021,32 +4552,15 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         rw [eo_to_smt_type_eq_int hEo]
         simp [eo_type_valid, eo_type_valid_rec]
     | Term.UOp1 UserOp1._at_strings_itos_result x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_strings_num_occur_re x y, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_strings_occur_index_re x y, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp1 UserOp1._at_strings_replace_all_result x, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
     | Term.UOp2 UserOp2._at_const v T, hNonNone => by
-        exact False.elim (hNonNone (by
-          change __smtx_typeof SmtTerm.None = SmtType.None
-          exact smtx_typeof_none))
-    termination_by term _ => sizeOf term
-    decreasing_by
-      all_goals
-        subst_vars
-        simp_wf
-      all_goals
-        omega
+        exact false_of_smtx_typeof_none_non_none_full hNonNone
   exact go t
 
 /-- Direct form of the translation typing theorem. -/

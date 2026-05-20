@@ -380,7 +380,7 @@ def __eo_to_smt : Term -> SmtTerm
     let _v0 := (__eo_to_smt x2)
     let _v1 := (__eo_to_smt x1)
     (SmtTerm.div (SmtTerm.neg (SmtTerm.str_len _v1) (SmtTerm.str_len (SmtTerm.str_replace_all _v1 _v0 (SmtTerm.seq_empty (SmtType.Seq SmtType.Char))))) (SmtTerm.str_len _v0))
-  | (Term.UOp3 UserOp3._at_witness_string_length x1 x2 x3) =>
+  | (Term.UOp3 UserOp3._at_witness_string_length x1 x2 x3) => 
     let _v0 := (__eo_to_smt_type x1)
     (native_ite (native_teq (__eo_typeof x3) (Term.UOp UserOp.Int)) (SmtTerm.choice_nth "@x" _v0 (SmtTerm.eq (SmtTerm.str_len (SmtTerm.Var "@x" _v0)) (__eo_to_smt x2)) native_nat_zero) SmtTerm.None)
   | (Term.Apply (Term.UOp1 UserOp1.is x1) x2) => (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt x1)) (__eo_to_smt x2))

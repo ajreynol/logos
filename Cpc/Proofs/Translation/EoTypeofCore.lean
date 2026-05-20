@@ -405,15 +405,6 @@ theorem eo_type_valid_not_stuck
       exact eo_type_valid_rec_not_stuck (refs := []) (by
         simpa [eo_type_valid] using h)
 
-/-- `native_int_to_nat` is injective on nonnegative integers. -/
-private theorem native_int_to_nat_injective_of_nonneg_apply
-    {m n : native_Int}
-    (hm : 0 <= m) (hn : 0 <= n)
-    (h : native_int_to_nat m = native_int_to_nat n) :
-    m = n := by
-  rw [← Int.toNat_of_nonneg hm, ← Int.toNat_of_nonneg hn]
-  exact congrArg Int.ofNat h
-
 /- On valid EO types, `__eo_to_smt_type` is injective. -/
 mutual
 
@@ -1656,9 +1647,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
               cases d with
               | null =>
                   exfalso
-                  simpa [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
+                  simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
                     __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
-                    native_ite] using hWf
+                    native_ite] at hWf
               | sum c dTail =>
                   cases dTail with
                   | null =>
@@ -1682,9 +1673,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
                             native_ite, native_reflist_nil,
                             native_reflist_contains] using hRawField
                         · exfalso
-                          simpa [raw, __eo_to_smt_type_tuple, hUTrans, hHeadComp,
+                          simp [raw, __eo_to_smt_type_tuple, hUTrans, hHeadComp,
                             __smtx_type_wf, __smtx_type_wf_component,
-                            __smtx_type_wf_rec, native_and, native_ite] using hWf
+                            __smtx_type_wf_rec, native_and, native_ite] at hWf
                       have hWFParts := smtx_datatype_field_wf_rec_parts_local hRawField'
                       have hConsWF :
                           __smtx_dt_cons_wf_rec
@@ -1727,18 +1718,18 @@ theorem eo_type_valid_of_smt_field_wf_rec
                       exact ⟨hHeadValid, hTailValid⟩
                   | sum cTail dTailTail =>
                       exfalso
-                      simpa [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
+                      simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
                         __smtx_type_wf_component, __smtx_type_wf_rec,
-                        native_and, native_ite] using hWf
+                        native_and, native_ite] at hWf
             · exfalso
-              simpa [raw, __eo_to_smt_type_tuple, hUTrans, hs, __smtx_type_wf,
+              simp [raw, __eo_to_smt_type_tuple, hUTrans, hs, __smtx_type_wf,
                 __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
-                native_ite] using hWf
+                native_ite] at hWf
         | _ =>
             exfalso
-            simpa [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
+            simp [raw, __eo_to_smt_type_tuple, hUTrans, __smtx_type_wf,
               __smtx_type_wf_component, __smtx_type_wf_rec, native_and,
-              native_ite] using hWf
+              native_ite] at hWf
       simpa [eo_type_valid_rec, raw] using
         (And.intro hParts.1 (And.intro hParts.2 (by simpa [raw] using hWf)))
   | Term.Apply f x, h => by
@@ -1907,9 +1898,9 @@ theorem eo_type_valid_of_smt_field_wf_rec
                           cases d with
                           | null =>
                               exfalso
-                              simpa [raw, __eo_to_smt_type_tuple, hXTrans,
+                              simp [raw, __eo_to_smt_type_tuple, hXTrans,
                                 __smtx_type_wf, __smtx_type_wf_component,
-                                __smtx_type_wf_rec, native_and, native_ite] using hWf
+                                __smtx_type_wf_rec, native_and, native_ite] at hWf
                           | sum c dTail =>
                               cases dTail with
                               | null =>
@@ -1934,10 +1925,10 @@ theorem eo_type_valid_of_smt_field_wf_rec
                                         __smtx_type_wf_rec, native_ite,
                                         native_reflist_nil, native_reflist_contains] using hRawField
                                     · exfalso
-                                      simpa [raw, __eo_to_smt_type_tuple, hXTrans,
+                                      simp [raw, __eo_to_smt_type_tuple, hXTrans,
                                         hHeadComp, __smtx_type_wf,
                                         __smtx_type_wf_component, __smtx_type_wf_rec,
-                                        native_and, native_ite] using hWf
+                                        native_and, native_ite] at hWf
                                   have hWFParts :=
                                     smtx_datatype_field_wf_rec_parts_local hRawField'
                                   have hConsWF :
@@ -1985,18 +1976,18 @@ theorem eo_type_valid_of_smt_field_wf_rec
                                   exact ⟨hHeadValid, hTailValid⟩
                               | sum cTail dTailTail =>
                                   exfalso
-                                  simpa [raw, __eo_to_smt_type_tuple, hXTrans,
+                                  simp [raw, __eo_to_smt_type_tuple, hXTrans,
                                     __smtx_type_wf, __smtx_type_wf_component,
-                                    __smtx_type_wf_rec, native_and, native_ite] using hWf
+                                    __smtx_type_wf_rec, native_and, native_ite] at hWf
                         · exfalso
-                          simpa [raw, __eo_to_smt_type_tuple, hXTrans, hs,
+                          simp [raw, __eo_to_smt_type_tuple, hXTrans, hs,
                             __smtx_type_wf, __smtx_type_wf_component,
-                            __smtx_type_wf_rec, native_and, native_ite] using hWf
+                            __smtx_type_wf_rec, native_and, native_ite] at hWf
                     | _ =>
                         exfalso
-                        simpa [raw, __eo_to_smt_type_tuple, hXTrans, __smtx_type_wf,
+                        simp [raw, __eo_to_smt_type_tuple, hXTrans, __smtx_type_wf,
                           __smtx_type_wf_component, __smtx_type_wf_rec,
-                          native_and, native_ite] using hWf
+                          native_and, native_ite] at hWf
                   simpa [eo_type_valid_rec, raw] using
                     (And.intro hParts.1 (And.intro hParts.2 (by simpa [raw] using hWf)))
               | _ =>
@@ -2309,20 +2300,6 @@ private theorem eo_to_smt_quantifier_term_ne_numeral
           exact False.elim (eo_to_smt_quantifiers_skolemize_ne_numeral
             (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
             (__eo_to_smt_nat y) n h)
-
-private theorem eo_to_smt_distinct_pairs_ne_numeral
-    (s : SmtTerm) (xs : Term) (n : native_Int) :
-    __eo_to_smt_distinct_pairs s xs ≠ SmtTerm.Numeral n := by
-  intro h
-  cases xs <;> try cases h
-  case Apply f a =>
-    cases f <;> try cases h
-    case UOp op =>
-      cases op <;> cases h
-    case Apply g x =>
-      cases g <;> try cases h
-      case UOp op =>
-        cases op <;> cases h
 
 private theorem eo_to_smt_distinct_ne_numeral
     (xs : Term) (n : native_Int) :
@@ -2697,14 +2674,6 @@ theorem eo_to_smt_eq_numeral
 section DeferredTypeRecovery
 
 
-/-- A translated SMT numeral always recovers EO `Int`. -/
-private theorem eo_typeof_eq_int_of_smt_numeral
-    (t : Term) (n : native_Int)
-    (h : __eo_to_smt t = SmtTerm.Numeral n) :
-    __eo_typeof t = Term.UOp UserOp.Int := by
-  rw [eo_to_smt_eq_numeral t n h]
-  rfl
-
 /-- Computes the type of the one-bit literal used by `bvite`. -/
 private theorem typeof_binary_one_eq :
     __smtx_typeof (SmtTerm.Binary 1 1) = SmtType.BitVec 1 := by
@@ -2736,15 +2705,6 @@ private theorem generic_apply_type_of_non_special_head
     generic_apply_type f x := by
   unfold generic_apply_type
   cases f <;> simp [__smtx_typeof]
-
-/-- EO bitvector types at natural widths translate back to the matching SMT width. -/
-private theorem eo_to_smt_type_bitvec_nat
-    (w : native_Nat) :
-    __eo_to_smt_type (Term.Apply (Term.UOp UserOp.BitVec) (Term.Numeral (native_nat_to_int w))) =
-      SmtType.BitVec w := by
-  simp [__eo_to_smt_type, native_ite, native_zleq, SmtEval.native_zleq,
-    native_nat_to_int, native_int_to_nat, SmtEval.native_nat_to_int,
-    SmtEval.native_int_to_nat]
 
 /-- Simplifies EO-to-SMT type translation for `typeof_numeral`. -/
 theorem eo_to_smt_type_typeof_numeral
