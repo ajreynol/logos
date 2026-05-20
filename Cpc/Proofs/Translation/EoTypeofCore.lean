@@ -2534,17 +2534,6 @@ private theorem eo_to_smt_apply_ne_numeral
               using h))
     case UOp1 op idx =>
       cases op <;> try cases h
-      case _at_witness_string_length =>
-        change native_ite (native_teq (__eo_typeof x) (Term.UOp UserOp.Int))
-            (SmtTerm.choice_nth "@x" (__eo_to_smt_type idx)
-              (SmtTerm.eq
-                (SmtTerm.str_len (SmtTerm.Var "@x" (__eo_to_smt_type idx)))
-                (__eo_to_smt y))
-              native_nat_zero)
-            SmtTerm.None =
-          SmtTerm.Numeral n at h
-        cases ht : native_teq (__eo_typeof x) (Term.UOp UserOp.Int) <;>
-          simp [native_ite, ht] at h
       case update =>
         exact False.elim (eo_to_smt_updater_ne_numeral
           (__eo_to_smt idx) (__eo_to_smt y) (__eo_to_smt x) n h)
@@ -2598,19 +2587,31 @@ theorem eo_to_smt_eq_numeral
         simp [native_ite, hs] at h
   | UOp3 op x y z =>
       cases op
-      change native_ite (native_teq (__eo_is_z z) (Term.Boolean true))
-          (native_ite (native_teq (__eo_is_neg z) (Term.Boolean false))
-            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
-              (__eo_to_smt_nat z))
-            SmtTerm.None)
-          SmtTerm.None =
-        SmtTerm.Numeral n at h
-      cases hz : native_teq (__eo_is_z z) (Term.Boolean true) <;>
-        simp [native_ite, hz] at h
-      cases hn : native_teq (__eo_is_neg z) (Term.Boolean false) <;>
-        simp [native_ite, hn] at h
-      exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
-        (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
+      case _at_re_unfold_pos_component =>
+        change native_ite (native_teq (__eo_is_z z) (Term.Boolean true))
+            (native_ite (native_teq (__eo_is_neg z) (Term.Boolean false))
+              (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
+                (__eo_to_smt_nat z))
+              SmtTerm.None)
+            SmtTerm.None =
+          SmtTerm.Numeral n at h
+        cases hz : native_teq (__eo_is_z z) (Term.Boolean true) <;>
+          simp [native_ite, hz] at h
+        cases hn : native_teq (__eo_is_neg z) (Term.Boolean false) <;>
+          simp [native_ite, hn] at h
+        exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
+          (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
+      case _at_witness_string_length =>
+        change native_ite (native_teq (__eo_typeof z) (Term.UOp UserOp.Int))
+            (SmtTerm.choice_nth "@x" (__eo_to_smt_type x)
+              (SmtTerm.eq
+                (SmtTerm.str_len (SmtTerm.Var "@x" (__eo_to_smt_type x)))
+                (__eo_to_smt y))
+              native_nat_zero)
+            SmtTerm.None =
+          SmtTerm.Numeral n at h
+        cases hz : native_teq (__eo_typeof z) (Term.UOp UserOp.Int) <;>
+          simp [native_ite, hz] at h
   | Apply f x => exact False.elim (eo_to_smt_apply_ne_numeral f x n h)
   | _ => cases h
 
@@ -3147,7 +3148,6 @@ private theorem eo_to_smt_type_substitute_field
   | Term.UOp1 UserOp1.rotate_right x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp1 UserOp1._at_bit x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp1 UserOp1.re_exp x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
-  | Term.UOp1 UserOp1._at_witness_string_length x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp1 UserOp1.is x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp1 UserOp1.update x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp1 UserOp1.tuple_select x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
@@ -3165,6 +3165,7 @@ private theorem eo_to_smt_type_substitute_field
   | Term.UOp2 UserOp2._at_quantifiers_skolemize x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp2 UserOp2._at_const x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp3 UserOp3._at_re_unfold_pos_component x y z => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
+  | Term.UOp3 UserOp3._at_witness_string_length x y z => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp2 UserOp2._at_strings_deq_diff x y => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp1 UserOp1._at_strings_stoi_result x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
   | Term.UOp1 UserOp1._at_strings_stoi_non_digit x => by simp [eo_type_substitute_field, smtx_type_substitute_top, __eo_to_smt_type, native_ite, native_teq, native_Teq]
@@ -4850,7 +4851,7 @@ theorem eo_to_smt_type_typeof_apply_apply_apply_at_witness_string_length_of_type
     (hy : __eo_typeof y = Term.UOp UserOp.Int)
     (hx : __eo_typeof x = Term.UOp UserOp.Int) :
     __eo_to_smt_type
-        (__eo_typeof (Term.Apply (Term.Apply (Term.UOp1 UserOp1._at_witness_string_length z) y) x)) =
+        (__eo_typeof (Term.UOp3 UserOp3._at_witness_string_length z y x)) =
       __eo_to_smt_type z := by
   change
     __eo_to_smt_type
