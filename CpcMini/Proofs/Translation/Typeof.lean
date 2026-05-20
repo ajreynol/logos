@@ -25,24 +25,6 @@ private theorem eo_typeof_eq_self_of_not_stuck
       SmtEval.native_not]
   exact False.elim (hA rfl)
 
-/-- A translated sequence type is never SMT `Bool`. -/
-private theorem smtx_typeof_guard_seq_ne_bool
-    (T : SmtType) :
-    __smtx_typeof_guard T (SmtType.Seq T) ≠ SmtType.Bool := by
-  cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
-
-/-- A translated function type is never SMT `Bool`. -/
-private theorem smtx_typeof_guard_fun_ne_bool
-    (T U : SmtType) :
-    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.FunType T U)) ≠ SmtType.Bool := by
-  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
-
-/-- A translated datatype-constructor application type is never SMT `Bool`. -/
-private theorem smtx_typeof_guard_dtc_app_ne_bool
-    (T U : SmtType) :
-    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.DtcAppType T U)) ≠ SmtType.Bool := by
-  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
-
 /-- A translated datatype-constructor application type is never an SMT function type. -/
 private theorem smtx_typeof_guard_dtc_app_ne_fun
     (T U A B : SmtType) :
@@ -60,24 +42,6 @@ private theorem smtx_typeof_guard_seq_ne_dtc_app
     (T A B : SmtType) :
     __smtx_typeof_guard T (SmtType.Seq T) ≠ SmtType.DtcAppType A B := by
   cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
-
-/-- A translated sequence type is never an SMT bit-vector type. -/
-private theorem smtx_typeof_guard_seq_ne_bitvec
-    (T : SmtType) (w : native_Nat) :
-    __smtx_typeof_guard T (SmtType.Seq T) ≠ SmtType.BitVec w := by
-  cases T <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
-
-/-- A translated function type is never an SMT bit-vector type. -/
-private theorem smtx_typeof_guard_fun_ne_bitvec
-    (T U : SmtType) (w : native_Nat) :
-    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.FunType T U)) ≠ SmtType.BitVec w := by
-  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
-
-/-- A translated datatype-constructor application type is never an SMT bit-vector type. -/
-private theorem smtx_typeof_guard_dtc_app_ne_bitvec
-    (T U : SmtType) (w : native_Nat) :
-    __smtx_typeof_guard T (__smtx_typeof_guard U (SmtType.DtcAppType T U)) ≠ SmtType.BitVec w := by
-  cases T <;> cases U <;> simp [__smtx_typeof_guard, native_ite, native_Teq]
 
 /-- Derives `eo_typeof_bool` from `smt_bool`. -/
 private theorem eo_to_smt_type_eq_bool

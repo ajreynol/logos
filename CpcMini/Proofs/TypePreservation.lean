@@ -25,19 +25,6 @@ private theorem type_default_typed_canonical_of_map_domain_wf
     simpa [__smtx_type_wf, __smtx_type_wf_rec, native_and] using h
   exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.2.1 hAll.2.2.1
 
-private theorem type_default_typed_canonical_of_fun_domain_wf
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    __smtx_typeof_value (__smtx_type_default A) = A ∧
-      __smtx_value_canonical (__smtx_type_default A) := by
-  have hAll :
-      native_inhabited_type A = true ∧
-        __smtx_type_wf_rec A native_reflist_nil = true ∧
-          native_inhabited_type B = true ∧
-            __smtx_type_wf_rec B native_reflist_nil = true := by
-    exact fun_type_wf_parts h
-  exact type_default_typed_canonical_of_inhabited_wf_rec A hAll.1 hAll.2.1
-
 private theorem type_default_typed_canonical_of_set_element_wf
     {A : SmtType}
     (h : __smtx_type_wf (SmtType.Set A) = true) :

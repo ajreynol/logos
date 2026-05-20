@@ -398,50 +398,6 @@ private theorem value_dt_substitute_canonical
         __smtx_value_canonical_bool, native_and] at hf ha ⊢
       exact ⟨hf, ha⟩
 
-private theorem value_dt_substitute_eq_notValue
-    (s : native_String)
-    (d : SmtDatatype) :
-    (v : SmtValue) ->
-      __smtx_value_dt_substitute s d v = SmtValue.NotValue ↔
-        v = SmtValue.NotValue
-  | SmtValue.NotValue => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Boolean b => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Numeral n => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Rational q => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Binary w n => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Map m => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Fun fid T U => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Set m => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Seq ss => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Char c => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.UValue i e => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.RegLan r => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.DtCons s' d' i => by
-      simp [__smtx_value_dt_substitute]
-  | SmtValue.Apply f a => by
-      simp [__smtx_value_dt_substitute]
-
-private theorem value_dt_substitute_ne_notValue
-    (s : native_String)
-    (d : SmtDatatype)
-    {v : SmtValue}
-    (h : v ≠ SmtValue.NotValue) :
-    __smtx_value_dt_substitute s d v ≠ SmtValue.NotValue := by
-  intro hSub
-  exact h ((value_dt_substitute_eq_notValue s d v).1 hSub)
-
 private theorem native_veq_notValue_false_of_ne
     {v : SmtValue}
     (h : v ≠ SmtValue.NotValue) :
@@ -455,26 +411,6 @@ private theorem ne_notValue_of_native_veq_notValue_false
   intro hEq
   subst hEq
   simp [native_veq] at h
-
-private theorem native_veq_value_dt_substitute_notValue_false
-    (s : native_String)
-    (d : SmtDatatype)
-    {v : SmtValue}
-    (h : v ≠ SmtValue.NotValue) :
-    native_veq (__smtx_value_dt_substitute s d v) SmtValue.NotValue = false := by
-  have hSub := value_dt_substitute_ne_notValue s d h
-  exact native_veq_notValue_false_of_ne hSub
-
-private theorem value_dt_substitute_type_default_eq_of_not_datatype
-    (s : native_String)
-    (d : SmtDatatype)
-    (T : SmtType)
-    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d') :
-    __smtx_value_dt_substitute s d (__smtx_type_default T) =
-      __smtx_type_default T := by
-  cases T <;> simp [__smtx_type_default, __smtx_value_dt_substitute]
-  case Datatype s' d' =>
-    exact False.elim (hDatatype s' d' rfl)
 
 private theorem dt_cons_wf_rec_tail_of_true
     {T : SmtType} {c : SmtDatatypeCons} {refs : RefList}
