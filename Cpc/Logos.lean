@@ -1542,6 +1542,10 @@ def __poly_mod_coeffs : Term -> Term -> Term
     let _v1 := (__eo_zmod (__eo_to_z c) w)
     (__eo_ite (__eo_eq _v1 (Term.Numeral 0)) _v0 (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_mon) a) (__eo_to_q _v1))) _v0))
   | _, _ => Term.Stuck
+termination_by p _ => sizeOf p
+decreasing_by
+  simp_wf
+  omega
 
 
 def __poly_add : Term -> Term -> Term
@@ -1619,6 +1623,12 @@ def __get_bv_poly_norm_rec : Term -> Term
   | b => 
     let _v0 := (__eo_to_z b)
     (__eo_ite (__eo_is_bin b) (__eo_ite (__eo_is_eq _v0 (Term.Numeral 0)) (Term.UOp UserOp._at__at_Polynomial) (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_mon) Term.__eo_List_nil) (__eo_to_q _v0))) (Term.UOp UserOp._at__at_Polynomial))) (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_poly) (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_mon) (Term.Apply (Term.Apply Term.__eo_List_cons b) Term.__eo_List_nil)) (Term.Rational (native_mk_rational 1 1)))) (Term.UOp UserOp._at__at_Polynomial)))
+termination_by t => sizeOf t
+decreasing_by
+  simp_wf
+  all_goals
+    simp
+    omega
 
 
 def __arith_rel_sum : Term -> Term -> Term -> Term -> Term
