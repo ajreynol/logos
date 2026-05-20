@@ -108,6 +108,13 @@ def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtVa
   | some v => v
   | none => SmtValue.NotValue
 
+def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
+  { M with values := fun k =>
+      if k = (native_model_key s T) then
+        some v
+      else
+        M.values k }
+
 def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : Option SmtNativeFun :=
   M.nativeFuns (native_model_key fid (SmtType.FunType T U))
 \end{lstlisting}
@@ -163,6 +170,81 @@ def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
 
 \begin{figure}[p]
 \begin{lstlisting}
+macro_rules
+  | `(native_eval_texists $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          exact
+            if h :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+
+  | `(native_eval_tforall $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          exact
+            if h :
+                ∀ v : SmtValue,
+                  $typeofValueId v = $T ->
+                    $canonId v = true ->
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+
+  | `(native_eval_tchoice $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          exact
+            if hSat :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              Classical.choose hSat
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
+              Classical.choose hTy
+            else
+              SmtValue.NotValue)
+
+  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
+      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
+      let pushId := Lean.mkIdent `native_model_push
+      `(by
+          classical
+          let rec evalChoiceNth (M' : SmtModel)
+              (s' : native_String) (T' : SmtType) (body' : SmtTerm) : native_Nat -> SmtValue
+            | native_nat_zero =>
+                $evalChoiceId M' s' T' body'
+            | native_nat_succ n' =>
+                let v := $evalChoiceId M' s' T' body'
+                match body' with
+                | SmtTerm.exists s'' T'' body'' =>
+                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
+                | _ => SmtValue.NotValue
+          exact evalChoiceNth $M $s $T $body $n)
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
 noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
   | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
@@ -175,6 +257,21 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
 
 \begin{figure}[p]
 \begin{lstlisting}
+def __smtx_type_default : SmtType -> SmtValue
+  | SmtType.Bool => (SmtValue.Boolean false)
+  | SmtType.Int => (SmtValue.Numeral 0)
+  | SmtType.RegLan => (SmtValue.RegLan native_re_none)
+  | (SmtType.Datatype s d) => (__smtx_datatype_default s d d native_nat_zero)
+  | (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
+  | ... => ...
+
+def native_inhabited_type (T : SmtType) : native_Bool := by
+  classical
+  exact
+    native_and
+      (decide (__smtx_typeof_value (__smtx_type_default T) = T))
+      (__smtx_value_canonical_bool (__smtx_type_default T))
+
 def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> native_Bool
   | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs => (native_ite (native_reflist_contains refs s) (__smtx_dt_cons_wf_rec c refs) false)
   | (SmtDatatypeCons.cons T c), refs => (native_ite (native_inhabited_type T) (native_ite (__smtx_type_wf_rec T refs) (__smtx_dt_cons_wf_rec c refs) false) false)
@@ -204,6 +301,42 @@ def __smtx_type_wf : SmtType -> native_Bool
   | SmtType.RegLan => true
   | (SmtType.FunType T U) => (native_and (__smtx_type_wf_component T) (__smtx_type_wf_component U))
   | T => (__smtx_type_wf_component T)
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __smtx_is_unit_datatype_cons : SmtDatatypeCons -> native_Bool
+  | SmtDatatypeCons.unit => true
+  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_unit_type T) (__smtx_is_unit_datatype_cons c))
+
+def __smtx_is_unit_datatype : SmtDatatype -> native_Bool
+  | (SmtDatatype.sum c SmtDatatype.null) => (__smtx_is_unit_datatype_cons c)
+  | d => false
+
+def __smtx_is_unit_type : SmtType -> native_Bool
+  | (SmtType.BitVec w) => (native_nateq w native_nat_zero)
+  | (SmtType.Datatype s d) => (__smtx_is_unit_datatype d)
+  | (SmtType.Map T U) => (__smtx_is_unit_type U)
+  | T => false
+
+def __smtx_is_finite_datatype_cons : SmtDatatypeCons -> native_Bool
+  | SmtDatatypeCons.unit => true
+  | (SmtDatatypeCons.cons T c) => (native_and (__smtx_is_finite_type T) (__smtx_is_finite_datatype_cons c))
+
+def __smtx_is_finite_datatype : SmtDatatype -> native_Bool
+  | SmtDatatype.null => true
+  | (SmtDatatype.sum c d) => (native_and (__smtx_is_finite_datatype_cons c) (__smtx_is_finite_datatype d))
+
+def __smtx_is_finite_type : SmtType -> native_Bool
+  | SmtType.Bool => true
+  | (SmtType.BitVec w) => true
+  | SmtType.Char => true
+  | (SmtType.Datatype s d) => (__smtx_is_finite_datatype d)
+  | (SmtType.Map T U) => (native_or (__smtx_is_unit_type U) (native_and (__smtx_is_finite_type T) (__smtx_is_finite_type U)))
+  | (SmtType.Set T) => (__smtx_is_finite_type T)
+  | (SmtType.Seq T) => (__smtx_is_finite_type T)
+  | T => false
 \end{lstlisting}
 \end{figure}
 
@@ -282,6 +415,16 @@ theorem model_eval_canonical
     (t : SmtTerm)
     (hTy : term_has_non_none_type t) :
     __smtx_value_canonical (__smtx_model_eval M t)
+
+theorem exists_total_typed_model_of_canonical_type_inhabited
+    (hCan :
+      ∀ T : SmtType,
+        __smtx_type_wf T = true ->
+          ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v) :
+    ∃ M : SmtModel, model_total_typed M
+
+theorem total_typed_model_nonvacuous :
+    ∃ M : SmtModel, model_total_typed M
 \end{lstlisting}
 \end{figure}
 
@@ -319,6 +462,18 @@ inductive Term : Type where
   | UConst : native_Nat -> Term -> Term
 
 deriving Repr, DecidableEq, Inhabited, Ord
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_typeof : Term -> Term
+  | (Term.Boolean b) => Term.Bool
+  | (Term.Var (Term.String s) T) => T
+  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
+  | ... => ...
 \end{lstlisting}
 \end{figure}
 
