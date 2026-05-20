@@ -28,14 +28,6 @@ private theorem false_of_typeof_apply_none_non_none_full {P : Prop}
     P := by
   exact False.elim (h (typeof_apply_none_eq x))
 
-private theorem false_of_typeof_apply_apply_none_head_non_none_full {P : Prop}
-    (y x : SmtTerm)
-    (h :
-      __smtx_typeof (SmtTerm.Apply (SmtTerm.Apply SmtTerm.None y) x) ≠
-        SmtType.None) :
-    P := by
-  exact False.elim (h (typeof_apply_apply_none_head_eq y x))
-
 private theorem eo_type_valid_of_valid_rec_top_full
     {T : Term}
     (h : eo_type_valid_rec [] T) :
@@ -67,14 +59,6 @@ private theorem eo_type_valid_of_smt_type_eq_of_field_wf_full
     (eo_type_valid_of_smt_field_wf_rec native_reflist_nil (by
       simpa [hEq] using hA))
 
-private theorem smtx_type_field_wf_rec_of_type_wf_rec_full
-    {T : SmtType} {refs : RefList}
-    (h : __smtx_type_wf_rec T refs = true) :
-    smtx_type_field_wf_rec T refs := by
-  cases T <;>
-    simp [smtx_type_field_wf_rec, __smtx_type_wf_rec] at h ⊢ <;>
-    exact h
-
 private theorem eo_typeof_tuple_select_of_non_stuck_full
     (i T : Term)
     (hi : i ≠ Term.Stuck)
@@ -89,26 +73,6 @@ private theorem eo_typeof_at_witness_string_length_of_non_stuck_full
     __eo_typeof__at_witness_string_length Term.Type T
       (Term.UOp UserOp.Int) (Term.UOp UserOp.Int) = T := by
   cases T <;> simp [__eo_typeof__at_witness_string_length] at hT ⊢
-
-private theorem eo_type_valid_of_witness_string_length_eq_dtcapp_full
-    {z y x A B : Term}
-    (hZValid : eo_type_valid z)
-    (hZType : __eo_typeof z = Term.Type)
-    (hYInt : __eo_typeof y = Term.UOp UserOp.Int)
-    (hXInt : __eo_typeof x = Term.UOp UserOp.Int)
-    (hTy :
-      __eo_typeof__at_witness_string_length
-          (__eo_typeof z) z (__eo_typeof y) (__eo_typeof x) =
-        Term.DtcAppType A B) :
-    eo_type_valid (Term.DtcAppType A B) := by
-  have hzNonStuck : z ≠ Term.Stuck := by
-    intro hz
-    subst z
-    cases hZType
-  rw [hZType, hYInt, hXInt] at hTy
-  rw [eo_typeof_at_witness_string_length_of_non_stuck_full z hzNonStuck] at hTy
-  rw [← hTy]
-  exact hZValid
 
 private theorem eo_type_valid_of_update_eq_dtcapp_full
     {z y x A B : Term}
@@ -940,7 +904,7 @@ private theorem eo_type_valid_of_select_eq_dtcapp_full
     Smtm.smt_map_components_wf_rec_of_non_none_type
       (__eo_to_smt y) SA SB hYMap
   have hSAWF : smtx_type_field_wf_rec SA native_reflist_nil :=
-    smtx_type_field_wf_rec_of_type_wf_rec_full hCompsRec.1
+    smtx_type_field_wf_rec_of_type_wf_rec hCompsRec.1
   have hSANN : SA ≠ SmtType.None := by
     intro hNone
     rw [hNone] at hCompsRec
@@ -3001,8 +2965,9 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
               case mult =>
                 exact False.elim (false_of_typeof_plus_eq_dtcapp_full hTy)
               all_goals first
-                | exact false_of_typeof_apply_apply_none_head_non_none_full
-                    (__eo_to_smt y) (__eo_to_smt x) hNonNone
+                | exact False.elim
+                    (hNonNone
+                      (typeof_apply_apply_none_head_eq (__eo_to_smt y) (__eo_to_smt x)))
                 | exact eo_type_valid_of_nested_generic_apply_typeof_apply_eq_dtcapp_full
                     (go _) (by rfl) hTermNN hTy
                 | exact eo_type_valid_of_typeof_apply_eq_dtcapp_cases_full
