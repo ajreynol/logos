@@ -16221,8 +16221,8 @@ private theorem reConcat_nil_eval_empty_of_is_list_nil_true
             simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
               native_str_to_re, native_re_of_list, native_pack_string,
               native_unpack_string, native_pack_seq, native_unpack_seq,
-              __smtx_ssm_char_values_of_string,
-              __smtx_ssm_string_of_char_values]
+              native_ssm_char_values_of_string,
+              native_ssm_string_of_char_values]
           · simp [__eo_is_list_nil, hs] at hNil
 
 private theorem reConcat_list_concat_rec_rel_eval
@@ -16562,8 +16562,8 @@ private theorem smt_value_rel_get_a_norm_re_concat
     simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
       native_str_to_re, native_re_of_list, native_pack_string,
       native_unpack_string, native_pack_seq, native_unpack_seq,
-      __smtx_ssm_char_values_of_string,
-      __smtx_ssm_string_of_char_values]
+      native_ssm_char_values_of_string,
+      native_ssm_string_of_char_values]
   have hIdCan : ReConcatListCanonical M id := by
     rw [hIdEq]
     exact ⟨native_str_to_re "", by simpa [hIdEq] using hIdEval⟩

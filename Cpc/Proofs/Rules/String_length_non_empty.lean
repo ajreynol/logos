@@ -85,7 +85,7 @@ private theorem empty_term_smt_info
             SmtValue.Seq (SmtSeq.empty SmtType.Char)
           rw [__smtx_model_eval.eq_4]
           simp [native_pack_string, native_pack_seq,
-            __smtx_ssm_char_values_of_string]
+            native_ssm_char_values_of_string]
       · simp [__str_is_empty, hs] at hEmpty
   | UOp1 op x =>
       cases op with

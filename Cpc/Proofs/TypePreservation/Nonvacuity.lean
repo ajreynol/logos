@@ -38,7 +38,7 @@ private theorem default_typed_model_of_native_fun_typed
     type_default_typed_canonical_of_inhabited_wf_rec B hParts.2.2.1 hParts.2.2.2
   by_cases hDefaultId : fid = native_default_ifun_id
   · simp [native_eval_ifun_apply, hDefaultId, hDefault.1, hDefault.2]
-  · simp [native_eval_ifun_apply, __smtx_model_fun_lookup,
+  · simp [native_eval_ifun_apply, native_model_fun_lookup,
       default_typed_model_of, hDefaultId, hDefault.1, hDefault.2]
 
 /--
@@ -55,15 +55,15 @@ theorem exists_total_typed_model_of_canonical_type_inhabited
   refine ⟨default_typed_model_of hCan, ?_⟩
   constructor
   · intro s T hT
-    simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT,
+    simp [default_typed_model_of, native_model_lookup, native_model_key, hT,
       (Classical.choose_spec (hCan T hT)).1]
   · constructor
     · intro s T hT
-      simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT,
+      simp [default_typed_model_of, native_model_lookup, native_model_key, hT,
         (Classical.choose_spec (hCan T hT)).2]
     · constructor
       · intro s T hT
-        simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT]
+        simp [default_typed_model_of, native_model_lookup, native_model_key, hT]
       · exact default_typed_model_of_native_fun_typed hCan
 
 /-- Choice-based model that returns a canonical inhabitant for every well-formed SMT type. -/
@@ -77,15 +77,15 @@ theorem default_typed_model_total_typed :
   unfold default_typed_model
   constructor
   · intro s T hT
-    simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT,
+    simp [default_typed_model_of, native_model_lookup, native_model_key, hT,
       (Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)).1]
   · constructor
     · intro s T hT
-      simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT,
+      simp [default_typed_model_of, native_model_lookup, native_model_key, hT,
         (Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)).2]
     · constructor
       · intro s T hT
-        simp [default_typed_model_of, __smtx_model_lookup, __smtx_model_key, hT]
+        simp [default_typed_model_of, native_model_lookup, native_model_key, hT]
       · exact default_typed_model_of_native_fun_typed canonical_type_inhabited_of_type_wf
 
 /-- Constructs a total typed SMT model. -/

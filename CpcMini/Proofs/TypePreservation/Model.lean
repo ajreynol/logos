@@ -5,6 +5,19 @@ open Smtm
 
 namespace Smtm
 
+private theorem model_total_typed_lookup_canonical_bool
+    {M : SmtModel}
+    (hM : model_total_typed M)
+    (s : native_String)
+    (T : SmtType)
+    (hT : __smtx_type_wf T = true) :
+    __smtx_value_canonical_bool (native_model_lookup M s T) = true := by
+  have hAll :
+      ∀ s T, __smtx_type_wf T = true ->
+        __smtx_value_canonical_bool (native_model_lookup M s T) = true := by
+    rw [hM.2.1]
+  exact hAll s T hT
+
 /-- Describes how `model_total_typed` behaves under `lookup`. -/
 theorem model_total_typed_lookup
     {M : SmtModel}
@@ -12,7 +25,7 @@ theorem model_total_typed_lookup
     (s : native_String)
     (T : SmtType)
     (hT : __smtx_type_wf T = true) :
-    __smtx_typeof_value (__smtx_model_lookup M s T) = T :=
+    __smtx_typeof_value (native_model_lookup M s T) = T :=
   hM.1 s T hT
 
 /-- Describes how `model_total_typed` preserves canonical lookup values. -/
@@ -22,8 +35,10 @@ theorem model_total_typed_lookup_canonical
     (s : native_String)
     (T : SmtType)
     (hT : __smtx_type_wf T = true) :
-    __smtx_value_canonical (__smtx_model_lookup M s T) :=
-  hM.2.1 s T hT
+    __smtx_value_canonical (native_model_lookup M s T) :=
+  by
+    simpa [__smtx_value_canonical]
+      using model_total_typed_lookup_canonical_bool hM s T hT
 
 /-- Describes how `model_total_typed` behaves under lookup for non-well-formed types. -/
 theorem model_total_typed_lookup_not_wf
@@ -32,7 +47,7 @@ theorem model_total_typed_lookup_not_wf
     (s : native_String)
     (T : SmtType)
     (hT : __smtx_type_wf T = false) :
-    __smtx_model_lookup M s T = SmtValue.NotValue :=
+    native_model_lookup M s T = SmtValue.NotValue :=
   hM.2.2.1 s T hT
 
 /-- Describes how `model_total_typed` constrains native functions. -/
@@ -48,7 +63,7 @@ theorem model_total_typed_lookup_uninhabited
     (s : native_String)
     (T : SmtType)
     (hT : __smtx_type_wf T = false) :
-    __smtx_model_lookup M s T = SmtValue.NotValue :=
+    native_model_lookup M s T = SmtValue.NotValue :=
   model_total_typed_lookup_not_wf hM s T hT
 
 /-- Describes how `model_typed_at` behaves under `push`. -/
@@ -59,10 +74,10 @@ theorem model_typed_at_push
     {v : SmtValue}
     (hWF : __smtx_type_wf T = true)
     (hv : __smtx_typeof_value v = T) :
-    model_typed_at (__smtx_model_push M s T v) s T := by
+    model_typed_at (native_model_push M s T v) s T := by
   constructor
   · intro hT
-    simp [__smtx_model_lookup, __smtx_model_push, __smtx_model_key, hv]
+    simp [native_model_lookup, native_model_push, native_model_key, hv]
   · intro hT
     rw [hWF] at hT
     cases hT
@@ -77,35 +92,39 @@ theorem model_total_typed_push
     (hWF : __smtx_type_wf T = true)
     (hv : __smtx_typeof_value v = T)
     (hvCanon : __smtx_value_canonical v) :
-    model_total_typed (__smtx_model_push M s T v) := by
+    model_total_typed (native_model_push M s T v) := by
   constructor
   · intro s' T' hT'
-    unfold __smtx_model_lookup __smtx_model_push
-    by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
-    · cases h
-      simp [hv]
-    · simp [h]
+    by_cases h : s' = s ∧ T' = T
+    · rcases h with ⟨rfl, rfl⟩
+      simp [native_model_lookup, native_model_push, native_model_key, hv]
+    · simp [native_model_lookup, native_model_push, native_model_key, h]
       exact model_total_typed_lookup hM s' T' hT'
   · constructor
-    · intro s' T' hT'
-      unfold __smtx_model_lookup __smtx_model_push
-      by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
-      · cases h
-        simp [hvCanon]
-      · simp [h]
-        exact model_total_typed_lookup_canonical hM s' T' hT'
+    · apply propext
+      constructor
+      · intro _
+        rfl
+      · intro _
+        intro s' T' hT'
+        by_cases h : s' = s ∧ T' = T
+        · rcases h with ⟨rfl, rfl⟩
+          simpa [native_model_lookup, native_model_push, native_model_key,
+            __smtx_value_canonical]
+            using hvCanon
+        · simp [native_model_lookup, native_model_push, native_model_key, h]
+          exact model_total_typed_lookup_canonical_bool hM s' T' hT'
     · constructor
       · intro s' T' hT'
-        unfold __smtx_model_lookup __smtx_model_push
-        by_cases h : __smtx_model_key s' T' = __smtx_model_key s T
-        · cases h
+        by_cases h : s' = s ∧ T' = T
+        · rcases h with ⟨rfl, rfl⟩
           rw [hWF] at hT'
           cases hT'
-        · simp [h]
+        · simp [native_model_lookup, native_model_push, native_model_key, h]
           exact model_total_typed_lookup_uninhabited hM s' T' hT'
       · intro fid A B i hFunWF hi
-        simpa [native_fun_typed, native_eval_ifun_apply, __smtx_model_fun_lookup,
-          __smtx_model_push]
+        simpa [native_fun_typed, native_eval_ifun_apply, native_model_fun_lookup,
+          native_model_push]
           using model_total_typed_native_fun_typed hM fid A B i hFunWF hi
 
 end Smtm

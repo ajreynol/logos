@@ -245,7 +245,7 @@ theorem seq_canonical_pack_string (s : native_String) :
   unfold native_pack_string
   apply seq_canonical_pack_seq
   intro v hv
-  simp [__smtx_ssm_char_values_of_string] at hv
+  simp [native_ssm_char_values_of_string] at hv
   rcases hv with ⟨c, _hc, rfl⟩
   exact value_canonical_char c
 

@@ -1,4 +1,4 @@
-import Cpc.SmtModel
+import Cpc.Proofs.TypePreservation.Predicates
 
 /-!
 Small canonical-value assumptions that are independent of the cardinality and

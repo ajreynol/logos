@@ -545,13 +545,13 @@ theorem typeof_value_seq_nth_wrong
   change __smtx_typeof_value
       (__smtx_map_select
         (__smtx_map_select
-          (__smtx_model_lookup M native_oob_seq_nth_id
+          (native_model_lookup M native_oob_seq_nth_id
             (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T)))
           (SmtValue.Seq ss))
         (SmtValue.Numeral n)) = T
   have hLookup :
       __smtx_typeof_value
-        (__smtx_model_lookup M native_oob_seq_nth_id
+        (native_model_lookup M native_oob_seq_nth_id
           (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))) =
         SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T) :=
     model_total_typed_lookup hM native_oob_seq_nth_id
