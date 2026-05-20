@@ -699,7 +699,6 @@ def __smtx_index_typeof_map : SmtType -> SmtType
   | (SmtType.Map T U) => T
   | T => SmtType.None
 
-
 def __smtx_mss_op_internal (isInter : native_Bool) : SmtMap -> SmtMap -> SmtMap -> SmtMap
   | (SmtMap.default T efalse), m2, acc => acc
   | (SmtMap.cons e etrue m1), m2, acc => 
