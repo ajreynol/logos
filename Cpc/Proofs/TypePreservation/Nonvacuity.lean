@@ -36,10 +36,13 @@ private theorem default_typed_model_of_native_fun_typed
     exact ifun_type_wf_parts hFunWF
   have hDefault :=
     type_default_typed_canonical_of_inhabited_wf_rec B hParts.2.2.1 hParts.2.2.2
+  have hDefaultCan :
+      __smtx_value_canonical_bool (__smtx_type_default B) = true := by
+    simpa [__smtx_value_canonical] using hDefault.2
   by_cases hDefaultId : fid = native_default_ifun_id
-  · simp [native_eval_ifun_apply, hDefaultId, hDefault.1, hDefault.2]
+  · simp [native_eval_ifun_apply, hDefaultId, hDefault.1, hDefaultCan]
   · simp [native_eval_ifun_apply, native_model_fun_lookup,
-      default_typed_model_of, hDefaultId, hDefault.1, hDefault.2]
+      default_typed_model_of, hDefaultId, hDefault.1, hDefaultCan]
 
 /--
 Reduces nonvacuity of total typed models to the canonical-inhabitant theorem
@@ -58,9 +61,16 @@ theorem exists_total_typed_model_of_canonical_type_inhabited
     simp [default_typed_model_of, native_model_lookup, native_model_key, hT,
       (Classical.choose_spec (hCan T hT)).1]
   · constructor
-    · intro s T hT
-      simp [default_typed_model_of, native_model_lookup, native_model_key, hT,
-        (Classical.choose_spec (hCan T hT)).2]
+    · apply propext
+      constructor
+      · intro _
+        rfl
+      · intro _
+        intro s T hT
+        have hSpec := Classical.choose_spec (hCan T hT)
+        simpa [default_typed_model_of, native_model_lookup, native_model_key, hT,
+          __smtx_value_canonical]
+          using hSpec.2
     · constructor
       · intro s T hT
         simp [default_typed_model_of, native_model_lookup, native_model_key, hT]
@@ -80,9 +90,16 @@ theorem default_typed_model_total_typed :
     simp [default_typed_model_of, native_model_lookup, native_model_key, hT,
       (Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)).1]
   · constructor
-    · intro s T hT
-      simp [default_typed_model_of, native_model_lookup, native_model_key, hT,
-        (Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)).2]
+    · apply propext
+      constructor
+      · intro _
+        rfl
+      · intro _
+        intro s T hT
+        have hSpec := Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)
+        simpa [default_typed_model_of, native_model_lookup, native_model_key, hT,
+          __smtx_value_canonical]
+          using hSpec.2
     · constructor
       · intro s T hT
         simp [default_typed_model_of, native_model_lookup, native_model_key, hT]
