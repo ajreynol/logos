@@ -4440,6 +4440,393 @@ private theorem geq_zero_eval_true_of_int_denote_nonneg
   rw [hZeroEval]
   simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hZle]
 
+private theorem geq_eval_true_of_diff_denote_nonneg
+    (M : SmtModel) (hM : model_total_typed M)
+    (n m : Term) (q : native_Rat) :
+  RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) ->
+  arith_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.neg) n) m) =
+      SmtValue.Rational q ->
+  0 ≤ q ->
+  __smtx_model_eval M
+      (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m)) =
+    SmtValue.Boolean true := by
+  intro hGeqBool hDiffDen hq
+  have hGeqTy :
+      __smtx_typeof (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) =
+        SmtType.Bool := by
+    simpa [RuleProofs.eo_has_bool_type] using hGeqBool
+  have hGeqNN : term_has_non_none_type
+      (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) := by
+    unfold term_has_non_none_type
+    rw [hGeqTy]
+    simp
+  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.geq)
+      (typeof_geq_eq (__eo_to_smt n) (__eo_to_smt m)) hGeqNN with
+    hInt | hReal
+  · have hEvalNTy :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt n)) =
+          __smtx_typeof (__eo_to_smt n) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt n)
+        (by simp [term_has_non_none_type, hInt.1])
+    have hEvalMTy :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt m)) =
+          __smtx_typeof (__eo_to_smt m) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt m)
+        (by simp [term_has_non_none_type, hInt.2])
+    rcases int_value_canonical (by simpa [hInt.1] using hEvalNTy) with ⟨zn, hEvalN⟩
+    rcases int_value_canonical (by simpa [hInt.2] using hEvalMTy) with ⟨zm, hEvalM⟩
+    have hDiffQ :
+        native_to_real (native_zplus zn (native_zneg zm)) = q := by
+      have h :
+          SmtValue.Rational (native_to_real (native_zplus zn (native_zneg zm))) =
+            SmtValue.Rational q := by
+        have hDen := hDiffDen
+        change
+          __smtx_model_eval_to_real
+              (__smtx_model_eval M (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m))) =
+            SmtValue.Rational q at hDen
+        rw [__smtx_model_eval.eq_13, hEvalN, hEvalM] at hDen
+        simpa [__smtx_model_eval_to_real, __smtx_model_eval__, native_to_real_sub] using hDen
+      simpa using h
+    have hSubNonneg : (0 : Int) ≤ native_zplus zn (native_zneg zm) := by
+      have hRat : (0 : Rat) ≤ native_to_real (native_zplus zn (native_zneg zm)) := by
+        simpa [hDiffQ] using hq
+      dsimp [native_to_real, native_mk_rational] at hRat
+      rw [rat_div_one_intCast] at hRat
+      exact_mod_cast hRat
+    have hLe : zm ≤ zn := by
+      have hSubNonneg' : (0 : Int) ≤ zn - zm := by
+        change (0 : Int) ≤ zn + -zm
+        simpa [native_zplus, native_zneg] using hSubNonneg
+      exact Int.sub_nonneg.mp hSubNonneg'
+    have hZle : native_zleq zm zn = true := by
+      simpa [native_zleq, SmtEval.native_zleq] using hLe
+    rw [show
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) =
+          SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m) by rfl]
+    rw [__smtx_model_eval.eq_18, hEvalN, hEvalM]
+    simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hZle]
+  · have hEvalNTy :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt n)) =
+          __smtx_typeof (__eo_to_smt n) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt n)
+        (by simp [term_has_non_none_type, hReal.1])
+    have hEvalMTy :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt m)) =
+          __smtx_typeof (__eo_to_smt m) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt m)
+        (by simp [term_has_non_none_type, hReal.2])
+    rcases real_value_canonical (by simpa [hReal.1] using hEvalNTy) with ⟨qn, hEvalN⟩
+    rcases real_value_canonical (by simpa [hReal.2] using hEvalMTy) with ⟨qm, hEvalM⟩
+    have hDiffQ :
+        native_qplus qn (native_qneg qm) = q := by
+      have h :
+          SmtValue.Rational (native_qplus qn (native_qneg qm)) =
+            SmtValue.Rational q := by
+        have hDen := hDiffDen
+        change
+          __smtx_model_eval_to_real
+              (__smtx_model_eval M (SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m))) =
+            SmtValue.Rational q at hDen
+        rw [__smtx_model_eval.eq_13, hEvalN, hEvalM] at hDen
+        simpa [__smtx_model_eval_to_real, __smtx_model_eval__] using hDen
+      simpa using h
+    have hLe : qm ≤ qn := by
+      have hSub : (0 : Rat) ≤ native_qplus qn (native_qneg qm) := by
+        simpa [hDiffQ] using hq
+      have hSub' : (0 : Rat) ≤ qn + -qm := by
+        simpa [native_qplus, native_qneg] using hSub
+      grind
+    have hQle : native_qleq qm qn = true := by
+      simpa [native_qleq] using hLe
+    rw [show
+        __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) =
+          SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m) by rfl]
+    rw [__smtx_model_eval.eq_18, hEvalN, hEvalM]
+    simp [__smtx_model_eval_geq, __smtx_model_eval_leq, hQle]
+
+theorem arith_string_pred_simple_geq_true
+    (M : SmtModel) (hM : model_total_typed M) (n m : Term) :
+  RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) ->
+  __str_arith_entail_simple_pred
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) = Term.Boolean true ->
+  eo_interprets M (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) true := by
+  intro hGeqBool hSimple
+  let diff := Term.Apply (Term.Apply (Term.UOp UserOp.neg) n) m
+  have hGeqTy :
+      __smtx_typeof (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) =
+        SmtType.Bool := by
+    simpa [RuleProofs.eo_has_bool_type] using hGeqBool
+  have hGeqNN : term_has_non_none_type
+      (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) := by
+    unfold term_has_non_none_type
+    rw [hGeqTy]
+    simp
+  have hDiffTy :
+      __smtx_typeof (__eo_to_smt diff) = SmtType.Int ∨
+        __smtx_typeof (__eo_to_smt diff) = SmtType.Real := by
+    rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.geq)
+        (typeof_geq_eq (__eo_to_smt n) (__eo_to_smt m)) hGeqNN with
+      hInt | hReal
+    · left
+      rw [show __eo_to_smt diff = SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m) by rfl]
+      rw [typeof_neg_eq]
+      simp [__smtx_typeof_arith_overload_op_2, hInt.1, hInt.2]
+    · right
+      rw [show __eo_to_smt diff = SmtTerm.neg (__eo_to_smt n) (__eo_to_smt m) by rfl]
+      rw [typeof_neg_eq]
+      simp [__smtx_typeof_arith_overload_op_2, hReal.1, hReal.2]
+  have hDenote :
+      arith_poly_denote_real M (__get_arith_poly_norm diff) =
+        arith_atom_denote_real M diff :=
+    arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
+      M hM diff hDiffTy
+  rcases arith_atom_denote_real_rational_of_smt_arith_type
+      M hM diff hDiffTy with
+    ⟨q, hAtomDenote⟩
+  have hPolyDenote :
+      arith_poly_denote_real M (__get_arith_poly_norm diff) =
+        SmtValue.Rational q := by
+    rw [hDenote, hAtomDenote]
+  have hSimpleRec :
+      __str_arith_entail_simple_rec (__get_arith_poly_norm diff) =
+        Term.Boolean true := by
+    simpa [diff, __str_arith_entail_simple_pred] using hSimple
+  have hqNonneg : 0 ≤ q :=
+    str_arith_entail_simple_rec_denote_nonneg
+      M (__get_arith_poly_norm diff) q hSimpleRec hPolyDenote
+  have hGeqEval :
+      __smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m)) =
+        SmtValue.Boolean true :=
+    geq_eval_true_of_diff_denote_nonneg M hM n m q hGeqBool hAtomDenote hqNonneg
+  exact RuleProofs.eo_interprets_of_bool_eval M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) true hGeqBool hGeqEval
+
+private theorem geq_has_bool_type_of_non_none (n m : Term) :
+    __smtx_typeof
+        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m)) ≠
+      SmtType.None ->
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) m) := by
+  intro hNN
+  unfold RuleProofs.eo_has_bool_type
+  change __smtx_typeof (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) = SmtType.Bool
+  have hTerm : term_has_non_none_type (SmtTerm.geq (__eo_to_smt n) (__eo_to_smt m)) := by
+    unfold term_has_non_none_type
+    simpa using hNN
+  rcases arith_binop_ret_bool_args_of_non_none (op := SmtTerm.geq)
+      (typeof_geq_eq (__eo_to_smt n) (__eo_to_smt m)) hTerm with
+    hInt | hReal
+  · rw [typeof_geq_eq]
+    simp [__smtx_typeof_arith_overload_op_2_ret, hInt.1, hInt.2]
+  · rw [typeof_geq_eq]
+    simp [__smtx_typeof_arith_overload_op_2_ret, hReal.1, hReal.2]
+
+private theorem int_eval_of_int_type
+    (M : SmtModel) (hM : model_total_typed M) (t : Term) :
+  __smtx_typeof (__eo_to_smt t) = SmtType.Int ->
+  ∃ z : native_Int, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Numeral z := by
+  intro hTy
+  have hEvalTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t)) =
+        __smtx_typeof (__eo_to_smt t) :=
+    Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t)
+      (by simp [term_has_non_none_type, hTy])
+  exact int_value_canonical (by simpa [hTy] using hEvalTy)
+
+private theorem arith_atom_denote_real_eq_of_int_eval
+    (M : SmtModel) (t : Term) (z : native_Int) :
+  __smtx_model_eval M (__eo_to_smt t) = SmtValue.Numeral z ->
+  arith_atom_denote_real M t = SmtValue.Rational (native_to_real z) := by
+  intro hEval
+  simp [arith_atom_denote_real, hEval, __smtx_model_eval_to_real]
+
+private theorem native_to_real_le_iff (a b : native_Int) :
+    native_to_real a ≤ native_to_real b ↔ a ≤ b := by
+  dsimp [native_to_real, native_mk_rational]
+  rw [rat_div_one_intCast a, rat_div_one_intCast b]
+  exact_mod_cast Iff.rfl
+
+private theorem native_seq_indexof_rec_ge_neg_one
+    (xs pat : List SmtValue) (i fuel : Nat) :
+    (-1 : Int) ≤ native_seq_indexof_rec xs pat i fuel := by
+  induction fuel generalizing xs i with
+  | zero =>
+      simp [native_seq_indexof_rec]
+  | succ fuel ih =>
+      unfold native_seq_indexof_rec
+      split
+      · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg i)
+      · cases xs with
+        | nil => simp
+        | cons _ xs => exact ih xs (i + 1)
+
+private theorem native_seq_indexof_ge_neg_one
+    (xs pat : List SmtValue) (i : native_Int) :
+    (-1 : Int) ≤ native_seq_indexof xs pat i := by
+  unfold native_seq_indexof
+  split
+  · simp
+  · dsimp
+    split
+    · exact native_seq_indexof_rec_ge_neg_one _ _ _ _
+    · simp
+
+private theorem native_str_to_int_ge_neg_one
+    (s : native_String) :
+    (-1 : Int) ≤ native_str_to_int s := by
+  unfold native_str_to_int
+  cases hList : s.toList with
+  | nil =>
+      simp [hList]
+  | cons c cs =>
+      by_cases hMinus : c = '-'
+      · subst c
+        simp [hList]
+      · by_cases hZero : c = '0'
+        · subst c
+          cases cs with
+          | nil =>
+              cases hNat : s.toNat? <;> simp [hList, hNat]
+          | cons _ _ =>
+              simp [hList]
+        · cases hNat : s.toNat? with
+          | none =>
+              simp [hList, hMinus, hZero, hNat]
+          | some _ =>
+              simp [hList, hMinus, hZero, hNat]
+
+private theorem str_arith_entail_is_approx_int_eval_order
+    (M : SmtModel) (hM : model_total_typed M) :
+    (n m isUnder : Term) -> (zn zm : native_Int) ->
+      __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
+      __smtx_typeof (__eo_to_smt m) = SmtType.Int ->
+      __smtx_model_eval M (__eo_to_smt n) = SmtValue.Numeral zn ->
+      __smtx_model_eval M (__eo_to_smt m) = SmtValue.Numeral zm ->
+      __str_arith_entail_is_approx n m isUnder = Term.Boolean true ->
+      (isUnder = Term.Boolean true -> zm ≤ zn) ∧
+        (isUnder = Term.Boolean false -> zn ≤ zm)
+  | n, m, isUnder, zn, zm, hNInt, hMInt, hNEval, hMEval, hApprox => by
+      sorry
+
+private theorem str_arith_entail_is_approx_int_denote_order
+    (M : SmtModel) (hM : model_total_typed M) :
+    (n m isUnder : Term) -> (qn qm : native_Rat) ->
+      __smtx_typeof (__eo_to_smt n) = SmtType.Int ->
+      __smtx_typeof (__eo_to_smt m) = SmtType.Int ->
+      __str_arith_entail_is_approx n m isUnder = Term.Boolean true ->
+      arith_atom_denote_real M n = SmtValue.Rational qn ->
+      arith_atom_denote_real M m = SmtValue.Rational qm ->
+      (isUnder = Term.Boolean true -> qm ≤ qn) ∧
+        (isUnder = Term.Boolean false -> qn ≤ qm)
+  | n, m, isUnder, qn, qm, hNInt, hMInt, hApprox, hNDen, hMDen => by
+      rcases int_eval_of_int_type M hM n hNInt with ⟨zn, hNEval⟩
+      rcases int_eval_of_int_type M hM m hMInt with ⟨zm, hMEval⟩
+      have hQn : qn = native_to_real zn := by
+        have h :
+            SmtValue.Rational (native_to_real zn) = SmtValue.Rational qn := by
+          simpa [arith_atom_denote_real, hNEval, __smtx_model_eval_to_real] using hNDen
+        simpa using h.symm
+      have hQm : qm = native_to_real zm := by
+        have h :
+            SmtValue.Rational (native_to_real zm) = SmtValue.Rational qm := by
+          simpa [arith_atom_denote_real, hMEval, __smtx_model_eval_to_real] using hMDen
+        simpa using h.symm
+      have hOrder :=
+        str_arith_entail_is_approx_int_eval_order M hM n m isUnder zn zm
+          hNInt hMInt hNEval hMEval hApprox
+      constructor
+      · intro hUnder
+        rw [hQm, hQn]
+        exact (native_to_real_le_iff zm zn).2 (hOrder.1 hUnder)
+      · intro hOver
+        rw [hQn, hQm]
+        exact (native_to_real_le_iff zn zm).2 (hOrder.2 hOver)
+
+private theorem arith_string_pred_safe_approx_left_true
+    (M : SmtModel) (hM : model_total_typed M) (n m : Term) :
+  RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)) ->
+  RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0)) ->
+  __str_arith_entail_is_approx n m (Term.Boolean true) = Term.Boolean true ->
+  __str_arith_entail_simple_pred
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0)) =
+    Term.Boolean true ->
+  eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)) true := by
+  intro hNBool hMBool hApprox hSimple
+  have hNInt : __smtx_typeof (__eo_to_smt n) = SmtType.Int :=
+    geq_left_int_type_of_has_bool_type n hNBool
+  have hMInt : __smtx_typeof (__eo_to_smt m) = SmtType.Int :=
+    geq_left_int_type_of_has_bool_type m hMBool
+  rcases arith_atom_denote_real_rational_of_smt_arith_type
+      M hM n (Or.inl hNInt) with
+    ⟨qn, hNDen⟩
+  rcases arith_atom_denote_real_rational_of_smt_arith_type
+      M hM m (Or.inl hMInt) with
+    ⟨qm, hMDen⟩
+  have hMTrue :
+      eo_interprets M
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0)) true :=
+    arith_string_pred_simple_geq_true M hM m (Term.Numeral 0) hMBool hSimple
+  have hMEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0))) =
+        SmtValue.Boolean true := by
+    cases (RuleProofs.eo_interprets_iff_smt_interprets M
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0)) true).mp
+        hMTrue with
+    | intro_true _ hEval => exact hEval
+  have hqmNonneg : 0 ≤ qm := by
+    have hEvalMTy :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt m)) =
+          __smtx_typeof (__eo_to_smt m) := by
+      exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt m)
+        (by simp [term_has_non_none_type, hMInt])
+    rcases int_value_canonical (by simpa [hMInt] using hEvalMTy) with ⟨zm, hEvalM⟩
+    have hDenEq : native_to_real zm = qm := by
+      have h :
+          SmtValue.Rational (native_to_real zm) = SmtValue.Rational qm := by
+        simpa [arith_atom_denote_real, hEvalM, __smtx_model_eval_to_real] using hMDen
+      simpa using h
+    have hZle : native_zleq 0 zm = true := by
+      have hZeroEval :
+          __smtx_model_eval M (SmtTerm.Numeral 0) = SmtValue.Numeral 0 := by
+        rw [__smtx_model_eval.eq_2]
+      rw [show
+          __eo_to_smt
+              (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0)) =
+            SmtTerm.geq (__eo_to_smt m) (SmtTerm.Numeral 0) by rfl] at hMEval
+      rw [__smtx_model_eval.eq_18, hEvalM, hZeroEval] at hMEval
+      simpa [__smtx_model_eval_geq, __smtx_model_eval_leq] using hMEval
+    have hzmNonneg : (0 : Int) ≤ zm := by
+      simpa [native_zleq, SmtEval.native_zleq] using hZle
+    have hqm' : (0 : Rat) ≤ native_to_real zm := by
+      dsimp [native_to_real, native_mk_rational]
+      rw [rat_div_one_intCast zm]
+      exact_mod_cast hzmNonneg
+    simpa [hDenEq] using hqm'
+  have hOrder :=
+    (str_arith_entail_is_approx_int_denote_order M hM n m (Term.Boolean true) qn qm
+      hNInt hMInt hApprox hNDen hMDen).1 rfl
+  have hqnNonneg : 0 ≤ qn := by
+    calc
+      (0 : Rat) ≤ qm := hqmNonneg
+      _ ≤ qn := hOrder
+  have hNEval :
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0))) =
+        SmtValue.Boolean true :=
+    geq_zero_eval_true_of_int_denote_nonneg M hM n qn hNInt hNDen hqnNonneg
+  exact RuleProofs.eo_interprets_of_bool_eval M
+    (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)) true hNBool hNEval
+
 theorem arith_string_pred_entail_formula_true
     (M : SmtModel) (hM : model_total_typed M) (n : Term) :
   RuleProofs.eo_has_bool_type
@@ -4488,6 +4875,56 @@ theorem arith_string_pred_entail_formula_true
   rw [hGeqEval]
   rw [show __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true by rfl]
   rw [__smtx_model_eval.eq_1]
+  simp [__smtx_model_eval_eq, native_veq]
+
+theorem arith_string_pred_safe_approx_formula_true
+    (M : SmtModel) (hM : model_total_typed M) (n m : Term) :
+  RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)))
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0))) ->
+  __str_arith_entail_is_approx n m (Term.Boolean true) = Term.Boolean true ->
+  __str_arith_entail_simple_pred
+      (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0)) =
+    Term.Boolean true ->
+  eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)))
+        (Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0))) true := by
+  intro hFormulaBool hApprox hSimple
+  let geqN := Term.Apply (Term.Apply (Term.UOp UserOp.geq) n) (Term.Numeral 0)
+  let geqM := Term.Apply (Term.Apply (Term.UOp UserOp.geq) m) (Term.Numeral 0)
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type geqN geqM
+      (by simpa [geqN, geqM] using hFormulaBool) with
+    ⟨hSameTy, hGeqNNN⟩
+  have hGeqMNN : __smtx_typeof (__eo_to_smt geqM) ≠ SmtType.None := by
+    rw [← hSameTy]
+    exact hGeqNNN
+  have hGeqNBool : RuleProofs.eo_has_bool_type geqN := by
+    exact geq_has_bool_type_of_non_none n (Term.Numeral 0)
+      (by simpa [geqN] using hGeqNNN)
+  have hGeqMBool : RuleProofs.eo_has_bool_type geqM := by
+    exact geq_has_bool_type_of_non_none m (Term.Numeral 0)
+      (by simpa [geqM] using hGeqMNN)
+  have hNTrue : eo_interprets M geqN true := by
+    simpa [geqN, geqM] using
+      arith_string_pred_safe_approx_left_true M hM n m hGeqNBool hGeqMBool
+        hApprox hSimple
+  have hMTrue : eo_interprets M geqM true := by
+    simpa [geqM] using
+      arith_string_pred_simple_geq_true M hM m (Term.Numeral 0) hGeqMBool hSimple
+  have hEvalN :
+      __smtx_model_eval M (__eo_to_smt geqN) = SmtValue.Boolean true := by
+    cases (RuleProofs.eo_interprets_iff_smt_interprets M geqN true).mp hNTrue with
+    | intro_true _ hEval => exact hEval
+  have hEvalM :
+      __smtx_model_eval M (__eo_to_smt geqM) = SmtValue.Boolean true := by
+    cases (RuleProofs.eo_interprets_iff_smt_interprets M geqM true).mp hMTrue with
+    | intro_true _ hEval => exact hEval
+  apply RuleProofs.eo_interprets_eq_of_rel M geqN geqM
+    (by simpa [geqN, geqM] using hFormulaBool)
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  rw [hEvalN, hEvalM]
   simp [__smtx_model_eval_eq, native_veq]
 
 private theorem smt_value_rel_of_eq_arith_atom_denote_real_of_smt_arith_type
