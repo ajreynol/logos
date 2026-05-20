@@ -517,4 +517,243 @@ end RuleProofs
 \end{lstlisting}
 \end{figure}
 
+\clearpage
+
+\section*{CpcMini Checker}
+
+\begin{figure}[p]
+\begin{lstlisting}
+abbrev CIndex := native_Int
+
+inductive CIndexList : Type where
+  | nil : CIndexList
+  | cons : CIndex -> CIndexList -> CIndexList
+deriving Repr, Inhabited
+
+inductive CArgList : Type where
+  | nil : CArgList
+  | cons : Term -> CArgList -> CArgList
+deriving Repr, Inhabited
+
+inductive CStateObj : Type where
+  | assume : Term -> CStateObj
+  | assume_push : Term -> CStateObj
+  | proven : Term -> CStateObj
+deriving Repr, Inhabited
+
+inductive CState : Type where
+  | nil : CState
+  | cons : CStateObj -> CState -> CState
+  | Stuck : CState
+deriving Repr, Inhabited
+
+inductive CRule : Type where
+  | scope : CRule
+  | contra : CRule
+  | refl : CRule
+  | symm : CRule
+  | trans : CRule
+  | ...
+
+deriving Repr, Inhabited
+
+inductive CCmd : Type where
+  | assume_push : Term -> CCmd
+  | check_proven : Term -> CCmd
+  | step : CRule -> CArgList -> CIndexList -> CCmd
+  | step_pop : CRule -> CArgList -> CIndexList -> CCmd
+
+deriving Repr, Inhabited
+
+inductive CCmdList : Type where
+  | nil : CCmdList
+  | cons : CCmd -> CCmdList -> CCmdList
+deriving Repr, Inhabited
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_StateObj_proven : CStateObj -> Term
+  | (CStateObj.assume F) => F
+  | (CStateObj.assume_push F) => F
+  | (CStateObj.proven F) => F
+
+def __eo_state_proven_nth : CState -> native_Int -> Term
+  | (CState.cons so s), 0 => (__eo_StateObj_proven so)
+  | (CState.cons so s), n =>
+      (__eo_state_proven_nth s (native_zplus n (native_zneg 1)))
+  | s, n => (Term.Boolean true)
+
+def __eo_state_is_closed : CState -> native_Bool
+  | (CState.cons (CStateObj.assume_push F) s) => false
+  | (CState.cons so s) => (__eo_state_is_closed s)
+  | CState.nil => true
+  | s => false
+
+def __eo_push_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume_push F) s)
+  | b, F, s => CState.Stuck
+
+def __eo_push_input_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume F) s)
+  | b, F, s => CState.Stuck
+
+def __eo_push_proven_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.proven F) s)
+  | b, F, s => CState.Stuck
+
+def __eo_push_proven : Term -> CState -> CState
+  | F, s => (__eo_push_proven_check (__eo_is_bool_type F) F s)
+
+def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
+  | f, CIndexList.nil, S => (__eo_nil f Term.Bool)
+  | f, (CIndexList.cons n pl), S =>
+      (__eo_cons f (__eo_state_proven_nth S n) (__eo_mk_premise_list f pl S))
+
+def __eo_invoke_cmd_check_proven : CState -> Term -> CState
+  | (CState.cons (CStateObj.proven F) S), proven =>
+      (__eo_push_proven_check (__eo_eq F proven) F S)
+  | S, proven => CState.Stuck
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
+  | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) =>
+      (__eo_prog_contra
+        (Proof.pf (__eo_state_proven_nth S n1))
+        (Proof.pf (__eo_state_proven_nth S n2)))
+  | CRule.refl, (CArgList.cons a1 CArgList.nil), CIndexList.nil =>
+      (__eo_prog_refl a1)
+  | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) =>
+      (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1)))
+  | CRule.trans, CArgList.nil, premises =>
+      (__eo_prog_trans
+        (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises S)))
+  | ... => ...
+
+def __eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
+  | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) =>
+      (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
+  | ... => ...
+
+def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexList -> CState
+  | (CState.cons (CStateObj.assume_push A) s2), r, args, premises =>
+      (__eo_push_proven (__eo_cmd_step_pop_proven s r args A premises) s2)
+  | (CState.cons so s2), r, args, premises =>
+      (__eo_invoke_cmd_step_pop s s2 r args premises)
+  | s2, r, args, premises => CState.Stuck
+
+def __eo_invoke_cmd : CState -> CCmd -> CState
+  | CState.Stuck, c => CState.Stuck
+  | S, (CCmd.assume_push proven) =>
+      (__eo_push_assume_check (__eo_is_bool_type proven) proven S)
+  | S, (CCmd.check_proven proven) =>
+      (__eo_invoke_cmd_check_proven S proven)
+  | S, (CCmd.step r args premises) =>
+      (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
+  | S, (CCmd.step_pop r args premises) =>
+      (__eo_invoke_cmd_step_pop S S r args premises)
+
+def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState
+  | CCmdList.nil => S
+  | (CCmdList.cons c cmds) =>
+      (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
+
+def __eo_state_is_refutation (s : CState) : native_Bool :=
+  (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
+
+def __eo_invoke_assume_list (S : CState) : Term -> CState
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) =>
+      (__eo_push_input_assume_check
+        (__eo_is_bool_type F) F (__eo_invoke_assume_list S as))
+  | (Term.Boolean true) => S
+  | as => CState.Stuck
+
+def __eo_checker_is_refutation : Term -> CCmdList -> native_Bool
+  | as, cs =>
+      (__eo_state_is_refutation
+        (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
+
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+  | intro (F : Term) (c : CCmdList) :
+      (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def eoHasSmtTranslation (t : Term) : Prop :=
+  __smtx_typeof (__eo_to_smt t) ≠ SmtType.None
+
+def cArgListTranslationOk : CArgList -> Prop
+  | CArgList.nil => True
+  | CArgList.cons a args => eoHasSmtTranslation a ∧ cArgListTranslationOk args
+
+def cmdTranslationOk : CCmd -> Prop
+  | CCmd.assume_push A => eoHasSmtTranslation A
+  | CCmd.step _ args _ => cArgListTranslationOk args
+  | _ => True
+
+inductive TranslatableAssumptionList : Term -> Prop
+  | base : TranslatableAssumptionList (Term.Boolean true)
+  | step (A rest : Term) :
+      eoHasSmtTranslation A ->
+      TranslatableAssumptionList rest ->
+      TranslatableAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
+
+inductive CmdListTranslationOk : CCmdList -> Prop
+  | nil : CmdListTranslationOk CCmdList.nil
+  | cons (c : CCmd) (cs : CCmdList) :
+      cmdTranslationOk c ->
+      CmdListTranslationOk cs ->
+      CmdListTranslationOk (CCmdList.cons c cs)
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive ValidAssumptionList : Term -> Prop
+  | base : ValidAssumptionList (Term.Boolean true)
+  | step (A rest : Term) : ValidAssumptionList rest ->
+      ValidAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
+
+def stateOk : CState -> Prop
+  | CState.nil => True
+  | CState.cons _ s => stateOk s
+  | CState.Stuck => False
+
+def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
+  checkerShapeInvariant s ∧
+  checkerLocalTruthInvariant M s ∧
+  checkerTypeInvariant s ∧
+  checkerTranslationInvariant s
+
+theorem checkerStateInvariant_after_assume_list (M : SmtModel) (F : Term) :
+  ValidAssumptionList F ->
+  stateOk (__eo_invoke_assume_list CState.nil F) ->
+  TranslatableAssumptionList F ->
+  checkerStateInvariant M (__eo_invoke_assume_list CState.nil F)
+
+theorem invoke_cmd_list_preserves_stateInvariant (M : SmtModel) :
+  forall _hM : model_total_typed M,
+  forall s : CState, forall cs : CCmdList,
+    checkerStateInvariant M s ->
+    CmdListTranslationOk cs ->
+    checkerStateInvariant M (__eo_invoke_cmd_list s cs)
+\end{lstlisting}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+  TranslatableAssumptionList F ->
+  CmdListTranslationOk pf ->
+  (eo_is_refutation F pf) ->
+  eo_satisfiability F false
+\end{lstlisting}
+\end{figure}
+
 \end{document}
