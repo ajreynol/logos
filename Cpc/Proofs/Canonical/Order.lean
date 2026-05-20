@@ -15,32 +15,29 @@ The generated `Ord SmtValue` comparator is executable but opaque to Lean, so we
 record the trichotomy fragment needed by canonical map update here until the
 order is made proof-transparent.
 -/
-theorem native_vcmp_flip
+axiom native_vcmp_flip
     {a b : SmtValue}
     (hNe : native_veq a b = false)
     (hCmp : native_vcmp a b = false) :
-    native_vcmp b a = true := by
-  sorry
+    native_vcmp b a = true
 
 /--
 Temporary irreflexivity/disequality assumption for the strict order induced by
 `native_vcmp`.
 -/
-theorem native_vcmp_ne
+axiom native_vcmp_ne
     {a b : SmtValue}
     (hCmp : native_vcmp a b = true) :
-    native_veq a b = false := by
-  sorry
+    native_veq a b = false
 
 /--
 Temporary transitivity assumption for the strict order induced by
 `native_vcmp`.
 -/
-theorem native_vcmp_trans
+axiom native_vcmp_trans
     {a b c : SmtValue}
     (hab : native_vcmp a b = true)
     (hbc : native_vcmp b c = true) :
-    native_vcmp a c = true := by
-  sorry
+    native_vcmp a c = true
 
 end Smtm

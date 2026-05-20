@@ -469,16 +469,6 @@ private theorem smtx_typeof_guard_eq_fun_iff
   · simp [hT, native_ite, native_Teq]
   · simp [hT, native_ite, native_Teq]
 
-/-- Characterizes `__smtx_typeof_guard` producing an interpreted function type. -/
-private theorem smtx_typeof_guard_eq_ifun_iff
-    {T U A B : SmtType} :
-    __smtx_typeof_guard T U = SmtType.FunType A B ↔
-      T ≠ SmtType.None ∧ U = SmtType.FunType A B := by
-  unfold __smtx_typeof_guard
-  by_cases hT : T = SmtType.None
-  · simp [hT, native_ite, native_Teq]
-  · simp [hT, native_ite, native_Teq]
-
 /-- Characterizes translated EO types equal to an SMT function type. -/
 theorem eo_to_smt_type_eq_fun_iff
     {T : Term} {A B : SmtType} :
@@ -1565,16 +1555,6 @@ private theorem smtx_type_wf_rec_seq_component
     simpa [__smtx_type_wf_rec, native_and] using h
   exact hPair.2
 
-/-- Extracts domain/codomain recursive well-formedness from a recursive function wf proof. -/
-private theorem smtx_type_wf_rec_fun_components
-    {T U : SmtType} {refs : List native_String}
-    (h : __smtx_type_wf_rec (SmtType.FunType T U) refs = true) :
-    __smtx_type_wf_rec T [] = true ∧
-      __smtx_type_wf_rec U [] = true := by
-  have hFalse : False := by
-    simp [__smtx_type_wf_rec] at h
-  exact False.elim hFalse
-
 /-- A well-formed guarded sequence type has a well-formed element type. -/
 private theorem smtx_type_wf_rec_guard_seq_true
     (refs : List native_String) (T : SmtType)
@@ -1904,16 +1884,6 @@ private theorem smtx_fun_type_wf_parts
             __smtx_type_wf_rec B native_reflist_nil = true) := by
     simpa [__smtx_type_wf, native_and] using h
   exact ⟨hAll.1.1, hAll.1.2, hAll.2.1, hAll.2.2⟩
-
-/-- Extracts component wf facts from top-level interpreted function type wf. -/
-private theorem smtx_ifun_type_wf_parts
-    {A B : SmtType}
-    (h : __smtx_type_wf (SmtType.FunType A B) = true) :
-    native_inhabited_type A = true ∧
-      __smtx_type_wf_rec A native_reflist_nil = true ∧
-        native_inhabited_type B = true ∧
-          __smtx_type_wf_rec B native_reflist_nil = true := by
-  exact smtx_fun_type_wf_parts h
 
 /-- A non-`None` well-formedness guard witnesses proof-side EO type validity. -/
 theorem eo_type_valid_of_guard_wf_non_none
