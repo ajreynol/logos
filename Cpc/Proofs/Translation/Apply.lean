@@ -4479,16 +4479,34 @@ private theorem eo_to_smt_sets_deq_diff_fun_like_domains_field_wf
         (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff y z))) :
     smtx_type_fun_like_domains_field_wf
       (__smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_sets_deq_diff y z))) := by
-  exfalso
-  apply hNN
   change
-    __smtx_typeof
+    smtx_type_fun_like_domains_field_wf
+      (__smtx_typeof
         (native_ite
-          (native_Teq (__eo_to_smt_type (Term.UOp2 UserOp2._at_sets_deq_diff y z))
+          (native_Teq
+            (__eo_to_smt_type
+              (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff y z)))
             SmtType.None)
-          SmtTerm.None (SmtTerm.map_diff (__eo_to_smt y) (__eo_to_smt z))) =
-      SmtType.None
-  simp [__eo_to_smt_type, native_ite, native_Teq]
+          SmtTerm.None (SmtTerm.map_diff (__eo_to_smt y) (__eo_to_smt z))))
+  change
+    term_has_non_none_type
+        (native_ite
+          (native_Teq
+            (__eo_to_smt_type
+              (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff y z)))
+            SmtType.None)
+          SmtTerm.None (SmtTerm.map_diff (__eo_to_smt y) (__eo_to_smt z))) at hNN
+  cases hGuard :
+      native_Teq
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff y z)))
+        SmtType.None
+  · simp [native_ite, hGuard] at hNN ⊢
+    exact smtx_typeof_map_diff_fun_like_domains_field_wf_of_non_none
+      (__eo_to_smt y) (__eo_to_smt z) hNN
+  · simp [native_ite, hGuard] at hNN
+    exfalso
+    unfold term_has_non_none_type at hNN
+    exact hNN (by simp [__smtx_typeof])
 
 private theorem smtx_type_fun_like_domains_no_reglan_of_type_wf_rec :
     ∀ {T : SmtType} {refs : RefList},
@@ -6569,6 +6587,10 @@ private theorem eo_to_smt_eq_dt_cons_cases
       exact (eo_to_smt_map_diff_guard_ne_dt_cons
         (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff q idx)))
         (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
+    case _at_sets_deq_diff =>
+      exact (eo_to_smt_map_diff_guard_ne_dt_cons
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff q idx)))
+        (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_cons _ _ _ _ _ hy).elim
     case _at_quantifiers_skolemize =>
@@ -7419,6 +7441,10 @@ theorem eo_to_smt_eq_dt_sel_cases
       exact (eo_to_smt_map_diff_guard_ne_dt_sel
         (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff q idx)))
         (__eo_to_smt q) (__eo_to_smt idx) s d i j hy).elim
+    case _at_sets_deq_diff =>
+      exact (eo_to_smt_map_diff_guard_ne_dt_sel
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff q idx)))
+        (__eo_to_smt q) (__eo_to_smt idx) s d i j hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_sel _ _ _ _ _ _ hy).elim
     case _at_quantifiers_skolemize =>
@@ -7487,6 +7513,10 @@ theorem eo_to_smt_ne_dt_tester
     case _at_array_deq_diff =>
       exact (eo_to_smt_map_diff_guard_ne_dt_tester
         (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff q idx)))
+        (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
+    case _at_sets_deq_diff =>
+      exact (eo_to_smt_map_diff_guard_ne_dt_tester
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff q idx)))
         (__eo_to_smt q) (__eo_to_smt idx) s d i hy).elim
     case _at_bv =>
       exact (eo_to_smt_at_bv_ne_dt_tester _ _ _ _ _ hy).elim
