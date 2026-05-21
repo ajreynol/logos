@@ -654,7 +654,7 @@ def __eo_to_smt : Term -> SmtTerm
 
 \begin{figure}[p]
 \begin{lstlisting}
-def native_teq : Term -> Term -> Bool
+def native_teq : Term -> Term -> native_Bool
   | x, y => decide (x = y)
 
 inductive Proof : Type where
@@ -663,10 +663,9 @@ inductive Proof : Type where
 
 def __eo_requires : Term -> Term -> Term -> Term
   | x1, x2, x3 =>
-      if native_teq x1 x2 then
-        if !(native_teq x1 Term.Stuck) then x3 else Term.Stuck
-      else
-        Term.Stuck
+      (native_ite (native_teq x1 x2)
+        (native_ite (native_not (native_teq x1 Term.Stuck)) x3 Term.Stuck)
+        Term.Stuck)
 
 def __mk_trans : Term -> Term -> Term -> Term
   | Term.Stuck, _, _ => Term.Stuck
