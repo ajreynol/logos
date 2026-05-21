@@ -140,7 +140,7 @@ theorem seq_canonical_pack_unpack_replace
   unfold native_seq_replace
   cases hpat : native_unpack_seq pat with
   | nil =>
-      simp [hpat]
+      simp
       apply seq_canonical_pack_seq
       intro v hv
       simp [List.mem_append] at hv
@@ -148,7 +148,7 @@ theorem seq_canonical_pack_unpack_replace
       · exact seq_unpack_values_canonical hrepl v hv
       · exact seq_unpack_values_canonical hs v hv
   | cons p ps =>
-      simp [hpat]
+      simp
       split
       · exact seq_canonical_pack_unpack T hs
       · apply seq_canonical_pack_seq
@@ -229,14 +229,14 @@ theorem seq_canonical_pack_unpack_update
     (decide (i < 0) ||
       decide (Int.ofNat (native_unpack_seq s).length ≤ i)) = b at hv
   cases b
-  · simp [hb, List.mem_append] at hv
+  · simp [List.mem_append] at hv
     rcases hv with hv | hv | hv
     · exact seq_unpack_values_canonical hs v
         (List.mem_of_mem_take hv)
     · exact seq_unpack_values_canonical hrepl v hv
     · exact seq_unpack_values_canonical hs v
         (List.mem_of_mem_drop hv)
-  · simp [hb] at hv
+  · simp at hv
     exact seq_unpack_values_canonical hs v hv
 
 /-- Packed strings are canonical sequences, since every character value is canonical. -/

@@ -1291,8 +1291,14 @@ theorem typeof_value_model_eval_qdiv
     rcases int_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨n1, hn1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨n2, hn2⟩
     rw [hn1, hn2]
-    simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
-      __smtx_typeof_value, native_veq]
+    by_cases hZero : native_to_real n2 = native_mk_rational 0 1
+    · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
+        native_veq, hZero] using
+        typeof_value_model_eval_apply_lookup_ifun M hM
+          native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real
+          ifun_type_wf_real_real (SmtValue.Rational (native_to_real n1)) rfl
+    · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
+        __smtx_model_eval_qdiv_total, __smtx_typeof_value, native_veq, hZero]
   · rw [show __smtx_typeof (SmtTerm.qdiv t1 t2) = SmtType.Real by
       rw [typeof_qdiv_eq]
       simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]]
@@ -1301,12 +1307,12 @@ theorem typeof_value_model_eval_qdiv
     rcases real_value_canonical (by simpa [hArgs.2] using hpres2) with ⟨q2, hq2⟩
     rw [hq1, hq2]
     by_cases hZero : q2 = native_mk_rational 0 1
-    · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
-        native_veq, hZero] using
+    · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
+        __smtx_model_eval_qdiv_total, native_veq, hZero] using
         typeof_value_model_eval_apply_lookup_ifun M hM
           native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real ifun_type_wf_real_real
           (SmtValue.Rational q1) rfl
-    · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_qdiv_total,
-        __smtx_typeof_value, native_veq, hZero]
+    · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
+        __smtx_model_eval_qdiv_total, __smtx_typeof_value, native_veq, hZero]
 
 end Smtm

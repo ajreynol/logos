@@ -212,21 +212,6 @@ private theorem value_dt_substitute_ne_notValue
   intro hSub
   exact h ((value_dt_substitute_eq_notValue s d v).1 hSub)
 
-private theorem native_veq_notValue_false_of_ne
-    {v : SmtValue}
-    (h : v ≠ SmtValue.NotValue) :
-    native_veq v SmtValue.NotValue = false := by
-  simpa [native_veq] using h
-
-private theorem native_veq_value_dt_substitute_notValue_false
-    (s : native_String)
-    (d : SmtDatatype)
-    {v : SmtValue}
-    (h : v ≠ SmtValue.NotValue) :
-    native_veq (__smtx_value_dt_substitute s d v) SmtValue.NotValue = false := by
-  have hSub := value_dt_substitute_ne_notValue s d h
-  exact native_veq_notValue_false_of_ne hSub
-
 private theorem value_dt_substitute_type_default_eq_of_not_datatype
     (s : native_String)
     (d : SmtDatatype)
@@ -250,15 +235,6 @@ private theorem dt_wf_cons_of_wf
       cases d <;> simp [__smtx_dt_wf_rec, native_ite, hc]
     rw [hFalse] at h
     simp at h
-
-private theorem dt_cons_wf_rec_tail_of_true
-    {T : SmtType}
-    {c : SmtDatatypeCons}
-    {refs : RefList}
-    (h : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
-    __smtx_dt_cons_wf_rec c refs = true := by
-  cases T <;> simp [__smtx_dt_cons_wf_rec, native_ite] at h ⊢
-  all_goals first | exact h.2 | exact h.2.2
 
 private theorem dt_wf_tail_of_nonempty_tail_wf
     {c cTail : SmtDatatypeCons}
@@ -347,25 +323,6 @@ private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype :
       simp [__smtx_type_wf_rec] at hRec
   | SmtType.DtcAppType A B, hInh, hRec => by
       simp [__smtx_type_wf_rec] at hRec
-
-private theorem non_datatype_type_default_substitute_typed_canonical_of_wf_rec_deferred
-    (s : native_String)
-    (d : SmtDatatype)
-    (T : SmtType)
-    (hDatatype : ∀ s' d', T ≠ SmtType.Datatype s' d')
-    (hInh : native_inhabited_type T = true)
-    (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
-    __smtx_typeof_value
-        (__smtx_value_dt_substitute s d (__smtx_type_default T)) = T ∧
-      __smtx_value_canonical
-        (__smtx_value_dt_substitute s d (__smtx_type_default T)) := by
-  have hEq :=
-    value_dt_substitute_type_default_eq_of_not_datatype s d T hDatatype
-  have hDef :=
-    type_default_typed_canonical_of_wf_rec_deferred_datatype T hInh hRec
-  constructor
-  · simpa [hEq] using hDef.1
-  · simpa [hEq] using hDef.2
 
 private theorem datatype_type_default_typed_canonical_of_wf_rec
     (s : native_String)
