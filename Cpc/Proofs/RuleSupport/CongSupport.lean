@@ -13963,14 +13963,14 @@ private theorem eo_to_smt_sets_deq_diff_ne_dt_sel
   change
     native_ite
         (native_Teq
-          (__eo_to_smt_type (Term.UOp2 UserOp2._at_sets_deq_diff a b))
+          (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b)))
           SmtType.None)
         SmtTerm.None
         (SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)) =
       SmtTerm.DtSel s d i j at h
   cases hGuard :
       native_Teq
-        (__eo_to_smt_type (Term.UOp2 UserOp2._at_sets_deq_diff a b))
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b)))
         SmtType.None <;>
     simp [native_ite, hGuard] at h
 
@@ -13983,14 +13983,14 @@ private theorem eo_to_smt_sets_deq_diff_ne_dt_tester
   change
     native_ite
         (native_Teq
-          (__eo_to_smt_type (Term.UOp2 UserOp2._at_sets_deq_diff a b))
+          (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b)))
           SmtType.None)
         SmtTerm.None
         (SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)) =
       SmtTerm.DtTester s d i at h
   cases hGuard :
       native_Teq
-        (__eo_to_smt_type (Term.UOp2 UserOp2._at_sets_deq_diff a b))
+        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b)))
         SmtType.None <;>
     simp [native_ite, hGuard] at h
 
