@@ -57,7 +57,7 @@ def __eo_to_smt_distinct : Term -> SmtTerm
 def __eo_to_smt_typed_list_elem_type : Term -> SmtType
   | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) => 
     let _v0 := (__eo_to_smt_type T)
-    (native_ite (native_Teq _v0 SmtType.None) SmtType.None _v0)
+    (native_ite (__smtx_type_wf _v0) _v0 SmtType.None)
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) t) ts) => 
     let _v0 := (__smtx_typeof (__eo_to_smt t))
     (native_ite (native_Teq _v0 (__eo_to_smt_typed_list_elem_type ts)) _v0 SmtType.None)
