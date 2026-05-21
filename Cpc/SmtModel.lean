@@ -27,9 +27,30 @@ abbrev native_RegLan := SmtRegLan
 
 def native_int_log2 : native_Int -> native_Int
   | x => Int.ofNat (Nat.log2 (Int.toNat x))
-  
+
+def native_cpc_char_list_lt : List native_Char -> List native_Char -> native_Bool
+  | [], [] => false
+  | [], _ :: _ => true
+  | _ :: _, [] => false
+  | c₁ :: cs₁, c₂ :: cs₂ =>
+      let n₁ := native_char_to_cpc_code c₁
+      let n₂ := native_char_to_cpc_code c₂
+      if native_zeq n₁ n₂ then
+        native_cpc_char_list_lt cs₁ cs₂
+      else
+        native_zlt n₁ n₂
+
+def native_cpc_char_in_range (c lo hi : native_Char) : native_Bool :=
+  let n := native_char_to_cpc_code c
+  let l := native_char_to_cpc_code lo
+  let h := native_char_to_cpc_code hi
+  native_and (native_char_in_cpc_range c)
+    (native_and (native_char_in_cpc_range lo)
+      (native_and (native_char_in_cpc_range hi)
+        (native_and (native_zleq l n) (native_zleq n h))))
+
 def native_str_lt : native_String -> native_String -> native_Bool
-  | s₁, s₂ => decide (s₁ < s₂)
+  | s₁, s₂ => native_cpc_char_list_lt s₁.toList s₂.toList
 def native_str_from_int : native_Int -> native_String
   | i => if i < 0 then "" else (toString i)
 def native_str_to_int : native_String -> native_Int
@@ -91,7 +112,7 @@ def native_re_deriv (c : Char) : native_RegLan -> native_RegLan
   | .epsilon => .empty
   | .char d => if c = d then .epsilon else .empty
   | .range lo hi =>
-      if lo.toNat <= c.toNat && c.toNat <= hi.toNat then .epsilon else .empty
+      if native_cpc_char_in_range c lo hi then .epsilon else .empty
   | .allchar => .epsilon
   | .concat r₁ r₂ =>
       native_re_mk_union
@@ -186,7 +207,11 @@ def native_re_union : native_RegLan -> native_RegLan -> native_RegLan
 def native_re_range : native_String -> native_String -> native_RegLan
   | s₁, s₂ =>
       match s₁.toList, s₂.toList with
-      | [c₁], [c₂] => .range c₁ c₂
+      | [c₁], [c₂] =>
+          if native_and (native_char_in_cpc_range c₁) (native_char_in_cpc_range c₂) then
+            .range c₁ c₂
+          else
+            .empty
       | _, _ => .empty
 def native_str_in_re : native_String -> native_RegLan -> native_Bool
   | s, r =>
@@ -514,7 +539,8 @@ macro_rules
           exact
             if hExt :
                 ∀ s : native_String,
-                  $strInReId s $r1 = $strInReId s $r2 then
+                  native_string_in_cpc_range s = true ->
+                    $strInReId s $r1 = $strInReId s $r2 then
               true
             else
               false)
