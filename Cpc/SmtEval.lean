@@ -91,7 +91,7 @@ def native_str_to_code (s : native_String) : native_Int :=
   | [c] => Int.ofNat c.toNat
   | _   => -1
 def native_str_from_code (i : native_Int) : native_String :=
-  if (0 <= i && i <= 196608) then
+  if (0 <= i && i < 196608) then
     String.singleton (native_nat_to_char (Int.toNat i))
   else
     ""
