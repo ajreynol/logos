@@ -4476,49 +4476,31 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                   | UOp op =>
                       cases op
                       case «forall» =>
-                        cases hIdxZ : native_teq (__eo_is_z idx) (Term.Boolean true)
+                        cases hIdxValid : __eo_to_smt_nat_is_valid idx
                         · exfalso
                           apply hNonNone
                           change __smtx_typeof
-                              (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                                (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                                  (__eo_to_smt_quantifiers_skolemize
-                                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                                    (__eo_to_smt_nat idx))
-                                  SmtTerm.None)
+                              (native_ite (__eo_to_smt_nat_is_valid idx)
+                                (__eo_to_smt_quantifiers_skolemize
+                                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                  (__eo_to_smt_nat idx))
                                 SmtTerm.None) =
                             SmtType.None
-                          rw [hIdxZ]
+                          rw [hIdxValid]
                           simp [native_ite, smtx_typeof_none]
-                        · cases hIdxNeg : native_teq (__eo_is_neg idx) (Term.Boolean false)
-                          · exfalso
-                            apply hNonNone
-                            change __smtx_typeof
-                                (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                                  (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                                    (__eo_to_smt_quantifiers_skolemize
-                                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                                      (__eo_to_smt_nat idx))
-                                    SmtTerm.None)
-                                  SmtTerm.None) =
-                              SmtType.None
-                            rw [hIdxZ, hIdxNeg]
-                            simp [native_ite, smtx_typeof_none]
-                          · refine ⟨?_, ?_⟩
+                        · refine ⟨?_, ?_⟩
                             · change
                                 __smtx_typeof
-                                    (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                                      (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                                        (__eo_to_smt_quantifiers_skolemize
-                                          (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                                          (__eo_to_smt_nat idx))
-                                        SmtTerm.None)
+                                    (native_ite (__eo_to_smt_nat_is_valid idx)
+                                      (__eo_to_smt_quantifiers_skolemize
+                                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                        (__eo_to_smt_nat idx))
                                       SmtTerm.None) =
                                   __eo_to_smt_type
                                     (__eo_typeof
                                       (Term._at_quantifiers_skolemize
                                         (Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body) idx))
-                              rw [hIdxZ, hIdxNeg]
+                              rw [hIdxValid]
                               simp [native_ite]
                               have hSkolemNN :
                                   __smtx_typeof
@@ -4528,15 +4510,13 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                     SmtType.None := by
                                 change
                                   __smtx_typeof
-                                      (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                                        (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                                          (__eo_to_smt_quantifiers_skolemize
-                                            (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                                            (__eo_to_smt_nat idx))
-                                          SmtTerm.None)
+                                      (native_ite (__eo_to_smt_nat_is_valid idx)
+                                        (__eo_to_smt_quantifiers_skolemize
+                                          (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                          (__eo_to_smt_nat idx))
                                         SmtTerm.None) ≠
                                     SmtType.None at hNonNone
-                                rw [hIdxZ, hIdxNeg] at hNonNone
+                                rw [hIdxValid] at hNonNone
                                 simpa [native_ite] using hNonNone
                               have hBodyNoExists :
                                   ∀ s T F, SmtTerm.not (__eo_to_smt body) ≠ SmtTerm.exists s T F := by
@@ -4583,14 +4563,10 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                     rfl
                                   have hNat :
                                       native_nat_to_int (native_int_to_nat n) = n := by
-                                    have hNegFalse : native_zlt n 0 = false := by
-                                      simpa [__eo_is_neg, native_teq, native_and, native_not]
-                                        using hIdxNeg
                                     have hNonneg : 0 ≤ n := by
-                                      have hNotLt : ¬ n < 0 := by
-                                        apply of_decide_eq_false
-                                        simpa [native_zlt, SmtEval.native_zlt] using hNegFalse
-                                      exact Int.not_lt.mp hNotLt
+                                      exact of_decide_eq_true (by
+                                        simpa [__eo_to_smt_nat_is_valid, native_zleq,
+                                          SmtEval.native_zleq] using hIdxValid)
                                     simp [native_nat_to_int, native_int_to_nat,
                                       SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]
                                     exact Int.max_eq_left hNonneg
@@ -4641,8 +4617,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                   simpa [__eo_to_smt_nat] using hSkTy.trans hEoSk.symm
                               | _ =>
                                   exfalso
-                                  simp [__eo_is_z, __eo_is_z_internal, native_teq,
-                                    native_and, native_not] at hIdxZ
+                                  simp [__eo_to_smt_nat_is_valid] at hIdxValid
                             · have hSkolemNN :
                                   __smtx_typeof
                                       (__eo_to_smt_quantifiers_skolemize
@@ -4651,15 +4626,13 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                     SmtType.None := by
                                 change
                                   __smtx_typeof
-                                      (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                                        (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                                          (__eo_to_smt_quantifiers_skolemize
-                                            (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                                            (__eo_to_smt_nat idx))
-                                          SmtTerm.None)
+                                      (native_ite (__eo_to_smt_nat_is_valid idx)
+                                        (__eo_to_smt_quantifiers_skolemize
+                                          (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                                          (__eo_to_smt_nat idx))
                                         SmtTerm.None) ≠
                                     SmtType.None at hNonNone
-                                rw [hIdxZ, hIdxNeg] at hNonNone
+                                rw [hIdxValid] at hNonNone
                                 simpa [native_ite] using hNonNone
                               have hBodyNoExists :
                                   ∀ s T F, SmtTerm.not (__eo_to_smt body) ≠ SmtTerm.exists s T F := by
@@ -4702,14 +4675,10 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                     rfl
                                   have hNat :
                                       native_nat_to_int (native_int_to_nat n) = n := by
-                                    have hNegFalse : native_zlt n 0 = false := by
-                                      simpa [__eo_is_neg, native_teq, native_and, native_not]
-                                        using hIdxNeg
                                     have hNonneg : 0 ≤ n := by
-                                      have hNotLt : ¬ n < 0 := by
-                                        apply of_decide_eq_false
-                                        simpa [native_zlt, SmtEval.native_zlt] using hNegFalse
-                                      exact Int.not_lt.mp hNotLt
+                                      exact of_decide_eq_true (by
+                                        simpa [__eo_to_smt_nat_is_valid, native_zleq,
+                                          SmtEval.native_zleq] using hIdxValid)
                                     simp [native_nat_to_int, native_int_to_nat,
                                       SmtEval.native_nat_to_int, SmtEval.native_int_to_nat]
                                     exact Int.max_eq_left hNonneg
@@ -4732,8 +4701,7 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                                   simpa [hNat] using hSkValid
                               | _ =>
                                   exfalso
-                                  simp [__eo_is_z, __eo_is_z_internal, native_teq,
-                                    native_and, native_not] at hIdxZ
+                                  simp [__eo_to_smt_nat_is_valid] at hIdxValid
                       all_goals
                         exact false_of_smtx_typeof_none_non_none_full hNonNone
                   | _ =>
