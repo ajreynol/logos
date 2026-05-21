@@ -1,4 +1,4 @@
-import Cpc.Proofs.Rules.Arith_poly_norm
+import Cpc.Proofs.Rules.ArithStringEntailSupport
 
 open Eo
 open SmtEval
