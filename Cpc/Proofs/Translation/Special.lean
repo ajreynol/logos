@@ -123,15 +123,88 @@ theorem eo_to_smt_typeof_matches_translation_sets_deq_diff
     __smtx_typeof (__eo_to_smt (Term._at_sets_deq_diff x1 x2)) =
       __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)) := by
   intro hNonNone
-  exfalso
-  apply hNonNone
   change
     __smtx_typeof
         (native_ite
-          (native_Teq (__eo_to_smt_type (Term._at_sets_deq_diff x1 x2)) SmtType.None)
+          (native_Teq
+            (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)))
+            SmtType.None)
           SmtTerm.None (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2))) =
+      __eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2))
+  change
+    __smtx_typeof
+        (native_ite
+          (native_Teq
+            (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)))
+            SmtType.None)
+          SmtTerm.None (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2))) ≠
       SmtType.None
-  simp [__eo_to_smt_type, native_ite, native_Teq]
+    at hNonNone
+  cases hGuard :
+      native_Teq
+        (__eo_to_smt_type (__eo_typeof (Term._at_sets_deq_diff x1 x2)))
+        SmtType.None <;>
+    simp [native_ite, hGuard] at hNonNone ⊢
+  · have hMapNN :
+        term_has_non_none_type (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)) :=
+      hNonNone
+    rcases map_diff_args_of_non_none hMapNN with
+      ⟨A, B, hx1Ty, _hx2Ty, _hDiffTy⟩ |
+      ⟨A, hx1Ty, hx2Ty, hDiffTy⟩
+    · have hx1Eo :
+          __eo_to_smt_type (__eo_typeof x1) = SmtType.Map A B :=
+        eo_to_smt_type_typeof_of_smt_type_from_ih x1 ih1 hx1Ty (by simp)
+      rcases eo_to_smt_type_eq_map hx1Eo with
+        ⟨U, V, hx1EoTy, _hU, _hV⟩
+      have hNone :
+          __eo_to_smt_type
+              (__eo_typeof (Term._at_sets_deq_diff x1 x2)) =
+            SmtType.None := by
+        change
+          __eo_to_smt_type
+              (__eo_typeof__at_sets_deq_diff (__eo_typeof x1) (__eo_typeof x2)) =
+            SmtType.None
+        rw [hx1EoTy]
+        simp [__eo_typeof__at_sets_deq_diff, __eo_to_smt_type]
+      rw [hNone] at hGuard
+      simp [native_Teq] at hGuard
+    · have hx1Eo :
+          __eo_to_smt_type (__eo_typeof x1) = SmtType.Set A :=
+        eo_to_smt_type_typeof_of_smt_type_from_ih x1 ih1 hx1Ty (by simp)
+      have hx2Eo :
+          __eo_to_smt_type (__eo_typeof x2) = SmtType.Set A :=
+        eo_to_smt_type_typeof_of_smt_type_from_ih x2 ih2 hx2Ty (by simp)
+      rcases eo_to_smt_type_eq_set hx1Eo with
+        ⟨U1, hx1EoTy, hU1⟩
+      rcases eo_to_smt_type_eq_set hx2Eo with
+        ⟨U2, hx2EoTy, _hU2⟩
+      rw [hDiffTy]
+      symm
+      change
+        __eo_to_smt_type
+            (__eo_typeof__at_sets_deq_diff (__eo_typeof x1) (__eo_typeof x2)) =
+          A
+      rw [hx1EoTy, hx2EoTy]
+      cases hReq : native_teq (__eo_eq U1 U2) (Term.Boolean true)
+      · have hNone :
+            __eo_to_smt_type
+                (__eo_typeof (Term._at_sets_deq_diff x1 x2)) =
+              SmtType.None := by
+          change
+            __eo_to_smt_type
+                (__eo_typeof__at_sets_deq_diff (__eo_typeof x1) (__eo_typeof x2)) =
+              SmtType.None
+          rw [hx1EoTy, hx2EoTy]
+          simp [__eo_typeof__at_sets_deq_diff, __eo_requires, __eo_to_smt_type,
+            native_ite, hReq]
+        rw [hNone] at hGuard
+        simp [native_Teq] at hGuard
+      · have hNotStuck :
+            native_not (native_teq (__eo_eq U1 U2) Term.Stuck) = true := by
+          cases hCond : __eo_eq U1 U2 <;>
+            simp [native_teq, native_not, hCond] at hReq ⊢
+        simp [__eo_typeof__at_sets_deq_diff, __eo_requires, native_ite,
+          hReq, hNotStuck, hU1]
 
 /-- Simplifies EO-to-SMT translation for `typeof_matches_translation_purify`. -/
 theorem eo_to_smt_typeof_matches_translation_purify

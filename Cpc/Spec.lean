@@ -391,7 +391,7 @@ def __eo_to_smt : Term -> SmtTerm
     (SmtTerm.eq _v0 (SmtTerm.set_singleton (SmtTerm.map_diff _v0 (SmtTerm.set_empty (__eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x1)))))))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) Term.__eo_List_nil) x1) => SmtTerm.None
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) x1) x2) => (__eo_to_smt_set_insert x1 (__eo_to_smt x2))
-  | (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2) => (native_ite (native_Teq (__eo_to_smt_type (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2)) SmtType.None) SmtTerm.None (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)))
+  | (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2) => (native_ite (native_Teq (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2))) SmtType.None) SmtTerm.None (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) x1) x2) => (SmtTerm.qdiv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) x1) x2) => (SmtTerm.qdiv_total (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.UOp UserOp._at_div_by_zero) x1) => (SmtTerm.qdiv (__eo_to_smt x1) (SmtTerm.Rational (native_mk_rational 0 1)))
