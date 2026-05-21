@@ -59,23 +59,23 @@ def __eo_to_smt_type_is_tlist : Term -> native_Bool
   | T => false
 
 
-def __eo_to_smt_typed_list_cons_elem_type (x : Term) : Option SmtType -> Option SmtType
-  | some T => (native_ite (native_Teq (__smtx_typeof (__eo_to_smt x)) T) (some T) none)
-  | none => none
+def __eo_to_smt_typed_list_cons_elem_type (x : Term) : SmtType -> SmtType
+  | SmtType.None => SmtType.None
+  | T => (native_ite (native_Teq (__smtx_typeof (__eo_to_smt x)) T) T SmtType.None)
 
 
-def __eo_to_smt_typed_list_elem_type : Term -> Option SmtType
+def __eo_to_smt_typed_list_elem_type : Term -> SmtType
   | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) =>
     let _v0 := (__eo_to_smt_type T)
-    (native_ite (native_Teq _v0 SmtType.None) none (some _v0))
+    (native_ite (native_Teq _v0 SmtType.None) SmtType.None _v0)
   | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =>
     (__eo_to_smt_typed_list_cons_elem_type x (__eo_to_smt_typed_list_elem_type xs))
-  | xs => none
+  | xs => SmtType.None
 
 
-def __eo_to_smt_is_typed_list_result : Option SmtType -> native_Bool
-  | some T => true
-  | none => false
+def __eo_to_smt_is_typed_list_result : SmtType -> native_Bool
+  | SmtType.None => false
+  | T => true
 
 
 def __eo_to_smt_is_typed_list (xs : Term) : native_Bool :=
