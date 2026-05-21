@@ -167,15 +167,11 @@ private theorem arrays_ext_smt_array_types
       __eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff a b) =
         SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b) := by
     change
-      native_ite
-          (native_Teq
-            (__eo_to_smt_type
-              (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff a b)))
-            SmtType.None)
-          SmtTerm.None (SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)) =
+      __eo_to_smt_array_deq_diff (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+          (__smtx_typeof (__eo_to_smt b)) =
         SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)
-    rw [hIdxTy]
-    simp [native_ite, native_Teq, hComps.1]
+    simp [__eo_to_smt_array_deq_diff, hSmtA, hSmtB]
   have hIdxSmtTy :
       __smtx_typeof (__eo_to_smt (Term.UOp2 UserOp2._at_array_deq_diff a b)) =
         __eo_to_smt_type I := by
