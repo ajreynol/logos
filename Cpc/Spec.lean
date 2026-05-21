@@ -122,6 +122,7 @@ def __eo_to_smt_nat : Term -> native_Nat
   | (Term.Numeral n) => (native_int_to_nat n)
   | t => native_nat_zero
 
+
 def __eo_to_smt_nat_is_valid : Term -> native_Bool
   | (Term.Numeral n) => (native_zleq 0 n)
   | t => false
