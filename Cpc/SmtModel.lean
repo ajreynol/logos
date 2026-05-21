@@ -466,26 +466,24 @@ structure SmtModelKey where
 deriving Repr, DecidableEq, Inhabited
 
 structure SmtModel where
-  values : SmtModelKey -> Option SmtValue
-  nativeFuns : SmtModelKey -> Option SmtNativeFun
+  values : SmtModelKey -> SmtValue
+  nativeFuns : SmtModelKey -> SmtNativeFun
 deriving Inhabited
 
 def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
   { name := s, ty := T }
 
 def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  match M.values (native_model_key s T) with
-  | some v => v
-  | none => SmtValue.NotValue
+  M.values (native_model_key s T)
 
 def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
       if k = (native_model_key s T) then
-        some v
+        v
       else
         M.values k }
 
-def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : Option SmtNativeFun :=
+def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
   M.nativeFuns (native_model_key fid (SmtType.FunType T U))
 
 abbrev RefList := List native_String
@@ -1959,9 +1957,7 @@ def native_eval_ifun_apply (M : SmtModel) (fid : native_String) (T U : SmtType) 
   if fid = native_default_ifun_id then
     fallback
   else
-    match native_model_fun_lookup M fid T U with
-    | some f => f i
-    | none => fallback
+    native_model_fun_lookup M fid T U i
 
 def native_unpack_seq : SmtSeq -> List SmtValue
   | (SmtSeq.cons v vs) => v :: (native_unpack_seq vs)
@@ -2224,7 +2220,9 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.qdiv x1 x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
-    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Rational (native_mk_rational 0 1))) (__smtx_model_eval_apply M (native_model_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real)) _v1) (__smtx_model_eval_qdiv_total (__smtx_model_eval_to_real _v1) (__smtx_model_eval_to_real _v0)))
+    let _v0r := (__smtx_model_eval_to_real _v0)
+    let _v1r := (__smtx_model_eval_to_real _v1)
+    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0r (SmtValue.Rational (native_mk_rational 0 1))) (__smtx_model_eval_apply M (native_model_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real)) _v1r) (__smtx_model_eval_qdiv_total _v1 _v0))
   | (SmtTerm.qdiv_total x1 x2) => (__smtx_model_eval_qdiv_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.int_to_bv x1 x2) => (__smtx_model_eval_int_to_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.ubv_to_int x1) => (__smtx_model_eval_ubv_to_int (__smtx_model_eval M x1))

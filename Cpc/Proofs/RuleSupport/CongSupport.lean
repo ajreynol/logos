@@ -7309,13 +7309,15 @@ private noncomputable abbrev smtEvalQdiv
     (M : SmtModel) (x₁ x₂ : SmtValue) : SmtValue :=
   let _v0 := x₂
   let _v1 := x₁
+  let _v0r := __smtx_model_eval_to_real _v0
+  let _v1r := __smtx_model_eval_to_real _v1
   __smtx_model_eval_ite
-    (__smtx_model_eval_eq _v0
+    (__smtx_model_eval_eq _v0r
       (SmtValue.Rational (native_mk_rational 0 1)))
       (__smtx_model_eval_apply M
       (native_model_lookup M native_qdiv_by_zero_id
         (SmtType.FunType SmtType.Real SmtType.Real))
-      _v1)
+      _v1r)
     (__smtx_model_eval_qdiv_total _v1 _v0)
 
 private theorem div_by_zero_arg_non_reg_of_non_none (a : SmtTerm) :
