@@ -796,7 +796,7 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Set m) => (__smtx_map_to_set_type (__smtx_typeof_map_value m))
   | (SmtValue.Fun i T U) => (SmtType.FunType T U)
   | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
-  | (SmtValue.Char c) => SmtType.Char
+  | (SmtValue.Char c) => native_ite (native_char_in_cpc_range c) SmtType.Char SmtType.None
   | (SmtValue.UValue i e) => (SmtType.USort i)
   | (SmtValue.DtCons s d i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
   | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
@@ -1672,7 +1672,8 @@ def __smtx_typeof : SmtTerm -> SmtType
   | (SmtTerm.Boolean b) => SmtType.Bool
   | (SmtTerm.Numeral n) => SmtType.Int
   | (SmtTerm.Rational r) => SmtType.Real
-  | (SmtTerm.String s) => (SmtType.Seq SmtType.Char)
+  | (SmtTerm.String s) =>
+      native_ite (native_string_in_cpc_range s) (SmtType.Seq SmtType.Char) SmtType.None
   | (SmtTerm.Binary w n) => (native_ite (native_and (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w)))) (SmtType.BitVec (native_int_to_nat w)) SmtType.None)
   | (SmtTerm.not x1) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) SmtType.Bool SmtType.None)
   | (SmtTerm.or x1 x2) => (native_ite (native_Teq (__smtx_typeof x1) SmtType.Bool) (native_ite (native_Teq (__smtx_typeof x2) SmtType.Bool) SmtType.Bool SmtType.None) SmtType.None)
@@ -1947,6 +1948,7 @@ def __smtx_value_canonical_bool : SmtValue -> native_Bool
   | (SmtValue.Map m) => (__smtx_map_canonical m)
   | (SmtValue.Set m) => (native_and (__smtx_map_canonical m) (native_veq (__smtx_msm_get_default m) (SmtValue.Boolean false)))
   | (SmtValue.Seq s) => (__smtx_seq_canonical s)
+  | (SmtValue.Char c) => native_char_in_cpc_range c
   | (SmtValue.Apply f v) => (native_and (__smtx_value_canonical_bool f) (__smtx_value_canonical_bool v))
   | v => true
 

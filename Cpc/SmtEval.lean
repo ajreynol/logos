@@ -86,12 +86,22 @@ def native_to_real : native_Int -> native_Rat
 -- Strings
 def native_nat_to_char : native_Nat -> native_Char
   | x => (Char.ofNat x)
+def native_char_in_cpc_range (c : native_Char) : native_Bool :=
+  native_zlt (Int.ofNat c.toNat) 196608
+def native_chars_in_cpc_range : List native_Char -> native_Bool
+  | [] => true
+  | c :: cs => native_and (native_char_in_cpc_range c) (native_chars_in_cpc_range cs)
+def native_string_in_cpc_range (s : native_String) : native_Bool :=
+  native_chars_in_cpc_range s.toList
+def native_str_code_is_valid (i : native_Int) : native_Bool :=
+  native_and (native_and (native_zleq 0 i) (native_zlt i 196608))
+    (native_zeq (Int.ofNat (native_nat_to_char (Int.toNat i)).toNat) i)
 def native_str_to_code (s : native_String) : native_Int :=
   match s.toList with
-  | [c] => Int.ofNat c.toNat
+  | [c] => if native_char_in_cpc_range c then Int.ofNat c.toNat else -1
   | _   => -1
 def native_str_from_code (i : native_Int) : native_String :=
-  if (0 <= i && i < 196608) then
+  if native_str_code_is_valid i then
     String.singleton (native_nat_to_char (Int.toNat i))
   else
     ""
