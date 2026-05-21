@@ -12304,7 +12304,8 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
               __eo_to_smt_re_unfold_pos_component
                 (__eo_to_smt z) (__eo_to_smt y) (native_int_to_nat n) := by
           rw [hTranslate]
-          simp [__eo_to_smt_nat_is_valid, __eo_to_smt_nat, native_ite, hValidTrue]
+          rw [hValidTrue]
+          simp [__eo_to_smt_nat, native_ite]
         have hCompNN :
             term_has_non_none_type
               (__eo_to_smt_re_unfold_pos_component
