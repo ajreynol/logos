@@ -1657,10 +1657,26 @@ def __eo_prog_arith_sum_ub : Proof -> Term
 
 def __mk_arith_mult_pos : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
-  | m, (Term.Apply (Term.Apply r a) b) => 
+  | m, (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) => 
     let _v0 := (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof m))
     let _v1 := (Term.Apply (Term.UOp UserOp.mult) m)
-    (__eo_mk_apply (__eo_mk_apply r (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) _v0))) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) _v0)))
+    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.eq) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) _v0))) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) _v0)))
+  | m, (Term.Apply (Term.Apply (Term.UOp UserOp.lt) a) b) => 
+    let _v0 := (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof m))
+    let _v1 := (Term.Apply (Term.UOp UserOp.mult) m)
+    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.lt) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) _v0))) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) _v0)))
+  | m, (Term.Apply (Term.Apply (Term.UOp UserOp.leq) a) b) => 
+    let _v0 := (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof m))
+    let _v1 := (Term.Apply (Term.UOp UserOp.mult) m)
+    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.leq) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) _v0))) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) _v0)))
+  | m, (Term.Apply (Term.Apply (Term.UOp UserOp.geq) a) b) => 
+    let _v0 := (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof m))
+    let _v1 := (Term.Apply (Term.UOp UserOp.mult) m)
+    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.geq) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) _v0))) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) _v0)))
+  | m, (Term.Apply (Term.Apply (Term.UOp UserOp.gt) a) b) => 
+    let _v0 := (__eo_nil (Term.UOp UserOp.mult) (__eo_typeof m))
+    let _v1 := (Term.Apply (Term.UOp UserOp.mult) m)
+    (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.gt) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) _v0))) (__eo_mk_apply _v1 (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) _v0)))
   | _, _ => Term.Stuck
 
 
