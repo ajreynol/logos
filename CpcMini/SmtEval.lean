@@ -117,6 +117,10 @@ def native_char_to_cpc_code (c : native_Char) : native_Int :=
     -1
 def native_char_in_cpc_range (c : native_Char) : native_Bool :=
   native_not (native_zeq (native_char_to_cpc_code c) (-1 : native_Int))
+def native_cpc_sanitize_char (c : native_Char) : native_Char :=
+  native_ite (native_char_in_cpc_range c) c (native_nat_to_char 0)
+def native_cpc_sanitize_string (s : native_String) : native_String :=
+  String.ofList (s.toList.map native_cpc_sanitize_char)
 def native_chars_in_cpc_range : List native_Char -> native_Bool
   | [] => true
   | c :: cs => native_and (native_char_in_cpc_range c) (native_chars_in_cpc_range cs)
@@ -128,7 +132,7 @@ def native_str_to_code (s : native_String) : native_Int :=
   | _   => -1
 def native_str_from_code (i : native_Int) : native_String :=
   if native_str_code_is_valid i then
-    String.singleton (native_cpc_code_to_char i)
+    String.singleton (native_cpc_sanitize_char (native_cpc_code_to_char i))
   else
     ""
 def native_streq : native_String -> native_String -> native_Bool

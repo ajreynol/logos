@@ -6,7 +6,7 @@ open Smtm
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
-set_option maxRecDepth 10000
+set_option maxRecDepth 15000
 set_option maxHeartbeats 10000000
 
 namespace Smtm
@@ -39,7 +39,7 @@ theorem typeof_seq_value_shape :
 def dt_cons_chain_result : SmtType -> Prop
   | SmtType.None => True
   | SmtType.Datatype _ _ => True
-  | SmtType.DtcAppType _ _ => True
+  | SmtType.DtcAppType _ U => dt_cons_chain_result U
   | _ => False
 
 /-- Lemma about `typeof_dt_cons_value_rec_chain_result`. -/
@@ -91,23 +91,357 @@ theorem dt_cons_chain_result_of_dt_cons_value_type
     rw [hInner] at hShape
     exact hShape
 
+private def value_apply_depth : SmtValue -> Nat
+  | SmtValue.Apply f _ => Nat.succ (value_apply_depth f)
+  | _ => 0
+
 /-- Lemma about datatype-constructor application chains. -/
-axiom typeof_value_dt_cons_head_type_chain_result :
+theorem typeof_value_dt_cons_head_type_chain_result :
     ∀ v : SmtValue, ∀ T U : SmtType,
       (∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i) ->
-      __smtx_typeof_value v = SmtType.DtcAppType T U -> dt_cons_chain_result U
+      __smtx_typeof_value v = SmtType.DtcAppType T U -> dt_cons_chain_result U := by
+  have hAll :
+      ∀ n v T U,
+        value_apply_depth v = n ->
+        (∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i) ->
+        __smtx_typeof_value v = SmtType.DtcAppType T U ->
+        dt_cons_chain_result U := by
+    intro n
+    induction n using Nat.strongRecOn with
+    | ind n ih =>
+        intro v T U hDepth hHead h
+        cases v with
+        | NotValue =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Boolean _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Numeral _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Rational _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Binary _ _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Map _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Fun _ _ _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Set _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Seq _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Char _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | UValue _ _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | RegLan _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | DtCons s d i =>
+            have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+            have hInner :
+                __smtx_typeof_dt_cons_value_rec
+                    (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+                  SmtType.DtcAppType T U :=
+              typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
+            rw [hInner] at hShape
+            simpa [dt_cons_chain_result] using hShape
+        | Apply f v =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
+              simpa [__vsm_apply_head] using hHead
+            have hApply :
+                __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v) =
+                  SmtType.DtcAppType T U := by
+              change
+                (match __vsm_apply_head f with
+                | SmtValue.DtCons _ _ _ =>
+                    __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v)
+                | _ => SmtType.None) = SmtType.DtcAppType T U at h
+              simpa [hHeadF] using h
+            cases hf : __smtx_typeof_value f <;>
+              rw [hf] at hApply <;>
+              simp [__smtx_typeof_apply_value] at hApply
+            case DtcAppType A B =>
+              cases hNone : native_Teq A SmtType.None <;>
+              cases hEq : native_Teq A (__smtx_typeof_value v) <;>
+                simp [__smtx_typeof_guard, native_ite, hNone, hEq] at hApply
+              have hlt : value_apply_depth f < n := by
+                have hSucc : Nat.succ (value_apply_depth f) = n := by
+                  simpa [value_apply_depth] using hDepth
+                rw [← hSucc]
+                exact Nat.lt_succ_self _
+              have hShape :=
+                ih (value_apply_depth f) hlt f A B rfl ⟨s, d, i, hHeadF⟩ hf
+              cases hApply
+              simpa [dt_cons_chain_result] using hShape
+  intro v T U hHead h
+  exact hAll (value_apply_depth v) v T U rfl hHead h
 
 /-- Values whose application head is a datatype constructor always have constructor-chain result types. -/
-axiom typeof_value_dt_cons_head_chain_result :
+theorem typeof_value_dt_cons_head_chain_result :
     ∀ v : SmtValue, ∀ T : SmtType,
       (∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i) ->
-      __smtx_typeof_value v = T -> dt_cons_chain_result T
+      __smtx_typeof_value v = T -> dt_cons_chain_result T := by
+  intro v T hHead h
+  cases v with
+  | NotValue =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Boolean _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Numeral _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Rational _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Binary _ _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Map _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Fun _ _ _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Set _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Seq _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Char _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | UValue _ _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | RegLan _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | DtCons s d i =>
+      simpa using dt_cons_chain_result_of_dt_cons_value_type h
+  | Apply f v =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
+        simpa [__vsm_apply_head] using hHead
+      have hApply :
+          __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v) = T := by
+        change
+          (match __vsm_apply_head f with
+          | SmtValue.DtCons _ _ _ =>
+              __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v)
+          | _ => SmtType.None) = T at h
+        simpa [hHeadF] using h
+      cases hf : __smtx_typeof_value f
+      case None =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Bool =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Int =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Real =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case RegLan =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case BitVec n =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Map A B =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Set A =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Seq A =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Char =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Datatype s' d' =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case TypeRef s' =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case USort u =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case FunType A B =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case DtcAppType A B =>
+        cases hNone : native_Teq A SmtType.None
+        case false =>
+          cases hEq : native_Teq A (__smtx_typeof_value v)
+          case false =>
+            have hNoneTy : SmtType.None = T := by
+              simpa [hf, __smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, hNone, hEq] using hApply
+            cases hNoneTy
+            simp [dt_cons_chain_result]
+          case true =>
+            have hBTy : B = T := by
+              simpa [hf, __smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, hNone, hEq] using hApply
+            have hShape :=
+              typeof_value_dt_cons_head_type_chain_result f A B ⟨s, d, i, hHeadF⟩ hf
+            cases hBTy
+            exact hShape
+        case true =>
+          have hNoneTy : SmtType.None = T := by
+            simpa [hf, __smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, hNone] using hApply
+          cases hNoneTy
+          simp [dt_cons_chain_result]
 
 /-- Raw applications without datatype-constructor heads have type `none`. -/
-axiom typeof_value_apply_of_head_ne_dt_cons :
+theorem typeof_value_apply_of_head_ne_dt_cons :
     ∀ v i : SmtValue,
       (∀ s d n, __vsm_apply_head v ≠ SmtValue.DtCons s d n) ->
-      __smtx_typeof_value (SmtValue.Apply v i) = SmtType.None
+      __smtx_typeof_value (SmtValue.Apply v i) = SmtType.None := by
+  intro v i hDt
+  cases v with
+  | NotValue =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Boolean b =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Numeral n =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Rational q =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Binary w n =>
+      cases hWidth : native_zleq 0 w <;>
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite,
+            SmtEval.native_and, hWidth, hMod]
+  | Map m =>
+      simp [__smtx_typeof_value, __vsm_apply_head]
+  | Fun fid A B =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Set m =>
+      simp [__smtx_typeof_value, __vsm_apply_head]
+  | Seq ss =>
+      simp [__smtx_typeof_value, __vsm_apply_head]
+  | Char c =>
+      cases hc : native_char_in_cpc_range c <;>
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite, hc]
+  | UValue u k =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | RegLan r =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | DtCons s d n =>
+      exact False.elim (hDt s d n rfl)
+  | Apply f a =>
+      change
+        (match __vsm_apply_head f with
+        | SmtValue.DtCons _ _ _ =>
+            __smtx_typeof_apply_value
+              (__smtx_typeof_value (SmtValue.Apply f a)) (__smtx_typeof_value i)
+        | _ => SmtType.None) = SmtType.None
+      cases hHead : __vsm_apply_head f with
+      | DtCons s d n =>
+          exact False.elim (hDt s d n (by simpa [__vsm_apply_head] using hHead))
+      | _ =>
+          simp [hHead]
+/- old recursive proof body, kept here while this obligation is split up
+  | SmtValue.NotValue, i, hDt => by
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.Boolean _, i, hDt => by
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.Numeral _, i, hDt => by
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.Rational _, i, hDt => by
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.Binary w n, i, hDt => by
+      cases hWidth : native_zleq 0 w <;>
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite,
+            SmtEval.native_and, hWidth, hMod]
+  | SmtValue.Map m, i, hDt => by
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨T, U, hMap⟩
+          change __smtx_typeof_apply_value (__smtx_typeof_map_value m) (__smtx_typeof_value i) = SmtType.None
+          rw [hMap]
+          simp [__smtx_typeof_apply_value]
+      | inr hNone =>
+          change __smtx_typeof_apply_value (__smtx_typeof_map_value m) (__smtx_typeof_value i) = SmtType.None
+          rw [hNone]
+          simp [__smtx_typeof_apply_value]
+  | SmtValue.Fun fid A B, i, hDt => by
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.Set m, i, hDt => by
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨T, U, hMap⟩
+          change __smtx_typeof_apply_value (__smtx_map_to_set_type (__smtx_typeof_map_value m)) (__smtx_typeof_value i) = SmtType.None
+          rw [hMap]
+          cases U <;> simp [__smtx_map_to_set_type, __smtx_typeof_apply_value]
+      | inr hNone =>
+          change __smtx_typeof_apply_value (__smtx_map_to_set_type (__smtx_typeof_map_value m)) (__smtx_typeof_value i) = SmtType.None
+          rw [hNone]
+          simp [__smtx_map_to_set_type, __smtx_typeof_apply_value]
+  | SmtValue.Seq ss, i, hDt => by
+      cases typeof_seq_value_shape ss with
+      | inl hSeq =>
+          rcases hSeq with ⟨T, hSeq⟩
+          change __smtx_typeof_apply_value (__smtx_typeof_seq_value ss) (__smtx_typeof_value i) = SmtType.None
+          rw [hSeq]
+          simp [__smtx_typeof_apply_value]
+      | inr hNone =>
+          change __smtx_typeof_apply_value (__smtx_typeof_seq_value ss) (__smtx_typeof_value i) = SmtType.None
+          rw [hNone]
+          simp [__smtx_typeof_apply_value]
+  | SmtValue.Char c, i, hDt => by
+      cases hc : native_char_in_cpc_range c <;>
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite, hc]
+  | SmtValue.UValue _ _, i, hDt => by
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.RegLan _, i, hDt => by
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.DtCons s d n, i, hDt => by
+      exact False.elim (hDt s d n rfl)
+  | SmtValue.Apply f a, i, hDt => by
+      have hDtF : ∀ s d n, __vsm_apply_head f ≠ SmtValue.DtCons s d n := by
+        intro s d n hm
+        exact hDt s d n (by simpa [__vsm_apply_head] using hm)
+      have hNone :
+          __smtx_typeof_value (SmtValue.Apply f a) = SmtType.None :=
+        typeof_value_apply_of_head_ne_dt_cons f a hDtF
+      change __smtx_typeof_apply_value (__smtx_typeof_value (SmtValue.Apply f a)) (__smtx_typeof_value i) = SmtType.None
+      rw [hNone]
+      simp [__smtx_typeof_apply_value]
+-/
 
 /--
 Proof bridge for the canonical-form lemmas. With the current unguarded value-level
@@ -1095,40 +1429,119 @@ theorem typeof_pack_string_of_range
     __smtx_typeof_seq_value (native_pack_string s) = SmtType.Seq SmtType.Char := by
   simpa [hs, native_ite] using typeof_pack_string s
 
-axiom native_string_in_cpc_range_unpack_string_of_type
+@[simp] theorem native_char_in_cpc_range_char_zero :
+    native_char_in_cpc_range (Char.ofNat 0) = true := by
+  native_decide
+
+theorem native_cpc_sanitize_char_in_range
+    (c : native_Char) :
+    native_char_in_cpc_range (native_cpc_sanitize_char c) = true := by
+  cases hc : native_char_in_cpc_range c <;>
+    simp [native_cpc_sanitize_char, native_ite, hc]
+
+theorem native_chars_in_cpc_range_map_sanitize :
+    ∀ cs : List native_Char,
+      native_chars_in_cpc_range (cs.map native_cpc_sanitize_char) = true
+  | [] => by
+      simp [native_chars_in_cpc_range]
+  | c :: cs => by
+      simp [native_chars_in_cpc_range, SmtEval.native_and,
+        native_cpc_sanitize_char_in_range, native_chars_in_cpc_range_map_sanitize cs]
+
+theorem native_string_in_cpc_range_sanitize
+    (s : native_String) :
+    native_string_in_cpc_range (native_cpc_sanitize_string s) = true := by
+  simpa [native_cpc_sanitize_string, native_string_in_cpc_range] using
+    native_chars_in_cpc_range_map_sanitize s.toList
+
+theorem native_chars_in_cpc_range_of_char_values_typed :
+    ∀ {xs : List SmtValue},
+      list_typed SmtType.Char xs ->
+        native_chars_in_cpc_range (xs.map native_ssm_char_of_value) = true
+  | [], _ => by
+      simp [native_chars_in_cpc_range]
+  | v :: vs, h => by
+      rcases h with ⟨hv, hvs⟩
+      have htail := native_chars_in_cpc_range_of_char_values_typed hvs
+      cases v <;>
+        simp [native_ssm_char_of_value, native_chars_in_cpc_range,
+          SmtEval.native_and, native_char_in_cpc_range_char_zero, htail]
+      case Char c =>
+        cases hc : native_char_in_cpc_range c <;>
+          simp [__smtx_typeof_value, native_ite, hc] at hv
+        simp [native_ssm_char_of_value, native_chars_in_cpc_range,
+          SmtEval.native_and, hc, htail]
+
+theorem native_string_in_cpc_range_unpack_string_of_type
     {ss : SmtSeq} :
     __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char ->
-      native_string_in_cpc_range (native_unpack_string ss) = true
+      native_string_in_cpc_range (native_unpack_string ss) = true := by
+  intro hss
+  have htyped : list_typed SmtType.Char (native_unpack_seq ss) :=
+    typed_unpack_seq_of_typeof_seq_value hss
+  simpa [native_unpack_string, native_ssm_string_of_char_values,
+    native_string_in_cpc_range] using
+    native_chars_in_cpc_range_of_char_values_typed htyped
 
-axiom native_string_in_cpc_range_str_to_lower
+theorem native_string_in_cpc_range_str_to_lower
     {s : native_String} :
     native_string_in_cpc_range s = true ->
-      native_string_in_cpc_range (native_str_to_lower s) = true
+      native_string_in_cpc_range (native_str_to_lower s) = true := by
+  intro _hs
+  simpa [native_str_to_lower] using
+    native_string_in_cpc_range_sanitize s.toLower
 
-axiom native_string_in_cpc_range_str_to_upper
+theorem native_string_in_cpc_range_str_to_upper
     {s : native_String} :
     native_string_in_cpc_range s = true ->
-      native_string_in_cpc_range (native_str_to_upper s) = true
+      native_string_in_cpc_range (native_str_to_upper s) = true := by
+  intro _hs
+  simpa [native_str_to_upper] using
+    native_string_in_cpc_range_sanitize s.toUpper
 
-axiom native_string_in_cpc_range_str_replace_re
+theorem native_string_in_cpc_range_str_replace_re
     {s replacement : native_String} {r : native_RegLan} :
     native_string_in_cpc_range s = true ->
-      native_string_in_cpc_range replacement = true ->
-        native_string_in_cpc_range (native_str_replace_re s r replacement) = true
+    native_string_in_cpc_range replacement = true ->
+        native_string_in_cpc_range (native_str_replace_re s r replacement) = true := by
+  intro _hs _hrepl
+  change native_string_in_cpc_range
+    (native_cpc_sanitize_string
+      (match native_re_find_nonempty_idx_from r s.toList 0 with
+      | some (idx, len) =>
+          String.ofList <| (s.toList.take idx) ++ replacement.toList ++
+            (s.toList.drop (idx + len))
+      | none => s)) = true
+  exact native_string_in_cpc_range_sanitize
+    (match native_re_find_nonempty_idx_from r s.toList 0 with
+      | some (idx, len) =>
+          String.ofList <| (s.toList.take idx) ++ replacement.toList ++
+            (s.toList.drop (idx + len))
+      | none => s)
 
-axiom native_string_in_cpc_range_str_replace_re_all
+theorem native_string_in_cpc_range_str_replace_re_all
     {s replacement : native_String} {r : native_RegLan} :
     native_string_in_cpc_range s = true ->
-      native_string_in_cpc_range replacement = true ->
-        native_string_in_cpc_range (native_str_replace_re_all s r replacement) = true
+    native_string_in_cpc_range replacement = true ->
+        native_string_in_cpc_range (native_str_replace_re_all s r replacement) = true := by
+  intro _hs _hrepl
+  simpa [native_str_replace_re_all] using
+    native_string_in_cpc_range_sanitize
+      (String.ofList <| native_re_replace_all_nonempty_list r replacement.toList s.toList)
 
-axiom native_string_in_cpc_range_str_from_code
+theorem native_string_in_cpc_range_str_from_code
     (n : native_Int) :
-    native_string_in_cpc_range (native_str_from_code n) = true
+    native_string_in_cpc_range (native_str_from_code n) = true := by
+  cases h : native_str_code_is_valid n <;>
+    simp [native_str_from_code, h, native_string_in_cpc_range,
+      native_chars_in_cpc_range, SmtEval.native_and,
+      native_cpc_sanitize_char_in_range]
 
-axiom native_string_in_cpc_range_str_from_int
+theorem native_string_in_cpc_range_str_from_int
     (n : native_Int) :
-    native_string_in_cpc_range (native_str_from_int n) = true
+    native_string_in_cpc_range (native_str_from_int n) = true := by
+  simpa [native_str_from_int] using
+    native_string_in_cpc_range_sanitize (if n < 0 then "" else toString n)
 
 /-- Shows that evaluating `string` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_string

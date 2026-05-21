@@ -52,16 +52,16 @@ def native_cpc_char_in_range (c lo hi : native_Char) : native_Bool :=
 def native_str_lt : native_String -> native_String -> native_Bool
   | s₁, s₂ => native_cpc_char_list_lt s₁.toList s₂.toList
 def native_str_from_int : native_Int -> native_String
-  | i => if i < 0 then "" else (toString i)
+  | i => native_cpc_sanitize_string (if i < 0 then "" else (toString i))
 def native_str_to_int : native_String -> native_Int
   | s => match s.toList with
           | [] => -1
           | '0' :: _ :: _ => -1
           | cs => s.toInt?.getD (-1)
 def native_str_to_upper : native_String -> native_String
-  | s => s.toUpper
+  | s => native_cpc_sanitize_string s.toUpper
 def native_str_to_lower : native_String -> native_String
-  | s => s.toLower
+  | s => native_cpc_sanitize_string s.toLower
 
 -- Regular expressions
 
@@ -215,7 +215,9 @@ def native_re_range : native_String -> native_String -> native_RegLan
       | _, _ => .empty
 def native_str_in_re : native_String -> native_RegLan -> native_Bool
   | s, r =>
-      native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
+      native_ite (native_string_in_cpc_range s)
+        (native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r)
+        false
 def native_str_indexof_re : native_String -> native_RegLan -> native_Int -> native_Int
   | s, r, i =>
       if i < 0 then
@@ -226,13 +228,15 @@ def native_str_indexof_re : native_String -> native_RegLan -> native_Int -> nati
         | none => -1
 def native_str_replace_re : native_String -> native_RegLan -> native_String -> native_String
   | s, r, replacement =>
-      match native_re_find_nonempty_idx_from r s.toList 0 with
-      | some (idx, len) =>
-          String.ofList <| (s.toList.take idx) ++ replacement.toList ++ (s.toList.drop (idx + len))
-      | none => s
+      native_cpc_sanitize_string <|
+        match native_re_find_nonempty_idx_from r s.toList 0 with
+        | some (idx, len) =>
+            String.ofList <| (s.toList.take idx) ++ replacement.toList ++ (s.toList.drop (idx + len))
+        | none => s
 def native_str_replace_re_all : native_String -> native_RegLan -> native_String -> native_String
   | s, r, replacement =>
-      String.ofList <| native_re_replace_all_nonempty_list r replacement.toList s.toList
+      native_cpc_sanitize_string <|
+        String.ofList <| native_re_replace_all_nonempty_list r replacement.toList s.toList
 def native_re_allchar : native_RegLan := .allchar
 def native_re_none : native_RegLan := .empty
 def native_re_all : native_RegLan := .star .allchar
@@ -671,7 +675,11 @@ def __smtx_typeof_value : SmtValue -> SmtType
   | (SmtValue.Char c) => native_ite (native_char_in_cpc_range c) SmtType.Char SmtType.None
   | (SmtValue.UValue i e) => (SmtType.USort i)
   | (SmtValue.DtCons s d i) => (__smtx_typeof_dt_cons_value_rec (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i)
-  | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
+  | (SmtValue.Apply f v) =>
+    match __vsm_apply_head f with
+    | SmtValue.DtCons _ _ _ =>
+        __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v)
+    | _ => SmtType.None
   | v => SmtType.None
 
 

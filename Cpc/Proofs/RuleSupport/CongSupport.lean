@@ -12,14 +12,18 @@ set_option maxHeartbeats 10000000
 
 namespace CongSupport
 
-private axiom native_str_in_re_ext_of_cpc_ext
+private theorem native_str_in_re_ext_of_cpc_ext
     {r r' : native_RegLan}
     (h :
       ∀ s : native_String,
         native_string_in_cpc_range s = true ->
           native_str_in_re s r = native_str_in_re s r') :
     ∀ s : native_String,
-      native_str_in_re s r = native_str_in_re s r'
+      native_str_in_re s r = native_str_in_re s r' := by
+  intro s
+  cases hs : native_string_in_cpc_range s
+  · simp [native_str_in_re, native_ite, hs]
+  · simpa [native_str_in_re, native_ite, hs] using h s hs
 
 private abbrev mkEq (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y

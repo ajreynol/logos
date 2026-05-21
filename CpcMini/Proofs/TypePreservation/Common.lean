@@ -377,12 +377,74 @@ theorem ifun_type_wf_components_of_wf
     __smtx_type_wf A = true ∧ __smtx_type_wf B = true := by
   exact fun_type_wf_components_of_wf h
 
-private axiom value_dt_substitute_canonical
+private def value_dt_substitute_size : SmtValue -> Nat
+  | SmtValue.Apply f a =>
+      Nat.succ (value_dt_substitute_size f + value_dt_substitute_size a)
+  | _ => 0
+
+private theorem value_dt_substitute_canonical
     (s : native_String)
     (d : SmtDatatype) :
     (v : SmtValue) ->
       __smtx_value_canonical v ->
-        __smtx_value_canonical (__smtx_value_dt_substitute s d v)
+        __smtx_value_canonical (__smtx_value_dt_substitute s d v) := by
+  have hAll :
+      ∀ n (v : SmtValue),
+        value_dt_substitute_size v = n ->
+        __smtx_value_canonical v ->
+          __smtx_value_canonical (__smtx_value_dt_substitute s d v) := by
+    intro n
+    induction n using Nat.strongRecOn with
+    | ind n ih =>
+        intro v hSize h
+        cases v with
+        | NotValue =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Boolean b =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Numeral n =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Rational q =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Binary w n =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Map m =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Fun fid T U =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Set m =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Seq ss =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Char c =>
+            simpa [__smtx_value_dt_substitute] using h
+        | UValue i e =>
+            simpa [__smtx_value_dt_substitute] using h
+        | RegLan r =>
+            simpa [__smtx_value_dt_substitute] using h
+        | DtCons s' d' i =>
+            simpa [__smtx_value_dt_substitute] using h
+        | Apply f a =>
+            simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_and] at h
+            have hSizeF : value_dt_substitute_size f < n := by
+              have hSucc :
+                  Nat.succ (value_dt_substitute_size f + value_dt_substitute_size a) = n := by
+                simpa [value_dt_substitute_size] using hSize
+              rw [← hSucc]
+              exact Nat.lt_succ_of_le (Nat.le_add_right _ _)
+            have hSizeA : value_dt_substitute_size a < n := by
+              have hSucc :
+                  Nat.succ (value_dt_substitute_size f + value_dt_substitute_size a) = n := by
+                simpa [value_dt_substitute_size] using hSize
+              rw [← hSucc]
+              exact Nat.lt_succ_of_le (Nat.le_add_left _ _)
+            have hf := ih (value_dt_substitute_size f) hSizeF f rfl h.1
+            have ha := ih (value_dt_substitute_size a) hSizeA a rfl h.2
+            simp [__smtx_value_dt_substitute, __smtx_value_canonical,
+              __smtx_value_canonical_bool, native_and] at hf ha ⊢
+            exact ⟨hf, ha⟩
+  intro v h
+  exact hAll (value_dt_substitute_size v) v rfl h
 
 private theorem native_veq_notValue_false_of_ne
     {v : SmtValue}

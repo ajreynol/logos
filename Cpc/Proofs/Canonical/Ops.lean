@@ -1404,10 +1404,55 @@ theorem model_eval_seq_nth_canonical
     exact seq_nth_aux_canonical hs
       (model_eval_seq_nth_wrong_canonical M hM s n (__smtx_typeof_seq_value s))
 
-axiom vsm_apply_arg_nth_canonical :
+theorem vsm_apply_arg_nth_canonical :
     ∀ {v : SmtValue} {n npos : native_Nat},
       __smtx_value_canonical v ->
         __smtx_value_canonical (__vsm_apply_arg_nth v n npos)
+  | SmtValue.Apply f a, n, npos, hv => by
+      cases npos with
+      | zero =>
+          simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+      | succ npos =>
+          have hf : __smtx_value_canonical f := by
+            have hParts := hv
+            simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+              SmtEval.native_and] at hParts
+            exact hParts.1
+          have ha : __smtx_value_canonical a := by
+            have hParts := hv
+            simp [__smtx_value_canonical, __smtx_value_canonical_bool,
+              SmtEval.native_and] at hParts
+            exact hParts.2
+          cases hEq : native_nateq n npos
+          · simpa [__vsm_apply_arg_nth, hEq] using
+              vsm_apply_arg_nth_canonical hf
+          · simpa [__vsm_apply_arg_nth, hEq] using ha
+  | SmtValue.NotValue, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Boolean b, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Numeral k, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Rational q, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Binary w k, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Map m, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Fun fid A B, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Set m, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Seq s, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.Char c, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.UValue u k, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.RegLan r, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
+  | SmtValue.DtCons s d i, n, npos, hv => by
+      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
 
 theorem model_eval_dt_sel_wrong_canonical
     (M : SmtModel)

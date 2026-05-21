@@ -4118,10 +4118,68 @@ private theorem smtx_value_dt_substitute_apply_arg_nth
   | SmtValue.RegLan _, _, _ => rfl
   | SmtValue.DtCons _ _ _, _, _ => rfl
 
-private axiom smtx_value_dtc_app_type_head_exists_apply :
+private theorem smtx_value_dtc_app_type_head_exists_apply :
     (v : SmtValue) -> {A B : SmtType} ->
       __smtx_typeof_value v = SmtType.DtcAppType A B ->
-      ∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i
+      ∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i := by
+  intro v A B h
+  cases v with
+  | NotValue =>
+      simp [__smtx_typeof_value] at h
+  | Boolean b =>
+      simp [__smtx_typeof_value] at h
+  | Numeral n =>
+      simp [__smtx_typeof_value] at h
+  | Rational q =>
+      simp [__smtx_typeof_value] at h
+  | Binary w n =>
+      cases hWidth : native_zleq 0 w <;>
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and,
+            hWidth, hMod] at h
+  | Map m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨K, V, hMap⟩
+          simp [__smtx_typeof_value, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at h
+  | Fun fid A' B' =>
+      simp [__smtx_typeof_value] at h
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨K, V, hMap⟩
+          cases V <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
+  | Seq ss =>
+      cases typeof_seq_value_shape ss with
+      | inl hSeq =>
+          rcases hSeq with ⟨T, hSeq⟩
+          simp [__smtx_typeof_value, hSeq] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at h
+  | Char c =>
+      cases hc : native_char_in_cpc_range c <;>
+        simp [__smtx_typeof_value, native_ite, hc] at h
+  | UValue u i =>
+      simp [__smtx_typeof_value] at h
+  | RegLan r =>
+      simp [__smtx_typeof_value] at h
+  | DtCons s d i =>
+      exact ⟨s, d, i, by simp [__vsm_apply_head]⟩
+  | Apply f x =>
+      change
+        (match __vsm_apply_head f with
+        | SmtValue.DtCons _ _ _ =>
+            __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value x)
+        | _ => SmtType.None) = SmtType.DtcAppType A B at h
+      cases hf : __vsm_apply_head f with
+      | DtCons s d i =>
+          exact ⟨s, d, i, by simpa [__vsm_apply_head] using hf⟩
+      | _ =>
+          simp [hf] at h
 
 private def smtx_type_fun_like_domains_no_reglan : SmtType -> Prop
   | SmtType.Seq A => smtx_type_fun_like_domains_no_reglan A

@@ -39,7 +39,7 @@ theorem typeof_seq_value_shape :
 def dt_cons_chain_result : SmtType -> Prop
   | SmtType.None => True
   | SmtType.Datatype _ _ => True
-  | SmtType.DtcAppType _ _ => True
+  | SmtType.DtcAppType _ U => dt_cons_chain_result U
   | _ => False
 
 /-- Lemma about `typeof_dt_cons_value_rec_chain_result`. -/
@@ -91,23 +91,288 @@ theorem dt_cons_chain_result_of_dt_cons_value_type
     rw [hInner] at hShape
     exact hShape
 
+private def value_apply_depth : SmtValue -> Nat
+  | SmtValue.Apply f _ => Nat.succ (value_apply_depth f)
+  | _ => 0
+
 /-- Lemma about datatype-constructor application chains. -/
-axiom typeof_value_dt_cons_head_type_chain_result :
+theorem typeof_value_dt_cons_head_type_chain_result :
     ∀ v : SmtValue, ∀ T U : SmtType,
       (∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i) ->
-      __smtx_typeof_value v = SmtType.DtcAppType T U -> dt_cons_chain_result U
+      __smtx_typeof_value v = SmtType.DtcAppType T U -> dt_cons_chain_result U := by
+  have hAll :
+      ∀ n v T U,
+        value_apply_depth v = n ->
+        (∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i) ->
+        __smtx_typeof_value v = SmtType.DtcAppType T U ->
+        dt_cons_chain_result U := by
+    intro n
+    induction n using Nat.strongRecOn with
+    | ind n ih =>
+        intro v T U hDepth hHead h
+        cases v with
+        | NotValue =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Boolean _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Numeral _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Rational _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Binary _ _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Map _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Fun _ _ _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Set _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Seq _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | Char _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | UValue _ _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | RegLan _ =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            simp [__vsm_apply_head] at hHead
+        | DtCons s d i =>
+            have hShape := typeof_dt_cons_value_rec_chain_result s d (__smtx_dt_substitute s d d) i
+            have hInner :
+                __smtx_typeof_dt_cons_value_rec
+                    (SmtType.Datatype s d) (__smtx_dt_substitute s d d) i =
+                  SmtType.DtcAppType T U :=
+              typeof_value_dt_cons_inner_eq_of_eq_non_none h (by simp)
+            rw [hInner] at hShape
+            simpa [dt_cons_chain_result] using hShape
+        | Apply f v =>
+            rcases hHead with ⟨s, d, i, hHead⟩
+            have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
+              simpa [__vsm_apply_head] using hHead
+            have hApply :
+                __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v) =
+                  SmtType.DtcAppType T U := by
+              change
+                (match __vsm_apply_head f with
+                | SmtValue.DtCons _ _ _ =>
+                    __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v)
+                | _ => SmtType.None) = SmtType.DtcAppType T U at h
+              simpa [hHeadF] using h
+            cases hf : __smtx_typeof_value f <;>
+              rw [hf] at hApply <;>
+              simp [__smtx_typeof_apply_value] at hApply
+            case DtcAppType A B =>
+              cases hNone : native_Teq A SmtType.None <;>
+              cases hEq : native_Teq A (__smtx_typeof_value v) <;>
+                simp [__smtx_typeof_guard, native_ite, hNone, hEq] at hApply
+              have hlt : value_apply_depth f < n := by
+                have hSucc : Nat.succ (value_apply_depth f) = n := by
+                  simpa [value_apply_depth] using hDepth
+                rw [← hSucc]
+                exact Nat.lt_succ_self _
+              have hShape :=
+                ih (value_apply_depth f) hlt f A B rfl ⟨s, d, i, hHeadF⟩ hf
+              cases hApply
+              simpa [dt_cons_chain_result] using hShape
+  intro v T U hHead h
+  exact hAll (value_apply_depth v) v T U rfl hHead h
 
 /-- Values whose application head is a datatype constructor always have constructor-chain result types. -/
-axiom typeof_value_dt_cons_head_chain_result :
+theorem typeof_value_dt_cons_head_chain_result :
     ∀ v : SmtValue, ∀ T : SmtType,
       (∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i) ->
-      __smtx_typeof_value v = T -> dt_cons_chain_result T
+      __smtx_typeof_value v = T -> dt_cons_chain_result T := by
+  intro v T hHead h
+  cases v with
+  | NotValue =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Boolean _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Numeral _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Rational _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Binary _ _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Map _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Fun _ _ _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Set _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Seq _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | Char _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | UValue _ _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | RegLan _ =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      simp [__vsm_apply_head] at hHead
+  | DtCons s d i =>
+      simpa using dt_cons_chain_result_of_dt_cons_value_type h
+  | Apply f v =>
+      rcases hHead with ⟨s, d, i, hHead⟩
+      have hHeadF : __vsm_apply_head f = SmtValue.DtCons s d i := by
+        simpa [__vsm_apply_head] using hHead
+      have hApply :
+          __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v) = T := by
+        change
+          (match __vsm_apply_head f with
+          | SmtValue.DtCons _ _ _ =>
+              __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v)
+          | _ => SmtType.None) = T at h
+        simpa [hHeadF] using h
+      cases hf : __smtx_typeof_value f
+      case None =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Bool =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Int =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Real =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case RegLan =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case BitVec n =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Map A B =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Set A =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Seq A =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Char =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case Datatype s' d' =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case TypeRef s' =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case USort u =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case FunType A B =>
+        simp [__smtx_typeof_apply_value, hf] at hApply
+        cases hApply
+        simp [dt_cons_chain_result]
+      case DtcAppType A B =>
+        cases hNone : native_Teq A SmtType.None
+        case false =>
+          cases hEq : native_Teq A (__smtx_typeof_value v)
+          case false =>
+            have hNoneTy : SmtType.None = T := by
+              simpa [hf, __smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, hNone, hEq] using hApply
+            cases hNoneTy
+            simp [dt_cons_chain_result]
+          case true =>
+            have hBTy : B = T := by
+              simpa [hf, __smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, hNone, hEq] using hApply
+            have hShape :=
+              typeof_value_dt_cons_head_type_chain_result f A B ⟨s, d, i, hHeadF⟩ hf
+            cases hBTy
+            exact hShape
+        case true =>
+          have hNoneTy : SmtType.None = T := by
+            simpa [hf, __smtx_typeof_apply_value, __smtx_typeof_guard, native_ite, hNone] using hApply
+          cases hNoneTy
+          simp [dt_cons_chain_result]
 
 /-- Raw applications without datatype-constructor heads have type `none`. -/
-axiom typeof_value_apply_of_head_ne_dt_cons :
+theorem typeof_value_apply_of_head_ne_dt_cons :
     ∀ v i : SmtValue,
       (∀ s d n, __vsm_apply_head v ≠ SmtValue.DtCons s d n) ->
-      __smtx_typeof_value (SmtValue.Apply v i) = SmtType.None
+      __smtx_typeof_value (SmtValue.Apply v i) = SmtType.None := by
+  intro v i hDt
+  cases v with
+  | NotValue =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Boolean b =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Numeral n =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Rational q =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Binary w n =>
+      cases hWidth : native_zleq 0 w <;>
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite,
+            SmtEval.native_and, hWidth, hMod]
+  | Map m =>
+      simp [__smtx_typeof_value, __vsm_apply_head]
+  | Fun fid A B =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | Set m =>
+      simp [__smtx_typeof_value, __vsm_apply_head]
+  | Seq ss =>
+      simp [__smtx_typeof_value, __vsm_apply_head]
+  | Char c =>
+      cases hc : native_char_in_cpc_range c <;>
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, native_ite, hc]
+  | UValue u k =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | RegLan r =>
+      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | DtCons s d n =>
+      exact False.elim (hDt s d n rfl)
+  | Apply f a =>
+      change
+        (match __vsm_apply_head f with
+        | SmtValue.DtCons _ _ _ =>
+            __smtx_typeof_apply_value
+              (__smtx_typeof_value (SmtValue.Apply f a)) (__smtx_typeof_value i)
+        | _ => SmtType.None) = SmtType.None
+      cases hHead : __vsm_apply_head f with
+      | DtCons s d n =>
+          exact False.elim (hDt s d n (by simpa [__vsm_apply_head] using hHead))
+      | _ =>
+          simp [hHead]
 
 /--
 Proof bridge for the canonical-form lemmas. With the current unguarded value-level

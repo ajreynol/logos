@@ -1851,16 +1851,109 @@ def type_has_no_none_components : SmtType -> Prop
       type_has_no_none_components B
   | _ => True
 
-private axiom type_has_no_none_components_of_wf :
+private theorem type_has_no_none_components_of_wf :
     {T : SmtType} ->
     __smtx_type_wf T = true ->
     type_has_no_none_components T
+  | SmtType.None, h => by
+      simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
+  | SmtType.Bool, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Int, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Real, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.RegLan, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.BitVec _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Map A B, h => by
+      rcases map_type_wf_components_of_wf h with ⟨hA, hB⟩
+      exact ⟨type_has_no_none_components_of_wf (T := A) hA,
+        type_has_no_none_components_of_wf (T := B) hB⟩
+  | SmtType.Set A, h => by
+      exact type_has_no_none_components_of_wf (T := A) (set_type_wf_component_of_wf h)
+  | SmtType.Seq A, h => by
+      exact type_has_no_none_components_of_wf (T := A) (seq_type_wf_component_of_wf h)
+  | SmtType.Char, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Datatype _ _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.TypeRef _, h => by
+      simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
+  | SmtType.USort _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.FunType A B, h => by
+      rcases fun_type_wf_components_of_wf h with ⟨hA, hB⟩
+      exact ⟨type_has_no_none_components_of_wf (T := A) hA,
+        type_has_no_none_components_of_wf (T := B) hB⟩
+  | SmtType.DtcAppType _ _, h => by
+      simp [__smtx_type_wf, __smtx_type_wf_rec, native_and] at h
+termination_by T => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals simp [sizeOf]
+  all_goals omega
 
-private axiom type_has_no_none_components_of_wf_rec :
+private theorem type_has_no_none_components_of_wf_rec :
     {T : SmtType} ->
     {refs : RefList} ->
     __smtx_type_wf_rec T refs = true ->
     type_has_no_none_components T
+  | SmtType.None, _, h => by
+      simp [__smtx_type_wf_rec] at h
+  | SmtType.Bool, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Int, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Real, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.RegLan, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.BitVec _, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Map A B, _, h => by
+      have h' :
+          native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A native_reflist_nil = true ∧
+              native_inhabited_type B = true ∧
+                __smtx_type_wf_rec B native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      exact ⟨type_has_no_none_components_of_wf_rec (T := A)
+          (refs := native_reflist_nil) h'.2.1,
+        type_has_no_none_components_of_wf_rec (T := B)
+          (refs := native_reflist_nil) h'.2.2.2⟩
+  | SmtType.Set A, _, h => by
+      have hA :
+          native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      exact type_has_no_none_components_of_wf_rec
+        (T := A) (refs := native_reflist_nil) hA.2
+  | SmtType.Seq A, _, h => by
+      have hA :
+          native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A native_reflist_nil = true := by
+        simpa [__smtx_type_wf_rec, native_and] using h
+      exact type_has_no_none_components_of_wf_rec
+        (T := A) (refs := native_reflist_nil) hA.2
+  | SmtType.Char, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.Datatype _ _, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.TypeRef _, _, h => by
+      simp [__smtx_type_wf_rec] at h
+  | SmtType.USort _, _, _ => by
+      simp [type_has_no_none_components]
+  | SmtType.FunType _ _, _, h => by
+      simp [__smtx_type_wf_rec] at h
+  | SmtType.DtcAppType _ _, _, h => by
+      simp [__smtx_type_wf_rec] at h
+termination_by T => sizeOf T
+decreasing_by
+  all_goals simp_wf
+  all_goals simp [sizeOf]
+  all_goals omega
 
 theorem type_has_no_none_components_non_none
     {T : SmtType}
