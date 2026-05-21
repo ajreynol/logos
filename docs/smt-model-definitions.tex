@@ -188,22 +188,20 @@ structure SmtModelKey where
 deriving Repr, DecidableEq, Inhabited
 
 structure SmtModel where
-  values : SmtModelKey -> Option SmtValue
-  nativeFuns : SmtModelKey -> Option SmtNativeFun
+  values : SmtModelKey -> SmtValue
+  nativeFuns : SmtModelKey -> SmtNativeFun
 deriving Inhabited
 
 def native_model_key (s : String) (T : SmtType) : SmtModelKey :=
   { name := s, ty := T }
 
 def native_model_lookup (M : SmtModel) (s : String) (T : SmtType) : SmtValue :=
-  match M.values (native_model_key s T) with
-  | some v => v
-  | none => SmtValue.NotValue
+  M.values (native_model_key s T)
 
 def native_model_push (M : SmtModel) (s : String) (T : SmtType) (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
       if k = (native_model_key s T) then
-        some v
+        v
       else
         M.values k }
 
@@ -850,40 +848,6 @@ inductive CmdListTranslationOk : CCmdList -> Prop
 
 \begin{figure}[p]
 \begin{lstlisting}
-inductive ValidAssumptionList : Term -> Prop
-  | base : ValidAssumptionList (Term.Boolean true)
-  | step (A rest : Term) : ValidAssumptionList rest ->
-      ValidAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
-
-def stateOk : CState -> Prop
-  | CState.nil => True
-  | CState.cons _ s => stateOk s
-  | CState.Stuck => False
-
-def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
-  checkerShapeInvariant s ∧
-  checkerLocalTruthInvariant M s ∧
-  checkerTypeInvariant s ∧
-  checkerTranslationInvariant s
-
-theorem checkerStateInvariant_after_assume_list (M : SmtModel) (F : Term) :
-  ValidAssumptionList F ->
-  stateOk (__eo_invoke_assume_list CState.nil F) ->
-  TranslatableAssumptionList F ->
-  checkerStateInvariant M (__eo_invoke_assume_list CState.nil F)
-
-theorem invoke_cmd_list_preserves_stateInvariant (M : SmtModel) :
-  forall _hM : model_total_typed M,
-  forall s : CState, forall cs : CCmdList,
-    checkerStateInvariant M s ->
-    CmdListTranslationOk cs ->
-    checkerStateInvariant M (__eo_invoke_cmd_list s cs)
-\end{lstlisting}
-\caption{Checker invariants and preservation through command execution.}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
 inductive smt_satisfiability : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
       (exists M : SmtModel, model_total_typed M /\ (smt_interprets M t true)) ->
@@ -953,33 +917,6 @@ theorem cmd_step_proven_facts_of_invariants
   CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
 \end{lstlisting}
 \caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; the theorem ranges over the plain \texttt{CCmd.step} rules and excludes \texttt{step\_pop}.}
-\end{figure}
-
-\begin{figure}[p]
-\begin{lstlisting}
-def __mk_trans : Term -> Term -> Term -> Term
-  | Term.Stuck, _, _ => Term.Stuck
-  | _, Term.Stuck, _ => Term.Stuck
-  | t1, t2,
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp.and)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
-        tail) =>
-      (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
-  | t1, t2, (Term.Boolean true) =>
-      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)
-  | _, _, _ => Term.Stuck
-
-def __eo_prog_trans : Proof -> Term
-  | (Proof.pf
-      (Term.Apply
-        (Term.Apply (Term.UOp UserOp.and)
-          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
-        tail)) =>
-      (__mk_trans t1 t2 tail)
-  | _ => Term.Stuck
-\end{lstlisting}
-\caption{The EO program defining the \texttt{trans} rule: it consumes a chain of equalities and produces the composed endpoint equality.}
 \end{figure}
 
 \begin{figure}[p]
