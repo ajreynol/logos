@@ -59,6 +59,29 @@ def __eo_to_smt_type_is_tlist : Term -> native_Bool
   | T => false
 
 
+def __eo_to_smt_typed_list_cons_elem_type (x : Term) : Option SmtType -> Option SmtType
+  | some T => (native_ite (native_Teq (__smtx_typeof (__eo_to_smt x)) T) (some T) none)
+  | none => none
+
+
+def __eo_to_smt_typed_list_elem_type : Term -> Option SmtType
+  | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T) =>
+    let _v0 := (__eo_to_smt_type T)
+    (native_ite (native_Teq _v0 SmtType.None) none (some _v0))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) =>
+    (__eo_to_smt_typed_list_cons_elem_type x (__eo_to_smt_typed_list_elem_type xs))
+  | xs => none
+
+
+def __eo_to_smt_is_typed_list_result : Option SmtType -> native_Bool
+  | some T => true
+  | none => false
+
+
+def __eo_to_smt_is_typed_list (xs : Term) : native_Bool :=
+  (__eo_to_smt_is_typed_list_result (__eo_to_smt_typed_list_elem_type xs))
+
+
 def __eo_to_smt__at_bv : SmtTerm -> SmtTerm -> SmtTerm
   | (SmtTerm.Numeral x1), (SmtTerm.Numeral x2) => (native_ite (native_zleq 0 x2) (SmtTerm.Binary x2 (native_mod_total x1 (native_int_pow2 x2))) SmtTerm.None)
   | t1, t2 => SmtTerm.None
@@ -85,6 +108,11 @@ def __eo_to_smt_re_unfold_pos_component (s : SmtTerm) : SmtTerm -> native_Nat ->
 def __eo_to_smt_set_empty : SmtType -> SmtTerm
   | (SmtType.Set T) => (SmtTerm.set_empty T)
   | T => SmtTerm.None
+
+
+def __eo_to_smt_set_elem_type : SmtType -> SmtType
+  | (SmtType.Set T) => T
+  | T => SmtType.None
 
 
 def __eo_to_smt_set_insert : Term -> SmtTerm -> SmtTerm
@@ -197,6 +225,16 @@ def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTe
   | T, n, t, u => SmtTerm.None
 
 
+def __eo_to_smt_array_deq_diff_of_type (t1 t2 : SmtTerm) : SmtType -> SmtType -> SmtTerm
+  | (SmtType.Map T U), (SmtType.Map T' U') =>
+    (native_ite (native_and (native_Teq T T') (native_Teq U U')) (SmtTerm.map_diff t1 t2) SmtTerm.None)
+  | T, U => SmtTerm.None
+
+
+def __eo_to_smt_array_deq_diff : SmtTerm -> SmtTerm -> SmtTerm
+  | t1, t2 => (__eo_to_smt_array_deq_diff_of_type t1 t2 (__smtx_typeof t1) (__smtx_typeof t2))
+
+
 def __eo_to_smt_exists : Term -> SmtTerm -> SmtTerm
   | Term.__eo_List_nil, F => F
   | (Term.Apply (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T)) vs), F => (SmtTerm.exists s (__eo_to_smt_type T) (__eo_to_smt_exists vs F))
@@ -220,7 +258,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x1) x2) => (SmtTerm.imp (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.xor) x1) x2) => (SmtTerm.xor (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x1) x2) => (SmtTerm.eq (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.UOp UserOp.distinct) x1) => (native_ite (__eo_to_smt_type_is_tlist (__eo_typeof x1)) (__eo_to_smt_distinct x1) SmtTerm.None)
+  | (Term.Apply (Term.UOp UserOp.distinct) x1) => (native_ite (__eo_to_smt_is_typed_list x1) (__eo_to_smt_distinct x1) SmtTerm.None)
   | (Term.UOp1 UserOp1._at_purify x1) => (SmtTerm._at_purify (__eo_to_smt x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.plus) x1) x2) => (SmtTerm.plus (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.neg) x1) x2) => (SmtTerm.neg (__eo_to_smt x1) (__eo_to_smt x2))
@@ -250,7 +288,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.UOp UserOp._at_mod_by_zero) x1) => (SmtTerm.mod (__eo_to_smt x1) (SmtTerm.Numeral 0))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.select) x1) x2) => (SmtTerm.select (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.store) x1) x2) x3) => (SmtTerm.store (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
-  | (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) => (native_ite (native_Teq (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff x1 x2))) SmtType.None) SmtTerm.None (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)))
+  | (Term.UOp2 UserOp2._at_array_deq_diff x1 x2) => (__eo_to_smt_array_deq_diff (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.UOp UserOp._at_bvsize) x1) => 
     let _v0 := (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x1)))
     (native_ite (native_zleq 0 _v0) (SmtTerm._at_purify (SmtTerm.Numeral _v0)) SmtTerm.None)
@@ -368,13 +406,19 @@ def __eo_to_smt : Term -> SmtTerm
     (SmtTerm.div (SmtTerm.neg (SmtTerm.str_len _v1) (SmtTerm.str_len (SmtTerm.str_replace_all _v1 _v0 (SmtTerm.seq_empty (SmtType.Seq SmtType.Char))))) (SmtTerm.str_len _v0))
   | (Term.UOp3 UserOp3._at_witness_string_length x1 x2 x3) => 
     let _v0 := (__eo_to_smt_type x1)
-    (native_ite (native_teq (__eo_typeof x3) (Term.UOp UserOp.Int)) (SmtTerm.choice_nth "@x" _v0 (SmtTerm.eq (SmtTerm.str_len (SmtTerm.Var "@x" _v0)) (__eo_to_smt x2)) native_nat_zero) SmtTerm.None)
+    (native_ite (native_Teq (__smtx_typeof (__eo_to_smt x3)) SmtType.Int) (SmtTerm.choice_nth "@x" _v0 (SmtTerm.eq (SmtTerm.str_len (SmtTerm.Var "@x" _v0)) (__eo_to_smt x2)) native_nat_zero) SmtTerm.None)
   | (Term.Apply (Term.UOp1 UserOp1.is x1) x2) => (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp1 UserOp1.update x1) x2) x3) => (__eo_to_smt_updater (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
   | (Term.UOp UserOp.tuple_unit) => (SmtTerm.DtCons "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) native_nat_zero)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x1) x2) => (__eo_to_smt_tuple_prepend (__eo_to_smt x1) (__eo_to_smt_type (__eo_typeof x1)) (__eo_to_smt x2))
-  | (Term.Apply (Term.UOp1 UserOp1.tuple_select x1) x2) => (__eo_to_smt_tuple_select (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update x1) x2) x3) => (__eo_to_smt_tuple_update (__eo_to_smt_type (__eo_typeof x2)) (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x1) x2) =>
+    let _v0 := (__eo_to_smt x1)
+    (__eo_to_smt_tuple_prepend _v0 (__smtx_typeof _v0) (__eo_to_smt x2))
+  | (Term.Apply (Term.UOp1 UserOp1.tuple_select x1) x2) =>
+    let _v0 := (__eo_to_smt x2)
+    (__eo_to_smt_tuple_select (__smtx_typeof _v0) (__eo_to_smt x1) _v0)
+  | (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update x1) x2) x3) =>
+    let _v0 := (__eo_to_smt x2)
+    (__eo_to_smt_tuple_update (__smtx_typeof _v0) (__eo_to_smt x1) _v0 (__eo_to_smt x3))
   | (Term.UOp1 UserOp1.set_empty x1) => (__eo_to_smt_set_empty (__eo_to_smt_type x1))
   | (Term.Apply (Term.UOp UserOp.set_singleton) x1) => (SmtTerm.set_singleton (__eo_to_smt x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) x1) x2) => (SmtTerm.set_union (__eo_to_smt x1) (__eo_to_smt x2))
@@ -382,13 +426,15 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_minus) x1) x2) => (SmtTerm.set_minus (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_member) x1) x2) => (SmtTerm.set_member (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_subset) x1) x2) => (SmtTerm.set_subset (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.Apply (Term.UOp UserOp.set_choose) x1) => (SmtTerm.map_diff (__eo_to_smt x1) (SmtTerm.set_empty (__eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x1)))))
+  | (Term.Apply (Term.UOp UserOp.set_choose) x1) =>
+    let _v0 := (__eo_to_smt x1)
+    (SmtTerm.map_diff _v0 (SmtTerm.set_empty (__eo_to_smt_set_elem_type (__smtx_typeof _v0))))
   | (Term.Apply (Term.UOp UserOp.set_is_empty) x1) => 
     let _v0 := (__eo_to_smt x1)
     (SmtTerm.eq _v0 (SmtTerm.set_empty (__smtx_typeof _v0)))
   | (Term.Apply (Term.UOp UserOp.set_is_singleton) x1) => 
     let _v0 := (__eo_to_smt x1)
-    (SmtTerm.eq _v0 (SmtTerm.set_singleton (SmtTerm.map_diff _v0 (SmtTerm.set_empty (__eo_to_smt_type (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x1)))))))
+    (SmtTerm.eq _v0 (SmtTerm.set_singleton (SmtTerm.map_diff _v0 (SmtTerm.set_empty (__eo_to_smt_set_elem_type (__smtx_typeof _v0))))))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) Term.__eo_List_nil) x1) => SmtTerm.None
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_insert) x1) x2) => (__eo_to_smt_set_insert x1 (__eo_to_smt x2))
   | (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2) => (native_ite (native_Teq (__eo_to_smt_type (Term.UOp2 UserOp2._at_sets_deq_diff x1 x2)) SmtType.None) SmtTerm.None (SmtTerm.map_diff (__eo_to_smt x1) (__eo_to_smt x2)))
