@@ -226,8 +226,7 @@ def __eo_to_smt_tuple_update : SmtType -> SmtTerm -> SmtTerm -> SmtTerm -> SmtTe
 
 
 def __eo_to_smt_array_deq_diff_of_type (t1 t2 : SmtTerm) : SmtType -> SmtType -> SmtTerm
-  | (SmtType.Map T U), (SmtType.Map T' U') =>
-    (native_ite (native_and (native_Teq T T') (native_Teq U U')) (SmtTerm.map_diff t1 t2) SmtTerm.None)
+  | (SmtType.Map T U), (SmtType.Map T' U') => (SmtTerm.map_diff t1 t2)
   | T, U => SmtTerm.None
 
 
