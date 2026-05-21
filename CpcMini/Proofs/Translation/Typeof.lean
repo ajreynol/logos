@@ -838,10 +838,13 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid :
       refine ⟨?_, ?_⟩
       · simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_Rational]
       · simp [TranslationProofs.eo_type_valid_rec, __eo_typeof, __eo_lit_type_Rational]
-  | Term.String s, _ => by
+  | Term.String s, hNN => by
+      have hs : native_string_in_cpc_range s = true := by
+        cases h : native_string_in_cpc_range s <;>
+          simp [__eo_to_smt.eq_def, __smtx_typeof, native_ite, h] at hNN ⊢
       refine ⟨?_, ?_⟩
       · simp [__eo_to_smt.eq_def, __smtx_typeof, __eo_typeof, __eo_lit_type_String,
-          __eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq]
+          __eo_to_smt_type, __smtx_typeof_guard, native_ite, native_Teq, hs]
       · simp [TranslationProofs.eo_type_valid_rec, __eo_typeof, __eo_lit_type_String]
   | Term.Binary w n, hNN => by
       have hWidth : native_zleq 0 w = true := by

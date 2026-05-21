@@ -116,13 +116,12 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
       have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, by
         simp [__smtx_typeof_value, hDef.1]⟩
-    · have hPair :
-        native_inhabited_type T = true ∧
-          __smtx_type_wf_rec T native_reflist_nil = true := by
-        cases T <;>
-          simp [__smtx_type_wf, __smtx_type_wf_component, native_and] at hWf hReg hFun ⊢
-        all_goals first | contradiction | assumption
-      exact type_inhabited_of_native_inhabited_type T hPair.1
+    · have hComp : __smtx_type_wf_component T = true := by
+        cases T <;> try exact hWf
+        · exact False.elim (hReg rfl)
+        · exact False.elim (hFun ⟨_, _, rfl⟩)
+      exact type_inhabited_of_native_inhabited_type T
+        (smtx_type_wf_component_parts hComp).1
 
 /-- Extracts well-formedness of the guarded source type from a non-`None` guarded type. -/
 theorem smtx_typeof_guard_wf_wf_of_non_none
@@ -180,13 +179,12 @@ theorem type_inhabited_of_type_wf
         exact fun_type_wf_parts hWF
       have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, rfl⟩
-    · have hInh : native_inhabited_type T = true := by
-        cases T <;>
-          simp [__smtx_type_wf, __smtx_type_wf_component, native_and] at hWF hReg hFun ⊢
-        all_goals first | contradiction | exact hWF.1 | simp [native_inhabited_type,
-          __smtx_type_default, __smtx_typeof_value, __smtx_value_canonical_bool,
-          native_and]
-      exact type_inhabited_of_native_inhabited_type T hInh
+    · have hComp : __smtx_type_wf_component T = true := by
+        cases T <;> try exact hWF
+        · exact False.elim (hReg rfl)
+        · exact False.elim (hFun ⟨_, _, rfl⟩)
+      exact type_inhabited_of_native_inhabited_type T
+        (smtx_type_wf_component_parts hComp).1
 
 /-- Extracts well-formedness of the element type of a well-formed sequence type. -/
 theorem seq_type_wf_component_of_wf
@@ -439,9 +437,15 @@ theorem type_inhabited_real : type_inhabited SmtType.Real :=
 theorem type_inhabited_reglan : type_inhabited SmtType.RegLan :=
   ⟨SmtValue.RegLan native_re_none, rfl⟩
 
+/-- The default character is in the CPC character domain. -/
+@[simp] theorem native_char_in_cpc_range_zero :
+    native_char_in_cpc_range (native_nat_to_char native_nat_zero) = true := by
+  native_decide
+
 /-- Shows that the SMT type `char` is inhabited. -/
 theorem type_inhabited_char : type_inhabited SmtType.Char :=
-  ⟨SmtValue.Char 'a', rfl⟩
+  ⟨SmtValue.Char (native_nat_to_char native_nat_zero), by
+    simp [__smtx_typeof_value, native_ite]⟩
 
 /-- Shows that every uninterpreted sort is inhabited. -/
 theorem type_inhabited_usort (i : native_Nat) : type_inhabited (SmtType.USort i) :=
@@ -539,7 +543,7 @@ theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
 @[simp] theorem native_inhabited_type_char :
     native_inhabited_type SmtType.Char = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
-    __smtx_value_canonical_bool, native_and]
+    __smtx_value_canonical_bool, native_and, native_ite]
 
 /-- The generated Boolean inhabitation check accepts uninterpreted sorts. -/
 @[simp] theorem native_inhabited_type_usort (i : native_Nat) :

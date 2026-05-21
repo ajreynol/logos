@@ -52,9 +52,10 @@ theorem value_canonical_rational (q : native_Rat) :
     __smtx_value_canonical (SmtValue.Rational q) := by
   simp [__smtx_value_canonical, __smtx_value_canonical_bool]
 
-theorem value_canonical_char (c : native_Char) :
+theorem value_canonical_char {c : native_Char}
+    (hc : native_char_in_cpc_range c = true) :
     __smtx_value_canonical (SmtValue.Char c) := by
-  simp [__smtx_value_canonical, __smtx_value_canonical_bool]
+  simp [__smtx_value_canonical, __smtx_value_canonical_bool, hc]
 
 theorem value_canonical_reglan (r : native_RegLan) :
     __smtx_value_canonical (SmtValue.RegLan r) := by

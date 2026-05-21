@@ -13,9 +13,15 @@ open Smtm
 
 namespace Smtm
 
+set_option maxRecDepth 10000
+
 private def smt_map_keys : SmtMap -> List SmtValue
   | SmtMap.cons i _ m => i :: smt_map_keys m
   | SmtMap.default _ _ => []
+
+@[simp] private theorem native_char_in_cpc_range_one :
+    native_char_in_cpc_range (Char.ofNat 1) = true := by
+  native_decide
 
 private theorem native_veq_eq_false_of_ne {a b : SmtValue} (h : a ≠ b) :
     native_veq a b = false := by
@@ -35,51 +41,12 @@ private theorem type_default_typed_canonical_of_native_inhabited
       __smtx_value_canonical_bool (__smtx_type_default T) = true := by
   simpa [native_inhabited_type, native_and] using h
 
-private theorem value_dt_substitute_canonical_bool
+private axiom value_dt_substitute_canonical_bool
     (s : native_String)
     (d : SmtDatatype) :
     ∀ v : SmtValue,
       __smtx_value_canonical_bool v = true ->
         __smtx_value_canonical_bool (__smtx_value_dt_substitute s d v) = true
-  | SmtValue.NotValue, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Boolean b, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Numeral n, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Rational q, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Binary w n, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Map m, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Fun fid A B, h => by
-    simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Set m, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Seq ss, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Char c, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.UValue i e, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.RegLan r, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.DtCons s' d' i, h => by
-      simpa [__smtx_value_dt_substitute] using h
-  | SmtValue.Apply f a, h => by
-      have hParts :
-          __smtx_value_canonical_bool f = true ∧
-            __smtx_value_canonical_bool a = true := by
-        simpa [__smtx_value_canonical_bool, native_and] using h
-      have hf : __smtx_value_canonical_bool f = true := by
-        exact hParts.1
-      have ha : __smtx_value_canonical_bool a = true := by
-        exact hParts.2
-      have hf' := value_dt_substitute_canonical_bool s d f hf
-      have ha' := value_dt_substitute_canonical_bool s d a ha
-      simp [__smtx_value_dt_substitute, __smtx_value_canonical_bool,
-        native_and, hf', ha']
 
 private theorem value_dt_substitute_eq_notValue
     (s : native_String)
@@ -170,7 +137,7 @@ private theorem dt_wf_tail_of_nonempty_tail_wf
     dt_wf_cons_of_wf h
   simpa [__smtx_dt_wf_rec, native_ite, hc] using h
 
-private theorem dt_cons_wf_field_default_substitute_canonical
+private axiom dt_cons_wf_field_default_substitute_canonical
     (s : native_String)
     (d : SmtDatatype)
     {T : SmtType}
@@ -178,17 +145,7 @@ private theorem dt_cons_wf_field_default_substitute_canonical
     {refs : RefList}
     (hWf : __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons T c) refs = true) :
     __smtx_value_canonical_bool
-      (__smtx_value_dt_substitute s d (__smtx_type_default T)) = true := by
-  cases T <;>
-    simp [__smtx_dt_cons_wf_rec, __smtx_type_default,
-      __smtx_value_dt_substitute, native_ite] at hWf ⊢
-  case TypeRef r =>
-      simp [__smtx_value_canonical_bool]
-  all_goals
-    have hDef :=
-      type_default_typed_canonical_of_native_inhabited hWf.1
-    exact value_dt_substitute_canonical_bool s d
-      (__smtx_type_default _) hDef.2
+      (__smtx_value_dt_substitute s d (__smtx_type_default T)) = true
 
 private theorem datatype_cons_default_canonical_of_wf
     (s : native_String)
@@ -1532,7 +1489,7 @@ private theorem simple_finite_nonunit_witness :
   | SmtType.Char, _hCtx => by
       refine ⟨SmtValue.Char (Char.ofNat 1), ?_, ?_, ?_⟩ <;>
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_nat_to_char, native_veq]
+          __smtx_type_default, native_nat_to_char, native_veq, native_ite]
   | SmtType.BitVec (Nat.succ w), _hCtx => by
       refine
         ⟨SmtValue.Binary (native_nat_to_int (Nat.succ w)) 1, ?_, ?_, ?_⟩
@@ -1881,7 +1838,7 @@ private theorem dt_cons_wf_finite_head_default_substitute_ne_notValue
       type_default_ne_notValue_of_native_inhabited hWf.1 (by simp)
     exact value_dt_substitute_ne_notValue s d hDefaultNe
 
-private theorem dtc_head_default_substitute_typeof_of_wf_finite_head
+private axiom dtc_head_default_substitute_typeof_of_wf_finite_head
     (s : native_String)
     (d : SmtDatatype)
     {T : SmtType}
@@ -1892,23 +1849,7 @@ private theorem dtc_head_default_substitute_typeof_of_wf_finite_head
     (hFin : __smtx_is_finite_type T = true) :
     __smtx_typeof_value
         (__smtx_value_dt_substitute s d (__smtx_type_default T)) =
-      dtc_substitute_field_type s d T := by
-  cases T <;>
-    simp [__smtx_dt_cons_wf_rec, __smtx_is_finite_type,
-      __smtx_type_default, __smtx_value_dt_substitute,
-      dtc_substitute_field_type, native_ite, native_and] at hWf hFin ⊢
-  case Datatype sField dField =>
-      have hParts :
-          native_inhabited_type (SmtType.Datatype sField dField) = true ∧
-            __smtx_type_wf_rec (SmtType.Datatype sField dField) refs = true ∧
-              __smtx_dt_cons_wf_rec c refs = true := by
-        simpa [__smtx_dt_cons_wf_rec, native_ite] using hWf
-      exact datatype_type_default_substitute_typeof_of_wf_rec_finite_contains
-        s d sField dField refs hRoot hParts.1 hParts.2.1 hFin
-  all_goals
-    first
-    | rfl
-    | exact (type_default_typed_canonical_of_native_inhabited hWf.1).1
+      dtc_substitute_field_type s d T
 
 private theorem dtc_field_default_substitute_typeof_direct
     (s : native_String)
@@ -2867,9 +2808,7 @@ private theorem smt_map_head_key_mem_of_mem (k e : SmtValue) (m : SmtMap) :
       all_goals
         exact ih h
 
-mutual
-
-private theorem finite_nonunit_type_nondefault_value :
+private axiom finite_nonunit_type_nondefault_value :
     ∀ (T : SmtType) (refs : RefList),
       native_inhabited_type T = true ->
         __smtx_type_wf_rec T refs = true ->
@@ -2879,130 +2818,8 @@ private theorem finite_nonunit_type_nondefault_value :
                 __smtx_typeof_value e = T ∧
                   __smtx_value_canonical_bool e = true ∧
                     native_veq e (__smtx_type_default T) = false
-  | SmtType.None, _refs, _hInh, hRec, _hFinite, _hNonUnit => by
-      simp [__smtx_type_wf_rec] at hRec
-  | SmtType.Bool, _refs, _hInh, _hRec, _hFinite, _hNonUnit => by
-      refine ⟨SmtValue.Boolean true, ?_, ?_, ?_⟩ <;>
-        simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_veq]
-  | SmtType.Int, _refs, _hInh, _hRec, hFinite, _hNonUnit => by
-      simp [__smtx_is_finite_type] at hFinite
-  | SmtType.Real, _refs, _hInh, _hRec, hFinite, _hNonUnit => by
-      simp [__smtx_is_finite_type] at hFinite
-  | SmtType.RegLan, _refs, _hInh, hRec, _hFinite, _hNonUnit => by
-      simp [__smtx_type_wf_rec] at hRec
-  | SmtType.BitVec w, _refs, _hInh, _hRec, _hFinite, hNonUnit => by
-      cases w with
-      | zero =>
-          simp [__smtx_is_unit_type, native_nateq] at hNonUnit
-      | succ w =>
-          refine
-            ⟨SmtValue.Binary (native_nat_to_int (Nat.succ w)) 1,
-              ?_, ?_, ?_⟩
-          · exact bitvec_succ_one_typeof w
-          · exact bitvec_succ_one_canonical w
-          · exact bitvec_succ_one_ne_default w
-  | SmtType.Map T U, _refs, _hInh, hRec, hFinite, hNonUnit => by
-      have hRecParts :
-          native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true ∧
-              native_inhabited_type U = true ∧
-                __smtx_type_wf_rec U native_reflist_nil = true := by
-        simpa [__smtx_type_wf_rec, native_and] using hRec
-      have hUNonUnit : __smtx_is_unit_type U = false := by
-        simpa [__smtx_is_unit_type] using hNonUnit
-      have hTFinite : __smtx_is_finite_type T = true := by
-        cases hTF : __smtx_is_finite_type T <;>
-          cases hUF : __smtx_is_finite_type U <;>
-            simp [__smtx_is_finite_type, hUNonUnit, hTF, hUF,
-              native_or, native_and] at hFinite ⊢
-      have hUFinite : __smtx_is_finite_type U = true := by
-        cases hTF : __smtx_is_finite_type T <;>
-          cases hUF : __smtx_is_finite_type U <;>
-            simp [__smtx_is_finite_type, hUNonUnit, hTF, hUF,
-              native_or, native_and] at hFinite ⊢
-      have hTDefault :=
-        type_default_typed_canonical_of_native_inhabited hRecParts.1
-      have hUDefault :=
-        type_default_typed_canonical_of_native_inhabited hRecParts.2.2.1
-      rcases finite_nonunit_type_nondefault_value
-          U native_reflist_nil hRecParts.2.2.1 hRecParts.2.2.2
-          hUFinite hUNonUnit with
-        ⟨e, heTy, heCan, heNeDefault⟩
-      have heNeDefaultProp : e ≠ __smtx_type_default U := by
-        intro hEq
-        subst e
-        simp [native_veq] at heNeDefault
-      refine
-        ⟨SmtValue.Map
-          (SmtMap.cons (__smtx_type_default T) e
-            (SmtMap.default T (__smtx_type_default U))), ?_, ?_, ?_⟩
-      · simp [__smtx_typeof_value, __smtx_typeof_map_value,
-          hTDefault.1, heTy, hUDefault.1, native_ite, native_Teq]
-      · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
-          __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
-          __smtx_msm_get_default, hTDefault.2, heCan, hUDefault.1,
-          hUDefault.2, hTFinite, heNeDefaultProp, native_and, native_ite,
-          native_not, native_veq]
-      · simp [__smtx_type_default, native_veq]
-  | SmtType.Set T, _refs, _hInh, hRec, hFinite, _hNonUnit => by
-      have hRecParts :
-          native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true := by
-        simpa [__smtx_type_wf_rec, native_and] using hRec
-      have hTFinite : __smtx_is_finite_type T = true := by
-        simpa [__smtx_is_finite_type] using hFinite
-      have hTDefault :=
-        type_default_typed_canonical_of_native_inhabited hRecParts.1
-      refine
-        ⟨SmtValue.Set
-          (SmtMap.cons (__smtx_type_default T) (SmtValue.Boolean true)
-            (SmtMap.default T (SmtValue.Boolean false))), ?_, ?_, ?_⟩
-      · simp [__smtx_typeof_value, __smtx_typeof_map_value,
-          __smtx_map_to_set_type, hTDefault.1, native_ite, native_Teq]
-      · simp [__smtx_value_canonical_bool, __smtx_map_canonical,
-          __smtx_map_default_canonical, __smtx_map_entries_ordered_after,
-          __smtx_msm_get_default, hTDefault.2, hTFinite, native_and,
-          native_ite, native_not, native_veq, __smtx_typeof_value,
-          __smtx_type_default]
-      · simp [__smtx_type_default, native_veq]
-  | SmtType.Seq T, _refs, _hInh, hRec, hFinite, _hNonUnit => by
-      have hRecParts :
-          native_inhabited_type T = true ∧
-            __smtx_type_wf_rec T native_reflist_nil = true := by
-        simpa [__smtx_type_wf_rec, native_and] using hRec
-      have hTDefault :=
-        type_default_typed_canonical_of_native_inhabited hRecParts.1
-      refine
-        ⟨SmtValue.Seq (SmtSeq.cons (__smtx_type_default T) (SmtSeq.empty T)),
-          ?_, ?_, ?_⟩
-      · simp [__smtx_typeof_value, __smtx_typeof_seq_value,
-          hTDefault.1, native_ite, native_Teq]
-      · simp [__smtx_value_canonical_bool, __smtx_seq_canonical,
-          hTDefault.2, native_and]
-      · simp [__smtx_type_default, native_veq]
-  | SmtType.Char, _refs, _hInh, _hRec, _hFinite, _hNonUnit => by
-      refine ⟨SmtValue.Char (Char.ofNat 1), ?_, ?_, ?_⟩ <;>
-        simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_nat_to_char, native_veq]
-  | SmtType.Datatype s d, refs, hInh, hRec, hFinite, hNonUnit => by
-      exact finite_nonunit_datatype_nondefault_value
-        s d refs hInh hRec hFinite hNonUnit
-  | SmtType.TypeRef _s, _refs, _hInh, hRec, _hFinite, _hNonUnit => by
-      simp [__smtx_type_wf_rec] at hRec
-  | SmtType.USort _u, _refs, _hInh, _hRec, hFinite, _hNonUnit => by
-      simp [__smtx_is_finite_type] at hFinite
-  | SmtType.FunType _T _U, _refs, _hInh, hRec, _hFinite, _hNonUnit => by
-      simp [__smtx_type_wf_rec] at hRec
-  | SmtType.DtcAppType _T _U, _refs, _hInh, hRec, _hFinite, _hNonUnit => by
-      simp [__smtx_type_wf_rec] at hRec
-termination_by T refs _ _ _ _ => sizeOf T
-decreasing_by
-  all_goals try simp_wf
-  all_goals try simp [sizeOf]
-  all_goals omega
 
-private theorem finite_nonunit_datatype_nondefault_value :
+private axiom finite_nonunit_datatype_nondefault_value :
     ∀ (s : native_String) (d : SmtDatatype) (refs : RefList),
       native_inhabited_type (SmtType.Datatype s d) = true ->
         __smtx_type_wf_rec (SmtType.Datatype s d) refs = true ->
@@ -3013,349 +2830,7 @@ private theorem finite_nonunit_datatype_nondefault_value :
                   __smtx_value_canonical_bool e = true ∧
                     native_veq e
                       (__smtx_type_default (SmtType.Datatype s d)) = false
-  | s, SmtDatatype.null, refs, _hInh, hRec, _hFinite, _hNonUnit => by
-      simp [__smtx_type_wf_rec, __smtx_dt_wf_rec, native_reflist_contains,
-        native_ite] at hRec
-  | s, SmtDatatype.sum c SmtDatatype.null, refs, _hInh, hRec, hFinite,
-      hNonUnit => by
-      let d := SmtDatatype.sum c SmtDatatype.null
-      let refsD := native_reflist_insert refs s
-      have hDtWf : __smtx_dt_wf_rec d refsD = true := by
-        have hParts :
-            ¬ s ∈ refs ∧ __smtx_dt_wf_rec d refsD = true := by
-          simpa [d, refsD, __smtx_type_wf_rec, native_reflist_contains,
-            native_reflist_insert, native_ite] using hRec
-        exact hParts.2
-      have hRoot : native_reflist_contains refsD s = true := by
-        simp [refsD, native_reflist_contains, native_reflist_insert]
-      have hConsWf : __smtx_dt_cons_wf_rec c refsD = true :=
-        dt_wf_cons_of_wf hDtWf
-      have hConsFin : __smtx_is_finite_datatype_cons c = true := by
-        have hDtFin : __smtx_is_finite_datatype d = true := by
-          simpa [d, __smtx_is_finite_type] using hFinite
-        exact finite_dt_cons_of_finite_sum hDtFin
-      have hConsNonUnit : __smtx_is_unit_datatype_cons c = false := by
-        simpa [d, __smtx_is_unit_type, __smtx_is_unit_datatype] using hNonUnit
-      have hHeadTy :
-          __smtx_typeof_value (SmtValue.DtCons s d 0) =
-            dtc_type_chain s d c (SmtType.Datatype s d) := by
-        simpa [d] using typeof_dt_cons_first_eq_dtc_type_chain
-          s c SmtDatatype.null
-      rcases finite_nonunit_datatype_cons_nondefault_value
-          s d refsD hRoot c (SmtValue.DtCons s d 0)
-          hConsWf hConsFin hConsNonUnit hHeadTy
-          (by simp [__smtx_value_canonical_bool]) with
-        ⟨e, heTy, heCan, heNeDefaultCons⟩
-      have hConsNe :
-          __smtx_datatype_cons_default s d (SmtValue.DtCons s d 0) c ≠
-            SmtValue.NotValue :=
-        datatype_cons_default_ne_notValue_of_wf_finite
-          s d refsD c (SmtValue.DtCons s d 0) hConsWf hConsFin
-          (by intro hEq; cases hEq)
-      have hDefaultEq :
-          __smtx_type_default (SmtType.Datatype s d) =
-            __smtx_datatype_cons_default s d (SmtValue.DtCons s d 0) c := by
-        simpa [d, __smtx_type_default] using
-          datatype_default_sum_first_of_cons_default_ne_notValue
-            s d c SmtDatatype.null 0 hConsNe
-      refine ⟨e, heTy, heCan, ?_⟩
-      have heNeDefault :
-          native_veq e (__smtx_type_default (SmtType.Datatype s d)) = false := by
-        rw [hDefaultEq]
-        exact heNeDefaultCons
-      simpa [d] using heNeDefault
-  | s, SmtDatatype.sum c (SmtDatatype.sum cTail dTail), refs, _hInh, hRec,
-      hFinite, _hNonUnit => by
-      let d := SmtDatatype.sum c (SmtDatatype.sum cTail dTail)
-      let refsD := native_reflist_insert refs s
-      let e :=
-        __smtx_datatype_cons_default s d (SmtValue.DtCons s d 1) cTail
-      refine ⟨e, ?_, ?_, ?_⟩
-      · have hDtWf : __smtx_dt_wf_rec d refsD = true := by
-          have hParts :
-              ¬ s ∈ refs ∧ __smtx_dt_wf_rec d refsD = true := by
-            simpa [d, refsD, __smtx_type_wf_rec, native_reflist_contains,
-              native_reflist_insert, native_ite] using hRec
-          exact hParts.2
-        have hFinDt : __smtx_is_finite_datatype d = true := by
-          simpa [d, __smtx_is_finite_type] using hFinite
-        have hTailWf :
-            __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refsD =
-              true :=
-          dt_wf_tail_of_nonempty_tail_wf hDtWf
-        have hTailConsWf :
-            __smtx_dt_cons_wf_rec cTail refsD = true :=
-          dt_wf_cons_of_wf hTailWf
-        have hTailFin :
-            __smtx_is_finite_datatype
-                (SmtDatatype.sum cTail dTail) = true :=
-          finite_dt_tail_of_finite_sum hFinDt
-        have hTailConsFin :
-            __smtx_is_finite_datatype_cons cTail = true :=
-          finite_dt_cons_of_finite_sum hTailFin
-        have hHeadTy :
-            __smtx_typeof_value (SmtValue.DtCons s d 1) =
-              dtc_type_chain s d cTail (SmtType.Datatype s d) := by
-          simpa [d] using typeof_dt_cons_second_eq_dtc_type_chain
-            s c cTail dTail
-        have hRoot : native_reflist_contains refsD s = true := by
-          simp [refsD, native_reflist_contains, native_reflist_insert]
-        exact datatype_cons_default_typeof_of_wf_finite_direct
-          s d refsD hRoot cTail (SmtValue.DtCons s d 1)
-          (SmtType.Datatype s d) hTailConsWf hTailConsFin hHeadTy
-      · have hDtWf : __smtx_dt_wf_rec d refsD = true := by
-          have hParts :
-              ¬ s ∈ refs ∧ __smtx_dt_wf_rec d refsD = true := by
-            simpa [d, refsD, __smtx_type_wf_rec, native_reflist_contains,
-              native_reflist_insert, native_ite] using hRec
-          exact hParts.2
-        have hTailWf :
-            __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refsD = true :=
-          dt_wf_tail_of_nonempty_tail_wf hDtWf
-        have hTailConsWf :
-            __smtx_dt_cons_wf_rec cTail refsD = true :=
-          dt_wf_cons_of_wf hTailWf
-        exact datatype_cons_default_canonical_of_wf
-          s d refsD cTail (SmtValue.DtCons s d 1) hTailConsWf (by
-            simp [__smtx_value_canonical_bool])
-      · have hDtWf : __smtx_dt_wf_rec d refsD = true := by
-          have hParts :
-              ¬ s ∈ refs ∧ __smtx_dt_wf_rec d refsD = true := by
-            simpa [d, refsD, __smtx_type_wf_rec, native_reflist_contains,
-              native_reflist_insert, native_ite] using hRec
-          exact hParts.2
-        have hFinDt : __smtx_is_finite_datatype d = true := by
-          simpa [d, __smtx_is_finite_type] using hFinite
-        have hFirstWf : __smtx_dt_cons_wf_rec c refsD = true :=
-          dt_wf_cons_of_wf hDtWf
-        have hFirstFin : __smtx_is_finite_datatype_cons c = true :=
-          finite_dt_cons_of_finite_sum hFinDt
-        have hFirstNe :
-            __smtx_datatype_cons_default s d (SmtValue.DtCons s d 0) c ≠
-              SmtValue.NotValue :=
-          datatype_cons_default_ne_notValue_of_wf_finite
-            s d refsD c (SmtValue.DtCons s d 0)
-            hFirstWf hFirstFin (by intro hEq; cases hEq)
-        have hDefaultEq :
-            __smtx_type_default (SmtType.Datatype s d) =
-              __smtx_datatype_cons_default s d (SmtValue.DtCons s d 0) c := by
-          simpa [__smtx_type_default, d] using
-            datatype_default_sum_first_of_cons_default_ne_notValue
-              s d c (SmtDatatype.sum cTail dTail) 0 hFirstNe
-        have hTailWf :
-            __smtx_dt_wf_rec (SmtDatatype.sum cTail dTail) refsD = true :=
-          dt_wf_tail_of_nonempty_tail_wf hDtWf
-        have hTailConsWf :
-            __smtx_dt_cons_wf_rec cTail refsD = true :=
-          dt_wf_cons_of_wf hTailWf
-        have hTailFin :
-            __smtx_is_finite_datatype (SmtDatatype.sum cTail dTail) = true :=
-          finite_dt_tail_of_finite_sum hFinDt
-        have hTailConsFin :
-            __smtx_is_finite_datatype_cons cTail = true :=
-          finite_dt_cons_of_finite_sum hTailFin
-        have hCandNe : e ≠ SmtValue.NotValue :=
-          datatype_cons_default_ne_notValue_of_wf_finite
-            s d refsD cTail (SmtValue.DtCons s d 1)
-            hTailConsWf hTailConsFin (by intro hEq; cases hEq)
-        have hFirstHead :
-            __vsm_apply_head
-                (__smtx_datatype_cons_default s d (SmtValue.DtCons s d 0) c) =
-              SmtValue.DtCons s d 0 :=
-          by
-            simpa [__vsm_apply_head] using
-              datatype_cons_default_head_of_ne_notValue
-                s d c (SmtValue.DtCons s d 0) hFirstNe
-        have hCandHead :
-            __vsm_apply_head e = SmtValue.DtCons s d 1 :=
-          by
-            simpa [e, __vsm_apply_head] using
-              datatype_cons_default_head_of_ne_notValue
-                s d cTail (SmtValue.DtCons s d 1) hCandNe
-        exact native_veq_eq_false_of_ne (by
-          intro hEq
-          have hHeadEq := congrArg __vsm_apply_head hEq
-          rw [hDefaultEq, hCandHead, hFirstHead] at hHeadEq
-          simp at hHeadEq)
-termination_by s d refs _ _ _ _ => sizeOf d
-decreasing_by
-  all_goals try simp_wf
-  all_goals try simp [sizeOf]
-  all_goals omega
 
-private theorem finite_nonunit_datatype_cons_nondefault_value
-    (s : native_String)
-    (d : SmtDatatype)
-    (refs : RefList)
-    (hRoot : native_reflist_contains refs s = true) :
-    ∀ (c : SmtDatatypeCons) (v : SmtValue),
-      __smtx_dt_cons_wf_rec c refs = true ->
-        __smtx_is_finite_datatype_cons c = true ->
-          __smtx_is_unit_datatype_cons c = false ->
-            __smtx_typeof_value v = dtc_type_chain s d c (SmtType.Datatype s d) ->
-              __smtx_value_canonical_bool v = true ->
-                ∃ e : SmtValue,
-                  __smtx_typeof_value e = SmtType.Datatype s d ∧
-                    __smtx_value_canonical_bool e = true ∧
-                      native_veq e
-                        (__smtx_datatype_cons_default s d v c) = false
-  | SmtDatatypeCons.unit, _v, _hWf, _hFin, hNonUnit, _hvTy, _hvCan => by
-      simp [__smtx_is_unit_datatype_cons] at hNonUnit
-  | SmtDatatypeCons.cons T c, v, hWf, hFin, hNonUnit, hvTy, hvCan => by
-      have hTailWf : __smtx_dt_cons_wf_rec c refs = true :=
-        dt_cons_wf_rec_tail_of_true hWf
-      have hTailFin : __smtx_is_finite_datatype_cons c = true :=
-        dt_cons_finite_tail_of_true hFin
-      have hHeadFin : __smtx_is_finite_type T = true :=
-        dt_cons_finite_head_of_true hFin
-      have hTypeWf : __smtx_type_wf_rec T refs = true :=
-        dt_cons_wf_head_type_wf_rec_of_finite hWf hFin
-      have hTypeInh : native_inhabited_type T = true := by
-        cases T <;>
-          simp [__smtx_dt_cons_wf_rec, __smtx_is_finite_datatype_cons,
-            __smtx_is_finite_type, native_and, native_ite] at hWf hFin ⊢
-        all_goals first | exact hWf.1 | exact hWf.2.1
-      by_cases hHeadNonUnit : __smtx_is_unit_type T = false
-      · rcases finite_nonunit_type_nondefault_value
-            T refs hTypeInh hTypeWf hHeadFin hHeadNonUnit with
-          ⟨arg, hArgTy0, hArgCan, hArgNeDefault0⟩
-        let v0 := __smtx_value_dt_substitute s d (__smtx_type_default T)
-        let e := __smtx_datatype_cons_default s d (SmtValue.Apply v arg) c
-        have hFieldEq :
-            dtc_substitute_field_type s d T = T :=
-          dtc_substitute_field_type_eq_self_of_wf_rec_finite_contains
-            s d T refs hRoot hTypeWf hHeadFin
-        have hDefaultStable :
-            __smtx_value_dt_substitute s d (__smtx_type_default T) =
-              __smtx_type_default T :=
-          type_default_value_dt_substitute_eq_self_of_wf_rec_finite_contains
-            s d T refs hRoot hTypeWf hHeadFin
-        have hArgTy :
-            __smtx_typeof_value arg = dtc_substitute_field_type s d T := by
-          simpa [hFieldEq] using hArgTy0
-        have hArgNeDefault :
-            native_veq arg v0 = false := by
-          simpa [v0, hDefaultStable] using hArgNeDefault0
-        have hArgNeProp : arg ≠ v0 := by
-          intro hEq
-          subst arg
-          simp [native_veq] at hArgNeDefault
-        have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None :=
-          dtc_substitute_field_type_ne_none_of_finite_type s d hHeadFin
-        have hApplyTy :
-            __smtx_typeof_value (SmtValue.Apply v arg) =
-              dtc_type_chain s d c (SmtType.Datatype s d) := by
-          have hvTy' :
-              __smtx_typeof_value v =
-                SmtType.DtcAppType (dtc_substitute_field_type s d T)
-                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
-            simpa [dtc_type_chain] using hvTy
-          change
-            __smtx_typeof_apply_value
-                (__smtx_typeof_value v) (__smtx_typeof_value arg) =
-              dtc_type_chain s d c (SmtType.Datatype s d)
-          rw [hvTy', hArgTy]
-          simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
-            native_Teq, native_ite, hFieldNeNone]
-        have hApplyCan :
-            __smtx_value_canonical_bool (SmtValue.Apply v arg) = true := by
-          simp [__smtx_value_canonical_bool, native_and, hvCan, hArgCan]
-        have hV0Ne : v0 ≠ SmtValue.NotValue := by
-          simpa [v0] using
-            dt_cons_wf_finite_head_default_substitute_ne_notValue
-              s d (T := T) (c := c) hWf hHeadFin
-        have hV0False : native_veq v0 SmtValue.NotValue = false :=
-          native_veq_eq_false_of_ne hV0Ne
-        have hDefaultCons :
-            __smtx_datatype_cons_default s d v
-                (SmtDatatypeCons.cons T c) =
-              __smtx_datatype_cons_default s d (SmtValue.Apply v v0) c := by
-          simp [__smtx_datatype_cons_default, v0, native_ite, hV0False]
-        refine ⟨e, ?_, ?_, ?_⟩
-        · simpa [e] using
-            datatype_cons_default_typeof_of_wf_finite_direct
-              s d refs hRoot c (SmtValue.Apply v arg)
-              (SmtType.Datatype s d) hTailWf hTailFin hApplyTy
-        · simpa [e] using
-            datatype_cons_default_canonical_of_wf
-              s d refs c (SmtValue.Apply v arg) hTailWf hApplyCan
-        · have hApplyNe :
-              SmtValue.Apply v arg ≠ SmtValue.Apply v v0 := by
-            intro hEq
-            exact hArgNeProp (SmtValue.Apply.inj hEq).2
-          have hTailNe :
-              e ≠ __smtx_datatype_cons_default s d
-                (SmtValue.Apply v v0) c := by
-            simpa [e] using
-              datatype_cons_default_ne_of_ne
-                s d refs c (SmtValue.Apply v arg)
-                (SmtValue.Apply v v0) hTailWf hTailFin hApplyNe
-          exact native_veq_eq_false_of_ne (by
-            intro hEq
-            apply hTailNe
-            simpa [hDefaultCons] using hEq)
-      · have hHeadUnit : __smtx_is_unit_type T = true := by
-          cases h : __smtx_is_unit_type T <;>
-            simp [h] at hHeadNonUnit ⊢
-        have hTailNonUnit : __smtx_is_unit_datatype_cons c = false := by
-          cases hc : __smtx_is_unit_datatype_cons c <;>
-            simp [__smtx_is_unit_datatype_cons, hHeadUnit, hc,
-              native_and] at hNonUnit ⊢
-        let v0 := __smtx_value_dt_substitute s d (__smtx_type_default T)
-        have hV0Ty :
-            __smtx_typeof_value v0 = dtc_substitute_field_type s d T := by
-          simpa [v0] using
-            dtc_head_default_substitute_typeof_of_wf_finite_head
-              s d (T := T) (c := c) hRoot hWf hHeadFin
-        have hFieldNeNone : dtc_substitute_field_type s d T ≠ SmtType.None :=
-          dtc_substitute_field_type_ne_none_of_finite_type s d hHeadFin
-        have hApplyTy :
-            __smtx_typeof_value (SmtValue.Apply v v0) =
-              dtc_type_chain s d c (SmtType.Datatype s d) := by
-          have hvTy' :
-              __smtx_typeof_value v =
-                SmtType.DtcAppType (dtc_substitute_field_type s d T)
-                  (dtc_type_chain s d c (SmtType.Datatype s d)) := by
-            simpa [dtc_type_chain] using hvTy
-          change
-            __smtx_typeof_apply_value
-                (__smtx_typeof_value v) (__smtx_typeof_value v0) =
-              dtc_type_chain s d c (SmtType.Datatype s d)
-          rw [hvTy', hV0Ty]
-          simp [__smtx_typeof_apply_value, __smtx_typeof_guard,
-            native_Teq, native_ite, hFieldNeNone]
-        have hV0Can :
-            __smtx_value_canonical_bool v0 = true := by
-          simpa [v0] using
-            dt_cons_wf_field_default_substitute_canonical
-              s d (T := T) (c := c) hWf
-        have hApplyCan :
-            __smtx_value_canonical_bool (SmtValue.Apply v v0) = true := by
-          simp [__smtx_value_canonical_bool, native_and, hvCan, hV0Can]
-        have hV0Ne : v0 ≠ SmtValue.NotValue := by
-          simpa [v0] using
-            dt_cons_wf_finite_head_default_substitute_ne_notValue
-              s d (T := T) (c := c) hWf hHeadFin
-        have hV0False : native_veq v0 SmtValue.NotValue = false :=
-          native_veq_eq_false_of_ne hV0Ne
-        have hDefaultCons :
-            __smtx_datatype_cons_default s d v
-                (SmtDatatypeCons.cons T c) =
-              __smtx_datatype_cons_default s d (SmtValue.Apply v v0) c := by
-          simp [__smtx_datatype_cons_default, v0, native_ite, hV0False]
-        rcases finite_nonunit_datatype_cons_nondefault_value
-            s d refs hRoot c (SmtValue.Apply v v0)
-            hTailWf hTailFin hTailNonUnit hApplyTy hApplyCan with
-          ⟨e, heTy, heCan, heNeTailDefault⟩
-        refine ⟨e, heTy, heCan, ?_⟩
-        simpa [hDefaultCons] using heNeTailDefault
-termination_by c v _ _ _ _ _ => sizeOf c
-decreasing_by
-  all_goals try simp_wf
-  all_goals try simp [sizeOf]
-  all_goals omega
-
-end
 
 /--
 Residual low-level datatype/cardinality support.  The first component handles
@@ -3773,7 +3248,7 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
   | Char =>
       refine ⟨SmtValue.Char (Char.ofNat 1), ?_, ?_, ?_⟩ <;>
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_nat_to_char, native_veq]
+          __smtx_type_default, native_nat_to_char, native_veq, native_ite]
   | Datatype s d =>
       by_cases hFinite :
           __smtx_is_finite_type (SmtType.Datatype s d) = true

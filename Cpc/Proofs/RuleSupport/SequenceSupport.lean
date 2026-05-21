@@ -303,7 +303,11 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       simpa [__smtx_typeof] using go t htNN
     case String s =>
-      simpa [__smtx_typeof, type_result_seq_components_wf] using seq_char_wf
+      unfold term_has_non_none_type at hxNN
+      rw [__smtx_typeof.eq_4] at hxNN ⊢
+      cases hs : native_string_in_cpc_range s <;>
+        simp [native_ite, hs, type_result_seq_components_wf] at hxNN ⊢
+      exact seq_char_wf
     case Var s T =>
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
@@ -754,6 +758,7 @@ theorem smt_typeof_seq_empty_of_type (A : Term) (T : SmtType) :
     cases hA
     change __smtx_typeof (SmtTerm.String "") = SmtType.Seq SmtType.Char
     rw [__smtx_typeof.eq_4]
+    simp [native_ite]
   · by_cases hStuck : A = Term.Stuck
     · subst hStuck
       simp [__eo_to_smt_type] at hA
@@ -780,7 +785,8 @@ theorem smt_typeof_seq_empty_seq_of_non_none (A : Term)
     exact ⟨SmtType.Char, by
       change __smtx_typeof (SmtTerm.String "") =
         SmtType.Seq SmtType.Char
-      rw [__smtx_typeof.eq_4]⟩
+      rw [__smtx_typeof.eq_4]
+      simp [native_ite]⟩
   · by_cases hStuck : A = Term.Stuck
     · subst A
       have hNone : __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None := by
@@ -820,7 +826,8 @@ theorem eo_to_smt_type_seq_of_seq_empty_non_none (A : Term)
       by
         change __smtx_typeof (SmtTerm.String "") =
           SmtType.Seq SmtType.Char
-        rw [__smtx_typeof.eq_4]⟩
+        rw [__smtx_typeof.eq_4]
+        simp [native_ite]⟩
   · by_cases hStuck : A = Term.Stuck
     · subst A
       have hNone : __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None := by

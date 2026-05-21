@@ -239,19 +239,49 @@ theorem seq_canonical_pack_unpack_update
   · simp at hv
     exact seq_unpack_values_canonical hs v hv
 
-/-- Packed strings are canonical sequences, since every character value is canonical. -/
-theorem seq_canonical_pack_string (s : native_String) :
+/-- Characters in a valid CPC string are valid CPC characters. -/
+theorem native_chars_in_cpc_range_mem :
+    ∀ {cs : List native_Char} {c : native_Char},
+      native_chars_in_cpc_range cs = true ->
+        c ∈ cs ->
+          native_char_in_cpc_range c = true
+:= by
+  intro cs
+  induction cs with
+  | nil =>
+      intro c _h hc
+      simp at hc
+  | cons x xs ih =>
+      intro c h hc
+      simp [native_chars_in_cpc_range, SmtEval.native_and] at h
+      simp at hc
+      rcases hc with rfl | hc
+      · exact h.1
+      · exact ih h.2 hc
+
+/-- Characters in a valid CPC string are valid CPC characters. -/
+theorem native_string_in_cpc_range_mem
+    {s : native_String} {c : native_Char}
+    (h : native_string_in_cpc_range s = true)
+    (hc : c ∈ s.toList) :
+    native_char_in_cpc_range c = true :=
+  native_chars_in_cpc_range_mem h hc
+
+/-- Packed valid CPC strings are canonical sequences. -/
+theorem seq_canonical_pack_string (s : native_String)
+    (hs : native_string_in_cpc_range s = true) :
     __smtx_seq_canonical (native_pack_string s) = true := by
   unfold native_pack_string
   apply seq_canonical_pack_seq
   intro v hv
   simp [native_ssm_char_values_of_string] at hv
-  rcases hv with ⟨c, _hc, rfl⟩
-  exact value_canonical_char c
+  rcases hv with ⟨c, hc, rfl⟩
+  exact value_canonical_char (c := c) (native_string_in_cpc_range_mem hs hc)
 
-theorem value_canonical_string (s : native_String) :
+theorem value_canonical_string (s : native_String)
+    (hs : native_string_in_cpc_range s = true) :
     __smtx_value_canonical (SmtValue.Seq (native_pack_string s)) := by
-  exact value_canonical_seq_of_seq_canonical (seq_canonical_pack_string s)
+  exact value_canonical_seq_of_seq_canonical (seq_canonical_pack_string s hs)
 
 theorem value_canonical_seq_empty (T : SmtType) :
     __smtx_value_canonical (SmtValue.Seq (SmtSeq.empty T)) := by

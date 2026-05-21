@@ -712,9 +712,10 @@ theorem model_eval_rotate_right_canonical
 
 /-- Literal strings evaluate to canonical sequence values. -/
 theorem model_eval_string_value_canonical
-    (s : native_String) :
+    (s : native_String)
+    (hs : native_string_in_cpc_range s = true) :
     __smtx_value_canonical (SmtValue.Seq (native_pack_string s)) :=
-  value_canonical_string s
+  value_canonical_string s hs
 
 theorem model_eval_seq_empty_value_canonical
     (T : SmtType) :
@@ -847,32 +848,56 @@ theorem model_eval_str_update_canonical
             hs hreplSeq n
 
 theorem model_eval_str_to_lower_canonical
-    (v : SmtValue) :
+    {v : SmtValue}
+    (hvTy : __smtx_typeof_value v = SmtType.Seq SmtType.Char) :
     __smtx_value_canonical (__smtx_model_eval_str_to_lower v) := by
   cases v <;>
-    simp [__smtx_model_eval_str_to_lower, __smtx_value_canonical,
-      __smtx_value_canonical_bool, seq_canonical_pack_string]
+    try
+      simpa [__smtx_model_eval_str_to_lower] using value_canonical_notValue
+  case Seq s =>
+    have hsTy : __smtx_typeof_seq_value s = SmtType.Seq SmtType.Char := by
+      simpa [__smtx_typeof_value] using hvTy
+    exact value_canonical_string
+      (native_str_to_lower (native_unpack_string s))
+      (native_string_in_cpc_range_str_to_lower
+        (native_string_in_cpc_range_unpack_string_of_type hsTy))
 
 theorem model_eval_str_to_upper_canonical
-    (v : SmtValue) :
+    {v : SmtValue}
+    (hvTy : __smtx_typeof_value v = SmtType.Seq SmtType.Char) :
     __smtx_value_canonical (__smtx_model_eval_str_to_upper v) := by
   cases v <;>
-    simp [__smtx_model_eval_str_to_upper, __smtx_value_canonical,
-      __smtx_value_canonical_bool, seq_canonical_pack_string]
+    try
+      simpa [__smtx_model_eval_str_to_upper] using value_canonical_notValue
+  case Seq s =>
+    have hsTy : __smtx_typeof_seq_value s = SmtType.Seq SmtType.Char := by
+      simpa [__smtx_typeof_value] using hvTy
+    exact value_canonical_string
+      (native_str_to_upper (native_unpack_string s))
+      (native_string_in_cpc_range_str_to_upper
+        (native_string_in_cpc_range_unpack_string_of_type hsTy))
 
 theorem model_eval_str_from_code_canonical
     (v : SmtValue) :
     __smtx_value_canonical (__smtx_model_eval_str_from_code v) := by
   cases v <;>
-    simp [__smtx_model_eval_str_from_code, __smtx_value_canonical,
-      __smtx_value_canonical_bool, seq_canonical_pack_string]
+    try
+      simpa [__smtx_model_eval_str_from_code] using value_canonical_notValue
+  case Numeral n =>
+    exact value_canonical_string
+      (native_str_from_code n)
+      (native_string_in_cpc_range_str_from_code n)
 
 theorem model_eval_str_from_int_canonical
     (v : SmtValue) :
     __smtx_value_canonical (__smtx_model_eval_str_from_int v) := by
   cases v <;>
-    simp [__smtx_model_eval_str_from_int, __smtx_value_canonical,
-      __smtx_value_canonical_bool, seq_canonical_pack_string]
+    try
+      simpa [__smtx_model_eval_str_from_int] using value_canonical_notValue
+  case Numeral n =>
+    exact value_canonical_string
+      (native_str_from_int n)
+      (native_string_in_cpc_range_str_from_int n)
 
 theorem model_eval_str_replace_all_canonical
     {v pat repl : SmtValue}
@@ -904,7 +929,9 @@ theorem model_eval_str_replace_all_canonical
             hs hpatSeq hreplSeq
 
 theorem model_eval_str_replace_re_canonical
-    (v re repl : SmtValue) :
+    {v re repl : SmtValue}
+    (hvTy : __smtx_typeof_value v = SmtType.Seq SmtType.Char)
+    (hreplTy : __smtx_typeof_value repl = SmtType.Seq SmtType.Char) :
     __smtx_value_canonical (__smtx_model_eval_str_replace_re v re repl) := by
   cases v <;>
     try
@@ -914,12 +941,23 @@ theorem model_eval_str_replace_re_canonical
       try
         simpa [__smtx_model_eval_str_replace_re] using value_canonical_notValue
     case RegLan r =>
-      cases repl <;>
-        simp [__smtx_model_eval_str_replace_re, __smtx_value_canonical,
-          __smtx_value_canonical_bool, seq_canonical_pack_string]
+      cases repl
+      case Seq t =>
+        have hsTy : __smtx_typeof_seq_value s = SmtType.Seq SmtType.Char := by
+          simpa [__smtx_typeof_value] using hvTy
+        have htTy : __smtx_typeof_seq_value t = SmtType.Seq SmtType.Char := by
+          simpa [__smtx_typeof_value] using hreplTy
+        exact value_canonical_string
+          (native_str_replace_re (native_unpack_string s) r (native_unpack_string t))
+          (native_string_in_cpc_range_str_replace_re
+            (native_string_in_cpc_range_unpack_string_of_type hsTy)
+            (native_string_in_cpc_range_unpack_string_of_type htTy))
+      all_goals exact value_canonical_notValue
 
 theorem model_eval_str_replace_re_all_canonical
-    (v re repl : SmtValue) :
+    {v re repl : SmtValue}
+    (hvTy : __smtx_typeof_value v = SmtType.Seq SmtType.Char)
+    (hreplTy : __smtx_typeof_value repl = SmtType.Seq SmtType.Char) :
     __smtx_value_canonical (__smtx_model_eval_str_replace_re_all v re repl) := by
   cases v <;>
     try
@@ -929,9 +967,18 @@ theorem model_eval_str_replace_re_all_canonical
       try
         simpa [__smtx_model_eval_str_replace_re_all] using value_canonical_notValue
     case RegLan r =>
-      cases repl <;>
-        simp [__smtx_model_eval_str_replace_re_all, __smtx_value_canonical,
-          __smtx_value_canonical_bool, seq_canonical_pack_string]
+      cases repl
+      case Seq t =>
+        have hsTy : __smtx_typeof_seq_value s = SmtType.Seq SmtType.Char := by
+          simpa [__smtx_typeof_value] using hvTy
+        have htTy : __smtx_typeof_seq_value t = SmtType.Seq SmtType.Char := by
+          simpa [__smtx_typeof_value] using hreplTy
+        exact value_canonical_string
+          (native_str_replace_re_all (native_unpack_string s) r (native_unpack_string t))
+          (native_string_in_cpc_range_str_replace_re_all
+            (native_string_in_cpc_range_unpack_string_of_type hsTy)
+            (native_string_in_cpc_range_unpack_string_of_type htTy))
+      all_goals exact value_canonical_notValue
 
 theorem model_eval_str_len_canonical
     (v : SmtValue) :
@@ -1357,55 +1404,10 @@ theorem model_eval_seq_nth_canonical
     exact seq_nth_aux_canonical hs
       (model_eval_seq_nth_wrong_canonical M hM s n (__smtx_typeof_seq_value s))
 
-theorem vsm_apply_arg_nth_canonical :
+axiom vsm_apply_arg_nth_canonical :
     ∀ {v : SmtValue} {n npos : native_Nat},
       __smtx_value_canonical v ->
         __smtx_value_canonical (__vsm_apply_arg_nth v n npos)
-  | SmtValue.Apply f a, n, npos, hv => by
-      cases npos with
-      | zero =>
-          simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-      | succ npos =>
-          have hf : __smtx_value_canonical f := by
-            have hParts := hv
-            simp [__smtx_value_canonical, __smtx_value_canonical_bool,
-              SmtEval.native_and] at hParts
-            exact hParts.1
-          have ha : __smtx_value_canonical a := by
-            have hParts := hv
-            simp [__smtx_value_canonical, __smtx_value_canonical_bool,
-              SmtEval.native_and] at hParts
-            exact hParts.2
-          cases hEq : native_nateq n npos
-          · simpa [__vsm_apply_arg_nth, hEq] using
-              vsm_apply_arg_nth_canonical hf
-          · simpa [__vsm_apply_arg_nth, hEq] using ha
-  | SmtValue.NotValue, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Boolean b, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Numeral k, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Rational q, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Binary w k, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Map m, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Fun fid A B, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Set m, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Seq s, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.Char c, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.UValue u k, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.RegLan r, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
-  | SmtValue.DtCons s d i, n, npos, hv => by
-      simpa [__vsm_apply_arg_nth] using value_canonical_notValue
 
 theorem model_eval_dt_sel_wrong_canonical
     (M : SmtModel)

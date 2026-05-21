@@ -2253,11 +2253,19 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
         change eo_type_valid (Term.UOp UserOp.Real)
         simp [eo_type_valid, eo_type_valid_rec]
     | Term.String s, hNonNone => by
+        have hs : native_string_in_cpc_range s = true := by
+          by_cases hs : native_string_in_cpc_range s = true
+          · exact hs
+          · exfalso
+            change __smtx_typeof (SmtTerm.String s) ≠ SmtType.None at hNonNone
+            apply hNonNone
+            unfold __smtx_typeof
+            simp [native_ite, hs]
         have hSmt :
             __smtx_typeof (__eo_to_smt (Term.String s)) = SmtType.Seq SmtType.Char := by
           change __smtx_typeof (SmtTerm.String s) = SmtType.Seq SmtType.Char
           unfold __smtx_typeof
-          rfl
+          simp [native_ite, hs]
         refine ⟨hSmt.trans (eo_to_smt_type_typeof_string s).symm, ?_⟩
         change eo_type_valid (Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char))
         simp [eo_type_valid, eo_type_valid_rec]

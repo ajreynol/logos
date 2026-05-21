@@ -1107,7 +1107,8 @@ private theorem reUnion_smt_value_rel_left_all_eval
         SmtValue.RegLan native_re_all := by
     simp [__smtx_model_eval]
   have hxExt : ∀ str,
-      native_str_in_re str rx = native_str_in_re str native_re_all := by
+      native_string_in_cpc_range str = true ->
+        native_str_in_re str rx = native_str_in_re str native_re_all := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hxRel
     rw [hxEval, hAllEval] at hxRel
     simpa [__smtx_model_eval_eq] using hxRel
@@ -1120,8 +1121,8 @@ private theorem reUnion_smt_value_rel_left_all_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_union, hxEval,
     hyEval]
   simp [__smtx_model_eval_eq, native_re_union, native_str_in_re_mk_union]
-  intro str
-  rw [hxExt str, native_str_in_re_all str]
+  intro str hRange
+  rw [hxExt str hRange, native_str_in_re_all str]
   simp
 
 private theorem reUnion_smt_value_rel_right_all_eval
@@ -1140,7 +1141,8 @@ private theorem reUnion_smt_value_rel_right_all_eval
         SmtValue.RegLan native_re_all := by
     simp [__smtx_model_eval]
   have hyExt : ∀ str,
-      native_str_in_re str ry = native_str_in_re str native_re_all := by
+      native_string_in_cpc_range str = true ->
+        native_str_in_re str ry = native_str_in_re str native_re_all := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hyRel
     rw [hyEval, hAllEval] at hyRel
     simpa [__smtx_model_eval_eq] using hyRel
@@ -1153,8 +1155,8 @@ private theorem reUnion_smt_value_rel_right_all_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_union, hxEval,
     hyEval]
   simp [__smtx_model_eval_eq, native_re_union, native_str_in_re_mk_union]
-  intro str
-  rw [hyExt str, native_str_in_re_all str]
+  intro str hRange
+  rw [hyExt str hRange, native_str_in_re_all str]
   simp
 
 private theorem absorbTree_re_union_all

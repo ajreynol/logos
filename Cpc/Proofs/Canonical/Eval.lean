@@ -28,9 +28,10 @@ theorem model_eval_rational_canonical
 
 theorem model_eval_string_canonical
     (M : SmtModel)
-    (s : native_String) :
+    (s : native_String)
+    (hs : native_string_in_cpc_range s = true) :
     __smtx_value_canonical (__smtx_model_eval M (SmtTerm.String s)) := by
-  simpa [__smtx_model_eval] using model_eval_string_value_canonical s
+  simpa [__smtx_model_eval] using model_eval_string_value_canonical s hs
 
 theorem model_eval_var_canonical
     (M : SmtModel)
@@ -514,7 +515,11 @@ theorem model_eval_canonical_of_supported
   case rational q =>
       exact model_eval_rational_canonical M q
   case string s =>
-      exact model_eval_string_canonical M s
+      have hs : native_string_in_cpc_range s = true := by
+        unfold term_has_non_none_type at hTy
+        cases h : native_string_in_cpc_range s <;>
+          simp [__smtx_typeof, native_ite, h] at hTy ⊢
+      exact model_eval_string_canonical M s hs
   case binary w n =>
       cases hw : native_zleq 0 w <;>
         cases hn : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
@@ -705,12 +710,28 @@ theorem model_eval_canonical_of_supported
       exact model_eval_str_rev_term_canonical M _ (ih M hM ht)
   case str_update ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
       exact model_eval_str_update_term_canonical M _ _ _ (ih1 M hM ht1) (ih3 M hM ht3)
-  case str_to_lower ht hs ih =>
+  case str_to_lower t ht hs ih =>
+      have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+        seq_char_arg_of_non_none (op := SmtTerm.str_to_lower)
+          (typeof_str_to_lower_eq t) hTy
+      have hvTy :
+          __smtx_typeof_value (__smtx_model_eval M t) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArg] using smt_model_eval_preserves_type_of_non_none M hM t ht
       simpa [__smtx_model_eval] using
-        model_eval_str_to_lower_canonical (__smtx_model_eval M _)
-  case str_to_upper ht hs ih =>
+        model_eval_str_to_lower_canonical
+          (v := __smtx_model_eval M t) hvTy
+  case str_to_upper t ht hs ih =>
+      have hArg : __smtx_typeof t = SmtType.Seq SmtType.Char :=
+        seq_char_arg_of_non_none (op := SmtTerm.str_to_upper)
+          (typeof_str_to_upper_eq t) hTy
+      have hvTy :
+          __smtx_typeof_value (__smtx_model_eval M t) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArg] using smt_model_eval_preserves_type_of_non_none M hM t ht
       simpa [__smtx_model_eval] using
-        model_eval_str_to_upper_canonical (__smtx_model_eval M _)
+        model_eval_str_to_upper_canonical
+          (v := __smtx_model_eval M t) hvTy
   case str_from_code ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_str_from_code_canonical (__smtx_model_eval M _)
@@ -720,14 +741,38 @@ theorem model_eval_canonical_of_supported
   case str_replace_all ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
       exact model_eval_str_replace_all_term_canonical M _ _ _
         (ih1 M hM ht1) (ih2 M hM ht2) (ih3 M hM ht3)
-  case str_replace_re ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
+  case str_replace_re t1 t2 t3 ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
+      have hArgs :=
+        str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re)
+          (typeof_str_replace_re_eq t1 t2 t3) hTy
+      have hvTy :
+          __smtx_typeof_value (__smtx_model_eval M t1) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArgs.1] using smt_model_eval_preserves_type_of_non_none M hM t1 ht1
+      have hreplTy :
+          __smtx_typeof_value (__smtx_model_eval M t3) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArgs.2.2] using smt_model_eval_preserves_type_of_non_none M hM t3 ht3
       simpa [__smtx_model_eval] using
         model_eval_str_replace_re_canonical
-          (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
-  case str_replace_re_all ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
+          (v := __smtx_model_eval M t1) (re := __smtx_model_eval M t2)
+          (repl := __smtx_model_eval M t3) hvTy hreplTy
+  case str_replace_re_all t1 t2 t3 ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
+      have hArgs :=
+        str_replace_re_args_of_non_none (op := SmtTerm.str_replace_re_all)
+          (typeof_str_replace_re_all_eq t1 t2 t3) hTy
+      have hvTy :
+          __smtx_typeof_value (__smtx_model_eval M t1) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArgs.1] using smt_model_eval_preserves_type_of_non_none M hM t1 ht1
+      have hreplTy :
+          __smtx_typeof_value (__smtx_model_eval M t3) =
+            SmtType.Seq SmtType.Char := by
+        simpa [hArgs.2.2] using smt_model_eval_preserves_type_of_non_none M hM t3 ht3
       simpa [__smtx_model_eval] using
         model_eval_str_replace_re_all_canonical
-          (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
+          (v := __smtx_model_eval M t1) (re := __smtx_model_eval M t2)
+          (repl := __smtx_model_eval M t3) hvTy hreplTy
   case str_len ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_str_len_canonical (__smtx_model_eval M _)

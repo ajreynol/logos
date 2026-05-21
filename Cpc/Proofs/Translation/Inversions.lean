@@ -5,11 +5,38 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
+set_option maxRecDepth 10000
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
 
 attribute [local simp] native_ite
+
+private theorem smtx_type_wf_component_parts_local
+    {T : SmtType}
+    (h : __smtx_type_wf_component T = true) :
+    native_inhabited_type T = true ∧
+      __smtx_type_wf_rec T native_reflist_nil = true := by
+  simpa [__smtx_type_wf_component, native_and] using h
+
+private theorem type_wf_component_of_type_wf_non_special
+    (T : SmtType)
+    (hWF : __smtx_type_wf T = true)
+    (hReg : T ≠ SmtType.RegLan)
+    (hFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B) :
+    __smtx_type_wf_component T = true := by
+  cases T <;>
+    simp [__smtx_type_wf] at hWF hReg hFun ⊢
+  all_goals exact hWF
+
+private theorem type_wf_rec_of_type_wf_non_special
+    (T : SmtType)
+    (hWF : __smtx_type_wf T = true)
+    (hReg : T ≠ SmtType.RegLan)
+    (hFun : ∀ A B : SmtType, T ≠ SmtType.FunType A B) :
+    __smtx_type_wf_rec T native_reflist_nil = true :=
+  (smtx_type_wf_component_parts_local
+    (type_wf_component_of_type_wf_non_special T hWF hReg hFun)).2
 
 @[simp] private theorem guarded_datatype_type_ne_bool
     (s : native_String) (d : SmtDatatype) :
@@ -2399,19 +2426,9 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                           SmtType.FunType A B := by
                     intro A B
                     exact eo_to_smt_type_tuple_ne_fun (__eo_to_smt_type y) (__eo_to_smt_type x) A B
-                  have hNotIFun :
-                      ∀ A B : SmtType,
-                        __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) ≠
-                          SmtType.FunType A B := by
-                    intro A B
-                    exact eo_to_smt_type_tuple_ne_ifun (__eo_to_smt_type y) (__eo_to_smt_type x) A B
-                  cases hTuple :
-                      __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) <;>
-                    simp [hTuple, __smtx_type_wf, __smtx_type_wf_component,
-                      native_and] at hRawWf hNotReg ⊢
-                  case FunType A B =>
-                    exact False.elim (hNotFun A B hTuple)
-                  all_goals first | contradiction | exact hRawWf.2
+                  exact type_wf_rec_of_type_wf_non_special
+                    (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x))
+                    hRawWf hNotReg hNotFun
                 cases hX : __eo_to_smt_type x <;>
                   simp [__eo_to_smt_type_tuple, hX, __smtx_type_wf_rec] at hRawRec
                 case Datatype s d =>
@@ -2549,11 +2566,11 @@ theorem eo_typeof_type_of_smt_type_wf
         change __eo_typeof_fun_type (__eo_typeof U) (__eo_typeof V) = Term.Type
         rw [hUType, hVType]
         rfl
-      · exact eo_typeof_type_of_smt_type_wf_rec T native_reflist_nil (by
-          cases hTy : __eo_to_smt_type T <;>
-            simp [hTy, __smtx_type_wf, __smtx_type_wf_component,
-              native_and] at h hReg hFun hIFun ⊢
-          all_goals first | contradiction | exact h.2)
+      · exact eo_typeof_type_of_smt_type_wf_rec T native_reflist_nil
+          (type_wf_rec_of_type_wf_non_special (__eo_to_smt_type T) h hReg
+            (by
+              intro A B hEq
+              exact hFun ⟨A, B, hEq⟩))
 
 theorem eo_typeof_type_of_smt_type_field_wf_rec
     (T : Term) (refs : RefList)

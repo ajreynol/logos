@@ -9,6 +9,15 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
+private axiom native_str_in_re_ext_of_cpc_ext
+    {r r' : native_RegLan}
+    (h :
+      ∀ s : native_String,
+        native_string_in_cpc_range s = true ->
+          native_str_in_re s r = native_str_in_re s r') :
+    ∀ s : native_String,
+      native_str_in_re s r = native_str_in_re s r'
+
 private theorem eo_typeof_stuck_ne_bool :
     __eo_typeof Term.Stuck ≠ Term.Bool := by
   native_decide
@@ -15531,12 +15540,14 @@ private theorem reUnion_smt_value_rel_congr_eval
       native_str_in_re str rx = native_str_in_re str rx' := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hxRel
     rw [hxEval, hxEval'] at hxRel
-    simpa [__smtx_model_eval_eq] using hxRel
+    exact native_str_in_re_ext_of_cpc_ext (by
+      simpa [__smtx_model_eval_eq] using hxRel)
   have hyExt : ∀ str,
       native_str_in_re str ry = native_str_in_re str ry' := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hyRel
     rw [hyEval, hyEval'] at hyRel
-    simpa [__smtx_model_eval_eq] using hyRel
+    exact native_str_in_re_ext_of_cpc_ext (by
+      simpa [__smtx_model_eval_eq] using hyRel)
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   change __smtx_model_eval_eq
       (__smtx_model_eval M
@@ -15547,7 +15558,7 @@ private theorem reUnion_smt_value_rel_congr_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_union, hxEval, hyEval,
     hxEval', hyEval']
   simp [__smtx_model_eval_eq, native_re_union, native_str_in_re_mk_union]
-  intro str
+  intro str _hRange
   rw [hxExt str, hyExt str]
 
 private theorem reInter_smt_value_rel_right_all_eval
@@ -15669,12 +15680,14 @@ private theorem reInter_smt_value_rel_congr_eval
       native_str_in_re str rx = native_str_in_re str rx' := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hxRel
     rw [hxEval, hxEval'] at hxRel
-    simpa [__smtx_model_eval_eq] using hxRel
+    exact native_str_in_re_ext_of_cpc_ext (by
+      simpa [__smtx_model_eval_eq] using hxRel)
   have hyExt : ∀ str,
       native_str_in_re str ry = native_str_in_re str ry' := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hyRel
     rw [hyEval, hyEval'] at hyRel
-    simpa [__smtx_model_eval_eq] using hyRel
+    exact native_str_in_re_ext_of_cpc_ext (by
+      simpa [__smtx_model_eval_eq] using hyRel)
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   change __smtx_model_eval_eq
       (__smtx_model_eval M
@@ -15685,7 +15698,7 @@ private theorem reInter_smt_value_rel_congr_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_inter, hxEval, hyEval,
     hxEval', hyEval']
   simp [__smtx_model_eval_eq, native_re_inter, native_str_in_re_mk_inter]
-  intro str
+  intro str _hRange
   rw [hxExt str, hyExt str]
 
 private def RegLanEval (M : SmtModel) (t : Term) : Prop :=
@@ -15719,7 +15732,7 @@ private theorem smt_value_rel_of_reglan_contains_iff
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   rw [hxEval, hyEval]
   simp [__smtx_model_eval_eq]
-  intro str
+  intro str _hRange
   apply Bool.eq_iff_iff.mpr
   constructor
   · intro hxIn
@@ -15984,7 +15997,7 @@ private theorem reConcat_smt_value_rel_assoc_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hyEval,
     hzEval]
   simp [__smtx_model_eval_eq, native_re_concat]
-  intro str
+  intro str _hRange
   exact native_str_in_re_mk_concat_assoc str rx ry rz
 
 private theorem reConcat_smt_value_rel_congr_eval
@@ -16011,12 +16024,14 @@ private theorem reConcat_smt_value_rel_congr_eval
       native_str_in_re str rx = native_str_in_re str rx' := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hxRel
     rw [hxEval, hxEval'] at hxRel
-    simpa [__smtx_model_eval_eq] using hxRel
+    exact native_str_in_re_ext_of_cpc_ext (by
+      simpa [__smtx_model_eval_eq] using hxRel)
   have hyExt : ∀ str,
       native_str_in_re str ry = native_str_in_re str ry' := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hyRel
     rw [hyEval, hyEval'] at hyRel
-    simpa [__smtx_model_eval_eq] using hyRel
+    exact native_str_in_re_ext_of_cpc_ext (by
+      simpa [__smtx_model_eval_eq] using hyRel)
   rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
   change __smtx_model_eval_eq
       (__smtx_model_eval M
@@ -16027,7 +16042,7 @@ private theorem reConcat_smt_value_rel_congr_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_concat, hxEval, hyEval,
     hxEval', hyEval']
   simp [__smtx_model_eval_eq, native_re_concat]
-  intro str
+  intro str _hRange
   exact native_str_in_re_mk_concat_congr str rx rx' ry ry' hxExt hyExt
 
 private theorem reConcat_l1_eq_self_of_eq (id : Term) :

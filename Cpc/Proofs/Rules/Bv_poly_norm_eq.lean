@@ -167,7 +167,8 @@ private theorem binary_literal_of_to_z_bitvec_type
   case String s =>
       rw [show __eo_to_smt (Term.String s) = SmtTerm.String s by rfl] at hTy
       rw [__smtx_typeof.eq_4] at hTy
-      cases hTy
+      cases hs : native_string_in_cpc_range s <;>
+        simp [native_ite, hs] at hTy
   case Binary bw payload =>
       subst payload
       have hTyBin : __smtx_typeof (SmtTerm.Binary bw n) = SmtType.BitVec w := by

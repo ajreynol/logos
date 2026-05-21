@@ -8,6 +8,10 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+@[simp] theorem native_string_in_cpc_range_empty :
+    native_string_in_cpc_range "" = true := by
+  simp [native_string_in_cpc_range, native_chars_in_cpc_range]
+
 /-- Builds the right-associated conjunction of a list of premise terms, using `true` as the empty case. -/
 def premiseAndFormulaList : List Term -> Term
   | [] => Term.Boolean true

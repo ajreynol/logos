@@ -472,10 +472,14 @@ private theorem smtx_model_eval_eq_true_symm
     {v1 v2 : SmtValue}
     (h : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true) :
     __smtx_model_eval_eq v2 v1 = SmtValue.Boolean true := by
-  cases v1 <;> cases v2 <;>
-    simp [__smtx_model_eval_eq, native_veq] at h ⊢
+  cases v1 <;> cases v2
+  case RegLan.RegLan r1 r2 =>
+    simp [__smtx_model_eval_eq] at h ⊢
+    intro s hs
+    exact (h s hs).symm
   all_goals
-    simpa [eq_comm] using h
+    try simp [__smtx_model_eval_eq, native_veq] at h ⊢
+    try simpa [eq_comm] using h
 
 /-- Establishes an equality relating `smtx_model_eval_seq` and `true_symm`. -/
 private theorem smtx_model_eval_seq_eq_true_symm
@@ -490,13 +494,14 @@ private theorem smtx_model_eval_eq_true_trans
     (h12 : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true)
     (h23 : __smtx_model_eval_eq v2 v3 = SmtValue.Boolean true) :
     __smtx_model_eval_eq v1 v3 = SmtValue.Boolean true := by
-  cases v1 <;> cases v2 <;> cases v3 <;>
-    simp [__smtx_model_eval_eq, native_veq] at h12 h23 ⊢
+  cases v1 <;> cases v2 <;> cases v3
+  case RegLan.RegLan.RegLan r1 r2 r3 =>
+    simp [__smtx_model_eval_eq] at h12 h23 ⊢
+    intro s hs
+    exact (h12 s hs).trans (h23 s hs)
   all_goals
-    first
-    | intro s
-      exact (h12 s).trans (h23 s)
-    | simp_all
+    try simp [__smtx_model_eval_eq, native_veq] at h12 h23 ⊢
+    try simp_all
 
 /-- Establishes an equality relating `smtx_model_eval_seq` and `true_trans`. -/
 private theorem smtx_model_eval_seq_eq_true_trans

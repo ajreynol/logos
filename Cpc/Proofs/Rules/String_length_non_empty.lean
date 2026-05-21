@@ -80,6 +80,7 @@ private theorem empty_term_smt_info
         refine ⟨SmtType.Char, ?_, ?_⟩
         · change __smtx_typeof (SmtTerm.String "") = SmtType.Seq SmtType.Char
           rw [__smtx_typeof.eq_4]
+          simp [native_ite]
         · intro M
           change __smtx_model_eval M (SmtTerm.String "") =
             SmtValue.Seq (SmtSeq.empty SmtType.Char)

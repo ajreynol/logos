@@ -12,6 +12,15 @@ set_option maxHeartbeats 10000000
 
 namespace CongSupport
 
+private axiom native_str_in_re_ext_of_cpc_ext
+    {r r' : native_RegLan}
+    (h :
+      ∀ s : native_String,
+        native_string_in_cpc_range s = true ->
+          native_str_in_re s r = native_str_in_re s r') :
+    ∀ s : native_String,
+      native_str_in_re s r = native_str_in_re s r'
+
 private abbrev mkEq (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y
 
@@ -11052,7 +11061,8 @@ private theorem congTrueSpine_str_in_re_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel₂
       rw [hX₂Eval, hY₂Eval] at hRel₂
-      simpa [__smtx_model_eval_eq] using hRel₂
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel₂)
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
     change
       __smtx_model_eval_eq
@@ -11127,7 +11137,8 @@ private theorem congTrueSpine_re_comp_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
-      simpa [__smtx_model_eval_eq] using hRel
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel)
     have hExtComp : ∀ str,
         native_str_in_re str (native_re_comp rx) =
           native_str_in_re str (native_re_comp ry) := by
@@ -11202,7 +11213,8 @@ private theorem congTrueSpine_re_mult_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
-      simpa [__smtx_model_eval_eq] using hRel
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel)
     have hExtStar : ∀ str,
         native_str_in_re str (native_re_mult rx) =
           native_str_in_re str (native_re_mult ry) := by
@@ -11263,7 +11275,8 @@ private theorem congTrueSpine_re_plus_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
-      simpa [__smtx_model_eval_eq] using hRel
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel)
     have hExtPlus : ∀ str,
         native_str_in_re str (native_re_plus rx) =
           native_str_in_re str (native_re_plus ry) := by
@@ -11280,7 +11293,7 @@ private theorem congTrueSpine_re_plus_eq_true
     simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
       __smtx_model_eval_re_mult, native_re_plus, native_re_mult,
       native_re_concat, __smtx_model_eval_eq, hExtPlus]
-    intro s
+    intro s _hRange
     simpa [native_re_plus] using hExtPlus s
 
 private theorem congTrueSpine_re_opt_eq_true
@@ -11330,7 +11343,8 @@ private theorem congTrueSpine_re_opt_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
-      simpa [__smtx_model_eval_eq] using hRel
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel)
     have hExtOpt : ∀ str,
         native_str_in_re str (native_re_union rx eps) =
           native_str_in_re str (native_re_union ry eps) := by
@@ -11568,7 +11582,8 @@ private theorem congTrueSpine_re_exp_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
-      simpa [__smtx_model_eval_eq] using hRel
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel)
     change
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (SmtTerm.re_exp I X))
@@ -11620,7 +11635,8 @@ private theorem congTrueSpine_re_loop_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel
       rw [hXEval, hYEval] at hRel
-      simpa [__smtx_model_eval_eq] using hRel
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel)
     change
       RuleProofs.smt_value_rel
         (__smtx_model_eval M (SmtTerm.re_loop L H X))
@@ -11718,12 +11734,14 @@ private theorem congTrueSpine_reglan_binop_eq_true
         native_str_in_re str rx₁ = native_str_in_re str ry₁ := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel₁
       rw [hX₁Eval, hY₁Eval] at hRel₁
-      simpa [__smtx_model_eval_eq] using hRel₁
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel₁)
     have hExt₂ : ∀ str,
         native_str_in_re str rx₂ = native_str_in_re str ry₂ := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel₂
       rw [hX₂Eval, hY₂Eval] at hRel₂
-      simpa [__smtx_model_eval_eq] using hRel₂
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel₂)
     have hExt : ∀ str,
         native_str_in_re str (nativeOp rx₁ rx₂) =
           native_str_in_re str (nativeOp ry₁ ry₂) :=
@@ -12712,7 +12730,8 @@ private theorem congTrueSpine_str_replace_re_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel₂
       rw [hX₂Eval, hY₂Eval] at hRel₂
-      simpa [__smtx_model_eval_eq] using hRel₂
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel₂)
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
     change
       __smtx_model_eval_eq
@@ -12826,7 +12845,8 @@ private theorem congTrueSpine_str_replace_re_all_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel₂
       rw [hX₂Eval, hY₂Eval] at hRel₂
-      simpa [__smtx_model_eval_eq] using hRel₂
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel₂)
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
     change
       __smtx_model_eval_eq
@@ -12931,7 +12951,8 @@ private theorem congTrueSpine_str_indexof_re_eq_true
         native_str_in_re str rx = native_str_in_re str ry := by
       rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hRel₂
       rw [hX₂Eval, hY₂Eval] at hRel₂
-      simpa [__smtx_model_eval_eq] using hRel₂
+      exact native_str_in_re_ext_of_cpc_ext (by
+        simpa [__smtx_model_eval_eq] using hRel₂)
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
     change
       __smtx_model_eval_eq
@@ -15801,7 +15822,9 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                           __smtx_typeof
                             (SmtTerm.Apply (SmtTerm.String s)
                               (__eo_to_smt x)) = SmtType.None
-                        simp [__smtx_typeof, __smtx_typeof_apply])
+                        cases hs : native_string_in_cpc_range s <;>
+                          simp [__smtx_typeof, __smtx_typeof_apply,
+                            native_ite, hs])
                       hTrans)
               | Term.Binary w n =>
                   exact False.elim
@@ -18566,7 +18589,9 @@ private theorem congTrueSpine_eq_true
                           __smtx_typeof
                             (SmtTerm.Apply (SmtTerm.String s)
                               (__eo_to_smt x)) = SmtType.None
-                        simp [__smtx_typeof, __smtx_typeof_apply])
+                        cases hs : native_string_in_cpc_range s <;>
+                          simp [__smtx_typeof, __smtx_typeof_apply,
+                            native_ite, hs])
                       hEqBool)
               | Term.Binary w n =>
                   exact False.elim

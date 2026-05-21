@@ -961,11 +961,15 @@ theorem typeof_value_model_eval_str_to_lower
   change __smtx_typeof_value (__smtx_model_eval_str_to_lower (__smtx_model_eval M t)) =
     SmtType.Seq SmtType.Char
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  have hssTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+    simpa [hss, hArg] using hpres
   rw [hss]
   change __smtx_typeof_seq_value
       (native_pack_string (native_str_to_lower (native_unpack_string ss))) =
     SmtType.Seq SmtType.Char
-  exact typeof_pack_string _
+  exact typeof_pack_string_of_range
+    (native_string_in_cpc_range_str_to_lower
+      (native_string_in_cpc_range_unpack_string_of_type hssTy))
 
 /-- Shows that evaluating `str_to_upper` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_to_upper
@@ -984,11 +988,15 @@ theorem typeof_value_model_eval_str_to_upper
   change __smtx_typeof_value (__smtx_model_eval_str_to_upper (__smtx_model_eval M t)) =
     SmtType.Seq SmtType.Char
   rcases seq_value_canonical (by simpa [hArg] using hpres) with ⟨ss, hss⟩
+  have hssTy : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char := by
+    simpa [hss, hArg] using hpres
   rw [hss]
   change __smtx_typeof_seq_value
       (native_pack_string (native_str_to_upper (native_unpack_string ss))) =
     SmtType.Seq SmtType.Char
-  exact typeof_pack_string _
+  exact typeof_pack_string_of_range
+    (native_string_in_cpc_range_str_to_upper
+      (native_string_in_cpc_range_unpack_string_of_type hssTy))
 
 /-- Shows that evaluating `str_concat` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_concat
@@ -1339,12 +1347,19 @@ theorem typeof_value_model_eval_str_replace_re
   rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
   rcases reglan_value_canonical (by simpa [hArgs.2.1] using hpres2) with ⟨r, hr⟩
   rcases seq_value_canonical (by simpa [hArgs.2.2] using hpres3) with ⟨ss3, hss3⟩
+  have hss1Ty : __smtx_typeof_seq_value ss1 = SmtType.Seq SmtType.Char := by
+    simpa [hss1, hArgs.1] using hpres1
+  have hss3Ty : __smtx_typeof_seq_value ss3 = SmtType.Seq SmtType.Char := by
+    simpa [hss3, hArgs.2.2] using hpres3
   rw [hss1, hr, hss3]
   change __smtx_typeof_seq_value
       (native_pack_string
         (native_str_replace_re (native_unpack_string ss1) r (native_unpack_string ss3))) =
     SmtType.Seq SmtType.Char
-  exact typeof_pack_string _
+  exact typeof_pack_string_of_range
+    (native_string_in_cpc_range_str_replace_re
+      (native_string_in_cpc_range_unpack_string_of_type hss1Ty)
+      (native_string_in_cpc_range_unpack_string_of_type hss3Ty))
 
 /-- Shows that evaluating `str_replace_re_all` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_replace_re_all
@@ -1374,12 +1389,19 @@ theorem typeof_value_model_eval_str_replace_re_all
   rcases seq_value_canonical (by simpa [hArgs.1] using hpres1) with ⟨ss1, hss1⟩
   rcases reglan_value_canonical (by simpa [hArgs.2.1] using hpres2) with ⟨r, hr⟩
   rcases seq_value_canonical (by simpa [hArgs.2.2] using hpres3) with ⟨ss3, hss3⟩
+  have hss1Ty : __smtx_typeof_seq_value ss1 = SmtType.Seq SmtType.Char := by
+    simpa [hss1, hArgs.1] using hpres1
+  have hss3Ty : __smtx_typeof_seq_value ss3 = SmtType.Seq SmtType.Char := by
+    simpa [hss3, hArgs.2.2] using hpres3
   rw [hss1, hr, hss3]
   change __smtx_typeof_seq_value
       (native_pack_string
         (native_str_replace_re_all (native_unpack_string ss1) r (native_unpack_string ss3))) =
     SmtType.Seq SmtType.Char
-  exact typeof_pack_string _
+  exact typeof_pack_string_of_range
+    (native_string_in_cpc_range_str_replace_re_all
+      (native_string_in_cpc_range_unpack_string_of_type hss1Ty)
+      (native_string_in_cpc_range_unpack_string_of_type hss3Ty))
 
 /-- Shows that evaluating `str_indexof_re` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_indexof_re
@@ -1472,7 +1494,7 @@ theorem typeof_value_model_eval_str_from_code
   rw [hn]
   change __smtx_typeof_seq_value (native_pack_string (native_str_from_code n)) =
     SmtType.Seq SmtType.Char
-  exact typeof_pack_string _
+  exact typeof_pack_string_of_range (native_string_in_cpc_range_str_from_code n)
 
 /-- Shows that evaluating `str_from_int` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_from_int
@@ -1494,7 +1516,7 @@ theorem typeof_value_model_eval_str_from_int
   rw [hn]
   change __smtx_typeof_seq_value (native_pack_string (native_str_from_int n)) =
     SmtType.Seq SmtType.Char
-  exact typeof_pack_string _
+  exact typeof_pack_string_of_range (native_string_in_cpc_range_str_from_int n)
 
 /-- Shows that evaluating `str_to_re` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_str_to_re

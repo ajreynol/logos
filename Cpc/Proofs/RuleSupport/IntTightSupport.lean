@@ -505,7 +505,7 @@ private theorem false_of_string_gt_tight_lb
         __smtx_typeof (__eo_to_smt (Term.String str)) = SmtType.Int :=
       smt_right_int_of_left_int hAInt hArgs
     rw [eo_to_smt_string_eq, __smtx_typeof.eq_4] at hBInt
-    cases hBInt
+    cases hs : native_string_in_cpc_range str <;> simp [native_ite, hs] at hBInt
   · have hStuck :
         __eo_typeof Term.Stuck = Term.Bool := by
       simpa [__least_int_gt, __eo_to_z, __eo_add, __eo_mk_apply, native_ite, hLen] using

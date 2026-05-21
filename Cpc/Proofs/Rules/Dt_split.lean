@@ -160,7 +160,9 @@ private theorem datatype_value_head_of_type
             simp [__smtx_typeof_value, hSeq] at hTy
         | inr hNone =>
             simp [__smtx_typeof_value, hNone] at hTy
-    | Char _ => simp [__smtx_typeof_value] at hTy
+    | Char c =>
+        cases hc : native_char_in_cpc_range c <;>
+          simp [__smtx_typeof_value, native_ite, hc] at hTy
     | UValue _ _ => simp [__smtx_typeof_value] at hTy
     | RegLan _ => simp [__smtx_typeof_value] at hTy
     | DtCons s0 d0 i0 =>

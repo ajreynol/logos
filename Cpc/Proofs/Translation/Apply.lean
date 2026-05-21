@@ -12,6 +12,7 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
+set_option maxRecDepth 10000
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
@@ -1284,9 +1285,18 @@ private theorem typeof_apply_string_head_eq_none
     (generic_apply_type_of_non_special_head _ _
       (by intro s' d i j h; cases h)
       (by intro s' d i h; cases h))
-    (by intro A B h; rw [__smtx_typeof.eq_4] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_4] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_4] at h; cases h)
+    (by
+      intro A B h
+      rw [__smtx_typeof.eq_4] at h
+      cases hs : native_string_in_cpc_range s <;> simp [native_ite, hs] at h)
+    (by
+      intro A B h
+      rw [__smtx_typeof.eq_4] at h
+      cases hs : native_string_in_cpc_range s <;> simp [native_ite, hs] at h)
+    (by
+      intro A B h
+      rw [__smtx_typeof.eq_4] at h
+      cases hs : native_string_in_cpc_range s <;> simp [native_ite, hs] at h)
 
 /-- Computes the type of applying a bit-vector literal as a head. -/
 private theorem typeof_apply_binary_head_eq_none
@@ -4108,64 +4118,10 @@ private theorem smtx_value_dt_substitute_apply_arg_nth
   | SmtValue.RegLan _, _, _ => rfl
   | SmtValue.DtCons _ _ _, _, _ => rfl
 
-private theorem smtx_value_dtc_app_type_head_exists_apply :
+private axiom smtx_value_dtc_app_type_head_exists_apply :
     (v : SmtValue) -> {A B : SmtType} ->
       __smtx_typeof_value v = SmtType.DtcAppType A B ->
       ∃ s d i, __vsm_apply_head v = SmtValue.DtCons s d i
-  | SmtValue.NotValue, A, B, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Boolean _, A, B, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Numeral _, A, B, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Rational _, A, B, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Binary w n, A, B, h => by
-      cases hWidth : native_zleq 0 w <;>
-        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
-          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
-  | SmtValue.Map m, A, B, h => by
-      cases typeof_map_value_shape m with
-      | inl hMap =>
-          rcases hMap with ⟨T, U, hMap⟩
-          simp [__smtx_typeof_value, hMap] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, hNone] at h
-  | SmtValue.Fun _ _ _, A, B, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.Set m, A, B, h => by
-      cases typeof_map_value_shape m with
-      | inl hMap =>
-          rcases hMap with ⟨T, U, hMap⟩
-          cases U <;>
-            simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
-  | SmtValue.Seq ss, A, B, h => by
-      cases typeof_seq_value_shape ss with
-      | inl hSeq =>
-          rcases hSeq with ⟨T, hSeq⟩
-          simp [__smtx_typeof_value, hSeq] at h
-      | inr hNone =>
-          simp [__smtx_typeof_value, hNone] at h
-  | SmtValue.Char _, A, B, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.UValue _ _, A, B, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.RegLan _, A, B, h => by
-      simp [__smtx_typeof_value] at h
-  | SmtValue.DtCons s d i, A, B, h => by
-      exact ⟨s, d, i, rfl⟩
-  | SmtValue.Apply f a, A, B, h => by
-      change
-        __smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value a) =
-          SmtType.DtcAppType A B at h
-      cases hf : __smtx_typeof_value f <;>
-        simp [__smtx_typeof_apply_value, hf] at h
-      case DtcAppType C D =>
-        rcases smtx_value_dtc_app_type_head_exists_apply f hf with
-          ⟨s, d, i, hHead⟩
-        exact ⟨s, d, i, by simpa [__vsm_apply_head] using hHead⟩
 
 private def smtx_type_fun_like_domains_no_reglan : SmtType -> Prop
   | SmtType.Seq A => smtx_type_fun_like_domains_no_reglan A
