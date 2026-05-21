@@ -39,26 +39,6 @@ def cArgListTranslationOkMask : List ArgTranslationKind -> CArgList -> Prop
       argTranslationOkMasked kind a ∧ cArgListTranslationOkMask mask args
   | _, _ => False
 
-/-- Arithmetic relations supported by the multiplication-by-a-sign rules. -/
-def arithRelOp : Term -> Prop
-  | Term.UOp UserOp.eq => True
-  | Term.UOp UserOp.lt => True
-  | Term.UOp UserOp.leq => True
-  | Term.UOp UserOp.gt => True
-  | Term.UOp UserOp.geq => True
-  | _ => False
-
-/-- Translation side condition for arithmetic multiplication-by-sign rules. -/
-def arithMultArgTranslationOk : CArgList -> Prop
-  | CArgList.cons m (CArgList.cons (Term.Apply (Term.Apply r a) b) CArgList.nil) =>
-      eoHasSmtTranslation m ∧
-        eoHasSmtTranslation (Term.Apply (Term.Apply r a) b) ∧
-        arithRelOp r ∧
-        (__eo_typeof m = Term.UOp UserOp.Int ∨ __eo_typeof m = Term.UOp UserOp.Real) ∧
-        __eo_typeof a = __eo_typeof m ∧
-        __eo_typeof b = __eo_typeof m
-  | _ => False
-
 /-- Predicate asserting that a checker command meets the translation side conditions used by the rule proofs. -/
 def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => eoHasSmtTranslation A
@@ -78,10 +58,6 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.step CRule.sets_eq_singleton_emp args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.term,
         ArgTranslationKind.type] args
-  | CCmd.step CRule.arith_mult_pos args _ =>
-      arithMultArgTranslationOk args
-  | CCmd.step CRule.arith_mult_neg args _ =>
-      arithMultArgTranslationOk args
   | CCmd.step CRule.sets_member_emp args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.term, ArgTranslationKind.term,
         ArgTranslationKind.type] args

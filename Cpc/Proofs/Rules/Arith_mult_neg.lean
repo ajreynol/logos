@@ -33,29 +33,21 @@ by
           | nil =>
               cases premises with
               | nil =>
-                  have hArgOk :
-                      arithMultArgTranslationOk
+                  have hArgsTrans :
+                      cArgListTranslationOk
                         (CArgList.cons m (CArgList.cons F CArgList.nil)) := by
                     simpa [cmdTranslationOk] using hCmdTrans
-                  rcases ArithMultSupport.arithMultArgTranslationOk_two m F hArgOk with
-                    ⟨r, a, b, hF, hmTrans0, hFTrans0, hRel, hMArith, haTy, hbTy⟩
-                  subst F
+                  rcases hArgsTrans with ⟨hmTrans0, hFTrans0, _⟩
                   have hmTrans : RuleProofs.eo_has_smt_translation m := by
                     simpa [eoHasSmtTranslation, RuleProofs.eo_has_smt_translation] using hmTrans0
-                  have hFTrans :
-                      RuleProofs.eo_has_smt_translation
-                        (ArithMultSupport.relTerm r a b) := by
-                    simpa [eoHasSmtTranslation, RuleProofs.eo_has_smt_translation,
-                      ArithMultSupport.relTerm] using hFTrans0
+                  have hFTrans : RuleProofs.eo_has_smt_translation F := by
+                    simpa [eoHasSmtTranslation, RuleProofs.eo_has_smt_translation] using hFTrans0
                   change __eo_typeof
-                    (__eo_prog_arith_mult_neg m (ArithMultSupport.relTerm r a b)) =
-                      Term.Bool at hResultTy
+                    (__eo_prog_arith_mult_neg m F) = Term.Bool at hResultTy
                   have hResultTrue :
-                      eo_interprets M
-                        (__eo_prog_arith_mult_neg m
-                          (ArithMultSupport.relTerm r a b)) true :=
-                    ArithMultSupport.facts_arith_mult_neg M hM m r a b
-                      hmTrans hFTrans hRel hMArith haTy hbTy hResultTy
+                      eo_interprets M (__eo_prog_arith_mult_neg m F) true :=
+                    ArithMultSupport.facts_arith_mult_neg M hM m F
+                      hmTrans hFTrans hResultTy
                   refine ⟨?_, ?_⟩
                   · intro _hTrue
                     exact hResultTrue

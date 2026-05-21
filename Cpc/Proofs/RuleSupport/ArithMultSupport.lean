@@ -1,5 +1,6 @@
 import Cpc.Proofs.RuleSupport.ArithPolyNormRelSupport
 import Cpc.Proofs.RuleSupport.CnfSupport
+import Cpc.Proofs.RuleSupport.CoreSupport
 
 open Eo
 open SmtEval
@@ -23,6 +24,15 @@ abbrev scale (m x : Term) : Term :=
 
 abbrev relTerm (r x y : Term) : Term :=
   Term.Apply (Term.Apply r x) y
+
+/-- Arithmetic relations supported by the multiplication-by-a-sign rules. -/
+def arithRelOp : Term -> Prop
+  | Term.UOp UserOp.eq => True
+  | Term.UOp UserOp.lt => True
+  | Term.UOp UserOp.leq => True
+  | Term.UOp UserOp.gt => True
+  | Term.UOp UserOp.geq => True
+  | _ => False
 
 abbrev posAntecedent (m F : Term) : Term :=
   Term.Apply
@@ -90,8 +100,25 @@ private theorem arith_rel_inv_right_ne_stuck_of_ne_stuck (r x y : Term)
   subst y
   cases r <;> cases x <;> simp [__arith_rel_inv] at h
 
+private theorem mk_arith_mult_pos_unfold_of_rel
+    (m r a b : Term)
+    (hRel : arithRelOp r)
+    (hM : m ≠ Term.Stuck) :
+    __mk_arith_mult_pos m (Term.Apply (Term.Apply r a) b) =
+      __eo_mk_apply (__eo_mk_apply r
+        (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) m)
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) (arithOne m))))
+        (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) m)
+          (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) (arithOne m))) := by
+  cases r <;> simp [arithRelOp] at hRel
+  case UOp op =>
+    cases op <;> simp [arithRelOp] at hRel
+    all_goals
+      simp [__mk_arith_mult_pos, arithOne, hM]
+
 private theorem mk_arith_mult_pos_eq_of_ne_stuck
     (m r a b : Term)
+    (hRel : arithRelOp r)
     (h :
       __mk_arith_mult_pos m (Term.Apply (Term.Apply r a) b) ≠ Term.Stuck) :
     __mk_arith_mult_pos m (Term.Apply (Term.Apply r a) b) =
@@ -100,7 +127,6 @@ private theorem mk_arith_mult_pos_eq_of_ne_stuck
     intro hm
     subst m
     simp [__mk_arith_mult_pos] at h
-  simp [__mk_arith_mult_pos, hM, posConclusion, relTerm] at h ⊢
   let one := arithOne m
   let lhsMk :=
     __eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) m)
@@ -108,6 +134,10 @@ private theorem mk_arith_mult_pos_eq_of_ne_stuck
   let rhsMk :=
     __eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) m)
       (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) one)
+  have hUnfold := mk_arith_mult_pos_unfold_of_rel m r a b hRel hM
+  change __mk_arith_mult_pos m (Term.Apply (Term.Apply r a) b) =
+    __eo_mk_apply (__eo_mk_apply r lhsMk) rhsMk at hUnfold
+  rw [hUnfold] at h ⊢
   have hFun :
       __eo_mk_apply r lhsMk ≠ Term.Stuck :=
     eo_mk_apply_fun_ne_stuck_of_ne_stuck _ _ h
@@ -181,6 +211,7 @@ private theorem mk_arith_mult_neg_eq_of_ne_stuck
 
 private theorem prog_arith_mult_pos_eq_of_ne_stuck
     (m r a b : Term)
+    (hRel : arithRelOp r)
     (h :
       __eo_prog_arith_mult_pos m (Term.Apply (Term.Apply r a) b) ≠
         Term.Stuck) :
@@ -227,7 +258,7 @@ private theorem prog_arith_mult_pos_eq_of_ne_stuck
   rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hAnte]
   rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hAnd]
   rw [eo_mk_apply_eq_apply_of_ne_stuck _ _ hSign]
-  rw [mk_arith_mult_pos_eq_of_ne_stuck m r a b hConcl]
+  rw [mk_arith_mult_pos_eq_of_ne_stuck m r a b hRel hConcl]
 
 private theorem prog_arith_mult_neg_eq_of_ne_stuck
     (m r a b : Term)
@@ -1488,7 +1519,7 @@ private theorem and_true_bool
   exact RuleProofs.eo_has_bool_type_and_of_bool_args F (Term.Boolean true)
     hF RuleProofs.eo_has_bool_type_true
 
-theorem facts_arith_mult_pos
+private theorem facts_arith_mult_pos_rel
     (M : SmtModel) (hM : model_total_typed M)
     (m r a b : Term) :
     RuleProofs.eo_has_smt_translation m ->
@@ -1503,7 +1534,7 @@ theorem facts_arith_mult_pos
   have hProgNe :
       __eo_prog_arith_mult_pos m (Term.Apply (Term.Apply r a) b) ≠ Term.Stuck :=
     by simpa [relTerm] using term_ne_stuck_of_typeof_bool hResultTy
-  have hProgEq := prog_arith_mult_pos_eq_of_ne_stuck m r a b hProgNe
+  have hProgEq := prog_arith_mult_pos_eq_of_ne_stuck m r a b hRel hProgNe
   have hArgs := arith_rel_args_have_translation r a b hRel hFTrans
   have haTrans := hArgs.1
   have hbTrans := hArgs.2
@@ -1568,7 +1599,7 @@ theorem facts_arith_mult_pos
       (posAntecedent m (relTerm r a b)) (posConclusion r m a b)
       hAnteFalse hConclBool
 
-theorem facts_arith_mult_neg
+private theorem facts_arith_mult_neg_rel
     (M : SmtModel) (hM : model_total_typed M)
     (m r a b : Term) :
     RuleProofs.eo_has_smt_translation m ->
@@ -1647,24 +1678,336 @@ theorem facts_arith_mult_neg
       (negAntecedent m (relTerm r a b)) (negConclusion r m a b)
       hAnteFalse hConclBool
 
-theorem arithMultArgTranslationOk_two
+private theorem prog_arith_mult_pos_mk_ne_stuck
     (m F : Term) :
-    arithMultArgTranslationOk (CArgList.cons m (CArgList.cons F CArgList.nil)) ->
+    __eo_prog_arith_mult_pos m F ≠ Term.Stuck ->
+    __mk_arith_mult_pos m F ≠ Term.Stuck := by
+  intro hProg
+  have hM : m ≠ Term.Stuck := by
+    intro hm
+    subst m
+    simp [__eo_prog_arith_mult_pos] at hProg
+  have hF : F ≠ Term.Stuck := by
+    intro hF
+    subst F
+    cases m <;> simp [__eo_prog_arith_mult_pos] at hProg
+  simp [__eo_prog_arith_mult_pos, hM, hF] at hProg
+  exact eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hProg
+
+private theorem prog_arith_mult_neg_mk_ne_stuck
+    (m F : Term) :
+    __eo_prog_arith_mult_neg m F ≠ Term.Stuck ->
+    __mk_arith_mult_neg m F ≠ Term.Stuck := by
+  intro hProg
+  have hM : m ≠ Term.Stuck := by
+    intro hm
+    subst m
+    simp [__eo_prog_arith_mult_neg] at hProg
+  have hF : F ≠ Term.Stuck := by
+    intro hF
+    subst F
+    cases m <;> simp [__eo_prog_arith_mult_neg] at hProg
+  simp [__eo_prog_arith_mult_neg, hM, hF] at hProg
+  exact eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hProg
+
+private theorem mk_arith_mult_pos_stuck_of_not_rel
+    (m r a b : Term) :
+    m ≠ Term.Stuck ->
+    ¬ arithRelOp r ->
+    __mk_arith_mult_pos m (relTerm r a b) = Term.Stuck := by
+  intro hM hRel
+  rw [__mk_arith_mult_pos.eq_7]
+  · exact hM
+  all_goals
+    intro a' b' hEq
+    apply hRel
+    cases r <;> simp [relTerm, arithRelOp] at hEq ⊢
+    case UOp op =>
+      cases op <;> simp [relTerm, arithRelOp] at hEq ⊢
+
+private theorem mk_arith_mult_pos_rel_of_ne_stuck
+    (m r a b : Term) :
+    __mk_arith_mult_pos m (relTerm r a b) ≠ Term.Stuck ->
+    arithRelOp r := by
+  intro hMk
+  have hM : m ≠ Term.Stuck := by
+    intro hm
+    subst m
+    simp [relTerm, __mk_arith_mult_pos] at hMk
+  by_cases hRel : arithRelOp r
+  · exact hRel
+  · exact False.elim (hMk (mk_arith_mult_pos_stuck_of_not_rel m r a b hM hRel))
+
+private theorem arith_rel_inv_stuck_of_not_rel
+    (r x y : Term) :
+    ¬ arithRelOp r ->
+    __arith_rel_inv r x y = Term.Stuck := by
+  intro hRel
+  cases r <;> simp [arithRelOp] at hRel ⊢
+  case UOp op =>
+    cases op <;> simp [arithRelOp] at hRel ⊢
+    all_goals
+      cases x <;> cases y <;> simp [__arith_rel_inv] at hRel ⊢
+  all_goals
+    cases x <;> cases y <;> simp [__arith_rel_inv] at hRel ⊢
+
+private theorem arith_rel_inv_rel_of_ne_stuck
+    (r x y : Term) :
+    __arith_rel_inv r x y ≠ Term.Stuck ->
+    arithRelOp r := by
+  intro hInv
+  by_cases hRel : arithRelOp r
+  · exact hRel
+  · exact False.elim (hInv (arith_rel_inv_stuck_of_not_rel r x y hRel))
+
+private theorem mk_arith_mult_neg_rel_of_ne_stuck
+    (m r a b : Term) :
+    __mk_arith_mult_neg m (relTerm r a b) ≠ Term.Stuck ->
+    arithRelOp r := by
+  intro hMk
+  have hM : m ≠ Term.Stuck := by
+    intro hm
+    subst m
+    simp [relTerm, __mk_arith_mult_neg] at hMk
+  exact arith_rel_inv_rel_of_ne_stuck r
+    (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) m)
+      (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) (arithOne m)))
+    (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) m)
+      (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) (arithOne m)))
+    (by simpa [relTerm, __mk_arith_mult_neg, hM, arithOne] using hMk)
+
+private theorem pos_mk_ne_stuck_args
+    (m F : Term) :
+    __mk_arith_mult_pos m F ≠ Term.Stuck ->
+    ∃ r a b, F = relTerm r a b ∧ arithRelOp r := by
+  intro hMk
+  have hMkOrig := hMk
+  have hM : m ≠ Term.Stuck := by
+    intro hm
+    subst m
+    simp [__mk_arith_mult_pos] at hMk
+  cases F <;> simp [__mk_arith_mult_pos, hM] at hMk
+  case Apply f b =>
+    cases f <;> try
+      (exfalso; apply hMk; simp [__mk_arith_mult_pos, hM])
+    case Apply r a =>
+      refine ⟨r, a, b, ?_, ?_⟩
+      · rfl
+      · exact mk_arith_mult_pos_rel_of_ne_stuck m r a b
+          (by simpa [relTerm] using hMkOrig)
+
+private theorem neg_mk_ne_stuck_args
+    (m F : Term) :
+    __mk_arith_mult_neg m F ≠ Term.Stuck ->
+    ∃ r a b, F = relTerm r a b ∧ arithRelOp r := by
+  intro hMk
+  have hMkOrig := hMk
+  have hM : m ≠ Term.Stuck := by
+    intro hm
+    subst m
+    simp [__mk_arith_mult_neg] at hMk
+  cases F <;> simp [__mk_arith_mult_neg, hM] at hMk
+  case Apply f b =>
+    cases f <;> simp [__mk_arith_mult_neg, hM] at hMk
+    case Apply r a =>
+      refine ⟨r, a, b, ?_, ?_⟩
+      · rfl
+      · exact mk_arith_mult_neg_rel_of_ne_stuck m r a b
+          (by simpa [relTerm] using hMkOrig)
+
+private theorem eo_typeof_lt_bool_operands_not_stuck (A B : Term)
+    (h : __eo_typeof_lt A B = Term.Bool) :
+    A ≠ Term.Stuck ∧ B ≠ Term.Stuck := by
+  cases A <;> cases B <;>
+    simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type, native_teq,
+      native_ite, native_not, SmtEval.native_not] at h ⊢
+
+private theorem pos_conclusion_scale_not_stuck
+    (r m a b : Term) :
+    arithRelOp r ->
+    __eo_typeof (posConclusion r m a b) = Term.Bool ->
+    __eo_typeof (scale m a) ≠ Term.Stuck ∧
+      __eo_typeof (scale m b) ≠ Term.Stuck := by
+  intro hRel hTy
+  cases r <;> simp [arithRelOp] at hRel
+  case UOp op =>
+    cases op <;> simp [arithRelOp] at hRel
+    · change __eo_typeof_eq (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hTy
+    · change __eo_typeof_lt (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact eo_typeof_lt_bool_operands_not_stuck _ _ hTy
+    · change __eo_typeof_lt (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact eo_typeof_lt_bool_operands_not_stuck _ _ hTy
+    · change __eo_typeof_lt (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact eo_typeof_lt_bool_operands_not_stuck _ _ hTy
+    · change __eo_typeof_lt (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact eo_typeof_lt_bool_operands_not_stuck _ _ hTy
+
+private theorem neg_conclusion_scale_not_stuck
+    (r m a b : Term) :
+    arithRelOp r ->
+    __eo_typeof (negConclusion r m a b) = Term.Bool ->
+    __eo_typeof (scale m a) ≠ Term.Stuck ∧
+      __eo_typeof (scale m b) ≠ Term.Stuck := by
+  intro hRel hTy
+  cases r <;> simp [arithRelOp] at hRel
+  case UOp op =>
+    cases op <;> simp [arithRelOp] at hRel
+    · change __eo_typeof_eq (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hTy
+    · change __eo_typeof_lt (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact eo_typeof_lt_bool_operands_not_stuck _ _ hTy
+    · change __eo_typeof_lt (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact eo_typeof_lt_bool_operands_not_stuck _ _ hTy
+    · change __eo_typeof_lt (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact eo_typeof_lt_bool_operands_not_stuck _ _ hTy
+    · change __eo_typeof_lt (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
+        Term.Bool at hTy
+      exact eo_typeof_lt_bool_operands_not_stuck _ _ hTy
+
+private theorem pos_type_facts_of_result_ty
+    (m r a b : Term) :
+    arithRelOp r ->
+    __eo_typeof (__eo_prog_arith_mult_pos m (relTerm r a b)) = Term.Bool ->
+    (__eo_typeof m = Term.UOp UserOp.Int ∨
+        __eo_typeof m = Term.UOp UserOp.Real) ∧
+      __eo_typeof a = __eo_typeof m ∧
+      __eo_typeof b = __eo_typeof m := by
+  intro hRel hResultTy
+  have hProgNe :
+      __eo_prog_arith_mult_pos m (Term.Apply (Term.Apply r a) b) ≠
+        Term.Stuck := by
+    simpa [relTerm] using term_ne_stuck_of_typeof_bool hResultTy
+  have hProgEq := prog_arith_mult_pos_eq_of_ne_stuck m r a b hRel hProgNe
+  have hTyData :
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.imp)
+        (posAntecedent m (relTerm r a b))) (posConclusion r m a b)) =
+        Term.Bool := by
+    change __eo_typeof
+      (__eo_prog_arith_mult_pos m (Term.Apply (Term.Apply r a) b)) =
+        Term.Bool at hResultTy
+    rw [hProgEq] at hResultTy
+    simpa [relTerm] using hResultTy
+  change __eo_typeof_or (__eo_typeof (posAntecedent m (relTerm r a b)))
+    (__eo_typeof (posConclusion r m a b)) = Term.Bool at hTyData
+  have hConclTy := CnfSupport.typeof_or_eq_bool_right hTyData
+  have hScaleTy := pos_conclusion_scale_not_stuck r m a b hRel hConclTy
+  have hMArith := scale_m_eo_arith_of_scale_not_stuck m a hScaleTy.1
+  have haTy :=
+    (scale_arg_eo_type_of_scale_not_stuck m a hMArith hScaleTy.1).1
+  have hbTy :=
+    (scale_arg_eo_type_of_scale_not_stuck m b hMArith hScaleTy.2).1
+  exact ⟨hMArith, haTy, hbTy⟩
+
+private theorem neg_type_facts_of_result_ty
+    (m r a b : Term) :
+    arithRelOp r ->
+    __eo_typeof (__eo_prog_arith_mult_neg m (relTerm r a b)) = Term.Bool ->
+    (__eo_typeof m = Term.UOp UserOp.Int ∨
+        __eo_typeof m = Term.UOp UserOp.Real) ∧
+      __eo_typeof a = __eo_typeof m ∧
+      __eo_typeof b = __eo_typeof m := by
+  intro hRel hResultTy
+  have hProgNe :
+      __eo_prog_arith_mult_neg m (Term.Apply (Term.Apply r a) b) ≠
+        Term.Stuck := by
+    simpa [relTerm] using term_ne_stuck_of_typeof_bool hResultTy
+  have hProgEq := prog_arith_mult_neg_eq_of_ne_stuck m r a b hProgNe
+  have hTyData :
+      __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.imp)
+        (negAntecedent m (relTerm r a b))) (negConclusion r m a b)) =
+        Term.Bool := by
+    change __eo_typeof
+      (__eo_prog_arith_mult_neg m (Term.Apply (Term.Apply r a) b)) =
+        Term.Bool at hResultTy
+    rw [hProgEq] at hResultTy
+    simpa [relTerm] using hResultTy
+  change __eo_typeof_or (__eo_typeof (negAntecedent m (relTerm r a b)))
+    (__eo_typeof (negConclusion r m a b)) = Term.Bool at hTyData
+  have hConclTy := CnfSupport.typeof_or_eq_bool_right hTyData
+  have hScaleTy := neg_conclusion_scale_not_stuck r m a b hRel hConclTy
+  have hMArith := scale_m_eo_arith_of_scale_not_stuck m a hScaleTy.1
+  have haTy :=
+    (scale_arg_eo_type_of_scale_not_stuck m a hMArith hScaleTy.1).1
+  have hbTy :=
+    (scale_arg_eo_type_of_scale_not_stuck m b hMArith hScaleTy.2).1
+  exact ⟨hMArith, haTy, hbTy⟩
+
+private theorem pos_prog_args_of_typeof_bool
+    (m F : Term) :
+    __eo_typeof (__eo_prog_arith_mult_pos m F) = Term.Bool ->
     ∃ r a b,
       F = relTerm r a b ∧
-        eoHasSmtTranslation m ∧
-        eoHasSmtTranslation (relTerm r a b) ∧
         arithRelOp r ∧
-        (__eo_typeof m = Term.UOp UserOp.Int ∨ __eo_typeof m = Term.UOp UserOp.Real) ∧
+        (__eo_typeof m = Term.UOp UserOp.Int ∨
+          __eo_typeof m = Term.UOp UserOp.Real) ∧
         __eo_typeof a = __eo_typeof m ∧
         __eo_typeof b = __eo_typeof m := by
-  intro hArgOk
-  cases F <;> simp [arithMultArgTranslationOk] at hArgOk
-  case Apply f b =>
-    cases f <;> simp [arithMultArgTranslationOk] at hArgOk
-    case Apply r a =>
-      rcases hArgOk with ⟨hmTrans, hFTrans, hRel, hMArith, haTy, hbTy⟩
-      exact ⟨r, a, b, rfl, hmTrans, by simpa [relTerm] using hFTrans,
-        hRel, hMArith, haTy, hbTy⟩
+  intro hResultTy
+  have hProgNe := term_ne_stuck_of_typeof_bool hResultTy
+  have hMkNe := prog_arith_mult_pos_mk_ne_stuck m F hProgNe
+  rcases pos_mk_ne_stuck_args m F hMkNe with ⟨r, a, b, hF, hRel⟩
+  subst F
+  have hTypeFacts :=
+    pos_type_facts_of_result_ty m r a b hRel (by simpa [relTerm] using hResultTy)
+  exact ⟨r, a, b, rfl, hRel, hTypeFacts.1, hTypeFacts.2.1, hTypeFacts.2.2⟩
+
+private theorem neg_prog_args_of_typeof_bool
+    (m F : Term) :
+    __eo_typeof (__eo_prog_arith_mult_neg m F) = Term.Bool ->
+    ∃ r a b,
+      F = relTerm r a b ∧
+        arithRelOp r ∧
+        (__eo_typeof m = Term.UOp UserOp.Int ∨
+          __eo_typeof m = Term.UOp UserOp.Real) ∧
+        __eo_typeof a = __eo_typeof m ∧
+        __eo_typeof b = __eo_typeof m := by
+  intro hResultTy
+  have hProgNe := term_ne_stuck_of_typeof_bool hResultTy
+  have hMkNe := prog_arith_mult_neg_mk_ne_stuck m F hProgNe
+  rcases neg_mk_ne_stuck_args m F hMkNe with ⟨r, a, b, hF, hRel⟩
+  subst F
+  have hTypeFacts :=
+    neg_type_facts_of_result_ty m r a b hRel (by simpa [relTerm] using hResultTy)
+  exact ⟨r, a, b, rfl, hRel, hTypeFacts.1, hTypeFacts.2.1, hTypeFacts.2.2⟩
+
+theorem facts_arith_mult_pos
+    (M : SmtModel) (hM : model_total_typed M)
+    (m F : Term) :
+    RuleProofs.eo_has_smt_translation m ->
+    RuleProofs.eo_has_smt_translation F ->
+    __eo_typeof (__eo_prog_arith_mult_pos m F) = Term.Bool ->
+    eo_interprets M (__eo_prog_arith_mult_pos m F) true := by
+  intro hmTrans hFTrans hResultTy
+  rcases pos_prog_args_of_typeof_bool m F hResultTy with
+    ⟨r, a, b, hF, hRel, hMArith, haTy, hbTy⟩
+  subst F
+  exact facts_arith_mult_pos_rel M hM m r a b hmTrans
+    (by simpa [relTerm] using hFTrans) hRel hMArith haTy hbTy
+    (by simpa [relTerm] using hResultTy)
+
+theorem facts_arith_mult_neg
+    (M : SmtModel) (hM : model_total_typed M)
+    (m F : Term) :
+    RuleProofs.eo_has_smt_translation m ->
+    RuleProofs.eo_has_smt_translation F ->
+    __eo_typeof (__eo_prog_arith_mult_neg m F) = Term.Bool ->
+    eo_interprets M (__eo_prog_arith_mult_neg m F) true := by
+  intro hmTrans hFTrans hResultTy
+  rcases neg_prog_args_of_typeof_bool m F hResultTy with
+    ⟨r, a, b, hF, hRel, hMArith, haTy, hbTy⟩
+  subst F
+  exact facts_arith_mult_neg_rel M hM m r a b hmTrans
+    (by simpa [relTerm] using hFTrans) hRel hMArith haTy hbTy
+    (by simpa [relTerm] using hResultTy)
 
 end ArithMultSupport
