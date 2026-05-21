@@ -654,6 +654,47 @@ def __eo_to_smt : Term -> SmtTerm
 
 \begin{figure}[p]
 \begin{lstlisting}
+def native_teq : Term -> Term -> Bool
+  | x, y => decide (x = y)
+
+inductive Proof : Type where
+  | pf : Term -> Proof
+  | Stuck : Proof
+
+def __eo_requires : Term -> Term -> Term -> Term
+  | x1, x2, x3 =>
+      if native_teq x1 x2 then
+        if !(native_teq x1 Term.Stuck) then x3 else Term.Stuck
+      else
+        Term.Stuck
+
+def __mk_trans : Term -> Term -> Term -> Term
+  | Term.Stuck, _, _ => Term.Stuck
+  | _, Term.Stuck, _ => Term.Stuck
+  | t1, t2,
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
+        tail) =>
+      (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
+  | t1, t2, (Term.Boolean true) =>
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)
+  | _, _, _ => Term.Stuck
+
+def __eo_prog_trans : Proof -> Term
+  | (Proof.pf
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
+        tail)) =>
+      (__mk_trans t1 t2 tail)
+  | _ => Term.Stuck
+\end{lstlisting}
+\caption{The \texttt{Logos.lean} definition of the \texttt{trans} rule program and its immediate dependencies.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
 namespace RuleProofs
 
 theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
