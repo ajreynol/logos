@@ -833,7 +833,6 @@ by
           simpa [S0, S1] using invoke_cmd_list_preserves_stateInvariant M hM S0 pf hInit hPfTrans
         exact refutation_contradiction_of_truthInvariant M F pf hF
           (checkerLocalTruthInvariant_implies_truthInvariant M hSteps.2.1) hChecker
-  refine ⟨__eo_to_smt F, eo_is_obj.intro F, ?_⟩
   apply smt_satisfiability.intro_false
   intro M hM hSmt
   exact hNoInterp M hM ((eo_interprets_iff_smt_interprets M F true).2 hSmt)

@@ -3763,13 +3763,14 @@ private theorem arith_poly_norm_atom_denote_real_qdiv_eq_qdiv_total_of_int_args
     rw [eo_to_smt_qdiv_eq]
     simp [__smtx_model_eval, hEval1, hEval2, hZeroTest, __smtx_model_eval_ite,
       __smtx_model_eval_to_real, __smtx_model_eval_qdiv_total]
+    exact native_to_real_qdiv_total n1 n2
   have hQdivTotal :
       arith_poly_norm_atom_denote_real M (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2) =
         SmtValue.Rational (native_mk_rational n1 n2) := by
     unfold arith_poly_norm_atom_denote_real
     rw [eo_to_smt_qdiv_total_eq]
     simp [__smtx_model_eval, hEval1, hEval2, __smtx_model_eval_to_real,
-      __smtx_model_eval_qdiv_total, native_to_real_qdiv_total]
+      __smtx_model_eval_qdiv_total]
   exact hQdiv.trans hQdivTotal.symm
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_eq_atomic_qdiv_of_int_args

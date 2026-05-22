@@ -8,32 +8,8 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-/- Definitions for theorems -/
-
-/- Definition of refutation -/
-
-inductive eo_is_refutation : Term -> CCmdList -> Prop
-  | intro (F : Term) (c : CCmdList) : 
-    (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
-
-
 /-
-A definition of terms in the object language.
-This is to be defined externally.
--/
-abbrev ObjectTerm := SmtTerm
-
-abbrev ObjectModel := SmtModel
-
-/-
-A predicate defining a relation on terms in the object language and Booleans
-such that (s,b) is true if s evaluates to b.
-This is to be defined externally.
--/
-abbrev obj_interprets := smt_interprets
-
-/-
-Definitions for eo_is_obj
+Definitions for eo_to_smt_type, eo_to_smt
 -/
 noncomputable section
 
@@ -121,6 +97,11 @@ def __eo_to_smt_type_tuple (U : SmtType) : SmtType -> SmtType
 def __eo_to_smt_nat : Term -> native_Nat
   | (Term.Numeral n) => (native_int_to_nat n)
   | t => native_nat_zero
+
+
+def __eo_to_smt_nat_is_valid : Term -> native_Bool
+  | (Term.Numeral n) => (native_zleq 0 n)
+  | t => false
 
 
 def __eo_to_smt_datatype_cons : DatatypeCons -> SmtDatatypeCons
@@ -377,7 +358,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) x1) x2) => (SmtTerm.str_in_re (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.UOp UserOp.seq_unit) x1) => (SmtTerm.seq_unit (__eo_to_smt x1))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.seq_nth) x1) x2) => (SmtTerm.seq_nth (__eo_to_smt x1) (__eo_to_smt x2))
-  | (Term.UOp3 UserOp3._at_re_unfold_pos_component x1 x2 x3) => (native_ite (native_teq (__eo_is_z x3) (Term.Boolean true)) (native_ite (native_teq (__eo_is_neg x3) (Term.Boolean false)) (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt_nat x3)) SmtTerm.None) SmtTerm.None)
+  | (Term.UOp3 UserOp3._at_re_unfold_pos_component x1 x2 x3) => (native_ite (__eo_to_smt_nat_is_valid x3) (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt_nat x3)) SmtTerm.None)
   | (Term.UOp2 UserOp2._at_strings_deq_diff x1 x2) => 
     let _v0 := (SmtTerm.Numeral 1)
     let _v2 := (SmtTerm.Var "@x" SmtType.Int)
@@ -433,7 +414,7 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x1) x2) => (SmtTerm.not (__eo_to_smt_exists x1 (SmtTerm.not (__eo_to_smt x2))))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.exists) Term.__eo_List_nil) x1) => SmtTerm.None
   | (Term.Apply (Term.Apply (Term.UOp UserOp.exists) x1) x2) => (__eo_to_smt_exists x1 (__eo_to_smt x2))
-  | (Term.UOp2 UserOp2._at_quantifiers_skolemize (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x1) x2) x3) => (native_ite (native_teq (__eo_is_z x3) (Term.Boolean true)) (native_ite (native_teq (__eo_is_neg x3) (Term.Boolean false)) (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists x1 (SmtTerm.not (__eo_to_smt x2))) (__eo_to_smt_nat x3)) SmtTerm.None) SmtTerm.None)
+  | (Term.UOp2 UserOp2._at_quantifiers_skolemize (Term.Apply (Term.Apply (Term.UOp UserOp.forall) x1) x2) x3) => (native_ite (__eo_to_smt_nat_is_valid x3) (__eo_to_smt_quantifiers_skolemize (__eo_to_smt_exists x1 (SmtTerm.not (__eo_to_smt x2))) (__eo_to_smt_nat x3)) SmtTerm.None)
   | (Term.Apply (Term.UOp1 UserOp1.int_to_bv x1) x2) => (SmtTerm.int_to_bv (__eo_to_smt x1) (__eo_to_smt x2))
   | (Term.Apply (Term.UOp UserOp.ubv_to_int) x1) => (SmtTerm.ubv_to_int (__eo_to_smt x1))
   | (Term.Apply (Term.UOp UserOp.sbv_to_int) x1) => (SmtTerm.sbv_to_int (__eo_to_smt x1))
@@ -448,31 +429,10 @@ end
 end
 
 /-
-An inductive predicate defining the correspondence between Eunoia terms
-and terms in the object language.
-(t,s) is true if the Eunoia term represents a term s in the object language.
-This is to be custom defined in the Eunoia-to-Lean compiler based on the
-target definition of ObjectTerm.
--/
-inductive eo_is_obj : Term -> ObjectTerm -> Prop
-  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)
-
-
-
-/-
-A predicate defining when a Eunoia term corresponds to an object term that
-evaluates to true or false in an object model.
-(t,b) is true if t is a Eunoia term corresponding to an object term that
-evaluates to b.
--/
-def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
-  exists (s : ObjectTerm), (eo_is_obj t s) /\ (obj_interprets M s b)
-
-/-
 Eunoia satisfiability depends on SMT satisfiability.
 -/
 def eo_satisfiability (t : Term) (b : Bool) : Prop :=
-  exists (s : ObjectTerm), (eo_is_obj t s) /\ (smt_satisfiability s b)
+  (smt_satisfiability (__eo_to_smt t) b)
 
 
 /- ---------------------------------------------- -/

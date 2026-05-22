@@ -997,14 +997,12 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_sel
       case UOp op =>
         cases op <;> try cases h
         case «forall» =>
-          change native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-              (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
-                SmtTerm.None) SmtTerm.None =
+          change native_ite (__eo_to_smt_nat_is_valid idx)
+              (__eo_to_smt_quantifiers_skolemize
+                (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
+              SmtTerm.None =
             SmtTerm.DtSel s d i j at h
           unfold native_ite at h
-          split at h <;> try cases h
           split at h <;> try cases h
           exact eo_to_smt_quant_skolemize_ne_dt_sel _ _ _ _ _ _ h
 
@@ -1020,14 +1018,12 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_tester
       case UOp op =>
         cases op <;> try cases h
         case «forall» =>
-          change native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-              (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
-                SmtTerm.None) SmtTerm.None =
+          change native_ite (__eo_to_smt_nat_is_valid idx)
+              (__eo_to_smt_quantifiers_skolemize
+                (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
+              SmtTerm.None =
             SmtTerm.DtTester s d i at h
           unfold native_ite at h
-          split at h <;> try cases h
           split at h <;> try cases h
           exact eo_to_smt_quant_skolemize_ne_dt_tester _ _ _ _ _ h
 
@@ -1043,14 +1039,12 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_cons
       case UOp op =>
         cases op <;> try cases h
         case «forall» =>
-          change native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-              (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
-                SmtTerm.None) SmtTerm.None =
+          change native_ite (__eo_to_smt_nat_is_valid idx)
+              (__eo_to_smt_quantifiers_skolemize
+                (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) (__eo_to_smt_nat idx))
+              SmtTerm.None =
             SmtTerm.DtCons s d i at h
           unfold native_ite at h
-          split at h <;> try cases h
           split at h <;> try cases h
           exact eo_to_smt_quant_skolemize_ne_dt_cons _ _ _ _ _ h
 
@@ -1805,51 +1799,41 @@ private theorem eo_to_smt_quantifiers_skolemize_top_fun_like_arg_field_wf
         · subst op
           have hHead' :
               __smtx_typeof
-                  (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                    (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                      (__eo_to_smt_quantifiers_skolemize
-                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                        (__eo_to_smt_nat idx))
-                      SmtTerm.None)
+                  (native_ite (__eo_to_smt_nat_is_valid idx)
+                    (__eo_to_smt_quantifiers_skolemize
+                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                      (__eo_to_smt_nat idx))
                     SmtTerm.None) =
                     SmtType.FunType A B ∨
                 __smtx_typeof
-                  (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                    (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                      (__eo_to_smt_quantifiers_skolemize
-                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                        (__eo_to_smt_nat idx))
-                      SmtTerm.None)
+                  (native_ite (__eo_to_smt_nat_is_valid idx)
+                    (__eo_to_smt_quantifiers_skolemize
+                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                      (__eo_to_smt_nat idx))
                     SmtTerm.None) =
                     SmtType.DtcAppType A B := by
             change
               __smtx_typeof
-                  (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                    (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                      (__eo_to_smt_quantifiers_skolemize
-                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                        (__eo_to_smt_nat idx))
-                      SmtTerm.None)
+                  (native_ite (__eo_to_smt_nat_is_valid idx)
+                    (__eo_to_smt_quantifiers_skolemize
+                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                      (__eo_to_smt_nat idx))
                     SmtTerm.None) =
                     SmtType.FunType A B ∨
                 __smtx_typeof
-                  (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                    (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                      (__eo_to_smt_quantifiers_skolemize
-                        (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                        (__eo_to_smt_nat idx))
-                      SmtTerm.None)
+                  (native_ite (__eo_to_smt_nat_is_valid idx)
+                    (__eo_to_smt_quantifiers_skolemize
+                      (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                      (__eo_to_smt_nat idx))
                     SmtTerm.None) =
                     SmtType.DtcAppType A B at hHead
             exact hHead
           unfold native_ite at hHead'
           split at hHead'
-          · split at hHead'
-            · exact
-                eo_to_smt_quantifiers_skolemize_fun_like_arg_field_wf
-                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                  (__eo_to_smt_nat idx) hHead'
-            · exact False.elim (smtx_typeof_none_not_fun_like hHead')
+          · exact
+              eo_to_smt_quantifiers_skolemize_fun_like_arg_field_wf
+                (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                (__eo_to_smt_nat idx) hHead'
           · exact False.elim (smtx_typeof_none_not_fun_like hHead')
         · exact False.elim
             (eo_to_smt_none_not_fun_like
@@ -6643,13 +6627,11 @@ private theorem eo_to_smt_eq_dt_cons_cases
     cases op
     case _at_re_unfold_pos_component =>
       exfalso
-      change native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-          (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r) (__eo_to_smt_nat idx))
-            SmtTerm.None) SmtTerm.None =
+      change native_ite (__eo_to_smt_nat_is_valid idx)
+          (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r) (__eo_to_smt_nat idx))
+          SmtTerm.None =
         SmtTerm.DtCons s d i at hy
       unfold native_ite at hy
-      split at hy <;> try cases hy
       split at hy <;> try cases hy
       exact eo_to_smt_re_unfold_ne_dt_cons _ _ _ _ _ _ hy
     case _at_witness_string_length =>
@@ -7501,13 +7483,11 @@ theorem eo_to_smt_eq_dt_sel_cases
     cases op
     case _at_re_unfold_pos_component =>
       exfalso
-      change native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-          (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r) (__eo_to_smt_nat idx))
-            SmtTerm.None) SmtTerm.None =
+      change native_ite (__eo_to_smt_nat_is_valid idx)
+          (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r) (__eo_to_smt_nat idx))
+          SmtTerm.None =
         SmtTerm.DtSel s d i j at hy
       unfold native_ite at hy
-      split at hy <;> try cases hy
       split at hy <;> try cases hy
       exact eo_to_smt_re_unfold_ne_dt_sel _ _ _ _ _ _ _ hy
     case _at_witness_string_length =>
@@ -7572,13 +7552,11 @@ theorem eo_to_smt_ne_dt_tester
     cases op
     case _at_re_unfold_pos_component =>
       exfalso
-      change native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-          (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r) (__eo_to_smt_nat idx))
-            SmtTerm.None) SmtTerm.None =
+      change native_ite (__eo_to_smt_nat_is_valid idx)
+          (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r) (__eo_to_smt_nat idx))
+          SmtTerm.None =
         SmtTerm.DtTester s d i at hy
       unfold native_ite at hy
-      split at hy <;> try cases hy
       split at hy <;> try cases hy
       exact eo_to_smt_re_unfold_ne_dt_tester _ _ _ _ _ _ hy
     case _at_witness_string_length =>
@@ -7740,18 +7718,15 @@ private theorem typeof_apply_re_unfold_top_eq_none
   change
     __smtx_typeof
         (SmtTerm.Apply
-          (native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-            (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-              (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r)
-                (__eo_to_smt_nat idx))
-              SmtTerm.None)
+          (native_ite (__eo_to_smt_nat_is_valid idx)
+            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt t) (__eo_to_smt r)
+              (__eo_to_smt_nat idx))
             SmtTerm.None)
           (__eo_to_smt x)) =
       SmtType.None
-  cases hZ : native_teq (__eo_is_z idx) (Term.Boolean true) <;>
-    simp [native_ite, typeof_apply_none_eq]
-  cases hNeg : native_teq (__eo_is_neg idx) (Term.Boolean false) <;>
-    simp [typeof_apply_none_eq, typeof_apply_re_unfold_pos_component_head_eq_none]
+  cases hValid : __eo_to_smt_nat_is_valid idx <;>
+    simp [native_ite, hValid, typeof_apply_none_eq,
+      typeof_apply_re_unfold_pos_component_head_eq_none]
 
 /-- Extracts the top-level string and regex types from the base regex-unfold component. -/
 private theorem re_unfold_pos_component_zero_args_of_non_none
@@ -12313,28 +12288,24 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
   | Numeral n =>
       have hTranslate :
           __eo_to_smt (Term._at_re_unfold_pos_component z y (Term.Numeral n)) =
-            native_ite (native_teq (__eo_is_z (Term.Numeral n)) (Term.Boolean true))
-              (native_ite
-                (native_teq (__eo_is_neg (Term.Numeral n)) (Term.Boolean false))
-                (__eo_to_smt_re_unfold_pos_component
-                  (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt_nat (Term.Numeral n)))
-                SmtTerm.None)
+            native_ite (__eo_to_smt_nat_is_valid (Term.Numeral n))
+              (__eo_to_smt_re_unfold_pos_component
+                (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt_nat (Term.Numeral n)))
               SmtTerm.None := by
         rfl
-      by_cases hnNeg : native_zlt n 0 = true
+      cases hValid : __eo_to_smt_nat_is_valid (Term.Numeral n)
       · exfalso
         rw [hTranslate] at hNonNone
-        simp [__eo_is_z, __eo_is_z_internal, __eo_is_neg, hnNeg, native_ite,
-          native_teq, native_and, native_not] at hNonNone
-      · have hnNegFalse : native_zlt n 0 = false := by
-          cases hTest : native_zlt n 0 <;> simp [hTest] at hnNeg ⊢
+        simp [native_ite, hValid] at hNonNone
+      · have hValidTrue :
+            __eo_to_smt_nat_is_valid (Term.Numeral n) = true := hValid
         have hTranslateComp :
             __eo_to_smt (Term._at_re_unfold_pos_component z y (Term.Numeral n)) =
               __eo_to_smt_re_unfold_pos_component
                 (__eo_to_smt z) (__eo_to_smt y) (native_int_to_nat n) := by
           rw [hTranslate]
-          simp [__eo_is_z, __eo_is_z_internal, __eo_is_neg, __eo_to_smt_nat,
-            hnNegFalse, native_ite, native_teq, native_and, native_not]
+          rw [hValidTrue]
+          simp [__eo_to_smt_nat, native_ite]
         have hCompNN :
             term_has_non_none_type
               (__eo_to_smt_re_unfold_pos_component
@@ -12373,15 +12344,12 @@ theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_re_unfold_pos_com
       apply hNonNone
       change
         __smtx_typeof
-          (native_ite (native_teq (__eo_is_z _) (Term.Boolean true))
-            (native_ite (native_teq (__eo_is_neg _) (Term.Boolean false))
-              (__eo_to_smt_re_unfold_pos_component
-                (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt_nat _))
-              SmtTerm.None)
+          (native_ite (__eo_to_smt_nat_is_valid _)
+            (__eo_to_smt_re_unfold_pos_component
+              (__eo_to_smt z) (__eo_to_smt y) (__eo_to_smt_nat _))
             SmtTerm.None) =
         SmtType.None
-      simp [__eo_is_z, __eo_is_z_internal, native_ite, native_teq,
-        native_and, native_not]
+      simp [__eo_to_smt_nat_is_valid, native_ite]
 
 /-- Closes attempts to apply a binary head already known to have SMT type `Bool`. -/
 private theorem eo_to_smt_typeof_matches_translation_apply_apply_apply_bool_head_applied
