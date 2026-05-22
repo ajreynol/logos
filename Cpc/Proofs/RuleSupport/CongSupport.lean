@@ -12942,7 +12942,7 @@ private theorem congTrueSpine_str_indexof_re_eq_true
       native_str_indexof_re_congr (native_unpack_string sx) rx ry i hExt]
 
 private def stringsStoiNonDigitRegex : SmtTerm :=
-  SmtTerm.re_comp (SmtTerm.re_range (SmtTerm.String "0") (SmtTerm.String "9"))
+  SmtTerm.re_comp (SmtTerm.re_range (SmtTerm.String (native_string_lit "0")) (SmtTerm.String (native_string_lit "9")))
 
 private def stringsStoiNonDigitTerm (a : SmtTerm) : SmtTerm :=
   SmtTerm.str_indexof_re a stringsStoiNonDigitRegex (SmtTerm.Numeral 0)
@@ -16099,8 +16099,8 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtSel s d i j at h
                               cases h)
@@ -16109,8 +16109,8 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtTester s d i at h
                               cases h))
@@ -16120,8 +16120,8 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtSel s d i j at h
                               cases h)
@@ -16130,8 +16130,8 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtTester s d i at h
                               cases h))
@@ -18903,8 +18903,8 @@ private theorem congTrueSpine_eq_true
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtSel s d i j at h
                               cases h)
@@ -18913,8 +18913,8 @@ private theorem congTrueSpine_eq_true
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtTester s d i at h
                               cases h))
@@ -18924,8 +18924,8 @@ private theorem congTrueSpine_eq_true
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtSel s d i j at h
                               cases h)
@@ -18934,8 +18934,8 @@ private theorem congTrueSpine_eq_true
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtTester s d i at h
                               cases h))
@@ -18945,8 +18945,8 @@ private theorem congTrueSpine_eq_true
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtSel s d i j at h
                               cases h)
@@ -18955,8 +18955,8 @@ private theorem congTrueSpine_eq_true
                               change
                                 SmtTerm.str_indexof_re (__eo_to_smt z)
                                     (SmtTerm.re_comp
-                                      (SmtTerm.re_range (SmtTerm.String "0")
-                                        (SmtTerm.String "9")))
+                                      (SmtTerm.re_range (SmtTerm.String (native_string_lit "0"))
+                                        (SmtTerm.String (native_string_lit "9"))))
                                     (SmtTerm.Numeral 0) =
                                   SmtTerm.DtTester s d i at h
                               cases h))

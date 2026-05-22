@@ -78,10 +78,10 @@ private theorem empty_term_smt_info
       by_cases hs : s = ""
       · subst hs
         refine ⟨SmtType.Char, ?_, ?_⟩
-        · change __smtx_typeof (SmtTerm.String "") = SmtType.Seq SmtType.Char
+        · change __smtx_typeof (SmtTerm.String (native_string_lit "")) = SmtType.Seq SmtType.Char
           rw [__smtx_typeof.eq_4]
         · intro M
-          change __smtx_model_eval M (SmtTerm.String "") =
+          change __smtx_model_eval M (SmtTerm.String (native_string_lit "")) =
             SmtValue.Seq (SmtSeq.empty SmtType.Char)
           rw [__smtx_model_eval.eq_4]
           simp [native_pack_string, native_pack_seq,

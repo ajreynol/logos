@@ -418,7 +418,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
     rw [smtx_model_eval_str_concat_term_eq, hxEval]
     change __smtx_model_eval_eq
       (__smtx_model_eval_str_concat (SmtValue.Seq sx)
-        (__smtx_model_eval M (SmtTerm.String ""))) (SmtValue.Seq sx) =
+        (__smtx_model_eval M (SmtTerm.String (native_string_lit "")))) (SmtValue.Seq sx) =
       SmtValue.Boolean true
     rw [__smtx_model_eval.eq_4]
     simp [native_pack_string, native_ssm_char_values_of_string,
