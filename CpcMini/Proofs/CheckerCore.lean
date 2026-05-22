@@ -1,3 +1,4 @@
+import CpcMini.Spec
 import CpcMini.Logos
 import CpcMini.Proofs.Assumptions
 import CpcMini.Proofs.RuleSupport.Support

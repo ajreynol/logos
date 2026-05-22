@@ -1,3 +1,4 @@
+import CpcMini.Spec
 import CpcMini.Logos
 
 open Eo

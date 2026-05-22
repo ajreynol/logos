@@ -1,3 +1,4 @@
+import Cpc.Spec
 import Cpc.Proofs.TermCompat
 import Cpc.Logos
 
