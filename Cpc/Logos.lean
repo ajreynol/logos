@@ -1,5 +1,5 @@
 import Cpc.LogosTerm
-import Cpc.Spec
+import Cpc.SmtEval
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
@@ -41,7 +41,6 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
       native_str_indexof_rec s t start tLen (sLen - (start + tLen) + 1)
     else
       -1
-
 
 /- Term equality -/
 def native_teq : Term -> Term -> native_Bool
