@@ -482,6 +482,116 @@ private theorem eo_ite_true_true_cases
     cases b <;> simp at h ⊢
     exact h
 
+private theorem eo_ite_false_ne_true
+    (c e : Term)
+    (he : e ≠ Term.Boolean true) :
+    __eo_ite c (Term.Boolean false) e ≠ Term.Boolean true := by
+  intro h
+  cases c <;> simp [__eo_ite, native_ite, native_teq] at h
+  case Boolean b =>
+    cases b <;> simp at h
+    exact he h
+
+private theorem eo_ite_false_true_cases
+    (c e : Term) :
+    __eo_ite c (Term.Boolean false) e = Term.Boolean true ->
+      c = Term.Boolean false ∧ e = Term.Boolean true := by
+  intro h
+  cases c <;> simp [__eo_ite, native_ite, native_teq] at h ⊢
+  case Boolean b =>
+    cases b <;> simp at h ⊢
+    exact h
+
+private theorem dt_find_cycle_l_non_apply_ne_true
+    (t s isC rec : Term)
+    (hNot : ∀ f a, t ≠ Term.Apply f a) :
+    __eo_l_1___dt_find_cycle t s isC rec ≠ Term.Boolean true := by
+  intro h
+  by_cases ht : t = Term.Stuck
+  · subst t
+    rw [__eo_l_1___dt_find_cycle.eq_1] at h
+    simp at h
+  by_cases hs : s = Term.Stuck
+  · subst s
+    rw [__eo_l_1___dt_find_cycle.eq_2 t isC rec ht] at h
+    simp at h
+  by_cases hi : isC = Term.Stuck
+  · subst isC
+    rw [__eo_l_1___dt_find_cycle.eq_3 t s rec ht hs] at h
+    simp at h
+  by_cases hr : rec = Term.Stuck
+  · subst rec
+    rw [__eo_l_1___dt_find_cycle.eq_4 t s isC ht hs hi] at h
+    simp at h
+  rw [__eo_l_1___dt_find_cycle.eq_6 t s isC rec ht hs hi
+    (by intro f a htApp _; exact hNot f a htApp) hr] at h
+  simp at h
+
+private theorem dt_find_cycle_non_apply_false_ne_true
+    (t s isC : Term)
+    (hNot : ∀ f a, t ≠ Term.Apply f a) :
+    __dt_find_cycle t s isC (Term.Boolean false) ≠ Term.Boolean true := by
+  intro h
+  by_cases ht : t = Term.Stuck
+  · subst t
+    rw [__dt_find_cycle.eq_1] at h
+    simp at h
+  by_cases hs : s = Term.Stuck
+  · subst s
+    rw [__dt_find_cycle.eq_2 t isC (Term.Boolean false) ht] at h
+    simp at h
+  by_cases hi : isC = Term.Stuck
+  · subst isC
+    rw [__dt_find_cycle.eq_3 t s (Term.Boolean false) ht hs] at h
+    simp at h
+  have hr : Term.Boolean false ≠ Term.Stuck := by simp
+  rw [__dt_find_cycle.eq_5 t s isC (Term.Boolean false) ht hs hi hr] at h
+  exact eo_ite_false_ne_true (__eo_eq t s)
+    (__eo_l_1___dt_find_cycle t s isC (Term.Boolean false))
+    (dt_find_cycle_l_non_apply_ne_true t s isC (Term.Boolean false) hNot) h
+
+private theorem dt_find_cycle_apply_false_cases
+    (f a s isC : Term) :
+    __dt_find_cycle (Term.Apply f a) s isC (Term.Boolean false) =
+      Term.Boolean true ->
+      isC = Term.Boolean true ∧
+        (__dt_find_cycle a s (__is_cons_app a) (Term.Boolean true) =
+            Term.Boolean true ∨
+          __dt_find_cycle f s (Term.Boolean true) (Term.Boolean false) =
+            Term.Boolean true) := by
+  intro h
+  by_cases hs : s = Term.Stuck
+  · subst s
+    rw [__dt_find_cycle.eq_2 (Term.Apply f a) isC
+      (Term.Boolean false) (by simp)] at h
+    simp at h
+  by_cases hi : isC = Term.Stuck
+  · subst isC
+    rw [__dt_find_cycle.eq_3 (Term.Apply f a) s
+      (Term.Boolean false) (by simp) hs] at h
+    simp at h
+  have hr : Term.Boolean false ≠ Term.Stuck := by simp
+  rw [__dt_find_cycle.eq_5 (Term.Apply f a) s isC
+    (Term.Boolean false) (by simp) hs hi hr] at h
+  rcases eo_ite_false_true_cases (__eo_eq (Term.Apply f a) s)
+      (__eo_l_1___dt_find_cycle (Term.Apply f a) s isC
+        (Term.Boolean false)) h with
+    ⟨_hEqFalse, hL⟩
+  by_cases hiTrue : isC = Term.Boolean true
+  · subst isC
+    rw [__eo_l_1___dt_find_cycle.eq_5 s (Term.Boolean false) f a
+      hs (by simp)] at hL
+    rcases eo_ite_true_true_cases
+        (__dt_find_cycle a s (__is_cons_app a) (Term.Boolean true))
+        (__dt_find_cycle f s (Term.Boolean true) (Term.Boolean false)) hL with
+      hArg | hFun
+    · exact ⟨rfl, Or.inl hArg⟩
+    · exact ⟨rfl, Or.inr hFun.2⟩
+  · rw [__eo_l_1___dt_find_cycle.eq_6 (Term.Apply f a) s isC
+      (Term.Boolean false) (by simp) hs hi
+      (by intro _ _ _ hTrue; exact hiTrue hTrue) hr] at hL
+    simp at hL
+
 private theorem dt_find_cycle_self_false_ne_true
     (t isC : Term) :
     __dt_find_cycle t t isC (Term.Boolean false) ≠ Term.Boolean true := by
