@@ -1,8 +1,9 @@
-import Cpc.Proofs.Rules.Sets_inter_member
+import Cpc.Proofs.RuleSupport.SetsMemberSupport
 
 open Eo
 open SmtEval
 open Smtm
+open SetsMemberSupport
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
@@ -17,6 +18,12 @@ private def setsMinusMemberFormula (x y z : Term) : Term :=
       (Term.Apply
         (Term.Apply Term.and (Term.Apply Term.not (Term.Apply mem z)))
         (Term.Boolean true)))
+
+private theorem eo_typeof_not_eq_bool_info
+    {A : Term}
+    (h : __eo_typeof_not A = Term.Bool) :
+    A = Term.Bool := by
+  cases A <;> simp [__eo_typeof_not] at h ⊢
 
 private theorem setsMinusMember_eo_arg_types
     {x y z : Term}
