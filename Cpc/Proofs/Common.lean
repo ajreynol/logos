@@ -6,6 +6,10 @@ open Eo
 open SmtEval
 open Smtm
 
+/-- Proof-side EO interpretation after the core translation bridge was flattened. -/
+def eo_interprets (M : SmtModel) (t : Term) (b : Bool) : Prop :=
+  smt_interprets M (__eo_to_smt t) b
+
 namespace RuleProofs
 
 set_option linter.unusedVariables false
@@ -53,13 +57,7 @@ private theorem eo_to_smt_eq_eq (x y : Term) :
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
   eo_interprets M t b ↔ smt_interprets M (__eo_to_smt t) b := by
-  constructor
-  · intro h
-    rcases h with ⟨s, hs, hInterp⟩
-    cases hs
-    simpa using hInterp
-  · intro h
-    exact ⟨__eo_to_smt t, eo_is_obj.intro t, h⟩
+  rfl
 
 /-- Shows that the EO term `true` is interpreted as `true` in every model. -/
 theorem eo_interprets_true (M : SmtModel) :

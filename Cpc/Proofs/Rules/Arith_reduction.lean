@@ -25,7 +25,7 @@ private theorem smt_qdiv_eval_reduction_self
            (native_model_lookup M native_qdiv_by_zero_id
              (SmtType.FunType SmtType.Real SmtType.Real))
            xr)
-         (__smtx_model_eval_qdiv_total xv yv)) := by
+         (__smtx_model_eval_qdiv_total xr yr)) := by
   rw [__smtx_model_eval.eq_128]
 
 private theorem smt_qdiv_eval_reduction_rel
@@ -42,7 +42,7 @@ private theorem smt_qdiv_eval_reduction_rel
            (native_model_lookup M native_qdiv_by_zero_id
              (SmtType.FunType SmtType.Real SmtType.Real))
            xr)
-         (__smtx_model_eval_qdiv_total xv yv)) := by
+         (__smtx_model_eval_qdiv_total xr yr)) := by
   rw [smt_qdiv_eval_reduction_self]
   exact RuleProofs.smt_value_rel_refl _
 
@@ -58,12 +58,13 @@ private theorem smt_qdiv_eval_reduction_normalized_term_rel
           (SmtTerm.qdiv
             (SmtTerm.to_real x)
             (SmtTerm.Rational (native_mk_rational 0 1)))
-          (SmtTerm.qdiv_total x y))) := by
+          (SmtTerm.qdiv_total (SmtTerm.to_real x) (SmtTerm.to_real y)))) := by
   rw [smt_qdiv_eval_reduction_self, __smtx_model_eval.eq_133,
     __smtx_model_eval.eq_134, __smtx_model_eval.eq_19,
     __smtx_model_eval.eq_3, __smtx_model_eval.eq_128,
     __smtx_model_eval.eq_129]
   rw [__smtx_model_eval.eq_19, __smtx_model_eval.eq_3]
+  rw [__smtx_model_eval.eq_19]
   rw [smt_eval_to_real_idem (__smtx_model_eval M x)]
   simp [__smtx_model_eval_to_real, __smtx_model_eval_ite, __smtx_model_eval_eq,
     native_veq]

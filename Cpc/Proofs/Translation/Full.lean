@@ -4892,6 +4892,19 @@ theorem eo_to_smt_typeof_matches_translation
   intro hNonNone
   exact (eo_to_smt_typeof_matches_translation_and_valid t hNonNone).1
 
+theorem eo_to_smt_typed_list_elem_type_of_non_none
+    (xs : Term) :
+    __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
+      ∃ T,
+        __eo_typeof xs = Term.Apply (Term.UOp UserOp._at__at_TypedList) T ∧
+          __eo_to_smt_type T = __eo_to_smt_typed_list_elem_type xs ∧
+          eo_type_valid T := by
+  intro hNonNone
+  exact eo_to_smt_typed_list_elem_type_of_non_none_full
+    (Term.Apply (Term.UOp UserOp.distinct) xs)
+    (fun term _ hNN => eo_to_smt_typeof_matches_translation_and_valid term hNN)
+    xs (by simp) hNonNone
+
 /--
 Post-induction form of EO type recovery from SMT typing.
 
