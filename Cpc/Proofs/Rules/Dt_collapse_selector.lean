@@ -2868,29 +2868,6 @@ private theorem tuple_prepend_succ_projection
       smt_tuple_dt_sel_eval_uses_constructor M hM tail c j hTailTy
   rw [hProj, hSel]
 
-private theorem tuple_projection_eq_of_dt_arg_list_assoc
-    (M : SmtModel) (hM : model_total_typed M)
-    (tail ti : Term) (c : SmtDatatypeCons) (j : native_Nat) :
-    __smtx_typeof (__eo_to_smt tail) =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
-    __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list tail)
-        (Term.Numeral j) = ti ->
-    ti ≠ Term.Stuck ->
-    j <
-      __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
-        native_nat_zero ->
-    __smtx_model_eval_eq
-        (__vsm_apply_arg_nth
-          (__smtx_model_eval M (__eo_to_smt tail)) j
-          (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
-            native_nat_zero))
-        (__smtx_model_eval M (__eo_to_smt ti)) =
-      SmtValue.Boolean true := by
-  -- Remaining constructor-alignment invariant: a tuple projection selected
-  -- through `__dt_arg_list` must come from the tuple constructor spine, not
-  -- from the argument spine of some other term whose result type is a tuple.
-  sorry
-
 private theorem tuple_prepend_datatype_eq_of_type
     (M : SmtModel) (hM : model_total_typed M)
     (head tail : SmtTerm) (headTy : SmtType)
@@ -2962,6 +2939,262 @@ private theorem tuple_prepend_datatype_eq_of_type
   rw [hHeadFull] at hHeadD
   injection hHeadD with _hName hD _hIdx
   simpa [fullD] using hD.symm
+
+private theorem tuple_projection_eq_of_tuple_value_assoc
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ (tail ti : Term) (c : SmtDatatypeCons) (j : native_Nat),
+      isTupleValue tail ->
+      __smtx_typeof (__eo_to_smt tail) =
+          SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+      __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list tail)
+          (Term.Numeral j) = ti ->
+      ti ≠ Term.Stuck ->
+      j <
+        __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+          native_nat_zero ->
+      __smtx_model_eval_eq
+          (__vsm_apply_arg_nth
+            (__smtx_model_eval M (__eo_to_smt tail)) j
+            (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+              native_nat_zero))
+          (__smtx_model_eval M (__eo_to_smt ti)) =
+        SmtValue.Boolean true
+  | Term.Apply f rest, ti, c, j, hTuple, hTy, hAssoc, hTi, hLt => by
+      cases f with
+      | Apply g x =>
+          cases g with
+          | UOp op =>
+              cases op <;> try simp [isTupleValue] at hTuple
+              case tuple =>
+                let full := Term.Apply
+                  (Term.Apply (Term.UOp UserOp.tuple) x) rest
+                let head := __eo_to_smt x
+                let tailSmt := __eo_to_smt rest
+                let headTy := __smtx_typeof head
+                have hFullNN :
+                    __smtx_typeof (__eo_to_smt full) ≠ SmtType.None := by
+                  rw [hTy]
+                  simp
+                have hPrependNN :
+                    __smtx_typeof
+                        (__eo_to_smt_tuple_prepend head headTy tailSmt) ≠
+                      SmtType.None := by
+                  change __smtx_typeof (__eo_to_smt full) ≠ SmtType.None
+                  exact hFullNN
+                rcases tuple_prepend_tail_type_of_non_none_local
+                    head headTy tailSmt hPrependNN with
+                  ⟨tailC, hTailTy⟩
+                have hDatatype :
+                    SmtDatatype.sum c SmtDatatype.null =
+                      SmtDatatype.sum (SmtDatatypeCons.cons headTy tailC)
+                        SmtDatatype.null := by
+                  exact tuple_prepend_datatype_eq_of_type M hM head tailSmt
+                    headTy tailC (SmtDatatype.sum c SmtDatatype.null)
+                    hTailTy (by
+                      change
+                        __smtx_typeof
+                            (__eo_to_smt_tuple_prepend head headTy tailSmt) =
+                          SmtType.Datatype "@Tuple"
+                            (SmtDatatype.sum c SmtDatatype.null)
+                      exact hTy)
+                injection hDatatype with hC _hNull
+                subst c
+                have hTailArgsNe : __dt_arg_list rest ≠ Term.Stuck := by
+                  intro hTailArgs
+                  have hArgsStuck : __dt_arg_list full = Term.Stuck := by
+                    simp [full, __dt_arg_list, __eo_mk_apply, hTailArgs]
+                  have hAssocStuck :
+                      __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list full)
+                          (Term.Numeral j) = Term.Stuck := by
+                    rw [hArgsStuck]
+                    exact assoc_nil_nth_list_stuck Term.__eo_List_cons
+                      (Term.Numeral j)
+                  exact hTi (hAssoc.symm.trans hAssocStuck)
+                have hArgs :
+                    __dt_arg_list full =
+                      Term.Apply (Term.Apply Term.__eo_List_cons x)
+                        (__dt_arg_list rest) := by
+                  simp [full, __dt_arg_list, __eo_mk_apply, hTailArgsNe]
+                cases j with
+                | zero =>
+                    have hTiEq : ti = x := by
+                      have hAssoc' :
+                          __assoc_nil_nth Term.__eo_List_cons
+                              (Term.Apply
+                                (Term.Apply Term.__eo_List_cons x)
+                                (__dt_arg_list rest))
+                              (Term.Numeral native_nat_zero) = ti := by
+                        simpa [full, hArgs] using hAssoc
+                      simp [__assoc_nil_nth, __eo_eq, native_ite,
+                        native_teq] at hAssoc'
+                      exact hAssoc'.symm
+                    rw [hTiEq]
+                    have hProj :
+                        __vsm_apply_arg_nth
+                            (__smtx_model_eval M (__eo_to_smt full))
+                            native_nat_zero
+                            (__smtx_dt_num_sels
+                              (SmtDatatype.sum
+                                (SmtDatatypeCons.cons headTy tailC)
+                                SmtDatatype.null)
+                              native_nat_zero) =
+                          __smtx_model_eval M (__eo_to_smt x) := by
+                      change
+                        __vsm_apply_arg_nth
+                            (__smtx_model_eval M
+                              (__eo_to_smt_tuple_prepend head headTy tailSmt))
+                            native_nat_zero
+                            (__smtx_dt_num_sels
+                              (SmtDatatype.sum
+                                (SmtDatatypeCons.cons headTy tailC)
+                                SmtDatatype.null)
+                              native_nat_zero) =
+                          __smtx_model_eval M head
+                      exact tuple_prepend_zero_projection M hM head tailSmt
+                        headTy tailC hTailTy hPrependNN
+                    rw [hProj]
+                    exact RuleProofs.smtx_model_eval_eq_refl _
+                | succ j =>
+                    have hTailAssoc :
+                        __assoc_nil_nth Term.__eo_List_cons
+                            (__dt_arg_list rest) (Term.Numeral j) = ti := by
+                      have hAssoc' :
+                          __assoc_nil_nth Term.__eo_List_cons
+                              (Term.Apply
+                                (Term.Apply Term.__eo_List_cons x)
+                                (__dt_arg_list rest))
+                              (Term.Numeral (Nat.succ j)) = ti := by
+                        simpa [full, hArgs] using hAssoc
+                      simpa using
+                        (assoc_nil_nth_cons_succ_any x
+                          (__dt_arg_list rest) j).symm.trans hAssoc'
+                    have hLtTail :
+                        j <
+                          __smtx_dt_num_sels
+                            (SmtDatatype.sum tailC SmtDatatype.null)
+                            native_nat_zero := by
+                      simpa [__smtx_dt_num_sels, __smtx_dtc_num_sels]
+                        using hLt
+                    have hProj :
+                        __vsm_apply_arg_nth
+                            (__smtx_model_eval M (__eo_to_smt full))
+                            (Nat.succ j)
+                            (__smtx_dt_num_sels
+                              (SmtDatatype.sum
+                                (SmtDatatypeCons.cons headTy tailC)
+                                SmtDatatype.null)
+                              native_nat_zero) =
+                          __vsm_apply_arg_nth
+                            (__smtx_model_eval M tailSmt) j
+                            (__smtx_dt_num_sels
+                              (SmtDatatype.sum tailC SmtDatatype.null)
+                              native_nat_zero) := by
+                      change
+                        __vsm_apply_arg_nth
+                            (__smtx_model_eval M
+                              (__eo_to_smt_tuple_prepend head headTy tailSmt))
+                            (Nat.succ j)
+                            (__smtx_dt_num_sels
+                              (SmtDatatype.sum
+                                (SmtDatatypeCons.cons headTy tailC)
+                                SmtDatatype.null)
+                              native_nat_zero) =
+                          __vsm_apply_arg_nth
+                            (__smtx_model_eval M tailSmt) j
+                            (__smtx_dt_num_sels
+                              (SmtDatatype.sum tailC SmtDatatype.null)
+                              native_nat_zero)
+                      exact tuple_prepend_succ_projection M hM head tailSmt
+                        headTy tailC j hTailTy hPrependNN hLtTail
+                    rw [hProj]
+                    exact tuple_projection_eq_of_tuple_value_assoc M hM rest
+                      ti tailC j (by simpa [isTupleValue] using hTuple)
+                      hTailTy hTailAssoc hTi hLtTail
+          | _ =>
+              simp [isTupleValue] at hTuple
+      | _ =>
+          simp [isTupleValue] at hTuple
+  | Term.UOp op, ti, c, j, hTuple, _hTy, hAssoc, hTi, _hLt => by
+      cases op <;> simp [isTupleValue] at hTuple
+      case tuple_unit =>
+        simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
+          at hAssoc
+        exact False.elim (hTi hAssoc.symm)
+  | Term.UOp1 _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.UOp2 _ _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.UOp3 _ _ _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.__eo_List, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.__eo_List_nil, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.__eo_List_cons, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.Bool, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.Boolean _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.Numeral _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.Rational _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.String _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.Binary _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.Type, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.Stuck, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.FunType, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.Var _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.DatatypeType _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.DatatypeTypeRef _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.DtcAppType _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.DtCons _ _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.DtSel _ _ _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.USort _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+  | Term.UConst _ _, _ti, _c, _j, hTuple, _hTy, _hAssoc, _hTi, _hLt => by
+      simp [isTupleValue] at hTuple
+termination_by tail ti c j hTuple hTy hAssoc hTi hLt => tail
+
+private theorem tuple_projection_eq_of_dt_arg_list_assoc
+    (M : SmtModel) (hM : model_total_typed M)
+    (tail ti : Term) (c : SmtDatatypeCons) (j : native_Nat) :
+    __smtx_typeof (__eo_to_smt tail) =
+        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+    __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list tail)
+        (Term.Numeral j) = ti ->
+    ti ≠ Term.Stuck ->
+    j <
+      __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+        native_nat_zero ->
+    __smtx_model_eval_eq
+        (__vsm_apply_arg_nth
+          (__smtx_model_eval M (__eo_to_smt tail)) j
+          (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
+            native_nat_zero))
+        (__smtx_model_eval M (__eo_to_smt ti)) =
+      SmtValue.Boolean true := by
+  intro hTy hAssoc hTi hLt
+  by_cases hTuple : isTupleValue tail
+  · exact tuple_projection_eq_of_tuple_value_assoc M hM tail ti c j
+      hTuple hTy hAssoc hTi hLt
+  · -- Remaining constructor-alignment invariant: if tuple selection reaches
+    -- `tail` through `__dt_arg_list`, then `tail` must expose tuple fields,
+    -- not the ordinary argument spine of a non-tuple application whose result
+    -- type happens to be a tuple.
+    sorry
 
 private theorem tuple_guard_projection_tuple_zero_eq_true
     (M : SmtModel) (hM : model_total_typed M)
@@ -3675,8 +3908,10 @@ private theorem tuple_guard_projection_eq_true
               -- Non-tuple heads should make the selector guard stuck.
               sorry
       | _ =>
-          -- Unit/atomic tuple terms have no selectable head argument here.
-          sorry
+          exact False.elim (hTi (hGuard.symm.trans (by
+            simp [mkDtCollapseSelectorGuard, __dt_arg_list,
+              __get_arg_list_rec, assoc_nil_nth_nil_stuck,
+              assoc_nil_nth_list_stuck])))
   | succ j =>
       cases t with
       | Apply f tail =>
@@ -3698,8 +3933,10 @@ private theorem tuple_guard_projection_eq_true
               -- Non-tuple heads should make the selector guard stuck.
               sorry
       | _ =>
-          -- Unit/atomic tuple terms have no selectable successor argument.
-          sorry
+          exact False.elim (hTi (hGuard.symm.trans (by
+            simp [mkDtCollapseSelectorGuard, __dt_arg_list,
+              __get_arg_list_rec, assoc_nil_nth_nil_stuck,
+              assoc_nil_nth_list_stuck])))
 
 private theorem dt_collapse_selector_tuple_select_sound
     (M : SmtModel) (hM : model_total_typed M) (idx t ti : Term) :
