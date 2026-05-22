@@ -12,8 +12,8 @@ open SmtEval
 inductive SmtRegLan : Type where
   | empty : SmtRegLan
   | epsilon : SmtRegLan
-  | char : Char -> SmtRegLan
-  | range : Char -> Char -> SmtRegLan
+  | char : native_Char -> SmtRegLan
+  | range : native_Char -> native_Char -> SmtRegLan
   | allchar : SmtRegLan
   | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
   | union : SmtRegLan -> SmtRegLan -> SmtRegLan
@@ -28,20 +28,32 @@ abbrev native_RegLan := SmtRegLan
 def native_int_log2 : native_Int -> native_Int
   | x => Int.ofNat (Nat.log2 (Int.toNat x))
   
+def native_char_is_digit (c : native_Char) : native_Bool :=
+  48 <= c && c <= 57
+
+def native_char_to_upper (c : native_Char) : native_Char :=
+  if 97 <= c && c <= 122 then c - 32 else c
+
+def native_char_to_lower (c : native_Char) : native_Char :=
+  if 65 <= c && c <= 90 then c + 32 else c
+
+def native_decimal_digits_to_nat (xs : native_String) : native_Nat :=
+  xs.foldl (fun acc c => 10 * acc + (c - 48)) 0
+
 def native_str_lt : native_String -> native_String -> native_Bool
   | s₁, s₂ => decide (s₁ < s₂)
 def native_str_from_int : native_Int -> native_String
-  | i => if i < 0 then "" else (toString i)
+  | i => if i < 0 then [] else native_string_of_lean_string (toString i)
 def native_str_to_int : native_String -> native_Int
-  | s => match s.toList with
+  | s => match s with
           | [] => -1
-          | '-' :: _ => -1
-          | '0' :: _ :: _ => -1
-          | _ => (s.toNat?.map Int.ofNat).getD (-1)
+          | 45 :: _ => -1
+          | 48 :: _ :: _ => -1
+          | _ => if s.all native_char_is_digit then Int.ofNat (native_decimal_digits_to_nat s) else -1
 def native_str_to_upper : native_String -> native_String
-  | s => s.toUpper
+  | s => s.map native_char_to_upper
 def native_str_to_lower : native_String -> native_String
-  | s => s.toLower
+  | s => s.map native_char_to_lower
 
 -- Regular expressions
 
@@ -87,13 +99,16 @@ def native_re_mk_star : native_RegLan -> native_RegLan
   | .star r => .star r
   | r => .star r
 
-def native_re_deriv (c : Char) : native_RegLan -> native_RegLan
+def native_re_deriv (c : native_Char) : native_RegLan -> native_RegLan
   | .empty => .empty
   | .epsilon => .empty
-  | .char d => if c = d then .epsilon else .empty
+  | .char d => if native_char_valid c && native_char_valid d && c = d then .epsilon else .empty
   | .range lo hi =>
-      if lo.toNat <= c.toNat && c.toNat <= hi.toNat then .epsilon else .empty
-  | .allchar => .epsilon
+      if native_char_valid c && native_char_valid lo && native_char_valid hi && lo <= c && c <= hi then
+        .epsilon
+      else
+        .empty
+  | .allchar => if native_char_valid c then .epsilon else .empty
   | .concat r₁ r₂ =>
       native_re_mk_union
         (native_re_mk_concat (native_re_deriv c r₁) r₂)
@@ -103,12 +118,12 @@ def native_re_deriv (c : Char) : native_RegLan -> native_RegLan
   | .star r => native_re_mk_concat (native_re_deriv c r) (.star r)
   | .comp r => native_re_mk_comp (native_re_deriv c r)
 
-def native_re_of_list : List Char -> native_RegLan
+def native_re_of_list : List native_Char -> native_RegLan
   | [] => .epsilon
   | c :: cs => native_re_mk_concat (.char c) (native_re_of_list cs)
 
-def native_re_prefix_match_len? (r : native_RegLan) (xs : List Char) : Option Nat :=
-  let rec go (cur : native_RegLan) (rest : List Char) (n : Nat) : Option Nat :=
+def native_re_prefix_match_len? (r : native_RegLan) (xs : List native_Char) : Option Nat :=
+  let rec go (cur : native_RegLan) (rest : List native_Char) (n : Nat) : Option Nat :=
     if native_re_nullable cur then
       some n
     else
@@ -117,7 +132,7 @@ def native_re_prefix_match_len? (r : native_RegLan) (xs : List Char) : Option Na
       | c :: cs => go (native_re_deriv c cur) cs (n + 1)
   go r xs 0
 
-def native_re_find_idx_aux (r : native_RegLan) (xs : List Char) (idx : Nat) : Option (Nat × Nat) :=
+def native_re_find_idx_aux (r : native_RegLan) (xs : List native_Char) (idx : Nat) : Option (Nat × Nat) :=
   match native_re_prefix_match_len? r xs with
   | some n => some (idx, n)
   | none =>
@@ -125,10 +140,10 @@ def native_re_find_idx_aux (r : native_RegLan) (xs : List Char) (idx : Nat) : Op
       | [] => none
       | _ :: cs => native_re_find_idx_aux r cs (idx + 1)
 
-def native_re_find_idx_from (r : native_RegLan) (xs : List Char) (start : Nat) : Option (Nat × Nat) :=
+def native_re_find_idx_from (r : native_RegLan) (xs : List native_Char) (start : Nat) : Option (Nat × Nat) :=
   native_re_find_idx_aux r (xs.drop start) start
 
-def native_re_find_nonempty_idx_aux (r : native_RegLan) (xs : List Char) (idx : Nat) :
+def native_re_find_nonempty_idx_aux (r : native_RegLan) (xs : List native_Char) (idx : Nat) :
     Option (Nat × Nat) :=
   match native_re_prefix_match_len? r xs with
   | some 0 =>
@@ -141,12 +156,12 @@ def native_re_find_nonempty_idx_aux (r : native_RegLan) (xs : List Char) (idx : 
       | [] => none
       | _ :: cs => native_re_find_nonempty_idx_aux r cs (idx + 1)
 
-def native_re_find_nonempty_idx_from (r : native_RegLan) (xs : List Char) (start : Nat) :
+def native_re_find_nonempty_idx_from (r : native_RegLan) (xs : List native_Char) (start : Nat) :
     Option (Nat × Nat) :=
   native_re_find_nonempty_idx_aux r (xs.drop start) start
 
 def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : native_RegLan)
-    (replacement : List Char) : List Char -> List Char
+    (replacement : List native_Char) : List native_Char -> List native_Char
   | xs =>
       match fuel with
       | 0 => xs
@@ -164,12 +179,12 @@ def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : native_RegLan)
               | [] => []
               | c :: cs => c :: native_re_replace_all_nonempty_list_aux fuel r replacement cs
 
-def native_re_replace_all_nonempty_list (r : native_RegLan) (replacement xs : List Char) :
-    List Char :=
+def native_re_replace_all_nonempty_list (r : native_RegLan) (replacement xs : List native_Char) :
+    List native_Char :=
   native_re_replace_all_nonempty_list_aux (xs.length + 1) r replacement xs
 
 def native_str_to_re : native_String -> native_RegLan
-  | s => native_re_of_list s.toList
+  | s => native_re_of_list s
 def native_re_mult : native_RegLan -> native_RegLan
   | r => native_re_mk_star r
 def native_re_plus : native_RegLan -> native_RegLan
@@ -186,43 +201,58 @@ def native_re_union : native_RegLan -> native_RegLan -> native_RegLan
   | r₁, r₂ => native_re_mk_union r₁ r₂
 def native_re_range : native_String -> native_String -> native_RegLan
   | s₁, s₂ =>
-      match s₁.toList, s₂.toList with
+      match s₁, s₂ with
       | [c₁], [c₂] => .range c₁ c₂
       | _, _ => .empty
 def native_str_in_re : native_String -> native_RegLan -> native_Bool
   | s, r =>
-      native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
+      native_re_nullable <| s.foldl (fun acc c => native_re_deriv c acc) r
 def native_str_indexof_re : native_String -> native_RegLan -> native_Int -> native_Int
   | s, r, i =>
       if i < 0 then
         -1
       else
-        match native_re_find_idx_from r s.toList (Int.toNat i) with
+        match native_re_find_idx_from r s (Int.toNat i) with
         | some (idx, _) => Int.ofNat idx
         | none => -1
 def native_str_replace_re : native_String -> native_RegLan -> native_String -> native_String
   | s, r, replacement =>
-      match native_re_find_nonempty_idx_from r s.toList 0 with
+      match native_re_find_nonempty_idx_from r s 0 with
       | some (idx, len) =>
-          String.ofList <| (s.toList.take idx) ++ replacement.toList ++ (s.toList.drop (idx + len))
+          (s.take idx) ++ replacement ++ (s.drop (idx + len))
       | none => s
 def native_str_replace_re_all : native_String -> native_RegLan -> native_String -> native_String
   | s, r, replacement =>
-      String.ofList <| native_re_replace_all_nonempty_list r replacement.toList s.toList
+      native_re_replace_all_nonempty_list r replacement s
 def native_re_allchar : native_RegLan := .allchar
 def native_re_none : native_RegLan := .empty
 def native_re_all : native_RegLan := .star .allchar
 
+def native_re_canonical : native_RegLan -> native_Bool
+  | .empty => true
+  | .epsilon => true
+  | .char c => native_char_valid c
+  | .range lo hi => native_char_valid lo && native_char_valid hi
+  | .allchar => true
+  | .concat r₁ r₂ => native_re_canonical r₁ && native_re_canonical r₂
+  | .union r₁ r₂ => native_re_canonical r₁ && native_re_canonical r₂
+  | .inter r₁ r₂ => native_re_canonical r₁ && native_re_canonical r₂
+  | .star r => native_re_canonical r
+  | .comp r => native_re_canonical r
+
 -- Partial semantics
 
-def native_qdiv_by_zero_id : native_String := "@qdiv_by_zero"
-def native_div_by_zero_id : native_String := "@div_by_zero"
-def native_mod_by_zero_id : native_String := "@mod_by_zero"
+def native_qdiv_by_zero_id : native_String := native_string_of_lean_string "@qdiv_by_zero"
+def native_div_by_zero_id : native_String := native_string_of_lean_string "@div_by_zero"
+def native_mod_by_zero_id : native_String := native_string_of_lean_string "@mod_by_zero"
 def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
-  "@wrong_apply_sel_" ++ toString n ++ "_" ++ toString m
-def native_oob_seq_nth_id : native_String := "@oob_seq_nth"
+  native_string_of_lean_string "@wrong_apply_sel_" ++
+    native_string_of_lean_string (toString n) ++
+    native_string_of_lean_string "_" ++
+    native_string_of_lean_string (toString m)
+def native_oob_seq_nth_id : native_String := native_string_of_lean_string "@oob_seq_nth"
 def native_uconst_id : native_Nat -> native_String
-  | i => "@u." ++ toString i
+  | i => native_string_of_lean_string "@u." ++ native_string_of_lean_string (toString i)
 
 mutual
 
@@ -457,7 +487,7 @@ end
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
-def native_default_ifun_id : native_String := "@native_default_ifun"
+def native_default_ifun_id : native_String := native_string_of_lean_string "@native_default_ifun"
 
 /- SMT-LIB model -/
 structure SmtModelKey where
@@ -1943,9 +1973,11 @@ def __smtx_seq_canonical : SmtSeq -> native_Bool
 
 def __smtx_value_canonical_bool : SmtValue -> native_Bool
   | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) true)
+  | (SmtValue.Char c) => native_char_valid c
   | (SmtValue.Map m) => (__smtx_map_canonical m)
   | (SmtValue.Set m) => (native_and (__smtx_map_canonical m) (native_veq (__smtx_msm_get_default m) (SmtValue.Boolean false)))
   | (SmtValue.Seq s) => (__smtx_seq_canonical s)
+  | (SmtValue.RegLan r) => native_re_canonical r
   | (SmtValue.Apply f v) => (native_and (__smtx_value_canonical_bool f) (__smtx_value_canonical_bool v))
   | v => true
 
@@ -1968,14 +2000,14 @@ def native_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
   | v :: vs => (SmtSeq.cons v (native_pack_seq T vs))
 
 def native_ssm_char_values_of_string (s : native_String) : List SmtValue :=
-  s.toList.map SmtValue.Char
+  s.map SmtValue.Char
 
-def native_ssm_char_of_value : SmtValue -> Char
+def native_ssm_char_of_value : SmtValue -> native_Char
   | (SmtValue.Char c) => c
-  | _ => Char.ofNat 0
+  | _ => native_nat_to_char 0
 
 def native_ssm_string_of_char_values (xs : List SmtValue) : native_String :=
-  String.ofList (xs.map native_ssm_char_of_value)
+  xs.map native_ssm_char_of_value
 
 def native_unpack_string (x : SmtSeq) : native_String :=
   (native_ssm_string_of_char_values (native_unpack_seq x))

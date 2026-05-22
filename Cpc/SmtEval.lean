@@ -5,9 +5,20 @@ namespace SmtEval
 abbrev native_Bool := Bool
 abbrev native_Int := Int
 abbrev native_Rat := Rat
-abbrev native_String := String
 abbrev native_Nat := Nat
-abbrev native_Char := Char
+abbrev native_Char := Nat
+abbrev native_String := List native_Char
+
+def native_char_bound : native_Nat := 196608
+
+def native_char_valid (c : native_Char) : native_Bool :=
+  c < native_char_bound
+
+def native_string_valid (s : native_String) : native_Bool :=
+  s.all native_char_valid
+
+def native_string_of_lean_string (s : String) : native_String :=
+  s.toList.map Char.toNat
 
 instance : Ord Rat where
   compare a b :=
@@ -85,16 +96,16 @@ def native_to_real : native_Int -> native_Rat
 
 -- Strings
 def native_nat_to_char : native_Nat -> native_Char
-  | x => (Char.ofNat x)
+  | x => x
 def native_str_to_code (s : native_String) : native_Int :=
-  match s.toList with
-  | [c] => Int.ofNat c.toNat
+  match s with
+  | [c] => if native_char_valid c then Int.ofNat c else -1
   | _   => -1
 def native_str_from_code (i : native_Int) : native_String :=
-  if (0 <= i && i <= 196608) then
-    String.singleton (native_nat_to_char (Int.toNat i))
+  if (0 <= i && i < native_char_bound) then
+    [native_nat_to_char (Int.toNat i)]
   else
-    ""
+    []
 def native_streq : native_String -> native_String -> native_Bool
   | x, y => decide (x = y)
 
