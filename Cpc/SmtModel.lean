@@ -535,12 +535,14 @@ def native_vcmp (v1 : SmtValue) (v2 : SmtValue) : native_Bool :=
 macro_rules
   | `(native_re_ext_eq $r1 $r2) => do
       let strInReId := Lean.mkIdent `native_str_in_re
+      let validId := Lean.mkIdent `native_string_valid
       `(by
           classical
           exact
             if hExt :
                 ∀ s : native_String,
-                  $strInReId s $r1 = $strInReId s $r2 then
+                  $validId s = true ->
+                    $strInReId s $r1 = $strInReId s $r2 then
               true
             else
               false)
