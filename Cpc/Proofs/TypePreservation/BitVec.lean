@@ -237,8 +237,8 @@ theorem typeof_value_model_eval_bvsmod_value
   let v5 := __smtx_model_eval_eq (__smtx_model_eval_extract v3 v3 (SmtValue.Binary w n1)) v1
   let v6 :=
     __smtx_model_eval_bvurem
-      (__smtx_model_eval_ite v5 (SmtValue.Binary w n1) (__smtx_model_eval_bvneg (SmtValue.Binary w n1)))
-      (__smtx_model_eval_ite v4 (SmtValue.Binary w n2) (__smtx_model_eval_bvneg (SmtValue.Binary w n2)))
+      (__smtx_model_eval_ite v5 (__smtx_model_eval_bvneg (SmtValue.Binary w n1)) (SmtValue.Binary w n1))
+      (__smtx_model_eval_ite v4 (__smtx_model_eval_bvneg (SmtValue.Binary w n2)) (SmtValue.Binary w n2))
   let v7 := __smtx_model_eval_bvneg v6
   let v8 := __smtx_model_eval_not v5
   let v9 := __smtx_model_eval_not v4
@@ -258,14 +258,14 @@ theorem typeof_value_model_eval_bvsmod_value
     exact typeof_value_model_eval_eq_value _ _
   have hAbs1 :
       __smtx_typeof_value
-          (__smtx_model_eval_ite v5 (SmtValue.Binary w n1) (__smtx_model_eval_bvneg (SmtValue.Binary w n1))) =
+          (__smtx_model_eval_ite v5 (__smtx_model_eval_bvneg (SmtValue.Binary w n1)) (SmtValue.Binary w n1)) =
         SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_ite_of_bool h5 hBin1 hNeg1
+    exact typeof_value_model_eval_ite_of_bool h5 hNeg1 hBin1
   have hAbs2 :
       __smtx_typeof_value
-          (__smtx_model_eval_ite v4 (SmtValue.Binary w n2) (__smtx_model_eval_bvneg (SmtValue.Binary w n2))) =
+          (__smtx_model_eval_ite v4 (__smtx_model_eval_bvneg (SmtValue.Binary w n2)) (SmtValue.Binary w n2)) =
         SmtType.BitVec (native_int_to_nat w) := by
-    exact typeof_value_model_eval_ite_of_bool h4 hBin2 hNeg2
+    exact typeof_value_model_eval_ite_of_bool h4 hNeg2 hBin2
   have h6 : __smtx_typeof_value v6 = SmtType.BitVec (native_int_to_nat w) := by
     unfold v6
     exact typeof_value_model_eval_bvurem_of_bitvec hAbs1 hAbs2
