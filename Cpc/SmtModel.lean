@@ -460,7 +460,14 @@ abbrev SmtNativeFun := SmtValue -> SmtValue
 def native_default_ifun_id : native_String := "@native_default_ifun"
 
 /- SMT-LIB model -/
+inductive SmtModelKeyKind where
+  | value
+  | var
+  | nativeFun
+deriving Repr, DecidableEq, Inhabited
+
 structure SmtModelKey where
+  kind : SmtModelKeyKind
   name : native_String
   ty : SmtType
 deriving Repr, DecidableEq, Inhabited
@@ -471,20 +478,29 @@ structure SmtModel where
 deriving Inhabited
 
 def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
-  { name := s, ty := T }
+  { kind := SmtModelKeyKind.value, name := s, ty := T }
+
+def native_model_var_key (s : native_String) (T : SmtType) : SmtModelKey :=
+  { kind := SmtModelKeyKind.var, name := s, ty := T }
+
+def native_model_fun_key (fid : native_String) (T U : SmtType) : SmtModelKey :=
+  { kind := SmtModelKeyKind.nativeFun, name := fid, ty := SmtType.FunType T U }
 
 def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
   M.values (native_model_key s T)
 
+def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  M.values (native_model_var_key s T)
+
 def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
-      if k = (native_model_key s T) then
+      if k = (native_model_var_key s T) then
         v
       else
         M.values k }
 
 def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
-  M.nativeFuns (native_model_key fid (SmtType.FunType T U))
+  M.nativeFuns (native_model_fun_key fid T U)
 
 abbrev RefList := List native_String
 
@@ -2235,7 +2251,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) => (__smtx_model_eval_dt_sel M s d i j (__smtx_model_eval M x1))
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x1))
-  | (SmtTerm.Var s T) => (native_model_lookup M s T)
+  | (SmtTerm.Var s T) => (native_model_var_lookup M s T)
   | (SmtTerm.UConst s T) => (native_model_lookup M s T)
   | x1 => SmtValue.NotValue
 
