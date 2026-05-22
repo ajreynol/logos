@@ -459,48 +459,29 @@ abbrev SmtNativeFun := SmtValue -> SmtValue
 
 def native_default_ifun_id : native_String := "@native_default_ifun"
 
-/- SMT-LIB model -/
-inductive SmtModelKeyKind where
-  | value
-  | var
-  | nativeFun
-deriving Repr, DecidableEq, Inhabited
-
-structure SmtModelKey where
-  kind : SmtModelKeyKind
-  name : native_String
-  ty : SmtType
-deriving Repr, DecidableEq, Inhabited
-
 structure SmtModel where
-  values : SmtModelKey -> SmtValue
-  nativeFuns : SmtModelKey -> SmtNativeFun
+  values : native_String -> SmtType -> SmtValue
+  vars : native_String -> SmtType -> Option SmtValue
+  nativeFuns : native_String -> SmtType -> SmtType -> SmtNativeFun
 deriving Inhabited
 
-def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
-  { kind := SmtModelKeyKind.value, name := s, ty := T }
-
-def native_model_var_key (s : native_String) (T : SmtType) : SmtModelKey :=
-  { kind := SmtModelKeyKind.var, name := s, ty := T }
-
-def native_model_fun_key (fid : native_String) (T U : SmtType) : SmtModelKey :=
-  { kind := SmtModelKeyKind.nativeFun, name := fid, ty := SmtType.FunType T U }
-
 def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  M.values (native_model_key s T)
+  M.values s T
 
 def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  M.values (native_model_var_key s T)
+  match M.vars s T with
+  | some v => v
+  | none => SmtValue.NotValue
 
 def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
-  { M with values := fun k =>
-      if k = (native_model_var_key s T) then
-        v
+  { M with vars := fun s' T' =>
+      if s' = s ∧ T' = T then
+        some v
       else
-        M.values k }
+        M.vars s' T' }
 
 def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
-  M.nativeFuns (native_model_fun_key fid T U)
+  M.nativeFuns fid T U
 
 abbrev RefList := List native_String
 
@@ -2276,9 +2257,9 @@ def native_fun_typed (M : SmtModel) : Prop :=
       __smtx_value_canonical_bool (native_eval_ifun_apply M fid A B i) = true
 
 def model_total_typed (M : SmtModel) : Prop :=
-  (∀ k : SmtModelKey, __smtx_type_wf k.ty = true -> __smtx_typeof_value (M.values k) = k.ty) ∧
-  (∀ k : SmtModelKey, __smtx_type_wf k.ty = true -> __smtx_value_canonical_bool (M.values k)) = true ∧
-  (∀ k : SmtModelKey, __smtx_type_wf k.ty = false -> M.values k = SmtValue.NotValue) ∧
+  (∀ s T, __smtx_type_wf T = true -> __smtx_typeof_value (native_model_lookup M s T) = T) ∧
+  (∀ s T, __smtx_type_wf T = true -> __smtx_value_canonical_bool (native_model_lookup M s T)) = true ∧
+  (∀ s T, __smtx_type_wf T = false -> native_model_lookup M s T = SmtValue.NotValue) ∧
   native_fun_typed M
 
 /-
