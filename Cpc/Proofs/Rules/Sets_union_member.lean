@@ -1,8 +1,9 @@
-import Cpc.Proofs.Rules.Sets_inter_member
+import Cpc.Proofs.RuleSupport.SetsMemberSupport
 
 open Eo
 open SmtEval
 open Smtm
+open SetsMemberSupport
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
