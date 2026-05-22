@@ -219,6 +219,74 @@ private theorem smtValueSize_lt_applyAllArgs_of_seed_nontrivial
   have hEq := smtValueSize_applyAllArgs_eq_succ v acc
   omega
 
+private theorem smt_tuple_head_type_ne_self
+    (U : SmtType) (c : SmtDatatypeCons) :
+    U ≠
+      SmtType.Datatype "@Tuple"
+        (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null) := by
+  intro h
+  have hSize := congrArg sizeOf h
+  simp at hSize
+  omega
+
+private theorem smt_tuple_tail_type_size_lt
+    (U : SmtType) (c : SmtDatatypeCons) :
+    sizeOf (SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) <
+      sizeOf
+        (SmtType.Datatype "@Tuple"
+          (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null)) := by
+  simp
+  omega
+
+private theorem smt_tuple_tail_type_ne_self
+    (U : SmtType) (c : SmtDatatypeCons) :
+    SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ≠
+      SmtType.Datatype "@Tuple"
+        (SmtDatatype.sum (SmtDatatypeCons.cons U c) SmtDatatype.null) := by
+  intro h
+  have hLt := smt_tuple_tail_type_size_lt U c
+  rw [h] at hLt
+  exact Nat.lt_irrefl _ hLt
+
+private theorem smt_tuple_selector_type_size_lt :
+    ∀ (c : SmtDatatypeCons) (j : native_Nat),
+      j < __smtx_dt_num_sels
+          (SmtDatatype.sum c SmtDatatype.null) native_nat_zero ->
+      sizeOf
+          (__smtx_ret_typeof_sel_rec
+            (SmtDatatype.sum c SmtDatatype.null) native_nat_zero j) <
+        sizeOf
+          (SmtType.Datatype "@Tuple"
+            (SmtDatatype.sum c SmtDatatype.null))
+  | SmtDatatypeCons.unit, j, hj => by
+      simp [__smtx_dt_num_sels, __smtx_dtc_num_sels] at hj
+  | SmtDatatypeCons.cons T c, native_nat_zero, _hj => by
+      simp [__smtx_ret_typeof_sel_rec]
+      omega
+  | SmtDatatypeCons.cons T c, native_nat_succ j, hj => by
+      have hj' :
+          j <
+            __smtx_dt_num_sels
+              (SmtDatatype.sum c SmtDatatype.null) native_nat_zero := by
+        simpa [__smtx_dt_num_sels, __smtx_dtc_num_sels] using
+          Nat.succ_lt_succ_iff.mp hj
+      have ih := smt_tuple_selector_type_size_lt c j hj'
+      simp [__smtx_ret_typeof_sel_rec] at ih ⊢
+      omega
+
+private theorem smt_tuple_selector_type_ne_self
+    (c : SmtDatatypeCons) (j : native_Nat)
+    (hj :
+      j < __smtx_dt_num_sels
+          (SmtDatatype.sum c SmtDatatype.null) native_nat_zero) :
+    __smtx_ret_typeof_sel_rec
+        (SmtDatatype.sum c SmtDatatype.null) native_nat_zero j ≠
+      SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) := by
+  intro h
+  have hLt := smt_tuple_selector_type_size_lt c j hj
+  rw [h] at hLt
+  exact Nat.lt_irrefl _ hLt
+
 private theorem datatype_value_head_of_type
     {v : SmtValue} {s : native_String} {d : SmtDatatype}
     (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
