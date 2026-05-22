@@ -3868,6 +3868,333 @@ private theorem tuple_select_index_nat_of_collapse_hypotheses
     (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t) ti hBool
   exact tuple_select_translation_of_non_none_nat idx t hTypes.2
 
+private theorem assoc_nil_nth_raw_pair_neg_one_stuck (x y : Term) :
+    __assoc_nil_nth Term.__eo_List_cons
+        ((Term.__eo_List_cons.Apply x).Apply
+          ((Term.__eo_List_cons.Apply y).Apply Term.__eo_List_nil))
+        (Term.Numeral (-1 : native_Int)) = Term.Stuck := by
+  simpa [eoTermList] using assoc_nil_nth_pair_neg_one_stuck x y
+
+private theorem datatype_cons_selectors_rec_find_rec_tuple_select_stuck_or_neg
+    (s : native_String) (d : Datatype) (i : native_Nat) (idx : Term) :
+    ∀ (rest : Datatype) (ci ai : native_Nat) (start : Term),
+      __eo_list_find_rec
+          (__eo_datatype_cons_selectors_rec s d i rest ci ai)
+          (Term.UOp1 UserOp1.tuple_select idx) start = Term.Stuck ∨
+        __eo_list_find_rec
+          (__eo_datatype_cons_selectors_rec s d i rest ci ai)
+          (Term.UOp1 UserOp1.tuple_select idx) start =
+            Term.Numeral (-1 : native_Int)
+  | Datatype.null, ci, ai, start => by
+      cases ci <;>
+        simp [__eo_datatype_cons_selectors_rec, __eo_list_find_rec]
+  | Datatype.sum DatatypeCons.unit restTail, Nat.zero, ai, start => by
+      cases start <;>
+        simp [__eo_datatype_cons_selectors_rec, __eo_list_find_rec]
+  | Datatype.sum (DatatypeCons.cons U c) restTail, Nat.zero, ai, start => by
+      let current := Term.DtSel s d i ai
+      let tail :=
+        __eo_datatype_cons_selectors_rec s d i restTail Nat.zero
+          (native_nat_succ ai)
+      by_cases hTail : tail = Term.Stuck
+      · left
+        simp [current, tail, __eo_datatype_cons_selectors_rec,
+          __eo_mk_apply, hTail, __eo_list_find_rec]
+      · have hRec :=
+          datatype_cons_selectors_rec_find_rec_tuple_select_stuck_or_neg
+            s d i idx restTail Nat.zero (native_nat_succ ai)
+            (__eo_add start (Term.Numeral 1))
+        have hStep :
+            __eo_list_find_rec
+                (Term.Apply (Term.Apply Term.__eo_List_cons current) tail)
+                (Term.UOp1 UserOp1.tuple_select idx) start =
+              __eo_list_find_rec tail
+                (Term.UOp1 UserOp1.tuple_select idx)
+                (__eo_add start (Term.Numeral 1)) := by
+          cases start <;>
+            simp [current, tail, __eo_list_find_rec, __eo_eq,
+              __eo_add, native_ite, native_teq]
+        rcases hRec with hRec | hRec
+        · left
+          rw [show
+            __eo_list_find_rec
+                (__eo_datatype_cons_selectors_rec s d i
+                  (Datatype.sum (DatatypeCons.cons U c) restTail)
+                  Nat.zero ai)
+                (Term.UOp1 UserOp1.tuple_select idx) start =
+              __eo_list_find_rec
+                (Term.Apply (Term.Apply Term.__eo_List_cons current) tail)
+                (Term.UOp1 UserOp1.tuple_select idx) start by
+              simp [current, tail, __eo_datatype_cons_selectors_rec,
+                __eo_mk_apply, hTail]]
+          rw [hStep]
+          exact hRec
+        · right
+          rw [show
+            __eo_list_find_rec
+                (__eo_datatype_cons_selectors_rec s d i
+                  (Datatype.sum (DatatypeCons.cons U c) restTail)
+                  Nat.zero ai)
+                (Term.UOp1 UserOp1.tuple_select idx) start =
+              __eo_list_find_rec
+                (Term.Apply (Term.Apply Term.__eo_List_cons current) tail)
+                (Term.UOp1 UserOp1.tuple_select idx) start by
+              simp [current, tail, __eo_datatype_cons_selectors_rec,
+                __eo_mk_apply, hTail]]
+          rw [hStep]
+          exact hRec
+  | Datatype.sum c restTail, Nat.succ ci, ai, start => by
+      simpa [__eo_datatype_cons_selectors_rec] using
+        datatype_cons_selectors_rec_find_rec_tuple_select_stuck_or_neg
+          s d i idx restTail ci ai start
+
+private theorem eo_list_find_dt_selectors_tuple_select_stuck_or_neg
+    (c idx : Term) :
+    __eo_list_find Term.__eo_List_cons (__eo_dt_selectors c)
+        (Term.UOp1 UserOp1.tuple_select idx) = Term.Stuck ∨
+      __eo_list_find Term.__eo_List_cons (__eo_dt_selectors c)
+        (Term.UOp1 UserOp1.tuple_select idx) =
+          Term.Numeral (-1 : native_Int) := by
+  cases c with
+  | DtCons s d i =>
+      let selectors :=
+        __eo_datatype_cons_selectors_rec s d i d i native_nat_zero
+      have hRec :=
+        datatype_cons_selectors_rec_find_rec_tuple_select_stuck_or_neg
+          s d i idx d i native_nat_zero (Term.Numeral 0)
+      rcases hRec with hRec | hRec
+      · left
+        simp [__eo_dt_selectors, __eo_list_find, selectors, hRec,
+          __eo_requires, native_ite, native_teq]
+      · by_cases hList :
+            __eo_is_list Term.__eo_List_cons selectors = Term.Boolean true
+        · right
+          simp [__eo_dt_selectors, __eo_list_find, selectors, hRec,
+            hList, __eo_requires, native_ite, native_teq, native_not,
+            SmtEval.native_not]
+        · left
+          simp [__eo_dt_selectors, __eo_list_find, selectors, hRec,
+            hList, __eo_requires, native_ite, native_teq]
+  | _ =>
+      simp [__eo_dt_selectors, __eo_dt_selectors_main, __eo_list_find,
+        __eo_is_list, __eo_requires, native_ite, native_teq]
+
+private theorem tuple_select_find_dt_get_selectors_unit_tuple_stuck_or_neg
+    (c idx : Term) :
+    __eo_list_find Term.__eo_List_cons
+        (__dt_get_selectors (Term.UOp UserOp.UnitTuple) c)
+        (Term.UOp1 UserOp1.tuple_select idx) = Term.Stuck ∨
+      __eo_list_find Term.__eo_List_cons
+        (__dt_get_selectors (Term.UOp UserOp.UnitTuple) c)
+        (Term.UOp1 UserOp1.tuple_select idx) =
+          Term.Numeral (-1 : native_Int) := by
+  cases c with
+  | UOp op =>
+      cases op <;>
+        simp [__dt_get_selectors, __eo_dt_selectors,
+          __eo_dt_selectors_main, __eo_list_find, __eo_list_find_rec,
+          __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
+          __eo_is_ok, __eo_requires, native_ite, native_teq,
+          native_not, SmtEval.native_not]
+  | DtCons s d i =>
+      simpa [__dt_get_selectors] using
+        eo_list_find_dt_selectors_tuple_select_stuck_or_neg
+          (Term.DtCons s d i) idx
+  | _ =>
+      simp [__dt_get_selectors, __eo_dt_selectors,
+        __eo_dt_selectors_main, __eo_list_find, __eo_is_list,
+        __eo_requires, native_ite, native_teq]
+
+private theorem tuple_select_find_dt_get_selectors_tuple_wrong_constructor_stuck_or_neg
+    (T1 T2 c idx : Term) :
+    c ≠ Term.UOp UserOp.tuple ->
+    __eo_list_find Term.__eo_List_cons
+        (__dt_get_selectors
+          (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2) c)
+        (Term.UOp1 UserOp1.tuple_select idx) = Term.Stuck ∨
+      __eo_list_find Term.__eo_List_cons
+        (__dt_get_selectors
+          (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2) c)
+        (Term.UOp1 UserOp1.tuple_select idx) =
+          Term.Numeral (-1 : native_Int) := by
+  intro hCtor
+  cases c with
+  | UOp op =>
+      cases op <;>
+        simp [__dt_get_selectors, hCtor, __eo_dt_selectors,
+          __eo_dt_selectors_main, __eo_list_find, __eo_is_list,
+          __eo_requires, native_ite, native_teq] at hCtor ⊢
+  | DtCons s d i =>
+      simpa [__dt_get_selectors] using
+        eo_list_find_dt_selectors_tuple_select_stuck_or_neg
+          (Term.DtCons s d i) idx
+  | _ =>
+      simp [__dt_get_selectors, __eo_dt_selectors,
+        __eo_dt_selectors_main, __eo_list_find, __eo_is_list,
+        __eo_requires, native_ite, native_teq]
+
+private theorem tuple_select_guard_stuck_of_find_stuck_or_neg
+    (idx t selectors : Term) :
+    (__eo_list_find Term.__eo_List_cons selectors
+        (Term.UOp1 UserOp1.tuple_select idx) = Term.Stuck ∨
+      __eo_list_find Term.__eo_List_cons selectors
+        (Term.UOp1 UserOp1.tuple_select idx) =
+          Term.Numeral (-1 : native_Int)) ->
+    __dt_get_selectors_of_app (__eo_typeof t) t = selectors ->
+    mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx) t =
+      Term.Stuck := by
+  intro hFind hSelectors
+  rcases hFind with hFind | hFind
+  · simp [mkDtCollapseSelectorGuard, hSelectors, hFind,
+      assoc_nil_nth_index_stuck]
+  · by_cases hArgs : __dt_arg_list t = Term.Stuck
+    · simp [mkDtCollapseSelectorGuard, hSelectors, hFind, hArgs,
+        assoc_nil_nth_list_stuck]
+    · rcases dt_arg_list_eq_eoTermList_of_ne_stuck t hArgs with
+        ⟨xs, hxs⟩
+      rw [mkDtCollapseSelectorGuard, hSelectors, hFind, hxs]
+      simpa [show (-1 : native_Int) = Int.negSucc 0 by rfl] using
+        assoc_nil_nth_eoTermList_negSucc_stuck xs 0
+
+private theorem tuple_select_guard_stuck_of_unit_tuple_type
+    (idx t : Term) :
+    __eo_typeof t = Term.UOp UserOp.UnitTuple ->
+    mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx) t =
+      Term.Stuck := by
+  intro hType
+  have hSelectors :
+      __dt_get_selectors_of_app (__eo_typeof t) t =
+        __dt_get_selectors (Term.UOp UserOp.UnitTuple) (appHead t) := by
+    rw [hType, dt_get_selectors_of_app_eq_appHead]
+  exact tuple_select_guard_stuck_of_find_stuck_or_neg idx t
+    (__dt_get_selectors (Term.UOp UserOp.UnitTuple) (appHead t))
+    (tuple_select_find_dt_get_selectors_unit_tuple_stuck_or_neg
+      (appHead t) idx)
+    hSelectors
+
+private theorem tuple_select_guard_stuck_of_tuple_type_wrong_constructor
+    (T1 T2 idx t : Term) :
+    appHead t ≠ Term.UOp UserOp.tuple ->
+    __eo_typeof t =
+      Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2 ->
+    mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx) t =
+      Term.Stuck := by
+  intro hHead hType
+  have hSelectors :
+      __dt_get_selectors_of_app (__eo_typeof t) t =
+        __dt_get_selectors
+          (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
+          (appHead t) := by
+    rw [hType, dt_get_selectors_of_app_eq_appHead]
+  exact tuple_select_guard_stuck_of_find_stuck_or_neg idx t
+    (__dt_get_selectors
+      (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
+      (appHead t))
+    (tuple_select_find_dt_get_selectors_tuple_wrong_constructor_stuck_or_neg
+      T1 T2 (appHead t) idx hHead)
+    hSelectors
+
+private theorem tuple_select_guard_stuck_of_wrong_app_head_from_smt_tuple_type
+    (idx t : Term) (d : SmtDatatype) :
+    appHead t ≠ Term.UOp UserOp.tuple ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d ->
+    mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx) t =
+      Term.Stuck := by
+  intro hHead hTy
+  have hTNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None := by
+    rw [hTy]
+    simp
+  have hMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation t hTNN
+  have hEoTy :
+      __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype "@Tuple" d :=
+    hMatch.symm.trans hTy
+  rcases TranslationProofs.eo_to_smt_type_eq_tuple_datatype hEoTy with
+    hUnit | hCons
+  · rcases hUnit with ⟨hType, _hD⟩
+    exact tuple_select_guard_stuck_of_unit_tuple_type idx t hType
+  · rcases hCons with ⟨T1, T2, _c, hType, _hTail, _hD⟩
+    exact tuple_select_guard_stuck_of_tuple_type_wrong_constructor
+      T1 T2 idx t hHead hType
+
+private theorem smt_typeof_apply_tuple_partial_eq_none (x : Term) :
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp UserOp.tuple) x)) =
+      SmtType.None := by
+  change __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+    SmtType.None
+  exact TranslationProofs.typeof_apply_none_eq (__eo_to_smt x)
+
+private theorem tuple_select_guard_stuck_of_uop_head_unit_tuple_type
+    (op : UserOp) (idx x tail : Term) :
+    __eo_typeof (((Term.UOp op).Apply x).Apply tail) =
+      Term.UOp UserOp.UnitTuple ->
+    mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx)
+      (((Term.UOp op).Apply x).Apply tail) = Term.Stuck := by
+  intro hType
+  cases op <;>
+    simp [mkDtCollapseSelectorGuard, hType, __dt_arg_list,
+      __get_arg_list_rec, __dt_get_selectors_of_app, __dt_get_selectors,
+      __eo_dt_selectors, __eo_dt_selectors_main, __eo_list_find,
+      __eo_list_find_rec, __eo_is_list, __eo_get_nil_rec,
+      __eo_is_list_nil, __eo_is_ok, __eo_requires, native_ite,
+      native_teq, native_not, SmtEval.native_not,
+      assoc_nil_nth_nil_stuck,
+      assoc_nil_nth_index_stuck, assoc_nil_nth_list_stuck,
+      assoc_nil_nth_pair_neg_one_stuck,
+      assoc_nil_nth_raw_pair_neg_one_stuck,
+      assoc_nil_nth_eoTermList_negSucc_stuck, eoTermList]
+
+private theorem tuple_select_guard_stuck_of_uop_head_tuple_type
+    (op : UserOp) (T1 T2 idx x tail : Term) :
+    op ≠ UserOp.tuple ->
+    __eo_typeof (((Term.UOp op).Apply x).Apply tail) =
+      Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2 ->
+    mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx)
+      (((Term.UOp op).Apply x).Apply tail) = Term.Stuck := by
+  intro hOp hType
+  cases op <;>
+    simp [mkDtCollapseSelectorGuard, hType, hOp, __dt_arg_list,
+      __get_arg_list_rec, __dt_get_selectors_of_app, __dt_get_selectors,
+      __eo_dt_selectors, __eo_dt_selectors_main, __eo_list_find,
+      __eo_list_find_rec, __eo_is_list, __eo_get_nil_rec,
+      __eo_is_list_nil, __eo_is_ok, __eo_requires, native_ite,
+      native_teq, native_not, SmtEval.native_not,
+      assoc_nil_nth_nil_stuck,
+      assoc_nil_nth_index_stuck, assoc_nil_nth_list_stuck,
+      assoc_nil_nth_pair_neg_one_stuck,
+      assoc_nil_nth_raw_pair_neg_one_stuck,
+      assoc_nil_nth_eoTermList_negSucc_stuck, eoTermList] at hOp ⊢
+
+private theorem tuple_select_guard_stuck_of_uop_head_non_tuple_from_smt_tuple_type
+    (op : UserOp) (idx x tail : Term) (d : SmtDatatype) :
+    op ≠ UserOp.tuple ->
+    __smtx_typeof (__eo_to_smt (((Term.UOp op).Apply x).Apply tail)) =
+      SmtType.Datatype "@Tuple" d ->
+    mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx)
+      (((Term.UOp op).Apply x).Apply tail) = Term.Stuck := by
+  intro hOp hTy
+  have hTNN :
+      __smtx_typeof (__eo_to_smt (((Term.UOp op).Apply x).Apply tail)) ≠
+        SmtType.None := by
+    rw [hTy]
+    simp
+  have hMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation
+      (((Term.UOp op).Apply x).Apply tail) hTNN
+  have hEoTy :
+      __eo_to_smt_type
+          (__eo_typeof (((Term.UOp op).Apply x).Apply tail)) =
+        SmtType.Datatype "@Tuple" d :=
+    hMatch.symm.trans hTy
+  rcases TranslationProofs.eo_to_smt_type_eq_tuple_datatype hEoTy with
+    hUnit | hCons
+  · rcases hUnit with ⟨hType, _hD⟩
+    exact tuple_select_guard_stuck_of_uop_head_unit_tuple_type
+      op idx x tail hType
+  · rcases hCons with ⟨T1, T2, _c, hType, _hTail, _hD⟩
+    exact tuple_select_guard_stuck_of_uop_head_tuple_type
+      op T1 T2 idx x tail hOp hType
+
 private theorem tuple_guard_projection_eq_true
     (M : SmtModel) (hM : model_total_typed M)
     (d : SmtDatatype) (j : native_Nat) (t ti : Term) :
@@ -3890,23 +4217,37 @@ private theorem tuple_guard_projection_eq_true
   | zero =>
       cases t with
       | Apply f tail =>
-          cases f with
-          | Apply g x =>
-              cases g with
-              | UOp op =>
-                  cases op with
-                  | tuple =>
+          by_cases hHead : appHead (Term.Apply f tail) = Term.UOp UserOp.tuple
+          · cases f with
+            | Apply g x =>
+                cases g with
+                | UOp op =>
+                    by_cases hOp : op = UserOp.tuple
+                    · subst op
                       exact tuple_guard_projection_tuple_zero_eq_true
                         M hM d x tail ti hTy hGuard hTi
-                  | _ =>
-                      -- Non-tuple heads should make the selector guard stuck.
-                      sorry
-              | _ =>
-                  -- Non-tuple heads should make the selector guard stuck.
-                  sorry
-          | _ =>
-              -- Non-tuple heads should make the selector guard stuck.
-              sorry
+                    · have hOpEq : op = UserOp.tuple := by
+                        simpa [appHead] using hHead
+                      exact False.elim (hOp hOpEq)
+                | _ =>
+                    -- The remaining right-head cases are malformed tuple
+                    -- applications; the SMT tuple typing should rule them out.
+                    sorry
+            | UOp op =>
+                by_cases hOp : op = UserOp.tuple
+                · subst op
+                  have hNone := smt_typeof_apply_tuple_partial_eq_none tail
+                  rw [hNone] at hTy
+                  cases hTy
+                · have hOpEq : op = UserOp.tuple := by
+                    simpa [appHead] using hHead
+                  exact False.elim (hOp hOpEq)
+            | _ =>
+                simp [appHead] at hHead
+          · exact False.elim
+              (hTi (hGuard.symm.trans
+                (tuple_select_guard_stuck_of_wrong_app_head_from_smt_tuple_type
+                  (Term.Numeral 0) (Term.Apply f tail) d hHead hTy)))
       | _ =>
           exact False.elim (hTi (hGuard.symm.trans (by
             simp [mkDtCollapseSelectorGuard, __dt_arg_list,
@@ -3915,23 +4256,38 @@ private theorem tuple_guard_projection_eq_true
   | succ j =>
       cases t with
       | Apply f tail =>
-          cases f with
-          | Apply g x =>
-              cases g with
-              | UOp op =>
-                  cases op with
-                  | tuple =>
+          by_cases hHead : appHead (Term.Apply f tail) = Term.UOp UserOp.tuple
+          · cases f with
+            | Apply g x =>
+                cases g with
+                | UOp op =>
+                    by_cases hOp : op = UserOp.tuple
+                    · subst op
                       exact tuple_guard_projection_tuple_succ_eq_true
                         M hM d j x tail ti hSelectNN hTy hGuard hTi
-                  | _ =>
-                      -- Non-tuple heads should make the selector guard stuck.
-                      sorry
-              | _ =>
-                  -- Non-tuple heads should make the selector guard stuck.
-                  sorry
-          | _ =>
-              -- Non-tuple heads should make the selector guard stuck.
-              sorry
+                    · have hOpEq : op = UserOp.tuple := by
+                        simpa [appHead] using hHead
+                      exact False.elim (hOp hOpEq)
+                | _ =>
+                    -- The remaining right-head cases are malformed tuple
+                    -- applications; the SMT tuple typing should rule them out.
+                    sorry
+            | UOp op =>
+                by_cases hOp : op = UserOp.tuple
+                · subst op
+                  have hNone := smt_typeof_apply_tuple_partial_eq_none tail
+                  rw [hNone] at hTy
+                  cases hTy
+                · have hOpEq : op = UserOp.tuple := by
+                    simpa [appHead] using hHead
+                  exact False.elim (hOp hOpEq)
+            | _ =>
+                simp [appHead] at hHead
+          · exact False.elim
+              (hTi (hGuard.symm.trans
+                (tuple_select_guard_stuck_of_wrong_app_head_from_smt_tuple_type
+                  (Term.Numeral (Nat.succ j)) (Term.Apply f tail) d hHead
+                  hTy)))
       | _ =>
           exact False.elim (hTi (hGuard.symm.trans (by
             simp [mkDtCollapseSelectorGuard, __dt_arg_list,
