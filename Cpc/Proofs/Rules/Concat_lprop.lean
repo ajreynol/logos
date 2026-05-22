@@ -1,4 +1,4 @@
-import Cpc.Proofs.Rules.Concat_split
+import Cpc.Proofs.RuleSupport.ConcatLpropSupport
 
 open Eo
 open SmtEval
