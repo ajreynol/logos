@@ -112,6 +112,343 @@ private theorem smtValueSize_apply_right_lt (f x : SmtValue) :
   simp [smtValueSize]
   omega
 
+private theorem smtValueSize_apply_arg_nth_lt :
+    ∀ (v : SmtValue) (j : native_Nat),
+      j < vsm_num_apply_args v ->
+      smtValueSize (__vsm_apply_arg_nth v j (vsm_num_apply_args v)) <
+        smtValueSize v
+  | SmtValue.Apply f a, j, hj => by
+      by_cases hLast : j = vsm_num_apply_args f
+      · subst j
+        have hEq :
+            SmtEval.native_nateq (vsm_num_apply_args f) (vsm_num_apply_args f) =
+              true := by
+          simp [SmtEval.native_nateq]
+        simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hEq] using
+          smtValueSize_apply_right_lt f a
+      · have hj' : j < vsm_num_apply_args f := by
+          have hjSucc : j < Nat.succ (vsm_num_apply_args f) := by
+            simpa [vsm_num_apply_args] using hj
+          have hle : j ≤ vsm_num_apply_args f := Nat.lt_succ_iff.mp hjSucc
+          cases Nat.eq_or_lt_of_le hle with
+          | inl hEq =>
+              exact False.elim (hLast hEq)
+          | inr hLt =>
+              exact hLt
+        have hEq :
+            SmtEval.native_nateq j (vsm_num_apply_args f) = false := by
+          simp [SmtEval.native_nateq, hLast]
+        have hArgLt :
+            smtValueSize (__vsm_apply_arg_nth f j (vsm_num_apply_args f)) <
+              smtValueSize f :=
+          smtValueSize_apply_arg_nth_lt f j hj'
+        have hFLt : smtValueSize f < smtValueSize (SmtValue.Apply f a) :=
+          smtValueSize_apply_left_lt f a
+        simpa [__vsm_apply_arg_nth, vsm_num_apply_args, hEq] using
+          Nat.lt_trans hArgLt hFLt
+  | SmtValue.NotValue, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Boolean b, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Numeral n, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Rational q, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Binary w n, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Map m, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Fun s T U, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Set m, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Seq ss, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.Char c, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.UValue k e, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.RegLan r, j, hj => by
+      simp [vsm_num_apply_args] at hj
+  | SmtValue.DtCons s d i, j, hj => by
+      simp [vsm_num_apply_args] at hj
+
+private def smtValueApplyAllArgs : SmtValue -> SmtValue -> SmtValue
+  | SmtValue.Apply f a, acc => SmtValue.Apply (smtValueApplyAllArgs f acc) a
+  | _, acc => acc
+
+private theorem smtValueSize_applyAllArgs_eq_succ :
+    ∀ (v acc : SmtValue),
+      smtValueSize (smtValueApplyAllArgs v acc) + 1 =
+        smtValueSize acc + smtValueSize v
+  | SmtValue.Apply f a, acc => by
+      have ih := smtValueSize_applyAllArgs_eq_succ f acc
+      simp [smtValueApplyAllArgs, smtValueSize]
+      omega
+  | SmtValue.NotValue, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Boolean b, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Numeral n, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Rational q, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Binary w n, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Map m, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Fun s T U, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Set m, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Seq ss, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.Char c, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.UValue k e, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.RegLan r, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+  | SmtValue.DtCons s d i, acc => by
+      simp [smtValueApplyAllArgs, smtValueSize]
+
+private theorem smtValueSize_lt_applyAllArgs_of_seed_nontrivial
+    (v acc : SmtValue)
+    (hAcc : 1 < smtValueSize acc) :
+    smtValueSize v < smtValueSize (smtValueApplyAllArgs v acc) := by
+  have hEq := smtValueSize_applyAllArgs_eq_succ v acc
+  omega
+
+private theorem datatype_value_head_of_type
+    {v : SmtValue} {s : native_String} {d : SmtDatatype}
+    (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
+    ∃ i, __vsm_apply_head v = SmtValue.DtCons s d i := by
+  by_cases hHead : ∃ s0 d0 i0, __vsm_apply_head v = SmtValue.DtCons s0 d0 i0
+  · rcases hHead with ⟨s0, d0, i0, hHead⟩
+    have hChain :=
+      dt_cons_chain_type_of_non_none hHead (by rw [hTy]; simp)
+    have hEq :
+        dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i0
+            (vsm_num_apply_args v) =
+          SmtType.Datatype s d := by
+      exact hChain.symm.trans hTy
+    have hArgsZero :
+        __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 -
+            vsm_num_apply_args v =
+          0 := by
+      have hArgs := congrArg dt_cons_type_num_args hEq
+      rw [dt_cons_type_num_args_dt_cons_applied_type_rec] at hArgs
+      simpa [dt_cons_type_num_args] using hArgs
+    have hle :
+        vsm_num_apply_args v ≤
+          __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 :=
+      dt_cons_applied_type_rec_non_none_implies_le s0 d0
+        (__smtx_dt_substitute s0 d0 d0) i0
+        (vsm_num_apply_args v) (by rw [hEq]; simp)
+    have hCount :
+        vsm_num_apply_args v =
+          __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 := by
+      have hge :
+          __smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0 ≤
+            vsm_num_apply_args v :=
+        (Nat.sub_eq_zero_iff_le).1 hArgsZero
+      exact Nat.le_antisymm hle hge
+    have hFull :
+        dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i0
+            (__smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0) =
+          SmtType.Datatype s0 d0 :=
+      dt_cons_applied_type_rec_full_arity s0 d0
+        (__smtx_dt_substitute s0 d0 d0) i0
+        (by rw [← hCount, hEq]; simp)
+    have hBase : SmtType.Datatype s0 d0 = SmtType.Datatype s d := by
+      calc
+        SmtType.Datatype s0 d0 =
+            dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i0
+              (__smtx_dt_num_sels (__smtx_dt_substitute s0 d0 d0) i0) := by
+          exact hFull.symm
+        _ =
+            dt_cons_applied_type_rec s0 d0 (__smtx_dt_substitute s0 d0 d0) i0
+              (vsm_num_apply_args v) := by rw [hCount]
+        _ = SmtType.Datatype s d := hEq
+    injection hBase with hs hd
+    subst hs
+    subst hd
+    exact ⟨i0, hHead⟩
+  · cases v with
+    | NotValue => simp [__smtx_typeof_value] at hTy
+    | Boolean _ => simp [__smtx_typeof_value] at hTy
+    | Numeral _ => simp [__smtx_typeof_value] at hTy
+    | Rational _ => simp [__smtx_typeof_value] at hTy
+    | Binary w n =>
+        cases hWidth : native_zleq 0 w <;>
+          cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and,
+            hWidth, hMod] at hTy
+    | Map m =>
+        cases typeof_map_value_shape m with
+        | inl hMap =>
+            rcases hMap with ⟨A, B, hMap⟩
+            simp [__smtx_typeof_value, hMap] at hTy
+        | inr hNone =>
+            simp [__smtx_typeof_value, hNone] at hTy
+    | Fun _ _ _ => simp [__smtx_typeof_value] at hTy
+    | Set m =>
+        cases typeof_map_value_shape m with
+        | inl hMap =>
+            rcases hMap with ⟨A, B, hMap⟩
+            cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at hTy
+        | inr hNone =>
+            simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at hTy
+    | Seq ss =>
+        cases typeof_seq_value_shape ss with
+        | inl hSeq =>
+            rcases hSeq with ⟨A, hSeq⟩
+            simp [__smtx_typeof_value, hSeq] at hTy
+        | inr hNone =>
+            simp [__smtx_typeof_value, hNone] at hTy
+    | Char _ => simp [__smtx_typeof_value] at hTy
+    | UValue _ _ => simp [__smtx_typeof_value] at hTy
+    | RegLan _ => simp [__smtx_typeof_value] at hTy
+    | DtCons s0 d0 i0 =>
+        exact False.elim (hHead ⟨s0, d0, i0, by simp [__vsm_apply_head]⟩)
+    | Apply f a =>
+        have hNone :
+            __smtx_typeof_value (SmtValue.Apply f a) = SmtType.None :=
+          typeof_value_apply_of_head_ne_dt_cons f a
+            (by
+              intro s0 d0 i0 hf
+              exact hHead ⟨s0, d0, i0, by simpa [__vsm_apply_head] using hf⟩)
+        rw [hNone] at hTy
+        cases hTy
+
+private theorem dt_cons_applied_type_tuple_non_none_implies_index_zero
+    (c : SmtDatatypeCons) (i n : native_Nat)
+    (hNN :
+      dt_cons_applied_type_rec "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          (__smtx_dt_substitute "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            (SmtDatatype.sum c SmtDatatype.null)) i n ≠
+        SmtType.None) :
+    i = 0 := by
+  cases i with
+  | zero => rfl
+  | succ i =>
+      cases n <;>
+        simp [dt_cons_applied_type_rec, __smtx_typeof_dt_cons_value_rec,
+          __smtx_dt_substitute] at hNN
+
+private theorem tuple_value_head_zero_of_type
+    {v : SmtValue} {c : SmtDatatypeCons}
+    (hTy :
+      __smtx_typeof_value v =
+        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) :
+    __vsm_apply_head v =
+      SmtValue.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null) 0 := by
+  rcases datatype_value_head_of_type hTy with ⟨i, hHead⟩
+  have hChain :=
+    dt_cons_chain_type_of_non_none hHead (by rw [hTy]; simp)
+  have hNN :
+      dt_cons_applied_type_rec "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          (__smtx_dt_substitute "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+            (SmtDatatype.sum c SmtDatatype.null)) i (vsm_num_apply_args v) ≠
+        SmtType.None := by
+    rw [← hChain, hTy]
+    simp
+  have hi : i = 0 :=
+    dt_cons_applied_type_tuple_non_none_implies_index_zero c i
+      (vsm_num_apply_args v) hNN
+  subst hi
+  exact hHead
+
+private theorem smt_eval_tuple_selector_size_lt
+    (M : SmtModel) (hM : model_total_typed M)
+    (tail : SmtTerm) (c : SmtDatatypeCons) (j : native_Nat)
+    (hTailTy :
+      __smtx_typeof tail =
+        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null))
+    (hj : j < __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null) 0) :
+    smtValueSize
+        (__smtx_model_eval M
+          (SmtTerm.Apply
+            (SmtTerm.DtSel "@Tuple" (SmtDatatype.sum c SmtDatatype.null) 0 j)
+            tail)) <
+      smtValueSize (__smtx_model_eval M tail) := by
+  let tailD := SmtDatatype.sum c SmtDatatype.null
+  let v := __smtx_model_eval M tail
+  have hTailNN : term_has_non_none_type tail := by
+    unfold term_has_non_none_type
+    rw [hTailTy]
+    simp
+  have hvTy :
+      __smtx_typeof_value v = SmtType.Datatype "@Tuple" tailD := by
+    simpa [v, tailD, hTailTy] using
+      smt_model_eval_preserves_type_of_non_none M hM tail hTailNN
+  have hHead : __vsm_apply_head v = SmtValue.DtCons "@Tuple" tailD 0 :=
+    tuple_value_head_zero_of_type hvTy
+  have hCountSub :
+      vsm_num_apply_args v =
+        __smtx_dt_num_sels (__smtx_dt_substitute "@Tuple" tailD tailD) 0 :=
+    vsm_num_apply_args_eq_dt_num_sels_of_datatype hHead hvTy
+  have hCount :
+      vsm_num_apply_args v = __smtx_dt_num_sels tailD 0 := by
+    rw [dt_num_sels_substitute "@Tuple" tailD tailD 0] at hCountSub
+    exact hCountSub
+  have hjV : j < vsm_num_apply_args v := by
+    rw [hCount]
+    exact hj
+  have hVeq :
+      native_veq (__vsm_apply_head v) (SmtValue.DtCons "@Tuple" tailD 0) =
+        true := by
+    rw [hHead]
+    simp [native_veq]
+  simpa [tailD, v, __smtx_model_eval, __smtx_model_eval_dt_sel, hVeq, hCount] using
+    smtValueSize_apply_arg_nth_lt v j hjV
+
+private theorem eo_ite_true_true_cases
+    (c e : Term) :
+    __eo_ite c (Term.Boolean true) e = Term.Boolean true ->
+      c = Term.Boolean true ∨
+        (c = Term.Boolean false ∧ e = Term.Boolean true) := by
+  intro h
+  cases c <;> simp [__eo_ite, native_ite, native_teq] at h ⊢
+  case Boolean b =>
+    cases b <;> simp at h ⊢
+    exact h
+
+private theorem dt_find_cycle_self_false_ne_true
+    (t isC : Term) :
+    __dt_find_cycle t t isC (Term.Boolean false) ≠ Term.Boolean true := by
+  intro h
+  cases t <;> cases isC <;>
+    simp [__dt_find_cycle, __eo_eq, __eo_ite, native_ite, native_teq] at h
+
+private theorem smt_type_ne_none_of_apply_head
+    {F A B : SmtType}
+    (hHead :
+      F = SmtType.FunType A B ∨ F = SmtType.DtcAppType A B) :
+    F ≠ SmtType.None := by
+  rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+
+private theorem smt_apply_head_non_none_of_apply_non_none
+    {f x : SmtTerm}
+    (hAppNN :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠
+        SmtType.None) :
+    __smtx_typeof f ≠ SmtType.None := by
+  rcases typeof_apply_non_none_cases hAppNN with
+    ⟨A, B, hHead, _hX, _hA, _hB⟩
+  exact smt_type_ne_none_of_apply_head hHead
+
+private theorem smt_apply_arg_non_none_of_apply_non_none
+    {f x : SmtTerm}
+    (hAppNN :
+      __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠
+        SmtType.None) :
+    __smtx_typeof x ≠ SmtType.None := by
+  rcases typeof_apply_non_none_cases hAppNN with
+    ⟨A, _B, _hHead, hX, hA, _hB⟩
+  rw [hX]
+  exact hA
+
 private theorem model_eval_eq_false_of_ne_not_reglan_pair
     {v₁ v₂ : SmtValue}
     (hNe : v₁ ≠ v₂)
@@ -257,6 +594,83 @@ private theorem smt_eval_apply_dt_size_gt_arg
     cases hxv : __smtx_model_eval M x <;>
       simp [hxv, __smtx_model_eval_apply, smtValueSize] at hxNe ⊢ <;>
       omega
+
+private theorem smt_eval_apply_dt_size_gt_fun_of_term_type
+    (M : SmtModel) (hM : model_total_typed M)
+    {f x : SmtTerm} {A B : SmtType}
+    (hA : A ≠ SmtType.None)
+    (hf : __smtx_typeof f = SmtType.DtcAppType A B)
+    (hx : __smtx_typeof x = A) :
+    smtValueSize (__smtx_model_eval M f) <
+      smtValueSize (__smtx_model_eval M (SmtTerm.Apply f x)) := by
+  have hfNN : term_has_non_none_type f := by
+    unfold term_has_non_none_type
+    rw [hf]
+    simp
+  have hxNN : term_has_non_none_type x := by
+    unfold term_has_non_none_type
+    rw [hx]
+    exact hA
+  have hfVal :
+      __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
+    simpa [hf] using
+      smt_model_eval_preserves_type_of_non_none M hM f hfNN
+  have hxVal :
+      __smtx_typeof_value (__smtx_model_eval M x) = A := by
+    simpa [hx] using
+      smt_model_eval_preserves_type_of_non_none M hM x hxNN
+  exact smt_eval_apply_dt_size_gt_fun M hA hfVal hxVal
+
+private theorem smt_eval_apply_dt_size_gt_arg_of_term_type
+    (M : SmtModel) (hM : model_total_typed M)
+    {f x : SmtTerm} {A B : SmtType}
+    (hA : A ≠ SmtType.None)
+    (hf : __smtx_typeof f = SmtType.DtcAppType A B)
+    (hx : __smtx_typeof x = A) :
+    smtValueSize (__smtx_model_eval M x) <
+      smtValueSize (__smtx_model_eval M (SmtTerm.Apply f x)) := by
+  have hfNN : term_has_non_none_type f := by
+    unfold term_has_non_none_type
+    rw [hf]
+    simp
+  have hxNN : term_has_non_none_type x := by
+    unfold term_has_non_none_type
+    rw [hx]
+    exact hA
+  have hfVal :
+      __smtx_typeof_value (__smtx_model_eval M f) = SmtType.DtcAppType A B := by
+    simpa [hf] using
+      smt_model_eval_preserves_type_of_non_none M hM f hfNN
+  have hxVal :
+      __smtx_typeof_value (__smtx_model_eval M x) = A := by
+    simpa [hx] using
+      smt_model_eval_preserves_type_of_non_none M hM x hxNN
+  exact smt_eval_apply_dt_size_gt_arg M hA hfVal hxVal
+
+private theorem smt_eval_dt_cons_apply_seed_size_gt_one
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (d : SmtDatatype) (i : native_Nat)
+    (head : SmtTerm)
+    (hHeadNN : __smtx_typeof head ≠ SmtType.None) :
+    1 <
+      smtValueSize
+        (__smtx_model_eval M
+          (SmtTerm.Apply (SmtTerm.DtCons s d i) head)) := by
+  have hHeadTermNN : term_has_non_none_type head := by
+    unfold term_has_non_none_type
+    exact hHeadNN
+  have hHeadNotValue :
+      __smtx_model_eval M head ≠ SmtValue.NotValue := by
+    intro hEval
+    have hTy :=
+      smt_model_eval_preserves_type_of_non_none M hM head hHeadTermNN
+    rw [hEval] at hTy
+    simp [__smtx_typeof_value] at hTy
+    exact hHeadNN hTy.symm
+  cases hEval : __smtx_model_eval M head <;>
+    simp [__smtx_model_eval, hEval, __smtx_model_eval_apply, smtValueSize]
+      at hHeadNotValue ⊢ <;>
+    omega
 
 private theorem eo_interprets_eq_false_of_size_lt
     (M : SmtModel) (hM : model_total_typed M)
