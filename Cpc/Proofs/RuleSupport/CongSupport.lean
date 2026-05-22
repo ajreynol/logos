@@ -2915,14 +2915,14 @@ private theorem tuple_select_type_congr
   change
     __smtx_typeof
         (__eo_to_smt_tuple_select
-          (__eo_to_smt_type (__eo_typeof x)) (__eo_to_smt idx)
+          (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt idx)
           (__eo_to_smt x)) =
       __smtx_typeof
         (__eo_to_smt_tuple_select
-          (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt idx)
+          (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt idx)
           (__eo_to_smt y))
-  rw [hEo]
-  cases hTy : __eo_to_smt_type (__eo_typeof y) with
+  rw [hSmt]
+  cases hTy : __smtx_typeof (__eo_to_smt y) with
   | Datatype s d =>
       by_cases hs : s = "@Tuple"
       · subst s
@@ -2975,9 +2975,9 @@ private theorem tuple_select_arg_non_reg_of_non_none
   change
     __smtx_typeof
         (__eo_to_smt_tuple_select
-          (__eo_to_smt_type (__eo_typeof x)) (__eo_to_smt idx)
+          (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt idx)
           (__eo_to_smt x)) ≠ SmtType.None at hNN
-  cases hTy : __eo_to_smt_type (__eo_typeof x) with
+  cases hTy : __smtx_typeof (__eo_to_smt x) with
   | Datatype s d =>
       by_cases hs : s = "@Tuple"
       · subst s
@@ -2996,8 +2996,7 @@ private theorem tuple_select_arg_non_reg_of_non_none
                 unfold term_has_non_none_type
                 simpa [__eo_to_smt_tuple_select, hTy, hIdx, hNonneg,
                   native_ite] using hNN
-              exact ⟨SmtType.Datatype "@Tuple" d,
-                dt_sel_arg_datatype_of_non_none hTerm, by simp, by simp⟩
+              exact ⟨SmtType.Datatype "@Tuple" d, rfl, by simp, by simp⟩
         | _ =>
             exfalso
             apply hNN
@@ -3012,7 +3011,9 @@ private theorem tuple_select_arg_non_reg_of_non_none
 
 private theorem tuple_select_eval_congr
     (M : SmtModel) (idx x y : Term)
-    (hEo : __eo_typeof x = __eo_typeof y)
+    (hSmt :
+      __smtx_typeof (__eo_to_smt x) =
+        __smtx_typeof (__eo_to_smt y))
     (hEval :
       __smtx_model_eval M (__eo_to_smt x) =
         __smtx_model_eval M (__eo_to_smt y)) :
@@ -3025,14 +3026,14 @@ private theorem tuple_select_eval_congr
   change
     __smtx_model_eval M
         (__eo_to_smt_tuple_select
-          (__eo_to_smt_type (__eo_typeof x)) (__eo_to_smt idx)
+          (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt idx)
           (__eo_to_smt x)) =
       __smtx_model_eval M
         (__eo_to_smt_tuple_select
-          (__eo_to_smt_type (__eo_typeof y)) (__eo_to_smt idx)
+          (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt idx)
           (__eo_to_smt y))
-  rw [hEo]
-  cases hTy : __eo_to_smt_type (__eo_typeof y) with
+  rw [hSmt]
+  cases hTy : __smtx_typeof (__eo_to_smt y) with
   | Datatype s d =>
       by_cases hs : s = "@Tuple"
       · subst s
@@ -3093,7 +3094,7 @@ private theorem congTrueSpine_tuple_select_eq_true
       eo_model_eval_eq_of_eq_true_or_same_at_non_reglan_type M hM x y
         A hxA hyA hANN hAReg hArg
     have hEvalOp :=
-      tuple_select_eval_congr M idx x y hArgEoTy hEvalArg
+      tuple_select_eval_congr M idx x y hArgTy hEvalArg
     rw [hEvalOp]
     exact RuleProofs.smt_value_rel_refl _
 
@@ -7318,7 +7319,7 @@ private noncomputable abbrev smtEvalQdiv
       (native_model_lookup M native_qdiv_by_zero_id
         (SmtType.FunType SmtType.Real SmtType.Real))
       _v1r)
-    (__smtx_model_eval_qdiv_total _v1 _v0)
+    (__smtx_model_eval_qdiv_total _v1r _v0r)
 
 private theorem div_by_zero_arg_non_reg_of_non_none (a : SmtTerm) :
     __smtx_typeof (SmtTerm.div a (SmtTerm.Numeral 0)) ≠ SmtType.None ->
@@ -7704,18 +7705,18 @@ private theorem congTypeSpine_tuple_update_eq_has_bool_type
     change
       __smtx_typeof
           (__eo_to_smt_tuple_update
-            (__eo_to_smt_type (__eo_typeof x₁)) (__eo_to_smt idx)
+            (__smtx_typeof (__eo_to_smt x₁)) (__eo_to_smt idx)
             (__eo_to_smt x₁) (__eo_to_smt x₂)) =
         __smtx_typeof
           (__eo_to_smt_tuple_update
-            (__eo_to_smt_type (__eo_typeof y₁)) (__eo_to_smt idx)
+            (__smtx_typeof (__eo_to_smt y₁)) (__eo_to_smt idx)
             (__eo_to_smt y₁) (__eo_to_smt y₂))
     exact eo_to_smt_tuple_update_type_congr
-      (__eo_to_smt_type (__eo_typeof x₁))
-      (__eo_to_smt_type (__eo_typeof y₁))
+      (__smtx_typeof (__eo_to_smt x₁))
+      (__smtx_typeof (__eo_to_smt y₁))
       (__eo_to_smt idx) (__eo_to_smt x₁) (__eo_to_smt x₂)
       (__eo_to_smt y₁) (__eo_to_smt y₂)
-      (by rw [hArgEoTy₁]) hArgTy₁ hArgTy₂
+      hArgTy₁ hArgTy₁ hArgTy₂
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) x₁) x₂)
     (Term.Apply (Term.Apply (Term.UOp1 UserOp1.tuple_update idx) y₁) y₂)
@@ -8149,7 +8150,7 @@ private theorem congTrueSpine_tuple_update_eq_true
     have hxOpNN :
         __smtx_typeof
             (__eo_to_smt_tuple_update
-              (__eo_to_smt_type (__eo_typeof x₁)) (__eo_to_smt idx)
+              (__smtx_typeof (__eo_to_smt x₁)) (__eo_to_smt idx)
               (__eo_to_smt x₁) (__eo_to_smt x₂)) ≠
           SmtType.None := by
       change
@@ -8161,7 +8162,7 @@ private theorem congTrueSpine_tuple_update_eq_true
           SmtType.None
       exact hTypes.2
     rcases tuple_update_args_non_reg_of_non_none
-        (__eo_to_smt_type (__eo_typeof x₁)) (__eo_to_smt idx)
+        (__smtx_typeof (__eo_to_smt x₁)) (__eo_to_smt idx)
         (__eo_to_smt x₁) (__eo_to_smt x₂) hxOpNN with
       ⟨A, B, hx₁A, hx₂B, hANN, hBNN, hAReg, hBReg⟩
     have hy₁A : __smtx_typeof (__eo_to_smt y₁) = A := by
@@ -8187,19 +8188,19 @@ private theorem congTrueSpine_tuple_update_eq_true
       __smtx_model_eval_eq
         (__smtx_model_eval M
           (__eo_to_smt_tuple_update
-            (__eo_to_smt_type (__eo_typeof x₁)) (__eo_to_smt idx)
+            (__smtx_typeof (__eo_to_smt x₁)) (__eo_to_smt idx)
             (__eo_to_smt x₁) (__eo_to_smt x₂)))
         (__smtx_model_eval M
           (__eo_to_smt_tuple_update
-            (__eo_to_smt_type (__eo_typeof y₁)) (__eo_to_smt idx)
+            (__smtx_typeof (__eo_to_smt y₁)) (__eo_to_smt idx)
             (__eo_to_smt y₁) (__eo_to_smt y₂))) =
         SmtValue.Boolean true
     rw [eo_to_smt_tuple_update_eval_congr M
-      (__eo_to_smt_type (__eo_typeof x₁))
-      (__eo_to_smt_type (__eo_typeof y₁))
+      (__smtx_typeof (__eo_to_smt x₁))
+      (__smtx_typeof (__eo_to_smt y₁))
       (__eo_to_smt idx) (__eo_to_smt x₁) (__eo_to_smt x₂)
       (__eo_to_smt y₁) (__eo_to_smt y₂)
-      (by rw [hArgEoTy₁]) hEval₁ hEval₂]
+      (smt_type_eq_of_eq_true_or_same M x₁ y₁ hArg₁) hEval₁ hEval₂]
     exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
       (RuleProofs.smt_value_rel_refl _)
 
@@ -8367,18 +8368,18 @@ private theorem congTypeSpine_tuple_eq_has_bool_type
     change
       __smtx_typeof
           (__eo_to_smt_tuple_prepend
-            (__eo_to_smt x₁) (__eo_to_smt_type (__eo_typeof x₁))
+            (__eo_to_smt x₁) (__smtx_typeof (__eo_to_smt x₁))
             (__eo_to_smt x₂)) =
         __smtx_typeof
           (__eo_to_smt_tuple_prepend
-            (__eo_to_smt y₁) (__eo_to_smt_type (__eo_typeof y₁))
+            (__eo_to_smt y₁) (__smtx_typeof (__eo_to_smt y₁))
             (__eo_to_smt y₂))
     exact eo_to_smt_tuple_prepend_type_congr
       (__eo_to_smt x₁) (__eo_to_smt y₁)
       (__eo_to_smt x₂) (__eo_to_smt y₂)
-      (__eo_to_smt_type (__eo_typeof x₁))
-      (__eo_to_smt_type (__eo_typeof y₁))
-      hArgTy₁ (by rw [hArgEoTy₁]) hArgTy₂
+      (__smtx_typeof (__eo_to_smt x₁))
+      (__smtx_typeof (__eo_to_smt y₁))
+      hArgTy₁ hArgTy₁ hArgTy₂
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x₁) x₂)
     (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y₁) y₂)
@@ -8647,7 +8648,7 @@ private theorem congTrueSpine_tuple_eq_true
     have hxOpNN :
         __smtx_typeof
             (__eo_to_smt_tuple_prepend
-              (__eo_to_smt x₁) (__eo_to_smt_type (__eo_typeof x₁))
+              (__eo_to_smt x₁) (__smtx_typeof (__eo_to_smt x₁))
               (__eo_to_smt x₂)) ≠
           SmtType.None := by
       change
@@ -8657,11 +8658,11 @@ private theorem congTrueSpine_tuple_eq_true
           SmtType.None
       exact hTypes.2
     rcases tuple_prepend_tail_type_of_non_none
-        (__eo_to_smt x₁) (__eo_to_smt_type (__eo_typeof x₁))
+        (__eo_to_smt x₁) (__smtx_typeof (__eo_to_smt x₁))
         (__eo_to_smt x₂) hxOpNN with
       ⟨c, hx₂Tail⟩
     rcases tuple_prepend_head_non_reg_of_non_none
-        (__eo_to_smt x₁) (__eo_to_smt_type (__eo_typeof x₁))
+        (__eo_to_smt x₁) (__smtx_typeof (__eo_to_smt x₁))
         (__eo_to_smt x₂) c hx₂Tail hxOpNN with
       ⟨A, hx₁A, hANN, hAReg⟩
     let B := SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
@@ -8694,19 +8695,19 @@ private theorem congTrueSpine_tuple_eq_true
       __smtx_model_eval_eq
         (__smtx_model_eval M
           (__eo_to_smt_tuple_prepend
-            (__eo_to_smt x₁) (__eo_to_smt_type (__eo_typeof x₁))
+            (__eo_to_smt x₁) (__smtx_typeof (__eo_to_smt x₁))
             (__eo_to_smt x₂)))
         (__smtx_model_eval M
           (__eo_to_smt_tuple_prepend
-            (__eo_to_smt y₁) (__eo_to_smt_type (__eo_typeof y₁))
+            (__eo_to_smt y₁) (__smtx_typeof (__eo_to_smt y₁))
             (__eo_to_smt y₂))) =
         SmtValue.Boolean true
     rw [eo_to_smt_tuple_prepend_eval_congr M
       (__eo_to_smt x₁) (__eo_to_smt y₁)
       (__eo_to_smt x₂) (__eo_to_smt y₂)
-      (__eo_to_smt_type (__eo_typeof x₁))
-      (__eo_to_smt_type (__eo_typeof y₁))
-      (by rw [hArgEoTy₁])
+      (__smtx_typeof (__eo_to_smt x₁))
+      (__smtx_typeof (__eo_to_smt y₁))
+      (smt_type_eq_of_eq_true_or_same M x₁ y₁ hArg₁)
       (smt_type_eq_of_eq_true_or_same M x₂ y₂ hArg₂)
       hEval₁ hEval₂]
     exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
@@ -11930,8 +11931,7 @@ private theorem set_choose_arg_non_reg_of_non_none (x : Term) :
           A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
   intro hNN
   let T :=
-    __eo_to_smt_type
-      (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x))
+    __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt x))
   have hMapNN :
       term_has_non_none_type
         (SmtTerm.map_diff (__eo_to_smt x) (SmtTerm.set_empty T)) := by
@@ -11956,8 +11956,7 @@ private theorem set_is_singleton_arg_non_reg_of_non_none (x : Term) :
           A ≠ SmtType.None ∧ A ≠ SmtType.RegLan := by
   intro hNN
   let T :=
-    __eo_to_smt_type
-      (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) x))
+    __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt x))
   let diff := SmtTerm.map_diff (__eo_to_smt x) (SmtTerm.set_empty T)
   have hEqNN :
       __smtx_typeof_eq
@@ -12001,7 +12000,7 @@ private theorem congTrueSpine_set_choose_eq_true
     M hM UserOp.set_choose
     set_choose_arg_non_reg_of_non_none
     (by
-      intro a b _hSmt hEo hEval
+      intro a b hSmt hEo hEval
       have hChooseTy :
           __eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a) =
             __eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b) := by
@@ -12009,14 +12008,12 @@ private theorem congTrueSpine_set_choose_eq_true
           __eo_typeof_set_choose (__eo_typeof b)
         rw [hEo]
       let T₁ :=
-        __eo_to_smt_type
-          (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a))
+        __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt a))
       let T₂ :=
-        __eo_to_smt_type
-          (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b))
+        __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt b))
       have hT : T₁ = T₂ := by
         dsimp [T₁, T₂]
-        rw [hChooseTy]
+        rw [hSmt]
       change
         __smtx_model_eval M
             (SmtTerm.map_diff (__eo_to_smt a) (SmtTerm.set_empty T₁)) =
@@ -12037,7 +12034,7 @@ private theorem congTrueSpine_set_is_singleton_eq_true
     M hM UserOp.set_is_singleton
     set_is_singleton_arg_non_reg_of_non_none
     (by
-      intro a b _hSmt hEo hEval
+      intro a b hSmt hEo hEval
       have hChooseTy :
           __eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a) =
             __eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b) := by
@@ -12045,14 +12042,12 @@ private theorem congTrueSpine_set_is_singleton_eq_true
           __eo_typeof_set_choose (__eo_typeof b)
         rw [hEo]
       let T₁ :=
-        __eo_to_smt_type
-          (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a))
+        __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt a))
       let T₂ :=
-        __eo_to_smt_type
-          (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b))
+        __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt b))
       have hT : T₁ = T₂ := by
         dsimp [T₁, T₂]
-        rw [hChooseTy]
+        rw [hSmt]
       change
         __smtx_model_eval M
             (SmtTerm.eq (__eo_to_smt a)
@@ -13912,6 +13907,34 @@ private theorem typeof_apply_eo_to_smt_set_empty_eq_none
       simp [__smtx_typeof, __smtx_typeof_apply, __smtx_typeof_guard_wf,
         native_ite, hWf]
 
+private theorem eo_to_smt_array_deq_diff_ne_dt_sel_term
+    (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType) :
+    ∀ s d i j, __eo_to_smt_array_deq_diff a aT b bT ≠
+      SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  cases aT <;> cases bT <;> simp [__eo_to_smt_array_deq_diff] at h
+
+private theorem eo_to_smt_array_deq_diff_ne_dt_tester_term
+    (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType) :
+    ∀ s d i, __eo_to_smt_array_deq_diff a aT b bT ≠
+      SmtTerm.DtTester s d i := by
+  intro s d i h
+  cases aT <;> cases bT <;> simp [__eo_to_smt_array_deq_diff] at h
+
+private theorem eo_to_smt_sets_deq_diff_ne_dt_sel_term
+    (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType) :
+    ∀ s d i j, __eo_to_smt_sets_deq_diff a aT b bT ≠
+      SmtTerm.DtSel s d i j := by
+  intro s d i j h
+  cases aT <;> cases bT <;> simp [__eo_to_smt_sets_deq_diff] at h
+
+private theorem eo_to_smt_sets_deq_diff_ne_dt_tester_term
+    (a : SmtTerm) (aT : SmtType) (b : SmtTerm) (bT : SmtType) :
+    ∀ s d i, __eo_to_smt_sets_deq_diff a aT b bT ≠
+      SmtTerm.DtTester s d i := by
+  intro s d i h
+  cases aT <;> cases bT <;> simp [__eo_to_smt_sets_deq_diff] at h
+
 private theorem eo_to_smt_array_deq_diff_ne_dt_sel
     (a b : Term) :
     ∀ s d i j,
@@ -13919,20 +13942,13 @@ private theorem eo_to_smt_array_deq_diff_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    native_ite
-        (native_Teq
-          (__eo_to_smt_type
-            (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff a b)))
-          SmtType.None)
-        SmtTerm.None
-        (SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)) =
+    __eo_to_smt_array_deq_diff (__eo_to_smt a)
+        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+        (__smtx_typeof (__eo_to_smt b)) =
       SmtTerm.DtSel s d i j at h
-  cases hGuard :
-      native_Teq
-        (__eo_to_smt_type
-          (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff a b)))
-        SmtType.None <;>
-    simp [native_ite, hGuard] at h
+  exact eo_to_smt_array_deq_diff_ne_dt_sel_term
+    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+    (__smtx_typeof (__eo_to_smt b)) s d i j h
 
 private theorem eo_to_smt_array_deq_diff_ne_dt_tester
     (a b : Term) :
@@ -13941,20 +13957,13 @@ private theorem eo_to_smt_array_deq_diff_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    native_ite
-        (native_Teq
-          (__eo_to_smt_type
-            (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff a b)))
-          SmtType.None)
-        SmtTerm.None
-        (SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)) =
+    __eo_to_smt_array_deq_diff (__eo_to_smt a)
+        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+        (__smtx_typeof (__eo_to_smt b)) =
       SmtTerm.DtTester s d i at h
-  cases hGuard :
-      native_Teq
-        (__eo_to_smt_type
-          (__eo_typeof (Term.UOp2 UserOp2._at_array_deq_diff a b)))
-        SmtType.None <;>
-    simp [native_ite, hGuard] at h
+  exact eo_to_smt_array_deq_diff_ne_dt_tester_term
+    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+    (__smtx_typeof (__eo_to_smt b)) s d i h
 
 private theorem eo_to_smt_sets_deq_diff_ne_dt_sel
     (a b : Term) :
@@ -13963,18 +13972,13 @@ private theorem eo_to_smt_sets_deq_diff_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    native_ite
-        (native_Teq
-          (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b)))
-          SmtType.None)
-        SmtTerm.None
-        (SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)) =
+    __eo_to_smt_sets_deq_diff (__eo_to_smt a)
+        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+        (__smtx_typeof (__eo_to_smt b)) =
       SmtTerm.DtSel s d i j at h
-  cases hGuard :
-      native_Teq
-        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b)))
-        SmtType.None <;>
-    simp [native_ite, hGuard] at h
+  exact eo_to_smt_sets_deq_diff_ne_dt_sel_term
+    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+    (__smtx_typeof (__eo_to_smt b)) s d i j h
 
 private theorem eo_to_smt_sets_deq_diff_ne_dt_tester
     (a b : Term) :
@@ -13983,18 +13987,13 @@ private theorem eo_to_smt_sets_deq_diff_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    native_ite
-        (native_Teq
-          (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b)))
-          SmtType.None)
-        SmtTerm.None
-        (SmtTerm.map_diff (__eo_to_smt a) (__eo_to_smt b)) =
+    __eo_to_smt_sets_deq_diff (__eo_to_smt a)
+        (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+        (__smtx_typeof (__eo_to_smt b)) =
       SmtTerm.DtTester s d i at h
-  cases hGuard :
-      native_Teq
-        (__eo_to_smt_type (__eo_typeof (Term.UOp2 UserOp2._at_sets_deq_diff a b)))
-        SmtType.None <;>
-    simp [native_ite, hGuard] at h
+  exact eo_to_smt_sets_deq_diff_ne_dt_tester_term
+    (__eo_to_smt a) (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt b)
+    (__smtx_typeof (__eo_to_smt b)) s d i h
 
 private theorem eo_to_smt_at_bv_ne_dt_sel
     (a b : SmtTerm) :
@@ -14204,7 +14203,7 @@ private theorem eo_to_smt_witness_string_length_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    native_ite (native_teq (__eo_typeof id) (Term.UOp UserOp.Int))
+    native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
         (SmtTerm.choice_nth "@x" (__eo_to_smt_type T)
           (SmtTerm.eq
             (SmtTerm.str_len (SmtTerm.Var "@x" (__eo_to_smt_type T)))
@@ -14222,7 +14221,7 @@ private theorem eo_to_smt_witness_string_length_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    native_ite (native_teq (__eo_typeof id) (Term.UOp UserOp.Int))
+    native_ite (native_Teq (__smtx_typeof (__eo_to_smt id)) SmtType.Int)
         (SmtTerm.choice_nth "@x" (__eo_to_smt_type T)
           (SmtTerm.eq
             (SmtTerm.str_len (SmtTerm.Var "@x" (__eo_to_smt_type T)))
@@ -14286,6 +14285,10 @@ private theorem congTrueSpine_uop_apply_not_unary_eq_true
       (uop_apply_typeof_none_of_not_unary_smt_translation op x hUnary)
       hEqBool)
 
+private def __eo_to_smt_type_is_tlist : Term -> native_Bool
+  | Term.Apply (Term.UOp UserOp._at__at_TypedList) _ => true
+  | _ => false
+
 private theorem eo_to_smt_type_is_tlist_true_eq
     {T : Term} :
     __eo_to_smt_type_is_tlist T = true ->
@@ -14315,24 +14318,35 @@ private theorem no_bool_eq_arg_of_distinct_translation
     RuleProofs.eo_has_bool_type (mkEq x y) ->
     False := by
   intro hTrans hArg
-  by_cases hGuard : __eo_to_smt_type_is_tlist (__eo_typeof x) = true
-  · have hxNN :
-        __smtx_typeof (__eo_to_smt x) ≠ SmtType.None :=
-      (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type x y hArg).2
-    have hxMatch :=
-      TranslationProofs.eo_to_smt_typeof_matches_translation x hxNN
-    have hxTypeNone :
-        __eo_to_smt_type (__eo_typeof x) = SmtType.None :=
-      eo_to_smt_type_is_tlist_true_type_none hGuard
-    rw [hxMatch, hxTypeNone] at hxNN
-    exact hxNN rfl
+  by_cases hGuard :
+      native_Teq (__eo_to_smt_typed_list_elem_type x) SmtType.None = true
   · apply hTrans
     change
       __smtx_typeof
-          (native_ite (__eo_to_smt_type_is_tlist (__eo_typeof x))
-            (__eo_to_smt_distinct x) SmtTerm.None) = SmtType.None
-    cases h : __eo_to_smt_type_is_tlist (__eo_typeof x) <;>
-      simp [native_ite, h] at hGuard ⊢
+          (native_ite
+            (native_Teq (__eo_to_smt_typed_list_elem_type x) SmtType.None)
+            SmtTerm.None (__eo_to_smt_distinct x)) = SmtType.None
+    simp [native_ite, hGuard]
+  · have hxNN :
+        __smtx_typeof (__eo_to_smt x) ≠ SmtType.None :=
+      (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type x y hArg).2
+    have hElemNe : __eo_to_smt_typed_list_elem_type x ≠ SmtType.None := by
+      intro hElem
+      apply hGuard
+      simp [native_Teq, hElem]
+    rcases TranslationProofs.eo_to_smt_typed_list_elem_type_of_non_none
+        x hElemNe with
+      ⟨T, hXType, _hXSmt, _hTValid⟩
+    have hMatch :
+        __smtx_typeof (__eo_to_smt x) = __eo_to_smt_type (__eo_typeof x) :=
+      TranslationProofs.eo_to_smt_typeof_matches_translation x hxNN
+    have hTypeNone :
+        __eo_to_smt_type (Term.Apply (Term.UOp UserOp._at__at_TypedList) T) =
+          SmtType.None :=
+      eo_to_smt_type_is_tlist_true_type_none (T := Term.Apply (Term.UOp UserOp._at__at_TypedList) T)
+        (by rfl)
+    apply hxNN
+    rw [hMatch, hXType, hTypeNone]
 
 private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
   RuleProofs.eo_has_smt_translation t ->
@@ -14967,14 +14981,14 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
             __smtx_typeof
                 (SmtTerm.map_diff (__eo_to_smt a)
                   (SmtTerm.set_empty
-                    (__eo_to_smt_type
-                      (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a))))) =
+                    (__eo_to_smt_set_elem_type
+                      (__smtx_typeof (__eo_to_smt a))))) =
               __smtx_typeof
                 (SmtTerm.map_diff (__eo_to_smt b)
                   (SmtTerm.set_empty
-                    (__eo_to_smt_type
-                      (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b)))))
-          rw [typeof_map_diff_eq, typeof_map_diff_eq, hSmt, hChooseTy])
+                    (__eo_to_smt_set_elem_type
+                      (__smtx_typeof (__eo_to_smt b)))))
+          rw [typeof_map_diff_eq, typeof_map_diff_eq, hSmt])
         x rhs hTrans hSpine
   | Term.Apply (Term.UOp UserOp.set_is_singleton) x =>
       exact congTypeSpine_typecongr_eotype_unop_eq_has_bool_type
@@ -14988,14 +15002,12 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
               __eo_typeof_set_choose (__eo_typeof b)
             rw [hEo]
           let T₁ :=
-            __eo_to_smt_type
-              (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) a))
+            __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt a))
           let T₂ :=
-            __eo_to_smt_type
-              (__eo_typeof (Term.Apply (Term.UOp UserOp.set_choose) b))
+            __eo_to_smt_set_elem_type (__smtx_typeof (__eo_to_smt b))
           have hT : T₁ = T₂ := by
             dsimp [T₁, T₂]
-            rw [hChooseTy]
+            rw [hSmt]
           change
             __smtx_typeof
                 (SmtTerm.eq (__eo_to_smt a)
@@ -15601,21 +15613,15 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                 __smtx_typeof
                                     (SmtTerm.map_diff (__eo_to_smt a)
                                       (SmtTerm.set_empty
-                                        (__eo_to_smt_type
-                                          (__eo_typeof
-                                            (Term.Apply
-                                              (Term.UOp UserOp.set_choose)
-                                              a))))) =
+                                        (__eo_to_smt_set_elem_type
+                                          (__smtx_typeof (__eo_to_smt a))))) =
                                   __smtx_typeof
                                     (SmtTerm.map_diff (__eo_to_smt b)
                                       (SmtTerm.set_empty
-                                        (__eo_to_smt_type
-                                          (__eo_typeof
-                                            (Term.Apply
-                                              (Term.UOp UserOp.set_choose)
-                                              b)))))
+                                        (__eo_to_smt_set_elem_type
+                                          (__smtx_typeof (__eo_to_smt b)))))
                               rw [typeof_map_diff_eq, typeof_map_diff_eq,
-                                hSmt, hChooseTy])
+                                hSmt])
                             x (Term.Apply g y) hTrans hApp
                       case set_is_singleton =>
                         exact
@@ -15634,18 +15640,14 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                                   __eo_typeof_set_choose (__eo_typeof b)
                                 rw [hEo]
                               let T₁ :=
-                                __eo_to_smt_type
-                                  (__eo_typeof
-                                    (Term.Apply
-                                      (Term.UOp UserOp.set_choose) a))
+                                __eo_to_smt_set_elem_type
+                                  (__smtx_typeof (__eo_to_smt a))
                               let T₂ :=
-                                __eo_to_smt_type
-                                  (__eo_typeof
-                                    (Term.Apply
-                                      (Term.UOp UserOp.set_choose) b))
+                                __eo_to_smt_set_elem_type
+                                  (__smtx_typeof (__eo_to_smt b))
                               have hT : T₁ = T₂ := by
                                 dsimp [T₁, T₂]
-                                rw [hChooseTy]
+                                rw [hSmt]
                               change
                                 __smtx_typeof
                                     (SmtTerm.eq (__eo_to_smt a)
