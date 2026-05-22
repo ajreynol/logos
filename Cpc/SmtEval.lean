@@ -103,15 +103,13 @@ def native_to_real : native_Int -> native_Rat
   | x => (native_mk_rational x 1)
 
 -- Strings
-def native_nat_to_char : native_Nat -> native_Char
-  | x => x
 def native_str_to_code (s : native_String) : native_Int :=
   match s with
   | [c] => if native_char_valid c then Int.ofNat c else -1
   | _   => -1
 def native_str_from_code (i : native_Int) : native_String :=
   if (0 <= i && i < native_char_bound) then
-    [native_nat_to_char (Int.toNat i)]
+    [(Int.toNat i)]
   else
     native_string_lit ""
 def native_streq : native_String -> native_String -> native_Bool

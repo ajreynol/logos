@@ -242,17 +242,14 @@ def native_re_canonical : native_RegLan -> native_Bool
 
 -- Partial semantics
 
-def native_qdiv_by_zero_id : native_String := native_string_lit "@qdiv_by_zero"
-def native_div_by_zero_id : native_String := native_string_lit "@div_by_zero"
-def native_mod_by_zero_id : native_String := native_string_lit "@mod_by_zero"
+def native_qdiv_by_zero_id : native_String := (native_string_lit "@qdiv_by_zero")
+def native_div_by_zero_id : native_String := (native_string_lit "@div_by_zero")
+def native_mod_by_zero_id : native_String := (native_string_lit "@mod_by_zero")
 def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
-  native_string_lit "@wrong_apply_sel_" ++
-    native_string_lit (toString n) ++
-    native_string_lit "_" ++
-    native_string_lit (toString m)
-def native_oob_seq_nth_id : native_String := native_string_lit "@oob_seq_nth"
+  (native_string_lit "@wrong_apply_sel_") ++ (native_string_lit toString n) ++ (native_string_lit "_") ++ (native_string_lit toString m)
+def native_oob_seq_nth_id : native_String := (native_string_lit "@oob_seq_nth")
 def native_uconst_id : native_Nat -> native_String
-  | i => native_string_lit "@u." ++ native_string_lit (toString i)
+  | i => (native_string_lit "@u.") ++ (native_string_lit toString i)
 
 mutual
 
@@ -487,7 +484,7 @@ end
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
-def native_default_ifun_id : native_String := native_string_lit "@native_default_ifun"
+def native_default_ifun_id : native_String := (native_string_lit "@native_default_ifun")
 
 /- SMT-LIB model -/
 structure SmtModelKey where
@@ -1973,11 +1970,11 @@ def __smtx_seq_canonical : SmtSeq -> native_Bool
 
 def __smtx_value_canonical_bool : SmtValue -> native_Bool
   | (SmtValue.Binary w n) => (native_ite (native_zleq 0 w) (native_zeq n (native_mod_total n (native_int_pow2 w))) true)
-  | (SmtValue.Char c) => native_char_valid c
+  | (SmtValue.Char c) => (native_char_valid c)
   | (SmtValue.Map m) => (__smtx_map_canonical m)
   | (SmtValue.Set m) => (native_and (__smtx_map_canonical m) (native_veq (__smtx_msm_get_default m) (SmtValue.Boolean false)))
   | (SmtValue.Seq s) => (__smtx_seq_canonical s)
-  | (SmtValue.RegLan r) => native_re_canonical r
+  | (SmtValue.RegLan r) => (native_re_canonical r)
   | (SmtValue.Apply f v) => (native_and (__smtx_value_canonical_bool f) (__smtx_value_canonical_bool v))
   | v => true
 
@@ -2004,16 +2001,13 @@ def native_ssm_char_values_of_string (s : native_String) : List SmtValue :=
 
 def native_ssm_char_of_value : SmtValue -> native_Char
   | (SmtValue.Char c) => c
-  | _ => native_nat_to_char 0
-
-def native_ssm_string_of_char_values (xs : List SmtValue) : native_String :=
-  xs.map native_ssm_char_of_value
+  | _ => 0
 
 def native_unpack_string (x : SmtSeq) : native_String :=
-  (native_ssm_string_of_char_values (native_unpack_seq x))
+  (native_unpack_seq x).map native_ssm_char_of_value
 
 def native_pack_string (s : native_String) : SmtSeq :=
-  (native_pack_seq SmtType.Char (native_ssm_char_values_of_string s))
+  (native_ssm_char_values_of_string s).map SmtValue.Char
 
 def native_seq_prefix_eq : List SmtValue -> List SmtValue -> native_Bool
   | [], _ => true
