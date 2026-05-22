@@ -246,10 +246,10 @@ def native_qdiv_by_zero_id : native_String := (native_string_lit "@qdiv_by_zero"
 def native_div_by_zero_id : native_String := (native_string_lit "@div_by_zero")
 def native_mod_by_zero_id : native_String := (native_string_lit "@mod_by_zero")
 def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
-  (native_string_lit "@wrong_apply_sel_") ++ (native_string_lit toString n) ++ (native_string_lit "_") ++ (native_string_lit toString m)
+  (native_string_lit "@wrong_apply_sel_") ++ (native_string_lit (toString n)) ++ (native_string_lit "_") ++ (native_string_lit (toString m))
 def native_oob_seq_nth_id : native_String := (native_string_lit "@oob_seq_nth")
 def native_uconst_id : native_Nat -> native_String
-  | i => (native_string_lit "@u.") ++ (native_string_lit toString i)
+  | i => (native_string_lit "@u.") ++ (native_string_lit (toString i))
 
 mutual
 
@@ -845,7 +845,7 @@ def __smtx_type_default : SmtType -> SmtValue
   | SmtType.Real => (SmtValue.Rational (native_mk_rational 0 1))
   | SmtType.RegLan => (SmtValue.RegLan native_re_none)
   | (SmtType.BitVec w) => (SmtValue.Binary (native_nat_to_int w) 0)
-  | SmtType.Char => (SmtValue.Char (native_nat_to_char native_nat_zero))
+  | SmtType.Char => (SmtValue.Char native_nat_zero)
   | (SmtType.Datatype s d) => (__smtx_datatype_default s d d native_nat_zero)
   | (SmtType.Map T U) => (SmtValue.Map (SmtMap.default T (__smtx_type_default U)))
   | (SmtType.Set T) => (SmtValue.Set (SmtMap.default T (SmtValue.Boolean false)))
@@ -912,7 +912,7 @@ def native_unpack_string (x : SmtSeq) : native_String :=
   (native_unpack_seq x).map native_ssm_char_of_value
 
 def native_pack_string (s : native_String) : SmtSeq :=
-  (native_ssm_char_values_of_string s).map SmtValue.Char
+  native_pack_seq SmtType.Char (native_ssm_char_values_of_string s)
 
 def native_seq_prefix_eq : List SmtValue -> List SmtValue -> native_Bool
   | [], _ => true
