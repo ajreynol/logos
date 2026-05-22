@@ -106,7 +106,7 @@ def native_str_to_code (s : native_String) : native_Int :=
   | [c] => if native_char_valid c then Int.ofNat c else -1
   | _   => -1
 def native_str_from_code (i : native_Int) : native_String :=
-  if (0 <= i && native_char_valid (Int.toNat i)) then
+  if (0 <= i && (native_char_valid (Int.toNat i))) then
     [(Int.toNat i)]
   else
     native_string_lit ""
