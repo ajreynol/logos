@@ -76,6 +76,247 @@ private def appArgs : Term -> List Term
   | Term.Apply f x => appArgs f ++ [x]
   | _ => []
 
+private def dtAppSpineRev : Term -> Term × List Term
+  | Term.Apply f x =>
+      let spine := dtAppSpineRev f
+      (spine.1, x :: spine.2)
+  | t => (t, [])
+
+private def mkDtSmtAppSpineRev (head : SmtTerm) : List SmtTerm -> SmtTerm
+  | [] => head
+  | x :: xs => SmtTerm.Apply (mkDtSmtAppSpineRev head xs) x
+
+private def mkDtSmtValueSpineRev (head : SmtValue) : List SmtValue -> SmtValue
+  | [] => head
+  | x :: xs => SmtValue.Apply (mkDtSmtValueSpineRev head xs) x
+
+private def listGetOption : List Term -> Nat -> Option Term
+  | [], _ => none
+  | x :: _, 0 => some x
+  | _ :: xs, Nat.succ n => listGetOption xs n
+
+private theorem dtAppSpineRev_head_eq_appHead :
+    ∀ t : Term, (dtAppSpineRev t).1 = appHead t
+  | Term.Apply f x => by
+      simp [dtAppSpineRev, appHead, dtAppSpineRev_head_eq_appHead f]
+  | Term.UOp _ => rfl
+  | Term.UOp1 _ _ => rfl
+  | Term.UOp2 _ _ _ => rfl
+  | Term.UOp3 _ _ _ _ => rfl
+  | Term.__eo_List => rfl
+  | Term.__eo_List_nil => rfl
+  | Term.__eo_List_cons => rfl
+  | Term.Bool => rfl
+  | Term.Boolean _ => rfl
+  | Term.Numeral _ => rfl
+  | Term.Rational _ => rfl
+  | Term.String _ => rfl
+  | Term.Binary _ _ => rfl
+  | Term.Type => rfl
+  | Term.Stuck => rfl
+  | Term.FunType => rfl
+  | Term.Var _ _ => rfl
+  | Term.DatatypeType _ _ => rfl
+  | Term.DatatypeTypeRef _ => rfl
+  | Term.DtcAppType _ _ => rfl
+  | Term.DtCons _ _ _ => rfl
+  | Term.DtSel _ _ _ _ => rfl
+  | Term.USort _ => rfl
+  | Term.UConst _ _ => rfl
+
+private theorem dtAppSpineRev_args_eq_reverse_appArgs :
+    ∀ t : Term, (dtAppSpineRev t).2 = (appArgs t).reverse
+  | Term.Apply f x => by
+      simp [dtAppSpineRev, appArgs, dtAppSpineRev_args_eq_reverse_appArgs f]
+  | Term.UOp _ => rfl
+  | Term.UOp1 _ _ => rfl
+  | Term.UOp2 _ _ _ => rfl
+  | Term.UOp3 _ _ _ _ => rfl
+  | Term.__eo_List => rfl
+  | Term.__eo_List_nil => rfl
+  | Term.__eo_List_cons => rfl
+  | Term.Bool => rfl
+  | Term.Boolean _ => rfl
+  | Term.Numeral _ => rfl
+  | Term.Rational _ => rfl
+  | Term.String _ => rfl
+  | Term.Binary _ _ => rfl
+  | Term.Type => rfl
+  | Term.Stuck => rfl
+  | Term.FunType => rfl
+  | Term.Var _ _ => rfl
+  | Term.DatatypeType _ _ => rfl
+  | Term.DatatypeTypeRef _ => rfl
+  | Term.DtcAppType _ _ => rfl
+  | Term.DtCons _ _ _ => rfl
+  | Term.DtSel _ _ _ _ => rfl
+  | Term.USort _ => rfl
+  | Term.UConst _ _ => rfl
+
+private theorem eo_to_smt_apply_generic_of_dtAppSpineRev_dtcons
+    (s : native_String) (d : Datatype) (i : native_Nat) (t x : Term)
+    (hHead : (dtAppSpineRev t).1 = Term.DtCons s d i) :
+    __eo_to_smt (Term.Apply t x) =
+      SmtTerm.Apply (__eo_to_smt t) (__eo_to_smt x) := by
+  cases t with
+  | Apply f y =>
+      dsimp [dtAppSpineRev] at hHead
+      cases f with
+      | Apply f' y' =>
+          dsimp [dtAppSpineRev] at hHead
+          cases f' with
+          | Apply f'' y'' =>
+              rfl
+          | DtCons s' d' i' =>
+              simp [dtAppSpineRev] at hHead
+              rcases hHead with ⟨rfl, rfl, rfl⟩
+              rfl
+          | _ =>
+              simp [dtAppSpineRev] at hHead
+      | DtCons s' d' i' =>
+          simp [dtAppSpineRev] at hHead
+          rcases hHead with ⟨rfl, rfl, rfl⟩
+          rfl
+      | _ =>
+          simp [dtAppSpineRev] at hHead
+  | DtCons s' d' i' =>
+      simp [dtAppSpineRev] at hHead
+      rcases hHead with ⟨rfl, rfl, rfl⟩
+      rfl
+  | _ =>
+      simp [dtAppSpineRev] at hHead
+
+private theorem eo_to_smt_dtAppSpineRev_dtcons
+    (s : native_String) (d : Datatype) (i : native_Nat) (t : Term)
+    (hHead : (dtAppSpineRev t).1 = Term.DtCons s d i) :
+    __eo_to_smt t =
+      mkDtSmtAppSpineRev (__eo_to_smt (Term.DtCons s d i))
+        ((dtAppSpineRev t).2.map __eo_to_smt) := by
+  cases t with
+  | Apply f x =>
+      dsimp [dtAppSpineRev] at hHead ⊢
+      have hF :
+          (dtAppSpineRev f).1 = Term.DtCons s d i := hHead
+      rw [eo_to_smt_apply_generic_of_dtAppSpineRev_dtcons s d i f x hF]
+      have ihF := eo_to_smt_dtAppSpineRev_dtcons s d i f hF
+      rw [ihF]
+      rfl
+  | DtCons s' d' i' =>
+      simp [dtAppSpineRev] at hHead
+      rcases hHead with ⟨rfl, rfl, rfl⟩
+      rfl
+  | _ =>
+      simp [dtAppSpineRev] at hHead
+termination_by t
+
+private theorem vsm_apply_head_mkDtSmtValueSpineRev_dtcons
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    ∀ xs : List SmtValue,
+      __vsm_apply_head
+          (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) =
+        SmtValue.DtCons s d i
+  | [] => by
+      simp [mkDtSmtValueSpineRev, __vsm_apply_head]
+  | x :: xs => by
+      simp [mkDtSmtValueSpineRev, __vsm_apply_head,
+        vsm_apply_head_mkDtSmtValueSpineRev_dtcons s d i xs]
+
+private theorem vsm_num_apply_args_mkDtSmtValueSpineRev_dtcons
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    ∀ xs : List SmtValue,
+      vsm_num_apply_args
+          (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) =
+        xs.length
+  | [] => by
+      simp [mkDtSmtValueSpineRev, vsm_num_apply_args]
+  | x :: xs => by
+      simp [mkDtSmtValueSpineRev, vsm_num_apply_args,
+        vsm_num_apply_args_mkDtSmtValueSpineRev_dtcons s d i xs]
+
+private theorem mkDtSmtValueSpineRev_append_singleton
+    (head x : SmtValue) :
+    ∀ xs : List SmtValue,
+      mkDtSmtValueSpineRev head (xs ++ [x]) =
+        mkDtSmtValueSpineRev (SmtValue.Apply head x) xs
+  | [] => by
+      simp [mkDtSmtValueSpineRev]
+  | y :: ys => by
+      simp [mkDtSmtValueSpineRev,
+        mkDtSmtValueSpineRev_append_singleton head x ys]
+
+private theorem vsm_apply_arg_nth_mkDtSmtValueSpineRev_head_arg
+    (head a : SmtValue) :
+    ∀ ys : List SmtValue,
+      __vsm_apply_arg_nth
+          (mkDtSmtValueSpineRev (SmtValue.Apply head a) ys)
+          0 (ys.length + 1) = a
+  | [] => by
+      simp [mkDtSmtValueSpineRev, __vsm_apply_arg_nth, native_nateq,
+        native_ite]
+  | y :: ys => by
+      simp [mkDtSmtValueSpineRev, __vsm_apply_arg_nth, native_nateq,
+        native_ite,
+        vsm_apply_arg_nth_mkDtSmtValueSpineRev_head_arg head a ys]
+
+private theorem vsm_apply_arg_nth_mkDtSmtValueSpineRev_succ
+    (head a : SmtValue) :
+    ∀ (ys : List SmtValue) (j : Nat),
+      __vsm_apply_arg_nth
+          (mkDtSmtValueSpineRev (SmtValue.Apply head a) ys)
+          (Nat.succ j) (ys.length + 1) =
+        __vsm_apply_arg_nth
+          (mkDtSmtValueSpineRev head ys) j ys.length
+  | [], j => by
+      simp [mkDtSmtValueSpineRev, __vsm_apply_arg_nth, native_nateq,
+        native_ite]
+  | y :: ys, j => by
+      by_cases hj : j = ys.length
+      · subst j
+        simp [mkDtSmtValueSpineRev, __vsm_apply_arg_nth, native_nateq,
+          native_ite]
+      · simp [mkDtSmtValueSpineRev, __vsm_apply_arg_nth, native_nateq,
+          native_ite, hj,
+          vsm_apply_arg_nth_mkDtSmtValueSpineRev_succ head a ys j]
+
+private theorem vsm_apply_arg_nth_mkDtSmtValueSpineRev_reverse_map_get?
+    (M : SmtModel) (head : SmtValue) :
+    ∀ (xs : List Term) (j : Nat) (ti : Term),
+      listGetOption xs j = some ti ->
+      __vsm_apply_arg_nth
+          (mkDtSmtValueSpineRev head
+            (xs.reverse.map (fun x => __smtx_model_eval M (__eo_to_smt x))))
+          j xs.length =
+        __smtx_model_eval M (__eo_to_smt ti)
+  | [], j, ti, h => by
+      cases j <;> simp [listGetOption] at h
+  | x :: xs, Nat.zero, ti, h => by
+      simp [listGetOption] at h
+      subst ti
+      rw [List.reverse_cons, List.map_append]
+      simp only [List.map, List.length_cons]
+      rw [mkDtSmtValueSpineRev_append_singleton]
+      simpa [List.length_reverse] using
+        vsm_apply_arg_nth_mkDtSmtValueSpineRev_head_arg head
+          (__smtx_model_eval M (__eo_to_smt x))
+          ((List.map (fun x => __smtx_model_eval M (__eo_to_smt x)) xs).reverse)
+  | x :: xs, Nat.succ j, ti, h => by
+      have hRec :=
+        vsm_apply_arg_nth_mkDtSmtValueSpineRev_reverse_map_get? M head
+          xs j ti (by simpa [listGetOption] using h)
+      rw [List.map_reverse] at hRec
+      let ys :=
+        (List.map (fun x => __smtx_model_eval M (__eo_to_smt x)) xs).reverse
+      have hRecLen :
+          __vsm_apply_arg_nth (mkDtSmtValueSpineRev head ys) j ys.length =
+            __smtx_model_eval M (__eo_to_smt ti) := by
+        simpa [ys, List.length_reverse] using hRec
+      rw [List.reverse_cons, List.map_append]
+      simp only [List.map, List.length_cons]
+      rw [mkDtSmtValueSpineRev_append_singleton]
+      simpa [ys, List.length_reverse] using
+        (vsm_apply_arg_nth_mkDtSmtValueSpineRev_succ head
+          (__smtx_model_eval M (__eo_to_smt x)) ys j).trans hRecLen
+
 private theorem get_arg_list_rec_eoTermList_appArgs :
     ∀ (t : Term) (xs : List Term),
       appHead t ≠ Term.Stuck ->
@@ -155,11 +396,6 @@ private theorem assoc_nil_nth_eoTermList_zero_eq (x ti : Term) (xs : List Term) 
   intro h
   simp [eoTermList, __assoc_nil_nth, __eo_eq, native_ite, native_teq] at h
   exact h.symm
-
-private def listGetOption : List Term -> Nat -> Option Term
-  | [], _ => none
-  | x :: _, 0 => some x
-  | _ :: xs, Nat.succ n => listGetOption xs n
 
 private theorem eo_add_nat_succ_minus_one (n : Nat) :
     __eo_add (Term.Numeral (Nat.succ n))
@@ -1011,6 +1247,294 @@ private theorem model_eval_apply_smt_apply_of_arg_ne_notvalue
   intro ha
   cases a <;> simp [__smtx_model_eval_apply] at ha ⊢
 
+private theorem model_eval_apply_mkDtSmtValueSpineRev_dtcons_of_arg_ne_notvalue
+    (M : SmtModel) (s : native_String) (d : SmtDatatype) (i : native_Nat)
+    (xs : List SmtValue) (a : SmtValue) :
+    a ≠ SmtValue.NotValue ->
+    __smtx_model_eval_apply M
+        (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) a =
+      SmtValue.Apply (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) a := by
+  intro ha
+  cases xs with
+  | nil =>
+      simpa [mkDtSmtValueSpineRev] using
+        model_eval_apply_dtcons_of_arg_ne_notvalue M s d i a ha
+  | cons x xs =>
+      simpa [mkDtSmtValueSpineRev] using
+        model_eval_apply_smt_apply_of_arg_ne_notvalue M
+          (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) x a ha
+
+private theorem smtx_typeof_apply_mkDtSmtAppSpineRev_dtcons
+    (s : native_String) (d : SmtDatatype) (i : native_Nat)
+    (xs : List SmtTerm) (x : SmtTerm) :
+    __smtx_typeof
+        (SmtTerm.Apply (mkDtSmtAppSpineRev (SmtTerm.DtCons s d i) xs) x) =
+      __smtx_typeof_apply
+        (__smtx_typeof (mkDtSmtAppSpineRev (SmtTerm.DtCons s d i) xs))
+        (__smtx_typeof x) := by
+  cases xs with
+  | nil =>
+      simp [mkDtSmtAppSpineRev, __smtx_typeof]
+  | cons y ys =>
+      simp [mkDtSmtAppSpineRev, __smtx_typeof]
+
+private theorem mkDtSmtAppSpineRev_args_non_none_of_non_none_type
+    (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    ∀ xs : List SmtTerm,
+      __smtx_typeof (mkDtSmtAppSpineRev (SmtTerm.DtCons s d i) xs) ≠
+        SmtType.None ->
+      ∀ x ∈ xs, __smtx_typeof x ≠ SmtType.None
+  | [], _hNN, x, hx => by
+      simp at hx
+  | x :: xs, hNN, y, hy => by
+      have hApplyNN :
+          __smtx_typeof_apply
+              (__smtx_typeof
+                (mkDtSmtAppSpineRev (SmtTerm.DtCons s d i) xs))
+              (__smtx_typeof x) ≠ SmtType.None := by
+        rw [← smtx_typeof_apply_mkDtSmtAppSpineRev_dtcons s d i xs x]
+        simpa [mkDtSmtAppSpineRev] using hNN
+      rcases typeof_apply_non_none_cases hApplyNN with
+        ⟨A, B, hF, hX, hA, _hB⟩
+      have hxNN : __smtx_typeof x ≠ SmtType.None := by
+        rw [hX]
+        exact hA
+      have hHeadNN :
+          __smtx_typeof
+              (mkDtSmtAppSpineRev (SmtTerm.DtCons s d i) xs) ≠
+            SmtType.None := by
+        intro hNone
+        rcases hF with hF | hF <;> rw [hNone] at hF <;> cases hF
+      cases hy with
+      | head =>
+          exact hxNN
+      | tail _ hyTail =>
+          exact mkDtSmtAppSpineRev_args_non_none_of_non_none_type
+            s d i xs hHeadNN y hyTail
+
+private theorem smtx_model_eval_apply_mkDtSmtAppSpineRev_dtcons
+    (M : SmtModel) (s : native_String) (d : SmtDatatype) (i : native_Nat)
+    (xs : List SmtTerm) (x : SmtTerm) :
+    __smtx_model_eval M
+        (SmtTerm.Apply (mkDtSmtAppSpineRev (SmtTerm.DtCons s d i) xs) x) =
+      __smtx_model_eval_apply M
+        (__smtx_model_eval M
+          (mkDtSmtAppSpineRev (SmtTerm.DtCons s d i) xs))
+        (__smtx_model_eval M x) := by
+  cases xs with
+  | nil =>
+      simp [mkDtSmtAppSpineRev, __smtx_model_eval]
+  | cons y ys =>
+      simp [mkDtSmtAppSpineRev, __smtx_model_eval]
+
+private theorem smtx_model_eval_mkDtSmtAppSpineRev_dtcons
+    (M : SmtModel) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
+    ∀ xs : List SmtTerm,
+      (∀ x ∈ xs, __smtx_model_eval M x ≠ SmtValue.NotValue) ->
+      __smtx_model_eval M
+          (mkDtSmtAppSpineRev (SmtTerm.DtCons s d i) xs) =
+        mkDtSmtValueSpineRev (SmtValue.DtCons s d i)
+          (xs.map (__smtx_model_eval M))
+  | [], _hArgs => by
+      simp [mkDtSmtAppSpineRev, mkDtSmtValueSpineRev, __smtx_model_eval]
+  | x :: xs, hArgs => by
+      have hx : __smtx_model_eval M x ≠ SmtValue.NotValue :=
+        hArgs x (by simp)
+      have hxs :
+          ∀ y ∈ xs, __smtx_model_eval M y ≠ SmtValue.NotValue := by
+        intro y hy
+        exact hArgs y (List.mem_cons_of_mem x hy)
+      have hRec :=
+        smtx_model_eval_mkDtSmtAppSpineRev_dtcons M s d i xs hxs
+      simp only [mkDtSmtAppSpineRev, mkDtSmtValueSpineRev, List.map]
+      rw [smtx_model_eval_apply_mkDtSmtAppSpineRev_dtcons M s d i xs x]
+      rw [hRec]
+      exact model_eval_apply_mkDtSmtValueSpineRev_dtcons_of_arg_ne_notvalue
+        M s d i (xs.map (__smtx_model_eval M)) (__smtx_model_eval M x) hx
+
+private theorem smt_model_eval_ne_notvalue_of_non_none
+    (M : SmtModel) (hM : model_total_typed M) (x : SmtTerm) :
+    __smtx_typeof x ≠ SmtType.None ->
+    __smtx_model_eval M x ≠ SmtValue.NotValue := by
+  intro hNN hEval
+  have hPres := smt_model_eval_preserves_type_of_non_none M hM x hNN
+  have hNone : __smtx_typeof_value (__smtx_model_eval M x) = SmtType.None := by
+    simp [hEval, __smtx_typeof_value]
+  rw [hPres] at hNone
+  exact hNN hNone
+
+private theorem dt_num_sels_eq_length_of_mkDtSmtValueSpineRev_datatype
+    {s : native_String} {d : SmtDatatype} {i : native_Nat}
+    {xs : List SmtValue}
+    (hTy :
+      __smtx_typeof_value
+          (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) =
+        SmtType.Datatype s d) :
+    __smtx_dt_num_sels d i = xs.length := by
+  have hCountSub :
+      vsm_num_apply_args
+          (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) =
+        __smtx_dt_num_sels (__smtx_dt_substitute s d d) i := by
+    exact vsm_num_apply_args_eq_dt_num_sels_of_datatype
+      (v := mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs)
+      (vsm_apply_head_mkDtSmtValueSpineRev_dtcons s d i xs) hTy
+  have hCount :
+      vsm_num_apply_args
+          (mkDtSmtValueSpineRev (SmtValue.DtCons s d i) xs) =
+        __smtx_dt_num_sels d i := by
+    rw [dt_num_sels_substitute s d d i] at hCountSub
+    exact hCountSub
+  rw [vsm_num_apply_args_mkDtSmtValueSpineRev_dtcons s d i xs] at hCount
+  exact hCount.symm
+
+private theorem dt_sel_appHead_dtcons_eval_rel
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (d : Datatype) (i j : native_Nat)
+    (t ti : Term) :
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.DtSel s d i j) t)) ti) ->
+    appHead t = Term.DtCons s d i ->
+    mkDtCollapseSelectorGuard (Term.DtSel s d i j) t = ti ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval M (__eo_to_smt
+        (Term.Apply (Term.DtSel s d i j) t)))
+      (__smtx_model_eval M (__eo_to_smt ti)) := by
+  intro hBool hHead hGuard
+  let D := __eo_to_smt_datatype d
+  let X := __eo_to_smt t
+  let xs := (dtAppSpineRev t).2.map __eo_to_smt
+  let vals := xs.map (__smtx_model_eval M)
+  have hTypes := RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+    (Term.Apply (Term.DtSel s d i j) t) ti hBool
+  have hLeftNN :
+      __smtx_typeof (__eo_to_smt (Term.Apply (Term.DtSel s d i j) t)) ≠
+        SmtType.None := hTypes.2
+  have hTiTrans : RuleProofs.eo_has_smt_translation ti := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [← hTypes.1]
+    exact hTypes.2
+  have hTiNe : ti ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation ti hTiTrans
+  have hGet :
+      listGetOption (appArgs t) j = some ti :=
+    dt_collapse_selector_guard_get_arg_of_appHead_dtcons
+      s d i j t ti hHead hGuard hTiNe
+  cases hReserved : TranslationProofs.__eo_reserved_datatype_name s
+  · have hLeftTranslate :
+        __eo_to_smt (Term.Apply (Term.DtSel s d i j) t) =
+          SmtTerm.Apply (SmtTerm.DtSel s D i j) X := by
+      simp [eo_to_smt_apply_dt_sel,
+        TranslationProofs.eo_to_smt_term_dt_sel, D, X, native_ite,
+        hReserved]
+    have hApplyNN :
+        term_has_non_none_type (SmtTerm.Apply (SmtTerm.DtSel s D i j) X) := by
+      unfold term_has_non_none_type
+      rw [← hLeftTranslate]
+      exact hLeftNN
+    have hArgTy : __smtx_typeof X = SmtType.Datatype s D :=
+      dt_sel_arg_datatype_of_non_none hApplyNN
+    have hHeadSpine :
+        (dtAppSpineRev t).1 = Term.DtCons s d i := by
+      rw [dtAppSpineRev_head_eq_appHead, hHead]
+    have hTTranslate :
+        X = mkDtSmtAppSpineRev (SmtTerm.DtCons s D i) xs := by
+      have h := eo_to_smt_dtAppSpineRev_dtcons s d i t hHeadSpine
+      simpa [X, xs, D, TranslationProofs.eo_to_smt_term_dt_cons,
+        native_ite, hReserved] using h
+    have hTNN : __smtx_typeof X ≠ SmtType.None := by
+      rw [hArgTy]
+      simp
+    have hSpineNN :
+        __smtx_typeof
+            (mkDtSmtAppSpineRev (SmtTerm.DtCons s D i) xs) ≠
+          SmtType.None := by
+      rw [← hTTranslate]
+      exact hTNN
+    have hArgsNN :
+        ∀ x ∈ xs, __smtx_model_eval M x ≠ SmtValue.NotValue := by
+      intro x hx
+      exact smt_model_eval_ne_notvalue_of_non_none M hM x
+        (mkDtSmtAppSpineRev_args_non_none_of_non_none_type
+          s D i xs hSpineNN x hx)
+    have hEvalT :
+        __smtx_model_eval M X =
+          mkDtSmtValueSpineRev (SmtValue.DtCons s D i) vals := by
+      rw [hTTranslate]
+      exact smtx_model_eval_mkDtSmtAppSpineRev_dtcons M s D i xs hArgsNN
+    have hConsValTy :
+        __smtx_typeof_value
+            (mkDtSmtValueSpineRev (SmtValue.DtCons s D i) vals) =
+          SmtType.Datatype s D := by
+      rw [← hEvalT]
+      have hPres := smt_model_eval_preserves_type_of_non_none M hM X hTNN
+      rw [hPres, hArgTy]
+    have hNumVals :
+        __smtx_dt_num_sels D i = vals.length :=
+      dt_num_sels_eq_length_of_mkDtSmtValueSpineRev_datatype hConsValTy
+    have hValsLen : vals.length = (appArgs t).length := by
+      simp [vals, xs, dtAppSpineRev_args_eq_reverse_appArgs t]
+    have hNumArgs :
+        __smtx_dt_num_sels D i = (appArgs t).length :=
+      hNumVals.trans hValsLen
+    have hValsEq :
+        vals =
+          (appArgs t).reverse.map
+            (fun x => __smtx_model_eval M (__eo_to_smt x)) := by
+      simp [vals, xs, dtAppSpineRev_args_eq_reverse_appArgs t,
+        List.map_map]
+    have hArgNth :
+        __vsm_apply_arg_nth
+            (mkDtSmtValueSpineRev (SmtValue.DtCons s D i) vals)
+            j (__smtx_dt_num_sels D i) =
+          __smtx_model_eval M (__eo_to_smt ti) := by
+      rw [hNumArgs, hValsEq]
+      exact vsm_apply_arg_nth_mkDtSmtValueSpineRev_reverse_map_get? M
+        (SmtValue.DtCons s D i) (appArgs t) j ti hGet
+    rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+    rw [hLeftTranslate]
+    simp [__smtx_model_eval]
+    unfold __smtx_model_eval_dt_sel
+    rw [hEvalT]
+    have hHeadTrue :
+        native_veq
+            (__vsm_apply_head
+              (mkDtSmtValueSpineRev (SmtValue.DtCons s D i) vals))
+            (SmtValue.DtCons s D i) = true := by
+      simp [vsm_apply_head_mkDtSmtValueSpineRev_dtcons, native_veq]
+    simp [native_ite, hHeadTrue]
+    rw [hArgNth]
+    exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
+      (RuleProofs.smt_value_rel_refl (__smtx_model_eval M (__eo_to_smt ti)))
+  · exfalso
+    apply hLeftNN
+    have hTranslateNone :
+        __eo_to_smt (Term.Apply (Term.DtSel s d i j) t) =
+          SmtTerm.Apply SmtTerm.None X := by
+      simp [eo_to_smt_apply_dt_sel,
+        TranslationProofs.eo_to_smt_term_dt_sel, X, native_ite,
+        hReserved]
+    rw [hTranslateNone]
+    exact TranslationProofs.typeof_apply_none_eq X
+
+private theorem dt_collapse_selector_dt_sel_appHead_dtcons_sound
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : native_String) (d : Datatype) (i j : native_Nat)
+    (t ti : Term) :
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.DtSel s d i j) t)) ti) ->
+    appHead t = Term.DtCons s d i ->
+    mkDtCollapseSelectorGuard (Term.DtSel s d i j) t = ti ->
+    eo_interprets M
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.DtSel s d i j) t)) ti) true := by
+  intro hBool hHead hGuard
+  apply RuleProofs.eo_interprets_eq_of_rel M
+  · exact hBool
+  · exact dt_sel_appHead_dtcons_eval_rel M hM s d i j t ti
+      hBool hHead hGuard
+
 private theorem one_arg_count_of_apply_dtcons_datatype
     {v : SmtValue} {s : native_String} {d : SmtDatatype} {i : native_Nat}
     (hTy : __smtx_typeof_value (SmtValue.Apply (SmtValue.DtCons s d i) v) =
@@ -1686,71 +2210,21 @@ private theorem facts___eo_prog_dt_collapse_selector_impl
   rw [hA1Eq]
   cases sel with
   | DtSel ss dd ii jj =>
-      cases jj with
-      | zero =>
-          cases t with
-          | Apply f x =>
-              cases f with
-              | Apply g y =>
-                  cases g with
-                  | DtCons ss' dd' ii' =>
-                      by_cases hss : ss = ss'
-                      · by_cases hdd : dd = dd'
-                        · by_cases hii : ii = ii'
-                          · subst ss'
-                            subst dd'
-                            subst ii'
-                            exact dt_collapse_selector_direct_two_zero_sound
-                              M hM ss dd ii y x ti hBool hGuard
-                          · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                        · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                      · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                  | _ =>
-                      exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-              | DtCons ss' dd' ii' =>
-                  by_cases hss : ss = ss'
-                  · by_cases hdd : dd = dd'
-                    · by_cases hii : ii = ii'
-                      · subst ss'
-                        subst dd'
-                        subst ii'
-                        exact dt_collapse_selector_direct_one_sound M hM
-                          ss dd ii x ti hBool hGuard
-                      · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                    · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                  · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-              | _ =>
-                  exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-          | _ =>
-              exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-      | succ jj' =>
-          cases jj' with
-          | zero =>
-              cases t with
-              | Apply f x =>
-                  cases f with
-                  | Apply g y =>
-                      cases g with
-                      | DtCons ss' dd' ii' =>
-                          by_cases hss : ss = ss'
-                          · by_cases hdd : dd = dd'
-                            · by_cases hii : ii = ii'
-                              · subst ss'
-                                subst dd'
-                                subst ii'
-                                exact dt_collapse_selector_direct_two_one_sound
-                                  M hM ss dd ii y x ti hBool hGuard
-                              · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                            · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                          · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                      | _ =>
-                          exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-                  | _ =>
-                      exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-              | _ =>
-                  exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
-          | succ _ =>
-              exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+      cases hHead : appHead t with
+      | DtCons ss' dd' ii' =>
+          by_cases hss : ss = ss'
+          · by_cases hdd : dd = dd'
+            · by_cases hii : ii = ii'
+              · subst ss'
+                subst dd'
+                subst ii'
+                exact dt_collapse_selector_dt_sel_appHead_dtcons_sound
+                  M hM ss dd ii jj t ti hBool hHead hGuard
+              · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+            · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+          · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+      | _ =>
+          exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
   | _ =>
       exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
 
