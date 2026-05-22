@@ -160,7 +160,7 @@ def __eo_to_smt_tuple_prepend_rec (d : SmtDatatype) (tail : SmtTerm) : native_Na
 
 
 def __eo_to_smt_tuple_prepend_of_type : SmtType -> SmtTerm -> SmtType -> SmtTerm -> SmtTerm
-  | (SmtType.Datatype s (SmtDatatype.sum c SmtDatatype.null)), h, hT, tail =>
+  | (SmtType.Datatype s (SmtDatatype.sum c SmtDatatype.null)), h, hT, tail => 
     let _v1 := (SmtDatatype.sum (SmtDatatypeCons.cons hT c) SmtDatatype.null)
     let _v3 := (SmtDatatype.sum c SmtDatatype.null)
     (native_ite (native_and (native_streq s (native_string_lit "@Tuple")) (__smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") _v1))) (__eo_to_smt_tuple_prepend_rec _v3 tail (__smtx_dt_num_sels _v3 native_nat_zero) (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") _v1 native_nat_zero) h)) SmtTerm.None)

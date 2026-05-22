@@ -901,9 +901,6 @@ def native_pack_seq (T : SmtType) : List SmtValue -> SmtSeq
   | [] => (SmtSeq.empty T)
   | v :: vs => (SmtSeq.cons v (native_pack_seq T vs))
 
-def native_ssm_char_values_of_string (s : native_String) : List SmtValue :=
-  s.map SmtValue.Char
-
 def native_ssm_char_of_value : SmtValue -> native_Char
   | (SmtValue.Char c) => c
   | _ => 0
@@ -912,7 +909,7 @@ def native_unpack_string (x : SmtSeq) : native_String :=
   (native_unpack_seq x).map native_ssm_char_of_value
 
 def native_pack_string (s : native_String) : SmtSeq :=
-  native_pack_seq SmtType.Char (native_ssm_char_values_of_string s)
+  native_pack_seq SmtType.Char (s.map SmtValue.Char)
 
 def native_seq_prefix_eq : List SmtValue -> List SmtValue -> native_Bool
   | [], _ => true
