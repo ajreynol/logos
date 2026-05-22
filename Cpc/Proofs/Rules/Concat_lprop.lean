@@ -1,4 +1,4 @@
-import Cpc.Proofs.RuleSupport.Support
+import Cpc.Proofs.Rules.Concat_split
 
 open Eo
 open SmtEval
@@ -16,4 +16,4 @@ theorem cmd_step_concat_lprop_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.concat_lprop args premises) :=
 by
-  sorry
+  exact cmd_step_concat_lprop_properties_aux M hM s args premises
