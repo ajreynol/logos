@@ -5,6 +5,7 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem smt_eval_to_real_idem (v : SmtValue) :
@@ -367,6 +368,393 @@ private theorem native_floor_remainder_lt_one (q : Rat) :
   rw [← Rat.sub_eq_add_neg]
   exact rat_floor_remainder_lt_one q
 
+private theorem native_int_pow2_log2_le
+    (n : native_Int) (hPos : 0 < n) :
+    native_zleq (native_int_pow2 (native_int_log2 n)) n = true := by
+  unfold native_zleq
+  rw [decide_eq_true_eq]
+  unfold native_int_pow2 native_int_log2 native_zexp_total
+  simp
+  have hnNatNe : n.toNat ≠ 0 := by
+    intro h0
+    have hle : n ≤ 0 := Int.toNat_eq_zero.mp h0
+    exact (Int.not_le.mpr hPos) hle
+  have hNat := Nat.log2_self_le hnNatNe
+  have hCast : ((2 ^ Nat.log2 n.toNat : Nat) : Int) ≤ (n.toNat : Int) := by
+    exact_mod_cast hNat
+  simpa [Int.toNat_of_nonneg (Int.le_of_lt hPos)] using hCast
+
+private theorem native_int_lt_next_pow2_log2
+    (n : native_Int) (hPos : 0 < n) :
+    native_zlt n
+      (native_int_pow2
+        (native_zplus (native_int_log2 n) (native_zplus 1 0))) =
+      true := by
+  unfold native_zlt
+  rw [decide_eq_true_eq]
+  unfold native_int_pow2 native_int_log2 native_zplus native_zexp_total
+  simp
+  have hNat := (Nat.lt_log2_self (n := n.toNat))
+  have hCast :
+      ((n.toNat : Nat) : Int) <
+        ((2 ^ (Nat.log2 n.toNat + 1) : Nat) : Int) := by
+    exact_mod_cast hNat
+  simpa [Int.toNat_of_nonneg (Int.le_of_lt hPos), Nat.add_comm,
+    Nat.add_left_comm, Nat.add_assoc] using hCast
+
+private theorem native_int_log2_of_not_pos
+    (n : native_Int) (hNotPos : ¬ 0 < n) :
+    native_int_log2 n = 0 := by
+  unfold native_int_log2
+  have hle : n ≤ 0 := Int.le_of_not_gt hNotPos
+  have hToNat : n.toNat = 0 := Int.toNat_eq_zero.mpr hle
+  simp [hToNat, Nat.log2_zero]
+
+private theorem native_div_total_lower_bound
+    (a b : native_Int) (hNZ : b ≠ 0) :
+    native_zleq
+      (native_zmult b (native_zmult (native_div_total a b) 1)) a =
+      true := by
+  have hArith : b * (a / b) ≤ a := by
+    let p := b * (a / b)
+    let r := a % b
+    have hModNonneg : 0 ≤ r := by
+      simpa [r] using Int.emod_nonneg a (b := b) hNZ
+    have hDecomp : p + r = a := by
+      simpa [p, r] using Int.mul_ediv_add_emod a b
+    unfold native_Int at *
+    have hGoal : p ≤ a := by omega
+    simpa [p] using hGoal
+  unfold native_zleq
+  rw [decide_eq_true_eq]
+  simpa [native_zmult, native_div_total] using hArith
+
+private theorem native_div_total_upper_bound_pos
+    (a b : native_Int) (hPos : 0 < b) :
+    native_zlt a
+      (native_zmult b
+        (native_zmult
+          (native_zplus (native_div_total a b) (native_zplus 1 0)) 1)) =
+      true := by
+  have hArith : a < b * (a / b + 1) := by
+    let p := b * (a / b)
+    let r := a % b
+    have hModLt : r < b := by
+      simpa [r] using Int.emod_lt_of_pos a hPos
+    have hDecomp : p + r = a := by
+      simpa [p, r] using Int.mul_ediv_add_emod a b
+    have hUpper : b * (a / b + 1) = p + b := by
+      simp [p, Int.mul_add]
+    unfold native_Int at *
+    rw [hUpper]
+    omega
+  unfold native_zlt
+  rw [decide_eq_true_eq]
+  simpa [native_zmult, native_zplus, native_div_total] using hArith
+
+private theorem native_div_total_upper_bound_neg
+    (a b : native_Int) (hNeg : b < 0) :
+    native_zlt a
+      (native_zmult b
+        (native_zmult
+          (native_zplus (native_div_total a b) (native_zplus (-1) 0)) 1)) =
+      true := by
+  have hArith : a < b * (a / b + -1) := by
+    let p := b * (a / b)
+    let r := a % b
+    have hModLt : r < -b := by
+      simpa [r] using Int.emod_lt_of_neg a hNeg
+    have hDecomp : p + r = a := by
+      simpa [p, r] using Int.mul_ediv_add_emod a b
+    have hUpper : b * (a / b + -1) = p + -b := by
+      simp [p, Int.mul_add]
+    unfold native_Int at *
+    rw [hUpper]
+    omega
+  unfold native_zlt
+  rw [decide_eq_true_eq]
+  simpa [native_zmult, native_zplus, native_div_total] using hArith
+
+private theorem native_mod_total_as_div_remainder
+    (a b : native_Int) :
+    native_mod_total a b =
+      native_zplus a
+        (native_zneg
+          (native_zmult b (native_zmult (native_div_total a b) 1))) := by
+  let p := b * (a / b)
+  let r := a % b
+  have hDecomp : p + r = a := by
+    simpa [p, r] using Int.mul_ediv_add_emod a b
+  have hArith : r = a + -p := by
+    unfold native_Int at *
+    omega
+  unfold native_mod_total native_zplus native_zneg
+  simpa [native_zmult, native_div_total, p, r] using hArith
+
+private theorem eo_is_z_true_iff_numeral (t : Term) :
+    __eo_is_z t = Term.Boolean true ↔ ∃ n, t = Term.Numeral n := by
+  cases t <;> simp [__eo_is_z, __eo_is_z_internal, native_teq,
+    native_and, native_not]
+
+private theorem eo_is_z_eq_false_of_not_true
+    (t : Term) (h : __eo_is_z t ≠ Term.Boolean true) :
+    __eo_is_z t = Term.Boolean false := by
+  cases t <;> simp [__eo_is_z, __eo_is_z_internal, native_teq,
+    native_and, native_not] at *
+
+private theorem arith_reduction_div_total_zero_eq_stuck (a : Term) :
+    __arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) (Term.Numeral 0)) =
+      Term.Stuck := by
+  simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+    __eo_requires, __eo_is_z, __eo_is_z_internal, native_teq,
+    native_ite, native_not, native_and]
+
+private theorem arith_reduction_mod_total_zero_eq_stuck (a : Term) :
+    __arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) (Term.Numeral 0)) =
+      Term.Stuck := by
+  simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+    __eo_requires, __eo_is_z, __eo_is_z_internal, native_teq,
+    native_ite, native_not, native_and]
+
+private theorem false_of_typeof_stuck_bool
+    (h : __eo_typeof Term.Stuck = Term.Bool) : False := by
+  have hBad : __eo_typeof Term.Stuck ≠ Term.Bool := by
+    native_decide
+  exact hBad h
+
+private def smtDivTotalQuot (x y : SmtTerm) : SmtTerm :=
+  SmtTerm._at_purify (SmtTerm.div_total x y)
+
+private def smtDivTotalProd (x y : SmtTerm) : SmtTerm :=
+  SmtTerm.mult y
+    (SmtTerm.mult (smtDivTotalQuot x y) (SmtTerm.Numeral 1))
+
+private def smtDivTotalUpper (x y : SmtTerm) (step : native_Int) : SmtTerm :=
+  SmtTerm.mult y
+    (SmtTerm.mult
+      (SmtTerm.plus (smtDivTotalQuot x y)
+        (SmtTerm.plus (SmtTerm.Numeral step) (SmtTerm.Numeral 0)))
+      (SmtTerm.Numeral 1))
+
+private def smtDivTotalBounds (x y : SmtTerm) (step : native_Int) : SmtTerm :=
+  SmtTerm.and (SmtTerm.leq (smtDivTotalProd x y) x)
+    (SmtTerm.and (SmtTerm.lt x (smtDivTotalUpper x y step))
+      (SmtTerm.Boolean true))
+
+private def smtDivTotalGenericSide (x y : SmtTerm) : SmtTerm :=
+  SmtTerm.and
+    (SmtTerm.and
+      (SmtTerm.imp (SmtTerm.gt y (SmtTerm.Numeral 0))
+        (smtDivTotalBounds x y 1))
+      (SmtTerm.and
+        (SmtTerm.imp (SmtTerm.lt y (SmtTerm.Numeral 0))
+          (smtDivTotalBounds x y (-1)))
+        (SmtTerm.Boolean true)))
+    (SmtTerm.Boolean true)
+
+private theorem smt_div_total_bounds_eval_eq
+    (M : SmtModel) (x y : SmtTerm) (n1 n2 step : native_Int)
+    (hEvalX : __smtx_model_eval M x = SmtValue.Numeral n1)
+    (hEvalY : __smtx_model_eval M y = SmtValue.Numeral n2) :
+    __smtx_model_eval M (smtDivTotalBounds x y step) =
+      SmtValue.Boolean
+        (native_and
+          (native_zleq
+            (native_zmult n2 (native_zmult (native_div_total n1 n2) 1))
+            n1)
+          (native_and
+            (native_zlt n1
+              (native_zmult n2
+                (native_zmult
+                  (native_zplus (native_div_total n1 n2)
+                    (native_zplus step 0))
+                  1)))
+            true)) := by
+  simp [smtDivTotalBounds, smtDivTotalProd, smtDivTotalUpper,
+    smtDivTotalQuot, __smtx_model_eval.eq_1, __smtx_model_eval.eq_2,
+    __smtx_model_eval.eq_8, __smtx_model_eval.eq_11,
+    __smtx_model_eval.eq_12, __smtx_model_eval.eq_14,
+    __smtx_model_eval.eq_15, __smtx_model_eval.eq_16,
+    __smtx_model_eval.eq_30, hEvalX, hEvalY,
+    __smtx_model_eval__at_purify, __smtx_model_eval_div_total,
+    __smtx_model_eval_plus, __smtx_model_eval_mult,
+    __smtx_model_eval_lt, __smtx_model_eval_leq,
+    __smtx_model_eval_and, native_zplus, native_and]
+
+private theorem smt_div_total_generic_side_eval
+    (M : SmtModel) (x y : SmtTerm) (n1 n2 : native_Int)
+    (hEvalX : __smtx_model_eval M x = SmtValue.Numeral n1)
+    (hEvalY : __smtx_model_eval M y = SmtValue.Numeral n2) :
+    __smtx_model_eval M (smtDivTotalGenericSide x y) =
+      SmtValue.Boolean true := by
+  have hBoundsPos := smt_div_total_bounds_eval_eq M x y n1 n2 1 hEvalX hEvalY
+  have hBoundsNeg :=
+    smt_div_total_bounds_eval_eq M x y n1 n2 (-1) hEvalX hEvalY
+  by_cases hPos : 0 < n2
+  · have hGt : native_zlt 0 n2 = true := by
+      unfold native_zlt
+      rw [decide_eq_true_eq]
+      exact hPos
+    have hLtFalse : native_zlt n2 0 = false := by
+      unfold native_zlt
+      rw [decide_eq_false_iff_not]
+      unfold native_Int at *
+      omega
+    have hNZ : n2 ≠ 0 := by
+      intro h0
+      subst h0
+      unfold native_Int at hPos
+      omega
+    have hLower := native_div_total_lower_bound n1 n2 hNZ
+    have hUpper := native_div_total_upper_bound_pos n1 n2 hPos
+    have hUpperS :
+        native_zlt n1
+          (native_zmult n2 (native_zmult (native_div_total n1 n2 + 1) 1)) =
+          true := by
+      simpa [native_zplus] using hUpper
+    simp [smtDivTotalGenericSide, __smtx_model_eval.eq_1,
+      __smtx_model_eval.eq_2, __smtx_model_eval.eq_8,
+      __smtx_model_eval.eq_9, __smtx_model_eval.eq_15,
+      __smtx_model_eval.eq_17, hEvalY, hGt, hLtFalse, hBoundsPos,
+      hBoundsNeg, hLower, hUpperS, __smtx_model_eval_lt,
+      __smtx_model_eval_gt, __smtx_model_eval_imp,
+      __smtx_model_eval_or, __smtx_model_eval_not,
+      __smtx_model_eval_and, native_zplus, native_not, native_or,
+      native_and]
+  · by_cases hNeg : n2 < 0
+    · have hGtFalse : native_zlt 0 n2 = false := by
+        unfold native_zlt
+        rw [decide_eq_false_iff_not]
+        exact hPos
+      have hLt : native_zlt n2 0 = true := by
+        unfold native_zlt
+        rw [decide_eq_true_eq]
+        exact hNeg
+      have hNZ : n2 ≠ 0 := by
+        intro h0
+        subst h0
+        unfold native_Int at hNeg
+        omega
+      have hLower := native_div_total_lower_bound n1 n2 hNZ
+      have hUpper := native_div_total_upper_bound_neg n1 n2 hNeg
+      have hUpperS :
+          native_zlt n1
+            (native_zmult n2
+              (native_zmult (native_div_total n1 n2 + -1) 1)) =
+            true := by
+        simpa [native_zplus] using hUpper
+      simp [smtDivTotalGenericSide, __smtx_model_eval.eq_1,
+        __smtx_model_eval.eq_2, __smtx_model_eval.eq_8,
+        __smtx_model_eval.eq_9, __smtx_model_eval.eq_15,
+        __smtx_model_eval.eq_17, hEvalY, hGtFalse, hLt, hBoundsPos,
+        hBoundsNeg, hLower, hUpperS, __smtx_model_eval_lt,
+        __smtx_model_eval_gt, __smtx_model_eval_imp,
+        __smtx_model_eval_or, __smtx_model_eval_not,
+        __smtx_model_eval_and, native_zplus, native_not, native_or,
+        native_and]
+    · have hGtFalse : native_zlt 0 n2 = false := by
+        unfold native_zlt
+        rw [decide_eq_false_iff_not]
+        exact hPos
+      have hLtFalse : native_zlt n2 0 = false := by
+        unfold native_zlt
+        rw [decide_eq_false_iff_not]
+        exact hNeg
+      simp [smtDivTotalGenericSide, __smtx_model_eval.eq_1,
+        __smtx_model_eval.eq_2, __smtx_model_eval.eq_8,
+        __smtx_model_eval.eq_9, __smtx_model_eval.eq_15,
+        __smtx_model_eval.eq_17, hEvalY, hGtFalse, hLtFalse,
+        hBoundsPos, hBoundsNeg, __smtx_model_eval_lt,
+        __smtx_model_eval_gt, __smtx_model_eval_imp,
+        __smtx_model_eval_or, __smtx_model_eval_not,
+        __smtx_model_eval_and, native_zplus, native_not, native_or,
+        native_and]
+
+private theorem smt_div_total_literal_side_eval_pos
+    (M : SmtModel) (x : SmtTerm) (n1 n : native_Int)
+    (hEvalX : __smtx_model_eval M x = SmtValue.Numeral n1)
+    (hPos : 0 < n) :
+    __smtx_model_eval M
+      (SmtTerm.and (smtDivTotalBounds x (SmtTerm.Numeral n) 1)
+        (SmtTerm.Boolean true)) =
+      SmtValue.Boolean true := by
+  have hNZ : n ≠ 0 := by
+    intro h0
+    subst h0
+    unfold native_Int at hPos
+    omega
+  have hBounds :=
+    smt_div_total_bounds_eval_eq M x (SmtTerm.Numeral n) n1 n 1
+      hEvalX (by simp [__smtx_model_eval.eq_2])
+  have hLower := native_div_total_lower_bound n1 n hNZ
+  have hUpper := native_div_total_upper_bound_pos n1 n hPos
+  have hUpperS :
+      native_zlt n1
+        (native_zmult n (native_zmult (native_div_total n1 n + 1) 1)) =
+        true := by
+    simpa [native_zplus] using hUpper
+  simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_8, hBounds,
+    hLower, hUpperS, __smtx_model_eval_and, native_zplus, native_and]
+
+private theorem smt_div_total_literal_side_eval_neg
+    (M : SmtModel) (x : SmtTerm) (n1 n : native_Int)
+    (hEvalX : __smtx_model_eval M x = SmtValue.Numeral n1)
+    (hNeg : n < 0) :
+    __smtx_model_eval M
+      (SmtTerm.and (smtDivTotalBounds x (SmtTerm.Numeral n) (-1))
+        (SmtTerm.Boolean true)) =
+      SmtValue.Boolean true := by
+  have hNZ : n ≠ 0 := by
+    intro h0
+    subst h0
+    unfold native_Int at hNeg
+    omega
+  have hBounds :=
+    smt_div_total_bounds_eval_eq M x (SmtTerm.Numeral n) n1 n (-1)
+      hEvalX (by simp [__smtx_model_eval.eq_2])
+  have hLower := native_div_total_lower_bound n1 n hNZ
+  have hUpper := native_div_total_upper_bound_neg n1 n hNeg
+  have hUpperS :
+      native_zlt n1
+        (native_zmult n (native_zmult (native_div_total n1 n + -1) 1)) =
+        true := by
+    simpa [native_zplus] using hUpper
+  simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_8, hBounds,
+    hLower, hUpperS, __smtx_model_eval_and, native_zplus, native_and]
+
+private theorem smt_div_total_eq_purify_eval
+    (M : SmtModel) (x y : SmtTerm) (n1 n2 : native_Int)
+    (hEvalX : __smtx_model_eval M x = SmtValue.Numeral n1)
+    (hEvalY : __smtx_model_eval M y = SmtValue.Numeral n2) :
+    __smtx_model_eval M
+      (SmtTerm.eq (SmtTerm.div_total x y)
+        (SmtTerm._at_purify (SmtTerm.div_total x y))) =
+      SmtValue.Boolean true := by
+  simp [__smtx_model_eval.eq_11, __smtx_model_eval.eq_30,
+    __smtx_model_eval.eq_134, hEvalX, hEvalY,
+    __smtx_model_eval__at_purify, __smtx_model_eval_div_total,
+    __smtx_model_eval_eq, native_veq]
+
+private theorem smt_mod_total_eq_remainder_eval
+    (M : SmtModel) (x y : SmtTerm) (n1 n2 : native_Int)
+    (hEvalX : __smtx_model_eval M x = SmtValue.Numeral n1)
+    (hEvalY : __smtx_model_eval M y = SmtValue.Numeral n2) :
+    __smtx_model_eval M
+      (SmtTerm.eq (SmtTerm.mod_total x y)
+        (SmtTerm.neg x (smtDivTotalProd x y))) =
+      SmtValue.Boolean true := by
+  have hMod := native_mod_total_as_div_remainder n1 n2
+  simp [smtDivTotalProd, smtDivTotalQuot, __smtx_model_eval.eq_2,
+    __smtx_model_eval.eq_11, __smtx_model_eval.eq_13,
+    __smtx_model_eval.eq_14, __smtx_model_eval.eq_30,
+    __smtx_model_eval.eq_31, __smtx_model_eval.eq_134, hEvalX,
+    hEvalY, hMod, __smtx_model_eval__at_purify,
+    __smtx_model_eval_div_total, __smtx_model_eval_mod_total,
+    __smtx_model_eval_mult, __smtx_model_eval__, __smtx_model_eval_eq,
+    native_zplus, native_zneg, native_zmult, native_veq]
+
 private theorem typed_arith_reduction_is_int
     (u : Term)
     (hTrans :
@@ -663,6 +1051,476 @@ private theorem typed_arith_reduction_qdiv_total
       __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
       native_ite, native_Teq, hArgs.1, hArgs.2]
 
+private theorem typed_arith_reduction_div_total_literal
+    (a : Term) (n : native_Int)
+    (hArgs :
+      __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
+        __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int)
+    (hNZ : n ≠ 0) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a)
+          (Term.Numeral n))) := by
+  unfold RuleProofs.eo_has_bool_type
+  have hNZ0 : ¬0 = n := by
+    intro h
+    exact hNZ h.symm
+  by_cases hNeg : native_zlt n 0 = true
+  · simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+      __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+      native_teq, native_ite, native_not, native_and, hNZ, hNZ0, hNeg]
+    change
+      __smtx_typeof
+        (SmtTerm.and
+          (SmtTerm.eq (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n))
+            (SmtTerm._at_purify
+              (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n))))
+          (SmtTerm.and
+            (SmtTerm.and
+              (SmtTerm.leq
+                (SmtTerm.mult (SmtTerm.Numeral n)
+                  (SmtTerm.mult
+                    (SmtTerm._at_purify
+                      (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                    (SmtTerm.Numeral 1)))
+                (__eo_to_smt a))
+              (SmtTerm.and
+                (SmtTerm.lt (__eo_to_smt a)
+                  (SmtTerm.mult (SmtTerm.Numeral n)
+                    (SmtTerm.mult
+                      (SmtTerm.plus
+                        (SmtTerm._at_purify
+                          (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                        (SmtTerm.plus (SmtTerm.Numeral (-1))
+                          (SmtTerm.Numeral 0)))
+                      (SmtTerm.Numeral 1))))
+                (SmtTerm.Boolean true)))
+            (SmtTerm.Boolean true))) =
+        SmtType.Bool
+    repeat
+      first
+      | rw [typeof_and_eq]
+      | rw [typeof_eq_eq]
+      | rw [typeof_lt_eq]
+      | rw [typeof_leq_eq]
+      | rw [typeof_mult_eq]
+      | rw [typeof_plus_eq]
+      | rw [typeof_div_total_eq]
+      | rw [__smtx_typeof.eq_1]
+      | rw [__smtx_typeof.eq_2]
+      | rw [__smtx_typeof.eq_11]
+    simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
+      __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+      native_ite, native_Teq, hArgs.1]
+  · simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+      __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+      native_teq, native_ite, native_not, native_and, hNZ, hNZ0, hNeg]
+    change
+      __smtx_typeof
+        (SmtTerm.and
+          (SmtTerm.eq (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n))
+            (SmtTerm._at_purify
+              (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n))))
+          (SmtTerm.and
+            (SmtTerm.and
+              (SmtTerm.leq
+                (SmtTerm.mult (SmtTerm.Numeral n)
+                  (SmtTerm.mult
+                    (SmtTerm._at_purify
+                      (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                    (SmtTerm.Numeral 1)))
+                (__eo_to_smt a))
+              (SmtTerm.and
+                (SmtTerm.lt (__eo_to_smt a)
+                  (SmtTerm.mult (SmtTerm.Numeral n)
+                    (SmtTerm.mult
+                      (SmtTerm.plus
+                        (SmtTerm._at_purify
+                          (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                        (SmtTerm.plus (SmtTerm.Numeral 1)
+                          (SmtTerm.Numeral 0)))
+                      (SmtTerm.Numeral 1))))
+                (SmtTerm.Boolean true)))
+            (SmtTerm.Boolean true))) =
+        SmtType.Bool
+    repeat
+      first
+      | rw [typeof_and_eq]
+      | rw [typeof_eq_eq]
+      | rw [typeof_lt_eq]
+      | rw [typeof_leq_eq]
+      | rw [typeof_mult_eq]
+      | rw [typeof_plus_eq]
+      | rw [typeof_div_total_eq]
+      | rw [__smtx_typeof.eq_1]
+      | rw [__smtx_typeof.eq_2]
+      | rw [__smtx_typeof.eq_11]
+    simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
+      __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+      native_ite, native_Teq, hArgs.1]
+
+private theorem typed_arith_reduction_div_total_generic
+    (a b : Term)
+    (hArgs :
+      __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
+        __smtx_typeof (__eo_to_smt b) = SmtType.Int)
+    (hIsZ : ¬__eo_is_z b = Term.Boolean true) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b)) := by
+  have hIsZFalse : __eo_is_z b = Term.Boolean false :=
+    eo_is_z_eq_false_of_not_true b hIsZ
+  unfold RuleProofs.eo_has_bool_type
+  simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+    __eo_requires, hIsZ, hIsZFalse, native_teq, native_ite, native_not]
+  change
+    __smtx_typeof
+      (SmtTerm.and
+        (SmtTerm.eq (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b))
+          (SmtTerm._at_purify
+            (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b))))
+        (SmtTerm.and
+          (SmtTerm.and
+            (SmtTerm.imp (SmtTerm.gt (__eo_to_smt b) (SmtTerm.Numeral 0))
+              (SmtTerm.and
+                (SmtTerm.leq
+                  (SmtTerm.mult (__eo_to_smt b)
+                    (SmtTerm.mult
+                      (SmtTerm._at_purify
+                        (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                      (SmtTerm.Numeral 1)))
+                  (__eo_to_smt a))
+                (SmtTerm.and
+                  (SmtTerm.lt (__eo_to_smt a)
+                    (SmtTerm.mult (__eo_to_smt b)
+                      (SmtTerm.mult
+                        (SmtTerm.plus
+                          (SmtTerm._at_purify
+                            (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                          (SmtTerm.plus (SmtTerm.Numeral 1)
+                            (SmtTerm.Numeral 0)))
+                        (SmtTerm.Numeral 1))))
+                  (SmtTerm.Boolean true))))
+            (SmtTerm.and
+              (SmtTerm.imp (SmtTerm.lt (__eo_to_smt b) (SmtTerm.Numeral 0))
+                (SmtTerm.and
+                  (SmtTerm.leq
+                    (SmtTerm.mult (__eo_to_smt b)
+                      (SmtTerm.mult
+                        (SmtTerm._at_purify
+                          (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                        (SmtTerm.Numeral 1)))
+                    (__eo_to_smt a))
+                  (SmtTerm.and
+                    (SmtTerm.lt (__eo_to_smt a)
+                      (SmtTerm.mult (__eo_to_smt b)
+                        (SmtTerm.mult
+                          (SmtTerm.plus
+                            (SmtTerm._at_purify
+                              (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                            (SmtTerm.plus (SmtTerm.Numeral (-1))
+                              (SmtTerm.Numeral 0)))
+                          (SmtTerm.Numeral 1))))
+                    (SmtTerm.Boolean true))))
+              (SmtTerm.Boolean true)))
+          (SmtTerm.Boolean true))) =
+      SmtType.Bool
+  repeat
+    first
+    | rw [typeof_and_eq]
+    | rw [typeof_eq_eq]
+    | rw [typeof_imp_eq]
+    | rw [typeof_gt_eq]
+    | rw [typeof_lt_eq]
+    | rw [typeof_leq_eq]
+    | rw [typeof_mult_eq]
+    | rw [typeof_plus_eq]
+    | rw [typeof_div_total_eq]
+    | rw [__smtx_typeof.eq_1]
+    | rw [__smtx_typeof.eq_2]
+    | rw [__smtx_typeof.eq_11]
+  simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
+    __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+    native_ite, native_Teq, hArgs.1, hArgs.2]
+
+private theorem typed_arith_reduction_div_total
+    (a b : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b))
+    (hTy :
+      __eo_typeof
+        (__arith_reduction_pred
+          (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b)) =
+        Term.Bool) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b)) := by
+  have hDivNN :
+      term_has_non_none_type
+        (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hArgs :
+      __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
+        __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
+    int_binop_args_of_non_none (op := SmtTerm.div_total) (R := SmtType.Int)
+      (typeof_div_total_eq (__eo_to_smt a) (__eo_to_smt b)) hDivNN
+  by_cases hIsZ : __eo_is_z b = Term.Boolean true
+  · rcases (eo_is_z_true_iff_numeral b).mp hIsZ with ⟨n, rfl⟩
+    have hNZ : n ≠ 0 := by
+      intro h0
+      subst h0
+      rw [arith_reduction_div_total_zero_eq_stuck a] at hTy
+      cases hTy
+    exact typed_arith_reduction_div_total_literal a n hArgs hNZ
+  · exact typed_arith_reduction_div_total_generic a b hArgs hIsZ
+
+private theorem typed_arith_reduction_mod_total_literal
+    (a : Term) (n : native_Int)
+    (hArgs :
+      __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
+        __smtx_typeof (__eo_to_smt (Term.Numeral n)) = SmtType.Int)
+    (hNZ : n ≠ 0) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a)
+          (Term.Numeral n))) := by
+  unfold RuleProofs.eo_has_bool_type
+  have hNZ0 : ¬0 = n := by
+    intro h
+    exact hNZ h.symm
+  by_cases hNeg : native_zlt n 0 = true
+  · simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+      __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+      native_teq, native_ite, native_not, native_and, hNZ, hNZ0, hNeg]
+    change
+      __smtx_typeof
+        (SmtTerm.and
+          (SmtTerm.eq (SmtTerm.mod_total (__eo_to_smt a) (SmtTerm.Numeral n))
+            (SmtTerm.neg (__eo_to_smt a)
+              (SmtTerm.mult (SmtTerm.Numeral n)
+                (SmtTerm.mult
+                  (SmtTerm._at_purify
+                    (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                  (SmtTerm.Numeral 1)))))
+          (SmtTerm.and
+            (SmtTerm.and
+              (SmtTerm.leq
+                (SmtTerm.mult (SmtTerm.Numeral n)
+                  (SmtTerm.mult
+                    (SmtTerm._at_purify
+                      (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                    (SmtTerm.Numeral 1)))
+                (__eo_to_smt a))
+              (SmtTerm.and
+                (SmtTerm.lt (__eo_to_smt a)
+                  (SmtTerm.mult (SmtTerm.Numeral n)
+                    (SmtTerm.mult
+                      (SmtTerm.plus
+                        (SmtTerm._at_purify
+                          (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                        (SmtTerm.plus (SmtTerm.Numeral (-1))
+                          (SmtTerm.Numeral 0)))
+                      (SmtTerm.Numeral 1))))
+                (SmtTerm.Boolean true)))
+            (SmtTerm.Boolean true))) =
+        SmtType.Bool
+    repeat
+      first
+      | rw [typeof_and_eq]
+      | rw [typeof_eq_eq]
+      | rw [typeof_lt_eq]
+      | rw [typeof_leq_eq]
+      | rw [typeof_neg_eq]
+      | rw [typeof_mult_eq]
+      | rw [typeof_plus_eq]
+      | rw [typeof_div_total_eq]
+      | rw [typeof_mod_total_eq]
+      | rw [__smtx_typeof.eq_1]
+      | rw [__smtx_typeof.eq_2]
+      | rw [__smtx_typeof.eq_11]
+    simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
+      __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+      native_ite, native_Teq, hArgs.1]
+  · simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+      __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+      native_teq, native_ite, native_not, native_and, hNZ, hNZ0, hNeg]
+    change
+      __smtx_typeof
+        (SmtTerm.and
+          (SmtTerm.eq (SmtTerm.mod_total (__eo_to_smt a) (SmtTerm.Numeral n))
+            (SmtTerm.neg (__eo_to_smt a)
+              (SmtTerm.mult (SmtTerm.Numeral n)
+                (SmtTerm.mult
+                  (SmtTerm._at_purify
+                    (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                  (SmtTerm.Numeral 1)))))
+          (SmtTerm.and
+            (SmtTerm.and
+              (SmtTerm.leq
+                (SmtTerm.mult (SmtTerm.Numeral n)
+                  (SmtTerm.mult
+                    (SmtTerm._at_purify
+                      (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                    (SmtTerm.Numeral 1)))
+                (__eo_to_smt a))
+              (SmtTerm.and
+                (SmtTerm.lt (__eo_to_smt a)
+                  (SmtTerm.mult (SmtTerm.Numeral n)
+                    (SmtTerm.mult
+                      (SmtTerm.plus
+                        (SmtTerm._at_purify
+                          (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n)))
+                        (SmtTerm.plus (SmtTerm.Numeral 1)
+                          (SmtTerm.Numeral 0)))
+                      (SmtTerm.Numeral 1))))
+                (SmtTerm.Boolean true)))
+            (SmtTerm.Boolean true))) =
+        SmtType.Bool
+    repeat
+      first
+      | rw [typeof_and_eq]
+      | rw [typeof_eq_eq]
+      | rw [typeof_lt_eq]
+      | rw [typeof_leq_eq]
+      | rw [typeof_neg_eq]
+      | rw [typeof_mult_eq]
+      | rw [typeof_plus_eq]
+      | rw [typeof_div_total_eq]
+      | rw [typeof_mod_total_eq]
+      | rw [__smtx_typeof.eq_1]
+      | rw [__smtx_typeof.eq_2]
+      | rw [__smtx_typeof.eq_11]
+    simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
+      __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+      native_ite, native_Teq, hArgs.1]
+
+private theorem typed_arith_reduction_mod_total_generic
+    (a b : Term)
+    (hArgs :
+      __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
+        __smtx_typeof (__eo_to_smt b) = SmtType.Int)
+    (hIsZ : ¬__eo_is_z b = Term.Boolean true) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b)) := by
+  have hIsZFalse : __eo_is_z b = Term.Boolean false :=
+    eo_is_z_eq_false_of_not_true b hIsZ
+  unfold RuleProofs.eo_has_bool_type
+  simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+    __eo_requires, hIsZ, hIsZFalse, native_teq, native_ite, native_not]
+  change
+    __smtx_typeof
+      (SmtTerm.and
+        (SmtTerm.eq (SmtTerm.mod_total (__eo_to_smt a) (__eo_to_smt b))
+          (SmtTerm.neg (__eo_to_smt a)
+            (SmtTerm.mult (__eo_to_smt b)
+              (SmtTerm.mult
+                (SmtTerm._at_purify
+                  (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                (SmtTerm.Numeral 1)))))
+        (SmtTerm.and
+          (SmtTerm.and
+            (SmtTerm.imp (SmtTerm.gt (__eo_to_smt b) (SmtTerm.Numeral 0))
+              (SmtTerm.and
+                (SmtTerm.leq
+                  (SmtTerm.mult (__eo_to_smt b)
+                    (SmtTerm.mult
+                      (SmtTerm._at_purify
+                        (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                      (SmtTerm.Numeral 1)))
+                  (__eo_to_smt a))
+                (SmtTerm.and
+                  (SmtTerm.lt (__eo_to_smt a)
+                    (SmtTerm.mult (__eo_to_smt b)
+                      (SmtTerm.mult
+                        (SmtTerm.plus
+                          (SmtTerm._at_purify
+                            (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                          (SmtTerm.plus (SmtTerm.Numeral 1)
+                            (SmtTerm.Numeral 0)))
+                        (SmtTerm.Numeral 1))))
+                  (SmtTerm.Boolean true))))
+            (SmtTerm.and
+              (SmtTerm.imp (SmtTerm.lt (__eo_to_smt b) (SmtTerm.Numeral 0))
+                (SmtTerm.and
+                  (SmtTerm.leq
+                    (SmtTerm.mult (__eo_to_smt b)
+                      (SmtTerm.mult
+                        (SmtTerm._at_purify
+                          (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                        (SmtTerm.Numeral 1)))
+                    (__eo_to_smt a))
+                  (SmtTerm.and
+                    (SmtTerm.lt (__eo_to_smt a)
+                      (SmtTerm.mult (__eo_to_smt b)
+                        (SmtTerm.mult
+                          (SmtTerm.plus
+                            (SmtTerm._at_purify
+                              (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)))
+                            (SmtTerm.plus (SmtTerm.Numeral (-1))
+                              (SmtTerm.Numeral 0)))
+                          (SmtTerm.Numeral 1))))
+                    (SmtTerm.Boolean true))))
+              (SmtTerm.Boolean true)))
+          (SmtTerm.Boolean true))) =
+      SmtType.Bool
+  repeat
+    first
+    | rw [typeof_and_eq]
+    | rw [typeof_eq_eq]
+    | rw [typeof_imp_eq]
+    | rw [typeof_gt_eq]
+    | rw [typeof_lt_eq]
+    | rw [typeof_leq_eq]
+    | rw [typeof_neg_eq]
+    | rw [typeof_mult_eq]
+    | rw [typeof_plus_eq]
+    | rw [typeof_div_total_eq]
+    | rw [typeof_mod_total_eq]
+    | rw [__smtx_typeof.eq_1]
+    | rw [__smtx_typeof.eq_2]
+    | rw [__smtx_typeof.eq_11]
+  simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
+    __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+    native_ite, native_Teq, hArgs.1, hArgs.2]
+
+private theorem typed_arith_reduction_mod_total
+    (a b : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b))
+    (hTy :
+      __eo_typeof
+        (__arith_reduction_pred
+          (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b)) =
+        Term.Bool) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b)) := by
+  have hModNN :
+      term_has_non_none_type
+        (SmtTerm.mod_total (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hArgs :
+      __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
+        __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
+    int_binop_args_of_non_none (op := SmtTerm.mod_total) (R := SmtType.Int)
+      (typeof_mod_total_eq (__eo_to_smt a) (__eo_to_smt b)) hModNN
+  by_cases hIsZ : __eo_is_z b = Term.Boolean true
+  · rcases (eo_is_z_true_iff_numeral b).mp hIsZ with ⟨n, rfl⟩
+    have hNZ : n ≠ 0 := by
+      intro h0
+      subst h0
+      rw [arith_reduction_mod_total_zero_eq_stuck a] at hTy
+      cases hTy
+    exact typed_arith_reduction_mod_total_literal a n hArgs hNZ
+  · exact typed_arith_reduction_mod_total_generic a b hArgs hIsZ
+
 private theorem typed_arith_reduction_div
     (a b : Term)
     (hTrans :
@@ -794,6 +1652,175 @@ private theorem typed_arith_reduction_abs
   simp [__smtx_typeof_eq, __smtx_typeof_ite, __smtx_typeof_guard,
     __smtx_typeof_arith_overload_op_1, __smtx_typeof_arith_overload_op_2_ret,
     native_ite, native_Teq, hUSmtTy]
+
+private theorem typed_arith_reduction_int_log2
+    (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.int_log2) u)) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.int_log2) u)) := by
+  have hLogNN :
+      term_has_non_none_type (SmtTerm.int_log2 (__eo_to_smt u)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Int :=
+    int_ret_arg_of_non_none (op := SmtTerm.int_log2)
+      (typeof_int_log2_eq (__eo_to_smt u)) hLogNN
+  unfold RuleProofs.eo_has_bool_type
+  change
+    __smtx_typeof
+      (SmtTerm.and
+        (SmtTerm.eq
+          (SmtTerm.int_log2 (__eo_to_smt u))
+          (SmtTerm._at_purify (SmtTerm.int_log2 (__eo_to_smt u))))
+        (SmtTerm.and
+          (SmtTerm.and
+            (SmtTerm.imp
+              (SmtTerm.lt (SmtTerm.Numeral 0) (__eo_to_smt u))
+              (SmtTerm.and
+                (SmtTerm.leq
+                  (SmtTerm.int_pow2
+                    (SmtTerm._at_purify (SmtTerm.int_log2 (__eo_to_smt u))))
+                  (__eo_to_smt u))
+                (SmtTerm.and
+                  (SmtTerm.lt (__eo_to_smt u)
+                    (SmtTerm.int_pow2
+                      (SmtTerm.plus
+                        (SmtTerm._at_purify
+                          (SmtTerm.int_log2 (__eo_to_smt u)))
+                        (SmtTerm.plus (SmtTerm.Numeral 1)
+                          (SmtTerm.Numeral 0)))))
+                  (SmtTerm.Boolean true))))
+            (SmtTerm.and
+              (SmtTerm.imp
+                (SmtTerm.not
+                  (SmtTerm.lt (SmtTerm.Numeral 0) (__eo_to_smt u)))
+                (SmtTerm.eq
+                  (SmtTerm._at_purify (SmtTerm.int_log2 (__eo_to_smt u)))
+                  (SmtTerm.Numeral 0)))
+              (SmtTerm.Boolean true)))
+          (SmtTerm.Boolean true))) =
+      SmtType.Bool
+  repeat
+    first
+    | rw [typeof_and_eq]
+    | rw [typeof_eq_eq]
+    | rw [typeof_imp_eq]
+    | rw [typeof_not_eq]
+    | rw [typeof_lt_eq]
+    | rw [typeof_leq_eq]
+    | rw [typeof_int_pow2_eq]
+    | rw [typeof_plus_eq]
+    | rw [typeof_int_log2_eq]
+    | rw [__smtx_typeof.eq_11]
+    | rw [__smtx_typeof.eq_2]
+    | rw [__smtx_typeof.eq_1]
+  simp [__smtx_typeof_eq, __smtx_typeof_arith_overload_op_2,
+    __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+    native_ite, native_Teq, hUSmtTy]
+
+private theorem typed_arith_reduction_abs_of_trans
+    (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.abs) u)) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.abs) u)) := by
+  have hAbsNN :
+      term_has_non_none_type (SmtTerm.abs (__eo_to_smt u)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Int :=
+    int_arg_of_non_none hAbsNN
+  have hUEoSmtTy : __eo_to_smt_type (__eo_typeof u) = SmtType.Int :=
+    TranslationProofs.eo_to_smt_type_typeof_of_smt_type u hUSmtTy (by simp)
+  have hUEoTy : __eo_typeof u = Term.UOp UserOp.Int :=
+    TranslationProofs.eo_to_smt_type_eq_int hUEoSmtTy
+  have hUTrans : RuleProofs.eo_has_smt_translation u := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hUSmtTy]
+    simp
+  have hUNe : u ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation u hUTrans
+  have hPred :
+      __arith_reduction_pred (Term.Apply (Term.UOp UserOp.abs) u) =
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.abs) u))
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.ite)
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.lt) u)
+                  (__arith_mk_zero (__eo_typeof u))))
+              (Term.Apply (Term.UOp UserOp.__eoo_neg_2) u))
+            u)) := by
+    simp [__arith_reduction_pred, __eo_mk_apply, hUEoTy, hUNe,
+      __arith_mk_zero]
+  rw [hPred]
+  exact typed_arith_reduction_abs u hTrans
+
+private theorem typed_arith_reduction_of_trans
+    (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hTy : __eo_typeof (__arith_reduction_pred t) = Term.Bool) :
+    RuleProofs.eo_has_bool_type (__arith_reduction_pred t) := by
+  cases t with
+  | Apply f x =>
+      cases f with
+      | UOp op =>
+          by_cases hIsInt : op = UserOp.is_int
+          · subst op
+            exact typed_arith_reduction_is_int x hTrans
+          · by_cases hToInt : op = UserOp.to_int
+            · subst op
+              exact typed_arith_reduction_to_int x hTrans
+            · by_cases hAbs : op = UserOp.abs
+              · subst op
+                exact typed_arith_reduction_abs_of_trans x hTrans
+              · by_cases hLog : op = UserOp.int_log2
+                · subst op
+                  exact typed_arith_reduction_int_log2 x hTrans
+                · simp [__arith_reduction_pred, hIsInt, hToInt, hAbs, hLog] at hTy
+                  exact False.elim (false_of_typeof_stuck_bool hTy)
+      | Apply g u =>
+          cases g with
+          | UOp op =>
+              by_cases hQdiv : op = UserOp.qdiv
+              · subst op
+                exact typed_arith_reduction_qdiv u x hTrans
+              · by_cases hDiv : op = UserOp.div
+                · subst op
+                  simpa [__arith_reduction_pred] using
+                    typed_arith_reduction_div u x hTrans
+                · by_cases hMod : op = UserOp.mod
+                  · subst op
+                    simpa [__arith_reduction_pred] using
+                      typed_arith_reduction_mod u x hTrans
+                  · by_cases hQdivTotal : op = UserOp.qdiv_total
+                    · subst op
+                      exact typed_arith_reduction_qdiv_total u x hTrans
+                    · by_cases hDivTotal : op = UserOp.div_total
+                      · subst op
+                        exact typed_arith_reduction_div_total u x hTrans hTy
+                      · by_cases hModTotal : op = UserOp.mod_total
+                        · subst op
+                          exact typed_arith_reduction_mod_total u x hTrans hTy
+                        · simp [__arith_reduction_pred, hQdiv, hDiv, hMod,
+                            hQdivTotal, hDivTotal, hModTotal] at hTy
+                          exact False.elim (false_of_typeof_stuck_bool hTy)
+          | _ =>
+              simp [__arith_reduction_pred] at hTy
+              exact False.elim (false_of_typeof_stuck_bool hTy)
+      | _ =>
+          simp [__arith_reduction_pred] at hTy
+          exact False.elim (false_of_typeof_stuck_bool hTy)
+  | _ =>
+      simp [__arith_reduction_pred] at hTy
+      exact False.elim (false_of_typeof_stuck_bool hTy)
 
 private theorem facts_arith_reduction_is_int
     (M : SmtModel) (hM : model_total_typed M) (u : Term)
@@ -1419,6 +2446,506 @@ private theorem facts_arith_reduction_abs
     rw [hZero]
     exact smt_abs_eval_reduction_term_rel M (__eo_to_smt u)
 
+private theorem facts_arith_reduction_abs_from_trans
+    (M : SmtModel) (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.abs) u)) :
+    eo_interprets M
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.abs) u))
+      true := by
+  have hAbsNN :
+      term_has_non_none_type (SmtTerm.abs (__eo_to_smt u)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Int :=
+    int_arg_of_non_none hAbsNN
+  have hUEoSmtTy : __eo_to_smt_type (__eo_typeof u) = SmtType.Int :=
+    TranslationProofs.eo_to_smt_type_typeof_of_smt_type u hUSmtTy (by simp)
+  have hUEoTy : __eo_typeof u = Term.UOp UserOp.Int :=
+    TranslationProofs.eo_to_smt_type_eq_int hUEoSmtTy
+  have hUTrans : RuleProofs.eo_has_smt_translation u := by
+    unfold RuleProofs.eo_has_smt_translation
+    rw [hUSmtTy]
+    simp
+  have hUNe : u ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation u hUTrans
+  have hPred :
+      __arith_reduction_pred (Term.Apply (Term.UOp UserOp.abs) u) =
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.abs) u))
+          (Term.Apply
+            (Term.Apply
+              (Term.Apply (Term.UOp UserOp.ite)
+                (Term.Apply
+                  (Term.Apply (Term.UOp UserOp.lt) u)
+                  (__arith_mk_zero (__eo_typeof u))))
+              (Term.Apply (Term.UOp UserOp.__eoo_neg_2) u))
+            u)) := by
+    simp [__arith_reduction_pred, __eo_mk_apply, hUEoTy, hUNe,
+      __arith_mk_zero]
+  rw [hPred]
+  exact facts_arith_reduction_abs M u
+    (typed_arith_reduction_abs u hTrans)
+
+private theorem facts_arith_reduction_int_log2
+    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.int_log2) u)) :
+    eo_interprets M
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.int_log2) u))
+      true := by
+  have hBool := typed_arith_reduction_int_log2 u hTrans
+  have hLogNN :
+      term_has_non_none_type (SmtTerm.int_log2 (__eo_to_smt u)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Int :=
+    int_ret_arg_of_non_none (op := SmtTerm.int_log2)
+      (typeof_int_log2_eq (__eo_to_smt u)) hLogNN
+  have hEvalUTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt u)) =
+        SmtType.Int :=
+    smt_model_eval_preserves_type M hM (__eo_to_smt u) SmtType.Int
+      hUSmtTy (by simp) type_inhabited_int
+  rcases int_value_canonical hEvalUTy with ⟨n, hEvalU⟩
+  rw [RuleProofs.eo_interprets_iff_smt_interprets]
+  refine smt_interprets.intro_true M _ ?_ ?_
+  · simpa [RuleProofs.eo_has_bool_type] using hBool
+  · change
+      __smtx_model_eval M
+        (SmtTerm.and
+          (SmtTerm.eq
+            (SmtTerm.int_log2 (__eo_to_smt u))
+            (SmtTerm._at_purify (SmtTerm.int_log2 (__eo_to_smt u))))
+          (SmtTerm.and
+            (SmtTerm.and
+              (SmtTerm.imp
+                (SmtTerm.lt (SmtTerm.Numeral 0) (__eo_to_smt u))
+                (SmtTerm.and
+                  (SmtTerm.leq
+                    (SmtTerm.int_pow2
+                      (SmtTerm._at_purify
+                        (SmtTerm.int_log2 (__eo_to_smt u))))
+                    (__eo_to_smt u))
+                  (SmtTerm.and
+                    (SmtTerm.lt (__eo_to_smt u)
+                      (SmtTerm.int_pow2
+                        (SmtTerm.plus
+                          (SmtTerm._at_purify
+                            (SmtTerm.int_log2 (__eo_to_smt u)))
+                          (SmtTerm.plus (SmtTerm.Numeral 1)
+                            (SmtTerm.Numeral 0)))))
+                    (SmtTerm.Boolean true))))
+              (SmtTerm.and
+                (SmtTerm.imp
+                  (SmtTerm.not
+                    (SmtTerm.lt (SmtTerm.Numeral 0) (__eo_to_smt u)))
+                  (SmtTerm.eq
+                    (SmtTerm._at_purify
+                      (SmtTerm.int_log2 (__eo_to_smt u)))
+                    (SmtTerm.Numeral 0)))
+                (SmtTerm.Boolean true)))
+            (SmtTerm.Boolean true))) =
+        SmtValue.Boolean true
+    by_cases hPos : 0 < n
+    · have hLe : native_zleq (native_int_pow2 (native_int_log2 n)) n = true :=
+        native_int_pow2_log2_le n hPos
+      have hLt :
+          native_zlt n
+            (native_int_pow2
+              (native_zplus (native_int_log2 n) (native_zplus 1 0))) =
+            true :=
+        native_int_lt_next_pow2_log2 n hPos
+      have hLt' :
+          native_zlt n (native_int_pow2 (native_int_log2 n + 1)) = true := by
+        simpa [native_zplus] using hLt
+      have hCond : native_zlt 0 n = true := by
+        unfold native_zlt
+        rw [decide_eq_true_eq]
+        exact hPos
+      simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_2,
+        __smtx_model_eval.eq_6, __smtx_model_eval.eq_8, __smtx_model_eval.eq_9,
+        __smtx_model_eval.eq_11, __smtx_model_eval.eq_12,
+        __smtx_model_eval.eq_15, __smtx_model_eval.eq_16,
+        __smtx_model_eval.eq_28, __smtx_model_eval.eq_29,
+        __smtx_model_eval.eq_134, hEvalU, hCond, hLe, hLt',
+        __smtx_model_eval__at_purify, __smtx_model_eval_int_log2,
+        __smtx_model_eval_int_pow2, __smtx_model_eval_plus,
+        __smtx_model_eval_lt, __smtx_model_eval_leq,
+        __smtx_model_eval_eq, __smtx_model_eval_not,
+        __smtx_model_eval_or, __smtx_model_eval_imp,
+        __smtx_model_eval_and, native_veq, native_zplus, native_not,
+        native_or, native_and]
+    · have hLog0 : native_int_log2 n = 0 :=
+        native_int_log2_of_not_pos n hPos
+      have hCond : native_zlt 0 n = false := by
+        unfold native_zlt
+        rw [decide_eq_false_iff_not]
+        exact hPos
+      simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_2,
+        __smtx_model_eval.eq_6, __smtx_model_eval.eq_8, __smtx_model_eval.eq_9,
+        __smtx_model_eval.eq_11, __smtx_model_eval.eq_12,
+        __smtx_model_eval.eq_15, __smtx_model_eval.eq_16,
+        __smtx_model_eval.eq_28, __smtx_model_eval.eq_29,
+        __smtx_model_eval.eq_134, hEvalU, hCond, hLog0,
+        __smtx_model_eval__at_purify, __smtx_model_eval_int_log2,
+        __smtx_model_eval_int_pow2, __smtx_model_eval_plus,
+        __smtx_model_eval_lt, __smtx_model_eval_leq,
+        __smtx_model_eval_eq, __smtx_model_eval_not,
+        __smtx_model_eval_or, __smtx_model_eval_imp,
+        __smtx_model_eval_and, native_veq, native_zplus, native_not,
+        native_or, native_and]
+
+private theorem facts_arith_reduction_div_total
+    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b))
+    (hTy :
+      __eo_typeof
+        (__arith_reduction_pred
+          (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b)) =
+        Term.Bool) :
+    eo_interprets M
+      (__arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b))
+      true := by
+  have hBool := typed_arith_reduction_div_total a b hTrans hTy
+  have hDivNN :
+      term_has_non_none_type
+        (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hArgs :
+      __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
+        __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
+    int_binop_args_of_non_none (op := SmtTerm.div_total) (R := SmtType.Int)
+      (typeof_div_total_eq (__eo_to_smt a) (__eo_to_smt b)) hDivNN
+  have hEvalATy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a)) =
+        SmtType.Int :=
+    smt_model_eval_preserves_type M hM (__eo_to_smt a) SmtType.Int
+      hArgs.1 (by simp) type_inhabited_int
+  have hEvalBTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt b)) =
+        SmtType.Int :=
+    smt_model_eval_preserves_type M hM (__eo_to_smt b) SmtType.Int
+      hArgs.2 (by simp) type_inhabited_int
+  rcases int_value_canonical hEvalATy with ⟨n1, hEvalA⟩
+  rcases int_value_canonical hEvalBTy with ⟨n2, hEvalB⟩
+  rw [RuleProofs.eo_interprets_iff_smt_interprets]
+  refine smt_interprets.intro_true M _ ?_ ?_
+  · simpa [RuleProofs.eo_has_bool_type] using hBool
+  · by_cases hIsZ : __eo_is_z b = Term.Boolean true
+    · rcases (eo_is_z_true_iff_numeral b).mp hIsZ with ⟨n, rfl⟩
+      have hNZ : n ≠ 0 := by
+        intro h0
+        subst h0
+        rw [arith_reduction_div_total_zero_eq_stuck a] at hTy
+        cases hTy
+      have hNZ0 : ¬0 = n := by
+        intro h0
+        exact hNZ h0.symm
+      change
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__arith_reduction_pred
+                (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a)
+                  (Term.Numeral n)))) =
+          SmtValue.Boolean true
+      by_cases hNeg : n < 0
+      · have hNegBool : native_zlt n 0 = true := by
+          unfold native_zlt
+          rw [decide_eq_true_eq]
+          exact hNeg
+        simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+          __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+          native_teq, native_ite, native_not, native_and, hNZ0, hNegBool]
+        change
+          __smtx_model_eval M
+            (SmtTerm.and
+              (SmtTerm.eq
+                (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n))
+                (SmtTerm._at_purify
+                  (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n))))
+              (SmtTerm.and
+                (smtDivTotalBounds (__eo_to_smt a) (SmtTerm.Numeral n) (-1))
+                (SmtTerm.Boolean true))) =
+            SmtValue.Boolean true
+        have hEq :=
+          smt_div_total_eq_purify_eval M (__eo_to_smt a) (SmtTerm.Numeral n)
+            n1 n hEvalA (by simp [__smtx_model_eval.eq_2])
+        have hSide :=
+          smt_div_total_literal_side_eval_neg M (__eo_to_smt a) n1 n
+            hEvalA hNeg
+        simp [__smtx_model_eval.eq_8, hEq, hSide,
+          __smtx_model_eval_and, native_and]
+      · have hNegBool : native_zlt n 0 = false := by
+          unfold native_zlt
+          rw [decide_eq_false_iff_not]
+          exact hNeg
+        have hPos : 0 < n := by
+          unfold native_Int at *
+          omega
+        simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+          __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+          native_teq, native_ite, native_not, native_and, hNZ0, hNegBool]
+        change
+          __smtx_model_eval M
+            (SmtTerm.and
+              (SmtTerm.eq
+                (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n))
+                (SmtTerm._at_purify
+                  (SmtTerm.div_total (__eo_to_smt a) (SmtTerm.Numeral n))))
+              (SmtTerm.and
+                (smtDivTotalBounds (__eo_to_smt a) (SmtTerm.Numeral n) 1)
+                (SmtTerm.Boolean true))) =
+            SmtValue.Boolean true
+        have hEq :=
+          smt_div_total_eq_purify_eval M (__eo_to_smt a) (SmtTerm.Numeral n)
+            n1 n hEvalA (by simp [__smtx_model_eval.eq_2])
+        have hSide :=
+          smt_div_total_literal_side_eval_pos M (__eo_to_smt a) n1 n
+            hEvalA hPos
+        simp [__smtx_model_eval.eq_8, hEq, hSide,
+          __smtx_model_eval_and, native_and]
+    · have hIsZFalse : __eo_is_z b = Term.Boolean false :=
+        eo_is_z_eq_false_of_not_true b hIsZ
+      change
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__arith_reduction_pred
+                (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b))) =
+          SmtValue.Boolean true
+      simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+        __eo_requires, hIsZFalse, native_teq, native_ite]
+      change
+        __smtx_model_eval M
+          (SmtTerm.and
+            (SmtTerm.eq
+              (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b))
+              (SmtTerm._at_purify
+                (SmtTerm.div_total (__eo_to_smt a) (__eo_to_smt b))))
+            (smtDivTotalGenericSide (__eo_to_smt a) (__eo_to_smt b))) =
+          SmtValue.Boolean true
+      have hEq :=
+        smt_div_total_eq_purify_eval M (__eo_to_smt a) (__eo_to_smt b)
+          n1 n2 hEvalA hEvalB
+      have hSide :=
+        smt_div_total_generic_side_eval M (__eo_to_smt a) (__eo_to_smt b)
+          n1 n2 hEvalA hEvalB
+      simp [__smtx_model_eval.eq_8, hEq, hSide,
+        __smtx_model_eval_and, native_and]
+
+private theorem facts_arith_reduction_mod_total
+    (M : SmtModel) (hM : model_total_typed M) (a b : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b))
+    (hTy :
+      __eo_typeof
+        (__arith_reduction_pred
+          (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b)) =
+        Term.Bool) :
+    eo_interprets M
+      (__arith_reduction_pred
+        (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b))
+      true := by
+  have hBool := typed_arith_reduction_mod_total a b hTrans hTy
+  have hModNN :
+      term_has_non_none_type
+        (SmtTerm.mod_total (__eo_to_smt a) (__eo_to_smt b)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hArgs :
+      __smtx_typeof (__eo_to_smt a) = SmtType.Int ∧
+        __smtx_typeof (__eo_to_smt b) = SmtType.Int :=
+    int_binop_args_of_non_none (op := SmtTerm.mod_total) (R := SmtType.Int)
+      (typeof_mod_total_eq (__eo_to_smt a) (__eo_to_smt b)) hModNN
+  have hEvalATy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt a)) =
+        SmtType.Int :=
+    smt_model_eval_preserves_type M hM (__eo_to_smt a) SmtType.Int
+      hArgs.1 (by simp) type_inhabited_int
+  have hEvalBTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt b)) =
+        SmtType.Int :=
+    smt_model_eval_preserves_type M hM (__eo_to_smt b) SmtType.Int
+      hArgs.2 (by simp) type_inhabited_int
+  rcases int_value_canonical hEvalATy with ⟨n1, hEvalA⟩
+  rcases int_value_canonical hEvalBTy with ⟨n2, hEvalB⟩
+  rw [RuleProofs.eo_interprets_iff_smt_interprets]
+  refine smt_interprets.intro_true M _ ?_ ?_
+  · simpa [RuleProofs.eo_has_bool_type] using hBool
+  · by_cases hIsZ : __eo_is_z b = Term.Boolean true
+    · rcases (eo_is_z_true_iff_numeral b).mp hIsZ with ⟨n, rfl⟩
+      have hNZ : n ≠ 0 := by
+        intro h0
+        subst h0
+        rw [arith_reduction_mod_total_zero_eq_stuck a] at hTy
+        cases hTy
+      have hNZ0 : ¬0 = n := by
+        intro h0
+        exact hNZ h0.symm
+      change
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__arith_reduction_pred
+                (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a)
+                  (Term.Numeral n)))) =
+          SmtValue.Boolean true
+      by_cases hNeg : n < 0
+      · have hNegBool : native_zlt n 0 = true := by
+          unfold native_zlt
+          rw [decide_eq_true_eq]
+          exact hNeg
+        simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+          __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+          native_teq, native_ite, native_not, native_and, hNZ0, hNegBool]
+        change
+          __smtx_model_eval M
+            (SmtTerm.and
+              (SmtTerm.eq
+                (SmtTerm.mod_total (__eo_to_smt a) (SmtTerm.Numeral n))
+                (SmtTerm.neg (__eo_to_smt a)
+                  (smtDivTotalProd (__eo_to_smt a) (SmtTerm.Numeral n))))
+              (SmtTerm.and
+                (smtDivTotalBounds (__eo_to_smt a) (SmtTerm.Numeral n) (-1))
+                (SmtTerm.Boolean true))) =
+            SmtValue.Boolean true
+        have hEq :=
+          smt_mod_total_eq_remainder_eval M (__eo_to_smt a) (SmtTerm.Numeral n)
+            n1 n hEvalA (by simp [__smtx_model_eval.eq_2])
+        have hSide :=
+          smt_div_total_literal_side_eval_neg M (__eo_to_smt a) n1 n
+            hEvalA hNeg
+        simp [__smtx_model_eval.eq_8, hEq, hSide,
+          __smtx_model_eval_and, native_and]
+      · have hNegBool : native_zlt n 0 = false := by
+          unfold native_zlt
+          rw [decide_eq_false_iff_not]
+          exact hNeg
+        have hPos : 0 < n := by
+          unfold native_Int at *
+          omega
+        simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+          __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
+          native_teq, native_ite, native_not, native_and, hNZ0, hNegBool]
+        change
+          __smtx_model_eval M
+            (SmtTerm.and
+              (SmtTerm.eq
+                (SmtTerm.mod_total (__eo_to_smt a) (SmtTerm.Numeral n))
+                (SmtTerm.neg (__eo_to_smt a)
+                  (smtDivTotalProd (__eo_to_smt a) (SmtTerm.Numeral n))))
+              (SmtTerm.and
+                (smtDivTotalBounds (__eo_to_smt a) (SmtTerm.Numeral n) 1)
+                (SmtTerm.Boolean true))) =
+            SmtValue.Boolean true
+        have hEq :=
+          smt_mod_total_eq_remainder_eval M (__eo_to_smt a) (SmtTerm.Numeral n)
+            n1 n hEvalA (by simp [__smtx_model_eval.eq_2])
+        have hSide :=
+          smt_div_total_literal_side_eval_pos M (__eo_to_smt a) n1 n
+            hEvalA hPos
+        simp [__smtx_model_eval.eq_8, hEq, hSide,
+          __smtx_model_eval_and, native_and]
+    · have hIsZFalse : __eo_is_z b = Term.Boolean false :=
+        eo_is_z_eq_false_of_not_true b hIsZ
+      change
+        __smtx_model_eval M
+            (__eo_to_smt
+              (__arith_reduction_pred
+                (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b))) =
+          SmtValue.Boolean true
+      simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
+        __eo_requires, hIsZFalse, native_teq, native_ite]
+      change
+        __smtx_model_eval M
+          (SmtTerm.and
+            (SmtTerm.eq
+              (SmtTerm.mod_total (__eo_to_smt a) (__eo_to_smt b))
+              (SmtTerm.neg (__eo_to_smt a)
+                (smtDivTotalProd (__eo_to_smt a) (__eo_to_smt b))))
+            (smtDivTotalGenericSide (__eo_to_smt a) (__eo_to_smt b))) =
+          SmtValue.Boolean true
+      have hEq :=
+        smt_mod_total_eq_remainder_eval M (__eo_to_smt a) (__eo_to_smt b)
+          n1 n2 hEvalA hEvalB
+      have hSide :=
+        smt_div_total_generic_side_eval M (__eo_to_smt a) (__eo_to_smt b)
+          n1 n2 hEvalA hEvalB
+      simp [__smtx_model_eval.eq_8, hEq, hSide,
+        __smtx_model_eval_and, native_and]
+
+private theorem facts_arith_reduction_of_trans
+    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hTy : __eo_typeof (__arith_reduction_pred t) = Term.Bool) :
+    eo_interprets M (__arith_reduction_pred t) true := by
+  cases t with
+  | Apply f x =>
+      cases f with
+      | UOp op =>
+          by_cases hIsInt : op = UserOp.is_int
+          · subst op
+            exact facts_arith_reduction_is_int M hM x hTrans
+          · by_cases hToInt : op = UserOp.to_int
+            · subst op
+              exact facts_arith_reduction_to_int M hM x hTrans
+            · by_cases hAbs : op = UserOp.abs
+              · subst op
+                exact facts_arith_reduction_abs_from_trans M x hTrans
+              · by_cases hLog : op = UserOp.int_log2
+                · subst op
+                  exact facts_arith_reduction_int_log2 M hM x hTrans
+                · simp [__arith_reduction_pred, hIsInt, hToInt, hAbs, hLog] at hTy
+                  exact False.elim (false_of_typeof_stuck_bool hTy)
+      | Apply g u =>
+          cases g with
+          | UOp op =>
+              by_cases hQdiv : op = UserOp.qdiv
+              · subst op
+                exact facts_arith_reduction_qdiv M hM u x hTrans
+              · by_cases hDiv : op = UserOp.div
+                · subst op
+                  simpa [__arith_reduction_pred] using
+                    facts_arith_reduction_div M u x
+                      (typed_arith_reduction_div u x hTrans)
+                · by_cases hMod : op = UserOp.mod
+                  · subst op
+                    simpa [__arith_reduction_pred] using
+                      facts_arith_reduction_mod M u x
+                        (typed_arith_reduction_mod u x hTrans)
+                  · by_cases hQdivTotal : op = UserOp.qdiv_total
+                    · subst op
+                      exact facts_arith_reduction_qdiv_total M hM u x hTrans
+                    · by_cases hDivTotal : op = UserOp.div_total
+                      · subst op
+                        exact facts_arith_reduction_div_total M hM u x hTrans hTy
+                      · by_cases hModTotal : op = UserOp.mod_total
+                        · subst op
+                          exact facts_arith_reduction_mod_total M hM u x hTrans hTy
+                        · simp [__arith_reduction_pred, hQdiv, hDiv, hMod,
+                            hQdivTotal, hDivTotal, hModTotal] at hTy
+                          exact False.elim (false_of_typeof_stuck_bool hTy)
+          | _ =>
+              simp [__arith_reduction_pred] at hTy
+              exact False.elim (false_of_typeof_stuck_bool hTy)
+      | _ =>
+          simp [__arith_reduction_pred] at hTy
+          exact False.elim (false_of_typeof_stuck_bool hTy)
+  | _ =>
+      simp [__arith_reduction_pred] at hTy
+      exact False.elim (false_of_typeof_stuck_bool hTy)
+
 private theorem facts_arith_reduction_qdiv_of_trans
     (M : SmtModel) (hM : model_total_typed M) (u v : Term)
     (hTrans :
@@ -1530,6 +3057,38 @@ private theorem facts_arith_reduction_abs_of_trans
   exact facts_arith_reduction_abs M u
     (typed_arith_reduction_abs u hTrans)
 
+private theorem facts_arith_reduction_int_log2_of_trans
+    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.int_log2) u)) :
+    eo_interprets M
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.int_log2) u))
+      true := by
+  exact facts_arith_reduction_int_log2 M hM u hTrans
+
+private theorem arith_reduction_prog_eq_pred (t : Term) :
+    __eo_prog_arith_reduction t = __arith_reduction_pred t := by
+  cases t <;> rfl
+
+private theorem typed___eo_prog_arith_reduction_impl
+    (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hTy : __eo_typeof (__eo_prog_arith_reduction t) = Term.Bool) :
+    RuleProofs.eo_has_bool_type (__eo_prog_arith_reduction t) := by
+  rw [arith_reduction_prog_eq_pred t]
+  exact typed_arith_reduction_of_trans t hTrans
+    (by simpa [arith_reduction_prog_eq_pred t] using hTy)
+
+private theorem facts___eo_prog_arith_reduction_impl
+    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (hTrans : RuleProofs.eo_has_smt_translation t)
+    (hTy : __eo_typeof (__eo_prog_arith_reduction t) = Term.Bool) :
+    eo_interprets M (__eo_prog_arith_reduction t) true := by
+  rw [arith_reduction_prog_eq_pred t]
+  exact facts_arith_reduction_of_trans M hM t hTrans
+    (by simpa [arith_reduction_prog_eq_pred t] using hTy)
+
 theorem cmd_step_arith_reduction_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (args : CArgList) (premises : CIndexList) :
@@ -1539,4 +3098,41 @@ theorem cmd_step_arith_reduction_properties
   StepRuleProperties M (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.arith_reduction args premises) :=
 by
-  sorry
+  intro hCmdTrans _hPremisesBool hResultTy
+  have hProg :
+      __eo_cmd_step_proven s CRule.arith_reduction args premises ≠
+        Term.Stuck :=
+    term_ne_stuck_of_typeof_bool hResultTy
+  cases args with
+  | nil =>
+      change Term.Stuck ≠ Term.Stuck at hProg
+      exact False.elim (hProg rfl)
+  | cons a1 args =>
+      cases args with
+      | nil =>
+          cases premises with
+          | nil =>
+              let T := a1
+              have hArgsTrans :
+                  cArgListTranslationOk (CArgList.cons T CArgList.nil) := by
+                simpa [cmdTranslationOk] using hCmdTrans
+              have hTTrans : RuleProofs.eo_has_smt_translation T := by
+                simpa [cArgListTranslationOk] using hArgsTrans
+              change __eo_typeof (__eo_prog_arith_reduction T) = Term.Bool
+                at hResultTy
+              refine ⟨?_, ?_⟩
+              · intro _hTrue
+                change eo_interprets M (__eo_prog_arith_reduction T) true
+                exact facts___eo_prog_arith_reduction_impl M hM T hTTrans
+                  hResultTy
+              · change RuleProofs.eo_has_smt_translation
+                  (__eo_prog_arith_reduction T)
+                exact RuleProofs.eo_has_smt_translation_of_has_bool_type
+                  (__eo_prog_arith_reduction T)
+                  (typed___eo_prog_arith_reduction_impl T hTTrans hResultTy)
+          | cons _ _ =>
+              change Term.Stuck ≠ Term.Stuck at hProg
+              exact False.elim (hProg rfl)
+      | cons _ _ =>
+          change Term.Stuck ≠ Term.Stuck at hProg
+          exact False.elim (hProg rfl)
