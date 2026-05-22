@@ -1293,10 +1293,10 @@ theorem typeof_value_model_eval_qdiv
     rw [hn1, hn2]
     by_cases hZero : native_to_real n2 = native_mk_rational 0 1
     · simpa [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
-        native_veq, hZero] using
+        __smtx_model_eval_qdiv_total, native_veq, hZero] using
         typeof_value_model_eval_apply_lookup_ifun M hM
-          native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real
-          ifun_type_wf_real_real (SmtValue.Rational (native_to_real n1)) rfl
+          native_qdiv_by_zero_id SmtType.Real SmtType.Real (by simp) type_inhabited_real ifun_type_wf_real_real
+          (SmtValue.Rational (native_to_real n1)) rfl
     · simp [__smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_to_real,
         __smtx_model_eval_qdiv_total, __smtx_typeof_value, native_veq, hZero]
   · rw [show __smtx_typeof (SmtTerm.qdiv t1 t2) = SmtType.Real by

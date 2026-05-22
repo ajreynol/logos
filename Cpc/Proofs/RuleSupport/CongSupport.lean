@@ -14085,16 +14085,13 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_sel
         cases op <;> try cases h
         case «forall» =>
           change
-            native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                  (__eo_to_smt_quantifiers_skolemize
-                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                    (__eo_to_smt_nat idx))
-                  SmtTerm.None)
+            native_ite (__eo_to_smt_nat_is_valid idx)
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat idx))
                 SmtTerm.None =
               SmtTerm.DtSel s d i j at h
           unfold native_ite at h
-          split at h <;> try cases h
           split at h <;> try cases h
           exact
             eo_to_smt_quant_skolemize_ne_dt_sel
@@ -14116,16 +14113,13 @@ private theorem eo_to_smt_quant_skolemize_top_ne_dt_tester
         cases op <;> try cases h
         case «forall» =>
           change
-            native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-                (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-                  (__eo_to_smt_quantifiers_skolemize
-                    (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
-                    (__eo_to_smt_nat idx))
-                  SmtTerm.None)
+            native_ite (__eo_to_smt_nat_is_valid idx)
+                (__eo_to_smt_quantifiers_skolemize
+                  (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))
+                  (__eo_to_smt_nat idx))
                 SmtTerm.None =
               SmtTerm.DtTester s d i at h
           unfold native_ite at h
-          split at h <;> try cases h
           split at h <;> try cases h
           exact
             eo_to_smt_quant_skolemize_ne_dt_tester
@@ -14170,15 +14164,12 @@ private theorem eo_to_smt_re_unfold_top_ne_dt_sel
         SmtTerm.DtSel s d i j := by
   intro s d i j h
   change
-    native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-        (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-          (__eo_to_smt_re_unfold_pos_component
-            (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
-          SmtTerm.None)
+    native_ite (__eo_to_smt_nat_is_valid idx)
+        (__eo_to_smt_re_unfold_pos_component
+          (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
         SmtTerm.None =
       SmtTerm.DtSel s d i j at h
   unfold native_ite at h
-  split at h <;> try cases h
   split at h <;> try cases h
   exact
     eo_to_smt_re_unfold_ne_dt_sel
@@ -14193,15 +14184,12 @@ private theorem eo_to_smt_re_unfold_top_ne_dt_tester
         SmtTerm.DtTester s d i := by
   intro s d i h
   change
-    native_ite (native_teq (__eo_is_z idx) (Term.Boolean true))
-        (native_ite (native_teq (__eo_is_neg idx) (Term.Boolean false))
-          (__eo_to_smt_re_unfold_pos_component
-            (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
-          SmtTerm.None)
+    native_ite (__eo_to_smt_nat_is_valid idx)
+        (__eo_to_smt_re_unfold_pos_component
+          (__eo_to_smt str) (__eo_to_smt re) (__eo_to_smt_nat idx))
         SmtTerm.None =
       SmtTerm.DtTester s d i at h
   unfold native_ite at h
-  split at h <;> try cases h
   split at h <;> try cases h
   exact
       eo_to_smt_re_unfold_ne_dt_tester

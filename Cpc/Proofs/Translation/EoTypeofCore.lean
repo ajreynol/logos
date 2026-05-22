@@ -2293,18 +2293,14 @@ private theorem eo_to_smt_quantifier_term_ne_numeral
       case UOp op =>
         cases op <;> try cases h
         case «forall» =>
-          change native_ite (native_teq (__eo_is_z y) (Term.Boolean true))
-              (native_ite (native_teq (__eo_is_neg y) (Term.Boolean false))
-                (__eo_to_smt_quantifiers_skolemize
-                  (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
-                  (__eo_to_smt_nat y))
-                SmtTerm.None)
+          change native_ite (__eo_to_smt_nat_is_valid y)
+              (__eo_to_smt_quantifiers_skolemize
+                (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
+                (__eo_to_smt_nat y))
               SmtTerm.None =
             SmtTerm.Numeral n at h
-          cases hz : native_teq (__eo_is_z y) (Term.Boolean true) <;>
+          cases hz : __eo_to_smt_nat_is_valid y <;>
             simp [native_ite, hz] at h
-          cases hn : native_teq (__eo_is_neg y) (Term.Boolean false) <;>
-            simp [hn] at h
           exact False.elim (eo_to_smt_quantifiers_skolemize_ne_numeral
             (__eo_to_smt_exists vars (SmtTerm.not (__eo_to_smt body)))
             (__eo_to_smt_nat y) n h)
@@ -2601,17 +2597,13 @@ theorem eo_to_smt_eq_numeral
   | UOp3 op x y z =>
       cases op
       case _at_re_unfold_pos_component =>
-        change native_ite (native_teq (__eo_is_z z) (Term.Boolean true))
-            (native_ite (native_teq (__eo_is_neg z) (Term.Boolean false))
-              (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
-                (__eo_to_smt_nat z))
-              SmtTerm.None)
+        change native_ite (__eo_to_smt_nat_is_valid z)
+            (__eo_to_smt_re_unfold_pos_component (__eo_to_smt x) (__eo_to_smt y)
+              (__eo_to_smt_nat z))
             SmtTerm.None =
           SmtTerm.Numeral n at h
-        cases hz : native_teq (__eo_is_z z) (Term.Boolean true) <;>
+        cases hz : __eo_to_smt_nat_is_valid z <;>
           simp [native_ite, hz] at h
-        cases hn : native_teq (__eo_is_neg z) (Term.Boolean false) <;>
-          simp [native_ite, hn] at h
         exact False.elim (eo_to_smt_re_unfold_pos_component_ne_numeral
           (__eo_to_smt x) (__eo_to_smt y) (__eo_to_smt_nat z) n h)
       case _at_witness_string_length =>
