@@ -52,13 +52,35 @@ theorem value_canonical_rational (q : native_Rat) :
     __smtx_value_canonical (SmtValue.Rational q) := by
   simp [__smtx_value_canonical, __smtx_value_canonical_bool]
 
-theorem value_canonical_char (c : native_Char) :
+theorem value_canonical_char (c : native_Char)
+    (hc : native_char_valid c = true) :
     __smtx_value_canonical (SmtValue.Char c) := by
-  simp [__smtx_value_canonical, __smtx_value_canonical_bool]
+  simp [__smtx_value_canonical, __smtx_value_canonical_bool, hc]
 
-theorem value_canonical_reglan (r : native_RegLan) :
+theorem value_canonical_reglan (r : native_RegLan)
+    (hr : native_re_canonical r = true) :
     __smtx_value_canonical (SmtValue.RegLan r) := by
-  simp [__smtx_value_canonical, __smtx_value_canonical_bool]
+  simp [__smtx_value_canonical, __smtx_value_canonical_bool, hr]
+
+theorem value_canonical_char_zero :
+    __smtx_value_canonical (SmtValue.Char 0) := by
+  exact value_canonical_char 0 (by native_decide)
+
+theorem value_canonical_char_one :
+    __smtx_value_canonical (SmtValue.Char 1) := by
+  exact value_canonical_char 1 (by native_decide)
+
+theorem value_canonical_reglan_allchar :
+    __smtx_value_canonical (SmtValue.RegLan native_re_allchar) := by
+  exact value_canonical_reglan native_re_allchar (by native_decide)
+
+theorem value_canonical_reglan_none :
+    __smtx_value_canonical (SmtValue.RegLan native_re_none) := by
+  exact value_canonical_reglan native_re_none (by native_decide)
+
+theorem value_canonical_reglan_all :
+    __smtx_value_canonical (SmtValue.RegLan native_re_all) := by
+  exact value_canonical_reglan native_re_all (by native_decide)
 
 theorem value_canonical_uvalue (u n : native_Nat) :
     __smtx_value_canonical (SmtValue.UValue u n) := by
@@ -118,13 +140,13 @@ theorem value_canonical_of_bitvec_type
   simp [__smtx_value_canonical, __smtx_value_canonical_bool, native_ite,
     hPayload]
 
-/-- Regex-typed values are canonical. -/
+/-- Canonical regex-typed values are canonical. -/
 theorem value_canonical_of_reglan_type
     {v : SmtValue}
-    (h : __smtx_typeof_value v = SmtType.RegLan) :
+    (h : __smtx_typeof_value v = SmtType.RegLan)
+    (hCan : __smtx_value_canonical_bool v = true) :
     __smtx_value_canonical v := by
-  rcases reglan_value_canonical h with ⟨r, rfl⟩
-  exact value_canonical_reglan r
+  simpa [__smtx_value_canonical] using hCan
 
 /-- Boolean-typed terms evaluate to canonical values in total typed models. -/
 theorem model_eval_canonical_of_bool_type
@@ -191,12 +213,13 @@ theorem model_eval_canonical_of_bitvec_type
         simp)
   exact value_canonical_of_bitvec_type hValTy
 
-/-- Regex-typed terms evaluate to canonical values in total typed models. -/
+/-- Regex-typed terms evaluate to canonical values when their evaluated value is canonical. -/
 theorem model_eval_canonical_of_reglan_type
     (M : SmtModel)
     (hM : model_total_typed M)
     (t : SmtTerm)
-    (hTy : __smtx_typeof t = SmtType.RegLan) :
+    (hTy : __smtx_typeof t = SmtType.RegLan)
+    (hCan : __smtx_value_canonical_bool (__smtx_model_eval M t) = true) :
     __smtx_value_canonical (__smtx_model_eval M t) := by
   have hValTy :
       __smtx_typeof_value (__smtx_model_eval M t) = SmtType.RegLan := by
@@ -205,6 +228,6 @@ theorem model_eval_canonical_of_reglan_type
         unfold term_has_non_none_type
         rw [hTy]
         simp)
-  exact value_canonical_of_reglan_type hValTy
+  exact value_canonical_of_reglan_type hValTy hCan
 
 end Smtm

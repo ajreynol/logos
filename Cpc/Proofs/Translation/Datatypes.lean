@@ -17,7 +17,7 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT translation for `term_tuple_unit`. -/
 @[simp] theorem eo_to_smt_term_tuple_unit :
     __eo_to_smt (Term.UOp UserOp.tuple_unit) =
-      SmtTerm.DtCons "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := rfl
+      SmtTerm.DtCons (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0 := rfl
 
 /-- Simplifies EO-to-SMT translation for `term_dt_cons`. -/
 @[simp] theorem eo_to_smt_term_dt_cons
@@ -51,7 +51,7 @@ namespace TranslationProofs
 /-- Simplifies EO-to-SMT type translation for `unit_tuple`. -/
 @[simp] theorem eo_to_smt_type_unit_tuple :
     __eo_to_smt_type (Term.UOp UserOp.UnitTuple) =
-      SmtType.Datatype "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
+      SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
   simp [__eo_to_smt_type]
 
 /-- Simplifies EO-to-SMT type translation for `tuple_step`. -/
@@ -119,10 +119,10 @@ theorem eo_to_smt_typeof_dt_sel_return :
 /-- Computes `__smtx_typeof` for `tuple_unit_translation`. -/
 theorem smtx_typeof_tuple_unit_translation :
     __smtx_typeof
-        (SmtTerm.DtCons "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) =
-      SmtType.Datatype "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
+        (SmtTerm.DtCons (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) =
+      SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) := by
   let tupleTy :=
-    SmtType.Datatype "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+    SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
   have hInh : native_inhabited_type tupleTy = true := by
     classical
     simp [tupleTy, native_inhabited_type, native_and, native_ite, native_not, native_veq,

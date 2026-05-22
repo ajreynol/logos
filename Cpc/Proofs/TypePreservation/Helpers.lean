@@ -1271,7 +1271,7 @@ theorem typeof_seq_value_pack_seq_of_typed
 
 /-- Lemma about `char_value_list_typed`. -/
 theorem char_value_list_typed :
-    ∀ cs : List Char, list_typed SmtType.Char (cs.map SmtValue.Char)
+    ∀ cs : List native_Char, list_typed SmtType.Char (cs.map SmtValue.Char)
   | [] => by
       simp [list_typed]
   | _ :: cs => by
@@ -1280,16 +1280,15 @@ theorem char_value_list_typed :
 /-- Derives `char_values` from `string_typed`. -/
 theorem char_values_of_string_typed
     (s : native_String) :
-    list_typed SmtType.Char (native_ssm_char_values_of_string s) := by
-  simpa [native_ssm_char_values_of_string] using char_value_list_typed s.toList
+    list_typed SmtType.Char (s.map SmtValue.Char) := by
+  exact char_value_list_typed s
 
 /-- Lemma about `typeof_pack_string`. -/
 theorem typeof_pack_string
     (s : native_String) :
     __smtx_typeof_seq_value (native_pack_string s) = SmtType.Seq SmtType.Char := by
-  change __smtx_typeof_seq_value
-      (native_pack_seq SmtType.Char (native_ssm_char_values_of_string s)) =
-    SmtType.Seq SmtType.Char
+  change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (s.map SmtValue.Char)) =
+      SmtType.Seq SmtType.Char
   exact typeof_seq_value_pack_seq_of_typed (char_values_of_string_typed s)
 
 /-- Shows that evaluating `string` terms produces values of the expected type. -/
