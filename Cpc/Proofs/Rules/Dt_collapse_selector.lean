@@ -60,6 +60,52 @@ private def eoTermList : List Term -> Term
   | [] => Term.__eo_List_nil
   | x :: xs => Term.Apply (Term.Apply Term.__eo_List_cons x) (eoTermList xs)
 
+private def appHead : Term -> Term
+  | Term.Apply f _ => appHead f
+  | t => t
+
+private def appArgs : Term -> List Term
+  | Term.Apply f x => appArgs f ++ [x]
+  | _ => []
+
+private theorem get_arg_list_rec_eoTermList_appArgs :
+    ∀ (t : Term) (xs : List Term),
+      appHead t ≠ Term.Stuck ->
+      __get_arg_list_rec t (eoTermList xs) = eoTermList (appArgs t ++ xs)
+  | Term.Apply f x, xs, hHead => by
+      cases xs with
+      | nil =>
+          have hRec := get_arg_list_rec_eoTermList_appArgs f [x] hHead
+          simpa [appArgs, eoTermList, __get_arg_list_rec] using hRec
+      | cons y ys =>
+          have hRec := get_arg_list_rec_eoTermList_appArgs f (x :: y :: ys) hHead
+          simpa [appArgs, eoTermList, __get_arg_list_rec, List.append_assoc] using hRec
+  | Term.UOp _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UOp1 _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UOp2 _ _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UOp3 _ _ _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.__eo_List, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.__eo_List_nil, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.__eo_List_cons, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Bool, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Boolean _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Numeral _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Rational _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.String _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Binary _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Type, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Stuck, xs, hHead => by simp [appHead] at hHead
+  | Term.FunType, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Var _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DatatypeType _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DatatypeTypeRef _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DtcAppType _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DtCons _ _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DtSel _ _ _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.USort _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UConst _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+termination_by t xs hHead => t
+
 private theorem assoc_nil_nth_eoTermList_mem :
     ∀ (xs : List Term) (n ti : Term),
       __assoc_nil_nth Term.__eo_List_cons (eoTermList xs) n = ti ->
@@ -93,6 +139,38 @@ private theorem assoc_nil_nth_eoTermList_mem :
       all_goals
         try rw [assoc_nil_nth_index_stuck] at h
         exact False.elim (hti h.symm)
+
+private theorem assoc_nil_nth_eoTermList_zero_eq (x ti : Term) (xs : List Term) :
+    __assoc_nil_nth Term.__eo_List_cons (eoTermList (x :: xs))
+        (Term.Numeral 0) = ti ->
+    ti = x := by
+  intro h
+  simp [eoTermList, __assoc_nil_nth, __eo_eq, native_ite, native_teq] at h
+  exact h.symm
+
+private theorem eo_list_find_cons_self_zero_of_ne_stuck (x xs : Term) :
+    x ≠ Term.Stuck ->
+    __eo_list_find Term.__eo_List_cons
+        (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) x ≠ Term.Stuck ->
+    __eo_list_find Term.__eo_List_cons
+        (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) x =
+      Term.Numeral 0 := by
+  intro hx hFind
+  let list := Term.Apply (Term.Apply Term.__eo_List_cons x) xs
+  have hRec :
+      __eo_list_find_rec list x (Term.Numeral 0) = Term.Numeral 0 := by
+    cases x <;> simp [list, __eo_list_find_rec, __eo_eq, native_ite,
+      native_teq] at hx ⊢
+  have hReq :
+      __eo_requires (__eo_is_list Term.__eo_List_cons list)
+          (Term.Boolean true) (Term.Numeral 0) ≠ Term.Stuck := by
+    simpa [__eo_list_find, __eo_list_find_rec, list, __eo_eq, native_ite,
+      native_teq, hRec] using hFind
+  have hRes := eo_requires_eq_result_of_ne_stuck
+    (__eo_is_list Term.__eo_List_cons list) (Term.Boolean true)
+    (Term.Numeral 0) hReq
+  simpa [__eo_list_find, __eo_list_find_rec, list, __eo_eq, native_ite,
+    native_teq, hRec] using hRes
 
 private theorem model_eval_apply_dtcons_of_arg_ne_notvalue
     (M : SmtModel) (s : native_String) (d : SmtDatatype) (i : native_Nat)
