@@ -16,10 +16,13 @@ noncomputable def default_typed_model_of
   exact
     { values := fun k =>
         if hWF : __smtx_type_wf k.ty = true then
-          some (Classical.choose (hCan k.ty hWF))
+          Classical.choose (hCan k.ty hWF)
         else
-          none
-      nativeFuns := fun _ => none }
+          SmtValue.NotValue
+      nativeFuns := fun k =>
+        match k.ty with
+        | SmtType.FunType _ U => fun _ => __smtx_type_default U
+        | _ => fun _ => SmtValue.NotValue }
 
 private theorem default_typed_model_of_native_fun_typed
     (hCan :
@@ -42,7 +45,7 @@ private theorem default_typed_model_of_native_fun_typed
   by_cases hDefaultId : fid = native_default_ifun_id
   · simp [native_eval_ifun_apply, hDefaultId, hDefault.1, hDefaultCan]
   · simp [native_eval_ifun_apply, native_model_fun_lookup,
-      default_typed_model_of, hDefaultId, hDefault.1, hDefaultCan]
+      default_typed_model_of, native_model_key, hDefaultId, hDefault.1, hDefaultCan]
 
 /--
 Reduces nonvacuity of total typed models to the canonical-inhabitant theorem
