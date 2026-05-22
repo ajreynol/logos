@@ -47,8 +47,6 @@ def native_str_from_int : native_Int -> native_String
 def native_str_to_int : native_String -> native_Int
   | s => match s with
           | [] => -1
-          | 45 :: _ => -1
-          | 48 :: _ :: _ => -1
           | _ => if s.all native_char_is_digit then Int.ofNat (native_decimal_digits_to_nat s) else -1
 def native_str_to_upper : native_String -> native_String
   | s => s.map native_char_to_upper
@@ -129,8 +127,19 @@ def native_re_prefix_match_len? (r : native_RegLan) (xs : List native_Char) : Op
     else
       match rest with
       | [] => none
-      | c :: cs => go (native_re_deriv c cur) cs (n + 1)
+      | c :: cs => if native_char_valid c then go (native_re_deriv c cur) cs (n + 1) else none
   go r xs 0
+
+def native_re_positive_prefix_match_len? (r : native_RegLan) :
+    List native_Char -> Option Nat
+  | [] => none
+  | c :: cs =>
+      if native_char_valid c then
+        match native_re_prefix_match_len? (native_re_deriv c r) cs with
+        | some n => some (n + 1)
+        | none => none
+      else
+        none
 
 def native_re_find_idx_aux (r : native_RegLan) (xs : List native_Char) (idx : Nat) : Option (Nat × Nat) :=
   match native_re_prefix_match_len? r xs with
@@ -145,13 +154,9 @@ def native_re_find_idx_from (r : native_RegLan) (xs : List native_Char) (start :
 
 def native_re_find_nonempty_idx_aux (r : native_RegLan) (xs : List native_Char) (idx : Nat) :
     Option (Nat × Nat) :=
-  match native_re_prefix_match_len? r xs with
-  | some 0 =>
-      match xs with
-      | [] => none
-      | _ :: cs => native_re_find_nonempty_idx_aux r cs (idx + 1)
+  match native_re_positive_prefix_match_len? r xs with
   | some (n + 1) => some (idx, n + 1)
-  | none =>
+  | _ =>
       match xs with
       | [] => none
       | _ :: cs => native_re_find_nonempty_idx_aux r cs (idx + 1)
@@ -166,15 +171,11 @@ def native_re_replace_all_nonempty_list_aux (fuel : Nat) (r : native_RegLan)
       match fuel with
       | 0 => xs
       | fuel + 1 =>
-          match native_re_prefix_match_len? r xs with
-          | some 0 =>
-              match xs with
-              | [] => []
-              | c :: cs => c :: native_re_replace_all_nonempty_list_aux fuel r replacement cs
+          match native_re_positive_prefix_match_len? r xs with
           | some (n + 1) =>
               replacement ++ native_re_replace_all_nonempty_list_aux fuel r replacement
                 (xs.drop (n + 1))
-          | none =>
+          | _ =>
               match xs with
               | [] => []
               | c :: cs => c :: native_re_replace_all_nonempty_list_aux fuel r replacement cs
@@ -206,18 +207,25 @@ def native_re_range : native_String -> native_String -> native_RegLan
       | _, _ => .empty
 def native_str_in_re : native_String -> native_RegLan -> native_Bool
   | s, r =>
-      native_re_nullable <| s.foldl (fun acc c => native_re_deriv c acc) r
+      if native_string_valid s then
+        native_re_nullable <| s.foldl (fun acc c => native_re_deriv c acc) r
+      else
+        false
 def native_str_indexof_re : native_String -> native_RegLan -> native_Int -> native_Int
   | s, r, i =>
       if i < 0 then
         -1
       else
-        match native_re_find_idx_from r s (Int.toNat i) with
-        | some (idx, _) => Int.ofNat idx
-        | none => -1
+        let start := Int.toNat i
+        if native_string_valid s && start <= s.length then
+          match native_re_find_idx_from r s start with
+          | some (idx, _) => Int.ofNat idx
+          | none => -1
+        else
+          -1
 def native_str_replace_re : native_String -> native_RegLan -> native_String -> native_String
   | s, r, replacement =>
-      match native_re_find_nonempty_idx_from r s 0 with
+      match native_re_find_idx_from r s 0 with
       | some (idx, len) =>
           (s.take idx) ++ replacement ++ (s.drop (idx + len))
       | none => s
