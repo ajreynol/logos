@@ -2276,9 +2276,9 @@ def native_fun_typed (M : SmtModel) : Prop :=
       __smtx_value_canonical_bool (native_eval_ifun_apply M fid A B i) = true
 
 def model_total_typed (M : SmtModel) : Prop :=
-  (∀ s T, __smtx_type_wf T = true -> __smtx_typeof_value (native_model_lookup M s T) = T) ∧
-  (∀ s T, __smtx_type_wf T = true -> __smtx_value_canonical_bool (native_model_lookup M s T)) = true ∧
-  (∀ s T, __smtx_type_wf T = false -> native_model_lookup M s T = SmtValue.NotValue) ∧
+  (∀ k : SmtModelKey, __smtx_type_wf k.ty = true -> __smtx_typeof_value (M.values k) = k.ty) ∧
+  (∀ k : SmtModelKey, __smtx_type_wf k.ty = true -> __smtx_value_canonical_bool (M.values k)) = true ∧
+  (∀ k : SmtModelKey, __smtx_type_wf k.ty = false -> M.values k = SmtValue.NotValue) ∧
   native_fun_typed M
 
 /-

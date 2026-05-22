@@ -423,6 +423,12 @@ def model_typed_at (M : SmtModel) (s : native_String) (T : SmtType) : Prop :=
   (__smtx_type_wf T = true -> __smtx_typeof_value (native_model_lookup M s T) = T) ∧
   (__smtx_type_wf T = false -> native_model_lookup M s T = SmtValue.NotValue)
 
+/-- Predicate asserting that a model returns a correctly typed value for well-formed types,
+or `NotValue` for non-well-formed types, at a variable binding. -/
+def model_var_typed_at (M : SmtModel) (s : native_String) (T : SmtType) : Prop :=
+  (__smtx_type_wf T = true -> __smtx_typeof_value (native_model_var_lookup M s T) = T) ∧
+  (__smtx_type_wf T = false -> native_model_var_lookup M s T = SmtValue.NotValue)
+
 /-- Shows that the SMT type `bool` is inhabited. -/
 theorem type_inhabited_bool : type_inhabited SmtType.Bool :=
   ⟨SmtValue.Boolean true, rfl⟩

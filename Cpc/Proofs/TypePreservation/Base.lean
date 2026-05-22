@@ -114,7 +114,7 @@ theorem typeof_value_model_eval_var
   have hGuard : __smtx_typeof_guard_wf T T = T :=
     smtx_typeof_guard_wf_of_non_none T T hGuardNN
   unfold __smtx_model_eval __smtx_typeof
-  rw [model_total_typed_lookup hM s T hWF]
+  rw [model_total_typed_var_lookup hM s T hWF]
   exact hGuard.symm
 
 /-- Shows that evaluating `uconst` terms produces values of the expected type. -/
@@ -148,7 +148,7 @@ theorem model_eval_var_of_not_wf
     (hT : __smtx_type_wf T = false) :
     __smtx_model_eval M (SmtTerm.Var s T) = SmtValue.NotValue := by
   unfold __smtx_model_eval
-  simpa using model_total_typed_lookup_uninhabited hM s T hT
+  simpa using model_total_typed_var_lookup_not_wf hM s T hT
 
 /-- Derives `model_eval_uconst` from non-well-formedness. -/
 theorem model_eval_uconst_of_not_wf
