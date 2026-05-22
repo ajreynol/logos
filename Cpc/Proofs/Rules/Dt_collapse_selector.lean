@@ -5,6 +5,7 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private abbrev mkDtCollapseSelectorGuard (s t : Term) : Term :=
@@ -29,6 +30,11 @@ private theorem assoc_nil_nth_nil_stuck (f n : Term) :
   cases f <;> cases n <;>
     simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth]
 
+private theorem assoc_nil_nth_index_stuck (f xs : Term) :
+    __assoc_nil_nth f xs Term.Stuck = Term.Stuck := by
+  cases f <;> cases xs <;>
+    simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth]
+
 private theorem assoc_nil_nth_singleton_eq (x n ti : Term) :
     __assoc_nil_nth Term.__eo_List_cons
         (Term.Apply (Term.Apply Term.__eo_List_cons x) Term.__eo_List_nil) n = ti ->
@@ -49,6 +55,44 @@ private theorem assoc_nil_nth_singleton_eq (x n ti : Term) :
         SmtEval.native_not, hz] at h
       exact False.elim (hti h.symm)
   all_goals exact False.elim (hti h.symm)
+
+private def eoTermList : List Term -> Term
+  | [] => Term.__eo_List_nil
+  | x :: xs => Term.Apply (Term.Apply Term.__eo_List_cons x) (eoTermList xs)
+
+private theorem assoc_nil_nth_eoTermList_mem :
+    ∀ (xs : List Term) (n ti : Term),
+      __assoc_nil_nth Term.__eo_List_cons (eoTermList xs) n = ti ->
+      ti ≠ Term.Stuck ->
+      ti ∈ xs
+  | [], n, ti, h, hti => by
+      simp [eoTermList, assoc_nil_nth_nil_stuck] at h
+      exact False.elim (hti h.symm)
+  | x :: xs, n, ti, h, hti => by
+      cases n <;> try
+        simp [eoTermList, __assoc_nil_nth, __eo_l_1___assoc_nil_nth,
+          __eo_requires, __eo_eq, __eo_add, native_ite, native_teq,
+          native_not, SmtEval.native_not] at h
+      case Numeral z =>
+        by_cases hz : z = 0
+        · subst z
+          simp [eoTermList, __assoc_nil_nth, __eo_eq, native_ite,
+            native_teq] at h
+          simp [h.symm]
+        · have hRec :
+              __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+                  (__eo_add (Term.Numeral z) (Term.Numeral (-1 : native_Int))) =
+                ti := by
+            simpa [eoTermList, __assoc_nil_nth, __eo_l_1___assoc_nil_nth,
+              __eo_requires, __eo_eq, __eo_add, native_ite, native_teq,
+              native_not, SmtEval.native_not, hz] using h
+          exact List.mem_cons_of_mem x
+            (assoc_nil_nth_eoTermList_mem xs
+              (__eo_add (Term.Numeral z) (Term.Numeral (-1 : native_Int)))
+              ti hRec hti)
+      all_goals
+        try rw [assoc_nil_nth_index_stuck] at h
+        exact False.elim (hti h.symm)
 
 private theorem model_eval_apply_dtcons_of_arg_ne_notvalue
     (M : SmtModel) (s : native_String) (d : SmtDatatype) (i : native_Nat)
@@ -329,7 +373,33 @@ private theorem facts___eo_prog_dt_collapse_selector_impl
       hA1Trans hA1Ty
   rw [hProgEq]
   rw [hA1Eq]
-  exact dt_collapse_selector_sound M hM sel t ti hBool hGuard
+  cases sel with
+  | DtSel ss dd ii jj =>
+      cases jj with
+      | zero =>
+          cases t with
+          | Apply f x =>
+              cases f with
+              | DtCons ss' dd' ii' =>
+                  by_cases hss : ss = ss'
+                  · by_cases hdd : dd = dd'
+                    · by_cases hii : ii = ii'
+                      · subst ss'
+                        subst dd'
+                        subst ii'
+                        exact dt_collapse_selector_direct_one_sound M hM
+                          ss dd ii x ti hBool hGuard
+                      · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+                    · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+                  · exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+              | _ =>
+                  exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+          | _ =>
+              exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+      | succ jj' =>
+          exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
+  | _ =>
+      exact dt_collapse_selector_sound M hM _ _ _ hBool hGuard
 
 theorem cmd_step_dt_collapse_selector_properties
     (M : SmtModel) (hM : model_total_typed M)
