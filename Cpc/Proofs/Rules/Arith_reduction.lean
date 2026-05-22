@@ -217,6 +217,157 @@ private theorem smt_abs_eval_reduction_term_rel
     by_cases hlt : n < 0 <;>
       simp [hlt]
 
+private theorem rat_div_one (q : Rat) : q / (1 : Rat) = q := by
+  rw [Rat.div_def]
+  have hInvOne : (1 : Rat)⁻¹ = 1 := by
+    native_decide
+  rw [hInvOne, Rat.mul_one]
+
+private theorem rat_floor_remainder_nonneg (q : Rat) :
+    (0 : Rat) ≤ q - (q.floor : Rat) := by
+  rw [Rat.sub_eq_add_neg]
+  have hFloor := Rat.floor_le q
+  have hShift :
+      (q.floor : Rat) + (-(q.floor : Rat)) ≤
+        q + (-(q.floor : Rat)) :=
+    (Rat.add_le_add_right (a := (q.floor : Rat)) (b := q)
+      (c := -(q.floor : Rat))).mpr hFloor
+  rwa [Rat.add_neg_cancel] at hShift
+
+private theorem rat_floor_remainder_lt_one (q : Rat) :
+    q - (q.floor : Rat) < 1 := by
+  rw [Rat.sub_eq_add_neg]
+  have hFloor := Rat.lt_floor_add_one q
+  have hShift :
+      q + (-(q.floor : Rat)) <
+        ((q.floor + 1 : Int) : Rat) + (-(q.floor : Rat)) :=
+    (Rat.add_lt_add_right (a := q) (b := ((q.floor + 1 : Int) : Rat))
+      (c := -(q.floor : Rat))).mpr hFloor
+  rw [Rat.intCast_add, Rat.intCast_one] at hShift
+  rw [Rat.add_assoc] at hShift
+  rw [Rat.add_comm (1 : Rat) (-(q.floor : Rat))] at hShift
+  rwa [← Rat.add_assoc, Rat.add_neg_cancel, Rat.zero_add] at hShift
+
+private theorem native_floor_remainder_nonneg (q : Rat) :
+    native_qleq (native_mk_rational 0 1)
+      (native_qplus q (native_qneg (native_to_real (native_to_int q)))) =
+      true := by
+  unfold native_qleq native_qplus native_qneg native_to_real native_to_int
+    native_mk_rational
+  rw [decide_eq_true_eq]
+  simp [rat_div_one]
+  rw [← Rat.sub_eq_add_neg]
+  exact rat_floor_remainder_nonneg q
+
+private theorem native_floor_remainder_lt_one (q : Rat) :
+    native_qlt
+      (native_qplus q (native_qneg (native_to_real (native_to_int q))))
+      (native_mk_rational 1 1) =
+      true := by
+  unfold native_qlt native_qplus native_qneg native_to_real native_to_int
+    native_mk_rational
+  rw [decide_eq_true_eq]
+  simp [rat_div_one]
+  rw [← Rat.sub_eq_add_neg]
+  exact rat_floor_remainder_lt_one q
+
+private theorem typed_arith_reduction_is_int
+    (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.is_int) u)) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.is_int) u)) := by
+  have hIsIntNN :
+      term_has_non_none_type (SmtTerm.is_int (__eo_to_smt u)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Real :=
+    real_arg_of_non_none (op := SmtTerm.is_int) (Tout := SmtType.Bool)
+      (typeof_is_int_eq (__eo_to_smt u)) hIsIntNN
+  unfold RuleProofs.eo_has_bool_type
+  change
+    __smtx_typeof
+      (SmtTerm.and
+        (SmtTerm.eq
+          (SmtTerm.is_int (__eo_to_smt u))
+          (SmtTerm.eq (__eo_to_smt u)
+            (SmtTerm.to_real
+              (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u))))))
+        (SmtTerm.and
+          (SmtTerm.and
+            (SmtTerm.leq (SmtTerm.Rational (native_mk_rational 0 1))
+              (SmtTerm.neg (__eo_to_smt u)
+                (SmtTerm.to_real
+                  (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u))))))
+            (SmtTerm.and
+              (SmtTerm.lt
+                (SmtTerm.neg (__eo_to_smt u)
+                  (SmtTerm.to_real
+                    (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u)))))
+                (SmtTerm.Rational (native_mk_rational 1 1)))
+              (SmtTerm.Boolean true)))
+          (SmtTerm.Boolean true))) =
+      SmtType.Bool
+  rw [typeof_and_eq, typeof_eq_eq, typeof_is_int_eq, typeof_eq_eq,
+    typeof_to_real_eq, __smtx_typeof.eq_11, typeof_to_int_eq,
+    typeof_and_eq, typeof_and_eq, typeof_leq_eq, typeof_neg_eq,
+    typeof_to_real_eq, __smtx_typeof.eq_11, typeof_to_int_eq,
+    typeof_and_eq, typeof_lt_eq, typeof_neg_eq, typeof_to_real_eq,
+    __smtx_typeof.eq_11, typeof_to_int_eq]
+  simp [__smtx_typeof.eq_1, __smtx_typeof.eq_3, __smtx_typeof_eq,
+    __smtx_typeof_arith_overload_op_2,
+    __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+    native_ite, native_Teq, hUSmtTy]
+
+private theorem typed_arith_reduction_to_int
+    (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.to_int) u)) :
+    RuleProofs.eo_has_bool_type
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.to_int) u)) := by
+  have hToIntNN :
+      term_has_non_none_type (SmtTerm.to_int (__eo_to_smt u)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Real :=
+    real_arg_of_non_none (op := SmtTerm.to_int) (Tout := SmtType.Int)
+      (typeof_to_int_eq (__eo_to_smt u)) hToIntNN
+  unfold RuleProofs.eo_has_bool_type
+  change
+    __smtx_typeof
+      (SmtTerm.and
+        (SmtTerm.eq
+          (SmtTerm.to_int (__eo_to_smt u))
+          (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u))))
+        (SmtTerm.and
+          (SmtTerm.and
+            (SmtTerm.leq (SmtTerm.Rational (native_mk_rational 0 1))
+              (SmtTerm.neg (__eo_to_smt u)
+                (SmtTerm.to_real
+                  (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u))))))
+            (SmtTerm.and
+              (SmtTerm.lt
+                (SmtTerm.neg (__eo_to_smt u)
+                  (SmtTerm.to_real
+                    (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u)))))
+                (SmtTerm.Rational (native_mk_rational 1 1)))
+              (SmtTerm.Boolean true)))
+          (SmtTerm.Boolean true))) =
+      SmtType.Bool
+  rw [typeof_and_eq, typeof_eq_eq, __smtx_typeof.eq_11, typeof_and_eq,
+    typeof_and_eq, typeof_leq_eq, typeof_neg_eq, typeof_to_real_eq,
+    __smtx_typeof.eq_11, typeof_to_int_eq, typeof_and_eq, typeof_lt_eq,
+    typeof_neg_eq, typeof_to_real_eq, __smtx_typeof.eq_11,
+    typeof_to_int_eq]
+  simp [__smtx_typeof.eq_1, __smtx_typeof.eq_3, __smtx_typeof_eq,
+    __smtx_typeof_arith_overload_op_2,
+    __smtx_typeof_arith_overload_op_2_ret, __smtx_typeof_guard,
+    native_ite, native_Teq, hUSmtTy]
+
 private theorem typed_arith_reduction_div
     (a b : Term)
     (hTrans :
@@ -348,6 +499,126 @@ private theorem typed_arith_reduction_abs
   simp [__smtx_typeof_eq, __smtx_typeof_ite, __smtx_typeof_guard,
     __smtx_typeof_arith_overload_op_1, __smtx_typeof_arith_overload_op_2_ret,
     native_ite, native_Teq, hUSmtTy]
+
+private theorem facts_arith_reduction_is_int
+    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.is_int) u)) :
+    eo_interprets M
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.is_int) u))
+      true := by
+  have hBool := typed_arith_reduction_is_int u hTrans
+  have hIsIntNN :
+      term_has_non_none_type (SmtTerm.is_int (__eo_to_smt u)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Real :=
+    real_arg_of_non_none (op := SmtTerm.is_int) (Tout := SmtType.Bool)
+      (typeof_is_int_eq (__eo_to_smt u)) hIsIntNN
+  have hEvalUTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt u)) =
+        SmtType.Real :=
+    smt_model_eval_preserves_type M hM (__eo_to_smt u) SmtType.Real hUSmtTy
+      (by simp) type_inhabited_real
+  rcases real_value_canonical hEvalUTy with ⟨q, hEvalU⟩
+  rw [RuleProofs.eo_interprets_iff_smt_interprets]
+  refine smt_interprets.intro_true M _ ?_ ?_
+  · simpa [RuleProofs.eo_has_bool_type] using hBool
+  · change
+      __smtx_model_eval M
+        (SmtTerm.and
+          (SmtTerm.eq
+            (SmtTerm.is_int (__eo_to_smt u))
+            (SmtTerm.eq (__eo_to_smt u)
+              (SmtTerm.to_real
+                (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u))))))
+          (SmtTerm.and
+            (SmtTerm.and
+              (SmtTerm.leq (SmtTerm.Rational (native_mk_rational 0 1))
+                (SmtTerm.neg (__eo_to_smt u)
+                  (SmtTerm.to_real
+                    (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u))))))
+              (SmtTerm.and
+                (SmtTerm.lt
+                  (SmtTerm.neg (__eo_to_smt u)
+                    (SmtTerm.to_real
+                      (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u)))))
+                  (SmtTerm.Rational (native_mk_rational 1 1)))
+                (SmtTerm.Boolean true)))
+            (SmtTerm.Boolean true))) =
+        SmtValue.Boolean true
+    simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_3,
+      __smtx_model_eval.eq_8, __smtx_model_eval.eq_11,
+      __smtx_model_eval.eq_13, __smtx_model_eval.eq_15,
+      __smtx_model_eval.eq_16, __smtx_model_eval.eq_19,
+      __smtx_model_eval.eq_20, __smtx_model_eval.eq_21,
+      __smtx_model_eval.eq_134, hEvalU, __smtx_model_eval__at_purify,
+      __smtx_model_eval_to_int, __smtx_model_eval_to_real,
+      __smtx_model_eval_is_int, __smtx_model_eval_eq,
+      __smtx_model_eval__, __smtx_model_eval_leq, __smtx_model_eval_lt,
+      __smtx_model_eval_and, native_veq, native_floor_remainder_nonneg,
+      native_floor_remainder_lt_one, native_and, eq_comm]
+
+private theorem facts_arith_reduction_to_int
+    (M : SmtModel) (hM : model_total_typed M) (u : Term)
+    (hTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.to_int) u)) :
+    eo_interprets M
+      (__arith_reduction_pred (Term.Apply (Term.UOp UserOp.to_int) u))
+      true := by
+  have hBool := typed_arith_reduction_to_int u hTrans
+  have hToIntNN :
+      term_has_non_none_type (SmtTerm.to_int (__eo_to_smt u)) := by
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    unfold term_has_non_none_type
+    simpa using hTrans
+  have hUSmtTy : __smtx_typeof (__eo_to_smt u) = SmtType.Real :=
+    real_arg_of_non_none (op := SmtTerm.to_int) (Tout := SmtType.Int)
+      (typeof_to_int_eq (__eo_to_smt u)) hToIntNN
+  have hEvalUTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt u)) =
+        SmtType.Real :=
+    smt_model_eval_preserves_type M hM (__eo_to_smt u) SmtType.Real hUSmtTy
+      (by simp) type_inhabited_real
+  rcases real_value_canonical hEvalUTy with ⟨q, hEvalU⟩
+  rw [RuleProofs.eo_interprets_iff_smt_interprets]
+  refine smt_interprets.intro_true M _ ?_ ?_
+  · simpa [RuleProofs.eo_has_bool_type] using hBool
+  · change
+      __smtx_model_eval M
+        (SmtTerm.and
+          (SmtTerm.eq
+            (SmtTerm.to_int (__eo_to_smt u))
+            (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u))))
+          (SmtTerm.and
+            (SmtTerm.and
+              (SmtTerm.leq (SmtTerm.Rational (native_mk_rational 0 1))
+                (SmtTerm.neg (__eo_to_smt u)
+                  (SmtTerm.to_real
+                    (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u))))))
+              (SmtTerm.and
+                (SmtTerm.lt
+                  (SmtTerm.neg (__eo_to_smt u)
+                    (SmtTerm.to_real
+                      (SmtTerm._at_purify (SmtTerm.to_int (__eo_to_smt u)))))
+                  (SmtTerm.Rational (native_mk_rational 1 1)))
+                (SmtTerm.Boolean true)))
+            (SmtTerm.Boolean true))) =
+        SmtValue.Boolean true
+    simp [__smtx_model_eval.eq_1, __smtx_model_eval.eq_3,
+      __smtx_model_eval.eq_8, __smtx_model_eval.eq_11,
+      __smtx_model_eval.eq_13, __smtx_model_eval.eq_15,
+      __smtx_model_eval.eq_16, __smtx_model_eval.eq_19,
+      __smtx_model_eval.eq_20, __smtx_model_eval.eq_134,
+      hEvalU, __smtx_model_eval__at_purify,
+      __smtx_model_eval_to_int, __smtx_model_eval_to_real,
+      __smtx_model_eval_eq, __smtx_model_eval__,
+      __smtx_model_eval_leq, __smtx_model_eval_lt, __smtx_model_eval_and,
+      native_veq, native_floor_remainder_nonneg,
+      native_floor_remainder_lt_one, native_and]
 
 private theorem facts_arith_reduction_div
     (M : SmtModel) (a b : Term)
