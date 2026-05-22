@@ -75,8 +75,8 @@ private theorem empty_term_smt_info
     ∀ M, __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq (SmtSeq.empty T) := by
   cases t with
   | String s =>
-      by_cases hs : s = ""
-      · subst hs
+      by_cases hs : s = native_string_lit ""
+      · subst s
         refine ⟨SmtType.Char, ?_, ?_⟩
         · change __smtx_typeof (SmtTerm.String (native_string_lit "")) = SmtType.Seq SmtType.Char
           rw [__smtx_typeof.eq_4]
@@ -84,9 +84,12 @@ private theorem empty_term_smt_info
           change __smtx_model_eval M (SmtTerm.String (native_string_lit "")) =
             SmtValue.Seq (SmtSeq.empty SmtType.Char)
           rw [__smtx_model_eval.eq_4]
-          simp [native_pack_string, native_pack_seq,
-            native_ssm_char_values_of_string]
-      · simp [__str_is_empty, hs] at hEmpty
+          simp [native_pack_string, native_pack_seq, native_string_lit]
+      · cases s with
+        | nil =>
+            exact False.elim (hs (by simp [native_string_lit]))
+        | cons c cs =>
+            simp [__str_is_empty] at hEmpty
   | UOp1 op x =>
       cases op with
       | seq_empty =>
