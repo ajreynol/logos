@@ -43,7 +43,7 @@ def native_decimal_digits_to_nat (xs : native_String) : native_Nat :=
 def native_str_lt : native_String -> native_String -> native_Bool
   | s₁, s₂ => decide (s₁ < s₂)
 def native_str_from_int : native_Int -> native_String
-  | i => if i < 0 then [] else native_string_of_lean_string (toString i)
+  | i => if i < 0 then native_string_lit "" else native_string_lit (toString i)
 def native_str_to_int : native_String -> native_Int
   | s => match s with
           | [] => -1
@@ -242,17 +242,17 @@ def native_re_canonical : native_RegLan -> native_Bool
 
 -- Partial semantics
 
-def native_qdiv_by_zero_id : native_String := native_string_of_lean_string "@qdiv_by_zero"
-def native_div_by_zero_id : native_String := native_string_of_lean_string "@div_by_zero"
-def native_mod_by_zero_id : native_String := native_string_of_lean_string "@mod_by_zero"
+def native_qdiv_by_zero_id : native_String := native_string_lit "@qdiv_by_zero"
+def native_div_by_zero_id : native_String := native_string_lit "@div_by_zero"
+def native_mod_by_zero_id : native_String := native_string_lit "@mod_by_zero"
 def native_wrong_apply_sel_id (n m : native_Nat) : native_String :=
-  native_string_of_lean_string "@wrong_apply_sel_" ++
-    native_string_of_lean_string (toString n) ++
-    native_string_of_lean_string "_" ++
-    native_string_of_lean_string (toString m)
-def native_oob_seq_nth_id : native_String := native_string_of_lean_string "@oob_seq_nth"
+  native_string_lit "@wrong_apply_sel_" ++
+    native_string_lit (toString n) ++
+    native_string_lit "_" ++
+    native_string_lit (toString m)
+def native_oob_seq_nth_id : native_String := native_string_lit "@oob_seq_nth"
 def native_uconst_id : native_Nat -> native_String
-  | i => native_string_of_lean_string "@u." ++ native_string_of_lean_string (toString i)
+  | i => native_string_lit "@u." ++ native_string_lit (toString i)
 
 mutual
 
@@ -487,7 +487,7 @@ end
 
 abbrev SmtNativeFun := SmtValue -> SmtValue
 
-def native_default_ifun_id : native_String := native_string_of_lean_string "@native_default_ifun"
+def native_default_ifun_id : native_String := native_string_lit "@native_default_ifun"
 
 /- SMT-LIB model -/
 structure SmtModelKey where

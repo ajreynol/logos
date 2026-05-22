@@ -17,8 +17,16 @@ def native_char_valid (c : native_Char) : native_Bool :=
 def native_string_valid (s : native_String) : native_Bool :=
   s.all native_char_valid
 
-def native_string_of_lean_string (s : String) : native_String :=
+def native_string_lit (s : String) : native_String :=
   s.toList.map Char.toNat
+
+def native_string_of_lean_string (s : String) : native_String :=
+  native_string_lit s
+
+def native_string_prefix_eq : native_String -> native_String -> native_Bool
+  | [], _ => true
+  | _ :: _, [] => false
+  | c :: cs, d :: ds => decide (c = d) && native_string_prefix_eq cs ds
 
 instance : Ord Rat where
   compare a b :=
@@ -105,7 +113,7 @@ def native_str_from_code (i : native_Int) : native_String :=
   if (0 <= i && i < native_char_bound) then
     [native_nat_to_char (Int.toNat i)]
   else
-    []
+    native_string_lit ""
 def native_streq : native_String -> native_String -> native_Bool
   | x, y => decide (x = y)
 
