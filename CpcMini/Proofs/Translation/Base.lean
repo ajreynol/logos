@@ -1,4 +1,4 @@
-import CpcMini.Spec
+import CpcMini.Logos
 
 open Eo
 open SmtEval

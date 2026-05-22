@@ -1,5 +1,5 @@
 import Cpc.Proofs.TermCompat
-import Cpc.Spec
+import Cpc.Logos
 
 open Eo
 open SmtEval

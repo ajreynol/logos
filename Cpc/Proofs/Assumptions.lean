@@ -1,4 +1,4 @@
-import Cpc.Spec
+import Cpc.Logos
 import Cpc.SmtModel
 
 open Eo
