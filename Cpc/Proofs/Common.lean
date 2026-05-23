@@ -473,7 +473,7 @@ private theorem smtx_model_eval_eq_true_symm
   cases v1 <;> cases v2 <;>
     simp [__smtx_model_eval_eq, native_veq] at h ⊢
   all_goals
-    simpa [eq_comm] using h
+    simpa only [eq_comm] using h
 
 /-- Establishes an equality relating `smtx_model_eval_seq` and `true_symm`. -/
 private theorem smtx_model_eval_seq_eq_true_symm
