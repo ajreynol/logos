@@ -333,6 +333,20 @@ private theorem facts___eo_prog_sets_ext_impl
     simp [hEvalB, __smtx_value_canonical, __smtx_value_canonical_bool,
       SmtEval.native_and] at hParts
     exact hParts.1
+  have hm1DefaultFalse :
+      __smtx_msm_get_default m1 = SmtValue.Boolean false := by
+    have hParts := hACan
+    simp [hEvalA, __smtx_value_canonical, __smtx_value_canonical_bool,
+      SmtEval.native_and] at hParts
+    exact Smtm.eq_of_native_veq_true hParts.2
+  have hm2DefaultFalse :
+      __smtx_msm_get_default m2 = SmtValue.Boolean false := by
+    have hParts := hBCan
+    simp [hEvalB, __smtx_value_canonical, __smtx_value_canonical_bool,
+      SmtEval.native_and] at hParts
+    exact Smtm.eq_of_native_veq_true hParts.2
+  have hDefaultsEq : __smtx_msm_get_default m1 = __smtx_msm_get_default m2 :=
+    hm1DefaultFalse.trans hm2DefaultFalse.symm
   have hSetsEqFalse :
       __smtx_model_eval_eq (SmtValue.Set m1) (SmtValue.Set m2) =
         SmtValue.Boolean false := by
@@ -341,19 +355,14 @@ private theorem facts___eo_prog_sets_ext_impl
       __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
         SmtValue.Boolean false :=
     set_model_eval_eq_false_to_map_eq_false m1 m2 hSetsEqFalse
-  have hADomain :
-      native_inhabited_type (__eo_to_smt_type T) = true ∧
-        __smtx_type_wf_rec (__eo_to_smt_type T) native_reflist_nil = true :=
-    smt_set_domain_inhabited_wf_rec_of_typeof
-      (__eo_to_smt a) (__eo_to_smt_type T) hSmtA
   have hSelectEqFalse :
       __smtx_model_eval_eq
           (__smtx_msm_lookup m1 (native_eval_map_diff_msm m1 m2))
           (__smtx_msm_lookup m2 (native_eval_map_diff_msm m1 m2)) =
         SmtValue.Boolean false :=
-    RuleProofs.map_diff_selects_model_eval_eq_false
+    RuleProofs.map_diff_selects_model_eval_eq_false_of_default_eq
       m1 m2 (__eo_to_smt_type T) SmtType.Bool
-      hm1Ty hm2Ty hm1Can hm2Can hADomain.1 hADomain.2 (by decide) hMapsEqFalse
+      hm1Ty hm2Ty hm1Can hm2Can hDefaultsEq (by decide) hMapsEqFalse
   have hEqEvalFalse :
       __smtx_model_eval M (__eo_to_smt (Term.Apply (Term.Apply Term.eq lhs) rhs)) =
         SmtValue.Boolean false := by
