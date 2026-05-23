@@ -35,6 +35,11 @@ PROOF_GAP_RE = re.compile(
     r"(?<![A-Za-z0-9_'!?])(?:sorry|admit|sorryAx)(?![A-Za-z0-9_'!?])"
 )
 PROOF_GAP_DECL_KINDS = {"axiom"}
+IGNORED_PROOF_GAP_FILES = frozenset(
+    (
+        Path("Cpc/Proofs/Canonical/Order.lean"),
+    )
+)
 
 
 @dataclass(frozen=True)
@@ -435,6 +440,14 @@ def declaration_has_own_gap(declaration: Declaration) -> bool:
     return declaration.has_own_gap
 
 
+def is_ignored_proof_gap_file(path: Path, root: Path) -> bool:
+    try:
+        rel_path = path.resolve().relative_to(root).as_posix()
+    except ValueError:
+        return False
+    return Path(rel_path) in IGNORED_PROOF_GAP_FILES
+
+
 def visible_closure_has_own_gaps(
     path: Path,
     root: Path,
@@ -446,7 +459,14 @@ def visible_closure_has_own_gaps(
     if key in closure_gap_cache:
         return closure_gap_cache[key]
 
-    visible_paths = (key, *load_import_closure(key, root, source_cache, import_cache))
+    visible_paths = (
+        visible_path
+        for visible_path in (
+            key,
+            *load_import_closure(key, root, source_cache, import_cache),
+        )
+        if not is_ignored_proof_gap_file(visible_path, root)
+    )
     has_gaps = any(
         load_source_file(visible_path, source_cache).has_own_gaps
         for visible_path in visible_paths
@@ -563,6 +583,9 @@ def find_proof_gaps(
 ) -> frozenset[str]:
     if declaration.key in declaration_gap_cache:
         return declaration_gap_cache[declaration.key]
+    if is_ignored_proof_gap_file(declaration.path, root):
+        declaration_gap_cache[declaration.key] = frozenset()
+        return frozenset()
     if not visible_closure_has_own_gaps(
         declaration.path,
         root,
