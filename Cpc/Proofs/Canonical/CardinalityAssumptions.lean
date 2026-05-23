@@ -2499,7 +2499,7 @@ decreasing_by
   all_goals try simp [sizeOf]
   all_goals omega
 
-private axiom datatype_cons_infinite_residual_witness
+private theorem datatype_cons_infinite_residual_witness
     (s : native_String)
     (d : SmtDatatype)
     (refs : RefList)
@@ -2524,7 +2524,8 @@ private axiom datatype_cons_infinite_residual_witness
     ∃ e : SmtValue,
       __smtx_typeof_value e = SmtType.Datatype s d ∧
         __smtx_value_canonical_bool e = true ∧
-          minSize ≤ sizeOf e
+          minSize ≤ sizeOf e := by
+  sorry
 
 private theorem infinite_datatype_suffix_large_witness_residual
     (s : native_String)
