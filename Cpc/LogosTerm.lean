@@ -1,0 +1,281 @@
+import Cpc.SmtEval
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+namespace Eo
+
+open SmtEval
+
+/-
+Ordinary user operators.
+-/
+inductive UserOp : Type where
+  | Int : UserOp
+  | Real : UserOp
+  | BitVec : UserOp
+  | Char : UserOp
+  | Seq : UserOp
+  | _at__at_Pair : UserOp
+  | _at__at_pair : UserOp
+  | _at__at_TypedList : UserOp
+  | _at__at_TypedList_nil : UserOp
+  | _at__at_TypedList_cons : UserOp
+  | _at__at_result_null : UserOp
+  | _at__at_result_invalid : UserOp
+  | ite : UserOp
+  | not : UserOp
+  | or : UserOp
+  | and : UserOp
+  | imp : UserOp
+  | xor : UserOp
+  | eq : UserOp
+  | distinct : UserOp
+  | plus : UserOp
+  | neg : UserOp
+  | mult : UserOp
+  | lt : UserOp
+  | leq : UserOp
+  | gt : UserOp
+  | geq : UserOp
+  | to_real : UserOp
+  | to_int : UserOp
+  | is_int : UserOp
+  | abs : UserOp
+  | __eoo_neg_2 : UserOp
+  | div : UserOp
+  | mod : UserOp
+  | multmult : UserOp
+  | divisible : UserOp
+  | int_pow2 : UserOp
+  | int_log2 : UserOp
+  | int_ispow2 : UserOp
+  | div_total : UserOp
+  | mod_total : UserOp
+  | multmult_total : UserOp
+  | _at_int_div_by_zero : UserOp
+  | _at_mod_by_zero : UserOp
+  | Array : UserOp
+  | select : UserOp
+  | store : UserOp
+  | _at_bvsize : UserOp
+  | concat : UserOp
+  | bvnot : UserOp
+  | bvand : UserOp
+  | bvor : UserOp
+  | bvnand : UserOp
+  | bvnor : UserOp
+  | bvxor : UserOp
+  | bvxnor : UserOp
+  | bvcomp : UserOp
+  | bvneg : UserOp
+  | bvadd : UserOp
+  | bvmul : UserOp
+  | bvudiv : UserOp
+  | bvurem : UserOp
+  | bvsub : UserOp
+  | bvsdiv : UserOp
+  | bvsrem : UserOp
+  | bvsmod : UserOp
+  | bvult : UserOp
+  | bvule : UserOp
+  | bvugt : UserOp
+  | bvuge : UserOp
+  | bvslt : UserOp
+  | bvsle : UserOp
+  | bvsgt : UserOp
+  | bvsge : UserOp
+  | bvshl : UserOp
+  | bvlshr : UserOp
+  | bvashr : UserOp
+  | bvite : UserOp
+  | bvuaddo : UserOp
+  | bvnego : UserOp
+  | bvsaddo : UserOp
+  | bvumulo : UserOp
+  | bvsmulo : UserOp
+  | bvusubo : UserOp
+  | bvssubo : UserOp
+  | bvsdivo : UserOp
+  | bvultbv : UserOp
+  | bvsltbv : UserOp
+  | bvredand : UserOp
+  | bvredor : UserOp
+  | _at_from_bools : UserOp
+  | RegLan : UserOp
+  | str_len : UserOp
+  | str_concat : UserOp
+  | str_substr : UserOp
+  | str_contains : UserOp
+  | str_replace : UserOp
+  | str_indexof : UserOp
+  | str_at : UserOp
+  | str_prefixof : UserOp
+  | str_suffixof : UserOp
+  | str_rev : UserOp
+  | str_update : UserOp
+  | str_to_lower : UserOp
+  | str_to_upper : UserOp
+  | str_to_code : UserOp
+  | str_from_code : UserOp
+  | str_is_digit : UserOp
+  | str_to_int : UserOp
+  | str_from_int : UserOp
+  | str_lt : UserOp
+  | str_leq : UserOp
+  | str_replace_all : UserOp
+  | str_replace_re : UserOp
+  | str_replace_re_all : UserOp
+  | str_indexof_re : UserOp
+  | re_allchar : UserOp
+  | re_none : UserOp
+  | re_all : UserOp
+  | str_to_re : UserOp
+  | re_mult : UserOp
+  | re_plus : UserOp
+  | re_opt : UserOp
+  | re_comp : UserOp
+  | re_range : UserOp
+  | re_concat : UserOp
+  | re_inter : UserOp
+  | re_union : UserOp
+  | re_diff : UserOp
+  | str_in_re : UserOp
+  | seq_unit : UserOp
+  | seq_nth : UserOp
+  | _at_strings_num_occur : UserOp
+  | _at_strings_occur_index : UserOp
+  | UnitTuple : UserOp
+  | Tuple : UserOp
+  | tuple_unit : UserOp
+  | tuple : UserOp
+  | Set : UserOp
+  | set_singleton : UserOp
+  | set_union : UserOp
+  | set_inter : UserOp
+  | set_minus : UserOp
+  | set_member : UserOp
+  | set_subset : UserOp
+  | set_choose : UserOp
+  | set_is_empty : UserOp
+  | set_is_singleton : UserOp
+  | set_insert : UserOp
+  | qdiv : UserOp
+  | qdiv_total : UserOp
+  | _at_div_by_zero : UserOp
+  | _at__at_Monomial : UserOp
+  | _at__at_mon : UserOp
+  | _at__at_Polynomial : UserOp
+  | _at__at_poly_zero : UserOp
+  | _at__at_poly : UserOp
+  | forall : UserOp
+  | exists : UserOp
+  | ubv_to_int : UserOp
+  | sbv_to_int : UserOp
+  | _at__at_aci_sorted : UserOp
+
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+User operators with one index.
+-/
+inductive UserOp1 : Type where
+  | _at_purify : UserOp1
+  | repeat : UserOp1
+  | zero_extend : UserOp1
+  | sign_extend : UserOp1
+  | rotate_left : UserOp1
+  | rotate_right : UserOp1
+  | _at_bit : UserOp1
+  | seq_empty : UserOp1
+  | re_exp : UserOp1
+  | _at_strings_stoi_result : UserOp1
+  | _at_strings_stoi_non_digit : UserOp1
+  | _at_strings_itos_result : UserOp1
+  | _at_strings_replace_all_result : UserOp1
+  | is : UserOp1
+  | update : UserOp1
+  | tuple_select : UserOp1
+  | tuple_update : UserOp1
+  | set_empty : UserOp1
+  | int_to_bv : UserOp1
+
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+User operators with two indices.
+-/
+inductive UserOp2 : Type where
+  | _at_array_deq_diff : UserOp2
+  | extract : UserOp2
+  | _at_bv : UserOp2
+  | re_loop : UserOp2
+  | _at_strings_deq_diff : UserOp2
+  | _at_strings_num_occur_re : UserOp2
+  | _at_strings_occur_index_re : UserOp2
+  | _at_sets_deq_diff : UserOp2
+  | _at_quantifiers_skolemize : UserOp2
+  | _at_const : UserOp2
+
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+User operators with three indices.
+-/
+inductive UserOp3 : Type where
+  | _at_re_unfold_pos_component : UserOp3
+  | _at_witness_string_length : UserOp3
+
+deriving Repr, DecidableEq, Inhabited, Ord
+
+mutual
+
+/- Term definition -/
+inductive Term : Type where
+  | UOp : UserOp -> Term
+  | UOp1 : UserOp1 -> Term -> Term
+  | UOp2 : UserOp2 -> Term -> Term -> Term
+  | UOp3 : UserOp3 -> Term -> Term -> Term -> Term
+  | __eo_List : Term
+  | __eo_List_nil : Term
+  | __eo_List_cons : Term
+  | Bool : Term
+  | Boolean : native_Bool -> Term
+  | Numeral : native_Int -> Term
+  | Rational : native_Rat -> Term
+  | String : native_String -> Term
+  | Binary : native_Int -> native_Int -> Term
+  | Type : Term
+  | Stuck : Term
+  | Apply : Term -> Term -> Term
+  | FunType : Term
+  | Var : Term -> Term -> Term
+  | DatatypeType : native_String -> Datatype -> Term
+  | DatatypeTypeRef : native_String -> Term
+  | DtcAppType : Term -> Term -> Term
+  | DtCons : native_String -> Datatype -> native_Nat -> Term
+  | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
+  | USort : native_Nat -> Term
+  | UConst : native_Nat -> Term -> Term
+
+deriving Repr, DecidableEq, Inhabited, Ord
+
+/-
+Eunoia datatypes.
+-/
+inductive Datatype : Type where
+  | null : Datatype
+  | sum : DatatypeCons -> Datatype -> Datatype
+deriving Repr, DecidableEq, Inhabited
+
+/-
+Eunoia datatype constructors.
+-/
+inductive DatatypeCons : Type where
+  | unit : DatatypeCons
+  | cons : Term -> DatatypeCons -> DatatypeCons
+deriving Repr, DecidableEq, Inhabited
+
+end
+
+end Eo
