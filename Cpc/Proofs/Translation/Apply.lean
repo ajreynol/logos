@@ -1356,9 +1356,21 @@ private theorem typeof_apply_string_head_eq_none
     (generic_apply_type_of_non_special_head _ _
       (by intro s' d i j h; cases h)
       (by intro s' d i h; cases h))
-    (by intro A B h; rw [__smtx_typeof.eq_4] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_4] at h; cases h)
-    (by intro A B h; rw [__smtx_typeof.eq_4] at h; cases h)
+    (by
+      intro A B h
+      rw [__smtx_typeof.eq_4] at h
+      cases hValid : native_string_valid s <;>
+        simp [native_ite, hValid] at h)
+    (by
+      intro A B h
+      rw [__smtx_typeof.eq_4] at h
+      cases hValid : native_string_valid s <;>
+        simp [native_ite, hValid] at h)
+    (by
+      intro A B h
+      rw [__smtx_typeof.eq_4] at h
+      cases hValid : native_string_valid s <;>
+        simp [native_ite, hValid] at h)
 
 /-- Computes the type of applying a bit-vector literal as a head. -/
 private theorem typeof_apply_binary_head_eq_none
@@ -4210,8 +4222,9 @@ private theorem smtx_value_dtc_app_type_head_exists_apply :
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | SmtValue.Char _, A, B, h => by
-      simp [__smtx_typeof_value] at h
+  | SmtValue.Char c, A, B, h => by
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | SmtValue.UValue _ _, A, B, h => by
       simp [__smtx_typeof_value] at h
   | SmtValue.RegLan _, A, B, h => by

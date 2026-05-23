@@ -332,8 +332,9 @@ theorem typeof_value_apply_of_head_ne_dt_cons :
           change __smtx_typeof_apply_value (__smtx_typeof_seq_value ss) (__smtx_typeof_value i) = SmtType.None
           rw [hNone]
           simp [__smtx_typeof_apply_value]
-  | SmtValue.Char _, i, hDt => by
-      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.Char c, i, hDt => by
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, SmtEval.native_ite, hValid]
   | SmtValue.UValue _ _, i, hDt => by
       simp [__smtx_typeof_value, __smtx_typeof_apply_value]
   | SmtValue.RegLan _, i, hDt => by
@@ -424,8 +425,9 @@ theorem typeof_value_ne_type_ref
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | SmtValue.Char _ => by
-      simp [__smtx_typeof_value]
+  | SmtValue.Char c => by
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid]
   | SmtValue.UValue _ _ => by
       simp [__smtx_typeof_value]
   | SmtValue.RegLan _ => by
@@ -491,8 +493,9 @@ theorem bool_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -550,8 +553,9 @@ theorem int_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -609,8 +613,9 @@ theorem real_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -678,8 +683,9 @@ theorem bitvec_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -844,8 +850,9 @@ theorem fun_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -901,8 +908,9 @@ theorem map_value_canonical
           cases B' <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -951,8 +959,9 @@ theorem set_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -1051,8 +1060,9 @@ theorem seq_value_canonical
           cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -1063,6 +1073,63 @@ theorem seq_value_canonical
       exfalso
       exact apply_value_non_chain_result_impossible
         (U := SmtType.Seq T) (by simp [dt_cons_chain_result]) h
+
+/-- Canonical-form lemma for `char_value`. -/
+theorem char_value_canonical
+    {v : SmtValue}
+    (h : __smtx_typeof_value v = SmtType.Char) :
+    ∃ c : native_Char, v = SmtValue.Char c ∧ native_char_valid c = true := by
+  cases v with
+  | Char c =>
+      cases hValid : native_char_valid c
+      · simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
+      · exact ⟨c, rfl, hValid⟩
+  | NotValue =>
+      simp [__smtx_typeof_value] at h
+  | Boolean _ =>
+      simp [__smtx_typeof_value] at h
+  | Numeral _ =>
+      simp [__smtx_typeof_value] at h
+  | Rational _ =>
+      simp [__smtx_typeof_value] at h
+  | Binary w n =>
+      cases hWidth : native_zleq 0 w <;>
+        cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
+          simp [__smtx_typeof_value, native_ite, SmtEval.native_and, hWidth, hMod] at h
+  | Map m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          simp [__smtx_typeof_value, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at h
+  | Fun fid A B =>
+      simp [__smtx_typeof_value] at h
+  | Set m =>
+      cases typeof_map_value_shape m with
+      | inl hMap =>
+          rcases hMap with ⟨A, B, hMap⟩
+          cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
+  | Seq ss =>
+      cases typeof_seq_value_shape ss with
+      | inl hSeq =>
+          rcases hSeq with ⟨T, hSeq⟩
+          simp [__smtx_typeof_value, hSeq] at h
+      | inr hNone =>
+          simp [__smtx_typeof_value, hNone] at h
+  | UValue _ _ =>
+      simp [__smtx_typeof_value] at h
+  | RegLan _ =>
+      simp [__smtx_typeof_value] at h
+  | DtCons s d i =>
+      exfalso
+      simpa [dt_cons_chain_result] using dt_cons_chain_result_of_dt_cons_value_type h
+  | Apply f x =>
+      exfalso
+      exact apply_value_non_chain_result_impossible
+        (U := SmtType.Char) (by simp [dt_cons_chain_result]) h
 
 /-- Predicate asserting that every value in a list has the given SMT type. -/
 def list_typed (T : SmtType) : List SmtValue -> Prop
@@ -1269,36 +1336,414 @@ theorem typeof_seq_value_pack_seq_of_typed
       have ih := typeof_seq_value_pack_seq_of_typed hxs
       simp [native_pack_seq, __smtx_typeof_seq_value, hv, ih, native_ite, native_Teq]
 
+/-- Consing a valid character onto a valid native string preserves validity. -/
+theorem native_string_valid_cons
+    {c : native_Char}
+    (hc : native_char_valid c = true)
+    {cs : native_String}
+    (hcs : native_string_valid cs = true) :
+    native_string_valid (c :: cs) = true := by
+  rw [native_string_valid, List.all_eq_true] at hcs ⊢
+  intro d hd
+  cases hd with
+  | head =>
+      exact hc
+  | tail _ hd =>
+      exact hcs d hd
+
+/-- A list typed as `Char` unpacks to a valid native string. -/
+theorem native_string_valid_of_list_typed_char :
+    ∀ {xs : List SmtValue},
+      list_typed SmtType.Char xs ->
+        native_string_valid (xs.map native_ssm_char_of_value) = true
+  | [], _ => by
+      simp [native_string_valid]
+  | v :: vs, hxs => by
+      rcases hxs with ⟨hv, hvs⟩
+      rcases char_value_canonical hv with ⟨c, hvc, hc⟩
+      subst hvc
+      have hTail := native_string_valid_of_list_typed_char hvs
+      simpa [native_ssm_char_of_value] using native_string_valid_cons hc hTail
+
+/-- A sequence value typed as `Seq Char` unpacks to a valid native string. -/
+theorem native_unpack_string_valid_of_typeof_seq_char
+    {ss : SmtSeq}
+    (h : __smtx_typeof_seq_value ss = SmtType.Seq SmtType.Char) :
+    native_string_valid (native_unpack_string ss) = true := by
+  have hTyped : list_typed SmtType.Char (native_unpack_seq ss) :=
+    typed_unpack_seq_of_typeof_seq_value h
+  simpa [native_unpack_string] using native_string_valid_of_list_typed_char hTyped
+
+/-- Appending valid native strings preserves validity. -/
+theorem native_string_valid_append
+    {xs ys : native_String}
+    (hxs : native_string_valid xs = true)
+    (hys : native_string_valid ys = true) :
+    native_string_valid (xs ++ ys) = true := by
+  rw [native_string_valid, List.all_eq_true] at hxs hys ⊢
+  intro c hc
+  rcases List.mem_append.mp hc with hc | hc
+  · exact hxs c hc
+  · exact hys c hc
+
+/-- Taking a prefix of a valid native string preserves validity. -/
+theorem native_string_valid_take
+    (n : Nat)
+    {xs : native_String}
+    (hxs : native_string_valid xs = true) :
+    native_string_valid (xs.take n) = true := by
+  rw [native_string_valid, List.all_eq_true] at hxs ⊢
+  intro c hc
+  exact hxs c (List.mem_of_mem_take hc)
+
+/-- Dropping a prefix of a valid native string preserves validity. -/
+theorem native_string_valid_drop
+    (n : Nat)
+    {xs : native_String}
+    (hxs : native_string_valid xs = true) :
+    native_string_valid (xs.drop n) = true := by
+  rw [native_string_valid, List.all_eq_true] at hxs ⊢
+  intro c hc
+  exact hxs c (List.mem_of_mem_drop hc)
+
+/-- Mapping a validity-preserving character function over a native string preserves validity. -/
+theorem native_string_valid_map
+    (f : native_Char -> native_Char)
+    (hf : ∀ c : native_Char, native_char_valid c = true ->
+      native_char_valid (f c) = true)
+    {s : native_String}
+    (hs : native_string_valid s = true) :
+    native_string_valid (s.map f) = true := by
+  rw [native_string_valid, List.all_eq_true] at hs ⊢
+  intro c hc
+  rcases List.mem_map.mp hc with ⟨d, hd, hdc⟩
+  subst hdc
+  exact hf d (hs d hd)
+
+/-- Lowercasing a valid SMT character preserves validity. -/
+theorem native_char_valid_to_lower
+    {c : native_Char}
+    (hc : native_char_valid c = true) :
+    native_char_valid (native_char_to_lower c) = true := by
+  have hcLt : c < 196608 := by
+    simpa [native_char_valid] using hc
+  cases hRange : (decide (65 ≤ c) && decide (c ≤ 90))
+  · simp [native_char_to_lower, hRange, native_char_valid, hcLt]
+  · have hle90 : c ≤ 90 := by
+      simp at hRange
+      exact hRange.2
+    simp [native_char_to_lower, hRange, native_char_valid]
+    exact Nat.lt_of_le_of_lt (Nat.add_le_add_right hle90 32) (by decide)
+
+/-- Uppercasing a valid SMT character preserves validity. -/
+theorem native_char_valid_to_upper
+    {c : native_Char}
+    (hc : native_char_valid c = true) :
+    native_char_valid (native_char_to_upper c) = true := by
+  have hcLt : c < 196608 := by
+    simpa [native_char_valid] using hc
+  cases hRange : (decide (97 ≤ c) && decide (c ≤ 122))
+  · simp [native_char_to_upper, hRange, native_char_valid, hcLt]
+  · simp [native_char_to_upper, hRange, native_char_valid]
+    exact Nat.lt_of_le_of_lt (Nat.sub_le c 32) hcLt
+
+/-- Lowercasing a valid native string preserves validity. -/
+theorem native_str_to_lower_valid
+    {s : native_String}
+    (hs : native_string_valid s = true) :
+    native_string_valid (native_str_to_lower s) = true := by
+  unfold native_str_to_lower
+  exact native_string_valid_map native_char_to_lower
+    (fun _ hc => native_char_valid_to_lower hc) hs
+
+/-- Uppercasing a valid native string preserves validity. -/
+theorem native_str_to_upper_valid
+    {s : native_String}
+    (hs : native_string_valid s = true) :
+    native_string_valid (native_str_to_upper s) = true := by
+  unfold native_str_to_upper
+  exact native_string_valid_map native_char_to_upper
+    (fun _ hc => native_char_valid_to_upper hc) hs
+
+/-- Regex replacement preserves native-string validity. -/
+theorem native_str_replace_re_valid
+    {s replacement : native_String}
+    (r : native_RegLan)
+    (hs : native_string_valid s = true)
+    (hreplacement : native_string_valid replacement = true) :
+    native_string_valid (native_str_replace_re s r replacement) = true := by
+  unfold native_str_replace_re
+  cases hFind : native_re_find_idx_from r s 0 with
+  | none =>
+      simpa [hFind] using hs
+  | some p =>
+      rcases p with ⟨idx, len⟩
+      have hTake : native_string_valid (s.take idx) = true :=
+        native_string_valid_take idx hs
+      have hDrop : native_string_valid (s.drop (idx + len)) = true :=
+        native_string_valid_drop (idx + len) hs
+      simpa [hFind, List.append_assoc] using
+        native_string_valid_append (native_string_valid_append hTake hreplacement) hDrop
+
+/-- Auxiliary validity lemma for regex replace-all. -/
+theorem native_re_replace_all_nonempty_list_aux_valid :
+    ∀ fuel (r : native_RegLan) (replacement : List native_Char) {xs : List native_Char},
+      native_string_valid replacement = true ->
+        native_string_valid xs = true ->
+          native_string_valid
+            (native_re_replace_all_nonempty_list_aux fuel r replacement xs) = true
+  | 0, r, replacement, xs, hreplacement, hxs => by
+      simpa [native_re_replace_all_nonempty_list_aux] using hxs
+  | fuel + 1, r, replacement, xs, hreplacement, hxs => by
+      cases hMatch : native_re_positive_prefix_match_len? r xs with
+      | none =>
+          cases xs with
+          | nil =>
+              simp [native_re_replace_all_nonempty_list_aux, hMatch, native_string_valid]
+          | cons c cs =>
+              simp [native_string_valid] at hxs
+              rcases hxs with ⟨hc, hcs⟩
+              have hcsValid : native_string_valid cs = true := by
+                simpa [native_string_valid] using hcs
+              have hTail :=
+                native_re_replace_all_nonempty_list_aux_valid fuel r replacement
+                  hreplacement hcsValid
+              simpa [native_re_replace_all_nonempty_list_aux, hMatch] using
+                native_string_valid_cons hc hTail
+      | some len =>
+          cases len with
+          | zero =>
+              cases xs with
+              | nil =>
+                  simp [native_re_replace_all_nonempty_list_aux, hMatch, native_string_valid]
+              | cons c cs =>
+                  simp [native_string_valid] at hxs
+                  rcases hxs with ⟨hc, hcs⟩
+                  have hcsValid : native_string_valid cs = true := by
+                    simpa [native_string_valid] using hcs
+                  have hTail :=
+                    native_re_replace_all_nonempty_list_aux_valid fuel r replacement
+                      hreplacement hcsValid
+                  simpa [native_re_replace_all_nonempty_list_aux, hMatch] using
+                    native_string_valid_cons hc hTail
+          | succ n =>
+              have hDrop : native_string_valid (xs.drop (n + 1)) = true :=
+                native_string_valid_drop (n + 1) hxs
+              have hTail :=
+                native_re_replace_all_nonempty_list_aux_valid fuel r replacement
+                  hreplacement hDrop
+              simpa [native_re_replace_all_nonempty_list_aux, hMatch] using
+                native_string_valid_append hreplacement hTail
+
+/-- Regex replace-all preserves native-string validity. -/
+theorem native_str_replace_re_all_valid
+    {s replacement : native_String}
+    (r : native_RegLan)
+    (hs : native_string_valid s = true)
+    (hreplacement : native_string_valid replacement = true) :
+    native_string_valid (native_str_replace_re_all s r replacement) = true := by
+  unfold native_str_replace_re_all native_re_replace_all_nonempty_list
+  exact native_re_replace_all_nonempty_list_aux_valid (s.length + 1) r replacement
+    hreplacement hs
+
+set_option linter.unusedSimpArgs false in
+/-- Character digits used by `Nat.toDigits` are valid SMT characters. -/
+theorem native_char_valid_digitChar
+    (n : Nat) :
+    native_char_valid (Char.toNat (Nat.digitChar n)) = true := by
+  unfold Nat.digitChar native_char_valid
+  by_cases h0 : n = 0
+  · simp [h0]
+  · by_cases h1 : n = 1
+    · simp [h0, h1]
+    · by_cases h2 : n = 2
+      · simp [h0, h1, h2]
+      · by_cases h3 : n = 3
+        · simp [h0, h1, h2, h3]
+        · by_cases h4 : n = 4
+          · simp [h0, h1, h2, h3, h4]
+          · by_cases h5 : n = 5
+            · simp [h0, h1, h2, h3, h4, h5]
+            · by_cases h6 : n = 6
+              · simp [h0, h1, h2, h3, h4, h5, h6]
+              · by_cases h7 : n = 7
+                · simp [h0, h1, h2, h3, h4, h5, h6, h7]
+                · by_cases h8 : n = 8
+                  · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8]
+                  · by_cases h9 : n = 9
+                    · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9]
+                    · by_cases h10 : n = 10
+                      · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10]
+                      · by_cases h11 : n = 11
+                        · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11]
+                        · by_cases h12 : n = 12
+                          · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
+                              h11, h12]
+                          · by_cases h13 : n = 13
+                            · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
+                                h11, h12, h13]
+                            · by_cases h14 : n = 14
+                              · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
+                                  h11, h12, h13, h14]
+                              · by_cases h15 : n = 15
+                                · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
+                                    h11, h12, h13, h14, h15]
+                                · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
+                                    h11, h12, h13, h14, h15]
+
+/-- Consing a valid Lean character onto a valid native string literal preserves validity. -/
+theorem native_string_valid_char_toNat_cons
+    {c : Char}
+    (hc : native_char_valid (Char.toNat c) = true)
+    {cs : List Char}
+    (hcs : native_string_valid (cs.map Char.toNat) = true) :
+    native_string_valid ((c :: cs).map Char.toNat) = true := by
+  simpa using native_string_valid_cons hc hcs
+
+/-- `Nat.toDigitsCore` produces only valid SMT characters when the accumulator is valid. -/
+theorem native_string_valid_toDigitsCore :
+    ∀ fuel n ds,
+      native_string_valid (ds.map Char.toNat) = true ->
+        native_string_valid ((Nat.toDigitsCore 10 fuel n ds).map Char.toNat) = true
+  | 0, n, ds, hds => by
+      simpa [Nat.toDigitsCore.eq_1] using hds
+  | fuel + 1, n, ds, hds => by
+      rw [Nat.toDigitsCore.eq_2]
+      by_cases hDiv : n / 10 = 0
+      · rw [if_pos hDiv]
+        exact native_string_valid_char_toNat_cons
+          (native_char_valid_digitChar (n % 10)) hds
+      · rw [if_neg hDiv]
+        exact native_string_valid_toDigitsCore fuel (n / 10)
+          ((Nat.digitChar (n % 10)) :: ds)
+          (native_string_valid_char_toNat_cons
+            (native_char_valid_digitChar (n % 10)) hds)
+
+/-- String literals generated by `Nat.toString` are valid SMT strings. -/
+theorem native_string_valid_nat_toString
+    (n : Nat) :
+    native_string_valid (native_string_lit (toString n)) = true := by
+  unfold native_string_lit
+  rw [show (toString n).toList = Nat.toDigits 10 n by
+    rw [show (toString n) = n.repr by rfl]
+    unfold Nat.repr
+    rw [String.toList_ofList]]
+  rw [Nat.toDigits.eq_1]
+  exact native_string_valid_toDigitsCore (n + 1) n [] (by simp [native_string_valid])
+
+/-- `str.from_code` produces valid native strings. -/
+theorem native_str_from_code_valid
+    (i : native_Int) :
+    native_string_valid (native_str_from_code i) = true := by
+  unfold native_str_from_code
+  cases h : (decide (0 ≤ i) && native_char_valid (Int.toNat i))
+  · simp [native_string_lit, native_string_valid]
+  · have hChar : native_char_valid (Int.toNat i) = true := by
+      simp at h
+      exact h.2
+    simp [native_string_valid, hChar]
+
+/-- `str.from_int` produces valid native strings. -/
+theorem native_str_from_int_valid
+    (i : native_Int) :
+    native_string_valid (native_str_from_int i) = true := by
+  cases i with
+  | ofNat n =>
+      unfold native_str_from_int
+      have hNot : ¬ ((Int.ofNat n) < 0) := by
+        exact Int.not_lt_of_ge (Int.natCast_nonneg n)
+      rw [if_neg hNot]
+      change native_string_valid (native_string_lit (toString n)) = true
+      exact native_string_valid_nat_toString n
+  | negSucc n =>
+      unfold native_str_from_int
+      have hNeg : (Int.negSucc n) < 0 := by
+        exact Int.negSucc_lt_zero n
+      rw [if_pos hNeg]
+      simp [native_string_lit, native_string_valid]
+
 /-- Lemma about `char_value_list_typed`. -/
-theorem char_value_list_typed :
-    ∀ cs : List native_Char, list_typed SmtType.Char (cs.map SmtValue.Char)
-  | [] => by
+theorem char_value_list_typed_of_valid :
+    ∀ {cs : List native_Char},
+      native_string_valid cs = true ->
+        list_typed SmtType.Char (cs.map SmtValue.Char)
+  | [], _ => by
       simp [list_typed]
-  | _ :: cs => by
-      simp [list_typed, char_value_list_typed cs, __smtx_typeof_value]
+  | c :: cs, hValid => by
+      simp [native_string_valid] at hValid
+      rcases hValid with ⟨hc, hcs⟩
+      have hcsValid : native_string_valid cs = true := by
+        simpa [native_string_valid] using hcs
+      exact ⟨by simp [__smtx_typeof_value, SmtEval.native_ite, hc],
+        char_value_list_typed_of_valid hcsValid⟩
 
 /-- Derives `char_values` from `string_typed`. -/
 theorem char_values_of_string_typed
-    (s : native_String) :
+    (s : native_String)
+    (hValid : native_string_valid s = true) :
     list_typed SmtType.Char (s.map SmtValue.Char) := by
-  exact char_value_list_typed s
+  exact char_value_list_typed_of_valid hValid
 
 /-- Lemma about `typeof_pack_string`. -/
 theorem typeof_pack_string
-    (s : native_String) :
+    (s : native_String)
+    (hValid : native_string_valid s = true) :
     __smtx_typeof_seq_value (native_pack_string s) = SmtType.Seq SmtType.Char := by
   change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (s.map SmtValue.Char)) =
       SmtType.Seq SmtType.Char
-  exact typeof_seq_value_pack_seq_of_typed (char_values_of_string_typed s)
+  exact typeof_seq_value_pack_seq_of_typed (char_values_of_string_typed s hValid)
+
+/-- Invalid strings pack to ill-typed SMT sequence values. -/
+theorem typeof_pack_string_invalid :
+    ∀ s : native_String,
+      native_string_valid s = false ->
+        __smtx_typeof_seq_value (native_pack_string s) = SmtType.None
+  | [], hInvalid => by
+      simp [native_string_valid] at hInvalid
+  | c :: cs, hInvalid => by
+      simp [native_string_valid] at hInvalid
+      by_cases hc : native_char_valid c = true
+      · have hcs : native_string_valid cs = false := by
+          have hExists := hInvalid hc
+          simpa [native_string_valid] using hExists
+        have hTail := typeof_pack_string_invalid cs hcs
+        change __smtx_typeof_seq_value
+            (native_pack_seq SmtType.Char (SmtValue.Char c :: cs.map SmtValue.Char)) =
+          SmtType.None
+        change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (cs.map SmtValue.Char)) =
+          SmtType.None at hTail
+        simp [native_pack_seq, __smtx_typeof_seq_value, __smtx_typeof_value,
+          SmtEval.native_ite, hc, hTail, native_Teq]
+      · have hcFalse : native_char_valid c = false := by
+          cases hc' : native_char_valid c <;> simp [hc'] at hc ⊢
+        change __smtx_typeof_seq_value
+            (native_pack_seq SmtType.Char (SmtValue.Char c :: cs.map SmtValue.Char)) =
+          SmtType.None
+        cases hcs : native_string_valid cs
+        · have hTail := typeof_pack_string_invalid cs hcs
+          change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (cs.map SmtValue.Char)) =
+            SmtType.None at hTail
+          simp [native_pack_seq, __smtx_typeof_seq_value, __smtx_typeof_value,
+            SmtEval.native_ite, hcFalse, hTail, native_Teq]
+        · have hTail := typeof_pack_string cs hcs
+          change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (cs.map SmtValue.Char)) =
+            SmtType.Seq SmtType.Char at hTail
+          simp [native_pack_seq, __smtx_typeof_seq_value, __smtx_typeof_value,
+            SmtEval.native_ite, hcFalse, hTail, native_Teq]
 
 /-- Shows that evaluating `string` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_string
     (M : SmtModel)
     (s : native_String) :
-    __smtx_typeof_value (__smtx_model_eval M (SmtTerm.String s)) =
+      __smtx_typeof_value (__smtx_model_eval M (SmtTerm.String s)) =
       __smtx_typeof (SmtTerm.String s) := by
-  rw [__smtx_model_eval.eq_4, __smtx_typeof.eq_4]
-  simpa [__smtx_typeof_value] using typeof_pack_string s
+  cases hValid : native_string_valid s
+  · have hPack := typeof_pack_string_invalid s hValid
+    rw [__smtx_model_eval.eq_4, __smtx_typeof.eq_4]
+    simp [__smtx_typeof_value, SmtEval.native_ite, hValid, hPack]
+  · have hPack := typeof_pack_string s hValid
+    rw [__smtx_model_eval.eq_4, __smtx_typeof.eq_4]
+    simp [__smtx_typeof_value, SmtEval.native_ite, hValid, hPack]
 
 /-- Lemma about `map_lookup_typed`. -/
 theorem map_lookup_typed :
@@ -1494,8 +1939,9 @@ theorem reglan_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | DtCons s d i =>

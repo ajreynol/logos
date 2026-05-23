@@ -547,7 +547,7 @@ theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
 @[simp] theorem native_inhabited_type_char :
     native_inhabited_type SmtType.Char = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
-    __smtx_value_canonical_bool, native_and]
+    __smtx_value_canonical_bool, native_and, SmtEval.native_ite]
 
 /-- The generated Boolean inhabitation check accepts uninterpreted sorts. -/
 @[simp] theorem native_inhabited_type_usort (i : native_Nat) :

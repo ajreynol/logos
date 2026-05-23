@@ -540,8 +540,9 @@ theorem no_value_of_empty_datatype
           simp [__smtx_typeof_value, hSeq] at hv
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at hv
-  | Char _ =>
-      simp [__smtx_typeof_value] at hv
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at hv
   | UValue _ _ =>
       simp [__smtx_typeof_value] at hv
   | RegLan _ =>
@@ -1178,7 +1179,9 @@ theorem typeof_value_model_eval_apply_dt
           simp [__smtx_typeof_value, hSeq] at hf
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at hf
-  | Char c => simp [__smtx_typeof_value] at hf
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at hf
   | UValue k e => simp [__smtx_typeof_value] at hf
   | RegLan r => simp [__smtx_typeof_value] at hf
   | DtCons s d n =>

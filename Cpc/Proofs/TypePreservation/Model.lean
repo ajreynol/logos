@@ -311,7 +311,7 @@ private theorem type_default_typed_canonical_of_wf_rec_deferred_datatype :
         __smtx_value_canonical, __smtx_value_canonical_bool, __smtx_seq_canonical]
   | SmtType.Char, hInh, hRec => by
       simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
-        __smtx_value_canonical_bool]
+        __smtx_value_canonical_bool, SmtEval.native_ite]
   | SmtType.Datatype s d, hInh, hRec => by
       exact datatype_type_default_typed_canonical_of_wf_rec_deferred s d hInh hRec
   | SmtType.TypeRef s, hInh, hRec => by
@@ -388,7 +388,7 @@ private theorem type_default_typed_canonical_of_wf_rec :
         __smtx_value_canonical, __smtx_value_canonical_bool, __smtx_seq_canonical]
   | SmtType.Char, hInh, hRec => by
       simp [__smtx_type_default, __smtx_typeof_value, __smtx_value_canonical,
-        __smtx_value_canonical_bool]
+        __smtx_value_canonical_bool, SmtEval.native_ite]
   | SmtType.Datatype s d, hInh, hRec => by
       exact datatype_type_default_typed_canonical_of_wf_rec s d hInh hRec
   | SmtType.TypeRef s, hInh, hRec => by
