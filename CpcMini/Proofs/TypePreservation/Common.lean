@@ -12,6 +12,14 @@ namespace Smtm
 
 attribute [local simp] __smtx_type_wf_component
 
+@[simp] theorem native_char_valid_zero :
+    native_char_valid 0 = true := by
+  native_decide
+
+@[simp] theorem native_re_canonical_none :
+    native_re_canonical native_re_none = true := by
+  native_decide
+
 /-- Extracts semantic inhabitation from the generated Boolean inhabitation check. -/
 theorem type_inhabited_of_native_inhabited_type
     (T : SmtType)

@@ -530,11 +530,11 @@ theorem model_eval_canonical_of_supported
   case uconst s T hT =>
       exact model_eval_uconst_canonical M hM s T hT
   case re_allchar =>
-      simpa [__smtx_model_eval] using value_canonical_reglan native_re_allchar
+      simpa [__smtx_model_eval] using value_canonical_reglan_allchar
   case re_none =>
-      simpa [__smtx_model_eval] using value_canonical_reglan native_re_none
+      simpa [__smtx_model_eval] using value_canonical_reglan_none
   case re_all =>
-      simpa [__smtx_model_eval] using value_canonical_reglan native_re_all
+      simpa [__smtx_model_eval] using value_canonical_reglan_all
   case seq_empty T hT =>
       exact model_eval_seq_empty_term_canonical M T
   case set_empty T hT =>
@@ -1017,8 +1017,6 @@ theorem model_eval_canonical_of_supported
     | exact model_eval_canonical_of_int_type M hM _ (by
         simpa [__smtx_typeof] using hTy)
     | exact model_eval_canonical_of_real_type M hM _ (by
-        simpa [__smtx_typeof] using hTy)
-    | exact model_eval_canonical_of_reglan_type M hM _ (by
         simpa [__smtx_typeof] using hTy)
 
 /--

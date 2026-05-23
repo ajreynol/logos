@@ -325,6 +325,33 @@ private theorem smtx_model_eval_eq_refl_aux
     __smtx_model_eval_eq v v = SmtValue.Boolean true := by
   cases v <;> simp [__smtx_model_eval_eq, native_veq]
 
+private theorem native_veq_true_symm
+    {v1 v2 : SmtValue}
+    (h : native_veq v1 v2 = true) :
+    native_veq v2 v1 = true := by
+  unfold native_veq at h ⊢
+  rw [decide_eq_true_eq] at h
+  rw [h]
+  simp
+
+private theorem native_re_ext_eq_true_symm
+    {r1 r2 : native_RegLan}
+    (h : (native_re_ext_eq r1 r2) = true) :
+    (native_re_ext_eq r2 r1) = true := by
+  by_cases hExt :
+      ∀ s : native_String,
+        native_string_valid s = true ->
+          native_str_in_re s r1 = native_str_in_re s r2
+  · have hExtSymm :
+        ∀ s : native_String,
+          native_string_valid s = true ->
+            native_str_in_re s r2 = native_str_in_re s r1 := by
+      intro s hs
+      exact (hExt s hs).symm
+    simp
+    exact hExtSymm
+  · simp [hExt] at h
+
 private theorem smtx_model_eval_seq_eq_refl_aux
     (s : SmtSeq) :
     __smtx_model_eval_eq (SmtValue.Seq s) (SmtValue.Seq s) = SmtValue.Boolean true :=
@@ -335,9 +362,13 @@ private theorem smtx_model_eval_eq_true_symm
     (h : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true) :
     __smtx_model_eval_eq v2 v1 = SmtValue.Boolean true := by
   cases v1 <;> cases v2
+  case RegLan.RegLan r1 r2 =>
+    simp [__smtx_model_eval_eq] at h ⊢
+    intro s hs
+    exact (h s hs).symm
   all_goals
-    simp [__smtx_model_eval_eq, native_veq] at h ⊢
-    try simpa only [eq_comm] using h
+    simp [__smtx_model_eval_eq] at h ⊢
+    exact native_veq_true_symm h
 
 private theorem smtx_model_eval_seq_eq_true_symm
     {s1 s2 : SmtSeq}
