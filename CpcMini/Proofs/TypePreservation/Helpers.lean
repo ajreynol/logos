@@ -333,8 +333,9 @@ theorem typeof_value_apply_of_head_ne_dt_cons :
           change __smtx_typeof_apply_value (__smtx_typeof_seq_value ss) (__smtx_typeof_value i) = SmtType.None
           rw [hNone]
           simp [__smtx_typeof_apply_value]
-  | SmtValue.Char _, i, hDt => by
-      simp [__smtx_typeof_value, __smtx_typeof_apply_value]
+  | SmtValue.Char c, i, hDt => by
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, __smtx_typeof_apply_value, SmtEval.native_ite, hValid]
   | SmtValue.UValue _ _, i, hDt => by
       simp [__smtx_typeof_value, __smtx_typeof_apply_value]
   | SmtValue.RegLan _, i, hDt => by
@@ -424,8 +425,9 @@ theorem no_value_of_type_ref
           simp [__smtx_typeof_value, hSeq] at hv
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at hv
-  | Char _ =>
-      simp [__smtx_typeof_value] at hv
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at hv
   | UValue _ _ =>
       simp [__smtx_typeof_value] at hv
   | RegLan _ =>
@@ -484,8 +486,9 @@ theorem bool_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -550,8 +553,9 @@ theorem fun_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -607,8 +611,9 @@ theorem map_value_canonical
           cases B' <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -664,8 +669,9 @@ theorem set_value_canonical
           simp [__smtx_typeof_value, hSeq] at h
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -737,8 +743,9 @@ theorem seq_value_canonical
           cases B <;> simp [__smtx_typeof_value, __smtx_map_to_set_type, hMap] at h
       | inr hNone =>
           simp [__smtx_typeof_value, __smtx_map_to_set_type, hNone] at h
-  | Char _ =>
-      simp [__smtx_typeof_value] at h
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at h
   | UValue _ _ =>
       simp [__smtx_typeof_value] at h
   | RegLan _ =>
@@ -776,26 +783,73 @@ theorem typeof_seq_value_pack_seq_of_typed
       simp [native_pack_seq, __smtx_typeof_seq_value, hv, ih, native_ite, native_Teq]
 
 /-- Lemma about `char_value_list_typed`. -/
-theorem char_value_list_typed :
-    ∀ cs : List native_Char, list_typed SmtType.Char (cs.map SmtValue.Char)
-  | [] => by
+theorem char_value_list_typed_of_valid :
+    ∀ {cs : List native_Char},
+      native_string_valid cs = true ->
+        list_typed SmtType.Char (cs.map SmtValue.Char)
+  | [], _ => by
       simp [list_typed]
-  | _ :: cs => by
-      simp [list_typed, char_value_list_typed cs, __smtx_typeof_value]
+  | c :: cs, hValid => by
+      simp [native_string_valid] at hValid
+      rcases hValid with ⟨hc, hcs⟩
+      have hcsValid : native_string_valid cs = true := by
+        simpa [native_string_valid] using hcs
+      exact ⟨by simp [__smtx_typeof_value, SmtEval.native_ite, hc],
+        char_value_list_typed_of_valid hcsValid⟩
 
 /-- Derives `char_values` from `string_typed`. -/
 theorem char_values_of_string_typed
-    (s : native_String) :
+    (s : native_String)
+    (hValid : native_string_valid s = true) :
     list_typed SmtType.Char (s.map SmtValue.Char) := by
-  exact char_value_list_typed s
+  exact char_value_list_typed_of_valid hValid
 
 /-- Lemma about `typeof_pack_string`. -/
 theorem typeof_pack_string
-    (s : native_String) :
+    (s : native_String)
+    (hValid : native_string_valid s = true) :
     __smtx_typeof_seq_value (native_pack_string s) = SmtType.Seq SmtType.Char := by
   change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (s.map SmtValue.Char)) =
       SmtType.Seq SmtType.Char
-  exact typeof_seq_value_pack_seq_of_typed (char_values_of_string_typed s)
+  exact typeof_seq_value_pack_seq_of_typed (char_values_of_string_typed s hValid)
+
+/-- Invalid strings pack to ill-typed SMT sequence values. -/
+theorem typeof_pack_string_invalid :
+    ∀ s : native_String,
+      native_string_valid s = false ->
+        __smtx_typeof_seq_value (native_pack_string s) = SmtType.None
+  | [], hInvalid => by
+      simp [native_string_valid] at hInvalid
+  | c :: cs, hInvalid => by
+      simp [native_string_valid] at hInvalid
+      by_cases hc : native_char_valid c = true
+      · have hcs : native_string_valid cs = false := by
+          have hExists := hInvalid hc
+          simpa [native_string_valid] using hExists
+        have hTail := typeof_pack_string_invalid cs hcs
+        change __smtx_typeof_seq_value
+            (native_pack_seq SmtType.Char (SmtValue.Char c :: cs.map SmtValue.Char)) =
+          SmtType.None
+        change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (cs.map SmtValue.Char)) =
+          SmtType.None at hTail
+        simp [native_pack_seq, __smtx_typeof_seq_value, __smtx_typeof_value,
+          SmtEval.native_ite, hc, hTail, native_Teq]
+      · have hcFalse : native_char_valid c = false := by
+          cases hc' : native_char_valid c <;> simp [hc'] at hc ⊢
+        change __smtx_typeof_seq_value
+            (native_pack_seq SmtType.Char (SmtValue.Char c :: cs.map SmtValue.Char)) =
+          SmtType.None
+        cases hcs : native_string_valid cs
+        · have hTail := typeof_pack_string_invalid cs hcs
+          change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (cs.map SmtValue.Char)) =
+            SmtType.None at hTail
+          simp [native_pack_seq, __smtx_typeof_seq_value, __smtx_typeof_value,
+            SmtEval.native_ite, hcFalse, hTail, native_Teq]
+        · have hTail := typeof_pack_string cs hcs
+          change __smtx_typeof_seq_value (native_pack_seq SmtType.Char (cs.map SmtValue.Char)) =
+            SmtType.Seq SmtType.Char at hTail
+          simp [native_pack_seq, __smtx_typeof_seq_value, __smtx_typeof_value,
+            SmtEval.native_ite, hcFalse, hTail, native_Teq]
 
 /-- Shows that evaluating `string` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_string
@@ -803,7 +857,13 @@ theorem typeof_value_model_eval_string
     (s : native_String) :
     __smtx_typeof_value (__smtx_model_eval M (SmtTerm.String s)) =
       __smtx_typeof (SmtTerm.String s) := by
-  simpa [__smtx_model_eval, __smtx_typeof, __smtx_typeof_value] using typeof_pack_string s
+  cases hValid : native_string_valid s
+  · have hPack := typeof_pack_string_invalid s hValid
+    rw [__smtx_model_eval.eq_4, __smtx_typeof.eq_4]
+    simp [__smtx_typeof_value, SmtEval.native_ite, hValid, hPack]
+  · have hPack := typeof_pack_string s hValid
+    rw [__smtx_model_eval.eq_4, __smtx_typeof.eq_4]
+    simp [__smtx_typeof_value, SmtEval.native_ite, hValid, hPack]
 
 /-- Lemma about `map_lookup_typed`. -/
 theorem map_lookup_typed :
