@@ -719,7 +719,7 @@ def __assoc_nil_nth : Term -> Term -> Term -> Term
 def __iota_rec : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) (Term.UOp UserOp.Int)), n => (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) (Term.UOp UserOp.Int))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0)) ns), n => (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) n) (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp._at__at_TypedList_cons) (__iota_rec ns (__eo_add n (Term.Numeral 1)))) (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) (Term.UOp UserOp.Int))))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) (Term.Numeral 0)) ns), n => (__eo_mk_apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) n) (__iota_rec ns (__eo_add n (Term.Numeral 1))))
   | _, _ => Term.Stuck
 
 
