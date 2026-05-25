@@ -122,6 +122,33 @@ private theorem eo_to_smt_true_eq :
     __eo_to_smt (Term.Boolean true) = SmtTerm.Boolean true := by
   rfl
 
+private theorem eo_eq_has_bool_type_of_eq_has_bool_type
+    (t s B : Term) :
+    RuleProofs.eo_has_bool_type
+      (Term.Apply
+        (Term.Apply Term.eq (Term.Apply (Term.Apply Term.eq t) s)) B) ->
+    RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq t) s) := by
+  intro hOuter
+  rcases RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+      (Term.Apply (Term.Apply Term.eq t) s) B hOuter with
+    ⟨_hTyEq, hEqNN⟩
+  unfold RuleProofs.eo_has_bool_type
+  rw [eo_to_smt_eq_eq, typeof_eq_eq]
+  exact
+    (RuleProofs.smtx_typeof_eq_bool_iff
+      (__smtx_typeof (__eo_to_smt t))
+      (__smtx_typeof (__eo_to_smt s))).mpr
+      (by
+        have hEqNN' :
+            __smtx_typeof_eq (__smtx_typeof (__eo_to_smt t))
+                (__smtx_typeof (__eo_to_smt s)) ≠
+              SmtType.None := by
+          simpa [eo_to_smt_eq_eq, typeof_eq_eq] using hEqNN
+        cases ht : __smtx_typeof (__eo_to_smt t) <;>
+          cases hs : __smtx_typeof (__eo_to_smt s) <;>
+            simpa [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+              native_Teq, ht, hs] using hEqNN')
+
 private theorem mk_dt_cons_eq_stuck_left (s : Term) :
     __mk_dt_cons_eq Term.Stuck s = Term.Stuck := by
   cases s <;> rfl

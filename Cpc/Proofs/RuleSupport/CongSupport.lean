@@ -16541,7 +16541,10 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                           __smtx_typeof
                             (SmtTerm.Apply (SmtTerm.String s)
                               (__eo_to_smt x)) = SmtType.None
-                        simp [__smtx_typeof, __smtx_typeof_apply])
+                        cases hValid : native_string_valid s <;>
+                          cases __smtx_typeof (__eo_to_smt x) <;>
+                            simp [__smtx_typeof, __smtx_typeof_apply,
+                              hValid])
                       hTrans)
               | Term.Binary w n =>
                   exact False.elim
@@ -19306,7 +19309,10 @@ private theorem congTrueSpine_eq_true
                           __smtx_typeof
                             (SmtTerm.Apply (SmtTerm.String s)
                               (__eo_to_smt x)) = SmtType.None
-                        simp [__smtx_typeof, __smtx_typeof_apply])
+                        cases hValid : native_string_valid s <;>
+                          cases __smtx_typeof (__eo_to_smt x) <;>
+                            simp [__smtx_typeof, __smtx_typeof_apply,
+                              hValid])
                       hEqBool)
               | Term.Binary w n =>
                   exact False.elim
