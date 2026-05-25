@@ -10,6 +10,8 @@ set_option maxHeartbeats 10000000
 namespace TranslationProofs
 
 attribute [local simp] native_ite
+attribute [local simp] native_streq
+attribute [local simp] native_and
 
 @[simp] private theorem guarded_datatype_type_ne_bool
     (s : native_String) (d : SmtDatatype) :
@@ -504,7 +506,7 @@ theorem eo_to_smt_type_tuple_ne_bool
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -524,7 +526,7 @@ theorem eo_to_smt_type_tuple_ne_int
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -544,7 +546,7 @@ theorem eo_to_smt_type_tuple_ne_real
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -564,7 +566,7 @@ theorem eo_to_smt_type_tuple_ne_reglan
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -584,7 +586,7 @@ theorem eo_to_smt_type_tuple_ne_bitvec
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -604,7 +606,7 @@ theorem eo_to_smt_type_tuple_ne_char
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -624,7 +626,7 @@ theorem eo_to_smt_type_tuple_ne_seq
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -644,7 +646,7 @@ theorem eo_to_smt_type_tuple_ne_set
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -664,7 +666,7 @@ theorem eo_to_smt_type_tuple_ne_map
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -684,7 +686,7 @@ theorem eo_to_smt_type_tuple_ne_fun
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -704,7 +706,7 @@ theorem eo_to_smt_type_tuple_ne_ifun
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -724,7 +726,7 @@ theorem eo_to_smt_type_tuple_ne_usort
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -744,7 +746,7 @@ theorem eo_to_smt_type_tuple_ne_typeref
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -764,7 +766,7 @@ theorem eo_to_smt_type_tuple_ne_dtc_app
     | sum c d' =>
         cases d' with
         | null =>
-            by_cases hs : s = "@Tuple"
+            by_cases hs : s = (native_string_lit "@Tuple")
             · subst hs
               by_cases hComp : __smtx_type_wf_component U = true <;>
                 simp [hComp]
@@ -1851,13 +1853,13 @@ theorem eo_to_smt_type_eq_typeref
       simp [__eo_to_smt_type] at h
 
 theorem eo_reserved_datatype_name_tuple :
-    __eo_reserved_datatype_name "@Tuple" = true := by
+    __eo_reserved_datatype_name (native_string_lit "@Tuple") = true := by
   native_decide
 
 theorem eo_unreserved_datatype_name_ne_tuple
     {s : native_String}
     (hReserved : __eo_reserved_datatype_name s = false) :
-    s ≠ "@Tuple" := by
+    s ≠ (native_string_lit "@Tuple") := by
   intro h
   subst s
   rw [eo_reserved_datatype_name_tuple] at hReserved
@@ -1871,7 +1873,7 @@ keeps user datatypes disjoint from tuple types.
 -/
 theorem eo_to_smt_type_eq_datatype_non_tuple
     {T : Term} {s : native_String} {d : SmtDatatype}
-    (hName : s ≠ "@Tuple")
+    (hName : s ≠ (native_string_lit "@Tuple"))
     (h : __eo_to_smt_type T = SmtType.Datatype s d) :
     ∃ d0, T = Term.DatatypeType s d0 ∧ __eo_to_smt_datatype d0 = d := by
   cases T with
@@ -1907,7 +1909,7 @@ theorem eo_to_smt_type_eq_datatype_non_tuple
                   exact h
                 cases hx : __eo_to_smt_type x <;> simp [__eo_to_smt_type_tuple, hx] at hRaw
                 case Datatype s0 d0 =>
-                  by_cases hs0 : s0 = "@Tuple"
+                  by_cases hs0 : s0 = (native_string_lit "@Tuple")
                   · subst s0
                     cases d0 with
                     | null => simp at hRaw
@@ -1922,7 +1924,11 @@ theorem eo_to_smt_type_eq_datatype_non_tuple
                             · simp [hComp] at hRaw
                         | sum c' rest' =>
                             simp at hRaw
-                  · cases d0 <;> simp [hs0] at hRaw
+                  · cases d0 with
+                    | null =>
+                        simp [__eo_to_smt_type_tuple, hs0] at hRaw
+                    | sum c rest =>
+                        cases rest <;> simp [__eo_to_smt_type_tuple, hs0] at hRaw
           | FunType =>
               cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                 simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -1955,12 +1961,12 @@ theorem eo_to_smt_type_eq_datatype_non_tuple
 /-- Inverts translated EO tuple types. -/
 theorem eo_to_smt_type_eq_tuple_datatype
     {T : Term} {d : SmtDatatype}
-    (h : __eo_to_smt_type T = SmtType.Datatype "@Tuple" d) :
+    (h : __eo_to_smt_type T = SmtType.Datatype (native_string_lit "@Tuple") d) :
     (T = Term.UOp UserOp.UnitTuple ∧
       d = SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) ∨
     (∃ y x c,
       T = Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) y) x ∧
-      __eo_to_smt_type x = SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ∧
+      __eo_to_smt_type x = SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ∧
       d = SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type y) c) SmtDatatype.null) := by
   cases T with
   | UOp op =>
@@ -1980,7 +1986,7 @@ theorem eo_to_smt_type_eq_tuple_datatype
               case Tuple =>
                 have hRaw :
                     __eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x) =
-                      SmtType.Datatype "@Tuple" d := by
+                      SmtType.Datatype (native_string_lit "@Tuple") d := by
                   cases hWf :
                       __smtx_type_wf
                         (__eo_to_smt_type_tuple (__eo_to_smt_type y) (__eo_to_smt_type x)) <;>
@@ -1988,7 +1994,7 @@ theorem eo_to_smt_type_eq_tuple_datatype
                   exact h
                 cases hx : __eo_to_smt_type x <;> simp [__eo_to_smt_type_tuple, hx] at hRaw
                 case Datatype s0 d0 =>
-                  by_cases hs0 : s0 = "@Tuple"
+                  by_cases hs0 : s0 = (native_string_lit "@Tuple")
                   · subst s0
                     cases d0 with
                     | null => simp at hRaw
@@ -2002,7 +2008,11 @@ theorem eo_to_smt_type_eq_tuple_datatype
                               cases hRaw
                               exact Or.inr ⟨y, x, c, rfl, hx, rfl⟩
                             · simp [hComp] at hRaw
-                  · cases d0 <;> simp [hs0] at hRaw
+                  · cases d0 with
+                    | null =>
+                        simp [__eo_to_smt_type_tuple, hs0] at hRaw
+                    | sum c rest =>
+                        cases rest <;> simp [__eo_to_smt_type_tuple, hs0] at hRaw
           | FunType =>
               cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                 simp [__eo_to_smt_type, __smtx_typeof_guard,
@@ -2095,7 +2105,7 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
   | Char =>
       rw [eo_to_smt_type_eq_char hT, eo_to_smt_type_eq_char hU]
   | Datatype s d =>
-      by_cases hs : s = "@Tuple"
+      by_cases hs : s = (native_string_lit "@Tuple")
       · subst s
         rcases eo_to_smt_type_eq_tuple_datatype hT with hUnitT | hTupleT
         · rcases hUnitT with ⟨rfl, hD⟩
@@ -2123,7 +2133,7 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
             subst cU
             have hWF' :
                 smtx_type_field_wf_rec
-                  (SmtType.Datatype "@Tuple"
+                  (SmtType.Datatype (native_string_lit "@Tuple")
                     (SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT)
                       SmtDatatype.null))
                   refs := by
@@ -2133,37 +2143,37 @@ theorem eo_to_smt_type_injective_of_field_wf_rec
                 __smtx_dt_wf_rec
                     (SmtDatatype.sum (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT)
                       SmtDatatype.null)
-                    (native_reflist_insert refs "@Tuple") =
+                    (native_reflist_insert refs (native_string_lit "@Tuple")) =
                   true := by
               exact hWFParts.2
             have hConsWF :
                 __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT)
-                  (native_reflist_insert refs "@Tuple") = true := by
+                  (native_reflist_insert refs (native_string_lit "@Tuple")) = true := by
               cases hConsWF :
                   __smtx_dt_cons_wf_rec (SmtDatatypeCons.cons (__eo_to_smt_type yT) cT)
-                    (native_reflist_insert refs "@Tuple") <;>
+                    (native_reflist_insert refs (native_string_lit "@Tuple")) <;>
                 simp [__smtx_dt_wf_rec, hConsWF] at hDWF ⊢
             have hFieldWF :
                 smtx_type_field_wf_rec (__eo_to_smt_type yT)
-                  (native_reflist_insert refs "@Tuple") :=
+                  (native_reflist_insert refs (native_string_lit "@Tuple")) :=
               smtx_type_field_wf_rec_of_cons_wf hConsWF
             have hTailWF :
-                __smtx_dt_cons_wf_rec cT (native_reflist_insert refs "@Tuple") =
+                __smtx_dt_cons_wf_rec cT (native_reflist_insert refs (native_string_lit "@Tuple")) =
                   true :=
               smtx_dt_cons_wf_rec_tail_of_true hConsWF
             have hxFieldWF :
                 smtx_type_field_wf_rec
-                    (SmtType.Datatype "@Tuple" (SmtDatatype.sum cT SmtDatatype.null))
+                    (SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum cT SmtDatatype.null))
                     refs := by
               simp [smtx_type_field_wf_rec, __smtx_type_wf_rec, hWFParts.1,
                 __smtx_dt_wf_rec, hTailWF, native_ite]
             have hyEq : yT = yU :=
               eo_to_smt_type_injective_of_field_wf_rec
-                (A := __eo_to_smt_type yT) (refs := native_reflist_insert refs "@Tuple")
+                (A := __eo_to_smt_type yT) (refs := native_reflist_insert refs (native_string_lit "@Tuple"))
                 rfl hY.symm hFieldWF
             have hxEq : xT = xU :=
               eo_to_smt_type_injective_of_field_wf_rec
-                (A := SmtType.Datatype "@Tuple" (SmtDatatype.sum cT SmtDatatype.null))
+                (A := SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum cT SmtDatatype.null))
                 (refs := refs) hxT hxU hxFieldWF
             subst yU
             subst xU
@@ -2271,13 +2281,13 @@ end
 /-- EO type translation never produces a tuple-private type reference. -/
 theorem eo_to_smt_type_ne_tuple_typeref
     (T : Term) :
-    __eo_to_smt_type T ≠ SmtType.TypeRef "@Tuple" := by
+    __eo_to_smt_type T ≠ SmtType.TypeRef (native_string_lit "@Tuple") := by
   intro h
-  have hT : T = Term.DatatypeTypeRef "@Tuple" := eo_to_smt_type_eq_typeref h
+  have hT : T = Term.DatatypeTypeRef (native_string_lit "@Tuple") := eo_to_smt_type_eq_typeref h
   subst T
-  change native_ite (__eo_reserved_datatype_name "@Tuple") SmtType.None
-      (SmtType.TypeRef "@Tuple") = SmtType.TypeRef "@Tuple" at h
-  rw [show __eo_reserved_datatype_name "@Tuple" = true by native_decide] at h
+  change native_ite (__eo_reserved_datatype_name (native_string_lit "@Tuple")) SmtType.None
+      (SmtType.TypeRef (native_string_lit "@Tuple")) = SmtType.TypeRef (native_string_lit "@Tuple") at h
+  rw [show __eo_reserved_datatype_name (native_string_lit "@Tuple") = true by native_decide] at h
   simp [native_ite] at h
 
 /--
@@ -2422,7 +2432,7 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                       | sum c' d'' =>
                           simp [__smtx_type_wf_rec] at hRawRec
                       | null =>
-                          by_cases hs : s = "@Tuple"
+                          by_cases hs : s = (native_string_lit "@Tuple")
                           · subst hs
                             by_cases hComp :
                                 __smtx_type_wf_component (__eo_to_smt_type y) = true
@@ -2430,19 +2440,19 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                               have hRawCons :
                                   __smtx_dt_cons_wf_rec
                                       (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
-                                      (native_reflist_insert native_reflist_nil "@Tuple") =
+                                      (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                                     true := by
                                 have hRawDt :
                                     __smtx_dt_wf_rec
                                         (SmtDatatype.sum
                                           (SmtDatatypeCons.cons (__eo_to_smt_type y) c)
                                           SmtDatatype.null)
-                                        (native_reflist_insert native_reflist_nil "@Tuple") =
+                                        (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                                       true := hRawRec.2
                                 simpa [__smtx_dt_wf_rec] using hRawDt
                               have hTail :
                                   __smtx_dt_cons_wf_rec c
-                                    (native_reflist_insert native_reflist_nil "@Tuple") =
+                                    (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                                       true :=
                                 smtx_dt_cons_wf_rec_tail_of_true hRawCons
                               have hy : __eo_typeof y = Term.Type := by
@@ -2455,16 +2465,16 @@ theorem eo_typeof_type_of_smt_type_wf_rec :
                                 all_goals
                                   have hField :
                                       smtx_type_field_wf_rec (__eo_to_smt_type y)
-                                        (native_reflist_insert native_reflist_nil "@Tuple") :=
+                                        (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) :=
                                     smtx_type_field_wf_rec_of_cons_wf hRawCons
                                   have hyWF :
                                       __smtx_type_wf_rec (__eo_to_smt_type y)
-                                        (native_reflist_insert native_reflist_nil "@Tuple") =
+                                        (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) =
                                           true :=
                                     by
                                       simpa [smtx_type_field_wf_rec, hY] using hField
                                   exact eo_typeof_type_of_smt_type_wf_rec y
-                                    (native_reflist_insert native_reflist_nil "@Tuple") hyWF
+                                    (native_reflist_insert native_reflist_nil (native_string_lit "@Tuple")) hyWF
                               have hxWF :
                                   __smtx_type_wf_rec (__eo_to_smt_type x) native_reflist_nil =
                                     true := by

@@ -4925,7 +4925,7 @@ private abbrev mkReConcat (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) x) y
 
 private abbrev mkReEps : Term :=
-  Term.Apply (Term.UOp UserOp.str_to_re) (Term.String "")
+  Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit ""))
 
 private abbrev mkReInter (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) x) y
@@ -16216,7 +16216,7 @@ private theorem reConcat_nil_eval_empty_of_is_list_nil_true
           by_cases hs : s = ""
           · subst s
             change __smtx_model_eval M
-                (SmtTerm.str_to_re (SmtTerm.String "")) =
+                (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) =
               SmtValue.RegLan (native_str_to_re "")
             simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
               native_str_to_re, native_re_of_list, native_pack_string,
@@ -16557,7 +16557,7 @@ private theorem smt_value_rel_get_a_norm_re_concat
       __smtx_model_eval M (__eo_to_smt id) =
         SmtValue.RegLan (native_str_to_re "") := by
     rw [hIdEq]
-    change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String "")) =
+    change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) =
       SmtValue.RegLan (native_str_to_re "")
     simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
       native_str_to_re, native_re_of_list, native_pack_string,

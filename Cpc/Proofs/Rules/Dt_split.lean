@@ -14,11 +14,11 @@ private def eoDatatypeNumCtors : Datatype -> Nat
   | Datatype.null => 0
   | Datatype.sum _ d => Nat.succ (eoDatatypeNumCtors d)
 
-private def smtDatatypeNumCtors : SmtDatatype -> Nat
+def smtDatatypeNumCtors : SmtDatatype -> Nat
   | SmtDatatype.null => 0
   | SmtDatatype.sum _ d => Nat.succ (smtDatatypeNumCtors d)
 
-private theorem smtDatatypeNumCtors_substitute
+theorem smtDatatypeNumCtors_substitute
     (s : native_String) (d0 : SmtDatatype) :
     ∀ d : SmtDatatype,
       smtDatatypeNumCtors (__smtx_dt_substitute s d0 d) =
@@ -54,7 +54,7 @@ private theorem smt_typeof_dt_cons_rec_non_none_of_lt
       simpa [__smtx_typeof_dt_cons_rec] using
         smt_typeof_dt_cons_rec_non_none_of_lt (T := T) hT hlt'
 
-private theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors
+theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors
     (s : native_String) (d0 : SmtDatatype) :
     ∀ {d : SmtDatatype} {i n : Nat},
       dt_cons_applied_type_rec s d0 d i n ≠ SmtType.None ->
@@ -73,7 +73,7 @@ private theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors
         s d0 (d := d) (i := i) (n := n) h'
       simpa [smtDatatypeNumCtors] using Nat.succ_lt_succ hlt
 
-private theorem datatype_value_head_of_type
+theorem datatype_value_head_of_type
     {v : SmtValue} {s : native_String} {d : SmtDatatype}
     (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
     ∃ i, __vsm_apply_head v = SmtValue.DtCons s d i := by
@@ -160,7 +160,9 @@ private theorem datatype_value_head_of_type
             simp [__smtx_typeof_value, hSeq] at hTy
         | inr hNone =>
             simp [__smtx_typeof_value, hNone] at hTy
-    | Char _ => simp [__smtx_typeof_value] at hTy
+    | Char c =>
+        cases hValid : native_char_valid c <;>
+          simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at hTy
     | UValue _ _ => simp [__smtx_typeof_value] at hTy
     | RegLan _ => simp [__smtx_typeof_value] at hTy
     | DtCons s0 d0 i0 =>
@@ -175,7 +177,7 @@ private theorem datatype_value_head_of_type
         rw [hNone] at hTy
         cases hTy
 
-private theorem datatype_head_index_lt
+theorem datatype_head_index_lt
     {v : SmtValue} {s : native_String} {d : SmtDatatype} {i : Nat}
     (hHead : __vsm_apply_head v = SmtValue.DtCons s d i)
     (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
@@ -730,26 +732,26 @@ private theorem unit_tuple_tester_has_bool_type
     (x : Term)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype "@Tuple" smtUnitTupleDatatype) :
+        SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype) :
     RuleProofs.eo_has_bool_type
       (Term.Apply (Term.UOp1 UserOp1.is (Term.UOp UserOp.tuple_unit)) x) := by
   unfold RuleProofs.eo_has_bool_type
   change
     __smtx_typeof
         (SmtTerm.Apply
-          (SmtTerm.DtTester "@Tuple" smtUnitTupleDatatype 0) (__eo_to_smt x)) =
+          (SmtTerm.DtTester (native_string_lit "@Tuple") smtUnitTupleDatatype 0) (__eo_to_smt x)) =
       SmtType.Bool
   have hCtorNN :
       __smtx_typeof_dt_cons_rec
-          (SmtType.Datatype "@Tuple" smtUnitTupleDatatype)
-          (__smtx_dt_substitute "@Tuple" smtUnitTupleDatatype smtUnitTupleDatatype) 0 ≠
+          (SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype)
+          (__smtx_dt_substitute (native_string_lit "@Tuple") smtUnitTupleDatatype smtUnitTupleDatatype) 0 ≠
         SmtType.None := by
     simp [smtUnitTupleDatatype, __smtx_dt_substitute, __smtx_dtc_substitute,
       __smtx_typeof_dt_cons_rec]
   have hCtorNN' :
       __smtx_typeof_dt_cons_rec
-          (SmtType.Datatype "@Tuple" (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
-          (__smtx_dt_substitute "@Tuple"
+          (SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null))
+          (__smtx_dt_substitute (native_string_lit "@Tuple")
             (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
             (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) 0 ≠
         SmtType.None := by
@@ -762,10 +764,10 @@ private theorem unit_tuple_tester_interprets_true
     (M : SmtModel) (x : Term)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype "@Tuple" smtUnitTupleDatatype)
+        SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype)
     (hEvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt x)) =
-        SmtType.Datatype "@Tuple" smtUnitTupleDatatype) :
+        SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype) :
     eo_interprets M
       (Term.Apply (Term.UOp1 UserOp1.is (Term.UOp UserOp.tuple_unit)) x) true := by
   have hBool := unit_tuple_tester_has_bool_type x hxTy
@@ -778,7 +780,7 @@ private theorem unit_tuple_tester_interprets_true
   · exact hBool
   · change
       __smtx_model_eval M
-          (SmtTerm.Apply (SmtTerm.DtTester "@Tuple" smtUnitTupleDatatype 0)
+          (SmtTerm.Apply (SmtTerm.DtTester (native_string_lit "@Tuple") smtUnitTupleDatatype 0)
             (__eo_to_smt x)) =
         SmtValue.Boolean true
     simp [__smtx_model_eval, __smtx_model_eval_dt_tester, hHead, native_veq]
@@ -789,10 +791,10 @@ private theorem dt_split_unit_tuple_program_true
     (hType : __eo_typeof x = Term.UOp UserOp.UnitTuple)
     (hxTy :
       __smtx_typeof (__eo_to_smt x) =
-        SmtType.Datatype "@Tuple" smtUnitTupleDatatype)
+        SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype)
     (hEvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt x)) =
-        SmtType.Datatype "@Tuple" smtUnitTupleDatatype) :
+        SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype) :
     eo_interprets M (__eo_prog_dt_split x) true := by
   have hxTrans : RuleProofs.eo_has_smt_translation x := by
     unfold RuleProofs.eo_has_smt_translation
@@ -864,11 +866,11 @@ private theorem facts___eo_prog_dt_split_impl
       · subst op
         have hxTy :
             __smtx_typeof (__eo_to_smt x) =
-              SmtType.Datatype "@Tuple" smtUnitTupleDatatype := by
+              SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype := by
           simpa [hT, __eo_to_smt_type, smtUnitTupleDatatype] using hxMatch
         have hEvalTy :
             __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt x)) =
-              SmtType.Datatype "@Tuple" smtUnitTupleDatatype := by
+              SmtType.Datatype (native_string_lit "@Tuple") smtUnitTupleDatatype := by
           simpa [hxTy] using hxEvalTy
         exact dt_split_unit_tuple_program_true M hM x (by simpa using hT)
           hxTy hEvalTy

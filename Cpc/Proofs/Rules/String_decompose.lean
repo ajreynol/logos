@@ -153,7 +153,7 @@ private theorem smt_typeof_seq_empty_typeof_of_smt_type_seq
       __eo_typeof x =
         Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
   · rw [hSpecial]
-    change __smtx_typeof (SmtTerm.String "") = SmtType.Seq T
+    change __smtx_typeof (SmtTerm.String (native_string_lit "")) = SmtType.Seq T
     rw [__smtx_typeof.eq_4]
     rw [hSpecial] at hA
     simp [TranslationProofs.eo_to_smt_type_seq,

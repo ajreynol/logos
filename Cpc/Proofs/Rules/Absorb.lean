@@ -790,12 +790,12 @@ private theorem bvor_result_type_of_non_none (y x : Term) :
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 
-private def native_list_in_re (xs : List Char) (r : native_RegLan) :
+private def native_list_in_re (xs : List native_Char) (r : native_RegLan) :
     native_Bool :=
   native_re_nullable <| xs.foldl (fun acc c => native_re_deriv c acc) r
 
 private theorem native_list_in_re_empty :
-    (xs : List Char) -> native_list_in_re xs SmtRegLan.empty = false
+    (xs : List native_Char) -> native_list_in_re xs SmtRegLan.empty = false
   | [] => by rfl
   | _ :: xs => by
       exact native_list_in_re_empty xs
@@ -834,7 +834,7 @@ private theorem native_re_nullable_mk_union (r s : native_RegLan) :
     split <;> simp_all [native_re_nullable]
 
 private theorem native_list_in_re_mk_union :
-    (xs : List Char) -> (r s : native_RegLan) ->
+    (xs : List native_Char) -> (r s : native_RegLan) ->
       native_list_in_re xs (native_re_mk_union r s) =
         (native_list_in_re xs r || native_list_in_re xs s)
   | [], r, s => by
@@ -860,14 +860,14 @@ private theorem native_str_in_re_mk_union
     native_str_in_re str (native_re_mk_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
   simpa [native_str_in_re, native_list_in_re] using
-    native_list_in_re_mk_union str.toList r s
+    native_list_in_re_mk_union str r s
 
-private theorem native_re_deriv_all (c : Char) :
+private theorem native_re_deriv_all (c : native_Char) :
     native_re_deriv c native_re_all = native_re_all := by
   simp [native_re_all, native_re_deriv, native_re_mk_concat]
 
 private theorem native_list_in_re_all :
-    (xs : List Char) -> native_list_in_re xs native_re_all = true
+    (xs : List native_Char) -> native_list_in_re xs native_re_all = true
   | [] => by rfl
   | c :: cs => by
       simp [native_list_in_re, native_re_deriv_all]
@@ -876,7 +876,7 @@ private theorem native_list_in_re_all :
 private theorem native_str_in_re_all (str : native_String) :
     native_str_in_re str native_re_all = true := by
   simpa [native_str_in_re, native_list_in_re] using
-    native_list_in_re_all str.toList
+    native_list_in_re_all str
 
 private theorem bitvec_toInt_emod_pow (w : Nat) (x : BitVec w) :
     x.toInt % (2 ^ w : Int) = x.toNat := by

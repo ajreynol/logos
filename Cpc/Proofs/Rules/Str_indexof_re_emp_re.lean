@@ -209,7 +209,7 @@ private theorem eval_empty_in_re_eq_true_of_premise
       eo_interprets M
         (Term.Apply
           (Term.Apply Term.eq
-            (Term.Apply (Term.Apply Term.str_in_re (Term.String "")) r))
+            (Term.Apply (Term.Apply Term.str_in_re (Term.String (native_string_lit ""))) r))
           (Term.Boolean true))
         true) :
     native_str_in_re "" rr = true := by
@@ -218,23 +218,23 @@ private theorem eval_empty_in_re_eq_true_of_premise
         (__eo_to_smt
           (Term.Apply
             (Term.Apply Term.eq
-              (Term.Apply (Term.Apply Term.str_in_re (Term.String "")) r))
+              (Term.Apply (Term.Apply Term.str_in_re (Term.String (native_string_lit ""))) r))
             (Term.Boolean true))) =
         SmtValue.Boolean true := by
     cases (RuleProofs.eo_interprets_iff_smt_interprets M
         (Term.Apply
           (Term.Apply Term.eq
-            (Term.Apply (Term.Apply Term.str_in_re (Term.String "")) r))
+            (Term.Apply (Term.Apply Term.str_in_re (Term.String (native_string_lit ""))) r))
           (Term.Boolean true)) true).mp hPrem with
     | intro_true _ hEval => exact hEval
   have hTranslate :
       __eo_to_smt
         (Term.Apply
           (Term.Apply Term.eq
-            (Term.Apply (Term.Apply Term.str_in_re (Term.String "")) r))
+            (Term.Apply (Term.Apply Term.str_in_re (Term.String (native_string_lit ""))) r))
           (Term.Boolean true)) =
         SmtTerm.eq
-          (SmtTerm.str_in_re (SmtTerm.String "") (__eo_to_smt r))
+          (SmtTerm.str_in_re (SmtTerm.String (native_string_lit "")) (__eo_to_smt r))
           (SmtTerm.Boolean true) := by
     rfl
   rw [hTranslate] at hEval
@@ -295,7 +295,7 @@ private theorem facts_str_indexof_re_emp_re_body
       eo_interprets M
         (Term.Apply
           (Term.Apply Term.eq
-            (Term.Apply (Term.Apply Term.str_in_re (Term.String "")) r))
+            (Term.Apply (Term.Apply Term.str_in_re (Term.String (native_string_lit ""))) r))
           (Term.Boolean true))
         true)
     (hPremGe :
@@ -541,7 +541,7 @@ by
                                         Term.Apply
                                           (Term.Apply Term.eq
                                             (Term.Apply
-                                              (Term.Apply Term.str_in_re (Term.String ""))
+                                              (Term.Apply Term.str_in_re (Term.String (native_string_lit "")))
                                               lvR))
                                           (Term.Boolean true) := by
                                     injection hP₁Eq
@@ -589,7 +589,7 @@ by
                                         (Term.Apply
                                           (Term.Apply Term.eq
                                             (Term.Apply
-                                              (Term.Apply Term.str_in_re (Term.String ""))
+                                              (Term.Apply Term.str_in_re (Term.String (native_string_lit "")))
                                               rArg))
                                           (Term.Boolean true))
                                         true := by

@@ -303,7 +303,8 @@ theorem smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       simpa [__smtx_typeof] using go t htNN
     case String s =>
-      simpa [__smtx_typeof, type_result_seq_components_wf] using seq_char_wf
+      cases hValid : native_string_valid s <;>
+        simp [__smtx_typeof, native_ite, hValid, type_result_seq_components_wf, seq_char_wf]
     case Var s T =>
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
@@ -713,10 +714,10 @@ theorem eval_seq_empty_of_type (M : SmtModel) (A : Term) (T : SmtType) :
   · subst hSpecial
     simp [__eo_to_smt_type, __smtx_typeof_guard] at hA
     cases hA
-    change __smtx_model_eval M (SmtTerm.String "") =
+    change __smtx_model_eval M (SmtTerm.String (native_string_lit "")) =
       SmtValue.Seq (SmtSeq.empty SmtType.Char)
     rw [__smtx_model_eval.eq_4]
-    simp [native_pack_string, native_ssm_char_values_of_string, native_pack_seq]
+    simp [native_pack_string, native_string_lit, native_pack_seq]
   · by_cases hStuck : A = Term.Stuck
     · subst hStuck
       simp [__eo_to_smt_type] at hA
@@ -752,8 +753,9 @@ theorem smt_typeof_seq_empty_of_type (A : Term) (T : SmtType) :
   · subst hSpecial
     simp [__eo_to_smt_type, __smtx_typeof_guard] at hA
     cases hA
-    change __smtx_typeof (SmtTerm.String "") = SmtType.Seq SmtType.Char
+    change __smtx_typeof (SmtTerm.String (native_string_lit "")) = SmtType.Seq SmtType.Char
     rw [__smtx_typeof.eq_4]
+    simp [native_string_lit, native_string_valid, native_ite]
   · by_cases hStuck : A = Term.Stuck
     · subst hStuck
       simp [__eo_to_smt_type] at hA
@@ -778,9 +780,10 @@ theorem smt_typeof_seq_empty_seq_of_non_none (A : Term)
       A = Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
   · subst A
     exact ⟨SmtType.Char, by
-      change __smtx_typeof (SmtTerm.String "") =
+      change __smtx_typeof (SmtTerm.String (native_string_lit "")) =
         SmtType.Seq SmtType.Char
-      rw [__smtx_typeof.eq_4]⟩
+      rw [__smtx_typeof.eq_4]
+      simp [native_string_lit, native_string_valid, native_ite]⟩
   · by_cases hStuck : A = Term.Stuck
     · subst A
       have hNone : __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None := by
@@ -818,9 +821,10 @@ theorem eo_to_smt_type_seq_of_seq_empty_non_none (A : Term)
       simp [__eo_to_smt_type, __smtx_typeof_guard, native_Teq, native_ite,
         hNe],
       by
-        change __smtx_typeof (SmtTerm.String "") =
+        change __smtx_typeof (SmtTerm.String (native_string_lit "")) =
           SmtType.Seq SmtType.Char
-        rw [__smtx_typeof.eq_4]⟩
+        rw [__smtx_typeof.eq_4]
+        simp [native_string_lit, native_string_valid, native_ite]⟩
   · by_cases hStuck : A = Term.Stuck
     · subst A
       have hNone : __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.None := by
@@ -904,7 +908,7 @@ theorem seq_empty_typeof_has_smt_translation_of_smt_type_seq_wf
       __eo_typeof x =
         Term.Apply (Term.UOp UserOp.Seq) (Term.UOp UserOp.Char)
   · rw [hSpecial]
-    change __smtx_typeof (SmtTerm.String "") ≠ SmtType.None
+    change __smtx_typeof (SmtTerm.String (native_string_lit "")) ≠ SmtType.None
     rw [__smtx_typeof.eq_4]
     exact seq_ne_none SmtType.Char
   · by_cases hStuck : __eo_typeof x = Term.Stuck
@@ -3195,16 +3199,16 @@ theorem smt_value_rel_str_concat_nil_empty
             simp [__eo_to_smt_seq_empty, TranslationProofs.smtx_typeof_none] at hNilTy
   case String s =>
       subst s
-      change __smtx_typeof (SmtTerm.String "") = SmtType.Seq T at hNilTy
+      change __smtx_typeof (SmtTerm.String (native_string_lit "")) = SmtType.Seq T at hNilTy
       rw [__smtx_typeof.eq_4] at hNilTy
-      injection hNilTy with hT
-      subst T
+      simp [native_string_lit, native_string_valid, native_ite] at hNilTy
+      cases hNilTy
       unfold RuleProofs.smt_value_rel
       change __smtx_model_eval_eq
-        (__smtx_model_eval M (SmtTerm.String ""))
+        (__smtx_model_eval M (SmtTerm.String (native_string_lit "")))
         (SmtValue.Seq (SmtSeq.empty SmtType.Char)) = SmtValue.Boolean true
       rw [__smtx_model_eval.eq_4]
-      simp [native_pack_string, native_ssm_char_values_of_string,
+      simp [native_pack_string, native_string_lit,
         native_pack_seq, __smtx_model_eval_eq, native_veq]
 
 theorem smt_value_rel_str_concat_right_empty

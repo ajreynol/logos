@@ -10,6 +10,14 @@ set_option maxHeartbeats 10000000
 
 namespace Smtm
 
+@[simp] theorem native_char_valid_zero :
+    native_char_valid 0 = true := by
+  native_decide
+
+@[simp] theorem native_re_canonical_none :
+    native_re_canonical native_re_none = true := by
+  native_decide
+
 /-- Extracts semantic inhabitation from the generated Boolean inhabitation check. -/
 theorem type_inhabited_of_native_inhabited_type
     (T : SmtType)
@@ -441,7 +449,7 @@ theorem type_inhabited_reglan : type_inhabited SmtType.RegLan :=
 
 /-- Shows that the SMT type `char` is inhabited. -/
 theorem type_inhabited_char : type_inhabited SmtType.Char :=
-  ⟨SmtValue.Char 'a', rfl⟩
+  ⟨SmtValue.Char 0, rfl⟩
 
 /-- Shows that every uninterpreted sort is inhabited. -/
 theorem type_inhabited_usort (i : native_Nat) : type_inhabited (SmtType.USort i) :=
@@ -539,7 +547,7 @@ theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
 @[simp] theorem native_inhabited_type_char :
     native_inhabited_type SmtType.Char = true := by
   simp [native_inhabited_type, __smtx_type_default, __smtx_typeof_value,
-    __smtx_value_canonical_bool, native_and]
+    __smtx_value_canonical_bool, native_and, SmtEval.native_ite]
 
 /-- The generated Boolean inhabitation check accepts uninterpreted sorts. -/
 @[simp] theorem native_inhabited_type_usort (i : native_Nat) :
