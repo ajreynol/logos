@@ -763,7 +763,7 @@ private theorem eo_to_smt_tuple_prepend_of_type_ne_dt_cons
           cases rest <;> simp [__eo_to_smt_tuple_prepend_of_type, hs,
             native_streq, native_and, native_ite] at h
 
-private theorem eo_to_smt_tuple_prepend_ne_dt_sel
+theorem eo_to_smt_tuple_prepend_ne_dt_sel
     (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm)
     (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt_tuple_prepend head headTy tail ≠ SmtTerm.DtSel s d i j := by
@@ -772,7 +772,7 @@ private theorem eo_to_smt_tuple_prepend_ne_dt_sel
     eo_to_smt_tuple_prepend_of_type_ne_dt_sel
       (__smtx_typeof tail) head headTy tail s d i j h
 
-private theorem eo_to_smt_tuple_prepend_ne_dt_tester
+theorem eo_to_smt_tuple_prepend_ne_dt_tester
     (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm)
     (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt_tuple_prepend head headTy tail ≠ SmtTerm.DtTester s d i := by
@@ -790,7 +790,7 @@ private theorem eo_to_smt_tuple_prepend_ne_dt_cons
     eo_to_smt_tuple_prepend_of_type_ne_dt_cons
       (__smtx_typeof tail) head headTy tail s d i h
 
-private theorem eo_to_smt_tuple_ne_dt_sel
+theorem eo_to_smt_tuple_ne_dt_sel
     (x y : Term) (s : native_String) (d : SmtDatatype) (i j : native_Nat) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x) ≠
       SmtTerm.DtSel s d i j := by
@@ -807,7 +807,7 @@ private theorem eo_to_smt_tuple_ne_dt_sel
   exact eo_to_smt_tuple_prepend_ne_dt_sel
     (__eo_to_smt y) (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt x) s d i j h'
 
-private theorem eo_to_smt_tuple_ne_dt_tester
+theorem eo_to_smt_tuple_ne_dt_tester
     (x y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat) :
     __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x) ≠
       SmtTerm.DtTester s d i := by
@@ -9326,7 +9326,7 @@ private theorem smtx_tuple_prepend_rec_seed_non_none_of_non_none
         smtx_tuple_prepend_rec_seed_non_none_of_non_none tailD tail k acc
           hAccSel hAccTester hRecNN
 
-private theorem smtx_tuple_prepend_typeof_of_tail_tuple_type
+theorem smtx_tuple_prepend_typeof_of_tail_tuple_type
     (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons)
     (hTailTy :
       __smtx_typeof tail =
@@ -9394,7 +9394,7 @@ private theorem smtx_tuple_prepend_typeof_of_tail_tuple_type
   rw [hTerm]
   exact hRecTy
 
-private theorem smtx_tuple_prepend_head_non_none_of_tail_tuple_type
+theorem smtx_tuple_prepend_head_non_none_of_tail_tuple_type
     (tail head : SmtTerm) (T : SmtType) (c : SmtDatatypeCons)
     (hTailTy :
       __smtx_typeof tail =
@@ -9797,7 +9797,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_tuple_of_tail_type
   exact hSmt.trans hEo.symm
 
 /-- A non-`none` tuple prepend has a fully typed tuple tail. -/
-private theorem eo_to_smt_tuple_tail_type_of_non_none_from_checked
+theorem eo_to_smt_tuple_tail_type_of_non_none_from_checked
     (x y : Term)
       (hNonNone :
         __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) x)) ≠
