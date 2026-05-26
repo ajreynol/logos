@@ -14,11 +14,11 @@ private def eoDatatypeNumCtors : Datatype -> Nat
   | Datatype.null => 0
   | Datatype.sum _ d => Nat.succ (eoDatatypeNumCtors d)
 
-private def smtDatatypeNumCtors : SmtDatatype -> Nat
+def smtDatatypeNumCtors : SmtDatatype -> Nat
   | SmtDatatype.null => 0
   | SmtDatatype.sum _ d => Nat.succ (smtDatatypeNumCtors d)
 
-private theorem smtDatatypeNumCtors_substitute
+theorem smtDatatypeNumCtors_substitute
     (s : native_String) (d0 : SmtDatatype) :
     ∀ d : SmtDatatype,
       smtDatatypeNumCtors (__smtx_dt_substitute s d0 d) =
@@ -54,7 +54,7 @@ private theorem smt_typeof_dt_cons_rec_non_none_of_lt
       simpa [__smtx_typeof_dt_cons_rec] using
         smt_typeof_dt_cons_rec_non_none_of_lt (T := T) hT hlt'
 
-private theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors
+theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors
     (s : native_String) (d0 : SmtDatatype) :
     ∀ {d : SmtDatatype} {i n : Nat},
       dt_cons_applied_type_rec s d0 d i n ≠ SmtType.None ->
@@ -73,7 +73,7 @@ private theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors
         s d0 (d := d) (i := i) (n := n) h'
       simpa [smtDatatypeNumCtors] using Nat.succ_lt_succ hlt
 
-private theorem datatype_value_head_of_type
+theorem datatype_value_head_of_type
     {v : SmtValue} {s : native_String} {d : SmtDatatype}
     (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :
     ∃ i, __vsm_apply_head v = SmtValue.DtCons s d i := by
@@ -160,7 +160,9 @@ private theorem datatype_value_head_of_type
             simp [__smtx_typeof_value, hSeq] at hTy
         | inr hNone =>
             simp [__smtx_typeof_value, hNone] at hTy
-    | Char _ => simp [__smtx_typeof_value] at hTy
+    | Char c =>
+        cases hValid : native_char_valid c <;>
+          simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at hTy
     | UValue _ _ => simp [__smtx_typeof_value] at hTy
     | RegLan _ => simp [__smtx_typeof_value] at hTy
     | DtCons s0 d0 i0 =>
@@ -175,7 +177,7 @@ private theorem datatype_value_head_of_type
         rw [hNone] at hTy
         cases hTy
 
-private theorem datatype_head_index_lt
+theorem datatype_head_index_lt
     {v : SmtValue} {s : native_String} {d : SmtDatatype} {i : Nat}
     (hHead : __vsm_apply_head v = SmtValue.DtCons s d i)
     (hTy : __smtx_typeof_value v = SmtType.Datatype s d) :

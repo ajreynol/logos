@@ -9447,7 +9447,7 @@ private theorem smtx_tuple_prepend_rec_seed_non_none_of_non_none
         smtx_tuple_prepend_rec_seed_non_none_of_non_none tailD tail k acc
           hAccSel hAccTester (by simpa [recTerm] using hRecNN)
 
-private theorem tuple_prepend_tail_type_of_non_none
+theorem tuple_prepend_tail_type_of_non_none
     (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm) :
     __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tail) ≠
       SmtType.None ->
@@ -9483,7 +9483,7 @@ private theorem tuple_prepend_tail_type_of_non_none
       exact False.elim (hNN (by
         simp [hTail, __eo_to_smt_tuple_prepend_of_type]))
 
-private theorem tuple_prepend_head_non_reg_of_non_none
+theorem tuple_prepend_head_non_reg_of_non_none
     (head : SmtTerm) (headTy : SmtType) (tail : SmtTerm)
     (c : SmtDatatypeCons)
     (hTailTy :
@@ -9598,7 +9598,7 @@ private theorem eo_to_smt_tuple_prepend_rec_eval_congr
           __smtx_model_eval M (SmtTerm.Apply recTerm' argTerm')
       rw [hGen M, hGen' M, hRecEval, hArgEval]
 
-private theorem eo_to_smt_tuple_prepend_eval_congr
+theorem eo_to_smt_tuple_prepend_eval_congr
     (M : SmtModel) (head head' tail tail' : SmtTerm)
     (headTy headTy' : SmtType) :
     headTy = headTy' ->
@@ -17825,8 +17825,10 @@ private theorem congTypeSpine_eq_has_bool_type (t rhs : Term) :
                           __smtx_typeof
                             (SmtTerm.Apply (SmtTerm.String s)
                               (__eo_to_smt x)) = SmtType.None
-                        by_cases hs : native_string_valid s = true <;>
-                          simp [__smtx_typeof, __smtx_typeof_apply, hs])
+                        cases hValid : native_string_valid s <;>
+                          cases __smtx_typeof (__eo_to_smt x) <;>
+                            simp [__smtx_typeof, __smtx_typeof_apply,
+                              hValid])
                       hTrans)
               | Term.Binary w n =>
                   exact False.elim
@@ -20591,8 +20593,10 @@ private theorem congTrueSpine_eq_true
                           __smtx_typeof
                             (SmtTerm.Apply (SmtTerm.String s)
                               (__eo_to_smt x)) = SmtType.None
-                        by_cases hs : native_string_valid s = true <;>
-                          simp [__smtx_typeof, __smtx_typeof_apply, hs])
+                        cases hValid : native_string_valid s <;>
+                          cases __smtx_typeof (__eo_to_smt x) <;>
+                            simp [__smtx_typeof, __smtx_typeof_apply,
+                              hValid])
                       hEqBool)
               | Term.Binary w n =>
                   exact False.elim
