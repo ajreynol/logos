@@ -468,11 +468,6 @@ deriving Inhabited
 def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
   M.values s T
 
-def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  match M.vars s T with
-  | some v => v
-  | none => SmtValue.NotValue
-
 def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
   { M with vars := fun s' T' =>
       if s' = s ∧ T' = T then
@@ -1918,6 +1913,20 @@ def __smtx_type_default : SmtType -> SmtValue
   | (SmtType.USort i) => (SmtValue.UValue i native_nat_zero)
   | (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
   | T => SmtValue.NotValue
+
+-- Variables are a local binding environment, not model assignments. Missing
+-- bindings use the syntactic type default only to keep evaluation total.
+def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
+  if __smtx_type_wf T then
+    match M.vars s T with
+    | some v =>
+        if native_Teq (__smtx_typeof_value v) T then
+          v
+        else
+          __smtx_type_default T
+    | none => __smtx_type_default T
+  else
+    SmtValue.NotValue
 
 
 def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> native_Bool

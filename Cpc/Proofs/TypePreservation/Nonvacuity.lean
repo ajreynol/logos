@@ -14,15 +14,13 @@ noncomputable def default_typed_model_of
     SmtModel := by
   classical
  exact
-    { values := fun k =>
-        if hWF : __smtx_type_wf k.ty = true then
-          Classical.choose (hCan k.ty hWF)
+    { values := fun _ T =>
+        if hWF : __smtx_type_wf T = true then
+          Classical.choose (hCan T hWF)
         else
           SmtValue.NotValue
-      nativeFuns := fun k =>
-        match k.ty with
-        | SmtType.FunType _ U => fun _ => __smtx_type_default U
-        | _ => fun _ => SmtValue.NotValue }
+      vars := fun _ _ => none
+      nativeFuns := fun _ _ U => fun _ => __smtx_type_default U }
 
 private theorem default_typed_model_of_native_fun_typed
     (hCan :
@@ -45,7 +43,7 @@ private theorem default_typed_model_of_native_fun_typed
   by_cases hDefaultId : fid = native_default_ifun_id
   · simp [native_eval_ifun_apply, hDefaultId, hDefault.1, hDefaultCan]
   · simp [native_eval_ifun_apply, native_model_fun_lookup,
-      default_typed_model_of, native_model_fun_key, hDefaultId, hDefault.1, hDefaultCan]
+      default_typed_model_of, hDefaultId, hDefault.1, hDefaultCan]
 
 /--
 Reduces nonvacuity of total typed models to the canonical-inhabitant theorem
@@ -60,22 +58,22 @@ theorem exists_total_typed_model_of_canonical_type_inhabited
   classical
   refine ⟨default_typed_model_of hCan, ?_⟩
   constructor
-  · intro k hT
-    simp [default_typed_model_of, hT,
-      (Classical.choose_spec (hCan k.ty hT)).1]
+  · intro s T hT
+    simp [default_typed_model_of, native_model_lookup, hT,
+      (Classical.choose_spec (hCan T hT)).1]
   · constructor
     · apply propext
       constructor
       · intro _
         rfl
       · intro _
-        intro k hT
-        have hSpec := Classical.choose_spec (hCan k.ty hT)
-        simpa [default_typed_model_of, hT, __smtx_value_canonical]
+        intro s T hT
+        have hSpec := Classical.choose_spec (hCan T hT)
+        simpa [default_typed_model_of, native_model_lookup, hT, __smtx_value_canonical]
           using hSpec.2
     · constructor
-      · intro k hT
-        simp [default_typed_model_of, hT]
+      · intro s T hT
+        simp [default_typed_model_of, native_model_lookup, hT]
       · exact default_typed_model_of_native_fun_typed hCan
 
 /-- Choice-based model that returns a canonical inhabitant for every well-formed SMT type. -/
@@ -88,22 +86,22 @@ theorem default_typed_model_total_typed :
   classical
   unfold default_typed_model
   constructor
-  · intro k hT
-    simp [default_typed_model_of, hT,
-      (Classical.choose_spec (canonical_type_inhabited_of_type_wf k.ty hT)).1]
+  · intro s T hT
+    simp [default_typed_model_of, native_model_lookup, hT,
+      (Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)).1]
   · constructor
     · apply propext
       constructor
       · intro _
         rfl
       · intro _
-        intro k hT
-        have hSpec := Classical.choose_spec (canonical_type_inhabited_of_type_wf k.ty hT)
-        simpa [default_typed_model_of, hT, __smtx_value_canonical]
+        intro s T hT
+        have hSpec := Classical.choose_spec (canonical_type_inhabited_of_type_wf T hT)
+        simpa [default_typed_model_of, native_model_lookup, hT, __smtx_value_canonical]
           using hSpec.2
     · constructor
-      · intro k hT
-        simp [default_typed_model_of, hT]
+      · intro s T hT
+        simp [default_typed_model_of, native_model_lookup, hT]
       · exact default_typed_model_of_native_fun_typed canonical_type_inhabited_of_type_wf
 
 /-- Constructs a total typed SMT model. -/

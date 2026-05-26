@@ -94,7 +94,7 @@ theorem model_var_typed_at_push
     model_var_typed_at (native_model_push M s T v) s T := by
   constructor
   · intro hT
-    simp [native_model_var_lookup, native_model_push, hv]
+    simp [native_model_var_lookup, native_model_push, hT, hv, native_Teq]
   · intro hT
     rw [hWF] at hT
     cases hT
@@ -106,9 +106,9 @@ theorem model_total_typed_push
     (s : native_String)
     (T : SmtType)
     (v : SmtValue)
-    (hWF : __smtx_type_wf T = true)
-    (hv : __smtx_typeof_value v = T)
-    (hvCanon : __smtx_value_canonical v) :
+    (_hWF : __smtx_type_wf T = true)
+    (_hv : __smtx_typeof_value v = T)
+    (_hvCanon : __smtx_value_canonical v) :
     model_total_typed (native_model_push M s T v) := by
   constructor
   · intro s' T' hT'
@@ -458,5 +458,62 @@ theorem type_default_typed_of_inhabited_wf_rec
     (hRec : __smtx_type_wf_rec T native_reflist_nil = true) :
     __smtx_typeof_value (__smtx_type_default T) = T :=
   (type_default_typed_canonical_of_inhabited_wf_rec T hInh hRec).1
+
+/-- The syntactic default is well-typed for every well-formed SMT type. -/
+theorem type_default_typed_of_type_wf
+    (T : SmtType)
+    (hWF : __smtx_type_wf T = true) :
+    __smtx_typeof_value (__smtx_type_default T) = T := by
+  by_cases hReg : T = SmtType.RegLan
+  · subst T
+    rfl
+  · by_cases hFun : ∃ A B, T = SmtType.FunType A B
+    · rcases hFun with ⟨A, B, rfl⟩
+      have hParts :
+          native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A native_reflist_nil = true ∧
+              native_inhabited_type B = true ∧
+                __smtx_type_wf_rec B native_reflist_nil = true := by
+        exact fun_type_wf_parts hWF
+      exact (type_default_typed_canonical_of_native_inhabited_type
+        (SmtType.FunType A B) (native_inhabited_type_fun hParts.2.2.1)).1
+    · have hParts :
+          native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T native_reflist_nil = true := by
+        cases T <;>
+          simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+            native_and] at hWF hReg hFun ⊢ <;>
+          exact hWF
+      exact type_default_typed_of_inhabited_wf_rec T hParts.1 hParts.2
+
+/-- Variable lookup is well-typed for well-formed types without contributing to `model_total_typed`. -/
+theorem model_total_typed_var_lookup
+    {M : SmtModel}
+    (_hM : model_total_typed M)
+    (s : native_String)
+    (T : SmtType)
+    (hT : __smtx_type_wf T = true) :
+    __smtx_typeof_value (native_model_var_lookup M s T) = T := by
+  unfold native_model_var_lookup
+  simp [hT]
+  cases hVar : M.vars s T with
+  | none =>
+      simpa [hVar] using type_default_typed_of_type_wf T hT
+  | some v =>
+      by_cases hEq : native_Teq (__smtx_typeof_value v) T = true
+      · have hTy : __smtx_typeof_value v = T := by
+          simpa [native_Teq] using hEq
+        simp [hTy, native_Teq]
+      · simp [hEq, type_default_typed_of_type_wf T hT]
+
+/-- Variable lookup at non-well-formed types is unassigned. -/
+theorem model_total_typed_var_lookup_not_wf
+    {M : SmtModel}
+    (_hM : model_total_typed M)
+    (s : native_String)
+    (T : SmtType)
+    (hT : __smtx_type_wf T = false) :
+    native_model_var_lookup M s T = SmtValue.NotValue := by
+  simp [native_model_var_lookup, hT]
 
 end Smtm
