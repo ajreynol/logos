@@ -10,6 +10,8 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
+attribute [local simp] native_streq native_and native_ite
+
 private abbrev mkDtCollapseSelectorGuard (s t : Term) : Term :=
   __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list t)
     (__eo_list_find Term.__eo_List_cons
@@ -118,7 +120,7 @@ private def tupleSelSmtArgsRev
     (d : SmtDatatype) (tail : SmtTerm) : native_Nat -> List SmtTerm
   | native_nat_zero => []
   | native_nat_succ k =>
-      SmtTerm.Apply (SmtTerm.DtSel "@Tuple" d native_nat_zero k) tail ::
+      SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero k) tail ::
         tupleSelSmtArgsRev d tail k
 
 private def listGetOption : List Term -> Nat -> Option Term
@@ -330,15 +332,15 @@ private theorem eo_to_smt_tuple_prepend_rec_eq_dtcons_spine
     (fullD tailD : SmtDatatype) (tail head : SmtTerm) :
     ∀ k : native_Nat,
       __eo_to_smt_tuple_prepend_rec tailD tail k
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head) =
         mkDtSmtAppSpineRev
-          (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
           (tupleSelSmtArgsRev tailD tail k ++ [head])
   | k => by
       rw [eo_to_smt_tuple_prepend_rec_eq_spine]
       exact (mkDtSmtAppSpineRev_append_singleton
-        (SmtTerm.DtCons "@Tuple" fullD native_nat_zero) head
+        (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero) head
         (tupleSelSmtArgsRev tailD tail k)).symm
 
 private theorem tupleSelSmtArgsRev_length
@@ -362,7 +364,7 @@ private theorem tupleSelSmtArgsRev_reverse_map_get_of_lt
         some
           (__smtx_model_eval M
             (SmtTerm.Apply
-              (SmtTerm.DtSel "@Tuple" tailD native_nat_zero j) tail))
+              (SmtTerm.DtSel (native_string_lit "@Tuple") tailD native_nat_zero j) tail))
   | native_nat_zero, j, h => by
       exact False.elim (Nat.not_lt_zero j h)
   | native_nat_succ k, j, h => by
@@ -371,7 +373,7 @@ private theorem tupleSelSmtArgsRev_reverse_map_get_of_lt
           (__smtx_model_eval M)
       let last :=
         __smtx_model_eval M
-          (SmtTerm.Apply (SmtTerm.DtSel "@Tuple" tailD native_nat_zero k)
+          (SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") tailD native_nat_zero k)
             tail)
       have hList :
           (tupleSelSmtArgsRev tailD tail (Nat.succ k)).reverse.map
@@ -1304,6 +1306,64 @@ private theorem eo_list_find_rec_cons_self_eq (x xs n : Term) :
   cases x <;> cases n <;>
     simp [__eo_list_find_rec, __eo_eq, native_ite, native_teq] at hx hn ⊢
 
+private theorem eo_eq_eq_false_of_ne {x y : Term} :
+    x ≠ y ->
+    x ≠ Term.Stuck ->
+    y ≠ Term.Stuck ->
+    __eo_eq x y = Term.Boolean false := by
+  intro hNe hX hY
+  by_cases hEq : x = y
+  · exact False.elim (hNe hEq)
+  · cases x <;> cases y <;>
+      simp [__eo_eq, native_teq, eq_comm, hEq] at hNe hX hY ⊢ <;>
+        contradiction
+
+private theorem eo_list_find_rec_target_stuck (xs start : Term) :
+    __eo_list_find_rec xs Term.Stuck start = Term.Stuck := by
+  cases xs <;> simp [__eo_list_find_rec]
+
+private theorem eo_list_find_rec_start_stuck (xs target : Term) :
+    __eo_list_find_rec xs target Term.Stuck = Term.Stuck := by
+  cases xs <;> cases target <;> simp [__eo_list_find_rec]
+
+private theorem eo_list_find_rec_cons_ne_eq_tail
+    (x xs target start : Term) :
+    x ≠ target ->
+    x ≠ Term.Stuck ->
+    __eo_list_find_rec
+        (Term.Apply (Term.Apply Term.__eo_List_cons x) xs) target start =
+      __eo_list_find_rec xs target (__eo_add start (Term.Numeral 1)) := by
+  intro hNe hx
+  by_cases hTarget : target = Term.Stuck
+  · subst target
+    cases start <;>
+      simp [__eo_list_find_rec, __eo_add, eo_list_find_rec_target_stuck]
+  · have hEqFalse : __eo_eq x target = Term.Boolean false :=
+      eo_eq_eq_false_of_ne hNe hx hTarget
+    cases start <;>
+      simp [__eo_list_find_rec, __eo_ite, __eo_add, hEqFalse, native_teq,
+        eo_list_find_rec_start_stuck]
+
+private theorem assoc_nil_nth_eoTermList_find_rec_nil_stuck
+    (xs : List Term) (target start : Term) :
+    __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+        (__eo_list_find_rec Term.__eo_List_nil target start) =
+      Term.Stuck := by
+  by_cases hTarget : target = Term.Stuck
+  · subst target
+    simp [__eo_list_find_rec, assoc_nil_nth_index_stuck]
+  · by_cases hStart : start = Term.Stuck
+    · subst start
+      simp [__eo_list_find_rec, assoc_nil_nth_index_stuck]
+    · have hFind :
+          __eo_list_find_rec Term.__eo_List_nil target start =
+            Term.Numeral (-1 : native_Int) := by
+        cases target <;> cases start <;>
+          simp [__eo_list_find_rec] at hTarget hStart ⊢
+      rw [hFind]
+      simpa [show (-1 : native_Int) = Int.negSucc 0 by rfl] using
+        assoc_nil_nth_eoTermList_negSucc_stuck xs 0
+
 private theorem datatype_cons_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck
     (s : native_String) (d : Datatype) (i : native_Nat) :
     ∀ (rest : Datatype) (ci ai start j : native_Nat) (xs : List Term) (ti : Term),
@@ -1451,6 +1511,156 @@ private theorem datatype_cons_selectors_rec_find_eq_index_of_assoc_ne_stuck
       datatype_cons_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck
         s d i d i native_nat_zero native_nat_zero j xs ti rfl hAssocRec hTi
   exact hReqEq.trans hRec
+
+private theorem datatype_cons_selectors_rec_find_rec_assoc_ne_stuck_implies_dt_sel :
+    ∀ (s : native_String) (d : Datatype) (i : native_Nat)
+      (rest : Datatype) (ci ai : native_Nat) (start target : Term)
+      (xs : List Term) (ti : Term),
+      __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+        (__eo_list_find_rec
+          (__eo_datatype_cons_selectors_rec s d i rest ci ai)
+          target start) = ti ->
+      ti ≠ Term.Stuck ->
+      ∃ j, target = Term.DtSel s d i j
+  | s, d, i, Datatype.null, ci, ai, start, target, xs, ti, hAssoc, hTi => by
+      have hFind :
+          __eo_list_find_rec
+              (__eo_datatype_cons_selectors_rec s d i Datatype.null ci ai)
+              target start = Term.Stuck := by
+        cases ci <;> simp [__eo_datatype_cons_selectors_rec,
+          __eo_list_find_rec]
+      rw [hFind, assoc_nil_nth_index_stuck] at hAssoc
+      exact False.elim (hTi hAssoc.symm)
+  | s, d, i, Datatype.sum DatatypeCons.unit restTail, Nat.zero, ai,
+      start, target, xs, ti, hAssoc, hTi => by
+      have hAssocStuck :
+          __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+            (__eo_list_find_rec
+              (__eo_datatype_cons_selectors_rec s d i
+                (Datatype.sum DatatypeCons.unit restTail) Nat.zero ai)
+              target start) = Term.Stuck := by
+        simp [__eo_datatype_cons_selectors_rec,
+          assoc_nil_nth_eoTermList_find_rec_nil_stuck]
+      exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+  | s, d, i, Datatype.sum (DatatypeCons.cons U c) restTail, Nat.zero, ai,
+      start, target, xs, ti, hAssoc, hTi => by
+      let current := Term.DtSel s d i ai
+      let tail :=
+        __eo_datatype_cons_selectors_rec s d i restTail Nat.zero
+          (native_nat_succ ai)
+      by_cases hTarget : target = current
+      · exact ⟨ai, hTarget⟩
+      · by_cases hTail : tail = Term.Stuck
+        · have hAssocStuck :
+              __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+                (__eo_list_find_rec
+                  (__eo_datatype_cons_selectors_rec s d i
+                    (Datatype.sum (DatatypeCons.cons U c) restTail)
+                    Nat.zero ai)
+                  target start) = Term.Stuck := by
+            simp [current, tail, __eo_datatype_cons_selectors_rec,
+              __eo_mk_apply, hTail, __eo_list_find_rec,
+              assoc_nil_nth_index_stuck]
+          exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+        · have hList :
+              __eo_datatype_cons_selectors_rec s d i
+                  (Datatype.sum (DatatypeCons.cons U c) restTail)
+                  Nat.zero ai =
+                Term.Apply (Term.Apply Term.__eo_List_cons current) tail := by
+            simp [current, tail, __eo_datatype_cons_selectors_rec,
+              __eo_mk_apply, hTail]
+          have hCurrentTarget : current ≠ target := by
+            intro h
+            exact hTarget h.symm
+          have hStep :
+              __eo_list_find_rec
+                  (Term.Apply (Term.Apply Term.__eo_List_cons current) tail)
+                  target start =
+                __eo_list_find_rec tail target
+                  (__eo_add start (Term.Numeral 1)) := by
+            exact eo_list_find_rec_cons_ne_eq_tail
+              current tail target start hCurrentTarget (by simp [current])
+          have hAssocTail :
+              __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+                (__eo_list_find_rec tail target
+                  (__eo_add start (Term.Numeral 1))) = ti := by
+            rw [hList] at hAssoc
+            rw [hStep] at hAssoc
+            exact hAssoc
+          exact
+            datatype_cons_selectors_rec_find_rec_assoc_ne_stuck_implies_dt_sel
+              s d i restTail Nat.zero (native_nat_succ ai)
+              (__eo_add start (Term.Numeral 1)) target xs ti
+              hAssocTail hTi
+  | s, d, i, Datatype.sum c restTail, Nat.succ ci, ai, start, target, xs,
+      ti, hAssoc, hTi => by
+      have hAssoc' :
+          __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+            (__eo_list_find_rec
+              (__eo_datatype_cons_selectors_rec s d i restTail ci ai)
+              target start) = ti := by
+        simpa [__eo_datatype_cons_selectors_rec] using hAssoc
+      exact
+        datatype_cons_selectors_rec_find_rec_assoc_ne_stuck_implies_dt_sel
+          s d i restTail ci ai start target xs ti hAssoc' hTi
+
+private theorem datatype_cons_selectors_rec_find_assoc_ne_stuck_implies_dt_sel
+    (s : native_String) (d : Datatype) (i : native_Nat)
+    (target : Term) (xs : List Term) (ti : Term) :
+    __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+      (__eo_list_find Term.__eo_List_cons
+        (__eo_datatype_cons_selectors_rec s d i d i native_nat_zero)
+        target) = ti ->
+    ti ≠ Term.Stuck ->
+    ∃ j, target = Term.DtSel s d i j := by
+  intro hAssoc hTi
+  let selectors := __eo_datatype_cons_selectors_rec s d i d i native_nat_zero
+  have hFindNe :
+      __eo_list_find Term.__eo_List_cons selectors target ≠ Term.Stuck := by
+    intro hFind
+    rw [hFind, assoc_nil_nth_index_stuck] at hAssoc
+    exact hTi hAssoc.symm
+  have hReqEq :=
+    eo_requires_eq_result_of_ne_stuck
+      (__eo_is_list Term.__eo_List_cons selectors) (Term.Boolean true)
+      (__eo_list_find_rec selectors target (Term.Numeral 0)) hFindNe
+  have hAssocRec :
+      __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+        (__eo_list_find_rec selectors target (Term.Numeral 0)) = ti := by
+    rw [show __eo_list_find Term.__eo_List_cons selectors target =
+        __eo_list_find_rec selectors target (Term.Numeral 0) by
+      simpa [selectors, __eo_list_find] using hReqEq] at hAssoc
+    exact hAssoc
+  exact
+    datatype_cons_selectors_rec_find_rec_assoc_ne_stuck_implies_dt_sel
+      s d i d i native_nat_zero (Term.Numeral 0) target xs ti
+      hAssocRec hTi
+
+private theorem eo_dt_selectors_find_assoc_ne_stuck_implies_dt_sel_matching_head
+    (c target : Term) (xs : List Term) (ti : Term) :
+    __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+      (__eo_list_find Term.__eo_List_cons (__eo_dt_selectors c) target) =
+        ti ->
+    ti ≠ Term.Stuck ->
+    ∃ ss dd ii jj,
+      target = Term.DtSel ss dd ii jj ∧ c = Term.DtCons ss dd ii := by
+  intro hAssoc hTi
+  cases c with
+  | DtCons s d i =>
+      rcases
+        datatype_cons_selectors_rec_find_assoc_ne_stuck_implies_dt_sel
+          s d i target xs ti (by
+            simpa [__eo_dt_selectors] using hAssoc) hTi with
+        ⟨j, hTarget⟩
+      exact ⟨s, d, i, j, hTarget, rfl⟩
+  | _ =>
+      exfalso
+      simp [__eo_dt_selectors, __eo_dt_selectors_main, __eo_list_find,
+        __eo_list_find_rec, __eo_is_list, __eo_get_nil_rec,
+        __eo_is_list_nil, __eo_is_ok, __eo_requires, native_ite,
+        native_teq, native_not, SmtEval.native_not,
+        assoc_nil_nth_index_stuck] at hAssoc
+      exact hTi hAssoc.symm
 
 private theorem dt_collapse_selector_guard_get_arg_of_appHead_dtcons
     (s : native_String) (d : Datatype) (i j : native_Nat)
@@ -1674,6 +1884,134 @@ private theorem tuple_get_selectors_rec_find_eq_index_of_assoc_ne_stuck
       tuple_get_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck
         T native_nat_zero j xs ti hAssocRec hTi
   exact hReqEq.trans hRec
+
+private theorem tuple_get_selectors_rec_find_rec_assoc_ne_stuck_implies_tuple_select :
+    ∀ (T n start target : Term) (xs : List Term) (ti : Term),
+      __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+        (__eo_list_find_rec (__tuple_get_selectors_rec T n) target start) = ti ->
+      ti ≠ Term.Stuck ->
+      ∃ idx, target = Term.UOp1 UserOp1.tuple_select idx
+  | T, n, start, target, xs, ti, hAssoc, hTi => by
+      by_cases hUnit : T = Term.UOp UserOp.UnitTuple
+      · subst T
+        have hAssocStuck :
+            __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+              (__eo_list_find_rec
+                (__tuple_get_selectors_rec (Term.UOp UserOp.UnitTuple) n)
+                target start) = Term.Stuck := by
+          cases n <;>
+            simp [__tuple_get_selectors_rec, __eo_list_find_rec,
+              assoc_nil_nth_index_stuck,
+              assoc_nil_nth_eoTermList_find_rec_nil_stuck]
+        exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+      · by_cases hTuple :
+          ∃ T1 T2, T = Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2
+        · rcases hTuple with ⟨T1, T2, rfl⟩
+          let current := Term.UOp1 UserOp1.tuple_select n
+          let tail := __tuple_get_selectors_rec T2
+            (__eo_add n (Term.Numeral 1))
+          by_cases hTarget : target = current
+          · exact ⟨n, hTarget⟩
+          · by_cases hN : n = Term.Stuck
+            · subst n
+              have hAssocStuck :
+                  __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+                    (__eo_list_find_rec
+                      (__tuple_get_selectors_rec
+                        (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
+                        Term.Stuck)
+                      target start) = Term.Stuck := by
+                simp [__tuple_get_selectors_rec, __eo_list_find_rec,
+                  assoc_nil_nth_index_stuck]
+              exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+            · by_cases hTail : tail = Term.Stuck
+              · have hAssocStuck :
+                    __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+                      (__eo_list_find_rec
+                        (__tuple_get_selectors_rec
+                          (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
+                          n)
+                        target start) = Term.Stuck := by
+                  simp [current, tail, __tuple_get_selectors_rec,
+                    __eo_mk_apply, hN, hTail, __eo_list_find_rec,
+                    assoc_nil_nth_index_stuck]
+                exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+              · have hList :
+                    __tuple_get_selectors_rec
+                        (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
+                        n =
+                      Term.Apply (Term.Apply Term.__eo_List_cons current) tail := by
+                  simp [current, tail, __tuple_get_selectors_rec, __eo_mk_apply,
+                    hN, hTail]
+                have hCurrentTarget : current ≠ target := by
+                  intro h
+                  exact hTarget h.symm
+                have hStep :
+                    __eo_list_find_rec
+                        (Term.Apply (Term.Apply Term.__eo_List_cons current) tail)
+                        target start =
+                      __eo_list_find_rec tail target
+                        (__eo_add start (Term.Numeral 1)) := by
+                  exact eo_list_find_rec_cons_ne_eq_tail
+                    current tail target start hCurrentTarget (by simp [current])
+                have hAssocTail :
+                    __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+                      (__eo_list_find_rec tail target
+                        (__eo_add start (Term.Numeral 1))) = ti := by
+                  rw [hList] at hAssoc
+                  rw [hStep] at hAssoc
+                  exact hAssoc
+                exact
+                  tuple_get_selectors_rec_find_rec_assoc_ne_stuck_implies_tuple_select
+                    T2 (__eo_add n (Term.Numeral 1))
+                    (__eo_add start (Term.Numeral 1)) target xs ti
+                    hAssocTail hTi
+        · have hNotTuple :
+              ∀ T1 T2,
+                T ≠ Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2 := by
+            intro T1 T2 h
+            exact hTuple ⟨T1, T2, h⟩
+          have hSelStuck :
+              __tuple_get_selectors_rec T n = Term.Stuck :=
+            tuple_get_selectors_rec_stuck_of_not_tuple_or_unit
+              T n hUnit hNotTuple
+          have hAssocStuck :
+              __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+                (__eo_list_find_rec (__tuple_get_selectors_rec T n) target start) =
+              Term.Stuck := by
+            rw [hSelStuck]
+            simp [__eo_list_find_rec, assoc_nil_nth_index_stuck]
+          exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+termination_by T n start target xs ti hAssoc hTi => T
+
+private theorem tuple_get_selectors_rec_find_assoc_ne_stuck_implies_tuple_select
+    (T target : Term) (xs : List Term) (ti : Term) :
+    __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+      (__eo_list_find Term.__eo_List_cons
+        (__tuple_get_selectors_rec T (Term.Numeral 0)) target) = ti ->
+    ti ≠ Term.Stuck ->
+    ∃ idx, target = Term.UOp1 UserOp1.tuple_select idx := by
+  intro hAssoc hTi
+  let selectors := __tuple_get_selectors_rec T (Term.Numeral 0)
+  have hFindNe :
+      __eo_list_find Term.__eo_List_cons selectors target ≠ Term.Stuck := by
+    intro hFind
+    rw [hFind, assoc_nil_nth_index_stuck] at hAssoc
+    exact hTi hAssoc.symm
+  have hReqEq :=
+    eo_requires_eq_result_of_ne_stuck
+      (__eo_is_list Term.__eo_List_cons selectors) (Term.Boolean true)
+      (__eo_list_find_rec selectors target (Term.Numeral 0)) hFindNe
+  have hAssocRec :
+      __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+        (__eo_list_find_rec selectors target (Term.Numeral 0)) = ti := by
+    rw [show __eo_list_find Term.__eo_List_cons selectors target =
+        __eo_list_find_rec selectors target (Term.Numeral 0) by
+      simpa [selectors, __eo_list_find] using hReqEq] at hAssoc
+    exact hAssoc
+  exact
+    tuple_get_selectors_rec_find_rec_assoc_ne_stuck_implies_tuple_select
+      T (Term.Numeral 0) (Term.Numeral 0) target xs ti hAssocRec hTi
 
 private theorem tuple_guard_get_arg_of_arglist_selectors
     (T : Term) (j : native_Nat) (xs : List Term) (ti : Term) :
@@ -2345,31 +2683,31 @@ private theorem smtx_model_eval_tuple_prepend_rec_dtcons_spine
     (fullD tailD : SmtDatatype) (tail head : SmtTerm) (k : native_Nat) :
     __smtx_typeof
         (__eo_to_smt_tuple_prepend_rec tailD tail k
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head)) ≠ SmtType.None ->
     __smtx_model_eval M
         (__eo_to_smt_tuple_prepend_rec tailD tail k
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head)) =
       mkDtSmtValueSpineRev
-        (SmtValue.DtCons "@Tuple" fullD native_nat_zero)
+        (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
         ((tupleSelSmtArgsRev tailD tail k ++ [head]).map
           (__smtx_model_eval M)) := by
   intro hNN
   let args := tupleSelSmtArgsRev tailD tail k ++ [head]
   have hTerm :
       __eo_to_smt_tuple_prepend_rec tailD tail k
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head) =
         mkDtSmtAppSpineRev
-          (SmtTerm.DtCons "@Tuple" fullD native_nat_zero) args := by
+          (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero) args := by
     simpa [args] using
       eo_to_smt_tuple_prepend_rec_eq_dtcons_spine
         fullD tailD tail head k
   have hSpineNN :
       __smtx_typeof
           (mkDtSmtAppSpineRev
-            (SmtTerm.DtCons "@Tuple" fullD native_nat_zero) args) ≠
+            (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero) args) ≠
         SmtType.None := by
     rw [← hTerm]
     exact hNN
@@ -2378,10 +2716,10 @@ private theorem smtx_model_eval_tuple_prepend_rec_dtcons_spine
     intro x hx
     exact smt_model_eval_ne_notvalue_of_non_none M hM x
       (mkDtSmtAppSpineRev_args_non_none_of_non_none_type
-        "@Tuple" fullD native_nat_zero args hSpineNN x hx)
+        (native_string_lit "@Tuple") fullD native_nat_zero args hSpineNN x hx)
   rw [hTerm]
   exact smtx_model_eval_mkDtSmtAppSpineRev_dtcons
-    M "@Tuple" fullD native_nat_zero args hArgsNN
+    M (native_string_lit "@Tuple") fullD native_nat_zero args hArgsNN
 
 private theorem tuple_prepend_rec_projection_of_get
     (M : SmtModel) (hM : model_total_typed M)
@@ -2389,7 +2727,7 @@ private theorem tuple_prepend_rec_projection_of_get
     (k j : native_Nat) (v : SmtValue) :
     __smtx_typeof
         (__eo_to_smt_tuple_prepend_rec tailD tail k
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head)) ≠ SmtType.None ->
     listGetOptionValue
         (__smtx_model_eval M head ::
@@ -2399,7 +2737,7 @@ private theorem tuple_prepend_rec_projection_of_get
     __vsm_apply_arg_nth
         (__smtx_model_eval M
           (__eo_to_smt_tuple_prepend_rec tailD tail k
-            (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+            (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
               head)))
         j (Nat.succ (tupleSelSmtArgsRev tailD tail k).length) = v := by
   intro hNN hGet
@@ -2416,7 +2754,7 @@ private theorem tuple_prepend_rec_projection_of_get
   rw [hVals]
   have hNth :=
     vsm_apply_arg_nth_mkDtSmtValueSpineRev_reverse_get?
-      (SmtValue.DtCons "@Tuple" fullD native_nat_zero)
+      (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
       forwardVals j v hGet
   simpa [forwardVals] using hNth
 
@@ -2426,7 +2764,7 @@ private theorem tuple_prepend_rec_succ_projection_of_get
     (k j : native_Nat) (v : SmtValue) :
     __smtx_typeof
         (__eo_to_smt_tuple_prepend_rec tailD tail k
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head)) ≠ SmtType.None ->
     listGetOptionValue
         ((tupleSelSmtArgsRev tailD tail k).reverse.map
@@ -2435,7 +2773,7 @@ private theorem tuple_prepend_rec_succ_projection_of_get
     __vsm_apply_arg_nth
         (__smtx_model_eval M
           (__eo_to_smt_tuple_prepend_rec tailD tail k
-            (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+            (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
               head)))
         (Nat.succ j) (Nat.succ (tupleSelSmtArgsRev tailD tail k).length) =
       v := by
@@ -2448,7 +2786,7 @@ private theorem tuple_prepend_zero_projection
     (M : SmtModel) (hM : model_total_typed M)
     (head tail : SmtTerm) (headTy : SmtType) (c : SmtDatatypeCons) :
     __smtx_typeof tail =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
     __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tail) ≠
       SmtType.None ->
     __vsm_apply_arg_nth
@@ -2461,8 +2799,8 @@ private theorem tuple_prepend_zero_projection
   intro hTailTy hNN
   let tailD := SmtDatatype.sum c SmtDatatype.null
   let fullD := SmtDatatype.sum (SmtDatatypeCons.cons headTy c) SmtDatatype.null
-  have hFullWf : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD) = true := by
-    cases hWf : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD)
+  have hFullWf : __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true := by
+    cases hWf : __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD)
     · exfalso
       apply hNN
       unfold __eo_to_smt_tuple_prepend
@@ -2474,7 +2812,7 @@ private theorem tuple_prepend_zero_projection
       __eo_to_smt_tuple_prepend head headTy tail =
         __eo_to_smt_tuple_prepend_rec tailD tail
           (__smtx_dt_num_sels tailD native_nat_zero)
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head) := by
     unfold __eo_to_smt_tuple_prepend
     rw [hTailTy]
@@ -2484,7 +2822,7 @@ private theorem tuple_prepend_zero_projection
       __smtx_typeof
           (__eo_to_smt_tuple_prepend_rec tailD tail
             (__smtx_dt_num_sels tailD native_nat_zero)
-            (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+            (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
               head)) ≠ SmtType.None := by
     rw [← hTerm]
     exact hNN
@@ -2502,7 +2840,7 @@ private theorem tuple_prepend_succ_projection_of_get
     (head tail : SmtTerm) (headTy : SmtType) (c : SmtDatatypeCons)
     (j : native_Nat) (v : SmtValue) :
     __smtx_typeof tail =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
     __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tail) ≠
       SmtType.None ->
     listGetOptionValue
@@ -2520,8 +2858,8 @@ private theorem tuple_prepend_succ_projection_of_get
   intro hTailTy hNN hGet
   let tailD := SmtDatatype.sum c SmtDatatype.null
   let fullD := SmtDatatype.sum (SmtDatatypeCons.cons headTy c) SmtDatatype.null
-  have hFullWf : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD) = true := by
-    cases hWf : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD)
+  have hFullWf : __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true := by
+    cases hWf : __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD)
     · exfalso
       apply hNN
       unfold __eo_to_smt_tuple_prepend
@@ -2533,7 +2871,7 @@ private theorem tuple_prepend_succ_projection_of_get
       __eo_to_smt_tuple_prepend head headTy tail =
         __eo_to_smt_tuple_prepend_rec tailD tail
           (__smtx_dt_num_sels tailD native_nat_zero)
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head) := by
     unfold __eo_to_smt_tuple_prepend
     rw [hTailTy]
@@ -2543,7 +2881,7 @@ private theorem tuple_prepend_succ_projection_of_get
       __smtx_typeof
           (__eo_to_smt_tuple_prepend_rec tailD tail
             (__smtx_dt_num_sels tailD native_nat_zero)
-            (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+            (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
               head)) ≠ SmtType.None := by
     rw [← hTerm]
     exact hNN
@@ -2561,12 +2899,12 @@ private theorem tuple_prepend_tail_type_of_non_none_local
       SmtType.None ->
     ∃ c,
       __smtx_typeof tail =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) := by
+        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) := by
   intro hNN
   unfold __eo_to_smt_tuple_prepend at hNN
   cases hTail : __smtx_typeof tail with
   | Datatype s d =>
-      by_cases hs : s = "@Tuple"
+      by_cases hs : s = (native_string_lit "@Tuple")
       · subst s
         cases d with
         | null =>
@@ -2579,8 +2917,27 @@ private theorem tuple_prepend_tail_type_of_non_none_local
             | sum c' rest' =>
                 exact False.elim (hNN (by
                   simp [hTail, __eo_to_smt_tuple_prepend_of_type]))
-      · exact False.elim (hNN (by
-          simp [hTail, __eo_to_smt_tuple_prepend_of_type, hs]))
+      · cases d with
+        | null =>
+            exact False.elim (hNN (by
+              simp [hTail, __eo_to_smt_tuple_prepend_of_type]))
+        | sum c rest =>
+            cases rest with
+            | null =>
+                exact False.elim (hNN (by
+                  have hCond :
+                      ¬ (s = native_string_lit "@Tuple" ∧
+                        __smtx_type_wf
+                            (SmtType.Datatype (native_string_lit "@Tuple")
+                              (SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
+                                SmtDatatype.null)) =
+                          true) := by
+                    intro h
+                    exact hs h.1
+                  simp [hTail, __eo_to_smt_tuple_prepend_of_type, hCond]))
+            | sum c' rest' =>
+                exact False.elim (hNN (by
+                  simp [hTail, __eo_to_smt_tuple_prepend_of_type]))
   | _ =>
       exact False.elim (hNN (by
         simp [hTail, __eo_to_smt_tuple_prepend_of_type]))
@@ -2731,7 +3088,9 @@ private theorem datatype_value_head_of_type_local
             simp [__smtx_typeof_value, hSeq] at hTy
         | inr hNone =>
             simp [__smtx_typeof_value, hNone] at hTy
-    | Char _ => simp [__smtx_typeof_value] at hTy
+    | Char c =>
+        cases hValid : native_char_valid c <;>
+          simp [__smtx_typeof_value, native_ite, hValid] at hTy
     | UValue _ _ => simp [__smtx_typeof_value] at hTy
     | RegLan _ => simp [__smtx_typeof_value] at hTy
     | DtCons s0 d0 i0 =>
@@ -2766,9 +3125,9 @@ private theorem tuple_datatype_value_head_zero
     {v : SmtValue} {c : SmtDatatypeCons}
     (hTy :
       __smtx_typeof_value v =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null)) :
+        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null)) :
     __vsm_apply_head v =
-      SmtValue.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+      SmtValue.DtCons (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null)
         native_nat_zero := by
   rcases datatype_value_head_of_type_local hTy with ⟨i, hHead⟩
   have hlt : i < 1 := by
@@ -2785,10 +3144,10 @@ private theorem smt_tuple_dt_sel_eval_uses_constructor
     (M : SmtModel) (hM : model_total_typed M)
     (tail : SmtTerm) (c : SmtDatatypeCons) (j : native_Nat) :
     __smtx_typeof tail =
-      SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+      SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
     __smtx_model_eval M
         (SmtTerm.Apply
-          (SmtTerm.DtSel "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+          (SmtTerm.DtSel (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null)
             native_nat_zero j) tail) =
       __vsm_apply_arg_nth
         (__smtx_model_eval M tail) j
@@ -2800,12 +3159,12 @@ private theorem smt_tuple_dt_sel_eval_uses_constructor
     simp
   have hEvalTy :
       __smtx_typeof_value (__smtx_model_eval M tail) =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) := by
+        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) := by
     rw [smt_model_eval_preserves_type_of_non_none M hM tail hTailNN,
       hTailTy]
   have hHead :
       __vsm_apply_head (__smtx_model_eval M tail) =
-        SmtValue.DtCons "@Tuple" (SmtDatatype.sum c SmtDatatype.null)
+        SmtValue.DtCons (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null)
           native_nat_zero :=
     tuple_datatype_value_head_zero hEvalTy
   simp [__smtx_model_eval]
@@ -2813,7 +3172,7 @@ private theorem smt_tuple_dt_sel_eval_uses_constructor
   have hHeadTrue :
       native_veq
           (__vsm_apply_head (__smtx_model_eval M tail))
-          (SmtValue.DtCons "@Tuple"
+          (SmtValue.DtCons (native_string_lit "@Tuple")
             (SmtDatatype.sum c SmtDatatype.null) native_nat_zero) = true := by
     rw [hHead]
     simp [native_veq]
@@ -2824,7 +3183,7 @@ private theorem tuple_prepend_succ_projection
     (head tail : SmtTerm) (headTy : SmtType) (c : SmtDatatypeCons)
     (j : native_Nat) :
     __smtx_typeof tail =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
     __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tail) ≠
       SmtType.None ->
     j <
@@ -2843,7 +3202,7 @@ private theorem tuple_prepend_succ_projection
   intro hTailTy hNN hLt
   let tailD := SmtDatatype.sum c SmtDatatype.null
   let selector :=
-    SmtTerm.Apply (SmtTerm.DtSel "@Tuple" tailD native_nat_zero j) tail
+    SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") tailD native_nat_zero j) tail
   have hGet :
       listGetOptionValue
           ((tupleSelSmtArgsRev tailD tail
@@ -2873,9 +3232,9 @@ private theorem tuple_prepend_datatype_eq_of_type
     (head tail : SmtTerm) (headTy : SmtType)
     (c : SmtDatatypeCons) (d : SmtDatatype) :
     __smtx_typeof tail =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
     __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tail) =
-        SmtType.Datatype "@Tuple" d ->
+        SmtType.Datatype (native_string_lit "@Tuple") d ->
     d = SmtDatatype.sum (SmtDatatypeCons.cons headTy c) SmtDatatype.null := by
   intro hTailTy hTy
   let tailD := SmtDatatype.sum c SmtDatatype.null
@@ -2885,8 +3244,8 @@ private theorem tuple_prepend_datatype_eq_of_type
         SmtType.None := by
     rw [hTy]
     simp
-  have hFullWf : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD) = true := by
-    cases hWf : __smtx_type_wf (SmtType.Datatype "@Tuple" fullD)
+  have hFullWf : __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD) = true := by
+    cases hWf : __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD)
     · exfalso
       apply hNN
       unfold __eo_to_smt_tuple_prepend
@@ -2898,7 +3257,7 @@ private theorem tuple_prepend_datatype_eq_of_type
       __eo_to_smt_tuple_prepend head headTy tail =
         __eo_to_smt_tuple_prepend_rec tailD tail
           (__smtx_dt_num_sels tailD native_nat_zero)
-          (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
             head) := by
     unfold __eo_to_smt_tuple_prepend
     rw [hTailTy]
@@ -2908,14 +3267,14 @@ private theorem tuple_prepend_datatype_eq_of_type
       __smtx_typeof
           (__eo_to_smt_tuple_prepend_rec tailD tail
             (__smtx_dt_num_sels tailD native_nat_zero)
-            (SmtTerm.Apply (SmtTerm.DtCons "@Tuple" fullD native_nat_zero)
+            (SmtTerm.Apply (SmtTerm.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
               head)) ≠ SmtType.None := by
     rw [← hTerm]
     exact hNN
   have hEvalSpine :
       __smtx_model_eval M (__eo_to_smt_tuple_prepend head headTy tail) =
         mkDtSmtValueSpineRev
-          (SmtValue.DtCons "@Tuple" fullD native_nat_zero)
+          (SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero)
           ((tupleSelSmtArgsRev tailD tail
               (__smtx_dt_num_sels tailD native_nat_zero) ++ [head]).map
             (__smtx_model_eval M)) := by
@@ -2926,14 +3285,14 @@ private theorem tuple_prepend_datatype_eq_of_type
   have hEvalTy :
       __smtx_typeof_value
           (__smtx_model_eval M (__eo_to_smt_tuple_prepend head headTy tail)) =
-        SmtType.Datatype "@Tuple" d := by
+        SmtType.Datatype (native_string_lit "@Tuple") d := by
     rw [smt_model_eval_preserves_type_of_non_none M hM
       (__eo_to_smt_tuple_prepend head headTy tail) hNN, hTy]
   rcases datatype_value_head_of_type_local hEvalTy with ⟨i, hHeadD⟩
   have hHeadFull :
       __vsm_apply_head
           (__smtx_model_eval M (__eo_to_smt_tuple_prepend head headTy tail)) =
-        SmtValue.DtCons "@Tuple" fullD native_nat_zero := by
+        SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero := by
     rw [hEvalSpine]
     simp [vsm_apply_head_mkDtSmtValueSpineRev_dtcons]
   rw [hHeadFull] at hHeadD
@@ -2945,7 +3304,7 @@ private theorem tuple_projection_eq_of_tuple_value_assoc
     ∀ (tail ti : Term) (c : SmtDatatypeCons) (j : native_Nat),
       isTupleValue tail ->
       __smtx_typeof (__eo_to_smt tail) =
-          SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+          SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
       __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list tail)
           (Term.Numeral j) = ti ->
       ti ≠ Term.Stuck ->
@@ -2994,7 +3353,7 @@ private theorem tuple_projection_eq_of_tuple_value_assoc
                       change
                         __smtx_typeof
                             (__eo_to_smt_tuple_prepend head headTy tailSmt) =
-                          SmtType.Datatype "@Tuple"
+                          SmtType.Datatype (native_string_lit "@Tuple")
                             (SmtDatatype.sum c SmtDatatype.null)
                       exact hTy)
                 injection hDatatype with hC _hNull
@@ -3172,7 +3531,7 @@ private theorem tuple_projection_eq_of_dt_arg_list_assoc
     (M : SmtModel) (hM : model_total_typed M)
     (tail ti : Term) (c : SmtDatatypeCons) (j : native_Nat) :
     __smtx_typeof (__eo_to_smt tail) =
-        SmtType.Datatype "@Tuple" (SmtDatatype.sum c SmtDatatype.null) ->
+        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
     __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list tail)
         (Term.Numeral j) = ti ->
     ti ≠ Term.Stuck ->
@@ -3201,7 +3560,7 @@ private theorem tuple_guard_projection_tuple_zero_eq_true
     (d : SmtDatatype) (x tail ti : Term) :
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) tail)) =
-      SmtType.Datatype "@Tuple" d ->
+      SmtType.Datatype (native_string_lit "@Tuple") d ->
     mkDtCollapseSelectorGuard
         (Term.UOp1 UserOp1.tuple_select (Term.Numeral native_nat_zero))
         (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) tail) = ti ->
@@ -3243,7 +3602,7 @@ private theorem tuple_guard_projection_tuple_zero_eq_true
       hTailTy (by
         change
           __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tailSmt) =
-            SmtType.Datatype "@Tuple" d
+            SmtType.Datatype (native_string_lit "@Tuple") d
         exact hTy)
   have hMatch :=
     TranslationProofs.eo_to_smt_typeof_matches_translation
@@ -3252,7 +3611,7 @@ private theorem tuple_guard_projection_tuple_zero_eq_true
       __eo_to_smt_type
           (__eo_typeof
             (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) tail)) =
-        SmtType.Datatype "@Tuple" d :=
+        SmtType.Datatype (native_string_lit "@Tuple") d :=
     hMatch.symm.trans hTy
   have hTiEq : ti = x := by
     rcases TranslationProofs.eo_to_smt_type_eq_tuple_datatype hEoTy with
@@ -3299,7 +3658,7 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
       SmtType.None ->
     __smtx_typeof
         (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) tail)) =
-      SmtType.Datatype "@Tuple" d ->
+      SmtType.Datatype (native_string_lit "@Tuple") d ->
     mkDtCollapseSelectorGuard
         (Term.UOp1 UserOp1.tuple_select (Term.Numeral (Nat.succ j)))
         (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) tail) = ti ->
@@ -3341,7 +3700,7 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
       hTailTy (by
         change
           __smtx_typeof (__eo_to_smt_tuple_prepend head headTy tailSmt) =
-            SmtType.Datatype "@Tuple" d
+            SmtType.Datatype (native_string_lit "@Tuple") d
         exact hTy)
   subst d
   have hMatch :=
@@ -3351,7 +3710,7 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
       __eo_to_smt_type
           (__eo_typeof
             (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) tail)) =
-        SmtType.Datatype "@Tuple"
+        SmtType.Datatype (native_string_lit "@Tuple")
           (SmtDatatype.sum (SmtDatatypeCons.cons headTy c)
             SmtDatatype.null) :=
     hMatch.symm.trans hTy
@@ -3379,7 +3738,7 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
     have hTranslate :
         __eo_to_smt selectTerm =
           SmtTerm.Apply
-            (SmtTerm.DtSel "@Tuple" fullD native_nat_zero (Nat.succ j))
+            (SmtTerm.DtSel (native_string_lit "@Tuple") fullD native_nat_zero (Nat.succ j))
             (__eo_to_smt tupleTerm) := by
       change
         __eo_to_smt_tuple_select
@@ -3387,7 +3746,7 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
             (__eo_to_smt (Term.Numeral (Nat.succ j)))
             (__eo_to_smt tupleTerm) =
           SmtTerm.Apply
-            (SmtTerm.DtSel "@Tuple" fullD native_nat_zero (Nat.succ j))
+            (SmtTerm.DtSel (native_string_lit "@Tuple") fullD native_nat_zero (Nat.succ j))
             (__eo_to_smt tupleTerm)
       have hIdx :
           __eo_to_smt (Term.Numeral (Nat.succ j)) =
@@ -3407,13 +3766,13 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
     have hApplyNN :
         term_has_non_none_type
           (SmtTerm.Apply
-            (SmtTerm.DtSel "@Tuple" fullD native_nat_zero (Nat.succ j))
+            (SmtTerm.DtSel (native_string_lit "@Tuple") fullD native_nat_zero (Nat.succ j))
             (__eo_to_smt tupleTerm)) := by
       unfold term_has_non_none_type
       rw [← hTranslate]
       exact hSelectNN
     have hRetNN :
-        __smtx_ret_typeof_sel "@Tuple" fullD native_nat_zero (Nat.succ j) ≠
+        __smtx_ret_typeof_sel (native_string_lit "@Tuple") fullD native_nat_zero (Nat.succ j) ≠
           SmtType.None := by
       rw [← dt_sel_term_typeof_of_non_none hApplyNN]
       exact hApplyNN
@@ -3421,7 +3780,7 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
         Nat.succ j < __smtx_dt_num_sels fullD native_nat_zero := by
       have hSub :=
         ret_typeof_sel_rec_non_none_implies_lt
-          (__smtx_dt_substitute "@Tuple" fullD fullD)
+          (__smtx_dt_substitute (native_string_lit "@Tuple") fullD fullD)
           native_nat_zero (Nat.succ j)
           (by simpa [__smtx_ret_typeof_sel] using hRetNN)
       simpa [dt_num_sels_substitute] using hSub
@@ -3620,13 +3979,13 @@ private theorem tuple_select_translation_of_non_none
         (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t)) ≠
       SmtType.None ->
     ∃ (d : SmtDatatype) (n : native_Int),
-      __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d ∧
+      __smtx_typeof (__eo_to_smt t) = SmtType.Datatype (native_string_lit "@Tuple") d ∧
         __eo_to_smt idx = SmtTerm.Numeral n ∧
           native_zleq 0 n = true ∧
             __eo_to_smt
                 (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t) =
               SmtTerm.Apply
-                (SmtTerm.DtSel "@Tuple" d native_nat_zero
+                (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero
                   (native_int_to_nat n))
                 (__eo_to_smt t) := by
   intro hNN
@@ -3638,7 +3997,7 @@ private theorem tuple_select_translation_of_non_none
       SmtType.None at hNN
   cases hTy : __smtx_typeof (__eo_to_smt t) with
   | Datatype s d =>
-      by_cases hs : s = "@Tuple"
+      by_cases hs : s = (native_string_lit "@Tuple")
       · subst s
         cases hIdx : __eo_to_smt idx with
         | Numeral n =>
@@ -3653,7 +4012,7 @@ private theorem tuple_select_translation_of_non_none
                     (__smtx_typeof (__eo_to_smt t)) (__eo_to_smt idx)
                     (__eo_to_smt t) =
                   SmtTerm.Apply
-                    (SmtTerm.DtSel "@Tuple" d native_nat_zero
+                    (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero
                       (native_int_to_nat n))
                     (__eo_to_smt t)
               simp [__eo_to_smt_tuple_select, hTy, hIdx, hNonneg,
@@ -3663,8 +4022,18 @@ private theorem tuple_select_translation_of_non_none
             apply hNN
             simp [__eo_to_smt_tuple_select, hTy, hIdx]
       · exfalso
-        apply hNN
-        simp [__eo_to_smt_tuple_select, hTy, hs]
+        cases hIdx : __eo_to_smt idx with
+        | Numeral n =>
+            apply hNN
+            have hCond :
+                ¬ (s = native_string_lit "@Tuple" ∧
+                  native_zleq 0 n = true) := by
+              intro h
+              exact hs h.1
+            simp [__eo_to_smt_tuple_select, hTy, hIdx, hCond]
+        | _ =>
+            apply hNN
+            simp [__eo_to_smt_tuple_select, hTy, hIdx]
   | _ =>
       exfalso
       apply hNN
@@ -3676,12 +4045,12 @@ private theorem tuple_select_translation_of_non_none_nat
         (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t)) ≠
       SmtType.None ->
     ∃ (d : SmtDatatype) (j : native_Nat),
-      __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d ∧
+      __smtx_typeof (__eo_to_smt t) = SmtType.Datatype (native_string_lit "@Tuple") d ∧
         idx = Term.Numeral j ∧
           __eo_to_smt
               (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t) =
             SmtTerm.Apply
-              (SmtTerm.DtSel "@Tuple" d native_nat_zero j)
+              (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero j)
               (__eo_to_smt t) := by
   intro hNN
   rcases tuple_select_translation_of_non_none idx t hNN with
@@ -3705,7 +4074,7 @@ private theorem tuple_select_eval_hits_tuple_constructor
     ∃ (d : SmtDatatype) (n : native_Int),
       __smtx_model_eval M
           (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t)) =
-        __smtx_model_eval_dt_sel M "@Tuple" d native_nat_zero
+        __smtx_model_eval_dt_sel M (native_string_lit "@Tuple") d native_nat_zero
           (native_int_to_nat n)
           (__smtx_model_eval M (__eo_to_smt t)) := by
   intro hNN
@@ -3724,7 +4093,7 @@ private theorem tuple_select_eval_hits_tuple_constructor_nat
       idx = Term.Numeral j ∧
         __smtx_model_eval M
             (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t)) =
-          __smtx_model_eval_dt_sel M "@Tuple" d native_nat_zero j
+          __smtx_model_eval_dt_sel M (native_string_lit "@Tuple") d native_nat_zero j
             (__smtx_model_eval M (__eo_to_smt t)) := by
   intro hNN
   rcases tuple_select_translation_of_non_none_nat idx t hNN with
@@ -3753,17 +4122,17 @@ private theorem tuple_select_eval_uses_tuple_constructor_nat
     simp
   have hEvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t)) =
-        SmtType.Datatype "@Tuple" d := by
+        SmtType.Datatype (native_string_lit "@Tuple") d := by
     rw [smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t) hTNN,
       hTy]
   have hMatch :=
     TranslationProofs.eo_to_smt_typeof_matches_translation t hTNN
   have hEoTy :
-      __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype "@Tuple" d :=
+      __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype (native_string_lit "@Tuple") d :=
     hMatch.symm.trans hTy
   have hHead :
       __vsm_apply_head (__smtx_model_eval M (__eo_to_smt t)) =
-        SmtValue.DtCons "@Tuple" d native_nat_zero := by
+        SmtValue.DtCons (native_string_lit "@Tuple") d native_nat_zero := by
     rcases TranslationProofs.eo_to_smt_type_eq_tuple_datatype hEoTy with
       hUnit | hCons
     · rcases hUnit with ⟨_hType, hD⟩
@@ -3779,7 +4148,7 @@ private theorem tuple_select_eval_uses_tuple_constructor_nat
   have hHeadTrue :
       native_veq
           (__vsm_apply_head (__smtx_model_eval M (__eo_to_smt t)))
-          (SmtValue.DtCons "@Tuple" d native_nat_zero) = true := by
+          (SmtValue.DtCons (native_string_lit "@Tuple") d native_nat_zero) = true := by
     rw [hHead]
     simp [native_veq]
   simp [native_ite, hHeadTrue]
@@ -3787,11 +4156,11 @@ private theorem tuple_select_eval_uses_tuple_constructor_nat
 private theorem tuple_select_eval_uses_tuple_constructor_from_translation_nat
     (M : SmtModel) (hM : model_total_typed M)
     (idx t : Term) (d : SmtDatatype) (j : native_Nat)
-    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d)
+    (hTy : __smtx_typeof (__eo_to_smt t) = SmtType.Datatype (native_string_lit "@Tuple") d)
     (_hIdx : idx = Term.Numeral j)
     (hTranslate :
       __eo_to_smt (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t) =
-        SmtTerm.Apply (SmtTerm.DtSel "@Tuple" d native_nat_zero j)
+        SmtTerm.Apply (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero j)
           (__eo_to_smt t)) :
     __smtx_model_eval M
         (__eo_to_smt (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t)) =
@@ -3803,17 +4172,17 @@ private theorem tuple_select_eval_uses_tuple_constructor_from_translation_nat
     simp
   have hEvalTy :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t)) =
-        SmtType.Datatype "@Tuple" d := by
+        SmtType.Datatype (native_string_lit "@Tuple") d := by
     rw [smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t) hTNN,
       hTy]
   have hMatch :=
     TranslationProofs.eo_to_smt_typeof_matches_translation t hTNN
   have hEoTy :
-      __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype "@Tuple" d :=
+      __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype (native_string_lit "@Tuple") d :=
     hMatch.symm.trans hTy
   have hHead :
       __vsm_apply_head (__smtx_model_eval M (__eo_to_smt t)) =
-        SmtValue.DtCons "@Tuple" d native_nat_zero := by
+        SmtValue.DtCons (native_string_lit "@Tuple") d native_nat_zero := by
     rcases TranslationProofs.eo_to_smt_type_eq_tuple_datatype hEoTy with
       hUnit | hCons
     · rcases hUnit with ⟨_hType, hD⟩
@@ -3828,7 +4197,7 @@ private theorem tuple_select_eval_uses_tuple_constructor_from_translation_nat
   have hHeadTrue :
       native_veq
           (__vsm_apply_head (__smtx_model_eval M (__eo_to_smt t)))
-          (SmtValue.DtCons "@Tuple" d native_nat_zero) = true := by
+          (SmtValue.DtCons (native_string_lit "@Tuple") d native_nat_zero) = true := by
     rw [hHead]
     simp [native_veq]
   simp [native_ite, hHeadTrue]
@@ -3856,12 +4225,12 @@ private theorem tuple_select_index_nat_of_collapse_hypotheses
       (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
         (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t)) ti) ->
     ∃ (d : SmtDatatype) (j : native_Nat),
-      __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d ∧
+      __smtx_typeof (__eo_to_smt t) = SmtType.Datatype (native_string_lit "@Tuple") d ∧
         idx = Term.Numeral j ∧
           __eo_to_smt
               (Term.Apply (Term.UOp1 UserOp1.tuple_select idx) t) =
             SmtTerm.Apply
-              (SmtTerm.DtSel "@Tuple" d native_nat_zero j)
+              (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero j)
               (__eo_to_smt t) := by
   intro hBool
   have hTypes := RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
@@ -4097,7 +4466,7 @@ private theorem tuple_select_guard_stuck_of_tuple_type_wrong_constructor
 private theorem tuple_select_guard_stuck_of_wrong_app_head_from_smt_tuple_type
     (idx t : Term) (d : SmtDatatype) :
     appHead t ≠ Term.UOp UserOp.tuple ->
-    __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.Datatype (native_string_lit "@Tuple") d ->
     mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx) t =
       Term.Stuck := by
   intro hHead hTy
@@ -4107,7 +4476,7 @@ private theorem tuple_select_guard_stuck_of_wrong_app_head_from_smt_tuple_type
   have hMatch :=
     TranslationProofs.eo_to_smt_typeof_matches_translation t hTNN
   have hEoTy :
-      __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype "@Tuple" d :=
+      __eo_to_smt_type (__eo_typeof t) = SmtType.Datatype (native_string_lit "@Tuple") d :=
     hMatch.symm.trans hTy
   rcases TranslationProofs.eo_to_smt_type_eq_tuple_datatype hEoTy with
     hUnit | hCons
@@ -4280,7 +4649,7 @@ private theorem tuple_select_guard_stuck_of_uop_head_non_tuple_from_smt_tuple_ty
     (op : UserOp) (idx x tail : Term) (d : SmtDatatype) :
     op ≠ UserOp.tuple ->
     __smtx_typeof (__eo_to_smt (((Term.UOp op).Apply x).Apply tail)) =
-      SmtType.Datatype "@Tuple" d ->
+      SmtType.Datatype (native_string_lit "@Tuple") d ->
     mkDtCollapseSelectorGuard (Term.UOp1 UserOp1.tuple_select idx)
       (((Term.UOp op).Apply x).Apply tail) = Term.Stuck := by
   intro hOp hTy
@@ -4295,7 +4664,7 @@ private theorem tuple_select_guard_stuck_of_uop_head_non_tuple_from_smt_tuple_ty
   have hEoTy :
       __eo_to_smt_type
           (__eo_typeof (((Term.UOp op).Apply x).Apply tail)) =
-        SmtType.Datatype "@Tuple" d :=
+        SmtType.Datatype (native_string_lit "@Tuple") d :=
     hMatch.symm.trans hTy
   rcases TranslationProofs.eo_to_smt_type_eq_tuple_datatype hEoTy with
     hUnit | hCons
@@ -4313,7 +4682,7 @@ private theorem tuple_guard_projection_eq_true
         (__eo_to_smt
           (Term.Apply (Term.UOp1 UserOp1.tuple_select (Term.Numeral j)) t)) ≠
       SmtType.None ->
-    __smtx_typeof (__eo_to_smt t) = SmtType.Datatype "@Tuple" d ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.Datatype (native_string_lit "@Tuple") d ->
     mkDtCollapseSelectorGuard
         (Term.UOp1 UserOp1.tuple_select (Term.Numeral j)) t = ti ->
     ti ≠ Term.Stuck ->
@@ -4439,6 +4808,18 @@ private theorem dt_collapse_selector_tuple_select_sound
     exact tuple_guard_projection_eq_true
       M hM d j t ti hTypes.2 hTy hGuard hTiNe
 
+private theorem dt_collapse_selector_guard_stuck_of_not_handled_selector
+    (s t : Term) :
+    (∀ ss dd ii jj,
+      s = Term.DtSel ss dd ii jj ->
+      appHead t ≠ Term.DtCons ss dd ii) ->
+    (∀ idx, s ≠ Term.UOp1 UserOp1.tuple_select idx) ->
+    mkDtCollapseSelectorGuard s t = Term.Stuck := by
+  -- Remaining guard-shape invariant: the selector list generated from `t`
+  -- contains only datatype selectors matching the exposed constructor, or
+  -- tuple selectors for the tuple constructor.
+  sorry
+
 private theorem dt_collapse_selector_sound
     (M : SmtModel) (hM : model_total_typed M) (s t ti : Term) :
   RuleProofs.eo_has_bool_type
@@ -4446,9 +4827,33 @@ private theorem dt_collapse_selector_sound
   mkDtCollapseSelectorGuard s t = ti ->
   eo_interprets M
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply s t)) ti) true := by
-  -- Remaining cases: tuple-selector collapse and impossible mismatched datatype
-  -- selector/constructor guards.
-  sorry
+  intro hBool hGuard
+  have hGuardNe :
+      mkDtCollapseSelectorGuard s t ≠ Term.Stuck :=
+    dt_collapse_selector_guard_ne_stuck_of_has_bool_type
+      s t ti hBool hGuard
+  by_cases hTupleSel :
+      ∃ idx, s = Term.UOp1 UserOp1.tuple_select idx
+  · rcases hTupleSel with ⟨idx, rfl⟩
+    exact dt_collapse_selector_tuple_select_sound
+      M hM idx t ti hBool hGuard
+  · by_cases hDtSel :
+        ∃ ss dd ii jj,
+          s = Term.DtSel ss dd ii jj ∧
+            appHead t = Term.DtCons ss dd ii
+    · rcases hDtSel with ⟨ss, dd, ii, jj, rfl, hHead⟩
+      exact dt_collapse_selector_dt_sel_appHead_dtcons_sound
+        M hM ss dd ii jj t ti hBool hHead hGuard
+    · have hStuck : mkDtCollapseSelectorGuard s t = Term.Stuck :=
+        dt_collapse_selector_guard_stuck_of_not_handled_selector
+          s t
+          (by
+            intro ss dd ii jj hSel hHead
+            exact hDtSel ⟨ss, dd, ii, jj, hSel, hHead⟩)
+          (by
+            intro idx hSel
+            exact hTupleSel ⟨idx, hSel⟩)
+      exact False.elim (hGuardNe hStuck)
 
 private theorem eq_args_of_prog_dt_collapse_selector_ne_stuck
     (a1 : Term) :
