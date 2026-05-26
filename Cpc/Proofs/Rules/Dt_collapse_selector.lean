@@ -1123,6 +1123,19 @@ private theorem dt_get_selectors_of_app_tuple_head_tuple
   rw [dt_get_selectors_of_app_eq_appHead, hHead]
   rfl
 
+private theorem dt_get_selectors_eq_fallback_of_not_special
+    (T c : Term) :
+    T ≠ Term.Stuck ->
+    c ≠ Term.Stuck ->
+    (∀ T1 T2,
+      T = Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2 ->
+      c ≠ Term.UOp UserOp.tuple) ->
+    (T = Term.UOp UserOp.UnitTuple -> c ≠ Term.UOp UserOp.tuple_unit) ->
+    __dt_get_selectors T c = __eo_dt_selectors c := by
+  intro hT hC hTuple hUnit
+  cases T <;> cases c <;>
+    simp [__dt_get_selectors, __eo_dt_selectors] at hT hC hTuple hUnit ⊢
+
 private theorem dt_arg_list_tupleArgs_of_tuple_value :
     ∀ (t : Term),
       isTupleValue t ->
@@ -1363,6 +1376,28 @@ private theorem assoc_nil_nth_eoTermList_find_rec_nil_stuck
       rw [hFind]
       simpa [show (-1 : native_Int) = Int.negSucc 0 by rfl] using
         assoc_nil_nth_eoTermList_negSucc_stuck xs 0
+
+private theorem assoc_nil_nth_eoTermList_list_find_nil_stuck
+    (xs : List Term) (target : Term) :
+    __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+        (__eo_list_find Term.__eo_List_cons Term.__eo_List_nil target) =
+      Term.Stuck := by
+  by_cases hTarget : target = Term.Stuck
+  · subst target
+    simp [__eo_list_find, __eo_list_find_rec, __eo_is_list,
+      __eo_get_nil_rec, __eo_is_list_nil, __eo_is_ok, __eo_requires,
+      native_ite, native_teq, native_not, SmtEval.native_not,
+      assoc_nil_nth_index_stuck]
+  · have hFind :
+        __eo_list_find Term.__eo_List_cons Term.__eo_List_nil target =
+          Term.Numeral (-1 : native_Int) := by
+      cases target <;>
+        simp [__eo_list_find, __eo_list_find_rec, __eo_is_list,
+          __eo_get_nil_rec, __eo_is_list_nil, __eo_is_ok, __eo_requires,
+          native_ite, native_teq, native_not, SmtEval.native_not] at hTarget ⊢
+    rw [hFind]
+    simpa [show (-1 : native_Int) = Int.negSucc 0 by rfl] using
+      assoc_nil_nth_eoTermList_negSucc_stuck xs 0
 
 private theorem datatype_cons_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck
     (s : native_String) (d : Datatype) (i : native_Nat) :
@@ -2012,6 +2047,69 @@ private theorem tuple_get_selectors_rec_find_assoc_ne_stuck_implies_tuple_select
   exact
     tuple_get_selectors_rec_find_rec_assoc_ne_stuck_implies_tuple_select
       T (Term.Numeral 0) (Term.Numeral 0) target xs ti hAssocRec hTi
+
+private theorem dt_get_selectors_find_assoc_ne_stuck_implies_handled
+    (T c target : Term) (xs : List Term) (ti : Term) :
+    __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+      (__eo_list_find Term.__eo_List_cons (__dt_get_selectors T c) target) =
+        ti ->
+    ti ≠ Term.Stuck ->
+    (∃ idx, target = Term.UOp1 UserOp1.tuple_select idx) ∨
+      ∃ ss dd ii jj,
+        target = Term.DtSel ss dd ii jj ∧ c = Term.DtCons ss dd ii := by
+  intro hAssoc hTi
+  by_cases hT : T = Term.Stuck
+  · subst T
+    have hAssocStuck :
+        __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+          (__eo_list_find Term.__eo_List_cons
+            (__dt_get_selectors Term.Stuck c) target) = Term.Stuck := by
+      simp [__dt_get_selectors, __eo_list_find, __eo_list_find_rec,
+        __eo_is_list, __eo_requires, native_ite, native_teq,
+        assoc_nil_nth_index_stuck]
+    exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+  by_cases hC : c = Term.Stuck
+  · subst c
+    have hAssocStuck :
+        __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+          (__eo_list_find Term.__eo_List_cons
+            (__dt_get_selectors T Term.Stuck) target) = Term.Stuck := by
+      simp [__dt_get_selectors, __eo_list_find, __eo_list_find_rec,
+        __eo_is_list, __eo_requires, native_ite, native_teq,
+        assoc_nil_nth_index_stuck]
+    exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+  by_cases hTuple :
+      ∃ T1 T2,
+        T = Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2 ∧
+          c = Term.UOp UserOp.tuple
+  · rcases hTuple with ⟨T1, T2, rfl, rfl⟩
+    exact Or.inl
+      (tuple_get_selectors_rec_find_assoc_ne_stuck_implies_tuple_select
+        (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
+        target xs ti (by simpa [__dt_get_selectors] using hAssoc) hTi)
+  by_cases hUnit :
+      T = Term.UOp UserOp.UnitTuple ∧ c = Term.UOp UserOp.tuple_unit
+  · rcases hUnit with ⟨rfl, rfl⟩
+    have hAssocStuck :
+        __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+          (__eo_list_find Term.__eo_List_cons
+            (__dt_get_selectors (Term.UOp UserOp.UnitTuple)
+              (Term.UOp UserOp.tuple_unit)) target) = Term.Stuck := by
+      simpa [__dt_get_selectors] using
+        assoc_nil_nth_eoTermList_list_find_nil_stuck xs target
+    exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
+  have hFallback :
+      __dt_get_selectors T c = __eo_dt_selectors c :=
+    dt_get_selectors_eq_fallback_of_not_special T c hT hC
+      (by
+        intro T1 T2 hTT hCTuple
+        exact hTuple ⟨T1, T2, hTT, hCTuple⟩)
+      (by
+        intro hTUnit hCUnit
+        exact hUnit ⟨hTUnit, hCUnit⟩)
+  exact Or.inr
+    (eo_dt_selectors_find_assoc_ne_stuck_implies_dt_sel_matching_head
+      c target xs ti (by simpa [hFallback] using hAssoc) hTi)
 
 private theorem tuple_guard_get_arg_of_arglist_selectors
     (T : Term) (j : native_Nat) (xs : List Term) (ti : Term) :
@@ -4815,10 +4913,34 @@ private theorem dt_collapse_selector_guard_stuck_of_not_handled_selector
       appHead t ≠ Term.DtCons ss dd ii) ->
     (∀ idx, s ≠ Term.UOp1 UserOp1.tuple_select idx) ->
     mkDtCollapseSelectorGuard s t = Term.Stuck := by
-  -- Remaining guard-shape invariant: the selector list generated from `t`
-  -- contains only datatype selectors matching the exposed constructor, or
-  -- tuple selectors for the tuple constructor.
-  sorry
+  intro hNoDt hNoTuple
+  by_cases hGuard : mkDtCollapseSelectorGuard s t = Term.Stuck
+  · exact hGuard
+  · have hFalse : False := by
+      have hArgsNe : __dt_arg_list t ≠ Term.Stuck := by
+        intro hArgs
+        apply hGuard
+        simp [mkDtCollapseSelectorGuard, hArgs, assoc_nil_nth_list_stuck]
+      rcases dt_arg_list_eq_eoTermList_of_ne_stuck t hArgsNe with ⟨xs, hArgs⟩
+      let ti :=
+        __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
+          (__eo_list_find Term.__eo_List_cons
+            (__dt_get_selectors (__eo_typeof t) (appHead t)) s)
+      have hAssoc : ti = ti := rfl
+      have hAssocNe : ti ≠ Term.Stuck := by
+        intro hStuck
+        apply hGuard
+        simpa [mkDtCollapseSelectorGuard, ti, hArgs,
+          dt_get_selectors_of_app_eq_appHead] using hStuck
+      have hHandled :=
+        dt_get_selectors_find_assoc_ne_stuck_implies_handled
+          (__eo_typeof t) (appHead t) s xs ti hAssoc hAssocNe
+      rcases hHandled with hTuple | hDt
+      · rcases hTuple with ⟨idx, hSel⟩
+        exact hNoTuple idx hSel
+      · rcases hDt with ⟨ss, dd, ii, jj, hSel, hHead⟩
+        exact hNoDt ss dd ii jj hSel hHead
+    exact False.elim hFalse
 
 private theorem dt_collapse_selector_sound
     (M : SmtModel) (hM : model_total_typed M) (s t ti : Term) :
