@@ -4124,6 +4124,117 @@ private theorem smt_typeof_apply_tuple_partial_eq_none (x : Term) :
     SmtType.None
   exact TranslationProofs.typeof_apply_none_eq (__eo_to_smt x)
 
+private theorem eo_typeof_apply_tuple_type_stuck (T U V : Term) :
+    __eo_typeof_apply
+        (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U) V =
+      Term.Stuck := by
+  cases V <;> simp [__eo_typeof_apply]
+
+private theorem eo_typeof_apply_stuck_head (V : Term) :
+    __eo_typeof_apply Term.Stuck V = Term.Stuck := by
+  cases V <;> simp [__eo_typeof_apply]
+
+private theorem eo_typeof_apply_requires_tuple_type_stuck
+    (P T U V : Term) :
+    __eo_typeof_apply
+        (__eo_requires P (Term.Boolean true)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T) U)) V =
+      Term.Stuck := by
+  cases hP : native_teq P (Term.Boolean true) <;>
+    cases hStuck : native_not (native_teq P Term.Stuck) <;>
+      simp [__eo_requires, native_ite, hP, hStuck,
+        eo_typeof_apply_tuple_type_stuck, eo_typeof_apply_stuck_head]
+
+private theorem eo_typeof_apply_typeof_tuple_stuck
+    (T U V : Term) :
+    __eo_typeof_apply (__eo_typeof_tuple T U) V = Term.Stuck := by
+  unfold __eo_typeof_tuple
+  split
+  · cases V <;> simp [__eo_typeof_apply]
+  · cases V <;> simp [__eo_typeof_apply]
+  · exact eo_typeof_apply_requires_tuple_type_stuck
+      (__eo_is_ok (__eo_list_len (Term.UOp UserOp.Tuple) U)) T U V
+
+private theorem eo_typeof_tuple_head_extra_application_stuck :
+    ∀ (g x tail : Term),
+      appHead g = Term.UOp UserOp.tuple ->
+      g ≠ Term.UOp UserOp.tuple ->
+      __eo_typeof (((g.Apply x).Apply tail)) = Term.Stuck
+  | Term.Apply f y, x, tail, hHead, _hNe => by
+      cases f with
+      | UOp op =>
+          cases op with
+          | tuple =>
+              change
+                __eo_typeof_apply
+                    (__eo_typeof_tuple (__eo_typeof y) (__eo_typeof x))
+                    (__eo_typeof tail) = Term.Stuck
+              exact eo_typeof_apply_typeof_tuple_stuck
+                (__eo_typeof y) (__eo_typeof x) (__eo_typeof tail)
+          | _ =>
+              simp [appHead] at hHead
+      | Apply f' y' =>
+          have hInner :
+              __eo_typeof (((Term.Apply f' y').Apply y).Apply x) =
+                Term.Stuck := by
+            exact eo_typeof_tuple_head_extra_application_stuck
+              (Term.Apply f' y') y x
+              (by simpa [appHead] using hHead)
+              (by intro h; cases h)
+          change
+            __eo_typeof_apply
+                (__eo_typeof (((Term.Apply f' y').Apply y).Apply x))
+                (__eo_typeof tail) = Term.Stuck
+          rw [hInner]
+          exact eo_typeof_apply_stuck_head (__eo_typeof tail)
+      | _ =>
+          cases hHead
+  | Term.UOp op, x, tail, hHead, hNe => by
+      exact False.elim (hNe (by simpa [appHead] using hHead))
+  | Term.UOp1 _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.UOp2 _ _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.UOp3 _ _ _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.__eo_List, x, tail, hHead, _hNe => by cases hHead
+  | Term.__eo_List_nil, x, tail, hHead, _hNe => by cases hHead
+  | Term.__eo_List_cons, x, tail, hHead, _hNe => by cases hHead
+  | Term.Bool, x, tail, hHead, _hNe => by cases hHead
+  | Term.Boolean _, x, tail, hHead, _hNe => by cases hHead
+  | Term.Numeral _, x, tail, hHead, _hNe => by cases hHead
+  | Term.Rational _, x, tail, hHead, _hNe => by cases hHead
+  | Term.String _, x, tail, hHead, _hNe => by cases hHead
+  | Term.Binary _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.Type, x, tail, hHead, _hNe => by cases hHead
+  | Term.Stuck, x, tail, hHead, _hNe => by cases hHead
+  | Term.FunType, x, tail, hHead, _hNe => by cases hHead
+  | Term.Var _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.DatatypeType _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.DatatypeTypeRef _, x, tail, hHead, _hNe => by cases hHead
+  | Term.DtcAppType _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.DtCons _ _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.DtSel _ _ _ _, x, tail, hHead, _hNe => by cases hHead
+  | Term.USort _, x, tail, hHead, _hNe => by cases hHead
+  | Term.UConst _ _, x, tail, hHead, _hNe => by cases hHead
+
+private theorem smt_typeof_tuple_head_extra_application_eq_none
+    (g x tail : Term) :
+    appHead g = Term.UOp UserOp.tuple ->
+    g ≠ Term.UOp UserOp.tuple ->
+    __smtx_typeof (__eo_to_smt (((g.Apply x).Apply tail))) =
+      SmtType.None := by
+  intro hHead hNe
+  by_cases hNN :
+      __smtx_typeof (__eo_to_smt (((g.Apply x).Apply tail))) =
+        SmtType.None
+  · exact hNN
+  have hMatch :=
+    TranslationProofs.eo_to_smt_typeof_matches_translation
+      (((g.Apply x).Apply tail)) hNN
+  have hEo :
+      __eo_typeof (((g.Apply x).Apply tail)) = Term.Stuck :=
+    eo_typeof_tuple_head_extra_application_stuck g x tail hHead hNe
+  rw [hEo] at hMatch
+  simpa [__eo_to_smt_type] using hMatch
+
 private theorem tuple_select_guard_stuck_of_uop_head_unit_tuple_type
     (op : UserOp) (idx x tail : Term) :
     __eo_typeof (((Term.UOp op).Apply x).Apply tail) =
@@ -4220,19 +4331,15 @@ private theorem tuple_guard_projection_eq_true
           by_cases hHead : appHead (Term.Apply f tail) = Term.UOp UserOp.tuple
           · cases f with
             | Apply g x =>
-                cases g with
-                | UOp op =>
-                    by_cases hOp : op = UserOp.tuple
-                    · subst op
-                      exact tuple_guard_projection_tuple_zero_eq_true
-                        M hM d x tail ti hTy hGuard hTi
-                    · have hOpEq : op = UserOp.tuple := by
-                        simpa [appHead] using hHead
-                      exact False.elim (hOp hOpEq)
-                | _ =>
-                    -- The remaining right-head cases are malformed tuple
-                    -- applications; the SMT tuple typing should rule them out.
-                    sorry
+                by_cases hG : g = Term.UOp UserOp.tuple
+                · subst g
+                  exact tuple_guard_projection_tuple_zero_eq_true
+                    M hM d x tail ti hTy hGuard hTi
+                · have hNone :=
+                    smt_typeof_tuple_head_extra_application_eq_none
+                      g x tail (by simpa [appHead] using hHead) hG
+                  rw [hNone] at hTy
+                  cases hTy
             | UOp op =>
                 by_cases hOp : op = UserOp.tuple
                 · subst op
@@ -4259,19 +4366,15 @@ private theorem tuple_guard_projection_eq_true
           by_cases hHead : appHead (Term.Apply f tail) = Term.UOp UserOp.tuple
           · cases f with
             | Apply g x =>
-                cases g with
-                | UOp op =>
-                    by_cases hOp : op = UserOp.tuple
-                    · subst op
-                      exact tuple_guard_projection_tuple_succ_eq_true
-                        M hM d j x tail ti hSelectNN hTy hGuard hTi
-                    · have hOpEq : op = UserOp.tuple := by
-                        simpa [appHead] using hHead
-                      exact False.elim (hOp hOpEq)
-                | _ =>
-                    -- The remaining right-head cases are malformed tuple
-                    -- applications; the SMT tuple typing should rule them out.
-                    sorry
+                by_cases hG : g = Term.UOp UserOp.tuple
+                · subst g
+                  exact tuple_guard_projection_tuple_succ_eq_true
+                    M hM d j x tail ti hSelectNN hTy hGuard hTi
+                · have hNone :=
+                    smt_typeof_tuple_head_extra_application_eq_none
+                      g x tail (by simpa [appHead] using hHead) hG
+                  rw [hNone] at hTy
+                  cases hTy
             | UOp op =>
                 by_cases hOp : op = UserOp.tuple
                 · subst op
