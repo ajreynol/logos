@@ -258,7 +258,7 @@ private theorem native_unpack_string_strlen_eq (ss : SmtSeq) :
 private theorem str_in_re_sigma_star_rec_empty_ne_zero
     (s : Term) (n : Nat) (hSNe : s ≠ Term.Stuck) :
     __str_mk_str_in_re_sigma_star_rec s
-        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String ""))
+        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit "")))
         (Term.Numeral (Int.ofNat n)) ≠ Term.Stuck ->
       n ≠ 0 := by
   intro hSide hn
@@ -272,7 +272,7 @@ private theorem str_in_re_sigma_star_rec_empty_ne_zero
 private theorem str_in_re_sigma_star_rec_empty_eq
     (s : Term) (n : Nat) (hSNe : s ≠ Term.Stuck) (hn : n ≠ 0) :
     __str_mk_str_in_re_sigma_star_rec s
-        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String ""))
+        (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit "")))
         (Term.Numeral (Int.ofNat n)) =
       Term.Apply
         (Term.Apply (Term.UOp UserOp.eq)
@@ -343,7 +343,7 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                   by_cases hStr : str = ""
                   · subst str
                     have hRv : rv = SmtRegLan.epsilon := by
-                      change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String "")) =
+                      change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) =
                           SmtValue.RegLan rv at hREval
                       rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_4] at hREval
                       simpa [__smtx_model_eval_str_to_re, native_str_to_re,

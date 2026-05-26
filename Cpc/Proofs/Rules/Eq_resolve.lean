@@ -1,5 +1,5 @@
 import Cpc.Proofs.RuleSupport.Support
-import Cpc.Proofs.Rules.True_elim
+import Cpc.Proofs.RuleSupport.TrueElimSupport
 
 open Eo
 open SmtEval

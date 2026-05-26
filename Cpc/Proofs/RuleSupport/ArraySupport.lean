@@ -645,6 +645,81 @@ private theorem map_diff_typed_canonical_lookup_witness
     subst m2
     simp [__smtx_model_eval_eq, native_veq] at hNe
 
+theorem map_diff_selects_model_eval_eq_false_of_default_eq
+    (m1 m2 : SmtMap)
+    (A B : SmtType)
+    (hm1Ty : __smtx_typeof_map_value m1 = SmtType.Map A B)
+    (hm2Ty : __smtx_typeof_map_value m2 = SmtType.Map A B)
+    (hm1Can : __smtx_map_canonical m1 = true)
+    (hm2Can : __smtx_map_canonical m2 = true)
+    (hDefaultEq : __smtx_msm_get_default m1 = __smtx_msm_get_default m2)
+    (hBNeRegLan : B ≠ SmtType.RegLan)
+    (hNe : __smtx_model_eval_eq (SmtValue.Map m1) (SmtValue.Map m2) =
+      SmtValue.Boolean false) :
+    __smtx_model_eval_eq
+        (__smtx_msm_lookup m1 (native_eval_map_diff_msm m1 m2))
+        (__smtx_msm_lookup m2 (native_eval_map_diff_msm m1 m2)) =
+      SmtValue.Boolean false := by
+  classical
+  change
+    __smtx_model_eval_eq
+        (__smtx_msm_lookup m1 (native_eval_map_diff_msm m1 m2))
+        (__smtx_msm_lookup m2 (native_eval_map_diff_msm m1 m2)) =
+      SmtValue.Boolean false
+  rw [hm1Ty, hm2Ty]
+  simp [native_ite, native_Teq, SmtEval.native_and]
+  by_cases hDiff :
+      ∃ i : SmtValue,
+        __smtx_typeof_value i = A ∧
+          __smtx_value_canonical_bool i = true ∧
+            native_veq (__smtx_msm_lookup m1 i)
+              (__smtx_msm_lookup m2 i) = false
+  · have hSpec := Classical.choose_spec hDiff
+    have hLookup1Ty :
+        __smtx_typeof_value
+            (__smtx_msm_lookup m1 (Classical.choose hDiff)) = B :=
+      Smtm.map_lookup_typed hm1Ty hSpec.1
+    have hLookup2Ty :
+        __smtx_typeof_value
+            (__smtx_msm_lookup m2 (Classical.choose hDiff)) = B :=
+      Smtm.map_lookup_typed hm2Ty hSpec.1
+    have hFalse :
+        __smtx_model_eval_eq
+            (__smtx_msm_lookup m1 (Classical.choose hDiff))
+            (__smtx_msm_lookup m2 (Classical.choose hDiff)) =
+          SmtValue.Boolean false :=
+      model_eval_eq_false_of_native_veq_false_non_reglan
+        hLookup1Ty hLookup2Ty hBNeRegLan hSpec.2.2
+    simpa [hDiff] using hFalse
+  · exfalso
+    have hLeafEq :
+        Smtm.smt_map_default_leaf m1 = Smtm.smt_map_default_leaf m2 :=
+      map_default_leaf_eq_of_get_default_eq hm1Ty hm2Ty hDefaultEq
+    have hLookupEq :
+        ∀ v : SmtValue, __smtx_msm_lookup m1 v = __smtx_msm_lookup m2 v := by
+      intro v
+      by_cases hv :
+          __smtx_typeof_value v = A ∧ __smtx_value_canonical_bool v = true
+      · have hNotFalse :
+            native_veq (__smtx_msm_lookup m1 v)
+              (__smtx_msm_lookup m2 v) ≠ false := by
+          intro hFalse
+          exact hDiff ⟨v, hv.1, hv.2, hFalse⟩
+        cases hVeq :
+            native_veq (__smtx_msm_lookup m1 v) (__smtx_msm_lookup m2 v)
+        · exact False.elim (hNotFalse hVeq)
+        · exact Smtm.eq_of_native_veq_true hVeq
+      · calc
+          __smtx_msm_lookup m1 v = __smtx_msm_get_default m1 :=
+            map_lookup_eq_default_of_not_typed_canonical hm1Ty hm1Can hv
+          _ = __smtx_msm_get_default m2 := hDefaultEq
+          _ = __smtx_msm_lookup m2 v :=
+            (map_lookup_eq_default_of_not_typed_canonical hm2Ty hm2Can hv).symm
+    have hEq : m1 = m2 :=
+      Smtm.map_ext_of_lookup_eq hm1Can hm2Can hLeafEq hLookupEq
+    subst m2
+    simp [__smtx_model_eval_eq, native_veq] at hNe
+
 theorem map_diff_selects_model_eval_eq_false
     (m1 m2 : SmtMap)
     (A B : SmtType)

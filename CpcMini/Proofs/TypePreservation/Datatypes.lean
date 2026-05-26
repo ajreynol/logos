@@ -675,6 +675,11 @@ private theorem term_result_datatype_components_wf_of_non_none
         cases hMod : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
           simp [__smtx_typeof, result_datatype_components_wf, native_and,
             native_ite, hWidth, hMod]
+    case String s =>
+      cases hValid : native_string_valid s
+      · unfold term_has_non_none_type at hxNN
+        simp [__smtx_typeof, SmtEval.native_ite, hValid] at hxNN
+      · simp [__smtx_typeof, result_datatype_components_wf, SmtEval.native_ite, hValid]
     case Var s T =>
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
@@ -1515,7 +1520,9 @@ theorem typeof_value_model_eval_apply_dt
           simp [__smtx_typeof_value, hSeq] at hf
       | inr hNone =>
           simp [__smtx_typeof_value, hNone] at hf
-  | Char c => simp [__smtx_typeof_value] at hf
+  | Char c =>
+      cases hValid : native_char_valid c <;>
+        simp [__smtx_typeof_value, SmtEval.native_ite, hValid] at hf
   | UValue k e => simp [__smtx_typeof_value] at hf
   | RegLan r => simp [__smtx_typeof_value] at hf
   | DtCons s d n =>

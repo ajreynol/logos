@@ -18,7 +18,7 @@ private abbrev mkReConcat (r s : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r) s
 
 private abbrev emptyStrInRe : Term :=
-  mkStrInRe (Term.String "") (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String ""))
+  mkStrInRe (Term.String (native_string_lit "")) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit "")))
 
 private theorem eo_get_nil_rec_and_premiseAndFormulaList :
     ∀ ps : List Term,
@@ -180,8 +180,8 @@ private theorem empty_str_in_re_has_bool_type :
     RuleProofs.eo_has_bool_type emptyStrInRe := by
   unfold RuleProofs.eo_has_bool_type emptyStrInRe mkStrInRe
   change __smtx_typeof
-      (SmtTerm.str_in_re (SmtTerm.String "")
-        (SmtTerm.str_to_re (SmtTerm.String ""))) = SmtType.Bool
+      (SmtTerm.str_in_re (SmtTerm.String (native_string_lit ""))
+        (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) = SmtType.Bool
   rw [typeof_str_in_re_eq, typeof_str_to_re_eq]
   simp [__smtx_typeof.eq_4, native_ite, native_Teq]
 
@@ -190,8 +190,8 @@ private theorem empty_str_in_re_true (M : SmtModel) :
   apply RuleProofs.eo_interprets_of_bool_eval M _ true empty_str_in_re_has_bool_type
   unfold emptyStrInRe mkStrInRe
   change __smtx_model_eval M
-      (SmtTerm.str_in_re (SmtTerm.String "")
-        (SmtTerm.str_to_re (SmtTerm.String ""))) =
+      (SmtTerm.str_in_re (SmtTerm.String (native_string_lit ""))
+        (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) =
     SmtValue.Boolean true
   simp [__smtx_model_eval, __smtx_model_eval_str_to_re, __smtx_model_eval_str_in_re,
     native_str_to_re, native_str_in_re, native_re_of_list, native_pack_string,
@@ -333,13 +333,13 @@ by
       have hResultBool :
           RuleProofs.eo_has_bool_type
             (__mk_re_concat (premiseAndFormulaList ps.reverse) emptyStrInRe) :=
-        mk_re_concat_premises_has_bool_type ps.reverse (Term.String "")
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String ""))
+        mk_re_concat_premises_has_bool_type ps.reverse (Term.String (native_string_lit ""))
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit "")))
           hRevBool empty_str_in_re_has_bool_type hProgLocal
       refine ⟨?_, ?_⟩
       · intro hTrue
-        exact mk_re_concat_premises_true M ps.reverse (Term.String "")
-          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String ""))
+        exact mk_re_concat_premises_true M ps.reverse (Term.String (native_string_lit ""))
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String (native_string_lit "")))
           hRevBool (all_interpreted_true_reverse M ps hTrue)
           empty_str_in_re_has_bool_type (empty_str_in_re_true M) hProgLocal
       · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _ hResultBool

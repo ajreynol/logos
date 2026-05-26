@@ -1530,9 +1530,9 @@ private theorem simple_finite_nonunit_witness :
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
           __smtx_type_default, native_veq]
   | SmtType.Char, _hCtx => by
-      refine ⟨SmtValue.Char (Char.ofNat 1), ?_, ?_, ?_⟩ <;>
+      refine ⟨SmtValue.Char 1, ?_, ?_, ?_⟩ <;>
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_nat_to_char, native_veq]
+          __smtx_type_default, native_char_valid, native_veq]
   | SmtType.BitVec (Nat.succ w), _hCtx => by
       refine
         ⟨SmtValue.Binary (native_nat_to_int (Nat.succ w)) 1, ?_, ?_, ?_⟩
@@ -2499,7 +2499,7 @@ decreasing_by
   all_goals try simp [sizeOf]
   all_goals omega
 
-private axiom datatype_cons_infinite_residual_witness
+private theorem datatype_cons_infinite_residual_witness
     (s : native_String)
     (d : SmtDatatype)
     (refs : RefList)
@@ -2524,7 +2524,8 @@ private axiom datatype_cons_infinite_residual_witness
     ∃ e : SmtValue,
       __smtx_typeof_value e = SmtType.Datatype s d ∧
         __smtx_value_canonical_bool e = true ∧
-          minSize ≤ sizeOf e
+          minSize ≤ sizeOf e := by
+  sorry
 
 private theorem infinite_datatype_suffix_large_witness_residual
     (s : native_String)
@@ -2982,9 +2983,9 @@ private theorem finite_nonunit_type_nondefault_value :
           hTDefault.2, native_and]
       · simp [__smtx_type_default, native_veq]
   | SmtType.Char, _refs, _hInh, _hRec, _hFinite, _hNonUnit => by
-      refine ⟨SmtValue.Char (Char.ofNat 1), ?_, ?_, ?_⟩ <;>
+      refine ⟨SmtValue.Char 1, ?_, ?_, ?_⟩ <;>
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_nat_to_char, native_veq]
+          __smtx_type_default, native_char_valid, native_veq]
   | SmtType.Datatype s d, refs, hInh, hRec, hFinite, hNonUnit => by
       exact finite_nonunit_datatype_nondefault_value
         s d refs hInh hRec hFinite hNonUnit
@@ -3771,9 +3772,9 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
           hTDefault.2, native_and]
       · simp [__smtx_type_default, native_veq]
   | Char =>
-      refine ⟨SmtValue.Char (Char.ofNat 1), ?_, ?_, ?_⟩ <;>
+      refine ⟨SmtValue.Char 1, ?_, ?_, ?_⟩ <;>
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_nat_to_char, native_veq]
+          __smtx_type_default, native_char_valid, native_veq]
   | Datatype s d =>
       by_cases hFinite :
           __smtx_is_finite_type (SmtType.Datatype s d) = true

@@ -6,6 +6,10 @@ open Eo
 open SmtEval
 open Smtm
 
+/-- Proof-side EO interpretation after the core translation bridge was flattened. -/
+def eo_interprets (M : SmtModel) (t : Term) (b : Bool) : Prop :=
+  smt_interprets M (__eo_to_smt t) b
+
 namespace RuleProofs
 
 set_option linter.unusedVariables false
@@ -53,13 +57,7 @@ private theorem eo_to_smt_eq_eq (x y : Term) :
 /-- Characterizes EO interpretation in terms of the translated SMT interpretation. -/
 theorem eo_interprets_iff_smt_interprets (M : SmtModel) (t : Term) (b : Bool) :
   eo_interprets M t b ↔ smt_interprets M (__eo_to_smt t) b := by
-  constructor
-  · intro h
-    rcases h with ⟨s, hs, hInterp⟩
-    cases hs
-    simpa using hInterp
-  · intro h
-    exact ⟨__eo_to_smt t, eo_is_obj.intro t, h⟩
+  rfl
 
 /-- Shows that the EO term `true` is interpreted as `true` in every model. -/
 theorem eo_interprets_true (M : SmtModel) :
@@ -472,10 +470,28 @@ private theorem smtx_model_eval_eq_true_symm
     {v1 v2 : SmtValue}
     (h : __smtx_model_eval_eq v1 v2 = SmtValue.Boolean true) :
     __smtx_model_eval_eq v2 v1 = SmtValue.Boolean true := by
-  cases v1 <;> cases v2 <;>
-    simp [__smtx_model_eval_eq, native_veq] at h ⊢
-  all_goals
-    simpa [eq_comm] using h
+  by_cases hReg :
+      ∃ r1 r2, v1 = SmtValue.RegLan r1 ∧ v2 = SmtValue.RegLan r2
+  · rcases hReg with ⟨r1, r2, rfl, rfl⟩
+    change SmtValue.Boolean (native_re_ext_eq r2 r1) = SmtValue.Boolean true
+    change SmtValue.Boolean (native_re_ext_eq r1 r2) = SmtValue.Boolean true at h
+    simp at h ⊢
+    by_cases hExt12 :
+        ∀ s : native_String,
+          native_string_valid s = true ->
+            native_str_in_re s r1 = native_str_in_re s r2
+    · have hExt21 :
+          ∀ s : native_String,
+            native_string_valid s = true ->
+              native_str_in_re s r2 = native_str_in_re s r1 := by
+        intro s hs
+        exact (hExt12 s hs).symm
+      simpa [hExt21]
+    · simp [hExt12] at h
+  · have hEq : v1 = v2 :=
+      (smtx_model_eval_eq_true_iff_of_not_reglan_pair hReg).1 h
+    subst v2
+    exact smtx_model_eval_eq_refl_aux v1
 
 /-- Establishes an equality relating `smtx_model_eval_seq` and `true_symm`. -/
 private theorem smtx_model_eval_seq_eq_true_symm

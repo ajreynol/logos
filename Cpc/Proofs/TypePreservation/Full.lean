@@ -282,7 +282,8 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
         simpa [__smtx_typeof] using hxNN
       simpa [__smtx_typeof] using go t htNN
     case String s =>
-      simpa [__smtx_typeof, tp_result_seq_components_wf] using tp_seq_char_wf
+      cases hValid : native_string_valid s <;>
+        simp [__smtx_typeof, native_ite, hValid, tp_result_seq_components_wf, tp_seq_char_wf]
     case Var s T =>
       have hGuardNN : __smtx_typeof_guard_wf T T ≠ SmtType.None := by
         unfold term_has_non_none_type at hxNN
@@ -3220,8 +3221,10 @@ theorem term_type_has_no_none_components_of_non_none :
         simp [__smtx_typeof, type_has_no_none_components]
     | SmtTerm.Rational _ =>
         simp [__smtx_typeof, type_has_no_none_components]
-    | SmtTerm.String _ =>
-        simp [__smtx_typeof, type_has_no_none_components]
+    | SmtTerm.String s =>
+        cases hValid : native_string_valid s
+        · exact False.elim (ht (by simp [__smtx_typeof, native_ite, hValid]))
+        · simp [__smtx_typeof, native_ite, hValid, type_has_no_none_components]
     | SmtTerm.Binary _ _ =>
         exact binary_type_has_no_none_components_of_non_none ht
     | SmtTerm._at_purify t1 =>

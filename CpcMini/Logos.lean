@@ -1,3 +1,4 @@
+import CpcMini.LogosTerm
 import CpcMini.SmtEval
 
 set_option linter.unusedVariables false
@@ -16,17 +17,17 @@ def native_str_concat : native_String -> native_String -> native_String
 def native_str_substr (s : native_String) (i n : native_Int) : native_String :=
   let len : Int := (native_str_len s)
   if i < 0 || n <= 0 || i >= len then
-    ""
+    []
   else
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
-    String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
+    (s.drop start).take take
 def native_str_indexof_rec (s t : native_String) (i len fuel : Nat) : native_Int :=
   match fuel with
   | 0 => -1
   | fuel + 1 =>
-      if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
-        i
+      if native_string_prefix_eq t (s.drop i) then
+        Int.ofNat i
       else
         native_str_indexof_rec s t (i + 1) len fuel
 def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
@@ -40,97 +41,6 @@ def native_str_indexof (s t : native_String) (i : native_Int) : native_Int :=
       native_str_indexof_rec s t start tLen (sLen - (start + tLen) + 1)
     else
       -1
-
-/-
-Ordinary user operators.
--/
-inductive UserOp : Type where
-  | Int : UserOp
-  | Real : UserOp
-  | BitVec : UserOp
-  | Char : UserOp
-  | Seq : UserOp
-  | not : UserOp
-  | or : UserOp
-  | and : UserOp
-  | imp : UserOp
-  | eq : UserOp
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-User operators with one index.
--/
-inductive UserOp1 : Type where
-  | None : UserOp1
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-User operators with two indices.
--/
-inductive UserOp2 : Type where
-  | None : UserOp2
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-User operators with three indices.
--/
-inductive UserOp3 : Type where
-  | None : UserOp3
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-mutual
-
-/- Term definition -/
-inductive Term : Type where
-  | UOp : UserOp -> Term
-  | UOp1 : UserOp1 -> Term -> Term
-  | UOp2 : UserOp2 -> Term -> Term -> Term
-  | UOp3 : UserOp3 -> Term -> Term -> Term -> Term
-  | __eo_List : Term
-  | __eo_List_nil : Term
-  | __eo_List_cons : Term
-  | Bool : Term
-  | Boolean : native_Bool -> Term
-  | Numeral : native_Int -> Term
-  | Rational : native_Rat -> Term
-  | String : native_String -> Term
-  | Binary : native_Int -> native_Int -> Term
-  | Type : Term
-  | Stuck : Term
-  | Apply : Term -> Term -> Term
-  | FunType : Term
-  | Var : Term -> Term -> Term
-  | DatatypeType : native_String -> Datatype -> Term
-  | DatatypeTypeRef : native_String -> Term
-  | DtcAppType : Term -> Term -> Term
-  | DtCons : native_String -> Datatype -> native_Nat -> Term
-  | DtSel : native_String -> Datatype -> native_Nat -> native_Nat -> Term
-  | USort : native_Nat -> Term
-  | UConst : native_Nat -> Term -> Term
-
-deriving Repr, DecidableEq, Inhabited, Ord
-
-/-
-Eunoia datatypes.
--/
-inductive Datatype : Type where
-  | null : Datatype
-  | sum : DatatypeCons -> Datatype -> Datatype
-deriving Repr, DecidableEq, Inhabited
-
-/-
-Eunoia datatype constructors.
--/
-inductive DatatypeCons : Type where
-  | unit : DatatypeCons
-  | cons : Term -> DatatypeCons -> DatatypeCons
-deriving Repr, DecidableEq, Inhabited
-
-end
 
 /- Term equality -/
 def native_teq : Term -> Term -> native_Bool
@@ -555,6 +465,12 @@ def __eo_checker_is_refutation : Term -> CCmdList -> native_Bool
   | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
 
 
+
+
+/- Definition of refutation -/
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+  | intro (F : Term) (c : CCmdList) : 
+    (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
 
 
 /-- API for logos -/

@@ -11,12 +11,12 @@ private theorem typed___eo_prog_re_star_none :
   RuleProofs.eo_has_bool_type __eo_prog_re_star_none := by
   change RuleProofs.eo_has_bool_type
     (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult Term.re_none))
-      (Term.Apply Term.str_to_re (Term.String "")))
+      (Term.Apply Term.str_to_re (Term.String (native_string_lit ""))))
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
-    (Term.Apply Term.re_mult Term.re_none) (Term.Apply Term.str_to_re (Term.String ""))
+    (Term.Apply Term.re_mult Term.re_none) (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))
     (by
       change __smtx_typeof (SmtTerm.re_mult SmtTerm.re_none) =
-        __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String ""))
+        __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))
       rw [typeof_re_mult_eq, __smtx_typeof.eq_104, typeof_str_to_re_eq, __smtx_typeof.eq_4]
       native_decide)
     (by
@@ -28,21 +28,21 @@ private theorem facts___eo_prog_re_star_none (M : SmtModel) :
   eo_interprets M __eo_prog_re_star_none true := by
   change eo_interprets M
     (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_mult Term.re_none))
-      (Term.Apply Term.str_to_re (Term.String ""))) true
+      (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))) true
   apply RuleProofs.eo_interprets_eq_of_rel M
-    (Term.Apply Term.re_mult Term.re_none) (Term.Apply Term.str_to_re (Term.String ""))
+    (Term.Apply Term.re_mult Term.re_none) (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))
   · exact typed___eo_prog_re_star_none
   · have hEvalEq :
         __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_mult Term.re_none)) =
-          __smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))) := by
+          __smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))) := by
       change __smtx_model_eval M (SmtTerm.re_mult SmtTerm.re_none) =
-        __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String ""))
+        __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))
       rw [__smtx_model_eval.eq_107, __smtx_model_eval.eq_104, __smtx_model_eval.eq_106,
         __smtx_model_eval.eq_4]
       rfl
     rw [hEvalEq]
     exact RuleProofs.smt_value_rel_refl
-      (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String ""))))
+      (__smtx_model_eval M (__eo_to_smt (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))))
 
 theorem cmd_step_re_star_none_properties
     (M : SmtModel) (hM : model_total_typed M)
