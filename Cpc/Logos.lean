@@ -1170,21 +1170,13 @@ def __seq_distinct_terms : Term -> Term -> Term -> Term
   | _, _, _ => Term.Stuck
 
 
-def __dt_distinct_terms_arg : Term -> Term -> Term
+def __dt_distinct_terms : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply f a), (Term.Apply g b) => (__eo_ite (__eo_ite (__eo_eq a b) (Term.Boolean false) (__are_distinct_terms_type a b (__eo_typeof a))) (Term.Boolean true) (__dt_distinct_terms_arg f g))
-  | ct, cs => (Term.Boolean false)
-
-
-def __dt_distinct_terms_rec : Term -> Term -> Term -> Term -> Term
-  | Term.Stuck , _ , _ , _  => Term.Stuck
-  | _ , Term.Stuck , _ , _  => Term.Stuck
-  | _ , _ , Term.Stuck , _  => Term.Stuck
-  | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply f a), cs, t, s => (__dt_distinct_terms_rec f cs t s)
-  | ct, (Term.Apply g a), t, s => (__dt_distinct_terms_rec ct g t s)
-  | ct, cs, t, s => (__eo_ite (__eo_eq (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors ct)))) (Term.Boolean true)) (__eo_ite (__eo_eq ct cs) (__dt_distinct_terms_arg t s) (__eo_eq (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors cs)))) (Term.Boolean true))) (Term.Boolean false))
+  | (Term.Apply f a), (Term.Apply g b) => (__eo_ite (__dt_distinct_terms f g) (Term.Boolean true) (__eo_ite (__eo_eq a b) (Term.Boolean false) (__are_distinct_terms_type a b (__eo_typeof a))))
+  | ct, (Term.Apply g a) => (__dt_distinct_terms ct g)
+  | (Term.Apply f a), cs => (__dt_distinct_terms f cs)
+  | ct, cs => (__eo_requires (__eo_and (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors ct)))) (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors cs))))) (Term.Boolean true) (__eo_not (__eo_eq ct cs)))
 
 
 def __are_distinct_terms_type : Term -> Term -> Term -> Term
@@ -1198,13 +1190,13 @@ def __are_distinct_terms_type : Term -> Term -> Term -> Term
   | t, s, Term.Bool => (__eo_and (__eo_is_bool t) (__eo_is_bool s))
   | st, ss, (Term.Apply (Term.UOp UserOp.Set) U) => (__eo_or (__set_is_not_subset st ss U) (__set_is_not_subset ss st U))
   | sst, sss, (Term.Apply (Term.UOp UserOp.Seq) U) => (__seq_distinct_terms sst sss U)
-  | t, s, T => (__dt_distinct_terms_rec t s t s)
+  | t, s, T => (__dt_distinct_terms t s)
 
 
 def __are_distinct_terms_list_rec : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
-  | t, (Term.Apply (Term.Apply Term.__eo_List_cons s) xs), T => (__eo_ite (__are_distinct_terms_type t s T) (__are_distinct_terms_list_rec t xs T) (Term.Boolean false))
+  | t, (Term.Apply (Term.Apply Term.__eo_List_cons s) xs), T => (__eo_ite (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_type t s T)) (__are_distinct_terms_list_rec t xs T) (Term.Boolean false))
   | t, Term.__eo_List_nil, T => (Term.Boolean true)
   | _, _, _ => Term.Stuck
 
