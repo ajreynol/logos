@@ -117,6 +117,64 @@ private theorem eq_rhs_stuck_not_bool (lhs : Term) :
     native_decide
   exact hTypes.2 hNone
 
+private theorem eo_len_stuck_of_list_find_is_neg_bool
+    (selectors sel : Term) (b : Bool) :
+    __eo_is_neg (__eo_list_find Term.__eo_List_cons selectors sel) =
+      Term.Boolean b ->
+    __eo_len selectors = Term.Stuck := by
+  intro h
+  cases selectors <;>
+    simp [__eo_list_find, __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
+      __eo_requires, __eo_is_ok, __eo_is_neg, __eo_len, native_ite,
+      native_teq, native_not, SmtEval.native_not] at h ⊢
+
+private theorem dt_collapse_updater_rhs_index_stuck (t a : Term) :
+    __dt_collapse_updater_rhs t a Term.Stuck = Term.Stuck := by
+  cases t <;> cases a <;> simp [__dt_collapse_updater_rhs]
+
+private theorem dt_collapse_updater_guard_true_of_rhs_non_stuck
+    (sel t a rhs : Term) :
+    (let selectors := __dt_get_selectors_of_app (__eo_typeof t) t
+     let idx := __eo_list_find Term.__eo_List_cons selectors sel
+     (if __eo_is_neg idx = Term.Boolean true then
+        t
+      else if __eo_is_neg idx = Term.Boolean false then
+        __dt_collapse_updater_rhs t a
+          (__eo_add (__eo_add (__eo_len selectors) idx)
+            (Term.Numeral (-1 : native_Int)))
+      else Term.Stuck) = rhs) ->
+    rhs ≠ Term.Stuck ->
+    __eo_is_neg
+        (__eo_list_find Term.__eo_List_cons
+          (__dt_get_selectors_of_app (__eo_typeof t) t) sel) =
+      Term.Boolean true ∧ rhs = t := by
+  intro hGuard hRhs
+  let selectors := __dt_get_selectors_of_app (__eo_typeof t) t
+  let idx := __eo_list_find Term.__eo_List_cons selectors sel
+  cases hNeg : __eo_is_neg idx with
+  | Boolean b =>
+      cases b
+      · exfalso
+        have hLen : __eo_len selectors = Term.Stuck :=
+          eo_len_stuck_of_list_find_is_neg_bool selectors sel false
+            (by simpa [idx] using hNeg)
+        have hCollapse :
+            __dt_collapse_updater_rhs t a
+                (__eo_add (__eo_add (__eo_len selectors) idx)
+                  (Term.Numeral (-1 : native_Int))) =
+              Term.Stuck := by
+          rw [hLen]
+          simp [__eo_add, dt_collapse_updater_rhs_index_stuck]
+        apply hRhs
+        simpa [selectors, idx, hNeg, hCollapse] using hGuard.symm
+      · constructor
+        · simpa [selectors, idx] using hNeg
+        · simpa [selectors, idx, hNeg] using hGuard.symm
+  | _ =>
+      exfalso
+      apply hRhs
+      simpa [selectors, idx, hNeg] using hGuard.symm
+
 private theorem smt_model_eval_ne_notvalue_of_non_none
     (M : SmtModel) (hM : model_total_typed M) (x : SmtTerm) :
     __smtx_typeof x ≠ SmtType.None ->
@@ -830,6 +888,514 @@ private theorem tuple_collapse_updater_rhs_ne_stuck_shape
       apply h
       simp [__tuple_collapse_updater_rhs, hA, hIdx]
 
+private theorem tuple_collapse_updater_rhs_tuple_nonzero_eq_mk_apply
+    (head tail a : Term) (n : native_Int) :
+    n ≠ 0 ->
+    a ≠ Term.Stuck ->
+    __tuple_collapse_updater_rhs
+        (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail) a
+        (Term.Numeral n) =
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.tuple) head)
+        (__tuple_collapse_updater_rhs tail a
+          (Term.Numeral (native_zplus n (-1 : native_Int)))) := by
+  intro hn0 hANe
+  have hNumNe : Term.Numeral n ≠ Term.Numeral 0 := by
+    intro h
+    injection h with hn
+    exact hn0 hn
+  cases a <;>
+    simp [__tuple_collapse_updater_rhs, __eo_add, native_zplus,
+      SmtEval.native_zplus, hNumNe] at hANe ⊢
+
+private theorem eo_mk_apply_tuple_head_eq_apply_of_arg_ne_stuck
+    (head arg : Term) :
+    arg ≠ Term.Stuck ->
+    __eo_mk_apply (Term.Apply (Term.UOp UserOp.tuple) head) arg =
+      Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) arg := by
+  intro hArg
+  cases arg
+  case Stuck => exact False.elim (hArg rfl)
+  all_goals simp [__eo_mk_apply]
+
+private theorem native_zplus_pred_nonneg_of_nonneg_ne_zero
+    (n : native_Int) :
+    0 ≤ n ->
+    n ≠ 0 ->
+    0 ≤ native_zplus n (-1 : native_Int) := by
+  intro hNonneg hn0
+  cases n with
+  | ofNat k =>
+      cases k with
+      | zero => exact False.elim (hn0 rfl)
+      | succ k =>
+          change (0 : Int) ≤ (k : Int) + 1 + -1
+          omega
+  | negSucc k =>
+      simp at hNonneg
+
+private theorem native_int_to_nat_eq_succ_pred_of_nonneg_ne_zero
+    (n : native_Int) :
+    0 ≤ n ->
+    n ≠ 0 ->
+    native_int_to_nat n =
+      Nat.succ (native_int_to_nat (native_zplus n (-1 : native_Int))) := by
+  intro hNonneg hn0
+  cases n with
+  | ofNat k =>
+      cases k with
+      | zero => exact False.elim (hn0 rfl)
+      | succ k =>
+          change Nat.succ k =
+            Nat.succ (Int.toNat ((k : Int) + 1 + -1))
+          congr
+          omega
+  | negSucc k =>
+      simp at hNonneg
+
+private theorem tuple_collapse_updater_rhs_projection
+    (M : SmtModel) (hM : model_total_typed M)
+    (idx t a : Term) (d : SmtDatatype) (n : native_Int)
+    (k : native_Nat) :
+    __smtx_typeof (__eo_to_smt t) =
+        SmtType.Datatype (native_string_lit "@Tuple") d ->
+    idx = Term.Numeral n ->
+    0 ≤ n ->
+    native_int_to_nat n < __smtx_dt_num_sels d native_nat_zero ->
+    __smtx_typeof (__eo_to_smt (__tuple_collapse_updater_rhs t a idx)) =
+        SmtType.Datatype (native_string_lit "@Tuple") d ->
+    k < __smtx_dt_num_sels d native_nat_zero ->
+    __vsm_apply_arg_nth
+        (__smtx_model_eval M
+          (__eo_to_smt (__tuple_collapse_updater_rhs t a idx)))
+        k (__smtx_dt_num_sels d native_nat_zero) =
+      __smtx_model_eval M
+        (native_ite (native_nateq (native_int_to_nat n) k)
+          (__eo_to_smt a)
+          (SmtTerm.Apply
+            (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero k)
+            (__eo_to_smt t))) := by
+  intro hT hIdx hNonneg hLt hRhsTy hk
+  subst idx
+  have hRhsNN :
+      __smtx_typeof
+          (__eo_to_smt
+            (__tuple_collapse_updater_rhs t a (Term.Numeral n))) ≠
+        SmtType.None := by
+    rw [hRhsTy]
+    simp
+  have hRhsTermNN :
+      __tuple_collapse_updater_rhs t a (Term.Numeral n) ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation
+      (__tuple_collapse_updater_rhs t a (Term.Numeral n)) hRhsNN
+  rcases tuple_collapse_updater_rhs_ne_stuck_shape t a (Term.Numeral n)
+      hRhsTermNN with hUnit | hTuple
+  · subst t
+    change
+      __smtx_typeof
+          (SmtTerm.DtCons (native_string_lit "@Tuple")
+            (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) 0) =
+        SmtType.Datatype (native_string_lit "@Tuple") d at hT
+    rw [TranslationProofs.smtx_typeof_tuple_unit_translation] at hT
+    injection hT with _ hD
+    subst d
+    simp [__smtx_dt_num_sels, __smtx_dtc_num_sels] at hLt
+  · rcases hTuple with ⟨head, tail, hTupleEq⟩
+    subst t
+    let tupleTerm := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tail
+    let headSmt := __eo_to_smt head
+    let tailSmt := __eo_to_smt tail
+    let aSmt := __eo_to_smt a
+    let headTy := __smtx_typeof headSmt
+    have hTupleNN : __smtx_typeof (__eo_to_smt tupleTerm) ≠ SmtType.None := by
+      rw [hT]
+      simp
+    rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+        tail head hTupleNN with
+      ⟨c, hTailTy⟩
+    let tailD := SmtDatatype.sum c SmtDatatype.null
+    let fullC := SmtDatatypeCons.cons headTy c
+    let fullD := SmtDatatype.sum fullC SmtDatatype.null
+    have hTupleTyFull :
+        __smtx_typeof (__eo_to_smt tupleTerm) =
+          SmtType.Datatype (native_string_lit "@Tuple") fullD := by
+      change
+        __smtx_typeof
+            (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) =
+          SmtType.Datatype (native_string_lit "@Tuple") fullD
+      exact
+        TranslationProofs.smtx_tuple_prepend_typeof_of_tail_tuple_type
+          tailSmt headSmt headTy c
+          (by simpa [tailSmt, tailD] using hTailTy)
+          (by
+            change
+              __smtx_typeof
+                  (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
+                SmtType.None
+            simpa [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
+    have hD : d = fullD := by
+      rw [hT] at hTupleTyFull
+      injection hTupleTyFull with _ hD'
+    subst d
+    by_cases hn0 : n = 0
+    · subst n
+      have hANe : a ≠ Term.Stuck := by
+        intro hA
+        apply hRhsTermNN
+        simp [tupleTerm, __tuple_collapse_updater_rhs, hA]
+      have hRhsEq :
+          __tuple_collapse_updater_rhs tupleTerm a (Term.Numeral 0) =
+            Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) tail := by
+        cases a <;> simp [tupleTerm, __tuple_collapse_updater_rhs] at hANe ⊢
+      have hRhsBaseNN :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) tail)) ≠
+            SmtType.None := by
+        rw [← hRhsEq]
+        simpa [tupleTerm] using hRhsNN
+      have hRhsPrependTyBase :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) tail)) =
+            SmtType.Datatype (native_string_lit "@Tuple")
+              (SmtDatatype.sum (SmtDatatypeCons.cons (__smtx_typeof aSmt) c)
+                SmtDatatype.null) := by
+        change
+          __smtx_typeof
+              (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt) tailSmt) =
+            SmtType.Datatype (native_string_lit "@Tuple")
+              (SmtDatatype.sum (SmtDatatypeCons.cons (__smtx_typeof aSmt) c)
+                SmtDatatype.null)
+        exact
+          TranslationProofs.smtx_tuple_prepend_typeof_of_tail_tuple_type
+            tailSmt aSmt (__smtx_typeof aSmt) c
+            (by simpa [tailSmt, tailD] using hTailTy)
+            (by
+              change
+                __smtx_typeof
+                    (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
+                      tailSmt) ≠ SmtType.None
+              simpa [aSmt, tailSmt] using hRhsBaseNN)
+      have hFullArgEq :
+          SmtDatatype.sum (SmtDatatypeCons.cons (__smtx_typeof aSmt) c)
+              SmtDatatype.null =
+            fullD := by
+        have hRhsTyBase :
+            __smtx_typeof
+                (__eo_to_smt
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) tail)) =
+              SmtType.Datatype (native_string_lit "@Tuple") fullD := by
+          rw [← hRhsEq]
+          simpa [tupleTerm] using hRhsTy
+        have h := hRhsPrependTyBase.symm.trans hRhsTyBase
+        injection h with _ hD'
+      rw [hRhsEq]
+      cases k with
+      | zero =>
+          have hProj :=
+            tuple_prepend_zero_projection M hM aSmt tailSmt
+              (__smtx_typeof aSmt) c
+              (by simpa [tailSmt, tailD] using hTailTy)
+              (by
+                change
+                  __smtx_typeof
+                      (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
+                        tailSmt) ≠ SmtType.None
+                simpa [aSmt, tailSmt] using hRhsBaseNN)
+          simpa [fullD, fullC, aSmt, native_nateq, SmtEval.native_nateq]
+            using hProj
+      | succ j =>
+          have hjTail :
+              j < __smtx_dt_num_sels tailD native_nat_zero := by
+            simpa [fullD, fullC, tailD, __smtx_dt_num_sels,
+              __smtx_dtc_num_sels] using hk
+          have hRhsSucc :=
+            tuple_prepend_succ_projection M hM aSmt tailSmt
+              (__smtx_typeof aSmt) c j
+              (by simpa [tailSmt, tailD] using hTailTy)
+              (by
+                change
+                  __smtx_typeof
+                      (__eo_to_smt_tuple_prepend aSmt (__smtx_typeof aSmt)
+                        tailSmt) ≠ SmtType.None
+                simpa [aSmt, tailSmt] using hRhsBaseNN)
+              (by simpa [tailD] using hjTail)
+          have hSelEval :
+              __smtx_model_eval M
+                  (SmtTerm.Apply
+                    (SmtTerm.DtSel (native_string_lit "@Tuple") fullD
+                      native_nat_zero (Nat.succ j))
+                    (__eo_to_smt tupleTerm)) =
+                __vsm_apply_arg_nth
+                  (__smtx_model_eval M (__eo_to_smt tupleTerm))
+                  (Nat.succ j)
+                  (__smtx_dt_num_sels fullD native_nat_zero) := by
+            simpa [fullD, tupleTerm] using
+              smt_tuple_dt_sel_eval_uses_constructor M hM
+                (__eo_to_smt tupleTerm) fullC (Nat.succ j)
+                (by simpa [fullD] using hTupleTyFull)
+          have hOrigSucc :=
+            tuple_prepend_succ_projection M hM headSmt tailSmt headTy c j
+              (by simpa [tailSmt, tailD] using hTailTy)
+              (by
+                change
+                  __smtx_typeof
+                      (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
+                    SmtType.None
+                simpa [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
+              (by simpa [tailD] using hjTail)
+          have hRhsSucc' :
+              __vsm_apply_arg_nth
+                  (__smtx_model_eval M
+                    (__eo_to_smt
+                      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a)
+                        tail)))
+                  (Nat.succ j) (__smtx_dt_num_sels fullD native_nat_zero) =
+                __vsm_apply_arg_nth (__smtx_model_eval M tailSmt) j
+                  (__smtx_dt_num_sels tailD native_nat_zero) := by
+            simpa [aSmt, tailSmt, tailD, hFullArgEq] using hRhsSucc
+          rw [hRhsSucc']
+          simpa [fullD, fullC, native_nateq, SmtEval.native_nateq] using
+            (hSelEval.trans hOrigSucc).symm
+    · let pred := native_zplus n (-1 : native_Int)
+      let tailRhs := __tuple_collapse_updater_rhs tail a (Term.Numeral pred)
+      have hPredNonneg : 0 ≤ pred :=
+        native_zplus_pred_nonneg_of_nonneg_ne_zero n hNonneg hn0
+      have hNatSucc :
+          native_int_to_nat n = Nat.succ (native_int_to_nat pred) :=
+        native_int_to_nat_eq_succ_pred_of_nonneg_ne_zero n hNonneg hn0
+      have hPredLt :
+          native_int_to_nat pred <
+            __smtx_dt_num_sels tailD native_nat_zero := by
+        have hSuccLt :
+            Nat.succ (native_int_to_nat pred) <
+              Nat.succ (__smtx_dt_num_sels tailD native_nat_zero) := by
+          simpa [hNatSucc, fullD, fullC, tailD, __smtx_dt_num_sels,
+            __smtx_dtc_num_sels] using hLt
+        exact Nat.lt_of_succ_lt_succ hSuccLt
+      have hANe : a ≠ Term.Stuck := by
+        intro hA
+        apply hRhsTermNN
+        simp [tupleTerm, __tuple_collapse_updater_rhs, hA]
+      have hStep :
+          __tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n) =
+            __eo_mk_apply (Term.Apply (Term.UOp UserOp.tuple) head) tailRhs := by
+        simpa [pred, tailRhs] using
+          tuple_collapse_updater_rhs_tuple_nonzero_eq_mk_apply
+            head tail a n hn0 hANe
+      have hTailRhsTermNN : tailRhs ≠ Term.Stuck := by
+        intro hTail
+        apply hRhsTermNN
+        rw [hStep]
+        simp [__eo_mk_apply, hTail]
+      have hRhsEq :
+          __tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n) =
+            Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head) tailRhs := by
+        rw [hStep]
+        exact eo_mk_apply_tuple_head_eq_apply_of_arg_ne_stuck head tailRhs
+          hTailRhsTermNN
+      have hRhsPrependNN :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head)
+                  tailRhs)) ≠
+            SmtType.None := by
+        rw [← hRhsEq]
+        simpa [tupleTerm] using hRhsNN
+      rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+          tailRhs head hRhsPrependNN with
+        ⟨cRhs, hTailRhsTyRaw⟩
+      let tailRhsD := SmtDatatype.sum cRhs SmtDatatype.null
+      have hRhsTyBase :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head)
+                  tailRhs)) =
+            SmtType.Datatype (native_string_lit "@Tuple") fullD := by
+        rw [← hRhsEq]
+        simpa [tupleTerm] using hRhsTy
+      have hRhsPrependTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head)
+                  tailRhs)) =
+            SmtType.Datatype (native_string_lit "@Tuple")
+              (SmtDatatype.sum (SmtDatatypeCons.cons headTy cRhs)
+                SmtDatatype.null) := by
+        change
+          __smtx_typeof
+              (__eo_to_smt_tuple_prepend headSmt headTy (__eo_to_smt tailRhs)) =
+            SmtType.Datatype (native_string_lit "@Tuple")
+              (SmtDatatype.sum (SmtDatatypeCons.cons headTy cRhs)
+                SmtDatatype.null)
+        exact
+          TranslationProofs.smtx_tuple_prepend_typeof_of_tail_tuple_type
+            (__eo_to_smt tailRhs) headSmt headTy cRhs
+            (by simpa [tailRhsD] using hTailRhsTyRaw)
+            (by
+              change
+                __smtx_typeof
+                    (__eo_to_smt_tuple_prepend headSmt headTy
+                      (__eo_to_smt tailRhs)) ≠ SmtType.None
+              simpa [headSmt] using hRhsPrependNN)
+      have hCRhs : cRhs = c := by
+        have h := hRhsPrependTy.symm.trans hRhsTyBase
+        injection h with _ hD'
+        simp [fullD, fullC] at hD'
+        exact hD'
+      subst cRhs
+      have hTailRhsTy :
+          __smtx_typeof (__eo_to_smt tailRhs) =
+            SmtType.Datatype (native_string_lit "@Tuple") tailD := by
+        simpa [tailD] using hTailRhsTyRaw
+      rw [hRhsEq]
+      cases k with
+      | zero =>
+          have hRhsZero :=
+            tuple_prepend_zero_projection M hM headSmt (__eo_to_smt tailRhs)
+              headTy c
+              (by simpa [tailD] using hTailRhsTy)
+              (by
+                change
+                  __smtx_typeof
+                      (__eo_to_smt_tuple_prepend headSmt headTy
+                        (__eo_to_smt tailRhs)) ≠ SmtType.None
+                simpa [headSmt] using hRhsPrependNN)
+          have hSelEval :
+              __smtx_model_eval M
+                  (SmtTerm.Apply
+                    (SmtTerm.DtSel (native_string_lit "@Tuple") fullD
+                      native_nat_zero native_nat_zero)
+                    (__eo_to_smt tupleTerm)) =
+                __vsm_apply_arg_nth
+                  (__smtx_model_eval M (__eo_to_smt tupleTerm))
+                  native_nat_zero
+                  (__smtx_dt_num_sels fullD native_nat_zero) := by
+            simpa [fullD, tupleTerm] using
+              smt_tuple_dt_sel_eval_uses_constructor M hM
+                (__eo_to_smt tupleTerm) fullC native_nat_zero
+                (by simpa [fullD] using hTupleTyFull)
+          have hOrigZero :=
+            tuple_prepend_zero_projection M hM headSmt tailSmt headTy c
+              (by simpa [tailSmt, tailD] using hTailTy)
+              (by
+                change
+                  __smtx_typeof
+                      (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
+                    SmtType.None
+                simpa [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
+          have hRhsZero' :
+              __vsm_apply_arg_nth
+                  (__smtx_model_eval M
+                    (__eo_to_smt
+                      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head)
+                        tailRhs)))
+                  native_nat_zero
+                  (__smtx_dt_num_sels fullD native_nat_zero) =
+                __smtx_model_eval M headSmt := by
+            simpa [headSmt, fullD, fullC] using hRhsZero
+          rw [hRhsZero']
+          simpa [fullD, fullC, hNatSucc, native_nateq,
+            SmtEval.native_nateq] using
+            (hSelEval.trans hOrigZero).symm
+      | succ j =>
+          have hjTail :
+              j < __smtx_dt_num_sels tailD native_nat_zero := by
+            simpa [fullD, fullC, tailD, __smtx_dt_num_sels,
+              __smtx_dtc_num_sels] using hk
+          have hRhsSucc :=
+            tuple_prepend_succ_projection M hM headSmt (__eo_to_smt tailRhs)
+              headTy c j
+              (by simpa [tailD] using hTailRhsTy)
+              (by
+                change
+                  __smtx_typeof
+                      (__eo_to_smt_tuple_prepend headSmt headTy
+                        (__eo_to_smt tailRhs)) ≠ SmtType.None
+                simpa [headSmt] using hRhsPrependNN)
+              (by simpa [tailD] using hjTail)
+          have hRecProj :=
+            tuple_collapse_updater_rhs_projection M hM
+              (Term.Numeral pred) tail a tailD pred j
+              (by simpa [tailSmt, tailD] using hTailTy)
+              rfl hPredNonneg hPredLt
+              (by simpa [tailRhs, tailD] using hTailRhsTy)
+              (by simpa [tailD] using hjTail)
+          have hFullSelEval :
+              __smtx_model_eval M
+                  (SmtTerm.Apply
+                    (SmtTerm.DtSel (native_string_lit "@Tuple") fullD
+                      native_nat_zero (Nat.succ j))
+                    (__eo_to_smt tupleTerm)) =
+                __vsm_apply_arg_nth
+                  (__smtx_model_eval M (__eo_to_smt tupleTerm))
+                  (Nat.succ j)
+                  (__smtx_dt_num_sels fullD native_nat_zero) := by
+            simpa [fullD, tupleTerm] using
+              smt_tuple_dt_sel_eval_uses_constructor M hM
+                (__eo_to_smt tupleTerm) fullC (Nat.succ j)
+                (by simpa [fullD] using hTupleTyFull)
+          have hOrigSucc :=
+            tuple_prepend_succ_projection M hM headSmt tailSmt headTy c j
+              (by simpa [tailSmt, tailD] using hTailTy)
+              (by
+                change
+                  __smtx_typeof
+                      (__eo_to_smt_tuple_prepend headSmt headTy tailSmt) ≠
+                    SmtType.None
+                simpa [tupleTerm, headSmt, tailSmt, headTy] using hTupleNN)
+              (by simpa [tailD] using hjTail)
+          have hTailSelEval :
+              __smtx_model_eval M
+                  (SmtTerm.Apply
+                    (SmtTerm.DtSel (native_string_lit "@Tuple") tailD
+                      native_nat_zero j)
+                    tailSmt) =
+                __vsm_apply_arg_nth
+                  (__smtx_model_eval M tailSmt) j
+                  (__smtx_dt_num_sels tailD native_nat_zero) := by
+            simpa [tailSmt, tailD] using
+              smt_tuple_dt_sel_eval_uses_constructor M hM tailSmt c j
+                (by simpa [tailSmt, tailD] using hTailTy)
+          have hSelShift :
+              __smtx_model_eval M
+                  (SmtTerm.Apply
+                    (SmtTerm.DtSel (native_string_lit "@Tuple") fullD
+                      native_nat_zero (Nat.succ j))
+                    (__eo_to_smt tupleTerm)) =
+                __smtx_model_eval M
+                  (SmtTerm.Apply
+                    (SmtTerm.DtSel (native_string_lit "@Tuple") tailD
+                      native_nat_zero j)
+                    tailSmt) :=
+            hFullSelEval.trans (hOrigSucc.trans hTailSelEval.symm)
+          have hNatEq :
+              native_nateq (native_int_to_nat n) (Nat.succ j) =
+                native_nateq (native_int_to_nat pred) j := by
+            rw [hNatSucc]
+            simp [native_nateq, SmtEval.native_nateq]
+          have hRhsSucc' :
+              __vsm_apply_arg_nth
+                  (__smtx_model_eval M
+                    (__eo_to_smt
+                      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) head)
+                        tailRhs)))
+                  (Nat.succ j) (__smtx_dt_num_sels fullD native_nat_zero) =
+                __vsm_apply_arg_nth (__smtx_model_eval M (__eo_to_smt tailRhs))
+                  j (__smtx_dt_num_sels tailD native_nat_zero) := by
+            simpa [headSmt, tailD, fullD, fullC] using hRhsSucc
+          rw [hRhsSucc']
+          rw [hRecProj]
+          cases hEq : native_nateq (native_int_to_nat pred) j
+          · simpa [native_ite, hNatEq, hEq] using hSelShift.symm
+          · simp [native_ite, hNatEq, hEq]
+termination_by sizeOf t
+decreasing_by
+  simp_wf
+  subst t
+  simp
+  omega
+
 private theorem tuple_collapse_updater_eval_eq
     (M : SmtModel) (hM : model_total_typed M)
     (idx t a : Term) :
@@ -1140,7 +1706,101 @@ private theorem tuple_collapse_updater_eval_eq
               exact hLhsSel.trans (hSelEval.trans hOrigSucc)
             simpa [hCompCount, hRhsCount, hFullArgEq, hLhsArg', tailD] using
               hRhsSucc.symm
-    · sorry
+    · have hLhsEval :=
+        tuple_update_eval_eq_rec_of_tuple_type M hM (Term.Numeral n)
+          tupleTerm a fullC n
+          (by simpa [fullD] using hTupleTyFull) rfl hNonneg
+          (by simpa [fullD] using hLt)
+      have hRecNN :=
+        tuple_update_rec_non_none_of_shape (Term.Numeral n) tupleTerm a
+          fullD n hTupleTyFull rfl hNonneg hLt hLhsNN
+      have hComp :=
+        updater_rec_eval_components M hM (native_string_lit "@Tuple") fullD
+          native_nat_zero (native_int_to_nat n)
+          (__smtx_dt_num_sels fullD native_nat_zero)
+          (__eo_to_smt tupleTerm) aSmt hRecNN
+      have hCompHead := hComp.1
+      have hCompCount := hComp.2.1
+      have hCompArgs := hComp.2.2
+      have hLhsEval' :
+          __smtx_model_eval M
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp1 UserOp1.tuple_update (Term.Numeral n))
+                    tupleTerm) a)) =
+            __smtx_model_eval M
+              (__eo_to_smt_updater_rec
+                (SmtTerm.DtSel (native_string_lit "@Tuple") fullD
+                  native_nat_zero (native_int_to_nat n))
+                (__smtx_dt_num_sels fullD native_nat_zero)
+                (__eo_to_smt tupleTerm) aSmt
+                (SmtTerm.DtCons (native_string_lit "@Tuple") fullD
+                  native_nat_zero)) := by
+        simpa [fullD, aSmt] using hLhsEval
+      have hLhsTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp1 UserOp1.tuple_update (Term.Numeral n))
+                    tupleTerm) a)) =
+            SmtType.Datatype (native_string_lit "@Tuple") fullD :=
+        tuple_update_type_eq_tuple_type_of_shape (Term.Numeral n) tupleTerm a
+          fullD n hTupleTyFull rfl hNonneg hLt hLhsNN
+      have hTypeEq' :
+          __smtx_typeof
+              (__eo_to_smt
+                (Term.Apply
+                  (Term.Apply (Term.UOp1 UserOp1.tuple_update (Term.Numeral n))
+                    tupleTerm) a)) =
+            __smtx_typeof
+              (__eo_to_smt
+                (__tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n))) := by
+        simpa [tupleTerm] using hTypeEq
+      have hRhsTy :
+          __smtx_typeof
+              (__eo_to_smt
+                (__tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n))) =
+            SmtType.Datatype (native_string_lit "@Tuple") fullD := by
+        rw [← hTypeEq']
+        exact hLhsTy
+      have hRhsEvalTy :
+          __smtx_typeof_value
+              (__smtx_model_eval M
+                (__eo_to_smt
+                  (__tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n)))) =
+            SmtType.Datatype (native_string_lit "@Tuple") fullD := by
+        rw [smt_model_eval_preserves_type_of_non_none M hM
+          (__eo_to_smt
+            (__tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n)))
+          (by simpa [tupleTerm] using hRhsNN), hRhsTy]
+      have hRhsHead :
+          __vsm_apply_head
+              (__smtx_model_eval M
+                (__eo_to_smt
+                  (__tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n)))) =
+            SmtValue.DtCons (native_string_lit "@Tuple") fullD native_nat_zero :=
+        tuple_datatype_value_head_zero (by simpa [fullD] using hRhsEvalTy)
+      have hRhsCount :
+          vsm_num_apply_args
+              (__smtx_model_eval M
+                (__eo_to_smt
+                  (__tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n)))) =
+            __smtx_dt_num_sels fullD native_nat_zero :=
+        tuple_value_count_of_type_local (by simpa [fullD] using hRhsEvalTy)
+          (by simpa [fullD] using hRhsHead)
+      rw [hLhsEval']
+      apply vsm_apply_ext
+      · rw [hCompHead, hRhsHead]
+      · rw [hCompCount, hRhsCount]
+      · intro q hq
+        have hqFull : q < __smtx_dt_num_sels fullD native_nat_zero := by
+          simpa [hCompCount] using hq
+        have hLhsArg := hCompArgs q hqFull
+        have hRhsArg :=
+          tuple_collapse_updater_rhs_projection M hM (Term.Numeral n)
+            tupleTerm a fullD n q hTupleTyFull rfl hNonneg hLt hRhsTy hqFull
+        simpa [hCompCount, hRhsCount, tupleTerm] using
+          hLhsArg.trans hRhsArg.symm
 
 private theorem tuple_collapse_updater_eval_rel
     (M : SmtModel) (hM : model_total_typed M)
@@ -1198,7 +1858,39 @@ private theorem facts___eo_prog_dt_collapse_updater_impl
               cases op with
               | update =>
                   simp [__mk_dt_collapse_updater_rhs] at hGuard
-                  sorry
+                  have hTypes :=
+                    RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                      (((Term.UOp1 UserOp1.update sel).Apply t).Apply a)
+                      rhs hBool
+                  have hRhsTrans : RuleProofs.eo_has_smt_translation rhs := by
+                    unfold RuleProofs.eo_has_smt_translation
+                    rw [← hTypes.1]
+                    exact hTypes.2
+                  have hRhsNe : rhs ≠ Term.Stuck :=
+                    RuleProofs.term_ne_stuck_of_has_smt_translation rhs
+                      hRhsTrans
+                  rcases dt_collapse_updater_guard_true_of_rhs_non_stuck
+                      sel t a rhs hGuard hRhsNe with
+                    ⟨hFindNeg, hRhsEq⟩
+                  rw [hRhsEq]
+                  change RuleProofs.smt_value_rel
+                    (__smtx_model_eval M
+                      (__eo_to_smt_updater (__eo_to_smt sel)
+                        (__eo_to_smt t) (__eo_to_smt a)))
+                    (__smtx_model_eval M (__eo_to_smt t))
+                  cases hSelSmt : __eo_to_smt sel
+                  all_goals try
+                    (exfalso
+                     apply hTypes.2
+                     change
+                       __smtx_typeof
+                           (__eo_to_smt_updater (__eo_to_smt sel)
+                             (__eo_to_smt t) (__eo_to_smt a)) =
+                         SmtType.None
+                     rw [hSelSmt]
+                     simp [__eo_to_smt_updater])
+                  case DtSel s d i j =>
+                    sorry
               | tuple_update =>
                   simp [__mk_dt_collapse_updater_rhs] at hGuard
                   subst rhs

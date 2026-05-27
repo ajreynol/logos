@@ -8378,7 +8378,7 @@ private theorem eo_tuple_list_len_rec_eq_numeral_of_smt_tuple_type :
         exact ⟨native_zplus 1 n, by simp [__eo_list_len_rec, hLen, __eo_add]⟩
 termination_by T d h => T
 
-private theorem eo_tuple_list_len_ok_of_smt_tuple_type
+theorem eo_tuple_list_len_ok_of_smt_tuple_type
     {T : Term} {d : SmtDatatype}
     (h : __eo_to_smt_type T = SmtType.Datatype (native_string_lit "@Tuple") d) :
     __eo_is_ok (__eo_list_len (Term.UOp UserOp.Tuple) T) = Term.Boolean true := by
@@ -8977,7 +8977,7 @@ theorem eo_type_valid_rec_tuple_list_nth_rec_nat :
               (T := x0) (d := SmtDatatype.sum c SmtDatatype.null) j hTail hx hjTail
 termination_by T d j hT hValid hj => T
 
-private theorem smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
+theorem smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
     {T : Term} {d : SmtDatatype} (j : native_Nat)
     (hT : __eo_to_smt_type T = SmtType.Datatype (native_string_lit "@Tuple") d)
     (hValid : eo_type_valid_rec [] T) :
