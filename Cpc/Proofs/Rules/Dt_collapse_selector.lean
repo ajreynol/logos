@@ -102,6 +102,163 @@ private def isTupleValue : Term -> Prop
   | Term.UOp UserOp.tuple_unit => True
   | _ => False
 
+private theorem tuple_arg_list_eq_eoTermList_of_ne_stuck :
+    ∀ (t : Term),
+      __tuple_arg_list t ≠ Term.Stuck ->
+      ∃ xs : List Term, isTupleValue t ∧ __tuple_arg_list t = eoTermList xs
+  | Term.Apply f a, hArgs => by
+      cases f with
+      | Apply g x =>
+          cases g with
+          | UOp op =>
+              cases op <;> try
+                simp [__tuple_arg_list] at hArgs
+              case tuple =>
+                have hTailNe : __tuple_arg_list a ≠ Term.Stuck := by
+                  intro hTail
+                  apply hArgs
+                  simp [__tuple_arg_list, __eo_mk_apply, hTail]
+                rcases tuple_arg_list_eq_eoTermList_of_ne_stuck a hTailNe with
+                  ⟨xs, hTailTuple, hTailList⟩
+                refine ⟨x :: xs, ?_, ?_⟩
+                · simpa [isTupleValue] using hTailTuple
+                · have hListNe : eoTermList xs ≠ Term.Stuck :=
+                    eoTermList_ne_stuck xs
+                  simp [__tuple_arg_list, hTailList, __eo_mk_apply,
+                    hListNe, eoTermList]
+          | _ =>
+              simp [__tuple_arg_list] at hArgs
+      | _ =>
+          simp [__tuple_arg_list] at hArgs
+  | Term.UOp op, hArgs => by
+      cases op <;> try
+        simp [__tuple_arg_list] at hArgs
+      case tuple_unit =>
+        exact ⟨[], by simp [isTupleValue], by simp [__tuple_arg_list, eoTermList]⟩
+  | Term.UOp1 _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.UOp2 _ _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.UOp3 _ _ _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.__eo_List, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.__eo_List_nil, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.__eo_List_cons, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.Bool, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.Boolean _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.Numeral _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.Rational _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.String _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.Binary _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.Type, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.Stuck, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.FunType, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.Var _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.DatatypeType _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.DatatypeTypeRef _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.DtcAppType _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.DtCons _ _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.DtSel _ _ _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.USort _, hArgs => by simp [__tuple_arg_list] at hArgs
+  | Term.UConst _ _, hArgs => by simp [__tuple_arg_list] at hArgs
+termination_by t hArgs => t
+
+private theorem tuple_arg_list_tupleArgs_of_tuple_value :
+    ∀ (t : Term),
+      isTupleValue t ->
+      __tuple_arg_list t ≠ Term.Stuck ->
+      __tuple_arg_list t = eoTermList (tupleArgs t)
+  | Term.Apply f tail, hTuple, hNe => by
+      cases f with
+      | Apply g x =>
+          cases g with
+          | UOp op =>
+              cases op <;> try simp [isTupleValue] at hTuple
+              case tuple =>
+                have hTailTuple : isTupleValue tail := by
+                  simpa [isTupleValue] using hTuple
+                have hTailNe : __tuple_arg_list tail ≠ Term.Stuck := by
+                  intro hTail
+                  apply hNe
+                  simp [__tuple_arg_list, __eo_mk_apply, hTail]
+                have hTail :=
+                  tuple_arg_list_tupleArgs_of_tuple_value tail hTailTuple hTailNe
+                have hListNe : eoTermList (tupleArgs tail) ≠ Term.Stuck :=
+                  eoTermList_ne_stuck (tupleArgs tail)
+                simp [__tuple_arg_list, hTail, __eo_mk_apply, hListNe,
+                  tupleArgs, eoTermList]
+          | _ =>
+              simp [isTupleValue] at hTuple
+      | _ =>
+          simp [isTupleValue] at hTuple
+  | Term.UOp op, hTuple, _hNe => by
+      cases op <;> simp [isTupleValue, __tuple_arg_list, tupleArgs, eoTermList]
+        at hTuple ⊢
+  | Term.UOp1 _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.UOp2 _ _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.UOp3 _ _ _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.__eo_List, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.__eo_List_nil, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.__eo_List_cons, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.Bool, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.Boolean _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.Numeral _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.Rational _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.String _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.Binary _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.Type, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.Stuck, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.FunType, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.Var _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.DatatypeType _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.DatatypeTypeRef _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.DtcAppType _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.DtCons _ _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.DtSel _ _ _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.USort _, hTuple, _ => by simp [isTupleValue] at hTuple
+  | Term.UConst _ _, hTuple, _ => by simp [isTupleValue] at hTuple
+termination_by t hTuple hNe => t
+
+private theorem dt_arg_list_eq_tuple_arg_list_of_tuple_value :
+    ∀ (t : Term),
+      isTupleValue t ->
+      __dt_arg_list t = __tuple_arg_list t
+  | Term.Apply f tail, hTuple => by
+      cases f with
+      | Apply g x =>
+          cases g with
+          | UOp op =>
+              cases op <;> try simp [isTupleValue] at hTuple
+              case tuple =>
+                rfl
+          | _ =>
+              simp [isTupleValue] at hTuple
+      | _ =>
+          simp [isTupleValue] at hTuple
+  | Term.UOp op, hTuple => by
+      cases op <;> simp [isTupleValue, __dt_arg_list, __tuple_arg_list,
+        __get_arg_list_rec] at hTuple ⊢
+  | Term.UOp1 _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.UOp2 _ _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.UOp3 _ _ _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.__eo_List, hTuple => by simp [isTupleValue] at hTuple
+  | Term.__eo_List_nil, hTuple => by simp [isTupleValue] at hTuple
+  | Term.__eo_List_cons, hTuple => by simp [isTupleValue] at hTuple
+  | Term.Bool, hTuple => by simp [isTupleValue] at hTuple
+  | Term.Boolean _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.Numeral _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.Rational _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.String _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.Binary _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.Type, hTuple => by simp [isTupleValue] at hTuple
+  | Term.Stuck, hTuple => by simp [isTupleValue] at hTuple
+  | Term.FunType, hTuple => by simp [isTupleValue] at hTuple
+  | Term.Var _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.DatatypeType _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.DatatypeTypeRef _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.DtcAppType _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.DtCons _ _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.DtSel _ _ _ _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.USort _, hTuple => by simp [isTupleValue] at hTuple
+  | Term.UConst _ _, hTuple => by simp [isTupleValue] at hTuple
+
 private def dtAppSpineRev : Term -> Term × List Term
   | Term.Apply f x =>
       let spine := dtAppSpineRev f
@@ -587,21 +744,14 @@ private theorem dt_arg_list_eq_eoTermList_of_ne_stuck :
       · rcases hf with ⟨g, x, rfl⟩
         by_cases hg : g = Term.UOp UserOp.tuple
         · subst g
-          have hTailNe : __dt_arg_list a ≠ Term.Stuck := by
-            intro hTail
-            have hFull :
-                __dt_arg_list
-                    (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) a) =
-                  Term.Stuck := by
-              simp [__dt_arg_list, hTail, __eo_mk_apply]
-            exact hArgs hFull
-          rcases dt_arg_list_eq_eoTermList_of_ne_stuck a hTailNe with
-            ⟨xs, hTailList⟩
-          refine ⟨x :: xs, ?_⟩
-          have hListNe : eoTermList xs ≠ Term.Stuck :=
-            eoTermList_ne_stuck xs
-          simp [__dt_arg_list, hTailList, __eo_mk_apply, hListNe,
-            eoTermList]
+          let t := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) a
+          have hTupleArgsNe : __tuple_arg_list t ≠ Term.Stuck := by
+            intro hTupleArgs
+            apply hArgs
+            simpa [t, __dt_arg_list] using hTupleArgs
+          rcases tuple_arg_list_eq_eoTermList_of_ne_stuck t hTupleArgsNe with
+            ⟨xs, _hTuple, hTupleArgs⟩
+          exact ⟨xs, by simpa [t, __dt_arg_list] using hTupleArgs⟩
         · have hHeadNe :
               appHead (Term.Apply (Term.Apply g x) a) ≠ Term.Stuck := by
             intro hHead
@@ -772,7 +922,6 @@ private theorem dt_arg_list_eq_eoTermList_of_ne_stuck :
       exact ⟨[], by simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
   | Term.UConst n T, _ => by
       exact ⟨[], by simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
-termination_by t hArgs => t
 
 private theorem assoc_nil_nth_eoTermList_mem :
     ∀ (xs : List Term) (n ti : Term),
@@ -1141,61 +1290,16 @@ private theorem dt_arg_list_tupleArgs_of_tuple_value :
       isTupleValue t ->
       __dt_arg_list t ≠ Term.Stuck ->
       __dt_arg_list t = eoTermList (tupleArgs t)
-  | Term.Apply f tail, hTuple, hNe => by
-      cases f with
-      | Apply g x =>
-          cases g with
-          | UOp op =>
-              cases op <;> try simp [isTupleValue] at hTuple
-              case tuple =>
-                have hTailTuple : isTupleValue tail := by
-                  simpa [isTupleValue] using hTuple
-                have hTailNe : __dt_arg_list tail ≠ Term.Stuck := by
-                  intro hTail
-                  apply hNe
-                  cases x <;>
-                    simp [__dt_arg_list, __eo_mk_apply, hTail]
-                have hTail :=
-                  dt_arg_list_tupleArgs_of_tuple_value tail hTailTuple hTailNe
-                change
-                  __eo_mk_apply (Term.Apply Term.__eo_List_cons x)
-                      (__dt_arg_list tail) =
-                    eoTermList (x :: tupleArgs tail)
-                rw [hTail]
-                have hListNe : eoTermList (tupleArgs tail) ≠ Term.Stuck :=
-                  eoTermList_ne_stuck (tupleArgs tail)
-                simp [__eo_mk_apply, hListNe, tupleArgs, eoTermList]
-          | _ =>
-              simp [isTupleValue] at hTuple
-      | _ =>
-          simp [isTupleValue] at hTuple
-  | Term.UOp op, hTuple, _hNe => by
-      cases op <;> simp [isTupleValue, __dt_arg_list, __get_arg_list_rec,
-        tupleArgs, eoTermList] at hTuple ⊢
-  | Term.UOp1 _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.UOp2 _ _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.UOp3 _ _ _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.__eo_List, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.__eo_List_nil, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.__eo_List_cons, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.Bool, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.Boolean _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.Numeral _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.Rational _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.String _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.Binary _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.Type, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.Stuck, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.FunType, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.Var _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.DatatypeType _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.DatatypeTypeRef _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.DtcAppType _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.DtCons _ _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.DtSel _ _ _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.USort _, hTuple, _ => by simp [isTupleValue] at hTuple
-  | Term.UConst _ _, hTuple, _ => by simp [isTupleValue] at hTuple
-termination_by t hTuple hNe => t
+  | t, hTuple, hNe => by
+      have hEq : __dt_arg_list t = __tuple_arg_list t :=
+        dt_arg_list_eq_tuple_arg_list_of_tuple_value t hTuple
+      have hTupleNe : __tuple_arg_list t ≠ Term.Stuck := by
+        intro hTupleArgs
+        exact hNe (hEq.trans hTupleArgs)
+      have hList :=
+        tuple_arg_list_tupleArgs_of_tuple_value t hTuple hTupleNe
+      rw [hEq]
+      exact hList
 
 private theorem dt_get_selectors_of_app_of_appHead_dtcons
     (T : Term) (s : native_String) (d : Datatype) (i : native_Nat) :
@@ -2242,10 +2346,11 @@ private theorem tuple_guard_zero_eq_head
     rw [hSelectors]
     exact eo_list_find_cons_self_zero_of_ne_stuck target tailSelectors
       (by simp [target]) (by simpa [hSelectors] using hFindNe)
-  have hTailArgsNe : __dt_arg_list tail ≠ Term.Stuck := by
+  have hTailTupleArgsNe : __tuple_arg_list tail ≠ Term.Stuck := by
     intro hTailArgs
     have hArgsStuck : __dt_arg_list t = Term.Stuck := by
-      simp [t, __dt_arg_list, __eo_mk_apply, hTailArgs]
+      simp [t, __dt_arg_list, __tuple_arg_list, __eo_mk_apply,
+        hTailArgs]
     have hGuardStuck :
         mkDtCollapseSelectorGuard target t = Term.Stuck := by
       simp [mkDtCollapseSelectorGuard, hArgsStuck,
@@ -2253,16 +2358,19 @@ private theorem tuple_guard_zero_eq_head
     exact hTi (hGuard.symm.trans (by simpa [t, target] using hGuardStuck))
   have hArgs :
       __dt_arg_list t =
-        Term.Apply (Term.Apply Term.__eo_List_cons x) (__dt_arg_list tail) := by
-    simp [t, __dt_arg_list, __eo_mk_apply, hTailArgsNe]
+        Term.Apply (Term.Apply Term.__eo_List_cons x)
+          (__tuple_arg_list tail) := by
+    simp [t, __dt_arg_list, __tuple_arg_list, __eo_mk_apply,
+      hTailTupleArgsNe]
   have hAssoc :
       __assoc_nil_nth Term.__eo_List_cons
-          (Term.Apply (Term.Apply Term.__eo_List_cons x) (__dt_arg_list tail))
+          (Term.Apply (Term.Apply Term.__eo_List_cons x)
+            (__tuple_arg_list tail))
           (Term.Numeral native_nat_zero) = ti := by
     have hGuard' :
         __assoc_nil_nth Term.__eo_List_cons
             (Term.Apply (Term.Apply Term.__eo_List_cons x)
-              (__dt_arg_list tail))
+              (__tuple_arg_list tail))
             (__eo_list_find Term.__eo_List_cons
               (__dt_get_selectors_of_app (__eo_typeof t) t) target) =
           ti := by
@@ -2286,22 +2394,27 @@ private theorem tuple_guard_succ_assoc_tail
   let t := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) tail
   let target :=
     Term.UOp1 UserOp1.tuple_select (Term.Numeral (Nat.succ j))
-  have hTailArgsNe : __dt_arg_list tail ≠ Term.Stuck := by
+  have hTailTupleArgsNe : __tuple_arg_list tail ≠ Term.Stuck := by
     intro hTailArgs
     have hArgsStuck : __dt_arg_list t = Term.Stuck := by
-      simp [t, __dt_arg_list, __eo_mk_apply, hTailArgs]
+      simp [t, __dt_arg_list, __tuple_arg_list, __eo_mk_apply,
+        hTailArgs]
     have hGuardStuck :
         mkDtCollapseSelectorGuard target t = Term.Stuck := by
       simp [mkDtCollapseSelectorGuard, hArgsStuck,
         assoc_nil_nth_list_stuck]
     exact hTi (hGuard.symm.trans (by simpa [t, target] using hGuardStuck))
-  rcases dt_arg_list_eq_eoTermList_of_ne_stuck tail hTailArgsNe with
-    ⟨xs, hTailArgs⟩
+  rcases tuple_arg_list_eq_eoTermList_of_ne_stuck tail hTailTupleArgsNe with
+    ⟨xs, hTailTuple, hTailTupleArgs⟩
+  have hTailArgs : __dt_arg_list tail = eoTermList xs := by
+    have hEq : __dt_arg_list tail = __tuple_arg_list tail :=
+      dt_arg_list_eq_tuple_arg_list_of_tuple_value tail hTailTuple
+    rw [hEq, hTailTupleArgs]
   have hArgs :
       __dt_arg_list t = eoTermList (x :: xs) := by
     have hListNe : eoTermList xs ≠ Term.Stuck := eoTermList_ne_stuck xs
-    simp [t, __dt_arg_list, hTailArgs, __eo_mk_apply, hListNe,
-      eoTermList]
+    simp [t, __dt_arg_list, __tuple_arg_list, hTailTupleArgs,
+      __eo_mk_apply, hListNe, eoTermList]
   have hHead : appHead t = Term.UOp UserOp.tuple := by
     simp [t, appHead]
   have hSelectors :
@@ -3456,10 +3569,16 @@ private theorem tuple_projection_eq_of_tuple_value_assoc
                       exact hTy)
                 injection hDatatype with hC _hNull
                 subst c
-                have hTailArgsNe : __dt_arg_list rest ≠ Term.Stuck := by
+                have hTailEq :
+                    __dt_arg_list rest = __tuple_arg_list rest :=
+                  dt_arg_list_eq_tuple_arg_list_of_tuple_value rest
+                    (by simpa [isTupleValue] using hTuple)
+                have hTailTupleArgsNe :
+                    __tuple_arg_list rest ≠ Term.Stuck := by
                   intro hTailArgs
                   have hArgsStuck : __dt_arg_list full = Term.Stuck := by
-                    simp [full, __dt_arg_list, __eo_mk_apply, hTailArgs]
+                    simp [full, __dt_arg_list, __tuple_arg_list,
+                      __eo_mk_apply, hTailArgs]
                   have hAssocStuck :
                       __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list full)
                           (Term.Numeral j) = Term.Stuck := by
@@ -3467,11 +3586,16 @@ private theorem tuple_projection_eq_of_tuple_value_assoc
                     exact assoc_nil_nth_list_stuck Term.__eo_List_cons
                       (Term.Numeral j)
                   exact hTi (hAssoc.symm.trans hAssocStuck)
+                have hTailArgsNe : __dt_arg_list rest ≠ Term.Stuck := by
+                  intro hTailArgs
+                  exact hTailTupleArgsNe (hTailEq.symm.trans hTailArgs)
                 have hArgs :
                     __dt_arg_list full =
                       Term.Apply (Term.Apply Term.__eo_List_cons x)
                         (__dt_arg_list rest) := by
-                  simp [full, __dt_arg_list, __eo_mk_apply, hTailArgsNe]
+                  rw [hTailEq]
+                  simp [full, __dt_arg_list, __tuple_arg_list,
+                    __eo_mk_apply, hTailTupleArgsNe]
                 cases j with
                 | zero =>
                     have hTiEq : ti = x := by
@@ -3625,305 +3749,6 @@ private theorem tuple_projection_eq_of_tuple_value_assoc
       simp [isTupleValue] at hTuple
 termination_by tail ti c j hTuple hTy hAssoc hTi hLt => tail
 
-private theorem tuple_projection_eq_of_non_tuple_app_assoc
-    (M : SmtModel) (hM : model_total_typed M)
-    (tail ti : Term) (c : SmtDatatypeCons) (j : native_Nat) :
-    (∀ x rest,
-      tail ≠ Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) rest) ->
-    __smtx_typeof (__eo_to_smt tail) =
-        SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
-    __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list tail)
-        (Term.Numeral j) = ti ->
-    ti ≠ Term.Stuck ->
-    j <
-      __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
-        native_nat_zero ->
-    __smtx_model_eval_eq
-        (__vsm_apply_arg_nth
-          (__smtx_model_eval M (__eo_to_smt tail)) j
-          (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
-            native_nat_zero))
-        (__smtx_model_eval M (__eo_to_smt ti)) =
-      SmtValue.Boolean true := by
-  -- Constructor-alignment invariant still needed: a non-tuple application
-  -- returning tuple type exposes ordinary arguments through `__dt_arg_list`,
-  -- not tuple fields. The rule needs either this invariant from CPC
-  -- well-formedness, or a stricter tuple argument list guard.
-  sorry
-
-private theorem tuple_projection_eq_of_dt_arg_list_assoc
-    (M : SmtModel) (hM : model_total_typed M) :
-    ∀ (tail ti : Term) (c : SmtDatatypeCons) (j : native_Nat),
-      __smtx_typeof (__eo_to_smt tail) =
-          SmtType.Datatype (native_string_lit "@Tuple") (SmtDatatype.sum c SmtDatatype.null) ->
-      __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list tail)
-          (Term.Numeral j) = ti ->
-      ti ≠ Term.Stuck ->
-      j <
-        __smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
-          native_nat_zero ->
-      __smtx_model_eval_eq
-          (__vsm_apply_arg_nth
-            (__smtx_model_eval M (__eo_to_smt tail)) j
-            (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null)
-              native_nat_zero))
-          (__smtx_model_eval M (__eo_to_smt ti)) =
-        SmtValue.Boolean true
-  | Term.Apply f rest, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      by_cases hTupleHead :
-          ∃ x, f = Term.Apply (Term.UOp UserOp.tuple) x
-      · rcases hTupleHead with ⟨x, rfl⟩
-        let full := Term.Apply
-          (Term.Apply (Term.UOp UserOp.tuple) x) rest
-        let head := __eo_to_smt x
-        let tailSmt := __eo_to_smt rest
-        let headTy := __smtx_typeof head
-        have hFullNN :
-            __smtx_typeof (__eo_to_smt full) ≠ SmtType.None := by
-          rw [hTy]
-          simp
-        have hPrependNN :
-            __smtx_typeof
-                (__eo_to_smt_tuple_prepend head headTy tailSmt) ≠
-              SmtType.None := by
-          change __smtx_typeof (__eo_to_smt full) ≠ SmtType.None
-          exact hFullNN
-        rcases tuple_prepend_tail_type_of_non_none_local
-            head headTy tailSmt hPrependNN with
-          ⟨tailC, hTailTy⟩
-        have hDatatype :
-            SmtDatatype.sum c SmtDatatype.null =
-              SmtDatatype.sum (SmtDatatypeCons.cons headTy tailC)
-                SmtDatatype.null := by
-          exact tuple_prepend_datatype_eq_of_type M hM head tailSmt
-            headTy tailC (SmtDatatype.sum c SmtDatatype.null)
-            hTailTy (by
-              change
-                __smtx_typeof
-                    (__eo_to_smt_tuple_prepend head headTy tailSmt) =
-                  SmtType.Datatype (native_string_lit "@Tuple")
-                    (SmtDatatype.sum c SmtDatatype.null)
-              exact hTy)
-        injection hDatatype with hC _hNull
-        subst c
-        have hTailArgsNe : __dt_arg_list rest ≠ Term.Stuck := by
-          intro hTailArgs
-          have hArgsStuck : __dt_arg_list full = Term.Stuck := by
-            simp [full, __dt_arg_list, __eo_mk_apply, hTailArgs]
-          have hAssocStuck :
-              __assoc_nil_nth Term.__eo_List_cons (__dt_arg_list full)
-                  (Term.Numeral j) = Term.Stuck := by
-            rw [hArgsStuck]
-            exact assoc_nil_nth_list_stuck Term.__eo_List_cons
-              (Term.Numeral j)
-          exact hTi (hAssoc.symm.trans hAssocStuck)
-        have hArgs :
-            __dt_arg_list full =
-              Term.Apply (Term.Apply Term.__eo_List_cons x)
-                (__dt_arg_list rest) := by
-          simp [full, __dt_arg_list, __eo_mk_apply, hTailArgsNe]
-        cases j with
-        | zero =>
-            have hTiEq : ti = x := by
-              have hAssoc' :
-                  __assoc_nil_nth Term.__eo_List_cons
-                      (Term.Apply
-                        (Term.Apply Term.__eo_List_cons x)
-                        (__dt_arg_list rest))
-                      (Term.Numeral native_nat_zero) = ti := by
-                simpa [full, hArgs] using hAssoc
-              simp [__assoc_nil_nth, __eo_eq, native_ite,
-                native_teq] at hAssoc'
-              exact hAssoc'.symm
-            rw [hTiEq]
-            have hProj :
-                __vsm_apply_arg_nth
-                    (__smtx_model_eval M (__eo_to_smt full))
-                    native_nat_zero
-                    (__smtx_dt_num_sels
-                      (SmtDatatype.sum
-                        (SmtDatatypeCons.cons headTy tailC)
-                        SmtDatatype.null)
-                      native_nat_zero) =
-                  __smtx_model_eval M (__eo_to_smt x) := by
-              change
-                __vsm_apply_arg_nth
-                    (__smtx_model_eval M
-                      (__eo_to_smt_tuple_prepend head headTy tailSmt))
-                    native_nat_zero
-                    (__smtx_dt_num_sels
-                      (SmtDatatype.sum
-                        (SmtDatatypeCons.cons headTy tailC)
-                        SmtDatatype.null)
-                      native_nat_zero) =
-                  __smtx_model_eval M head
-              exact tuple_prepend_zero_projection M hM head tailSmt
-                headTy tailC hTailTy hPrependNN
-            rw [hProj]
-            exact RuleProofs.smtx_model_eval_eq_refl _
-        | succ j =>
-            have hTailAssoc :
-                __assoc_nil_nth Term.__eo_List_cons
-                    (__dt_arg_list rest) (Term.Numeral j) = ti := by
-              have hAssoc' :
-                  __assoc_nil_nth Term.__eo_List_cons
-                      (Term.Apply
-                        (Term.Apply Term.__eo_List_cons x)
-                        (__dt_arg_list rest))
-                      (Term.Numeral (Nat.succ j)) = ti := by
-                simpa [full, hArgs] using hAssoc
-              simpa using
-                (assoc_nil_nth_cons_succ_any x
-                  (__dt_arg_list rest) j).symm.trans hAssoc'
-            have hLtTail :
-                j <
-                  __smtx_dt_num_sels
-                    (SmtDatatype.sum tailC SmtDatatype.null)
-                    native_nat_zero := by
-              simpa [__smtx_dt_num_sels, __smtx_dtc_num_sels]
-                using hLt
-            have hProj :
-                __vsm_apply_arg_nth
-                    (__smtx_model_eval M (__eo_to_smt full))
-                    (Nat.succ j)
-                    (__smtx_dt_num_sels
-                      (SmtDatatype.sum
-                        (SmtDatatypeCons.cons headTy tailC)
-                        SmtDatatype.null)
-                      native_nat_zero) =
-                  __vsm_apply_arg_nth
-                    (__smtx_model_eval M tailSmt) j
-                    (__smtx_dt_num_sels
-                      (SmtDatatype.sum tailC SmtDatatype.null)
-                      native_nat_zero) := by
-              change
-                __vsm_apply_arg_nth
-                    (__smtx_model_eval M
-                      (__eo_to_smt_tuple_prepend head headTy tailSmt))
-                    (Nat.succ j)
-                    (__smtx_dt_num_sels
-                      (SmtDatatype.sum
-                        (SmtDatatypeCons.cons headTy tailC)
-                        SmtDatatype.null)
-                      native_nat_zero) =
-                  __vsm_apply_arg_nth
-                    (__smtx_model_eval M tailSmt) j
-                    (__smtx_dt_num_sels
-                      (SmtDatatype.sum tailC SmtDatatype.null)
-                      native_nat_zero)
-              exact tuple_prepend_succ_projection M hM head tailSmt
-                headTy tailC j hTailTy hPrependNN hLtTail
-            rw [hProj]
-            exact tuple_projection_eq_of_dt_arg_list_assoc M hM rest
-              ti tailC j hTailTy hTailAssoc hTi hLtTail
-      · exact tuple_projection_eq_of_non_tuple_app_assoc M hM
-          (Term.Apply f rest) ti c j
-          (by
-            intro y rest' h
-            apply hTupleHead
-            have hHead :
-                f = Term.Apply (Term.UOp UserOp.tuple) y := by
-              cases h
-              rfl
-            exact ⟨y, hHead⟩)
-          hTy hAssoc hTi hLt
-  | Term.UOp op, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      cases op <;>
-        simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-          at hAssoc <;>
-        exact False.elim (hTi hAssoc.symm)
-  | Term.UOp1 _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.UOp2 _ _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.UOp3 _ _ _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.__eo_List, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.__eo_List_nil, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.__eo_List_cons, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.Bool, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.Boolean _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.Numeral _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.Rational _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.String _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.Binary _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.Type, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.Stuck, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, assoc_nil_nth_list_stuck] at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.FunType, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.Var _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.DatatypeType _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.DatatypeTypeRef _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.DtcAppType _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.DtCons _ _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.DtSel _ _ _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.USort _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-  | Term.UConst _ _, ti, c, j, hTy, hAssoc, hTi, hLt => by
-      simp [__dt_arg_list, __get_arg_list_rec, assoc_nil_nth_nil_stuck]
-        at hAssoc
-      exact False.elim (hTi hAssoc.symm)
-termination_by tail ti c j hTy hAssoc hTi hLt => tail
 
 private theorem tuple_guard_projection_tuple_zero_eq_true
     (M : SmtModel) (hM : model_total_typed M)
@@ -4182,6 +4007,23 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
             native_nat_zero)
     exact tuple_prepend_succ_projection M hM head tailSmt headTy c j
       hTailTy hPrependNN hLt
+  have hTailTupleArgsNe : __tuple_arg_list tail ≠ Term.Stuck := by
+    intro hTailArgs
+    let tupleTerm := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) tail
+    have hArgsStuck : __dt_arg_list tupleTerm = Term.Stuck := by
+      simp [tupleTerm, __dt_arg_list, __tuple_arg_list, __eo_mk_apply,
+        hTailArgs]
+    have hGuardStuck :
+        mkDtCollapseSelectorGuard
+            (Term.UOp1 UserOp1.tuple_select (Term.Numeral (Nat.succ j)))
+            tupleTerm = Term.Stuck := by
+      simp [mkDtCollapseSelectorGuard, hArgsStuck,
+        assoc_nil_nth_list_stuck]
+    exact hTi (hGuard.symm.trans (by
+      simpa [tupleTerm] using hGuardStuck))
+  rcases tuple_arg_list_eq_eoTermList_of_ne_stuck tail
+      hTailTupleArgsNe with
+    ⟨_xs, hTailTuple, _hTailArgs⟩
   have hTailEq :
       __smtx_model_eval_eq
           (__vsm_apply_arg_nth
@@ -4190,8 +4032,8 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
               native_nat_zero))
           (__smtx_model_eval M (__eo_to_smt ti)) =
         SmtValue.Boolean true := by
-    exact tuple_projection_eq_of_dt_arg_list_assoc M hM tail ti c j
-      hTailTy hTailAssoc hTi hLt
+    exact tuple_projection_eq_of_tuple_value_assoc M hM tail ti c j
+      hTailTuple hTailTy hTailAssoc hTi hLt
   rw [hProj]
   exact hTailEq
 
