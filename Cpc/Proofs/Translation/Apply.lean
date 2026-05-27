@@ -6594,7 +6594,7 @@ private theorem eo_to_smt_typeof_matches_translation_apply_at_strings_num_occur
 
 /-- The only EO terms that translate to bare SMT datatype constructors are
 datatype constructors and the built-in unit tuple value. -/
-private theorem eo_to_smt_eq_dt_cons_cases
+theorem eo_to_smt_eq_dt_cons_cases
     (y : Term) (s : native_String) (d : SmtDatatype) (i : native_Nat)
     (hy : __eo_to_smt y = SmtTerm.DtCons s d i) :
     (∃ d0, d = __eo_to_smt_datatype d0 ∧ y = Term.DtCons s d0 i ∧
