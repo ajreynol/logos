@@ -1081,6 +1081,14 @@ def __seq_empty : Term -> Term
   | T => (Term.UOp1 UserOp1.seq_empty T)
 
 
+def __str_nary_intro : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss) => (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss)
+  | t => 
+    let _v0 := (__seq_empty (__eo_typeof t))
+    (__eo_ite (__eo_eq t _v0) t (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
+
+
 def __eo_disamb_type_set_empty : Term -> Term
   | (Term.Apply (Term.UOp UserOp.Set) T) => (Term.Apply (Term.UOp UserOp.Set) T)
   | _ => Term.Stuck
@@ -1122,9 +1130,15 @@ def __is_cons_app : Term -> Term
   | y => (__eo_ite (__eo_is_eq y (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq y (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors y))))
 
 
+def __tuple_arg_list : Term -> Term
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) t1) t2) => (__eo_mk_apply (Term.Apply Term.__eo_List_cons t1) (__tuple_arg_list t2))
+  | (Term.UOp UserOp.tuple_unit) => Term.__eo_List_nil
+  | _ => Term.Stuck
+
+
 def __dt_arg_list : Term -> Term
   | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) t1) t2) => (__eo_mk_apply (Term.Apply Term.__eo_List_cons t1) (__dt_arg_list t2))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) t1) t2) => (__tuple_arg_list (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) t1) t2))
   | t => (__get_arg_list_rec t Term.__eo_List_nil)
 
 
@@ -2226,14 +2240,6 @@ def __str_unify_split : Term -> Term -> Term -> Term
   | _, _, _ => Term.Stuck
 
 
-def __str_nary_intro : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss) => (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) t) ss)
-  | t => 
-    let _v0 := (__seq_empty (__eo_typeof t))
-    (__eo_ite (__eo_eq t _v0) t (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) t) _v0))
-
-
 def __re_nary_intro : Term -> Term
   | Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) t) ss) => (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) t) ss)
@@ -2896,7 +2902,7 @@ def __eo_prog_arith_string_pred_safe_approx : Term -> Term
 
 
 def __eo_prog_str_in_re_eval : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b) => (__eo_requires (__eo_is_str s) (Term.Boolean true) (__eo_requires (__str_eval_str_in_re_rec (__str_flatten (__str_nary_intro s)) r) b (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b)))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b) => (__eo_requires (__str_eval_str_in_re_rec (__str_flatten (__str_nary_intro s)) r) b (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b))
   | _ => Term.Stuck
 
 
@@ -8084,39 +8090,28 @@ partial def __arith_eval_int_log_2_rec : Term -> Term
   | x => (__eo_add (Term.Numeral 1) (__arith_eval_int_log_2_rec (__eo_zdiv x (Term.Numeral 2))))
 
 
-partial def __some_pairwise_distinct_term : Term -> Term -> Term
-  | (Term.Apply (Term.Apply Term.__eo_List_cons t) ts), (Term.Apply (Term.Apply Term.__eo_List_cons s) ss) => (__eo_ite (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons t) (Term.Apply (Term.Apply Term.__eo_List_cons s) Term.__eo_List_nil)) (__eo_typeof t))) (Term.Boolean true) (__some_pairwise_distinct_term ts ss))
-  | Term.__eo_List_nil, Term.__eo_List_nil => (Term.Boolean false)
-  | _, _ => Term.Stuck
-
-
 partial def __set_is_not_subset : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
   | (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) T)), s => (Term.Boolean false)
   | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) T)) => (Term.Boolean true)
-  | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.Apply (Term.UOp UserOp.set_singleton) e2) => (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1)))
-  | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e2)) ss) => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1))) (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) ss) (Term.Boolean false))
+  | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.Apply (Term.UOp UserOp.set_singleton) e2) => (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 (__eo_typeof e1)))
+  | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e2)) ss) => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 (__eo_typeof e1))) (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) ss) (Term.Boolean false))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e1)) ts), s => (__eo_ite (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) s) (Term.Boolean true) (__set_is_not_subset ts s))
   | _, _ => Term.Stuck
 
 
-partial def __eo_l_1___seq_distinct_terms : Term -> Term -> Term
+partial def __seq_distinct_terms_rec : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | t, s => (Term.Boolean true)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e1)) ts), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e2)) ss) => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 (__eo_typeof e1))) (Term.Boolean true) (__seq_distinct_terms_rec ts ss))
+  | t, s => (__eo_not (__eo_eq t s))
 
 
-partial def __seq_distinct_terms : Term -> Term -> Term
+partial def __dt_distinct_terms_arg : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.UOp UserOp.seq_unit) e1), s => 
-    let _v0 := (Term.Apply (Term.UOp UserOp.seq_unit) e1)
-    (__seq_distinct_terms (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) _v0) (__eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof _v0))) s)
-  | t, (Term.Apply (Term.UOp UserOp.seq_unit) e2) => 
-    let _v0 := (Term.Apply (Term.UOp UserOp.seq_unit) e2)
-    (__seq_distinct_terms t (__eo_mk_apply (Term.Apply (Term.UOp UserOp.str_concat) _v0) (__eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof _v0))))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e1)) ts), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e2)) ss) => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons e1) (Term.Apply (Term.Apply Term.__eo_List_cons e2) Term.__eo_List_nil)) (__eo_typeof e1))) (Term.Boolean true) (__seq_distinct_terms ts ss))
-  | t, __eo_lv_t_2 => (__eo_ite (__eo_eq t __eo_lv_t_2) (Term.Boolean false) (__eo_l_1___seq_distinct_terms t __eo_lv_t_2))
+  | (Term.Apply f a), (Term.Apply g b) => (__eo_ite (__eo_ite (__eo_eq a b) (Term.Boolean false) (__are_distinct_terms_type a b (__eo_typeof a))) (Term.Boolean true) (__dt_distinct_terms_arg f g))
+  | ct, cs => (Term.Boolean false)
 
 
 partial def __dt_distinct_terms_rec : Term -> Term -> Term -> Term -> Term
@@ -8124,9 +8119,9 @@ partial def __dt_distinct_terms_rec : Term -> Term -> Term -> Term -> Term
   | _ , Term.Stuck , _ , _  => Term.Stuck
   | _ , _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply f a), cs, l1, l2 => (__dt_distinct_terms_rec f cs (Term.Apply (Term.Apply Term.__eo_List_cons a) l1) l2)
-  | ct, (Term.Apply f a), l1, l2 => (__dt_distinct_terms_rec ct f l1 (Term.Apply (Term.Apply Term.__eo_List_cons a) l2))
-  | ct, cs, l1, l2 => (__eo_ite (__eo_eq (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors ct)))) (Term.Boolean true)) (__eo_ite (__eo_eq ct cs) (__some_pairwise_distinct_term l1 l2) (__eo_eq (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors cs)))) (Term.Boolean true))) (Term.Boolean false))
+  | (Term.Apply f a), cs, t, s => (__dt_distinct_terms_rec f cs t s)
+  | ct, (Term.Apply g a), t, s => (__dt_distinct_terms_rec ct g t s)
+  | ct, cs, t, s => (__eo_ite (__eo_eq (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors ct)))) (Term.Boolean true)) (__eo_ite (__eo_eq ct cs) (__dt_distinct_terms_arg t s) (__eo_eq (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors cs)))) (Term.Boolean true))) (Term.Boolean false))
 
 
 partial def __eo_l_1___are_distinct_terms_type : Term -> Term -> Term -> Term
@@ -8139,8 +8134,8 @@ partial def __eo_l_1___are_distinct_terms_type : Term -> Term -> Term -> Term
   | t, s, (Term.Apply (Term.UOp UserOp.BitVec) n) => (__eo_and (__eo_is_bin t) (__eo_is_bin s))
   | t, s, Term.Bool => (__eo_and (__eo_is_bool t) (__eo_is_bool s))
   | st, ss, (Term.Apply (Term.UOp UserOp.Set) U) => (__eo_or (__set_is_not_subset st ss) (__set_is_not_subset ss st))
-  | sst, sss, (Term.Apply (Term.UOp UserOp.Seq) U) => (__seq_distinct_terms sst sss)
-  | t, s, T => (__dt_distinct_terms_rec t s Term.__eo_List_nil Term.__eo_List_nil)
+  | sst, sss, (Term.Apply (Term.UOp UserOp.Seq) U) => (__seq_distinct_terms_rec (__str_nary_intro sst) (__str_nary_intro sss))
+  | t, s, T => (__dt_distinct_terms_rec t s t s)
 
 
 partial def __are_distinct_terms_type : Term -> Term -> Term -> Term
@@ -8525,7 +8520,7 @@ partial def __str_re_consume : Term -> Term -> Term
 partial def __eo_l_1___str_is_compatible : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1) xs1), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c2) xs2) => (__eo_requires (__eo_ite (__eo_eq c1 c2) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons c1) (Term.Apply (Term.Apply Term.__eo_List_cons c2) Term.__eo_List_nil)) (__eo_typeof c1))) (Term.Boolean true) (Term.Boolean false))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c1) xs1), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) c2) xs2) => (__eo_requires (__eo_ite (__eo_eq c1 c2) (Term.Boolean false) (__are_distinct_terms_type c1 c2 (__eo_typeof c1))) (Term.Boolean true) (Term.Boolean false))
   | c1, c2 => (__eo_or (__str_is_empty c1) (__str_is_empty c2))
 
 
@@ -8661,7 +8656,7 @@ partial def __eo_prog_str_overlap_endpoints_replace : Term -> Term
 
 partial def __eo_l_2___seq_is_prefix : Term -> Term -> Term
   | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) et)) ts), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) es)) ss) => (__eo_requires (__eo_ite (__eo_eq et es) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons et) (Term.Apply (Term.Apply Term.__eo_List_cons es) Term.__eo_List_nil)) (__eo_typeof et))) (Term.Boolean true) (Term.Boolean false))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) et)) ts), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) es)) ss) => (__eo_requires (__eo_ite (__eo_eq et es) (Term.Boolean false) (__are_distinct_terms_type et es (__eo_typeof et))) (Term.Boolean true) (Term.Boolean false))
   | (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)), t => (Term.Boolean true)
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) et)) ts), (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) => (Term.Boolean false)
   | _, _ => Term.Stuck
@@ -8778,7 +8773,7 @@ partial def __eo_prog_sets_eval_op : Term -> Term
 
 
 partial def __eo_prog_dt_cons_eq_clash : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) s)) (Term.Boolean false)) => (__eo_requires (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons t) (Term.Apply (Term.Apply Term.__eo_List_cons s) Term.__eo_List_nil)) (__eo_typeof t))) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) s)) (Term.Boolean false)))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) s)) (Term.Boolean false)) => (__eo_requires (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_type t s (__eo_typeof t))) (Term.Boolean true) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) s)) (Term.Boolean false)))
   | _ => Term.Stuck
 
 
@@ -9025,7 +9020,7 @@ partial def __eo_prog_evaluate : Term -> Term
 partial def __eo_prog_distinct_values : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
-  | t, s => (__eo_requires (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_list (Term.Apply (Term.Apply Term.__eo_List_cons t) (Term.Apply (Term.Apply Term.__eo_List_cons s) Term.__eo_List_nil)) (__eo_typeof t))) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) s)))
+  | t, s => (__eo_requires (__eo_ite (__eo_eq t s) (Term.Boolean false) (__are_distinct_terms_type t s (__eo_typeof t))) (Term.Boolean true) (Term.Apply (Term.UOp UserOp.not) (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t) s)))
 
 
 end
