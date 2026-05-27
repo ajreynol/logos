@@ -1017,3 +1017,20 @@ by
       | cons _ _ =>
           change Term.Stuck ≠ Term.Stuck at hProg
           exact False.elim (hProg rfl)
+
+theorem unit_tuple_value_head_zero_of_type
+    {v : SmtValue}
+    (hTy :
+      __smtx_typeof_value v =
+        SmtType.Datatype (native_string_lit "@Tuple")
+          (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)) :
+    __vsm_apply_head v =
+      SmtValue.DtCons (native_string_lit "@Tuple")
+        (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null)
+        native_nat_zero := by
+  rcases datatype_value_head_of_type hTy with ⟨i, hHead⟩
+  have hlt := datatype_head_index_lt hHead hTy
+  have hi : i = native_nat_zero := by
+    simpa [smtDatatypeNumCtors] using hlt
+  subst i
+  exact hHead
