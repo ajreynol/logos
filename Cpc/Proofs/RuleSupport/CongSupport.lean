@@ -13450,15 +13450,13 @@ private theorem eo_to_smt_exists_type_congr_body :
         case Var name T =>
           cases name <;> try rfl
           case String s =>
-            change
-              __smtx_typeof
-                  (SmtTerm.exists s (__eo_to_smt_type T)
-                    (__eo_to_smt_exists tail a)) =
-                __smtx_typeof
-                  (SmtTerm.exists s (__eo_to_smt_type T)
-                    (__eo_to_smt_exists tail b))
-            rw [__smtx_typeof.eq_135, __smtx_typeof.eq_135]
-            rw [eo_to_smt_exists_type_congr_body tail a b hTy]
+            rw [TranslationProofs.eo_to_smt_exists_cons,
+              TranslationProofs.eo_to_smt_exists_cons]
+            cases hWF : __smtx_type_wf (__eo_to_smt_type T)
+            · simp [hWF, native_ite]
+            · simp [hWF, native_ite]
+              rw [__smtx_typeof.eq_135, __smtx_typeof.eq_135]
+              rw [eo_to_smt_exists_type_congr_body tail a b hTy]
 termination_by xs a b _ => xs
 
 private theorem exists_translation_arg_is_cons

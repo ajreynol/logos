@@ -83,22 +83,6 @@ theorem model_typed_at_push
     simpa [native_model_lookup, native_model_push]
       using hAt.2 hT
 
-/-- Describes how variable lookups behave under `push`. -/
-theorem model_var_typed_at_push
-    {M : SmtModel}
-    {s : native_String}
-    {T : SmtType}
-    {v : SmtValue}
-    (hWF : __smtx_type_wf T = true)
-    (hv : __smtx_typeof_value v = T) :
-    model_var_typed_at (native_model_push M s T v) s T := by
-  constructor
-  · intro hT
-    simp [native_model_var_lookup, native_model_push, hT, hv, native_Teq]
-  · intro hT
-    rw [hWF] at hT
-    cases hT
-
 /-- Describes how `model_total_typed` behaves under `push`. -/
 theorem model_total_typed_push
     {M : SmtModel}
@@ -486,6 +470,51 @@ theorem type_default_typed_of_type_wf
           exact hWF
       exact type_default_typed_of_inhabited_wf_rec T hParts.1 hParts.2
 
+/-- The syntactic default is canonical for every well-formed SMT type. -/
+theorem type_default_canonical_of_type_wf
+    (T : SmtType)
+    (hWF : __smtx_type_wf T = true) :
+    __smtx_value_canonical (__smtx_type_default T) := by
+  by_cases hReg : T = SmtType.RegLan
+  · subst T
+    simp [__smtx_type_default, __smtx_value_canonical, __smtx_value_canonical_bool]
+  · by_cases hFun : ∃ A B, T = SmtType.FunType A B
+    · rcases hFun with ⟨A, B, rfl⟩
+      have hParts :
+          native_inhabited_type A = true ∧
+            __smtx_type_wf_rec A native_reflist_nil = true ∧
+              native_inhabited_type B = true ∧
+                __smtx_type_wf_rec B native_reflist_nil = true := by
+        exact fun_type_wf_parts hWF
+      exact (type_default_typed_canonical_of_native_inhabited_type
+        (SmtType.FunType A B) (native_inhabited_type_fun hParts.2.2.1)).2
+    · have hParts :
+          native_inhabited_type T = true ∧
+            __smtx_type_wf_rec T native_reflist_nil = true := by
+        cases T <;>
+          simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+            native_and] at hWF hReg hFun ⊢ <;>
+          exact hWF
+      exact (type_default_typed_canonical_of_inhabited_wf_rec T hParts.1 hParts.2).2
+
+/-- Describes how variable lookups behave under `push`. -/
+theorem model_var_typed_at_push
+    {M : SmtModel}
+    {s : native_String}
+    {T : SmtType}
+    {v : SmtValue}
+    (hWF : __smtx_type_wf T = true)
+    (hv : __smtx_typeof_value v = T) :
+    model_var_typed_at (native_model_push M s T v) s T := by
+  constructor
+  · intro hT
+    cases hCan : __smtx_value_canonical_bool v <;>
+      simp [native_model_var_lookup, native_model_push, hT, hv, hCan, native_Teq,
+        native_and, type_default_typed_of_type_wf T hWF]
+  · intro hT
+    rw [hWF] at hT
+    cases hT
+
 /-- Variable lookup is well-typed for well-formed types without contributing to `model_total_typed`. -/
 theorem model_total_typed_var_lookup
     {M : SmtModel}
@@ -500,11 +529,34 @@ theorem model_total_typed_var_lookup
   | none =>
       simpa [hVar] using type_default_typed_of_type_wf T hT
   | some v =>
-      by_cases hEq : native_Teq (__smtx_typeof_value v) T = true
-      · have hTy : __smtx_typeof_value v = T := by
-          simpa [native_Teq] using hEq
-        simp [hTy, native_Teq]
-      · simp [hEq, type_default_typed_of_type_wf T hT]
+      have hDefTy := type_default_typed_of_type_wf T hT
+      by_cases hTy : __smtx_typeof_value v = T
+      · cases hCan : __smtx_value_canonical_bool v <;>
+          simp [hTy, hCan, native_and, native_Teq, hDefTy]
+      · cases hCan : __smtx_value_canonical_bool v <;>
+          simp [hTy, hCan, native_and, native_Teq, hDefTy]
+
+/-- Variable lookup is canonical for well-formed types; bad stored values fall back to defaults. -/
+theorem model_total_typed_var_lookup_canonical
+    {M : SmtModel}
+    (_hM : model_total_typed M)
+    (s : native_String)
+    (T : SmtType)
+    (hT : __smtx_type_wf T = true) :
+    __smtx_value_canonical (native_model_var_lookup M s T) := by
+  unfold native_model_var_lookup
+  simp [hT]
+  cases hVar : M.vars s T with
+  | none =>
+      simpa [hVar] using type_default_canonical_of_type_wf T hT
+  | some v =>
+      have hDefCan : __smtx_value_canonical_bool (__smtx_type_default T) = true := by
+        simpa [__smtx_value_canonical] using type_default_canonical_of_type_wf T hT
+      by_cases hTy : __smtx_typeof_value v = T
+      · cases hCan : __smtx_value_canonical_bool v <;>
+          simp [hTy, hCan, native_and, native_Teq, hDefCan, __smtx_value_canonical]
+      · cases hCan : __smtx_value_canonical_bool v <;>
+          simp [hTy, hCan, native_and, native_Teq, hDefCan, __smtx_value_canonical]
 
 /-- Variable lookup at non-well-formed types is unassigned. -/
 theorem model_total_typed_var_lookup_not_wf

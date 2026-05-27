@@ -1920,7 +1920,8 @@ def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : S
   if __smtx_type_wf T then
     match M.vars s T with
     | some v =>
-        if native_Teq (__smtx_typeof_value v) T then
+        if native_and (native_Teq (__smtx_typeof_value v) T)
+            (__smtx_value_canonical_bool v) then
           v
         else
           __smtx_type_default T

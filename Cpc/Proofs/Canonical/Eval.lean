@@ -40,11 +40,11 @@ theorem model_eval_var_canonical
     (hT : type_inhabited T) :
     __smtx_value_canonical (__smtx_model_eval M (SmtTerm.Var s T)) := by
   by_cases hWF : __smtx_type_wf T = true
-  · simpa [__smtx_model_eval] using model_total_typed_lookup_canonical hM s T hWF
+  · simpa [__smtx_model_eval] using model_total_typed_var_lookup_canonical hM s T hWF
   · have hWF' : __smtx_type_wf T = false := by
       cases hWFBool : __smtx_type_wf T <;> simp [hWFBool] at hWF ⊢
-    have hLookup : native_model_lookup M s T = SmtValue.NotValue :=
-      model_total_typed_lookup_not_wf hM s T hWF'
+    have hLookup : native_model_var_lookup M s T = SmtValue.NotValue :=
+      model_total_typed_var_lookup_not_wf hM s T hWF'
     simpa [__smtx_model_eval, hLookup] using value_canonical_notValue
 
 theorem model_eval_uconst_canonical
