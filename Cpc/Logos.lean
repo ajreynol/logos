@@ -2904,7 +2904,7 @@ def __eo_prog_arith_string_pred_safe_approx : Term -> Term
 
 
 def __eo_prog_str_in_re_eval : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b) => (__eo_requires (__str_eval_str_in_re_rec (__str_flatten (__str_nary_intro s)) r) b (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b) => (__eo_requires (__eo_is_str s) (Term.Boolean true) (__eo_requires (__str_eval_str_in_re_rec (__str_flatten (__str_nary_intro s)) r) b (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r)) b)))
   | _ => Term.Stuck
 
 
