@@ -1,9 +1,9 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.CnfSupport
 import Cpc.Proofs.RuleSupport.CongSupport
+import Cpc.Proofs.RuleSupport.DatatypeSupport
 import Cpc.Proofs.Translation.Apply
 import Cpc.Proofs.TypePreservation.Helpers
-import Cpc.Proofs.Rules.Dt_split
 
 open Eo
 open SmtEval
