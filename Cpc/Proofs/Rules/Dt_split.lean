@@ -11,19 +11,6 @@ set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
-private def eoDatatypeNumCtors : Datatype -> Nat
-  | Datatype.null => 0
-  | Datatype.sum _ d => Nat.succ (eoDatatypeNumCtors d)
-
-private theorem smtDatatypeNumCtors_eo_to_smt :
-    ∀ d : Datatype,
-      smtDatatypeNumCtors (__eo_to_smt_datatype d) = eoDatatypeNumCtors d
-  | Datatype.null => by
-      simp [smtDatatypeNumCtors, eoDatatypeNumCtors, __eo_to_smt_datatype]
-  | Datatype.sum c d => by
-      simp [smtDatatypeNumCtors, eoDatatypeNumCtors, __eo_to_smt_datatype,
-        smtDatatypeNumCtors_eo_to_smt d]
-
 private theorem smt_typeof_dt_cons_rec_non_none_of_lt
     {T : SmtType} (hT : T ≠ SmtType.None) :
     ∀ {d : SmtDatatype} {i : Nat},

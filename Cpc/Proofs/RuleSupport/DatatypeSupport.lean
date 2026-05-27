@@ -7,9 +7,24 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
+attribute [local simp] native_ite native_teq native_not native_zplus
+
+def eoDatatypeNumCtors : Datatype -> Nat
+  | Datatype.null => 0
+  | Datatype.sum _ d => Nat.succ (eoDatatypeNumCtors d)
+
 def smtDatatypeNumCtors : SmtDatatype -> Nat
   | SmtDatatype.null => 0
   | SmtDatatype.sum _ d => Nat.succ (smtDatatypeNumCtors d)
+
+theorem smtDatatypeNumCtors_eo_to_smt :
+    ∀ d : Datatype,
+      smtDatatypeNumCtors (__eo_to_smt_datatype d) = eoDatatypeNumCtors d
+  | Datatype.null => by
+      simp [smtDatatypeNumCtors, eoDatatypeNumCtors, __eo_to_smt_datatype]
+  | Datatype.sum c d => by
+      simp [smtDatatypeNumCtors, eoDatatypeNumCtors, __eo_to_smt_datatype,
+        smtDatatypeNumCtors_eo_to_smt d]
 
 theorem smtDatatypeNumCtors_substitute
     (s : native_String) (d0 : SmtDatatype) :
@@ -40,6 +55,135 @@ theorem dt_cons_applied_type_rec_non_none_implies_lt_ctors
       have hlt := dt_cons_applied_type_rec_non_none_implies_lt_ctors
         s d0 (d := d) (i := i) (n := n) h'
       simpa [smtDatatypeNumCtors] using Nat.succ_lt_succ hlt
+
+theorem smt_typeof_dt_cons_rec_non_none_implies_lt_ctors
+    (T : SmtType) :
+    ∀ {d : SmtDatatype} {i : Nat},
+      __smtx_typeof_dt_cons_rec T d i ≠ SmtType.None ->
+      i < smtDatatypeNumCtors d
+  | SmtDatatype.null, i, h => by
+      cases i <;> simp [__smtx_typeof_dt_cons_rec] at h
+  | SmtDatatype.sum c d, 0, _h => by
+      simp [smtDatatypeNumCtors]
+  | SmtDatatype.sum c d, Nat.succ i, h => by
+      have h' : __smtx_typeof_dt_cons_rec T d i ≠ SmtType.None := by
+        cases c <;> simpa [__smtx_typeof_dt_cons_rec] using h
+      have hlt := smt_typeof_dt_cons_rec_non_none_implies_lt_ctors
+        T (d := d) (i := i) h'
+      simpa [smtDatatypeNumCtors] using Nat.succ_lt_succ hlt
+
+private theorem eo_mk_apply_of_ne_stuck
+    {f x : Term}
+    (hf : f ≠ Term.Stuck) (hx : x ≠ Term.Stuck) :
+    __eo_mk_apply f x = Term.Apply f x := by
+  cases f <;> cases x <;> simp [__eo_mk_apply] at hf hx ⊢
+
+theorem eo_datatype_constructors_rec_ne_stuck
+    (s : native_String) (root : Datatype) :
+    ∀ current start,
+      __eo_datatype_constructors_rec s root current start ≠ Term.Stuck
+  | Datatype.null, start => by
+      simp [__eo_datatype_constructors_rec]
+  | Datatype.sum c d, start => by
+      let tail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      have hTail : tail ≠ Term.Stuck :=
+        eo_datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+      change
+        __eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s root start)) tail ≠
+          Term.Stuck
+      rw [eo_mk_apply_of_ne_stuck (by simp) hTail]
+      simp
+
+theorem eo_get_nil_rec_datatype_constructors_rec
+    (s : native_String) (root : Datatype) :
+    ∀ current start,
+      __eo_get_nil_rec Term.__eo_List_cons
+        (__eo_datatype_constructors_rec s root current start) =
+      Term.__eo_List_nil
+  | Datatype.null, start => by
+      simp [__eo_datatype_constructors_rec, __eo_get_nil_rec,
+        __eo_is_list_nil, __eo_requires]
+  | Datatype.sum c d, start => by
+      let tail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      have hTailNe : tail ≠ Term.Stuck :=
+        eo_datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+      have ih :
+          __eo_get_nil_rec Term.__eo_List_cons tail = Term.__eo_List_nil :=
+        eo_get_nil_rec_datatype_constructors_rec s root d (Nat.succ start)
+      change
+        __eo_get_nil_rec Term.__eo_List_cons
+          (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s root start)) tail) =
+        Term.__eo_List_nil
+      rw [eo_mk_apply_of_ne_stuck (by simp) hTailNe]
+      simp [__eo_get_nil_rec, __eo_requires, ih]
+
+private theorem eo_is_list_of_get_nil_rec_eq_nil
+    {x : Term}
+    (hx : x ≠ Term.Stuck)
+    (hGet : __eo_get_nil_rec Term.__eo_List_cons x = Term.__eo_List_nil) :
+    __eo_is_list Term.__eo_List_cons x = Term.Boolean true := by
+  cases x <;> simp [__eo_is_list, __eo_is_ok, hGet] at hx ⊢
+
+theorem eo_is_list_datatype_constructors_rec
+    (s : native_String) (root : Datatype) :
+    ∀ current start,
+      __eo_is_list Term.__eo_List_cons
+        (__eo_datatype_constructors_rec s root current start) =
+      Term.Boolean true := by
+  intro current start
+  have hGet :
+      __eo_get_nil_rec Term.__eo_List_cons
+        (__eo_datatype_constructors_rec s root current start) =
+      Term.__eo_List_nil :=
+    eo_get_nil_rec_datatype_constructors_rec s root current start
+  exact eo_is_list_of_get_nil_rec_eq_nil
+    (eo_datatype_constructors_rec_ne_stuck s root current start) hGet
+
+theorem eo_list_len_rec_datatype_constructors_rec
+    (s : native_String) (root : Datatype) :
+    ∀ current start,
+      __eo_list_len_rec (__eo_datatype_constructors_rec s root current start) =
+        Term.Numeral (Int.ofNat (eoDatatypeNumCtors current))
+  | Datatype.null, start => by
+      simp [__eo_datatype_constructors_rec, __eo_list_len_rec,
+        eoDatatypeNumCtors]
+  | Datatype.sum c d, start => by
+      let tail := __eo_datatype_constructors_rec s root d (Nat.succ start)
+      have hTailNe : tail ≠ Term.Stuck :=
+        eo_datatype_constructors_rec_ne_stuck s root d (Nat.succ start)
+      have ih :=
+        eo_list_len_rec_datatype_constructors_rec s root d (Nat.succ start)
+      change
+        __eo_list_len_rec
+          (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtCons s root start)) tail) =
+        Term.Numeral (Int.ofNat (eoDatatypeNumCtors (Datatype.sum c d)))
+      rw [eo_mk_apply_of_ne_stuck (by simp) hTailNe]
+      change
+        __eo_add (Term.Numeral 1) (__eo_list_len_rec tail) =
+          Term.Numeral (Int.ofNat (eoDatatypeNumCtors (Datatype.sum c d)))
+      rw [show
+          __eo_list_len_rec tail =
+            Term.Numeral (Int.ofNat (eoDatatypeNumCtors d)) by
+        exact ih]
+      simp [__eo_add, eoDatatypeNumCtors]
+      rw [Int.add_comm]
+
+theorem eo_list_len_dt_get_constructors_datatype
+    (s : native_String) (d : Datatype) :
+    __eo_list_len Term.__eo_List_cons
+        (__dt_get_constructors (Term.DatatypeType s d)) =
+      Term.Numeral (Int.ofNat (eoDatatypeNumCtors d)) := by
+  have hList :
+      __eo_is_list Term.__eo_List_cons
+          (__eo_datatype_constructors_rec s d d native_nat_zero) =
+        Term.Boolean true :=
+    eo_is_list_datatype_constructors_rec s d d native_nat_zero
+  have hLen :
+      __eo_list_len_rec (__eo_datatype_constructors_rec s d d native_nat_zero) =
+        Term.Numeral (Int.ofNat (eoDatatypeNumCtors d)) :=
+    eo_list_len_rec_datatype_constructors_rec s d d native_nat_zero
+  simp [__dt_get_constructors, __eo_dt_constructors, __eo_list_len,
+    __eo_requires, hList, hLen]
 
 theorem datatype_value_head_of_type
     {v : SmtValue} {s : native_String} {d : SmtDatatype}
