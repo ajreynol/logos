@@ -2993,7 +2993,7 @@ private theorem tuple_prepend_rec_succ_projection_of_get
     M hM fullD tailD tail head k (Nat.succ j) v hNN
     (by simpa [listGetOptionValue] using hGet)
 
-private theorem tuple_prepend_zero_projection
+theorem tuple_prepend_zero_projection
     (M : SmtModel) (hM : model_total_typed M)
     (head tail : SmtTerm) (headTy : SmtType) (c : SmtDatatypeCons) :
     __smtx_typeof tail =
@@ -3332,7 +3332,7 @@ private theorem datatype_head_index_lt_local
     (n := vsm_num_apply_args v) hNN
   simpa [smtDatatypeNumCtorsLocal_substitute s d d] using hltSub
 
-private theorem tuple_datatype_value_head_zero
+theorem tuple_datatype_value_head_zero
     {v : SmtValue} {c : SmtDatatypeCons}
     (hTy :
       __smtx_typeof_value v =
@@ -3351,7 +3351,7 @@ private theorem tuple_datatype_value_head_zero
       have hlt0 : i < 0 := Nat.succ_lt_succ_iff.mp hlt
       exact False.elim (Nat.not_lt_zero i hlt0)
 
-private theorem smt_tuple_dt_sel_eval_uses_constructor
+theorem smt_tuple_dt_sel_eval_uses_constructor
     (M : SmtModel) (hM : model_total_typed M)
     (tail : SmtTerm) (c : SmtDatatypeCons) (j : native_Nat) :
     __smtx_typeof tail =
@@ -3389,7 +3389,7 @@ private theorem smt_tuple_dt_sel_eval_uses_constructor
     simp [native_veq]
   simp [native_ite, hHeadTrue]
 
-private theorem tuple_prepend_succ_projection
+theorem tuple_prepend_succ_projection
     (M : SmtModel) (hM : model_total_typed M)
     (head tail : SmtTerm) (headTy : SmtType) (c : SmtDatatypeCons)
     (j : native_Nat) :
