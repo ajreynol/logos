@@ -1156,8 +1156,8 @@ def __set_is_not_subset : Term -> Term -> Term -> Term
   | (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) U)), s, T => (Term.Boolean false)
   | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.UOp1 UserOp1.set_empty (Term.Apply (Term.UOp UserOp.Set) U)), T => (Term.Boolean true)
   | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.Apply (Term.UOp UserOp.set_singleton) e2), T => (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T))
-  | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e2)) ss), T => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T)) (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) ss) (Term.Boolean false))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e1)) ts), s, T => (__eo_ite (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) s) (Term.Boolean true) (__set_is_not_subset ts s))
+  | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e2)) ss), T => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T)) (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) ss T) (Term.Boolean false))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e1)) ts), s, T => (__eo_ite (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) s T) (Term.Boolean true) (__set_is_not_subset ts s T))
   | _, _, _ => Term.Stuck
 
 
