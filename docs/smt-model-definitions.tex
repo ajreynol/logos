@@ -73,6 +73,9 @@
 
 \begin{figure}[p]
 \begin{lstlisting}
+abbrev Char := Nat
+abbrev String := List Char
+
 inductive SmtType : Type where
   | None : SmtType
   | Bool : SmtType
@@ -113,7 +116,6 @@ inductive SmtTerm : Type where
   | Rational : Rat -> SmtTerm
   | String : String -> SmtTerm
   | Binary : Int -> Int -> SmtTerm
-  | Var : String -> SmtType -> SmtTerm
   | Apply : SmtTerm -> SmtTerm -> SmtTerm
   | not : SmtTerm -> SmtTerm
   | and : SmtTerm -> SmtTerm -> SmtTerm
@@ -124,10 +126,9 @@ inductive SmtTerm : Type where
   | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
   | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
   | DtTester : String -> SmtDatatype -> Nat -> SmtTerm
+  | Var : String -> SmtType -> SmtTerm
   | UConst : String -> SmtType -> SmtTerm
   ...
-  -- Many further operators follow the same constructor pattern.
-
 deriving Repr, DecidableEq, Inhabited
 \end{lstlisting}
 \caption{A representative template of SMT term constructors.}
