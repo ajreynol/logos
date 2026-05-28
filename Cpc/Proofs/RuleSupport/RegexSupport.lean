@@ -343,7 +343,7 @@ theorem native_str_in_re_re_concat_intro
     have hAll2 : s2.all native_char_valid = true := by
       simpa [native_string_valid] using h2Parts.1
     change (s1 ++ s2).all native_char_valid = true
-    simpa [hAll1, hAll2]
+    simp [hAll1, hAll2]
   have h := (nativeListInRe_mk_concat_true_iff_exists_append
     (s1 ++ s2) r1 r2).2
     ⟨s1, s2, by simp, h1Parts.2, h2Parts.2⟩
@@ -406,35 +406,58 @@ theorem nativeListInRe_mk_concat_assoc
         ⟨xr, xs', rfl, hr, hs⟩
 
 theorem nativeListInRe_allchar_true_iff (xs : List native_Char) :
-    nativeListInRe xs native_re_allchar = true ↔ xs.length = 1 := by
+    nativeListInRe xs native_re_allchar = true ↔
+      xs.length = 1 ∧ xs.all native_char_valid = true := by
   cases xs with
   | nil =>
       simp [nativeListInRe, native_re_allchar, native_re_nullable]
   | cons c xs =>
       cases xs with
       | nil =>
-          simp [nativeListInRe, native_re_allchar, native_re_deriv,
-            native_re_nullable]
+          cases hValid : native_char_valid c <;>
+            simp [nativeListInRe, native_re_allchar, native_re_deriv,
+              native_re_nullable, hValid]
       | cons d ds =>
-          simpa [nativeListInRe, native_re_allchar, native_re_deriv] using
-            nativeListInRe_empty ds
+          have hEmpty := nativeListInRe_empty ds
+          cases hValid : native_char_valid c <;>
+            simpa [nativeListInRe, native_re_allchar, native_re_deriv,
+              hValid] using hEmpty
 
-private theorem native_re_deriv_re_all (c : native_Char) :
+private theorem native_re_deriv_re_all
+    (c : native_Char) (hValid : native_char_valid c = true) :
     native_re_deriv c native_re_all = native_re_all := by
-  simp [native_re_all, native_re_deriv, native_re_mk_concat]
+  simp [native_re_all, native_re_deriv, native_re_mk_concat, hValid]
 
-theorem nativeListInRe_re_all (xs : List native_Char) :
-    nativeListInRe xs native_re_all = true := by
+private theorem native_re_deriv_re_all_invalid
+    (c : native_Char) (hValid : native_char_valid c = false) :
+    native_re_deriv c native_re_all = SmtRegLan.empty := by
+  simp [native_re_all, native_re_deriv, native_re_mk_concat, hValid]
+
+theorem nativeListInRe_re_all_true_iff (xs : List native_Char) :
+    nativeListInRe xs native_re_all = true ↔
+      xs.all native_char_valid = true := by
   induction xs with
   | nil =>
       simp [nativeListInRe, native_re_all, native_re_nullable]
   | cons c xs ih =>
-      simpa [nativeListInRe, native_re_deriv_re_all] using ih
+      cases hValid : native_char_valid c
+      · simpa [nativeListInRe, native_re_deriv_re_all_invalid c hValid,
+          hValid] using nativeListInRe_empty xs
+      · simpa [nativeListInRe, native_re_deriv_re_all c hValid, hValid,
+          List.all_eq_true] using ih
+
+theorem nativeListInRe_re_all
+    (xs : List native_Char) (hValid : xs.all native_char_valid = true) :
+    nativeListInRe xs native_re_all = true := by
+  exact (nativeListInRe_re_all_true_iff xs).2 hValid
 
 theorem native_str_in_re_re_all (str : native_String)
     (hValid : native_string_valid str = true) :
     native_str_in_re str native_re_all = true := by
-  simpa [native_str_in_re, hValid, nativeListInRe] using nativeListInRe_re_all str
+  have hListValid : str.all native_char_valid = true := by
+    simpa [native_string_valid] using hValid
+  simpa [native_str_in_re, hValid, nativeListInRe] using
+    nativeListInRe_re_all str hListValid
 
 def nativeSigmaExact : Nat -> native_RegLan
   | 0 => SmtRegLan.epsilon
@@ -446,7 +469,8 @@ def nativeSigmaAtLeast : Nat -> native_RegLan
 
 theorem nativeListInRe_sigmaExact_true_iff :
     (n : Nat) -> (xs : List native_Char) ->
-      nativeListInRe xs (nativeSigmaExact n) = true ↔ xs.length = n
+      nativeListInRe xs (nativeSigmaExact n) = true ↔
+        xs.length = n ∧ xs.all native_char_valid = true
   | 0, xs => by
       cases xs with
       | nil =>
@@ -461,14 +485,20 @@ theorem nativeListInRe_sigmaExact_true_iff :
             (nativeSigmaExact n) native_re_allchar).1
             (by simpa [nativeSigmaExact] using h) with
           ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
-        have hLeftLen : xs₁.length = n :=
+        have hLeftParts :
+            xs₁.length = n ∧ xs₁.all native_char_valid = true :=
           (nativeListInRe_sigmaExact_true_iff n xs₁).1 hLeft
-        have hRightLen : xs₂.length = 1 :=
+        have hRightParts :
+            xs₂.length = 1 ∧ xs₂.all native_char_valid = true :=
           (nativeListInRe_allchar_true_iff xs₂).1 hRight
         have hLen := congrArg List.length hAppend
-        simp [hLeftLen, hRightLen] at hLen
-        omega
-      · intro hLen
+        simp [hLeftParts.1, hRightParts.1] at hLen
+        have hValid : xs.all native_char_valid = true := by
+          rw [← hAppend, List.all_append]
+          simp [hLeftParts.2, hRightParts.2]
+        exact ⟨by omega, hValid⟩
+      · intro hParts
+        rcases hParts with ⟨hLen, hValid⟩
         let xs₁ := xs.take n
         let xs₂ := xs.drop n
         have hLeftLen : xs₁.length = n := by
@@ -479,12 +509,25 @@ theorem nativeListInRe_sigmaExact_true_iff :
           omega
         have hAppend : xs₁ ++ xs₂ = xs := by
           simp [xs₁, xs₂]
+        have hValidAppend : (xs₁ ++ xs₂).all native_char_valid = true := by
+          simpa [hAppend] using hValid
+        rw [List.all_append] at hValidAppend
+        have hValidParts :
+            xs₁.all native_char_valid = true ∧
+              xs₂.all native_char_valid = true := by
+          simpa [Bool.and_eq_true] using hValidAppend
+        have hLeftValid : xs₁.all native_char_valid = true :=
+          hValidParts.1
+        have hRightValid : xs₂.all native_char_valid = true :=
+          hValidParts.2
         have hLeft :
             nativeListInRe xs₁ (nativeSigmaExact n) = true :=
-          (nativeListInRe_sigmaExact_true_iff n xs₁).2 hLeftLen
+          (nativeListInRe_sigmaExact_true_iff n xs₁).2
+            ⟨hLeftLen, hLeftValid⟩
         have hRight :
             nativeListInRe xs₂ native_re_allchar = true :=
-          (nativeListInRe_allchar_true_iff xs₂).2 hRightLen
+          (nativeListInRe_allchar_true_iff xs₂).2
+            ⟨hRightLen, hRightValid⟩
         have hConcat :
             nativeListInRe xs
                 (native_re_mk_concat (nativeSigmaExact n) native_re_allchar) =
@@ -496,11 +539,14 @@ theorem nativeListInRe_sigmaExact_true_iff :
 
 theorem nativeListInRe_sigmaAtLeast_true_iff :
     (n : Nat) -> (xs : List native_Char) ->
-      nativeListInRe xs (nativeSigmaAtLeast n) = true ↔ n ≤ xs.length
+      nativeListInRe xs (nativeSigmaAtLeast n) = true ↔
+        n ≤ xs.length ∧ xs.all native_char_valid = true
   | 0, xs => by
       constructor
-      · intro _; omega
-      · intro _; exact nativeListInRe_re_all xs
+      · intro h
+        exact ⟨by omega, (nativeListInRe_re_all_true_iff xs).1 h⟩
+      · intro hParts
+        exact nativeListInRe_re_all xs hParts.2
   | n + 1, xs => by
       constructor
       · intro h
@@ -508,14 +554,20 @@ theorem nativeListInRe_sigmaAtLeast_true_iff :
             (nativeSigmaAtLeast n) native_re_allchar).1
             (by simpa [nativeSigmaAtLeast] using h) with
           ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
-        have hLeftLen : n ≤ xs₁.length :=
+        have hLeftParts :
+            n ≤ xs₁.length ∧ xs₁.all native_char_valid = true :=
           (nativeListInRe_sigmaAtLeast_true_iff n xs₁).1 hLeft
-        have hRightLen : xs₂.length = 1 :=
+        have hRightParts :
+            xs₂.length = 1 ∧ xs₂.all native_char_valid = true :=
           (nativeListInRe_allchar_true_iff xs₂).1 hRight
         have hLen := congrArg List.length hAppend
-        simp [hRightLen] at hLen
-        omega
-      · intro hLen
+        simp [hRightParts.1] at hLen
+        have hValid : xs.all native_char_valid = true := by
+          rw [← hAppend, List.all_append]
+          simp [hLeftParts.2, hRightParts.2]
+        exact ⟨by omega, hValid⟩
+      · intro hParts
+        rcases hParts with ⟨hLen, hValid⟩
         let cut := xs.length - 1
         let xs₁ := xs.take cut
         let xs₂ := xs.drop cut
@@ -527,12 +579,25 @@ theorem nativeListInRe_sigmaAtLeast_true_iff :
           omega
         have hAppend : xs₁ ++ xs₂ = xs := by
           simp [xs₁, xs₂]
+        have hValidAppend : (xs₁ ++ xs₂).all native_char_valid = true := by
+          simpa [hAppend] using hValid
+        rw [List.all_append] at hValidAppend
+        have hValidParts :
+            xs₁.all native_char_valid = true ∧
+              xs₂.all native_char_valid = true := by
+          simpa [Bool.and_eq_true] using hValidAppend
+        have hLeftValid : xs₁.all native_char_valid = true :=
+          hValidParts.1
+        have hRightValid : xs₂.all native_char_valid = true :=
+          hValidParts.2
         have hLeft :
             nativeListInRe xs₁ (nativeSigmaAtLeast n) = true :=
-          (nativeListInRe_sigmaAtLeast_true_iff n xs₁).2 hLeftLen
+          (nativeListInRe_sigmaAtLeast_true_iff n xs₁).2
+            ⟨hLeftLen, hLeftValid⟩
         have hRight :
             nativeListInRe xs₂ native_re_allchar = true :=
-          (nativeListInRe_allchar_true_iff xs₂).2 hRightLen
+          (nativeListInRe_allchar_true_iff xs₂).2
+            ⟨hRightLen, hRightValid⟩
         have hConcat :
             nativeListInRe xs
                 (native_re_mk_concat (nativeSigmaAtLeast n) native_re_allchar) =
@@ -545,18 +610,25 @@ theorem nativeListInRe_sigmaAtLeast_true_iff :
 theorem nativeListInRe_exact_concat_re_all_true_iff
     (n : Nat) (xs : List native_Char) :
     nativeListInRe xs (native_re_mk_concat (nativeSigmaExact n) native_re_all) = true ↔
-      n ≤ xs.length := by
+      n ≤ xs.length ∧ xs.all native_char_valid = true := by
   constructor
   · intro h
     rcases (nativeListInRe_mk_concat_true_iff_exists_append xs
         (nativeSigmaExact n) native_re_all).1 h with
-      ⟨xs₁, xs₂, hAppend, hLeft, _hRight⟩
-    have hLeftLen : xs₁.length = n :=
+      ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+    have hLeftParts :
+        xs₁.length = n ∧ xs₁.all native_char_valid = true :=
       (nativeListInRe_sigmaExact_true_iff n xs₁).1 hLeft
+    have hRightValid : xs₂.all native_char_valid = true :=
+      (nativeListInRe_re_all_true_iff xs₂).1 hRight
     have hLen := congrArg List.length hAppend
-    simp [hLeftLen] at hLen
-    omega
-  · intro hLen
+    simp [hLeftParts.1] at hLen
+    have hValid : xs.all native_char_valid = true := by
+      rw [← hAppend, List.all_append]
+      simp [hLeftParts.2, hRightValid]
+    exact ⟨by omega, hValid⟩
+  · intro hParts
+    rcases hParts with ⟨hLen, hValid⟩
     let k := xs.length - n
     let xs₁ := xs.take n
     let xs₂ := xs.drop n
@@ -565,10 +637,22 @@ theorem nativeListInRe_exact_concat_re_all_true_iff
       omega
     have hAppend : xs₁ ++ xs₂ = xs := by
       simp [xs₁, xs₂]
+    have hValidAppend : (xs₁ ++ xs₂).all native_char_valid = true := by
+      simpa [hAppend] using hValid
+    rw [List.all_append] at hValidAppend
+    have hValidParts :
+        xs₁.all native_char_valid = true ∧
+          xs₂.all native_char_valid = true := by
+      simpa [Bool.and_eq_true] using hValidAppend
+    have hLeftValid : xs₁.all native_char_valid = true :=
+      hValidParts.1
+    have hRightValid : xs₂.all native_char_valid = true :=
+      hValidParts.2
     have hLeft : nativeListInRe xs₁ (nativeSigmaExact n) = true :=
-      (nativeListInRe_sigmaExact_true_iff n xs₁).2 hLeftLen
+      (nativeListInRe_sigmaExact_true_iff n xs₁).2
+        ⟨hLeftLen, hLeftValid⟩
     have hRight : nativeListInRe xs₂ native_re_all = true :=
-      nativeListInRe_re_all xs₂
+      nativeListInRe_re_all xs₂ hRightValid
     exact (nativeListInRe_mk_concat_true_iff_exists_append xs
       (nativeSigmaExact n) native_re_all).2
       ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
@@ -590,16 +674,22 @@ theorem nativeListInRe_atLeast_concat_re_all_eq_atLeast
   · intro h
     rcases (nativeListInRe_mk_concat_true_iff_exists_append xs
         (nativeSigmaAtLeast n) native_re_all).1 h with
-      ⟨xs₁, xs₂, hAppend, hLeft, _hRight⟩
-    have hLeftLen : n ≤ xs₁.length :=
+      ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+    have hLeftParts :
+        n ≤ xs₁.length ∧ xs₁.all native_char_valid = true :=
       (nativeListInRe_sigmaAtLeast_true_iff n xs₁).1 hLeft
+    have hRightValid : xs₂.all native_char_valid = true :=
+      (nativeListInRe_re_all_true_iff xs₂).1 hRight
     apply (nativeListInRe_sigmaAtLeast_true_iff n xs).2
     have hLen := congrArg List.length hAppend
     simp at hLen
-    omega
+    have hValid : xs.all native_char_valid = true := by
+      rw [← hAppend, List.all_append]
+      simp [hLeftParts.2, hRightValid]
+    exact ⟨by omega, hValid⟩
   · intro h
     have hNilAll : nativeListInRe [] native_re_all = true :=
-      nativeListInRe_re_all []
+      nativeListInRe_re_all [] (by simp)
     exact (nativeListInRe_mk_concat_true_iff_exists_append xs
       (nativeSigmaAtLeast n) native_re_all).2
       ⟨xs, [], by simp, h, hNilAll⟩

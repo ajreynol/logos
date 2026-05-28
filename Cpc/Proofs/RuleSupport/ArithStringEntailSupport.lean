@@ -504,25 +504,13 @@ private theorem native_str_to_int_ge_neg_one
     (s : native_String) :
     (-1 : Int) ≤ native_str_to_int s := by
   unfold native_str_to_int
-  cases hList : s.toList with
+  cases s with
   | nil =>
-      simp [hList]
+      simp
   | cons c cs =>
-      by_cases hMinus : c = '-'
-      · subst c
-        simp [hList]
-      · by_cases hZero : c = '0'
-        · subst c
-          cases cs with
-          | nil =>
-              cases hNat : s.toNat? <;> simp [hList, hNat]
-          | cons _ _ =>
-              simp [hList]
-        · cases hNat : s.toNat? with
-          | none =>
-              simp [hList, hMinus, hZero, hNat]
-          | some _ =>
-              simp [hList, hMinus, hZero, hNat]
+      by_cases hDigits : (c :: cs).all native_char_is_digit = true
+      · simp [hDigits]
+      · simp [hDigits]
 
 private theorem int_le_of_simple_geq_true
     (M : SmtModel) (hM : model_total_typed M)
@@ -588,7 +576,7 @@ private theorem native_seq_indexof_le_len
     native_seq_indexof xs pat i ≤ Int.ofNat xs.length := by
   unfold native_seq_indexof
   split
-  · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.ofNat_nonneg _)
+  · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
   · dsimp
     split
     · rename_i hStart h
@@ -596,7 +584,7 @@ private theorem native_seq_indexof_le_len
           (xs.length - (Int.toNat i + pat.length) + 1) with
       | inl hRec =>
           rw [hRec]
-          exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.ofNat_nonneg _)
+          exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
       | inr hRec =>
           rcases hRec with ⟨j, hRec, hjlt⟩
           rw [hRec]
@@ -604,7 +592,7 @@ private theorem native_seq_indexof_le_len
           have hjle : j ≤ xs.length - (Int.toNat i + pat.length) := by
             omega
           omega
-    · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.ofNat_nonneg _)
+    · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
 
 private theorem native_seq_indexof_le_len_sub_pat_of_pat_le_len
     (xs pat : List SmtValue) (i : native_Int) :
@@ -882,8 +870,7 @@ private theorem native_unpack_pack_seq
 private theorem native_unpack_pack_string_len
     (s : native_String) :
     (native_unpack_seq (native_pack_string s)).length = s.length := by
-  simp [native_pack_string, native_ssm_char_values_of_string,
-    native_unpack_pack_seq, String.length_toList]
+  simp [native_pack_string, native_unpack_pack_seq]
 
 private theorem str_to_int_eval_decomp
     (M : SmtModel) (hM : model_total_typed M)
@@ -1741,7 +1728,7 @@ private theorem l1_str_replace_len_false
 private theorem native_seq_extract_len_nonneg
     (xs : List SmtValue) (i n : native_Int) :
     (0 : Int) ≤ Int.ofNat (native_seq_extract xs i n).length := by
-  exact Int.ofNat_nonneg _
+  exact Int.natCast_nonneg _
 
 private theorem native_seq_extract_len_le_len
     (xs : List SmtValue) (i n : native_Int) :
@@ -1924,7 +1911,7 @@ private theorem native_seq_extract_len_le_len_sub_start_of_start_le_len
   intro hiLe
   by_cases hiNeg : i < 0
   · simp [native_seq_extract, hiNeg]
-    have hLenNonneg : (0 : Int) <= Int.ofNat xs.length := Int.ofNat_nonneg _
+    have hLenNonneg : (0 : Int) <= Int.ofNat xs.length := Int.natCast_nonneg _
     omega
   · have hiNonneg : 0 <= i := Int.le_of_not_gt hiNeg
     simp only [native_seq_extract]
@@ -2249,10 +2236,10 @@ private theorem native_str_from_int_len_pos_of_nonneg
   cases z with
   | ofNat n =>
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
-        Int.not_lt.mpr (Int.ofNat_nonneg n)
+        Int.not_lt.mpr (Int.natCast_nonneg n)
       rw [native_str_from_int, if_neg hlt]
-      change (0 : Int) < Int.ofNat (toString n).length
-      exact Int.ofNat_lt.mpr (nat_toString_len_pos n)
+      simpa [native_string_lit] using
+        Int.ofNat_lt.mpr (nat_toString_len_pos n)
   | negSucc n =>
       have hFalse : False := (Int.negSucc_not_nonneg n).mp hz
       exact False.elim hFalse
@@ -2265,10 +2252,10 @@ private theorem native_str_from_int_len_le_succ
   cases z with
   | ofNat n =>
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
-        Int.not_lt.mpr (Int.ofNat_nonneg n)
+        Int.not_lt.mpr (Int.natCast_nonneg n)
       rw [native_str_from_int, if_neg hlt]
-      change Int.ofNat (toString n).length <= Int.ofNat n + 1
-      exact Int.ofNat_le.mpr (nat_toString_len_le_succ n)
+      simpa [native_string_lit] using
+        Int.ofNat_le.mpr (nat_toString_len_le_succ n)
   | negSucc n =>
       have hFalse : False := (Int.negSucc_not_nonneg n).mp hz
       exact False.elim hFalse
@@ -2283,10 +2270,10 @@ private theorem native_str_from_int_len_le_self_of_pos
       have hn : 0 < n := by
         exact Int.ofNat_lt.mp hz
       have hlt : ¬ ((Int.ofNat n : Int) < 0) :=
-        Int.not_lt.mpr (Int.ofNat_nonneg n)
+        Int.not_lt.mpr (Int.natCast_nonneg n)
       rw [native_str_from_int, if_neg hlt]
-      change Int.ofNat (toString n).length <= Int.ofNat n
-      exact Int.ofNat_le.mpr (nat_toString_len_le_self_of_pos n hn)
+      simpa [native_string_lit] using
+        Int.ofNat_le.mpr (nat_toString_len_le_self_of_pos n hn)
     | negSucc n =>
         have hFalse : False := by
           have hneg : Int.negSucc n < 0 := Int.negSucc_lt_zero n

@@ -119,7 +119,7 @@ private theorem native_unpack_string_pack_concat
     native_unpack_string
         (native_pack_seq T (native_seq_concat (native_unpack_seq ss1) (native_unpack_seq ss2))) =
       native_unpack_string ss1 ++ native_unpack_string ss2 := by
-  simp [native_unpack_string, native_ssm_string_of_char_values, native_seq_concat,
+  simp [native_unpack_string, native_seq_concat,
     native_unpack_seq_pack, List.map_append, String.ofList_append]
 
 private theorem facts_str_in_re_concat
@@ -196,7 +196,6 @@ private theorem empty_str_in_re_true (M : SmtModel) :
   simp [__smtx_model_eval, __smtx_model_eval_str_to_re, __smtx_model_eval_str_in_re,
     native_str_to_re, native_str_in_re, native_re_of_list, native_pack_string,
     native_unpack_string, native_pack_seq, native_unpack_seq,
-    native_ssm_char_values_of_string, native_ssm_string_of_char_values,
     native_re_nullable]
 
 private theorem mk_re_concat_cons_shape

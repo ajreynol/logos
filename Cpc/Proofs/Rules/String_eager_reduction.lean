@@ -184,7 +184,7 @@ private theorem native_seq_indexof_le_len
     native_seq_indexof xs pat i ≤ Int.ofNat xs.length := by
   unfold native_seq_indexof
   split
-  · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.ofNat_nonneg _)
+  · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
   · dsimp
     split
     · rename_i hStart h
@@ -192,7 +192,7 @@ private theorem native_seq_indexof_le_len
           (xs.length - (Int.toNat i + pat.length) + 1) with
       | inl hRec =>
           rw [hRec]
-          exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.ofNat_nonneg _)
+          exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
       | inr hRec =>
           rcases hRec with ⟨j, hRec, hjlt⟩
           rw [hRec]
@@ -200,7 +200,7 @@ private theorem native_seq_indexof_le_len
           have hjle : j ≤ xs.length - (Int.toNat i + pat.length) := by
             omega
           omega
-    · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.ofNat_nonneg _)
+    · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
 
 private theorem native_seq_extract_zero_nat
     (xs : List SmtValue) (n : Nat) (hle : n <= xs.length) :

@@ -20,12 +20,12 @@ private theorem empty_of_prog_string_length_non_empty_not_stuck
       cases b with
       | false =>
           simp [__eo_prog_string_length_non_empty, hE, __eo_requires,
-            native_ite, native_teq, native_not] at hProg
+            native_ite, native_teq] at hProg
       | true =>
-          simpa [hE]
+          simp
   | _ =>
       simp [__eo_prog_string_length_non_empty, hE, __eo_requires,
-        native_ite, native_teq, native_not] at hProg
+        native_ite, native_teq] at hProg
 
 /-- Simplifies EO-to-SMT translation for equality. -/
 private theorem eo_to_smt_eq_eq (x y : Term) :
@@ -40,7 +40,7 @@ private theorem typeof_eo_str_len_of_seq
     __smtx_typeof (__eo_to_smt (Term.Apply Term.str_len s)) = SmtType.Int := by
   change __smtx_typeof (SmtTerm.str_len (__eo_to_smt s)) = SmtType.Int
   rw [typeof_str_len_eq, hSTySeq]
-  simp [__smtx_typeof_seq_op_1_ret, native_ite, native_Teq]
+  simp [__smtx_typeof_seq_op_1_ret]
 
 /-- Computes the SMT type of the EO numeral `0`. -/
 private theorem typeof_eo_zero :
@@ -80,6 +80,7 @@ private theorem empty_term_smt_info
         refine ⟨SmtType.Char, ?_, ?_⟩
         · change __smtx_typeof (SmtTerm.String (native_string_lit "")) = SmtType.Seq SmtType.Char
           rw [__smtx_typeof.eq_4]
+          simp [native_string_lit, native_string_valid, native_ite]
         · intro M
           change __smtx_model_eval M (SmtTerm.String (native_string_lit "")) =
             SmtValue.Seq (SmtSeq.empty SmtType.Char)
@@ -119,7 +120,7 @@ private theorem empty_term_smt_info
                             SmtType.None
                         rw [hSeqTyNone]
                         change __smtx_typeof SmtTerm.None = SmtType.None
-                        simp [__smtx_typeof]
+                        simp
                       · refine ⟨__eo_to_smt_type U, ?_, ?_⟩
                         · have hGuard :
                               __smtx_typeof_guard (__eo_to_smt_type U)
