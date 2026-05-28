@@ -1099,6 +1099,24 @@ private theorem eo_prog_cong_pf_eq_of_ne_stuck (t E : Term) :
   intro ht
   cases t <;> simp [__eo_prog_cong] at ht ⊢
 
+private theorem mk_nary_cong_rhs_step_eq_of_eo_eq_true
+    (f s₁ t lhs s₂ tail : Term) :
+    __eo_eq s₁ lhs = Term.Boolean true ->
+    __mk_nary_cong_rhs (Term.Apply (Term.Apply f s₁) t)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq lhs s₂)) tail) =
+      __eo_mk_apply (Term.Apply f s₂) (__mk_nary_cong_rhs t tail) := by
+  intro hEq
+  simp [mkEq, __mk_nary_cong_rhs, __eo_l_1___mk_nary_cong_rhs, __eo_ite,
+    hEq, native_teq, native_ite]
+
+private theorem eo_prog_nary_cong_pf_eq_of_ne_stuck (t E : Term) :
+    t ≠ Term.Stuck ->
+    __eo_prog_nary_cong t (Proof.pf E) =
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t)
+        (__mk_nary_cong_rhs t E) := by
+  intro ht
+  cases t <;> simp [__eo_prog_nary_cong] at ht ⊢
+
 private theorem eo_typeof_eq_bool_operands_eq (A B : Term)
     (h : __eo_typeof_eq A B = Term.Bool) :
     A = B := by
@@ -4373,6 +4391,314 @@ private theorem smt_apply_head_non_none_of_apply_non_none
   rcases typeof_apply_non_none_cases hAppNN with
     ⟨A, B, hHead, _hX, _hA, _hB⟩
   exact smt_type_ne_none_of_apply_head hHead
+
+private theorem smt_apply_type_none_of_arg_none
+    (f x : SmtTerm) :
+    __smtx_typeof x = SmtType.None ->
+    __smtx_typeof (SmtTerm.Apply f x) = SmtType.None := by
+  intro hx
+  by_cases hNN : __smtx_typeof (SmtTerm.Apply f x) = SmtType.None
+  · exact hNN
+  · exfalso
+    by_cases hSelWitness : ∃ s d i j, f = SmtTerm.DtSel s d i j
+    · rcases hSelWitness with ⟨s, d, i, j, rfl⟩
+      have hArg : __smtx_typeof x = SmtType.Datatype s d :=
+        dt_sel_arg_datatype_of_non_none (s := s) (d := d) (i := i)
+          (j := j) (x := x) hNN
+      rw [hx] at hArg
+      cases hArg
+    · by_cases hTesterWitness : ∃ s d i, f = SmtTerm.DtTester s d i
+      · rcases hTesterWitness with ⟨s, d, i, rfl⟩
+        have hArg : __smtx_typeof x = SmtType.Datatype s d :=
+          dt_tester_arg_datatype_of_non_none (s := s) (d := d) (i := i)
+            (x := x) hNN
+        rw [hx] at hArg
+        cases hArg
+      · have hSel : ∀ s d i j, f ≠ SmtTerm.DtSel s d i j := by
+          intro s d i j hEq
+          exact hSelWitness ⟨s, d, i, j, hEq⟩
+        have hTester : ∀ s d i, f ≠ SmtTerm.DtTester s d i := by
+          intro s d i hEq
+          exact hTesterWitness ⟨s, d, i, hEq⟩
+        have hGeneric : generic_apply_type f x :=
+          generic_apply_type_of_non_datatype_head hSel hTester
+        have hApply :
+            __smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x) ≠
+              SmtType.None := by
+          unfold generic_apply_type at hGeneric
+          rw [← hGeneric]
+          exact hNN
+        rcases typeof_apply_non_none_cases hApply with
+          ⟨A, _B, _hHead, hArg, hA, _hB⟩
+        rw [hx] at hArg
+        exact hA hArg.symm
+
+private theorem eo_apply_apply_generic_type_none_of_arg_none
+    (f z x : Term)
+    (hToSmt :
+      __eo_to_smt (Term.Apply (Term.Apply f z) x) =
+        SmtTerm.Apply (__eo_to_smt (Term.Apply f z)) (__eo_to_smt x)) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply f z) x)) =
+      SmtType.None := by
+  intro hx
+  rw [hToSmt]
+  exact smt_apply_type_none_of_arg_none
+    (__eo_to_smt (Term.Apply f z)) (__eo_to_smt x) hx
+
+private theorem smt_binop_type_none_of_second_arg_none
+    (op : SmtTerm -> SmtTerm -> SmtTerm) (a b : SmtTerm)
+    (hArgs :
+      ∀ a b,
+        __smtx_typeof (op a b) ≠ SmtType.None ->
+          ∃ A B,
+            __smtx_typeof a = A ∧ __smtx_typeof b = B ∧
+              A ≠ SmtType.None ∧ B ≠ SmtType.None ∧
+              A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan) :
+    __smtx_typeof b = SmtType.None ->
+    __smtx_typeof (op a b) = SmtType.None := by
+  intro hb
+  by_cases hNone : __smtx_typeof (op a b) = SmtType.None
+  · exact hNone
+  · exfalso
+    rcases hArgs a b hNone with
+      ⟨_A, B, _ha, hbTy, _hANN, hBNN, _hAReg, _hBReg⟩
+    rw [hb] at hbTy
+    exact hBNN hbTy.symm
+
+private theorem smt_bool_binop_type_none_of_second_arg_none
+    (op : SmtTerm -> SmtTerm -> SmtTerm) (a b : SmtTerm)
+    (hArg :
+      __smtx_typeof (op a b) ≠ SmtType.None ->
+        __smtx_typeof b = SmtType.Bool) :
+    __smtx_typeof b = SmtType.None ->
+    __smtx_typeof (op a b) = SmtType.None := by
+  intro hb
+  by_cases hNone : __smtx_typeof (op a b) = SmtType.None
+  · exact hNone
+  · exfalso
+    have hbBool := hArg hNone
+    rw [hb] at hbBool
+    cases hbBool
+
+private theorem smt_reglan_binop_type_none_of_second_arg_none
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          native_ite (native_Teq (__smtx_typeof a) SmtType.RegLan)
+            (native_ite (native_Teq (__smtx_typeof b) SmtType.RegLan)
+              SmtType.RegLan SmtType.None)
+            SmtType.None)
+    (a b : SmtTerm) :
+    __smtx_typeof b = SmtType.None ->
+    __smtx_typeof (op a b) = SmtType.None := by
+  intro hb
+  by_cases hNone : __smtx_typeof (op a b) = SmtType.None
+  · exact hNone
+  · exfalso
+    have hTerm : term_has_non_none_type (op a b) := by
+      unfold term_has_non_none_type
+      exact hNone
+    have hArgs := reglan_binop_args_of_non_none (op := op) (hTy a b) hTerm
+    rw [hb] at hArgs
+    cases hArgs.2
+
+private theorem smt_seq_char_reglan_binop_type_none_of_second_arg_none
+    (op : SmtTerm -> SmtTerm -> SmtTerm)
+    (hTy :
+      ∀ a b,
+        __smtx_typeof (op a b) =
+          native_ite (native_Teq (__smtx_typeof a) (SmtType.Seq SmtType.Char))
+            (native_ite (native_Teq (__smtx_typeof b) SmtType.RegLan)
+              SmtType.Bool SmtType.None)
+            SmtType.None)
+    (a b : SmtTerm) :
+    __smtx_typeof b = SmtType.None ->
+    __smtx_typeof (op a b) = SmtType.None := by
+  intro hb
+  by_cases hNone : __smtx_typeof (op a b) = SmtType.None
+  · exact hNone
+  · exfalso
+    have hTerm : term_has_non_none_type (op a b) := by
+      unfold term_has_non_none_type
+      exact hNone
+    have hArgs := seq_char_reglan_args_of_non_none
+      (op := op) (hTy a b) hTerm
+    rw [hb] at hArgs
+    cases hArgs.2
+
+private theorem smt_eq_type_none_of_second_arg_none
+    (a b : SmtTerm) :
+    __smtx_typeof b = SmtType.None ->
+    __smtx_typeof (SmtTerm.eq a b) = SmtType.None := by
+  intro hb
+  by_cases hNone : __smtx_typeof (SmtTerm.eq a b) = SmtType.None
+  · exact hNone
+  · exfalso
+    have hEqNN :
+        __smtx_typeof_eq (__smtx_typeof a) (__smtx_typeof b) ≠
+          SmtType.None := by
+      simpa [typeof_eq_eq] using hNone
+    have hInfo := cong_smtx_typeof_eq_non_none hEqNN
+    rw [hb] at hInfo
+    exact hInfo.2 hInfo.1
+
+private theorem smt_ite_type_none_of_else_arg_none
+    (c t e : SmtTerm) :
+    __smtx_typeof e = SmtType.None ->
+    __smtx_typeof (SmtTerm.ite c t e) = SmtType.None := by
+  intro he
+  by_cases hNone : __smtx_typeof (SmtTerm.ite c t e) = SmtType.None
+  · exact hNone
+  · exfalso
+    have hTerm : term_has_non_none_type (SmtTerm.ite c t e) := by
+      unfold term_has_non_none_type
+      exact hNone
+    rcases ite_args_of_non_none hTerm with ⟨T, _hc, _ht, heT, hTNN⟩
+    rw [he] at heT
+    exact hTNN heT.symm
+
+private theorem smt_ternop_type_none_of_third_arg_none
+    (op : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm)
+    (a b c : SmtTerm)
+    (hArgs :
+      ∀ a b c,
+        __smtx_typeof (op a b c) ≠ SmtType.None ->
+          ∃ A B C,
+            __smtx_typeof a = A ∧ __smtx_typeof b = B ∧
+              __smtx_typeof c = C ∧
+              A ≠ SmtType.None ∧ B ≠ SmtType.None ∧ C ≠ SmtType.None ∧
+              A ≠ SmtType.RegLan ∧ B ≠ SmtType.RegLan ∧
+              C ≠ SmtType.RegLan) :
+    __smtx_typeof c = SmtType.None ->
+    __smtx_typeof (op a b c) = SmtType.None := by
+  intro hc
+  by_cases hNone : __smtx_typeof (op a b c) = SmtType.None
+  · exact hNone
+  · exfalso
+    rcases hArgs a b c hNone with
+      ⟨_A, _B, C, _ha, _hb, hcTy, _hANN, _hBNN, hCNN,
+        _hAReg, _hBReg, _hCReg⟩
+    rw [hc] at hcTy
+    exact hCNN hcTy.symm
+
+private theorem smt_str_replace_re_type_none_of_third_arg_none
+    (op : SmtTerm -> SmtTerm -> SmtTerm -> SmtTerm)
+    (hTy :
+      ∀ a b c,
+        __smtx_typeof (op a b c) =
+          native_ite
+            (native_Teq (__smtx_typeof a) (SmtType.Seq SmtType.Char))
+            (native_ite (native_Teq (__smtx_typeof b) SmtType.RegLan)
+              (native_ite
+                (native_Teq (__smtx_typeof c) (SmtType.Seq SmtType.Char))
+                (SmtType.Seq SmtType.Char) SmtType.None)
+              SmtType.None)
+            SmtType.None)
+    (a b c : SmtTerm) :
+    __smtx_typeof c = SmtType.None ->
+    __smtx_typeof (op a b c) = SmtType.None := by
+  intro hc
+  by_cases hNone : __smtx_typeof (op a b c) = SmtType.None
+  · exact hNone
+  · exfalso
+    have hTerm : term_has_non_none_type (op a b c) := by
+      unfold term_has_non_none_type
+      exact hNone
+    have hArgs := str_replace_re_args_of_non_none (op := op) (hTy a b c) hTerm
+    rw [hc] at hArgs
+    cases hArgs.2.2
+
+private theorem smt_str_indexof_re_type_none_of_third_arg_none
+    (a b c : SmtTerm) :
+    __smtx_typeof c = SmtType.None ->
+    __smtx_typeof (SmtTerm.str_indexof_re a b c) = SmtType.None := by
+  intro hc
+  by_cases hNone :
+      __smtx_typeof (SmtTerm.str_indexof_re a b c) = SmtType.None
+  · exact hNone
+  · exfalso
+    have hTerm :
+        term_has_non_none_type (SmtTerm.str_indexof_re a b c) := by
+      unfold term_has_non_none_type
+      exact hNone
+    have hArgs := str_indexof_re_args_of_non_none hTerm
+    rw [hc] at hArgs
+    cases hArgs.2.2
+
+private theorem eo_to_smt_set_insert_type_none_of_arg_none :
+    ∀ xs a,
+      __smtx_typeof a = SmtType.None ->
+      __smtx_typeof (__eo_to_smt_set_insert xs a) = SmtType.None := by
+  intro xs a ha
+  cases xs <;> try simp [__eo_to_smt_set_insert]
+  case __eo_List_nil =>
+    exact ha
+  case Apply f tail =>
+    cases f <;> try simp [__eo_to_smt_set_insert]
+    case Apply f' head =>
+      cases f' <;> try simp [__eo_to_smt_set_insert]
+      case __eo_List_cons =>
+        have hTail :
+            __smtx_typeof (__eo_to_smt_set_insert tail a) =
+              SmtType.None :=
+          eo_to_smt_set_insert_type_none_of_arg_none tail a ha
+        change
+          __smtx_typeof
+              (SmtTerm.set_union (SmtTerm.set_singleton (__eo_to_smt head))
+                (__eo_to_smt_set_insert tail a)) = SmtType.None
+        rw [typeof_set_union_eq, hTail]
+        cases __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt head)) <;>
+          simp [__smtx_typeof_sets_op_2]
+termination_by xs a _ => xs
+
+private theorem eo_to_smt_exists_type_none_of_body_none :
+    ∀ xs body,
+      __smtx_typeof body = SmtType.None ->
+      __smtx_typeof (__eo_to_smt_exists xs body) = SmtType.None := by
+  intro xs body hBody
+  cases xs <;> try simp [__eo_to_smt_exists]
+  case __eo_List_nil =>
+    exact hBody
+  case Apply f tail =>
+    cases f <;> try simp [__eo_to_smt_exists]
+    case Apply f' head =>
+      cases f' <;> try simp [__eo_to_smt_exists]
+      case __eo_List_cons =>
+        cases head <;> try simp [__eo_to_smt_exists]
+        case Var name T =>
+          cases name <;> try simp [__eo_to_smt_exists]
+          case String s =>
+            have hTail : __smtx_typeof (__eo_to_smt_exists tail body) =
+                SmtType.None :=
+              eo_to_smt_exists_type_none_of_body_none tail body hBody
+            change
+              __smtx_typeof
+                  (SmtTerm.exists s (__eo_to_smt_type T)
+                    (__eo_to_smt_exists tail body)) = SmtType.None
+            rw [__smtx_typeof.eq_135, hTail]
+            rfl
+termination_by xs body _ => xs
+
+private theorem eo_to_smt_forall_type_none_of_body_none
+    (xs body : Term) :
+    __smtx_typeof (__eo_to_smt body) = SmtType.None ->
+    __smtx_typeof
+        (SmtTerm.not (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body)))) =
+      SmtType.None := by
+  intro hBody
+  have hNotBody :
+      __smtx_typeof (SmtTerm.not (__eo_to_smt body)) = SmtType.None := by
+    rw [typeof_not_eq, hBody]
+    rfl
+  have hExists :
+      __smtx_typeof (__eo_to_smt_exists xs (SmtTerm.not (__eo_to_smt body))) =
+        SmtType.None :=
+    eo_to_smt_exists_type_none_of_body_none xs
+      (SmtTerm.not (__eo_to_smt body)) hNotBody
+  rw [typeof_not_eq, hExists]
+  rfl
 
 private theorem eo_to_smt_apply_generic_of_has_smt_translation
     (f x : Term)
@@ -14497,6 +14823,558 @@ private theorem no_bool_eq_left_of_eo_apply_none_head {f x rhs : Term} :
       rw [hToSmt]
       simp [__smtx_typeof, __smtx_typeof_apply])
 
+set_option maxHeartbeats 100000000 in
+private theorem eo_apply_apply_arg_has_translation_of_has_translation
+    (f z x : Term) :
+    RuleProofs.eo_has_smt_translation (Term.Apply (Term.Apply f z) x) ->
+    RuleProofs.eo_has_smt_translation x := by
+  intro hTrans
+  have hWhole := hTrans
+  unfold RuleProofs.eo_has_smt_translation at hTrans ⊢
+  intro hx
+  cases f with
+  | UOp op =>
+      cases op
+      case «or» =>
+        exact hTrans (smt_bool_binop_type_none_of_second_arg_none
+          SmtTerm.or (__eo_to_smt z) (__eo_to_smt x)
+          (fun h => (smt_typeof_or_args_bool_of_non_none
+            (__eo_to_smt z) (__eo_to_smt x) h).2) hx)
+      case «and» =>
+        exact hTrans (smt_bool_binop_type_none_of_second_arg_none
+          SmtTerm.and (__eo_to_smt z) (__eo_to_smt x)
+          (fun h => (smt_typeof_and_args_bool_of_non_none
+            (__eo_to_smt z) (__eo_to_smt x) h).2) hx)
+      case imp =>
+        exact hTrans (smt_bool_binop_type_none_of_second_arg_none
+          SmtTerm.imp (__eo_to_smt z) (__eo_to_smt x)
+          (fun h => (smt_typeof_imp_args_bool_of_non_none
+            (__eo_to_smt z) (__eo_to_smt x) h).2) hx)
+      case xor =>
+        exact hTrans (smt_bool_binop_type_none_of_second_arg_none
+          SmtTerm.xor (__eo_to_smt z) (__eo_to_smt x)
+          (fun h => (smt_typeof_xor_args_bool_of_non_none
+            (__eo_to_smt z) (__eo_to_smt x) h).2) hx)
+      case eq =>
+        exact hTrans (smt_eq_type_none_of_second_arg_none
+          (__eo_to_smt z) (__eo_to_smt x) hx)
+      case plus =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.plus (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_binop_args_non_reg_of_non_none SmtTerm.plus
+            (by intro a b; exact typeof_plus_eq a b)) hx)
+      case neg =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.neg (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_binop_args_non_reg_of_non_none SmtTerm.neg
+            (by intro a b; exact typeof_neg_eq a b)) hx)
+      case mult =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.mult (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_binop_args_non_reg_of_non_none SmtTerm.mult
+            (by intro a b; exact typeof_mult_eq a b)) hx)
+      case lt =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.lt (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_ret_binop_args_non_reg_of_non_none SmtTerm.lt
+            SmtType.Bool (by intro a b; exact typeof_lt_eq a b)) hx)
+      case leq =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.leq (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_ret_binop_args_non_reg_of_non_none SmtTerm.leq
+            SmtType.Bool (by intro a b; exact typeof_leq_eq a b)) hx)
+      case gt =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.gt (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_ret_binop_args_non_reg_of_non_none SmtTerm.gt
+            SmtType.Bool (by intro a b; exact typeof_gt_eq a b)) hx)
+      case geq =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.geq (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_ret_binop_args_non_reg_of_non_none SmtTerm.geq
+            SmtType.Bool (by intro a b; exact typeof_geq_eq a b)) hx)
+      case div =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.div (__eo_to_smt z) (__eo_to_smt x)
+          (int_binop_args_non_reg_of_non_none SmtTerm.div SmtType.Int
+            (by intro a b; exact typeof_div_eq a b)) hx)
+      case mod =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.mod (__eo_to_smt z) (__eo_to_smt x)
+          (int_binop_args_non_reg_of_non_none SmtTerm.mod SmtType.Int
+            (by intro a b; exact typeof_mod_eq a b)) hx)
+      case multmult =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.multmult (__eo_to_smt z) (__eo_to_smt x)
+          (int_binop_args_non_reg_of_non_none SmtTerm.multmult SmtType.Int
+            (by intro a b; exact typeof_multmult_eq a b)) hx)
+      case divisible =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.divisible (__eo_to_smt z) (__eo_to_smt x)
+          (int_binop_args_non_reg_of_non_none SmtTerm.divisible SmtType.Bool
+            (by intro a b; exact typeof_divisible_eq a b)) hx)
+      case div_total =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.div_total (__eo_to_smt z) (__eo_to_smt x)
+          (int_binop_args_non_reg_of_non_none SmtTerm.div_total SmtType.Int
+            (by intro a b; exact typeof_div_total_eq a b)) hx)
+      case mod_total =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.mod_total (__eo_to_smt z) (__eo_to_smt x)
+          (int_binop_args_non_reg_of_non_none SmtTerm.mod_total SmtType.Int
+            (by intro a b; exact typeof_mod_total_eq a b)) hx)
+      case multmult_total =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.multmult_total (__eo_to_smt z) (__eo_to_smt x)
+          (int_binop_args_non_reg_of_non_none SmtTerm.multmult_total
+            SmtType.Int (by intro a b; exact typeof_multmult_total_eq a b)) hx)
+      case select =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.select (__eo_to_smt z) (__eo_to_smt x)
+          select_args_non_reg_of_non_none hx)
+      case concat =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.concat (__eo_to_smt z) (__eo_to_smt x)
+          bv_concat_args_non_reg_of_non_none hx)
+      case bvand =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvand (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvand
+            (by intro a b; rw [__smtx_typeof.eq_39])) hx)
+      case bvor =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvor (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvor
+            (by intro a b; rw [__smtx_typeof.eq_40])) hx)
+      case bvnand =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvnand (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvnand
+            (by intro a b; rw [__smtx_typeof.eq_41])) hx)
+      case bvnor =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvnor (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvnor
+            (by intro a b; rw [__smtx_typeof.eq_42])) hx)
+      case bvxor =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvxor (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvxor
+            (by intro a b; rw [__smtx_typeof.eq_43])) hx)
+      case bvxnor =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvxnor (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvxnor
+            (by intro a b; rw [__smtx_typeof.eq_44])) hx)
+      case bvcomp =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvcomp (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvcomp
+            (SmtType.BitVec 1) (by intro a b; rw [__smtx_typeof.eq_45])) hx)
+      case bvadd =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvadd (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvadd
+            (by intro a b; rw [__smtx_typeof.eq_47])) hx)
+      case bvmul =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvmul (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvmul
+            (by intro a b; rw [__smtx_typeof.eq_48])) hx)
+      case bvudiv =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvudiv (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvudiv
+            (by intro a b; rw [__smtx_typeof.eq_49])) hx)
+      case bvurem =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvurem (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvurem
+            (by intro a b; rw [__smtx_typeof.eq_50])) hx)
+      case bvsub =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsub (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvsub
+            (by intro a b; rw [__smtx_typeof.eq_51])) hx)
+      case bvsdiv =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsdiv (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvsdiv
+            (by intro a b; rw [__smtx_typeof.eq_52])) hx)
+      case bvsrem =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsrem (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvsrem
+            (by intro a b; rw [__smtx_typeof.eq_53])) hx)
+      case bvsmod =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsmod (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvsmod
+            (by intro a b; rw [__smtx_typeof.eq_54])) hx)
+      case bvult =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvult (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvult
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_55])) hx)
+      case bvule =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvule (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvule
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_56])) hx)
+      case bvugt =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvugt (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvugt
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_57])) hx)
+      case bvuge =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvuge (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvuge
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_58])) hx)
+      case bvslt =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvslt (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvslt
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_59])) hx)
+      case bvsle =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsle (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsle
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_60])) hx)
+      case bvsgt =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsgt (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsgt
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_61])) hx)
+      case bvsge =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsge (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsge
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_62])) hx)
+      case bvshl =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvshl (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvshl
+            (by intro a b; rw [__smtx_typeof.eq_63])) hx)
+      case bvlshr =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvlshr (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvlshr
+            (by intro a b; rw [__smtx_typeof.eq_64])) hx)
+      case bvashr =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvashr (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_args_non_reg_of_non_none SmtTerm.bvashr
+            (by intro a b; rw [__smtx_typeof.eq_65])) hx)
+      case bvuaddo =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvuaddo (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvuaddo
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_70])) hx)
+      case bvsaddo =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsaddo (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsaddo
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_72])) hx)
+      case bvumulo =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvumulo (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvumulo
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_73])) hx)
+      case bvsmulo =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsmulo (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsmulo
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_74])) hx)
+      case bvusubo =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvusubo (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvusubo
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_75])) hx)
+      case bvssubo =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvssubo (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvssubo
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_76])) hx)
+      case bvsdivo =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.bvsdivo (__eo_to_smt z) (__eo_to_smt x)
+          (bv_binop_ret_args_non_reg_of_non_none SmtTerm.bvsdivo
+            SmtType.Bool (by intro a b; rw [__smtx_typeof.eq_77])) hx)
+      case bvultbv =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          (bvPredToBv SmtTerm.bvult) (__eo_to_smt z) (__eo_to_smt x)
+          (bv_pred_to_bv_args_non_reg_of_non_none SmtTerm.bvult
+            (by intro a b; rw [__smtx_typeof.eq_55])) hx)
+      case bvsltbv =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          (bvPredToBv SmtTerm.bvslt) (__eo_to_smt z) (__eo_to_smt x)
+          (bv_pred_to_bv_args_non_reg_of_non_none SmtTerm.bvslt
+            (by intro a b; rw [__smtx_typeof.eq_59])) hx)
+      case _at_from_bools =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          bvFromBoolsTerm (__eo_to_smt z) (__eo_to_smt x)
+          bv_from_bools_args_non_reg_of_non_none hx)
+      case str_concat =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.str_concat (__eo_to_smt z) (__eo_to_smt x)
+          (seq_binop_args_non_reg_of_non_none SmtTerm.str_concat
+            (by intro a b; exact typeof_str_concat_eq a b)) hx)
+      case str_contains =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.str_contains (__eo_to_smt z) (__eo_to_smt x)
+          (seq_binop_ret_args_non_reg_of_non_none SmtTerm.str_contains
+            SmtType.Bool (by intro a b; exact typeof_str_contains_eq a b)) hx)
+      case str_at =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.str_at (__eo_to_smt z) (__eo_to_smt x)
+          str_at_args_non_reg_of_non_none hx)
+      case str_prefixof =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.str_prefixof (__eo_to_smt z) (__eo_to_smt x)
+          (seq_char_binop_args_non_reg_of_non_none SmtTerm.str_prefixof
+            SmtType.Bool (by intro a b; exact typeof_str_prefixof_eq a b)) hx)
+      case str_suffixof =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.str_suffixof (__eo_to_smt z) (__eo_to_smt x)
+          (seq_char_binop_args_non_reg_of_non_none SmtTerm.str_suffixof
+            SmtType.Bool (by intro a b; exact typeof_str_suffixof_eq a b)) hx)
+      case str_lt =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.str_lt (__eo_to_smt z) (__eo_to_smt x)
+          (seq_char_binop_args_non_reg_of_non_none SmtTerm.str_lt
+            SmtType.Bool (by intro a b; exact typeof_str_lt_eq a b)) hx)
+      case str_leq =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.str_leq (__eo_to_smt z) (__eo_to_smt x)
+          (seq_char_binop_args_non_reg_of_non_none SmtTerm.str_leq
+            SmtType.Bool (by intro a b; exact typeof_str_leq_eq a b)) hx)
+      case re_range =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.re_range (__eo_to_smt z) (__eo_to_smt x)
+          (seq_char_binop_args_non_reg_of_non_none SmtTerm.re_range
+            SmtType.RegLan (by intro a b; exact typeof_re_range_eq a b)) hx)
+      case re_concat =>
+        exact hTrans (smt_reglan_binop_type_none_of_second_arg_none
+          SmtTerm.re_concat (by intro a b; exact typeof_re_concat_eq a b)
+          (__eo_to_smt z) (__eo_to_smt x) hx)
+      case re_inter =>
+        exact hTrans (smt_reglan_binop_type_none_of_second_arg_none
+          SmtTerm.re_inter (by intro a b; exact typeof_re_inter_eq a b)
+          (__eo_to_smt z) (__eo_to_smt x) hx)
+      case re_union =>
+        exact hTrans (smt_reglan_binop_type_none_of_second_arg_none
+          SmtTerm.re_union (by intro a b; exact typeof_re_union_eq a b)
+          (__eo_to_smt z) (__eo_to_smt x) hx)
+      case re_diff =>
+        exact hTrans (smt_reglan_binop_type_none_of_second_arg_none
+          SmtTerm.re_diff (by intro a b; exact typeof_re_diff_eq a b)
+          (__eo_to_smt z) (__eo_to_smt x) hx)
+      case str_in_re =>
+        exact hTrans (smt_seq_char_reglan_binop_type_none_of_second_arg_none
+          SmtTerm.str_in_re (by intro a b; exact typeof_str_in_re_eq a b)
+          (__eo_to_smt z) (__eo_to_smt x) hx)
+      case seq_nth =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.seq_nth (__eo_to_smt z) (__eo_to_smt x)
+          seq_nth_args_non_reg_of_non_none hx)
+      case _at_strings_num_occur =>
+        exact hTrans (by
+          change __smtx_typeof
+            (stringsNumOccurTerm (__eo_to_smt z) (__eo_to_smt x)) =
+              SmtType.None
+          exact smt_binop_type_none_of_second_arg_none
+            stringsNumOccurTerm (__eo_to_smt z) (__eo_to_smt x)
+            strings_num_occur_args_non_reg_of_non_none hx)
+      case set_union =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.set_union (__eo_to_smt z) (__eo_to_smt x)
+          (set_binop_args_non_reg_of_non_none SmtTerm.set_union
+            (by intro a b; exact typeof_set_union_eq a b)) hx)
+      case set_inter =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.set_inter (__eo_to_smt z) (__eo_to_smt x)
+          (set_binop_args_non_reg_of_non_none SmtTerm.set_inter
+            (by intro a b; exact typeof_set_inter_eq a b)) hx)
+      case set_minus =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.set_minus (__eo_to_smt z) (__eo_to_smt x)
+          (set_binop_args_non_reg_of_non_none SmtTerm.set_minus
+            (by intro a b; exact typeof_set_minus_eq a b)) hx)
+      case set_member =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.set_member (__eo_to_smt z) (__eo_to_smt x)
+          set_member_args_non_reg_of_non_none hx)
+      case set_subset =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.set_subset (__eo_to_smt z) (__eo_to_smt x)
+          (set_binop_ret_args_non_reg_of_non_none SmtTerm.set_subset
+            SmtType.Bool (by intro a b; exact typeof_set_subset_eq a b)) hx)
+      case tuple =>
+        have hNN :
+            __smtx_typeof
+                (__eo_to_smt_tuple_prepend (__eo_to_smt z)
+                  (__smtx_typeof (__eo_to_smt z)) (__eo_to_smt x)) ≠
+              SmtType.None := by
+          change
+            __smtx_typeof
+                (__eo_to_smt_tuple_prepend (__eo_to_smt z)
+                  (__smtx_typeof (__eo_to_smt z)) (__eo_to_smt x)) ≠
+              SmtType.None at hTrans
+          exact hTrans
+        rcases tuple_prepend_tail_type_of_non_none
+            (__eo_to_smt z) (__smtx_typeof (__eo_to_smt z))
+            (__eo_to_smt x) hNN with
+          ⟨c, hxTail⟩
+        rw [hx] at hxTail
+        cases hxTail
+      case set_insert =>
+        rcases set_insert_translation_arg_is_cons z x hWhole with
+          ⟨head, tail, hZ⟩
+        subst hZ
+        exact hTrans
+          (eo_to_smt_set_insert_type_none_of_arg_none
+            (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+            (__eo_to_smt x) hx)
+      case qdiv =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.qdiv (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_ret_binop_args_non_reg_of_non_none SmtTerm.qdiv
+            SmtType.Real (by intro a b; exact typeof_qdiv_eq a b)) hx)
+      case qdiv_total =>
+        exact hTrans (smt_binop_type_none_of_second_arg_none
+          SmtTerm.qdiv_total (__eo_to_smt z) (__eo_to_smt x)
+          (arith_overload_ret_binop_args_non_reg_of_non_none SmtTerm.qdiv_total
+            SmtType.Real (by intro a b; exact typeof_qdiv_total_eq a b)) hx)
+      case «forall» =>
+        rcases forall_translation_arg_is_cons z x hWhole with
+          ⟨head, tail, hZ⟩
+        subst hZ
+        exact hTrans (eo_to_smt_forall_type_none_of_body_none
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail) x hx)
+      case «exists» =>
+        rcases exists_translation_arg_is_cons z x hWhole with
+          ⟨head, tail, hZ⟩
+        subst hZ
+        exact hTrans
+          (eo_to_smt_exists_type_none_of_body_none
+            (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+            (__eo_to_smt x) hx)
+      all_goals
+        exact hTrans
+          (eo_apply_apply_generic_type_none_of_arg_none _ _ _ (by rfl) hx)
+  | UOp1 op idx =>
+      cases op
+      case update =>
+        have hNN :
+            __smtx_typeof
+                (__eo_to_smt_updater (__eo_to_smt idx)
+                  (__eo_to_smt z) (__eo_to_smt x)) ≠ SmtType.None := by
+          change
+            __smtx_typeof
+                (__eo_to_smt_updater (__eo_to_smt idx)
+                  (__eo_to_smt z) (__eo_to_smt x)) ≠ SmtType.None at hTrans
+          exact hTrans
+        rcases updater_args_non_reg_of_non_none
+            (__eo_to_smt idx) (__eo_to_smt z) (__eo_to_smt x) hNN with
+          ⟨_A, B, _hzA, hxB, _hANN, hBNN, _hAReg, _hBReg⟩
+        rw [hx] at hxB
+        exact hBNN hxB.symm
+      case tuple_update =>
+        have hNN :
+            __smtx_typeof
+                (__eo_to_smt_tuple_update (__smtx_typeof (__eo_to_smt z))
+                  (__eo_to_smt idx) (__eo_to_smt z) (__eo_to_smt x)) ≠
+              SmtType.None := by
+          change
+            __smtx_typeof
+                (__eo_to_smt_tuple_update (__smtx_typeof (__eo_to_smt z))
+                  (__eo_to_smt idx) (__eo_to_smt z) (__eo_to_smt x)) ≠
+              SmtType.None at hTrans
+          exact hTrans
+        rcases tuple_update_args_non_reg_of_non_none
+            (__smtx_typeof (__eo_to_smt z)) (__eo_to_smt idx)
+            (__eo_to_smt z) (__eo_to_smt x) hNN with
+          ⟨_A, B, _hzA, hxB, _hANN, hBNN, _hAReg, _hBReg⟩
+        rw [hx] at hxB
+        exact hBNN hxB.symm
+      all_goals
+        exact hTrans
+          (eo_apply_apply_generic_type_none_of_arg_none _ _ _ (by rfl) hx)
+  | Apply g y =>
+      cases g with
+      | UOp op =>
+          cases op
+          case ite =>
+            exact hTrans (smt_ite_type_none_of_else_arg_none
+              (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x) hx)
+          case store =>
+            exact hTrans (smt_ternop_type_none_of_third_arg_none
+              SmtTerm.store (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x)
+              store_args_non_reg_of_non_none hx)
+          case bvite =>
+            exact hTrans (smt_ite_type_none_of_else_arg_none
+              (SmtTerm.eq (__eo_to_smt y) (SmtTerm.Binary 1 1))
+              (__eo_to_smt z) (__eo_to_smt x) hx)
+          case str_substr =>
+            exact hTrans (smt_ternop_type_none_of_third_arg_none
+              SmtTerm.str_substr (__eo_to_smt y) (__eo_to_smt z)
+              (__eo_to_smt x) str_substr_args_non_reg_of_non_none hx)
+          case str_replace =>
+            exact hTrans (smt_ternop_type_none_of_third_arg_none
+              SmtTerm.str_replace (__eo_to_smt y) (__eo_to_smt z)
+              (__eo_to_smt x)
+              (seq_triop_args_non_reg_of_non_none SmtTerm.str_replace
+                (by intro a b c; exact typeof_str_replace_eq a b c)) hx)
+          case str_indexof =>
+            exact hTrans (smt_ternop_type_none_of_third_arg_none
+              SmtTerm.str_indexof (__eo_to_smt y) (__eo_to_smt z)
+              (__eo_to_smt x) str_indexof_args_non_reg_of_non_none hx)
+          case str_update =>
+            exact hTrans (smt_ternop_type_none_of_third_arg_none
+              SmtTerm.str_update (__eo_to_smt y) (__eo_to_smt z)
+              (__eo_to_smt x) str_update_args_non_reg_of_non_none hx)
+          case str_replace_all =>
+            exact hTrans (smt_ternop_type_none_of_third_arg_none
+              SmtTerm.str_replace_all (__eo_to_smt y) (__eo_to_smt z)
+              (__eo_to_smt x)
+              (seq_triop_args_non_reg_of_non_none SmtTerm.str_replace_all
+                (by intro a b c; exact typeof_str_replace_all_eq a b c)) hx)
+          case str_replace_re =>
+            exact hTrans (smt_str_replace_re_type_none_of_third_arg_none
+              SmtTerm.str_replace_re
+              (by intro a b c; exact typeof_str_replace_re_eq a b c)
+              (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x) hx)
+          case str_replace_re_all =>
+            exact hTrans (smt_str_replace_re_type_none_of_third_arg_none
+              SmtTerm.str_replace_re_all
+              (by intro a b c; exact typeof_str_replace_re_all_eq a b c)
+              (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x) hx)
+          case str_indexof_re =>
+            exact hTrans (smt_str_indexof_re_type_none_of_third_arg_none
+              (__eo_to_smt y) (__eo_to_smt z) (__eo_to_smt x) hx)
+          all_goals
+            exact hTrans
+              (eo_apply_apply_generic_type_none_of_arg_none _ _ _ (by rfl) hx)
+      | _ =>
+          exact hTrans
+            (eo_apply_apply_generic_type_none_of_arg_none _ _ _ (by rfl) hx)
+  | _ =>
+      exact hTrans
+        (eo_apply_apply_generic_type_none_of_arg_none _ _ _ (by rfl) hx)
+
+private theorem eo_apply_generic_type_none_of_arg_none
+    (f x : Term)
+    (hToSmt :
+      __eo_to_smt (Term.Apply f x) =
+        SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x)) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply f x)) =
+      SmtType.None := by
+  intro hx
+  rw [hToSmt]
+  exact smt_apply_type_none_of_arg_none (__eo_to_smt f) (__eo_to_smt x) hx
+
 private theorem congTypeSpine_uop_apply_none_head_eq_has_bool_type
     (op : UserOp) (x rhs : Term)
     (hToSmt :
@@ -15007,6 +15885,412 @@ private theorem uop_apply_typeof_none_of_not_unary_smt_translation
   all_goals
     first
     | exact typeof_apply_none_head_eq_none (__eo_to_smt x)
+
+private theorem uop_apply_typeof_none_of_arg_none
+    (op : UserOp) (x : Term) :
+    op ≠ UserOp.distinct ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp op) x)) =
+      SmtType.None := by
+  intro hDistinct hx
+  match hUnary : uopHasUnarySmtTranslation op with
+  | false =>
+      exact uop_apply_typeof_none_of_not_unary_smt_translation op x hUnary
+  | true =>
+      cases op <;> simp [uopHasUnarySmtTranslation] at hUnary
+      case not =>
+        change __smtx_typeof (SmtTerm.not (__eo_to_smt x)) = SmtType.None
+        rw [typeof_not_eq, hx]
+        rfl
+      case distinct =>
+        exact False.elim (hDistinct rfl)
+      case to_real =>
+        change __smtx_typeof (SmtTerm.to_real (__eo_to_smt x)) = SmtType.None
+        rw [typeof_to_real_eq, hx]
+        rfl
+      case to_int =>
+        change __smtx_typeof (SmtTerm.to_int (__eo_to_smt x)) = SmtType.None
+        rw [typeof_to_int_eq, hx]
+        rfl
+      case is_int =>
+        change __smtx_typeof (SmtTerm.is_int (__eo_to_smt x)) = SmtType.None
+        rw [typeof_is_int_eq, hx]
+        rfl
+      case abs =>
+        change __smtx_typeof (SmtTerm.abs (__eo_to_smt x)) = SmtType.None
+        rw [typeof_abs_eq, hx]
+        rfl
+      case __eoo_neg_2 =>
+        change __smtx_typeof (SmtTerm.uneg (__eo_to_smt x)) = SmtType.None
+        rw [typeof_uneg_eq, hx]
+        rfl
+      case int_pow2 =>
+        change __smtx_typeof (SmtTerm.int_pow2 (__eo_to_smt x)) = SmtType.None
+        rw [typeof_int_pow2_eq, hx]
+        rfl
+      case int_log2 =>
+        change __smtx_typeof (SmtTerm.int_log2 (__eo_to_smt x)) = SmtType.None
+        rw [typeof_int_log2_eq, hx]
+        rfl
+      case int_ispow2 =>
+        change
+          __smtx_typeof
+            (SmtTerm.and
+              (SmtTerm.geq (__eo_to_smt x) (SmtTerm.Numeral 0))
+              (SmtTerm.eq (__eo_to_smt x)
+                (SmtTerm.int_pow2 (SmtTerm.int_log2 (__eo_to_smt x))))) =
+            SmtType.None
+        rw [typeof_and_eq, typeof_geq_eq, hx]
+        rfl
+      case _at_int_div_by_zero =>
+        change
+          __smtx_typeof (SmtTerm.div (__eo_to_smt x) (SmtTerm.Numeral 0)) =
+            SmtType.None
+        rw [typeof_div_eq, hx]
+        rfl
+      case _at_mod_by_zero =>
+        change
+          __smtx_typeof (SmtTerm.mod (__eo_to_smt x) (SmtTerm.Numeral 0)) =
+            SmtType.None
+        rw [typeof_mod_eq, hx]
+        rfl
+      case _at_bvsize =>
+        change
+          __smtx_typeof
+            (native_ite
+              (native_zleq 0
+                (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x))))
+              (SmtTerm._at_purify
+                (SmtTerm.Numeral
+                  (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))))
+              SmtTerm.None) =
+            SmtType.None
+        rw [hx]
+        have hle :
+            native_zleq 0 (__smtx_bv_sizeof_type SmtType.None) = false := by
+          rfl
+        simp [hle, native_ite, __smtx_typeof]
+      case bvnot =>
+        change __smtx_typeof (SmtTerm.bvnot (__eo_to_smt x)) = SmtType.None
+        simp [__smtx_typeof, hx, __smtx_typeof_bv_op_1]
+      case bvneg =>
+        change __smtx_typeof (SmtTerm.bvneg (__eo_to_smt x)) = SmtType.None
+        simp [__smtx_typeof, hx, __smtx_typeof_bv_op_1]
+      case bvnego =>
+        change __smtx_typeof (SmtTerm.bvnego (__eo_to_smt x)) = SmtType.None
+        simp [__smtx_typeof, hx, __smtx_typeof_bv_op_1_ret]
+      case bvredand =>
+        change
+          __smtx_typeof
+            (SmtTerm.bvcomp (__eo_to_smt x)
+              (SmtTerm.bvnot
+                (SmtTerm.Binary
+                  (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))
+                  0))) = SmtType.None
+        simp [__smtx_typeof, hx, __smtx_typeof_bv_op_1,
+          __smtx_typeof_bv_op_2_ret]
+      case bvredor =>
+        change
+          __smtx_typeof
+            (SmtTerm.bvnot
+              (SmtTerm.bvcomp (__eo_to_smt x)
+                (SmtTerm.Binary
+                  (__smtx_bv_sizeof_type (__smtx_typeof (__eo_to_smt x)))
+                  0))) = SmtType.None
+        simp [__smtx_typeof, hx, __smtx_typeof_bv_op_1,
+          __smtx_typeof_bv_op_2_ret]
+      case str_len =>
+        change __smtx_typeof (SmtTerm.str_len (__eo_to_smt x)) = SmtType.None
+        rw [typeof_str_len_eq, hx]
+        rfl
+      case str_rev =>
+        change __smtx_typeof (SmtTerm.str_rev (__eo_to_smt x)) = SmtType.None
+        rw [typeof_str_rev_eq, hx]
+        rfl
+      case str_to_lower =>
+        change __smtx_typeof (SmtTerm.str_to_lower (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_str_to_lower_eq, hx]
+        rfl
+      case str_to_upper =>
+        change __smtx_typeof (SmtTerm.str_to_upper (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_str_to_upper_eq, hx]
+        rfl
+      case str_to_code =>
+        change __smtx_typeof (SmtTerm.str_to_code (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_str_to_code_eq, hx]
+        rfl
+      case str_from_code =>
+        change __smtx_typeof (SmtTerm.str_from_code (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_str_from_code_eq, hx]
+        rfl
+      case str_is_digit =>
+        change __smtx_typeof (SmtTerm.str_is_digit (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_str_is_digit_eq, hx]
+        rfl
+      case str_to_int =>
+        change __smtx_typeof (SmtTerm.str_to_int (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_str_to_int_eq, hx]
+        rfl
+      case str_from_int =>
+        change __smtx_typeof (SmtTerm.str_from_int (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_str_from_int_eq, hx]
+        rfl
+      case str_to_re =>
+        change __smtx_typeof (SmtTerm.str_to_re (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_str_to_re_eq, hx]
+        rfl
+      case re_mult =>
+        change __smtx_typeof (SmtTerm.re_mult (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_re_mult_eq, hx]
+        rfl
+      case re_plus =>
+        change __smtx_typeof (SmtTerm.re_plus (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_re_plus_eq, hx]
+        rfl
+      case re_opt =>
+        change __smtx_typeof (SmtTerm.re_opt (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_re_opt_eq, hx]
+        rfl
+      case re_comp =>
+        change __smtx_typeof (SmtTerm.re_comp (__eo_to_smt x)) =
+          SmtType.None
+        rw [typeof_re_comp_eq, hx]
+        rfl
+      case seq_unit =>
+        change __smtx_typeof (SmtTerm.seq_unit (__eo_to_smt x)) =
+          SmtType.None
+        simp [__smtx_typeof, hx, __smtx_typeof_guard_wf,
+          __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+          native_and, native_ite]
+      case set_singleton =>
+        change __smtx_typeof (SmtTerm.set_singleton (__eo_to_smt x)) =
+          SmtType.None
+        simp [__smtx_typeof, hx, __smtx_typeof_guard_wf,
+          __smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
+          native_and, native_ite]
+      case set_choose =>
+        change
+          __smtx_typeof
+            (SmtTerm.map_diff (__eo_to_smt x)
+              (SmtTerm.set_empty
+                (__eo_to_smt_set_elem_type
+                  (__smtx_typeof (__eo_to_smt x))))) = SmtType.None
+        rw [typeof_map_diff_eq, hx]
+        rfl
+      case set_is_empty =>
+        change
+          __smtx_typeof
+            (SmtTerm.eq (__eo_to_smt x)
+              (SmtTerm.set_empty (__smtx_typeof (__eo_to_smt x)))) =
+            SmtType.None
+        rw [typeof_eq_eq, hx]
+        rfl
+      case set_is_singleton =>
+        change
+          __smtx_typeof
+            (SmtTerm.eq (__eo_to_smt x)
+              (SmtTerm.set_singleton
+                (SmtTerm.map_diff (__eo_to_smt x)
+                  (SmtTerm.set_empty
+                    (__eo_to_smt_set_elem_type
+                      (__smtx_typeof (__eo_to_smt x))))))) =
+            SmtType.None
+        rw [typeof_eq_eq, hx]
+        rfl
+      case _at_div_by_zero =>
+        change
+          __smtx_typeof
+            (SmtTerm.qdiv (__eo_to_smt x)
+              (SmtTerm.Rational (native_mk_rational 0 1))) =
+            SmtType.None
+        rw [typeof_qdiv_eq, hx]
+        rfl
+      case ubv_to_int =>
+        change __smtx_typeof (SmtTerm.ubv_to_int (__eo_to_smt x)) =
+          SmtType.None
+        rw [__smtx_typeof.eq_131, hx]
+        rfl
+      case sbv_to_int =>
+        change __smtx_typeof (SmtTerm.sbv_to_int (__eo_to_smt x)) =
+          SmtType.None
+        rw [__smtx_typeof.eq_132, hx]
+        rfl
+
+private theorem uop1_apply_typeof_none_of_arg_none
+    (op : UserOp1) (idx x : Term) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp1 op idx) x)) =
+      SmtType.None := by
+  intro hx
+  cases op
+  case «repeat» =>
+    change __smtx_typeof (SmtTerm.repeat (__eo_to_smt idx) (__eo_to_smt x)) =
+      SmtType.None
+    rw [typeof_repeat_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case zero_extend =>
+    change
+      __smtx_typeof (SmtTerm.zero_extend (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_zero_extend_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case sign_extend =>
+    change
+      __smtx_typeof (SmtTerm.sign_extend (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_sign_extend_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case rotate_left =>
+    change
+      __smtx_typeof (SmtTerm.rotate_left (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_rotate_left_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case rotate_right =>
+    change
+      __smtx_typeof (SmtTerm.rotate_right (__eo_to_smt idx) (__eo_to_smt x)) =
+        SmtType.None
+    rw [typeof_rotate_right_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case _at_bit =>
+    change
+      __smtx_typeof
+        (SmtTerm.eq (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+          (__eo_to_smt x)) (SmtTerm.Binary 1 1)) = SmtType.None
+    have hExt :
+        __smtx_typeof
+          (SmtTerm.extract (__eo_to_smt idx) (__eo_to_smt idx)
+            (__eo_to_smt x)) = SmtType.None := by
+      rw [typeof_extract_eq, hx]
+      cases __eo_to_smt idx <;> rfl
+    rw [typeof_eq_eq, hExt]
+    rfl
+  case re_exp =>
+    change __smtx_typeof (SmtTerm.re_exp (__eo_to_smt idx) (__eo_to_smt x)) =
+      SmtType.None
+    rw [typeof_re_exp_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  case _at_strings_stoi_result =>
+    change
+      __smtx_typeof
+        (SmtTerm.str_to_int
+          (SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
+            (__eo_to_smt x))) = SmtType.None
+    have hSub :
+        __smtx_typeof
+          (SmtTerm.str_substr (__eo_to_smt idx) (SmtTerm.Numeral 0)
+            (__eo_to_smt x)) = SmtType.None := by
+      rw [typeof_str_substr_eq, hx]
+      cases __smtx_typeof (__eo_to_smt idx) <;>
+        simp [__smtx_typeof_str_substr, __smtx_typeof]
+    rw [typeof_str_to_int_eq, hSub]
+    rfl
+  case _at_strings_itos_result =>
+    change
+      __smtx_typeof
+        (SmtTerm.mod (__eo_to_smt idx)
+          (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x))) =
+        SmtType.None
+    have hMul :
+        __smtx_typeof
+          (SmtTerm.multmult (SmtTerm.Numeral 10) (__eo_to_smt x)) =
+          SmtType.None := by
+      rw [typeof_multmult_eq, hx]
+      simp [__smtx_typeof, native_ite, native_Teq]
+    rw [typeof_mod_eq, hMul]
+    simp [native_ite, native_Teq]
+  case is =>
+    change
+      __smtx_typeof
+        (SmtTerm.Apply (__eo_to_smt_tester (__eo_to_smt idx)) (__eo_to_smt x)) =
+        SmtType.None
+    exact smt_apply_type_none_of_arg_none
+      (__eo_to_smt_tester (__eo_to_smt idx)) (__eo_to_smt x) hx
+  case tuple_select =>
+    change
+      __smtx_typeof
+        (__eo_to_smt_tuple_select (__smtx_typeof (__eo_to_smt x))
+          (__eo_to_smt idx) (__eo_to_smt x)) = SmtType.None
+    rw [hx]
+    simp [__eo_to_smt_tuple_select, __smtx_typeof]
+  case int_to_bv =>
+    change __smtx_typeof (SmtTerm.int_to_bv (__eo_to_smt idx) (__eo_to_smt x)) =
+      SmtType.None
+    rw [typeof_int_to_bv_eq, hx]
+    cases __eo_to_smt idx <;> rfl
+  all_goals
+    exact eo_apply_generic_type_none_of_arg_none _ _ (by rfl) hx
+
+private theorem uop2_apply_typeof_none_of_arg_none
+    (op : UserOp2) (idx₁ idx₂ x : Term) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.None ->
+    __smtx_typeof (__eo_to_smt (Term.Apply (Term.UOp2 op idx₁ idx₂) x)) =
+      SmtType.None := by
+  intro hx
+  cases op
+  case extract =>
+    change
+      __smtx_typeof
+        (SmtTerm.extract (__eo_to_smt idx₁) (__eo_to_smt idx₂)
+          (__eo_to_smt x)) = SmtType.None
+    rw [typeof_extract_eq, hx]
+    cases __eo_to_smt idx₁ <;> cases __eo_to_smt idx₂ <;> rfl
+  case re_loop =>
+    change
+      __smtx_typeof
+        (SmtTerm.re_loop (__eo_to_smt idx₁) (__eo_to_smt idx₂)
+          (__eo_to_smt x)) = SmtType.None
+    rw [typeof_re_loop_eq, hx]
+    cases __eo_to_smt idx₁ <;> cases __eo_to_smt idx₂ <;> rfl
+  all_goals
+    exact eo_apply_generic_type_none_of_arg_none _ _ (by rfl) hx
+
+theorem eo_apply_arg_has_translation_of_has_translation_or_distinct
+    (f x : Term) :
+    RuleProofs.eo_has_smt_translation (Term.Apply f x) ->
+    f = Term.UOp UserOp.distinct ∨
+      RuleProofs.eo_has_smt_translation x := by
+  intro hTrans
+  cases f with
+  | UOp op =>
+      by_cases hDistinct : op = UserOp.distinct
+      · left
+        rw [hDistinct]
+      · right
+        unfold RuleProofs.eo_has_smt_translation at hTrans ⊢
+        intro hx
+        exact hTrans
+          (uop_apply_typeof_none_of_arg_none op x hDistinct hx)
+  | UOp1 op idx =>
+      right
+      unfold RuleProofs.eo_has_smt_translation at hTrans ⊢
+      intro hx
+      exact hTrans (uop1_apply_typeof_none_of_arg_none op idx x hx)
+  | UOp2 op idx₁ idx₂ =>
+      right
+      unfold RuleProofs.eo_has_smt_translation at hTrans ⊢
+      intro hx
+      exact hTrans (uop2_apply_typeof_none_of_arg_none op idx₁ idx₂ x hx)
+  | Apply g z =>
+      right
+      exact eo_apply_apply_arg_has_translation_of_has_translation g z x hTrans
+  | _ =>
+      right
+      unfold RuleProofs.eo_has_smt_translation at hTrans ⊢
+      intro hx
+      exact hTrans
+        (eo_apply_generic_type_none_of_arg_none _ _ (by rfl) hx)
 
 private theorem congTypeSpine_uop_apply_not_unary_eq_has_bool_type
     (op : UserOp) (x rhs : Term)
@@ -20818,6 +22102,1047 @@ private theorem congTrueSpine_eq_true
                                   ((RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
                                     _ _ hEqBool).2)))
 
+private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
+    ∀ (ps : List Term) (t : Term),
+      RuleProofs.eo_has_smt_translation t ->
+      AllHaveBoolType ps ->
+      __mk_nary_cong_rhs t (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      CongTypeSpine t (__mk_nary_cong_rhs t (premiseAndFormulaList ps)) := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro t _ _ hProg
+      cases t <;>
+        simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+          __eo_l_1___mk_nary_cong_rhs] at hProg ⊢
+      all_goals exact CongTypeSpine.refl _
+  | cons p ps ih =>
+      intro t hTrans hBool hProg
+      cases p with
+      | Apply pf tail =>
+          cases pf with
+          | Apply pg lhs =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    cases t with
+                    | Apply fn argTail =>
+                        cases fn with
+                        | Apply f s₁ =>
+                            have hHeadBool :
+                                RuleProofs.eo_has_bool_type (mkEq lhs tail) := by
+                              simpa [premiseAndFormulaList, mkEq] using
+                                hBool (mkEq lhs tail) (by simp [mkEq])
+                            have hRestBool : AllHaveBoolType ps := by
+                              intro q hq
+                              exact hBool q (by simp [premiseAndFormulaList, hq])
+                            have hCond :
+                                __eo_eq s₁ lhs = Term.Boolean true := by
+                              cases hEq : __eo_eq s₁ lhs <;>
+                                simp [premiseAndFormulaList, mkEq,
+                                  __mk_nary_cong_rhs,
+                                  __eo_l_1___mk_nary_cong_rhs, __eo_ite, hEq,
+                                  native_teq, native_ite] at hProg
+                              case Boolean b =>
+                                cases b with
+                                | false =>
+                                    simp [premiseAndFormulaList, mkEq,
+                                      __mk_nary_cong_rhs,
+                                      __eo_l_1___mk_nary_cong_rhs, __eo_ite,
+                                      hEq, native_teq, native_ite] at hProg
+                                | true =>
+                                    rfl
+                            have hStepEq :=
+                              mk_nary_cong_rhs_step_eq_of_eo_eq_true
+                                f s₁ argTail lhs tail (premiseAndFormulaList ps)
+                                hCond
+                            have hMkApplyNN :
+                                __eo_mk_apply (Term.Apply f tail)
+                                    (__mk_nary_cong_rhs argTail
+                                      (premiseAndFormulaList ps)) ≠
+                                  Term.Stuck := by
+                              rw [← hStepEq]
+                              exact hProg
+                            have hRecNN :
+                                __mk_nary_cong_rhs argTail
+                                    (premiseAndFormulaList ps) ≠
+                                  Term.Stuck :=
+                              eo_mk_apply_right_ne_stuck_of_ne_stuck
+                                (Term.Apply f tail)
+                                (__mk_nary_cong_rhs argTail
+                                  (premiseAndFormulaList ps))
+                                hMkApplyNN
+                            have hArgTailTrans :
+                                RuleProofs.eo_has_smt_translation argTail :=
+                              eo_apply_apply_arg_has_translation_of_has_translation
+                                f s₁ argTail hTrans
+                            have hRec :=
+                              ih argTail hArgTailTrans hRestBool hRecNN
+                            have hRecBool :
+                                RuleProofs.eo_has_bool_type
+                                  (mkEq argTail
+                                    (__mk_nary_cong_rhs argTail
+                                      (premiseAndFormulaList ps))) :=
+                              congTypeSpine_eq_has_bool_type argTail
+                                (__mk_nary_cong_rhs argTail
+                                  (premiseAndFormulaList ps))
+                                hArgTailTrans hRec
+                            have hLhs : lhs = s₁ :=
+                              eq_of_eo_eq_true s₁ lhs hCond
+                            subst lhs
+                            change CongTypeSpine
+                              (Term.Apply (Term.Apply f s₁) argTail)
+                              (__mk_nary_cong_rhs
+                                (Term.Apply (Term.Apply f s₁) argTail)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp.and)
+                                  (mkEq s₁ tail)) (premiseAndFormulaList ps)))
+                            rw [hStepEq]
+                            rw [eo_mk_apply_eq_of_ne_stuck
+                              (Term.Apply f tail)
+                              (__mk_nary_cong_rhs argTail
+                                (premiseAndFormulaList ps))
+                              (by simp) hRecNN]
+                            exact CongTypeSpine.app
+                              (CongTypeSpine.app (CongTypeSpine.refl f)
+                                hHeadBool)
+                              hRecBool
+                        | _ =>
+                            exact False.elim (hProg (by
+                              simp [premiseAndFormulaList, mkEq,
+                                __mk_nary_cong_rhs,
+                                __eo_l_1___mk_nary_cong_rhs]))
+                    | _ =>
+                        exact False.elim (hProg (by
+                          simp [premiseAndFormulaList, mkEq,
+                            __mk_nary_cong_rhs,
+                            __eo_l_1___mk_nary_cong_rhs]))
+                  all_goals
+                    exact False.elim (hProg (by
+                      cases t <;>
+                        simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                          __eo_l_1___mk_nary_cong_rhs]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    cases t <;>
+                      simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                        __eo_l_1___mk_nary_cong_rhs]))
+          | _ =>
+              exact False.elim (hProg (by
+                cases t <;>
+                  simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                    __eo_l_1___mk_nary_cong_rhs]))
+      | _ =>
+          exact False.elim (hProg (by
+            cases t <;>
+              simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                __eo_l_1___mk_nary_cong_rhs]))
+
+private theorem mk_nary_cong_rhs_congTrueSpine_of_list
+    (M : SmtModel) (hM : model_total_typed M) :
+    ∀ (ps : List Term) (t : Term),
+      RuleProofs.eo_has_smt_translation t ->
+      AllInterpretedTrue M ps ->
+      __mk_nary_cong_rhs t (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      CongTrueSpine M t (__mk_nary_cong_rhs t (premiseAndFormulaList ps)) := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro t _ _ hProg
+      cases t <;>
+        simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+          __eo_l_1___mk_nary_cong_rhs] at hProg ⊢
+      all_goals exact CongTrueSpine.refl _
+  | cons p ps ih =>
+      intro t hTrans hTrue hProg
+      cases p with
+      | Apply pf tail =>
+          cases pf with
+          | Apply pg lhs =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    cases t with
+                    | Apply fn argTail =>
+                        cases fn with
+                        | Apply f s₁ =>
+                            have hHeadTrue :
+                                eo_interprets M (mkEq lhs tail) true := by
+                              simpa [premiseAndFormulaList, mkEq] using
+                                hTrue (mkEq lhs tail) (by simp [mkEq])
+                            have hRestTrue : AllInterpretedTrue M ps := by
+                              intro q hq
+                              exact hTrue q (by simp [premiseAndFormulaList, hq])
+                            have hRestBool : AllHaveBoolType ps := by
+                              intro q hq
+                              exact RuleProofs.eo_has_bool_type_of_interprets_true
+                                M q (hRestTrue q hq)
+                            have hCond :
+                                __eo_eq s₁ lhs = Term.Boolean true := by
+                              cases hEq : __eo_eq s₁ lhs <;>
+                                simp [premiseAndFormulaList, mkEq,
+                                  __mk_nary_cong_rhs,
+                                  __eo_l_1___mk_nary_cong_rhs, __eo_ite, hEq,
+                                  native_teq, native_ite] at hProg
+                              case Boolean b =>
+                                cases b with
+                                | false =>
+                                    simp [premiseAndFormulaList, mkEq,
+                                      __mk_nary_cong_rhs,
+                                      __eo_l_1___mk_nary_cong_rhs, __eo_ite,
+                                      hEq, native_teq, native_ite] at hProg
+                                | true =>
+                                    rfl
+                            have hStepEq :=
+                              mk_nary_cong_rhs_step_eq_of_eo_eq_true
+                                f s₁ argTail lhs tail (premiseAndFormulaList ps)
+                                hCond
+                            have hMkApplyNN :
+                                __eo_mk_apply (Term.Apply f tail)
+                                    (__mk_nary_cong_rhs argTail
+                                      (premiseAndFormulaList ps)) ≠
+                                  Term.Stuck := by
+                              rw [← hStepEq]
+                              exact hProg
+                            have hRecNN :
+                                __mk_nary_cong_rhs argTail
+                                    (premiseAndFormulaList ps) ≠
+                                  Term.Stuck :=
+                              eo_mk_apply_right_ne_stuck_of_ne_stuck
+                                (Term.Apply f tail)
+                                (__mk_nary_cong_rhs argTail
+                                  (premiseAndFormulaList ps))
+                                hMkApplyNN
+                            have hArgTailTrans :
+                                RuleProofs.eo_has_smt_translation argTail :=
+                              eo_apply_apply_arg_has_translation_of_has_translation
+                                f s₁ argTail hTrans
+                            have hRec :=
+                              ih argTail hArgTailTrans hRestTrue hRecNN
+                            have hRecType :=
+                              mk_nary_cong_rhs_congTypeSpine_of_list ps
+                                argTail hArgTailTrans hRestBool hRecNN
+                            have hRecBool :
+                                RuleProofs.eo_has_bool_type
+                                  (mkEq argTail
+                                    (__mk_nary_cong_rhs argTail
+                                      (premiseAndFormulaList ps))) :=
+                              congTypeSpine_eq_has_bool_type argTail
+                                (__mk_nary_cong_rhs argTail
+                                  (premiseAndFormulaList ps))
+                                hArgTailTrans hRecType
+                            have hRecTrue :
+                                eo_interprets M
+                                  (mkEq argTail
+                                    (__mk_nary_cong_rhs argTail
+                                      (premiseAndFormulaList ps))) true :=
+                              congTrueSpine_eq_true M hM argTail
+                                (__mk_nary_cong_rhs argTail
+                                  (premiseAndFormulaList ps))
+                                hRecBool hRec
+                            have hLhs : lhs = s₁ :=
+                              eq_of_eo_eq_true s₁ lhs hCond
+                            subst lhs
+                            change CongTrueSpine M
+                              (Term.Apply (Term.Apply f s₁) argTail)
+                              (__mk_nary_cong_rhs
+                                (Term.Apply (Term.Apply f s₁) argTail)
+                                (Term.Apply (Term.Apply (Term.UOp UserOp.and)
+                                  (mkEq s₁ tail)) (premiseAndFormulaList ps)))
+                            rw [hStepEq]
+                            rw [eo_mk_apply_eq_of_ne_stuck
+                              (Term.Apply f tail)
+                              (__mk_nary_cong_rhs argTail
+                                (premiseAndFormulaList ps))
+                              (by simp) hRecNN]
+                            exact CongTrueSpine.app
+                              (CongTrueSpine.app (CongTrueSpine.refl f)
+                                hHeadTrue)
+                              hRecTrue
+                        | _ =>
+                            exact False.elim (hProg (by
+                              simp [premiseAndFormulaList, mkEq,
+                                __mk_nary_cong_rhs,
+                                __eo_l_1___mk_nary_cong_rhs]))
+                    | _ =>
+                        exact False.elim (hProg (by
+                          simp [premiseAndFormulaList, mkEq,
+                            __mk_nary_cong_rhs,
+                            __eo_l_1___mk_nary_cong_rhs]))
+                  all_goals
+                    exact False.elim (hProg (by
+                      cases t <;>
+                        simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                          __eo_l_1___mk_nary_cong_rhs]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    cases t <;>
+                      simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                        __eo_l_1___mk_nary_cong_rhs]))
+          | _ =>
+              exact False.elim (hProg (by
+                cases t <;>
+                  simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                    __eo_l_1___mk_nary_cong_rhs]))
+      | _ =>
+          exact False.elim (hProg (by
+            cases t <;>
+              simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                __eo_l_1___mk_nary_cong_rhs]))
+
+private inductive TypedListShape : Term -> Prop where
+  | nil (T : Term) :
+      TypedListShape (Term.Apply (Term.UOp UserOp._at__at_TypedList_nil) T)
+  | cons (x xs : Term) :
+      TypedListShape xs ->
+      TypedListShape
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs)
+
+private inductive PairwiseListTypeSpine : Term -> Term -> Prop where
+  | refl (xs : Term) : PairwiseListTypeSpine xs xs
+  | cons {x y xs ys : Term} :
+      RuleProofs.eo_has_bool_type (mkEq x y) ->
+      PairwiseListTypeSpine xs ys ->
+      PairwiseListTypeSpine
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs)
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) y) ys)
+
+private inductive PairwiseListTrueSpine (M : SmtModel) : Term -> Term -> Prop where
+  | refl (xs : Term) : PairwiseListTrueSpine M xs xs
+  | cons {x y xs ys : Term} :
+      eo_interprets M (mkEq x y) true ->
+      PairwiseListTrueSpine M xs ys ->
+      PairwiseListTrueSpine M
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs)
+        (Term.Apply (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) y) ys)
+
+private theorem typedListShape_of_typed_list_elem_type_non_none :
+    ∀ xs,
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
+      TypedListShape xs := by
+  intro xs hNN
+  cases xs with
+  | Apply f tail =>
+      cases f with
+      | UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            exact TypedListShape.nil tail
+          all_goals
+            exact False.elim (hNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | Apply g head =>
+          cases g with
+          | UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                have hTailNN :
+                    __eo_to_smt_typed_list_elem_type tail ≠ SmtType.None := by
+                  intro hTail
+                  apply hNN
+                  cases hHead : __smtx_typeof (__eo_to_smt head) <;>
+                    simp [__eo_to_smt_typed_list_elem_type, hHead, hTail,
+                      native_ite, native_Teq]
+                exact TypedListShape.cons head tail
+                  (typedListShape_of_typed_list_elem_type_non_none tail hTailNN)
+              all_goals
+                exact False.elim
+                  (hNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          | _ =>
+              exact False.elim
+                (hNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | _ =>
+          exact False.elim
+            (hNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | _ =>
+      exact False.elim (hNN (by simp [__eo_to_smt_typed_list_elem_type]))
+termination_by xs => xs
+
+private theorem typedListShape_of_distinct_translation (xs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.distinct) xs) ->
+    TypedListShape xs := by
+  intro hTrans
+  have hElemNN :
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
+    intro hElemNone
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    apply hTrans
+    change
+      __smtx_typeof
+          (native_ite
+            (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+            SmtTerm.None (__eo_to_smt_distinct xs)) = SmtType.None
+    simp [hElemNone, native_ite, native_Teq, TranslationProofs.smtx_typeof_none]
+  exact typedListShape_of_typed_list_elem_type_non_none xs hElemNN
+
+private theorem mk_nary_cong_rhs_pairwiseListTypeSpine_of_list :
+    ∀ (ps : List Term) (xs : Term),
+      TypedListShape xs ->
+      AllHaveBoolType ps ->
+      __mk_nary_cong_rhs xs (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      PairwiseListTypeSpine xs
+        (__mk_nary_cong_rhs xs (premiseAndFormulaList ps)) := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro xs _ _ _
+      cases xs <;>
+        simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+          __eo_l_1___mk_nary_cong_rhs]
+      all_goals exact PairwiseListTypeSpine.refl _
+  | cons p ps ih =>
+      intro xs hShape hBool hProg
+      cases hShape with
+      | nil T =>
+          exact False.elim (hProg (by
+            cases p <;>
+              simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                __eo_l_1___mk_nary_cong_rhs]))
+      | cons s₁ tail hTailShape =>
+          cases p with
+          | Apply pf rhsHead =>
+              cases pf with
+              | Apply pg lhs =>
+                  cases pg with
+                  | UOp op =>
+                      cases op
+                      case eq =>
+                        have hHeadBool :
+                            RuleProofs.eo_has_bool_type (mkEq lhs rhsHead) := by
+                          simpa [premiseAndFormulaList, mkEq] using
+                            hBool (mkEq lhs rhsHead) (by simp [mkEq])
+                        have hRestBool : AllHaveBoolType ps := by
+                          intro q hq
+                          exact hBool q (by simp [premiseAndFormulaList, hq])
+                        have hCond :
+                            __eo_eq s₁ lhs = Term.Boolean true := by
+                          cases hEq : __eo_eq s₁ lhs <;>
+                            simp [premiseAndFormulaList, mkEq,
+                              __mk_nary_cong_rhs,
+                              __eo_l_1___mk_nary_cong_rhs, __eo_ite, hEq,
+                              native_teq, native_ite] at hProg
+                          case Boolean b =>
+                            cases b with
+                            | false =>
+                                simp [premiseAndFormulaList, mkEq,
+                                  __mk_nary_cong_rhs,
+                                  __eo_l_1___mk_nary_cong_rhs, __eo_ite,
+                                  hEq, native_teq, native_ite] at hProg
+                            | true =>
+                                rfl
+                        have hStepEq :=
+                          mk_nary_cong_rhs_step_eq_of_eo_eq_true
+                            (Term.UOp UserOp._at__at_TypedList_cons)
+                            s₁ tail lhs rhsHead (premiseAndFormulaList ps)
+                            hCond
+                        have hMkApplyNN :
+                            __eo_mk_apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_TypedList_cons)
+                                  rhsHead)
+                                (__mk_nary_cong_rhs tail
+                                  (premiseAndFormulaList ps)) ≠ Term.Stuck := by
+                          rw [← hStepEq]
+                          exact hProg
+                        have hRecNN :
+                            __mk_nary_cong_rhs tail
+                                (premiseAndFormulaList ps) ≠ Term.Stuck :=
+                          eo_mk_apply_right_ne_stuck_of_ne_stuck
+                            (Term.Apply
+                              (Term.UOp UserOp._at__at_TypedList_cons)
+                              rhsHead)
+                            (__mk_nary_cong_rhs tail
+                              (premiseAndFormulaList ps))
+                            hMkApplyNN
+                        have hRec :=
+                          ih tail hTailShape hRestBool hRecNN
+                        have hLhs : lhs = s₁ :=
+                          eq_of_eo_eq_true s₁ lhs hCond
+                        subst lhs
+                        change PairwiseListTypeSpine
+                          (Term.Apply
+                            (Term.Apply
+                              (Term.UOp UserOp._at__at_TypedList_cons) s₁)
+                            tail)
+                          (__mk_nary_cong_rhs
+                            (Term.Apply
+                              (Term.Apply
+                                (Term.UOp UserOp._at__at_TypedList_cons) s₁)
+                              tail)
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp.and)
+                                (mkEq s₁ rhsHead))
+                              (premiseAndFormulaList ps)))
+                        rw [hStepEq]
+                        rw [eo_mk_apply_eq_of_ne_stuck
+                          (Term.Apply
+                            (Term.UOp UserOp._at__at_TypedList_cons)
+                            rhsHead)
+                          (__mk_nary_cong_rhs tail
+                            (premiseAndFormulaList ps))
+                          (by simp) hRecNN]
+                        exact PairwiseListTypeSpine.cons hHeadBool hRec
+                      all_goals
+                        exact False.elim (hProg (by
+                          simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                            __eo_l_1___mk_nary_cong_rhs]))
+                  | _ =>
+                      exact False.elim (hProg (by
+                        simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                          __eo_l_1___mk_nary_cong_rhs]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                      __eo_l_1___mk_nary_cong_rhs]))
+          | _ =>
+              exact False.elim (hProg (by
+                simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                  __eo_l_1___mk_nary_cong_rhs]))
+
+private theorem mk_nary_cong_rhs_pairwiseListTrueSpine_of_list
+    (M : SmtModel) :
+    ∀ (ps : List Term) (xs : Term),
+      TypedListShape xs ->
+      AllInterpretedTrue M ps ->
+      __mk_nary_cong_rhs xs (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      PairwiseListTrueSpine M xs
+        (__mk_nary_cong_rhs xs (premiseAndFormulaList ps)) := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro xs _ _ _
+      cases xs <;>
+        simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+          __eo_l_1___mk_nary_cong_rhs]
+      all_goals exact PairwiseListTrueSpine.refl _
+  | cons p ps ih =>
+      intro xs hShape hTrue hProg
+      cases hShape with
+      | nil T =>
+          exact False.elim (hProg (by
+            cases p <;>
+              simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                __eo_l_1___mk_nary_cong_rhs]))
+      | cons s₁ tail hTailShape =>
+          cases p with
+          | Apply pf rhsHead =>
+              cases pf with
+              | Apply pg lhs =>
+                  cases pg with
+                  | UOp op =>
+                      cases op
+                      case eq =>
+                        have hHeadTrue :
+                            eo_interprets M (mkEq lhs rhsHead) true := by
+                          simpa [premiseAndFormulaList, mkEq] using
+                            hTrue (mkEq lhs rhsHead) (by simp [mkEq])
+                        have hRestTrue : AllInterpretedTrue M ps := by
+                          intro q hq
+                          exact hTrue q (by simp [premiseAndFormulaList, hq])
+                        have hCond :
+                            __eo_eq s₁ lhs = Term.Boolean true := by
+                          cases hEq : __eo_eq s₁ lhs <;>
+                            simp [premiseAndFormulaList, mkEq,
+                              __mk_nary_cong_rhs,
+                              __eo_l_1___mk_nary_cong_rhs, __eo_ite, hEq,
+                              native_teq, native_ite] at hProg
+                          case Boolean b =>
+                            cases b with
+                            | false =>
+                                simp [premiseAndFormulaList, mkEq,
+                                  __mk_nary_cong_rhs,
+                                  __eo_l_1___mk_nary_cong_rhs, __eo_ite,
+                                  hEq, native_teq, native_ite] at hProg
+                            | true =>
+                                rfl
+                        have hStepEq :=
+                          mk_nary_cong_rhs_step_eq_of_eo_eq_true
+                            (Term.UOp UserOp._at__at_TypedList_cons)
+                            s₁ tail lhs rhsHead (premiseAndFormulaList ps)
+                            hCond
+                        have hMkApplyNN :
+                            __eo_mk_apply
+                                (Term.Apply
+                                  (Term.UOp UserOp._at__at_TypedList_cons)
+                                  rhsHead)
+                                (__mk_nary_cong_rhs tail
+                                  (premiseAndFormulaList ps)) ≠ Term.Stuck := by
+                          rw [← hStepEq]
+                          exact hProg
+                        have hRecNN :
+                            __mk_nary_cong_rhs tail
+                                (premiseAndFormulaList ps) ≠ Term.Stuck :=
+                          eo_mk_apply_right_ne_stuck_of_ne_stuck
+                            (Term.Apply
+                              (Term.UOp UserOp._at__at_TypedList_cons)
+                              rhsHead)
+                            (__mk_nary_cong_rhs tail
+                              (premiseAndFormulaList ps))
+                            hMkApplyNN
+                        have hRec :=
+                          ih tail hTailShape hRestTrue hRecNN
+                        have hLhs : lhs = s₁ :=
+                          eq_of_eo_eq_true s₁ lhs hCond
+                        subst lhs
+                        change PairwiseListTrueSpine M
+                          (Term.Apply
+                            (Term.Apply
+                              (Term.UOp UserOp._at__at_TypedList_cons) s₁)
+                            tail)
+                          (__mk_nary_cong_rhs
+                            (Term.Apply
+                              (Term.Apply
+                                (Term.UOp UserOp._at__at_TypedList_cons) s₁)
+                              tail)
+                            (Term.Apply
+                              (Term.Apply (Term.UOp UserOp.and)
+                                (mkEq s₁ rhsHead))
+                              (premiseAndFormulaList ps)))
+                        rw [hStepEq]
+                        rw [eo_mk_apply_eq_of_ne_stuck
+                          (Term.Apply
+                            (Term.UOp UserOp._at__at_TypedList_cons)
+                            rhsHead)
+                          (__mk_nary_cong_rhs tail
+                            (premiseAndFormulaList ps))
+                          (by simp) hRecNN]
+                        exact PairwiseListTrueSpine.cons hHeadTrue hRec
+                      all_goals
+                        exact False.elim (hProg (by
+                          simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                            __eo_l_1___mk_nary_cong_rhs]))
+                  | _ =>
+                      exact False.elim (hProg (by
+                        simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                          __eo_l_1___mk_nary_cong_rhs]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                      __eo_l_1___mk_nary_cong_rhs]))
+          | _ =>
+              exact False.elim (hProg (by
+                simp [premiseAndFormulaList, __mk_nary_cong_rhs,
+                  __eo_l_1___mk_nary_cong_rhs]))
+
+private theorem typed_list_elem_type_cons_non_none
+    (x xs : Term) :
+    __eo_to_smt_typed_list_elem_type
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp._at__at_TypedList_cons) x) xs) ≠
+      SmtType.None ->
+    __smtx_typeof (__eo_to_smt x) =
+        __eo_to_smt_typed_list_elem_type xs ∧
+      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None ∧
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
+  intro hNN
+  cases hx : __smtx_typeof (__eo_to_smt x) <;>
+    cases hxs : __eo_to_smt_typed_list_elem_type xs <;>
+    simp [__eo_to_smt_typed_list_elem_type, hx, hxs, native_ite, native_Teq]
+      at hNN ⊢
+  all_goals exact hNN
+
+private theorem smtx_typeof_distinct_pairs_of_elem_type :
+    ∀ (s : SmtTerm) (xs : Term),
+      __smtx_typeof s = __eo_to_smt_typed_list_elem_type xs ->
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt_distinct_pairs s xs) = SmtType.Bool := by
+  intro s xs hS hElemNN
+  cases xs with
+  | Apply f tail =>
+      cases f with
+      | UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
+            rw [__smtx_typeof.eq_1]
+          all_goals
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | Apply g head =>
+          cases g with
+          | UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                rcases typed_list_elem_type_cons_non_none head tail hElemNN with
+                  ⟨hHeadTail, hHeadNN, hTailNN⟩
+                have hSElem :
+                    __smtx_typeof s = __smtx_typeof (__eo_to_smt head) := by
+                  have hConsElem :
+                      __eo_to_smt_typed_list_elem_type
+                          (Term.Apply
+                            (Term.Apply
+                              (Term.UOp UserOp._at__at_TypedList_cons) head)
+                            tail) =
+                        __smtx_typeof (__eo_to_smt head) := by
+                    change
+                      native_ite
+                          (native_Teq (__smtx_typeof (__eo_to_smt head))
+                            (__eo_to_smt_typed_list_elem_type tail))
+                          (__smtx_typeof (__eo_to_smt head)) SmtType.None =
+                        __smtx_typeof (__eo_to_smt head)
+                    rw [hHeadTail]
+                    cases hHeadTy : __smtx_typeof (__eo_to_smt head) <;>
+                      simp [hHeadTy, native_ite, native_Teq] at hHeadNN ⊢
+                  rw [hS, hConsElem]
+                have hEqBool :
+                    __smtx_typeof
+                      (SmtTerm.eq s (__eo_to_smt head)) = SmtType.Bool := by
+                  rw [typeof_eq_eq]
+                  exact (RuleProofs.smtx_typeof_eq_bool_iff
+                    (__smtx_typeof s)
+                    (__smtx_typeof (__eo_to_smt head))).mpr
+                    ⟨hSElem, by rw [hSElem]; exact hHeadNN⟩
+                have hNotBool :
+                    __smtx_typeof
+                      (SmtTerm.not (SmtTerm.eq s (__eo_to_smt head))) =
+                        SmtType.Bool := by
+                  rw [typeof_not_eq, hEqBool]
+                  rfl
+                have hRec :
+                    __smtx_typeof
+                      (__eo_to_smt_distinct_pairs s tail) = SmtType.Bool :=
+                  smtx_typeof_distinct_pairs_of_elem_type s tail
+                    (hSElem.trans hHeadTail)
+                    hTailNN
+                change
+                  __smtx_typeof
+                    (SmtTerm.and
+                      (SmtTerm.not (SmtTerm.eq s (__eo_to_smt head)))
+                      (__eo_to_smt_distinct_pairs s tail)) = SmtType.Bool
+                rw [typeof_and_eq, hNotBool, hRec]
+                rfl
+              all_goals
+                exact False.elim
+                  (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          | _ =>
+              exact False.elim
+                (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | _ =>
+          exact False.elim
+            (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | _ =>
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+termination_by s xs _ _ => xs
+
+private theorem smtx_typeof_distinct_of_elem_type_non_none :
+    ∀ xs,
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
+      __smtx_typeof (__eo_to_smt_distinct xs) = SmtType.Bool := by
+  intro xs hElemNN
+  cases xs with
+  | Apply f tail =>
+      cases f with
+      | UOp op =>
+          cases op
+          case _at__at_TypedList_nil =>
+            change __smtx_typeof (SmtTerm.Boolean true) = SmtType.Bool
+            rw [__smtx_typeof.eq_1]
+          all_goals
+            exact False.elim
+              (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | Apply g head =>
+          cases g with
+          | UOp op =>
+              cases op
+              case _at__at_TypedList_cons =>
+                rcases typed_list_elem_type_cons_non_none head tail hElemNN with
+                  ⟨hHeadTail, _hHeadNN, hTailNN⟩
+                have hPairs :
+                    __smtx_typeof
+                      (__eo_to_smt_distinct_pairs (__eo_to_smt head) tail) =
+                        SmtType.Bool :=
+                  smtx_typeof_distinct_pairs_of_elem_type
+                    (__eo_to_smt head) tail hHeadTail hTailNN
+                have hTailDistinct :
+                    __smtx_typeof (__eo_to_smt_distinct tail) =
+                      SmtType.Bool :=
+                  smtx_typeof_distinct_of_elem_type_non_none tail hTailNN
+                change
+                  __smtx_typeof
+                    (SmtTerm.and
+                      (__eo_to_smt_distinct_pairs (__eo_to_smt head) tail)
+                      (__eo_to_smt_distinct tail)) = SmtType.Bool
+                rw [typeof_and_eq, hPairs, hTailDistinct]
+                rfl
+              all_goals
+                exact False.elim
+                  (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+          | _ =>
+              exact False.elim
+                (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+      | _ =>
+          exact False.elim
+            (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+  | _ =>
+      exact False.elim (hElemNN (by simp [__eo_to_smt_typed_list_elem_type]))
+termination_by xs _ => xs
+
+private theorem distinct_has_translation_of_elem_type_non_none
+    (xs : Term) :
+    __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None ->
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.distinct) xs) := by
+  intro hElemNN
+  unfold RuleProofs.eo_has_smt_translation
+  change
+    __smtx_typeof
+        (native_ite
+          (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+          SmtTerm.None (__eo_to_smt_distinct xs)) ≠ SmtType.None
+  have hGuard :
+      native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None =
+        false := by
+    cases hElem : __eo_to_smt_typed_list_elem_type xs <;>
+      simp [hElem] at hElemNN ⊢
+    all_goals rfl
+  rw [hGuard]
+  simp [native_ite]
+  rw [smtx_typeof_distinct_of_elem_type_non_none xs hElemNN]
+  simp
+
+private theorem pairwiseListTypeSpine_elem_type_eq :
+    ∀ {xs ys : Term},
+      PairwiseListTypeSpine xs ys ->
+      __eo_to_smt_typed_list_elem_type xs =
+        __eo_to_smt_typed_list_elem_type ys := by
+  intro xs ys hSpine
+  induction hSpine with
+  | refl xs =>
+      rfl
+  | cons hHead _ ih =>
+      have hHeadTy :=
+        (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+          _ _ hHead).1
+      change
+        native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt _))
+              (__eo_to_smt_typed_list_elem_type _))
+            (__smtx_typeof (__eo_to_smt _)) SmtType.None =
+          native_ite
+            (native_Teq (__smtx_typeof (__eo_to_smt _))
+              (__eo_to_smt_typed_list_elem_type _))
+            (__smtx_typeof (__eo_to_smt _)) SmtType.None
+      rw [hHeadTy, ih]
+
+private theorem pairwiseListTypeSpine_distinct_has_translation
+    {xs ys : Term} :
+    PairwiseListTypeSpine xs ys ->
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.distinct) xs) ->
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.distinct) ys) := by
+  intro hSpine hTrans
+  have hElemNN :
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
+    intro hElemNone
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    apply hTrans
+    change
+      __smtx_typeof
+          (native_ite
+            (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+            SmtTerm.None (__eo_to_smt_distinct xs)) = SmtType.None
+    simp [hElemNone, native_ite, native_Teq, TranslationProofs.smtx_typeof_none]
+  have hElemEq := pairwiseListTypeSpine_elem_type_eq hSpine
+  exact distinct_has_translation_of_elem_type_non_none ys
+    (by rw [← hElemEq]; exact hElemNN)
+
+private theorem distinct_has_bool_type_of_translation (xs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.distinct) xs) ->
+    RuleProofs.eo_has_bool_type
+      (Term.Apply (Term.UOp UserOp.distinct) xs) := by
+  intro hTrans
+  have hElemNN :
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
+    intro hElemNone
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    apply hTrans
+    change
+      __smtx_typeof
+          (native_ite
+            (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+            SmtTerm.None (__eo_to_smt_distinct xs)) = SmtType.None
+    simp [hElemNone, native_ite, native_Teq, TranslationProofs.smtx_typeof_none]
+  unfold RuleProofs.eo_has_bool_type
+  change
+    __smtx_typeof
+        (native_ite
+          (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+          SmtTerm.None (__eo_to_smt_distinct xs)) = SmtType.Bool
+  have hGuard :
+      native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None =
+        false := by
+    cases hElem : __eo_to_smt_typed_list_elem_type xs <;>
+      simp [hElem] at hElemNN ⊢
+    all_goals rfl
+  rw [hGuard]
+  simp [native_ite]
+  exact smtx_typeof_distinct_of_elem_type_non_none xs hElemNN
+
+private theorem eo_to_smt_distinct_eq_of_translation (xs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.UOp UserOp.distinct) xs) ->
+    __eo_to_smt (Term.Apply (Term.UOp UserOp.distinct) xs) =
+      __eo_to_smt_distinct xs := by
+  intro hTrans
+  have hElemNN :
+      __eo_to_smt_typed_list_elem_type xs ≠ SmtType.None := by
+    intro hElemNone
+    unfold RuleProofs.eo_has_smt_translation at hTrans
+    apply hTrans
+    change
+      __smtx_typeof
+          (native_ite
+            (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+            SmtTerm.None (__eo_to_smt_distinct xs)) = SmtType.None
+    simp [hElemNone, native_ite, native_Teq, TranslationProofs.smtx_typeof_none]
+  change
+    native_ite
+      (native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None)
+      SmtTerm.None (__eo_to_smt_distinct xs) =
+      __eo_to_smt_distinct xs
+  have hGuard :
+      native_Teq (__eo_to_smt_typed_list_elem_type xs) SmtType.None =
+        false := by
+    cases hElem : __eo_to_smt_typed_list_elem_type xs <;>
+      simp [hElem] at hElemNN ⊢
+    all_goals rfl
+  rw [hGuard]
+  simp [native_ite]
+
+private theorem smt_value_rel_model_eval_not_of_rel
+    (a b : SmtValue) :
+    RuleProofs.smt_value_rel a b ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_not a) (__smtx_model_eval_not b) := by
+  intro hRel
+  unfold RuleProofs.smt_value_rel at hRel ⊢
+  cases a <;> cases b <;>
+    simp [__smtx_model_eval_eq, __smtx_model_eval_not, native_veq] at hRel ⊢
+  case Boolean b₁ b₂ =>
+    cases b₁ <;> cases b₂ <;> simp [__smtx_model_eval_not] at hRel ⊢
+
+private theorem smt_value_rel_model_eval_and_of_rel
+    (a b c d : SmtValue) :
+    RuleProofs.smt_value_rel a c ->
+    RuleProofs.smt_value_rel b d ->
+    RuleProofs.smt_value_rel
+      (__smtx_model_eval_and a b) (__smtx_model_eval_and c d) := by
+  intro hAC hBD
+  unfold RuleProofs.smt_value_rel at hAC hBD ⊢
+  cases a <;> cases b <;> cases c <;> cases d <;>
+    simp [__smtx_model_eval_eq, __smtx_model_eval_and, native_veq] at hAC hBD ⊢
+  case Boolean.Boolean.Boolean.Boolean a₁ b₁ c₁ d₁ =>
+    cases a₁ <;> cases b₁ <;> cases c₁ <;> cases d₁ <;>
+      simp [__smtx_model_eval_and, SmtEval.native_and] at hAC hBD ⊢
+
+private theorem distinct_pairs_rel_same_tail
+    (M : SmtModel) (x y : Term) :
+    eo_interprets M (mkEq x y) true ->
+    ∀ xs,
+      TypedListShape xs ->
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt_distinct_pairs (__eo_to_smt x) xs))
+        (__smtx_model_eval M (__eo_to_smt_distinct_pairs (__eo_to_smt y) xs)) := by
+  intro hXY xs hShape
+  induction hShape with
+  | nil T =>
+      change RuleProofs.smt_value_rel
+        (__smtx_model_eval M (SmtTerm.Boolean true))
+        (__smtx_model_eval M (SmtTerm.Boolean true))
+      exact RuleProofs.smt_value_rel_refl _
+  | cons a tail hTailShape ih =>
+      change RuleProofs.smt_value_rel
+        (__smtx_model_eval M
+          (SmtTerm.and
+            (SmtTerm.not (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt a)))
+            (__eo_to_smt_distinct_pairs (__eo_to_smt x) tail)))
+        (__smtx_model_eval M
+          (SmtTerm.and
+            (SmtTerm.not (SmtTerm.eq (__eo_to_smt y) (__eo_to_smt a)))
+            (__eo_to_smt_distinct_pairs (__eo_to_smt y) tail)))
+      rw [__smtx_model_eval.eq_8, __smtx_model_eval.eq_8]
+      apply smt_value_rel_model_eval_and_of_rel
+      · rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6,
+          __smtx_model_eval.eq_134, __smtx_model_eval.eq_134]
+        apply smt_value_rel_model_eval_not_of_rel
+        exact smt_value_rel_model_eval_eq_congr
+          (__smtx_model_eval M (__eo_to_smt x))
+          (__smtx_model_eval M (__eo_to_smt a))
+          (__smtx_model_eval M (__eo_to_smt y))
+          (__smtx_model_eval M (__eo_to_smt a))
+          (RuleProofs.eo_interprets_eq_rel M x y hXY)
+          (RuleProofs.smt_value_rel_refl _)
+      · exact ih
+
+private theorem pairwiseListTrueSpine_distinct_pairs_rel
+    (M : SmtModel) (x y : Term) :
+    eo_interprets M (mkEq x y) true ->
+    ∀ {xs ys : Term},
+      TypedListShape xs ->
+      PairwiseListTrueSpine M xs ys ->
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt_distinct_pairs (__eo_to_smt x) xs))
+        (__smtx_model_eval M (__eo_to_smt_distinct_pairs (__eo_to_smt y) ys)) := by
+  intro hXY xs ys hShape hSpine
+  induction hSpine generalizing x y with
+  | refl xs =>
+      exact distinct_pairs_rel_same_tail M x y hXY xs hShape
+  | cons hHead hTail ih =>
+      cases hShape with
+      | cons a tail hTailShape =>
+          change RuleProofs.smt_value_rel
+            (__smtx_model_eval M
+              (SmtTerm.and
+                (SmtTerm.not (SmtTerm.eq (__eo_to_smt x) _))
+                _))
+            (__smtx_model_eval M
+              (SmtTerm.and
+                (SmtTerm.not (SmtTerm.eq (__eo_to_smt y) (__eo_to_smt _)))
+                (__eo_to_smt_distinct_pairs (__eo_to_smt y) _)))
+          rw [__smtx_model_eval.eq_8, __smtx_model_eval.eq_8]
+          apply smt_value_rel_model_eval_and_of_rel
+          · rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6,
+              __smtx_model_eval.eq_134, __smtx_model_eval.eq_134]
+            apply smt_value_rel_model_eval_not_of_rel
+            exact smt_value_rel_model_eval_eq_congr
+              _ _ _ _
+              (RuleProofs.eo_interprets_eq_rel M x y hXY)
+              (RuleProofs.eo_interprets_eq_rel M _ _ hHead)
+          · exact ih x y hXY hTailShape
+
+private theorem pairwiseListTrueSpine_distinct_rel
+    (M : SmtModel) :
+    ∀ {xs ys : Term},
+      TypedListShape xs ->
+      PairwiseListTrueSpine M xs ys ->
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt_distinct xs))
+        (__smtx_model_eval M (__eo_to_smt_distinct ys)) := by
+  intro xs ys hShape hSpine
+  induction hSpine with
+  | refl xs =>
+      exact RuleProofs.smt_value_rel_refl _
+  | cons hHead hTail ih =>
+      cases hShape with
+      | cons a tail hTailShape =>
+          change RuleProofs.smt_value_rel
+            (__smtx_model_eval M
+              (SmtTerm.and
+                (__eo_to_smt_distinct_pairs (__eo_to_smt _) _)
+                (__eo_to_smt_distinct _)))
+            (__smtx_model_eval M
+              (SmtTerm.and
+                (__eo_to_smt_distinct_pairs (__eo_to_smt _) _)
+                (__eo_to_smt_distinct _)))
+          rw [__smtx_model_eval.eq_8, __smtx_model_eval.eq_8]
+          apply smt_value_rel_model_eval_and_of_rel
+          · exact pairwiseListTrueSpine_distinct_pairs_rel M _ _
+              hHead hTailShape hTail
+          · exact ih hTailShape
+
 /-- Typing for the generated EO implementation of `cong` over a premise list. -/
 theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
   RuleProofs.eo_has_smt_translation t ->
@@ -20912,6 +23237,448 @@ theorem facts___eo_prog_cong_impl
     (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs) true
   rw [eo_mk_apply_eq_of_ne_stuck (Term.Apply (Term.UOp UserOp.eq) t) rhs
     (by simp) hRhsNN]
+  exact hEqTrue
+
+/-- Typing for the generated EO implementation of `nary_cong` over a premise list. -/
+theorem typed___eo_prog_nary_cong_impl (t : Term) (premises : List Term) :
+  RuleProofs.eo_has_smt_translation t ->
+  AllHaveBoolType premises ->
+  __eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises)) ≠
+    Term.Stuck ->
+  __eo_typeof (__eo_prog_nary_cong t
+    (Proof.pf (premiseAndFormulaList premises))) = Term.Bool ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises))) := by
+  intro hTrans hPremisesBool hProg _hProgType
+  have htNN : t ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation t hTrans
+  let rhs := __mk_nary_cong_rhs t (premiseAndFormulaList premises)
+  have hProgEq :=
+    eo_prog_nary_cong_pf_eq_of_ne_stuck t
+      (premiseAndFormulaList premises) htNN
+  have hProgNN :
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs ≠
+        Term.Stuck := by
+    change
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t)
+        (__mk_nary_cong_rhs t (premiseAndFormulaList premises)) ≠
+        Term.Stuck
+    rw [← hProgEq]
+    exact hProg
+  have hRhsNN : rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq) t) rhs hProgNN
+  have hSpine :
+      CongTypeSpine t rhs := by
+    simpa [rhs] using
+      mk_nary_cong_rhs_congTypeSpine_of_list premises t
+        hTrans hPremisesBool hRhsNN
+  have hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs) :=
+    congTypeSpine_eq_has_bool_type t rhs hTrans hSpine
+  rw [hProgEq]
+  change RuleProofs.eo_has_bool_type
+    (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs)
+  rw [eo_mk_apply_eq_of_ne_stuck (Term.Apply (Term.UOp UserOp.eq) t) rhs
+    (by simp) hRhsNN]
+  exact hEqBool
+
+/-- Correctness for the generated EO implementation of `nary_cong` over a premise list. -/
+theorem facts___eo_prog_nary_cong_impl
+    (M : SmtModel) (hM : model_total_typed M) (t : Term)
+    (premises : List Term) :
+  RuleProofs.eo_has_smt_translation t ->
+  AllInterpretedTrue M premises ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises))) ->
+  __eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises)) ≠
+    Term.Stuck ->
+  eo_interprets M
+    (__eo_prog_nary_cong t (Proof.pf (premiseAndFormulaList premises))) true := by
+  intro hTrans hPremisesTrue hProgBool hProg
+  have htNN : t ≠ Term.Stuck :=
+    RuleProofs.term_ne_stuck_of_has_smt_translation t hTrans
+  let rhs := __mk_nary_cong_rhs t (premiseAndFormulaList premises)
+  have hProgEq :=
+    eo_prog_nary_cong_pf_eq_of_ne_stuck t
+      (premiseAndFormulaList premises) htNN
+  have hProgNN :
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs ≠
+        Term.Stuck := by
+    change
+      __eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t)
+        (__mk_nary_cong_rhs t (premiseAndFormulaList premises)) ≠
+        Term.Stuck
+    rw [← hProgEq]
+    exact hProg
+  have hRhsNN : rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq) t) rhs hProgNN
+  have hSpine :
+      CongTrueSpine M t rhs := by
+    simpa [rhs] using
+      mk_nary_cong_rhs_congTrueSpine_of_list M hM premises t
+        hTrans hPremisesTrue hRhsNN
+  have hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs) := by
+    have hProgBool' := hProgBool
+    rw [hProgEq] at hProgBool'
+    change RuleProofs.eo_has_bool_type
+      (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs)
+      at hProgBool'
+    rw [eo_mk_apply_eq_of_ne_stuck (Term.Apply (Term.UOp UserOp.eq) t) rhs
+      (by simp) hRhsNN] at hProgBool'
+    exact hProgBool'
+  have hEqTrue : eo_interprets M (mkEq t rhs) true :=
+    congTrueSpine_eq_true M hM t rhs hEqBool hSpine
+  rw [hProgEq]
+  change eo_interprets M
+    (__eo_mk_apply (Term.Apply (Term.UOp UserOp.eq) t) rhs) true
+  rw [eo_mk_apply_eq_of_ne_stuck (Term.Apply (Term.UOp UserOp.eq) t) rhs
+    (by simp) hRhsNN]
+  exact hEqTrue
+
+/-- Typing for the `distinct`-shaped core of `pairwise_cong`. -/
+theorem typed___eo_prog_pairwise_cong_distinct_impl
+    (xs : Term) (premises : List Term) :
+  RuleProofs.eo_has_smt_translation
+    (Term.Apply (Term.UOp UserOp.distinct) xs) ->
+  AllHaveBoolType premises ->
+  __eo_prog_pairwise_cong (Term.Apply (Term.UOp UserOp.distinct) xs)
+      (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
+  __eo_typeof (__eo_prog_pairwise_cong
+    (Term.Apply (Term.UOp UserOp.distinct) xs)
+    (Proof.pf (premiseAndFormulaList premises))) = Term.Bool ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_pairwise_cong (Term.Apply (Term.UOp UserOp.distinct) xs)
+      (Proof.pf (premiseAndFormulaList premises))) := by
+  intro hTrans hPremisesBool hProg _hProgType
+  let rhs := __mk_nary_cong_rhs xs (premiseAndFormulaList premises)
+  have hOuterNN :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.distinct) xs))
+          (__eo_mk_apply (Term.UOp UserOp.distinct) rhs) ≠
+        Term.Stuck := by
+    change
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.distinct) xs))
+          (__eo_mk_apply (Term.UOp UserOp.distinct)
+            (__mk_nary_cong_rhs xs (premiseAndFormulaList premises))) ≠
+        Term.Stuck at hProg
+    exact hProg
+  have hRightApplyNN :
+      __eo_mk_apply (Term.UOp UserOp.distinct) rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.UOp UserOp.distinct) xs))
+      (__eo_mk_apply (Term.UOp UserOp.distinct) rhs) hOuterNN
+  have hRhsNN : rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.UOp UserOp.distinct) rhs hRightApplyNN
+  have hShape : TypedListShape xs :=
+    typedListShape_of_distinct_translation xs hTrans
+  have hSpine :
+      PairwiseListTypeSpine xs rhs := by
+    simpa [rhs] using
+      mk_nary_cong_rhs_pairwiseListTypeSpine_of_list premises xs
+        hShape hPremisesBool hRhsNN
+  have hRightTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.distinct) rhs) :=
+    pairwiseListTypeSpine_distinct_has_translation hSpine hTrans
+  have hLeftBool :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply (Term.UOp UserOp.distinct) xs) :=
+    distinct_has_bool_type_of_translation xs hTrans
+  have hRightBool :
+      RuleProofs.eo_has_bool_type
+        (Term.Apply (Term.UOp UserOp.distinct) rhs) :=
+    distinct_has_bool_type_of_translation rhs hRightTrans
+  have hSameTy :
+      __smtx_typeof (__eo_to_smt
+          (Term.Apply (Term.UOp UserOp.distinct) xs)) =
+        __smtx_typeof (__eo_to_smt
+          (Term.Apply (Term.UOp UserOp.distinct) rhs)) := by
+    unfold RuleProofs.eo_has_bool_type at hLeftBool hRightBool
+    rw [hLeftBool, hRightBool]
+  have hEqBool :
+      RuleProofs.eo_has_bool_type
+        (mkEq (Term.Apply (Term.UOp UserOp.distinct) xs)
+          (Term.Apply (Term.UOp UserOp.distinct) rhs)) :=
+    RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+      (Term.Apply (Term.UOp UserOp.distinct) xs)
+      (Term.Apply (Term.UOp UserOp.distinct) rhs)
+      hSameTy hTrans
+  change RuleProofs.eo_has_bool_type
+    (__eo_mk_apply
+      (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.UOp UserOp.distinct) xs))
+      (__eo_mk_apply (Term.UOp UserOp.distinct) rhs))
+  rw [eo_mk_apply_eq_of_ne_stuck (Term.UOp UserOp.distinct) rhs
+    (by simp) hRhsNN]
+  rw [eo_mk_apply_eq_of_ne_stuck
+    (Term.Apply (Term.UOp UserOp.eq)
+      (Term.Apply (Term.UOp UserOp.distinct) xs))
+    (Term.Apply (Term.UOp UserOp.distinct) rhs) (by simp) (by simp)]
+  exact hEqBool
+
+/-- Correctness for the `distinct`-shaped core of `pairwise_cong`. -/
+theorem facts___eo_prog_pairwise_cong_distinct_impl
+    (M : SmtModel) (hM : model_total_typed M)
+    (xs : Term) (premises : List Term) :
+  RuleProofs.eo_has_smt_translation
+    (Term.Apply (Term.UOp UserOp.distinct) xs) ->
+  AllInterpretedTrue M premises ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_pairwise_cong (Term.Apply (Term.UOp UserOp.distinct) xs)
+      (Proof.pf (premiseAndFormulaList premises))) ->
+  __eo_prog_pairwise_cong (Term.Apply (Term.UOp UserOp.distinct) xs)
+      (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
+  eo_interprets M
+    (__eo_prog_pairwise_cong (Term.Apply (Term.UOp UserOp.distinct) xs)
+      (Proof.pf (premiseAndFormulaList premises))) true := by
+  intro hTrans hPremisesTrue hProgBool hProg
+  let rhs := __mk_nary_cong_rhs xs (premiseAndFormulaList premises)
+  have hOuterNN :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.distinct) xs))
+          (__eo_mk_apply (Term.UOp UserOp.distinct) rhs) ≠
+        Term.Stuck := by
+    change
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.UOp UserOp.distinct) xs))
+          (__eo_mk_apply (Term.UOp UserOp.distinct)
+            (__mk_nary_cong_rhs xs (premiseAndFormulaList premises))) ≠
+        Term.Stuck at hProg
+    exact hProg
+  have hRightApplyNN :
+      __eo_mk_apply (Term.UOp UserOp.distinct) rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.UOp UserOp.distinct) xs))
+      (__eo_mk_apply (Term.UOp UserOp.distinct) rhs) hOuterNN
+  have hRhsNN : rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.UOp UserOp.distinct) rhs hRightApplyNN
+  have hShape : TypedListShape xs :=
+    typedListShape_of_distinct_translation xs hTrans
+  have hPremisesBool : AllHaveBoolType premises := by
+    intro p hp
+    exact RuleProofs.eo_has_bool_type_of_interprets_true M p
+      (hPremisesTrue p hp)
+  have hTypeSpine :
+      PairwiseListTypeSpine xs rhs := by
+    simpa [rhs] using
+      mk_nary_cong_rhs_pairwiseListTypeSpine_of_list premises xs
+        hShape hPremisesBool hRhsNN
+  have hTrueSpine :
+      PairwiseListTrueSpine M xs rhs := by
+    simpa [rhs] using
+      mk_nary_cong_rhs_pairwiseListTrueSpine_of_list M premises xs
+        hShape hPremisesTrue hRhsNN
+  have hRightTrans :
+      RuleProofs.eo_has_smt_translation
+        (Term.Apply (Term.UOp UserOp.distinct) rhs) :=
+    pairwiseListTypeSpine_distinct_has_translation hTypeSpine hTrans
+  have hEqBool :
+      RuleProofs.eo_has_bool_type
+        (mkEq (Term.Apply (Term.UOp UserOp.distinct) xs)
+          (Term.Apply (Term.UOp UserOp.distinct) rhs)) := by
+    have hProgBool' := hProgBool
+    change RuleProofs.eo_has_bool_type
+      (__eo_mk_apply
+        (Term.Apply (Term.UOp UserOp.eq)
+          (Term.Apply (Term.UOp UserOp.distinct) xs))
+        (__eo_mk_apply (Term.UOp UserOp.distinct) rhs)) at hProgBool'
+    rw [eo_mk_apply_eq_of_ne_stuck (Term.UOp UserOp.distinct) rhs
+      (by simp) hRhsNN] at hProgBool'
+    rw [eo_mk_apply_eq_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.UOp UserOp.distinct) xs))
+      (Term.Apply (Term.UOp UserOp.distinct) rhs) (by simp) (by simp)]
+      at hProgBool'
+    exact hProgBool'
+  have hRel :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt
+          (Term.Apply (Term.UOp UserOp.distinct) xs)))
+        (__smtx_model_eval M (__eo_to_smt
+          (Term.Apply (Term.UOp UserOp.distinct) rhs))) := by
+    rw [eo_to_smt_distinct_eq_of_translation xs hTrans,
+      eo_to_smt_distinct_eq_of_translation rhs hRightTrans]
+    exact pairwiseListTrueSpine_distinct_rel M hShape hTrueSpine
+  have hEqTrue :
+      eo_interprets M
+        (mkEq (Term.Apply (Term.UOp UserOp.distinct) xs)
+          (Term.Apply (Term.UOp UserOp.distinct) rhs)) true :=
+    RuleProofs.eo_interprets_eq_of_rel M
+      (Term.Apply (Term.UOp UserOp.distinct) xs)
+      (Term.Apply (Term.UOp UserOp.distinct) rhs)
+      hEqBool hRel
+  change eo_interprets M
+    (__eo_mk_apply
+      (Term.Apply (Term.UOp UserOp.eq)
+        (Term.Apply (Term.UOp UserOp.distinct) xs))
+      (__eo_mk_apply (Term.UOp UserOp.distinct) rhs)) true
+  rw [eo_mk_apply_eq_of_ne_stuck (Term.UOp UserOp.distinct) rhs
+    (by simp) hRhsNN]
+  rw [eo_mk_apply_eq_of_ne_stuck
+    (Term.Apply (Term.UOp UserOp.eq)
+      (Term.Apply (Term.UOp UserOp.distinct) xs))
+    (Term.Apply (Term.UOp UserOp.distinct) rhs) (by simp) (by simp)]
+  exact hEqTrue
+
+/-- Typing for the application-shaped core of `pairwise_cong`.
+
+This is the ordinary congruence path, used when the argument itself has an SMT
+translation. Operators such as `distinct` need a separate list-aware path. -/
+theorem typed___eo_prog_pairwise_cong_apply_impl
+    (f xs : Term) (premises : List Term) :
+  RuleProofs.eo_has_smt_translation (Term.Apply f xs) ->
+  RuleProofs.eo_has_smt_translation xs ->
+  AllHaveBoolType premises ->
+  __eo_prog_pairwise_cong (Term.Apply f xs)
+      (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
+  __eo_typeof (__eo_prog_pairwise_cong (Term.Apply f xs)
+    (Proof.pf (premiseAndFormulaList premises))) = Term.Bool ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_pairwise_cong (Term.Apply f xs)
+      (Proof.pf (premiseAndFormulaList premises))) := by
+  intro hTrans hXsTrans hPremisesBool hProg _hProgType
+  let rhs := __mk_nary_cong_rhs xs (premiseAndFormulaList premises)
+  have hOuterNN :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+          (__eo_mk_apply f rhs) ≠ Term.Stuck := by
+    change
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+          (__eo_mk_apply f
+            (__mk_nary_cong_rhs xs (premiseAndFormulaList premises))) ≠
+        Term.Stuck at hProg
+    exact hProg
+  have hRightApplyNN :
+      __eo_mk_apply f rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+      (__eo_mk_apply f rhs) hOuterNN
+  have hFNN : f ≠ Term.Stuck :=
+    eo_mk_apply_left_ne_stuck_of_ne_stuck f rhs hRightApplyNN
+  have hRhsNN : rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck f rhs hRightApplyNN
+  have hArgSpine :
+      CongTypeSpine xs rhs := by
+    simpa [rhs] using
+      mk_nary_cong_rhs_congTypeSpine_of_list premises xs
+        hXsTrans hPremisesBool hRhsNN
+  have hArgEqBool : RuleProofs.eo_has_bool_type (mkEq xs rhs) :=
+    congTypeSpine_eq_has_bool_type xs rhs hXsTrans hArgSpine
+  have hSpine :
+      CongTypeSpine (Term.Apply f xs) (Term.Apply f rhs) :=
+    CongTypeSpine.app (CongTypeSpine.refl f) hArgEqBool
+  have hEqBool :
+      RuleProofs.eo_has_bool_type
+        (mkEq (Term.Apply f xs) (Term.Apply f rhs)) :=
+    congTypeSpine_eq_has_bool_type (Term.Apply f xs)
+      (Term.Apply f rhs) hTrans hSpine
+  change RuleProofs.eo_has_bool_type
+    (__eo_mk_apply
+      (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+      (__eo_mk_apply f rhs))
+  rw [eo_mk_apply_eq_of_ne_stuck f rhs hFNN hRhsNN]
+  rw [eo_mk_apply_eq_of_ne_stuck
+    (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+    (Term.Apply f rhs) (by simp) (by simp)]
+  exact hEqBool
+
+/-- Correctness for the application-shaped core of `pairwise_cong`.
+
+This is the ordinary congruence path, used when the argument itself has an SMT
+translation. Operators such as `distinct` need a separate list-aware path. -/
+theorem facts___eo_prog_pairwise_cong_apply_impl
+    (M : SmtModel) (hM : model_total_typed M)
+    (f xs : Term) (premises : List Term) :
+  RuleProofs.eo_has_smt_translation (Term.Apply f xs) ->
+  RuleProofs.eo_has_smt_translation xs ->
+  AllInterpretedTrue M premises ->
+  RuleProofs.eo_has_bool_type
+    (__eo_prog_pairwise_cong (Term.Apply f xs)
+      (Proof.pf (premiseAndFormulaList premises))) ->
+  __eo_prog_pairwise_cong (Term.Apply f xs)
+      (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
+  eo_interprets M
+    (__eo_prog_pairwise_cong (Term.Apply f xs)
+      (Proof.pf (premiseAndFormulaList premises))) true := by
+  intro hTrans hXsTrans hPremisesTrue hProgBool hProg
+  let rhs := __mk_nary_cong_rhs xs (premiseAndFormulaList premises)
+  have hOuterNN :
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+          (__eo_mk_apply f rhs) ≠ Term.Stuck := by
+    change
+      __eo_mk_apply
+          (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+          (__eo_mk_apply f
+            (__mk_nary_cong_rhs xs (premiseAndFormulaList premises))) ≠
+        Term.Stuck at hProg
+    exact hProg
+  have hRightApplyNN :
+      __eo_mk_apply f rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+      (__eo_mk_apply f rhs) hOuterNN
+  have hFNN : f ≠ Term.Stuck :=
+    eo_mk_apply_left_ne_stuck_of_ne_stuck f rhs hRightApplyNN
+  have hRhsNN : rhs ≠ Term.Stuck :=
+    eo_mk_apply_right_ne_stuck_of_ne_stuck f rhs hRightApplyNN
+  have hArgSpine :
+      CongTrueSpine M xs rhs := by
+    simpa [rhs] using
+      mk_nary_cong_rhs_congTrueSpine_of_list M hM premises xs
+        hXsTrans hPremisesTrue hRhsNN
+  have hArgBoolSpine :
+      CongTypeSpine xs rhs := by
+    have hPremisesBool : AllHaveBoolType premises := by
+      intro p hp
+      exact RuleProofs.eo_has_bool_type_of_interprets_true M p
+        (hPremisesTrue p hp)
+    simpa [rhs] using
+      mk_nary_cong_rhs_congTypeSpine_of_list premises xs
+        hXsTrans hPremisesBool hRhsNN
+  have hArgEqBool : RuleProofs.eo_has_bool_type (mkEq xs rhs) :=
+    congTypeSpine_eq_has_bool_type xs rhs hXsTrans hArgBoolSpine
+  have hArgTrue : eo_interprets M (mkEq xs rhs) true :=
+    congTrueSpine_eq_true M hM xs rhs hArgEqBool hArgSpine
+  have hSpine :
+      CongTrueSpine M (Term.Apply f xs) (Term.Apply f rhs) :=
+    CongTrueSpine.app (CongTrueSpine.refl f) hArgTrue
+  have hEqBool :
+      RuleProofs.eo_has_bool_type
+        (mkEq (Term.Apply f xs) (Term.Apply f rhs)) := by
+    have hProgBool' := hProgBool
+    change RuleProofs.eo_has_bool_type
+      (__eo_mk_apply
+        (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+        (__eo_mk_apply f rhs)) at hProgBool'
+    rw [eo_mk_apply_eq_of_ne_stuck f rhs hFNN hRhsNN] at hProgBool'
+    rw [eo_mk_apply_eq_of_ne_stuck
+      (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+      (Term.Apply f rhs) (by simp) (by simp)] at hProgBool'
+    exact hProgBool'
+  have hEqTrue :
+      eo_interprets M (mkEq (Term.Apply f xs) (Term.Apply f rhs)) true :=
+    congTrueSpine_eq_true M hM (Term.Apply f xs) (Term.Apply f rhs)
+      hEqBool hSpine
+  change eo_interprets M
+    (__eo_mk_apply
+      (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+      (__eo_mk_apply f rhs)) true
+  rw [eo_mk_apply_eq_of_ne_stuck f rhs hFNN hRhsNN]
+  rw [eo_mk_apply_eq_of_ne_stuck
+    (Term.Apply (Term.UOp UserOp.eq) (Term.Apply f xs))
+    (Term.Apply f rhs) (by simp) (by simp)]
   exact hEqTrue
 
 theorem smt_value_rel_model_eval_apply_of_rel
