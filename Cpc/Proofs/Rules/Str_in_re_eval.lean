@@ -286,28 +286,45 @@ private theorem re_nullable_term_eq (M : SmtModel) :
         rfl
       rw [hTrans, __smtx_model_eval.eq_105] at hEval
       cases hEval
-      simp [__re_nullable, native_re_all, native_re_nullable]
+      change Term.Boolean true =
+        Term.Boolean (native_re_nullable native_re_all)
+      simp [native_re_all, native_re_nullable]
   | Term.UOp UserOp.re_none, rv, hEval, _hNe => by
       have hTrans : __eo_to_smt (Term.UOp UserOp.re_none) = SmtTerm.re_none := by
         rfl
       rw [hTrans, __smtx_model_eval.eq_104] at hEval
       cases hEval
-      simp [__re_nullable, native_re_none, native_re_nullable]
+      change Term.Boolean false =
+        Term.Boolean (native_re_nullable native_re_none)
+      simp [native_re_none, native_re_nullable]
   | Term.UOp UserOp.re_allchar, rv, hEval, _hNe => by
       have hTrans : __eo_to_smt (Term.UOp UserOp.re_allchar) = SmtTerm.re_allchar := by
         rfl
       rw [hTrans, __smtx_model_eval.eq_103] at hEval
       cases hEval
-      simp [__re_nullable, native_re_allchar, native_re_nullable]
-  | Term.Apply (Term.UOp UserOp.str_to_re) (Term.String str), rv, hEval, _hNe => by
+      change Term.Boolean false =
+        Term.Boolean (native_re_nullable native_re_allchar)
+      simp [native_re_allchar, native_re_nullable]
+  | Term.Apply (Term.UOp UserOp.str_to_re) s, rv, hEval, hNe => by
+      change
+        __eo_requires (__eo_is_str s) (Term.Boolean true)
+          (__eo_eq s (Term.String [])) ≠ Term.Stuck at hNe
+      have hStrReq : __eo_is_str s = Term.Boolean true :=
+        eo_requires_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
+          (__eo_eq s (Term.String [])) hNe
+      rcases eo_is_str_eq_true_cases s hStrReq with ⟨str, rfl⟩
       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String str)) =
         SmtValue.RegLan rv at hEval
       simp only [__smtx_model_eval, __smtx_model_eval_str_to_re] at hEval
       rw [native_unpack_string_pack_string] at hEval
       cases hEval
-      cases str <;> simp [__re_nullable, native_re_nullable_str_to_re]
-  | Term.Apply (Term.UOp UserOp.str_to_re) s, rv, hEval, hNe => by
-      sorry
+      change
+        __eo_requires (__eo_is_str (Term.String str)) (Term.Boolean true)
+          (__eo_eq (Term.String str) (Term.String [])) =
+        Term.Boolean (native_re_nullable (native_str_to_re str))
+      simp [__eo_requires, __eo_is_str, __eo_is_str_internal,
+        __eo_eq, native_ite, native_teq, native_not, SmtEval.native_and,
+        native_re_nullable_str_to_re]
   | Term.Apply (Term.UOp UserOp.re_mult) r, rv, hEval, _hNe => by
       change __smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt r)) =
         SmtValue.RegLan rv at hEval
@@ -315,9 +332,10 @@ private theorem re_nullable_term_eq (M : SmtModel) :
         simp [__smtx_model_eval, __smtx_model_eval_re_mult, hChild] at hEval
       case RegLan rx =>
         cases hEval
+        change Term.Boolean true =
+          Term.Boolean (native_re_nullable (native_re_mult rx))
         cases rx <;>
-          simp [__re_nullable, native_re_mult, native_re_mk_star,
-            native_re_nullable]
+          simp [native_re_mult, native_re_mk_star, native_re_nullable]
   | Term.Apply (Term.Apply (Term.UOp UserOp.re_range) s) t, rv, hEval, _hNe => by
       change __smtx_model_eval M (SmtTerm.re_range (__eo_to_smt s) (__eo_to_smt t)) =
         SmtValue.RegLan rv at hEval
@@ -328,7 +346,12 @@ private theorem re_nullable_term_eq (M : SmtModel) :
           simp [__smtx_model_eval, __smtx_model_eval_re_range, hS, hT] at hEval
         case Seq ts =>
           cases hEval
-          simp [__re_nullable, native_re_nullable_re_range]
+          change Term.Boolean false =
+            Term.Boolean
+              (native_re_nullable
+                (native_re_range (native_unpack_string ss)
+                  (native_unpack_string ts)))
+          simp [native_re_nullable_re_range]
   | Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr, rv, hEval, hNe => by
       have hRNe : __re_nullable r ≠ Term.Stuck := by
         change __eo_or (__re_nullable r) (__re_nullable rr) ≠ Term.Stuck at hNe
@@ -351,7 +374,9 @@ private theorem re_nullable_term_eq (M : SmtModel) :
           cases hEval
           have hNullR := re_nullable_term_eq M r rx hR hRNe
           have hNullRR := re_nullable_term_eq M rr ry hRR hRRNe
-          simp [__re_nullable, hNullR, hNullRR, native_re_union,
+          change __eo_or (__re_nullable r) (__re_nullable rr) =
+            Term.Boolean (native_re_nullable (native_re_union rx ry))
+          simp [hNullR, hNullRR, native_re_union,
             native_re_nullable_mk_union, __eo_or, native_or]
   | Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr, rv, hEval, hNe => by
       have hRNe : __re_nullable r ≠ Term.Stuck := by
@@ -375,7 +400,9 @@ private theorem re_nullable_term_eq (M : SmtModel) :
           cases hEval
           have hNullR := re_nullable_term_eq M r rx hR hRNe
           have hNullRR := re_nullable_term_eq M rr ry hRR hRRNe
-          simp [__re_nullable, hNullR, hNullRR, native_re_inter,
+          change __eo_and (__re_nullable r) (__re_nullable rr) =
+            Term.Boolean (native_re_nullable (native_re_inter rx ry))
+          simp [hNullR, hNullRR, native_re_inter,
             native_re_nullable_mk_inter, __eo_and, SmtEval.native_and]
   | Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r) rr, rv, hEval, hNe => by
       have hRNe : __re_nullable r ≠ Term.Stuck := by
@@ -399,7 +426,9 @@ private theorem re_nullable_term_eq (M : SmtModel) :
           cases hEval
           have hNullR := re_nullable_term_eq M r rx hR hRNe
           have hNullRR := re_nullable_term_eq M rr ry hRR hRRNe
-          simp [__re_nullable, hNullR, hNullRR, native_re_concat,
+          change __eo_and (__re_nullable r) (__re_nullable rr) =
+            Term.Boolean (native_re_nullable (native_re_concat rx ry))
+          simp [hNullR, hNullRR, native_re_concat,
             native_re_nullable_mk_concat, __eo_and, SmtEval.native_and]
   | Term.Apply (Term.UOp UserOp.re_comp) r, rv, hEval, hNe => by
       have hRNe : __re_nullable r ≠ Term.Stuck := by
@@ -414,11 +443,200 @@ private theorem re_nullable_term_eq (M : SmtModel) :
       case RegLan rx =>
         cases hEval
         have hNullR := re_nullable_term_eq M r rx hR hRNe
+        change __eo_not (__re_nullable r) =
+          Term.Boolean (native_re_nullable (native_re_comp rx))
         cases rx <;>
-          simp [__re_nullable, hNullR, native_re_comp, native_re_mk_comp,
+          simp [hNullR, native_re_comp, native_re_mk_comp,
             native_re_nullable, __eo_not, native_not]
   | r, rv, hEval, hNe => by
-      sorry
+      cases r <;> try exact False.elim (hNe rfl)
+      case UOp op =>
+        cases op <;> try exact False.elim (hNe rfl)
+        case re_allchar =>
+          change __smtx_model_eval M SmtTerm.re_allchar =
+            SmtValue.RegLan rv at hEval
+          rw [__smtx_model_eval.eq_103] at hEval
+          cases hEval
+          change Term.Boolean false =
+            Term.Boolean (native_re_nullable native_re_allchar)
+          simp [native_re_allchar, native_re_nullable]
+        case re_none =>
+          change __smtx_model_eval M SmtTerm.re_none =
+            SmtValue.RegLan rv at hEval
+          rw [__smtx_model_eval.eq_104] at hEval
+          cases hEval
+          change Term.Boolean false =
+            Term.Boolean (native_re_nullable native_re_none)
+          simp [native_re_none, native_re_nullable]
+        case re_all =>
+          change __smtx_model_eval M SmtTerm.re_all =
+            SmtValue.RegLan rv at hEval
+          rw [__smtx_model_eval.eq_105] at hEval
+          cases hEval
+          change Term.Boolean true =
+            Term.Boolean (native_re_nullable native_re_all)
+          simp [native_re_all, native_re_nullable]
+      case Apply f x =>
+        cases f <;> try exact False.elim (hNe rfl)
+        case UOp op =>
+          cases op <;> try exact False.elim (hNe rfl)
+          case str_to_re =>
+            change
+              __eo_requires (__eo_is_str x) (Term.Boolean true)
+                (__eo_eq x (Term.String [])) ≠ Term.Stuck at hNe
+            have hStrReq : __eo_is_str x = Term.Boolean true :=
+              eo_requires_eq_of_ne_stuck (__eo_is_str x) (Term.Boolean true)
+                (__eo_eq x (Term.String [])) hNe
+            rcases eo_is_str_eq_true_cases x hStrReq with ⟨str, rfl⟩
+            change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String str)) =
+              SmtValue.RegLan rv at hEval
+            simp only [__smtx_model_eval, __smtx_model_eval_str_to_re] at hEval
+            rw [native_unpack_string_pack_string] at hEval
+            cases hEval
+            change
+              __eo_requires (__eo_is_str (Term.String str)) (Term.Boolean true)
+                (__eo_eq (Term.String str) (Term.String [])) =
+              Term.Boolean (native_re_nullable (native_str_to_re str))
+            simp [__eo_requires, __eo_is_str, __eo_is_str_internal,
+              __eo_eq, native_ite, native_teq, native_not, SmtEval.native_and,
+              native_re_nullable_str_to_re]
+          case re_mult =>
+            change __smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt x)) =
+              SmtValue.RegLan rv at hEval
+            cases hChild : __smtx_model_eval M (__eo_to_smt x) <;>
+              simp [__smtx_model_eval, __smtx_model_eval_re_mult, hChild] at hEval
+            case RegLan rx =>
+              cases hEval
+              change Term.Boolean true =
+                Term.Boolean (native_re_nullable (native_re_mult rx))
+              cases rx <;>
+                simp [native_re_mult, native_re_mk_star, native_re_nullable]
+          case re_comp =>
+            have hXNe : __re_nullable x ≠ Term.Stuck := by
+              change __eo_not (__re_nullable x) ≠ Term.Stuck at hNe
+              intro h
+              rw [h] at hNe
+              simp [__eo_not] at hNe
+            change __smtx_model_eval M (SmtTerm.re_comp (__eo_to_smt x)) =
+              SmtValue.RegLan rv at hEval
+            cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
+              simp [__smtx_model_eval, __smtx_model_eval_re_comp, hX] at hEval
+            case RegLan rx =>
+              cases hEval
+              have hNullX := re_nullable_term_eq M x rx hX hXNe
+              change __eo_not (__re_nullable x) =
+                Term.Boolean (native_re_nullable (native_re_comp rx))
+              cases rx <;>
+                simp [hNullX, native_re_comp, native_re_mk_comp,
+                  native_re_nullable, __eo_not, native_not]
+        case Apply g y =>
+          cases g <;> try exact False.elim (hNe rfl)
+          case UOp op =>
+            cases op <;> try exact False.elim (hNe rfl)
+            case re_range =>
+              change __smtx_model_eval M
+                  (SmtTerm.re_range (__eo_to_smt y) (__eo_to_smt x)) =
+                SmtValue.RegLan rv at hEval
+              cases hY : __smtx_model_eval M (__eo_to_smt y) <;>
+                simp [__smtx_model_eval, __smtx_model_eval_re_range, hY] at hEval
+              case Seq ys =>
+                cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
+                  simp [__smtx_model_eval, __smtx_model_eval_re_range, hY, hX] at hEval
+                case Seq xs =>
+                  cases hEval
+                  change Term.Boolean false =
+                    Term.Boolean
+                      (native_re_nullable
+                        (native_re_range (native_unpack_string ys)
+                          (native_unpack_string xs)))
+                  simp [native_re_nullable_re_range]
+            case re_union =>
+              have hYNe : __re_nullable y ≠ Term.Stuck := by
+                change __eo_or (__re_nullable y) (__re_nullable x) ≠
+                  Term.Stuck at hNe
+                intro h
+                rw [h] at hNe
+                simp [__eo_or] at hNe
+              have hXNe : __re_nullable x ≠ Term.Stuck := by
+                change __eo_or (__re_nullable y) (__re_nullable x) ≠
+                  Term.Stuck at hNe
+                intro h
+                rw [h] at hNe
+                cases (__re_nullable y) <;> simp [__eo_or] at hNe
+              change __smtx_model_eval M
+                  (SmtTerm.re_union (__eo_to_smt y) (__eo_to_smt x)) =
+                SmtValue.RegLan rv at hEval
+              cases hY : __smtx_model_eval M (__eo_to_smt y) <;>
+                simp [__smtx_model_eval, __smtx_model_eval_re_union, hY] at hEval
+              case RegLan ry =>
+                cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
+                  simp [__smtx_model_eval, __smtx_model_eval_re_union, hY, hX] at hEval
+                case RegLan rx =>
+                  cases hEval
+                  have hNullY := re_nullable_term_eq M y ry hY hYNe
+                  have hNullX := re_nullable_term_eq M x rx hX hXNe
+                  change __eo_or (__re_nullable y) (__re_nullable x) =
+                    Term.Boolean (native_re_nullable (native_re_union ry rx))
+                  simp [hNullY, hNullX, native_re_union,
+                    native_re_nullable_mk_union, __eo_or, native_or]
+            case re_inter =>
+              have hYNe : __re_nullable y ≠ Term.Stuck := by
+                change __eo_and (__re_nullable y) (__re_nullable x) ≠
+                  Term.Stuck at hNe
+                intro h
+                rw [h] at hNe
+                simp [__eo_and] at hNe
+              have hXNe : __re_nullable x ≠ Term.Stuck := by
+                change __eo_and (__re_nullable y) (__re_nullable x) ≠
+                  Term.Stuck at hNe
+                intro h
+                rw [h] at hNe
+                cases (__re_nullable y) <;> simp [__eo_and] at hNe
+              change __smtx_model_eval M
+                  (SmtTerm.re_inter (__eo_to_smt y) (__eo_to_smt x)) =
+                SmtValue.RegLan rv at hEval
+              cases hY : __smtx_model_eval M (__eo_to_smt y) <;>
+                simp [__smtx_model_eval, __smtx_model_eval_re_inter, hY] at hEval
+              case RegLan ry =>
+                cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
+                  simp [__smtx_model_eval, __smtx_model_eval_re_inter, hY, hX] at hEval
+                case RegLan rx =>
+                  cases hEval
+                  have hNullY := re_nullable_term_eq M y ry hY hYNe
+                  have hNullX := re_nullable_term_eq M x rx hX hXNe
+                  change __eo_and (__re_nullable y) (__re_nullable x) =
+                    Term.Boolean (native_re_nullable (native_re_inter ry rx))
+                  simp [hNullY, hNullX, native_re_inter,
+                    native_re_nullable_mk_inter, __eo_and, SmtEval.native_and]
+            case re_concat =>
+              have hYNe : __re_nullable y ≠ Term.Stuck := by
+                change __eo_and (__re_nullable y) (__re_nullable x) ≠
+                  Term.Stuck at hNe
+                intro h
+                rw [h] at hNe
+                simp [__eo_and] at hNe
+              have hXNe : __re_nullable x ≠ Term.Stuck := by
+                change __eo_and (__re_nullable y) (__re_nullable x) ≠
+                  Term.Stuck at hNe
+                intro h
+                rw [h] at hNe
+                cases (__re_nullable y) <;> simp [__eo_and] at hNe
+              change __smtx_model_eval M
+                  (SmtTerm.re_concat (__eo_to_smt y) (__eo_to_smt x)) =
+                SmtValue.RegLan rv at hEval
+              cases hY : __smtx_model_eval M (__eo_to_smt y) <;>
+                simp [__smtx_model_eval, __smtx_model_eval_re_concat, hY] at hEval
+              case RegLan ry =>
+                cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
+                  simp [__smtx_model_eval, __smtx_model_eval_re_concat, hY, hX] at hEval
+                case RegLan rx =>
+                  cases hEval
+                  have hNullY := re_nullable_term_eq M y ry hY hYNe
+                  have hNullX := re_nullable_term_eq M x rx hX hXNe
+                  change __eo_and (__re_nullable y) (__re_nullable x) =
+                    Term.Boolean (native_re_nullable (native_re_concat ry rx))
+                  simp [hNullY, hNullX, native_re_concat,
+                    native_re_nullable_mk_concat, __eo_and, SmtEval.native_and]
 
 private theorem smtx_model_eval_re_nullable
     (M : SmtModel) (r : Term) (rv : native_RegLan)
@@ -1588,16 +1806,26 @@ private theorem reUnion_is_list_true_ne_stuck {t : Term} :
   subst t
   simp [__eo_is_list] at hList
 
+private theorem reUnion_nil_eq_none_of_is_list_nil_true {nil : Term} :
+    __eo_is_list_nil (Term.UOp UserOp.re_union) nil = Term.Boolean true ->
+    nil = Term.UOp UserOp.re_none := by
+  intro hNil
+  cases nil <;> try cases hNil
+  case UOp op =>
+    cases op <;> try cases hNil
+    rfl
+
 private theorem reUnion_nil_eval_none_of_is_list_nil_true
     (M : SmtModel) (nil : Term) :
     __eo_is_list_nil (Term.UOp UserOp.re_union) nil = Term.Boolean true ->
     __smtx_model_eval M (__eo_to_smt nil) =
       SmtValue.RegLan native_re_none := by
   intro hNilTrue
-  cases nil <;> simp [__eo_is_list_nil] at hNilTrue ⊢
-  case UOp op =>
-    cases op <;> simp [__eo_is_list_nil] at hNilTrue ⊢
-    rw [__smtx_model_eval.eq_104]
+  have hNilEq := reUnion_nil_eq_none_of_is_list_nil_true hNilTrue
+  subst nil
+  change __smtx_model_eval M SmtTerm.re_none =
+    SmtValue.RegLan native_re_none
+  rw [__smtx_model_eval.eq_104]
 
 private theorem reUnion_nil_not_contains
     (M : SmtModel) (nil : Term) (str : native_String) :
@@ -1710,8 +1938,10 @@ private theorem reUnion_list_concat_rec_wf_contains
               (__eo_is_list_nil (Term.UOp UserOp.re_union) nil)
               (Term.Boolean true) nil hReq
           have hConcatEq : __eo_list_concat_rec nil z = z := by
-            cases nil <;> cases z <;>
-              simp [__eo_is_list_nil, __eo_list_concat_rec] at hNilTrue ⊢
+            have hNilEq :=
+              reUnion_nil_eq_none_of_is_list_nil_true hNilTrue
+            subst nil
+            cases z <;> rfl
           rw [hConcatEq]
           exact ⟨hZList, hZWF, by
             intro str
@@ -2159,12 +2389,13 @@ private theorem reUnion_list_diff_rec_wf_contains
               (__eo_is_list_nil (Term.UOp UserOp.re_union) nil)
               (Term.Boolean true) nil hReq
           have hDiffEq : __eo_list_diff_rec nil d = nil := by
+            have hNilEq :=
+              reUnion_nil_eq_none_of_is_list_nil_true hNilTrue
+            subst nil
             cases d
             case Stuck =>
               exact False.elim (hD rfl)
-            all_goals
-              cases nil <;>
-                simp [__eo_is_list_nil, __eo_list_diff_rec] at hNilTrue ⊢
+            all_goals rfl
           rw [hDiffEq]
           exact ⟨hCList, hCWF, by
             intro str
@@ -3102,6 +3333,106 @@ private theorem re_ac_merge_union_eval_rel
       exact re_ac_merge_union_l1_eval_rel M a b ra rb hATy hBTy hAEval
         hBEval (by rwa [← hMergeEq])
 
+private theorem re_concat_merge_re_mult_default_eq
+    (a x : Term)
+    (hANe : a ≠ Term.Stuck)
+    (hANone : a ≠ Term.UOp UserOp.re_none)
+    (hAEps :
+      a ≠ Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])) :
+    __re_concat_merge a (Term.Apply (Term.UOp UserOp.re_mult) x) =
+      Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) a)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat)
+          (Term.Apply (Term.UOp UserOp.re_mult) x))
+          (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String []))) := by
+  cases a <;> simp [__re_concat_merge] at hANe hANone hAEps ⊢
+
+private theorem re_concat_merge_re_mult_eval_rel
+    (M : SmtModel) (a x : Term) (ra rx : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hXTy : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hXEval : __smtx_model_eval M (__eo_to_smt x) = SmtValue.RegLan rx) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_concat_merge a (Term.Apply (Term.UOp UserOp.re_mult) x))) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__re_concat_merge a (Term.Apply (Term.UOp UserOp.re_mult) x))) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_concat ra (native_re_mult rx))) := by
+  have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+  by_cases hNone : a = Term.UOp UserOp.re_none
+  · subst a
+    change __smtx_model_eval M SmtTerm.re_none =
+      SmtValue.RegLan ra at hAEval
+    rw [__smtx_model_eval.eq_104] at hAEval
+    cases hAEval
+    refine ⟨native_re_none, ?_, ?_, ?_⟩
+    · change __smtx_model_eval M SmtTerm.re_none =
+        SmtValue.RegLan native_re_none
+      rw [__smtx_model_eval.eq_104]
+    · change __smtx_typeof SmtTerm.re_none = SmtType.RegLan
+      native_decide
+    · exact smt_value_rel_reglan_of_eq (by
+        simp [native_re_concat, native_re_none, native_re_mk_concat])
+  · by_cases hEps :
+        a = Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])
+    · subst a
+      change __smtx_model_eval M
+          (SmtTerm.str_to_re (SmtTerm.String [])) =
+        SmtValue.RegLan ra at hAEval
+      simp [__smtx_model_eval, __smtx_model_eval_str_to_re,
+        native_unpack_string_pack_string] at hAEval
+      cases hAEval
+      refine ⟨native_re_mult rx, ?_, ?_, ?_⟩
+      · have hStarEval :
+            __smtx_model_eval M
+                (SmtTerm.re_mult (__eo_to_smt x)) =
+              SmtValue.RegLan (native_re_mult rx) := by
+          simp [__smtx_model_eval, __smtx_model_eval_re_mult, hXEval]
+        simpa [__re_concat_merge] using hStarEval
+      · have hStarTy :
+            __smtx_typeof (SmtTerm.re_mult (__eo_to_smt x)) =
+              SmtType.RegLan := by
+          rw [typeof_re_mult_eq]
+          simp [hXTy, native_ite, native_Teq]
+        simpa [__re_concat_merge] using hStarTy
+      · exact smt_value_rel_reglan_of_eq (by
+          change native_re_mult rx =
+            native_re_concat (native_str_to_re []) (native_re_mult rx)
+          simp [native_re_concat, native_str_to_re, native_re_of_list,
+            native_re_mk_concat_left_epsilon])
+    · have hMergeEq :=
+        re_concat_merge_re_mult_default_eq a x hANe hNone hEps
+      rw [hMergeEq]
+      refine ⟨native_re_concat ra (native_re_mult rx), ?_, ?_, ?_⟩
+      · change __smtx_model_eval M
+            (SmtTerm.re_concat (__eo_to_smt a)
+              (SmtTerm.re_concat (SmtTerm.re_mult (__eo_to_smt x))
+                (SmtTerm.str_to_re (SmtTerm.String [])))) =
+          SmtValue.RegLan (native_re_concat ra (native_re_mult rx))
+        simp [__smtx_model_eval, __smtx_model_eval_re_concat,
+          __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re,
+          hAEval, hXEval, native_unpack_string_pack_string,
+          native_re_concat, native_str_to_re, native_re_of_list]
+        change native_re_mk_concat ra
+            (native_re_mk_concat (native_re_mult rx) SmtRegLan.epsilon) =
+          native_re_mk_concat ra (native_re_mult rx)
+        rw [native_re_mk_concat_right_epsilon]
+      · change __smtx_typeof
+            (SmtTerm.re_concat (__eo_to_smt a)
+              (SmtTerm.re_concat (SmtTerm.re_mult (__eo_to_smt x))
+                (SmtTerm.str_to_re (SmtTerm.String [])))) =
+          SmtType.RegLan
+        rw [typeof_re_concat_eq, typeof_re_concat_eq, typeof_re_mult_eq,
+          typeof_str_to_re_eq, __smtx_typeof.eq_4]
+        simp [hATy, hXTy, native_ite, native_Teq, native_string_valid]
+      · exact RuleProofs.smt_value_rel_refl
+          (SmtValue.RegLan (native_re_concat ra (native_re_mult rx)))
+
 private theorem smt_value_rel_re_comp
     {r s : native_RegLan}
     (hRel : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s)) :
@@ -3145,8 +3476,17 @@ private theorem smt_value_rel_deriv_comp
     _ = native_str_in_re (c :: str) (native_re_comp r) := by
           rw [native_str_in_re_re_comp]
           simp [hCons]
-    _ = native_str_in_re str (native_re_deriv c (native_re_comp r)) := by
-          rw [native_str_in_re_cons hCons]
+      _ = native_str_in_re str (native_re_deriv c (native_re_comp r)) := by
+            rw [native_str_in_re_cons hCons]
+
+private theorem smt_value_rel_deriv_mult_of_rel
+    (c : native_Char) (r d : native_RegLan)
+    (hRel : RuleProofs.smt_value_rel (SmtValue.RegLan d)
+      (SmtValue.RegLan (native_re_deriv c r))) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_concat d (native_re_mult r)))
+      (SmtValue.RegLan (native_re_deriv c (native_re_mult r))) := by
+  sorry
 
 private theorem native_re_deriv_all_valid
     (c : native_Char) (hc : native_char_valid c = true) :
@@ -3239,7 +3579,10 @@ private theorem str_to_re_derivative_arg_cases
         (Term.Apply (Term.UOp UserOp.str_to_re) x) ≠ Term.Stuck ->
       (∃ s : native_String, x = Term.String s) ∨
         (∃ w n : native_Int, x = Term.Binary w n) := by
-  sorry
+  intro hDerNe
+  cases x <;>
+    simp [__derivative, __eo_extract, __eo_eq, __eo_len, __eo_add,
+      __eo_mk_apply, native_ite, native_teq] at hDerNe ⊢
 
 private theorem seq_char_to_z_ne_stuck_singleton
     (t : Term)
@@ -3763,9 +4106,45 @@ private theorem smtx_model_eval_derivative_single_rel
               SmtValue.RegLan rv at hREval
             simp [__smtx_model_eval, __smtx_model_eval_str_to_re] at hREval
         case re_mult =>
-          -- Uses `__re_concat_merge`; the non-exact star/star case needs a
-          -- Kleene-star semantic lemma rather than pure normalization.
-          sorry
+          have hXTy : __smtx_typeof (__eo_to_smt x) = SmtType.RegLan := by
+            change __smtx_typeof (SmtTerm.re_mult (__eo_to_smt x)) =
+              SmtType.RegLan at hRTy
+            exact reglan_arg_of_non_none (op := SmtTerm.re_mult)
+              (typeof_re_mult_eq (__eo_to_smt x)) (by
+                unfold term_has_non_none_type
+                rw [hRTy]
+                simp)
+          have hDerXNe :
+              __derivative (Term.String [c]) x ≠ Term.Stuck := by
+            intro hDer
+            apply hDerNe
+            simp [__derivative, hDer, __re_concat_merge]
+          change __smtx_model_eval M
+              (SmtTerm.re_mult (__eo_to_smt x)) =
+            SmtValue.RegLan rv at hREval
+          cases hXEval : __smtx_model_eval M (__eo_to_smt x) <;>
+            simp [__smtx_model_eval, __smtx_model_eval_re_mult,
+              hXEval] at hREval
+          case RegLan rx =>
+            cases hREval
+            rcases
+              smtx_model_eval_derivative_single_rel M hM c hc x rx hXTy
+                hXEval hDerXNe with
+              ⟨dx, hDxEval, hDxTy, hDxRel⟩
+            rcases
+              re_concat_merge_re_mult_eval_rel M
+                (__derivative (Term.String [c]) x) x dx rx
+                hDxTy hXTy hDxEval hXEval with
+              ⟨drv, hDrvEval, hDrvTy, hMergeRel⟩
+            refine ⟨drv, ?_, ?_, ?_⟩
+            · simpa [__derivative] using hDrvEval
+            · simpa [__derivative] using hDrvTy
+            · exact RuleProofs.smt_value_rel_trans
+                (SmtValue.RegLan drv)
+                (SmtValue.RegLan (native_re_concat dx (native_re_mult rx)))
+                (SmtValue.RegLan (native_re_deriv c (native_re_mult rx)))
+                hMergeRel
+                (smt_value_rel_deriv_mult_of_rel c rx dx hDxRel)
       case Apply g y =>
         cases g <;> try simp [__derivative] at hDerNe
         case UOp op =>
@@ -4271,18 +4650,32 @@ private theorem str_in_re_eval_valid_properties
   let strIn := Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r
   let side := __str_eval_str_in_re_rec (__str_flatten (__str_nary_intro s)) r
   let body := Term.Apply (Term.Apply (Term.UOp UserOp.eq) strIn) b
-  change __eo_requires side b body ≠ Term.Stuck at hProgNe
-  have hReqEq : side = b := eo_requires_eq_of_ne_stuck side b body hProgNe
+  change
+    __eo_requires (__eo_is_str s) (Term.Boolean true)
+      (__eo_requires side b body) ≠ Term.Stuck at hProgNe
+  have hStrReq : __eo_is_str s = Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
+      (__eo_requires side b body) hProgNe
+  have hInnerNe : __eo_requires side b body ≠ Term.Stuck :=
+    eo_requires_result_ne_stuck_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
+      (__eo_requires side b body) hProgNe
+  have hOuterResult :
+      __eo_requires (__eo_is_str s) (Term.Boolean true)
+          (__eo_requires side b body) =
+        __eo_requires side b body :=
+    eo_requires_result_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
+      (__eo_requires side b body) hProgNe
+  have hReqEq : side = b := eo_requires_eq_of_ne_stuck side b body hInnerNe
   have hReqResult : __eo_requires side b body = body :=
-    eo_requires_result_eq_of_ne_stuck side b body hProgNe
+    eo_requires_result_eq_of_ne_stuck side b body hInnerNe
   have hSideNe : side ≠ Term.Stuck :=
-    eo_requires_left_ne_stuck_of_ne_stuck side b body hProgNe
-  rcases (by
-    sorry : ∃ str : native_String, s = Term.String str) with ⟨str, rfl⟩
+    eo_requires_left_ne_stuck_of_ne_stuck side b body hInnerNe
+  rcases eo_is_str_eq_true_cases s hStrReq with ⟨str, rfl⟩
   subst b
   change StepRuleProperties M []
-    (__eo_requires side side body)
-  rw [hReqResult]
+    (__eo_requires (__eo_is_str (Term.String str)) (Term.Boolean true)
+      (__eo_requires side side body))
+  rw [hOuterResult, hReqResult]
   have hEqTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply (Term.UOp UserOp.eq) strIn) side) := by
