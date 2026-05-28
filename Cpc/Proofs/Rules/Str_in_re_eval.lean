@@ -1121,6 +1121,298 @@ private theorem smt_value_rel_reglan_of_eq {r s : native_RegLan}
   subst s
   exact RuleProofs.smt_value_rel_refl (SmtValue.RegLan r)
 
+private def nativeListInRe (xs : List native_Char) (r : native_RegLan) :
+    native_Bool :=
+  native_re_nullable <| xs.foldl (fun acc c => native_re_deriv c acc) r
+
+private theorem nativeListInRe_empty :
+    (xs : List native_Char) -> nativeListInRe xs SmtRegLan.empty = false
+  | [] => by rfl
+  | _ :: xs => by
+      exact nativeListInRe_empty xs
+
+private theorem native_re_mk_union_self_local (r : native_RegLan) :
+    native_re_mk_union r r = r := by
+  cases r <;> simp [native_re_mk_union]
+
+private theorem native_re_mk_union_eq_union_of_ne_local
+    (r s : native_RegLan) :
+    r ≠ SmtRegLan.empty ->
+    s ≠ SmtRegLan.empty ->
+    r ≠ s ->
+    native_re_mk_union r s = SmtRegLan.union r s := by
+  intro hr hs hrs
+  cases r <;> cases s <;>
+    simp [native_re_mk_union] at hr hs ⊢
+  all_goals
+    try exact False.elim (hrs rfl)
+    try
+      intro h
+      subst h
+      exact False.elim (hrs rfl)
+    try
+      intro h1 h2
+      subst h1
+      subst h2
+      exact False.elim (hrs rfl)
+
+private theorem nativeListInRe_mk_union :
+    (xs : List native_Char) -> (r s : native_RegLan) ->
+      nativeListInRe xs (native_re_mk_union r s) =
+        (nativeListInRe xs r || nativeListInRe xs s)
+  | [], r, s => by
+      simp [nativeListInRe, native_re_nullable_mk_union]
+  | c :: cs, r, s => by
+      by_cases hr : r = SmtRegLan.empty
+      · subst r
+        simp [native_re_mk_union, nativeListInRe_empty]
+      · by_cases hs : s = SmtRegLan.empty
+        · subst s
+          simp [native_re_mk_union, nativeListInRe_empty]
+        · by_cases hEq : r = s
+          · subst s
+            rw [native_re_mk_union_self_local]
+            simp [nativeListInRe]
+          · rw [native_re_mk_union_eq_union_of_ne_local r s hr hs hEq]
+            simp [nativeListInRe, native_re_deriv]
+            exact nativeListInRe_mk_union cs
+              (native_re_deriv c r) (native_re_deriv c s)
+
+private theorem native_re_mk_inter_self_local (r : native_RegLan) :
+    native_re_mk_inter r r = r := by
+  cases r <;> simp [native_re_mk_inter]
+
+private theorem native_re_mk_inter_eq_inter_of_ne_local
+    (r s : native_RegLan) :
+    r ≠ SmtRegLan.empty ->
+    s ≠ SmtRegLan.empty ->
+    r ≠ s ->
+    native_re_mk_inter r s = SmtRegLan.inter r s := by
+  intro hr hs hrs
+  cases r <;> cases s <;>
+    simp [native_re_mk_inter] at hr hs ⊢
+  all_goals
+    try exact False.elim (hrs rfl)
+    try
+      intro h
+      subst h
+      exact False.elim (hrs rfl)
+    try
+      intro h1 h2
+      subst h1
+      subst h2
+      exact False.elim (hrs rfl)
+
+private theorem nativeListInRe_mk_inter :
+    (xs : List native_Char) -> (r s : native_RegLan) ->
+      nativeListInRe xs (native_re_mk_inter r s) =
+        (nativeListInRe xs r && nativeListInRe xs s)
+  | [], r, s => by
+      simp [nativeListInRe, native_re_nullable_mk_inter]
+  | c :: cs, r, s => by
+      by_cases hr : r = SmtRegLan.empty
+      · subst r
+        simp [native_re_mk_inter, nativeListInRe_empty]
+      · by_cases hs : s = SmtRegLan.empty
+        · subst s
+          simp [native_re_mk_inter, nativeListInRe_empty]
+        · by_cases hEq : r = s
+          · subst s
+            rw [native_re_mk_inter_self_local]
+            simp [nativeListInRe]
+          · rw [native_re_mk_inter_eq_inter_of_ne_local r s hr hs hEq]
+            simp [nativeListInRe, native_re_deriv]
+            exact nativeListInRe_mk_inter cs
+              (native_re_deriv c r) (native_re_deriv c s)
+
+private theorem native_str_in_re_mk_union_sem
+    (str : native_String) (r s : native_RegLan) :
+    native_str_in_re str (native_re_mk_union r s) =
+      (native_str_in_re str r || native_str_in_re str s) := by
+  by_cases hValid : native_string_valid str = true
+  · simpa [native_str_in_re, hValid, nativeListInRe] using
+      nativeListInRe_mk_union str r s
+  · have hInvalid : native_string_valid str = false := by
+      cases h : native_string_valid str <;> simp [h] at hValid ⊢
+    simp [native_str_in_re, hInvalid]
+
+private theorem native_str_in_re_mk_inter_sem
+    (str : native_String) (r s : native_RegLan) :
+    native_str_in_re str (native_re_mk_inter r s) =
+      (native_str_in_re str r && native_str_in_re str s) := by
+  by_cases hValid : native_string_valid str = true
+  · simpa [native_str_in_re, hValid, nativeListInRe] using
+      nativeListInRe_mk_inter str r s
+  · have hInvalid : native_string_valid str = false := by
+      cases h : native_string_valid str <;> simp [h] at hValid ⊢
+    simp [native_str_in_re, hInvalid]
+
+private theorem smt_value_rel_re_union
+    {r r' s s' : native_RegLan}
+    (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
+      (SmtValue.RegLan r'))
+    (hs : RuleProofs.smt_value_rel (SmtValue.RegLan s)
+      (SmtValue.RegLan s')) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_union r s))
+      (SmtValue.RegLan (native_re_union r' s')) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  simp [native_re_union, native_str_in_re_mk_union_sem,
+    smt_value_rel_reglan_valid_eq hr hValid,
+    smt_value_rel_reglan_valid_eq hs hValid]
+
+private theorem smt_value_rel_re_inter
+    {r r' s s' : native_RegLan}
+    (hr : RuleProofs.smt_value_rel (SmtValue.RegLan r)
+      (SmtValue.RegLan r'))
+    (hs : RuleProofs.smt_value_rel (SmtValue.RegLan s)
+      (SmtValue.RegLan s')) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_inter r s))
+      (SmtValue.RegLan (native_re_inter r' s')) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  simp [native_re_inter, native_str_in_re_mk_inter_sem,
+    smt_value_rel_reglan_valid_eq hr hValid,
+    smt_value_rel_reglan_valid_eq hs hValid]
+
+private theorem smt_value_rel_re_union_comm
+    (r s : native_RegLan) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_union r s))
+      (SmtValue.RegLan (native_re_union s r)) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  simp [native_re_union, native_str_in_re_mk_union_sem, Bool.or_comm]
+
+private theorem smt_value_rel_re_union_assoc
+    (r s t : native_RegLan) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_union (native_re_union r s) t))
+      (SmtValue.RegLan (native_re_union r (native_re_union s t))) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  simp [native_re_union, native_str_in_re_mk_union_sem, Bool.or_assoc]
+
+private theorem smt_value_rel_re_union_idem
+    (r : native_RegLan) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_union r r))
+      (SmtValue.RegLan r) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  simp [native_re_union, native_str_in_re_mk_union_sem]
+
+private theorem smt_value_rel_re_inter_comm
+    (r s : native_RegLan) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_inter r s))
+      (SmtValue.RegLan (native_re_inter s r)) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  simp [native_re_inter, native_str_in_re_mk_inter_sem, Bool.and_comm]
+
+private theorem smt_value_rel_re_inter_assoc
+    (r s t : native_RegLan) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_inter (native_re_inter r s) t))
+      (SmtValue.RegLan (native_re_inter r (native_re_inter s t))) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  simp [native_re_inter, native_str_in_re_mk_inter_sem, Bool.and_assoc]
+
+private theorem smt_value_rel_re_inter_idem
+    (r : native_RegLan) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_inter r r))
+      (SmtValue.RegLan r) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  simp [native_re_inter, native_str_in_re_mk_inter_sem]
+
+private theorem smt_value_rel_deriv_union
+    (c : native_Char) (ry rx dy dx : native_RegLan)
+    (hc : native_char_valid c = true)
+    (hy : RuleProofs.smt_value_rel (SmtValue.RegLan dy)
+      (SmtValue.RegLan (native_re_deriv c ry)))
+    (hx : RuleProofs.smt_value_rel (SmtValue.RegLan dx)
+      (SmtValue.RegLan (native_re_deriv c rx))) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_union dy dx))
+      (SmtValue.RegLan (native_re_deriv c (native_re_union ry rx))) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  have hCons : native_string_valid (c :: str) = true := by
+    change (native_char_valid c && native_string_valid str) = true
+    simp [hc, hValid]
+  calc
+    native_str_in_re str (native_re_union dy dx)
+        = (native_str_in_re str dy || native_str_in_re str dx) := by
+          rw [native_re_union, native_str_in_re_mk_union_sem]
+    _ =
+        (native_str_in_re str (native_re_deriv c ry) ||
+          native_str_in_re str (native_re_deriv c rx)) := by
+          rw [smt_value_rel_reglan_valid_eq hy hValid,
+            smt_value_rel_reglan_valid_eq hx hValid]
+    _ =
+        (native_str_in_re (c :: str) ry ||
+          native_str_in_re (c :: str) rx) := by
+          rw [← native_str_in_re_cons (c := c) (cs := str) (r := ry) hCons,
+            ← native_str_in_re_cons (c := c) (cs := str) (r := rx) hCons]
+    _ = native_str_in_re (c :: str) (native_re_union ry rx) := by
+          rw [native_re_union, native_str_in_re_mk_union_sem]
+    _ = native_str_in_re str
+        (native_re_deriv c (native_re_union ry rx)) := by
+          rw [native_str_in_re_cons (c := c) (cs := str)
+            (r := native_re_union ry rx) hCons]
+
+private theorem smt_value_rel_deriv_inter
+    (c : native_Char) (ry rx dy dx : native_RegLan)
+    (hc : native_char_valid c = true)
+    (hy : RuleProofs.smt_value_rel (SmtValue.RegLan dy)
+      (SmtValue.RegLan (native_re_deriv c ry)))
+    (hx : RuleProofs.smt_value_rel (SmtValue.RegLan dx)
+      (SmtValue.RegLan (native_re_deriv c rx))) :
+    RuleProofs.smt_value_rel
+      (SmtValue.RegLan (native_re_inter dy dx))
+      (SmtValue.RegLan (native_re_deriv c (native_re_inter ry rx))) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str hValid
+  have hCons : native_string_valid (c :: str) = true := by
+    change (native_char_valid c && native_string_valid str) = true
+    simp [hc, hValid]
+  calc
+    native_str_in_re str (native_re_inter dy dx)
+        = (native_str_in_re str dy && native_str_in_re str dx) := by
+          rw [native_re_inter, native_str_in_re_mk_inter_sem]
+    _ =
+        (native_str_in_re str (native_re_deriv c ry) &&
+          native_str_in_re str (native_re_deriv c rx)) := by
+          rw [smt_value_rel_reglan_valid_eq hy hValid,
+            smt_value_rel_reglan_valid_eq hx hValid]
+    _ =
+        (native_str_in_re (c :: str) ry &&
+          native_str_in_re (c :: str) rx) := by
+          rw [← native_str_in_re_cons (c := c) (cs := str) (r := ry) hCons,
+            ← native_str_in_re_cons (c := c) (cs := str) (r := rx) hCons]
+    _ = native_str_in_re (c :: str) (native_re_inter ry rx) := by
+          rw [native_re_inter, native_str_in_re_mk_inter_sem]
+    _ = native_str_in_re str
+        (native_re_deriv c (native_re_inter ry rx)) := by
+          rw [native_str_in_re_cons (c := c) (cs := str)
+            (r := native_re_inter ry rx) hCons]
+
 private theorem smt_value_rel_re_comp
     {r s : native_RegLan}
     (hRel : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s)) :
