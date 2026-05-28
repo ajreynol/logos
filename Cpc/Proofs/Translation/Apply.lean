@@ -8378,7 +8378,7 @@ private theorem eo_tuple_list_len_rec_eq_numeral_of_smt_tuple_type :
         exact ⟨native_zplus 1 n, by simp [__eo_list_len_rec, hLen, __eo_add]⟩
 termination_by T d h => T
 
-private theorem eo_tuple_list_len_ok_of_smt_tuple_type
+theorem eo_tuple_list_len_ok_of_smt_tuple_type
     {T : Term} {d : SmtDatatype}
     (h : __eo_to_smt_type T = SmtType.Datatype (native_string_lit "@Tuple") d) :
     __eo_is_ok (__eo_list_len (Term.UOp UserOp.Tuple) T) = Term.Boolean true := by
@@ -8977,7 +8977,7 @@ theorem eo_type_valid_rec_tuple_list_nth_rec_nat :
               (T := x0) (d := SmtDatatype.sum c SmtDatatype.null) j hTail hx hjTail
 termination_by T d j hT hValid hj => T
 
-private theorem smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
+theorem smtx_ret_typeof_tuple_sel_eq_eo_list_nth_rec_nat
     {T : Term} {d : SmtDatatype} (j : native_Nat)
     (hT : __eo_to_smt_type T = SmtType.Datatype (native_string_lit "@Tuple") d)
     (hValid : eo_type_valid_rec [] T) :
@@ -12619,7 +12619,7 @@ private theorem eo_to_smt_updater_rec_ne_dt_tester
   | succ k =>
       cases h
 
-private theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
+theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
     (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u acc : SmtTerm)
     (hAccSel : ∀ s d i j, acc ≠ SmtTerm.DtSel s d i j)
     (hAccTester : ∀ s d i, acc ≠ SmtTerm.DtTester s d i)
@@ -12690,7 +12690,7 @@ private theorem eo_to_smt_updater_rec_update_arg_non_none_of_non_none
               simpa [__eo_to_smt_updater_rec] using hNN)
         exact ih acc hAccSel hAccTester hIdxK hRecNN
 
-private theorem eo_to_smt_updater_rec_type_of_non_none
+theorem eo_to_smt_updater_rec_type_of_non_none
     (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u : SmtTerm)
     (hNN :
       __smtx_typeof
@@ -12788,7 +12788,7 @@ private theorem eo_to_smt_updater_rec_type_of_non_none
         exact smtx_typeof_apply_of_head_cases (Or.inr (hRecTy.trans hStep)) hArgR hRNN
       simpa [__eo_to_smt_updater_rec, recTerm, argTerm, Rest] using hApplyTy
 
-private theorem eo_to_smt_updater_rec_update_arg_type_of_non_none
+theorem eo_to_smt_updater_rec_update_arg_type_of_non_none
     (s : native_String) (d : SmtDatatype) (i j n : native_Nat) (t u : SmtTerm)
     (hIdx : native_zlt (native_nat_to_int j) (native_nat_to_int n) = true)
     (hNN :
