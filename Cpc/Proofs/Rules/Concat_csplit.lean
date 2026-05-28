@@ -231,8 +231,7 @@ private theorem sc_eval_length_one_of_seq_type
   · change __smtx_model_eval M (SmtTerm.String str) =
       SmtValue.Seq (native_pack_string str)
     rw [__smtx_model_eval.eq_4]
-  · simp [native_pack_string, native_ssm_char_values_of_string,
-      native_unpack_pack_seq, String.length_toList, hLen]
+  · simp [native_pack_string, native_unpack_pack_seq, String.length_toList, hLen]
 
 private theorem length_ne_zero_of_not_len_eq_eval
     (M : SmtModel) (u : Term) (su : SmtSeq)
