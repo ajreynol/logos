@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.CoreSupport
+import Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -7,28 +8,12 @@ open Smtm
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
 
-private theorem native_re_deriv_re_all (c : Char) :
-    native_re_deriv c native_re_all = native_re_all := by
-  simp [native_re_all, native_re_deriv, native_re_mk_concat]
-
-private theorem native_re_fold_re_all (xs : List Char) :
-    xs.foldl (fun acc c => native_re_deriv c acc) native_re_all = native_re_all := by
-  induction xs with
-  | nil => rfl
-  | cons c xs ih =>
-      simp [List.foldl, native_re_deriv_re_all, ih]
-
-private theorem native_str_in_re_all (s : native_String) :
-    native_str_in_re s native_re_all = true := by
-  change native_re_nullable
-    (s.toList.foldl (fun acc c => native_re_deriv c acc) native_re_all) = true
-  rw [native_re_fold_re_all]
-  rfl
-
-private theorem smtx_model_eval_re_in_sigma_star (ss : SmtSeq) :
+private theorem smtx_model_eval_re_in_sigma_star (ss : SmtSeq)
+    (hValid : native_string_valid (native_unpack_string ss) = true) :
     __smtx_model_eval_str_in_re (SmtValue.Seq ss) (SmtValue.RegLan native_re_all) =
       SmtValue.Boolean true := by
-  simp [__smtx_model_eval_str_in_re, native_str_in_re_all]
+  simp [__smtx_model_eval_str_in_re, RuleProofs.native_str_in_re_re_all
+    (native_unpack_string ss) hValid]
 
 private theorem smtx_model_eval_re_mult_allchar :
     __smtx_model_eval_re_mult (SmtValue.RegLan native_re_allchar) =
@@ -158,6 +143,9 @@ private theorem facts___eo_prog_re_in_sigma_star_impl
         rw [hA1SmtTy]
         simp)
   rcases seq_value_canonical hA1EvalTy with ⟨ss, hss⟩
+  have hSSValid : native_string_valid (native_unpack_string ss) = true := by
+    apply native_unpack_string_valid_of_typeof_seq_char
+    simpa [hss, __smtx_typeof_value] using hA1EvalTy
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt lhs) =
         __smtx_model_eval M (__eo_to_smt rhs) := by
@@ -174,7 +162,7 @@ private theorem facts___eo_prog_re_in_sigma_star_impl
           (__smtx_model_eval_re_mult (SmtValue.RegLan native_re_allchar)) =
         SmtValue.Boolean true
     rw [smtx_model_eval_re_mult_allchar, hss]
-    exact smtx_model_eval_re_in_sigma_star ss
+    exact smtx_model_eval_re_in_sigma_star ss hSSValid
   rw [hProg]
   exact RuleProofs.eo_interprets_eq_of_rel M lhs rhs hBoolEq <| by
     rw [hEvalEq]

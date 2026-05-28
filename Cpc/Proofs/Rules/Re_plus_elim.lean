@@ -5,7 +5,12 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
+
+private theorem native_string_lit_empty :
+    native_string_lit "" = ([] : native_String) := by
+  simp [native_string_lit]
 
 private theorem eo_typeof_re_mult_eq_reglan_of_ne_stuck (T : Term)
     (h : __eo_typeof_re_mult T ≠ Term.Stuck) :
@@ -21,7 +26,8 @@ private theorem smtx_model_eval_re_plus_elim
     __smtx_model_eval_re_plus v =
       __smtx_model_eval_re_concat v
         (__smtx_model_eval_re_concat (__smtx_model_eval_re_mult v)
-          (__smtx_model_eval_str_to_re (SmtValue.Seq (native_pack_string "")))) := by
+          (__smtx_model_eval_str_to_re
+            (SmtValue.Seq (native_pack_string (native_string_lit ""))))) := by
   cases v
   case RegLan r =>
     cases r <;>
@@ -30,14 +36,13 @@ private theorem smtx_model_eval_re_plus_elim
         native_re_plus, native_re_concat, native_re_mult, native_re_mk_concat,
         native_re_mk_star, native_str_to_re, native_re_of_list, native_pack_string,
         native_unpack_string, native_pack_seq, native_unpack_seq,
-        native_ssm_char_values_of_string, native_ssm_string_of_char_values]
+        native_string_lit_empty]
   all_goals
     simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
       __smtx_model_eval_re_mult, __smtx_model_eval_str_to_re, native_re_concat,
       native_re_mult, native_re_mk_concat, native_re_mk_star, native_str_to_re,
       native_re_of_list, native_pack_string, native_unpack_string, native_pack_seq,
-      native_unpack_seq, native_ssm_char_values_of_string,
-      native_ssm_string_of_char_values]
+      native_unpack_seq, native_string_lit_empty]
 
 private theorem typed___eo_prog_re_plus_elim_impl
     (a1 : Term)
@@ -77,7 +82,8 @@ private theorem typed___eo_prog_re_plus_elim_impl
   have hEmpTy : __smtx_typeof (__eo_to_smt (Term.Apply Term.str_to_re (Term.String (native_string_lit "")))) = SmtType.RegLan := by
     change __smtx_typeof (SmtTerm.str_to_re (SmtTerm.String (native_string_lit ""))) = SmtType.RegLan
     rw [typeof_str_to_re_eq]
-    simp [__smtx_typeof.eq_4, native_ite, native_Teq]
+    simp [__smtx_typeof.eq_4, native_ite, native_Teq, native_string_valid,
+      native_string_lit]
   have hInnerConcatTranslate :
       __eo_to_smt
           (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
@@ -120,7 +126,7 @@ private theorem typed___eo_prog_re_plus_elim_impl
     exact hBad hA1Ty
   have hProg :
       __eo_prog_re_plus_elim a1 = Term.Apply (Term.Apply Term.eq lhs) rhs := by
-    cases a1 <;> simp [__eo_prog_re_plus_elim, lhs, rhs] at hA1NotStuck ⊢
+    cases a1 <;> simp [__eo_prog_re_plus_elim, lhs, rhs, native_string_lit_empty] at hA1NotStuck ⊢
   rw [hProg]
   exact hBoolEq
 
@@ -141,7 +147,7 @@ private theorem facts___eo_prog_re_plus_elim_impl
           (Term.Apply (Term.Apply Term.re_concat a1)
             (Term.Apply (Term.Apply Term.re_concat (Term.Apply Term.re_mult a1))
               (Term.Apply Term.str_to_re (Term.String (native_string_lit ""))))) := by
-    cases a1 <;> simp [__eo_prog_re_plus_elim] at hA1NotStuck ⊢
+    cases a1 <;> simp [__eo_prog_re_plus_elim, native_string_lit_empty] at hA1NotStuck ⊢
   have hBoolEq :
       RuleProofs.eo_has_bool_type
         (Term.Apply (Term.Apply Term.eq (Term.Apply Term.re_plus a1))
@@ -181,9 +187,9 @@ private theorem facts___eo_prog_re_plus_elim_impl
     rfl
   have hEmptyStringEval :
       __smtx_model_eval M (__eo_to_smt (Term.String (native_string_lit ""))) =
-        SmtValue.Seq (native_pack_string "") := by
+        SmtValue.Seq (native_pack_string (native_string_lit "")) := by
     change __smtx_model_eval M (SmtTerm.String (native_string_lit "")) =
-      SmtValue.Seq (native_pack_string "")
+      SmtValue.Seq (native_pack_string (native_string_lit ""))
     rw [__smtx_model_eval.eq_4]
   have hEvalEq :
       __smtx_model_eval M (__eo_to_smt (Term.Apply Term.re_plus a1)) =

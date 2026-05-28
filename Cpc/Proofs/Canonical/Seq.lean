@@ -239,19 +239,41 @@ theorem seq_canonical_pack_unpack_update
   · simp at hv
     exact seq_unpack_values_canonical hs v hv
 
-/-- Packed strings are canonical sequences, since every character value is canonical. -/
-theorem seq_canonical_pack_string (s : native_String) :
+/-- Unpacking a canonical sequence yields a valid native string. -/
+theorem native_unpack_string_valid_of_seq_canonical
+    {s : SmtSeq}
+    (hs : __smtx_seq_canonical s = true) :
+    native_string_valid (native_unpack_string s) = true := by
+  unfold native_unpack_string
+  rw [native_string_valid, List.all_eq_true]
+  intro c hc
+  rcases List.mem_map.mp hc with ⟨v, hv, rfl⟩
+  have hvCan : __smtx_value_canonical v :=
+    seq_unpack_values_canonical hs v hv
+  cases v <;>
+    simp [native_ssm_char_of_value, native_char_valid,
+      __smtx_value_canonical, __smtx_value_canonical_bool] at hvCan ⊢
+  exact hvCan
+
+/-- Packing a valid native string gives a canonical sequence. -/
+theorem seq_canonical_pack_string
+    (s : native_String)
+    (hs : native_string_valid s = true) :
     __smtx_seq_canonical (native_pack_string s) = true := by
   unfold native_pack_string
   apply seq_canonical_pack_seq
   intro v hv
-  simp [native_ssm_char_values_of_string] at hv
-  rcases hv with ⟨c, _hc, rfl⟩
-  exact value_canonical_char c
+  rcases List.mem_map.mp hv with ⟨c, hc, rfl⟩
+  have hcValid : native_char_valid c = true := by
+    rw [native_string_valid, List.all_eq_true] at hs
+    exact hs c hc
+  exact value_canonical_char c hcValid
 
-theorem value_canonical_string (s : native_String) :
+theorem value_canonical_string
+    (s : native_String)
+    (hs : native_string_valid s = true) :
     __smtx_value_canonical (SmtValue.Seq (native_pack_string s)) := by
-  exact value_canonical_seq_of_seq_canonical (seq_canonical_pack_string s)
+  exact value_canonical_seq_of_seq_canonical (seq_canonical_pack_string s hs)
 
 theorem value_canonical_seq_empty (T : SmtType) :
     __smtx_value_canonical (SmtValue.Seq (SmtSeq.empty T)) := by

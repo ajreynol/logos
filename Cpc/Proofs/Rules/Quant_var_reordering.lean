@@ -422,7 +422,7 @@ private def IsQuantVarTerm : Term -> Prop
 
 private def quantTermBinder : Term -> QuantBinder
   | Term.Var (Term.String s) T => (s, __eo_to_smt_type T)
-  | _ => ("", SmtType.None)
+  | _ => (native_string_lit "", SmtType.None)
 
 private theorem quantVarTerm_ne_stuck {t : Term} :
     IsQuantVarTerm t -> t ≠ Term.Stuck := by

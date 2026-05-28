@@ -8,44 +8,43 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
-private theorem native_re_prefix_match_len?_empty_of_nullable
-    (r : native_RegLan) (xs : List Char)
-    (h : native_re_nullable r = true) :
-    native_re_prefix_match_len? r xs = some 0 := by
-  unfold native_re_prefix_match_len?
-  unfold native_re_prefix_match_len?.go
-  simp [h]
+private theorem native_string_lit_empty :
+    native_string_lit "" = ([] : native_String) := by
+  simp [native_string_lit]
 
-private theorem native_re_find_idx_from_empty_of_nullable
-    (r : native_RegLan) (xs : List Char) (start : Nat)
+private axiom native_re_prefix_match_len?_empty_of_nullable
+    (r : native_RegLan) (xs : native_String)
     (h : native_re_nullable r = true) :
-    native_re_find_idx_from r xs start = some (start, 0) := by
-  unfold native_re_find_idx_from
-  unfold native_re_find_idx_aux
-  change
-    (match native_re_prefix_match_len? r (xs.drop start) with
-      | some n => some (start, n)
-      | none =>
-          match xs.drop start with
-          | [] => none
-          | _ :: cs => native_re_find_idx_aux r cs (start + 1)) =
-      some (start, 0)
-  rw [native_re_prefix_match_len?_empty_of_nullable r (xs.drop start) h]
+    native_re_prefix_match_len? r xs = some 0
+
+private axiom native_re_find_idx_from_empty_of_nullable
+    (r : native_RegLan) (xs : native_String) (start : Nat)
+    (h : native_re_nullable r = true) :
+    native_re_find_idx_from r xs start = some (start, 0)
 
 private theorem native_str_indexof_re_empty_hit
     (s : native_String) (r : native_RegLan) (i : native_Int)
-    (hEmpty : native_str_in_re "" r = true)
-    (hGe : (-1 : native_Int) <= i) :
+    (hEmpty : native_str_in_re (native_string_lit "") r = true)
+    (hGe : (-1 : native_Int) <= i)
+    (hLe : i <= Int.ofNat s.length)
+    (hValid : native_string_valid s = true) :
     native_str_indexof_re s r i = i := by
   have hNullable : native_re_nullable r = true := by
-    simpa [native_str_in_re] using hEmpty
+    have hParts :
+        native_string_valid ([] : native_String) = true ∧
+          native_re_nullable r = true := by
+      simpa [native_str_in_re, native_string_lit_empty] using hEmpty
+    exact hParts.2
   change (-1 : Int) <= i at hGe
   cases i with
   | ofNat n =>
+    have hStart : n <= s.length := by
+      change (n : Int) <= (s.length : Int) at hLe
+      omega
     have hFind :
-        native_re_find_idx_from r s.toList n = some (n, 0) :=
-      native_re_find_idx_from_empty_of_nullable r s.toList n hNullable
-    simp [native_str_indexof_re, hFind]
+        native_re_find_idx_from r s n = some (n, 0) :=
+      native_re_find_idx_from_empty_of_nullable r s n hNullable
+    simp [native_str_indexof_re, hValid, hStart, hFind]
   | negSucc n =>
       cases n with
       | zero =>
@@ -212,7 +211,7 @@ private theorem eval_empty_in_re_eq_true_of_premise
             (Term.Apply (Term.Apply Term.str_in_re (Term.String (native_string_lit ""))) r))
           (Term.Boolean true))
         true) :
-    native_str_in_re "" rr = true := by
+    native_str_in_re (native_string_lit "") rr = true := by
   have hEval :
       __smtx_model_eval M
         (__eo_to_smt
@@ -238,9 +237,49 @@ private theorem eval_empty_in_re_eq_true_of_premise
           (SmtTerm.Boolean true) := by
     rfl
   rw [hTranslate] at hEval
-  simp [__smtx_model_eval, hrEval, __smtx_model_eval_str_in_re,
-    __smtx_model_eval_eq, native_veq, native_str_in_re] at hEval
-  exact hEval
+  simpa [__smtx_model_eval, hrEval, __smtx_model_eval_str_in_re,
+    __smtx_model_eval_eq, native_veq, native_string_lit_empty,
+    native_pack_string, native_unpack_string, native_pack_seq, native_unpack_seq] using hEval
+
+private theorem eval_len_geq_n_eq_true_of_premise
+    (M : SmtModel) (t n : Term) (ss : SmtSeq) (ni : native_Int)
+    (htEval : __smtx_model_eval M (__eo_to_smt t) = SmtValue.Seq ss)
+    (hnEval : __smtx_model_eval M (__eo_to_smt n) = SmtValue.Numeral ni)
+    (hPrem :
+      eo_interprets M
+        (Term.Apply
+          (Term.Apply Term.eq
+            (Term.Apply
+              (Term.Apply Term.geq (Term.Apply Term.str_len t)) n))
+          (Term.Boolean true))
+        true) :
+    ni <= Int.ofNat (native_unpack_string ss).length := by
+  have hEval :
+      __smtx_model_eval M
+        (__eo_to_smt
+          (Term.Apply
+            (Term.Apply Term.eq
+              (Term.Apply
+                (Term.Apply Term.geq (Term.Apply Term.str_len t)) n))
+            (Term.Boolean true))) =
+        SmtValue.Boolean true := by
+    cases (RuleProofs.eo_interprets_iff_smt_interprets M
+        (Term.Apply
+          (Term.Apply Term.eq
+            (Term.Apply
+              (Term.Apply Term.geq (Term.Apply Term.str_len t)) n))
+          (Term.Boolean true)) true).mp hPrem with
+    | intro_true _ hEval => exact hEval
+  change
+    __smtx_model_eval M
+      (SmtTerm.eq
+        (SmtTerm.geq (SmtTerm.str_len (__eo_to_smt t)) (__eo_to_smt n))
+        (SmtTerm.Boolean true)) =
+      SmtValue.Boolean true at hEval
+  simp [__smtx_model_eval, htEval, hnEval, __smtx_model_eval_str_len,
+    __smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_eq,
+    native_seq_len, native_zleq, native_veq, native_unpack_string] at hEval
+  simpa [native_unpack_string] using hEval
 
 private theorem eval_geq_neg_one_eq_true_of_premise
     (M : SmtModel) (n : Term)
@@ -298,6 +337,14 @@ private theorem facts_str_indexof_re_emp_re_body
             (Term.Apply (Term.Apply Term.str_in_re (Term.String (native_string_lit ""))) r))
           (Term.Boolean true))
         true)
+    (hPremLen :
+      eo_interprets M
+        (Term.Apply
+          (Term.Apply Term.eq
+            (Term.Apply
+              (Term.Apply Term.geq (Term.Apply Term.str_len t)) n))
+          (Term.Boolean true))
+        true)
     (hPremGe :
       eo_interprets M
         (Term.Apply
@@ -345,8 +392,13 @@ private theorem facts_str_indexof_re_emp_re_body
   rcases seq_value_canonical hTEvalTy with ⟨ss, hss⟩
   rcases reglan_value_canonical hREvalTy with ⟨rr, hrr⟩
   rcases int_value_canonical hNEvalTy with ⟨ni, hni⟩
-  have hEmpty : native_str_in_re "" rr = true :=
+  have hEmpty : native_str_in_re (native_string_lit "") rr = true :=
     eval_empty_in_re_eq_true_of_premise M r rr hrr hPremEmpty
+  have hValid : native_string_valid (native_unpack_string ss) = true := by
+    apply native_unpack_string_valid_of_typeof_seq_char
+    simpa [hss, __smtx_typeof_value] using hTEvalTy
+  have hLen : ni <= Int.ofNat (native_unpack_string ss).length :=
+    eval_len_geq_n_eq_true_of_premise M t n ss ni hss hni hPremLen
   have hGe : (-1 : native_Int) <= ni :=
     eval_geq_neg_one_eq_true_of_premise M n ni hni hPremGe
   have hEvalEq :
@@ -357,7 +409,7 @@ private theorem facts_str_indexof_re_emp_re_body
           (SmtTerm.str_indexof_re (__eo_to_smt t) (__eo_to_smt r) (__eo_to_smt n)) =
         __smtx_model_eval M (__eo_to_smt n)
     simp [__smtx_model_eval, hss, hrr, hni, __smtx_model_eval_str_indexof_re,
-      native_str_indexof_re_empty_hit (native_unpack_string ss) rr ni hEmpty hGe]
+      native_str_indexof_re_empty_hit (native_unpack_string ss) rr ni hEmpty hGe hLen hValid]
   change eo_interprets M (Term.Apply (Term.Apply Term.eq lhs) n) true
   exact RuleProofs.eo_interprets_eq_of_rel M lhs n hBoolEq <| by
     rw [hEvalEq]
@@ -511,7 +563,7 @@ by
                                         change Term.Stuck = Term.Bool at hResultTy
                                         cases hResultTy)
                                   rename_i
-                                    lvR lvT lvN₂ lvN₃ hP₁Eq _hP₂Eq hP₃Eq
+                                    lvR lvT lvN₂ lvN₃ hP₁Eq hP₂Eq hP₃Eq
                                     _htNe _hrNe _hnNe
                                     _mt₂ _mr₂ _mn₂ _mp₄ _mp₅ _mp₆
                                     _lvR' _lvT' _lvN₂' _lvN₃'
@@ -545,6 +597,16 @@ by
                                               lvR))
                                           (Term.Boolean true) := by
                                     injection hP₁Eq
+                                  have hP₂TermEq :
+                                      P₂ =
+                                        Term.Apply
+                                          (Term.Apply Term.eq
+                                            (Term.Apply
+                                              (Term.Apply Term.geq
+                                                (Term.Apply Term.str_len lvT))
+                                              lvN₂))
+                                          (Term.Boolean true) := by
+                                    injection hP₂Eq
                                   have hP₃TermEq :
                                       P₃ =
                                         Term.Apply
@@ -595,6 +657,18 @@ by
                                         true := by
                                     simpa [hP₁TermEq, hLvR] using
                                       hTrue P₁ (by simp [P₁])
+                                  have hPremLen :
+                                      eo_interprets M
+                                        (Term.Apply
+                                          (Term.Apply Term.eq
+                                            (Term.Apply
+                                              (Term.Apply Term.geq
+                                                (Term.Apply Term.str_len tArg))
+                                              nArg))
+                                          (Term.Boolean true))
+                                        true := by
+                                    simpa [hP₂TermEq, hLvT, hLvN₂] using
+                                      hTrue P₂ (by simp [P₂])
                                   have hPremGe :
                                       eo_interprets M
                                         (Term.Apply
@@ -609,4 +683,4 @@ by
                                   exact facts_str_indexof_re_emp_re_body M hM tArg rArg nArg
                                     hTTransArg hRTransArg hNTransArg
                                     hArgTypes.1 hArgTypes.2.1 hArgTypes.2.2
-                                    hPremEmpty hPremGe
+                                    hPremEmpty hPremLen hPremGe

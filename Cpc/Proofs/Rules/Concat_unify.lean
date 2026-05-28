@@ -40,7 +40,7 @@ private theorem smt_seq_rel_pack_prefix_of_eq_length (T : SmtType) :
       have hTailLen : xs.length = ys.length := by
         simpa using Nat.succ.inj hLen
       simp [RuleProofs.smt_seq_rel, native_pack_seq,
-        __smtx_model_eval_eq, native_veq, SmtEval.native_and] at hRel ⊢
+        __smtx_model_eval_eq, native_veq] at hRel ⊢
       have hTailRel :=
         smt_seq_rel_pack_prefix_of_eq_length T xs ys xs' ys' hTailLen
           ((RuleProofs.smt_seq_rel_iff_eq _ _).2 hRel.2)
@@ -65,7 +65,7 @@ private theorem smt_seq_rel_pack_suffix_of_eq_length (T : SmtType) :
       omega
   | x :: xs, y :: ys, sx, sy, hLen, hRel => by
       simp [RuleProofs.smt_seq_rel, native_pack_seq,
-        __smtx_model_eval_eq, native_veq, SmtEval.native_and] at hRel
+        __smtx_model_eval_eq, native_veq] at hRel
       exact smt_seq_rel_pack_suffix_of_eq_length T xs ys sx sy hLen
         ((RuleProofs.smt_seq_rel_iff_eq _ _).2 hRel.2)
 
