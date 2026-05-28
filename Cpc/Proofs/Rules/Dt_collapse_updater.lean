@@ -2,6 +2,7 @@ import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.DatatypeSupport
 import Cpc.Proofs.Translation.Apply
 import Cpc.Proofs.Rules.Dt_collapse_selector
+import Cpc.Proofs.Rules.Dt_collapse_tester
 
 open Eo
 open SmtEval
@@ -168,7 +169,7 @@ private theorem dt_collapse_updater_guard_true_of_rhs_non_stuck
         apply hRhs
         simpa [selectors, idx, hNeg, hCollapse] using hGuard.symm
       · constructor
-        · simpa [selectors, idx] using hNeg
+        · simp [selectors, idx]
         · simpa [selectors, idx, hNeg] using hGuard.symm
   | _ =>
       exfalso
@@ -185,6 +186,15 @@ private theorem smt_model_eval_ne_notvalue_of_non_none
     simp [hEval, __smtx_typeof_value]
   rw [hPres] at hNone
   exact hNN hNone
+
+private theorem eo_to_smt_updater_typeof_none_of_not_dt_sel
+    (sel t u : SmtTerm) :
+    (∀ s d i j, sel ≠ SmtTerm.DtSel s d i j) ->
+    __smtx_typeof (__eo_to_smt_updater sel t u) = SmtType.None := by
+  intro hSel
+  cases sel <;> simp [__eo_to_smt_updater]
+  case DtSel s d i j =>
+    exact False.elim (hSel s d i j rfl)
 
 private theorem vsm_apply_ext_aux :
     ∀ (n : Nat) (v w : SmtValue),
@@ -1878,19 +1888,118 @@ private theorem facts___eo_prog_dt_collapse_updater_impl
                       (__eo_to_smt_updater (__eo_to_smt sel)
                         (__eo_to_smt t) (__eo_to_smt a)))
                     (__smtx_model_eval M (__eo_to_smt t))
-                  cases hSelSmt : __eo_to_smt sel
-                  all_goals try
-                    (exfalso
-                     apply hTypes.2
-                     change
-                       __smtx_typeof
-                           (__eo_to_smt_updater (__eo_to_smt sel)
-                             (__eo_to_smt t) (__eo_to_smt a)) =
-                         SmtType.None
-                     rw [hSelSmt]
-                     simp [__eo_to_smt_updater])
-                  case DtSel s d i j =>
-                    sorry
+                  by_cases hIsDtSel :
+                      ∃ s d i j, __eo_to_smt sel = SmtTerm.DtSel s d i j
+                  · rcases hIsDtSel with ⟨s, d, i, j, hSelSmt⟩
+                    have hUpdaterNN :
+                        __smtx_typeof
+                            (__eo_to_smt_updater (SmtTerm.DtSel s d i j)
+                              (__eo_to_smt t) (__eo_to_smt a)) ≠
+                          SmtType.None := by
+                      have h := hTypes.2
+                      change
+                        __smtx_typeof
+                            (__eo_to_smt_updater (__eo_to_smt sel)
+                              (__eo_to_smt t) (__eo_to_smt a)) ≠
+                          SmtType.None at h
+                      simpa [hSelSmt] using h
+                    have hIdx :
+                        native_zlt (native_nat_to_int j)
+                            (native_nat_to_int (__smtx_dt_num_sels d i)) =
+                          true :=
+                      TranslationProofs.eo_to_smt_updater_dt_sel_guard_of_non_none
+                        s d i j (__eo_to_smt t) (__eo_to_smt a) hUpdaterNN
+                    rcases TranslationProofs.eo_to_smt_eq_dt_sel_cases
+                        sel s d i j hSelSmt with hDt | hPurify
+                    · rcases hDt with ⟨d0, hd, hSelEq, hReserved⟩
+                      subst sel
+                      subst d
+                      have hDtEqFalse :
+                          __dt_eq_cons (Term.DtCons s d0 i) t =
+                            Term.Boolean false :=
+                        dt_eq_cons_false_of_find_neg_dt_sel_of_updater_non_none
+                          s d0 i j t a hReserved hUpdaterNN
+                          (by simpa using hFindNeg)
+                      have hIdxProp :
+                          native_nat_to_int j <
+                            native_nat_to_int
+                              (__smtx_dt_num_sels
+                                (__eo_to_smt_datatype d0) i) := by
+                        apply of_decide_eq_true
+                        simpa [native_zlt, SmtEval.native_zlt] using hIdx
+                      have hIteNN :
+                          term_has_non_none_type
+                            (SmtTerm.ite
+                              (SmtTerm.Apply
+                                (SmtTerm.DtTester s (__eo_to_smt_datatype d0) i)
+                                (__eo_to_smt t))
+                              (__eo_to_smt_updater_rec
+                                (SmtTerm.DtSel s (__eo_to_smt_datatype d0) i j)
+                                (__smtx_dt_num_sels (__eo_to_smt_datatype d0) i)
+                                (__eo_to_smt t) (__eo_to_smt a)
+                                (SmtTerm.DtCons s (__eo_to_smt_datatype d0) i))
+                              (__eo_to_smt t)) := by
+                        unfold term_has_non_none_type
+                        simpa [__eo_to_smt_updater, native_ite, hIdxProp] using
+                          hUpdaterNN
+                      rcases ite_args_of_non_none hIteNN with
+                        ⟨_T, hCond, _hThen, _hElse, _hTNN⟩
+                      have hTesterNN :
+                          term_has_non_none_type
+                            (SmtTerm.Apply
+                              (SmtTerm.DtTester s (__eo_to_smt_datatype d0) i)
+                              (__eo_to_smt t)) := by
+                        unfold term_has_non_none_type
+                        rw [hCond]
+                        simp
+                      have hTesterFalse :=
+                        dt_tester_eval_false_of_dt_eq_cons_dtcons_false
+                          M hM s d0 i t hReserved hTesterNN hDtEqFalse
+                      let cond :=
+                        SmtTerm.Apply
+                          (SmtTerm.DtTester s (__eo_to_smt_datatype d0) i)
+                          (__eo_to_smt t)
+                      let recTerm :=
+                        __eo_to_smt_updater_rec
+                          (SmtTerm.DtSel s (__eo_to_smt_datatype d0) i j)
+                          (__smtx_dt_num_sels (__eo_to_smt_datatype d0) i)
+                          (__eo_to_smt t) (__eo_to_smt a)
+                          (SmtTerm.DtCons s (__eo_to_smt_datatype d0) i)
+                      have hUpdaterEq :
+                          __eo_to_smt_updater
+                              (SmtTerm.DtSel s (__eo_to_smt_datatype d0) i j)
+                              (__eo_to_smt t) (__eo_to_smt a) =
+                            SmtTerm.ite cond recTerm (__eo_to_smt t) := by
+                        simp [cond, recTerm, __eo_to_smt_updater, native_ite,
+                          hIdxProp]
+                      have hEvalIte :
+                          __smtx_model_eval M
+                              (SmtTerm.ite cond recTerm (__eo_to_smt t)) =
+                            __smtx_model_eval M (__eo_to_smt t) := by
+                        simp [cond, __smtx_model_eval,
+                          __smtx_model_eval_ite, hTesterFalse]
+                      rw [hSelSmt]
+                      rw [hUpdaterEq]
+                      rw [hEvalIte]
+                      exact RuleProofs.smt_value_rel_refl _
+                    · rcases hPurify with ⟨z0, hSelEq, _hz0⟩
+                      subst sel
+                      change SmtTerm._at_purify (__eo_to_smt z0) =
+                        SmtTerm.DtSel s d i j at hSelSmt
+                      cases hSelSmt
+                  · exfalso
+                    apply hTypes.2
+                    change
+                      __smtx_typeof
+                          (__eo_to_smt_updater (__eo_to_smt sel)
+                            (__eo_to_smt t) (__eo_to_smt a)) =
+                        SmtType.None
+                    exact
+                      eo_to_smt_updater_typeof_none_of_not_dt_sel
+                        (__eo_to_smt sel) (__eo_to_smt t) (__eo_to_smt a)
+                        (by
+                          intro s d i j hEq
+                          exact hIsDtSel ⟨s, d, i, j, hEq⟩)
               | tuple_update =>
                   simp [__mk_dt_collapse_updater_rhs] at hGuard
                   subst rhs

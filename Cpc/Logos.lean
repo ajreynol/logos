@@ -354,7 +354,7 @@ def __eo_dt_constructors : Term -> Term
 
 def __eo_datatype_cons_selectors_rec (s : native_String) (d : Datatype) (n : native_Nat) : Datatype -> native_Nat -> native_Nat -> Term
   | (Datatype.sum DatatypeCons.unit d2), native_nat_zero, ai => Term.__eo_List_nil
-  | (Datatype.sum (DatatypeCons.cons U c) d2), native_nat_zero, ai => (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtSel s d n ai)) (__eo_datatype_cons_selectors_rec s d n d2 native_nat_zero (native_nat_succ ai)))
+  | (Datatype.sum (DatatypeCons.cons U c) d2), native_nat_zero, ai => (__eo_mk_apply (Term.Apply Term.__eo_List_cons (Term.DtSel s d n ai)) (__eo_datatype_cons_selectors_rec s d n (Datatype.sum c d2) native_nat_zero (native_nat_succ ai)))
   | (Datatype.sum c d2), (native_nat_succ ci), ai => (__eo_datatype_cons_selectors_rec s d n d2 ci ai)
   | _, _, _ => Term.Stuck
 
