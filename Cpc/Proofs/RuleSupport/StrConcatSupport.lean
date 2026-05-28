@@ -385,8 +385,7 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
       native_teq] at hNil
   case UOp1 op A =>
     cases op <;>
-      simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
-        native_teq] at hNil
+      simp at hNil
     case seq_empty =>
       rcases hNilSeq with ⟨snil, hNilEval⟩
       unfold RuleProofs.smt_value_rel
@@ -421,9 +420,9 @@ theorem smt_value_rel_str_concat_list_nil_right_empty_eval
         (__smtx_model_eval M (SmtTerm.String (native_string_lit "")))) (SmtValue.Seq sx) =
       SmtValue.Boolean true
     rw [__smtx_model_eval.eq_4]
-    simp [native_pack_string, native_ssm_char_values_of_string,
-      __smtx_model_eval_str_concat, native_pack_seq, native_seq_concat]
-    rw [native_unpack_seq, List.append_nil]
+    simp [native_pack_string,
+      __smtx_model_eval_str_concat, native_pack_seq, native_unpack_seq,
+      native_seq_concat, native_string_lit, List.append_nil]
     change RuleProofs.smt_seq_rel
       (native_pack_seq (__smtx_elem_typeof_seq_value sx)
         (native_unpack_seq sx)) sx

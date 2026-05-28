@@ -28,9 +28,10 @@ theorem model_eval_rational_canonical
 
 theorem model_eval_string_canonical
     (M : SmtModel)
-    (s : native_String) :
+    (s : native_String)
+    (hs : native_string_valid s = true) :
     __smtx_value_canonical (__smtx_model_eval M (SmtTerm.String s)) := by
-  simpa [__smtx_model_eval] using model_eval_string_value_canonical s
+  simpa [__smtx_model_eval] using model_eval_string_value_canonical s hs
 
 theorem model_eval_var_canonical
     (M : SmtModel)
@@ -514,7 +515,11 @@ theorem model_eval_canonical_of_supported
   case rational q =>
       exact model_eval_rational_canonical M q
   case string s =>
-      exact model_eval_string_canonical M s
+      have hsValid : native_string_valid s = true := by
+        rw [term_has_non_none_type, __smtx_typeof.eq_4] at hTy
+        cases hValid : native_string_valid s <;>
+          simp [native_ite, hValid] at hTy ⊢
+      exact model_eval_string_canonical M s hsValid
   case binary w n =>
       cases hw : native_zleq 0 w <;>
         cases hn : native_zeq n (native_mod_total n (native_int_pow2 w)) <;>
@@ -719,10 +724,10 @@ theorem model_eval_canonical_of_supported
       exact model_eval_str_update_term_canonical M _ _ _ (ih1 M hM ht1) (ih3 M hM ht3)
   case str_to_lower ht hs ih =>
       simpa [__smtx_model_eval] using
-        model_eval_str_to_lower_canonical (__smtx_model_eval M _)
+        model_eval_str_to_lower_canonical (ih M hM ht)
   case str_to_upper ht hs ih =>
       simpa [__smtx_model_eval] using
-        model_eval_str_to_upper_canonical (__smtx_model_eval M _)
+        model_eval_str_to_upper_canonical (ih M hM ht)
   case str_from_code ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_str_from_code_canonical (__smtx_model_eval M _)
@@ -735,11 +740,11 @@ theorem model_eval_canonical_of_supported
   case str_replace_re ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
       simpa [__smtx_model_eval] using
         model_eval_str_replace_re_canonical
-          (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
+          (__smtx_model_eval M _) (ih1 M hM ht1) (ih3 M hM ht3)
   case str_replace_re_all ht1 hs1 ht2 hs2 ht3 hs3 ih1 ih2 ih3 =>
       simpa [__smtx_model_eval] using
         model_eval_str_replace_re_all_canonical
-          (__smtx_model_eval M _) (__smtx_model_eval M _) (__smtx_model_eval M _)
+          (__smtx_model_eval M _) (ih1 M hM ht1) (ih3 M hM ht3)
   case str_len ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_str_len_canonical (__smtx_model_eval M _)
@@ -762,41 +767,41 @@ theorem model_eval_canonical_of_supported
         model_eval_str_to_int_canonical (__smtx_model_eval M _)
   case str_to_re ht hs ih =>
       simpa [__smtx_model_eval] using
-        model_eval_str_to_re_canonical (__smtx_model_eval M _)
+        model_eval_str_to_re_canonical (ih M hM ht)
   case re_mult ht hs ih =>
       simpa [__smtx_model_eval] using
-        model_eval_re_mult_canonical (__smtx_model_eval M _)
+        model_eval_re_mult_canonical (ih M hM ht)
   case re_plus ht hs ih =>
       simpa [__smtx_model_eval] using
-        model_eval_re_plus_canonical (__smtx_model_eval M _)
+        model_eval_re_plus_canonical (ih M hM ht)
   case re_exp n ht hs ih =>
       simpa [__smtx_model_eval] using
-        model_eval_re_exp_canonical (SmtValue.Numeral _) (__smtx_model_eval M _)
+        model_eval_re_exp_canonical (SmtValue.Numeral _) (ih M hM ht)
   case re_opt ht hs ih =>
       simpa [__smtx_model_eval] using
-        model_eval_re_opt_canonical (__smtx_model_eval M _)
+        model_eval_re_opt_canonical (ih M hM ht)
   case re_comp ht hs ih =>
       simpa [__smtx_model_eval] using
-        model_eval_re_comp_canonical (__smtx_model_eval M _)
+        model_eval_re_comp_canonical (ih M hM ht)
   case re_range ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
-        model_eval_re_range_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
+        model_eval_re_range_canonical (ih1 M hM ht1) (ih2 M hM ht2)
   case re_concat ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
-        model_eval_re_concat_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
+        model_eval_re_concat_canonical (ih1 M hM ht1) (ih2 M hM ht2)
   case re_inter ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
-        model_eval_re_inter_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
+        model_eval_re_inter_canonical (ih1 M hM ht1) (ih2 M hM ht2)
   case re_union ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
-        model_eval_re_union_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
+        model_eval_re_union_canonical (ih1 M hM ht1) (ih2 M hM ht2)
   case re_diff ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
-        model_eval_re_diff_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)
+        model_eval_re_diff_canonical (ih1 M hM ht1) (ih2 M hM ht2)
   case re_loop n1 n2 ht hs ih =>
       simpa [__smtx_model_eval] using
         model_eval_re_loop_canonical (SmtValue.Numeral _) (SmtValue.Numeral _)
-          (__smtx_model_eval M _)
+          (ih M hM ht)
   case str_in_re ht1 hs1 ht2 hs2 ih1 ih2 =>
       simpa [__smtx_model_eval] using
         model_eval_str_in_re_canonical (__smtx_model_eval M _) (__smtx_model_eval M _)

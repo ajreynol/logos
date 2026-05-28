@@ -147,7 +147,7 @@ shape and that the syntactic guards in `__eo_prog_bv_smod_eliminate` have
 accepted.  The remaining obligation is the bit-vector arithmetic identity
 between SMT `bvsmod` and its expansion.
 -/
-private axiom trusted_bv_smod_eliminate_canonical_properties
+private theorem trusted_bv_smod_eliminate_canonical_properties
     (M : SmtModel) (hM : model_total_typed M)
     (x y w wm : Term) :
     cArgListTranslationOk
@@ -199,7 +199,8 @@ private axiom trusted_bv_smod_eliminate_canonical_properties
               (Term.Apply
                 (Term.Apply (Term.UOp UserOp.neg)
                   (Term.Apply (Term.UOp UserOp._at_bvsize) x))
-              (Term.Numeral 1)))))
+              (Term.Numeral 1))))) := by
+  sorry
 
 theorem cmd_step_bv_smod_eliminate_properties
     (M : SmtModel) (hM : model_total_typed M)

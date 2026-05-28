@@ -1532,7 +1532,7 @@ private theorem simple_finite_nonunit_witness :
   | SmtType.Char, _hCtx => by
       refine ⟨SmtValue.Char 1, ?_, ?_, ?_⟩ <;>
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_char_valid, native_veq]
+          __smtx_type_default, native_char_valid, native_ite, native_veq]
   | SmtType.BitVec (Nat.succ w), _hCtx => by
       refine
         ⟨SmtValue.Binary (native_nat_to_int (Nat.succ w)) 1, ?_, ?_, ?_⟩
@@ -2985,7 +2985,7 @@ private theorem finite_nonunit_type_nondefault_value :
   | SmtType.Char, _refs, _hInh, _hRec, _hFinite, _hNonUnit => by
       refine ⟨SmtValue.Char 1, ?_, ?_, ?_⟩ <;>
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_char_valid, native_veq]
+          __smtx_type_default, native_char_valid, native_ite, native_veq]
   | SmtType.Datatype s d, refs, hInh, hRec, hFinite, hNonUnit => by
       exact finite_nonunit_datatype_nondefault_value
         s d refs hInh hRec hFinite hNonUnit
@@ -3774,7 +3774,7 @@ theorem cpc_nonunit_typed_canonical_nondefault_value
   | Char =>
       refine ⟨SmtValue.Char 1, ?_, ?_, ?_⟩ <;>
         simp [__smtx_typeof_value, __smtx_value_canonical_bool,
-          __smtx_type_default, native_char_valid, native_veq]
+          __smtx_type_default, native_char_valid, native_ite, native_veq]
   | Datatype s d =>
       by_cases hFinite :
           __smtx_is_finite_type (SmtType.Datatype s d) = true

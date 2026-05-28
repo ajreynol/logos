@@ -878,7 +878,7 @@ private def dtSelectorApps
   | Datatype.sum (DatatypeCons.cons _ _c) d, 0, ai =>
       SmtTerm.Apply
         (SmtTerm.DtSel s (__eo_to_smt_datatype root) n ai) X ::
-      dtSelectorApps s root n X d 0 (Nat.succ ai)
+      dtSelectorApps s root n X (Datatype.sum _c d) 0 (ai + 1)
   | Datatype.sum _c d, Nat.succ ci, ai =>
       dtSelectorApps s root n X d ci ai
   | Datatype.null, _ci, _ai => []
@@ -898,10 +898,15 @@ private theorem dtSelectorApps_get_of_lt
   | Datatype.sum (DatatypeCons.cons U c) d, 0, ai, 0, hj => by
       simp [dtSelectorApps, listGetOptionSmt]
   | Datatype.sum (DatatypeCons.cons U c) d, 0, ai, Nat.succ j, hj => by
-      have hjTail : j < (dtSelectorApps s root n X d 0 (Nat.succ ai)).length := by
-        simpa [dtSelectorApps] using Nat.succ_lt_succ_iff.mp hj
+      have hjTail :
+          j < (dtSelectorApps s root n X (Datatype.sum c d) 0 (ai + 1)).length := by
+        have hj' :
+            Nat.succ j <
+              (dtSelectorApps s root n X (Datatype.sum c d) 0 (ai + 1)).length.succ := by
+          simpa [dtSelectorApps] using hj
+        exact Nat.succ_lt_succ_iff.mp hj'
       have hRec :=
-        dtSelectorApps_get_of_lt s root n X d 0 (Nat.succ ai) j hjTail
+        dtSelectorApps_get_of_lt s root n X (Datatype.sum c d) 0 (ai + 1) j hjTail
       simpa [dtSelectorApps, listGetOptionSmt, Nat.add_assoc,
         Nat.add_comm, Nat.add_left_comm] using hRec
   | Datatype.sum c d, Nat.succ ci, ai, j, hj => by
@@ -953,7 +958,9 @@ private theorem eo_to_smt_mk_dt_inst_rec_selectors
       simp [__eo_datatype_cons_selectors_rec, __mk_dt_inst_rec,
         dtSelectorApps, mkDtSmtAppSpineRev, hx, hAccNe]
   | Datatype.sum (DatatypeCons.cons U c) d, 0, ai, hNN => by
-      let rest := __eo_datatype_cons_selectors_rec s root n d 0 (Nat.succ ai)
+      let rest :=
+        __eo_datatype_cons_selectors_rec s root n
+          (Datatype.sum c d) 0 (ai + 1)
       by_cases hRest : rest = Term.Stuck
       · exfalso
         apply hNN
@@ -980,32 +987,44 @@ private theorem eo_to_smt_mk_dt_inst_rec_selectors
             (Term.Apply acc (Term.Apply (Term.DtSel s root n ai) x))
             hReserved hx (DtConsSpineRoot.app
               (Term.Apply (Term.DtSel s root n ai) x) hAcc)
-            d 0 (Nat.succ ai) hRecNN
+            (Datatype.sum c d) 0 (ai + 1) hRecNN
         rw [hList]
         simp [__mk_dt_inst_rec, hx, hAccNe, rest] at hRec ⊢
         rw [hRec]
         rw [dtConsSpineRoot_apply_generic hAcc]
         rw [eo_to_smt_apply_dt_sel_unreserved s root n ai x hReserved]
+        have hApps :
+            dtSelectorApps s root n (__eo_to_smt x)
+                (Datatype.sum (DatatypeCons.cons U c) d) 0 ai =
+              SmtTerm.Apply
+                  (SmtTerm.DtSel s (__eo_to_smt_datatype root) n ai)
+                  (__eo_to_smt x) ::
+                dtSelectorApps s root n (__eo_to_smt x)
+                  (Datatype.sum c d) 0 (ai + 1) := by
+          simp [dtSelectorApps]
+        rw [hApps]
         change
           mkDtSmtAppSpineRev
               (SmtTerm.Apply (__eo_to_smt acc)
-                (SmtTerm.Apply
+              (SmtTerm.Apply
                   (SmtTerm.DtSel s (__eo_to_smt_datatype root) n ai)
                   (__eo_to_smt x)))
-              (dtSelectorApps s root n (__eo_to_smt x) d 0 (Nat.succ ai)).reverse =
+              (dtSelectorApps s root n (__eo_to_smt x)
+                (Datatype.sum c d) 0 (ai + 1)).reverse =
             mkDtSmtAppSpineRev (__eo_to_smt acc)
               ((SmtTerm.Apply
                   (SmtTerm.DtSel s (__eo_to_smt_datatype root) n ai)
                   (__eo_to_smt x)) ::
-                dtSelectorApps s root n (__eo_to_smt x) d 0 (Nat.succ ai)).reverse
+                dtSelectorApps s root n (__eo_to_smt x)
+                  (Datatype.sum c d) 0 (ai + 1)).reverse
         rw [List.reverse_cons]
         exact (mkDtSmtAppSpineRev_append_singleton
           (__eo_to_smt acc)
           (SmtTerm.Apply
             (SmtTerm.DtSel s (__eo_to_smt_datatype root) n ai)
             (__eo_to_smt x))
-          (dtSelectorApps s root n (__eo_to_smt x) d 0
-            (Nat.succ ai)).reverse).symm
+          (dtSelectorApps s root n (__eo_to_smt x) (Datatype.sum c d) 0
+            (ai + 1)).reverse).symm
   | Datatype.sum c d, Nat.succ ci, ai, hNN => by
       simpa [__eo_datatype_cons_selectors_rec, dtSelectorApps] using
         eo_to_smt_mk_dt_inst_rec_selectors s root n x acc
