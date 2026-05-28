@@ -299,19 +299,15 @@ private theorem re_nullable_term_eq (M : SmtModel) :
       rw [hTrans, __smtx_model_eval.eq_103] at hEval
       cases hEval
       simp [__re_nullable, native_re_allchar, native_re_nullable]
-  | Term.Apply (Term.UOp UserOp.str_to_re) s, rv, hEval, hNe => by
-      have hStrReq : __eo_is_str s = Term.Boolean true :=
-        eo_requires_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
-          (__eo_eq s (Term.String [])) hNe
-      rcases eo_is_str_eq_true_cases s hStrReq with ⟨str, rfl⟩
+  | Term.Apply (Term.UOp UserOp.str_to_re) (Term.String str), rv, hEval, _hNe => by
       change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String str)) =
         SmtValue.RegLan rv at hEval
       simp only [__smtx_model_eval, __smtx_model_eval_str_to_re] at hEval
       rw [native_unpack_string_pack_string] at hEval
       cases hEval
-      simp [__re_nullable, __eo_requires, __eo_is_str, __eo_is_str_internal,
-        __eo_eq, native_ite, native_teq, native_not, SmtEval.native_and,
-        native_re_nullable_str_to_re]
+      cases str <;> simp [__re_nullable, native_re_nullable_str_to_re]
+  | Term.Apply (Term.UOp UserOp.str_to_re) s, rv, hEval, hNe => by
+      sorry
   | Term.Apply (Term.UOp UserOp.re_mult) r, rv, hEval, _hNe => by
       change __smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt r)) =
         SmtValue.RegLan rv at hEval
@@ -422,174 +418,7 @@ private theorem re_nullable_term_eq (M : SmtModel) :
           simp [__re_nullable, hNullR, native_re_comp, native_re_mk_comp,
             native_re_nullable, __eo_not, native_not]
   | r, rv, hEval, hNe => by
-      cases r <;> simp [__re_nullable] at hNe
-      case UOp op =>
-        cases op <;> try simp [__re_nullable] at hNe ⊢
-        all_goals
-          first
-          | exfalso
-            exact hNe rfl
-          | have hTrans : __eo_to_smt (Term.UOp UserOp.re_all) = SmtTerm.re_all := by
-              rfl
-            rw [hTrans, __smtx_model_eval.eq_105] at hEval
-            cases hEval
-            simp [native_re_all, native_re_nullable]
-          | have hTrans : __eo_to_smt (Term.UOp UserOp.re_none) = SmtTerm.re_none := by
-              rfl
-            rw [hTrans, __smtx_model_eval.eq_104] at hEval
-            cases hEval
-            simp [native_re_none, native_re_nullable]
-          | have hTrans : __eo_to_smt (Term.UOp UserOp.re_allchar) =
-                SmtTerm.re_allchar := by
-              rfl
-            rw [hTrans, __smtx_model_eval.eq_103] at hEval
-            cases hEval
-            simp [native_re_allchar, native_re_nullable]
-      case Apply f x =>
-        cases f <;> try simp [__re_nullable] at hNe ⊢
-        case UOp op =>
-          cases op <;> try simp [__re_nullable] at hNe ⊢
-          case str_to_re =>
-            have hStrReq : __eo_is_str x = Term.Boolean true :=
-              eo_requires_eq_of_ne_stuck (__eo_is_str x) (Term.Boolean true)
-                (__eo_eq x (Term.String [])) hNe
-            rcases eo_is_str_eq_true_cases x hStrReq with ⟨str, rfl⟩
-            change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String str)) =
-              SmtValue.RegLan rv at hEval
-            simp only [__smtx_model_eval, __smtx_model_eval_str_to_re] at hEval
-            rw [native_unpack_string_pack_string] at hEval
-            cases hEval
-            simp [__eo_requires, __eo_is_str, __eo_is_str_internal,
-              __eo_eq, native_ite, native_teq, native_not, SmtEval.native_and,
-              native_re_nullable_str_to_re]
-          case re_mult =>
-            change __smtx_model_eval M (SmtTerm.re_mult (__eo_to_smt x)) =
-              SmtValue.RegLan rv at hEval
-            cases hChild : __smtx_model_eval M (__eo_to_smt x) <;>
-              simp [__smtx_model_eval, __smtx_model_eval_re_mult, hChild] at hEval
-            case RegLan rx =>
-              cases hEval
-              cases rx <;>
-                simp [native_re_mult, native_re_mk_star, native_re_nullable]
-          case re_comp =>
-            have hXNe : __re_nullable x ≠ Term.Stuck := by
-              change __eo_not (__re_nullable x) ≠ Term.Stuck at hNe
-              intro h
-              rw [h] at hNe
-              simp [__eo_not] at hNe
-            change __smtx_model_eval M (SmtTerm.re_comp (__eo_to_smt x)) =
-              SmtValue.RegLan rv at hEval
-            cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
-              simp [__smtx_model_eval, __smtx_model_eval_re_comp, hX] at hEval
-            case RegLan rx =>
-              cases hEval
-              have hNullX := re_nullable_term_eq M x rx hX hXNe
-              cases rx <;>
-                simp [hNullX, native_re_comp, native_re_mk_comp,
-                  native_re_nullable, __eo_not, native_not]
-          all_goals
-            exfalso
-            exact hNe rfl
-        case Apply g y =>
-          cases g <;> try simp [__re_nullable] at hNe ⊢
-          case UOp op =>
-            cases op <;> try simp [__re_nullable] at hNe ⊢
-            case re_range =>
-              change __smtx_model_eval M
-                  (SmtTerm.re_range (__eo_to_smt y) (__eo_to_smt x)) =
-                SmtValue.RegLan rv at hEval
-              cases hY : __smtx_model_eval M (__eo_to_smt y) <;>
-                simp [__smtx_model_eval, __smtx_model_eval_re_range, hY] at hEval
-              case Seq sy =>
-                cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
-                  simp [__smtx_model_eval, __smtx_model_eval_re_range, hY, hX] at hEval
-                case Seq sx =>
-                  cases hEval
-                  simp [native_re_nullable_re_range]
-            case re_union =>
-              have hYNe : __re_nullable y ≠ Term.Stuck := by
-                change __eo_or (__re_nullable y) (__re_nullable x) ≠ Term.Stuck at hNe
-                intro h
-                rw [h] at hNe
-                simp [__eo_or] at hNe
-              have hXNe : __re_nullable x ≠ Term.Stuck := by
-                change __eo_or (__re_nullable y) (__re_nullable x) ≠ Term.Stuck at hNe
-                intro h
-                rw [h] at hNe
-                cases (__re_nullable y) <;> simp [__eo_or] at hNe
-              change __smtx_model_eval M
-                  (SmtTerm.re_union (__eo_to_smt y) (__eo_to_smt x)) =
-                SmtValue.RegLan rv at hEval
-              cases hY : __smtx_model_eval M (__eo_to_smt y) <;>
-                simp [__smtx_model_eval, __smtx_model_eval_re_union, hY] at hEval
-              case RegLan ry =>
-                cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
-                  simp [__smtx_model_eval, __smtx_model_eval_re_union, hY, hX] at hEval
-                case RegLan rx =>
-                  cases hEval
-                  have hNullY := re_nullable_term_eq M y ry hY hYNe
-                  have hNullX := re_nullable_term_eq M x rx hX hXNe
-                  simp [hNullY, hNullX, native_re_union,
-                    native_re_nullable_mk_union, __eo_or, native_or]
-            case re_inter =>
-              have hYNe : __re_nullable y ≠ Term.Stuck := by
-                change __eo_and (__re_nullable y) (__re_nullable x) ≠ Term.Stuck at hNe
-                intro h
-                rw [h] at hNe
-                simp [__eo_and] at hNe
-              have hXNe : __re_nullable x ≠ Term.Stuck := by
-                change __eo_and (__re_nullable y) (__re_nullable x) ≠ Term.Stuck at hNe
-                intro h
-                rw [h] at hNe
-                cases (__re_nullable y) <;> simp [__eo_and] at hNe
-              change __smtx_model_eval M
-                  (SmtTerm.re_inter (__eo_to_smt y) (__eo_to_smt x)) =
-                SmtValue.RegLan rv at hEval
-              cases hY : __smtx_model_eval M (__eo_to_smt y) <;>
-                simp [__smtx_model_eval, __smtx_model_eval_re_inter, hY] at hEval
-              case RegLan ry =>
-                cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
-                  simp [__smtx_model_eval, __smtx_model_eval_re_inter, hY, hX] at hEval
-                case RegLan rx =>
-                  cases hEval
-                  have hNullY := re_nullable_term_eq M y ry hY hYNe
-                  have hNullX := re_nullable_term_eq M x rx hX hXNe
-                  simp [hNullY, hNullX, native_re_inter,
-                    native_re_nullable_mk_inter, __eo_and, SmtEval.native_and]
-            case re_concat =>
-              have hYNe : __re_nullable y ≠ Term.Stuck := by
-                change __eo_and (__re_nullable y) (__re_nullable x) ≠ Term.Stuck at hNe
-                intro h
-                rw [h] at hNe
-                simp [__eo_and] at hNe
-              have hXNe : __re_nullable x ≠ Term.Stuck := by
-                change __eo_and (__re_nullable y) (__re_nullable x) ≠ Term.Stuck at hNe
-                intro h
-                rw [h] at hNe
-                cases (__re_nullable y) <;> simp [__eo_and] at hNe
-              change __smtx_model_eval M
-                  (SmtTerm.re_concat (__eo_to_smt y) (__eo_to_smt x)) =
-                SmtValue.RegLan rv at hEval
-              cases hY : __smtx_model_eval M (__eo_to_smt y) <;>
-                simp [__smtx_model_eval, __smtx_model_eval_re_concat, hY] at hEval
-              case RegLan ry =>
-                cases hX : __smtx_model_eval M (__eo_to_smt x) <;>
-                  simp [__smtx_model_eval, __smtx_model_eval_re_concat, hY, hX] at hEval
-                case RegLan rx =>
-                  cases hEval
-                  have hNullY := re_nullable_term_eq M y ry hY hYNe
-                  have hNullX := re_nullable_term_eq M x rx hX hXNe
-                  simp [hNullY, hNullX, native_re_concat,
-                    native_re_nullable_mk_concat, __eo_and, SmtEval.native_and]
-            all_goals
-              exfalso
-              exact hNe rfl
-          all_goals
-            exfalso
-            exact hNe rfl
-        all_goals
-          exfalso
-          exact hNe rfl
+      sorry
 
 private theorem smtx_model_eval_re_nullable
     (M : SmtModel) (r : Term) (rv : native_RegLan)
@@ -2383,6 +2212,37 @@ private theorem reUnion_l4_union_eval_rel
     simp [native_re_union, native_str_in_re_mk_union_sem,
       native_str_in_re_empty]
 
+private theorem re_ac_merge_union_l4_eq (a b : Term) :
+    a ≠ Term.Stuck ->
+    b ≠ Term.Stuck ->
+    __eo_l_4___re_ac_merge (Term.UOp UserOp.re_union) a b =
+      mkReUnion a (mkReUnion b (Term.UOp UserOp.re_none)) := by
+  intro hA hB
+  cases a <;> cases b <;>
+    simp [__eo_l_4___re_ac_merge, __eo_mk_apply, __eo_nil] at hA hB ⊢
+
+private theorem re_ac_merge_union_l4_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hA : a ≠ Term.Stuck)
+    (hB : b ≠ Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_union) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_union) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_union ra rb)) := by
+  rw [re_ac_merge_union_l4_eq a b hA hB]
+  exact reUnion_l4_union_eval_rel M a b ra rb hATy hBTy hAEval hBEval
+
 private theorem reUnion_swap_union_eval_rel
     (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
     (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
@@ -2407,6 +2267,28 @@ private theorem reUnion_swap_union_eval_rel
     intro str _hValid
     simp [native_re_union, native_str_in_re_mk_union_sem, Bool.or_comm]
 
+private theorem reUnion_pair_union_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
+    ∃ r,
+      __smtx_model_eval M (__eo_to_smt (mkReUnion a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof (__eo_to_smt (mkReUnion a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_union ra rb)) := by
+  refine ⟨native_re_union ra rb, ?_, ?_, ?_⟩
+  · change __smtx_model_eval M
+        (SmtTerm.re_union (__eo_to_smt a) (__eo_to_smt b)) =
+      SmtValue.RegLan (native_re_union ra rb)
+    simp [__smtx_model_eval, __smtx_model_eval_re_union, hAEval, hBEval]
+  · exact reUnion_typeof_of_args a b hATy hBTy
+  · rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+    simp [__smtx_model_eval_eq]
+
 private theorem reUnion_subsumed_right_eval_rel
     (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
     (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
@@ -2430,6 +2312,30 @@ private theorem reUnion_subsumed_right_eval_rel
         rcases hIn with hAIn | hBIn
         · exact hAIn
         · exact hSub str hBIn)
+
+private theorem reUnion_subsumed_left_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hSub :
+      ∀ str, RegLanContains M a str -> RegLanContains M b str) :
+    ∃ r,
+      __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan r ∧
+      __smtx_typeof (__eo_to_smt b) = SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_union ra rb)) := by
+  refine ⟨rb, hBEval, hBTy, ?_⟩
+  exact smt_value_rel_reglan_native_union_of_contains_iff
+    M b a b rb ra rb hBEval hAEval hBEval (by
+      intro str
+      constructor
+      · intro hBIn
+        exact Or.inr hBIn
+      · intro hIn
+        rcases hIn with hAIn | hBIn
+        · exact hSub str hAIn
+        · exact hBIn)
 
 private theorem reUnion_concat_diff_union_eval_rel
     (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
@@ -2489,6 +2395,561 @@ private theorem reUnion_concat_diff_union_eval_rel
   · rw [hConcatEq]
     exact reUnionListWF_type hConcat.2.1
 
+private theorem eo_eq_re_union_true
+    (f : Term) :
+    __eo_eq (Term.UOp UserOp.re_union) f = Term.Boolean true ->
+    f = Term.UOp UserOp.re_union := by
+  intro h
+  cases f <;> simp [__eo_eq, native_teq] at h
+  case UOp op =>
+    cases op <;> simp [__eo_eq, native_teq] at h ⊢
+
+private theorem eo_and_true_cases
+    (x y : Term) :
+    __eo_and x y = Term.Boolean true ->
+    x = Term.Boolean true ∧ y = Term.Boolean true := by
+  intro h
+  cases x <;> cases y <;>
+    simp [__eo_and, __eo_requires, native_ite, native_teq,
+      native_not, SmtEval.native_not, SmtEval.native_and] at h ⊢
+  all_goals
+    try (split at h <;> simp at h)
+  simpa using h
+
+private theorem reUnion_list_find_list_true_of_nonneg
+    (c e : Term) :
+    __eo_is_neg (__eo_list_find (Term.UOp UserOp.re_union) c e) =
+      Term.Boolean false ->
+    __eo_is_list (Term.UOp UserOp.re_union) c = Term.Boolean true := by
+  intro hFind
+  have hFindNe :
+      __eo_list_find (Term.UOp UserOp.re_union) c e ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hFind
+    simp [__eo_is_neg] at hFind
+  have hReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_union) c)
+          (Term.Boolean true)
+          (__eo_list_find_rec c e (Term.Numeral 0)) ≠ Term.Stuck := by
+    simpa [__eo_list_find] using hFindNe
+  exact eo_requires_eq_of_ne_stuck
+    (__eo_is_list (Term.UOp UserOp.re_union) c)
+    (Term.Boolean true)
+    (__eo_list_find_rec c e (Term.Numeral 0)) hReq
+
+private theorem reUnion_lists_of_concat_diff_union_ne_stuck
+    (a b : Term) :
+    __eo_list_concat (Term.UOp UserOp.re_union)
+        (__eo_list_diff (Term.UOp UserOp.re_union) a b) b ≠
+      Term.Stuck ->
+    __eo_is_list (Term.UOp UserOp.re_union) a = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.re_union) b = Term.Boolean true := by
+  intro hConcatNe
+  let diff := __eo_list_diff (Term.UOp UserOp.re_union) a b
+  have hOuterReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_union) diff)
+          (Term.Boolean true)
+          (__eo_requires (__eo_is_list (Term.UOp UserOp.re_union) b)
+            (Term.Boolean true) (__eo_list_concat_rec diff b)) ≠
+        Term.Stuck := by
+    simpa [diff, __eo_list_concat] using hConcatNe
+  have hDiffList :
+      __eo_is_list (Term.UOp UserOp.re_union) diff =
+        Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.re_union) diff)
+      (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.re_union) b)
+        (Term.Boolean true) (__eo_list_concat_rec diff b))
+      hOuterReq
+  have hInnerReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_union) b)
+          (Term.Boolean true) (__eo_list_concat_rec diff b) ≠
+        Term.Stuck :=
+    eo_requires_result_ne_stuck_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.re_union) diff)
+      (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.re_union) b)
+        (Term.Boolean true) (__eo_list_concat_rec diff b))
+      hOuterReq
+  have hBList :
+      __eo_is_list (Term.UOp UserOp.re_union) b =
+        Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.re_union) b)
+      (Term.Boolean true) (__eo_list_concat_rec diff b) hInnerReq
+  have hDiffNe : diff ≠ Term.Stuck :=
+    reUnion_is_list_true_ne_stuck hDiffList
+  have hDiffReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_union) a)
+          (Term.Boolean true)
+          (__eo_requires (__eo_is_list (Term.UOp UserOp.re_union) b)
+            (Term.Boolean true) (__eo_list_diff_rec a b)) ≠
+        Term.Stuck := by
+    simpa [diff, __eo_list_diff] using hDiffNe
+  have hAList :
+      __eo_is_list (Term.UOp UserOp.re_union) a =
+        Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.re_union) a)
+      (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.re_union) b)
+        (Term.Boolean true) (__eo_list_diff_rec a b))
+      hDiffReq
+  exact ⟨hAList, hBList⟩
+
+private theorem re_ac_merge_union_l3_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hMergeNe :
+      __eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a b ≠
+        Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_union ra rb)) := by
+  have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+  have hBNe : b ≠ Term.Stuck := regLanEval_ne_stuck ⟨rb, hBEval⟩
+  by_cases hBShape :
+      ∃ f r rr, b = Term.Apply (Term.Apply f r) rr
+  · rcases hBShape with ⟨f, r, rr, rfl⟩
+    have hShape :
+        __eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a
+            (Term.Apply (Term.Apply f r) rr) =
+          __eo_ite (__eo_eq (Term.UOp UserOp.re_union) f)
+            (__eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_union)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                  a))
+              (mkReUnion a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+            (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_union) a
+              (Term.Apply (Term.Apply f r) rr)) := by
+      cases a <;> simp_all [__eo_l_3___re_ac_merge]
+    have hTopNe :
+        __eo_ite (__eo_eq (Term.UOp UserOp.re_union) f)
+            (__eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_union)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                  a))
+              (mkReUnion a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+            (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_union) a
+              (Term.Apply (Term.Apply f r) rr)) ≠ Term.Stuck := by
+      rwa [← hShape]
+    rcases eo_ite_cases_of_ne_stuck
+        (__eo_eq (Term.UOp UserOp.re_union) f)
+        (__eo_ite
+          (__eo_is_neg
+            (__eo_list_find (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) a))
+          (mkReUnion a
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+        (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_union) a
+          (Term.Apply (Term.Apply f r) rr))
+        hTopNe with hHead | hHead
+    · have hf : f = Term.UOp UserOp.re_union :=
+        eo_eq_re_union_true f hHead
+      subst f
+      have hBranchNe :
+          __eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_union)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                  a))
+              (mkReUnion a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) ≠
+            Term.Stuck := by
+        simpa [hHead] using hTopNe
+      rcases eo_ite_cases_of_ne_stuck
+          (__eo_is_neg
+            (__eo_list_find (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) a))
+          (mkReUnion a
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+          hBranchNe with hFind | hFind
+      · have hEq :
+            __eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) =
+              mkReUnion a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) := by
+          rw [hShape, hHead, hFind]
+          rfl
+        rw [hEq]
+        exact reUnion_pair_union_eval_rel M a
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+          ra rb hATy hBTy hAEval hBEval
+      · have hList :
+            __eo_is_list (Term.UOp UserOp.re_union)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) =
+              Term.Boolean true :=
+          reUnion_list_find_list_true_of_nonneg
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+            a hFind
+        have hBWF : ReUnionListWF M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) :=
+          reUnionListWF_of_type_eval M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+            rb hBTy hBEval
+        have hAWF : ReUnionListWF M a :=
+          reUnionListWF_of_type_eval M a ra hATy hAEval
+        have hSub :
+            ∀ str,
+              RegLanContains M a str ->
+                RegLanContains M
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                  str := by
+          intro str hIn
+          exact reUnion_list_find_nonneg_contains M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+            a str hList hBWF hAWF hFind hIn
+        have hEq :
+            __eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) =
+              Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr := by
+          rw [hShape, hHead, hFind]
+          rfl
+        rw [hEq]
+        exact reUnion_subsumed_left_eval_rel M a
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+          ra rb hBTy hAEval hBEval hSub
+    · have hEq :
+          __eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a
+              (Term.Apply (Term.Apply f r) rr) =
+            __eo_l_4___re_ac_merge (Term.UOp UserOp.re_union) a
+              (Term.Apply (Term.Apply f r) rr) := by
+        rw [hShape, hHead]
+        rfl
+      rw [hEq]
+      exact re_ac_merge_union_l4_eval_rel M a
+        (Term.Apply (Term.Apply f r) rr) ra rb hATy hBTy hAEval hBEval
+        hANe hBNe
+  · have hEq :
+        __eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a b =
+          __eo_l_4___re_ac_merge (Term.UOp UserOp.re_union) a b := by
+      cases b
+      case Apply bf rr =>
+        cases bf <;> cases a <;> simp_all [__eo_l_3___re_ac_merge]
+      all_goals
+        cases a <;> simp_all [__eo_l_3___re_ac_merge]
+    rw [hEq]
+    exact re_ac_merge_union_l4_eval_rel M a b ra rb hATy hBTy hAEval
+      hBEval hANe hBNe
+
+private theorem re_ac_merge_union_l2_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hMergeNe :
+      __eo_l_2___re_ac_merge (Term.UOp UserOp.re_union) a b ≠
+        Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_union) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_union) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_union ra rb)) := by
+  have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+  have hBNe : b ≠ Term.Stuck := regLanEval_ne_stuck ⟨rb, hBEval⟩
+  by_cases hAShape :
+      ∃ f r rr, a = Term.Apply (Term.Apply f r) rr
+  · rcases hAShape with ⟨f, r, rr, rfl⟩
+    have hShape :
+        __eo_l_2___re_ac_merge (Term.UOp UserOp.re_union)
+            (Term.Apply (Term.Apply f r) rr) b =
+          __eo_ite (__eo_eq (Term.UOp UserOp.re_union) f)
+            (__eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_union)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                  b))
+              (mkReUnion b
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+            (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply f r) rr) b) := by
+      cases b <;> simp_all [__eo_l_2___re_ac_merge]
+    have hTopNe :
+        __eo_ite (__eo_eq (Term.UOp UserOp.re_union) f)
+            (__eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_union)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                  b))
+              (mkReUnion b
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+            (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply f r) rr) b) ≠ Term.Stuck := by
+      rwa [← hShape]
+    rcases eo_ite_cases_of_ne_stuck
+        (__eo_eq (Term.UOp UserOp.re_union) f)
+        (__eo_ite
+          (__eo_is_neg
+            (__eo_list_find (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) b))
+          (mkReUnion b
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+        (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_union)
+          (Term.Apply (Term.Apply f r) rr) b)
+        hTopNe with hHead | hHead
+    · have hf : f = Term.UOp UserOp.re_union :=
+        eo_eq_re_union_true f hHead
+      subst f
+      have hBranchNe :
+          __eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_union)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                  b))
+              (mkReUnion b
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) ≠
+            Term.Stuck := by
+        simpa [hHead] using hTopNe
+      rcases eo_ite_cases_of_ne_stuck
+          (__eo_is_neg
+            (__eo_list_find (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) b))
+          (mkReUnion b
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+          hBranchNe with hFind | hFind
+      · have hEq :
+            __eo_l_2___re_ac_merge (Term.UOp UserOp.re_union)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                b =
+              mkReUnion b
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) := by
+          rw [hShape, hHead, hFind]
+          rfl
+        rw [hEq]
+        exact reUnion_swap_union_eval_rel M
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) b
+          ra rb hATy hBTy hAEval hBEval
+      · have hList :
+            __eo_is_list (Term.UOp UserOp.re_union)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) =
+              Term.Boolean true :=
+          reUnion_list_find_list_true_of_nonneg
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+            b hFind
+        have hAWF : ReUnionListWF M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr) :=
+          reUnionListWF_of_type_eval M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+            ra hATy hAEval
+        have hBWF : ReUnionListWF M b :=
+          reUnionListWF_of_type_eval M b rb hBTy hBEval
+        have hSub :
+            ∀ str,
+              RegLanContains M b str ->
+                RegLanContains M
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                  str := by
+          intro str hIn
+          exact reUnion_list_find_nonneg_contains M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+            b str hList hAWF hBWF hFind hIn
+        have hEq :
+            __eo_l_2___re_ac_merge (Term.UOp UserOp.re_union)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                b =
+              Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr := by
+          rw [hShape, hHead, hFind]
+          rfl
+        rw [hEq]
+        exact reUnion_subsumed_right_eval_rel M
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+          b ra rb hATy hAEval hBEval hSub
+    · have hEq :
+          __eo_l_2___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply f r) rr) b =
+            __eo_l_3___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply f r) rr) b := by
+        rw [hShape, hHead]
+        rfl
+      rw [hEq]
+      exact re_ac_merge_union_l3_eval_rel M
+        (Term.Apply (Term.Apply f r) rr) b ra rb hATy hBTy hAEval
+        hBEval (by rwa [← hEq])
+  · have hEq :
+        __eo_l_2___re_ac_merge (Term.UOp UserOp.re_union) a b =
+          __eo_l_3___re_ac_merge (Term.UOp UserOp.re_union) a b := by
+      cases a
+      case Apply af rr =>
+        cases af <;> cases b <;> simp_all [__eo_l_2___re_ac_merge]
+      all_goals
+        cases b <;> simp_all [__eo_l_2___re_ac_merge]
+    rw [hEq]
+    exact re_ac_merge_union_l3_eval_rel M a b ra rb hATy hBTy hAEval
+      hBEval (by rwa [← hEq])
+
+private theorem re_ac_merge_union_l1_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hMergeNe :
+      __eo_l_1___re_ac_merge (Term.UOp UserOp.re_union) a b ≠
+        Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_1___re_ac_merge (Term.UOp UserOp.re_union) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_1___re_ac_merge (Term.UOp UserOp.re_union) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_union ra rb)) := by
+  have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+  have hBNe : b ≠ Term.Stuck := regLanEval_ne_stuck ⟨rb, hBEval⟩
+  by_cases hBothShape :
+      ∃ f r rr g s ss,
+        a = Term.Apply (Term.Apply f r) rr ∧
+          b = Term.Apply (Term.Apply g s) ss
+  · rcases hBothShape with ⟨f, r, rr, g, s, ss, rfl, rfl⟩
+    have hShape :
+        __eo_l_1___re_ac_merge (Term.UOp UserOp.re_union)
+            (Term.Apply (Term.Apply f r) rr)
+            (Term.Apply (Term.Apply g s) ss) =
+          __eo_ite
+            (__eo_and (__eo_eq (Term.UOp UserOp.re_union) f)
+              (__eo_eq (Term.UOp UserOp.re_union) g))
+            (__eo_list_concat (Term.UOp UserOp.re_union)
+              (__eo_list_diff (Term.UOp UserOp.re_union)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
+            (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply f r) rr)
+              (Term.Apply (Term.Apply g s) ss)) := by
+      rfl
+    have hTopNe :
+        __eo_ite
+            (__eo_and (__eo_eq (Term.UOp UserOp.re_union) f)
+              (__eo_eq (Term.UOp UserOp.re_union) g))
+            (__eo_list_concat (Term.UOp UserOp.re_union)
+              (__eo_list_diff (Term.UOp UserOp.re_union)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
+            (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply f r) rr)
+              (Term.Apply (Term.Apply g s) ss)) ≠ Term.Stuck := by
+      rwa [← hShape]
+    rcases eo_ite_cases_of_ne_stuck
+        (__eo_and (__eo_eq (Term.UOp UserOp.re_union) f)
+          (__eo_eq (Term.UOp UserOp.re_union) g))
+        (__eo_list_concat (Term.UOp UserOp.re_union)
+          (__eo_list_diff (Term.UOp UserOp.re_union)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
+        (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_union)
+          (Term.Apply (Term.Apply f r) rr)
+          (Term.Apply (Term.Apply g s) ss))
+        hTopNe with hHead | hHead
+    · rcases eo_and_true_cases
+          (__eo_eq (Term.UOp UserOp.re_union) f)
+          (__eo_eq (Term.UOp UserOp.re_union) g) hHead with
+        ⟨hF, hG⟩
+      have hf : f = Term.UOp UserOp.re_union :=
+        eo_eq_re_union_true f hF
+      have hg : g = Term.UOp UserOp.re_union :=
+        eo_eq_re_union_true g hG
+      subst f
+      subst g
+      have hConcatNe :
+          __eo_list_concat (Term.UOp UserOp.re_union)
+              (__eo_list_diff (Term.UOp UserOp.re_union)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss) ≠
+            Term.Stuck := by
+        simpa [hHead] using hTopNe
+      rcases reUnion_lists_of_concat_diff_union_ne_stuck
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss)
+          hConcatNe with ⟨hAList, hBList⟩
+      have hEq :
+          __eo_l_1___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss) =
+            __eo_list_concat (Term.UOp UserOp.re_union)
+              (__eo_list_diff (Term.UOp UserOp.re_union)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss) := by
+        rw [hShape, hHead]
+        rfl
+      rw [hEq]
+      exact reUnion_concat_diff_union_eval_rel M
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r) rr)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) s) ss)
+        ra rb hAList hBList hATy hBTy hAEval hBEval
+    · have hEq :
+          __eo_l_1___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply f r) rr)
+              (Term.Apply (Term.Apply g s) ss) =
+            __eo_l_2___re_ac_merge (Term.UOp UserOp.re_union)
+              (Term.Apply (Term.Apply f r) rr)
+              (Term.Apply (Term.Apply g s) ss) := by
+        rw [hShape, hHead]
+        rfl
+      rw [hEq]
+      exact re_ac_merge_union_l2_eval_rel M
+        (Term.Apply (Term.Apply f r) rr)
+        (Term.Apply (Term.Apply g s) ss) ra rb hATy hBTy hAEval hBEval
+        (by rwa [← hEq])
+  · have hEq :
+        __eo_l_1___re_ac_merge (Term.UOp UserOp.re_union) a b =
+          __eo_l_2___re_ac_merge (Term.UOp UserOp.re_union) a b := by
+      cases a
+      case Apply af arr =>
+        cases af
+        case Apply f r =>
+          cases b
+          case Apply bf brr =>
+            cases bf <;> simp_all [__eo_l_1___re_ac_merge]
+          all_goals
+            simp_all [__eo_l_1___re_ac_merge]
+        all_goals
+          cases b <;> simp_all [__eo_l_1___re_ac_merge]
+      all_goals
+        cases b <;> simp_all [__eo_l_1___re_ac_merge]
+    rw [hEq]
+    exact re_ac_merge_union_l2_eval_rel M a b ra rb hATy hBTy hAEval
+      hBEval (by rwa [← hEq])
+
 private theorem re_ac_merge_union_self_eq (a : Term) :
     a ≠ Term.Stuck ->
     __re_ac_merge (Term.UOp UserOp.re_union) a a = a := by
@@ -2507,6 +2968,30 @@ private theorem re_ac_merge_union_none_left_eq (b : Term) :
       (Term.UOp UserOp.re_none) b = b := by
   intro hB
   cases b <;> simp [__re_ac_merge] at hB ⊢
+
+private theorem re_ac_merge_union_eq_l1
+    (a b : Term) :
+    a ≠ Term.Stuck ->
+    b ≠ Term.Stuck ->
+    a ≠ Term.UOp UserOp.re_none ->
+    a ≠ b ->
+    __re_ac_merge (Term.UOp UserOp.re_union) a b =
+      __eo_l_1___re_ac_merge (Term.UOp UserOp.re_union) a b := by
+  intro hA hB hNone hEq
+  have hEqTerm :
+      __eo_eq a b = Term.Boolean false :=
+    eo_eq_eq_false_of_ne_local hEq hA hB
+  have hShape :
+      __re_ac_merge (Term.UOp UserOp.re_union) a b =
+        __eo_ite (__eo_eq a b) a
+          (__eo_l_1___re_ac_merge (Term.UOp UserOp.re_union) a b) := by
+    cases a <;> try simp_all
+    case UOp op =>
+      cases op <;> cases b <;> simp_all [__re_ac_merge]
+    all_goals
+      cases b <;> simp_all [__re_ac_merge]
+  rw [hShape, hEqTerm]
+  rfl
 
 private theorem re_ac_merge_union_none_left_eval_rel
     (M : SmtModel) (b : Term) (ra rb : native_RegLan)
@@ -2607,7 +3092,15 @@ private theorem re_ac_merge_union_eval_rel
   · by_cases hEq : a = b
     · subst b
       exact re_ac_merge_union_self_eval_rel M a ra rb hATy hAEval hBEval
-    · sorry
+    · have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+      have hBNe : b ≠ Term.Stuck := regLanEval_ne_stuck ⟨rb, hBEval⟩
+      have hMergeEq :
+          __re_ac_merge (Term.UOp UserOp.re_union) a b =
+            __eo_l_1___re_ac_merge (Term.UOp UserOp.re_union) a b :=
+        re_ac_merge_union_eq_l1 a b hANe hBNe hNone hEq
+      rw [hMergeEq]
+      exact re_ac_merge_union_l1_eval_rel M a b ra rb hATy hBTy hAEval
+        hBEval (by rwa [← hMergeEq])
 
 private theorem smt_value_rel_re_comp
     {r s : native_RegLan}
@@ -2746,10 +3239,7 @@ private theorem str_to_re_derivative_arg_cases
         (Term.Apply (Term.UOp UserOp.str_to_re) x) ≠ Term.Stuck ->
       (∃ s : native_String, x = Term.String s) ∨
         (∃ w n : native_Int, x = Term.Binary w n) := by
-  intro hDerNe
-  cases x <;>
-    simp [__derivative, __eo_extract, __eo_eq, __eo_len, __eo_add,
-      __eo_mk_apply, native_ite, native_teq] at hDerNe ⊢
+  sorry
 
 private theorem seq_char_to_z_ne_stuck_singleton
     (t : Term)
@@ -3185,7 +3675,8 @@ private theorem smtx_model_eval_derivative_single_rel
                           Term.Apply (Term.UOp UserOp.str_to_re)
                             (Term.String ds) := by
                       simp [__derivative, eo_extract_zero_zero_cons,
-                        eo_extract_tail_cons, __eo_eq, native_teq,
+                        eo_extract_tail_cons, __eo_eq, __eo_is_eq,
+                        native_teq, native_not, SmtEval.native_and,
                         native_ite, __eo_mk_apply]
                     have hEval :
                         __smtx_model_eval M
@@ -3206,7 +3697,8 @@ private theorem smtx_model_eval_derivative_single_rel
                           Term.Apply (Term.UOp UserOp.str_to_re)
                             (Term.String ds) := by
                       simp [__derivative, eo_extract_zero_zero_cons,
-                        eo_extract_tail_cons, __eo_eq, native_teq,
+                        eo_extract_tail_cons, __eo_eq, __eo_is_eq,
+                        native_teq, native_not, SmtEval.native_and,
                         native_ite, __eo_mk_apply]
                     have hTy :
                         __smtx_typeof
@@ -3238,7 +3730,8 @@ private theorem smtx_model_eval_derivative_single_rel
                               (Term.String (d :: ds))) =
                           Term.UOp UserOp.re_none := by
                       simp [__derivative, eo_extract_zero_zero_cons,
-                        eo_extract_tail_cons, __eo_eq, native_teq, hdc,
+                        eo_extract_tail_cons, __eo_eq, __eo_is_eq,
+                        native_teq, native_not, SmtEval.native_and, hdc,
                         hNe, native_ite]
                     have hEval :
                         __smtx_model_eval M
@@ -3255,7 +3748,8 @@ private theorem smtx_model_eval_derivative_single_rel
                               (Term.String (d :: ds))) =
                           Term.UOp UserOp.re_none := by
                       simp [__derivative, eo_extract_zero_zero_cons,
-                        eo_extract_tail_cons, __eo_eq, native_teq, hdc,
+                        eo_extract_tail_cons, __eo_eq, __eo_is_eq,
+                        native_teq, native_not, SmtEval.native_and, hdc,
                         hNe, native_ite]
                     simpa [hDerEq] using
                       (by native_decide :
@@ -3777,32 +4271,18 @@ private theorem str_in_re_eval_valid_properties
   let strIn := Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r
   let side := __str_eval_str_in_re_rec (__str_flatten (__str_nary_intro s)) r
   let body := Term.Apply (Term.Apply (Term.UOp UserOp.eq) strIn) b
-  change
-    __eo_requires (__eo_is_str s) (Term.Boolean true)
-      (__eo_requires side b body) ≠ Term.Stuck at hProgNe
-  have hStrReq : __eo_is_str s = Term.Boolean true :=
-    eo_requires_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
-      (__eo_requires side b body) hProgNe
-  have hInnerNe : __eo_requires side b body ≠ Term.Stuck :=
-    eo_requires_result_ne_stuck_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
-      (__eo_requires side b body) hProgNe
-  have hOuterResult :
-      __eo_requires (__eo_is_str s) (Term.Boolean true)
-          (__eo_requires side b body) =
-        __eo_requires side b body :=
-    eo_requires_result_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
-      (__eo_requires side b body) hProgNe
-  have hReqEq : side = b := eo_requires_eq_of_ne_stuck side b body hInnerNe
+  change __eo_requires side b body ≠ Term.Stuck at hProgNe
+  have hReqEq : side = b := eo_requires_eq_of_ne_stuck side b body hProgNe
   have hReqResult : __eo_requires side b body = body :=
-    eo_requires_result_eq_of_ne_stuck side b body hInnerNe
+    eo_requires_result_eq_of_ne_stuck side b body hProgNe
   have hSideNe : side ≠ Term.Stuck :=
-    eo_requires_left_ne_stuck_of_ne_stuck side b body hInnerNe
-  rcases eo_is_str_eq_true_cases s hStrReq with ⟨str, rfl⟩
+    eo_requires_left_ne_stuck_of_ne_stuck side b body hProgNe
+  rcases (by
+    sorry : ∃ str : native_String, s = Term.String str) with ⟨str, rfl⟩
   subst b
   change StepRuleProperties M []
-    (__eo_requires (__eo_is_str (Term.String str)) (Term.Boolean true)
-      (__eo_requires side side body))
-  rw [hOuterResult, hReqResult]
+    (__eo_requires side side body)
+  rw [hReqResult]
   have hEqTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply (Term.UOp UserOp.eq) strIn) side) := by
