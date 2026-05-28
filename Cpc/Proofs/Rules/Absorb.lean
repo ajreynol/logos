@@ -1,4 +1,5 @@
 import Cpc.Proofs.RuleSupport.CnfSupport
+import Cpc.Proofs.RuleSupport.RegexSupport
 
 open Eo
 open SmtEval
@@ -790,93 +791,21 @@ private theorem bvor_result_type_of_non_none (y x : Term) :
   simp [__smtx_typeof_bv_op_2, hyTy, hxTy, native_ite, native_nateq,
     SmtEval.native_nateq]
 
-private def native_list_in_re (xs : List native_Char) (r : native_RegLan) :
-    native_Bool :=
-  native_re_nullable <| xs.foldl (fun acc c => native_re_deriv c acc) r
-
-private theorem native_list_in_re_empty :
-    (xs : List native_Char) -> native_list_in_re xs SmtRegLan.empty = false
-  | [] => by rfl
-  | _ :: xs => by
-      exact native_list_in_re_empty xs
-
-private theorem native_re_mk_union_self (r : native_RegLan) :
-    native_re_mk_union r r = r := by
-  cases r <;> simp [native_re_mk_union]
-
-private theorem native_re_mk_union_eq_union_of_ne
-    (r s : native_RegLan) :
-    r ≠ SmtRegLan.empty ->
-    s ≠ SmtRegLan.empty ->
-    r ≠ s ->
-    native_re_mk_union r s = SmtRegLan.union r s := by
-  intro hr hs hrs
-  cases r <;> cases s <;>
-    simp [native_re_mk_union] at hr hs ⊢
-  all_goals
-    try exact False.elim (hrs rfl)
-    try
-      intro h
-      subst h
-      exact False.elim (hrs rfl)
-    try
-      intro h1 h2
-      subst h1
-      subst h2
-      exact False.elim (hrs rfl)
-
-private theorem native_re_nullable_mk_union (r s : native_RegLan) :
-    native_re_nullable (native_re_mk_union r s) =
-      (native_re_nullable r || native_re_nullable s) := by
-  cases r <;> cases s <;>
-    simp [native_re_mk_union, native_re_nullable]
-  all_goals
-    split <;> simp_all [native_re_nullable]
-
-private theorem native_list_in_re_mk_union :
-    (xs : List native_Char) -> (r s : native_RegLan) ->
-      native_list_in_re xs (native_re_mk_union r s) =
-        (native_list_in_re xs r || native_list_in_re xs s)
-  | [], r, s => by
-      simp [native_list_in_re, native_re_nullable_mk_union]
-  | c :: cs, r, s => by
-      by_cases hr : r = SmtRegLan.empty
-      · subst r
-        simp [native_re_mk_union, native_list_in_re_empty]
-      · by_cases hs : s = SmtRegLan.empty
-        · subst s
-          simp [native_re_mk_union, native_list_in_re_empty]
-        · by_cases hEq : r = s
-          · subst s
-            rw [native_re_mk_union_self]
-            simp [native_list_in_re]
-          · rw [native_re_mk_union_eq_union_of_ne r s hr hs hEq]
-            simp [native_list_in_re, native_re_deriv]
-            exact native_list_in_re_mk_union cs
-              (native_re_deriv c r) (native_re_deriv c s)
-
 private theorem native_str_in_re_mk_union
     (str : native_String) (r s : native_RegLan) :
     native_str_in_re str (native_re_mk_union r s) =
       (native_str_in_re str r || native_str_in_re str s) := by
-  simpa [native_str_in_re, native_list_in_re] using
-    native_list_in_re_mk_union str r s
+  by_cases hValid : native_string_valid str = true
+  · simpa [native_str_in_re, hValid, RuleProofs.nativeListInRe] using
+      RuleProofs.nativeListInRe_mk_union str r s
+  · have hInvalid : native_string_valid str = false := by
+      cases h : native_string_valid str <;> simp [h] at hValid ⊢
+    simp [native_str_in_re, hInvalid]
 
-private theorem native_re_deriv_all (c : native_Char) :
-    native_re_deriv c native_re_all = native_re_all := by
-  simp [native_re_all, native_re_deriv, native_re_mk_concat]
-
-private theorem native_list_in_re_all :
-    (xs : List native_Char) -> native_list_in_re xs native_re_all = true
-  | [] => by rfl
-  | c :: cs => by
-      simp [native_list_in_re, native_re_deriv_all]
-      exact native_list_in_re_all cs
-
-private theorem native_str_in_re_all (str : native_String) :
+private theorem native_str_in_re_all (str : native_String)
+    (hValid : native_string_valid str = true) :
     native_str_in_re str native_re_all = true := by
-  simpa [native_str_in_re, native_list_in_re] using
-    native_list_in_re_all str
+  exact RuleProofs.native_str_in_re_re_all str hValid
 
 private theorem bitvec_toInt_emod_pow (w : Nat) (x : BitVec w) :
     x.toInt % (2 ^ w : Int) = x.toNat := by
@@ -1106,7 +1035,7 @@ private theorem reUnion_smt_value_rel_left_all_eval
       __smtx_model_eval M (__eo_to_smt (Term.UOp UserOp.re_all)) =
         SmtValue.RegLan native_re_all := by
     simp [__smtx_model_eval]
-  have hxExt : ∀ str,
+  have hxExt : ∀ str, native_string_valid str = true ->
       native_str_in_re str rx = native_str_in_re str native_re_all := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hxRel
     rw [hxEval, hAllEval] at hxRel
@@ -1120,8 +1049,8 @@ private theorem reUnion_smt_value_rel_left_all_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_union, hxEval,
     hyEval]
   simp [__smtx_model_eval_eq, native_re_union, native_str_in_re_mk_union]
-  intro str
-  rw [hxExt str, native_str_in_re_all str]
+  intro str hValid
+  rw [hxExt str hValid, native_str_in_re_all str hValid]
   simp
 
 private theorem reUnion_smt_value_rel_right_all_eval
@@ -1139,7 +1068,7 @@ private theorem reUnion_smt_value_rel_right_all_eval
       __smtx_model_eval M (__eo_to_smt (Term.UOp UserOp.re_all)) =
         SmtValue.RegLan native_re_all := by
     simp [__smtx_model_eval]
-  have hyExt : ∀ str,
+  have hyExt : ∀ str, native_string_valid str = true ->
       native_str_in_re str ry = native_str_in_re str native_re_all := by
     rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true] at hyRel
     rw [hyEval, hAllEval] at hyRel
@@ -1153,8 +1082,8 @@ private theorem reUnion_smt_value_rel_right_all_eval
   simp only [__smtx_model_eval, __smtx_model_eval_re_union, hxEval,
     hyEval]
   simp [__smtx_model_eval_eq, native_re_union, native_str_in_re_mk_union]
-  intro str
-  rw [hyExt str, native_str_in_re_all str]
+  intro str hValid
+  rw [hyExt str hValid, native_str_in_re_all str hValid]
   simp
 
 private theorem absorbTree_re_union_all

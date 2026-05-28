@@ -8,6 +8,10 @@ set_option linter.unusedVariables false
 set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
+private theorem native_string_lit_empty :
+    native_string_lit "" = ([] : native_String) := by
+  simp [native_string_lit]
+
 private abbrev mkStrInRe (s r : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.str_in_re) s) r
 
@@ -183,7 +187,8 @@ private theorem empty_str_in_re_has_bool_type :
       (SmtTerm.str_in_re (SmtTerm.String (native_string_lit ""))
         (SmtTerm.str_to_re (SmtTerm.String (native_string_lit "")))) = SmtType.Bool
   rw [typeof_str_in_re_eq, typeof_str_to_re_eq]
-  simp [__smtx_typeof.eq_4, native_ite, native_Teq]
+  simp [__smtx_typeof.eq_4, native_ite, native_Teq, native_string_valid,
+    native_string_lit]
 
 private theorem empty_str_in_re_true (M : SmtModel) :
     eo_interprets M emptyStrInRe true := by
@@ -196,7 +201,7 @@ private theorem empty_str_in_re_true (M : SmtModel) :
   simp [__smtx_model_eval, __smtx_model_eval_str_to_re, __smtx_model_eval_str_in_re,
     native_str_to_re, native_str_in_re, native_re_of_list, native_pack_string,
     native_unpack_string, native_pack_seq, native_unpack_seq,
-    native_re_nullable]
+    native_re_nullable, native_string_valid, native_string_lit]
 
 private theorem mk_re_concat_cons_shape
     (p : Term) (ps : List Term) (accS accR : Term) :
