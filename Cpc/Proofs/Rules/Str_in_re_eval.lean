@@ -12,14 +12,14 @@ set_option maxHeartbeats 10000000
 
 namespace RuleProofs
 
-private theorem eo_requires_eq_of_ne_stuck (x y z : Term) :
+theorem eo_requires_eq_of_ne_stuck (x y z : Term) :
     __eo_requires x y z ≠ Term.Stuck ->
     x = y := by
   intro h
   simp [__eo_requires, native_ite, native_teq] at h
   exact h.1
 
-private theorem eo_requires_result_eq_of_ne_stuck (x y z : Term) :
+theorem eo_requires_result_eq_of_ne_stuck (x y z : Term) :
     __eo_requires x y z ≠ Term.Stuck ->
     __eo_requires x y z = z := by
   intro h
@@ -29,7 +29,7 @@ private theorem eo_requires_result_eq_of_ne_stuck (x y z : Term) :
   subst y
   simp [__eo_requires, native_ite, native_teq, hxOk]
 
-private theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
+theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
     __eo_requires x y z ≠ Term.Stuck ->
     x ≠ Term.Stuck := by
   intro h
@@ -44,7 +44,7 @@ private theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
     simp [native_not] at hxOk
   exact hxNe hx
 
-private theorem eo_requires_result_ne_stuck_of_ne_stuck (x y z : Term) :
+theorem eo_requires_result_ne_stuck_of_ne_stuck (x y z : Term) :
     __eo_requires x y z ≠ Term.Stuck ->
     z ≠ Term.Stuck := by
   intro h
@@ -52,7 +52,7 @@ private theorem eo_requires_result_ne_stuck_of_ne_stuck (x y z : Term) :
   simp [__eo_requires, native_ite, native_teq] at h'
   exact h'.2.2
 
-private theorem eq_operands_same_smt_type_of_eq_has_smt_translation
+theorem eq_operands_same_smt_type_of_eq_has_smt_translation
     (x y : Term) :
     RuleProofs.eo_has_smt_translation
       (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) ->
@@ -73,7 +73,7 @@ private theorem eq_operands_same_smt_type_of_eq_has_smt_translation
     (__smtx_typeof (__eo_to_smt x))
     (__smtx_typeof (__eo_to_smt y)) |>.mp hEqTy
 
-private theorem eq_operands_have_smt_translation_of_eq_has_smt_translation
+theorem eq_operands_have_smt_translation_of_eq_has_smt_translation
     (x y : Term) :
     RuleProofs.eo_has_smt_translation
       (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) ->
@@ -103,7 +103,7 @@ private theorem str_in_re_args_smt_types_of_has_translation
   exact seq_char_reglan_args_of_non_none
     (op := SmtTerm.str_in_re) (typeof_str_in_re_eq (__eo_to_smt s) (__eo_to_smt r)) hNN
 
-private theorem eo_is_str_eq_true_cases (s : Term) :
+theorem eo_is_str_eq_true_cases (s : Term) :
     __eo_is_str s = Term.Boolean true ->
     ∃ cs : native_String, s = Term.String cs := by
   intro h
@@ -112,13 +112,13 @@ private theorem eo_is_str_eq_true_cases (s : Term) :
       native_not, SmtEval.native_and] at h
   case String cs => exact ⟨cs, rfl⟩
 
-private theorem native_unpack_seq_pack_seq (T : SmtType) :
+theorem native_unpack_seq_pack_seq (T : SmtType) :
     ∀ xs : List SmtValue, native_unpack_seq (native_pack_seq T xs) = xs
   | [] => rfl
   | x :: xs => by
       simp [native_pack_seq, native_unpack_seq, native_unpack_seq_pack_seq T xs]
 
-private theorem map_native_ssm_char_of_value_char :
+theorem map_native_ssm_char_of_value_char :
     ∀ s : native_String,
       List.map (native_ssm_char_of_value ∘ SmtValue.Char) s = s
   | [] => rfl
@@ -126,12 +126,12 @@ private theorem map_native_ssm_char_of_value_char :
       simp [Function.comp_def, native_ssm_char_of_value,
         map_native_ssm_char_of_value_char cs]
 
-private theorem native_unpack_string_pack_string (s : native_String) :
+theorem native_unpack_string_pack_string (s : native_String) :
     native_unpack_string (native_pack_string s) = s := by
   simp [native_unpack_string, native_pack_string, native_unpack_seq_pack_seq,
     map_native_ssm_char_of_value_char]
 
-private theorem native_string_valid_of_smtx_typeof_eo_string
+theorem native_string_valid_of_smtx_typeof_eo_string
     (s : native_String)
     (hTy : __smtx_typeof (__eo_to_smt (Term.String s)) =
       SmtType.Seq SmtType.Char) :
@@ -142,13 +142,13 @@ private theorem native_string_valid_of_smtx_typeof_eo_string
   · simp [native_ite, hValid] at hTy
   · rfl
 
-private theorem native_string_valid_cons_parts
+theorem native_string_valid_cons_parts
     {c : native_Char} {cs : native_String}
     (h : native_string_valid (c :: cs) = true) :
     native_char_valid c = true ∧ native_string_valid cs = true := by
   simpa [native_string_valid] using h
 
-private theorem native_string_valid_append_left
+theorem native_string_valid_append_left
     (xs ys : List native_Char) :
     native_string_valid (xs ++ ys) = true ->
       native_string_valid xs = true := by
@@ -157,7 +157,7 @@ private theorem native_string_valid_append_left
   intro x hx
   exact h.1 x hx
 
-private theorem native_string_valid_append_right
+theorem native_string_valid_append_right
     (xs ys : List native_Char) :
     native_string_valid (xs ++ ys) = true ->
       native_string_valid ys = true := by
@@ -281,7 +281,7 @@ private theorem native_re_nullable_re_range (s t : native_String) :
       | cons d ds =>
           simp [native_re_range, native_re_nullable]
 
-private theorem smtx_model_eval_str_in_re_string
+theorem smtx_model_eval_str_in_re_string
     (M : SmtModel) (str : native_String) (r : Term) (rv : native_RegLan)
     (hREval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv) :
     __smtx_model_eval M
@@ -656,7 +656,7 @@ private theorem re_nullable_term_eq (M : SmtModel) :
                   simp [hNullY, hNullX, native_re_concat,
                     native_re_nullable_mk_concat, __eo_and, SmtEval.native_and]
 
-private theorem smtx_model_eval_re_nullable
+theorem smtx_model_eval_re_nullable
     (M : SmtModel) (r : Term) (rv : native_RegLan)
     (hEval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv)
     (hNe : __re_nullable r ≠ Term.Stuck) :
@@ -676,11 +676,11 @@ private def intRangeTerm : native_Int -> Nat -> Term
           (Term.Numeral start))
         (intRangeTerm (start + 1) n)
 
-private def extractString (s : native_String) (i : native_Int) :
+def extractString (s : native_String) (i : native_Int) :
     native_String :=
   native_str_substr s i (native_zplus (native_zplus i (native_zneg i)) 1)
 
-private def substrWord (s : native_String) : native_Int -> Nat -> Term
+def substrWord (s : native_String) : native_Int -> Nat -> Term
   | _start, 0 => Term.String []
   | start, n + 1 =>
       Term.Apply
@@ -688,7 +688,7 @@ private def substrWord (s : native_String) : native_Int -> Nat -> Term
           (Term.String (extractString s start)))
         (substrWord s (start + 1) n)
 
-private theorem substrWord_ne_stuck (s : native_String) :
+theorem substrWord_ne_stuck (s : native_String) :
     ∀ (n : Nat) (start : native_Int), substrWord s start n ≠ Term.Stuck
   | 0, _start => by simp [substrWord]
   | _n + 1, _start => by simp [substrWord]
@@ -754,7 +754,7 @@ private theorem iota_zero_list_eq_range :
       rw [iota_zero_list_eq_range n (start + 1)]
       simp [__eo_mk_apply, intRangeTerm_ne_stuck]
 
-private theorem extractString_zero_cons
+theorem extractString_zero_cons
     (c : native_Char) (cs : native_String) :
     extractString (c :: cs) 0 = [c] := by
   have hnot : ¬ ((cs.length : Int) + 1 ≤ 0) := by omega
@@ -878,13 +878,13 @@ private theorem substrWord_cons_succ_nat
         substrWord_cons_succ_nat c cs n (i + 1)]
       rfl
 
-private theorem substrWord_cons_tail
+theorem substrWord_cons_tail
     (c : native_Char) (cs : native_String) :
     substrWord (c :: cs) 1 cs.length =
       substrWord cs 0 cs.length := by
   simpa using substrWord_cons_succ_nat c cs cs.length 0
 
-private theorem str_flatten_nary_intro_empty :
+theorem str_flatten_nary_intro_empty :
     __str_flatten (__str_nary_intro (Term.String [])) = Term.String [] := by
   rfl
 
@@ -1094,7 +1094,7 @@ private theorem str_flatten_nary_intro_cons_cons
     eo_list_concat_str_concat_substrWord_empty (c :: d :: ds)
       (List.length (c :: d :: ds)) 0
 
-private theorem str_flatten_nary_intro_cons
+theorem str_flatten_nary_intro_cons
     (c : native_Char) (cs : native_String) :
     __str_flatten (__str_nary_intro (Term.String (c :: cs))) =
       substrWord (c :: cs) 0 (c :: cs).length := by
@@ -1105,11 +1105,11 @@ private theorem str_flatten_nary_intro_cons
   | cons d ds =>
       exact str_flatten_nary_intro_cons_cons c d ds
 
-private theorem str_eval_empty_eq_nullable (r : Term) :
+theorem str_eval_empty_eq_nullable (r : Term) :
     __str_eval_str_in_re_rec (Term.String []) r = __re_nullable r := by
   cases r <;> rfl
 
-private theorem str_eval_concat_step_of_ne_re_none
+theorem str_eval_concat_step_of_ne_re_none
     (s1 s2 r : Term)
     (hRStuck : r ≠ Term.Stuck)
     (hRNone : r ≠ Term.UOp UserOp.re_none) :
@@ -1118,7 +1118,7 @@ private theorem str_eval_concat_step_of_ne_re_none
       __str_eval_str_in_re_rec s2 (__derivative s1 r) := by
   cases r <;> simp [__str_eval_str_in_re_rec] at hRStuck hRNone ⊢
 
-private theorem smt_value_rel_reglan_valid_eq
+theorem smt_value_rel_reglan_valid_eq
     {r s : native_RegLan} {str : native_String}
     (hRel : RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s))
     (hValid : native_string_valid str = true) :
@@ -1181,7 +1181,7 @@ private theorem native_str_in_re_re_comp
     simp [native_str_in_re, native_re_comp, hValid,
       native_str_in_re_mk_comp_list]
 
-private theorem smt_value_rel_reglan_of_eq {r s : native_RegLan}
+theorem smt_value_rel_reglan_of_eq {r s : native_RegLan}
     (h : r = s) :
     RuleProofs.smt_value_rel (SmtValue.RegLan r) (SmtValue.RegLan s) := by
   subst s
@@ -6796,7 +6796,7 @@ private theorem re_range_derivative_singletons_eq
     simp [__eo_and, __eo_ite, native_ite, native_teq,
       SmtEval.native_and]
 
-private theorem smtx_model_eval_derivative_single_rel
+theorem smtx_model_eval_derivative_single_rel
     (M : SmtModel) (hM : model_total_typed M) (c : native_Char)
     (hc : native_char_valid c = true) :
     (r : Term) -> (rv : native_RegLan) ->
@@ -7732,7 +7732,64 @@ private theorem smtx_model_eval_str_in_re_eval_substrWord
         smt_value_rel_reglan_valid_eq hDerRel hcs
       rw [hInEq]
 
-private theorem smtx_model_eval_str_in_re_eval_side
+theorem str_eval_str_in_re_rec_substrWord_eq
+    (M : SmtModel) (hM : model_total_typed M)
+    (str : native_String) (r : Term) (rv : native_RegLan)
+    (hValid : native_string_valid str = true)
+    (hRTy : __smtx_typeof (__eo_to_smt r) = SmtType.RegLan)
+    (hREval : __smtx_model_eval M (__eo_to_smt r) = SmtValue.RegLan rv)
+    (hNe : __str_eval_str_in_re_rec (substrWord str 0 str.length) r ≠
+      Term.Stuck) :
+    __str_eval_str_in_re_rec (substrWord str 0 str.length) r =
+      Term.Boolean (native_str_in_re str rv) := by
+  induction str generalizing r rv with
+  | nil =>
+      simp [substrWord] at hNe ⊢
+      rw [str_eval_empty_eq_nullable] at hNe ⊢
+      simp [native_str_in_re, hValid]
+      exact re_nullable_term_eq M r rv hREval hNe
+  | cons c cs ih =>
+      rcases native_string_valid_cons_parts hValid with ⟨hc, hcs⟩
+      simp [substrWord, extractString_zero_cons] at hNe ⊢
+      rw [substrWord_cons_tail c cs] at hNe ⊢
+      by_cases hRNone : r = Term.UOp UserOp.re_none
+      · subst r
+        change Term.Boolean false =
+          Term.Boolean (native_str_in_re (c :: cs) rv)
+        change __smtx_model_eval M SmtTerm.re_none = SmtValue.RegLan rv at hREval
+        rw [__smtx_model_eval.eq_104] at hREval
+        cases hREval
+        simp [native_str_in_re, hValid, native_re_none, native_re_deriv,
+          native_re_nullable_fold_empty]
+      have hRStuck : r ≠ Term.Stuck := by
+        intro hR
+        subst r
+        change __smtx_model_eval M SmtTerm.None = SmtValue.RegLan rv at hREval
+        simp [__smtx_model_eval] at hREval
+      have hStep :=
+        str_eval_concat_step_of_ne_re_none (Term.String [c])
+          (substrWord cs 0 cs.length) r hRStuck hRNone
+      rw [hStep] at hNe ⊢
+      have hDerNe : __derivative (Term.String [c]) r ≠ Term.Stuck := by
+        intro hDer
+        rw [hDer] at hNe
+        cases hTail : substrWord cs 0 cs.length <;>
+          simp [__str_eval_str_in_re_rec, hTail] at hNe
+      rcases
+        smtx_model_eval_derivative_single_rel M hM c hc r rv hRTy hREval
+          hDerNe with
+        ⟨drv, hDerEval, hDerTy, hDerRel⟩
+      have hTailEq :=
+        ih (__derivative (Term.String [c]) r) drv hcs hDerTy hDerEval hNe
+      rw [hTailEq]
+      rw [native_str_in_re_cons hValid]
+      have hInEq :
+          native_str_in_re cs drv =
+            native_str_in_re cs (native_re_deriv c rv) :=
+        smt_value_rel_reglan_valid_eq hDerRel hcs
+      rw [hInEq]
+
+theorem smtx_model_eval_str_in_re_eval_side
     (M : SmtModel) (hM : model_total_typed M)
     (str : native_String) (r side : Term) (rv : native_RegLan)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) = SmtType.Seq SmtType.Char)
