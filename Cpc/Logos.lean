@@ -1,5 +1,6 @@
 import Cpc.LogosTerm
 import Cpc.SmtEval
+import Cpc.SmtModel
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
@@ -3029,12 +3030,110 @@ def __str_multiset_overapprox : Term -> Term
   | s => (__eo_ite (__str_is_empty s) Term.__eo_List_nil (__eo_ite (__eo_is_str s) (__str_multiset_overapprox_word (__str_flatten (__str_nary_intro s))) (Term.Apply (Term.Apply Term.__eo_List_cons s) Term.__eo_List_nil)))
 
 
+def __eo_reglan_value_to_option : Smtm.SmtValue -> Option Smtm.native_RegLan
+  | Smtm.SmtValue.RegLan r => some r
+  | _ => none
+
+
+def __eo_eval_regex : Term -> Option Smtm.native_RegLan
+  | (Term.UOp UserOp.re_allchar) => some Smtm.native_re_allchar
+  | (Term.UOp UserOp.re_none) => some Smtm.native_re_none
+  | (Term.UOp UserOp.re_all) => some Smtm.native_re_all
+  | (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String s)) =>
+      __eo_reglan_value_to_option
+        (Smtm.__smtx_model_eval_str_to_re
+          (Smtm.SmtValue.Seq (Smtm.native_pack_string s)))
+  | (Term.Apply (Term.UOp UserOp.re_mult) r) =>
+      match __eo_eval_regex r with
+      | some rr =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_mult (Smtm.SmtValue.RegLan rr))
+      | none => none
+  | (Term.Apply (Term.UOp UserOp.re_plus) r) =>
+      match __eo_eval_regex r with
+      | some rr =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_plus (Smtm.SmtValue.RegLan rr))
+      | none => none
+  | (Term.Apply (Term.UOp UserOp.re_opt) r) =>
+      match __eo_eval_regex r with
+      | some rr =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_opt (Smtm.SmtValue.RegLan rr))
+      | none => none
+  | (Term.Apply (Term.UOp UserOp.re_comp) r) =>
+      match __eo_eval_regex r with
+      | some rr =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_comp (Smtm.SmtValue.RegLan rr))
+      | none => none
+  | (Term.Apply (Term.UOp1 UserOp1.re_exp n) r) =>
+      match n, __eo_eval_regex r with
+      | Term.Numeral i, some rr =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_exp
+              (Smtm.SmtValue.Numeral i) (Smtm.SmtValue.RegLan rr))
+      | _, _ => none
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_range) (Term.String lo))
+      (Term.String hi)) =>
+      __eo_reglan_value_to_option
+        (Smtm.__smtx_model_eval_re_range
+          (Smtm.SmtValue.Seq (Smtm.native_pack_string lo))
+          (Smtm.SmtValue.Seq (Smtm.native_pack_string hi)))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r1) r2) =>
+      match __eo_eval_regex r1, __eo_eval_regex r2 with
+      | some rr1, some rr2 =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_concat
+              (Smtm.SmtValue.RegLan rr1) (Smtm.SmtValue.RegLan rr2))
+      | _, _ => none
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r1) r2) =>
+      match __eo_eval_regex r1, __eo_eval_regex r2 with
+      | some rr1, some rr2 =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_inter
+              (Smtm.SmtValue.RegLan rr1) (Smtm.SmtValue.RegLan rr2))
+      | _, _ => none
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_union) r1) r2) =>
+      match __eo_eval_regex r1, __eo_eval_regex r2 with
+      | some rr1, some rr2 =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_union
+              (Smtm.SmtValue.RegLan rr1) (Smtm.SmtValue.RegLan rr2))
+      | _, _ => none
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.re_diff) r1) r2) =>
+      match __eo_eval_regex r1, __eo_eval_regex r2 with
+      | some rr1, some rr2 =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_diff
+              (Smtm.SmtValue.RegLan rr1) (Smtm.SmtValue.RegLan rr2))
+      | _, _ => none
+  | (Term.Apply (Term.UOp2 UserOp2.re_loop l u) r) =>
+      match l, u, __eo_eval_regex r with
+      | Term.Numeral lo, Term.Numeral hi, some rr =>
+          __eo_reglan_value_to_option
+            (Smtm.__smtx_model_eval_re_loop
+              (Smtm.SmtValue.Numeral lo) (Smtm.SmtValue.Numeral hi)
+              (Smtm.SmtValue.RegLan rr))
+      | _, _, _ => none
+  | _ => none
+
+
 def __eo_prog_str_indexof_re_eval : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) s) r) n)) m) => 
-    let _v0 := (__eo_len s)
-    let _v1 := (__eo_extract s n _v0)
-    let _v2 := (__pair_first (__eo_requires (__eo_is_str _v1) (Term.Boolean true) (__str_first_match_rec (__str_flatten (__str_nary_intro _v1)) r (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r) (Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) (Term.UOp UserOp.re_all)) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (Term.Numeral 0))))
-    (__eo_requires (__eo_ite (__eo_or (__eo_gt n _v0) (__eo_is_neg n)) (Term.Numeral (-1 : native_Int)) (__eo_ite (__eo_eq _v2 (Term.Numeral (-1 : native_Int))) (Term.Numeral (-1 : native_Int)) (__eo_add n _v2))) m (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re) s) r) n)) m))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+      (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re)
+        (Term.String s)) r) (Term.Numeral n))) (Term.Numeral m)) =>
+    match __eo_eval_regex r with
+    | some rr =>
+        __eo_requires
+          (Term.Numeral
+            (Smtm.native_str_indexof_re
+              (Smtm.native_unpack_string (Smtm.native_pack_string s)) rr n))
+          (Term.Numeral m)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq)
+            (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_indexof_re)
+              (Term.String s)) r) (Term.Numeral n))) (Term.Numeral m))
+    | none => Term.Stuck
   | _ => Term.Stuck
 
 
