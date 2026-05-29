@@ -1159,6 +1159,7 @@ def __set_is_not_subset : Term -> Term -> Term -> Term
   | (Term.Apply (Term.UOp UserOp.set_singleton) e1), (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e2)) ss), T => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T)) (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) ss T) (Term.Boolean false))
   | (Term.Apply (Term.Apply (Term.UOp UserOp.set_union) (Term.Apply (Term.UOp UserOp.set_singleton) e1)) ts), s, T => (__eo_ite (__set_is_not_subset (Term.Apply (Term.UOp UserOp.set_singleton) e1) s T) (Term.Boolean true) (__set_is_not_subset ts s T))
   | _, _, _ => Term.Stuck
+termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2
 
 
 def __seq_distinct_terms : Term -> Term -> Term -> Term
@@ -1174,6 +1175,7 @@ def __seq_distinct_terms : Term -> Term -> Term -> Term
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e1)) ts), (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)), T => (Term.Boolean true)
   | (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e2)) ss), T => (Term.Boolean true)
   | t, s, T => (Term.Boolean false)
+termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2
 
 
 def __dt_distinct_terms : Term -> Term -> Term
@@ -1183,6 +1185,7 @@ def __dt_distinct_terms : Term -> Term -> Term
   | ct, (Term.Apply g a) => (__dt_distinct_terms ct g)
   | (Term.Apply f a), cs => (__dt_distinct_terms f cs)
   | ct, cs => (__eo_requires (__eo_and (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq ct (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors ct)))) (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple)) (Term.Boolean true) (__eo_ite (__eo_is_eq cs (Term.UOp UserOp.tuple_unit)) (Term.Boolean true) (__eo_is_ok (__eo_dt_selectors cs))))) (Term.Boolean true) (__eo_not (__eo_eq ct cs)))
+termination_by x1 x2 => sizeOf x1 + sizeOf x2
 
 
 def __are_distinct_terms_type : Term -> Term -> Term -> Term
@@ -1197,6 +1200,10 @@ def __are_distinct_terms_type : Term -> Term -> Term -> Term
   | st, ss, (Term.Apply (Term.UOp UserOp.Set) U) => (__eo_or (__set_is_not_subset st ss U) (__set_is_not_subset ss st U))
   | sst, sss, (Term.Apply (Term.UOp UserOp.Seq) U) => (__seq_distinct_terms sst sss U)
   | t, s, T => (__dt_distinct_terms t s)
+termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2 + 1
+decreasing_by
+  all_goals simp_wf
+  all_goals omega
 
 
 def __are_distinct_terms_list_rec : Term -> Term -> Term -> Term
