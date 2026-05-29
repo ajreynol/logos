@@ -1,7 +1,7 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.RegexSupport
 import Cpc.Proofs.RuleSupport.CongSupport
-import Cpc.Proofs.Rules.Str_in_re_eval
+import Cpc.Proofs.RuleSupport.StrInReEvalSupport
 
 open Eo
 open SmtEval
