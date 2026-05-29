@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem smt_eval_and_assoc_bool
@@ -137,7 +136,7 @@ private theorem term_ne_stuck_of_smt_type_non_none
   intro hTy hStuck
   subst t
   rw [show __eo_to_smt Term.Stuck = SmtTerm.None by rfl] at hTy
-  simp [__smtx_typeof] at hTy
+  simp at hTy
 
 private theorem list_singleton_elim_stuck
     (f : Term) :
@@ -286,7 +285,7 @@ private theorem mk_distinct_elim_rec_eval
           cases op with
           | _at__at_TypedList_nil =>
               simp [__mk_distinct_elim_rec, __eo_to_smt_distinct_pairs,
-                __smtx_model_eval.eq_8, __smtx_model_eval.eq_1, hXNe, hBNe,
+                __smtx_model_eval.eq_8, __smtx_model_eval.eq_1,
                 hB, __smtx_model_eval_and]
               cases bb <;> simp [SmtEval.native_and]
           | _ =>
@@ -316,8 +315,8 @@ private theorem mk_distinct_elim_rec_eval
                       __mk_distinct_elim_rec x a b ≠ Term.Stuck :=
                     term_ne_stuck_of_eval_boolean M
                       (__mk_distinct_elim_rec x a b) hRecBool
-                  simp [__mk_distinct_elim_rec, __eo_mk_apply, hXNe, hBNe,
-                    hRecNe]
+                  simp [__mk_distinct_elim_rec, __eo_mk_apply
+                    ]
                   rw [__eo_to_smt_distinct_pairs, __smtx_model_eval.eq_8]
                   change
                     __smtx_model_eval M
@@ -467,7 +466,7 @@ private theorem singleton_elim_and_eval_eq
                         Term.Boolean true
                   · have haTrue : a = Term.Boolean true := by
                       cases a <;>
-                        simp [__eo_is_list_nil, native_teq] at hNil ⊢
+                        simp [__eo_is_list_nil] at hNil ⊢
                       case Boolean b =>
                         cases b <;> simp at hNil ⊢
                     subst a
@@ -501,19 +500,18 @@ private theorem singleton_elim_and_eval_eq
                       cases bv <;> simp at hNil ⊢
               | _ =>
                   simp [__eo_is_list, __eo_get_nil_rec, __eo_requires,
-                    __eo_is_list_nil, __eo_is_ok, native_ite, native_teq,
+                    __eo_is_ok, native_ite, native_teq,
                     native_not, SmtEval.native_not] at hList
           | _ =>
               simp [__eo_is_list, __eo_get_nil_rec, __eo_requires,
-                __eo_is_list_nil, __eo_is_ok, native_ite, native_teq,
+                __eo_is_ok, native_ite, native_teq,
                 native_not, SmtEval.native_not] at hList
       | _ =>
           simp [__eo_is_list, __eo_get_nil_rec, __eo_requires,
             __eo_is_list_nil, __eo_is_ok, native_ite, native_teq,
             native_not, SmtEval.native_not] at hList
   | _ =>
-      simp [__eo_list_singleton_elim, __eo_list_singleton_elim_2,
-        __eo_is_list, __eo_get_nil_rec, __eo_requires, __eo_is_list_nil,
+      simp [__eo_is_list, __eo_get_nil_rec, __eo_requires, __eo_is_list_nil,
         __eo_is_ok, native_ite, native_teq, native_not, SmtEval.native_not]
         at hList
 

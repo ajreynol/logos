@@ -29,7 +29,7 @@ private theorem prog_array_store_overwrite_eq
       · contradiction
       · by_cases hF : f1 = Term.Stuck
         · contradiction
-        · simp [__eo_prog_array_store_overwrite, hT, hI, hE, hF]
+        · simp [__eo_prog_array_store_overwrite]
 
 private theorem typeof_args_of_prog_array_store_overwrite_bool
     (t1 i1 e1 f1 : Term)
@@ -164,7 +164,7 @@ private theorem typed___eo_prog_array_store_overwrite_impl
           (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1)) =
         SmtType.Map (__eo_to_smt_type (__eo_typeof i1)) (__eo_to_smt_type (__eo_typeof f1)) := by
     rw [RuleProofs.eo_to_smt_store_eq]
-    simp [__smtx_typeof, __smtx_typeof_store, __smtx_typeof_guard,
+    simp [__smtx_typeof, __smtx_typeof_store,
       native_ite, native_Teq, hSmtT1, hSmtI1, hSmtE1]
   have hLhsTy :
       __smtx_typeof
@@ -175,14 +175,14 @@ private theorem typed___eo_prog_array_store_overwrite_impl
                   (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1)) i1) f1)) =
         SmtType.Map (__eo_to_smt_type (__eo_typeof i1)) (__eo_to_smt_type (__eo_typeof f1)) := by
     rw [RuleProofs.eo_to_smt_store_eq]
-    simp [__smtx_typeof, __smtx_typeof_store, __smtx_typeof_guard,
+    simp [__smtx_typeof, __smtx_typeof_store,
       native_ite, native_Teq, hInnerTy, hSmtI1, hSmtF1]
   have hRhsTy :
       __smtx_typeof
           (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) f1)) =
         SmtType.Map (__eo_to_smt_type (__eo_typeof i1)) (__eo_to_smt_type (__eo_typeof f1)) := by
     rw [RuleProofs.eo_to_smt_store_eq]
-    simp [__smtx_typeof, __smtx_typeof_store, __smtx_typeof_guard,
+    simp [__smtx_typeof, __smtx_typeof_store,
       native_ite, native_Teq, hSmtT1, hSmtI1, hSmtF1]
   have hLhsTrans :
       RuleProofs.eo_has_smt_translation
@@ -190,7 +190,7 @@ private theorem typed___eo_prog_array_store_overwrite_impl
           (Term.Apply
             (Term.Apply Term.store
               (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1)) i1) f1) := by
-    simpa [RuleProofs.eo_has_smt_translation, hLhsTy]
+    simp [RuleProofs.eo_has_smt_translation, hLhsTy]
   rw [prog_array_store_overwrite_eq t1 i1 e1 f1 hT1NotStuck hI1NotStuck hE1NotStuck hF1NotStuck]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (Term.Apply

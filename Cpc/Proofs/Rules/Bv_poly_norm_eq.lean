@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem eo_requires_arg_eq_of_ne_stuck
@@ -33,7 +32,7 @@ private theorem eo_requires_body_ne_stuck_of_ne_stuck
   · intro hz
     subst z
     have hReqSt : __eo_requires x y Term.Stuck = Term.Stuck := by
-      simp [__eo_requires, hxy, hxSt, native_teq, native_ite, native_not,
+      simp [__eo_requires, hxy, native_teq, native_ite, native_not,
         SmtEval.native_not]
     exact hReq hReqSt
 
@@ -48,7 +47,7 @@ private theorem eo_and_true
   case Binary.Binary w1 n1 w2 n2 =>
     by_cases hw : w1 = w2 <;> simp [hw] at h
   case Boolean.Boolean b1 b2 =>
-    cases b1 <;> cases b2 <;> simp [SmtEval.native_and] at h ⊢
+    cases b1 <;> cases b2 <;> simp at h ⊢
 
 private theorem eo_eq_true_eq
     {x y : Term} :

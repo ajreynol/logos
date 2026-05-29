@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace Smtm
@@ -123,7 +122,7 @@ theorem smtx_typeof_guard_wf_inhabited_of_non_none
         exact fun_type_wf_parts hWf
       have hDef := type_default_typed_canonical_of_native_inhabited_type B hParts.2.2.1
       exact ⟨SmtValue.Fun native_default_ifun_id A B, by
-        simp [__smtx_typeof_value, hDef.1]⟩
+        simp [__smtx_typeof_value]⟩
     · have hPair :
         native_inhabited_type T = true ∧
           __smtx_type_wf_rec T native_reflist_nil = true := by
@@ -167,7 +166,7 @@ theorem type_wf_of_inhabited_and_wf_rec
     __smtx_type_wf T = true := by
   cases T <;>
     simp [__smtx_type_wf, __smtx_type_wf_component, __smtx_type_wf_rec,
-      native_and, hInh, hRec] at *
+      native_and, hInh] at *
   all_goals try assumption
 
 /-- Every well-formed SMT type is semantically inhabited. -/
@@ -570,7 +569,7 @@ theorem type_inhabited_set (A : SmtType) : type_inhabited (SmtType.Set A) :=
     __smtx_map_canonical, __smtx_map_default_canonical, __smtx_msm_get_default,
     native_and]
   cases __smtx_is_finite_type A <;>
-    simp [native_ite, native_veq, __smtx_type_default, __smtx_typeof_value]
+    simp [native_ite, native_veq]
 
 /-- Function types have a generated default witness when their codomain does. -/
 theorem native_inhabited_type_fun {A B : SmtType}

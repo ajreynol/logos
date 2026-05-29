@@ -43,13 +43,13 @@ private theorem eo_typeof_set_member_not_stuck_implies_set
                   simpa [__eo_typeof_set_member, hT] using h
                 have hEq : U = T :=
                   RuleProofs.eq_of_requires_eq_true_not_stuck T U Term.Bool hReq
-                simpa [hEq]
+                simp [hEq]
             | _ =>
-                simp [__eo_typeof_set_member, hT] at h
+                simp [__eo_typeof_set_member] at h
         | _ =>
-            simp [__eo_typeof_set_member, hT] at h
+            simp [__eo_typeof_set_member] at h
     | _ =>
-        simp [__eo_typeof_set_member, hT] at h
+        simp [__eo_typeof_set_member] at h
 
 private theorem sets_ext_set_types_of_result_bool
     (a b : Term)
@@ -250,13 +250,13 @@ private theorem typed___eo_prog_sets_ext_impl
       SmtType.Bool
     rw [Smtm.typeof_set_member_eq]
     simp [idx, __smtx_typeof_set_member, hSmtA, hIdxSmtTy,
-      native_ite, native_Teq, hTNonNone]
+      native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = SmtType.Bool := by
     change __smtx_typeof (SmtTerm.set_member (__eo_to_smt idx) (__eo_to_smt b)) =
       SmtType.Bool
     rw [Smtm.typeof_set_member_eq]
     simp [idx, __smtx_typeof_set_member, hSmtB, hIdxSmtTy,
-      native_ite, native_Teq, hTNonNone]
+      native_ite, native_Teq]
   have hEqBool : RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq lhs) rhs) :=
     RuleProofs.eo_has_bool_type_eq_of_same_smt_type lhs rhs
       (by rw [hLhsTy, hRhsTy]) (by simp [hLhsTy])

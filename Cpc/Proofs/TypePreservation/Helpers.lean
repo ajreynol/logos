@@ -1546,7 +1546,6 @@ theorem native_str_replace_re_all_valid
   exact native_re_replace_all_nonempty_list_aux_valid (s.length + 1) r replacement
     hreplacement hs
 
-set_option linter.unusedSimpArgs false in
 /-- Character digits used by `Nat.toDigits` are valid SMT characters. -/
 theorem native_char_valid_digitChar
     (n : Nat) :
@@ -1555,39 +1554,39 @@ theorem native_char_valid_digitChar
   by_cases h0 : n = 0
   · simp [h0]
   · by_cases h1 : n = 1
-    · simp [h0, h1]
+    · simp [h1]
     · by_cases h2 : n = 2
-      · simp [h0, h1, h2]
+      · simp [h2]
       · by_cases h3 : n = 3
-        · simp [h0, h1, h2, h3]
+        · simp [h3]
         · by_cases h4 : n = 4
-          · simp [h0, h1, h2, h3, h4]
+          · simp [h4]
           · by_cases h5 : n = 5
-            · simp [h0, h1, h2, h3, h4, h5]
+            · simp [h5]
             · by_cases h6 : n = 6
-              · simp [h0, h1, h2, h3, h4, h5, h6]
+              · simp [h6]
               · by_cases h7 : n = 7
-                · simp [h0, h1, h2, h3, h4, h5, h6, h7]
+                · simp [h7]
                 · by_cases h8 : n = 8
-                  · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8]
+                  · simp [h8]
                   · by_cases h9 : n = 9
-                    · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9]
+                    · simp [h9]
                     · by_cases h10 : n = 10
-                      · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10]
+                      · simp [h10]
                       · by_cases h11 : n = 11
-                        · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11]
+                        · simp [h11]
                         · by_cases h12 : n = 12
-                          · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
-                              h11, h12]
+                          · simp [
+                              h12]
                           · by_cases h13 : n = 13
-                            · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
-                                h11, h12, h13]
+                            · simp [
+                                h13]
                             · by_cases h14 : n = 14
-                              · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
-                                  h11, h12, h13, h14]
+                              · simp [
+                                  h14]
                               · by_cases h15 : n = 15
-                                · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
-                                    h11, h12, h13, h14, h15]
+                                · simp [
+                                    h15]
                                 · simp [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10,
                                     h11, h12, h13, h14, h15]
 

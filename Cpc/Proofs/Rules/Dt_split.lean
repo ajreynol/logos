@@ -7,7 +7,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -804,11 +803,10 @@ private theorem facts___eo_prog_dt_split_impl
   | _ =>
       rw [eo_prog_dt_split_of_non_stuck x hxNe, hT] at hResultTy
       simp [__dt_get_constructors, __eo_dt_constructors, __eo_dt_constructors_main,
-        __eo_datatype_constructors_rec, __mk_dt_split, __eo_list_singleton_elim,
-        __eo_list_singleton_elim_2, __eo_is_list, __eo_get_nil_rec,
-        __eo_is_ok, __eo_is_list_nil, __eo_requires, __eo_mk_apply,
+        __mk_dt_split, __eo_list_singleton_elim,
+        __eo_is_list,__eo_requires,
         eo_typeof_stuck, native_ite,
-        native_teq, native_not, SmtEval.native_not] at hResultTy
+        native_teq] at hResultTy
 
 theorem cmd_step_dt_split_properties
     (M : SmtModel) (hM : model_total_typed M)

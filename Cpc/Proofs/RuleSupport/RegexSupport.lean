@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace RuleProofs
@@ -232,7 +231,7 @@ theorem nativeListInRe_mk_concat :
       rw [nativeListInRe_mk_union]
       rw [nativeListInRe_mk_concat cs (native_re_deriv c r) s]
       cases hNullable : native_re_nullable r <;>
-        simp [hNullable, nativeListInRe_empty, Bool.or_comm]
+        simp [nativeListInRe_empty, Bool.or_comm]
 
 theorem nativeListInReConcat_true_iff_exists_append :
     (xs : List native_Char) -> (r s : native_RegLan) ->
@@ -283,8 +282,8 @@ theorem nativeListInReConcat_true_iff_exists_append :
                 cases hAppend
                 have hNullable : native_re_nullable r = true := by
                   simpa [nativeListInRe] using hLeft
-                simp [nativeListInReConcat, Bool.or_eq_true,
-                  Bool.and_eq_true, hNullable, hRight]
+                simp [nativeListInReConcat,
+                  hNullable, hRight]
         | cons _ ds =>
             cases hAppend
             have hLeftDeriv :
@@ -296,7 +295,7 @@ theorem nativeListInReConcat_true_iff_exists_append :
               (nativeListInReConcat_true_iff_exists_append (ds ++ xs₂)
                 (native_re_deriv c r) s).2
                 ⟨ds, xs₂, by rfl, hLeftDeriv, hRight⟩
-            simp [nativeListInReConcat, Bool.or_eq_true, hTail]
+            simp [nativeListInReConcat, hTail]
 
 theorem nativeListInRe_mk_concat_true_iff_exists_append
     (xs : List native_Char) (r s : native_RegLan) :

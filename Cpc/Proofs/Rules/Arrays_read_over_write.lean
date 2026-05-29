@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem eo_to_smt_eq_eq (x y : Term) :
@@ -221,14 +220,14 @@ private theorem shape_of_prog_arrays_read_over_write_not_stuck
                         | Apply storeOp a =>
                             cases storeOp with
                             | UOp op =>
-                                cases op <;> try (simp [__eo_prog_arrays_read_over_write] at h)
+                                cases op <;> try (simp at h)
                                 case store =>
                                   cases p with
                                   | Apply pNot pArg =>
                                       cases pNot with
                                       | UOp opNot =>
                                           cases opNot <;>
-                                            try (simp [__eo_prog_arrays_read_over_write] at h)
+                                            try (simp at h)
                                           case not =>
                                             cases pArg with
                                             | Apply pEqR j2 =>
@@ -237,27 +236,27 @@ private theorem shape_of_prog_arrays_read_over_write_not_stuck
                                                     cases pEqL with
                                                     | UOp opEq =>
                                                         cases opEq <;>
-                                                          try (simp [__eo_prog_arrays_read_over_write] at h)
+                                                          try (simp at h)
                                                         case eq =>
                                                           exact ⟨a, i, e, j, i2, j2, rfl, rfl⟩
                                                     | _ =>
-                                                        simp [__eo_prog_arrays_read_over_write] at h
+                                                        simp at h
                                                 | _ =>
-                                                    simp [__eo_prog_arrays_read_over_write] at h
+                                                    simp at h
                                             | _ =>
-                                                simp [__eo_prog_arrays_read_over_write] at h
+                                                simp at h
                                       | _ =>
-                                          simp [__eo_prog_arrays_read_over_write] at h
+                                          simp at h
                                   | _ =>
-                                      simp [__eo_prog_arrays_read_over_write] at h
+                                      simp at h
                             | _ =>
-                                simp [__eo_prog_arrays_read_over_write] at h
+                                simp at h
                         | _ =>
-                            simp [__eo_prog_arrays_read_over_write] at h
+                            simp at h
                     | _ =>
-                        simp [__eo_prog_arrays_read_over_write] at h
+                        simp at h
                 | _ =>
-                    simp [__eo_prog_arrays_read_over_write] at h
+                    simp at h
           | _ =>
               simp [__eo_prog_arrays_read_over_write] at h
       | _ =>
@@ -407,13 +406,13 @@ private theorem typed___eo_prog_arrays_read_over_write_impl
   have hINotStuck : i ≠ Term.Stuck := by
     intro hi
     subst i
-    simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-      native_teq, native_not, SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+      native_teq] at hProg
   have hJNotStuck : j ≠ Term.Stuck := by
     intro hj
     subst j
-    simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-      native_teq, native_not, SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+      native_teq] at hProg
   rcases smt_types_of_select_store_arg a i e j hArgTrans with
     ⟨A, B, _hATy, _hITy, _hETy, _hJTy, hLhsTy, hRhsTy, _hANonNone,
       hBNonNone, _hATrans, _hITrans, _hETrans, _hJTrans⟩
@@ -480,13 +479,13 @@ private theorem facts___eo_prog_arrays_read_over_write_impl
   have hINotStuck : i ≠ Term.Stuck := by
     intro hi
     subst i
-    simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-      native_teq, native_not, SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+      native_teq] at hProg
   have hJNotStuck : j ≠ Term.Stuck := by
     intro hj
     subst j
-    simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-      native_teq, native_not, SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+      native_teq] at hProg
   rcases smt_types_of_select_store_arg a i e j hArgTrans with
     ⟨A, B, _hATy, _hITy, _hETy, _hJTy, _hLhsTy, _hRhsTy, _hANonNone,
       _hBNonNone, hATrans, hITrans, hETrans, hJTrans⟩

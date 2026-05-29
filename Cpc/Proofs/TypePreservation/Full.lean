@@ -8,7 +8,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace Smtm
@@ -138,16 +137,16 @@ private theorem tp_result_seq_components_wf_re_exp
     tp_result_seq_components_wf (__smtx_typeof_re_exp n T) := by
   cases n <;> try simp [__smtx_typeof_re_exp, tp_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_re_exp, tp_result_seq_components_wf]
+    cases T <;> simp [tp_result_seq_components_wf]
 
 private theorem tp_result_seq_components_wf_re_loop
     (m n : SmtTerm) (T : SmtType) :
     tp_result_seq_components_wf (__smtx_typeof_re_loop m n T) := by
   cases m <;> try simp [__smtx_typeof_re_loop, tp_result_seq_components_wf]
   case Numeral i =>
-    cases n <;> try simp [__smtx_typeof_re_loop, tp_result_seq_components_wf]
+    cases n <;> try simp [tp_result_seq_components_wf]
     case Numeral j =>
-      cases T <;> simp [__smtx_typeof_re_loop, tp_result_seq_components_wf]
+      cases T <;> simp [tp_result_seq_components_wf]
 
 private theorem tp_result_seq_components_wf_set_member
     (T U : SmtType) :
@@ -167,7 +166,7 @@ private theorem tp_result_seq_components_wf_int_to_bv
     tp_result_seq_components_wf (__smtx_typeof_int_to_bv n T) := by
   cases n <;> try simp [__smtx_typeof_int_to_bv, tp_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_int_to_bv, tp_result_seq_components_wf]
+    cases T <;> simp [tp_result_seq_components_wf]
 
 private theorem tp_result_seq_components_wf_concat
     (T U : SmtType) :
@@ -180,48 +179,48 @@ private theorem tp_result_seq_components_wf_extract
     tp_result_seq_components_wf (__smtx_typeof_extract i j T) := by
   cases i <;> try simp [__smtx_typeof_extract, tp_result_seq_components_wf]
   case Numeral hi =>
-    cases j <;> try simp [__smtx_typeof_extract, tp_result_seq_components_wf]
+    cases j <;> try simp [tp_result_seq_components_wf]
     case Numeral lo =>
-      cases T <;> try simp [__smtx_typeof_extract, tp_result_seq_components_wf]
+      cases T <;> try simp [tp_result_seq_components_wf]
       case BitVec w =>
         cases h0 : native_zleq 0 lo <;>
-          simp [__smtx_typeof_extract, tp_result_seq_components_wf,
-            native_ite, h0]
+          simp [tp_result_seq_components_wf,
+            native_ite]
 
 private theorem tp_result_seq_components_wf_repeat
     (n : SmtTerm) (T : SmtType) :
     tp_result_seq_components_wf (__smtx_typeof_repeat n T) := by
   cases n <;> try simp [__smtx_typeof_repeat, tp_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_repeat, tp_result_seq_components_wf]
+    cases T <;> simp [tp_result_seq_components_wf]
 
 private theorem tp_result_seq_components_wf_zero_extend
     (n : SmtTerm) (T : SmtType) :
     tp_result_seq_components_wf (__smtx_typeof_zero_extend n T) := by
   cases n <;> try simp [__smtx_typeof_zero_extend, tp_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_zero_extend, tp_result_seq_components_wf]
+    cases T <;> simp [tp_result_seq_components_wf]
 
 private theorem tp_result_seq_components_wf_sign_extend
     (n : SmtTerm) (T : SmtType) :
     tp_result_seq_components_wf (__smtx_typeof_sign_extend n T) := by
   cases n <;> try simp [__smtx_typeof_sign_extend, tp_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_sign_extend, tp_result_seq_components_wf]
+    cases T <;> simp [tp_result_seq_components_wf]
 
 private theorem tp_result_seq_components_wf_rotate_left
     (n : SmtTerm) (T : SmtType) :
     tp_result_seq_components_wf (__smtx_typeof_rotate_left n T) := by
   cases n <;> try simp [__smtx_typeof_rotate_left, tp_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_rotate_left, tp_result_seq_components_wf]
+    cases T <;> simp [tp_result_seq_components_wf]
 
 private theorem tp_result_seq_components_wf_rotate_right
     (n : SmtTerm) (T : SmtType) :
     tp_result_seq_components_wf (__smtx_typeof_rotate_right n T) := by
   cases n <;> try simp [__smtx_typeof_rotate_right, tp_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_rotate_right, tp_result_seq_components_wf]
+    cases T <;> simp [tp_result_seq_components_wf]
 
 private theorem tp_result_seq_components_wf_of_type_wf
     {T : SmtType} (h : __smtx_type_wf T = true) :
@@ -425,12 +424,12 @@ private theorem tp_smt_term_result_seq_components_wf_of_non_none
     case str_from_code t =>
       rw [typeof_str_from_code_eq]
       cases h : __smtx_typeof t <;>
-        simp [tp_result_seq_components_wf, native_ite, native_Teq, h]
+        simp [tp_result_seq_components_wf, native_ite, native_Teq]
       exact tp_seq_char_wf
     case str_from_int t =>
       rw [typeof_str_from_int_eq]
       cases h : __smtx_typeof t <;>
-        simp [tp_result_seq_components_wf, native_ite, native_Teq, h]
+        simp [tp_result_seq_components_wf, native_ite, native_Teq]
       exact tp_seq_char_wf
     case str_replace_re x y z =>
       rw [typeof_str_replace_re_eq x y z]
@@ -1432,13 +1431,13 @@ private theorem tp_ret_typeof_sel_rec_substitute_ne_reglan_of_cons_wf
       case TypeRef r =>
         by_cases hEq : sub = r <;>
           simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
-            __smtx_type_substitute, __smtx_type_wf_rec,
-            __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
+            __smtx_type_substitute,
+            __smtx_ret_typeof_sel_rec, native_ite,
             native_streq, hEq] at hWf ⊢
       all_goals
         simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
           __smtx_type_substitute, __smtx_type_wf_rec,
-          __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
+          __smtx_ret_typeof_sel_rec, native_ite,
           native_streq] at hWf ⊢
   | SmtDatatypeCons.cons T c, d, native_nat_succ j, refs, hWf => by
       have hTail : __smtx_dt_cons_wf_rec c refs = true :=
@@ -1504,13 +1503,13 @@ private theorem tp_ret_typeof_sel_rec_substitute_ne_funtype_of_cons_wf
       case TypeRef r =>
         by_cases hEq : sub = r <;>
           simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
-            __smtx_type_substitute, __smtx_type_wf_rec,
-            __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
+            __smtx_type_substitute,
+            __smtx_ret_typeof_sel_rec, native_ite,
             native_streq, hEq] at hWf ⊢
       all_goals
         simp [__smtx_dtc_substitute, __smtx_dt_cons_wf_rec,
           __smtx_type_substitute, __smtx_type_wf_rec,
-          __smtx_ret_typeof_sel_rec, native_ite, native_Teq,
+          __smtx_ret_typeof_sel_rec, native_ite,
           native_streq] at hWf ⊢
   | SmtDatatypeCons.cons T c, d, native_nat_succ j, refs, hWf => by
       have hTail : __smtx_dt_cons_wf_rec c refs = true :=
@@ -1697,14 +1696,14 @@ theorem dt_sel_wrong_map_type_wf_of_non_none
   have hM2InhBool : native_inhabited_type M2 = true :=
     native_inhabited_type_map hM3InhBool
   have hM2Rec : __smtx_type_wf_rec M2 native_reflist_nil = true := by
-    simp [M2, __smtx_type_wf_rec, native_and, tp_int_inhabited,
+    simp [M2, __smtx_type_wf_rec, native_and,
       hM3InhBool, hM3Rec]
   have hM1Inh : type_inhabited M1 := by
     exact tp_map_type_inhabited (A := SmtType.Int) (B := M2) hM2Inh
   have hM1InhBool : native_inhabited_type M1 = true :=
     native_inhabited_type_map hM2InhBool
   have hM1Rec : __smtx_type_wf_rec M1 native_reflist_nil = true := by
-    simp [M1, __smtx_type_wf_rec, native_and, tp_int_inhabited,
+    simp [M1, __smtx_type_wf_rec, native_and,
       hM2InhBool, hM2Rec]
   simpa [M1, M2, M3, D, R] using
     type_wf_of_inhabited_and_wf_rec hM1InhBool hM1Rec

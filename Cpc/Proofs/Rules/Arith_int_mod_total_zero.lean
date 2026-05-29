@@ -42,8 +42,8 @@ private theorem typeof_arg_of_prog_arith_int_mod_total_zero_bool
         simp [__eo_typeof_eq, __eo_typeof_div, __eo_requires,
           native_ite, native_teq, native_not, hTy] at h ⊢
   | _ =>
-      simp [__eo_typeof_eq, __eo_typeof_div, __eo_requires,
-        native_ite, native_teq, native_not, hTy] at h
+      simp [__eo_typeof_eq, __eo_typeof_div,
+        hTy] at h
 
 private theorem eval_numeral (M : SmtModel) (n : Int) :
     __smtx_model_eval M (__eo_to_smt (Term.Numeral n)) = SmtValue.Numeral n := by
@@ -76,7 +76,7 @@ private theorem typed___eo_prog_arith_int_mod_total_zero_impl
   have hLhsTrans :
       RuleProofs.eo_has_smt_translation
         (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)) := by
-    simpa [RuleProofs.eo_has_smt_translation, hLhsTy]
+    simp [RuleProofs.eo_has_smt_translation, hLhsTy]
   rw [prog_arith_int_mod_total_zero_eq t1 hT1NotStuck]
   exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
     (Term.Apply (Term.Apply Term.mod_total t1) (Term.Numeral 0)) t1

@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 abbrev concatSplitNormalize (rev x : Term) : Term :=
@@ -171,8 +170,7 @@ theorem eo_prog_concat_split_eq_of_ne_stuck
       exact False.elim (hProg rfl)
     all_goals
       simp [__eo_prog_concat_split, concatSplitBody, concatSplitFormula,
-        concatSplitHead, concatSplitNormalize, concatSplitTerm, concatSplitRaw,
-        mkEq, mkNot, mkStrLen]
+        concatSplitHead, concatSplitNormalize, concatSplitTerm, concatSplitRaw]
   have hBodyNe : concatSplitBody rev t s tc sc ≠ Term.Stuck := by
     simpa [hProgBody] using hProg
   have hHeadT :
@@ -1018,7 +1016,7 @@ theorem concatSplitFormula_false_eq_plain
     seq_empty_typeof_ne_stuck_of_smt_type_seq split T hSplitTy
   have hSplitNe' :
       concatSplitTerm tHead sHead (Term.Boolean false) ≠ Term.Stuck := by
-    simp [split]
+    simp
   have hEmptySplitNe' :
       __seq_empty
           (__eo_typeof (concatSplitTerm tHead sHead (Term.Boolean false))) ≠
@@ -1036,7 +1034,7 @@ theorem concatSplitFormula_false_eq_plain
                 (mkConcat (concatSplitTerm tHead sHead (Term.Boolean false))
                   (__eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof tHead)))))
             (Term.Boolean false)) ≠ Term.Stuck := by
-    simp [mkOr, mkEq, mkConcat, htNe, hsNe, hSplitNe', hNilTNe, hNilSNe]
+    simp [mkOr, mkEq, mkConcat]
   have hRightNe :
       mkAnd
         (mkNot
@@ -1049,13 +1047,10 @@ theorem concatSplitFormula_false_eq_plain
             (mkStrLen (concatSplitTerm tHead sHead (Term.Boolean false)))
             (Term.Numeral 0))
           (Term.Boolean true)) ≠ Term.Stuck := by
-    simp [mkAnd, mkNot, mkEq, mkGt, mkStrLen, hSplitNe',
-      hEmptySplitNe']
+    simp [mkAnd, mkNot, mkEq, mkGt, mkStrLen]
   simp [concatSplitFormula, concatSplitFalseFormula,
     mkEq, mkAnd, mkOr, mkNot, mkGt, mkStrLen, mkConcat, __eo_mk_apply,
-    eo_ite_false,
-    htNe, hsNe, hSplitNe, hSplitNe', hNilTNe, hNilSNe, hEmptySplitNe,
-    hEmptySplitNe', hLeftNe, hRightNe]
+    eo_ite_false]
 
 theorem concatSplitFormula_true_eq_plain
     (tHead sHead : Term) (T : SmtType)
@@ -1083,7 +1078,7 @@ theorem concatSplitFormula_true_eq_plain
     seq_empty_typeof_ne_stuck_of_smt_type_seq split T hSplitTy
   have hSplitNe' :
       concatSplitTerm tHead sHead (Term.Boolean true) ≠ Term.Stuck := by
-    simp [split]
+    simp
   have hEmptySplitNe' :
       __seq_empty
           (__eo_typeof (concatSplitTerm tHead sHead (Term.Boolean true))) ≠
@@ -1110,8 +1105,7 @@ theorem concatSplitFormula_true_eq_plain
                     (__eo_typeof
                       (concatSplitTerm tHead sHead (Term.Boolean true)))))))
             (Term.Boolean false)) ≠ Term.Stuck := by
-    simp [mkOr, mkEq, mkConcat, htNe, hsNe, hSplitNe', hNilSplitNe,
-      hNilSplitNe']
+    simp [mkOr, mkEq, mkConcat]
   have hRightNe :
       mkAnd
         (mkNot
@@ -1124,13 +1118,10 @@ theorem concatSplitFormula_true_eq_plain
             (mkStrLen (concatSplitTerm tHead sHead (Term.Boolean true)))
             (Term.Numeral 0))
           (Term.Boolean true)) ≠ Term.Stuck := by
-    simp [mkAnd, mkNot, mkEq, mkGt, mkStrLen, hSplitNe',
-      hEmptySplitNe']
+    simp [mkAnd, mkNot, mkEq, mkGt, mkStrLen]
   simp [concatSplitFormula, concatSplitTrueFormula,
     mkEq, mkAnd, mkOr, mkNot, mkGt, mkStrLen, mkConcat, __eo_mk_apply,
-    eo_ite_true,
-    htNe, hsNe, hSplitNe, hSplitNe', hNilSplitNe, hNilSplitNe',
-    hEmptySplitNe, hEmptySplitNe', hLeftNe, hRightNe]
+    eo_ite_true]
 
 theorem concat_split_head_types_same_of_prog
     (rev t s tc sc : Term)
@@ -1326,10 +1317,10 @@ theorem concat_split_false_context
     ⟨hsTy, hsTailTy⟩
   have hIntroTNe : __str_nary_intro t ≠ Term.Stuck := by
     rw [hIntroT]
-    simp [mkConcat]
+    simp
   have hIntroSNe : __str_nary_intro s ≠ Term.Stuck := by
     rw [hIntroS]
-    simp [mkConcat]
+    simp
   have hIntroTTy :
       __smtx_typeof (__eo_to_smt (__str_nary_intro t)) = SmtType.Seq T := by
     rw [hIntroT]
@@ -1742,7 +1733,7 @@ theorem native_seq_extract_zero_nat
       rw [hmin]
       simp
     have hminNat : min n xs.length = n := Nat.min_eq_left hle
-    simp [hn, hxsNe, hnPos]
+    simp [hn, hxsNe]
     change
       min ((min (Int.ofNat n) (Int.ofNat xs.length)).toNat) xs.length =
         min n xs.length
@@ -1757,7 +1748,7 @@ theorem native_seq_extract_to_end_nat
   · have hLenLe : xs.length <= i := by omega
     have hcast : (Int.ofNat i >= Int.ofNat xs.length) = true := by
       simp [hLenLe]
-    simp [hend, hcast, List.drop_eq_nil_of_le hLenLe]
+    simp [hend,List.drop_eq_nil_of_le hLenLe]
   · have htailPosNat : 0 < xs.length - i := Nat.pos_of_ne_zero hend
     have hiltNat : i < xs.length := by omega
     have htailPos : (0 : Int) < Int.ofNat (xs.length - i) :=
@@ -1786,7 +1777,7 @@ theorem native_seq_extract_to_end_nat
           xs.length - i := by
       rw [hmin]
       simp
-    simp [hend, hLenNotLe, htailPos, hilt]
+    simp [hend, hLenNotLe]
     rw [if_neg hiNonneg]
     change
       List.take
@@ -1974,13 +1965,10 @@ theorem eval_concatSplitTerm_false_left
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt sc))
                 (SmtTerm.str_len (__eo_to_smt tc)))))) =
       SmtValue.Seq (native_pack_seq T (xs.drop ys.length))
-  simp [concatSplitRawFalseBody, mkIte, mkGeq, mkNeg, mkSubstr, mkStrLen,
-    xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,
-    __smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval__,
+  simp [xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,__smtx_model_eval__,
     __smtx_model_eval_ite, __smtx_model_eval_str_substr,
     __smtx_model_eval__at_purify,
-    native_seq_len, native_zplus, native_zneg, Int.sub_eq_add_neg,
-    hElem, hEvalCond, hCondTrue, hSub, hSubEval, ← hDiff]
+    native_seq_len, native_zplus, native_zneg,hElem, hEvalCond]
   exact congrArg (native_pack_seq T) hSubEval
 
 theorem eval_concatSplitTerm_false_right
@@ -2061,13 +2049,10 @@ theorem eval_concatSplitTerm_false_right
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt sc))
                 (SmtTerm.str_len (__eo_to_smt tc)))))) =
       SmtValue.Seq (native_pack_seq T (ys.drop xs.length))
-  simp [concatSplitRawFalseBody, mkIte, mkGeq, mkNeg, mkSubstr, mkStrLen,
-    xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,
-    __smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval__,
+  simp [xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,__smtx_model_eval__,
     __smtx_model_eval_ite, __smtx_model_eval_str_substr,
     __smtx_model_eval__at_purify,
-    native_seq_len, native_zplus, native_zneg, Int.sub_eq_add_neg,
-    hElem, hEvalCond, hCondFalse, hSub, hSubEval, ← hDiff]
+    native_seq_len, native_zplus, native_zneg,hElem, hEvalCond]
   exact congrArg (native_pack_seq T) hSubEval
 
 theorem eval_concatSplitTerm_true_left
@@ -2144,13 +2129,10 @@ theorem eval_concatSplitTerm_true_left
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt sc))
                 (SmtTerm.str_len (__eo_to_smt tc)))))) =
       SmtValue.Seq (native_pack_seq T (xs.take (xs.length - ys.length)))
-  simp [concatSplitRawTrueBody, mkIte, mkGeq, mkNeg, mkSubstr, mkStrLen,
-    xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,
-    __smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval__,
+  simp [xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,__smtx_model_eval__,
     __smtx_model_eval_ite, __smtx_model_eval_str_substr,
     __smtx_model_eval__at_purify,
-    native_seq_len, native_zplus, native_zneg, Int.sub_eq_add_neg,
-    hElem, hEvalCond, hCondTrue, hSub, hSubEval, ← hDiff]
+    native_seq_len, native_zplus, native_zneg,hElem, hEvalCond]
   exact congrArg (native_pack_seq T) hSubEval
 
 theorem eval_concatSplitTerm_true_right
@@ -2230,13 +2212,10 @@ theorem eval_concatSplitTerm_true_right
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt sc))
                 (SmtTerm.str_len (__eo_to_smt tc)))))) =
       SmtValue.Seq (native_pack_seq T (ys.take (ys.length - xs.length)))
-  simp [concatSplitRawTrueBody, mkIte, mkGeq, mkNeg, mkSubstr, mkStrLen,
-    xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,
-    __smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval__,
+  simp [xs, ys, htcEval, hscEval, __smtx_model_eval, __smtx_model_eval_str_len,__smtx_model_eval__,
     __smtx_model_eval_ite, __smtx_model_eval_str_substr,
     __smtx_model_eval__at_purify,
-    native_seq_len, native_zplus, native_zneg, Int.sub_eq_add_neg,
-    hElem, hEvalCond, hCondFalse, hSub, hSubEval, ← hDiff]
+    native_seq_len, native_zplus, native_zneg,hElem, hEvalCond]
   exact congrArg (native_pack_seq T) hSubEval
 
 theorem concat_split_nonempty_tail
@@ -2331,6 +2310,5 @@ theorem eval_mkConcat_right_nested
   rw [smtx_model_eval_str_concat_term_eq M b c]
   rw [haEval, hbEval, hcEval]
   simp [__smtx_model_eval_str_concat, native_seq_concat,
-    native_unpack_pack_seq, elem_typeof_pack_seq, native_unpack_seq,
-    haElem, List.append_assoc]
+    native_unpack_pack_seq,haElem, List.append_assoc]
 

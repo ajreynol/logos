@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private abbrev mkStrLen (x : Term) : Term :=
@@ -89,7 +88,7 @@ private theorem native_seq_extract_zero_nat_csplit
       rw [hmin]
       simp
     have hminNat : min n xs.length = n := Nat.min_eq_left hle
-    simp [hn, hxsNe, hnPos]
+    simp [hn, hxsNe]
     change
       min ((min (Int.ofNat n) (Int.ofNat xs.length)).toNat) xs.length =
         min n xs.length
@@ -104,7 +103,7 @@ private theorem native_seq_extract_to_end_nat_csplit
   · have hLenLe : xs.length <= i := by omega
     have hcast : (Int.ofNat i >= Int.ofNat xs.length) = true := by
       simp [hLenLe]
-    simp [hend, hcast, List.drop_eq_nil_of_le hLenLe]
+    simp [hend,List.drop_eq_nil_of_le hLenLe]
   · have htailPosNat : 0 < xs.length - i := Nat.pos_of_ne_zero hend
     have hiltNat : i < xs.length := by omega
     have htailPos : (0 : Int) < Int.ofNat (xs.length - i) :=
@@ -133,7 +132,7 @@ private theorem native_seq_extract_to_end_nat_csplit
           xs.length - i := by
       rw [hmin]
       simp
-    simp [hend, hLenNotLe, htailPos, hilt]
+    simp [hend, hLenNotLe]
     rw [if_neg hiNonneg]
     change
       List.take
@@ -231,7 +230,7 @@ private theorem sc_eval_length_one_of_seq_type
   · change __smtx_model_eval M (SmtTerm.String str) =
       SmtValue.Seq (native_pack_string str)
     rw [__smtx_model_eval.eq_4]
-  · simp [native_pack_string, native_unpack_pack_seq, String.length_toList, hLen]
+  · simp [native_pack_string, native_unpack_pack_seq,hLen]
 
 private theorem length_ne_zero_of_not_len_eq_eval
     (M : SmtModel) (u : Term) (su : SmtSeq)
@@ -1007,8 +1006,7 @@ private theorem eval_mkConcat_right_nested
   rw [smtx_model_eval_str_concat_term_eq M b c]
   rw [haEval, hbEval, hcEval]
   simp [__smtx_model_eval_str_concat, native_seq_concat,
-    native_unpack_pack_seq, elem_typeof_pack_seq, native_unpack_seq,
-    haElem, List.append_assoc]
+    native_unpack_pack_seq,haElem, List.append_assoc]
 
 private theorem smt_typeof_concatCSplitLenMinusOne
     (u : Term) (T : SmtType)
@@ -1131,7 +1129,7 @@ private theorem csplit_context_false
     exact htTy
   have hIntroSNe : __str_nary_intro s ≠ Term.Stuck := by
     rw [hIntroS]
-    simp [mkConcat]
+    simp
   rcases smt_seq_component_wf_of_non_none_type (__eo_to_smt s) T hsTy with
     ⟨hTInh, hTWf⟩
   have hIntroSNN :
@@ -1151,7 +1149,7 @@ private theorem csplit_context_false
     ⟨hscTy, hsTailTy⟩
   have hIntroTNe : __str_nary_intro t ≠ Term.Stuck := by
     rw [hIntroT]
-    simp [mkConcat]
+    simp
   have hIntroTTy :
       __smtx_typeof (__eo_to_smt (__str_nary_intro t)) = SmtType.Seq T := by
     rw [hIntroT]
@@ -1257,12 +1255,12 @@ private theorem csplit_context_true
       __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro t) ≠
         Term.Stuck := by
     rw [hRevIntroT]
-    simp [mkConcat]
+    simp
   have hRevIntroSNe :
       __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro s) ≠
         Term.Stuck := by
     rw [hRevIntroS]
-    simp [mkConcat]
+    simp
   have hIntroTNe : __str_nary_intro t ≠ Term.Stuck :=
     eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
       (__str_nary_intro t) hRevIntroTNe
@@ -1456,7 +1454,7 @@ private theorem concat_csplit_false_facts
       (by unfold RuleProofs.eo_has_smt_translation; rw [hNilTy]; exact seq_ne_none T)
   have hFormulaEq : concatCSplitFormula (Term.Boolean false) u sc = mkEq u rhs := by
     simp [concatCSplitFormula, suffix, nil, rhs, mkEq, mkConcat, __eo_mk_apply,
-      eo_ite_false, huNe, hscNe, hSuffixNe, hNilNe]
+      eo_ite_false]
   have hFormulaBool :
       RuleProofs.eo_has_bool_type (concatCSplitFormula (Term.Boolean false) u sc) := by
     rw [hFormulaEq]
@@ -1526,11 +1524,10 @@ private theorem concat_csplit_false_facts
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt u))
                 (SmtTerm.Numeral 1)))) =
         SmtValue.Seq (native_pack_seq T (xs.drop 1))
-    simp [suffix, concatCSplitSuffix, concatCSplitLenMinusOne, mkSubstr,
-      mkNeg, mkStrLen, xs, huEval, __smtx_model_eval,
+    simp [xs, huEval, __smtx_model_eval,
       __smtx_model_eval_str_len, __smtx_model_eval_str_substr,
       __smtx_model_eval__at_purify, __smtx_model_eval__, native_seq_len,
-      native_zplus, native_zneg, Int.sub_eq_add_neg, hsuElem, hExtractPacked]
+      native_zplus, native_zneg,hsuElem]
     exact hExtractPacked
   have hRhsEval :
       __smtx_model_eval M (__eo_to_smt rhs) =
@@ -1603,7 +1600,7 @@ private theorem concat_csplit_true_facts
       (by unfold RuleProofs.eo_has_smt_translation; rw [hNilTy]; exact seq_ne_none T)
   have hFormulaEq : concatCSplitFormula (Term.Boolean true) u sc = mkEq u rhs := by
     simp [concatCSplitFormula, pfx, nil, rhs, mkEq, mkConcat, __eo_mk_apply,
-      eo_ite_true, huNe, hscNe, hpfxNe, hNilNe]
+      eo_ite_true]
   have hFormulaBool :
       RuleProofs.eo_has_bool_type (concatCSplitFormula (Term.Boolean true) u sc) := by
     rw [hFormulaEq]
@@ -1675,11 +1672,10 @@ private theorem concat_csplit_true_facts
               (SmtTerm.neg (SmtTerm.str_len (__eo_to_smt u))
                 (SmtTerm.Numeral 1)))) =
         SmtValue.Seq (native_pack_seq T (xs.take (xs.length - 1)))
-    simp [pfx, concatCSplitPrefix, concatCSplitLenMinusOne, mkSubstr,
-      mkNeg, mkStrLen, xs, huEval, __smtx_model_eval,
+    simp [xs, huEval, __smtx_model_eval,
       __smtx_model_eval_str_len, __smtx_model_eval_str_substr,
       __smtx_model_eval__at_purify, __smtx_model_eval__, native_seq_len,
-      native_zplus, native_zneg, Int.sub_eq_add_neg, hsuElem, hExtractPacked]
+      native_zplus, native_zneg,hsuElem]
     exact hExtractPacked
   have hRhsEval :
       __smtx_model_eval M (__eo_to_smt rhs) =
@@ -1745,7 +1741,7 @@ private theorem concat_csplit_formula_has_bool_type
         (by unfold RuleProofs.eo_has_smt_translation; rw [hNilTy]; exact seq_ne_none T)
     have hFormulaEq : concatCSplitFormula (Term.Boolean true) u sc = mkEq u rhs := by
       simp [concatCSplitFormula, pfx, nil, rhs, mkEq, mkConcat, __eo_mk_apply,
-        eo_ite_true, huNe, hscNe, hpfxNe, hNilNe]
+        eo_ite_true]
     rw [hFormulaEq]
     exact eo_has_bool_type_eq_of_seq_type u rhs T huTy hRhsTy
   · subst rev
@@ -1771,7 +1767,7 @@ private theorem concat_csplit_formula_has_bool_type
         (by unfold RuleProofs.eo_has_smt_translation; rw [hNilTy]; exact seq_ne_none T)
     have hFormulaEq : concatCSplitFormula (Term.Boolean false) u sc = mkEq u rhs := by
       simp [concatCSplitFormula, suffix, nil, rhs, mkEq, mkConcat, __eo_mk_apply,
-        eo_ite_false, huNe, hscNe, hSuffixNe, hNilNe]
+        eo_ite_false]
     rw [hFormulaEq]
     exact eo_has_bool_type_eq_of_seq_type u rhs T huTy hRhsTy
 
@@ -1845,7 +1841,7 @@ private theorem csplit_context_false_head_type
     exact htTy
   have hIntroSNe : __str_nary_intro s ≠ Term.Stuck := by
     rw [hIntroS]
-    simp [mkConcat]
+    simp
   rcases smt_seq_component_wf_of_non_none_type (__eo_to_smt s) T hsTy with
     ⟨hTInh, hTWf⟩
   have hIntroSNN :
@@ -1940,7 +1936,7 @@ private theorem csplit_context_true_head_type
       __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro s) ≠
         Term.Stuck := by
     rw [hRevIntroS]
-    simp [mkConcat]
+    simp
   have hIntroSNe : __str_nary_intro s ≠ Term.Stuck :=
     eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
       (__str_nary_intro s) hRevIntroSNe

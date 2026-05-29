@@ -9,7 +9,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 attribute [local simp] native_ite native_teq native_not native_and native_zlt
@@ -169,7 +168,7 @@ private theorem dt_collapse_updater_guard_true_of_rhs_non_stuck
         apply hRhs
         simpa [selectors, idx, hNeg, hCollapse] using hGuard.symm
       · constructor
-        · simp [selectors, idx]
+        · simp
         · simpa [selectors, idx, hNeg] using hGuard.symm
   | _ =>
       exfalso
@@ -267,7 +266,7 @@ private theorem smtx_model_eval_apply_of_dt_chain
     __smtx_model_eval_apply M v x = SmtValue.Apply v x := by
   cases x <;> simp [__smtx_model_eval_apply] at hx ⊢
   all_goals
-    cases v <;> simp [__smtx_model_eval_apply, __vsm_apply_head] at hHead ⊢
+    cases v <;> simp [__vsm_apply_head] at hHead ⊢
 
 private theorem smtx_ite_then_non_none
     (c x y : SmtTerm) :
@@ -458,15 +457,13 @@ private theorem updater_rec_eval_components
           have hEqBool : native_nateq k k = true := by
             simp [native_nateq, SmtEval.native_nateq]
           rw [hEval]
-          simp [__vsm_apply_arg_nth, vsm_num_apply_args, hCountRec,
-            hEqBool, argTerm]
+          simp [__vsm_apply_arg_nth,hEqBool, argTerm]
         · have hqk : q < k := by
             exact Nat.lt_of_le_of_ne (Nat.lt_succ_iff.mp hq) hLast
           have hNeBool : native_nateq q k = false := by
             simp [native_nateq, SmtEval.native_nateq, hLast]
           rw [hEval]
-          simp [__vsm_apply_arg_nth, vsm_num_apply_args, hCountRec,
-            hNeBool]
+          simp [__vsm_apply_arg_nth,hNeBool]
           exact hArgsRec q hqk
 
 private theorem tuple_update_shape_of_non_none
@@ -736,7 +733,7 @@ private theorem tuple_update_eval_eq_rec_of_tuple_type
             (SmtDatatype.sum c SmtDatatype.null) native_nat_zero))
   rw [hT]
   simp [__eo_to_smt_tuple_update, __eo_to_smt_updater, native_ite,
-    native_and, hGe, hIdxBool, hIdxLt, native_streq, __smtx_model_eval,
+    native_and, hGe,hIdxLt, native_streq, __smtx_model_eval,
     __smtx_model_eval_dt_tester, hHead, native_veq,
     __smtx_model_eval_ite]
 
@@ -843,8 +840,8 @@ private theorem tuple_update_type_eq_tuple_type_of_shape
       SmtType.Datatype (native_string_lit "@Tuple") d
   rw [hT]
   simp [__eo_to_smt_tuple_update, __eo_to_smt_updater, native_ite,
-    native_and, hGe, hIdxBool, hIdxLt, native_streq, hT, hRecTy,
-    typeof_ite_eq, hCond, hThen, hElse, hTEq, __smtx_typeof_ite,
+    native_and, hGe,hIdxLt, native_streq, hT, hRecTy,
+    typeof_ite_eq, hCond,__smtx_typeof_ite,
     native_Teq, cond, recTerm]
 
 private theorem tuple_collapse_updater_rhs_ne_stuck_shape
@@ -871,7 +868,7 @@ private theorem tuple_collapse_updater_rhs_ne_stuck_shape
       | _ =>
           exfalso
           apply h
-          simp [__tuple_collapse_updater_rhs, hA, hIdx]
+          simp [__tuple_collapse_updater_rhs]
   | Apply f tail =>
       cases f with
       | Apply g head =>
@@ -884,19 +881,19 @@ private theorem tuple_collapse_updater_rhs_ne_stuck_shape
               | _ =>
                   exfalso
                   apply h
-                  simp [__tuple_collapse_updater_rhs, hA, hIdx]
+                  simp [__tuple_collapse_updater_rhs]
           | _ =>
               exfalso
               apply h
-              simp [__tuple_collapse_updater_rhs, hA, hIdx]
+              simp [__tuple_collapse_updater_rhs]
       | _ =>
           exfalso
           apply h
-          simp [__tuple_collapse_updater_rhs, hA, hIdx]
+          simp [__tuple_collapse_updater_rhs]
   | _ =>
       exfalso
       apply h
-      simp [__tuple_collapse_updater_rhs, hA, hIdx]
+      simp [__tuple_collapse_updater_rhs]
 
 private theorem tuple_collapse_updater_rhs_tuple_nonzero_eq_mk_apply
     (head tail a : Term) (n : native_Int) :
@@ -915,7 +912,7 @@ private theorem tuple_collapse_updater_rhs_tuple_nonzero_eq_mk_apply
     exact hn0 hn
   cases a <;>
     simp [__tuple_collapse_updater_rhs, __eo_add, native_zplus,
-      SmtEval.native_zplus, hNumNe] at hANe ⊢
+      SmtEval.native_zplus] at hANe ⊢
 
 private theorem eo_mk_apply_tuple_head_eq_apply_of_arg_ne_stuck
     (head arg : Term) :
@@ -1051,7 +1048,7 @@ private theorem tuple_collapse_updater_rhs_projection
       have hANe : a ≠ Term.Stuck := by
         intro hA
         apply hRhsTermNN
-        simp [tupleTerm, __tuple_collapse_updater_rhs, hA]
+        simp [__tuple_collapse_updater_rhs, hA]
       have hRhsEq :
           __tuple_collapse_updater_rhs tupleTerm a (Term.Numeral 0) =
             Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) tail := by
@@ -1186,7 +1183,7 @@ private theorem tuple_collapse_updater_rhs_projection
       have hANe : a ≠ Term.Stuck := by
         intro hA
         apply hRhsTermNN
-        simp [tupleTerm, __tuple_collapse_updater_rhs, hA]
+        simp [__tuple_collapse_updater_rhs, hA]
       have hStep :
           __tuple_collapse_updater_rhs tupleTerm a (Term.Numeral n) =
             __eo_mk_apply (Term.Apply (Term.UOp UserOp.tuple) head) tailRhs := by

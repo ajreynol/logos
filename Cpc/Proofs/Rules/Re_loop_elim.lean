@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -80,12 +79,12 @@ private theorem re_loop_translation_types
     simp [hR, native_ite, native_Teq] at hTrans
   by_cases hlo : native_zleq 0 lo
   · by_cases hhi : native_zleq 0 hi
-    · simp [hlo, hhi, native_ite, native_Teq] at hTrans
+    · simp [hlo, hhi] at hTrans
       cases hRhs : __smtx_typeof (__eo_to_smt rhs) <;>
-        simp [hRhs, native_ite, native_Teq] at hTrans
+        simp [hRhs] at hTrans
       exact ⟨hlo, hhi, by simpa using hR, by simpa using hRhs⟩
-    · simp [hlo, hhi, native_ite] at hTrans
-  · simp [hlo, native_ite] at hTrans
+    · simp [hlo, hhi] at hTrans
+  · simp [hlo] at hTrans
 
 private theorem re_loop_elim_prog_eq_arg_of_ne_stuck
     (l u r rhs : Term)
