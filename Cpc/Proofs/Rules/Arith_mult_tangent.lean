@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private def mtRel (op : UserOp) (u v : Term) : Term :=
@@ -889,7 +888,7 @@ private theorem prog_eq_mk_true_of_ne_stuck
       mtTangentMkFormula UserOp.geq UserOp.leq UserOp.geq x y a b := by
   unfold __eo_prog_arith_mult_tangent mtTangentMkFormula mtTangentMkLeft
     mtTangentMkRhs mtMkRel
-  simp [__eo_mk_apply, hx, hy, ha, hb, __eo_ite, native_ite, native_teq]
+  simp [__eo_mk_apply,__eo_ite, native_ite, native_teq]
 
 private theorem prog_eq_mk_false_of_ne_stuck
     (x y a b : Term)
@@ -899,7 +898,7 @@ private theorem prog_eq_mk_false_of_ne_stuck
       mtTangentMkFormula UserOp.leq UserOp.geq UserOp.leq x y a b := by
   unfold __eo_prog_arith_mult_tangent mtTangentMkFormula mtTangentMkLeft
     mtTangentMkRhs mtMkRel
-  simp [__eo_mk_apply, hx, hy, ha, hb, __eo_ite, native_ite, native_teq]
+  simp [__eo_mk_apply,__eo_ite, native_ite, native_teq]
 
 private theorem arith_mult_tangent_arg_types_true
     (x y a b : Term)
@@ -1018,7 +1017,7 @@ private theorem prog_eq_int_true
   simp [mtTangentFormula, mtRel, mtMul, mtPlus, mtSub, mtAnd, mtOr,
     mtTangentMkFormula, mtTangentMkLeft, mtTangentMkRhs, mtMkRel, __eo_mk_apply,
     __eo_nil, __eo_nil_mult, __eo_nil_plus, __arith_mk_one, __arith_mk_zero,
-    hv5Ty, hTx, hTy, hTa, hTb, hxNe, hyNe, haNe, hbNe]
+    hv5Ty, hTx,hTa, hTb]
 
 private theorem prog_eq_int_false
     (x y a b : Term)
@@ -1055,7 +1054,7 @@ private theorem prog_eq_int_false
   simp [mtTangentFormula, mtRel, mtMul, mtPlus, mtSub, mtAnd, mtOr,
     mtTangentMkFormula, mtTangentMkLeft, mtTangentMkRhs, mtMkRel, __eo_mk_apply,
     __eo_nil, __eo_nil_mult, __eo_nil_plus, __arith_mk_one, __arith_mk_zero,
-    hv5Ty, hTx, hTy, hTa, hTb, hxNe, hyNe, haNe, hbNe]
+    hv5Ty, hTx,hTa, hTb]
 
 private theorem prog_eq_real_true
     (x y a b : Term)
@@ -1097,7 +1096,7 @@ private theorem prog_eq_real_true
   simp [mtTangentFormula, mtRel, mtMul, mtPlus, mtSub, mtAnd, mtOr,
     mtTangentMkFormula, mtTangentMkLeft, mtTangentMkRhs, mtMkRel, __eo_mk_apply,
     __eo_nil, __eo_nil_mult, __eo_nil_plus, __arith_mk_one, __arith_mk_zero,
-    hv5Ty, hTx, hTy, hTa, hTb, hxNe, hyNe, haNe, hbNe]
+    hv5Ty, hTx,hTa, hTb]
 
 private theorem prog_eq_real_false
     (x y a b : Term)
@@ -1139,7 +1138,7 @@ private theorem prog_eq_real_false
   simp [mtTangentFormula, mtRel, mtMul, mtPlus, mtSub, mtAnd, mtOr,
     mtTangentMkFormula, mtTangentMkLeft, mtTangentMkRhs, mtMkRel, __eo_mk_apply,
     __eo_nil, __eo_nil_mult, __eo_nil_plus, __arith_mk_one, __arith_mk_zero,
-    hv5Ty, hTx, hTy, hTa, hTb, hxNe, hyNe, haNe, hbNe]
+    hv5Ty, hTx,hTa, hTb]
 
 private theorem tangent_true_int_properties
     (M : SmtModel) (hM : model_total_typed M) (x y a b : Term)
@@ -1350,17 +1349,17 @@ by
                                 intro hy
                                 subst y
                                 apply hProg
-                                simp [__eo_prog_arith_mult_tangent, hxNe]
+                                simp [__eo_prog_arith_mult_tangent]
                               have haNe : a ≠ Term.Stuck := by
                                 intro ha
                                 subst a
                                 apply hProg
-                                simp [__eo_prog_arith_mult_tangent, hxNe, hyNe]
+                                simp [__eo_prog_arith_mult_tangent]
                               have hbNe : b ≠ Term.Stuck := by
                                 intro hb
                                 subst b
                                 apply hProg
-                                simp [__eo_prog_arith_mult_tangent, hxNe, hyNe, haNe]
+                                simp [__eo_prog_arith_mult_tangent]
                               cases pol with
                               | Boolean sign =>
                                   cases sign with
@@ -1406,5 +1405,4 @@ by
                                   exfalso
                                   apply hProg
                                   simp [__eo_prog_arith_mult_tangent, __eo_ite,
-                                    __eo_mk_apply, hxNe, hyNe, haNe, hbNe,
-                                    native_ite, native_teq]
+                                    __eo_mk_apply,native_ite, native_teq]

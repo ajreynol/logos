@@ -833,7 +833,6 @@ theorem term_ne_stuck_of_has_bool_type (t : Term) :
   rw [eo_has_bool_type, eo_to_smt_stuck_eq] at hTy
   simp [TranslationProofs.smtx_typeof_none] at hTy
 
-set_option linter.unusedSimpArgs false in
 /-- Shows that `eo_interprets_not_true` implies `false`. -/
 theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
   eo_interprets M (Term.Apply (Term.UOp UserOp.not) t) true -> eo_interprets M t false := by
@@ -849,7 +848,7 @@ theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
       cases ht : __smtx_model_eval M (__eo_to_smt t) with
       | NotValue =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Boolean b =>
           cases b with
           | false =>
@@ -859,40 +858,40 @@ theorem eo_interprets_not_true_implies_false (M : SmtModel) (t : Term) :
               simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
       | Numeral n =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Rational q =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Binary w n =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Map m =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Fun fid T U =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Set m =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Seq s =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Char c =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | UValue s i =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | RegLan r =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | DtCons s d i =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
       | Apply f x =>
           exfalso
-          simp [__smtx_model_eval_not, ht, SmtEval.native_not] at hEval
+          simp [__smtx_model_eval_not, ht] at hEval
 
 /-- Establishes an equality relating `smtx_typeof` and `refl`. -/
 theorem smtx_typeof_eq_refl (T : SmtType) :

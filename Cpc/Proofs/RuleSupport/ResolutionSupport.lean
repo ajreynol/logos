@@ -27,20 +27,20 @@ private theorem is_list_true_of_get_nil_rec_ne_stuck {f x : Term} :
   have hF : f ≠ Term.Stuck := by
     intro hF
     subst hF
-    simpa [__eo_get_nil_rec] using hRec
+    simp [__eo_get_nil_rec] at hRec
   have hX : x ≠ Term.Stuck := by
     intro hX
     subst hX
-    simpa [__eo_get_nil_rec] using hRec
-  simp [__eo_is_list, hF, hX, is_ok_true_of_ne_stuck hRec]
+    simp [__eo_get_nil_rec] at hRec
+  simp [__eo_is_list, is_ok_true_of_ne_stuck hRec]
 
 private theorem orClause_of_is_list_true {c : Term} :
     __eo_is_list Term.or c = Term.Boolean true -> OrClause c := by
   intro hList
   cases c with
   | Stuck =>
-      simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, native_teq, native_not,
-        SmtEval.native_not] at hList
+      simp [__eo_is_list
+        ] at hList
   | Boolean b =>
       cases b with
       | false =>
@@ -65,11 +65,11 @@ private theorem orClause_of_is_list_true {c : Term} :
                     (orClause_of_is_list_true (is_list_true_of_get_nil_rec_ne_stuck hList))
               | _ =>
                   simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
-                    __eo_is_list_nil, native_ite, native_teq, native_not,
+                    native_ite, native_teq, native_not,
                     SmtEval.native_not] at hList
           | _ =>
               simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
-                __eo_is_list_nil, native_ite, native_teq, native_not,
+                native_ite, native_teq, native_not,
                 SmtEval.native_not] at hList
       | _ =>
           simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
@@ -370,8 +370,8 @@ private theorem list_erase_nonstuck_input_orClause {c e : Term} :
           SmtEval.native_not] at hErase ⊢
         exact hErase.1
     | _ =>
-        simp [__eo_list_erase, __eo_requires, hIs, native_ite, native_teq, native_not,
-          SmtEval.native_not] at hErase
+        simp [__eo_list_erase, __eo_requires, hIs, native_ite, native_teq
+          ] at hErase
   exact orClause_of_is_list_true hList
 
 private theorem eo_interprets_bool_cases
@@ -939,7 +939,7 @@ private theorem diff_rec_preserves_orClause {c d : Term} :
         have hStep :
             __eo_list_diff_rec (Term.Apply (Term.Apply Term.or x) xs) d =
               Term.Apply (Term.Apply Term.or x) (__eo_list_diff_rec xs d') := by
-          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if, hX, hTailNe]
+          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if]
         rw [hStep]
         exact OrClause.cons x (__eo_list_diff_rec xs d') hTail
       · have hEqTerm : __eo_eq d' d = Term.Boolean false :=
@@ -949,7 +949,7 @@ private theorem diff_rec_preserves_orClause {c d : Term} :
         have hStep :
             __eo_list_diff_rec (Term.Apply (Term.Apply Term.or x) xs) d =
               __eo_list_diff_rec xs d' := by
-          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if, hX, hTailNe]
+          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if]
         rw [hStep]
         exact hTail
 
@@ -988,7 +988,7 @@ private theorem diff_rec_preserves_bool_type {c d : Term} :
         have hStep :
             __eo_list_diff_rec (Term.Apply (Term.Apply Term.or x) xs) d =
               Term.Apply (Term.Apply Term.or x) (__eo_list_diff_rec xs d') := by
-          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if, hX, hTailNe]
+          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if]
         rw [hStep]
         exact RuleProofs.eo_has_bool_type_or_of_bool_args x (__eo_list_diff_rec xs d')
           hXBool hTail
@@ -999,7 +999,7 @@ private theorem diff_rec_preserves_bool_type {c d : Term} :
         have hStep :
             __eo_list_diff_rec (Term.Apply (Term.Apply Term.or x) xs) d =
               __eo_list_diff_rec xs d' := by
-          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if, hX, hTailNe]
+          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if]
         rw [hStep]
         exact hTail
 
@@ -1041,7 +1041,7 @@ private theorem diff_rec_true_of_good
         · have hStep :
               __eo_list_diff_rec (Term.Apply (Term.Apply Term.or x) xs) d =
                 Term.Apply (Term.Apply Term.or x) (__eo_list_diff_rec xs d') := by
-            simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if, hX, hTailNe]
+            simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if]
           rw [hStep]
           exact RuleProofs.eo_interprets_or_left_intro M hM x (__eo_list_diff_rec xs d')
             hXTrue hTailBool
@@ -1052,7 +1052,7 @@ private theorem diff_rec_true_of_good
           have hStep :
               __eo_list_diff_rec (Term.Apply (Term.Apply Term.or x) xs) d =
                 Term.Apply (Term.Apply Term.or x) (__eo_list_diff_rec xs d') := by
-            simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if, hX, hTailNe]
+            simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if]
           rw [hStep]
           exact RuleProofs.eo_interprets_or_right_intro M hM x (__eo_list_diff_rec xs d')
             hXBool hTailTrue
@@ -1076,7 +1076,7 @@ private theorem diff_rec_true_of_good
         have hStep :
             __eo_list_diff_rec (Term.Apply (Term.Apply Term.or x) xs) d =
               __eo_list_diff_rec xs d' := by
-          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if, hX, hTailNe]
+          simp [__eo_list_diff_rec, d', hEqTerm, __eo_prepend_if]
         rw [hStep]
         exact hTailTrue
 
@@ -1135,8 +1135,8 @@ private theorem list_diff_nonstuck_input_orClause {a b : Term} :
           SmtEval.native_not] at hDiff ⊢
         exact hDiff.1
     | _ =>
-        simp [__eo_list_diff, __eo_requires, hIs, native_ite, native_teq, native_not,
-          SmtEval.native_not] at hDiff
+        simp [__eo_list_diff, __eo_requires, hIs, native_ite, native_teq
+          ] at hDiff
   exact orClause_of_is_list_true hList
 
 private theorem concat_false_implies_right_false
@@ -1357,7 +1357,7 @@ private theorem chain_m_resolve_rec_step_true_false_implies_good
           RuleProofs.term_ne_stuck_of_interprets_true M _ hConcatTrue
         have hStep' := hStep
         unfold __chain_m_resolve_rec_step at hStep'
-        simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hLNe, hRlNe, hConcatNe,
+        simp [__eo_mk_apply, __eo_ite, native_ite, native_teq,
           hEqTerm] at hStep'
         have hCr'True : eo_interprets M Cr' true := by
           rw [← hStep']
@@ -1437,7 +1437,7 @@ private theorem chain_m_resolve_rec_step_false_false_implies_good
           RuleProofs.term_ne_stuck_of_interprets_true M _ hConcatTrue
         have hStep' := hStep
         unfold __chain_m_resolve_rec_step at hStep'
-        simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hLNe, hRlNe, hConcatNe,
+        simp [__eo_mk_apply, __eo_ite, native_ite, native_teq,
           hEqTerm] at hStep'
         have hCr'True : eo_interprets M Cr' true := by
           rw [← hStep']
@@ -1473,7 +1473,7 @@ private theorem chain_m_resolve_rec_step_true_false_implies_prev_false
       eo_eq_eq_true_of_eq hEq (not_ne_stuck hLNe) hCcNe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm] at hStep'
     rw [hStep']
     exact hCr'False
   · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean false :=
@@ -1499,11 +1499,11 @@ private theorem chain_m_resolve_rec_step_true_false_implies_prev_false
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm]
       at hStep'
     have hConcatFalse :
         eo_interprets M
@@ -1550,7 +1550,7 @@ private theorem chain_m_resolve_rec_step_false_false_implies_prev_false
       eo_eq_eq_true_of_eq hEq hLNe hCcNe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm] at hStep'
     rw [hStep']
     exact hCr'False
   · have hEqTerm : __eo_eq L Cc = Term.Boolean false :=
@@ -1572,11 +1572,11 @@ private theorem chain_m_resolve_rec_step_false_false_implies_prev_false
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm]
       at hStep'
     have hConcatFalse :
         eo_interprets M
@@ -1621,7 +1621,7 @@ private theorem chain_m_resolve_rec_step_true_false_implies_prev_false_of_safe
       eo_eq_eq_true_of_eq hEq (not_ne_stuck hLNe) hCcNe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm] at hStep'
     rw [hStep']
     exact hCr'False
   · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean false :=
@@ -1647,11 +1647,11 @@ private theorem chain_m_resolve_rec_step_true_false_implies_prev_false_of_safe
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm]
       at hStep'
     have hConcatFalse :
         eo_interprets M
@@ -1689,7 +1689,7 @@ private theorem chain_m_resolve_rec_step_false_false_implies_prev_false_of_safe
       eo_eq_eq_true_of_eq hEq hLNe hCcNe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm] at hStep'
     rw [hStep']
     exact hCr'False
   · have hEqTerm : __eo_eq L Cc = Term.Boolean false :=
@@ -1711,11 +1711,11 @@ private theorem chain_m_resolve_rec_step_false_false_implies_prev_false_of_safe
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm]
       at hStep'
     have hConcatFalse :
         eo_interprets M
@@ -1737,8 +1737,8 @@ private theorem list_concat_nonstuck_left_orClause {a b : Term} :
           SmtEval.native_not] at hConcat ⊢
         exact hConcat.1
     | _ =>
-        simp [__eo_list_concat, __eo_requires, hIs, native_ite, native_teq, native_not,
-          SmtEval.native_not] at hConcat
+        simp [__eo_list_concat, __eo_requires, hIs, native_ite, native_teq
+          ] at hConcat
   exact orClause_of_is_list_true hList
 
 private theorem list_concat_nonstuck_right_orClause {a b : Term} :
@@ -1761,8 +1761,8 @@ private theorem list_concat_nonstuck_right_orClause {a b : Term} :
             simp [__eo_list_concat, __eo_requires, hIsA, hIsB, native_ite, native_teq,
               native_not, SmtEval.native_not] at hConcat
     | _ =>
-        simp [__eo_list_concat, __eo_requires, hIsA, native_ite, native_teq, native_not,
-          SmtEval.native_not] at hConcat
+        simp [__eo_list_concat, __eo_requires, hIsA, native_ite, native_teq
+          ] at hConcat
   exact orClause_of_is_list_true hList
 
 private theorem chain_m_resolve_rec_step_true_false_implies_prev_false_of_safe_bool
@@ -1790,7 +1790,7 @@ private theorem chain_m_resolve_rec_step_true_false_implies_prev_false_of_safe_b
       eo_eq_eq_true_of_eq hEq (not_ne_stuck hLNe) hCcNe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm] at hStep'
     rw [hStep']
     exact hCr'False
   · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean false :=
@@ -1806,7 +1806,7 @@ private theorem chain_m_resolve_rec_step_true_false_implies_prev_false_of_safe_b
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hDiffClause :
         OrClause
@@ -1822,7 +1822,7 @@ private theorem chain_m_resolve_rec_step_true_false_implies_prev_false_of_safe_b
       diff_preserves_bool_type hCcClause hCcBool hDeleteSafe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm]
       at hStep'
     have hConcatFalse :
         eo_interprets M
@@ -1859,7 +1859,7 @@ private theorem chain_m_resolve_rec_step_false_false_implies_prev_false_of_safe_
       eo_eq_eq_true_of_eq hEq hLNe hCcNe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm] at hStep'
     rw [hStep']
     exact hCr'False
   · have hEqTerm : __eo_eq L Cc = Term.Boolean false :=
@@ -1874,7 +1874,7 @@ private theorem chain_m_resolve_rec_step_false_false_implies_prev_false_of_safe_
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hDiffClause :
         OrClause (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) :=
@@ -1887,7 +1887,7 @@ private theorem chain_m_resolve_rec_step_false_false_implies_prev_false_of_safe_
       diff_preserves_bool_type hCcClause hCcBool hDeleteSafe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm]
       at hStep'
     have hConcatFalse :
         eo_interprets M
@@ -1941,7 +1941,7 @@ private theorem chain_m_resolve_rec_step_true_false_implies_good_of_bool
           intro hConcat
           have hStep' := hStep
           unfold __chain_m_resolve_rec_step at hStep'
-          simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+          simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
             at hStep'
         have hDiffClause :
             OrClause
@@ -1974,7 +1974,7 @@ private theorem chain_m_resolve_rec_step_true_false_implies_good_of_bool
           concat_true_of_left_true M hM hDiffClause hCr hDiffBool hCrBool hDiffTrue
         have hStep' := hStep
         unfold __chain_m_resolve_rec_step at hStep'
-        simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hLNe, hRlNe, hConcatNe,
+        simp [__eo_mk_apply, __eo_ite, native_ite, native_teq,
           hEqTerm] at hStep'
         have hCr'True : eo_interprets M Cr' true := by
           rw [← hStep']
@@ -2032,7 +2032,7 @@ private theorem chain_m_resolve_rec_step_false_false_implies_good_of_bool
           intro hConcat
           have hStep' := hStep
           unfold __chain_m_resolve_rec_step at hStep'
-          simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+          simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
             at hStep'
         have hDiffClause :
             OrClause (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl)) :=
@@ -2059,7 +2059,7 @@ private theorem chain_m_resolve_rec_step_false_false_implies_good_of_bool
           concat_true_of_left_true M hM hDiffClause hCr hDiffBool hCrBool hDiffTrue
         have hStep' := hStep
         unfold __chain_m_resolve_rec_step at hStep'
-        simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hLNe, hRlNe, hConcatNe,
+        simp [__eo_mk_apply, __eo_ite, native_ite, native_teq,
           hEqTerm] at hStep'
         have hCr'True : eo_interprets M Cr' true := by
           rw [← hStep']
@@ -2130,7 +2130,7 @@ private theorem chain_m_resolve_rec_step_true_pair_input
   | Stuck =>
       simp [__chain_m_resolve_rec_step] at hStep
   | Boolean b =>
-      simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+      simp [__chain_m_resolve_rec_step] at hStep
   | Apply f a =>
       cases f with
       | Apply g x =>
@@ -2140,13 +2140,13 @@ private theorem chain_m_resolve_rec_step_true_pair_input
               | _at__at_pair =>
                   exact ⟨x, a, rfl⟩
               | _ =>
-                  simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+                  simp [__chain_m_resolve_rec_step] at hStep
           | _ =>
-              simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+              simp [__chain_m_resolve_rec_step] at hStep
       | _ =>
-          simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+          simp [__chain_m_resolve_rec_step] at hStep
   | _ =>
-      simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+      simp [__chain_m_resolve_rec_step] at hStep
 
 private theorem chain_m_resolve_rec_step_false_pair_input
     {r Cc Cr' rl' L : Term} :
@@ -2164,7 +2164,7 @@ private theorem chain_m_resolve_rec_step_false_pair_input
   | Stuck =>
       simp [__chain_m_resolve_rec_step] at hStep
   | Boolean b =>
-      simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+      simp [__chain_m_resolve_rec_step] at hStep
   | Apply f a =>
       cases f with
       | Apply g x =>
@@ -2174,13 +2174,13 @@ private theorem chain_m_resolve_rec_step_false_pair_input
               | _at__at_pair =>
                   exact ⟨x, a, rfl⟩
               | _ =>
-                  simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+                  simp [__chain_m_resolve_rec_step] at hStep
           | _ =>
-              simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+              simp [__chain_m_resolve_rec_step] at hStep
       | _ =>
-          simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+          simp [__chain_m_resolve_rec_step] at hStep
   | _ =>
-      simp [__chain_m_resolve_rec_step, hCcNe, hLNe] at hStep
+      simp [__chain_m_resolve_rec_step] at hStep
 
 private theorem chain_m_resolve_rec_step_true_pair_pending
     {Cr rl Cc Cr' rl' L : Term} :
@@ -2203,7 +2203,7 @@ private theorem chain_m_resolve_rec_step_true_pair_pending
       eo_eq_eq_true_of_eq hEq (not_ne_stuck hLNe) hCcNe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm] at hStep'
     exact hStep'.2.symm
   · have hEqTerm : __eo_eq (Term.Apply Term.not L) Cc = Term.Boolean false :=
       eo_eq_eq_false_of_ne hEq (not_ne_stuck hLNe) hCcNe
@@ -2215,11 +2215,11 @@ private theorem chain_m_resolve_rec_step_true_pair_pending
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm]
       at hStep'
     exact hStep'.2.symm
 
@@ -2244,7 +2244,7 @@ private theorem chain_m_resolve_rec_step_false_pair_pending
       eo_eq_eq_true_of_eq hEq hLNe hCcNe
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe] at hStep'
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm] at hStep'
     exact hStep'.2.symm
   · have hEqTerm : __eo_eq L Cc = Term.Boolean false :=
       eo_eq_eq_false_of_ne hEq hLNe hCcNe
@@ -2255,11 +2255,11 @@ private theorem chain_m_resolve_rec_step_false_pair_pending
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hStep' := hStep
     unfold __chain_m_resolve_rec_step at hStep'
-    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcatNe]
+    simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm]
       at hStep'
     exact hStep'.2.symm
 
@@ -2305,7 +2305,7 @@ private theorem chain_m_resolve_rec_step_true_pair_residual
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hDiffClause :
         OrClause
@@ -2388,7 +2388,7 @@ private theorem chain_m_resolve_rec_step_false_pair_residual
       intro hConcat
       have hStep' := hStep
       unfold __chain_m_resolve_rec_step at hStep'
-      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hLNe, hRlNe, hConcat]
+      simp [__eo_mk_apply, __eo_ite, native_ite, native_teq, hEqTerm, hConcat]
         at hStep'
     have hDiffClause :
         OrClause (__eo_list_diff Term.or Cc (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl0)) :=
@@ -2785,7 +2785,7 @@ private theorem chain_m_resolve_final_pair_of_nonstuck
                               cases op' with
                               | or =>
                                   refine ⟨x, L, rl, ?_⟩
-                                  simp [hR, hF, hG, hA, hF', hG']
+                                  simp
                               | _ =>
                                   cases C1 <;> simp [__chain_m_resolve_final, hR, hF, hG, hA, hF', hG'] at hFinal
                           | _ =>
@@ -2900,7 +2900,7 @@ private theorem chain_m_resolve_final_properties_of_nonstuck
             (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))
           C2 := by
       unfold __chain_m_resolve_final
-      simp [hEqTerm, __eo_ite, native_ite, native_teq, hConcatNe]
+      simp [hEqTerm, __eo_ite, native_ite, native_teq]
     have hFinalClause :
         OrClause
           (__eo_list_concat Term.or
@@ -3238,7 +3238,7 @@ private theorem chain_m_resolve_final_structural_of_nonstuck
             (Term.Apply (Term.Apply (Term.UOp UserOp.or) L) rl))
           C2 := by
       unfold __chain_m_resolve_final
-      simp [hEqTerm, __eo_ite, native_ite, native_teq, hConcatNe]
+      simp [hEqTerm, __eo_ite, native_ite, native_teq]
     have hFinalClause :
         OrClause
           (__eo_list_concat Term.or
@@ -3324,8 +3324,8 @@ private theorem list_setof_arg_ne_stuck {c : Term} :
     c ≠ Term.Stuck := by
   intro hSet hC
   subst hC
-  simp [__eo_list_setof, __eo_is_list, __eo_is_ok, __eo_get_nil_rec, native_teq,
-    native_not, SmtEval.native_not] at hSet
+  simp [__eo_list_setof, __eo_is_list
+    ] at hSet
   exact hSet rfl
 
 private theorem eq_true_of_requires_true_not_stuck {x B : Term} :
@@ -3396,7 +3396,7 @@ private theorem get_elements_rec_ne_stuck {c : Term} :
       have hX : x ≠ Term.Stuck :=
         RuleProofs.term_ne_stuck_of_has_bool_type x hXBool
       have hXsNe : __eo_get_elements_rec xs ≠ Term.Stuck := ih hXsBool
-      simpa [__eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+      simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem get_elements_or_eq {x xs : Term} :
     x ≠ Term.Stuck ->
@@ -3404,7 +3404,7 @@ private theorem get_elements_or_eq {x xs : Term} :
     __eo_get_elements_rec (Term.Apply (Term.Apply Term.or x) xs) =
       Term.Apply (Term.Apply Term.__eo_List_cons x) (__eo_get_elements_rec xs) := by
   intro hX hXsNe
-  simp [__eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+  simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem erase_rec_true_implies_original_true
     (M : SmtModel) (hM : model_total_typed M) {c e : Term} :
@@ -3603,8 +3603,8 @@ private theorem erase_all_rec_preserves_orClause {c e : Term} :
         have hStep :
             __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
               __eo_list_erase_all_rec xs e := by
-          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
-            native_teq, hTailNe]
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not
+            ]
         rw [hStep]
         exact hTail
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -3615,8 +3615,8 @@ private theorem erase_all_rec_preserves_orClause {c e : Term} :
         have hStep :
             __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
               Term.Apply (Term.Apply Term.or x) (__eo_list_erase_all_rec xs e) := by
-          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
-            native_teq, hTailNe]
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not
+            ]
         rw [hStep]
         exact OrClause.cons x (__eo_list_erase_all_rec xs e) hTail
 
@@ -3646,8 +3646,8 @@ private theorem erase_all_rec_preserves_bool_type {c e : Term} :
         have hStep :
             __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
               __eo_list_erase_all_rec xs e := by
-          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
-            native_teq, hTailNe]
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not
+            ]
         rw [hStep]
         exact hTail
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -3658,8 +3658,8 @@ private theorem erase_all_rec_preserves_bool_type {c e : Term} :
         have hStep :
             __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
               Term.Apply (Term.Apply Term.or x) (__eo_list_erase_all_rec xs e) := by
-          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
-            native_teq, hTailNe]
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not
+            ]
         rw [hStep]
         exact RuleProofs.eo_has_bool_type_or_of_bool_args x (__eo_list_erase_all_rec xs e)
           hXBool hTail
@@ -3702,8 +3702,8 @@ private theorem erase_all_rec_true_of_lit_false
         have hStep :
             __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
               __eo_list_erase_all_rec xs e := by
-          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
-            native_teq, hTailNe]
+          simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not
+            ]
         rw [hStep]
         exact hTailTrue
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -3715,8 +3715,8 @@ private theorem erase_all_rec_true_of_lit_false
         · have hStep :
             __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
               Term.Apply (Term.Apply Term.or x) (__eo_list_erase_all_rec xs e) := by
-            simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
-              native_teq, hTailNe]
+            simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not
+              ]
           rw [hStep]
           exact RuleProofs.eo_interprets_or_left_intro M hM x (__eo_list_erase_all_rec xs e)
             hXTrue hTailBool
@@ -3727,8 +3727,8 @@ private theorem erase_all_rec_true_of_lit_false
           have hStep :
               __eo_list_erase_all_rec (Term.Apply (Term.Apply Term.or x) xs) e =
                 Term.Apply (Term.Apply Term.or x) (__eo_list_erase_all_rec xs e) := by
-            simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not,
-              native_teq, hTailNe]
+            simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm, native_not
+              ]
           rw [hStep]
           exact RuleProofs.eo_interprets_or_right_intro M hM x (__eo_list_erase_all_rec xs e)
             hXBool hTailTrue
@@ -3762,7 +3762,7 @@ private theorem setof_rec_structural {c : Term} :
           __eo_list_setof_rec (Term.Apply (Term.Apply Term.or x) xs) =
             Term.Apply (Term.Apply Term.or x)
               (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
-        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+        simp [__eo_list_setof_rec, __eo_mk_apply]
       rw [hStep]
       exact ⟨OrClause.cons x (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) hEraseClause,
         RuleProofs.eo_has_bool_type_or_of_bool_args x
@@ -3796,7 +3796,7 @@ private theorem setof_rec_true
           __eo_list_setof_rec (Term.Apply (Term.Apply Term.or x) xs) =
             Term.Apply (Term.Apply Term.or x)
               (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
-        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+        simp [__eo_list_setof_rec, __eo_mk_apply]
       rcases eo_interprets_bool_cases M hM x hXBool with hXTrue | hXFalse
       · rw [hStep]
         exact RuleProofs.eo_interprets_or_left_intro M hM x
@@ -3898,7 +3898,7 @@ private theorem orClause_true_of_minclude_true
         intro hEq
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
           eo_eq_eq_true_of_eq hEq hZNe hElemsCNe
-        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not, native_teq] at hInclRec
+        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
       have hNotEqTerm :
           __eo_not (__eo_eq z (__eo_get_elements_rec c)) = Term.Boolean true := by
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
@@ -4008,9 +4008,9 @@ theorem cmd_step_chain_m_resolution_properties_aux
                         (__chain_m_resolve (premiseAndFormulaList ps) pols lits) ≠ Term.Stuck := by
                     intro hSet
                     apply hProg'
-                    simp [__eo_prog_chain_m_resolution, hCrNe, hPolsNe, hLitsNe, hSet,
-                      __eo_requires, __eo_ite, __eo_eq, __from_clause, __eo_list_minclude,
-                      native_ite, native_teq, native_not, SmtEval.native_not]
+                    simp [__eo_prog_chain_m_resolution, hSet,
+                      __eo_requires, __eo_ite, __eo_eq, __from_clause,
+                      native_ite, native_teq]
                   have hChainNe :
                       __chain_m_resolve (premiseAndFormulaList ps) pols lits ≠ Term.Stuck :=
                     list_setof_arg_ne_stuck hSetNe
@@ -4042,7 +4042,7 @@ theorem cmd_step_chain_m_resolution_properties_aux
                   have hProgEqCr :
                       __eo_prog_chain_m_resolution Cr pols lits
                         (Proof.pf (premiseAndFormulaList ps)) = Cr := by
-                    simp [__eo_prog_chain_m_resolution, hCrNe, hPolsNe, hLitsNe, hCond,
+                    simp [__eo_prog_chain_m_resolution, hCond,
                       __eo_requires, native_ite, native_teq, native_not, SmtEval.native_not]
                   have hCrType : __eo_typeof Cr = Term.Bool := by
                     rw [← hProgEqCr, ← hCmdProgEq]
@@ -4155,7 +4155,7 @@ theorem cmd_step_chain_resolution_properties_aux
               have hProgEq :
                   __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps)) =
                   __from_clause (__chain_m_resolve (premiseAndFormulaList ps) pols lits) := by
-                simp [__eo_prog_chain_resolution, hPolsNe, hLitsNe]
+                simp [__eo_prog_chain_resolution]
               have hProg' :
                   __eo_prog_chain_resolution pols lits (Proof.pf (premiseAndFormulaList ps)) ≠
                     Term.Stuck := by
@@ -4201,7 +4201,7 @@ private theorem resolution_component_lit_ne_stuck {lit clause : Term} :
   intro hClause hComp hLit
   subst hLit
   unfold resolutionComponent at hComp
-  simp [__eo_eq, __eo_ite, hClause, native_ite, native_teq] at hComp
+  simp [__eo_eq, __eo_ite, native_ite, native_teq] at hComp
 
 private theorem resolution_component_bool_type {lit clause : Term} :
     RuleProofs.eo_has_bool_type clause ->
@@ -4279,10 +4279,10 @@ private theorem prog_resolution_true_eq (L C1 C2 : Term) :
       unfold resolutionComponent
       simp [__eo_eq, __eo_ite, native_ite, native_teq]
     simp [__eo_prog_resolution, hComp1, __eo_list_concat, __eo_requires, __eo_is_list,
-      __eo_is_ok, __eo_get_nil_rec, __from_clause, native_ite, native_teq, native_not,
-      SmtEval.native_not]
+      __from_clause, native_ite, native_teq
+      ]
   · unfold __eo_prog_resolution
-    simp [hL, resolutionComponent, __eo_ite, native_ite, native_teq]
+    simp [resolutionComponent, __eo_ite, native_ite, native_teq]
 
 private theorem prog_resolution_false_eq (L C1 C2 : Term) :
     __eo_prog_resolution (Term.Boolean false) L (Proof.pf C1) (Proof.pf C2) =
@@ -4295,10 +4295,10 @@ private theorem prog_resolution_false_eq (L C1 C2 : Term) :
       unfold resolutionComponent
       simp [__eo_eq, __eo_ite, native_ite, native_teq]
     simp [__eo_prog_resolution, hComp2, __eo_list_concat, __eo_requires, __eo_is_list,
-      __eo_is_ok, __eo_get_nil_rec, __from_clause, native_ite, native_teq, native_not,
+      __eo_is_ok, __from_clause, native_ite, native_teq, native_not,
       SmtEval.native_not]
   · unfold __eo_prog_resolution
-    simp [hL, resolutionComponent, __eo_ite, native_ite, native_teq]
+    simp [resolutionComponent, __eo_ite, native_ite, native_teq]
 
 private theorem prog_resolution_pol_not_bool_stuck
     (pol L C1 C2 : Term) :
@@ -4313,17 +4313,17 @@ private theorem prog_resolution_pol_not_bool_stuck
   · by_cases hL : L = Term.Stuck
     · subst hL
       unfold __eo_prog_resolution
-      simp [hPol]
+      simp
     · unfold __eo_prog_resolution
-      simp [hPol, hL]
+      simp
       have hLit1 : __eo_ite pol L (Term.Apply Term.not L) = Term.Stuck :=
         ite_eq_stuck_of_ne_true_false pol L (Term.Apply Term.not L) hTrue hFalse
       have hLit2 : __eo_ite pol (Term.Apply Term.not L) L = Term.Stuck :=
         ite_eq_stuck_of_ne_true_false pol (Term.Apply Term.not L) L hTrue hFalse
       rw [hLit1, hLit2]
-      simp [__eo_list_concat, __eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
-        __from_clause, __eo_eq, __eo_ite, native_ite, native_teq, native_not,
-        SmtEval.native_not]
+      simp [__eo_list_concat, __eo_is_list, __eo_requires,
+        __from_clause, __eo_eq, __eo_ite, native_ite, native_teq
+        ]
 
 private theorem prog_resolution_true_properties
     (M : SmtModel) (hM : model_total_typed M)
@@ -4682,7 +4682,7 @@ theorem cmd_step_reordering_properties_aux
                   have hIncl : __eo_list_minclude Term.or C2 C1 = Term.Boolean true :=
                     eq_true_of_requires_true_not_stuck hReqNe
                   have hProgEqC2 : __eo_prog_reordering C2 (Proof.pf C1) = C2 := by
-                    simp [__eo_prog_reordering, hC2Ne, hIncl, __eo_requires, native_ite,
+                    simp [__eo_prog_reordering, hIncl, __eo_requires, native_ite,
                       native_teq, native_not, SmtEval.native_not]
                   have hC2Ty : __eo_typeof C2 = Term.Bool := by
                     rw [hCmdProgEq, hProgEqC2] at hResultTy

@@ -157,16 +157,16 @@ theorem type_result_seq_components_wf_re_exp
     type_result_seq_components_wf (__smtx_typeof_re_exp n T) := by
   cases n <;> try simp [__smtx_typeof_re_exp, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_re_exp, type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_re_loop
     (m n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_re_loop m n T) := by
   cases m <;> try simp [__smtx_typeof_re_loop, type_result_seq_components_wf]
   case Numeral i =>
-    cases n <;> try simp [__smtx_typeof_re_loop, type_result_seq_components_wf]
+    cases n <;> try simp [type_result_seq_components_wf]
     case Numeral j =>
-      cases T <;> simp [__smtx_typeof_re_loop, type_result_seq_components_wf]
+      cases T <;> simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_set_member
     (T U : SmtType) :
@@ -186,7 +186,7 @@ theorem type_result_seq_components_wf_int_to_bv
     type_result_seq_components_wf (__smtx_typeof_int_to_bv n T) := by
   cases n <;> try simp [__smtx_typeof_int_to_bv, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_int_to_bv, type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_concat
     (T U : SmtType) :
@@ -199,48 +199,48 @@ theorem type_result_seq_components_wf_extract
     type_result_seq_components_wf (__smtx_typeof_extract i j T) := by
   cases i <;> try simp [__smtx_typeof_extract, type_result_seq_components_wf]
   case Numeral hi =>
-    cases j <;> try simp [__smtx_typeof_extract, type_result_seq_components_wf]
+    cases j <;> try simp [type_result_seq_components_wf]
     case Numeral lo =>
-      cases T <;> try simp [__smtx_typeof_extract, type_result_seq_components_wf]
+      cases T <;> try simp [type_result_seq_components_wf]
       case BitVec w =>
         cases h0 : native_zleq 0 lo <;>
-          simp [__smtx_typeof_extract, type_result_seq_components_wf,
-            native_ite, h0]
+          simp [type_result_seq_components_wf,
+            native_ite]
 
 theorem type_result_seq_components_wf_repeat
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_repeat n T) := by
   cases n <;> try simp [__smtx_typeof_repeat, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_repeat, type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_zero_extend
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_zero_extend n T) := by
   cases n <;> try simp [__smtx_typeof_zero_extend, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_zero_extend, type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_sign_extend
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_sign_extend n T) := by
   cases n <;> try simp [__smtx_typeof_sign_extend, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_sign_extend, type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_rotate_left
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_rotate_left n T) := by
   cases n <;> try simp [__smtx_typeof_rotate_left, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_rotate_left, type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_rotate_right
     (n : SmtTerm) (T : SmtType) :
     type_result_seq_components_wf (__smtx_typeof_rotate_right n T) := by
   cases n <;> try simp [__smtx_typeof_rotate_right, type_result_seq_components_wf]
   case Numeral k =>
-    cases T <;> simp [__smtx_typeof_rotate_right, type_result_seq_components_wf]
+    cases T <;> simp [type_result_seq_components_wf]
 
 theorem type_result_seq_components_wf_of_type_wf
     {T : SmtType} (h : __smtx_type_wf T = true) :
@@ -446,12 +446,12 @@ theorem smt_term_result_seq_components_wf_of_non_none
     case str_from_code t =>
       rw [typeof_str_from_code_eq]
       cases h : __smtx_typeof t <;>
-        simp [type_result_seq_components_wf, native_ite, native_Teq, h]
+        simp [type_result_seq_components_wf, native_ite, native_Teq]
       exact seq_char_wf
     case str_from_int t =>
       rw [typeof_str_from_int_eq]
       cases h : __smtx_typeof t <;>
-        simp [type_result_seq_components_wf, native_ite, native_Teq, h]
+        simp [type_result_seq_components_wf, native_ite, native_Teq]
       exact seq_char_wf
     case str_replace_re x y z =>
       rw [typeof_str_replace_re_eq x y z]
@@ -1294,7 +1294,6 @@ theorem eo_get_nil_rec_cons_self_eq_of_tail_list (f x y : Term)
     simp [__eo_requires, native_teq, native_ite, SmtEval.native_ite,
       SmtEval.native_not]
 
-set_option linter.unusedSimpArgs false in
 theorem eo_get_nil_rec_str_concat_eq_of_nil_true (nil : Term)
     (hNil :
       __eo_is_list_nil (Term.UOp UserOp.str_concat) nil = Term.Boolean true) :
@@ -1305,58 +1304,50 @@ theorem eo_get_nil_rec_str_concat_eq_of_nil_true (nil : Term)
       SmtEval.native_not] at hNil ⊢
   case UOp1 op A =>
     cases op <;>
-      simp [__eo_get_nil_rec, __eo_is_list_nil, __eo_is_list_nil_str_concat,
-        __eo_eq, native_teq, __eo_requires, native_ite, SmtEval.native_ite,
-        SmtEval.native_not] at hNil ⊢
+      simp at hNil ⊢
   case String s =>
     subst s
-    simp [__eo_get_nil_rec, __eo_is_list_nil, __eo_is_list_nil_str_concat,
-      __eo_eq, native_teq, __eo_requires, native_ite, SmtEval.native_ite,
-      SmtEval.native_not]
+    simp
 
-set_option linter.unusedSimpArgs false in
 theorem eo_list_rev_str_concat_nil_eq_of_nil_true (nil : Term)
     (hNil :
       __eo_is_list_nil (Term.UOp UserOp.str_concat) nil = Term.Boolean true) :
     __eo_list_rev (Term.UOp UserOp.str_concat) nil = nil := by
   cases nil <;>
     simp [__eo_list_rev, __eo_is_list, __eo_get_nil_rec,
-      __eo_list_rev_rec, __eo_is_list_nil, __eo_is_list_nil_str_concat,
+      __eo_is_list_nil, __eo_is_list_nil_str_concat,
       __eo_is_ok, __eo_eq, native_teq, __eo_requires, native_ite,
       SmtEval.native_ite, SmtEval.native_not] at hNil ⊢
   case UOp1 op A =>
     cases op <;>
-      simp [__eo_list_rev, __eo_is_list, __eo_get_nil_rec,
-        __eo_list_rev_rec, __eo_is_list_nil, __eo_is_list_nil_str_concat,
-        __eo_is_ok, __eo_eq, native_teq, __eo_requires, native_ite,
-        SmtEval.native_ite, SmtEval.native_not] at hNil ⊢
+      simp [
+        __eo_list_rev_rec
+        
+        ] at hNil ⊢
   case String s =>
     subst s
-    simp [__eo_list_rev, __eo_is_list, __eo_get_nil_rec, __eo_list_rev_rec,
-      __eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_is_ok, __eo_eq,
-      native_teq, __eo_requires, native_ite, SmtEval.native_ite,
-      SmtEval.native_not]
+    simp [__eo_list_rev_rec
+      
+      
+      ]
 
-set_option linter.unusedSimpArgs false in
 theorem eo_list_rev_rec_str_concat_nil_eq_of_nil_true
     (nil acc : Term)
     (hNil :
       __eo_is_list_nil (Term.UOp UserOp.str_concat) nil = Term.Boolean true) :
     __eo_list_rev_rec nil acc = acc := by
   cases nil <;>
-    simp [__eo_list_rev_rec, __eo_is_list_nil, __eo_is_list_nil_str_concat,
+    simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
       __eo_eq, native_teq] at hNil
   case UOp1 op A =>
     cases op <;>
-      simp [__eo_list_rev_rec, __eo_is_list_nil, __eo_is_list_nil_str_concat,
-        __eo_eq, native_teq] at hNil
+      simp at hNil
     case seq_empty =>
       cases acc <;> rfl
   case String s =>
     subst s
     cases acc <;> rfl
 
-set_option linter.unusedSimpArgs false in
 theorem eo_is_list_str_concat_nil_true_of_nil_true (nil : Term)
     (hNil :
       __eo_is_list_nil (Term.UOp UserOp.str_concat) nil = Term.Boolean true) :
@@ -1367,14 +1358,10 @@ theorem eo_is_list_str_concat_nil_true_of_nil_true (nil : Term)
       __eo_requires, native_ite, SmtEval.native_ite, SmtEval.native_not] at hNil ⊢
   case UOp1 op A =>
     cases op <;>
-      simp [__eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-        __eo_is_list_nil_str_concat, __eo_is_ok, __eo_eq, native_teq,
-        __eo_requires, native_ite, SmtEval.native_ite, SmtEval.native_not] at hNil ⊢
+      simp at hNil ⊢
   case String s =>
     subst s
-    simp [__eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-      __eo_is_list_nil_str_concat, __eo_is_ok, __eo_eq, native_teq,
-      __eo_requires, native_ite, SmtEval.native_ite, SmtEval.native_not]
+    simp
 
 theorem eo_is_list_cons_self_true_of_tail_list (f x y : Term)
     (hF : f ≠ Term.Stuck)
@@ -1489,7 +1476,6 @@ theorem eo_list_rev_str_concat_cons_eq_of_ne_stuck (x y : Term)
         (mkConcat x (__eo_get_nil_rec (Term.UOp UserOp.str_concat) y)) := by
   exact eo_list_rev_cons_eq_of_ne_stuck (Term.UOp UserOp.str_concat) x y hRev
 
-set_option linter.unusedSimpArgs false in
 theorem eo_list_rev_str_concat_cons_nil_eq_of_ne_stuck
     (head nil : Term)
     (hNil :
@@ -1713,19 +1699,17 @@ theorem eo_list_rev_ne_stuck_of_is_list_true (f a : Term)
     (__eo_list_rev_rec a (__eo_get_nil_rec f a)) (by decide)]
   exact hRec
 
-set_option linter.unusedSimpArgs false in
 theorem eo_list_concat_rec_str_concat_nil_eq_of_nil_true
     (nil z : Term)
     (hNil :
       __eo_is_list_nil (Term.UOp UserOp.str_concat) nil = Term.Boolean true) :
     __eo_list_concat_rec nil z = z := by
   cases nil <;>
-    simp [__eo_list_concat_rec, __eo_is_list_nil,
+    simp [__eo_is_list_nil,
       __eo_is_list_nil_str_concat, __eo_eq, native_teq] at hNil ⊢
   case UOp1 op A =>
     cases op <;>
-      simp [__eo_list_concat_rec, __eo_is_list_nil,
-        __eo_is_list_nil_str_concat, __eo_eq, native_teq] at hNil
+      simp at hNil
     case seq_empty =>
       cases z <;> rfl
   case String s =>
@@ -2008,7 +1992,7 @@ theorem eo_get_nil_rec_list_rev_rec_eq
           (Term.UOp UserOp.str_concat) x acc (by decide) hAccList
       simpa [__eo_list_rev_rec] using ih hTailTailList hConsAccList
   | case4 nil acc hNil hAcc hNot =>
-      simpa [__eo_list_rev_rec]
+      simp [__eo_list_rev_rec]
 
 theorem eo_list_rev_rec_rev_rec_get_nil_eq
     (tail acc : Term)
@@ -3019,7 +3003,7 @@ theorem pair_first_str_strip_prefix_self_eq_pair_second (x : Term)
       rw [hCond, eo_ite_true]
       exact pair_first_str_strip_prefix_self_eq_pair_second t2 hTailNonStuck
     · cases t <;> simp [__eo_eq, native_teq] at hCond
-  · simpa [__eo_l_1___str_strip_prefix, mkPair, pair_first_pair,
+  · simp [__eo_l_1___str_strip_prefix, pair_first_pair,
       pair_second_pair]
 termination_by sizeOf x
 decreasing_by
@@ -3170,8 +3154,7 @@ theorem smt_value_rel_str_concat_nil_empty
     simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
       native_teq] at hNil
   case UOp1 op A =>
-      cases op <;> simp [__eo_is_list_nil, __eo_is_list_nil_str_concat, __eo_eq,
-        native_teq] at hNil
+      cases op <;> simp at hNil
       case seq_empty =>
         change __smtx_typeof (__eo_to_smt_seq_empty (__eo_to_smt_type A)) =
           SmtType.Seq T at hNilTy
@@ -5250,7 +5233,7 @@ theorem eo_interprets_double_rev_intro_elim_eq_of_default
       eq_of_eo_eq_true_local x empty hCond
     have hIntroEq : __str_nary_intro x = x := by
       rw [hDefault]
-      simpa [empty, hCond, eo_ite_true]
+      simp [empty, hCond, eo_ite_true]
     have hXNil :
         __eo_is_list_nil (Term.UOp UserOp.str_concat) x =
           Term.Boolean true := by
@@ -5274,7 +5257,7 @@ theorem eo_interprets_double_rev_intro_elim_eq_of_default
         (Term.Apply (Term.UOp UserOp.str_concat) x) empty hApplyNonStuck
     have hIntroEq : __str_nary_intro x = mkConcat x empty := by
       rw [hDefault]
-      simpa [empty, hCond, eo_ite_false, hApplyEq]
+      simp [empty, hCond, eo_ite_false, hApplyEq]
     have hConcatNN :
         __smtx_typeof (__eo_to_smt (mkConcat x empty)) ≠ SmtType.None := by
       simpa [hIntroEq] using hIntroNN
@@ -5371,7 +5354,7 @@ theorem str_nary_elim_str_nary_intro_eq_of_not_str_concat
       str_nary_intro_arg_ne_stuck_of_ne_stuck x hIntro
     have hIntroEq : __str_nary_intro x = x := by
       rw [hIntroDefault]
-      simpa [hCond, eo_ite_true]
+      simp [hCond, eo_ite_true]
     rw [hIntroEq, hElimDefault, hEmptyEq]
     exact eo_requires_self_eq_of_ne_stuck x x hxNonStuck
   · have hApplyNonStuck :
@@ -5388,7 +5371,7 @@ theorem str_nary_elim_str_nary_intro_eq_of_not_str_concat
         (Term.Apply (Term.UOp UserOp.str_concat) x) empty hApplyNonStuck
     have hIntroEq : __str_nary_intro x = mkConcat x empty := by
       rw [hIntroDefault]
-      simpa [hCond, eo_ite_false, hApplyEq]
+      simp [hCond, eo_ite_false, hApplyEq]
     have hEmptyEqTrue : __eo_eq empty empty = Term.Boolean true :=
       eo_eq_self_true_of_ne_stuck empty hEmptyNonStuck
     rw [hIntroEq]
@@ -5437,7 +5420,7 @@ theorem str_nary_intro_not_str_concat_cases
         (Term.Apply (Term.UOp UserOp.str_concat) x) empty hApplyNonStuck
     have hIntroEq : __str_nary_intro x = mkConcat x empty := by
       rw [hIntroDefault]
-      simpa [hCond, eo_ite_false, hApplyEq]
+      simp [hCond, eo_ite_false, hApplyEq]
     have hEmptyNil :
         __eo_is_list_nil (Term.UOp UserOp.str_concat) empty =
           Term.Boolean true :=
@@ -5487,7 +5470,7 @@ theorem str_nary_intro_not_str_concat_cases_typeof_empty
         (Term.Apply (Term.UOp UserOp.str_concat) x) empty hApplyNonStuck
     have hIntroEq : __str_nary_intro x = mkConcat x empty := by
       rw [hIntroDefault]
-      simpa [hCond, eo_ite_false, hApplyEq]
+      simp [hCond, eo_ite_false, hApplyEq]
     have hEmptyNil :
         __eo_is_list_nil (Term.UOp UserOp.str_concat) empty =
           Term.Boolean true :=
@@ -5544,7 +5527,7 @@ theorem str_nary_intro_not_str_concat_cases_eq_empty
         (Term.Apply (Term.UOp UserOp.str_concat) x) empty hApplyNonStuck
     have hIntroEq : __str_nary_intro x = mkConcat x empty := by
       rw [hIntroDefault]
-      simpa [hCond, eo_ite_false, hApplyEq]
+      simp [hCond, eo_ite_false, hApplyEq]
     have hEmptyNil :
         __eo_is_list_nil (Term.UOp UserOp.str_concat) empty =
           Term.Boolean true :=
@@ -6479,7 +6462,7 @@ theorem eo_list_rev_str_nary_intro_eq_of_not_str_concat
       str_nary_intro_arg_ne_stuck_of_ne_stuck x hIntro
     have hIntroEq : __str_nary_intro x = x := by
       rw [hIntroDefault]
-      simpa [hCond, eo_ite_true]
+      simp [hCond, eo_ite_true]
     have hEmptyNonStuck : empty ≠ Term.Stuck := by
       simpa [hEmptyEq] using hxNonStuck
     have hEmptyEq' : __seq_empty (__eo_typeof x) = x := by
@@ -6506,7 +6489,7 @@ theorem eo_list_rev_str_nary_intro_eq_of_not_str_concat
         (Term.Apply (Term.UOp UserOp.str_concat) x) empty hApplyNonStuck
     have hIntroEq : __str_nary_intro x = mkConcat x empty := by
       rw [hIntroDefault]
-      simpa [hCond, eo_ite_false, hApplyEq]
+      simp [hCond, eo_ite_false, hApplyEq]
     have hEmptyNil :
         __eo_is_list_nil (Term.UOp UserOp.str_concat) empty =
           Term.Boolean true :=
@@ -6747,7 +6730,7 @@ theorem str_strip_prefix_str_nary_intro_of_not_str_concat_eo_eq_false
       hIntroTEq | ⟨emptyT, hIntroTEq, hEmptyTNil⟩
     · rw [hIntroSEq, hIntroTEq]
       exact str_strip_prefix_right_not_str_concat (mkConcat s emptyS) t
-        (by simpa [hIntroSEq] using hIntroS)
+        (by simp [mkConcat])
         (str_nary_intro_arg_ne_stuck_of_ne_stuck t hIntroT)
         hTNotConcat
     · rw [hIntroSEq, hIntroTEq]

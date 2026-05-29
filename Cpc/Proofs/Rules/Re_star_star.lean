@@ -21,7 +21,7 @@ private theorem smtx_model_eval_re_star_star (v : SmtValue) :
       __smtx_model_eval_re_mult v := by
   cases v <;> simp [__smtx_model_eval_re_mult, native_re_mult]
   case RegLan r =>
-    cases r <;> simp [__smtx_model_eval_re_mult, native_re_mult, native_re_mk_star]
+    cases r <;> simp [native_re_mk_star]
 
 private theorem typed___eo_prog_re_star_star_impl
     (a1 : Term)

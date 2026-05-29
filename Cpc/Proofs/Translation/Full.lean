@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace TranslationProofs
@@ -380,7 +379,7 @@ private theorem eo_type_valid_of_requires_eq_dtcapp_pre_full
   unfold __eo_requires at hReq
   cases hEq : native_teq T V <;> simp [native_ite, hEq] at hReq
   cases hStuck : native_teq T Term.Stuck <;>
-    simp [native_ite, hStuck, native_not] at hReq
+    simp [hStuck, native_not] at hReq
   all_goals first
     | rw [← hReq]; exact hU
     | exact hU
@@ -436,7 +435,7 @@ private theorem false_of_requires_eq_dtcapp_of_payload_ne_full
   unfold __eo_requires at hReq
   cases hEq : native_teq T V <;> simp [native_ite, hEq] at hReq
   cases hStuck : native_teq T Term.Stuck <;>
-    simp [native_ite, hStuck, native_not] at hReq
+    simp [hStuck, native_not] at hReq
   all_goals first
     | exact hU hReq
     | cases hReq
@@ -535,7 +534,7 @@ private theorem eo_type_valid_of_requires_eq_dtcapp_full
   unfold __eo_requires at hReq
   cases hEq : native_teq T V <;> simp [native_ite, hEq] at hReq
   cases hStuck : native_teq T Term.Stuck <;>
-    simp [native_ite, hStuck, native_not] at hReq
+    simp [hStuck, native_not] at hReq
   all_goals first
     | rw [← hReq]; exact hU
     | exact hU
@@ -607,7 +606,7 @@ private theorem eo_type_valid_of_requires_eq_dtcapp_cases_full
   unfold __eo_requires at hReq
   cases hEq : native_teq T V <;> simp [native_ite, hEq] at hReq
   cases hStuck : native_teq T Term.Stuck <;>
-    simp [native_ite, hStuck, native_not] at hReq
+    simp [hStuck, native_not] at hReq
   all_goals first
     | have hValid := hU hReq
       simpa [hReq] using hValid
@@ -643,7 +642,7 @@ private theorem false_of_typeof_BitVec_eq_dtcapp_full
     False := by
   cases hx : __eo_typeof x <;> simp [__eo_typeof_BitVec, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_BitVec] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_typed_list_nil_eq_dtcapp_full
     {x A B : Term}
@@ -676,8 +675,7 @@ private theorem false_of_typeof_to_real_eq_dtcapp_full
     simp [__eo_typeof_to_real, __is_arith_type, __eo_requires,
       native_ite, native_teq, native_not, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_to_real, __is_arith_type, __eo_requires,
-      native_ite, native_teq, native_not] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_to_int_eq_dtcapp_full
     {x A B : Term}
@@ -685,7 +683,7 @@ private theorem false_of_typeof_to_int_eq_dtcapp_full
     False := by
   cases hx : __eo_typeof x <;> simp [__eo_typeof_to_int, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_to_int] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_is_int_eq_dtcapp_full
     {x A B : Term}
@@ -693,7 +691,7 @@ private theorem false_of_typeof_is_int_eq_dtcapp_full
     False := by
   cases hx : __eo_typeof x <;> simp [__eo_typeof_is_int, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_is_int] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_abs_eq_dtcapp_full
     {x A B : Term}
@@ -703,8 +701,7 @@ private theorem false_of_typeof_abs_eq_dtcapp_full
     simp [__eo_typeof_abs, __is_arith_type, __eo_requires,
       native_ite, native_teq, native_not, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_abs, __is_arith_type, __eo_requires,
-      native_ite, native_teq, native_not] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_plus_eq_dtcapp_full
     {Y X A B : Term}
@@ -712,7 +709,7 @@ private theorem false_of_typeof_plus_eq_dtcapp_full
     False := by
   cases Y <;> cases X <;>
     simp [__eo_typeof_plus, __is_arith_type, __eo_requires, __eo_eq,
-      __eo_and, native_ite, native_teq, native_not] at hTy
+      native_ite, native_teq, native_not] at hTy
   all_goals
     try cases ‹UserOp›
   all_goals
@@ -720,8 +717,7 @@ private theorem false_of_typeof_plus_eq_dtcapp_full
   all_goals
     try cases ‹UserOp›
   all_goals
-    try simp [__eo_typeof_plus, __is_arith_type, __eo_requires, __eo_eq,
-      __eo_and, native_ite, native_teq, native_not] at hTy
+    try simp at hTy
   all_goals
     try cases hTy
 
@@ -731,7 +727,7 @@ private theorem false_of_typeof_int_pow2_eq_dtcapp_full
     False := by
   cases hx : __eo_typeof x <;> simp [__eo_typeof_int_pow2, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_int_pow2] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_int_ispow2_eq_dtcapp_full
     {x A B : Term}
@@ -739,7 +735,7 @@ private theorem false_of_typeof_int_ispow2_eq_dtcapp_full
     False := by
   cases hx : __eo_typeof x <;> simp [__eo_typeof_int_ispow2, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_int_ispow2] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_at_bvsize_eq_dtcapp_full
     {x A B : Term}
@@ -859,7 +855,7 @@ private theorem false_of_typeof_str_from_code_eq_dtcapp_full
     False := by
   cases hx : __eo_typeof x <;> simp [__eo_typeof_str_from_code, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_str_from_code] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_str_is_digit_eq_dtcapp_full
     {x A B : Term}
@@ -895,7 +891,7 @@ private theorem false_of_typeof_re_mult_eq_dtcapp_full
     False := by
   cases hx : __eo_typeof x <;> simp [__eo_typeof_re_mult, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof_re_mult] at hTy
+    cases op <;> simp at hTy
 
 private theorem false_of_typeof_seq_unit_eq_dtcapp_full
     {x A B : Term}
@@ -925,7 +921,7 @@ private theorem false_of_typeof_div_by_zero_eq_dtcapp_full
     False := by
   cases hx : __eo_typeof x <;> simp [__eo_typeof__at_div_by_zero, hx] at hTy
   case UOp op =>
-    cases op <;> simp [__eo_typeof__at_div_by_zero] at hTy
+    cases op <;> simp at hTy
 
 private theorem eo_mk_apply_ne_dtcapp_full
     (f x A B : Term) :
@@ -943,12 +939,12 @@ private theorem false_of_typeof_re_loop_eq_dtcapp_full
   case UOp opY =>
     cases opY <;> try cases hTy
     case Int =>
-      cases hz : __eo_typeof z <;> simp [__eo_typeof_re_loop, hz] at hTy
+      cases hz : __eo_typeof z <;> simp [hz] at hTy
       case UOp opZ =>
         cases opZ <;> try cases hTy
         case Int =>
           cases hx : __eo_typeof x <;>
-            simp [__eo_typeof_re_loop, hx] at hTy
+            simp [hx] at hTy
           case UOp opX =>
             cases opX <;> cases hTy
 
@@ -1006,7 +1002,7 @@ private theorem false_of_typeof_rotate_left_eq_dtcapp_full
   case UOp op =>
     cases op <;> try cases hTy
     case Int =>
-      cases hx : __eo_typeof x <;> simp [__eo_typeof_rotate_left, hx] at hTy
+      cases hx : __eo_typeof x <;> simp [hx] at hTy
       case Apply f m =>
         cases f <;> try cases hTy
         case UOp op' =>
@@ -1022,7 +1018,7 @@ private theorem false_of_typeof_at_bit2_eq_dtcapp_full
   case UOp op =>
     cases op <;> try cases hTy
     case Int =>
-      cases hx : __eo_typeof x <;> simp [__eo_typeof__at_bit, hx] at hTy
+      cases hx : __eo_typeof x <;> simp [hx] at hTy
       case Apply f m =>
         cases f <;> try cases hTy
         case UOp op' =>
@@ -1038,7 +1034,7 @@ private theorem false_of_typeof_re_exp_eq_dtcapp_full
   case UOp op =>
     cases op <;> try cases hTy
     case Int =>
-      cases hx : __eo_typeof x <;> simp [__eo_typeof_re_exp, hx] at hTy
+      cases hx : __eo_typeof x <;> simp [hx] at hTy
       case UOp op' =>
         cases op' <;> cases hTy
 
@@ -1060,7 +1056,7 @@ private theorem false_of_typeof_strings_stoi_result_eq_dtcapp_full
           cases op' <;> try cases hTy
           case Char =>
             cases hx : __eo_typeof x <;>
-              simp [__eo_typeof__at_strings_stoi_result, hx] at hTy
+              simp [hx] at hTy
             case UOp op'' =>
               cases op'' <;> cases hTy
 
@@ -1072,7 +1068,7 @@ private theorem false_of_typeof_strings_itos_result_eq_dtcapp_full
   case UOp op =>
     cases op <;> try cases hTy
     case Int =>
-      cases hx : __eo_typeof x <;> simp [__eo_typeof_div, hx] at hTy
+      cases hx : __eo_typeof x <;> simp [hx] at hTy
       case UOp op' =>
         cases op' <;> cases hTy
 
@@ -1086,7 +1082,7 @@ private theorem false_of_typeof_str_at_eq_dtcapp_full
     case UOp op =>
       cases op <;> try cases hTy
       case Seq =>
-        cases hx : __eo_typeof x <;> simp [__eo_typeof_str_at, hx] at hTy
+        cases hx : __eo_typeof x <;> simp [hx] at hTy
         case UOp op' =>
           cases op' <;> cases hTy
 
@@ -1096,7 +1092,7 @@ private theorem false_of_typeof_is_eq_dtcapp_full
     False := by
   cases hy : __eo_typeof y <;> simp [__eo_typeof_is, hy] at hTy
   all_goals
-    cases hx : __eo_typeof x <;> simp [__eo_typeof_is, hx] at hTy
+    cases hx : __eo_typeof x <;> simp [hx] at hTy
 
 private theorem false_of_typeof_int_to_bv_eq_dtcapp_full
     {y x A B : Term}
@@ -1800,10 +1796,10 @@ private theorem smtx_typeof_extract_ne_dtcapp_full
   rw [typeof_extract_eq] at h
   cases hi <;> try simp [__smtx_typeof_extract] at h
   case Numeral hi =>
-    cases lo <;> try simp [__smtx_typeof_extract] at h
+    cases lo <;> try simp at h
     case Numeral lo =>
       cases hx : __smtx_typeof x <;>
-        simp [__smtx_typeof_extract, hx, native_ite] at h
+        simp [hx, native_ite] at h
       all_goals
         repeat split at h
         all_goals cases h
@@ -2977,39 +2973,39 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                     (go x) hTermNN hTy
                 | exact False.elim (false_of_typeof_set_is_empty_eq_dtcapp_full hTy)
                 | exact False.elim (false_of_typeof_div_by_zero_eq_dtcapp_full hTy)
-                | simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
-                    __eo_typeof_apply, __eo_requires, __eo_typeof_BitVec,
-                    __eo_typeof_Seq, __eo_typeof__at__at_TypedList_nil,
-                    __eo_typeof_not, __eo_typeof_distinct, __eo_typeof_to_real,
-                    __eo_typeof_to_int, __eo_typeof_is_int, __eo_typeof_abs,
-                    __eo_typeof_int_pow2, __eo_typeof_int_ispow2,
-                    __eo_typeof__at_bvsize, __eo_typeof_bvnot,
-                    __eo_typeof_bvnego, __eo_typeof_bvredand,
-                    __eo_typeof_str_len, __eo_typeof_str_rev,
-                    __eo_typeof_str_to_lower, __eo_typeof_str_to_code,
-                    __eo_typeof_str_from_code, __eo_typeof_str_is_digit,
-                    __eo_typeof_str_to_re, __eo_typeof_re_mult,
-                    __eo_typeof_seq_unit, __eo_typeof_set_singleton,
-                    __eo_typeof_set_choose, __eo_typeof_set_is_empty,
-                    __eo_typeof__at_div_by_zero, __is_arith_type, __eo_eq,
-                    __eo_and, native_ite, native_teq, native_not] at hTy hTypeNN ⊢
+                | simp [eo_type_valid, eo_type_valid_rec,
+                    
+                    __eo_typeof_Seq,
+                    __eo_typeof_not
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    ] at hTy hTypeNN ⊢
                   cases hxTy : __eo_typeof x <;>
-                    simp [hxTy, eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
-                      __eo_typeof_apply, __eo_requires, __eo_typeof_BitVec,
-                      __eo_typeof_Seq, __eo_typeof__at__at_TypedList_nil,
-                      __eo_typeof_not, __eo_typeof_distinct, __eo_typeof_to_real,
-                      __eo_typeof_to_int, __eo_typeof_is_int, __eo_typeof_abs,
-                      __eo_typeof_int_pow2, __eo_typeof_int_ispow2,
-                      __eo_typeof__at_bvsize, __eo_typeof_bvnot,
-                      __eo_typeof_bvnego, __eo_typeof_bvredand,
-                      __eo_typeof_str_len, __eo_typeof_str_rev,
-                      __eo_typeof_str_to_lower, __eo_typeof_str_to_code,
-                      __eo_typeof_str_from_code, __eo_typeof_str_is_digit,
-                      __eo_typeof_str_to_re, __eo_typeof_re_mult,
-                      __eo_typeof_seq_unit, __eo_typeof_set_singleton,
-                      __eo_typeof_set_choose, __eo_typeof_set_is_empty,
-                      __eo_typeof__at_div_by_zero, __is_arith_type, __eo_eq,
-                      __eo_and, native_ite, native_teq, native_not] at hTy hTypeNN ⊢
+                    simp [hxTy
+                      
+                      
+                      
+                      
+                      
+                      
+                      
+                      
+                      
+                      
+                      
+                      
+                      
+                      
+                      ] at hTy hTypeNN ⊢
                   all_goals try cases hTy
             case UOp1 op y =>
               cases op <;> dsimp [__eo_typeof] at hTy hTypeNN
@@ -3327,11 +3323,11 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                       (by intro T U h; cases h)
                       (by intro T U h; cases h)
                       hTy
-                  | (simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
-                        __eo_typeof_apply, __eo_requires,
-                        __eo_typeof__at__at_Pair, __eo_typeof__at__at_pair,
-                        __eo_typeof__at__at_TypedList_cons, __eo_typeof_or,
-                        __eo_typeof_eq, __eo_typeof_plus, __eo_typeof_lt,
+                  | (simp [
+                        __eo_requires,
+                        
+                        __eo_typeof_or,
+                        __eo_typeof_eq, __eo_typeof_lt,
                         __eo_typeof_div, __eo_typeof_divisible, __eo_typeof_concat,
                         __eo_typeof_bvand, __eo_typeof_bvcomp, __eo_typeof_bvult,
                         __eo_typeof__at_from_bools, __eo_typeof_str_concat,
@@ -3342,44 +3338,34 @@ private theorem eo_to_smt_typeof_matches_translation_and_valid
                         __eo_typeof_set_union, __eo_typeof_set_member,
                         __eo_typeof_set_subset, __eo_typeof_set_insert,
                         __eo_typeof_qdiv, __eo_typeof_forall,
-                        __eo_typeof__at__at_mon, __eo_typeof__at__at_poly,
-                        __eo_typeof__at__at_aci_sorted, __eo_is_list,
-                        __eo_get_nil_rec, __eo_is_list_nil, __eo_is_ok,
-                        __eo_list_len, __is_arith_type, __eo_eq, __eo_and,
+                        
+                        __eo_is_list,
+                        __eo_is_ok,
+                        __eo_list_len, __is_arith_type, __eo_eq,
                         __eo_mk_apply, __eo_add, native_ite, native_teq,
                         native_not] at hTy hTypeNN
                      repeat (first | split at hTy | split at hTypeNN)
-                     all_goals simp [eo_type_valid, eo_type_valid_rec,
-                       __eo_to_smt_type, __eo_typeof_apply, __eo_requires,
-                       __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-                       __eo_is_ok, __eo_list_len, __is_arith_type, __eo_eq,
-                       __eo_and, __eo_mk_apply, __eo_add, native_ite,
-                       native_teq, native_not] at hTy hTypeNN ⊢
+                     all_goals simp [eo_type_valid, eo_type_valid_rec
+                       
+                       
+                       
+                       
+                       ] at hTy hTypeNN ⊢
                      all_goals
                        repeat (first | split at hTy | split at hTypeNN)
-                     all_goals simp [eo_type_valid, eo_type_valid_rec,
-                       __eo_to_smt_type, __eo_typeof_apply, __eo_requires,
-                       __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-                       __eo_is_ok, __eo_list_len, __is_arith_type, __eo_eq,
-                       __eo_and, __eo_mk_apply, __eo_add, native_ite,
-                       native_teq, native_not] at hTy hTypeNN ⊢
+                     all_goals simp at hTy hTypeNN ⊢
                      all_goals
                        try
                          (cases hy : __eo_typeof y <;> cases hx : __eo_typeof x <;>
-                          simp [hy, hx, eo_type_valid, eo_type_valid_rec,
-                            __eo_to_smt_type, __eo_typeof_apply, __eo_requires,
-                            __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-                            __eo_is_ok, __eo_list_len, __is_arith_type, __eo_eq,
-                            __eo_and, __eo_mk_apply, __eo_add, native_ite,
-                            native_teq, native_not] at hTy hTypeNN ⊢)
+                          simp [hy, hx,
+                            __eo_to_smt_type
+                            
+                            
+                            
+                            ] at hTy hTypeNN ⊢)
                      all_goals
                        repeat (first | split at hTy | split at hTypeNN)
-                     all_goals simp [eo_type_valid, eo_type_valid_rec,
-                       __eo_to_smt_type, __eo_typeof_apply, __eo_requires,
-                       __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
-                       __eo_is_ok, __eo_list_len, __is_arith_type, __eo_eq,
-                       __eo_and, __eo_mk_apply, __eo_add, native_ite,
-                       native_teq, native_not] at hTy hTypeNN ⊢
+                     all_goals simp at hTy hTypeNN ⊢
                      all_goals cases hTy)
                   | (simp [eo_type_valid, eo_type_valid_rec, __eo_to_smt_type,
                       __eo_typeof_apply, __eo_requires, __eo_typeof__at__at_Pair,
