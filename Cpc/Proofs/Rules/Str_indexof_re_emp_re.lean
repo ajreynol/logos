@@ -12,15 +12,17 @@ private theorem native_string_lit_empty :
     native_string_lit "" = ([] : native_String) := by
   simp [native_string_lit]
 
-private axiom native_re_prefix_match_len?_empty_of_nullable
+private theorem native_re_prefix_match_len?_empty_of_nullable
     (r : native_RegLan) (xs : native_String)
     (h : native_re_nullable r = true) :
-    native_re_prefix_match_len? r xs = some 0
+  native_re_prefix_match_len? r xs = some 0 := by
+  sorry
 
-private axiom native_re_find_idx_from_empty_of_nullable
+private theorem native_re_find_idx_from_empty_of_nullable
     (r : native_RegLan) (xs : native_String) (start : Nat)
     (h : native_re_nullable r = true) :
-    native_re_find_idx_from r xs start = some (start, 0)
+    native_re_find_idx_from r xs start = some (start, 0) := by
+  sorry
 
 private theorem native_str_indexof_re_empty_hit
     (s : native_String) (r : native_RegLan) (i : native_Int)
