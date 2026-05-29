@@ -1197,6 +1197,36 @@ private theorem nativeListInRe_empty :
   | _ :: xs => by
       exact nativeListInRe_empty xs
 
+private theorem native_re_deriv_re_all_valid_local
+    (c : native_Char) (hValid : native_char_valid c = true) :
+    native_re_deriv c native_re_all = native_re_all := by
+  simp [native_re_all, native_re_allchar, native_re_deriv,
+    native_re_mk_concat, hValid]
+
+private theorem nativeListInRe_re_all_local :
+    (xs : List native_Char) ->
+      xs.all native_char_valid = true ->
+      nativeListInRe xs native_re_all = true
+  | [], _ => by
+      simp [nativeListInRe, native_re_all, native_re_nullable]
+  | c :: xs, hValid => by
+      simp [List.all_eq_true] at hValid
+      have hXsValid : xs.all native_char_valid = true := by
+        simpa [List.all_eq_true] using hValid.2
+      change nativeListInRe xs (native_re_deriv c native_re_all) = true
+      rw [native_re_deriv_re_all_valid_local c hValid.1]
+      exact nativeListInRe_re_all_local xs hXsValid
+
+private theorem native_str_in_re_all_valid_local
+    (str : native_String) :
+    native_string_valid str = true ->
+    native_str_in_re str native_re_all = true := by
+  intro hValid
+  have hListValid : str.all native_char_valid = true := by
+    simpa [native_string_valid] using hValid
+  simpa [native_str_in_re, hValid, nativeListInRe] using
+    nativeListInRe_re_all_local str hListValid
+
 private theorem native_re_mk_union_self_local (r : native_RegLan) :
     native_re_mk_union r r = r := by
   cases r <;> simp [native_re_mk_union]
@@ -1815,6 +1845,9 @@ private theorem smt_value_rel_deriv_inter
 private abbrev mkReUnion (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.re_union) x) y
 
+private abbrev mkReInter (x y : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) x) y
+
 private abbrev mkReConcat (x y : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) x) y
 
@@ -1882,6 +1915,36 @@ private theorem reUnion_args_of_reglan_type (x y : Term) :
   exact reglan_binop_args_of_non_none (op := SmtTerm.re_union)
     (typeof_re_union_eq (__eo_to_smt x) (__eo_to_smt y)) hNN
 
+private theorem reInter_typeof_of_args (x y : Term) :
+    __smtx_typeof (__eo_to_smt x) = SmtType.RegLan ->
+    __smtx_typeof (__eo_to_smt y) = SmtType.RegLan ->
+    __smtx_typeof (__eo_to_smt (mkReInter x y)) = SmtType.RegLan := by
+  intro hxTy hyTy
+  change __smtx_typeof
+      (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y)) =
+    SmtType.RegLan
+  rw [typeof_re_inter_eq]
+  simp [hxTy, hyTy, native_ite, native_Teq]
+
+private theorem reInter_args_of_reglan_type (x y : Term) :
+    __smtx_typeof (__eo_to_smt (mkReInter x y)) = SmtType.RegLan ->
+    __smtx_typeof (__eo_to_smt x) = SmtType.RegLan ∧
+      __smtx_typeof (__eo_to_smt y) = SmtType.RegLan := by
+  intro hTy
+  have hTy' :
+      __smtx_typeof
+          (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y)) =
+        SmtType.RegLan := by
+    simpa [mkReInter] using hTy
+  have hNN :
+      term_has_non_none_type
+        (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y)) := by
+    unfold term_has_non_none_type
+    rw [hTy']
+    exact smt_reglan_ne_none
+  exact reglan_binop_args_of_non_none (op := SmtTerm.re_inter)
+    (typeof_re_inter_eq (__eo_to_smt x) (__eo_to_smt y)) hNN
+
 private theorem reConcat_typeof_of_args (x y : Term) :
     __smtx_typeof (__eo_to_smt x) = SmtType.RegLan ->
     __smtx_typeof (__eo_to_smt y) = SmtType.RegLan ->
@@ -1920,6 +1983,18 @@ private def RegLanContains (M : SmtModel) (t : Term)
   ∃ r, __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r ∧
     native_str_in_re str r = true
 
+private theorem native_string_valid_of_reglan_contains
+    {M : SmtModel} {t : Term} {str : native_String} :
+    RegLanContains M t str ->
+    native_string_valid str = true := by
+  intro hIn
+  rcases hIn with ⟨r, _hEval, hMem⟩
+  by_cases hValid : native_string_valid str = true
+  · exact hValid
+  · have hInvalid : native_string_valid str = false := by
+      cases h : native_string_valid str <;> simp [h] at hValid ⊢
+    simp [native_str_in_re, hInvalid] at hMem
+
 private theorem regLanEval_ne_stuck {M : SmtModel} {t : Term} :
     RegLanEval M t -> t ≠ Term.Stuck := by
   intro hEval hStuck
@@ -1941,6 +2016,20 @@ private theorem reUnion_eval_reglan_of_reglan_args
         (SmtTerm.re_union (__eo_to_smt x) (__eo_to_smt y)) =
       SmtValue.RegLan (native_re_union rx ry)
     simp [__smtx_model_eval, __smtx_model_eval_re_union, hxEval, hyEval]⟩
+
+private theorem reInter_eval_reglan_of_reglan_args
+    (M : SmtModel) (x y : Term) :
+    RegLanEval M x ->
+    RegLanEval M y ->
+    RegLanEval M (mkReInter x y) := by
+  intro hx hy
+  rcases hx with ⟨rx, hxEval⟩
+  rcases hy with ⟨ry, hyEval⟩
+  exact ⟨native_re_inter rx ry, by
+    change __smtx_model_eval M
+        (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y)) =
+      SmtValue.RegLan (native_re_inter rx ry)
+    simp [__smtx_model_eval, __smtx_model_eval_re_inter, hxEval, hyEval]⟩
 
 private theorem reConcat_eval_reglan_of_reglan_args
     (M : SmtModel) (x y : Term) :
@@ -2064,6 +2153,44 @@ private theorem smt_value_rel_reglan_native_union_of_contains_iff
       cases hTEval'
       exact hTIn
 
+private theorem smt_value_rel_reglan_native_inter_of_contains_iff
+    (M : SmtModel) (t a b : Term) (r ra rb : native_RegLan)
+    (hTEval : __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hContains :
+      ∀ str,
+        RegLanContains M t str ↔
+          RegLanContains M a str ∧ RegLanContains M b str) :
+    RuleProofs.smt_value_rel (SmtValue.RegLan r)
+      (SmtValue.RegLan (native_re_inter ra rb)) := by
+  rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+  simp [__smtx_model_eval_eq]
+  intro str _hValid
+  apply Bool.eq_iff_iff.mpr
+  constructor
+  · intro hIn
+    have hTIn : RegLanContains M t str := ⟨r, hTEval, hIn⟩
+    rcases (hContains str).1 hTIn with ⟨hAIn, hBIn⟩
+    rcases hAIn with ⟨ra', hAEval', hAIn'⟩
+    rcases hBIn with ⟨rb', hBEval', hBIn'⟩
+    rw [hAEval] at hAEval'
+    rw [hBEval] at hBEval'
+    cases hAEval'
+    cases hBEval'
+    rw [native_re_inter, native_str_in_re_mk_inter_sem]
+    simp [hAIn', hBIn']
+  · intro hIn
+    rw [native_re_inter, native_str_in_re_mk_inter_sem] at hIn
+    simp only [Bool.and_eq_true] at hIn
+    rcases hIn with ⟨hAIn, hBIn⟩
+    rcases (hContains str).2
+        ⟨⟨ra, hAEval, hAIn⟩, ⟨rb, hBEval, hBIn⟩⟩ with
+      ⟨r', hTEval', hTIn⟩
+    rw [hTEval] at hTEval'
+    cases hTEval'
+    exact hTIn
+
 private theorem reUnion_contains_left
     (M : SmtModel) (x y : Term) (str : native_String) :
     RegLanEval M x ->
@@ -2137,6 +2264,60 @@ private theorem reUnion_contains_iff
     rcases hIn with hXIn | hYIn
     · exact reUnion_contains_left M x y str hxEval hyEval hXIn
     · exact reUnion_contains_right M x y str hxEval hyEval hYIn
+
+private theorem reInter_contains
+    (M : SmtModel) (x y : Term) (str : native_String) :
+    RegLanEval M x ->
+    RegLanEval M y ->
+    RegLanContains M x str ->
+    RegLanContains M y str ->
+    RegLanContains M (mkReInter x y) str := by
+  intro hxEval hyEval hxIn hyIn
+  rcases hxEval with ⟨rx, hxEval⟩
+  rcases hyEval with ⟨ry, hyEval⟩
+  rcases hxIn with ⟨rx', hxEval', hxIn⟩
+  rcases hyIn with ⟨ry', hyEval', hyIn⟩
+  rw [hxEval] at hxEval'
+  rw [hyEval] at hyEval'
+  cases hxEval'
+  cases hyEval'
+  exact ⟨native_re_inter rx ry, by
+    change __smtx_model_eval M
+        (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y)) =
+      SmtValue.RegLan (native_re_inter rx ry)
+    simp [__smtx_model_eval, __smtx_model_eval_re_inter, hxEval, hyEval],
+    by
+      simp [native_re_inter, native_str_in_re_mk_inter_sem, hxIn, hyIn]⟩
+
+private theorem reInter_contains_cases
+    (M : SmtModel) (x y : Term) (str : native_String) :
+    RegLanEval M x ->
+    RegLanEval M y ->
+    RegLanContains M (mkReInter x y) str ->
+      RegLanContains M x str ∧ RegLanContains M y str := by
+  intro hxEval hyEval hIn
+  rcases hxEval with ⟨rx, hxEval⟩
+  rcases hyEval with ⟨ry, hyEval⟩
+  rcases hIn with ⟨r, hEval, hIn⟩
+  change __smtx_model_eval M
+      (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt y)) =
+    SmtValue.RegLan r at hEval
+  simp only [__smtx_model_eval, __smtx_model_eval_re_inter, hxEval, hyEval] at hEval
+  cases hEval
+  simp [native_re_inter, native_str_in_re_mk_inter_sem, Bool.and_eq_true] at hIn
+  exact ⟨⟨rx, hxEval, hIn.1⟩, ⟨ry, hyEval, hIn.2⟩⟩
+
+private theorem reInter_contains_iff
+    (M : SmtModel) (x y : Term) (str : native_String) :
+    RegLanEval M x ->
+    RegLanEval M y ->
+    (RegLanContains M (mkReInter x y) str ↔
+      RegLanContains M x str ∧ RegLanContains M y str) := by
+  intro hxEval hyEval
+  constructor
+  · exact reInter_contains_cases M x y str hxEval hyEval
+  · intro hIn
+    exact reInter_contains M x y str hxEval hyEval hIn.1 hIn.2
 
 private def ReUnionListWF (M : SmtModel) : Term -> Prop
   | Term.Apply (Term.Apply (Term.UOp UserOp.re_union) x) xs =>
@@ -2213,6 +2394,90 @@ private theorem reUnionListWF_of_type_eval
                     case RegLan.RegLan rx rxs =>
                       exact ⟨⟨rx, hx⟩, hArgs.1,
                         reUnionListWF_of_type_eval M xs rxs hArgs.2 hxs⟩
+                  all_goals
+                    exact ⟨⟨r, hEval⟩, hTy⟩
+              | _ =>
+                  exact ⟨⟨r, hEval⟩, hTy⟩
+          | _ =>
+              exact ⟨⟨r, hEval⟩, hTy⟩
+      | _ =>
+          exact ⟨⟨r, hEval⟩, hTy⟩
+
+private def ReInterListWF (M : SmtModel) : Term -> Prop
+  | Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) x) xs =>
+      RegLanEval M x ∧
+        __smtx_typeof (__eo_to_smt x) = SmtType.RegLan ∧
+        ReInterListWF M xs
+  | t =>
+      RegLanEval M t ∧
+        __smtx_typeof (__eo_to_smt t) = SmtType.RegLan
+
+private theorem reInterListWF_eval_type
+    (M : SmtModel) :
+    (t : Term) -> ReInterListWF M t ->
+      RegLanEval M t ∧
+        __smtx_typeof (__eo_to_smt t) = SmtType.RegLan
+  | t, h => by
+      cases t with
+      | Apply f xs =>
+          cases f with
+          | Apply g x =>
+              cases g with
+              | UOp op =>
+                  cases op
+                  case re_inter =>
+                    have hXs := reInterListWF_eval_type M xs h.2.2
+                    exact ⟨
+                      reInter_eval_reglan_of_reglan_args M x xs h.1 hXs.1,
+                      reInter_typeof_of_args x xs h.2.1 hXs.2⟩
+                  all_goals
+                    simpa [ReInterListWF] using h
+              | _ =>
+                  simpa [ReInterListWF] using h
+          | _ =>
+              simpa [ReInterListWF] using h
+      | _ =>
+          simpa [ReInterListWF] using h
+
+private theorem reInterListWF_eval
+    {M : SmtModel} {t : Term} :
+    ReInterListWF M t -> RegLanEval M t := by
+  intro h
+  exact (reInterListWF_eval_type M t h).1
+
+private theorem reInterListWF_type
+    {M : SmtModel} {t : Term} :
+    ReInterListWF M t ->
+    __smtx_typeof (__eo_to_smt t) = SmtType.RegLan := by
+  intro h
+  exact (reInterListWF_eval_type M t h).2
+
+private theorem reInterListWF_of_type_eval
+    (M : SmtModel) :
+    (t : Term) -> (r : native_RegLan) ->
+      __smtx_typeof (__eo_to_smt t) = SmtType.RegLan ->
+      __smtx_model_eval M (__eo_to_smt t) = SmtValue.RegLan r ->
+      ReInterListWF M t
+  | t, r, hTy, hEval => by
+      cases t with
+      | Apply f xs =>
+          cases f with
+          | Apply g x =>
+              cases g with
+              | UOp op =>
+                  cases op
+                  case re_inter =>
+                    have hArgs := reInter_args_of_reglan_type x xs hTy
+                    change __smtx_model_eval M
+                        (SmtTerm.re_inter (__eo_to_smt x) (__eo_to_smt xs)) =
+                      SmtValue.RegLan r at hEval
+                    cases hx : __smtx_model_eval M (__eo_to_smt x) <;>
+                      cases hxs : __smtx_model_eval M (__eo_to_smt xs) <;>
+                        simp [__smtx_model_eval, __smtx_model_eval_re_inter,
+                          hx, hxs] at hEval
+                    case RegLan.RegLan rx rxs =>
+                      exact ⟨⟨rx, hx⟩, hArgs.1,
+                        reInterListWF_of_type_eval M xs rxs hArgs.2 hxs⟩
                   all_goals
                     exact ⟨⟨r, hEval⟩, hTy⟩
               | _ =>
@@ -3184,6 +3449,587 @@ private theorem reUnion_list_diff_rec_wf_contains
                   ((reUnion_nil_not_contains M nil str hNilTrue) hNilIn)
               · exact Or.inr hDIn⟩
 
+private theorem reInter_is_list_true_ne_stuck {t : Term} :
+    __eo_is_list (Term.UOp UserOp.re_inter) t = Term.Boolean true ->
+    t ≠ Term.Stuck := by
+  intro hList hStuck
+  subst t
+  simp [__eo_is_list] at hList
+
+private theorem reInter_nil_eq_all_of_is_list_nil_true {nil : Term} :
+    __eo_is_list_nil (Term.UOp UserOp.re_inter) nil = Term.Boolean true ->
+    nil = Term.UOp UserOp.re_all := by
+  intro hNil
+  cases nil <;> try cases hNil
+  case UOp op =>
+    cases op <;> try cases hNil
+    rfl
+
+private theorem reInter_nil_eval_all_of_is_list_nil_true
+    (M : SmtModel) (nil : Term) :
+    __eo_is_list_nil (Term.UOp UserOp.re_inter) nil = Term.Boolean true ->
+    __smtx_model_eval M (__eo_to_smt nil) =
+      SmtValue.RegLan native_re_all := by
+  intro hNilTrue
+  have hNilEq := reInter_nil_eq_all_of_is_list_nil_true hNilTrue
+  subst nil
+  change __smtx_model_eval M SmtTerm.re_all =
+    SmtValue.RegLan native_re_all
+  simp [__smtx_model_eval]
+
+private theorem reInter_nil_contains
+    (M : SmtModel) (nil : Term) (str : native_String) :
+    __eo_is_list_nil (Term.UOp UserOp.re_inter) nil = Term.Boolean true ->
+    native_string_valid str = true ->
+    RegLanContains M nil str := by
+  intro hNil hValid
+  have hNilEval :
+      __smtx_model_eval M (__eo_to_smt nil) =
+        SmtValue.RegLan native_re_all :=
+    reInter_nil_eval_all_of_is_list_nil_true M nil hNil
+  exact ⟨native_re_all, hNilEval, native_str_in_re_all_valid_local str hValid⟩
+
+private theorem reInter_list_concat_rec_wf_contains
+    (M : SmtModel) :
+    (a z : Term) ->
+    __eo_is_list (Term.UOp UserOp.re_inter) a = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.re_inter) z = Term.Boolean true ->
+    ReInterListWF M a ->
+    ReInterListWF M z ->
+    __eo_is_list (Term.UOp UserOp.re_inter) (__eo_list_concat_rec a z) =
+        Term.Boolean true ∧
+      ReInterListWF M (__eo_list_concat_rec a z) ∧
+      ∀ str,
+        RegLanContains M (__eo_list_concat_rec a z) str ↔
+          RegLanContains M a str ∧ RegLanContains M z str
+  | a, z, hAList, hZList, hAWF, hZWF => by
+      induction a, z using __eo_list_concat_rec.induct with
+      | case1 z =>
+          cases (Term.UOp UserOp.re_inter) <;> simp [__eo_is_list] at hAList
+      | case2 a hA =>
+          cases (Term.UOp UserOp.re_inter) <;> simp [__eo_is_list] at hZList
+      | case3 g x y z hZ ih =>
+          have hg : g = Term.UOp UserOp.re_inter :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.re_inter) g x y hAList
+          subst g
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.re_inter) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.re_inter) x y hAList
+          have hTailNe :
+              __eo_list_concat_rec y z ≠ Term.Stuck :=
+            eo_list_concat_rec_ne_stuck_of_list
+              (Term.UOp UserOp.re_inter) y z hYList hZ
+          have hXEval : RegLanEval M x := hAWF.1
+          have hXTy :
+              __smtx_typeof (__eo_to_smt x) = SmtType.RegLan :=
+            hAWF.2.1
+          have hYWF : ReInterListWF M y := hAWF.2.2
+          have hYEval : RegLanEval M y := reInterListWF_eval hYWF
+          have hIH := ih hYList hZList hYWF hZWF
+          rw [eo_list_concat_rec_cons_eq_of_tail_ne_stuck
+            (Term.UOp UserOp.re_inter) x y z hTailNe]
+          have hTailWF :
+              ReInterListWF M (__eo_list_concat_rec y z) := hIH.2.1
+          have hTailEval :
+              RegLanEval M (__eo_list_concat_rec y z) :=
+            reInterListWF_eval hTailWF
+          exact ⟨
+            eo_is_list_cons_self_true_of_tail_list
+              (Term.UOp UserOp.re_inter) x (__eo_list_concat_rec y z)
+              (by decide) hIH.1,
+            ⟨hXEval, hXTy, hTailWF⟩,
+            by
+              intro str
+              constructor
+              · intro hIn
+                rcases reInter_contains_cases M x
+                    (__eo_list_concat_rec y z) str hXEval hTailEval hIn with
+                  ⟨hXIn, hTailIn⟩
+                rcases (hIH.2.2 str).1 hTailIn with ⟨hYIn, hZIn⟩
+                exact ⟨
+                  reInter_contains M x y str hXEval hYEval hXIn hYIn,
+                  hZIn⟩
+              · intro hIn
+                rcases hIn with ⟨hAIn, hZIn⟩
+                rcases reInter_contains_cases M x y str hXEval hYEval hAIn with
+                  ⟨hXIn, hYIn⟩
+                have hTailIn :
+                    RegLanContains M (__eo_list_concat_rec y z) str :=
+                  (hIH.2.2 str).2 ⟨hYIn, hZIn⟩
+                exact reInter_contains M x
+                  (__eo_list_concat_rec y z) str hXEval hTailEval
+                  hXIn hTailIn⟩
+      | case4 nil z hNil hZ hNot =>
+          have hNilTrue :
+              __eo_is_list_nil (Term.UOp UserOp.re_inter) nil =
+                Term.Boolean true := by
+            have hGet :=
+              eo_get_nil_rec_ne_stuck_of_is_list_true
+                (Term.UOp UserOp.re_inter) nil hAList
+            have hReq :
+                __eo_requires
+                    (__eo_is_list_nil (Term.UOp UserOp.re_inter) nil)
+                    (Term.Boolean true) nil ≠ Term.Stuck := by
+              simpa [__eo_get_nil_rec] using hGet
+            exact eo_requires_eq_of_ne_stuck
+              (__eo_is_list_nil (Term.UOp UserOp.re_inter) nil)
+              (Term.Boolean true) nil hReq
+          have hConcatEq : __eo_list_concat_rec nil z = z := by
+            have hNilEq :=
+              reInter_nil_eq_all_of_is_list_nil_true hNilTrue
+            subst nil
+            cases z <;> rfl
+          rw [hConcatEq]
+          exact ⟨hZList, hZWF, by
+            intro str
+            constructor
+            · intro hZIn
+              exact ⟨
+                reInter_nil_contains M nil str hNilTrue
+                  (native_string_valid_of_reglan_contains hZIn),
+                hZIn⟩
+            · intro hIn
+              exact hIn.2⟩
+
+private theorem reInter_list_erase_rec_cons_eq
+    (x xs e : Term) :
+    x = e ->
+    x ≠ Term.Stuck ->
+    e ≠ Term.Stuck ->
+    __eo_list_erase_rec (mkReInter x xs) e = xs := by
+  intro hEq hX hE
+  have hEqTerm : __eo_eq x e = Term.Boolean true :=
+    eo_eq_eq_true_of_eq_local hEq hX hE
+  simp [mkReInter, __eo_list_erase_rec, hEqTerm, __eo_ite, native_ite,
+    native_teq]
+
+private theorem reInter_list_erase_rec_cons_ne
+    (x xs e : Term) :
+    x ≠ e ->
+    x ≠ Term.Stuck ->
+    e ≠ Term.Stuck ->
+    __eo_list_erase_rec xs e ≠ Term.Stuck ->
+    __eo_list_erase_rec (mkReInter x xs) e =
+      mkReInter x (__eo_list_erase_rec xs e) := by
+  intro hNe hX hE hTail
+  have hEqTerm : __eo_eq x e = Term.Boolean false :=
+    eo_eq_eq_false_of_ne_local hNe hX hE
+  cases hRec : __eo_list_erase_rec xs e <;>
+    simp [mkReInter, __eo_list_erase_rec, hEqTerm, __eo_ite,
+      __eo_mk_apply, native_ite, native_teq, hRec] at hTail ⊢
+
+private theorem reInter_erase_rec_preserves_wf_list
+    (M : SmtModel) :
+    (c e : Term) ->
+    __eo_is_list (Term.UOp UserOp.re_inter) c = Term.Boolean true ->
+    ReInterListWF M c ->
+    ReInterListWF M e ->
+    __eo_is_list (Term.UOp UserOp.re_inter) (__eo_list_erase_rec c e) =
+        Term.Boolean true ∧
+      ReInterListWF M (__eo_list_erase_rec c e)
+  | c, e, hCList, hCWF, hEWF => by
+      induction c, e using __eo_list_erase_rec.induct with
+      | case1 e =>
+          simp [__eo_is_list] at hCList
+      | case2 c hEStuck =>
+          exact False.elim ((regLanEval_ne_stuck (reInterListWF_eval hEWF)) rfl)
+      | case3 f x y e hENotStuck ih =>
+          have hf : f = Term.UOp UserOp.re_inter :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.re_inter) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.re_inter) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.re_inter) x y hCList
+          have hXEval : RegLanEval M x := hCWF.1
+          have hXTy :
+              __smtx_typeof (__eo_to_smt x) = SmtType.RegLan :=
+            hCWF.2.1
+          have hYWF : ReInterListWF M y := hCWF.2.2
+          have hXNe : x ≠ Term.Stuck := regLanEval_ne_stuck hXEval
+          have hENe : e ≠ Term.Stuck :=
+            regLanEval_ne_stuck (reInterListWF_eval hEWF)
+          by_cases hEq : x = e
+          · rw [reInter_list_erase_rec_cons_eq x y e hEq hXNe hENe]
+            exact ⟨hYList, hYWF⟩
+          · have hTail := ih hYList hYWF hEWF
+            have hTailNe : __eo_list_erase_rec y e ≠ Term.Stuck :=
+              reInter_is_list_true_ne_stuck hTail.1
+            rw [reInter_list_erase_rec_cons_ne x y e hEq hXNe hENe
+              hTailNe]
+            exact ⟨
+              eo_is_list_cons_self_true_of_tail_list
+                (Term.UOp UserOp.re_inter) x (__eo_list_erase_rec y e)
+                (by decide) hTail.1,
+              ⟨hXEval, hXTy, hTail.2⟩⟩
+      | case4 nil e hNil hE hNot =>
+          simpa [__eo_list_erase_rec] using And.intro hCList hCWF
+
+private theorem reInter_erase_rec_original_contains_implies_erase_contains
+    (M : SmtModel) :
+    (c e : Term) -> (str : native_String) ->
+    __eo_is_list (Term.UOp UserOp.re_inter) c = Term.Boolean true ->
+    ReInterListWF M c ->
+    ReInterListWF M e ->
+    RegLanContains M c str ->
+    RegLanContains M (__eo_list_erase_rec c e) str
+  | c, e, str, hCList, hCWF, hEWF, hCIn => by
+      induction c, e using __eo_list_erase_rec.induct with
+      | case1 e =>
+          simp [__eo_is_list] at hCList
+      | case2 c hEStuck =>
+          exact False.elim ((regLanEval_ne_stuck (reInterListWF_eval hEWF)) rfl)
+      | case3 f x y e hENotStuck ih =>
+          have hf : f = Term.UOp UserOp.re_inter :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.re_inter) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.re_inter) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.re_inter) x y hCList
+          have hXEval : RegLanEval M x := hCWF.1
+          have hYWF : ReInterListWF M y := hCWF.2.2
+          have hYEval : RegLanEval M y := reInterListWF_eval hYWF
+          have hXNe : x ≠ Term.Stuck := regLanEval_ne_stuck hXEval
+          have hENe : e ≠ Term.Stuck :=
+            regLanEval_ne_stuck (reInterListWF_eval hEWF)
+          rcases reInter_contains_cases M x y str hXEval hYEval hCIn with
+            ⟨hXIn, hYIn⟩
+          by_cases hEq : x = e
+          · have hEraseEq :
+                __eo_list_erase_rec (mkReInter x y) e = y :=
+              reInter_list_erase_rec_cons_eq x y e hEq hXNe hENe
+            rw [hEraseEq]
+            exact hYIn
+          · have hTail := reInter_erase_rec_preserves_wf_list M y e
+              hYList hYWF hEWF
+            have hTailEval :
+                RegLanEval M (__eo_list_erase_rec y e) :=
+              reInterListWF_eval hTail.2
+            have hTailNe :
+                __eo_list_erase_rec y e ≠ Term.Stuck :=
+              reInter_is_list_true_ne_stuck hTail.1
+            have hEraseEq :
+                __eo_list_erase_rec (mkReInter x y) e =
+                  mkReInter x (__eo_list_erase_rec y e) :=
+              reInter_list_erase_rec_cons_ne x y e hEq hXNe hENe hTailNe
+            rw [hEraseEq]
+            have hTailIn : RegLanContains M (__eo_list_erase_rec y e) str :=
+              ih hYList hYWF hEWF hYIn
+            exact reInter_contains M x (__eo_list_erase_rec y e) str
+              hXEval hTailEval hXIn hTailIn
+      | case4 nil e hNil hE hNot =>
+          simpa [__eo_list_erase_rec] using hCIn
+
+private theorem reInter_erase_rec_changed_and_original_contains_implies_lit_contains
+    (M : SmtModel) :
+    (c e : Term) -> (str : native_String) ->
+    __eo_is_list (Term.UOp UserOp.re_inter) c = Term.Boolean true ->
+    ReInterListWF M c ->
+    ReInterListWF M e ->
+    RegLanContains M c str ->
+    __eo_list_erase_rec c e ≠ c ->
+    RegLanContains M e str
+  | c, e, str, hCList, hCWF, hEWF, hCIn, hChanged => by
+      induction c, e using __eo_list_erase_rec.induct with
+      | case1 e =>
+          simp [__eo_is_list] at hCList
+      | case2 c hEStuck =>
+          exact False.elim ((regLanEval_ne_stuck (reInterListWF_eval hEWF)) rfl)
+      | case3 f x y e hENotStuck ih =>
+          have hf : f = Term.UOp UserOp.re_inter :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.re_inter) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.re_inter) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.re_inter) x y hCList
+          have hXEval : RegLanEval M x := hCWF.1
+          have hYWF : ReInterListWF M y := hCWF.2.2
+          have hYEval : RegLanEval M y := reInterListWF_eval hYWF
+          have hXNe : x ≠ Term.Stuck := regLanEval_ne_stuck hXEval
+          have hENe : e ≠ Term.Stuck :=
+            regLanEval_ne_stuck (reInterListWF_eval hEWF)
+          rcases reInter_contains_cases M x y str hXEval hYEval hCIn with
+            ⟨hXIn, hYIn⟩
+          by_cases hEq : x = e
+          · simpa [hEq] using hXIn
+          · have hTail := reInter_erase_rec_preserves_wf_list M y e
+              hYList hYWF hEWF
+            have hTailNe :
+                __eo_list_erase_rec y e ≠ Term.Stuck :=
+              reInter_is_list_true_ne_stuck hTail.1
+            have hTailChanged : __eo_list_erase_rec y e ≠ y := by
+              intro hTailEq
+              apply hChanged
+              rw [reInter_list_erase_rec_cons_ne x y e hEq hXNe hENe
+                hTailNe, hTailEq]
+            exact ih hYList hYWF hEWF hYIn hTailChanged
+      | case4 nil e hNil hE hNot =>
+          exfalso
+          apply hChanged
+          simp [__eo_list_erase_rec]
+
+private theorem reInter_list_find_rec_nonneg_contains
+    (M : SmtModel) :
+    (c e n : Term) -> (str : native_String) ->
+    __eo_is_list (Term.UOp UserOp.re_inter) c = Term.Boolean true ->
+    ReInterListWF M c ->
+    ReInterListWF M e ->
+    __eo_is_neg (__eo_list_find_rec c e n) = Term.Boolean false ->
+    RegLanContains M c str ->
+    RegLanContains M e str
+  | c, e, n, str, hCList, hCWF, hEWF, hFind, hCIn => by
+      induction c, e, n using __eo_list_find_rec.induct with
+      | case1 e n =>
+          simp [__eo_is_list] at hCList
+      | case2 c n hCNe =>
+          exact False.elim ((regLanEval_ne_stuck (reInterListWF_eval hEWF)) rfl)
+      | case3 c e hENe hCNe =>
+          simp [__eo_list_find_rec, __eo_is_neg] at hFind
+      | case4 f x y z n hZNe hNNe ih =>
+          have hf : f = Term.UOp UserOp.re_inter :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.re_inter) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.re_inter) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.re_inter) x y hCList
+          have hXEval : RegLanEval M x := hCWF.1
+          have hYWF : ReInterListWF M y := hCWF.2.2
+          have hYEval : RegLanEval M y := reInterListWF_eval hYWF
+          have hXNe : x ≠ Term.Stuck := regLanEval_ne_stuck hXEval
+          have hZWF : ReInterListWF M z := hEWF
+          have hZNe : z ≠ Term.Stuck :=
+            regLanEval_ne_stuck (reInterListWF_eval hZWF)
+          rcases reInter_contains_cases M x y str hXEval hYEval hCIn with
+            ⟨hXIn, hYIn⟩
+          by_cases hEq : x = z
+          · simpa [hEq] using hXIn
+          · have hEqTerm : __eo_eq x z = Term.Boolean false :=
+              eo_eq_eq_false_of_ne_local hEq hXNe hZNe
+            have hTailFind :
+                __eo_is_neg
+                    (__eo_list_find_rec y z
+                      (__eo_add n (Term.Numeral 1))) =
+                  Term.Boolean false := by
+              simpa [__eo_list_find_rec, hEqTerm, __eo_ite, native_ite,
+                native_teq] using hFind
+            exact ih hYList hYWF hZWF hTailFind hYIn
+      | case5 nil z n hNilNe hZNe hNNe hNot =>
+          have hNeg : native_zlt (-1 : native_Int) 0 = true := by
+            native_decide
+          simp [__eo_list_find_rec, __eo_is_neg, hNeg] at hFind
+
+private theorem reInter_list_find_nonneg_contains
+    (M : SmtModel) (c e : Term) (str : native_String) :
+    __eo_is_list (Term.UOp UserOp.re_inter) c = Term.Boolean true ->
+    ReInterListWF M c ->
+    ReInterListWF M e ->
+    __eo_is_neg (__eo_list_find (Term.UOp UserOp.re_inter) c e) =
+      Term.Boolean false ->
+    RegLanContains M c str ->
+    RegLanContains M e str := by
+  intro hCList hCWF hEWF hFind hCIn
+  have hFindRec :
+      __eo_is_neg (__eo_list_find_rec c e (Term.Numeral 0)) =
+        Term.Boolean false := by
+    simpa [__eo_list_find, hCList, __eo_requires, native_ite, native_teq,
+      native_not, SmtEval.native_not] using hFind
+  exact reInter_list_find_rec_nonneg_contains M c e (Term.Numeral 0) str
+    hCList hCWF hEWF hFindRec hCIn
+
+private theorem reInter_list_diff_rec_wf_contains
+    (M : SmtModel) :
+    (c d : Term) ->
+    __eo_is_list (Term.UOp UserOp.re_inter) c = Term.Boolean true ->
+    __eo_is_list (Term.UOp UserOp.re_inter) d = Term.Boolean true ->
+    ReInterListWF M c ->
+    ReInterListWF M d ->
+    __eo_is_list (Term.UOp UserOp.re_inter) (__eo_list_diff_rec c d) =
+        Term.Boolean true ∧
+      ReInterListWF M (__eo_list_diff_rec c d) ∧
+      ∀ str,
+        (RegLanContains M (__eo_list_diff_rec c d) str ∧
+            RegLanContains M d str) ↔
+          (RegLanContains M c str ∧ RegLanContains M d str)
+  | c, d, hCList, hDList, hCWF, hDWF => by
+      induction c, d using __eo_list_diff_rec.induct with
+      | case1 d =>
+          simp [__eo_is_list] at hCList
+      | case2 c hDStuck =>
+          exact False.elim ((regLanEval_ne_stuck (reInterListWF_eval hDWF)) rfl)
+      | case3 f x y d hDNotStuck v0 ih =>
+          have hf : f = Term.UOp UserOp.re_inter :=
+            eo_is_list_cons_head_eq_of_true
+              (Term.UOp UserOp.re_inter) f x y hCList
+          subst f
+          have hYList :
+              __eo_is_list (Term.UOp UserOp.re_inter) y =
+                Term.Boolean true :=
+            eo_is_list_tail_true_of_cons_self
+              (Term.UOp UserOp.re_inter) x y hCList
+          have hXEval : RegLanEval M x := hCWF.1
+          have hXTy :
+              __smtx_typeof (__eo_to_smt x) = SmtType.RegLan :=
+            hCWF.2.1
+          have hXWF : ReInterListWF M x := by
+            rcases hXEval with ⟨rx, hxEval⟩
+            exact reInterListWF_of_type_eval M x rx hXTy hxEval
+          have hYWF : ReInterListWF M y := hCWF.2.2
+          have hYEval : RegLanEval M y := reInterListWF_eval hYWF
+          have hDNe : d ≠ Term.Stuck :=
+            regLanEval_ne_stuck (reInterListWF_eval hDWF)
+          have hXNe : x ≠ Term.Stuck := regLanEval_ne_stuck hXEval
+          have hErase :=
+            reInter_erase_rec_preserves_wf_list M d x hDList hDWF hXWF
+          have hEraseNe : __eo_list_erase_rec d x ≠ Term.Stuck :=
+            reInter_is_list_true_ne_stuck hErase.1
+          have hIH := ih hYList hErase.1 hYWF hErase.2
+          by_cases hSame : __eo_list_erase_rec d x = d
+          · have hEqTerm :
+                __eo_eq (__eo_list_erase_rec d x) d =
+                  Term.Boolean true :=
+              eo_eq_eq_true_of_eq_local hSame hEraseNe hDNe
+            have hEqSelf : __eo_eq d d = Term.Boolean true :=
+              eo_eq_eq_true_of_eq_local rfl hDNe hDNe
+            have hv0 : v0 = d := by
+              simpa [v0] using hSame
+            have hIHD :
+                __eo_is_list (Term.UOp UserOp.re_inter)
+                    (__eo_list_diff_rec y d) =
+                    Term.Boolean true ∧
+                  ReInterListWF M (__eo_list_diff_rec y d) ∧
+                  ∀ str,
+                    (RegLanContains M (__eo_list_diff_rec y d) str ∧
+                        RegLanContains M d str) ↔
+                      (RegLanContains M y str ∧ RegLanContains M d str) := by
+              simpa [hv0] using hIH
+            have hRecNe : __eo_list_diff_rec y d ≠ Term.Stuck :=
+              reInter_is_list_true_ne_stuck hIHD.1
+            have hDiffEq :
+                __eo_list_diff_rec (mkReInter x y) d =
+                  mkReInter x (__eo_list_diff_rec y d) := by
+              simp [mkReInter, __eo_list_diff_rec, hEqTerm,
+                hEqSelf, __eo_prepend_if, hSame, hXNe, hRecNe]
+            rw [hDiffEq]
+            have hDiffEval :
+                RegLanEval M (__eo_list_diff_rec y d) :=
+              reInterListWF_eval hIHD.2.1
+            exact ⟨
+              eo_is_list_cons_self_true_of_tail_list
+                (Term.UOp UserOp.re_inter) x (__eo_list_diff_rec y d)
+                (by decide) hIHD.1,
+              ⟨hXEval, hXTy, hIHD.2.1⟩,
+              by
+                intro str
+                constructor
+                · intro hIn
+                  rcases hIn with ⟨hResIn, hDIn⟩
+                  rcases reInter_contains_cases M x
+                      (__eo_list_diff_rec y d) str hXEval hDiffEval
+                      hResIn with ⟨hXIn, hDiffIn⟩
+                  rcases (hIHD.2.2 str).1 ⟨hDiffIn, hDIn⟩ with
+                    ⟨hYIn, hDIn'⟩
+                  exact ⟨
+                    reInter_contains M x y str hXEval hYEval hXIn hYIn,
+                    hDIn'⟩
+                · intro hIn
+                  rcases hIn with ⟨hCIn, hDIn⟩
+                  rcases reInter_contains_cases M x y str hXEval hYEval
+                      hCIn with ⟨hXIn, hYIn⟩
+                  rcases (hIHD.2.2 str).2 ⟨hYIn, hDIn⟩ with
+                    ⟨hDiffIn, hDIn'⟩
+                  exact ⟨
+                    reInter_contains M x (__eo_list_diff_rec y d) str
+                      hXEval hDiffEval hXIn hDiffIn,
+                    hDIn'⟩⟩
+          · have hEqTerm :
+                __eo_eq (__eo_list_erase_rec d x) d =
+                  Term.Boolean false :=
+              eo_eq_eq_false_of_ne_local hSame hEraseNe hDNe
+            have hRecNe :
+                __eo_list_diff_rec y (__eo_list_erase_rec d x) ≠
+                  Term.Stuck := by
+              change __eo_list_diff_rec y v0 ≠ Term.Stuck
+              exact reInter_is_list_true_ne_stuck hIH.1
+            have hDiffEq :
+                __eo_list_diff_rec (mkReInter x y) d =
+                  __eo_list_diff_rec y (__eo_list_erase_rec d x) := by
+              simp [mkReInter, __eo_list_diff_rec, hEqTerm,
+                __eo_prepend_if, hRecNe]
+            rw [hDiffEq]
+            exact ⟨hIH.1, hIH.2.1, by
+              intro str
+              constructor
+              · intro hIn
+                rcases hIn with ⟨hDiffIn, hDIn⟩
+                have hEraseIn :
+                    RegLanContains M (__eo_list_erase_rec d x) str :=
+                  reInter_erase_rec_original_contains_implies_erase_contains
+                    M d x str hDList hDWF hXWF hDIn
+                rcases (hIH.2.2 str).1 ⟨hDiffIn, hEraseIn⟩ with
+                  ⟨hYIn, _hEraseIn'⟩
+                have hXIn : RegLanContains M x str :=
+                  reInter_erase_rec_changed_and_original_contains_implies_lit_contains
+                    M d x str hDList hDWF hXWF hDIn hSame
+                exact ⟨
+                  reInter_contains M x y str hXEval hYEval hXIn hYIn,
+                  hDIn⟩
+              · intro hIn
+                rcases hIn with ⟨hCIn, hDIn⟩
+                rcases reInter_contains_cases M x y str hXEval hYEval
+                    hCIn with ⟨_hXIn, hYIn⟩
+                have hEraseIn :
+                    RegLanContains M (__eo_list_erase_rec d x) str :=
+                  reInter_erase_rec_original_contains_implies_erase_contains
+                    M d x str hDList hDWF hXWF hDIn
+                rcases (hIH.2.2 str).2 ⟨hYIn, hEraseIn⟩ with
+                  ⟨hDiffIn, _hEraseIn'⟩
+                exact ⟨hDiffIn, hDIn⟩⟩
+      | case4 nil d hNil hD hNot =>
+          have hNilTrue :
+              __eo_is_list_nil (Term.UOp UserOp.re_inter) nil =
+                Term.Boolean true := by
+            have hGet :=
+              eo_get_nil_rec_ne_stuck_of_is_list_true
+                (Term.UOp UserOp.re_inter) nil hCList
+            have hReq :
+                __eo_requires
+                    (__eo_is_list_nil (Term.UOp UserOp.re_inter) nil)
+                    (Term.Boolean true) nil ≠ Term.Stuck := by
+              simpa [__eo_get_nil_rec] using hGet
+            exact eo_requires_eq_of_ne_stuck
+              (__eo_is_list_nil (Term.UOp UserOp.re_inter) nil)
+              (Term.Boolean true) nil hReq
+          have hDiffEq : __eo_list_diff_rec nil d = nil := by
+            have hNilEq :=
+              reInter_nil_eq_all_of_is_list_nil_true hNilTrue
+            subst nil
+            cases d
+            case Stuck =>
+              exact False.elim (hD rfl)
+            all_goals rfl
+          rw [hDiffEq]
+          exact ⟨hCList, hCWF, by
+            intro str
+            constructor
+            · intro hIn
+              exact hIn
+            · intro hIn
+              exact hIn⟩
+
 private theorem reUnion_l4_union_eval_rel
     (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
     (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
@@ -3498,6 +4344,305 @@ private theorem reUnion_lists_of_concat_diff_union_ne_stuck
       (__eo_is_list (Term.UOp UserOp.re_union) a)
       (Term.Boolean true)
       (__eo_requires (__eo_is_list (Term.UOp UserOp.re_union) b)
+        (Term.Boolean true) (__eo_list_diff_rec a b))
+      hDiffReq
+  exact ⟨hAList, hBList⟩
+
+private theorem reInter_l4_inter_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (mkReInter a (mkReInter b (Term.UOp UserOp.re_all)))) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (mkReInter a (mkReInter b (Term.UOp UserOp.re_all)))) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  refine ⟨native_re_inter ra (native_re_inter rb native_re_all), ?_, ?_, ?_⟩
+  · change __smtx_model_eval M
+        (SmtTerm.re_inter (__eo_to_smt a)
+          (SmtTerm.re_inter (__eo_to_smt b) SmtTerm.re_all)) =
+      SmtValue.RegLan (native_re_inter ra (native_re_inter rb native_re_all))
+    simp [__smtx_model_eval, __smtx_model_eval_re_inter, hAEval, hBEval]
+  · exact reInter_typeof_of_args a (mkReInter b (Term.UOp UserOp.re_all))
+      hATy (reInter_typeof_of_args b (Term.UOp UserOp.re_all) hBTy
+        (by native_decide))
+  · rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+    simp [__smtx_model_eval_eq]
+    intro str hValid
+    simp [native_re_inter, native_str_in_re_mk_inter_sem,
+      native_str_in_re_all_valid_local str hValid]
+
+private theorem re_ac_merge_inter_l4_eq (a b : Term) :
+    a ≠ Term.Stuck ->
+    b ≠ Term.Stuck ->
+    __eo_l_4___re_ac_merge (Term.UOp UserOp.re_inter) a b =
+      mkReInter a (mkReInter b (Term.UOp UserOp.re_all)) := by
+  intro hA hB
+  cases a <;> cases b <;>
+    simp [__eo_l_4___re_ac_merge, __eo_mk_apply, __eo_nil] at hA hB ⊢
+
+private theorem re_ac_merge_inter_l4_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hA : a ≠ Term.Stuck)
+    (hB : b ≠ Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  rw [re_ac_merge_inter_l4_eq a b hA hB]
+  exact reInter_l4_inter_eval_rel M a b ra rb hATy hBTy hAEval hBEval
+
+private theorem reInter_swap_inter_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
+    ∃ r,
+      __smtx_model_eval M (__eo_to_smt (mkReInter b a)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof (__eo_to_smt (mkReInter b a)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  refine ⟨native_re_inter rb ra, ?_, ?_, ?_⟩
+  · change __smtx_model_eval M
+        (SmtTerm.re_inter (__eo_to_smt b) (__eo_to_smt a)) =
+      SmtValue.RegLan (native_re_inter rb ra)
+    simp [__smtx_model_eval, __smtx_model_eval_re_inter, hAEval, hBEval]
+  · exact reInter_typeof_of_args b a hBTy hATy
+  · exact smt_value_rel_re_inter_comm rb ra
+
+private theorem reInter_pair_inter_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
+    ∃ r,
+      __smtx_model_eval M (__eo_to_smt (mkReInter a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof (__eo_to_smt (mkReInter a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  refine ⟨native_re_inter ra rb, ?_, ?_, ?_⟩
+  · change __smtx_model_eval M
+        (SmtTerm.re_inter (__eo_to_smt a) (__eo_to_smt b)) =
+      SmtValue.RegLan (native_re_inter ra rb)
+    simp [__smtx_model_eval, __smtx_model_eval_re_inter, hAEval, hBEval]
+  · exact reInter_typeof_of_args a b hATy hBTy
+  · exact RuleProofs.smt_value_rel_refl
+      (SmtValue.RegLan (native_re_inter ra rb))
+
+private theorem reInter_subsumed_right_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hSub :
+      ∀ str, RegLanContains M a str -> RegLanContains M b str) :
+    ∃ r,
+      __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan r ∧
+      __smtx_typeof (__eo_to_smt a) = SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  refine ⟨ra, hAEval, hATy, ?_⟩
+  exact smt_value_rel_reglan_native_inter_of_contains_iff
+    M a a b ra ra rb hAEval hAEval hBEval (by
+      intro str
+      constructor
+      · intro hAIn
+        exact ⟨hAIn, hSub str hAIn⟩
+      · intro hIn
+        exact hIn.1)
+
+private theorem reInter_subsumed_left_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hSub :
+      ∀ str, RegLanContains M b str -> RegLanContains M a str) :
+    ∃ r,
+      __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan r ∧
+      __smtx_typeof (__eo_to_smt b) = SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  refine ⟨rb, hBEval, hBTy, ?_⟩
+  exact smt_value_rel_reglan_native_inter_of_contains_iff
+    M b a b rb ra rb hBEval hAEval hBEval (by
+      intro str
+      constructor
+      · intro hBIn
+        exact ⟨hSub str hBIn, hBIn⟩
+      · intro hIn
+        exact hIn.2)
+
+private theorem reInter_concat_diff_inter_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hAList :
+      __eo_is_list (Term.UOp UserOp.re_inter) a = Term.Boolean true)
+    (hBList :
+      __eo_is_list (Term.UOp UserOp.re_inter) b = Term.Boolean true)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_list_concat (Term.UOp UserOp.re_inter)
+              (__eo_list_diff (Term.UOp UserOp.re_inter) a b) b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_list_concat (Term.UOp UserOp.re_inter)
+              (__eo_list_diff (Term.UOp UserOp.re_inter) a b) b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  have hAWF : ReInterListWF M a :=
+    reInterListWF_of_type_eval M a ra hATy hAEval
+  have hBWF : ReInterListWF M b :=
+    reInterListWF_of_type_eval M b rb hBTy hBEval
+  have hDiff :=
+    reInter_list_diff_rec_wf_contains M a b hAList hBList hAWF hBWF
+  have hDiffEq :
+      __eo_list_diff (Term.UOp UserOp.re_inter) a b =
+        __eo_list_diff_rec a b := by
+    simp [__eo_list_diff, hAList, hBList, __eo_requires, native_ite,
+      native_teq, native_not, SmtEval.native_not]
+  have hConcat :=
+    reInter_list_concat_rec_wf_contains M (__eo_list_diff_rec a b) b
+      hDiff.1 hBList hDiff.2.1 hBWF
+  have hConcatEq :
+      __eo_list_concat (Term.UOp UserOp.re_inter)
+          (__eo_list_diff (Term.UOp UserOp.re_inter) a b) b =
+        __eo_list_concat_rec (__eo_list_diff_rec a b) b := by
+    simp [__eo_list_concat, hDiffEq, hDiff.1, hBList, __eo_requires,
+      native_ite, native_teq, native_not, SmtEval.native_not]
+  rcases reInterListWF_eval hConcat.2.1 with ⟨r, hRecEval⟩
+  have hRel :
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) :=
+    smt_value_rel_reglan_native_inter_of_contains_iff M
+      (__eo_list_concat_rec (__eo_list_diff_rec a b) b) a b
+      r ra rb hRecEval hAEval hBEval (by
+        intro str
+        exact Iff.trans (hConcat.2.2 str) (hDiff.2.2 str))
+  refine ⟨r, ?_, ?_, hRel⟩
+  · rw [hConcatEq]
+    exact hRecEval
+  · rw [hConcatEq]
+    exact reInterListWF_type hConcat.2.1
+
+private theorem eo_eq_re_inter_true
+    (f : Term) :
+    __eo_eq (Term.UOp UserOp.re_inter) f = Term.Boolean true ->
+    f = Term.UOp UserOp.re_inter := by
+  intro h
+  cases f <;> simp [__eo_eq, native_teq] at h
+  case UOp op =>
+    cases op <;> simp [__eo_eq, native_teq] at h ⊢
+
+private theorem reInter_list_find_list_true_of_nonneg
+    (c e : Term) :
+    __eo_is_neg (__eo_list_find (Term.UOp UserOp.re_inter) c e) =
+      Term.Boolean false ->
+    __eo_is_list (Term.UOp UserOp.re_inter) c = Term.Boolean true := by
+  intro hFind
+  have hFindNe :
+      __eo_list_find (Term.UOp UserOp.re_inter) c e ≠ Term.Stuck := by
+    intro hStuck
+    rw [hStuck] at hFind
+    simp [__eo_is_neg] at hFind
+  have hReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) c)
+          (Term.Boolean true)
+          (__eo_list_find_rec c e (Term.Numeral 0)) ≠ Term.Stuck := by
+    simpa [__eo_list_find] using hFindNe
+  exact eo_requires_eq_of_ne_stuck
+    (__eo_is_list (Term.UOp UserOp.re_inter) c)
+    (Term.Boolean true)
+    (__eo_list_find_rec c e (Term.Numeral 0)) hReq
+
+private theorem reInter_lists_of_concat_diff_inter_ne_stuck
+    (a b : Term) :
+    __eo_list_concat (Term.UOp UserOp.re_inter)
+        (__eo_list_diff (Term.UOp UserOp.re_inter) a b) b ≠
+      Term.Stuck ->
+    __eo_is_list (Term.UOp UserOp.re_inter) a = Term.Boolean true ∧
+      __eo_is_list (Term.UOp UserOp.re_inter) b = Term.Boolean true := by
+  intro hConcatNe
+  let diff := __eo_list_diff (Term.UOp UserOp.re_inter) a b
+  have hOuterReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) diff)
+          (Term.Boolean true)
+          (__eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) b)
+            (Term.Boolean true) (__eo_list_concat_rec diff b)) ≠
+        Term.Stuck := by
+    simpa [diff, __eo_list_concat] using hConcatNe
+  have hDiffList :
+      __eo_is_list (Term.UOp UserOp.re_inter) diff =
+        Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.re_inter) diff)
+      (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) b)
+        (Term.Boolean true) (__eo_list_concat_rec diff b))
+      hOuterReq
+  have hInnerReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) b)
+          (Term.Boolean true) (__eo_list_concat_rec diff b) ≠
+        Term.Stuck :=
+    eo_requires_result_ne_stuck_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.re_inter) diff)
+      (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) b)
+        (Term.Boolean true) (__eo_list_concat_rec diff b))
+      hOuterReq
+  have hBList :
+      __eo_is_list (Term.UOp UserOp.re_inter) b =
+        Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.re_inter) b)
+      (Term.Boolean true) (__eo_list_concat_rec diff b) hInnerReq
+  have hDiffNe : diff ≠ Term.Stuck :=
+    reInter_is_list_true_ne_stuck hDiffList
+  have hDiffReq :
+      __eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) a)
+          (Term.Boolean true)
+          (__eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) b)
+            (Term.Boolean true) (__eo_list_diff_rec a b)) ≠
+        Term.Stuck := by
+    simpa [diff, __eo_list_diff] using hDiffNe
+  have hAList :
+      __eo_is_list (Term.UOp UserOp.re_inter) a =
+        Term.Boolean true :=
+    eo_requires_eq_of_ne_stuck
+      (__eo_is_list (Term.UOp UserOp.re_inter) a)
+      (Term.Boolean true)
+      (__eo_requires (__eo_is_list (Term.UOp UserOp.re_inter) b)
         (Term.Boolean true) (__eo_list_diff_rec a b))
       hDiffReq
   exact ⟨hAList, hBList⟩
@@ -4104,6 +5249,612 @@ private theorem re_ac_merge_union_eval_rel
         re_ac_merge_union_eq_l1 a b hANe hBNe hNone hEq
       rw [hMergeEq]
       exact re_ac_merge_union_l1_eval_rel M a b ra rb hATy hBTy hAEval
+        hBEval (by rwa [← hMergeEq])
+
+private theorem re_ac_merge_inter_l3_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hMergeNe :
+      __eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a b ≠
+        Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+  have hBNe : b ≠ Term.Stuck := regLanEval_ne_stuck ⟨rb, hBEval⟩
+  by_cases hBShape :
+      ∃ f r rr, b = Term.Apply (Term.Apply f r) rr
+  · rcases hBShape with ⟨f, r, rr, rfl⟩
+    have hShape :
+        __eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a
+            (Term.Apply (Term.Apply f r) rr) =
+          __eo_ite (__eo_eq (Term.UOp UserOp.re_inter) f)
+            (__eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_inter)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                  a))
+              (mkReInter a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+            (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_inter) a
+              (Term.Apply (Term.Apply f r) rr)) := by
+      cases a <;> simp_all [__eo_l_3___re_ac_merge]
+    have hTopNe :
+        __eo_ite (__eo_eq (Term.UOp UserOp.re_inter) f)
+            (__eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_inter)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                  a))
+              (mkReInter a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+            (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_inter) a
+              (Term.Apply (Term.Apply f r) rr)) ≠ Term.Stuck := by
+      rwa [← hShape]
+    rcases eo_ite_cases_of_ne_stuck
+        (__eo_eq (Term.UOp UserOp.re_inter) f)
+        (__eo_ite
+          (__eo_is_neg
+            (__eo_list_find (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) a))
+          (mkReInter a
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+        (__eo_l_4___re_ac_merge (Term.UOp UserOp.re_inter) a
+          (Term.Apply (Term.Apply f r) rr))
+        hTopNe with hHead | hHead
+    · have hf : f = Term.UOp UserOp.re_inter :=
+        eo_eq_re_inter_true f hHead
+      subst f
+      have hBranchNe :
+          __eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_inter)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                  a))
+              (mkReInter a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) ≠
+            Term.Stuck := by
+        simpa [hHead] using hTopNe
+      rcases eo_ite_cases_of_ne_stuck
+          (__eo_is_neg
+            (__eo_list_find (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) a))
+          (mkReInter a
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+          hBranchNe with hFind | hFind
+      · have hEq :
+            __eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) =
+              mkReInter a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) := by
+          rw [hShape, hHead, hFind]
+          rfl
+        rw [hEq]
+        exact reInter_pair_inter_eval_rel M a
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+          ra rb hATy hBTy hAEval hBEval
+      · have hList :
+            __eo_is_list (Term.UOp UserOp.re_inter)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) =
+              Term.Boolean true :=
+          reInter_list_find_list_true_of_nonneg
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+            a hFind
+        have hBWF : ReInterListWF M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) :=
+          reInterListWF_of_type_eval M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+            rb hBTy hBEval
+        have hAWF : ReInterListWF M a :=
+          reInterListWF_of_type_eval M a ra hATy hAEval
+        have hSub :
+            ∀ str,
+              RegLanContains M
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                  str ->
+                RegLanContains M a str := by
+          intro str hIn
+          exact reInter_list_find_nonneg_contains M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+            a str hList hBWF hAWF hFind hIn
+        have hEq :
+            __eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) =
+              Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr := by
+          rw [hShape, hHead, hFind]
+          rfl
+        rw [hEq]
+        exact reInter_subsumed_left_eval_rel M a
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+          ra rb hBTy hAEval hBEval hSub
+    · have hEq :
+          __eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a
+              (Term.Apply (Term.Apply f r) rr) =
+            __eo_l_4___re_ac_merge (Term.UOp UserOp.re_inter) a
+              (Term.Apply (Term.Apply f r) rr) := by
+        rw [hShape, hHead]
+        rfl
+      rw [hEq]
+      exact re_ac_merge_inter_l4_eval_rel M a
+        (Term.Apply (Term.Apply f r) rr) ra rb hATy hBTy hAEval hBEval
+        hANe hBNe
+  · have hEq :
+        __eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a b =
+          __eo_l_4___re_ac_merge (Term.UOp UserOp.re_inter) a b := by
+      cases b
+      case Apply bf rr =>
+        cases bf <;> cases a <;> simp_all [__eo_l_3___re_ac_merge]
+      all_goals
+        cases a <;> simp_all [__eo_l_3___re_ac_merge]
+    rw [hEq]
+    exact re_ac_merge_inter_l4_eval_rel M a b ra rb hATy hBTy hAEval
+      hBEval hANe hBNe
+
+private theorem re_ac_merge_inter_l2_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hMergeNe :
+      __eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter) a b ≠
+        Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+  have hBNe : b ≠ Term.Stuck := regLanEval_ne_stuck ⟨rb, hBEval⟩
+  by_cases hAShape :
+      ∃ f r rr, a = Term.Apply (Term.Apply f r) rr
+  · rcases hAShape with ⟨f, r, rr, rfl⟩
+    have hShape :
+        __eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter)
+            (Term.Apply (Term.Apply f r) rr) b =
+          __eo_ite (__eo_eq (Term.UOp UserOp.re_inter) f)
+            (__eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_inter)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                  b))
+              (mkReInter b
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+            (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply f r) rr) b) := by
+      cases b <;> simp_all [__eo_l_2___re_ac_merge]
+    have hTopNe :
+        __eo_ite (__eo_eq (Term.UOp UserOp.re_inter) f)
+            (__eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_inter)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                  b))
+              (mkReInter b
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+            (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply f r) rr) b) ≠ Term.Stuck := by
+      rwa [← hShape]
+    rcases eo_ite_cases_of_ne_stuck
+        (__eo_eq (Term.UOp UserOp.re_inter) f)
+        (__eo_ite
+          (__eo_is_neg
+            (__eo_list_find (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) b))
+          (mkReInter b
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+        (__eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter)
+          (Term.Apply (Term.Apply f r) rr) b)
+        hTopNe with hHead | hHead
+    · have hf : f = Term.UOp UserOp.re_inter :=
+        eo_eq_re_inter_true f hHead
+      subst f
+      have hBranchNe :
+          __eo_ite
+              (__eo_is_neg
+                (__eo_list_find (Term.UOp UserOp.re_inter)
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                  b))
+              (mkReInter b
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) ≠
+            Term.Stuck := by
+        simpa [hHead] using hTopNe
+      rcases eo_ite_cases_of_ne_stuck
+          (__eo_is_neg
+            (__eo_list_find (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) b))
+          (mkReInter b
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+          hBranchNe with hFind | hFind
+      · have hEq :
+            __eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                b =
+              mkReInter b
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) := by
+          rw [hShape, hHead, hFind]
+          rfl
+        rw [hEq]
+        exact reInter_swap_inter_eval_rel M
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) b
+          ra rb hATy hBTy hAEval hBEval
+      · have hList :
+            __eo_is_list (Term.UOp UserOp.re_inter)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) =
+              Term.Boolean true :=
+          reInter_list_find_list_true_of_nonneg
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+            b hFind
+        have hAWF : ReInterListWF M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr) :=
+          reInterListWF_of_type_eval M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+            ra hATy hAEval
+        have hBWF : ReInterListWF M b :=
+          reInterListWF_of_type_eval M b rb hBTy hBEval
+        have hSub :
+            ∀ str,
+              RegLanContains M
+                  (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                  str ->
+                RegLanContains M b str := by
+          intro str hIn
+          exact reInter_list_find_nonneg_contains M
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+            b str hList hAWF hBWF hFind hIn
+        have hEq :
+            __eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                b =
+              Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr := by
+          rw [hShape, hHead, hFind]
+          rfl
+        rw [hEq]
+        exact reInter_subsumed_right_eval_rel M
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+          b ra rb hATy hAEval hBEval hSub
+    · have hEq :
+          __eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply f r) rr) b =
+            __eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply f r) rr) b := by
+        rw [hShape, hHead]
+        rfl
+      rw [hEq]
+      exact re_ac_merge_inter_l3_eval_rel M
+        (Term.Apply (Term.Apply f r) rr) b ra rb hATy hBTy hAEval
+        hBEval (by rwa [← hEq])
+  · have hEq :
+        __eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter) a b =
+          __eo_l_3___re_ac_merge (Term.UOp UserOp.re_inter) a b := by
+      cases a
+      case Apply af rr =>
+        cases af <;> cases b <;> simp_all [__eo_l_2___re_ac_merge]
+      all_goals
+        cases b <;> simp_all [__eo_l_2___re_ac_merge]
+    rw [hEq]
+    exact re_ac_merge_inter_l3_eval_rel M a b ra rb hATy hBTy hAEval
+      hBEval (by rwa [← hEq])
+
+private theorem re_ac_merge_inter_l1_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hMergeNe :
+      __eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter) a b ≠
+        Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+  have hBNe : b ≠ Term.Stuck := regLanEval_ne_stuck ⟨rb, hBEval⟩
+  by_cases hBothShape :
+      ∃ f r rr g s ss,
+        a = Term.Apply (Term.Apply f r) rr ∧
+          b = Term.Apply (Term.Apply g s) ss
+  · rcases hBothShape with ⟨f, r, rr, g, s, ss, rfl, rfl⟩
+    have hShape :
+        __eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter)
+            (Term.Apply (Term.Apply f r) rr)
+            (Term.Apply (Term.Apply g s) ss) =
+          __eo_ite
+            (__eo_and (__eo_eq (Term.UOp UserOp.re_inter) f)
+              (__eo_eq (Term.UOp UserOp.re_inter) g))
+            (__eo_list_concat (Term.UOp UserOp.re_inter)
+              (__eo_list_diff (Term.UOp UserOp.re_inter)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
+            (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply f r) rr)
+              (Term.Apply (Term.Apply g s) ss)) := by
+      rfl
+    have hTopNe :
+        __eo_ite
+            (__eo_and (__eo_eq (Term.UOp UserOp.re_inter) f)
+              (__eo_eq (Term.UOp UserOp.re_inter) g))
+            (__eo_list_concat (Term.UOp UserOp.re_inter)
+              (__eo_list_diff (Term.UOp UserOp.re_inter)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
+            (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply f r) rr)
+              (Term.Apply (Term.Apply g s) ss)) ≠ Term.Stuck := by
+      rwa [← hShape]
+    rcases eo_ite_cases_of_ne_stuck
+        (__eo_and (__eo_eq (Term.UOp UserOp.re_inter) f)
+          (__eo_eq (Term.UOp UserOp.re_inter) g))
+        (__eo_list_concat (Term.UOp UserOp.re_inter)
+          (__eo_list_diff (Term.UOp UserOp.re_inter)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+            (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
+        (__eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter)
+          (Term.Apply (Term.Apply f r) rr)
+          (Term.Apply (Term.Apply g s) ss))
+        hTopNe with hHead | hHead
+    · rcases eo_and_true_cases
+          (__eo_eq (Term.UOp UserOp.re_inter) f)
+          (__eo_eq (Term.UOp UserOp.re_inter) g) hHead with
+        ⟨hF, hG⟩
+      have hf : f = Term.UOp UserOp.re_inter :=
+        eo_eq_re_inter_true f hF
+      have hg : g = Term.UOp UserOp.re_inter :=
+        eo_eq_re_inter_true g hG
+      subst f
+      subst g
+      have hConcatNe :
+          __eo_list_concat (Term.UOp UserOp.re_inter)
+              (__eo_list_diff (Term.UOp UserOp.re_inter)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss) ≠
+            Term.Stuck := by
+        simpa [hHead] using hTopNe
+      rcases reInter_lists_of_concat_diff_inter_ne_stuck
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss)
+          hConcatNe with ⟨hAList, hBList⟩
+      have hEq :
+          __eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss) =
+            __eo_list_concat (Term.UOp UserOp.re_inter)
+              (__eo_list_diff (Term.UOp UserOp.re_inter)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+                (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss))
+              (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss) := by
+        rw [hShape, hHead]
+        rfl
+      rw [hEq]
+      exact reInter_concat_diff_inter_eval_rel M
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) rr)
+        (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) s) ss)
+        ra rb hAList hBList hATy hBTy hAEval hBEval
+    · have hEq :
+          __eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply f r) rr)
+              (Term.Apply (Term.Apply g s) ss) =
+            __eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.Apply (Term.Apply f r) rr)
+              (Term.Apply (Term.Apply g s) ss) := by
+        rw [hShape, hHead]
+        rfl
+      rw [hEq]
+      exact re_ac_merge_inter_l2_eval_rel M
+        (Term.Apply (Term.Apply f r) rr)
+        (Term.Apply (Term.Apply g s) ss) ra rb hATy hBTy hAEval hBEval
+        (by rwa [← hEq])
+  · have hEq :
+        __eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter) a b =
+          __eo_l_2___re_ac_merge (Term.UOp UserOp.re_inter) a b := by
+      cases a
+      case Apply af arr =>
+        cases af
+        case Apply f r =>
+          cases b
+          case Apply bf brr =>
+            cases bf <;> simp_all [__eo_l_1___re_ac_merge]
+          all_goals
+            simp_all [__eo_l_1___re_ac_merge]
+        all_goals
+          cases b <;> simp_all [__eo_l_1___re_ac_merge]
+      all_goals
+        cases b <;> simp_all [__eo_l_1___re_ac_merge]
+    rw [hEq]
+    exact re_ac_merge_inter_l2_eval_rel M a b ra rb hATy hBTy hAEval
+      hBEval (by rwa [← hEq])
+
+private theorem re_ac_merge_inter_self_eq (a : Term) :
+    a ≠ Term.Stuck ->
+    __re_ac_merge (Term.UOp UserOp.re_inter) a a = a := by
+  intro hA
+  have hEqTerm : __eo_eq a a = Term.Boolean true :=
+    eo_eq_eq_true_of_eq_local rfl hA hA
+  cases a <;> try
+    simp [__re_ac_merge, hEqTerm, __eo_ite, native_ite, native_teq] at hA ⊢
+  case UOp op =>
+    cases op <;>
+      simp [__re_ac_merge, hEqTerm, __eo_ite, native_ite, native_teq]
+
+private theorem re_ac_merge_inter_none_left_eq (b : Term) :
+    b ≠ Term.Stuck ->
+    __re_ac_merge (Term.UOp UserOp.re_inter)
+      (Term.UOp UserOp.re_none) b = Term.UOp UserOp.re_none := by
+  intro hB
+  cases b <;> simp [__re_ac_merge] at hB ⊢
+
+private theorem re_ac_merge_inter_eq_l1
+    (a b : Term) :
+    a ≠ Term.Stuck ->
+    b ≠ Term.Stuck ->
+    a ≠ Term.UOp UserOp.re_none ->
+    a ≠ b ->
+    __re_ac_merge (Term.UOp UserOp.re_inter) a b =
+      __eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter) a b := by
+  intro hA hB hNone hEq
+  have hEqTerm :
+      __eo_eq a b = Term.Boolean false :=
+    eo_eq_eq_false_of_ne_local hEq hA hB
+  have hShape :
+      __re_ac_merge (Term.UOp UserOp.re_inter) a b =
+        __eo_ite (__eo_eq a b) a
+          (__eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter) a b) := by
+    cases a <;> try simp_all
+    case UOp op =>
+      cases op <;> cases b <;> simp_all [__re_ac_merge]
+    all_goals
+      cases b <;> simp_all [__re_ac_merge]
+  rw [hShape, hEqTerm]
+  rfl
+
+private theorem re_ac_merge_inter_none_left_eval_rel
+    (M : SmtModel) (b : Term) (ra rb : native_RegLan)
+    (hAEval :
+      __smtx_model_eval M (__eo_to_smt (Term.UOp UserOp.re_none)) =
+        SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.UOp UserOp.re_none) b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__re_ac_merge (Term.UOp UserOp.re_inter)
+              (Term.UOp UserOp.re_none) b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  have hRa : ra = native_re_none := by
+    have hAEval' : SmtValue.RegLan native_re_none = SmtValue.RegLan ra := by
+      simpa [__smtx_model_eval] using hAEval
+    cases hAEval'
+    rfl
+  have hMergeEq :
+      __re_ac_merge (Term.UOp UserOp.re_inter)
+        (Term.UOp UserOp.re_none) b = Term.UOp UserOp.re_none :=
+    re_ac_merge_inter_none_left_eq b (regLanEval_ne_stuck ⟨rb, hBEval⟩)
+  subst ra
+  refine ⟨native_re_none, ?_, ?_, ?_⟩
+  · rw [hMergeEq]
+    change __smtx_model_eval M SmtTerm.re_none =
+      SmtValue.RegLan native_re_none
+    rw [__smtx_model_eval.eq_104]
+  · rw [hMergeEq]
+    change __smtx_typeof SmtTerm.re_none = SmtType.RegLan
+    native_decide
+  · rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+    simp [__smtx_model_eval_eq]
+    intro str _hValid
+    simp [native_re_inter, native_str_in_re_mk_inter_sem,
+      native_str_in_re_empty]
+
+private theorem re_ac_merge_inter_self_eval_rel
+    (M : SmtModel) (a : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan rb) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (__re_ac_merge (Term.UOp UserOp.re_inter) a a)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt
+            (__re_ac_merge (Term.UOp UserOp.re_inter) a a)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  have hAStuck : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+  have hMergeEq :
+      __re_ac_merge (Term.UOp UserOp.re_inter) a a = a :=
+    re_ac_merge_inter_self_eq a hAStuck
+  have hRb : rb = ra := by
+    rw [hAEval] at hBEval
+    cases hBEval
+    rfl
+  subst rb
+  refine ⟨ra, ?_, ?_, ?_⟩
+  · rw [hMergeEq]
+    exact hAEval
+  · rw [hMergeEq]
+    exact hATy
+  · rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+    simp [__smtx_model_eval_eq]
+    intro str _hValid
+    simp [native_re_inter, native_str_in_re_mk_inter_sem]
+
+private theorem re_ac_merge_inter_eval_rel
+    (M : SmtModel) (a b : Term) (ra rb : native_RegLan)
+    (hATy : __smtx_typeof (__eo_to_smt a) = SmtType.RegLan)
+    (hBTy : __smtx_typeof (__eo_to_smt b) = SmtType.RegLan)
+    (hAEval : __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan ra)
+    (hBEval : __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan rb)
+    (hMergeNe :
+      __re_ac_merge (Term.UOp UserOp.re_inter) a b ≠ Term.Stuck) :
+    ∃ r,
+      __smtx_model_eval M
+          (__eo_to_smt (__re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtValue.RegLan r ∧
+      __smtx_typeof
+          (__eo_to_smt (__re_ac_merge (Term.UOp UserOp.re_inter) a b)) =
+        SmtType.RegLan ∧
+      RuleProofs.smt_value_rel (SmtValue.RegLan r)
+        (SmtValue.RegLan (native_re_inter ra rb)) := by
+  by_cases hNone : a = Term.UOp UserOp.re_none
+  · subst a
+    exact re_ac_merge_inter_none_left_eval_rel M b ra rb hAEval hBEval
+  · by_cases hEq : a = b
+    · subst b
+      exact re_ac_merge_inter_self_eval_rel M a ra rb hATy hAEval hBEval
+    · have hANe : a ≠ Term.Stuck := regLanEval_ne_stuck ⟨ra, hAEval⟩
+      have hBNe : b ≠ Term.Stuck := regLanEval_ne_stuck ⟨rb, hBEval⟩
+      have hMergeEq :
+          __re_ac_merge (Term.UOp UserOp.re_inter) a b =
+            __eo_l_1___re_ac_merge (Term.UOp UserOp.re_inter) a b :=
+        re_ac_merge_inter_eq_l1 a b hANe hBNe hNone hEq
+      rw [hMergeEq]
+      exact re_ac_merge_inter_l1_eval_rel M a b ra rb hATy hBTy hAEval
         hBEval (by rwa [← hMergeEq])
 
 private theorem mkReConcat_eval_rel
@@ -5415,8 +7166,68 @@ private theorem smtx_model_eval_derivative_single_rel
                   (smt_value_rel_deriv_union c ry rx dy dx hc
                     hDyRel hDxRel)
           case re_inter =>
-            -- Uses `__re_ac_merge` for intersection.
-            sorry
+            have hArgs :=
+              reglan_binop_args_of_non_none (op := SmtTerm.re_inter)
+                (typeof_re_inter_eq (__eo_to_smt y) (__eo_to_smt x)) (by
+                  unfold term_has_non_none_type
+                  change __smtx_typeof
+                      (__eo_to_smt
+                        (Term.Apply
+                          (Term.Apply (Term.UOp UserOp.re_inter) y) x)) ≠
+                    SmtType.None
+                  rw [hRTy]
+                  exact smt_reglan_ne_none)
+            change __smtx_model_eval M
+                (SmtTerm.re_inter (__eo_to_smt y) (__eo_to_smt x)) =
+              SmtValue.RegLan rv at hREval
+            cases hyEval : __smtx_model_eval M (__eo_to_smt y) <;>
+              cases hxEval : __smtx_model_eval M (__eo_to_smt x) <;>
+                simp [__smtx_model_eval, __smtx_model_eval_re_inter,
+                  hyEval, hxEval] at hREval
+            case RegLan.RegLan ry rx =>
+              cases hREval
+              have hDerYNe :
+                  __derivative (Term.String [c]) y ≠ Term.Stuck := by
+                intro hDerY
+                apply hDerNe
+                simp [__derivative, hDerY, __re_ac_merge]
+              have hDerXNe :
+                  __derivative (Term.String [c]) x ≠ Term.Stuck := by
+                intro hDerX
+                apply hDerNe
+                cases hDerY : __derivative (Term.String [c]) y <;>
+                  simp [__derivative, hDerY, hDerX, __re_ac_merge]
+              rcases
+                smtx_model_eval_derivative_single_rel M hM c hc y ry
+                  hArgs.1 hyEval hDerYNe with
+                ⟨dy, hDyEval, hDyTy, hDyRel⟩
+              rcases
+                smtx_model_eval_derivative_single_rel M hM c hc x rx
+                  hArgs.2 hxEval hDerXNe with
+                ⟨dx, hDxEval, hDxTy, hDxRel⟩
+              have hMergeNe :
+                  __re_ac_merge (Term.UOp UserOp.re_inter)
+                      (__derivative (Term.String [c]) y)
+                      (__derivative (Term.String [c]) x) ≠
+                    Term.Stuck := by
+                simpa [__derivative] using hDerNe
+              rcases
+                re_ac_merge_inter_eval_rel M
+                  (__derivative (Term.String [c]) y)
+                  (__derivative (Term.String [c]) x) dy dx
+                  hDyTy hDxTy hDyEval hDxEval hMergeNe with
+                ⟨drv, hDrvEval, hDrvTy, hMergeRel⟩
+              refine ⟨drv, ?_, ?_, ?_⟩
+              · simpa [__derivative] using hDrvEval
+              · simpa [__derivative] using hDrvTy
+              · exact RuleProofs.smt_value_rel_trans
+                  (SmtValue.RegLan drv)
+                  (SmtValue.RegLan (native_re_inter dy dx))
+                  (SmtValue.RegLan
+                    (native_re_deriv c (native_re_inter ry rx)))
+                  hMergeRel
+                  (smt_value_rel_deriv_inter c ry rx dy dx hc
+                    hDyRel hDxRel)
           case re_concat =>
             have hArgs :=
               reglan_binop_args_of_non_none (op := SmtTerm.re_concat)
