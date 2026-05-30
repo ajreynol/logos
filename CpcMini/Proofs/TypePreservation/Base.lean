@@ -96,7 +96,7 @@ theorem typeof_value_model_eval_var
     smtx_typeof_guard_wf_wf_of_non_none T T (by
       simpa [term_has_non_none_type, __smtx_typeof] using ht)
   simpa [__smtx_model_eval, __smtx_typeof] using
-    (Eq.trans (model_total_typed_lookup hM s T hWF) hGuard.symm)
+    (Eq.trans (model_total_typed_var_lookup hM s T hWF) hGuard.symm)
 
 /-- Shows that evaluating `uconst` terms produces values of the expected type. -/
 theorem typeof_value_model_eval_uconst
@@ -125,7 +125,7 @@ theorem model_eval_var_of_uninhabited
     (T : SmtType)
     (hT : __smtx_type_wf T = false) :
     __smtx_model_eval M (SmtTerm.Var s T) = SmtValue.NotValue := by
-  simpa [__smtx_model_eval] using model_total_typed_lookup_uninhabited hM s T hT
+  simpa [__smtx_model_eval] using model_total_typed_var_lookup_uninhabited hM s T hT
 
 /-- Derives `model_eval_uconst` from `uninhabited`. -/
 theorem model_eval_uconst_of_uninhabited
