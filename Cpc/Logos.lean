@@ -8423,6 +8423,7 @@ partial def __arith_eval_int_log_2_rec : Term -> Term
   | (Term.Numeral 1) => (Term.Numeral 0)
   | x => (__eo_add (Term.Numeral 1) (__arith_eval_int_log_2_rec (__eo_zdiv x (Term.Numeral 2))))
 
+
 partial def __eo_l_1___bv_div_mod_impl : Term -> Term -> Term -> Term -> Term
   | Term.Stuck , _ , _ , _  => Term.Stuck
   | _ , Term.Stuck , _ , _  => Term.Stuck
