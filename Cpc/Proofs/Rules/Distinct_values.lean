@@ -378,6 +378,57 @@ private theorem eval_concat_seq_unit_pack
   simp [__smtx_model_eval_str_concat, native_seq_concat, native_pack_seq,
     native_unpack_seq, __smtx_elem_typeof_seq_value]
 
+private theorem eval_concat_seq_unit_pack_with_tail
+    (M : SmtModel) (hM : model_total_typed M) (e tail : Term) :
+    RuleProofs.eo_has_smt_translation
+      (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e) tail) ->
+    ∃ ss,
+      __smtx_model_eval M (__eo_to_smt tail) = SmtValue.Seq ss ∧
+        __smtx_elem_typeof_seq_value ss =
+          __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)) ∧
+        __smtx_model_eval M
+            (__eo_to_smt
+              (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e) tail)) =
+          SmtValue.Seq
+            (native_pack_seq
+              (__smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)))
+              (__smtx_model_eval M (__eo_to_smt e) ::
+                native_unpack_seq ss)) := by
+  intro hTrans
+  let unit := Term.Apply (Term.UOp UserOp.seq_unit) e
+  have hConcatNN :
+      __smtx_typeof (__eo_to_smt (mkConcat unit tail)) ≠ SmtType.None := by
+    simpa [unit] using hTrans
+  rcases str_concat_args_of_non_none unit tail hConcatNN with
+    ⟨T, hUnitTy, hTailTy⟩
+  have hArgTyInfo :=
+    seq_unit_type_eq_arg_of_eq
+      (t := __eo_to_smt e) (A := T) (by
+        simpa [unit] using hUnitTy)
+  have hArgNonNone :
+      term_has_non_none_type (__eo_to_smt e) := by
+    unfold term_has_non_none_type
+    rw [hArgTyInfo.1]
+    exact hArgTyInfo.2
+  have hHeadValTy :
+      __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt e)) = T :=
+    (smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt e)
+      hArgNonNone).trans hArgTyInfo.1
+  have hTailValTy :=
+    smt_model_eval_preserves_type M hM (__eo_to_smt tail) (SmtType.Seq T)
+      hTailTy (seq_ne_none T) (type_inhabited_seq T)
+  rcases seq_value_canonical hTailValTy with ⟨ss, hTailEval⟩
+  have hTailElemTy :
+      __smtx_elem_typeof_seq_value ss = T := by
+    have hValTy := hTailValTy
+    rw [hTailEval] at hValTy
+    exact elem_typeof_seq_value_of_typeof_seq_value
+      (by simpa [__smtx_typeof_value] using hValTy)
+  refine ⟨ss, hTailEval, hTailElemTy.trans hHeadValTy.symm, ?_⟩
+  rw [smtx_model_eval_str_concat_term_eq, eval_seq_unit_pack, hTailEval]
+  simp [__smtx_model_eval_str_concat, native_seq_concat, native_pack_seq,
+    native_unpack_seq, __smtx_elem_typeof_seq_value]
+
 private theorem eval_seq_empty_seq
     (M : SmtModel) (U : Term) :
     RuleProofs.eo_has_smt_translation
@@ -556,6 +607,18 @@ private theorem are_distinct_terms_type_seq_true_seq_distinct
     cases a <;> cases b <;>
       simp [__are_distinct_terms_type.eq_def] at hDistinct ⊢
     all_goals exact hDistinct
+
+private theorem eo_eq_false_left_ne_stuck {a b : Term} :
+    __eo_eq a b = Term.Boolean false -> a ≠ Term.Stuck := by
+  intro hEq hStuck
+  subst a
+  simp [__eo_eq] at hEq
+
+private theorem eo_eq_false_right_ne_stuck {a b : Term} :
+    __eo_eq a b = Term.Boolean false -> b ≠ Term.Stuck := by
+  intro hEq hStuck
+  subst b
+  cases a <;> simp [__eo_eq] at hEq
 
 private theorem seq_distinct_terms_model_eval_eq_false
     (M : SmtModel) (hM : model_total_typed M) (a b U : Term) :
@@ -880,6 +943,161 @@ private theorem seq_unit_concat_seq_unit_model_eval_eq_false_of_tail
   · rintro ⟨r₁, r₂, hReg₁, _hReg₂⟩
     rw [hEvalLeft] at hReg₁
     cases hReg₁
+
+private theorem concat_seq_unit_concat_seq_unit_model_eval_eq_false_of_tail
+    (M : SmtModel) (hM : model_total_typed M)
+    (e₁ tail₁ e₂ tail₂ : Term) :
+    RuleProofs.eo_has_smt_translation
+      (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₁) tail₁) ->
+    RuleProofs.eo_has_smt_translation
+      (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₂) tail₂) ->
+    __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt tail₁))
+        (__smtx_model_eval M (__eo_to_smt tail₂)) =
+      SmtValue.Boolean false ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₁) tail₁)))
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₂) tail₂))) =
+      SmtValue.Boolean false := by
+  intro hLeftTrans hRightTrans hTailEqFalse
+  rcases eval_concat_seq_unit_pack_with_tail M hM e₁ tail₁ hLeftTrans with
+    ⟨ss₁, hTailEval₁, hElem₁, hEval₁⟩
+  rcases eval_concat_seq_unit_pack_with_tail M hM e₂ tail₂ hRightTrans with
+    ⟨ss₂, hTailEval₂, hElem₂, hEval₂⟩
+  have hTailNe : SmtValue.Seq ss₁ ≠ SmtValue.Seq ss₂ := by
+    have hNe :=
+      smt_eval_eq_false_implies_ne hTailEqFalse
+    intro hEq
+    apply hNe
+    rw [hTailEval₁, hTailEval₂]
+    exact hEq
+  let v₁ := __smtx_model_eval M (__eo_to_smt e₁)
+  let v₂ := __smtx_model_eval M (__eo_to_smt e₂)
+  apply smtx_model_eval_eq_false_of_ne_not_reglan
+  · intro hEq
+    rw [hEval₁, hEval₂] at hEq
+    injection hEq with hSeqEq
+    change SmtSeq.cons v₁
+        (native_pack_seq (__smtx_typeof_value v₁) (native_unpack_seq ss₁)) =
+      SmtSeq.cons v₂
+        (native_pack_seq (__smtx_typeof_value v₂) (native_unpack_seq ss₂)) at hSeqEq
+    injection hSeqEq with _hHead hTailPackEq
+    apply hTailNe
+    have hTailEq : ss₁ = ss₂ := by
+      calc
+        ss₁ =
+            native_pack_seq (__smtx_typeof_value v₁)
+              (native_unpack_seq ss₁) := by
+              rw [← hElem₁]
+              exact (native_pack_unpack_seq ss₁).symm
+        _ =
+            native_pack_seq (__smtx_typeof_value v₂)
+              (native_unpack_seq ss₂) := hTailPackEq
+        _ = ss₂ := by
+              rw [← hElem₂]
+              exact native_pack_unpack_seq ss₂
+    rw [hTailEq]
+  · rintro ⟨r₁, r₂, hReg₁, _hReg₂⟩
+    rw [hEval₁] at hReg₁
+    cases hReg₁
+
+private theorem seq_distinct_seq_unit_seq_unit_model_eval_eq_false
+    (M : SmtModel) (e₁ e₂ U : Term) :
+    (__eo_eq e₁ e₂ = Term.Boolean false ->
+      __are_distinct_terms_type e₁ e₂ U = Term.Boolean true ->
+      __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt e₁))
+          (__smtx_model_eval M (__eo_to_smt e₂)) =
+        SmtValue.Boolean false) ->
+    __seq_distinct_terms (Term.Apply (Term.UOp UserOp.seq_unit) e₁)
+        (Term.Apply (Term.UOp UserOp.seq_unit) e₂) U =
+      Term.Boolean true ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e₁)))
+        (__smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.UOp UserOp.seq_unit) e₂))) =
+      SmtValue.Boolean false := by
+  intro hHeadSound hDistinct
+  have hBranch :
+      __eo_ite (__eo_eq e₁ e₂) (Term.Boolean false)
+          (__are_distinct_terms_type e₁ e₂ U) =
+        Term.Boolean true := by
+    change __seq_distinct_terms
+        (Term.Apply (Term.UOp UserOp.seq_unit) e₁)
+        (Term.Apply (Term.UOp UserOp.seq_unit) e₂) U =
+      Term.Boolean true at hDistinct
+    cases U <;>
+      (rw [__seq_distinct_terms.eq_def] at hDistinct
+       simp only at hDistinct)
+    all_goals first | exact hDistinct | cases hDistinct
+  rcases eo_ite_eq_false_guard_true hBranch with
+    ⟨hHeadEqFalse, hHeadDistinct⟩
+  exact seq_unit_seq_unit_model_eval_eq_false_of_head M e₁ e₂
+    (hHeadSound hHeadEqFalse hHeadDistinct)
+
+private theorem seq_distinct_concat_unit_concat_unit_model_eval_eq_false
+    (M : SmtModel) (hM : model_total_typed M)
+    (e₁ tail₁ e₂ tail₂ U : Term) :
+    RuleProofs.eo_has_smt_translation
+      (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₁) tail₁) ->
+    RuleProofs.eo_has_smt_translation
+      (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₂) tail₂) ->
+    (__eo_eq e₁ e₂ = Term.Boolean false ->
+      __are_distinct_terms_type e₁ e₂ U = Term.Boolean true ->
+      __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt e₁))
+          (__smtx_model_eval M (__eo_to_smt e₂)) =
+        SmtValue.Boolean false) ->
+    (__seq_distinct_terms tail₁ tail₂ U = Term.Boolean true ->
+      __smtx_model_eval_eq (__smtx_model_eval M (__eo_to_smt tail₁))
+          (__smtx_model_eval M (__eo_to_smt tail₂)) =
+        SmtValue.Boolean false) ->
+    __seq_distinct_terms
+        (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₁) tail₁)
+        (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₂) tail₂) U =
+      Term.Boolean true ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₁) tail₁)))
+        (__smtx_model_eval M
+          (__eo_to_smt
+            (mkConcat (Term.Apply (Term.UOp UserOp.seq_unit) e₂) tail₂))) =
+      SmtValue.Boolean false := by
+  intro hLeftTrans hRightTrans hHeadSound hTailSound hDistinct
+  have hBranch :
+      __eo_ite
+          (__eo_ite (__eo_eq e₁ e₂) (Term.Boolean false)
+            (__are_distinct_terms_type e₁ e₂ U))
+          (Term.Boolean true) (__seq_distinct_terms tail₁ tail₂ U) =
+        Term.Boolean true := by
+    change __seq_distinct_terms
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_concat)
+            (Term.Apply (Term.UOp UserOp.seq_unit) e₁)) tail₁)
+        (Term.Apply
+          (Term.Apply (Term.UOp UserOp.str_concat)
+            (Term.Apply (Term.UOp UserOp.seq_unit) e₂)) tail₂) U =
+      Term.Boolean true at hDistinct
+    cases U <;>
+      (rw [__seq_distinct_terms.eq_def] at hDistinct
+       simp only at hDistinct)
+    all_goals first | exact hDistinct | cases hDistinct
+  rcases eo_ite_eq_true_cases
+      (__eo_ite (__eo_eq e₁ e₂) (Term.Boolean false)
+        (__are_distinct_terms_type e₁ e₂ U))
+      (Term.Boolean true) (__seq_distinct_terms tail₁ tail₂ U) hBranch with
+    ⟨hHeadGuard, _⟩ | ⟨_hHeadGuardFalse, hTailDistinct⟩
+  · rcases eo_ite_eq_false_guard_true hHeadGuard with
+      ⟨hHeadEqFalse, hHeadDistinct⟩
+    exact concat_seq_unit_concat_seq_unit_model_eval_eq_false_of_head
+      M hM e₁ tail₁ e₂ tail₂ hLeftTrans hRightTrans
+      (hHeadSound hHeadEqFalse hHeadDistinct)
+  · exact concat_seq_unit_concat_seq_unit_model_eval_eq_false_of_tail
+      M hM e₁ tail₁ e₂ tail₂ hLeftTrans hRightTrans
+      (hTailSound hTailDistinct)
 
 private theorem seq_distinct_concat_unit_seq_unit_model_eval_eq_false
     (M : SmtModel) (hM : model_total_typed M)
