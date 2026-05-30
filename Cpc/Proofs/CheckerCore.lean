@@ -2365,7 +2365,7 @@ by
     exact premiseTermList_true_of_localTruthInvariant_var_model
       M s premises hs K hK
       (model_agrees_on_globals_trans hAgree hAgreeNK) hAssK hPushK
-  · intro K hK hAgreeNK
+  · intro K hAgreeNK
     -- This is the checker invariant still to be threaded for binder
     -- congruence: premise facts used under freshly-pushed variables must lift
     -- without re-assuming the local context in the pushed model.

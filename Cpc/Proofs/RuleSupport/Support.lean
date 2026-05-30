@@ -105,7 +105,7 @@ structure RulePremiseEvidence
       eo_interprets N pushes true ->
       AllInterpretedTrue N premises
   true_in_any_var_model :
-    ∀ N, model_total_typed N ->
+    ∀ N,
       model_agrees_on_globals M N ->
       AllInterpretedTrue N premises
 

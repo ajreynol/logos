@@ -14926,12 +14926,259 @@ private theorem congTypeSpine_forall_eq_has_bool_type
       exact False.elim
         (forall_arg_not_eq_bool_of_translation xs ys body hTrans hBool)
 
-/--
-Placeholder for the checker invariant needed by congruence under binders.
+private theorem smtx_model_eval_eq_true_bool_true_iff
+    (a b : SmtValue) :
+    __smtx_model_eval_eq a b = SmtValue.Boolean true ->
+    (a = SmtValue.Boolean true ↔ b = SmtValue.Boolean true) := by
+  intro h
+  cases a <;> cases b <;>
+    simp [__smtx_model_eval_eq, native_veq] at h ⊢ <;> simp_all
 
-The missing checker fact is that a body equality used under `forall`/`exists`
-is stable under the variable assignments introduced by that binder.
--/
+private theorem smtx_model_eval_eq_true_not_true_iff
+    (a b : SmtValue) :
+    __smtx_model_eval_eq a b = SmtValue.Boolean true ->
+    (__smtx_model_eval_not a = SmtValue.Boolean true ↔
+      __smtx_model_eval_not b = SmtValue.Boolean true) := by
+  intro h
+  cases a <;> cases b <;>
+    simp [__smtx_model_eval_eq, __smtx_model_eval_not, native_veq] at h ⊢ <;>
+      simp_all
+
+private theorem eo_eq_true_bool_eval_true_iff
+    (M : SmtModel) (body body' : Term) :
+    eo_interprets M (mkEq body body') true ->
+    (__smtx_model_eval M (__eo_to_smt body) = SmtValue.Boolean true ↔
+      __smtx_model_eval M (__eo_to_smt body') = SmtValue.Boolean true) := by
+  intro hEq
+  exact smtx_model_eval_eq_true_bool_true_iff
+    (__smtx_model_eval M (__eo_to_smt body))
+    (__smtx_model_eval M (__eo_to_smt body'))
+    ((RuleProofs.smt_value_rel_iff_model_eval_eq_true
+      (__smtx_model_eval M (__eo_to_smt body))
+      (__smtx_model_eval M (__eo_to_smt body'))).mp
+      (RuleProofs.eo_interprets_eq_rel M body body' hEq))
+
+private theorem eo_eq_true_not_eval_true_iff
+    (M : SmtModel) (body body' : Term) :
+    eo_interprets M (mkEq body body') true ->
+    (__smtx_model_eval M (SmtTerm.not (__eo_to_smt body)) = SmtValue.Boolean true ↔
+      __smtx_model_eval M (SmtTerm.not (__eo_to_smt body')) = SmtValue.Boolean true) := by
+  intro hEq
+  rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6]
+  exact smtx_model_eval_eq_true_not_true_iff
+    (__smtx_model_eval M (__eo_to_smt body))
+    (__smtx_model_eval M (__eo_to_smt body'))
+    ((RuleProofs.smt_value_rel_iff_model_eval_eq_true
+      (__smtx_model_eval M (__eo_to_smt body))
+      (__smtx_model_eval M (__eo_to_smt body'))).mp
+      (RuleProofs.eo_interprets_eq_rel M body body' hEq))
+
+private theorem eo_to_smt_exists_eval_true_iff_of_body_true_iff
+    (M : SmtModel) (body body' : SmtTerm)
+    (hBody :
+      ∀ N,
+        model_agrees_on_globals M N ->
+        (__smtx_model_eval N body = SmtValue.Boolean true ↔
+          __smtx_model_eval N body' = SmtValue.Boolean true)) :
+    ∀ (xs : Term) (N : SmtModel),
+      model_agrees_on_globals M N ->
+      (__smtx_model_eval N (__eo_to_smt_exists xs body) =
+          SmtValue.Boolean true ↔
+        __smtx_model_eval N (__eo_to_smt_exists xs body') =
+          SmtValue.Boolean true)
+  | Term.__eo_List_nil, N, hAgree => hBody N hAgree
+  | Term.Apply f xs, N, hAgree => by
+      cases f
+      all_goals
+        try simp [__eo_to_smt_exists, __smtx_model_eval]
+      case Apply f' head =>
+        cases f'
+        all_goals
+          try simp [__eo_to_smt_exists, __smtx_model_eval]
+        case __eo_List_cons =>
+          cases head
+          all_goals
+            try simp [__eo_to_smt_exists, __smtx_model_eval]
+          case Var name T =>
+            cases name
+            all_goals
+              try simp [__eo_to_smt_exists, __smtx_model_eval]
+            case String s =>
+              constructor
+              · intro hEval
+                by_cases hSat :
+                    ∃ v : SmtValue,
+                      __smtx_typeof_value v = __eo_to_smt_type T ∧
+                        __smtx_value_canonical_bool v = true ∧
+                        __smtx_model_eval
+                            (native_model_push N s (__eo_to_smt_type T) v)
+                            (__eo_to_smt_exists xs body) =
+                          SmtValue.Boolean true
+                · have hSat' :
+                      ∃ v : SmtValue,
+                        __smtx_typeof_value v = __eo_to_smt_type T ∧
+                          __smtx_value_canonical_bool v = true ∧
+                          __smtx_model_eval
+                              (native_model_push N s (__eo_to_smt_type T) v)
+                              (__eo_to_smt_exists xs body') =
+                            SmtValue.Boolean true := by
+                    rcases hSat with ⟨v, hvTy, hvCan, hvEval⟩
+                    refine ⟨v, hvTy, hvCan, ?_⟩
+                    exact
+                      (eo_to_smt_exists_eval_true_iff_of_body_true_iff
+                        M body body' hBody xs
+                        (native_model_push N s (__eo_to_smt_type T) v)
+                        (model_agrees_on_globals_trans hAgree
+                          (model_agrees_on_globals_push N s (__eo_to_smt_type T) v))).1
+                        hvEval
+                  simp [hSat']
+                · simp [hSat] at hEval
+              · intro hEval
+                by_cases hSat :
+                    ∃ v : SmtValue,
+                      __smtx_typeof_value v = __eo_to_smt_type T ∧
+                        __smtx_value_canonical_bool v = true ∧
+                        __smtx_model_eval
+                            (native_model_push N s (__eo_to_smt_type T) v)
+                            (__eo_to_smt_exists xs body') =
+                          SmtValue.Boolean true
+                · have hSat' :
+                      ∃ v : SmtValue,
+                        __smtx_typeof_value v = __eo_to_smt_type T ∧
+                          __smtx_value_canonical_bool v = true ∧
+                          __smtx_model_eval
+                              (native_model_push N s (__eo_to_smt_type T) v)
+                              (__eo_to_smt_exists xs body) =
+                            SmtValue.Boolean true := by
+                    rcases hSat with ⟨v, hvTy, hvCan, hvEval⟩
+                    refine ⟨v, hvTy, hvCan, ?_⟩
+                    exact
+                      (eo_to_smt_exists_eval_true_iff_of_body_true_iff
+                        M body body' hBody xs
+                        (native_model_push N s (__eo_to_smt_type T) v)
+                        (model_agrees_on_globals_trans hAgree
+                          (model_agrees_on_globals_push N s (__eo_to_smt_type T) v))).2
+                        hvEval
+                  simp [hSat']
+                · simp [hSat] at hEval
+  | Term.UOp _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.UOp1 _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.UOp2 _ _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.UOp3 _ _ _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.__eo_List, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.__eo_List_cons, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.Bool, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.Boolean _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.Numeral _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.Rational _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.String _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.Binary _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.Type, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.Stuck, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.FunType, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.Var _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.DatatypeType _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.DatatypeTypeRef _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.DtcAppType _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.DtCons _ _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.DtSel _ _ _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.USort _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+  | Term.UConst _ _, N, hAgree => by
+      simp [__eo_to_smt_exists, __smtx_model_eval]
+termination_by xs N _ => xs
+
+private theorem eo_to_smt_exists_eval_eq_of_body_true_iff_cons
+    (M : SmtModel) (body body' : SmtTerm)
+    (hBody :
+      ∀ N,
+        model_agrees_on_globals M N ->
+        (__smtx_model_eval N body = SmtValue.Boolean true ↔
+          __smtx_model_eval N body' = SmtValue.Boolean true))
+    (head tail : Term) (N : SmtModel)
+    (hAgree : model_agrees_on_globals M N) :
+    __smtx_model_eval N
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail) body) =
+      __smtx_model_eval N
+        (__eo_to_smt_exists
+          (Term.Apply (Term.Apply Term.__eo_List_cons head) tail) body') := by
+  cases head
+  all_goals
+    try simp [__eo_to_smt_exists, __smtx_model_eval]
+  case Var name T =>
+    cases name
+    all_goals
+      try simp [__eo_to_smt_exists, __smtx_model_eval]
+    case String s =>
+      by_cases hSat :
+          ∃ v : SmtValue,
+            __smtx_typeof_value v = __eo_to_smt_type T ∧
+              __smtx_value_canonical_bool v = true ∧
+              __smtx_model_eval
+                  (native_model_push N s (__eo_to_smt_type T) v)
+                  (__eo_to_smt_exists tail body) =
+                SmtValue.Boolean true
+      · have hSat' :
+            ∃ v : SmtValue,
+              __smtx_typeof_value v = __eo_to_smt_type T ∧
+                __smtx_value_canonical_bool v = true ∧
+                __smtx_model_eval
+                    (native_model_push N s (__eo_to_smt_type T) v)
+                    (__eo_to_smt_exists tail body') =
+                  SmtValue.Boolean true := by
+          rcases hSat with ⟨v, hvTy, hvCan, hvEval⟩
+          refine ⟨v, hvTy, hvCan, ?_⟩
+          exact
+            (eo_to_smt_exists_eval_true_iff_of_body_true_iff
+              M body body' hBody tail
+              (native_model_push N s (__eo_to_smt_type T) v)
+              (model_agrees_on_globals_trans hAgree
+                (model_agrees_on_globals_push N s (__eo_to_smt_type T) v))).1
+              hvEval
+        simp [hSat, hSat']
+      · have hSat' :
+            ¬ ∃ v : SmtValue,
+              __smtx_typeof_value v = __eo_to_smt_type T ∧
+                __smtx_value_canonical_bool v = true ∧
+                __smtx_model_eval
+                    (native_model_push N s (__eo_to_smt_type T) v)
+                    (__eo_to_smt_exists tail body') =
+                  SmtValue.Boolean true := by
+          intro hSat'
+          apply hSat
+          rcases hSat' with ⟨v, hvTy, hvCan, hvEval⟩
+          refine ⟨v, hvTy, hvCan, ?_⟩
+          exact
+            (eo_to_smt_exists_eval_true_iff_of_body_true_iff
+              M body body' hBody tail
+              (native_model_push N s (__eo_to_smt_type T) v)
+              (model_agrees_on_globals_trans hAgree
+                (model_agrees_on_globals_push N s (__eo_to_smt_type T) v))).2
+              hvEval
+        simp [hSat, hSat']
+
 private abbrev mkBinderApp (op : UserOp) (xs body : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp op) xs) body
 
@@ -14951,13 +15198,116 @@ private theorem premiseEvidence_lifts_congruence_over_binders
   -- the required checker-side fact is now explicit: the body equality premise
   -- is available in every variable-variant model via `true_in_any_var_model`.
   have hBodyAny :
-      ∀ N, model_total_typed N ->
+      ∀ N,
         model_agrees_on_globals M N ->
         eo_interprets N (mkEq body body') true := by
-    intro N hN hAgree
-    exact hEvidence.true_in_any_var_model N hN hAgree
+    intro N hAgree
+    exact hEvidence.true_in_any_var_model N hAgree
       (mkEq body body') hBodyMem
-  sorry
+  have hLeftTrans :
+      RuleProofs.eo_has_smt_translation (mkBinderApp op xs body) := by
+    have hLeftNN :=
+      (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+        (mkBinderApp op xs body) (mkBinderApp op xs body') hEqBool).2
+    simpa [RuleProofs.eo_has_smt_translation] using hLeftNN
+  have hRel :
+      RuleProofs.smt_value_rel
+        (__smtx_model_eval M (__eo_to_smt (mkBinderApp op xs body)))
+        (__smtx_model_eval M (__eo_to_smt (mkBinderApp op xs body'))) := by
+    cases hOp with
+    | inl hForall =>
+        subst hForall
+        have hNotBody :
+            ∀ N,
+              model_agrees_on_globals M N ->
+              (__smtx_model_eval N (SmtTerm.not (__eo_to_smt body)) =
+                  SmtValue.Boolean true ↔
+                __smtx_model_eval N (SmtTerm.not (__eo_to_smt body')) =
+                  SmtValue.Boolean true) := by
+          intro N hAgree
+          exact eo_eq_true_not_eval_true_iff N body body' (hBodyAny N hAgree)
+        rcases forall_translation_arg_is_cons xs body hLeftTrans with
+          ⟨head, tail, hXs⟩
+        subst hXs
+        have hInner :
+            __smtx_model_eval M
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                  (SmtTerm.not (__eo_to_smt body))) =
+              __smtx_model_eval M
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                  (SmtTerm.not (__eo_to_smt body'))) :=
+          eo_to_smt_exists_eval_eq_of_body_true_iff_cons
+            M (SmtTerm.not (__eo_to_smt body))
+            (SmtTerm.not (__eo_to_smt body')) hNotBody
+            head tail M (model_agrees_on_globals_refl M)
+        rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+        change __smtx_model_eval_eq
+          (__smtx_model_eval M
+            (SmtTerm.not
+              (__eo_to_smt_exists
+                (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                (SmtTerm.not (__eo_to_smt body)))))
+          (__smtx_model_eval M
+            (SmtTerm.not
+              (__eo_to_smt_exists
+                (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                (SmtTerm.not (__eo_to_smt body'))))) =
+            SmtValue.Boolean true
+        rw [__smtx_model_eval.eq_6, __smtx_model_eval.eq_6]
+        rw [hInner]
+        exact RuleProofs.smtx_model_eval_eq_refl
+          (__smtx_model_eval_not
+            (__smtx_model_eval M
+              (__eo_to_smt_exists
+                (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                (SmtTerm.not (__eo_to_smt body')))))
+    | inr hExists =>
+        subst hExists
+        have hBodyTrue :
+            ∀ N,
+              model_agrees_on_globals M N ->
+              (__smtx_model_eval N (__eo_to_smt body) =
+                  SmtValue.Boolean true ↔
+                __smtx_model_eval N (__eo_to_smt body') =
+                  SmtValue.Boolean true) := by
+          intro N hAgree
+          exact eo_eq_true_bool_eval_true_iff N body body' (hBodyAny N hAgree)
+        rcases exists_translation_arg_is_cons xs body hLeftTrans with
+          ⟨head, tail, hXs⟩
+        subst hXs
+        have hEval :
+            __smtx_model_eval M
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                  (__eo_to_smt body)) =
+              __smtx_model_eval M
+                (__eo_to_smt_exists
+                  (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+                  (__eo_to_smt body')) :=
+          eo_to_smt_exists_eval_eq_of_body_true_iff_cons
+            M (__eo_to_smt body) (__eo_to_smt body') hBodyTrue
+            head tail M (model_agrees_on_globals_refl M)
+        rw [RuleProofs.smt_value_rel_iff_model_eval_eq_true]
+        change __smtx_model_eval_eq
+          (__smtx_model_eval M
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+              (__eo_to_smt body)))
+          (__smtx_model_eval M
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+              (__eo_to_smt body'))) =
+            SmtValue.Boolean true
+        rw [hEval]
+        exact RuleProofs.smtx_model_eval_eq_refl
+          (__smtx_model_eval M
+            (__eo_to_smt_exists
+              (Term.Apply (Term.Apply Term.__eo_List_cons head) tail)
+              (__eo_to_smt body')))
+  exact RuleProofs.eo_interprets_eq_of_rel M
+    (mkBinderApp op xs body) (mkBinderApp op xs body') hEqBool hRel
 
 private theorem congEvidenceSpine_quantifier_eq_true
     (M : SmtModel) (hM : model_total_typed M)
@@ -23484,8 +23834,8 @@ theorem facts___eo_prog_cong_impl
     · intro N hN hAgree hAss hPush q hq
       exact hEvidence.true_in_var_model N hN hAgree hAss hPush
         q (by simpa using List.mem_reverse.mp hq)
-    · intro N hN hAgree q hq
-      exact hEvidence.true_in_any_var_model N hN hAgree
+    · intro N hAgree q hq
+      exact hEvidence.true_in_any_var_model N hAgree
         q (by simpa using List.mem_reverse.mp hq)
   have hSpine :
       CongEvidenceSpine M premises.reverse t rhs := by
