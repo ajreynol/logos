@@ -7732,7 +7732,7 @@ private theorem smtx_model_eval_str_in_re_eval_substrWord
         smt_value_rel_reglan_valid_eq hDerRel hcs
       rw [hInEq]
 
-private theorem smtx_model_eval_str_in_re_eval_side
+theorem smtx_model_eval_str_in_re_eval_side
     (M : SmtModel) (hM : model_total_typed M)
     (str : native_String) (r side : Term) (rv : native_RegLan)
     (hSTy : __smtx_typeof (__eo_to_smt (Term.String str)) = SmtType.Seq SmtType.Char)
