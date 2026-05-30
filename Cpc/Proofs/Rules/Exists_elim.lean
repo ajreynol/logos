@@ -125,27 +125,27 @@ private theorem eo_to_smt_exists_body_bool_of_bool
           all_goals
             subst hname
             have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-              simpa [__eo_to_smt_exists] using hTy
+              simp [__eo_to_smt_exists] at hTy
             exact False.elim (smtx_typeof_none_ne_bool hNone)
         all_goals
           subst hy
           have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-            simpa [__eo_to_smt_exists] using hTy
+            simp [__eo_to_smt_exists] at hTy
           exact False.elim (smtx_typeof_none_ne_bool hNone)
       all_goals
         subst hg
         have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-          simpa [__eo_to_smt_exists] using hTy
+          simp [__eo_to_smt_exists] at hTy
         exact False.elim (smtx_typeof_none_ne_bool hNone)
     all_goals
       subst hf
       have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-        simpa [__eo_to_smt_exists] using hTy
+        simp [__eo_to_smt_exists] at hTy
       exact False.elim (smtx_typeof_none_ne_bool hNone)
   all_goals
     subst hxs
     have hNone : __smtx_typeof SmtTerm.None = SmtType.Bool := by
-      simpa [__eo_to_smt_exists] using hTy
+      simp [__eo_to_smt_exists] at hTy
     exact False.elim (smtx_typeof_none_ne_bool hNone)
 
 private theorem smtx_model_eval_not_not_true_iff

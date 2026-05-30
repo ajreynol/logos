@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private abbrev mkStrInRe (s r : Term) : Term :=
@@ -37,7 +36,7 @@ private theorem re_inter_nonstuck_shape (p1 p2 : Term) :
                     | Apply op2 y =>
                         cases op2 with
                         | UOp u2 =>
-                            cases u2 <;> try (simp [__eo_prog_re_inter] at h)
+                            cases u2 <;> try (simp at h)
                             case str_in_re =>
                               have hyx : y = x :=
                                 RuleProofs.eq_of_requires_eq_true_not_stuck x y
@@ -52,9 +51,9 @@ private theorem re_inter_nonstuck_shape (p1 p2 : Term) :
                                 simp [mkStrInRe, mkReInter, __eo_prog_re_inter,
                                   __eo_requires, __eo_eq, native_ite, native_teq,
                                   native_not, SmtEval.native_not] at h ⊢
-                        | _ => simp [__eo_prog_re_inter] at h
-                    | _ => simp [__eo_prog_re_inter] at h
-                | _ => simp [__eo_prog_re_inter] at h
+                        | _ => simp at h
+                    | _ => simp at h
+                | _ => simp at h
           | _ => simp [__eo_prog_re_inter] at h
       | _ => simp [__eo_prog_re_inter] at h
   | _ => simp [__eo_prog_re_inter] at h
@@ -143,7 +142,7 @@ private theorem facts_re_inter
                       have hAll :
                           native_str_in_re (native_unpack_string ss) native_re_all = true :=
                         RuleProofs.native_str_in_re_re_all _ hSSValid
-                      simp [hx, hr, ht, __smtx_model_eval_re_inter,
+                      simp [__smtx_model_eval_re_inter,
                         __smtx_model_eval_str_in_re,
                         RuleProofs.native_str_in_re_re_inter,
                         hEvalXR, hEvalXT, hAll]
@@ -192,10 +191,10 @@ by
                   rcases re_inter_nonstuck_shape p1 p2 hProgLocal with
                     ⟨x, r, t, hp1, hp2, hProgEq⟩
                   have hp1Bool : RuleProofs.eo_has_bool_type (mkStrInRe x r) := by
-                    have h := hPremisesBool p1 (by simp [premiseTermList, p1, p2])
+                    have h := hPremisesBool p1 (by simp [premiseTermList, p1])
                     simpa [hp1] using h
                   have hp2Bool : RuleProofs.eo_has_bool_type (mkStrInRe x t) := by
-                    have h := hPremisesBool p2 (by simp [premiseTermList, p1, p2])
+                    have h := hPremisesBool p2 (by simp [premiseTermList, p2])
                     simpa [hp2] using h
                   have hResultBool :
                       RuleProofs.eo_has_bool_type

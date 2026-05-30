@@ -47,7 +47,7 @@ private theorem prog_array_read_over_write2_eq
       · contradiction
       · by_cases hE : e1 = Term.Stuck
         · contradiction
-        · simp [__eo_prog_array_read_over_write2, hT, hI, hJ, hE]
+        · simp [__eo_prog_array_read_over_write2]
 
 private theorem typeof_args_of_prog_array_read_over_write2_bool
     (t1 i1 j1 e1 p1 : Term)
@@ -109,7 +109,7 @@ private theorem typeof_args_of_prog_array_read_over_write2_bool
                                           have hj2 : j2 = j1 := hAlign.2
                                           subst i2
                                           subst j2
-                                          simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
+                                          simp [__eo_requires, __eo_and, __eo_eq,
                                             native_ite, native_teq, native_not,
                                             SmtEval.native_not] at h
                                           have hTypesNotStuck :=
@@ -135,7 +135,7 @@ private theorem typeof_args_of_prog_array_read_over_write2_bool
                                                 __eo_typeof_select Term.Stuck (__eo_typeof j1) =
                                                   Term.Stuck := by
                                               cases hJTy : __eo_typeof j1 <;>
-                                                simp [__eo_typeof_select, hJTy]
+                                                simp [__eo_typeof_select]
                                             exact hLhsNotStuck hSelectStuck
                                           have hT1Ty :
                                               __eo_typeof t1 =
@@ -257,7 +257,7 @@ private theorem typed___eo_prog_array_read_over_write2_impl
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1)) =
         SmtType.Map (__eo_to_smt_type (__eo_typeof i1)) (__eo_to_smt_type (__eo_typeof e1)) := by
     rw [RuleProofs.eo_to_smt_store_eq]
-    simp [__smtx_typeof, __smtx_typeof_store, __smtx_typeof_guard,
+    simp [__smtx_typeof, __smtx_typeof_store,
       native_ite, native_Teq, hSmtT1, hSmtI1, hSmtE1]
   have hLhsTy :
       __smtx_typeof
@@ -267,13 +267,13 @@ private theorem typed___eo_prog_array_read_over_write2_impl
                 (Term.Apply (Term.Apply (Term.Apply Term.store t1) i1) e1)) j1)) =
         __eo_to_smt_type (__eo_typeof e1) := by
     rw [RuleProofs.eo_to_smt_select_eq, RuleProofs.eo_to_smt_store_eq]
-    simp [__smtx_typeof, __smtx_typeof_select, __smtx_typeof_store, __smtx_typeof_guard,
+    simp [__smtx_typeof, __smtx_typeof_select, __smtx_typeof_store,
       native_ite, native_Teq, hSmtT1, hSmtI1, hSmtJ1, hSmtE1]
   have hRhsTy :
       __smtx_typeof (__eo_to_smt (Term.Apply (Term.Apply Term.select t1) j1)) =
         __eo_to_smt_type (__eo_typeof e1) := by
     rw [RuleProofs.eo_to_smt_select_eq]
-    simp [__smtx_typeof, __smtx_typeof_select, __smtx_typeof_guard,
+    simp [__smtx_typeof, __smtx_typeof_select,
       native_ite, native_Teq, hSmtT1, hSmtJ1]
   have hE1TyNonNone : __eo_to_smt_type (__eo_typeof e1) ≠ SmtType.None := by
     rw [← hSmtE1]
@@ -330,7 +330,7 @@ private theorem typed___eo_prog_array_read_over_write2_impl
                                           rw [prog_array_read_over_write2_eq
                                                 t1 i1 j1 e1 i1 j1
                                                 hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck]
-                                          simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
+                                          simp [__eo_requires, __eo_and, __eo_eq,
                                             native_ite, native_teq, native_not, SmtEval.native_not]
                                           exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type
                                             lhs rhs
@@ -472,7 +472,7 @@ private theorem facts___eo_prog_array_read_over_write2_impl
                                           rw [prog_array_read_over_write2_eq
                                                 t1 i1 j1 e1 i1 j1
                                                 hT1NotStuck hI1NotStuck hJ1NotStuck hE1NotStuck]
-                                          simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq,
+                                          simp [__eo_requires, __eo_and, __eo_eq,
                                             native_ite, native_teq, native_not, SmtEval.native_not]
                                           exact RuleProofs.eo_interprets_eq_of_rel M lhs rhs hBodyBool <| by
                                             simpa [lhs, rhs, RuleProofs.eo_to_smt_select_eq,
@@ -486,53 +486,53 @@ private theorem facts___eo_prog_array_read_over_write2_impl
                                                 hij)
                                       | true =>
                                           have : False := by
-                                            simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-                                              hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+                                            simp [__eo_prog_array_read_over_write2
+                                              ] at hProg
                                           exact False.elim this
                                   | _ =>
                                       have : False := by
-                                        simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-                                          hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+                                        simp [__eo_prog_array_read_over_write2
+                                          ] at hProg
                                       exact False.elim this
                               | _ =>
                                   have : False := by
-                                    simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-                                      hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+                                    simp [__eo_prog_array_read_over_write2
+                                      ] at hProg
                                   exact False.elim this
                           | _ =>
                               have : False := by
-                                simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-                                  hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+                                simp [__eo_prog_array_read_over_write2
+                                  ] at hProg
                               exact False.elim this
                       | _ =>
                           have : False := by
-                            simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-                              hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+                            simp [__eo_prog_array_read_over_write2
+                              ] at hProg
                           exact False.elim this
                   | _ =>
                       have : False := by
-                        simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-                          hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+                        simp [__eo_prog_array_read_over_write2
+                          ] at hProg
                       exact False.elim this
               | _ =>
                   have : False := by
-                    simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-                      hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+                    simp [__eo_prog_array_read_over_write2
+                      ] at hProg
                   exact False.elim this
           | _ =>
               have : False := by
-                simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-                  hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+                simp [__eo_prog_array_read_over_write2
+                  ] at hProg
               exact False.elim this
       | _ =>
           have : False := by
-            simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-              hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+            simp [__eo_prog_array_read_over_write2
+              ] at hProg
           exact False.elim this
   | _ =>
       have : False := by
-        simp [__eo_prog_array_read_over_write2, hT1NotStuck,
-          hI1NotStuck, hJ1NotStuck, hE1NotStuck] at hProg
+        simp [__eo_prog_array_read_over_write2
+          ] at hProg
       exact False.elim this
 
 theorem cmd_step_array_read_over_write2_properties

@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem eo_to_smt_eq_eq (x y : Term) :
@@ -215,7 +214,7 @@ private theorem shape_of_prog_arrays_read_over_write_contra_not_stuck
                 | Apply pEqL lhs =>
                     cases pEqL with
                     | UOp opEq =>
-                        cases opEq <;> try (simp [__eo_prog_arrays_read_over_write_contra] at h)
+                        cases opEq <;> try (simp at h)
                         case eq =>
                           cases lhs with
                           | Apply lhsF j =>
@@ -224,7 +223,7 @@ private theorem shape_of_prog_arrays_read_over_write_contra_not_stuck
                                   cases lhsG with
                                   | UOp opSelect =>
                                       cases opSelect <;>
-                                        try (simp [__eo_prog_arrays_read_over_write_contra] at h)
+                                        try (simp at h)
                                       case select =>
                                         cases storeTerm with
                                         | Apply storeFE e =>
@@ -235,7 +234,7 @@ private theorem shape_of_prog_arrays_read_over_write_contra_not_stuck
                                                     cases storeOp with
                                                     | UOp opStore =>
                                                         cases opStore <;>
-                                                          try (simp [__eo_prog_arrays_read_over_write_contra] at h)
+                                                          try (simp at h)
                                                         case store =>
                                                           cases rhs with
                                                           | Apply rhsF j2 =>
@@ -244,35 +243,35 @@ private theorem shape_of_prog_arrays_read_over_write_contra_not_stuck
                                                                   cases rhsG with
                                                                   | UOp opSelect2 =>
                                                                       cases opSelect2 <;>
-                                                                        try (simp [__eo_prog_arrays_read_over_write_contra] at h)
+                                                                        try (simp at h)
                                                                       case select =>
                                                                         exact ⟨a, i, e, j, a2, j2, rfl⟩
                                                                   | _ =>
-                                                                      simp [__eo_prog_arrays_read_over_write_contra] at h
+                                                                      simp at h
                                                               | _ =>
-                                                                  simp [__eo_prog_arrays_read_over_write_contra] at h
+                                                                  simp at h
                                                           | _ =>
-                                                              simp [__eo_prog_arrays_read_over_write_contra] at h
+                                                              simp at h
                                                     | _ =>
-                                                        simp [__eo_prog_arrays_read_over_write_contra] at h
+                                                        simp at h
                                                 | _ =>
-                                                    simp [__eo_prog_arrays_read_over_write_contra] at h
+                                                    simp at h
                                             | _ =>
-                                                simp [__eo_prog_arrays_read_over_write_contra] at h
+                                                simp at h
                                         | _ =>
-                                            simp [__eo_prog_arrays_read_over_write_contra] at h
+                                            simp at h
                                   | _ =>
-                                      simp [__eo_prog_arrays_read_over_write_contra] at h
+                                      simp at h
                               | _ =>
-                                  simp [__eo_prog_arrays_read_over_write_contra] at h
+                                  simp at h
                           | _ =>
-                              simp [__eo_prog_arrays_read_over_write_contra] at h
+                              simp at h
                     | _ =>
-                        simp [__eo_prog_arrays_read_over_write_contra] at h
+                        simp at h
                 | _ =>
-                    simp [__eo_prog_arrays_read_over_write_contra] at h
+                    simp at h
             | _ =>
-                simp [__eo_prog_arrays_read_over_write_contra] at h
+                simp at h
       | _ =>
           simp [__eo_prog_arrays_read_over_write_contra] at h
   | _ =>
@@ -405,13 +404,13 @@ private theorem typed___eo_prog_arrays_read_over_write_contra_impl
   have hANotStuck : a ≠ Term.Stuck := by
     intro ha
     subst a
-    simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-      native_teq, native_not, SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+      native_teq] at hProg
   have hJNotStuck : j ≠ Term.Stuck := by
     intro hj
     subst j
-    simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-      native_teq, native_not, SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+      native_teq] at hProg
   have hEqPremBool :
       RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq lhs) rhs) := by
     simpa [lhs, rhs] using
@@ -507,13 +506,13 @@ private theorem facts___eo_prog_arrays_read_over_write_contra_impl
   have hANotStuck : a ≠ Term.Stuck := by
     intro ha
     subst a
-    simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-      native_teq, native_not, SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+      native_teq] at hProg
   have hJNotStuck : j ≠ Term.Stuck := by
     intro hj
     subst j
-    simp [body, lhs, rhs, __eo_requires, __eo_and, __eo_eq, native_ite,
-      native_teq, native_not, SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_and, __eo_eq, native_ite,
+      native_teq] at hProg
   have hEqPremBool :
       RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq lhs) rhs) := by
     simpa [lhs, rhs] using

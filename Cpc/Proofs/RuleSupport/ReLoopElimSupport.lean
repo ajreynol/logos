@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private def nativeRePow : native_Nat -> native_RegLan -> native_RegLan
@@ -237,7 +236,7 @@ private theorem nativeListInRe_mk_concat :
       rw [nativeListInRe_mk_union]
       rw [nativeListInRe_mk_concat cs (native_re_deriv c r) s]
       cases hNullable : native_re_nullable r <;>
-        simp [hNullable, nativeListInRe_empty, Bool.or_comm]
+        simp [nativeListInRe_empty, Bool.or_comm]
 
 private theorem nativeListInReConcat_true_iff_exists_append :
     (xs : List native_Char) -> (r s : native_RegLan) ->
@@ -288,8 +287,8 @@ private theorem nativeListInReConcat_true_iff_exists_append :
                 cases hAppend
                 have hNullable : native_re_nullable r = true := by
                   simpa [nativeListInRe] using hLeft
-                simp [nativeListInReConcat, Bool.or_eq_true,
-                  Bool.and_eq_true, hNullable, hRight]
+                simp [nativeListInReConcat,
+                  hNullable, hRight]
         | cons _ ds =>
             cases hAppend
             have hLeftDeriv :
@@ -301,7 +300,7 @@ private theorem nativeListInReConcat_true_iff_exists_append :
               (nativeListInReConcat_true_iff_exists_append (ds ++ xs₂)
                 (native_re_deriv c r) s).2
                 ⟨ds, xs₂, by rfl, hLeftDeriv, hRight⟩
-            simp [nativeListInReConcat, Bool.or_eq_true, hTail]
+            simp [nativeListInReConcat, hTail]
 
 private theorem nativeListInRe_mk_concat_true_iff_exists_append
     (xs : List native_Char) (r s : native_RegLan) :
@@ -697,7 +696,7 @@ private theorem nativeRangeRight_append_last_ext :
               have hIdx :
                   start + Nat.succ (Nat.succ len) =
                     Nat.succ start + Nat.succ len := by
-                simp [Nat.succ_eq_add_one, Nat.add_assoc, Nat.add_comm,
+                simp [Nat.succ_eq_add_one, Nat.add_comm,
                   Nat.add_left_comm]
               rw [hIdx]
               exact native_str_in_re_re_union_assoc str
@@ -1135,7 +1134,7 @@ private theorem re_loop_elim_raw_rec_eval_eq
               (__eo_list_repeat_rec (Term.UOp UserOp.re_concat) a start) ≠
             Term.Stuck :=
         term_ne_stuck_of_eval_reglan M _ _ hSingEval
-      simp [zeroList, __str_mk_re_loop_elim_rec, hANe, hRepNe]
+      simp [zeroList, __str_mk_re_loop_elim_rec]
       rw [eo_mk_apply_of_ne_stuck (by intro h; cases h) hSingNe]
       rw [eo_mk_apply_of_ne_stuck (re_union_apply_head_ne_stuck _) (by intro h; cases h)]
       change __smtx_model_eval M
@@ -1200,7 +1199,7 @@ private theorem re_loop_elim_raw_rec_eval_eq
         SmtValue.RegLan
           (nativeLoopRaw (Nat.succ len) rv (nativeRePow start rv))
       rw [__smtx_model_eval.eq_115, hSingEval, hTailEval]
-      simp [__smtx_model_eval_re_union, nativeLoopRaw, nativeRePow]
+      simp [__smtx_model_eval_re_union, nativeLoopRaw]
 
 private theorem re_loop_elim_raw_rec_not_nil
     (M : SmtModel) (a : Term) (rv : native_RegLan)
@@ -1224,7 +1223,7 @@ private theorem re_loop_elim_raw_rec_not_nil
               (__eo_list_repeat_rec (Term.UOp UserOp.re_concat) a start) ≠
             Term.Stuck :=
         term_ne_stuck_of_eval_reglan M _ _ hSingEval
-      simp [zeroList, __str_mk_re_loop_elim_rec, hANe, hRepNe]
+      simp [zeroList, __str_mk_re_loop_elim_rec]
       rw [eo_mk_apply_of_ne_stuck (by intro h; cases h) hSingNe]
       rw [eo_mk_apply_of_ne_stuck (re_union_apply_head_ne_stuck _) (by intro h; cases h)]
       simp [__eo_is_list_nil]
@@ -1261,7 +1260,7 @@ private theorem re_loop_elim_raw_rec_not_nil
               (__eo_list_repeat_rec (Term.UOp UserOp.re_concat) a start)) ≠
             Term.Stuck :=
         term_ne_stuck_of_eval_reglan M _ _ hTailEval
-      simp [zeroList, __str_mk_re_loop_elim_rec, hANe, hRepNe]
+      simp [zeroList, __str_mk_re_loop_elim_rec]
       rw [eo_mk_apply_of_ne_stuck (by intro h; cases h) hSingNe]
       rw [eo_mk_apply_of_ne_stuck (re_union_apply_head_ne_stuck _) hTailNe]
       simp [__eo_is_list_nil]
@@ -1288,7 +1287,7 @@ private theorem re_loop_elim_raw_rec_get_nil
               (__eo_list_repeat_rec (Term.UOp UserOp.re_concat) a start) ≠
             Term.Stuck :=
         term_ne_stuck_of_eval_reglan M _ _ hSingEval
-      simp [zeroList, __str_mk_re_loop_elim_rec, hANe, hRepNe]
+      simp [zeroList, __str_mk_re_loop_elim_rec]
       rw [eo_mk_apply_of_ne_stuck (by intro h; cases h) hSingNe]
       rw [eo_mk_apply_of_ne_stuck (re_union_apply_head_ne_stuck _) (by intro h; cases h)]
       simp [__eo_get_nil_rec, __eo_is_list_nil, __eo_requires,
@@ -1334,7 +1333,7 @@ private theorem re_loop_elim_raw_rec_get_nil
             Term.UOp UserOp.re_none := by
         rw [← hStartSucc]
         exact ih (Nat.succ start)
-      simp [zeroList, __str_mk_re_loop_elim_rec, hANe, hRepNe]
+      simp [zeroList, __str_mk_re_loop_elim_rec]
       rw [eo_mk_apply_of_ne_stuck (by intro h; cases h) hSingNe]
       rw [eo_mk_apply_of_ne_stuck (re_union_apply_head_ne_stuck _) hTailNe]
       simp [__eo_get_nil_rec, __eo_requires, native_ite, native_teq,
@@ -1375,7 +1374,7 @@ private theorem re_loop_elim_outer_eval_eq
                 (__str_mk_re_loop_elim_rec (zeroList 0) a
                   (__eo_list_repeat_rec (Term.UOp UserOp.re_concat) a start))))) =
         SmtValue.RegLan (nativeLoopOuter 0 rv (nativeRePow start rv))
-      simp [zeroList, __str_mk_re_loop_elim_rec, hANe, hRepNe]
+      simp [zeroList, __str_mk_re_loop_elim_rec]
       rw [eo_mk_apply_of_ne_stuck (by intro h; cases h) hSingNe]
       rw [eo_mk_apply_of_ne_stuck (re_union_apply_head_ne_stuck _) (by intro h; cases h)]
       simp [__eo_is_list, __eo_get_nil_rec, __eo_is_list_nil, __eo_is_ok,
@@ -1457,7 +1456,7 @@ private theorem re_loop_elim_outer_eval_eq
               (__eo_list_repeat_rec (Term.UOp UserOp.re_concat) a start)) =
           __str_mk_re_loop_elim_rec (zeroList (Nat.succ len)) a
             (__eo_list_repeat_rec (Term.UOp UserOp.re_concat) a start) := by
-        simp [zeroList, __str_mk_re_loop_elim_rec, hANe, hRepNe]
+        simp [zeroList, __str_mk_re_loop_elim_rec]
         rw [eo_mk_apply_of_ne_stuck (by intro h; cases h) hSingNe]
         rw [eo_mk_apply_of_ne_stuck (re_union_apply_head_ne_stuck _) hTailNe]
         simp [__eo_list_singleton_elim_2, hTailNotNil, __eo_ite,

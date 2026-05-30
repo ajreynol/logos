@@ -23,50 +23,50 @@ private theorem eo_interprets_of_not_false (M : SmtModel) (F : Term) :
       cases hEvalF : __smtx_model_eval M (__eo_to_smt F) with
       | NotValue =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Boolean b =>
           cases b with
           | false =>
               exfalso
-              simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+              simp [hEvalF, __smtx_model_eval_not, SmtEval.native_not] at hEvalNot
           | true =>
               exact RuleProofs.eo_interprets_of_bool_eval M F true hFBool hEvalF
       | Numeral _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Rational _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Binary _ _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Map _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Fun _ _ _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Set _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Seq _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Char _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | UValue _ _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | RegLan _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | DtCons _ _ _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
       | Apply _ _ =>
           exfalso
-          simpa [hEvalF, __smtx_model_eval_not, SmtEval.native_not] using hEvalNot
+          simp [hEvalF, __smtx_model_eval_not] at hEvalNot
 
 /-- Shows that the EO program for `not_not_elim` is well typed. -/
 theorem typed___eo_prog_not_not_elim_impl (x1 : Term) :

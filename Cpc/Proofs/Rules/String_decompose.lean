@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private abbrev sdLen (s : Term) : Term :=
@@ -231,7 +230,7 @@ private theorem native_seq_extract_zero_nat
       rw [hmin]
       simp
     have hminNat : min n xs.length = n := Nat.min_eq_left hle
-    simp [hn, hxsNe, hnPos]
+    simp [hn, hxsNe]
     change
       min ((min (Int.ofNat n) (Int.ofNat xs.length)).toNat) xs.length =
         min n xs.length
@@ -246,7 +245,7 @@ private theorem native_seq_extract_to_end_nat
   · have hLenLe : xs.length <= i := by omega
     have hcast : (Int.ofNat i >= Int.ofNat xs.length) = true := by
       simp [hLenLe]
-    simp [hend, hcast, List.drop_eq_nil_of_le hLenLe]
+    simp [hend,List.drop_eq_nil_of_le hLenLe]
   · have htailPosNat : 0 < xs.length - i := Nat.pos_of_ne_zero hend
     have hiltNat : i < xs.length := by omega
     have htailPos : (0 : Int) < Int.ofNat (xs.length - i) :=
@@ -275,7 +274,7 @@ private theorem native_seq_extract_to_end_nat
           xs.length - i := by
       rw [hmin]
       simp
-    simp [hend, hLenNotLe, htailPos, hilt]
+    simp [hend, hLenNotLe]
     rw [if_neg hiNonneg]
     change
       List.take
@@ -741,7 +740,7 @@ private theorem string_decompose_false_generated_eq_body
     simpa [nil, pre] using
       nil_str_concat_typeof_ne_stuck_of_smt_type_seq pre T (by simpa [pre] using hPre)
   simp [stringDecomposeFalseGeneratedBody, stringDecomposeFalseBody,
-    pre, suf, nil, sdAnd, sdEq, sdConcat, __eo_mk_apply, hNilNe]
+    pre,nil, sdAnd, sdEq, sdConcat, __eo_mk_apply]
 
 private theorem string_decompose_true_generated_eq_body
     (s n : Term) (T : SmtType)
@@ -756,7 +755,7 @@ private theorem string_decompose_true_generated_eq_body
     simpa [nil, pre] using
       nil_str_concat_typeof_ne_stuck_of_smt_type_seq pre T (by simpa [pre] using hPre)
   simp [stringDecomposeTrueGeneratedBody, stringDecomposeTrueBody,
-    pre, last, nil, sdAnd, sdEq, sdConcat, __eo_mk_apply, hNilNe]
+    pre,nil, sdAnd, sdEq, sdConcat, __eo_mk_apply]
 
 private theorem facts_string_decompose_false_body
     (M : SmtModel) (hM : model_total_typed M)
@@ -1149,7 +1148,7 @@ by
                             cases hResultTy)
                       case Boolean bv =>
                         cases bv <;>
-                          simp [hB, __eo_ite, native_ite, native_teq] at hResultTy ⊢
+                          simp at hResultTy ⊢
                         · have hTyped :
                               RuleProofs.eo_has_bool_type
                                 (stringDecomposeFalseBody sArg nArg) :=

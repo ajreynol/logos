@@ -42,18 +42,18 @@ by
                   have hINe : i ≠ Term.Stuck := by
                     intro hI
                     subst hI
-                    simp [__eo_prog_cnf_or_neg, hFsNe] at hProg
+                    simp [__eo_prog_cnf_or_neg] at hProg
                   have hNthNe : __eo_list_nth (Term.UOp UserOp.or) Fs i ≠ Term.Stuck := by
                     intro hNth
                     apply hProg
-                    simp [__eo_prog_cnf_or_neg, hFsNe, hINe, hNth, __eo_mk_apply]
+                    simp [__eo_prog_cnf_or_neg, hNth, __eo_mk_apply]
                   have hFsList : CnfSupport.OrList Fs :=
                     CnfSupport.orList_of_list_nth_ne_stuck hNthNe
                   have hArgsTrans := hCmdTrans
                   simp [cmdTranslationOk, cArgListTranslationOk] at hArgsTrans
                   rcases hArgsTrans with ⟨hFsTrans, hITrans⟩
                   have hTyData := hResultTy
-                  simp [__eo_prog_cnf_or_neg, hFsNe, hINe, hNthNe, __eo_mk_apply] at hTyData
+                  simp [__eo_prog_cnf_or_neg, __eo_mk_apply] at hTyData
                   change __eo_typeof_or (__eo_typeof Fs)
                       (__eo_typeof_or
                         (__eo_typeof_not (__eo_typeof (__eo_list_nth (Term.UOp UserOp.or) Fs i)))

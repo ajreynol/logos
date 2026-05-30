@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -355,7 +354,7 @@ private theorem str_in_re_sigma_star_rec_empty_ne_zero
   cases hs : s <;>
     first | exact False.elim (hSNe hs) |
       simp [__str_mk_str_in_re_sigma_star_rec, __eo_requires, __eo_eq,
-        native_teq, native_ite, native_not, SmtEval.native_not,
+        native_teq, native_ite,
         native_string_lit_empty]
 
 private theorem str_in_re_sigma_star_rec_empty_eq
@@ -379,7 +378,7 @@ private theorem str_in_re_sigma_star_rec_empty_eq
   cases hs : s <;>
     first | exact False.elim (hSNe hs) |
       (simp [__str_mk_str_in_re_sigma_star_rec, __eo_requires, __eo_eq,
-        native_teq, native_ite, native_not, hnInt, hZeroNe, SmtEval.native_not,
+        native_teq, native_ite, native_not, SmtEval.native_not,
         native_string_lit_empty]
        exact hZeroNe)
 
@@ -393,7 +392,7 @@ private theorem str_in_re_sigma_star_rec_str_to_re_nonempty_eq_stuck
   have hStrNil : str ≠ ([] : native_String) := by
     simpa [native_string_lit_empty] using hStr
   cases s <;> unfold __str_mk_str_in_re_sigma_star_rec <;>
-    simp [hStrNil, native_string_lit_empty]
+    simp [hStrNil]
 
 private theorem str_in_re_sigma_star_rec_allchar_eq
     (s r : Term) (n : Nat) (hSNe : s ≠ Term.Stuck) :
@@ -465,9 +464,9 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                       exact hn (Int.ofNat_eq_zero.mp hZero)
                     simp [__smtx_model_eval_eq, __smtx_model_eval_mod_total,
                       __smtx_model_eval_str_len, __smtx_model_eval_ite,
-                      native_veq, native_zeq, native_mod_total, hnInt,
+                      native_veq, native_mod_total,
                       native_seq_len, native_unpack_string_length_eq,
-                      native_unpack_string_strlen_eq, hn]
+                      hn]
                   · exfalso
                     apply hSide
                     exact str_in_re_sigma_star_rec_str_to_re_nonempty_eq_stuck
@@ -519,8 +518,7 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                                     have hNeEmpty := nativeSigmaPrefix_succ_ne_empty m
                                     have hNeEps := nativeSigmaPrefix_succ_ne_epsilon m
                                     simp [native_re_concat, nativeSigmaPrefix,
-                                      native_re_mk_concat, native_re_allchar,
-                                      hNeEmpty, hNeEps]
+                                      native_re_mk_concat, native_re_allchar]
                               · omega
                               · rw [str_in_re_sigma_star_rec_allchar_eq s x n hSNe]
                                 have hTotal :
@@ -676,7 +674,7 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_star_side
   have hm : m ≠ 0 := by
     simpa using hMNe
   simp only [__smtx_model_eval_re_mult, __smtx_model_eval_str_in_re]
-  simp [native_str_in_re, hSSValid, nativeListInRe]
+  simp [native_str_in_re, hSSValid]
   simpa [nativeListInRe] using
     nativeListInRe_sigmaPrefixStar_eq_int_mod m hm (native_unpack_string ss)
       hSSValid

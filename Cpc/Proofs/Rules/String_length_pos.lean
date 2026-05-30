@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private def slpLen (x : Term) : Term :=
@@ -53,9 +52,9 @@ private theorem typeof_str_len_arg_seq (x : Term) :
   change __eo_typeof_str_len (__eo_typeof x) = Term.UOp UserOp.Int at h
   cases hX : __eo_typeof x <;> simp [__eo_typeof_str_len, hX] at h
   case Apply f a =>
-    cases f <;> try simp [__eo_typeof_str_len, hX] at h
+    cases f <;> try simp at h
     case UOp op =>
-      cases op <;> simp [__eo_typeof_str_len, hX] at h
+      cases op <;> simp at h
       case Seq =>
         exact ⟨a, rfl⟩
 
@@ -72,8 +71,7 @@ private theorem typeof_gt_zero_left_int (x : Term) :
       hX, native_ite, native_teq, native_not] at h ⊢
   case UOp op =>
     cases op <;>
-      simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-        hX, native_ite, native_teq, native_not] at h ⊢
+      simp at h ⊢
 
 private theorem typeof_mk_or_right_bool (A B : Term) :
     __eo_typeof (__eo_mk_apply (__eo_mk_apply (Term.UOp UserOp.or) A) B) =
@@ -97,7 +95,7 @@ private theorem prog_string_length_pos_arg_seq
     have hNo : __eo_typeof Term.Stuck ≠ Term.Bool := by native_decide
     exact False.elim (hNo hTy)
   · unfold __eo_prog_string_length_pos at hTy
-    simp [hx] at hTy
+    simp at hTy
     have hRight := typeof_mk_or_right_bool _ _ hTy
     have hGtBool := typeof_or_left_bool _ _ hRight
     have hLenInt := typeof_gt_zero_left_int _ hGtBool
@@ -109,7 +107,7 @@ private theorem prog_string_length_pos_eq_formula
     (hEmpty : __seq_empty (__eo_typeof x) ≠ Term.Stuck) :
     __eo_prog_string_length_pos x = slpFormula x := by
   unfold __eo_prog_string_length_pos slpFormula slpLen slpEq slpAnd slpOr slpGt
-  simp [hx, hEmpty, __eo_mk_apply]
+  simp [__eo_mk_apply]
 
 private theorem typeof_eo_str_len_of_seq
     (s : Term) (T : SmtType)
@@ -118,7 +116,7 @@ private theorem typeof_eo_str_len_of_seq
   unfold slpLen
   change __smtx_typeof (SmtTerm.str_len (__eo_to_smt s)) = SmtType.Int
   rw [typeof_str_len_eq, hSTySeq]
-  simp [__smtx_typeof_seq_op_1_ret, native_ite, native_Teq]
+  simp [__smtx_typeof_seq_op_1_ret]
 
 private theorem eval_eo_str_len_of_seq
     (M : SmtModel) (s : Term) (ss : SmtSeq)
@@ -148,7 +146,7 @@ private theorem eo_has_bool_type_gt_of_int_args (x y : Term)
   unfold RuleProofs.eo_has_bool_type slpGt
   change __smtx_typeof (SmtTerm.gt (__eo_to_smt x) (__eo_to_smt y)) = SmtType.Bool
   rw [typeof_gt_eq, hx, hy]
-  simp [__smtx_typeof_arith_overload_op_2_ret, native_ite, native_Teq]
+  simp [__smtx_typeof_arith_overload_op_2_ret]
 
 private theorem smt_typeof_of_prog_string_length_pos
     (x : Term)

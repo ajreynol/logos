@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -444,7 +443,7 @@ by
                   have hNthNe : __eo_list_nth (Term.UOp UserOp.and) Fs i ≠ Term.Stuck := by
                     intro hNth
                     apply hProg
-                    simp [Fs, __eo_prog_and_elim, hINe, hNth]
+                    simp [Fs, __eo_prog_and_elim, hNth]
                   have hFsList : CnfSupport.AndList Fs :=
                     CnfSupport.andList_of_list_nth_ne_stuck hNthNe
                   have hFsBool : RuleProofs.eo_has_bool_type Fs :=
@@ -561,15 +560,15 @@ by
                           | _ =>
                               exact False.elim (by
                                 apply hProg
-                                simp [hX1, __eo_prog_not_or_elim, hINe])
+                                simp [hX1, __eo_prog_not_or_elim])
                       | _ =>
                           exact False.elim (by
                             apply hProg
-                            simp [hX1, __eo_prog_not_or_elim, hINe])
+                            simp [hX1, __eo_prog_not_or_elim])
                   | _ =>
                       exact False.elim (by
                         apply hProg
-                        simp [hX1, __eo_prog_not_or_elim, hINe])
+                        simp [hX1, __eo_prog_not_or_elim])
               | cons _ _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)

@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem native_int_pow2_nat (w : Nat) :
@@ -123,8 +122,7 @@ private theorem emod_neg_congr
     simp [Int.mul_neg]
   have hZeroNeg : ((-a) - (-b)) % m = 0 := by
     have hEq : (-a) - (-b) = - (a - b) := by
-      simpa [Int.sub_eq_add_neg, Int.neg_add, Int.add_comm, Int.add_left_comm,
-        Int.add_assoc]
+      simp [Int.sub_eq_add_neg, Int.neg_add, Int.add_comm]
     rw [hEq]
     exact Int.emod_eq_zero_of_dvd hDvdNeg
   exact (Int.emod_eq_emod_iff_emod_sub_eq_zero).mpr hZeroNeg
@@ -222,7 +220,7 @@ private theorem bv_poly_denote_var
     (M : SmtModel) (t : Term) :
   bv_poly_denote M (bv_var_poly t) = bv_atom_denote M t := by
   simp [bv_var_poly, bv_poly_denote, bv_mon_denote, bv_mvar_denote,
-    native_to_int_to_real, native_to_int_one]
+    native_to_int_one]
 
 private theorem bv_atom_ne_stuck_of_smt_bitvec_type
     {t : Term} {w : native_Nat}
@@ -255,7 +253,7 @@ private theorem mvar_mul_mvar_cons_cons_true
     __eo_mk_apply (Term.Apply Term.__eo_List_cons a1)
       (__mvar_mul_mvar rest1
         (Term.Apply (Term.Apply Term.__eo_List_cons c1) rest2)) := by
-  simp [__mvar_mul_mvar, __eo_cmp, hA1, hC1, __eo_ite, native_ite, native_teq, hCmp,
+  simp [__mvar_mul_mvar, __eo_cmp, __eo_ite, native_ite, native_teq, hCmp,
     __eo_mk_apply]
 
 private theorem mvar_mul_mvar_cons_cons_false
@@ -269,7 +267,7 @@ private theorem mvar_mul_mvar_cons_cons_false
     __eo_mk_apply (Term.Apply Term.__eo_List_cons c1)
       (__mvar_mul_mvar
         (Term.Apply (Term.Apply Term.__eo_List_cons a1) rest1) rest2) := by
-  simp [__mvar_mul_mvar, __eo_cmp, hA1, hC1, __eo_ite, native_ite, native_teq, hCmp,
+  simp [__mvar_mul_mvar, __eo_cmp, __eo_ite, native_ite, native_teq, hCmp,
     __eo_mk_apply]
 
 private theorem bv_mvar_wf_of_mvar_mul_mvar
@@ -367,7 +365,7 @@ private theorem bv_mvar_denote_of_mvar_mul_mvar
                 (bv_mvar_wf_of_mvar_mul_mvar hRest1
                   (bv_mvar_wf.cons c1 rest2 hC1 hRest2))
             rw [mvar_mul_mvar_cons_cons_true a1 rest1 c1 rest2 hA1 hC1 hCmp]
-            simp [vars1', vars2', __eo_mk_apply, hTail, bv_mvar_denote, hRec]
+            simp [vars2', __eo_mk_apply, bv_mvar_denote, hRec]
             ac_rfl
           · have hCmp' : native_tcmp c1 a1 = false := by
               cases hT : native_tcmp c1 a1 with
@@ -384,7 +382,7 @@ private theorem bv_mvar_denote_of_mvar_mul_mvar
                 (bv_mvar_wf_of_mvar_mul_mvar
                   (bv_mvar_wf.cons a1 rest1 hA1 hRest1) hRest2)
             rw [mvar_mul_mvar_cons_cons_false a1 rest1 c1 rest2 hA1 hC1 hCmp']
-            simp [vars1', vars2', __eo_mk_apply, hTail, bv_mvar_denote, hRec]
+            simp [vars1', __eo_mk_apply, bv_mvar_denote, hRec]
             ac_rfl
 termination_by sizeOf vars1 + sizeOf vars2
 decreasing_by
@@ -422,8 +420,7 @@ private theorem bv_mon_int_wf_of_mon_mul_mon
                   Term.Apply
                     (Term.Apply (Term.UOp UserOp._at__at_mon) (__mvar_mul_mvar vars1 vars2))
                     (Term.Rational (native_to_real (native_zmult c1 c2))) by
-                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply, hVars,
-                  native_to_real_mul]]
+                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply, native_to_real_mul]]
           exact bv_mon_int_wf.mk (__mvar_mul_mvar vars1 vars2)
             (native_zmult c1 c2) (bv_mvar_wf_of_mvar_mul_mvar hvars1 hvars2)
 
@@ -448,8 +445,7 @@ private theorem bv_mon_denote_of_mon_mul_mon
                   Term.Apply
                     (Term.Apply (Term.UOp UserOp._at__at_mon) (__mvar_mul_mvar vars1 vars2))
                     (Term.Rational (native_to_real (native_zmult c1 c2))) by
-                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply, hVars,
-                  native_to_real_mul]]
+                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply, native_to_real_mul]]
           simp [bv_mon_denote, native_to_int_to_real,
             bv_mvar_denote_of_mvar_mul_mvar M hvars1 hvars2,
             SmtEval.native_zmult]
@@ -488,7 +484,7 @@ private theorem bv_poly_denote_of_poly_neg
       | mk vars c hvars =>
           have hTail : __poly_neg p ≠ Term.Stuck :=
             bv_poly_int_wf_ne_stuck (bv_poly_int_wf_of_poly_neg hp)
-          simp [__poly_neg, __eo_mk_apply, __eo_neg, hTail, bv_poly_denote,
+          simp [__poly_neg, __eo_mk_apply, __eo_neg, bv_poly_denote,
             bv_mon_denote, native_to_int_to_real, native_to_int_qneg_to_real, ih,
             SmtEval.native_zneg]
           simp [Int.neg_add, Int.neg_mul]
@@ -707,8 +703,8 @@ private theorem bv_poly_denote_of_poly_add
                         simpa [eq_comm] using hZero
                       have hZeroInt : native_zplus c1 c2 = 0 :=
                         (native_qplus_to_real_eq_zero_iff c1 c2).mp hZero
-                      simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
-                        __eo_add, native_ite, native_teq, hVars1, hZero',
+                      simp [__poly_add, __eo_eq, __eo_ite,
+                        __eo_add, native_ite, native_teq, hZero',
                         bv_poly_denote, bv_mon_denote, native_to_int_to_real, hRec,
                         SmtEval.native_zplus] at hZeroInt ⊢
                       let v := bv_mvar_denote M vars1
@@ -730,9 +726,9 @@ private theorem bv_poly_denote_of_poly_add
                           native_mk_rational 0 1 ≠
                             native_qplus (native_to_real c1) (native_to_real c2) := by
                         simpa [eq_comm] using hZero
-                      simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
-                        __eo_add, native_ite, native_teq, hVars1, hZero',
-                        __eo_mk_apply, hTail, bv_poly_denote, bv_mon_denote,
+                      simp [__poly_add, __eo_eq, __eo_ite,
+                        __eo_add, native_ite, native_teq, hZero',
+                        __eo_mk_apply, bv_poly_denote, bv_mon_denote,
                         native_to_int_to_real, native_to_int_qplus_to_real, hRec,
                         SmtEval.native_zplus]
                       rw [Int.add_mul]
@@ -775,9 +771,9 @@ private theorem bv_poly_denote_of_poly_add
                                 (Term.Apply (Term.UOp UserOp._at__at_mon) vars2)
                                 (Term.Rational (native_to_real c2)))
                               p2 (bv_mon_int_wf.mk vars2 c2 hvars2) hp2))
-                      simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
-                        native_teq, hEq', hVars1, hVars2, __eo_cmp, hCmp,
-                        native_ite, __eo_mk_apply, hTail, bv_poly_denote, bv_mon_denote,
+                      simp [__poly_add, __eo_eq, __eo_ite,
+                        native_teq, hEq', __eo_cmp, hCmp,
+                        native_ite, __eo_mk_apply, bv_poly_denote, bv_mon_denote,
                         native_to_int_to_real, hRec]
                       ac_rfl
                     · have hRec :
@@ -821,9 +817,9 @@ private theorem bv_poly_denote_of_poly_add
                             hp2)
                       have hCmpFalse : native_tcmp vars2 vars1 = false := by
                         cases hT : native_tcmp vars2 vars1 <;> simp [hT] at hCmp ⊢
-                      simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
-                        native_teq, hEq', hVars1, hVars2, __eo_cmp, hCmpFalse,
-                        __eo_mk_apply, hTail, bv_poly_denote, bv_mon_denote,
+                      simp [__poly_add, __eo_eq, __eo_ite,
+                        native_teq, hEq', __eo_cmp, hCmpFalse,
+                        __eo_mk_apply, bv_poly_denote, bv_mon_denote,
                         native_ite, native_to_int_to_real, hRec]
                       ac_rfl
 termination_by sizeOf P1 + sizeOf P2
@@ -889,7 +885,7 @@ private theorem bv_poly_denote_of_poly_mul_mon
   have hMNe : m ≠ Term.Stuck := bv_mon_int_wf_ne_stuck hm
   induction hp with
   | zero =>
-      simp [__poly_mul_mon, hMNe, bv_poly_denote]
+      simp [__poly_mul_mon, bv_poly_denote]
   | cons m2 p2 hm2 hp2 ih =>
       have hMul : bv_mon_int_wf (__mon_mul_mon m m2) :=
         bv_mon_int_wf_of_mon_mul_mon hm hm2
@@ -914,11 +910,10 @@ private theorem bv_poly_denote_of_poly_mul_mon
               (__eo_mk_apply (Term.UOp UserOp._at__at_poly) (__mon_mul_mon m m2))
               (Term.UOp UserOp._at__at_Polynomial))
             (__poly_mul_mon m p2) by
-        simp [__poly_mul_mon, hMNe]]
+        simp [__poly_mul_mon]]
       rw [bv_poly_denote_of_poly_add M hHead
         (bv_poly_int_wf_of_poly_mul_mon hm hp2)]
-      simp [bv_poly_denote, __eo_mk_apply, hMulNe,
-        bv_mon_denote_of_mon_mul_mon M hm hm2, ih]
+      simp [bv_poly_denote, __eo_mk_apply, bv_mon_denote_of_mon_mul_mon M hm hm2, ih]
       rw [Int.mul_add]
 
 private theorem bv_poly_int_wf_of_poly_mul
@@ -945,10 +940,9 @@ private theorem bv_poly_denote_of_poly_mul
   have hP2Ne : p2 ≠ Term.Stuck := bv_poly_int_wf_ne_stuck hp2
   induction hp1 with
   | zero =>
-      simp [__poly_mul, hP2Ne, bv_poly_denote]
+      simp [__poly_mul, bv_poly_denote]
   | cons m p1 hm hp1 ih =>
-      simp [__poly_mul, hP2Ne,
-        bv_poly_denote_of_poly_add M
+      simp [__poly_mul, bv_poly_denote_of_poly_add M
           (bv_poly_int_wf_of_poly_mul_mon hm hp2)
           (bv_poly_int_wf_of_poly_mul hp1 hp2),
         bv_poly_denote_of_poly_mul_mon M hm hp2, ih,
@@ -989,7 +983,7 @@ private theorem bv_poly_int_wf_of_poly_mod_coeffs
                       p)
                     (Term.Numeral m) =
                   __poly_mod_coeffs p (Term.Numeral m) := by
-              simp [__poly_mod_coeffs, __eo_zmod, __eo_to_z, __eo_to_q, __eo_ite,
+              simp [__poly_mod_coeffs, __eo_zmod, __eo_to_z, __eo_ite,
                 native_ite, hModNonzero, hEq, native_to_int_to_real,
                 SmtEval.native_mod_total, native_teq]
             rw [hStep]
@@ -1000,7 +994,7 @@ private theorem bv_poly_int_wf_of_poly_mod_coeffs
               have hZeroSym : 0 ≠ c % m := by
                 intro h
                 exact hZero h.symm
-              simp [__eo_eq, native_teq, hZero, hZeroSym]
+              simp [__eo_eq, native_teq, hZeroSym]
             have hTail : __poly_mod_coeffs p (Term.Numeral m) ≠ Term.Stuck :=
               bv_poly_int_wf_ne_stuck ih
             have hStep :
@@ -1017,8 +1011,7 @@ private theorem bv_poly_int_wf_of_poly_mod_coeffs
                         (Term.Rational (native_to_real (c % m)))))
                     (__poly_mod_coeffs p (Term.Numeral m)) := by
               simp [__poly_mod_coeffs, __eo_zmod, __eo_to_z, __eo_to_q, __eo_ite,
-                native_ite, hModNonzero, __eo_mk_apply, hEq, hTail,
-                native_to_int_to_real, SmtEval.native_mod_total, native_teq]
+                native_ite, hModNonzero, __eo_mk_apply, hEq, native_to_int_to_real, SmtEval.native_mod_total, native_teq]
             rw [hStep]
             exact
               bv_poly_int_wf.cons
@@ -1064,7 +1057,7 @@ private theorem bv_poly_mod_coeffs_mod_denote
                       p)
                     (Term.Numeral m) =
                   __poly_mod_coeffs p (Term.Numeral m) := by
-              simp [__poly_mod_coeffs, __eo_zmod, __eo_to_z, __eo_to_q, __eo_ite,
+              simp [__poly_mod_coeffs, __eo_zmod, __eo_to_z, __eo_ite,
                 native_ite, hModNonzero, hEq, native_to_int_to_real,
                 SmtEval.native_mod_total, native_teq]
             rw [hStep]
@@ -1088,7 +1081,7 @@ private theorem bv_poly_mod_coeffs_mod_denote
               have hZeroSym : 0 ≠ c % m := by
                 intro h
                 exact hZero h.symm
-              simp [__eo_eq, native_teq, hZero, hZeroSym]
+              simp [__eo_eq, native_teq, hZeroSym]
             have hTail : __poly_mod_coeffs p (Term.Numeral m) ≠ Term.Stuck :=
               bv_poly_int_wf_ne_stuck hRecWf
             have hStep :
@@ -1105,8 +1098,7 @@ private theorem bv_poly_mod_coeffs_mod_denote
                         (Term.Rational (native_to_real (c % m)))))
                     (__poly_mod_coeffs p (Term.Numeral m)) := by
               simp [__poly_mod_coeffs, __eo_zmod, __eo_to_z, __eo_to_q, __eo_ite,
-                native_ite, hModNonzero, __eo_mk_apply, hEq, hTail,
-                native_to_int_to_real, SmtEval.native_mod_total, native_teq]
+                native_ite, hModNonzero, __eo_mk_apply, hEq, native_to_int_to_real, SmtEval.native_mod_total, native_teq]
             rw [hStep]
             simp [bv_poly_denote, bv_mon_denote, native_to_int_to_real]
             exact emod_add_congr (emod_mul_left_congr c (bv_mvar_denote M vars) m) ih
@@ -1283,7 +1275,7 @@ private theorem bv_atom_denote_bvneg_mod
   rw [show __eo_to_smt (Term.Apply (Term.UOp UserOp.bvneg) x) =
       SmtTerm.bvneg (__eo_to_smt x) by rfl]
   rw [__smtx_model_eval.eq_46, hxEval]
-  simp [__smtx_model_eval_bvneg, bv_atom_denote, hxEval, SmtEval.native_zneg,
+  simp [__smtx_model_eval_bvneg, SmtEval.native_zneg,
     SmtEval.native_mod_total]
 
 private theorem bv_atom_denote_bvadd_mod
@@ -1300,7 +1292,7 @@ private theorem bv_atom_denote_bvadd_mod
   rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvadd) y) x) =
       SmtTerm.bvadd (__eo_to_smt y) (__eo_to_smt x) by rfl]
   rw [__smtx_model_eval.eq_47, hyEval, hxEval]
-  simp [__smtx_model_eval_bvadd, bv_atom_denote, hyEval, hxEval, SmtEval.native_zplus,
+  simp [__smtx_model_eval_bvadd, SmtEval.native_zplus,
     SmtEval.native_mod_total]
 
 private theorem bv_atom_denote_bvmul_mod
@@ -1317,7 +1309,7 @@ private theorem bv_atom_denote_bvmul_mod
   rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.bvmul) y) x) =
       SmtTerm.bvmul (__eo_to_smt y) (__eo_to_smt x) by rfl]
   rw [__smtx_model_eval.eq_48, hyEval, hxEval]
-  simp [__smtx_model_eval_bvmul, bv_atom_denote, hyEval, hxEval, SmtEval.native_zmult,
+  simp [__smtx_model_eval_bvmul, SmtEval.native_zmult,
     SmtEval.native_mod_total]
 
 private theorem bv_atom_denote_bvsub_mod
@@ -1336,7 +1328,7 @@ private theorem bv_atom_denote_bvsub_mod
       SmtTerm.bvsub (__eo_to_smt y) (__eo_to_smt x) by rfl]
   rw [__smtx_model_eval.eq_51, hyEval, hxEval]
   simp [__smtx_model_eval_bvsub, __smtx_model_eval_bvadd, __smtx_model_eval_bvneg,
-    bv_atom_denote, hyEval, hxEval, SmtEval.native_zplus, SmtEval.native_zneg,
+    SmtEval.native_zplus, SmtEval.native_zneg,
     SmtEval.native_mod_total]
 
 private theorem bv_poly_norm_rec_sound
@@ -1367,64 +1359,64 @@ private theorem bv_poly_norm_rec_sound
     cases hEq : t with
     | UOp op =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | UOp1 op a =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | UOp2 op a b =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | UOp3 op a b c =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | __eo_List =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | __eo_List_nil =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | __eo_List_cons =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | Bool =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | Boolean b =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | Numeral n =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | Rational q =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | String s =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | Binary bw n =>
         by_cases hn : n = 0
         · subst n
@@ -1456,7 +1448,7 @@ private theorem bv_poly_norm_rec_sound
               (Term.UOp UserOp._at__at_Polynomial)
           have hNorm : __get_bv_poly_norm_rec (Term.Binary bw n) = p := by
             simp [__get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin, __eo_is_bin_internal,
-              __eo_is_eq, __eo_ite, native_ite, native_teq, hn, hZeroSym, SmtEval.native_and,
+              __eo_is_eq, __eo_ite, native_ite, native_teq, hZeroSym, SmtEval.native_and,
               SmtEval.native_not, __eo_mk_apply, __eo_to_q, p]
           refine ⟨?_, ?_⟩
           · rw [hNorm]
@@ -1477,9 +1469,9 @@ private theorem bv_poly_norm_rec_sound
             rw [hDenP, hAtom]
     | «Type» =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | Stuck =>
         exfalso
         have hBad : __smtx_typeof (__eo_to_smt Term.Stuck) = SmtType.BitVec w := by
@@ -1514,9 +1506,9 @@ private theorem bv_poly_norm_rec_sound
                   native_int_pow2 (native_nat_to_int w) :=
                   (bv_atom_denote_bvneg_mod M hM x w (by simpa [hEq] using hTy)).symm
           · simpa [hEq] using fallback (by
-              simp [hEq, __get_bv_poly_norm_rec, hNeg, __eo_to_z, __eo_is_bin,
+              simp [hEq, __get_bv_poly_norm_rec, hNeg, __eo_is_bin,
                 __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-                SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+                SmtEval.native_and, SmtEval.native_not, bv_var_poly])
         case Apply g y =>
           cases g
           case UOp op =>
@@ -1608,64 +1600,64 @@ private theorem bv_poly_norm_rec_sound
                     (bv_atom_denote_bvmul_mod M hM y x w hTy').symm
                 · simpa [hEq] using fallback (by
                     simp [hEq, __get_bv_poly_norm_rec, hAdd, hSub, hMul,
-                      __eo_to_z, __eo_is_bin, __eo_is_bin_internal, __eo_ite,
+                      __eo_is_bin, __eo_is_bin_internal, __eo_ite,
                       native_ite, native_teq, SmtEval.native_and, SmtEval.native_not,
-                      __eo_mk_apply, bv_var_poly])
+                      bv_var_poly])
           all_goals
             simpa [hEq] using fallback (by
-              simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+              simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
                 __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-                SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+                SmtEval.native_and, SmtEval.native_not, bv_var_poly])
         all_goals
           simpa [hEq] using fallback (by
-            simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+            simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
               __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-              SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+              SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | FunType =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | Var a b =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | DatatypeType s d =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | DatatypeTypeRef s =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | DtcAppType a b =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | DtCons s d i =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | DtSel s d i j =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | USort i =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
     | UConst i a =>
         simpa [hEq] using fallback (by
-          simp [hEq, __get_bv_poly_norm_rec, __eo_to_z, __eo_is_bin,
+          simp [hEq, __get_bv_poly_norm_rec, __eo_is_bin,
             __eo_is_bin_internal, __eo_ite, native_ite, native_teq,
-            SmtEval.native_and, SmtEval.native_not, __eo_mk_apply, bv_var_poly])
+            SmtEval.native_and, SmtEval.native_not, bv_var_poly])
   exact go
 
 private theorem poly_mod_coeffs_ne_stuck_right
@@ -1690,8 +1682,7 @@ private theorem bv_modulus_ne_stuck_bitwidth_ne_stuck
   intro hBw
   subst bw
   simp [__eo_is_z, __eo_is_z_internal, __eo_ite, native_ite,
-    native_teq, SmtEval.native_and, SmtEval.native_not, __eo_mk_apply,
-    __eo_is_neg, __eo_pow] at hNe
+    native_teq, SmtEval.native_and, SmtEval.native_not, __eo_mk_apply] at hNe
 
 private theorem bv_bitwidth_ne_stuck_shape
     {T : Term} :
@@ -1907,8 +1898,7 @@ private theorem smt_value_rel_of_equal_bv_poly_norm
       simp [native_nat_to_int]
     simp [__bv_bitwidth, __eo_is_z, __eo_is_z_internal, __eo_is_neg, __eo_pow,
       __eo_ite, native_ite, native_teq, SmtEval.native_and, SmtEval.native_not,
-      SmtEval.native_zlt, native_int_pow2, native_zexp_total, hwNonneg,
-      hwNotNeg, m]
+      SmtEval.native_zlt, native_int_pow2, native_zexp_total, hwNotNeg, m]
   rw [hModulusEq] at hNormEq hNormNotStuck
   change __poly_mod_coeffs (__get_bv_poly_norm_rec a) (Term.Numeral m) =
       __poly_mod_coeffs (__get_bv_poly_norm_rec b) (Term.Numeral m) at hNormEq

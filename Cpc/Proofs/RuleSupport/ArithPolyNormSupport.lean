@@ -41,14 +41,14 @@ private theorem prog_arith_poly_norm_eq_arg_of_typeof_bool
                   by_cases hEq : native_teq nA nB = true
                   · by_cases hSt : native_teq nA Term.Stuck = true
                     · exfalso
-                      simpa [__eo_requires, hEq, hSt, native_ite, native_not,
-                        SmtEval.native_not] using hReq
+                      simp [__eo_requires, hEq, hSt, native_ite, native_not,
+                        SmtEval.native_not] at hReq
                     · have hNormEq : nA = nB := by
                         simpa [native_teq] using hEq
                       have hNormNotStuck : nA ≠ Term.Stuck := by
                         intro hNA
                         have hDec : native_teq nA Term.Stuck = true := by
-                          simpa [hNA, native_teq] using rfl
+                          simp [hNA, native_teq]
                         exact hSt hDec
                       have hNormEq' :
                           __get_arith_poly_norm a = __get_arith_poly_norm b := by
@@ -62,12 +62,12 @@ private theorem prog_arith_poly_norm_eq_arg_of_typeof_bool
                         apply hNormNotStuck'
                         rw [hNormEq']
                         exact hNB
-                      simpa [__eo_prog_arith_poly_norm, __eo_requires, hNormEq',
-                        hNormNotStuck', hNormNotStuckB', native_ite, native_teq, native_not,
+                      simp [__eo_prog_arith_poly_norm, __eo_requires, hNormEq',
+                        hNormNotStuckB', native_ite, native_teq, native_not,
                         SmtEval.native_not]
                   · exfalso
-                    simpa [__eo_requires, hEq, native_ite, native_not,
-                      SmtEval.native_not] using hReq
+                    simp [__eo_requires, hEq, native_ite
+                      ] at hReq
               | _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)
@@ -111,19 +111,19 @@ private theorem eq_args_of_prog_arith_poly_norm_typeof_bool
                       simpa [native_teq] using hEq
                     by_cases hSt : native_teq nA Term.Stuck = true
                     · exfalso
-                      simpa [__eo_requires, hEq, hSt, native_ite, native_not,
-                        SmtEval.native_not] using hReq
+                      simp [__eo_requires, hEq, hSt, native_ite, native_not,
+                        SmtEval.native_not] at hReq
                     · have hNormNotStuck : nA ≠ Term.Stuck := by
                         intro hNA
                         have hDec : native_teq nA Term.Stuck = true := by
-                          simpa [hNA, native_teq] using rfl
+                          simp [hNA, native_teq]
                         exact hSt hDec
                       refine ⟨a, b, rfl, ?_, ?_⟩
                       · simpa [nA, nB] using hNormEq
                       · simpa [nA] using hNormNotStuck
                   · exfalso
-                    simpa [__eo_requires, hEq, native_ite, native_not,
-                      SmtEval.native_not] using hReq
+                    simp [__eo_requires, hEq, native_ite
+                      ] at hReq
               | _ =>
                   change Term.Stuck ≠ Term.Stuck at hProg
                   exact False.elim (hProg rfl)
@@ -666,7 +666,7 @@ private theorem mvar_mul_mvar_cons_cons_true
     __eo_mk_apply (Term.Apply Term.__eo_List_cons a1)
       (__mvar_mul_mvar rest1
         (Term.Apply (Term.Apply Term.__eo_List_cons c1) rest2)) := by
-  simp [__mvar_mul_mvar, __eo_cmp, hA1, hC1, __eo_ite, native_ite, native_teq, hCmp,
+  simp [__mvar_mul_mvar, __eo_cmp, __eo_ite, native_ite, native_teq, hCmp,
     __eo_mk_apply]
 
 private theorem mvar_mul_mvar_cons_cons_false
@@ -680,7 +680,7 @@ private theorem mvar_mul_mvar_cons_cons_false
     __eo_mk_apply (Term.Apply Term.__eo_List_cons c1)
       (__mvar_mul_mvar
         (Term.Apply (Term.Apply Term.__eo_List_cons a1) rest1) rest2) := by
-  simp [__mvar_mul_mvar, __eo_cmp, hA1, hC1, __eo_ite, native_ite, native_teq, hCmp,
+  simp [__mvar_mul_mvar, __eo_cmp, __eo_ite, native_ite, native_teq, hCmp,
     __eo_mk_apply]
 
 private theorem mon_mul_mon_of_const_left
@@ -1016,7 +1016,7 @@ private theorem arith_mon_rational_of_mon_mul_mon
                   Term.Apply
                     (Term.Apply (Term.UOp UserOp._at__at_mon) (__mvar_mul_mvar vars1 vars2))
                     (Term.Rational (native_qmult c1 c2)) by
-                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply, hVars]]
+                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply]]
           exact arith_mon_rational.mk (M := M) (__mvar_mul_mvar vars1 vars2)
             (native_qmult c1 c2) (arith_mvar_rational_of_mvar_mul_mvar M hvars1 hvars2)
 
@@ -1384,7 +1384,7 @@ private theorem arith_mvar_denote_real_of_mvar_mul_mvar_rational
                 __smtx_model_eval_mult (arith_poly_norm_atom_denote_real M a1)
                   (__smtx_model_eval_mult (arith_mvar_denote_real M rest1)
                     (arith_mvar_denote_real M vars2')) := by
-                  simp [__eo_mk_apply, hTail, arith_mvar_denote_real, hRec]
+                  simp [__eo_mk_apply, arith_mvar_denote_real, hRec]
               _ =
                 __smtx_model_eval_mult
                   (__smtx_model_eval_mult (arith_poly_norm_atom_denote_real M a1)
@@ -1422,7 +1422,7 @@ private theorem arith_mvar_denote_real_of_mvar_mul_mvar_rational
                 __smtx_model_eval_mult (arith_poly_norm_atom_denote_real M c1)
                   (__smtx_model_eval_mult (arith_mvar_denote_real M vars1')
                     (arith_mvar_denote_real M rest2)) := by
-                  simp [__eo_mk_apply, hTail, arith_mvar_denote_real, hRec]
+                  simp [__eo_mk_apply, arith_mvar_denote_real, hRec]
               _ =
                 __smtx_model_eval_mult
                   (__smtx_model_eval_mult (arith_poly_norm_atom_denote_real M c1)
@@ -1491,12 +1491,12 @@ private theorem arith_mon_denote_real_of_mon_mul_mon_rational
                   Term.Apply
                     (Term.Apply (Term.UOp UserOp._at__at_mon) (__mvar_mul_mvar vars1 vars2))
                     (Term.Rational (native_qmult c1 c2)) by
-                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply, hVars]]
+                simp [__mon_mul_mon, __eo_mul, __eo_mk_apply]]
           rw [arith_mon_denote_real_of_coeff_mul M (__mvar_mul_mvar vars1 vars2) c1 c2]
           simp [arith_mon_denote_real]
           rw [arith_mvar_denote_real_of_mvar_mul_mvar_rational M hvars1 hvars2]
           rw [hVars1Val, hVars2Val]
-          simp [arith_mon_denote_real, __smtx_model_eval_mult, native_qmult]
+          simp [__smtx_model_eval_mult, native_qmult]
           calc
             c1 * (c2 * (q1 * q2)) = c1 * ((c2 * q1) * q2) := by rw [Rat.mul_assoc c2 q1 q2]
             _ = c1 * ((q1 * c2) * q2) := by rw [Rat.mul_comm c2 q1]
@@ -1741,7 +1741,7 @@ private theorem arith_poly_denote_real_of_poly_neg_wf
                   (__smtx_model_eval_mult (SmtValue.Rational c) (arith_mvar_denote_real M vars)) :=
             smtx_model_eval_mult_neg_left_of_rational_or_notValue c
               (arith_mvar_denote_real_rational_or_notValue M vars)
-          simp [__poly_neg, __eo_mk_apply, __eo_neg, hTail, arith_poly_denote_real,
+          simp [__poly_neg, __eo_mk_apply, __eo_neg, arith_poly_denote_real,
             arith_mon_denote_real, ih]
           rw [hMult]
           exact
@@ -1872,8 +1872,8 @@ private theorem arith_poly_denote_real_of_poly_add_rational
                               (arith_poly_denote_real M p1)
                               (arith_poly_denote_real M p2) := by
                           simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
-                            __eo_add, native_ite, native_teq, hVars1, hZero',
-                            arith_poly_denote_real, hRec]
+                            __eo_add, native_ite, native_teq, hZero',
+                            hRec]
                         _ =
                             __smtx_model_eval_plus
                               (SmtValue.Rational (native_mk_rational 0 1))
@@ -1980,8 +1980,8 @@ private theorem arith_poly_denote_real_of_poly_add_rational
                                   (Term.Rational (native_qplus c1 c2))))
                               (arith_poly_denote_real M (__poly_add p1 p2)) := by
                           simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
-                            __eo_add, native_ite, native_teq, hVars1, hZero', __eo_mk_apply,
-                            hTail, arith_poly_denote_real]
+                            __eo_add, native_ite, native_teq, hZero', __eo_mk_apply,
+                            arith_poly_denote_real]
                         _ =
                             __smtx_model_eval_plus
                               (__smtx_model_eval_plus
@@ -2099,8 +2099,8 @@ private theorem arith_poly_denote_real_of_poly_add_rational
                               (arith_mon_denote_real M mon1)
                               (arith_poly_denote_real M (__poly_add p1 poly2)) := by
                           simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
-                            native_ite, native_teq, hEq', hVars1, hVars2, __eo_cmp, hCmp,
-                            __eo_mk_apply, hTail, arith_poly_denote_real]
+                            native_ite, native_teq, hEq', __eo_cmp, hCmp,
+                            __eo_mk_apply, arith_poly_denote_real]
                         _ =
                             __smtx_model_eval_plus
                               (arith_mon_denote_real M mon1)
@@ -2155,8 +2155,8 @@ private theorem arith_poly_denote_real_of_poly_add_rational
                               (arith_mon_denote_real M mon2)
                               (arith_poly_denote_real M (__poly_add poly1 p2)) := by
                           simp [poly1, poly2, mon1, mon2, __poly_add, __eo_eq, __eo_ite,
-                            native_ite, native_teq, hEq', hVars1, hVars2, __eo_cmp, hCmp',
-                            __eo_mk_apply, hTail, arith_poly_denote_real]
+                            native_ite, native_teq, hEq', __eo_cmp, hCmp',
+                            __eo_mk_apply, arith_poly_denote_real]
                         _ =
                             __smtx_model_eval_plus
                               (arith_mon_denote_real M mon2)
@@ -2238,7 +2238,7 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_rational
   induction hp with
   | zero =>
       rw [hMonEq]
-      simp [__poly_mul_mon, hMNe, arith_poly_denote_real, __smtx_model_eval_mult, native_qmult,
+      simp [__poly_mul_mon, arith_poly_denote_real, __smtx_model_eval_mult, native_qmult,
         native_mk_rational_zero, Rat.mul_zero]
   | @cons m2 p2 hm2 hp2 ih =>
       have hMul : arith_mon_rational M (__mon_mul_mon m m2) :=
@@ -2270,7 +2270,7 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_rational
                 (Term.UOp UserOp._at__at_Polynomial)) =
             __smtx_model_eval_mult (arith_mon_denote_real M m) (arith_mon_denote_real M m2) := by
         rcases hMon2Val with ⟨qm2, hMon2Eq⟩
-        simp [arith_poly_denote_real, __eo_mk_apply, hMulNe, __smtx_model_eval_plus,
+        simp [arith_poly_denote_real, __eo_mk_apply, __smtx_model_eval_plus,
           native_qplus, native_mk_rational_zero]
         rw [arith_mon_denote_real_of_mon_mul_mon_rational M hm hm2, hMonEq, hMon2Eq]
         simpa [__smtx_model_eval_plus, __smtx_model_eval_mult, native_qmult,
@@ -2306,7 +2306,7 @@ private theorem arith_poly_denote_real_of_poly_mul_rational
   induction hp1 with
   | zero =>
       rw [hPoly2Eq]
-      simp [__poly_mul, hP2Ne, arith_poly_denote_real, __smtx_model_eval_mult, native_qmult,
+      simp [__poly_mul, arith_poly_denote_real, __smtx_model_eval_mult, native_qmult,
         native_mk_rational_zero, Rat.zero_mul]
   | @cons m p1 hm hp1 ih =>
       have hMulHead : arith_poly_rational M (__poly_mul_mon m p2) :=
@@ -2340,7 +2340,7 @@ private theorem arith_poly_denote_real_of_poly_mul_mon_const_rational
   induction hp with
   | zero =>
       simp [arith_const_mon, __poly_mul_mon, arith_poly_denote_real, __smtx_model_eval_mult,
-        native_qmult, native_qplus, native_mk_rational_zero, Rat.mul_zero]
+        native_qmult, native_mk_rational_zero, Rat.mul_zero]
   | @cons m p hm hp ih =>
       cases hm with
       | mk vars c hvars =>
@@ -2540,8 +2540,7 @@ private theorem native_to_real_add
   rw [native_to_real, native_to_real, native_to_real, native_qplus, native_zplus,
     native_mk_rational, native_mk_rational, native_mk_rational]
   rw [← Rat.divInt_eq_div, ← Rat.divInt_eq_div, ← Rat.divInt_eq_div]
-  simpa [Int.mul_one, Int.one_mul] using
-    (Rat.divInt_add_divInt n1 n2 (d₁ := 1) (d₂ := 1) (by decide) (by decide)).symm
+  simp [Int.mul_one]
 
 theorem native_to_real_sub
     (n1 n2 : native_Int) :
@@ -2611,12 +2610,12 @@ private theorem arith_poly_norm_atom_denote_real_of_plus
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
           __smtx_typeof (__eo_to_smt t1) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-        (by simpa [term_has_non_none_type, hArgs.1])
+        (by simp [term_has_non_none_type, hArgs.1])
     have hEval2Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
           __smtx_typeof (__eo_to_smt t2) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-        (by simpa [term_has_non_none_type, hArgs.2])
+        (by simp [term_has_non_none_type, hArgs.2])
     rcases int_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨n1, hEval1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨n2, hEval2⟩
     unfold arith_poly_norm_atom_denote_real
@@ -2628,12 +2627,12 @@ private theorem arith_poly_norm_atom_denote_real_of_plus
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
           __smtx_typeof (__eo_to_smt t1) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-        (by simpa [term_has_non_none_type, hArgs.1])
+        (by simp [term_has_non_none_type, hArgs.1])
     have hEval2Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
           __smtx_typeof (__eo_to_smt t2) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-        (by simpa [term_has_non_none_type, hArgs.2])
+        (by simp [term_has_non_none_type, hArgs.2])
     rcases real_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨q1, hEval1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨q2, hEval2⟩
     unfold arith_poly_norm_atom_denote_real
@@ -2669,12 +2668,12 @@ private theorem arith_poly_norm_atom_denote_real_of_neg
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
           __smtx_typeof (__eo_to_smt t1) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-        (by simpa [term_has_non_none_type, hArgs.1])
+        (by simp [term_has_non_none_type, hArgs.1])
     have hEval2Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
           __smtx_typeof (__eo_to_smt t2) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-        (by simpa [term_has_non_none_type, hArgs.2])
+        (by simp [term_has_non_none_type, hArgs.2])
     rcases int_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨n1, hEval1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨n2, hEval2⟩
     unfold arith_poly_norm_atom_denote_real
@@ -2687,12 +2686,12 @@ private theorem arith_poly_norm_atom_denote_real_of_neg
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
           __smtx_typeof (__eo_to_smt t1) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-        (by simpa [term_has_non_none_type, hArgs.1])
+        (by simp [term_has_non_none_type, hArgs.1])
     have hEval2Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
           __smtx_typeof (__eo_to_smt t2) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-        (by simpa [term_has_non_none_type, hArgs.2])
+        (by simp [term_has_non_none_type, hArgs.2])
     rcases real_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨q1, hEval1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨q2, hEval2⟩
     unfold arith_poly_norm_atom_denote_real
@@ -2728,12 +2727,12 @@ private theorem arith_poly_norm_atom_denote_real_of_mult
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
           __smtx_typeof (__eo_to_smt t1) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-        (by simpa [term_has_non_none_type, hArgs.1])
+        (by simp [term_has_non_none_type, hArgs.1])
     have hEval2Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
           __smtx_typeof (__eo_to_smt t2) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-        (by simpa [term_has_non_none_type, hArgs.2])
+        (by simp [term_has_non_none_type, hArgs.2])
     rcases int_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨n1, hEval1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨n2, hEval2⟩
     unfold arith_poly_norm_atom_denote_real
@@ -2745,12 +2744,12 @@ private theorem arith_poly_norm_atom_denote_real_of_mult
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
           __smtx_typeof (__eo_to_smt t1) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-        (by simpa [term_has_non_none_type, hArgs.1])
+        (by simp [term_has_non_none_type, hArgs.1])
     have hEval2Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
           __smtx_typeof (__eo_to_smt t2) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-        (by simpa [term_has_non_none_type, hArgs.2])
+        (by simp [term_has_non_none_type, hArgs.2])
     rcases real_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨q1, hEval1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨q2, hEval2⟩
     unfold arith_poly_norm_atom_denote_real
@@ -2782,29 +2781,29 @@ private theorem arith_poly_norm_atom_denote_real_of_qdiv_total
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
           __smtx_typeof (__eo_to_smt t1) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-        (by simpa [term_has_non_none_type, hArgs.1])
+        (by simp [term_has_non_none_type, hArgs.1])
     have hEval2Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
           __smtx_typeof (__eo_to_smt t2) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-        (by simpa [term_has_non_none_type, hArgs.2])
+        (by simp [term_has_non_none_type, hArgs.2])
     rcases int_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨n1, hEval1⟩
     rcases int_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨n2, hEval2⟩
     unfold arith_poly_norm_atom_denote_real
     rw [show __eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) t2) =
       SmtTerm.qdiv_total (__eo_to_smt t1) (__eo_to_smt t2) by rfl]
     simp [__smtx_model_eval, hEval1, hEval2, __smtx_model_eval_to_real,
-      __smtx_model_eval_qdiv_total, arith_poly_norm_atom_denote_real, native_to_real_qdiv_total]
+      __smtx_model_eval_qdiv_total, native_to_real_qdiv_total]
   · have hEval1Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
           __smtx_typeof (__eo_to_smt t1) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-        (by simpa [term_has_non_none_type, hArgs.1])
+        (by simp [term_has_non_none_type, hArgs.1])
     have hEval2Ty :
         __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
           __smtx_typeof (__eo_to_smt t2) := by
       exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-        (by simpa [term_has_non_none_type, hArgs.2])
+        (by simp [term_has_non_none_type, hArgs.2])
     rcases real_value_canonical (by simpa [hArgs.1] using hEval1Ty) with ⟨q1, hEval1⟩
     rcases real_value_canonical (by simpa [hArgs.2] using hEval2Ty) with ⟨q2, hEval2⟩
     unfold arith_poly_norm_atom_denote_real
@@ -2884,7 +2883,7 @@ private theorem arith_poly_denote_real_of_arith_atomic_poly
       hAtom]
     simp [arith_mvar_denote_real, arith_poly_denote_real, __smtx_model_eval_mult,
       __smtx_model_eval_plus, native_qmult, native_qplus, native_mk_rational_zero,
-      native_mk_rational_one, Rat.mul_assoc, Rat.one_mul, Rat.mul_one, Rat.add_zero]
+      native_mk_rational_one, Rat.one_mul, Rat.mul_one, Rat.add_zero]
   · rw [arith_atomic_poly, arith_poly_denote_real, arith_mon_denote_real, arith_mvar_denote_real,
       hAtom]
     simp [__smtx_model_eval_mult, __smtx_model_eval_plus]
@@ -2966,7 +2965,7 @@ private theorem get_arith_poly_norm_of_non_arith_smt_type
           cases op <;>
             try
               simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                 SmtEval.native_and, SmtEval.native_not]
           case __eoo_neg_2 =>
             exfalso
@@ -3002,7 +3001,7 @@ private theorem get_arith_poly_norm_of_non_arith_smt_type
               cases op <;>
                 try
                   simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                    __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                    __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                     SmtEval.native_and, SmtEval.native_not]
               case plus =>
                 exfalso
@@ -3084,15 +3083,15 @@ private theorem get_arith_poly_norm_of_non_arith_smt_type
                     simp [__smtx_typeof_arith_overload_op_2_ret, hArgs.1, hArgs.2]
           | _ =>
               simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                 SmtEval.native_and, SmtEval.native_not]
       | _ =>
           simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-            __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+            __eo_is_q_internal, __eo_ite, native_ite, native_teq,
             SmtEval.native_and, SmtEval.native_not]
   | _ =>
       simp [__get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-        __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+        __eo_is_q_internal, __eo_ite, native_ite, native_teq,
         SmtEval.native_and, SmtEval.native_not]
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_of_non_arith_smt_type
@@ -3293,7 +3292,7 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_uneg
     arith_poly_norm_atom_denote_real M (Term.Apply (Term.UOp UserOp.__eoo_neg_2) t) := by
   rw [__get_arith_poly_norm, arith_poly_denote_real_of_poly_neg_wf M hWf,
     arith_poly_norm_atom_denote_real_of_uneg]
-  simpa [hRec]
+  simp [hRec]
 
 private theorem arith_poly_denote_real_of_get_arith_poly_norm_plus
     (M : SmtModel) (hM : model_total_typed M) (t1 t2 : Term)
@@ -3482,7 +3481,7 @@ private theorem arith_poly_norm_atom_denote_real_of_qdiv_rational
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
         __smtx_typeof (__eo_to_smt t1) := by
     exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-      (by simpa [term_has_non_none_type, hT1Real])
+      (by simp [term_has_non_none_type, hT1Real])
   rcases real_value_canonical (by simpa [hT1Real] using hEval1Ty) with ⟨q1, hEval1⟩
   have hZero' : native_mk_rational 0 1 ≠ q := by
     simpa [eq_comm] using hZero
@@ -3495,7 +3494,7 @@ private theorem arith_poly_norm_atom_denote_real_of_qdiv_rational
   unfold arith_poly_norm_atom_denote_real
   rw [eo_to_smt_qdiv_eq, __smtx_model_eval.eq_128, hEvalQ, hEval1]
   simp [__smtx_model_eval_to_real, __smtx_model_eval_qdiv_total, __smtx_model_eval_ite,
-    __smtx_model_eval_eq, native_veq, hZero, hZero']
+    __smtx_model_eval_eq, native_veq, hZero]
 
 private theorem smt_typeof_qdiv_left_of_numeral_right
     (t1 : Term) (n : native_Int)
@@ -3533,7 +3532,7 @@ private theorem arith_poly_norm_atom_denote_real_of_qdiv_numeral
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
         __smtx_typeof (__eo_to_smt t1) := by
     exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-      (by simpa [term_has_non_none_type, hT1Int])
+      (by simp [term_has_non_none_type, hT1Int])
   rcases int_value_canonical (by simpa [hT1Int] using hEval1Ty) with ⟨n1, hEval1⟩
   have hAtom1 : arith_poly_norm_atom_denote_real M t1 = SmtValue.Rational (native_to_real n1) := by
     simp [arith_poly_norm_atom_denote_real, hEval1, __smtx_model_eval_to_real]
@@ -3741,12 +3740,12 @@ private theorem arith_poly_norm_atom_denote_real_qdiv_eq_qdiv_total_of_int_args
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t1)) =
         __smtx_typeof (__eo_to_smt t1) := by
     exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t1)
-      (by simpa [term_has_non_none_type, hTy1])
+      (by simp [term_has_non_none_type, hTy1])
   have hEval2Ty :
       __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt t2)) =
         __smtx_typeof (__eo_to_smt t2) := by
     exact Smtm.smt_model_eval_preserves_type_of_non_none M hM (__eo_to_smt t2)
-      (by simpa [term_has_non_none_type, hTy2])
+      (by simp [term_has_non_none_type, hTy2])
   rcases int_value_canonical (by simpa [hTy1] using hEval1Ty) with ⟨n1, hEval1⟩
   rcases int_value_canonical (by simpa [hTy2] using hEval2Ty) with ⟨n2, hEval2⟩
   have hZero : native_to_real n2 ≠ native_mk_rational 0 1 :=
@@ -3807,8 +3806,8 @@ private theorem arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_nume
         arith_atomic_poly
           (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) t1) (Term.Numeral n)) := by
     simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal, __eo_ite, native_ite,
-      __eo_eq, native_teq, __eo_not, SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
-      __eo_mk_apply, arith_atomic_poly]
+      __eo_eq, native_teq, __eo_not, SmtEval.native_not, SmtEval.native_and, hZero,
+      arith_atomic_poly]
   exact arith_poly_denote_real_eq_arith_poly_norm_atom_denote_real_of_norm_eq_atomic M _ hNorm
 
 private theorem arith_poly_rational_of_get_arith_poly_norm_qdiv_total_eq_atomic_qdiv
@@ -3926,7 +3925,7 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                     __get_arith_poly_norm tUnary =
                       arith_atomic_poly tUnary := by
                   simp [tUnary, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                    __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                    __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                     SmtEval.native_and, SmtEval.native_not]
                 exact finishAtomic tUnary hTy hNorm
         | Apply g y =>
@@ -4038,8 +4037,8 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                                   (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Rational q)) := by
                             simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal,
                               __eo_ite, native_ite, __eo_eq, native_teq, __eo_not,
-                              SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
-                              __eo_mk_apply, arith_atomic_poly]
+                              SmtEval.native_not, SmtEval.native_and, hZero,
+                              arith_atomic_poly]
                           exact finishAtomic
                             (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Rational q))
                             hTy hNorm
@@ -4062,8 +4061,8 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                                   (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Numeral n)) := by
                             simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal,
                               __eo_ite, native_ite, __eo_eq, native_teq, __eo_not,
-                              SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
-                              __eo_mk_apply, arith_atomic_poly]
+                              SmtEval.native_not, SmtEval.native_and, hZero,
+                              arith_atomic_poly]
                           exact finishAtomic
                             (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv) y) (Term.Numeral n))
                             hTy hNorm
@@ -4082,7 +4081,7 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                             __get_arith_poly_norm tQdiv =
                               arith_atomic_poly tQdiv := by
                           simp [tQdiv, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                            __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                            __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                             SmtEval.native_and, SmtEval.native_not]
                         exact finishAtomic tQdiv hTy hNorm
                 | qdiv_total =>
@@ -4101,8 +4100,8 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                                   (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Rational q)) := by
                             simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal,
                               __eo_ite, native_ite, __eo_eq, native_teq, __eo_not,
-                              SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
-                              __eo_mk_apply, arith_atomic_poly]
+                              SmtEval.native_not, SmtEval.native_and, hZero,
+                              arith_atomic_poly]
                           exact finishAtomic
                             (Term.Apply (Term.Apply (Term.UOp UserOp.qdiv_total) y) (Term.Rational q))
                             hTy hNorm
@@ -4133,8 +4132,8 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                               (by
                                 simp [__get_arith_poly_norm, __eo_to_q, __eo_is_q, __eo_is_q_internal,
                                   __eo_ite, native_ite, __eo_eq, native_teq, __eo_not,
-                                  SmtEval.native_not, SmtEval.native_and, native_qeq, hZero,
-                                  __eo_mk_apply, arith_atomic_poly])
+                                  SmtEval.native_not, SmtEval.native_and, hZero,
+                                  arith_atomic_poly])
                           refine ⟨hRat, arith_poly_wf_of_rational hRat, ?_⟩
                           exact arith_poly_denote_real_of_get_arith_poly_norm_qdiv_total_of_numeral_zero
                             M hM y n hQdivTotalTy hZero
@@ -4157,7 +4156,7 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                             __get_arith_poly_norm tQdivTotal =
                               arith_atomic_poly tQdivTotal := by
                           simp [tQdivTotal, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                            __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                            __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                             SmtEval.native_and, SmtEval.native_not]
                         exact finishAtomic
                           tQdivTotal hTy hNorm
@@ -4165,7 +4164,7 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                     have hNorm :
                         __get_arith_poly_norm tBinary = arith_atomic_poly tBinary := by
                       simp [tBinary, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                        __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                        __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                         SmtEval.native_and, SmtEval.native_not]
                     exact finishAtomic tBinary hTy hNorm
             | _ =>
@@ -4173,14 +4172,14 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
                     __get_arith_poly_norm tApplyG =
                       arith_atomic_poly tApplyG := by
                   simp [tApplyG, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                    __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                    __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                     SmtEval.native_and, SmtEval.native_not]
                 exact finishAtomic tApplyG hTy hNorm
         | _ =>
             have hNorm :
                 __get_arith_poly_norm tApplyF = arith_atomic_poly tApplyF := by
               simp [tApplyF, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-                __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+                __eo_is_q_internal, __eo_ite, native_ite, native_teq,
                 SmtEval.native_and, SmtEval.native_not]
             exact finishAtomic tApplyF hTy hNorm
     | _ =>
@@ -4190,7 +4189,7 @@ theorem arith_poly_denote_real_of_get_arith_poly_norm_of_smt_arith_type
           simpa [hEq] using hTy
         have hNorm : __get_arith_poly_norm t = arith_atomic_poly t := by
           simp [hEq, __get_arith_poly_norm, arith_atomic_poly, __eo_to_q, __eo_is_q,
-            __eo_is_q_internal, __eo_is_eq, __eo_ite, native_ite, native_teq,
+            __eo_is_q_internal, __eo_ite, native_ite, native_teq,
             SmtEval.native_and, SmtEval.native_not]
         simpa [hEq] using finishAtomic t hTy' hNorm
   exact (go t hTy).2.2
@@ -4353,7 +4352,7 @@ theorem facts___eo_prog_arith_poly_norm_impl
       __eo_prog_arith_poly_norm
         (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) =
       Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b := by
-    simpa [__eo_prog_arith_poly_norm, __eo_requires, hNormEq, hNormNotStuck,
+    simp [__eo_prog_arith_poly_norm, __eo_requires, hNormEq,
       hNormNotStuckB, native_ite, native_teq, native_not, SmtEval.native_not]
   have hEqTy :
       __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) = Term.Bool := by

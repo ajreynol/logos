@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem native_unpack_string_length_eq (ss : SmtSeq) :
@@ -94,7 +93,7 @@ private theorem native_str_to_int_ge_neg_one
       simp [native_str_to_int]
   | cons c cs =>
       by_cases hDigits : List.all (c :: cs) native_char_is_digit = true
-      · simp [native_str_to_int, hDigits, Int.natCast_nonneg]
+      · simp [native_str_to_int, hDigits]
       · simp [native_str_to_int, hDigits]
 
 private theorem int_nonneg_of_not_neg {i : native_Int} (hi : ¬ i < 0) :
@@ -177,7 +176,7 @@ private theorem native_seq_indexof_rec_bound
                 rcases h with ⟨j, hj, hjlt⟩
                 right
                 refine ⟨j + 1, ?_, by omega⟩
-                simpa [hj, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+                simp [hj, Nat.add_comm, Nat.add_left_comm]
 
 private theorem native_seq_indexof_le_len
     (xs pat : List SmtValue) (i : native_Int) :
@@ -223,7 +222,7 @@ private theorem native_seq_extract_zero_nat
       rw [hmin]
       simp
     have hminNat : min n xs.length = n := Nat.min_eq_left hle
-    simp [hn, hxsNe, hnPos]
+    simp [hn, hxsNe]
     change
       min ((min (Int.ofNat n) (Int.ofNat xs.length)).toNat) xs.length =
         min n xs.length
@@ -238,7 +237,7 @@ private theorem native_seq_extract_to_end_nat
   · have hLenLe : xs.length <= i := by omega
     have hcast : (Int.ofNat i >= Int.ofNat xs.length) = true := by
       simp [hLenLe]
-    simp [hend, hcast, List.drop_eq_nil_of_le hLenLe]
+    simp [hend, List.drop_eq_nil_of_le hLenLe]
   · have htailPosNat : 0 < xs.length - i := Nat.pos_of_ne_zero hend
     have hiltNat : i < xs.length := by omega
     have htailPos : (0 : Int) < Int.ofNat (xs.length - i) :=
@@ -267,7 +266,7 @@ private theorem native_seq_extract_to_end_nat
           xs.length - i := by
       rw [hmin]
       simp
-    simp [hend, hLenNotLe, htailPos, hilt]
+    simp [hend, hLenNotLe]
     rw [if_neg hiNonneg]
     change
       List.take
@@ -312,7 +311,7 @@ private theorem native_seq_indexof_self_zero
     native_seq_indexof xs xs 0 = 0 := by
   unfold native_seq_indexof
   have hBounds : xs.length ≤ xs.length := Nat.le_refl _
-  simp [hBounds]
+  simp 
   unfold native_seq_indexof_rec
   simp [native_seq_prefix_eq_self]
 
@@ -458,7 +457,7 @@ private theorem native_seq_extract_prefix_length_of_indexof_nonneg
     rw [← hCast]
     rw [native_seq_extract_zero_nat xs j hJLe]
     simp [List.length_take, Nat.min_eq_left hJLe]
-  · simp [native_seq_indexof, hBounds] at hIdx
+  · simp [hBounds] at hIdx
 
 private theorem strConcat_nil_eq_seq_empty_of_type {ty : Term} {T : SmtType}
     (hTy : __eo_to_smt_type ty = SmtType.Seq T) :
@@ -591,7 +590,7 @@ private theorem native_str_indexof_re_eq_neg_one_or_ge
     by_cases hGuard : native_string_valid s = true ∧ i ≤ Int.ofNat s.length
     · have hValid := hGuard.1
       have hIle := hGuard.2
-      simp [hi, hi0, Int.toNat_of_nonneg hi0, hValid, hIle]
+      simp [hi, hValid]
       cases hFind : native_re_find_idx_from r s (Int.toNat i) with
       | none =>
           simp
@@ -609,7 +608,7 @@ private theorem native_str_indexof_re_eq_neg_one_or_ge
               by_cases hIle' : i ≤ (s.length : Int)
               · simpa [hIle'] using hLeFound
               · exact False.elim (hIle' hIle)
-    · simp [hi, hi0, Int.toNat_of_nonneg hi0]
+    · simp [hi]
       left
       intro hValid hIle
       exact False.elim (hGuard ⟨hValid, hIle⟩)
@@ -624,7 +623,7 @@ private theorem native_str_indexof_re_le_len
     by_cases hGuard : native_string_valid s = true ∧ i ≤ Int.ofNat s.length
     · have hValid := hGuard.1
       have hIle := hGuard.2
-      simp [hi, hi0, Int.toNat_of_nonneg hi0, hValid, hIle]
+      simp [hi, hValid]
       have hStartLe : Int.toNat i ≤ s.length := by
         exact Int.toNat_le.mpr hGuard.2
       cases hFind : native_re_find_idx_from r s (Int.toNat i) with
@@ -650,14 +649,14 @@ private theorem native_str_indexof_re_le_len
     · have hGuardBool :
           (native_string_valid s && decide (Int.toNat i ≤ s.length)) = false := by
         cases hValidBool : native_string_valid s
-        · simp [hValidBool]
+        · simp 
         · have hNoStart : ¬ Int.toNat i ≤ s.length := by
             intro hStart
             have hIle : i ≤ Int.ofNat s.length := by
               rw [← Int.toNat_of_nonneg hi0]
               exact Int.ofNat_le.mpr hStart
-            exact hGuard ⟨by simpa [hValidBool], hIle⟩
-          simp [hValidBool, hNoStart]
+            exact hGuard ⟨by exact hValidBool, hIle⟩
+          simp [hNoStart]
       by_cases hAll : native_string_valid s = true ∧ i ≤ (s.length : Int)
       · exact False.elim (hGuard hAll)
       · simp [hAll]
@@ -928,7 +927,7 @@ private theorem nativeListInRe_mk_concat :
       rw [nativeListInRe_mk_union]
       rw [nativeListInRe_mk_concat cs (native_re_deriv c r) s]
       cases hNullable : native_re_nullable r <;>
-        simp [hNullable, nativeListInRe_empty, Bool.or_comm]
+        simp [nativeListInRe_empty, Bool.or_comm]
 
 private theorem nativeListInReConcat_true_iff_exists_append :
     (xs : List native_Char) -> (r s : native_RegLan) ->
@@ -979,8 +978,7 @@ private theorem nativeListInReConcat_true_iff_exists_append :
                 cases hAppend
                 have hNullable : native_re_nullable r = true := by
                   simpa [nativeListInRe] using hLeft
-                simp [nativeListInReConcat, Bool.or_eq_true,
-                  Bool.and_eq_true, hNullable, hRight]
+                simp [nativeListInReConcat, hNullable, hRight]
         | cons _ ds =>
             cases hAppend
             have hLeftDeriv :
@@ -992,7 +990,7 @@ private theorem nativeListInReConcat_true_iff_exists_append :
               (nativeListInReConcat_true_iff_exists_append (ds ++ xs₂)
                 (native_re_deriv c r) s).2
                 ⟨ds, xs₂, by rfl, hLeftDeriv, hRight⟩
-            simp [nativeListInReConcat, Bool.or_eq_true, hTail]
+            simp [nativeListInReConcat, hTail]
 
 private theorem nativeListInRe_mk_concat_true_iff_exists_append
     (xs : List native_Char) (r s : native_RegLan) :
@@ -1123,8 +1121,8 @@ private theorem native_str_in_re_epsilon_length
   | nil =>
       rfl
   | cons c cs =>
-      simp [native_str_in_re, nativeListInRe, native_re_deriv,
-        native_re_nullable, native_re_nullable_fold_empty_false] at h
+      simp [native_str_in_re, native_re_deriv,
+        native_re_nullable_fold_empty_false] at h
 
 private theorem native_str_in_re_char_length
     {str : native_String} {c : native_Char}
@@ -1132,7 +1130,7 @@ private theorem native_str_in_re_char_length
     str.length = 1 := by
   cases str with
   | nil =>
-      simp [native_str_in_re, nativeListInRe, native_re_nullable] at h
+      simp [native_str_in_re, native_re_nullable] at h
   | cons d ds =>
       cases ds with
       | nil =>
@@ -1141,11 +1139,11 @@ private theorem native_str_in_re_char_length
           by_cases hMatch :
               (native_char_valid d = true ∧ native_char_valid c = true) ∧
                 d = c
-          · simp [native_str_in_re, nativeListInRe, native_re_deriv,
-              native_re_nullable, native_re_nullable_fold_empty_false,
+          · simp [native_str_in_re, native_re_deriv,
+              native_re_nullable_fold_empty_false,
               hMatch] at h
-          · simp [native_str_in_re, nativeListInRe, native_re_deriv,
-              native_re_nullable, native_re_nullable_fold_empty_false,
+          · simp [native_str_in_re, native_re_deriv,
+              native_re_nullable_fold_empty_false,
               hMatch] at h
 
 private theorem native_str_in_re_range_atom_length
@@ -1154,7 +1152,7 @@ private theorem native_str_in_re_range_atom_length
     str.length = 1 := by
   cases str with
   | nil =>
-      simp [native_str_in_re, nativeListInRe, native_re_nullable] at h
+      simp [native_str_in_re, native_re_nullable] at h
   | cons d ds =>
       cases ds with
       | nil =>
@@ -1163,11 +1161,11 @@ private theorem native_str_in_re_range_atom_length
           by_cases hMatch :
               (((native_char_valid d = true ∧ native_char_valid lo = true) ∧
                     native_char_valid hi = true) ∧ lo ≤ d) ∧ d ≤ hi
-          · simp [native_str_in_re, nativeListInRe, native_re_deriv,
-              native_re_nullable, native_re_nullable_fold_empty_false,
+          · simp [native_str_in_re, native_re_deriv,
+              native_re_nullable_fold_empty_false,
               hMatch] at h
-          · simp [native_str_in_re, nativeListInRe, native_re_deriv,
-              native_re_nullable, native_re_nullable_fold_empty_false,
+          · simp [native_str_in_re, native_re_deriv,
+              native_re_nullable_fold_empty_false,
               hMatch] at h
 
 private theorem native_str_in_re_allchar_length
@@ -1176,7 +1174,7 @@ private theorem native_str_in_re_allchar_length
     str.length = 1 := by
   cases str with
   | nil =>
-      simp [native_str_in_re, nativeListInRe, native_re_allchar,
+      simp [native_str_in_re, native_re_allchar,
         native_re_nullable] at h
   | cons d ds =>
       cases ds with
@@ -1184,12 +1182,10 @@ private theorem native_str_in_re_allchar_length
           rfl
       | cons e es =>
           by_cases hValidD : native_char_valid d = true
-          · simp [native_str_in_re, nativeListInRe, native_re_allchar,
-              native_re_deriv, native_re_nullable,
-              native_re_nullable_fold_empty_false, hValidD] at h
-          · simp [native_str_in_re, nativeListInRe, native_re_allchar,
-              native_re_deriv, native_re_nullable,
-              native_re_nullable_fold_empty_false, hValidD] at h
+          · simp [native_str_in_re, native_re_allchar,
+              native_re_deriv, native_re_nullable_fold_empty_false, hValidD] at h
+          · simp [native_str_in_re, native_re_allchar,
+              native_re_deriv, native_re_nullable_fold_empty_false, hValidD] at h
 
 private theorem native_str_in_re_range_length
     {str lo hi : native_String}
@@ -1343,9 +1339,9 @@ private theorem eo_requires_same_numeral_or_stuck
         exact ⟨nb, by
           simp [__eo_requires, native_teq, native_ite, native_not]⟩
       · right
-        simp [__eo_requires, native_teq, native_ite, native_not, hEq]
+        simp [__eo_requires, native_teq, native_ite, hEq]
     · right
-      simp [__eo_requires, native_teq, native_ite, native_not]
+      simp [__eo_requires, native_teq, native_ite]
   · right
     cases a <;> simp [__eo_requires, native_teq, native_ite, native_not]
 
@@ -1359,7 +1355,7 @@ private theorem eo_ite_numeral_or_stuck
   cases hTrue : native_teq c (Term.Boolean true)
   · cases hFalse : native_teq c (Term.Boolean false)
     · right
-      simp [native_ite, hTrue, hFalse]
+      simp [native_ite]
     · simpa [native_ite, hTrue, hFalse] using hb
   · simpa [native_ite, hTrue] using ha
 
@@ -1399,7 +1395,7 @@ private theorem str_fixed_len_re_numeral_or_stuck :
       case UOp op =>
         cases op <;> simp [__str_fixed_len_re, __eo_len]
         case str_to_re =>
-          cases x <;> simp [__str_fixed_len_re, __eo_len]
+          cases x <;> simp 
       case Apply g y =>
         cases g
         case UOp op =>
@@ -1470,7 +1466,7 @@ private theorem str_fixed_len_re_sound (M : SmtModel) :
         simp [__smtx_model_eval] at hEval
         cases hEval
         have hLen := native_str_in_re_allchar_length hIn
-        simpa [hLen]
+        simp [hLen]
   | Term.UOp1 _ _, _str, _rr, _n, hFixed, _hEval, _hIn => by
       simp [__str_fixed_len_re] at hFixed
   | Term.UOp2 _ _ _, _str, _rr, _n, hFixed, _hEval, _hIn => by
@@ -1504,7 +1500,7 @@ private theorem str_fixed_len_re_sound (M : SmtModel) :
       case UOp op =>
         cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
         case str_to_re =>
-          cases x <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+          cases x <;> simp  at hFixed
           case String pat =>
             cases hFixed
             change
@@ -1515,7 +1511,7 @@ private theorem str_fixed_len_re_sound (M : SmtModel) :
               native_unpack_pack_string] at hEval
             cases hEval
             have hLen := native_str_in_re_str_to_re_length hIn
-            simpa [native_str_len, hLen]
+            simp [native_str_len, hLen]
           case Binary =>
             cases hFixed
             change
@@ -1549,15 +1545,15 @@ private theorem str_fixed_len_re_sound (M : SmtModel) :
                       Int.ofNat s0.length + Int.ofNat s1.length := by simp
                   _ = n0 + n1 := by rw [hLen0, hLen1]
                   _ = n := by simpa [native_zplus] using hSum
-              · simp [__str_fixed_len_re, h0, h1, __eo_add] at hFixed
-            · simp [__str_fixed_len_re, h0, __eo_add] at hFixed
+              · simp [h0, h1, __eo_add] at hFixed
+            · simp [h0, __eo_add] at hFixed
           case re_range =>
             cases hFixed
             rcases model_eval_re_range_reglan M (__eo_to_smt y)
                 (__eo_to_smt x) hEval with
               ⟨_slo, _shi, _hLoEval, _hHiEval, rfl⟩
             have hLen := native_str_in_re_range_length hIn
-            simpa [hLen]
+            simp [hLen]
           case re_union =>
             rcases str_fixed_len_re_numeral_or_stuck y with
               ⟨n0, h0⟩ | h0
@@ -1582,7 +1578,7 @@ private theorem str_fixed_len_re_sound (M : SmtModel) :
               ·
                 by_cases hStuck : x = Term.Stuck
                 · subst x
-                  simp [__str_fixed_len_re, h0, __eo_eq, __eo_ite,
+                  simp [__eo_eq, __eo_ite,
                     native_teq, native_ite] at hFixed
                 · have hNone' : ¬ Term.UOp UserOp.re_none = x := by
                     intro h
@@ -1603,12 +1599,10 @@ private theorem str_fixed_len_re_sound (M : SmtModel) :
                       rcases native_str_in_re_union_true hIn with hIn0 | hIn1
                       · exact str_fixed_len_re_sound M y str rr0 n0 h0 hEval0 hIn0
                       · exact str_fixed_len_re_sound M x str rr1 n0 h1 hEval1 hIn1
-                    · simp [__str_fixed_len_re, h0, h1, __eo_eq, __eo_ite,
-                        __eo_requires, native_teq, native_ite, native_not,
-                        hNone, hNone', hStuck, hLenEq] at hFixed
-                  · simp [__str_fixed_len_re, h0, h1, __eo_eq, __eo_ite,
-                      __eo_requires, native_teq, native_ite, native_not,
-                      hNone, hNone', hStuck] at hFixed
+                    · simp [h0, h1, __eo_eq, __eo_ite,
+                        __eo_requires, native_teq, native_ite, hNone', hLenEq] at hFixed
+                  · simp [h0, h1, __eo_eq, __eo_ite,
+                      __eo_requires, native_teq, native_ite, hNone'] at hFixed
             · simp [h0, eo_requires_stuck_stuck, eo_ite_stuck_stuck] at hFixed
           case re_inter =>
             rcases str_fixed_len_re_numeral_or_stuck y with
@@ -1632,7 +1626,7 @@ private theorem str_fixed_len_re_sound (M : SmtModel) :
               ·
                 by_cases hStuck : x = Term.Stuck
                 · subst x
-                  simp [__str_fixed_len_re, h0, __eo_eq, __eo_ite,
+                  simp [__eo_eq, __eo_ite,
                     native_teq, native_ite] at hFixed
                 · have hAll' : ¬ Term.UOp UserOp.re_all = x := by
                     intro h
@@ -1652,12 +1646,10 @@ private theorem str_fixed_len_re_sound (M : SmtModel) :
                         ⟨rr0, rr1, hEval0, _hEval1, rfl⟩
                       have hIn0 := (native_str_in_re_inter_true hIn).1
                       exact str_fixed_len_re_sound M y str rr0 n0 h0 hEval0 hIn0
-                    · simp [__str_fixed_len_re, h0, h1, __eo_eq, __eo_ite,
-                        __eo_requires, native_teq, native_ite, native_not,
-                        hAll, hAll', hStuck, hLenEq] at hFixed
-                  · simp [__str_fixed_len_re, h0, h1, __eo_eq, __eo_ite,
-                      __eo_requires, native_teq, native_ite, native_not,
-                      hAll, hAll', hStuck] at hFixed
+                    · simp [h0, h1, __eo_eq, __eo_ite,
+                        __eo_requires, native_teq, native_ite, hAll', hLenEq] at hFixed
+                  · simp [h0, h1, __eo_eq, __eo_ite,
+                      __eo_requires, native_teq, native_ite, hAll'] at hFixed
             · simp [h0, eo_requires_stuck_stuck, eo_ite_stuck_stuck] at hFixed
         all_goals simp [__str_fixed_len_re] at hFixed
       all_goals simp [__str_fixed_len_re] at hFixed
@@ -1689,10 +1681,10 @@ private theorem string_eager_reduction_has_bool_type
   cases a <;> simp [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] at hTy ⊢
   all_goals try cases hTy
   case Apply f x =>
-    cases f <;> try simp [__mk_str_eager_reduction] at hTy ⊢
+    cases f <;> try simp  at hTy ⊢
     all_goals try cases hTy
     case UOp op =>
-      cases op <;> try simp [__mk_str_eager_reduction] at hTy ⊢
+      cases op <;> try simp  at hTy ⊢
       all_goals try cases hTy
       case str_to_code =>
         apply RuleProofs.eo_typeof_bool_implies_has_bool_type
@@ -1763,10 +1755,10 @@ private theorem string_eager_reduction_has_bool_type
             native_Teq]
         · simpa [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] using hTy
     case Apply f y =>
-      cases f <;> try simp [__mk_str_eager_reduction] at hTy ⊢
+      cases f <;> try simp  at hTy ⊢
       all_goals try cases hTy
       case UOp op =>
-        cases op <;> try simp [__mk_str_eager_reduction] at hTy ⊢
+        cases op <;> try simp  at hTy ⊢
         all_goals try cases hTy
         case str_contains =>
           apply RuleProofs.eo_typeof_bool_implies_has_bool_type
@@ -1796,7 +1788,7 @@ private theorem string_eager_reduction_has_bool_type
                         (SmtTerm.Numeral 0)))) = SmtType.Seq T
               simp [__smtx_typeof, typeof_str_substr_eq, typeof_str_indexof_eq,
                 hyTy, hxTy, __smtx_typeof_str_indexof, __smtx_typeof_str_substr,
-                __smtx_typeof_arith_overload_op_2, native_ite, native_Teq]
+                native_ite, native_Teq]
             have hNilNe :
                 __eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof pre) ≠
                   Term.Stuck := by
@@ -1832,7 +1824,7 @@ private theorem string_eager_reduction_has_bool_type
                   SmtType.Seq T := by
               simpa [pre] using
                 smt_typeof_nil_str_concat_typeof_of_smt_type_seq pre T hPreTy
-            simp only [__eo_mk_apply, hNilNe']
+            simp only [__eo_mk_apply]
             change
               __smtx_typeof
                 (SmtTerm.ite
@@ -1940,7 +1932,7 @@ private theorem string_eager_reduction_has_bool_type
                 fixed hRhsNe
             rcases str_fixed_len_re_numeral_of_ne_stuck x hFixedNe with
               ⟨n, hFixed⟩
-            simp only [rhsEo, gen, fixed, __eo_mk_apply, hFixed]
+            simp only [__eo_mk_apply, hFixed]
             change
               __smtx_typeof
                   (SmtTerm.imp
@@ -1954,10 +1946,10 @@ private theorem string_eager_reduction_has_bool_type
               __smtx_typeof_guard, __smtx_typeof, native_ite, native_Teq]
           · simpa [__eo_prog_string_eager_reduction, __mk_str_eager_reduction] using hTy
       case Apply f z =>
-        cases f <;> try simp [__mk_str_eager_reduction] at hTy ⊢
+        cases f <;> try simp  at hTy ⊢
         all_goals try cases hTy
         case UOp op =>
-          cases op <;> try simp [__mk_str_eager_reduction] at hTy ⊢
+          cases op <;> try simp  at hTy ⊢
           all_goals try cases hTy
           case str_indexof =>
             apply RuleProofs.eo_typeof_bool_implies_has_bool_type
@@ -2034,11 +2026,11 @@ private theorem string_eager_reduction_true
   all_goals try
     exact False.elim (RuleProofs.term_ne_stuck_of_has_bool_type _ hBool rfl)
   case Apply f x =>
-    cases f <;> try simp [__mk_str_eager_reduction] at hBool ⊢
+    cases f <;> try simp  at hBool ⊢
     all_goals try
       exact False.elim (RuleProofs.term_ne_stuck_of_has_bool_type _ hBool rfl)
     case UOp op =>
-      cases op <;> try simp [__mk_str_eager_reduction] at hBool ⊢
+      cases op <;> try simp  at hBool ⊢
       all_goals try
         exact False.elim (RuleProofs.term_ne_stuck_of_has_bool_type _ hBool rfl)
       case str_to_code =>
@@ -2134,7 +2126,7 @@ private theorem string_eager_reduction_true
             __smtx_model_eval_ite, __smtx_model_eval_eq, __smtx_model_eval_geq,
             __smtx_model_eval_leq, __smtx_model_eval_lt, __smtx_model_eval_and,
             native_seq_len, native_veq, native_zleq, native_zlt, native_and,
-            hLenInt, hCondFalse, hCode]
+            hCode]
           cases hCond :
               decide ((Int.ofNat (native_unpack_seq ss).length : Int) = 1) with
           | false =>
@@ -2271,11 +2263,11 @@ private theorem string_eager_reduction_true
         simp [__smtx_model_eval, hSEval, __smtx_model_eval_str_to_int, __smtx_model_eval_geq,
           __smtx_model_eval_leq, native_zleq, hGe]
     case Apply f y =>
-      cases f <;> try simp [__mk_str_eager_reduction] at hBool ⊢
+      cases f <;> try simp  at hBool ⊢
       all_goals try
         exact False.elim (RuleProofs.term_ne_stuck_of_has_bool_type _ hBool rfl)
       case UOp op =>
-        cases op <;> try simp [__mk_str_eager_reduction] at hBool ⊢
+        cases op <;> try simp  at hBool ⊢
         all_goals try
           exact False.elim (RuleProofs.term_ne_stuck_of_has_bool_type _ hBool rfl)
         case str_contains =>
@@ -2395,14 +2387,13 @@ private theorem string_eager_reduction_true
             simp [pfx, idx, ty, tx, typeof_str_substr_eq,
               typeof_str_indexof_eq, hyTy, hxTy, __smtx_typeof,
               __smtx_typeof_str_indexof, __smtx_typeof_str_substr,
-              __smtx_typeof_arith_overload_op_2, native_ite, native_Teq]
+              native_ite, native_Teq]
           have hNilEval : __smtx_model_eval M nilS =
               SmtValue.Seq (SmtSeq.empty U) := by
             simpa [nilS, nil] using
               eval_nil_str_concat_typeof_of_smt_type_seq M pre U hPreTy
           apply RuleProofs.eo_interprets_of_bool_eval M _ true hBool
-          simp only [gen, iteHead, thenEo, rhs1, rhs2, rhs3, nil, suffix, start,
-            pre, condEo, elseEo, __eo_mk_apply, hNilNe]
+          simp only [nil, pre, __eo_mk_apply]
           change __smtx_model_eval M formula = SmtValue.Boolean true
           by_cases hContains : native_seq_contains ys xs = true
           · have hIdxNonneg : 0 ≤ idxVal := by
@@ -2434,15 +2425,14 @@ private theorem string_eager_reduction_true
               rw [← hElemY]
               exact native_pack_unpack_seq sy
             simp [formula, cond, rhs, nilS, suffixS, cut, pfx, idx, ty, tx,
-              ys, xs, idxVal, __smtx_model_eval, hYEval, hXEval, hNilEval,
+              ys, xs, __smtx_model_eval, hYEval, hXEval, hNilEval,
               __smtx_model_eval_ite, __smtx_model_eval_str_contains,
               __smtx_model_eval_eq, __smtx_model_eval_str_concat,
               __smtx_model_eval_str_substr, __smtx_model_eval_str_indexof,
               __smtx_model_eval_str_len, __smtx_model_eval_plus,
               __smtx_model_eval__, __smtx_model_eval__at_purify, native_seq_concat,
               native_unpack_pack_seq, elem_typeof_pack_seq, native_seq_len,
-              hElemY, hContains, hSplit, hPrefixLen, hStartEq, hLenEq, hPackSy,
-              List.append_assoc, native_zplus, native_zneg, native_veq]
+              hElemY, hContains, native_zplus, native_zneg, native_veq]
             apply Eq.trans hPackSy.symm
             apply congrArg (native_pack_seq U)
             dsimp [ys, xs, idxVal] at hSplit hStartEq hLenEq ⊢
@@ -2451,7 +2441,7 @@ private theorem string_eager_reduction_true
           · have hContainsFalse : native_seq_contains ys xs = false := by
               cases h : native_seq_contains ys xs
               · rfl
-              · exact False.elim (hContains (by simpa [h]))
+              · exact False.elim (hContains (by simp [h]))
             have hSyNeSx : sy ≠ sx := by
               intro hEq
               have hLists : ys = xs := by
@@ -2471,7 +2461,7 @@ private theorem string_eager_reduction_true
               ys, xs, __smtx_model_eval, hYEval, hXEval,
               __smtx_model_eval_ite, __smtx_model_eval_str_contains,
               __smtx_model_eval_eq, __smtx_model_eval_not, native_not,
-              native_veq, hContainsFalse, hEqFalse]
+              native_veq, hContainsFalse]
             exact hSyNeSx
         case str_in_re =>
           let fixed := __str_fixed_len_re x
@@ -2533,7 +2523,7 @@ private theorem string_eager_reduction_true
               (by simpa [tx] using hxTy) with
             ⟨rx, hXEval⟩
           apply RuleProofs.eo_interprets_of_bool_eval M _ true hBool
-          simp only [gen, rhsEo, fixed, __eo_mk_apply, hFixed]
+          simp only [__eo_mk_apply, hFixed]
           change __smtx_model_eval M formula = SmtValue.Boolean true
           by_cases hIn : native_str_in_re (native_unpack_string sy) rx = true
           · have hFixedLen :
@@ -2552,18 +2542,18 @@ private theorem string_eager_reduction_true
                 native_str_in_re (native_unpack_string sy) rx = false := by
               cases h : native_str_in_re (native_unpack_string sy) rx
               · rfl
-              · exact False.elim (hIn (by simpa [h]))
+              · exact False.elim (hIn (by simp [h]))
             simp [formula, lhs, rhs, ty, tx, __smtx_model_eval, hYEval, hXEval,
               __smtx_model_eval_imp, __smtx_model_eval_str_in_re,
               __smtx_model_eval_str_len, __smtx_model_eval_eq,
               __smtx_model_eval_or, __smtx_model_eval_not, native_or,
               native_not, native_veq, hInFalse]
       case Apply f z =>
-        cases f <;> try simp [__mk_str_eager_reduction] at hBool ⊢
+        cases f <;> try simp  at hBool ⊢
         all_goals try
           exact False.elim (RuleProofs.term_ne_stuck_of_has_bool_type _ hBool rfl)
         case UOp op =>
-          cases op <;> try simp [__mk_str_eager_reduction] at hBool ⊢
+          cases op <;> try simp  at hBool ⊢
           all_goals try
             exact False.elim (RuleProofs.term_ne_stuck_of_has_bool_type _ hBool rfl)
           case str_indexof =>
@@ -2652,13 +2642,13 @@ private theorem string_eager_reduction_true
                 __smtx_model_eval_str_len, __smtx_model_eval_eq,
                 __smtx_model_eval_geq, __smtx_model_eval_leq,
                 __smtx_model_eval_or, __smtx_model_eval_and, native_seq_len,
-                native_veq, native_zleq, native_or, native_and, hIdxEq, hIdxLe]
+                native_veq, native_zleq, native_or, native_and, hIdxEq]
             · simp [tz, ty, tx, idx, idxVal, leftTerm, rightTerm, __smtx_model_eval,
                 hZEval, hYEval, hXEval, __smtx_model_eval_str_indexof,
                 __smtx_model_eval_str_len, __smtx_model_eval_eq,
                 __smtx_model_eval_geq, __smtx_model_eval_leq,
                 __smtx_model_eval_or, __smtx_model_eval_and, native_seq_len,
-              native_veq, native_zleq, native_or, native_and, hIdxGe, hIdxLe]
+              native_veq, native_zleq, native_or, native_and, hIdxGe]
               simpa [idxVal] using hIdxLe
           case str_indexof_re =>
             let tz := __eo_to_smt z
@@ -2747,13 +2737,13 @@ private theorem string_eager_reduction_true
                 __smtx_model_eval_str_len, __smtx_model_eval_eq,
                 __smtx_model_eval_geq, __smtx_model_eval_leq,
                 __smtx_model_eval_or, __smtx_model_eval_and, native_seq_len,
-                native_veq, native_zleq, native_or, native_and, hIdxEq, hIdxLeSeq]
+                native_veq, native_zleq, native_or, native_and, hIdxEq]
             · simp [tz, ty, tx, idx, idxVal, leftTerm, rightTerm, __smtx_model_eval,
                 hZEval, hYEval, hXEval, __smtx_model_eval_str_indexof_re,
                 __smtx_model_eval_str_len, __smtx_model_eval_eq,
                 __smtx_model_eval_geq, __smtx_model_eval_leq,
                 __smtx_model_eval_or, __smtx_model_eval_and, native_seq_len,
-                native_veq, native_zleq, native_or, native_and, hIdxGe, hIdxLeSeq]
+                native_veq, native_zleq, native_or, native_and, hIdxGe]
               simpa [idxVal] using hIdxLeSeq
 
 theorem cmd_step_string_eager_reduction_properties

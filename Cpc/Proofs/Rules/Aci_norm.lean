@@ -7,7 +7,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -27,7 +26,7 @@ private theorem eo_requires_true_eq_of_type_bool (x body : Term) :
     simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hTy ⊢
   case Boolean b =>
     cases b <;>
-      simp [__eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hTy ⊢
+      simp  at hTy ⊢
     exact False.elim (eo_typeof_stuck_ne_bool hTy)
   all_goals
     exact False.elim (eo_typeof_stuck_ne_bool hTy)
@@ -99,7 +98,7 @@ private theorem eo_ite_eq_true_cases (c t e : Term) :
   intro h
   cases c <;> simp [__eo_ite, native_teq, native_ite] at h
   case Boolean b =>
-    cases b <;> simp [__eo_ite, native_teq, native_ite] at h
+    cases b <;> simp  at h
     · exact Or.inr ⟨rfl, h⟩
     · exact Or.inl ⟨rfl, h⟩
 
@@ -120,18 +119,16 @@ private theorem eo_and_eq_true_cases (x y : Term) :
   cases x <;> cases y <;> simp [__eo_and, __eo_requires, native_ite,
     native_teq, native_and, native_not, SmtEval.native_not] at h
   case Boolean.Boolean b1 b2 =>
-    cases b1 <;> cases b2 <;> simp [native_and] at h ⊢
+    cases b1 <;> cases b2 <;> simp  at h ⊢
   case Binary.Binary w1 n1 w2 n2 =>
     by_cases hW : w1 = w2
     · subst w2
-      simp [__eo_and, __eo_requires, native_ite, native_teq, native_and,
-        native_not, SmtEval.native_not] at h
+      simp  at h
     · have hNumNe : Term.Numeral w1 ≠ Term.Numeral w2 := by
         intro hEq
         cases hEq
         exact hW rfl
-      simp [__eo_and, __eo_requires, native_ite, native_teq, native_and,
-        native_not, SmtEval.native_not, hW] at h
+      simp [hW] at h
 
 private theorem eq_true_of_requires_true_not_stuck {x B : Term} :
     __eo_requires x (Term.Boolean true) B ≠ Term.Stuck ->
@@ -273,18 +270,15 @@ private theorem aci_norm_l2_marker_right_translation_ne_true
   case Apply yf yPayload =>
     cases yf
     all_goals try
-      simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq, __eo_ite,
-        __eo_eq, native_teq, native_ite] at hEq hYTrans
+      simp  at hEq hYTrans
     case Apply yg yMarkerArg =>
       cases yg
       all_goals try
-        simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq, __eo_ite,
-          __eo_eq, native_teq, native_ite] at hEq hYTrans
+        simp  at hEq hYTrans
       case UOp op =>
         cases op
         all_goals try
-          simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq, __eo_ite,
-            __eo_eq, native_teq, native_ite] at hEq hYTrans
+          simp  at hEq hYTrans
         exact aci_sorted_marker_not_has_smt_translation yMarkerArg yPayload hYTrans
 
 private theorem aci_norm_l2_marker_marker_eq_true
@@ -490,13 +484,13 @@ private theorem aci_norm_l2_nonmarker_left_eq_false
     simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hx hy ⊢
   case Apply.Apply f payload yf yPayload =>
     cases f <;>
-      simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+      simp  at hNotMarker ⊢
     case Apply g markerArg =>
       cases g <;>
-        simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+        simp  at hNotMarker ⊢
       case UOp op =>
         cases op <;>
-          simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+          simp  at hNotMarker ⊢
 
 private theorem aci_norm_l1_nonmarker_left_eq_false
     (x y : Term) :
@@ -511,16 +505,13 @@ private theorem aci_norm_l1_nonmarker_left_eq_false
       __eo_l_3___aci_norm_eq] at hx hy ⊢
   case Apply.Apply f payload yf yPayload =>
     cases f <;>
-      simp [__eo_l_1___aci_norm_eq, __eo_l_2___aci_norm_eq,
-        __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+      simp  at hNotMarker ⊢
     case Apply g markerArg =>
       cases g <;>
-        simp [__eo_l_1___aci_norm_eq, __eo_l_2___aci_norm_eq,
-          __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+        simp  at hNotMarker ⊢
       case UOp op =>
         cases op <;>
-          simp [__eo_l_1___aci_norm_eq, __eo_l_2___aci_norm_eq,
-            __eo_l_3___aci_norm_eq] at hNotMarker ⊢
+          simp  at hNotMarker ⊢
 
 private theorem aci_norm_eq_true_nonmarker_left_false (x y : Term) :
     (∀ f payload,
@@ -740,13 +731,13 @@ private theorem aci_norm_l2_marker_right_nonmarker_eq_false
     simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hYNe ⊢
   case Apply yf yPayload =>
     cases yf <;>
-      simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hYNotMarker ⊢
+      simp  at hYNotMarker ⊢
     case Apply yg yMarkerArg =>
       cases yg <;>
-        simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hYNotMarker ⊢
+        simp  at hYNotMarker ⊢
       case UOp op =>
         cases op <;>
-          simp [__eo_l_2___aci_norm_eq, __eo_l_3___aci_norm_eq] at hYNotMarker ⊢
+          simp  at hYNotMarker ⊢
 
 private theorem smt_value_rel_of_aci_norm_eq_true_left_marker_right_nonmarker
     (M : SmtModel) (f payload y : Term) :
@@ -1126,7 +1117,7 @@ private theorem is_list_true_of_get_nil_rec_ne_stuck_local {f x : Term} :
     intro hX
     subst x
     simpa [__eo_get_nil_rec] using hRec
-  simp [__eo_is_list, hF, hX, is_ok_true_of_ne_stuck_local hRec]
+  simp [__eo_is_list, is_ok_true_of_ne_stuck_local hRec]
 
 private theorem aciOrClause_is_list_true {c : Term} :
     AciOrClause c ->
@@ -1141,8 +1132,7 @@ private theorem aciOrClause_of_is_list_true {c : Term} :
   intro hList
   cases c with
   | Stuck =>
-      simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, native_teq,
-        native_not, SmtEval.native_not] at hList
+      simp [__eo_is_list] at hList
   | Boolean b =>
       cases b
       · exact AciOrClause.false
@@ -1156,7 +1146,7 @@ private theorem aciOrClause_of_is_list_true {c : Term} :
           | UOp op =>
               cases op <;>
                 simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec,
-                  __eo_requires, __eo_is_list_nil, native_ite, native_teq,
+                  __eo_requires, native_ite, native_teq,
                   native_not, SmtEval.native_not] at hList
               case or =>
                 exact AciOrClause.cons x a
@@ -1164,7 +1154,7 @@ private theorem aciOrClause_of_is_list_true {c : Term} :
                     (is_list_true_of_get_nil_rec_ne_stuck_local hList))
           | _ =>
               simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec,
-                __eo_requires, __eo_is_list_nil, native_ite, native_teq,
+                __eo_requires, native_ite, native_teq,
                 native_not, SmtEval.native_not] at hList
       | _ =>
           simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
@@ -1545,7 +1535,7 @@ private theorem aciOr_erase_all_rec_preserves_clause {c e : Term} :
                 (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) e =
               __eo_list_erase_all_rec xs e := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact hTail
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -1559,7 +1549,7 @@ private theorem aciOr_erase_all_rec_preserves_clause {c e : Term} :
               Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
                 (__eo_list_erase_all_rec xs e) := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact AciOrClause.cons x (__eo_list_erase_all_rec xs e) hTail
 
@@ -1591,7 +1581,7 @@ private theorem aciOr_erase_all_rec_preserves_bool_type {c e : Term} :
                 (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) e =
               __eo_list_erase_all_rec xs e := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact hTailBool
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -1605,7 +1595,7 @@ private theorem aciOr_erase_all_rec_preserves_bool_type {c e : Term} :
               Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
                 (__eo_list_erase_all_rec xs e) := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact eo_has_bool_type_or_of_bool_args_local
           x (__eo_list_erase_all_rec xs e) hXBool hTailBool
@@ -1655,7 +1645,7 @@ private theorem aciOr_erase_all_rec_true_of_lit_false
                 (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) e =
               __eo_list_erase_all_rec xs e := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact hTailTrue
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -1669,7 +1659,7 @@ private theorem aciOr_erase_all_rec_true_of_lit_false
               Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
                 (__eo_list_erase_all_rec xs e) := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rcases eo_interprets_bool_cases_local M hM x hXBool with hXTrue | hXFalse
         · rw [hStep]
           exact eo_interprets_or_left_intro_local M hM x
@@ -1713,7 +1703,7 @@ private theorem aciOr_erase_all_rec_true_implies_original_true
                 (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) e =
               __eo_list_erase_all_rec xs e := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         have hTailTrue : eo_interprets M (__eo_list_erase_all_rec xs e) true := by
           simpa [hStep] using hEraseTrue
         have hXsTrue : eo_interprets M xs true := ih hXsBool hE hTailTrue
@@ -1729,7 +1719,7 @@ private theorem aciOr_erase_all_rec_true_implies_original_true
               Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
                 (__eo_list_erase_all_rec xs e) := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         have hEraseOr :
             eo_interprets M
               (Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
@@ -1778,7 +1768,7 @@ private theorem aciOr_setof_rec_structural {c : Term} :
               (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) =
             Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
               (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
-        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+        simp [__eo_list_setof_rec, __eo_mk_apply]
       rw [hStep]
       exact ⟨
         AciOrClause.cons x
@@ -1822,7 +1812,7 @@ private theorem aciOr_setof_rec_true
               (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) =
             Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
               (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
-        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+        simp [__eo_list_setof_rec, __eo_mk_apply]
       rcases eo_interprets_bool_cases_local M hM x hXBool with hXTrue | hXFalse
       · rw [hStep]
         exact eo_interprets_or_left_intro_local M hM x
@@ -1870,7 +1860,7 @@ private theorem aciOr_setof_rec_true_implies_original_true
               (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) =
             Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
               (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
-        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+        simp [__eo_list_setof_rec, __eo_mk_apply]
       have hSetOr :
           eo_interprets M
             (Term.Apply (Term.Apply (Term.UOp UserOp.or) x)
@@ -2147,7 +2137,7 @@ private theorem aciOr_get_elements_or_eq {x xs : Term} :
         (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) xs) =
       Term.Apply (Term.Apply Term.__eo_List_cons x) (__eo_get_elements_rec xs) := by
   intro hX hXsNe
-  simp [__eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+  simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem aciOr_erase_rec_true_implies_original_true
     (M : SmtModel) (hM : model_total_typed M) {c e : Term} :
@@ -2391,8 +2381,7 @@ private theorem aciOr_true_of_minclude_true
         intro hEq
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
           eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
-        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
-          native_teq] at hInclRec
+        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
       have hNotEqTerm :
           __eo_not (__eo_eq z (__eo_get_elements_rec c)) = Term.Boolean true := by
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
@@ -2522,8 +2511,7 @@ private theorem aciAndClause_of_is_list_true {c : Term} :
   intro hList
   cases c with
   | Stuck =>
-      simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, native_teq,
-        native_not, SmtEval.native_not] at hList
+      simp [__eo_is_list] at hList
   | Boolean b =>
       cases b
       · simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
@@ -2537,7 +2525,7 @@ private theorem aciAndClause_of_is_list_true {c : Term} :
           | UOp op =>
               cases op <;>
                 simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec,
-                  __eo_requires, __eo_is_list_nil, native_ite, native_teq,
+                  __eo_requires, native_ite, native_teq,
                   native_not, SmtEval.native_not] at hList
               case and =>
                 exact AciAndClause.cons x a
@@ -2545,7 +2533,7 @@ private theorem aciAndClause_of_is_list_true {c : Term} :
                     (is_list_true_of_get_nil_rec_ne_stuck_local hList))
           | _ =>
               simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec,
-                __eo_requires, __eo_is_list_nil, native_ite, native_teq,
+                __eo_requires, native_ite, native_teq,
                 native_not, SmtEval.native_not] at hList
       | _ =>
           simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
@@ -2741,7 +2729,7 @@ private theorem aciAnd_erase_all_rec_preserves_clause {c e : Term} :
                 (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) e =
               __eo_list_erase_all_rec xs e := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact hTail
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -2755,7 +2743,7 @@ private theorem aciAnd_erase_all_rec_preserves_clause {c e : Term} :
               Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
                 (__eo_list_erase_all_rec xs e) := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact AciAndClause.cons x (__eo_list_erase_all_rec xs e) hTail
 
@@ -2787,7 +2775,7 @@ private theorem aciAnd_erase_all_rec_preserves_bool_type {c e : Term} :
                 (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) e =
               __eo_list_erase_all_rec xs e := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact hTailBool
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -2801,7 +2789,7 @@ private theorem aciAnd_erase_all_rec_preserves_bool_type {c e : Term} :
               Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
                 (__eo_list_erase_all_rec xs e) := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact RuleProofs.eo_has_bool_type_and_of_bool_args
           x (__eo_list_erase_all_rec xs e) hXBool hTailBool
@@ -2841,7 +2829,7 @@ private theorem aciAnd_erase_all_rec_true_of_lit_true
                 (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) e =
               __eo_list_erase_all_rec xs e := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact ih hXsBool hE hETrue hXsTrue
       · have hEqTerm : __eo_eq e x = Term.Boolean false :=
@@ -2855,7 +2843,7 @@ private theorem aciAnd_erase_all_rec_true_of_lit_true
               Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
                 (__eo_list_erase_all_rec xs e) := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         rw [hStep]
         exact RuleProofs.eo_interprets_and_intro M x
           (__eo_list_erase_all_rec xs e) hXTrue
@@ -2892,7 +2880,7 @@ private theorem aciAnd_erase_all_rec_true_implies_original_true
                 (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) e =
               __eo_list_erase_all_rec xs e := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         have hTailTrue : eo_interprets M (__eo_list_erase_all_rec xs e) true := by
           simpa [hStep] using hEraseTrue
         have hXsTrue : eo_interprets M xs true := ih hXsBool hE hETrue hTailTrue
@@ -2910,7 +2898,7 @@ private theorem aciAnd_erase_all_rec_true_implies_original_true
               Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
                 (__eo_list_erase_all_rec xs e) := by
           simp [__eo_list_erase_all_rec, __eo_prepend_if, __eo_not, hEqTerm,
-            native_not, native_teq, hTailNe]
+            native_not]
         have hEraseAnd :
             eo_interprets M
               (Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
@@ -2961,7 +2949,7 @@ private theorem aciAnd_setof_rec_structural {c : Term} :
               (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) =
             Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
               (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
-        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+        simp [__eo_list_setof_rec, __eo_mk_apply]
       rw [hStep]
       exact ⟨
         AciAndClause.cons x
@@ -2998,7 +2986,7 @@ private theorem aciAnd_setof_rec_true_iff
               (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) =
             Term.Apply (Term.Apply (Term.UOp UserOp.and) x)
               (__eo_list_erase_all_rec (__eo_list_setof_rec xs) x) := by
-        simp [__eo_list_setof_rec, __eo_mk_apply, hX, hEraseNe]
+        simp [__eo_list_setof_rec, __eo_mk_apply]
       constructor
       · intro hSetTrue
         have hSetAnd :
@@ -3273,7 +3261,7 @@ private theorem aciAnd_get_elements_and_eq {x xs : Term} :
         (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) xs) =
       Term.Apply (Term.Apply Term.__eo_List_cons x) (__eo_get_elements_rec xs) := by
   intro hX hXsNe
-  simp [__eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+  simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem aciAnd_erase_rec_true_of_original_true
     (M : SmtModel) {c e : Term} :
@@ -3504,8 +3492,7 @@ private theorem aciAnd_true_of_minclude_true
         intro hEq
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
           eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
-        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
-          native_teq] at hInclRec
+        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
       have hNotEqTerm :
           __eo_not (__eo_eq z (__eo_get_elements_rec c)) = Term.Boolean true := by
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
@@ -3791,8 +3778,7 @@ private theorem get_ai_norm_rec_or_eq_l1_of_not_or (t : Term) :
         rw [hBad] at hBool
         cases hBool
       case UOp op =>
-        cases op <;> simp [__get_ai_norm_rec, __eo_eq, __eo_ite, native_ite,
-          native_teq]
+        cases op <;> simp 
         case or =>
           exact False.elim (hNotOr y x rfl)
 
@@ -3821,8 +3807,7 @@ private theorem get_ai_norm_rec_and_eq_l1_of_not_and (t : Term) :
         rw [hBad] at hBool
         cases hBool
       case UOp op =>
-        cases op <;> simp [__get_ai_norm_rec, __eo_eq, __eo_ite, native_ite,
-          native_teq]
+        cases op <;> simp 
         case and =>
           exact False.elim (hNotAnd y x rfl)
 
@@ -4948,7 +4933,7 @@ private theorem get_aci_normal_form_bvand_eq_marker_of_ne_stuck
         (__get_ai_norm (mkBvAnd y x)) := by
   intro hNFNe
   cases hPayload : __get_ai_norm (mkBvAnd y x) <;>
-    simp [mkBvAnd, __get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
+    simp [__get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
 
 private theorem get_aci_normal_form_bvor_eq_marker_of_ne_stuck
     (y x : Term) :
@@ -4959,7 +4944,7 @@ private theorem get_aci_normal_form_bvor_eq_marker_of_ne_stuck
         (__get_ai_norm (mkBvOr y x)) := by
   intro hNFNe
   cases hPayload : __get_ai_norm (mkBvOr y x) <;>
-    simp [mkBvOr, __get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
+    simp [__get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
 
 private theorem get_aci_normal_form_bvxor_eq_marker_of_ne_stuck
     (y x : Term) :
@@ -4970,7 +4955,7 @@ private theorem get_aci_normal_form_bvxor_eq_marker_of_ne_stuck
         (__get_a_norm (mkBvXor y x)) := by
   intro hNFNe
   cases hPayload : __get_a_norm (mkBvXor y x) <;>
-    simp [mkBvXor, __get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
+    simp [__get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
 
 private theorem get_ai_norm_bvand_ne_stuck_of_normal_form_ne_stuck
     (y x : Term) :
@@ -5020,7 +5005,7 @@ private theorem get_aci_normal_form_re_inter_eq_marker_of_ne_stuck
         (__get_ai_norm (mkReInter y x)) := by
   intro hNFNe
   cases hPayload : __get_ai_norm (mkReInter y x) <;>
-    simp [mkReInter, __get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
+    simp [__get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
 
 private theorem get_aci_normal_form_re_union_eq_marker_of_ne_stuck
     (y x : Term) :
@@ -5031,7 +5016,7 @@ private theorem get_aci_normal_form_re_union_eq_marker_of_ne_stuck
         (__get_ai_norm (mkReUnion y x)) := by
   intro hNFNe
   cases hPayload : __get_ai_norm (mkReUnion y x) <;>
-    simp [mkReUnion, __get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
+    simp [__get_aci_normal_form, __eo_mk_apply, hPayload] at hNFNe ⊢
 
 private def BvEvalCanonical (M : SmtModel) (t : Term) : Prop :=
   ∃ w n,
@@ -5083,8 +5068,7 @@ private theorem strConcat_nil_is_list_nil_of_type {ty : Term} {T : SmtType}
       __eo_is_list_nil_str_concat, __eo_eq, native_teq]
   case UOp op =>
     cases op <;>
-      simp [__eo_nil, __eo_nil_str_concat, __seq_empty, __eo_is_list_nil,
-        __eo_is_list_nil_str_concat, __eo_eq, native_teq]
+      simp 
 
 private theorem strConcat_nil_eq_seq_empty_of_type {ty : Term} {T : SmtType}
     (hTy : __eo_to_smt_type ty = SmtType.Seq T) :
@@ -5238,8 +5222,7 @@ private theorem strConcat_singleton_elim_rel
                 __eo_eq, native_teq] at hNil hTailNe
             case UOp1 op A =>
               cases op <;>
-                simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
-                  __eo_eq, native_teq] at hNil
+                simp  at hNil
       | _ =>
           simpa [__eo_list_singleton_elim_2] using
             RuleProofs.smt_value_rel_refl _
@@ -5733,8 +5716,7 @@ private theorem smt_value_rel_eval_seq_left
   intro hRel hSeq
   rcases hSeq with ⟨s, rfl⟩
   cases v <;>
-    simp [RuleProofs.smt_value_rel, RuleProofs.smt_seq_rel,
-      __smtx_model_eval_eq, native_veq] at hRel ⊢
+    simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq] at hRel ⊢
 
 private theorem smt_value_rel_eval_seq_right
     {v w : SmtValue} :
@@ -5753,8 +5735,7 @@ private theorem smt_value_rel_eval_binary_left
   intro hRel hBin
   rcases hBin with ⟨n, rfl⟩
   cases v <;>
-    simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq,
-      native_and, native_zeq] at hRel ⊢
+    simp [RuleProofs.smt_value_rel, __smtx_model_eval_eq, native_veq] at hRel ⊢
   case Binary w' n' =>
     exact hRel.1
 
@@ -6039,7 +6020,7 @@ private theorem native_binary_and_mod_eq_toNat
         native_int_pow2_nat]
   | succ w =>
       simp [native_binary_and, native_piand, native_mod_total,
-        native_int_pow2_nat, native_nat_to_int, native_ite, native_zeq]
+        native_nat_to_int, native_ite, native_zeq]
       exact bitvec_toInt_emod_pow (Nat.succ w)
         (BitVec.ofInt (Nat.succ w) n1 &&& BitVec.ofInt (Nat.succ w) n2)
 
@@ -6214,7 +6195,7 @@ private theorem native_binary_or_mod_eq_toNat
         native_int_pow2_nat]
   | succ w =>
       simp [native_binary_or, native_pior, native_mod_total,
-        native_int_pow2_nat, native_nat_to_int, native_ite, native_zeq]
+        native_nat_to_int, native_ite, native_zeq]
       exact bitvec_toInt_emod_pow (Nat.succ w)
         (BitVec.ofInt (Nat.succ w) n1 ||| BitVec.ofInt (Nat.succ w) n2)
 
@@ -6384,7 +6365,7 @@ private theorem native_binary_xor_mod_eq_toNat
         native_int_pow2_nat]
   | succ w =>
       simp [native_binary_xor, native_pixor, native_mod_total,
-        native_int_pow2_nat, native_nat_to_int, native_ite, native_zeq]
+        native_nat_to_int, native_ite, native_zeq]
       exact bitvec_toInt_emod_pow (Nat.succ w)
         (BitVec.ofInt (Nat.succ w) n1 ^^^ BitVec.ofInt (Nat.succ w) n2)
 
@@ -7278,8 +7259,7 @@ private theorem bvAnd_list_concat_rec_rel_eval
               BitVec.ofInt w nnil = BitVec.allOnes w := by
             cases nil <;>
               simp [__eo_is_list_nil, __eo_is_list_nil_bvand, __eo_to_z,
-                __eo_not, __eo_is_eq, native_and, native_not, native_teq,
-                native_zeq] at hNilTrue
+                __eo_not, __eo_is_eq, native_and, native_not, native_teq] at hNilTrue
             case Binary wb nb =>
               have hEvalEq :
                   SmtValue.Binary wb nb =
@@ -7422,7 +7402,7 @@ private theorem bvAnd_list_erase_all_rec_rel_eval
                 __eo_list_erase_all_rec (mkBvAnd x y) x =
                   __eo_list_erase_all_rec y x := by
               simp [mkBvAnd, __eo_list_erase_all_rec, __eo_prepend_if,
-                hEqTerm, __eo_not, native_not, SmtEval.native_not, hRecNe]
+                hEqTerm, __eo_not, native_not, SmtEval.native_not]
             rw [hEraseEq]
             have hYEval : BvEvalCanonicalWidth M w y :=
               bvAndListCanonical_eval M w y hYCan
@@ -7449,7 +7429,7 @@ private theorem bvAnd_list_erase_all_rec_rel_eval
                 __eo_list_erase_all_rec (mkBvAnd x y) e =
                   mkBvAnd x (__eo_list_erase_all_rec y e) := by
               simp [mkBvAnd, __eo_list_erase_all_rec, __eo_prepend_if,
-                hEqTerm, __eo_not, native_not, SmtEval.native_not, hRecNe]
+                hEqTerm, __eo_not, native_not, SmtEval.native_not]
             rw [hEraseEq]
             have hEraseCanEval :
                 BvEvalCanonicalWidth M w (__eo_list_erase_all_rec y e) :=
@@ -7785,7 +7765,7 @@ private theorem bvAnd_get_elements_rec_ne_stuck
             bvEvalCanonicalWidth_ne_stuck hXCan
           have hYElemsNe : __eo_get_elements_rec y ≠ Term.Stuck :=
             ih hYList hYCan
-          simp [__eo_get_elements_rec, __eo_mk_apply, hXNe, hYElemsNe]
+          simp [__eo_get_elements_rec, __eo_mk_apply]
       | case3 nil hNil hNot =>
           simp [__eo_get_elements_rec]
 
@@ -7796,7 +7776,7 @@ private theorem bvAnd_get_elements_and_eq {x xs : Term} :
       Term.Apply (Term.Apply Term.__eo_List_cons x)
         (__eo_get_elements_rec xs) := by
   intro hX hXsNe
-  simp [mkBvAnd, __eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+  simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem bvAnd_get_elements_erase_rec_eq
     (M : SmtModel) (w : Nat) {c e : Term} :
@@ -7947,8 +7927,7 @@ private theorem bvAnd_absorbs_of_minclude_true
         intro hEq
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
           eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
-        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
-          native_teq] at hInclRec
+        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
       have hNotEqTerm :
           __eo_not (__eo_eq z (__eo_get_elements_rec c)) = Term.Boolean true := by
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
@@ -8071,8 +8050,7 @@ private theorem bvAnd_absorbs_of_minclude_true
           BitVec.ofInt w nnil = BitVec.allOnes w := by
         cases nil <;>
           simp [__eo_is_list_nil, __eo_is_list_nil_bvand, __eo_to_z,
-            __eo_not, __eo_is_eq, native_and, native_not, native_teq,
-            native_zeq] at hNilTrue
+            __eo_not, __eo_is_eq, native_and, native_not, native_teq] at hNilTrue
         case Binary wb nb =>
           have hEvalEq :
               SmtValue.Binary wb nb =
@@ -8256,7 +8234,7 @@ private theorem bvAnd_list_setof_rec_rel_eval
               __eo_list_setof_rec (mkBvAnd x y) =
                 mkBvAnd x
                   (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := by
-            simp [mkBvAnd, __eo_list_setof_rec, __eo_mk_apply, hEraseNe]
+            simp [mkBvAnd, __eo_list_setof_rec, __eo_mk_apply]
           rw [hSetEq]
           have hSetCanEval :
               BvEvalCanonicalWidth M w (__eo_list_setof_rec y) :=
@@ -8615,14 +8593,14 @@ private theorem bvAnd_erase_all_rec_flat_list
               eo_eq_eq_true_of_eq_local hEq hENe hXNe
             cases hTail : __eo_list_erase_all_rec y e <;>
               simp [__eo_list_erase_all_rec, __eo_prepend_if, hEqTerm,
-                __eo_not, native_not, native_ite, native_teq, hTail,
+                __eo_not, native_not, hTail,
                 BvAndFlatList] at hTailFlat ⊢
             all_goals simpa [BvAndFlatList] using hTailFlat
           · have hEqTerm : __eo_eq e x = Term.Boolean false :=
               eo_eq_eq_false_of_ne_local hEq hENe hXNe
             cases hTail : __eo_list_erase_all_rec y e <;>
               simp [__eo_list_erase_all_rec, __eo_prepend_if, hEqTerm,
-                __eo_not, native_not, native_ite, native_teq, hTail,
+                __eo_not, native_not, hTail,
                 BvAndFlatList] at hTailFlat ⊢
             all_goals first
               | exact ⟨hXFlat, by simpa [BvAndFlatList] using hTailFlat⟩
@@ -8631,7 +8609,7 @@ private theorem bvAnd_erase_all_rec_flat_list
       | case4 nil e =>
           have hENe : e ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hECan
           cases e <;>
-            simp [BvAndFlatList, __eo_list_erase_all_rec] at hENe hCFlat ⊢
+            simp [__eo_list_erase_all_rec] at hENe hCFlat ⊢
           all_goals simpa [BvAndFlatList] using hCFlat
 
 private theorem bvAnd_setof_rec_flat_list
@@ -8674,7 +8652,7 @@ private theorem bvAnd_setof_rec_flat_list
               __eo_list_setof_rec (mkBvAnd x y) =
                 mkBvAnd x
                   (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := by
-            simp [mkBvAnd, __eo_list_setof_rec, __eo_mk_apply, hEraseNe]
+            simp [mkBvAnd, __eo_list_setof_rec, __eo_mk_apply]
           rw [hSetEq]
           exact ⟨hCFlat.1, hEraseFlat⟩
       | case3 nil _hNil _hNot =>
@@ -8805,8 +8783,7 @@ private theorem bvAnd_nil_allOnes_of_is_list_nil_true
   intro hNilTrue hNilEval hNilMod
   cases nil <;>
     simp [__eo_is_list_nil, __eo_is_list_nil_bvand, __eo_to_z,
-      __eo_not, __eo_is_eq, native_and, native_not, native_teq,
-      native_zeq] at hNilTrue
+      __eo_not, __eo_is_eq, native_and, native_not, native_teq] at hNilTrue
   case Binary wb nb =>
     have hEvalEq :
         SmtValue.Binary wb nb =
@@ -8895,7 +8872,7 @@ private theorem bvAnd_is_list_nil_boolean_of_ne_stuck (t : Term) :
   intro hNe
   cases t <;>
     simp [__eo_is_list_nil, __eo_is_list_nil_bvand, __eo_to_z, __eo_not,
-      __eo_is_eq, native_and, native_not, native_teq, native_zeq] at hNe ⊢
+      __eo_is_eq, native_and, native_not, native_teq] at hNe ⊢
 
 private theorem bvAnd_singleton_elim_rel_eval
     (M : SmtModel) (c : Term) (w : Nat) :
@@ -9025,7 +9002,7 @@ private theorem bvAnd_allOnes_is_list_nil (w : Nat) :
       Term.Boolean true := by
   simp [__eo_is_list_nil, __eo_is_list_nil_bvand, __eo_to_z, __eo_not,
     __eo_is_eq, native_binary_not, native_zplus, native_zneg,
-    native_mod_total, native_zeq, native_and, native_not, SmtEval.native_not,
+    native_mod_total, native_and, native_not, SmtEval.native_not,
     native_teq]
 
 private theorem bvAnd_nil_eq_allOnes_of_type
@@ -9057,7 +9034,7 @@ private theorem bvAnd_nil_eq_allOnes_of_type
     have hToBin :
         __eo_to_bin (Term.Numeral (native_nat_to_int w)) (Term.Numeral 0) =
           Term.Binary (native_nat_to_int w) 0 := by
-      simp [__eo_to_bin, __eo_mk_binary, hBound, native_ite, native_zleq,
+      simp [__eo_to_bin, __eo_mk_binary, native_ite, native_zleq,
         hBoundProp, hWidthNonneg, native_mod_total]
     change __eo_not
         (__eo_to_bin (Term.Numeral (native_nat_to_int w)) (Term.Numeral 0)) =
@@ -9072,7 +9049,7 @@ private theorem bvAnd_nil_eq_allOnes_of_type
           Term.Stuck := by
       have hBoundFalse : ¬ native_nat_to_int w <= 4294967296 := by
         simpa [native_zleq] using hBound
-      simp [__eo_nil, __eo_nil_bvand, __eo_to_bin, hBound, hBoundFalse,
+      simp [__eo_nil, __eo_nil_bvand, __eo_to_bin, hBoundFalse,
         native_ite, native_zleq, __eo_not]
     exact False.elim (hNe hStuck)
 
@@ -9085,7 +9062,7 @@ private theorem bvZero_to_bin_eq_of_bound (w : Nat) :
     simpa [native_zleq] using hBound
   have hWidthNonneg : 0 <= native_nat_to_int w := by
     simp [native_nat_to_int]
-  simp [__eo_to_bin, __eo_mk_binary, hBound, native_ite, native_zleq,
+  simp [__eo_to_bin, __eo_mk_binary, native_ite, native_zleq,
     hBoundProp, hWidthNonneg, native_mod_total]
 
 private theorem bvOr_zero_is_list_nil (w : Nat) :
@@ -9093,14 +9070,14 @@ private theorem bvOr_zero_is_list_nil (w : Nat) :
         (Term.Binary (native_nat_to_int w) 0) =
       Term.Boolean true := by
   simp [__eo_is_list_nil, __eo_is_list_nil_bvor, __eo_to_z, __eo_is_eq,
-    native_and, native_not, SmtEval.native_not, native_teq, native_zeq]
+    native_and, native_not, SmtEval.native_not, native_teq]
 
 private theorem bvXor_zero_is_list_nil (w : Nat) :
     __eo_is_list_nil (Term.UOp UserOp.bvxor)
         (Term.Binary (native_nat_to_int w) 0) =
       Term.Boolean true := by
   simp [__eo_is_list_nil, __eo_is_list_nil_bvxor, __eo_to_z, __eo_is_eq,
-    native_and, native_not, SmtEval.native_not, native_teq, native_zeq]
+    native_and, native_not, SmtEval.native_not, native_teq]
 
 private theorem bvOr_nil_eq_zero_of_type
     {ty : Term} (w : Nat) :
@@ -9127,7 +9104,7 @@ private theorem bvOr_nil_eq_zero_of_type
           Term.Stuck := by
       have hBoundFalse : ¬ native_nat_to_int w <= 4294967296 := by
         simpa [native_zleq] using hBound
-      simp [__eo_nil, __eo_nil_bvor, __eo_to_bin, hBound, hBoundFalse,
+      simp [__eo_nil, __eo_nil_bvor, __eo_to_bin, hBoundFalse,
         native_ite, native_zleq]
     exact False.elim (hNe hStuck)
 
@@ -9156,7 +9133,7 @@ private theorem bvXor_nil_eq_zero_of_type
           Term.Stuck := by
       have hBoundFalse : ¬ native_nat_to_int w <= 4294967296 := by
         simpa [native_zleq] using hBound
-      simp [__eo_nil, __eo_nil_bvxor, __eo_to_bin, hBound, hBoundFalse,
+      simp [__eo_nil, __eo_nil_bvxor, __eo_to_bin, hBoundFalse,
         native_ite, native_zleq]
     exact False.elim (hNe hStuck)
 
@@ -9678,7 +9655,7 @@ private theorem bvXor_get_elements_rec_ne_stuck
             bvEvalCanonicalWidth_ne_stuck hXCan
           have hYElemsNe : __eo_get_elements_rec y ≠ Term.Stuck :=
             ih hYList hYCan
-          simp [__eo_get_elements_rec, __eo_mk_apply, hXNe, hYElemsNe]
+          simp [__eo_get_elements_rec, __eo_mk_apply]
       | case3 nil hNil hNot =>
           simp [__eo_get_elements_rec]
 
@@ -9689,7 +9666,7 @@ private theorem bvXor_get_elements_xor_eq {x xs : Term} :
       Term.Apply (Term.Apply Term.__eo_List_cons x)
         (__eo_get_elements_rec xs) := by
   intro hX hXsNe
-  simp [mkBvXor, __eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+  simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem bvXor_get_elements_erase_rec_eq
     (M : SmtModel) (w : Nat) {c e : Term} :
@@ -9831,8 +9808,7 @@ private theorem bvXor_tail_minclude_of_cons_right
     intro hEq
     have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
       eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
-    simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
-      native_teq] at hInclRec
+    simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
   have hNotEqTerm :
       __eo_not (__eo_eq z (__eo_get_elements_rec c)) =
         Term.Boolean true := by
@@ -9924,8 +9900,7 @@ private theorem bvXor_raw_erase_changed_of_minclude_cons_right
   intro hEq
   have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
     eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
-  simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
-    native_teq] at hInclRec
+  simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
 
 private theorem raw_list_erase_rec_cons_eq
     (x xs e : Term) :
@@ -11099,8 +11074,7 @@ private theorem bvXor_get_a_norm_eval_canonical
     apply hANe
     dsimp [t, id, mkBvXor] at hIdStuck ⊢
     simp [__get_a_norm, __get_a_norm_rec, __eo_list_singleton_elim,
-      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
   have hIdEq :
       id = Term.Binary (native_nat_to_int w) 0 := by
     dsimp [id]
@@ -11168,8 +11142,7 @@ private theorem smt_value_rel_get_a_norm_bvxor
     apply hANe
     dsimp [t, id, mkBvXor] at hIdStuck ⊢
     simp [__get_a_norm, __get_a_norm_rec, __eo_list_singleton_elim,
-      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
   have hIdEq :
       id = Term.Binary (native_nat_to_int w) 0 := by
     dsimp [id]
@@ -11252,8 +11225,7 @@ private theorem bvXor_get_a_norm_list_canonical_of_type
         __get_a_norm (mkBvXor y x) = Term.Stuck := by
       dsimp [t, id, mkBvXor] at hIdStuck ⊢
       simp [__get_a_norm, __get_a_norm_rec, __eo_list_singleton_elim,
-        __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-        native_not, SmtEval.native_not]
+        __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
     rw [hAStuck] at hAList
     simp [__eo_is_list] at hAList
   have hIdEq :
@@ -11995,7 +11967,7 @@ private theorem bvOr_list_erase_all_rec_rel_eval
                 __eo_list_erase_all_rec (mkBvOr x y) x =
                   __eo_list_erase_all_rec y x := by
               simp [mkBvOr, __eo_list_erase_all_rec, __eo_prepend_if,
-                hEqTerm, __eo_not, native_not, SmtEval.native_not, hRecNe]
+                hEqTerm, __eo_not, native_not, SmtEval.native_not]
             rw [hEraseEq]
             have hYEval : BvEvalCanonicalWidth M w y :=
               bvOrListCanonical_eval M w y hYCan
@@ -12022,7 +11994,7 @@ private theorem bvOr_list_erase_all_rec_rel_eval
                 __eo_list_erase_all_rec (mkBvOr x y) e =
                   mkBvOr x (__eo_list_erase_all_rec y e) := by
               simp [mkBvOr, __eo_list_erase_all_rec, __eo_prepend_if,
-                hEqTerm, __eo_not, native_not, SmtEval.native_not, hRecNe]
+                hEqTerm, __eo_not, native_not, SmtEval.native_not]
             rw [hEraseEq]
             have hEraseCanEval :
                 BvEvalCanonicalWidth M w (__eo_list_erase_all_rec y e) :=
@@ -12358,7 +12330,7 @@ private theorem bvOr_get_elements_rec_ne_stuck
             bvEvalCanonicalWidth_ne_stuck hXCan
           have hYElemsNe : __eo_get_elements_rec y ≠ Term.Stuck :=
             ih hYList hYCan
-          simp [__eo_get_elements_rec, __eo_mk_apply, hXNe, hYElemsNe]
+          simp [__eo_get_elements_rec, __eo_mk_apply]
       | case3 nil hNil hNot =>
           simp [__eo_get_elements_rec]
 
@@ -12369,7 +12341,7 @@ private theorem bvOr_get_elements_or_eq {x xs : Term} :
       Term.Apply (Term.Apply Term.__eo_List_cons x)
         (__eo_get_elements_rec xs) := by
   intro hX hXsNe
-  simp [mkBvOr, __eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+  simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem bvOr_get_elements_erase_rec_eq
     (M : SmtModel) (w : Nat) {c e : Term} :
@@ -12520,8 +12492,7 @@ private theorem bvOr_absorbs_of_minclude_true
         intro hEq
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
           eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
-        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
-          native_teq] at hInclRec
+        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
       have hNotEqTerm :
           __eo_not (__eo_eq z (__eo_get_elements_rec c)) = Term.Boolean true := by
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
@@ -12746,7 +12717,7 @@ private theorem bvOr_list_setof_rec_rel_eval
               __eo_list_setof_rec (mkBvOr x y) =
                 mkBvOr x
                   (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := by
-            simp [mkBvOr, __eo_list_setof_rec, __eo_mk_apply, hEraseNe]
+            simp [mkBvOr, __eo_list_setof_rec, __eo_mk_apply]
           rw [hSetEq]
           have hSetCanEval :
               BvEvalCanonicalWidth M w (__eo_list_setof_rec y) :=
@@ -13104,14 +13075,14 @@ private theorem bvOr_erase_all_rec_flat_list
               eo_eq_eq_true_of_eq_local hEq hENe hXNe
             cases hTail : __eo_list_erase_all_rec y e <;>
               simp [__eo_list_erase_all_rec, __eo_prepend_if, hEqTerm,
-                __eo_not, native_not, native_ite, native_teq, hTail,
+                __eo_not, native_not, hTail,
                 BvOrFlatList] at hTailFlat ⊢
             all_goals simpa [BvOrFlatList] using hTailFlat
           · have hEqTerm : __eo_eq e x = Term.Boolean false :=
               eo_eq_eq_false_of_ne_local hEq hENe hXNe
             cases hTail : __eo_list_erase_all_rec y e <;>
               simp [__eo_list_erase_all_rec, __eo_prepend_if, hEqTerm,
-                __eo_not, native_not, native_ite, native_teq, hTail,
+                __eo_not, native_not, hTail,
                 BvOrFlatList] at hTailFlat ⊢
             all_goals first
               | exact ⟨hXFlat, by simpa [BvOrFlatList] using hTailFlat⟩
@@ -13120,7 +13091,7 @@ private theorem bvOr_erase_all_rec_flat_list
       | case4 nil e =>
           have hENe : e ≠ Term.Stuck := bvEvalCanonicalWidth_ne_stuck hECan
           cases e <;>
-            simp [BvOrFlatList, __eo_list_erase_all_rec] at hENe hCFlat ⊢
+            simp [__eo_list_erase_all_rec] at hENe hCFlat ⊢
           all_goals simpa [BvOrFlatList] using hCFlat
 
 private theorem bvOr_setof_rec_flat_list
@@ -13163,7 +13134,7 @@ private theorem bvOr_setof_rec_flat_list
               __eo_list_setof_rec (mkBvOr x y) =
                 mkBvOr x
                   (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := by
-            simp [mkBvOr, __eo_list_setof_rec, __eo_mk_apply, hEraseNe]
+            simp [mkBvOr, __eo_list_setof_rec, __eo_mk_apply]
           rw [hSetEq]
           exact ⟨hCFlat.1, hEraseFlat⟩
       | case3 nil _hNil _hNot =>
@@ -13424,8 +13395,7 @@ private theorem smt_value_rel_get_ai_norm_bvor
     apply hAINe
     dsimp [t, id, mkBvOr] at hIdStuck ⊢
     simp [__get_ai_norm, __get_ai_norm_rec, __eo_list_singleton_elim,
-      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
   have hIdEq :
       id = Term.Binary (native_nat_to_int w) 0 := by
     dsimp [id]
@@ -13510,8 +13480,7 @@ private theorem bvOr_get_ai_norm_list_canonical_of_type
     apply hAINe
     dsimp [t, id, mkBvOr] at hIdStuck ⊢
     simp [__get_ai_norm, __get_ai_norm_rec, __eo_list_singleton_elim,
-      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
   have hIdEq :
       id = Term.Binary (native_nat_to_int w) 0 := by
     dsimp [id]
@@ -13610,8 +13579,7 @@ private theorem smt_value_rel_get_ai_norm_bvand
     apply hAINe
     dsimp [t, id, mkBvAnd] at hIdStuck ⊢
     simp [__get_ai_norm, __get_ai_norm_rec, __eo_list_singleton_elim,
-      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
   have hIdEq :
       id =
         Term.Binary (native_nat_to_int w)
@@ -13703,8 +13671,7 @@ private theorem bvAnd_get_ai_norm_list_canonical_of_type
     apply hAINe
     dsimp [t, id, mkBvAnd] at hIdStuck ⊢
     simp [__get_ai_norm, __get_ai_norm_rec, __eo_list_singleton_elim,
-      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
   have hIdEq :
       id =
         Term.Binary (native_nat_to_int w)
@@ -14306,8 +14273,7 @@ private theorem native_binary_concat_assoc_mod_of_canonical
           native_int_pow2 w2 * native_int_pow2 w3 := by
       simpa [native_zplus] using native_int_pow2_add_of_nonneg hw2i hw3i
     simp [native_binary_concat, native_zplus, native_zmult, hp23,
-      Int.add_mul, Int.mul_assoc, Int.add_assoc, Int.add_comm,
-      Int.add_left_comm]
+      Int.add_mul, Int.mul_assoc, Int.add_assoc, Int.add_comm]
   have hPow :
       native_int_pow2 (native_zplus (native_zplus w1 w2) w3) =
         native_int_pow2 (native_zplus w1 (native_zplus w2 w3)) := by
@@ -14462,7 +14428,7 @@ private theorem eo_list_concat_rec_bvConcat_nil_eq_of_nil_true
       __eo_is_list_nil (Term.UOp UserOp.concat) nil = Term.Boolean true) :
     __eo_list_concat_rec nil z = z := by
   cases nil <;>
-    simp [__eo_is_list_nil, __eo_list_concat_rec] at hNil ⊢
+    simp [__eo_is_list_nil] at hNil ⊢
   case Binary w n =>
     cases z <;> rfl
 
@@ -15914,13 +15880,13 @@ private theorem eo_list_concat_rec_reConcat_nil_eq_of_nil_true
       __eo_is_list_nil (Term.UOp UserOp.re_concat) nil = Term.Boolean true) :
     __eo_list_concat_rec nil z = z := by
   cases nil <;>
-    simp [__eo_is_list_nil, __eo_list_concat_rec] at hNil ⊢
+    simp [__eo_is_list_nil] at hNil ⊢
   case Apply f x =>
     cases f
-    all_goals try simp [__eo_is_list_nil, __eo_list_concat_rec] at hNil ⊢
+    all_goals try simp  at hNil ⊢
     case UOp op =>
       cases op
-      all_goals try simp [__eo_is_list_nil] at hNil
+      all_goals try simp  at hNil
       all_goals try simp [__eo_list_concat_rec]
       case str_to_re =>
         cases x <;>
@@ -15937,13 +15903,13 @@ private theorem reConcat_nil_eval_empty_of_is_list_nil_true
   all_goals try contradiction
   case Apply f x =>
     cases f
-    all_goals try simp [__eo_is_list_nil] at hNil
+    all_goals try simp  at hNil
     case UOp op =>
       cases op
-      all_goals try simp [__eo_is_list_nil] at hNil
+      all_goals try simp  at hNil
       case str_to_re =>
         cases x
-        all_goals try simp [__eo_is_list_nil] at hNil
+        all_goals try simp  at hNil
         case String s =>
           by_cases hs : s = native_string_lit ""
           · subst s
@@ -15958,7 +15924,7 @@ private theorem reConcat_nil_eval_empty_of_is_list_nil_true
             | nil =>
                 exact False.elim (hs native_string_lit_empty.symm)
             | cons c cs =>
-                simp [__eo_is_list_nil] at hNil
+                simp  at hNil
 
 private theorem reConcat_list_concat_rec_rel_eval
     (M : SmtModel) :
@@ -16289,7 +16255,7 @@ private theorem smt_value_rel_get_a_norm_re_concat
   have hIdList :
       __eo_is_list (Term.UOp UserOp.re_concat) id = Term.Boolean true := by
     rw [hIdEq]
-    simp [mkReEps, __eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
+    simp [__eo_is_list, __eo_get_nil_rec, __eo_is_list_nil,
       __eo_requires, __eo_is_ok, native_teq, native_ite, native_not,
       SmtEval.native_not, native_string_lit_empty]
   have hIdEval :
@@ -16598,7 +16564,7 @@ private theorem reUnion_nil_eval_none_of_is_list_nil_true
   intro hNilTrue
   cases nil <;> simp [__eo_is_list_nil] at hNilTrue ⊢
   case UOp op =>
-    cases op <;> simp [__eo_is_list_nil] at hNilTrue ⊢
+    cases op <;> simp  at hNilTrue ⊢
     rw [__smtx_model_eval.eq_104]
 
 private theorem reUnion_list_concat_rec_rel_eval
@@ -16755,7 +16721,7 @@ private theorem reUnion_list_erase_all_rec_rel_eval
                 __eo_list_erase_all_rec (mkReUnion x y) x =
                   __eo_list_erase_all_rec y x := by
               simp [mkReUnion, __eo_list_erase_all_rec, __eo_prepend_if,
-                hEqTerm, __eo_not, native_not, SmtEval.native_not, hRecNe]
+                hEqTerm, __eo_not, native_not, SmtEval.native_not]
             rw [hEraseEq]
             rcases hXCan with ⟨rx, hxEval⟩
             rcases reUnionListCanonical_eval M y hYCan with
@@ -16781,7 +16747,7 @@ private theorem reUnion_list_erase_all_rec_rel_eval
                 __eo_list_erase_all_rec (mkReUnion x y) e =
                   mkReUnion x (__eo_list_erase_all_rec y e) := by
               simp [mkReUnion, __eo_list_erase_all_rec, __eo_prepend_if,
-                hEqTerm, __eo_not, native_not, SmtEval.native_not, hRecNe]
+                hEqTerm, __eo_not, native_not, SmtEval.native_not]
             rw [hEraseEq]
             have hEraseCanEval :
                 RegLanEval M (__eo_list_erase_all_rec y e) :=
@@ -16904,7 +16870,7 @@ private theorem reUnion_list_setof_rec_rel_eval
               __eo_list_setof_rec (mkReUnion x y) =
                 mkReUnion x
                   (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := by
-            simp [mkReUnion, __eo_list_setof_rec, __eo_mk_apply, hEraseNe]
+            simp [mkReUnion, __eo_list_setof_rec, __eo_mk_apply]
           rw [hSetEq]
           have hSetCanEval :
               RegLanEval M (__eo_list_setof_rec y) :=
@@ -17415,7 +17381,7 @@ private theorem reUnion_get_elements_rec_ne_stuck
           have hXNe : x ≠ Term.Stuck := regLanEval_ne_stuck hXCan
           have hYElemsNe : __eo_get_elements_rec y ≠ Term.Stuck :=
             ih hYList hYCan
-          simp [__eo_get_elements_rec, __eo_mk_apply, hXNe, hYElemsNe]
+          simp [__eo_get_elements_rec, __eo_mk_apply]
       | case3 nil hNil hNot =>
           simp [__eo_get_elements_rec]
 
@@ -17426,7 +17392,7 @@ private theorem reUnion_get_elements_union_eq {x xs : Term} :
       Term.Apply (Term.Apply Term.__eo_List_cons x)
         (__eo_get_elements_rec xs) := by
   intro hX hXsNe
-  simp [mkReUnion, __eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+  simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem reUnion_get_elements_erase_rec_eq
     (M : SmtModel) {c e : Term} :
@@ -17745,8 +17711,7 @@ private theorem reUnion_contains_of_minclude_true
         intro hEq
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
           eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
-        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
-          native_teq] at hInclRec
+        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
       have hNotEqTerm :
           __eo_not (__eo_eq z (__eo_get_elements_rec c)) = Term.Boolean true := by
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
@@ -18007,8 +17972,7 @@ private theorem smt_value_rel_get_ai_norm_re_union
     apply hAINe
     dsimp [t, id, mkReUnion] at hIdStuck ⊢
     simp [__get_ai_norm, __get_ai_norm_rec, __eo_list_singleton_elim,
-      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
   have hIdEq : id = Term.UOp UserOp.re_none := by
     dsimp [id]
     cases hTy : __eo_typeof t
@@ -18323,7 +18287,7 @@ private theorem reInter_nil_eval_all_of_is_list_nil_true
   intro hNilTrue
   cases nil <;> simp [__eo_is_list_nil] at hNilTrue ⊢
   case UOp op =>
-    cases op <;> simp [__eo_is_list_nil] at hNilTrue ⊢
+    cases op <;> simp  at hNilTrue ⊢
     rw [__smtx_model_eval.eq_105]
 
 private theorem reInter_list_concat_rec_rel_eval
@@ -18480,7 +18444,7 @@ private theorem reInter_list_erase_all_rec_rel_eval
                 __eo_list_erase_all_rec (mkReInter x y) x =
                   __eo_list_erase_all_rec y x := by
               simp [mkReInter, __eo_list_erase_all_rec, __eo_prepend_if,
-                hEqTerm, __eo_not, native_not, SmtEval.native_not, hRecNe]
+                hEqTerm, __eo_not, native_not, SmtEval.native_not]
             rw [hEraseEq]
             rcases hXCan with ⟨rx, hxEval⟩
             rcases reInterListCanonical_eval M y hYCan with
@@ -18506,7 +18470,7 @@ private theorem reInter_list_erase_all_rec_rel_eval
                 __eo_list_erase_all_rec (mkReInter x y) e =
                   mkReInter x (__eo_list_erase_all_rec y e) := by
               simp [mkReInter, __eo_list_erase_all_rec, __eo_prepend_if,
-                hEqTerm, __eo_not, native_not, SmtEval.native_not, hRecNe]
+                hEqTerm, __eo_not, native_not, SmtEval.native_not]
             rw [hEraseEq]
             have hEraseCanEval :
                 RegLanEval M (__eo_list_erase_all_rec y e) :=
@@ -18629,7 +18593,7 @@ private theorem reInter_list_setof_rec_rel_eval
               __eo_list_setof_rec (mkReInter x y) =
                 mkReInter x
                   (__eo_list_erase_all_rec (__eo_list_setof_rec y) x) := by
-            simp [mkReInter, __eo_list_setof_rec, __eo_mk_apply, hEraseNe]
+            simp [mkReInter, __eo_list_setof_rec, __eo_mk_apply]
           rw [hSetEq]
           have hSetCanEval :
               RegLanEval M (__eo_list_setof_rec y) :=
@@ -19140,7 +19104,7 @@ private theorem reInter_get_elements_rec_ne_stuck
           have hXNe : x ≠ Term.Stuck := regLanEval_ne_stuck hXCan
           have hYElemsNe : __eo_get_elements_rec y ≠ Term.Stuck :=
             ih hYList hYCan
-          simp [__eo_get_elements_rec, __eo_mk_apply, hXNe, hYElemsNe]
+          simp [__eo_get_elements_rec, __eo_mk_apply]
       | case3 nil hNil hNot =>
           simp [__eo_get_elements_rec]
 
@@ -19151,7 +19115,7 @@ private theorem reInter_get_elements_inter_eq {x xs : Term} :
       Term.Apply (Term.Apply Term.__eo_List_cons x)
         (__eo_get_elements_rec xs) := by
   intro hX hXsNe
-  simp [mkReInter, __eo_get_elements_rec, __eo_mk_apply, hX, hXsNe]
+  simp [__eo_get_elements_rec, __eo_mk_apply]
 
 private theorem reInter_get_elements_erase_rec_eq
     (M : SmtModel) {c e : Term} :
@@ -19468,8 +19432,7 @@ private theorem reInter_contains_of_minclude_true
         intro hEq
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean true :=
           eo_eq_eq_true_of_eq_local hEq hZNe hElemsCNe
-        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not,
-          native_teq] at hInclRec
+        simp [__eo_list_minclude_rec, hEqTerm, __eo_not, native_not] at hInclRec
       have hNotEqTerm :
           __eo_not (__eo_eq z (__eo_get_elements_rec c)) = Term.Boolean true := by
         have hEqTerm : __eo_eq z (__eo_get_elements_rec c) = Term.Boolean false :=
@@ -19729,8 +19692,7 @@ private theorem smt_value_rel_get_ai_norm_re_inter
     apply hAINe
     dsimp [t, id, mkReInter] at hIdStuck ⊢
     simp [__get_ai_norm, __get_ai_norm_rec, __eo_list_singleton_elim,
-      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq,
-      native_not, SmtEval.native_not]
+      __eo_is_list, __eo_requires, hIdStuck, native_ite, native_teq]
   have hIdEq : id = Term.UOp UserOp.re_all := by
     dsimp [id]
     cases hTy : __eo_typeof t
@@ -19894,7 +19856,7 @@ private theorem strConcat_get_a_norm_rec_rel_eval
                 dsimp [ry, rx, mkStrConcat]
                 simp [__get_a_norm_rec, __eo_eq, __eo_ite, native_ite,
                   native_teq, native_not, SmtEval.native_not,
-                  __eo_list_concat, __eo_requires, hIdNe, hYRec.1, hXRec.1]
+                  __eo_list_concat, __eo_requires, hYRec.1, hXRec.1]
               have hListConcat :
                   __eo_is_list (Term.UOp UserOp.str_concat)
                       (__eo_list_concat_rec ry rx) =
@@ -20011,8 +19973,7 @@ private theorem strConcat_singleton_elim_rel_eval
                 __eo_eq, native_teq] at hNil hTailNe
             case UOp1 op A =>
               cases op <;>
-                simp [__eo_is_list_nil, __eo_is_list_nil_str_concat,
-                  __eo_eq, native_teq] at hNil
+                simp  at hNil
       | _ =>
           simpa [__eo_list_singleton_elim_2] using
             RuleProofs.smt_value_rel_refl _
@@ -20226,15 +20187,15 @@ private theorem aciNormSpecialInput_of_normal_form_not_translation
   all_goals try exact False.elim (hNormNoTrans hTrans)
   case Apply f x =>
     cases f <;>
-      (try simp [aciNormSpecialInput, __get_aci_normal_form] at hNormNoTrans ⊢)
+      (try simp  at hNormNoTrans ⊢)
     all_goals try exact False.elim (hNormNoTrans hTrans)
     case Apply g y =>
       cases g <;>
-        (try simp [aciNormSpecialInput, __get_aci_normal_form] at hNormNoTrans ⊢)
+        (try simp  at hNormNoTrans ⊢)
       all_goals try exact False.elim (hNormNoTrans hTrans)
       case UOp op =>
         cases op <;>
-          (try simp [aciNormSpecialInput, __get_aci_normal_form] at hNormNoTrans ⊢)
+          (try simp  at hNormNoTrans ⊢)
         all_goals try exact False.elim (hNormNoTrans hTrans)
 
 private theorem smt_value_rel_of_aci_norm_eq_true_right_translation
@@ -20693,11 +20654,11 @@ private theorem smt_value_rel_of_bvxor_left_normal_form_eq_true
     simpa [leftPayload, mkBvXor, __get_aci_normal_form] using hLeftNF
   cases b <;> (try simp [aciNormSpecialInput] at hBSpecial)
   case Apply bf bx =>
-    cases bf <;> (try simp [aciNormSpecialInput] at hBSpecial)
+    cases bf <;> (try simp  at hBSpecial)
     case Apply bg byArg =>
-      cases bg <;> (try simp [aciNormSpecialInput] at hBSpecial)
+      cases bg <;> (try simp  at hBSpecial)
       case UOp bop =>
-        cases bop <;> (try simp [aciNormSpecialInput] at hBSpecial)
+        cases bop <;> (try simp  at hBSpecial)
         case or =>
           let rightPayload :=
             __get_ai_norm
@@ -21017,17 +20978,17 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
             hBTrans hBnfTrans
         cases a <;> (try simp [aciNormSpecialInput] at hASpecial)
         case neg.Apply af ax =>
-          cases af <;> (try simp [aciNormSpecialInput] at hASpecial)
+          cases af <;> (try simp  at hASpecial)
           case Apply ag ay =>
-            cases ag <;> (try simp [aciNormSpecialInput] at hASpecial)
+            cases ag <;> (try simp  at hASpecial)
             case UOp aop =>
-              cases aop <;> (try simp [aciNormSpecialInput] at hASpecial)
+              cases aop <;> (try simp  at hASpecial)
               case or =>
                 cases b <;> (try simp [aciNormSpecialInput] at hBSpecial)
                 case Apply bf bx =>
-                  cases bf <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                  cases bf <;> (try simp  at hBSpecial)
                   case Apply bg byArg =>
-                    cases bg <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                    cases bg <;> (try simp  at hBSpecial)
                     case UOp bop =>
                       let leftPayloadOr :=
                         __get_ai_norm
@@ -21065,7 +21026,7 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
                               leftPayloadOr := by
                         simpa [leftPayloadOr, __get_aci_normal_form] using
                           hLeftNFOr
-                      cases bop <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                      cases bop <;> (try simp  at hBSpecial)
                       case or =>
                         exact smt_value_rel_of_or_normal_forms_eq_true
                           M hM ay ax byArg bx hATrans hBTrans hEq
@@ -21410,9 +21371,9 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
               case and =>
                 cases b <;> (try simp [aciNormSpecialInput] at hBSpecial)
                 case Apply bf bx =>
-                  cases bf <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                  cases bf <;> (try simp  at hBSpecial)
                   case Apply bg byArg =>
-                    cases bg <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                    cases bg <;> (try simp  at hBSpecial)
                     case UOp bop =>
                       let leftPayloadAnd :=
                         __get_ai_norm
@@ -21450,7 +21411,7 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
                               leftPayloadAnd := by
                         simpa [leftPayloadAnd, __get_aci_normal_form] using
                           hLeftNFAnd
-                      cases bop <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                      cases bop <;> (try simp  at hBSpecial)
                       case or =>
                         let rightPayload :=
                           __get_ai_norm
@@ -21771,9 +21732,9 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
               case re_union =>
                 cases b <;> (try simp [aciNormSpecialInput] at hBSpecial)
                 case Apply bf bx =>
-                  cases bf <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                  cases bf <;> (try simp  at hBSpecial)
                   case Apply bg byArg =>
-                    cases bg <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                    cases bg <;> (try simp  at hBSpecial)
                     case UOp bop =>
                       let leftPayloadReUnion :=
                         __get_ai_norm (mkReUnion ay ax)
@@ -21820,7 +21781,7 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
                               leftPayloadReUnion := by
                         simpa [leftPayloadReUnion, mkReUnion,
                           __get_aci_normal_form] using hLeftNFReUnion
-                      cases bop <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                      cases bop <;> (try simp  at hBSpecial)
                       case or =>
                         let rightPayload :=
                           __get_ai_norm
@@ -22148,9 +22109,9 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
               case re_inter =>
                 cases b <;> (try simp [aciNormSpecialInput] at hBSpecial)
                 case Apply bf bx =>
-                  cases bf <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                  cases bf <;> (try simp  at hBSpecial)
                   case Apply bg byArg =>
-                    cases bg <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                    cases bg <;> (try simp  at hBSpecial)
                     case UOp bop =>
                       let leftPayloadReInter :=
                         __get_ai_norm (mkReInter ay ax)
@@ -22197,7 +22158,7 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
                               leftPayloadReInter := by
                         simpa [leftPayloadReInter, mkReInter,
                           __get_aci_normal_form] using hLeftNFReInter
-                      cases bop <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                      cases bop <;> (try simp  at hBSpecial)
                       case or =>
                         let rightPayload :=
                           __get_ai_norm
@@ -22525,9 +22486,9 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
               case bvor =>
                 cases b <;> (try simp [aciNormSpecialInput] at hBSpecial)
                 case Apply bf bx =>
-                  cases bf <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                  cases bf <;> (try simp  at hBSpecial)
                   case Apply bg byArg =>
-                    cases bg <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                    cases bg <;> (try simp  at hBSpecial)
                     case UOp bop =>
                       let leftPayloadBvOr :=
                         __get_ai_norm (mkBvOr ay ax)
@@ -22573,7 +22534,7 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
                               leftPayloadBvOr := by
                         simpa [leftPayloadBvOr, mkBvOr,
                           __get_aci_normal_form] using hLeftNFBvOr
-                      cases bop <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                      cases bop <;> (try simp  at hBSpecial)
                       case or =>
                         let rightPayload :=
                           __get_ai_norm
@@ -22885,9 +22846,9 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
               case bvand =>
                 cases b <;> (try simp [aciNormSpecialInput] at hBSpecial)
                 case Apply bf bx =>
-                  cases bf <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                  cases bf <;> (try simp  at hBSpecial)
                   case Apply bg byArg =>
-                    cases bg <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                    cases bg <;> (try simp  at hBSpecial)
                     case UOp bop =>
                       let leftPayloadBvAnd :=
                         __get_ai_norm (mkBvAnd ay ax)
@@ -22933,7 +22894,7 @@ private theorem smt_value_rel_of_aci_norm_eq_true_normal_forms
                               leftPayloadBvAnd := by
                         simpa [leftPayloadBvAnd, mkBvAnd,
                           __get_aci_normal_form] using hLeftNFBvAnd
-                      cases bop <;> (try simp [aciNormSpecialInput] at hBSpecial)
+                      cases bop <;> (try simp  at hBSpecial)
                       case or =>
                         let rightPayload :=
                           __get_ai_norm
@@ -23341,7 +23302,7 @@ private theorem smt_value_rel_get_aci_normal_form_payload
     case Apply g y =>
       cases g <;> try exact RuleProofs.smt_value_rel_refl _
       case UOp op =>
-        cases op <;> simp [__get_aci_normal_form] <;>
+        cases op <;> simp  <;>
           try exact RuleProofs.smt_value_rel_refl _
         case or =>
           change RuleProofs.smt_value_rel
@@ -23547,7 +23508,7 @@ private theorem smt_value_rel_of_aci_norm_guard_true
     cases left
     · cases hRight : __aci_norm_eq (__get_aci_normal_form b) a
       all_goals
-        simp [aciNormGuard, __eo_ite, native_teq, hLeft, hRight] at hGuard
+        simp [hRight] at hGuard
       case Boolean right =>
         cases right
         · have hNFARel :=
