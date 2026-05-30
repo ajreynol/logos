@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem native_string_lit_empty :
@@ -124,7 +123,7 @@ private theorem native_unpack_string_pack_concat
         (native_pack_seq T (native_seq_concat (native_unpack_seq ss1) (native_unpack_seq ss2))) =
       native_unpack_string ss1 ++ native_unpack_string ss2 := by
   simp [native_unpack_string, native_seq_concat,
-    native_unpack_seq_pack, List.map_append, String.ofList_append]
+    native_unpack_seq_pack, List.map_append]
 
 private theorem facts_str_in_re_concat
     (M : SmtModel) (s r accS accR : Term)
@@ -164,7 +163,7 @@ private theorem facts_str_in_re_concat
                       cases haccR : __smtx_model_eval M (__eo_to_smt accR) with
                       | RegLan accRr =>
                           simp [haccS, haccR, __smtx_model_eval_str_in_re] at hEvalAcc
-                          simp [hs, hr, haccS, haccR, __smtx_model_eval_str_concat,
+                          simp [__smtx_model_eval_str_concat,
                             __smtx_model_eval_re_concat, __smtx_model_eval_str_in_re,
                             native_unpack_string_pack_concat,
                             RuleProofs.native_str_in_re_re_concat_intro _ _ _ _

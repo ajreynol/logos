@@ -54,15 +54,15 @@ theorem eo_typeof_store_not_stuck_implies_array (A I E : Term)
                           I = y ∧ E = x :=
                         eqs_of_requires_and_eq_true_not_stuck y x I E
                           (Term.Apply (Term.Apply Term.Array y) x) hReq
-                      simpa [hEqs.1, hEqs.2]
+                      simp [hEqs.1, hEqs.2]
                   | _ =>
-                      simp [__eo_typeof_store, hI, hE] at h
+                      simp [__eo_typeof_store] at h
               | _ =>
-                  simp [__eo_typeof_store, hI, hE] at h
+                  simp [__eo_typeof_store] at h
           | _ =>
-              simp [__eo_typeof_store, hI, hE] at h
+              simp [__eo_typeof_store] at h
       | _ =>
-          simp [__eo_typeof_store, hI, hE] at h
+          simp [__eo_typeof_store] at h
 
 theorem eo_typeof_select_not_stuck_implies_array (A I : Term)
     (h : __eo_typeof_select A I ≠ Term.Stuck) :
@@ -83,15 +83,15 @@ theorem eo_typeof_select_not_stuck_implies_array (A I : Term)
                       simpa [__eo_typeof_select, hI] using h
                     have hEq : I = y :=
                       eq_of_requires_eq_true_not_stuck y I x hReq
-                    exact ⟨x, by simpa [hEq]⟩
+                    exact ⟨x, by simp [hEq]⟩
                 | _ =>
-                    simp [__eo_typeof_select, hI] at h
+                    simp [__eo_typeof_select] at h
             | _ =>
-                simp [__eo_typeof_select, hI] at h
+                simp [__eo_typeof_select] at h
         | _ =>
-            simp [__eo_typeof_select, hI] at h
+            simp [__eo_typeof_select] at h
     | _ =>
-        simp [__eo_typeof_select, hI] at h
+        simp [__eo_typeof_select] at h
 
 theorem smt_value_rel_map_of_lookup_eq
     (m1 m2 : SmtMap)

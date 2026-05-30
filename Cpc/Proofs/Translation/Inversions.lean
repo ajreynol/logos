@@ -1926,9 +1926,9 @@ theorem eo_to_smt_type_eq_datatype_non_tuple
                             simp at hRaw
                   · cases d0 with
                     | null =>
-                        simp [__eo_to_smt_type_tuple, hs0] at hRaw
+                        simp at hRaw
                     | sum c rest =>
-                        cases rest <;> simp [__eo_to_smt_type_tuple, hs0] at hRaw
+                        cases rest <;> simp [hs0] at hRaw
           | FunType =>
               cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                 simp [__smtx_typeof_guard, native_ite, native_Teq, hy, hx] at h
@@ -2010,9 +2010,9 @@ theorem eo_to_smt_type_eq_tuple_datatype
                             · simp [hComp] at hRaw
                   · cases d0 with
                     | null =>
-                        simp [__eo_to_smt_type_tuple, hs0] at hRaw
+                        simp at hRaw
                     | sum c rest =>
-                        cases rest <;> simp [__eo_to_smt_type_tuple, hs0] at hRaw
+                        cases rest <;> simp [hs0] at hRaw
           | FunType =>
               cases hy : __eo_to_smt_type y <;> cases hx : __eo_to_smt_type x <;>
                 simp [__eo_to_smt_type, __smtx_typeof_guard,

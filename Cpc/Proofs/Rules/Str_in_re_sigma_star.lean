@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -29,15 +28,283 @@ private theorem nativeSigmaPrefix_succ_ne_epsilon (n : Nat) :
     nativeSigmaPrefix (n + 1) ≠ SmtRegLan.epsilon := by
   cases n <;> simp [nativeSigmaPrefix, native_re_allchar]
 
-private axiom nativeListInRe_sigmaPrefix_true_iff :
+private theorem native_re_mk_concat_allchar_sigmaPrefix_succ (n : Nat) :
+    native_re_mk_concat native_re_allchar (nativeSigmaPrefix (n + 1)) =
+      SmtRegLan.concat native_re_allchar (nativeSigmaPrefix (n + 1)) := by
+  cases n <;> simp [native_re_mk_concat, nativeSigmaPrefix, native_re_allchar]
+
+private theorem nativeListInRe_sigmaPrefix_true_iff :
     (n : Nat) -> (xs : List native_Char) ->
       nativeListInRe xs (nativeSigmaPrefix n) = true <->
         xs.length = n ∧ native_string_valid xs = true
+  | 0, xs => by
+      cases xs with
+      | nil =>
+          simp [nativeSigmaPrefix, nativeListInRe, native_re_nullable,
+            native_string_valid]
+      | cons _ cs =>
+          simpa [nativeSigmaPrefix, nativeListInRe, native_re_nullable,
+            native_re_deriv, native_string_valid] using nativeListInRe_empty cs
+  | n + 1, xs => by
+      cases n with
+      | zero =>
+          constructor
+          · intro h
+            have hParts :
+                xs.length = 1 ∧ xs.all native_char_valid = true :=
+              (nativeListInRe_allchar_true_iff xs).1
+                (by simpa [nativeSigmaPrefix] using h)
+            exact ⟨hParts.1, by simpa [native_string_valid] using hParts.2⟩
+          · intro hParts
+            rcases hParts with ⟨hLen, hValid⟩
+            have hAll : xs.all native_char_valid = true := by
+              simpa [native_string_valid] using hValid
+            have hAllchar : nativeListInRe xs native_re_allchar = true :=
+              (nativeListInRe_allchar_true_iff xs).2 ⟨hLen, hAll⟩
+            simpa [nativeSigmaPrefix] using hAllchar
+      | succ n =>
+          constructor
+          · intro h
+            have hMk := native_re_mk_concat_allchar_sigmaPrefix_succ n
+            have hConcat :
+                nativeListInRe xs
+                    (native_re_mk_concat native_re_allchar
+                      (nativeSigmaPrefix (n + 1))) =
+                  true := by
+              simpa [nativeSigmaPrefix, hMk] using h
+            rcases (nativeListInRe_mk_concat_true_iff_exists_append xs
+                native_re_allchar (nativeSigmaPrefix (n + 1))).1 hConcat with
+              ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+            have hLeftParts :
+                xs₁.length = 1 ∧ xs₁.all native_char_valid = true :=
+              (nativeListInRe_allchar_true_iff xs₁).1 hLeft
+            have hRightParts :
+                xs₂.length = n + 1 ∧ native_string_valid xs₂ = true :=
+              (nativeListInRe_sigmaPrefix_true_iff (n + 1) xs₂).1 hRight
+            have hLenEq := congrArg List.length hAppend
+            have hValid : native_string_valid xs = true := by
+              have hRightAll : xs₂.all native_char_valid = true := by
+                simpa [native_string_valid] using hRightParts.2
+              rw [← hAppend]
+              simp [native_string_valid, List.all_append, hLeftParts.2, hRightAll]
+            simp [hLeftParts.1, hRightParts.1] at hLenEq
+            exact ⟨by omega, hValid⟩
+          · intro hParts
+            rcases hParts with ⟨hLen, hValid⟩
+            let xs₁ := xs.take 1
+            let xs₂ := xs.drop 1
+            have hLeftLen : xs₁.length = 1 := by
+              simp [xs₁]
+              omega
+            have hRightLen : xs₂.length = n + 1 := by
+              simp [xs₂]
+              omega
+            have hAppend : xs₁ ++ xs₂ = xs := by
+              simpa [xs₁, xs₂] using (List.take_append_drop 1 xs)
+            have hValidAppend : (xs₁ ++ xs₂).all native_char_valid = true := by
+              simpa [native_string_valid, hAppend] using hValid
+            rw [List.all_append] at hValidAppend
+            have hValidParts :
+                xs₁.all native_char_valid = true ∧
+                  xs₂.all native_char_valid = true := by
+              simpa [Bool.and_eq_true] using hValidAppend
+            have hLeft : nativeListInRe xs₁ native_re_allchar = true :=
+              (nativeListInRe_allchar_true_iff xs₁).2
+                ⟨hLeftLen, hValidParts.1⟩
+            have hRight :
+                nativeListInRe xs₂ (nativeSigmaPrefix (n + 1)) = true :=
+              (nativeListInRe_sigmaPrefix_true_iff (n + 1) xs₂).2
+                ⟨hRightLen, by simpa [native_string_valid] using hValidParts.2⟩
+            have hConcat :
+                nativeListInRe xs
+                    (native_re_mk_concat native_re_allchar
+                      (nativeSigmaPrefix (n + 1))) =
+                  true :=
+              (nativeListInRe_mk_concat_true_iff_exists_append xs
+                native_re_allchar (nativeSigmaPrefix (n + 1))).2
+                ⟨xs₁, xs₂, hAppend, hLeft, hRight⟩
+            have hMk := native_re_mk_concat_allchar_sigmaPrefix_succ n
+            simpa [nativeSigmaPrefix, hMk] using hConcat
 
-private axiom nativeListInRe_sigmaPrefixStar_true_iff_dvd
-    (n : Nat) (hn : n ≠ 0) (xs : List native_Char) :
+private theorem native_re_mult_sigmaPrefix_eq_star
+    (n : Nat) (hn : n ≠ 0) :
+    native_re_mult (nativeSigmaPrefix n) =
+      SmtRegLan.star (nativeSigmaPrefix n) := by
+  cases n with
+  | zero => exact False.elim (hn rfl)
+  | succ n =>
+      cases n <;> simp [native_re_mult, native_re_mk_star, nativeSigmaPrefix,
+        native_re_allchar]
+
+private theorem nativeListInRe_star_append_intro (r : native_RegLan) :
+    (xs ys : List native_Char) ->
+      nativeListInRe xs r = true ->
+      nativeListInRe ys (SmtRegLan.star r) = true ->
+      nativeListInRe (xs ++ ys) (SmtRegLan.star r) = true
+  | [], ys, _hLeft, hRight => by
+      simpa using hRight
+  | c :: cs, ys, hLeft, hRight => by
+      change
+        nativeListInRe (cs ++ ys)
+            (native_re_mk_concat (native_re_deriv c r) (SmtRegLan.star r)) =
+          true
+      exact (nativeListInRe_mk_concat_true_iff_exists_append (cs ++ ys)
+          (native_re_deriv c r) (SmtRegLan.star r)).2
+        ⟨cs, ys, rfl, by simpa [nativeListInRe] using hLeft, hRight⟩
+
+private theorem nativeListInRe_sigmaPrefixStar_true_iff_dvd
+    (n : Nat) (hn : n ≠ 0) :
+    (xs : List native_Char) ->
     nativeListInRe xs (native_re_mult (nativeSigmaPrefix n)) = true <->
       n ∣ xs.length ∧ native_string_valid xs = true
+  | [] => by
+      have hStar := native_re_mult_sigmaPrefix_eq_star n hn
+      constructor
+      · intro _h
+        exact ⟨⟨0, by simp⟩, by simp [native_string_valid]⟩
+      · intro _h
+        rw [hStar]
+        simp [nativeListInRe, native_re_nullable]
+  | c :: cs => by
+      have hStar := native_re_mult_sigmaPrefix_eq_star n hn
+      constructor
+      · intro h
+        have hRaw :
+            nativeListInRe (c :: cs)
+                (SmtRegLan.star (nativeSigmaPrefix n)) =
+              true := by
+          simpa [hStar] using h
+        change
+          nativeListInRe cs
+              (native_re_mk_concat
+                (native_re_deriv c (nativeSigmaPrefix n))
+                (SmtRegLan.star (nativeSigmaPrefix n))) =
+            true at hRaw
+        rcases (nativeListInRe_mk_concat_true_iff_exists_append cs
+            (native_re_deriv c (nativeSigmaPrefix n))
+            (SmtRegLan.star (nativeSigmaPrefix n))).1 hRaw with
+          ⟨left, right, hAppend, hLeft, hRight⟩
+        have hPrefix :
+            nativeListInRe (c :: left) (nativeSigmaPrefix n) = true := by
+          simpa [nativeListInRe] using hLeft
+        have hPrefixParts :
+            (c :: left).length = n ∧
+              native_string_valid (c :: left) = true :=
+          (nativeListInRe_sigmaPrefix_true_iff n (c :: left)).1 hPrefix
+        have hRightStar :
+            nativeListInRe right (native_re_mult (nativeSigmaPrefix n)) =
+              true := by
+          simpa [hStar] using hRight
+        have hRightLt : right.length < (c :: cs).length := by
+          have hAppendLen := congrArg List.length hAppend
+          simp at hAppendLen hPrefixParts ⊢
+          omega
+        have hRightParts :
+            n ∣ right.length ∧ native_string_valid right = true :=
+          (nativeListInRe_sigmaPrefixStar_true_iff_dvd n hn right).1 hRightStar
+        constructor
+        · rcases hRightParts.1 with ⟨q, hq⟩
+          have hDecomp : c :: cs = (c :: left) ++ right := by
+            simp [hAppend]
+          have hLenTotal : (c :: cs).length = n + right.length := by
+            have hAppendLen := congrArg List.length hAppend
+            have hLeftLen : left.length + 1 = n := by
+              simpa using hPrefixParts.1
+            simp at hAppendLen ⊢
+            omega
+          refine ⟨q + 1, ?_⟩
+          calc
+            (c :: cs).length = n + right.length := hLenTotal
+            _ = n + n * q := by rw [hq]
+            _ = n * (q + 1) := by
+              rw [Nat.mul_succ]
+              omega
+        · have hDecomp : c :: cs = (c :: left) ++ right := by
+            simp [hAppend]
+          have hPrefixAll :
+              (c :: left).all native_char_valid = true := by
+            simpa [native_string_valid] using hPrefixParts.2
+          have hRightAll : right.all native_char_valid = true := by
+            simpa [native_string_valid] using hRightParts.2
+          have hAll : ((c :: left) ++ right).all native_char_valid = true := by
+            rw [List.all_append]
+            simp [hPrefixAll, hRightAll]
+          rw [hDecomp]
+          simpa [native_string_valid] using hAll
+      · intro hParts
+        rcases hParts with ⟨hDvd, hValid⟩
+        rcases hDvd with ⟨q, hq⟩
+        cases q with
+        | zero =>
+            have hZero : (c :: cs).length = 0 := by
+              simpa using hq
+            simp at hZero
+        | succ q =>
+            let xs₁ := (c :: cs).take n
+            let xs₂ := (c :: cs).drop n
+            have hnPos : 0 < n := Nat.pos_of_ne_zero hn
+            have hNLe : n ≤ (c :: cs).length := by
+              rw [hq, Nat.mul_succ]
+              omega
+            have hLeftLen : xs₁.length = n := by
+              have hMin : min n (c :: cs).length = n := Nat.min_eq_left hNLe
+              simpa [xs₁] using hMin
+            have hRightLen : xs₂.length = n * q := by
+              have hDrop : xs₂.length = (c :: cs).length - n := by
+                simpa [xs₂] using (List.length_drop n (c :: cs))
+              calc
+                xs₂.length = (c :: cs).length - n := hDrop
+                _ = n * (q + 1) - n := by rw [hq]
+                _ = n * q := by
+                  rw [Nat.mul_succ]
+                  omega
+            have hAppend : xs₁ ++ xs₂ = c :: cs := by
+              simpa [xs₁, xs₂] using (List.take_append_drop n (c :: cs))
+            have hValidAppend :
+                (xs₁ ++ xs₂).all native_char_valid = true := by
+              simpa [native_string_valid, hAppend] using hValid
+            rw [List.all_append] at hValidAppend
+            have hValidParts :
+                xs₁.all native_char_valid = true ∧
+                  xs₂.all native_char_valid = true := by
+              simpa [Bool.and_eq_true] using hValidAppend
+            have hLeft :
+                nativeListInRe xs₁ (nativeSigmaPrefix n) = true :=
+              (nativeListInRe_sigmaPrefix_true_iff n xs₁).2
+                ⟨hLeftLen,
+                  by simpa [native_string_valid] using hValidParts.1⟩
+            have hRightLt : xs₂.length < (c :: cs).length := by
+              rw [hRightLen, hq, Nat.mul_succ]
+              omega
+            have hRightStar :
+                nativeListInRe xs₂
+                    (native_re_mult (nativeSigmaPrefix n)) =
+                  true :=
+              (nativeListInRe_sigmaPrefixStar_true_iff_dvd n hn xs₂).2
+                ⟨⟨q, hRightLen⟩,
+                  by simpa [native_string_valid] using hValidParts.2⟩
+            have hRightRaw :
+                nativeListInRe xs₂
+                    (SmtRegLan.star (nativeSigmaPrefix n)) =
+                  true := by
+              simpa [hStar] using hRightStar
+            have hCombinedRaw :
+                nativeListInRe (xs₁ ++ xs₂)
+                    (SmtRegLan.star (nativeSigmaPrefix n)) =
+                  true :=
+              nativeListInRe_star_append_intro (nativeSigmaPrefix n)
+                xs₁ xs₂ hLeft hRightRaw
+            have hCombined :
+                nativeListInRe (xs₁ ++ xs₂)
+                    (native_re_mult (nativeSigmaPrefix n)) =
+                  true := by
+              rw [hStar]
+              exact hCombinedRaw
+            simpa [hAppend] using hCombined
+termination_by xs => xs.length
+decreasing_by
+  all_goals
+    omega
 
 private theorem nativeListInRe_sigmaPrefixStar_eq_int_mod
     (n : Nat) (hn : n ≠ 0) (xs : List native_Char)
@@ -87,7 +354,7 @@ private theorem str_in_re_sigma_star_rec_empty_ne_zero
   cases hs : s <;>
     first | exact False.elim (hSNe hs) |
       simp [__str_mk_str_in_re_sigma_star_rec, __eo_requires, __eo_eq,
-        native_teq, native_ite, native_not, SmtEval.native_not,
+        native_teq, native_ite,
         native_string_lit_empty]
 
 private theorem str_in_re_sigma_star_rec_empty_eq
@@ -111,7 +378,7 @@ private theorem str_in_re_sigma_star_rec_empty_eq
   cases hs : s <;>
     first | exact False.elim (hSNe hs) |
       (simp [__str_mk_str_in_re_sigma_star_rec, __eo_requires, __eo_eq,
-        native_teq, native_ite, native_not, hnInt, hZeroNe, SmtEval.native_not,
+        native_teq, native_ite, native_not, SmtEval.native_not,
         native_string_lit_empty]
        exact hZeroNe)
 
@@ -125,7 +392,7 @@ private theorem str_in_re_sigma_star_rec_str_to_re_nonempty_eq_stuck
   have hStrNil : str ≠ ([] : native_String) := by
     simpa [native_string_lit_empty] using hStr
   cases s <;> unfold __str_mk_str_in_re_sigma_star_rec <;>
-    simp [hStrNil, native_string_lit_empty]
+    simp [hStrNil]
 
 private theorem str_in_re_sigma_star_rec_allchar_eq
     (s r : Term) (n : Nat) (hSNe : s ≠ Term.Stuck) :
@@ -197,9 +464,9 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                       exact hn (Int.ofNat_eq_zero.mp hZero)
                     simp [__smtx_model_eval_eq, __smtx_model_eval_mod_total,
                       __smtx_model_eval_str_len, __smtx_model_eval_ite,
-                      native_veq, native_zeq, native_mod_total, hnInt,
+                      native_veq, native_mod_total,
                       native_seq_len, native_unpack_string_length_eq,
-                      native_unpack_string_strlen_eq, hn]
+                      hn]
                   · exfalso
                     apply hSide
                     exact str_in_re_sigma_star_rec_str_to_re_nonempty_eq_stuck
@@ -251,8 +518,7 @@ private theorem smtx_model_eval_str_in_re_sigma_star_rec
                                     have hNeEmpty := nativeSigmaPrefix_succ_ne_empty m
                                     have hNeEps := nativeSigmaPrefix_succ_ne_epsilon m
                                     simp [native_re_concat, nativeSigmaPrefix,
-                                      native_re_mk_concat, native_re_allchar,
-                                      hNeEmpty, hNeEps]
+                                      native_re_mk_concat, native_re_allchar]
                               · omega
                               · rw [str_in_re_sigma_star_rec_allchar_eq s x n hSNe]
                                 have hTotal :
@@ -408,7 +674,7 @@ private theorem smtx_model_eval_str_in_re_eq_sigma_star_side
   have hm : m ≠ 0 := by
     simpa using hMNe
   simp only [__smtx_model_eval_re_mult, __smtx_model_eval_str_in_re]
-  simp [native_str_in_re, hSSValid, nativeListInRe]
+  simp [native_str_in_re, hSSValid]
   simpa [nativeListInRe] using
     nativeListInRe_sigmaPrefixStar_eq_int_mod m hm (native_unpack_string ss)
       hSSValid

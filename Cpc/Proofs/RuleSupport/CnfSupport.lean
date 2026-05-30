@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -763,7 +762,7 @@ private theorem is_list_true_of_get_nil_rec_ne_stuck {f x : Term} :
     intro hX
     subst hX
     simpa [__eo_get_nil_rec] using hRec
-  simp [__eo_is_list, hF, hX, is_ok_true_of_ne_stuck hRec]
+  simp [__eo_is_list, is_ok_true_of_ne_stuck hRec]
 
 /-- Structural characterization of EO `and`-lists. -/
 inductive AndList : Term -> Prop where
@@ -783,8 +782,8 @@ private theorem andList_of_is_list_true {c : Term} :
   intro hList
   cases c with
   | Stuck =>
-      simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, native_teq, native_not,
-        SmtEval.native_not] at hList
+      simp [__eo_is_list
+        ] at hList
   | Boolean b =>
       cases b with
       | true =>
@@ -809,11 +808,11 @@ private theorem andList_of_is_list_true {c : Term} :
                     (andList_of_is_list_true (is_list_true_of_get_nil_rec_ne_stuck hList))
               | _ =>
                   simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
-                    __eo_is_list_nil, native_ite, native_teq, native_not,
+                    native_ite, native_teq, native_not,
                     SmtEval.native_not] at hList
           | _ =>
               simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
-                __eo_is_list_nil, native_ite, native_teq, native_not,
+                native_ite, native_teq, native_not,
                 SmtEval.native_not] at hList
       | _ =>
           simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
@@ -967,8 +966,8 @@ private theorem orList_of_is_list_true {c : Term} :
   intro hList
   cases c with
   | Stuck =>
-      simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, native_teq, native_not,
-        SmtEval.native_not] at hList
+      simp [__eo_is_list
+        ] at hList
   | Boolean b =>
       cases b with
       | false =>
@@ -993,11 +992,11 @@ private theorem orList_of_is_list_true {c : Term} :
                     (orList_of_is_list_true (is_list_true_of_get_nil_rec_ne_stuck hList))
               | _ =>
                   simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
-                    __eo_is_list_nil, native_ite, native_teq, native_not,
+                    native_ite, native_teq, native_not,
                     SmtEval.native_not] at hList
           | _ =>
               simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
-                __eo_is_list_nil, native_ite, native_teq, native_not,
+                native_ite, native_teq, native_not,
                 SmtEval.native_not] at hList
       | _ =>
           simp [__eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
@@ -1044,11 +1043,11 @@ private theorem list_nth_nonstuck_is_list_true {f c i : Term} :
       | true =>
           rfl
       | false =>
-          simp [__eo_list_nth, __eo_requires, hIs, native_ite, native_teq, native_not,
-            SmtEval.native_not] at hNth
+          simp [__eo_list_nth, __eo_requires, hIs, native_ite, native_teq
+            ] at hNth
   | _ =>
-      simp [__eo_list_nth, __eo_requires, hIs, native_ite, native_teq, native_not,
-        SmtEval.native_not] at hNth
+      simp [__eo_list_nth, __eo_requires, hIs, native_ite, native_teq
+        ] at hNth
 
 /-- A non-stuck `and`-list selection implies the list structure is valid. -/
 theorem andList_of_list_nth_ne_stuck {c i : Term} :
@@ -1078,7 +1077,7 @@ private theorem list_nth_rec_cons_ne_zero
       by_cases hN : n = 0
       · subst hN
         exact False.elim (hZero rfl)
-      · simp [__eo_list_nth_rec, hN]
+      · simp [__eo_list_nth_rec]
   | _ =>
       simp [__eo_list_nth_rec]
 

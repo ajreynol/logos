@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -214,9 +213,9 @@ private theorem requires_rational_bool_result {x r : Term} {q : Rat} {out : Bool
   case Rational q' =>
     by_cases hq : q' = q
     · subst q'
-      simp [__eo_requires, native_ite, native_teq, native_not] at h
+      simp at h
       exact ⟨rfl, h⟩
-    · simp [__eo_requires, native_ite, native_teq, native_not, hq] at h
+    · simp [hq] at h
 
 private theorem smtValuePos_of_gt_zero
     (M : SmtModel) (t z : Term)
@@ -489,7 +488,7 @@ private theorem eo_eq_pair_bool
     (ht : t ≠ Term.Stuck) (ha : a ≠ Term.Stuck) (hb : b ≠ Term.Stuck) :
     ∃ c, __eo_and (__eo_eq t a) (__eo_eq t b) = Term.Boolean c := by
   unfold __eo_eq
-  simp [ht, ha, hb, native_teq, __eo_and, native_and]
+  simp [native_teq, __eo_and, native_and]
 
 private theorem signMatches_pos_factor
     (M : SmtModel) (hM : model_total_typed M) (acc out : Bool) (x y : Term)
@@ -1322,8 +1321,7 @@ private theorem arith_zero_rel_arg_type_of_typeof_bool
       native_teq, native_not, SmtEval.native_not] at hTy
   case UOp op =>
     cases op <;>
-      simp [__eo_typeof_lt, __eo_requires, __is_arith_type, __eo_eq, native_ite,
-        native_teq, native_not, SmtEval.native_not] at hTy
+      simp at hTy
     · exact Or.inl rfl
     · exact Or.inr rfl
 
@@ -1456,7 +1454,7 @@ by
                         intro hZero
                         apply hProg
                         cases out <;>
-                          simp [__eo_prog_arith_mult_sign, hFNe, hMNe, __eo_ite,
+                          simp [__eo_prog_arith_mult_sign,__eo_ite,
                             __eo_mk_apply, hSgn, hZero, native_ite, native_teq]
                       have hTypeImp :
                           __eo_typeof (Term.Apply (Term.Apply (Term.UOp UserOp.imp) F) rel) =
@@ -1514,5 +1512,5 @@ by
                           hProgBool
                   | _ =>
                       exact False.elim (hProg (by
-                        simp [__eo_prog_arith_mult_sign, hFNe, hMNe, __eo_ite,
+                        simp [__eo_prog_arith_mult_sign,__eo_ite,
                           __eo_mk_apply, hSgn, native_ite, native_teq]))

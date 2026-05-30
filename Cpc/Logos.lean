@@ -3241,7 +3241,7 @@ def __str_eval_replace_re_all_rec : Term -> Term -> Term -> Term -> Term -> Term
 
 
 def __eo_prog_str_replace_re_all_eval : Term -> Term
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) s) r) t)) u) => (__eo_requires (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__str_eval_replace_re_all_rec (__str_flatten (__str_nary_intro s)) (Term.String []) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) (Term.Apply (Term.UOp UserOp.re_comp) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (Term.UOp UserOp.re_all))) t (Term.Numeral 0))) u (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) s) r) t)) u))
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) s) r) t)) u) => (__eo_requires (__eo_list_singleton_elim (Term.UOp UserOp.str_concat) (__eo_requires (__eo_is_str s) (Term.Boolean true) (__str_eval_replace_re_all_rec (__str_flatten (__str_nary_intro s)) (Term.String []) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) r) (Term.Apply (Term.Apply (Term.UOp UserOp.re_inter) (Term.Apply (Term.UOp UserOp.re_comp) (Term.Apply (Term.UOp UserOp.str_to_re) (Term.String [])))) (Term.UOp UserOp.re_all))) t (Term.Numeral 0)))) u (Term.Apply (Term.Apply (Term.UOp UserOp.eq) (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) s) r) t)) u))
   | _ => Term.Stuck
 
 

@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem prog_arrays_read_over_write_1_eq
@@ -47,17 +46,17 @@ private theorem shape_of_prog_arrays_read_over_write_1_not_stuck
                         | Apply storeOp a =>
                             cases storeOp with
                             | UOp op =>
-                                cases op <;> try (simp [__eo_prog_arrays_read_over_write_1] at h)
+                                cases op <;> try (simp at h)
                                 case store =>
                                   exact ⟨a, i, e, i2, rfl⟩
                             | _ =>
-                                simp [__eo_prog_arrays_read_over_write_1] at h
+                                simp at h
                         | _ =>
-                            simp [__eo_prog_arrays_read_over_write_1] at h
+                            simp at h
                     | _ =>
-                        simp [__eo_prog_arrays_read_over_write_1] at h
+                        simp at h
                 | _ =>
-                    simp [__eo_prog_arrays_read_over_write_1] at h
+                    simp at h
           | _ =>
               simp [__eo_prog_arrays_read_over_write_1] at h
       | _ =>
@@ -175,8 +174,8 @@ private theorem typed___eo_prog_arrays_read_over_write_1_impl
   have hINotStuck : i ≠ Term.Stuck := by
     intro hi
     subst i
-    simp [body, __eo_requires, __eo_eq, native_ite, native_teq, native_not,
-      SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_eq, native_ite, native_teq
+      ] at hProg
   rcases smt_types_of_select_store_arg a i e i hArgTrans with
     ⟨A, B, hATy, hITy, hETy, _hIdxTy, hLhsTy, hBNonNone, _hATrans, _hETrans⟩
   rw [prog_arrays_read_over_write_1_eq a i e i]
@@ -231,8 +230,8 @@ private theorem facts___eo_prog_arrays_read_over_write_1_impl
   have hINotStuck : i ≠ Term.Stuck := by
     intro hi
     subst i
-    simp [body, __eo_requires, __eo_eq, native_ite, native_teq, native_not,
-      SmtEval.native_not] at hProg
+    simp [__eo_requires, __eo_eq, native_ite, native_teq
+      ] at hProg
   have hArgTrans' :
       RuleProofs.eo_has_smt_translation lhs := by
     simpa [lhs] using hArgTrans

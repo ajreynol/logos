@@ -7,7 +7,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 noncomputable def arith_atom_denote_real (M : SmtModel) (t : Term) : SmtValue :=
@@ -197,7 +196,7 @@ theorem eo_requires_body_ne_stuck_of_ne_stuck
   · intro hz
     subst z
     have hReqSt : __eo_requires x y Term.Stuck = Term.Stuck := by
-      simp [__eo_requires, hxy, hxSt, native_teq, native_ite, native_not,
+      simp [__eo_requires, hxy, native_teq, native_ite, native_not,
         SmtEval.native_not]
     exact hReq hReqSt
 
@@ -212,7 +211,7 @@ theorem eo_and_true
   case Binary.Binary w1 n1 w2 n2 =>
     by_cases hw : w1 = w2 <;> simp [hw] at h
   case Boolean.Boolean b1 b2 =>
-    cases b1 <;> cases b2 <;> simp [SmtEval.native_and] at h ⊢
+    cases b1 <;> cases b2 <;> simp at h ⊢
 
 theorem eo_eq_true_eq
     {x y : Term} :
@@ -283,8 +282,7 @@ theorem native_to_real_add
   rw [native_to_real, native_to_real, native_to_real, native_qplus, native_zplus,
     native_mk_rational, native_mk_rational, native_mk_rational]
   rw [← Rat.divInt_eq_div, ← Rat.divInt_eq_div, ← Rat.divInt_eq_div]
-  simpa [Int.mul_one, Int.one_mul] using
-    (Rat.divInt_add_divInt n1 n2 (d₁ := 1) (d₂ := 1) (by decide) (by decide)).symm
+  simp [Int.mul_one]
 
 theorem native_to_real_sub
     (n1 n2 : native_Int) :
@@ -650,7 +648,7 @@ theorem rat_same_sign_of_sign_term_eq
     by_cases hdneg : d < 0
     · have hdnneg' : ¬ -d < 0 := by grind
       simp [rat_sign_term, native_qlt_zero_eq_decide, native_qneg, hcneg,
-        hcneg', hdneg, hdnneg'] at hSign
+        hcneg', hdneg] at hSign
     · have hdpos : 0 < d := by grind
       exact Or.inl ⟨hcpos, hdpos⟩
 
@@ -1020,7 +1018,7 @@ theorem native_to_real_eq_zero_eq
     exact Rat.intCast_inj
   by_cases hL : ((n : Rat) / (1 : Rat)) = ((0 : Rat) / (1 : Rat))
   · have hR : n = 0 := hiff.mp hL
-    simp [hL, hR]
+    simp [hR]
   · have hR : ¬ n = 0 := fun h => hL (hiff.mpr h)
     simp [hL, hR]
 
@@ -1423,7 +1421,7 @@ theorem arith_atom_denote_real_of_scaled_factor
     rw [arith_atom_denote_real_of_mult M hM cx inner hOuterArith]
     rw [arith_atom_denote_real_of_mult M hM x one hInnerArith]
     simp [hCx, hX, hOne, __smtx_model_eval_mult, native_qmult,
-      native_mk_rational_one, Rat.mul_one, inner]
+      native_mk_rational_one, Rat.mul_one]
   · have hInnerTy :
         __smtx_typeof (__eo_to_smt inner) = SmtType.Real := hOuterArgs.2
     have hInnerArith :
@@ -1447,7 +1445,7 @@ theorem arith_atom_denote_real_of_scaled_factor
     rw [arith_atom_denote_real_of_mult M hM cx inner hOuterArith]
     rw [arith_atom_denote_real_of_mult M hM x one hInnerArith]
     simp [hCx, hX, hOne, __smtx_model_eval_mult, native_qmult,
-      native_mk_rational_one, Rat.mul_one, inner]
+      native_mk_rational_one, Rat.mul_one]
 
 theorem arith_rel_smt_value_rel_of_scaled
     (M : SmtModel)
@@ -1514,9 +1512,9 @@ theorem arith_rel_smt_value_rel_of_scaled
       have hcx : c * qx = 0 := by
         rw [hScaled', hy0, Rat.mul_zero]
       exact (rat_scaled_zero_iff hc0).mp hcx
-  cases r <;> try (exfalso; simpa [__is_poly_norm_rel_consts_rel] using hConstsRel)
+  cases r
   case UOp op =>
-    cases op <;> try (exfalso; simpa [__is_poly_norm_rel_consts_rel] using hConstsRel)
+    cases op
     case eq =>
       have hBool :
           native_qeq qx (native_mk_rational 0 1) =
@@ -1586,3 +1584,9 @@ theorem arith_rel_smt_value_rel_of_scaled
           native_qgeq_zero_eq_of_sign hSigns.2.1 hSigns.2.2
       rw [hGeX, hGeY, hBool]
       exact RuleProofs.smt_value_rel_refl _
+    all_goals
+      exfalso
+      simp [__is_poly_norm_rel_consts_rel] at hConstsRel
+  all_goals
+    exfalso
+    simp [__is_poly_norm_rel_consts_rel] at hConstsRel

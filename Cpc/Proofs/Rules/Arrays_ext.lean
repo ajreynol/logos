@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem eo_typeof_not_bool_arg
@@ -239,12 +238,10 @@ private theorem typed___eo_prog_arrays_ext_impl
   let rhs := Term.Apply (Term.Apply Term.select b) idx
   have hLhsTy : __smtx_typeof (__eo_to_smt lhs) = __eo_to_smt_type E := by
     rw [RuleProofs.eo_to_smt_select_eq]
-    simp [idx, lhs, Smtm.typeof_select_eq, __smtx_typeof_select,
-      __smtx_typeof_guard, hSmtA, hIdxSmtTy, native_ite, native_Teq, hINonNone]
+    simp [idx,Smtm.typeof_select_eq, __smtx_typeof_select,hSmtA, hIdxSmtTy, native_ite, native_Teq]
   have hRhsTy : __smtx_typeof (__eo_to_smt rhs) = __eo_to_smt_type E := by
     rw [RuleProofs.eo_to_smt_select_eq]
-    simp [idx, rhs, Smtm.typeof_select_eq, __smtx_typeof_select,
-      __smtx_typeof_guard, hSmtB, hIdxSmtTy, native_ite, native_Teq, hINonNone]
+    simp [idx,Smtm.typeof_select_eq, __smtx_typeof_select,hSmtB, hIdxSmtTy, native_ite, native_Teq]
   have hEqBool : RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq lhs) rhs) :=
     RuleProofs.eo_has_bool_type_eq_of_same_smt_type lhs rhs
       (by rw [hLhsTy, hRhsTy]) (by simpa [hLhsTy] using hENonNone)

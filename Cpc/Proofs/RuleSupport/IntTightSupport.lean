@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace IntTightSupport
@@ -119,8 +118,7 @@ private theorem eo_typeof_left_int_of_leq_numeral_bool
       native_ite, native_teq, native_not, hA] at hTy
   case UOp op =>
     cases op <;>
-      simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not] at hTy
+      simp at hTy
     rfl
 
 private theorem eo_typeof_left_int_of_geq_numeral_bool
@@ -135,8 +133,7 @@ private theorem eo_typeof_left_int_of_geq_numeral_bool
       native_ite, native_teq, native_not, hA] at hTy
   case UOp op =>
     cases op <;>
-      simp [__eo_typeof_lt, __eo_requires, __eo_eq, __is_arith_type,
-        native_ite, native_teq, native_not] at hTy
+      simp at hTy
     rfl
 
 private theorem smt_type_left_int_of_leq_numeral_bool
@@ -266,7 +263,7 @@ theorem int_tight_ub_interprets_numeral
           Term.Apply (Term.Apply (Term.UOp UserOp.leq) a)
             (Term.Numeral (native_zplus (-1 : native_Int) n)) := by
       simp [__greatest_int_lt, __eo_to_z, __eo_to_q, __eo_eq, __eo_add,
-        __eo_ite, __eo_mk_apply, native_ite, native_teq, native_not,
+        __eo_ite, __eo_mk_apply, native_ite, native_teq,
         native_to_real, SmtEval.native_to_real, native_mk_rational,
         SmtEval.native_mk_rational]
     rw [hTight, eo_to_smt_leq_eq, eo_to_smt_numeral_eq, __smtx_model_eval.eq_16,
@@ -437,8 +434,8 @@ private theorem false_of_rational_lt_tight_ub
         __eo_typeof
           (Term.Apply (Term.Apply (Term.UOp UserOp.leq) a)
             (Term.Numeral (native_to_int q))) = Term.Bool := by
-      simp [__greatest_int_lt, __eo_to_z, __eo_to_q, __eo_eq, __eo_add,
-        __eo_ite, __eo_mk_apply, native_ite, native_teq, native_not, hWhole] at hResultTy
+      simp [__greatest_int_lt, __eo_to_z, __eo_to_q, __eo_eq,
+        __eo_ite, __eo_mk_apply, native_ite, native_teq, hWhole] at hResultTy
       simpa using hResultTy
     have hAInt :
         __smtx_typeof (__eo_to_smt a) = SmtType.Int :=

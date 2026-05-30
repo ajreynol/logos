@@ -7,7 +7,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 namespace CongSupport
@@ -874,7 +873,7 @@ private theorem mk_cong_rhs_step_eq_of_eo_eq_true
         (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq y z)) tail) =
       __eo_mk_apply (__mk_cong_rhs f tail) z := by
   intro hEq
-  simp [mkEq, __mk_cong_rhs, __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
+  simp [__mk_cong_rhs, __eo_ite, hEq,
     native_teq, native_ite]
 
 private theorem mk_cong_rhs_false_branch_stuck
@@ -882,7 +881,7 @@ private theorem mk_cong_rhs_false_branch_stuck
     __eo_l_1___mk_cong_rhs (Term.Apply f x)
         (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq y z)) tail) =
       Term.Stuck := by
-  simp [mkEq, __eo_l_1___mk_cong_rhs]
+  simp [__eo_l_1___mk_cong_rhs]
 
 private theorem mk_cong_rhs_congTrueSpine_of_list
     (M : SmtModel) :
@@ -915,19 +914,17 @@ private theorem mk_cong_rhs_congTrueSpine_of_list
                             hTrue (mkEq lhs tail) (by simp [mkEq])
                         have hRestTrue : AllInterpretedTrue M ps := by
                           intro q hq
-                          exact hTrue q (by simp [premiseAndFormulaList, hq])
+                          exact hTrue q (by simp [hq])
                         have hCond :
                             __eo_eq x lhs = Term.Boolean true := by
                           cases hEq : __eo_eq x lhs <;>
-                            simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                            simp [premiseAndFormulaList, __mk_cong_rhs,
                               __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
                               native_teq, native_ite] at hProg
                           case Boolean b =>
                             cases b with
                             | false =>
-                                simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
-                                  __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
-                                  native_teq, native_ite] at hProg
+                                simp  at hProg
                             | true =>
                                 rfl
                         have hStepEq :=
@@ -965,7 +962,7 @@ private theorem mk_cong_rhs_congTrueSpine_of_list
                         exact CongTrueSpine.app hRec hHeadTrue
                     | _ =>
                         exact False.elim (hProg (by
-                          simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                          simp [premiseAndFormulaList, __mk_cong_rhs,
                             __eo_l_1___mk_cong_rhs]))
                   all_goals
                     exact False.elim (hProg (by
@@ -1018,19 +1015,17 @@ private theorem mk_cong_rhs_congTypeSpine_of_list :
                             hBool (mkEq lhs tail) (by simp [mkEq])
                         have hRestBool : AllHaveBoolType ps := by
                           intro q hq
-                          exact hBool q (by simp [premiseAndFormulaList, hq])
+                          exact hBool q (by simp [hq])
                         have hCond :
                             __eo_eq x lhs = Term.Boolean true := by
                           cases hEq : __eo_eq x lhs <;>
-                            simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                            simp [premiseAndFormulaList, __mk_cong_rhs,
                               __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
                               native_teq, native_ite] at hProg
                           case Boolean b =>
                             cases b with
                             | false =>
-                                simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
-                                  __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
-                                  native_teq, native_ite] at hProg
+                                simp  at hProg
                             | true =>
                                 rfl
                         have hStepEq :=
@@ -1068,7 +1063,7 @@ private theorem mk_cong_rhs_congTypeSpine_of_list :
                         exact CongTypeSpine.app hRec hHeadBool
                     | _ =>
                         exact False.elim (hProg (by
-                          simp [premiseAndFormulaList, mkEq, __mk_cong_rhs,
+                          simp [premiseAndFormulaList, __mk_cong_rhs,
                             __eo_l_1___mk_cong_rhs]))
                   all_goals
                     exact False.elim (hProg (by
@@ -1106,7 +1101,7 @@ private theorem mk_nary_cong_rhs_step_eq_of_eo_eq_true
         (Term.Apply (Term.Apply (Term.UOp UserOp.and) (mkEq lhs s₂)) tail) =
       __eo_mk_apply (Term.Apply f s₂) (__mk_nary_cong_rhs t tail) := by
   intro hEq
-  simp [mkEq, __mk_nary_cong_rhs, __eo_l_1___mk_nary_cong_rhs, __eo_ite,
+  simp [__mk_nary_cong_rhs, __eo_ite,
     hEq, native_teq, native_ite]
 
 private theorem eo_prog_nary_cong_pf_eq_of_ne_stuck (t E : Term) :
@@ -1630,7 +1625,7 @@ private theorem native_list_in_re_mk_concat :
       rw [native_list_in_re_mk_union]
       rw [native_list_in_re_mk_concat cs (native_re_deriv c r) s]
       cases hNullable : native_re_nullable r <;>
-        simp [hNullable, native_list_in_re_empty, Bool.or_comm]
+        simp [native_list_in_re_empty, Bool.or_comm]
 
 private theorem native_list_in_re_concat_true_iff_exists_append :
     (xs : List native_Char) -> (r s : native_RegLan) ->
@@ -1681,8 +1676,7 @@ private theorem native_list_in_re_concat_true_iff_exists_append :
                 cases hAppend
                 have hNullable : native_re_nullable r = true := by
                   simpa [native_list_in_re] using hLeft
-                simp [native_list_in_re_concat, Bool.or_eq_true,
-                  Bool.and_eq_true, hNullable, hRight]
+                simp [native_list_in_re_concat, hNullable, hRight]
         | cons _ ds =>
             cases hAppend
             have hLeftDeriv :
@@ -1694,7 +1688,7 @@ private theorem native_list_in_re_concat_true_iff_exists_append :
               (native_list_in_re_concat_true_iff_exists_append (ds ++ xs₂)
                 (native_re_deriv c r) s).2
                 ⟨ds, xs₂, by rfl, hLeftDeriv, hRight⟩
-            simp [native_list_in_re_concat, Bool.or_eq_true, hTail]
+            simp [native_list_in_re_concat, hTail]
 
 private theorem native_list_in_re_mk_concat_true_iff_exists_append
     (xs : List native_Char) (r s : native_RegLan) :
@@ -1862,7 +1856,7 @@ private theorem native_str_in_re_mk_comp_list :
           simp [hA, hB] at hComp' ⊢ <;> assumption
       all_goals exact h
 
-private theorem native_str_in_re_re_comp
+theorem native_str_in_re_re_comp
     (s : native_String) (r : native_RegLan) :
     native_str_in_re s (native_re_comp r) =
       (native_string_valid s && Bool.not (native_str_in_re s r)) := by
@@ -2122,11 +2116,9 @@ private theorem native_list_in_re_mk_star_raw
       native_list_in_re xs (SmtRegLan.star r) := by
   cases r <;> try rfl
   · cases xs <;> simp [native_re_mk_star, native_list_in_re,
-      native_re_nullable, native_re_deriv, native_re_mk_concat,
-      native_list_in_re_empty]
+      native_re_nullable, native_re_deriv, native_re_mk_concat]
   · cases xs <;> simp [native_re_mk_star, native_list_in_re,
-      native_re_nullable, native_re_deriv, native_re_mk_concat,
-      native_list_in_re_empty]
+      native_re_nullable, native_re_deriv, native_re_mk_concat]
   · exact (native_list_in_re_raw_star_star xs _).symm
 
 private theorem native_list_in_re_mk_star_congr
@@ -2348,7 +2340,7 @@ private theorem native_re_prefix_match_len_go_congr :
         have hRpfalse : native_re_nullable r' = false := by
           simpa [← hNull] using hRfalse
         simp [native_re_prefix_match_len?.go, hRfalse, hRpfalse]
-        cases hc : native_char_valid c <;> simp [hc]
+        cases hc : native_char_valid c <;> simp
         exact ih (native_re_deriv c r) (native_re_deriv c r') (n + 1)
           (native_list_in_re_deriv_congr c r r' hExt)
 
@@ -2902,6 +2894,17 @@ private theorem native_str_ext_to_list_ext
       native_list_in_re ys r = native_list_in_re ys r' := by
   intro ys hys
   simpa [native_str_in_re, native_list_in_re, hys] using hExt ys hys
+
+theorem native_re_prefix_match_len_go_congr_valid_ext_of_str_ext
+    (xs : List native_Char) (r r' : native_RegLan) (n : Nat)
+    (hExt :
+      ∀ ys : native_String,
+        native_string_valid ys = true ->
+          native_str_in_re ys r = native_str_in_re ys r') :
+    native_re_prefix_match_len?.go r xs n =
+      native_re_prefix_match_len?.go r' xs n :=
+  native_re_prefix_match_len_go_congr_valid_ext xs r r' n
+    (native_str_ext_to_list_ext r r' hExt)
 
 private theorem native_str_in_re_ext_of_valid_ext
     {r r' : native_RegLan}
@@ -3631,14 +3634,14 @@ private theorem tuple_select_type_congr
         cases hIdx : __eo_to_smt idx with
         | Numeral n =>
             cases hNonneg : native_zleq 0 n <;>
-              simp [__eo_to_smt_tuple_select, hTy, hIdx, hNonneg,
+              simp [__eo_to_smt_tuple_select, hTy, hNonneg,
                 native_ite, __smtx_typeof, hSmt]
         | _ =>
-            simp [__eo_to_smt_tuple_select, hTy, hIdx]
+            simp [__eo_to_smt_tuple_select]
       · cases hIdx : __eo_to_smt idx <;>
-          simp [__eo_to_smt_tuple_select, hTy, hIdx, hs]
+          simp [__eo_to_smt_tuple_select, hs]
   | _ =>
-      simp [__eo_to_smt_tuple_select, hTy]
+      simp [__eo_to_smt_tuple_select]
 
 private theorem congTypeSpine_tuple_select_eq_has_bool_type
     (idx x rhs : Term) :
@@ -3707,7 +3710,7 @@ private theorem tuple_select_arg_non_reg_of_non_none
       · exfalso
         apply hNN
         cases hIdx : __eo_to_smt idx <;>
-          simp [__eo_to_smt_tuple_select, hTy, hIdx, hs]
+          simp [__eo_to_smt_tuple_select, hTy, hs]
   | _ =>
       exfalso
       apply hNN
@@ -3744,16 +3747,16 @@ private theorem tuple_select_eval_congr
         cases hIdx : __eo_to_smt idx with
         | Numeral n =>
             cases hNonneg : native_zleq 0 n
-            · simp [__eo_to_smt_tuple_select, hTy, hIdx, hNonneg,
+            · simp [__eo_to_smt_tuple_select, hNonneg,
                 native_ite]
-            · simp [__eo_to_smt_tuple_select, hTy, hIdx, hNonneg,
+            · simp [__eo_to_smt_tuple_select, hNonneg,
                 native_ite, __smtx_model_eval, hEval]
         | _ =>
-            simp [__eo_to_smt_tuple_select, hTy, hIdx]
+            simp [__eo_to_smt_tuple_select]
       · cases hIdx : __eo_to_smt idx <;>
-          simp [__eo_to_smt_tuple_select, hTy, hIdx, hs]
+          simp [__eo_to_smt_tuple_select, hs]
   | _ =>
-      simp [__eo_to_smt_tuple_select, hTy]
+      simp [__eo_to_smt_tuple_select]
 
 private theorem congTrueSpine_tuple_select_eq_true
     (M : SmtModel) (hM : model_total_typed M)
@@ -5314,11 +5317,11 @@ private theorem smt_app_spine_type_eq_and_rel_of_listRel_true_dt_sel
                   SmtValue.Boolean true
             rw [TranslationProofs.eo_to_smt_term_dt_sel]
             cases hRes : TranslationProofs.__eo_reserved_datatype_name s
-            · simp [hRes, native_ite]
+            · simp [native_ite]
               rw [__smtx_model_eval, __smtx_model_eval, hEvalArg]
               exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
                 (RuleProofs.smt_value_rel_refl _)
-            · simp [hRes, native_ite, __smtx_model_eval]
+            · simp [native_ite, __smtx_model_eval]
               rw [hEvalArg]
               exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
                 (RuleProofs.smt_value_rel_refl _)
@@ -8597,7 +8600,7 @@ private theorem eo_to_smt_updater_rec_type_congr
                 (native_ite (native_nateq j k) u'
                   (SmtTerm.Apply (SmtTerm.DtSel s d i k) t')) := by
           cases hEq : native_nateq j k <;>
-            simp [native_ite, hEq, ht, hu, __smtx_typeof,
+            simp [native_ite, ht, hu, __smtx_typeof,
               __smtx_typeof_apply]
         cases k with
         | zero =>
@@ -8644,7 +8647,7 @@ private theorem eo_to_smt_updater_type_congr
     cases hGuard :
         native_zlt (native_nat_to_int j)
           (native_nat_to_int (__smtx_dt_num_sels d i)) <;>
-      simp [native_ite, hGuard]
+      simp 
     rw [typeof_ite_eq, typeof_ite_eq]
     have hCond :
         __smtx_typeof (SmtTerm.Apply (SmtTerm.DtTester s d i) t) =
@@ -8676,11 +8679,11 @@ private theorem eo_to_smt_tuple_update_type_congr
     by_cases hs : s = (native_string_lit "@Tuple")
     · subst s
       cases hNonneg : native_zleq 0 n <;>
-        simp [__eo_to_smt_tuple_update, native_ite, hNonneg]
+        simp 
       exact eo_to_smt_updater_type_congr
         (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero (native_int_to_nat n))
         t u t' u' ht hu
-    · simp [__eo_to_smt_tuple_update, hs]
+    · simp [hs]
 
 private theorem congTypeSpine_tuple_update_eq_has_bool_type
     (idx x₁ x₂ rhs : Term) :
@@ -8952,7 +8955,7 @@ private theorem eo_to_smt_updater_rec_eval_congr
                 (native_ite (native_nateq j k) u'
                   (SmtTerm.Apply (SmtTerm.DtSel s d i k) t')) := by
           cases hEq : native_nateq j k <;>
-            simp [native_ite, hEq, ht, hu, __smtx_model_eval]
+            simp [native_ite, ht, hu, __smtx_model_eval]
         cases k with
         | zero =>
             simpa [__eo_to_smt_updater_rec] using
@@ -8997,7 +9000,7 @@ private theorem eo_to_smt_updater_eval_congr
     cases hGuard :
         native_zlt (native_nat_to_int j)
           (native_nat_to_int (__smtx_dt_num_sels d i)) <;>
-      simp [native_ite, hGuard]
+      simp 
     have hCond :
         __smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtTester s d i) t) =
           __smtx_model_eval M (SmtTerm.Apply (SmtTerm.DtTester s d i) t') :=
@@ -9099,11 +9102,11 @@ private theorem eo_to_smt_tuple_update_eval_congr
     by_cases hs : s = (native_string_lit "@Tuple")
     · subst s
       cases hNonneg : native_zleq 0 n <;>
-        simp [__eo_to_smt_tuple_update, native_ite, hNonneg]
+        simp 
       exact eo_to_smt_updater_eval_congr M
         (SmtTerm.DtSel (native_string_lit "@Tuple") d native_nat_zero (native_int_to_nat n))
         t u t' u' ht hu
-    · simp [__eo_to_smt_tuple_update, hs]
+    · simp [hs]
 
 private theorem tuple_update_args_non_reg_of_non_none
     (T : SmtType) (idx t u : SmtTerm) :
@@ -9336,7 +9339,7 @@ private theorem eo_to_smt_tuple_prepend_type_congr
                 cases hWf :
                     __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD) <;>
                   simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
-                    hWf, tailD, fullD, seed, seed']
+                    hWf, fullD]
                 exact
                   eo_to_smt_tuple_prepend_rec_type_congr tailD tail tail'
                     seed seed' hTail
@@ -9506,8 +9509,7 @@ theorem tuple_prepend_head_non_reg_of_non_none
       apply hNN
       unfold __eo_to_smt_tuple_prepend
       rw [hTailTy]
-      simp [__eo_to_smt_tuple_prepend_of_type, native_ite, hWf, tailD,
-        fullD]
+      simp [__eo_to_smt_tuple_prepend_of_type, native_ite, hWf, fullD]
     · rfl
   have hTerm :
       __eo_to_smt_tuple_prepend head headTy tail =
@@ -9635,7 +9637,7 @@ theorem eo_to_smt_tuple_prepend_eval_congr
                 cases hWf :
                     __smtx_type_wf (SmtType.Datatype (native_string_lit "@Tuple") fullD) <;>
                   simp [__eo_to_smt_tuple_prepend_of_type, native_ite,
-                    hWf, tailD, fullD, seed, seed']
+                    hWf, fullD]
                 exact
                   eo_to_smt_tuple_prepend_rec_eval_congr M tailD tail tail'
                     seed seed' hTail
@@ -12181,7 +12183,7 @@ private theorem congTrueSpine_re_comp_eq_true
           SmtValue.Boolean true
     rw [__smtx_model_eval.eq_111, __smtx_model_eval.eq_111, hXEval,
       hYEval]
-    simp [__smtx_model_eval_re_comp, __smtx_model_eval_eq, hExtComp]
+    simp [__smtx_model_eval_re_comp, __smtx_model_eval_eq]
     intro s hs
     exact hExtComp s hs
 
@@ -12260,7 +12262,7 @@ private theorem congTrueSpine_re_mult_eq_true
           SmtValue.Boolean true
     rw [__smtx_model_eval.eq_107, __smtx_model_eval.eq_107, hXEval,
       hYEval]
-    simp [__smtx_model_eval_re_mult, __smtx_model_eval_eq, hExtStar]
+    simp [__smtx_model_eval_re_mult, __smtx_model_eval_eq]
     intro s hs
     exact hExtStar s hs
 
@@ -12326,8 +12328,8 @@ private theorem congTrueSpine_re_plus_eq_true
     rw [__smtx_model_eval.eq_108, __smtx_model_eval.eq_108, hXEval,
       hYEval]
     simp [__smtx_model_eval_re_plus, __smtx_model_eval_re_concat,
-      __smtx_model_eval_re_mult, native_re_plus, native_re_mult,
-      native_re_concat, __smtx_model_eval_eq, hExtPlus]
+      __smtx_model_eval_re_mult, native_re_mult,
+      native_re_concat, __smtx_model_eval_eq]
     intro s hs
     simpa [native_re_plus] using hExtPlus s hs
 
@@ -12395,7 +12397,7 @@ private theorem congTrueSpine_re_opt_eq_true
     rw [__smtx_model_eval.eq_110, __smtx_model_eval.eq_110, hXEval,
       hYEval]
     simp [__smtx_model_eval_re_opt, __smtx_model_eval_re_union,
-      __smtx_model_eval_eq, eps, hExtOpt]
+      __smtx_model_eval_eq]
     intro s hs
     exact hExtOpt s hs
 
@@ -12469,7 +12471,7 @@ private theorem smt_value_rel_re_exp_reglan_congr
     fun str _hValid =>
       native_str_in_re_re_exp_rec_congr (native_int_to_nat n) r r' hExt str
   simp [__smtx_model_eval_re_exp, model_eval_re_exp_rec_reglan_eq,
-    __smtx_model_eval_eq, hExtExp]
+    __smtx_model_eval_eq]
   intro s hs
   exact hExtExp s hs
 
@@ -12559,7 +12561,7 @@ private theorem smt_value_rel_re_loop_reglan_congr
           (native_int_to_nat (native_zplus hi (native_zneg lo))) lo hi r r' hExt str
     simp [__smtx_model_eval_re_loop, __smtx_model_eval_gt,
       __smtx_model_eval_lt, __smtx_model_eval_ite,
-      model_eval_re_loop_rec_reglan_eq, __smtx_model_eval_eq, hLt, hExtLoop]
+      model_eval_re_loop_rec_reglan_eq, __smtx_model_eval_eq, hLt]
     intro s hs
     exact hExtLoop s hs
 
@@ -12808,7 +12810,7 @@ private theorem congTrueSpine_reglan_binop_eq_true
         (__smtx_model_eval M (smtOp Y₁ Y₂)) =
           SmtValue.Boolean true
     rw [hEval, hEval, hX₁Eval, hX₂Eval, hY₁Eval, hY₂Eval]
-    simp [__smtx_model_eval_eq, hExt]
+    simp [__smtx_model_eval_eq]
     intro s hs
     exact hExt s hs
 
@@ -14155,11 +14157,11 @@ private theorem congTrueSpine_dt_sel_eq_true
           SmtValue.Boolean true
     rw [TranslationProofs.eo_to_smt_term_dt_sel]
     cases hRes : TranslationProofs.__eo_reserved_datatype_name s
-    · simp [hRes, native_ite]
+    · simp [native_ite]
       rw [__smtx_model_eval, __smtx_model_eval, hEvalArg]
       exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
         (RuleProofs.smt_value_rel_refl _)
-    · simp [hRes, native_ite, __smtx_model_eval]
+    · simp [native_ite, __smtx_model_eval]
       rw [hEvalArg]
       exact (RuleProofs.smt_value_rel_iff_model_eval_eq_true _ _).mp
         (RuleProofs.smt_value_rel_refl _)
@@ -14182,7 +14184,7 @@ private theorem no_translation_of_eo_to_smt_none {t : Term} :
   intro hNone hTrans
   unfold RuleProofs.eo_has_smt_translation at hTrans
   rw [hNone] at hTrans
-  exact hTrans (by simp [__smtx_typeof])
+  exact hTrans (by simp )
 
 private theorem no_bool_eq_left_of_eo_to_smt_none {t rhs : Term} :
     __eo_to_smt t = SmtTerm.None ->
@@ -15469,7 +15471,7 @@ private theorem typeof_apply_none_head_eq_none
       (by intro s d i j h; cases h)
       (by intro s d i h; cases h)
   rw [hGeneric]
-  simp [__smtx_typeof, __smtx_typeof_apply]
+  simp [__smtx_typeof_apply]
 
 private theorem typeof_apply_reglan_head_eq_none
     (f x : SmtTerm)
@@ -15627,10 +15629,10 @@ private theorem eo_to_smt_at_bv_ne_dt_sel
   intro s d i j h
   cases a <;> simp [__eo_to_smt__at_bv] at h
   case Numeral n =>
-    cases b <;> simp [__eo_to_smt__at_bv] at h
+    cases b <;> simp  at h
     case Numeral w =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__eo_to_smt__at_bv, native_ite, hWidth] at h
+        simp [hWidth] at h
 
 private theorem eo_to_smt_at_bv_ne_dt_tester
     (a b : SmtTerm) :
@@ -15638,10 +15640,10 @@ private theorem eo_to_smt_at_bv_ne_dt_tester
   intro s d i h
   cases a <;> simp [__eo_to_smt__at_bv] at h
   case Numeral n =>
-    cases b <;> simp [__eo_to_smt__at_bv] at h
+    cases b <;> simp  at h
     case Numeral w =>
       cases hWidth : native_zleq 0 w <;>
-        simp [__eo_to_smt__at_bv, native_ite, hWidth] at h
+        simp [hWidth] at h
 
 private theorem eo_to_smt_strings_deq_diff_ne_dt_sel
     (a b : Term) :
@@ -15969,7 +15971,7 @@ private theorem uop_apply_typeof_none_of_arg_none
         have hle :
             native_zleq 0 (__smtx_bv_sizeof_type SmtType.None) = false := by
           rfl
-        simp [hle, native_ite, __smtx_typeof]
+        simp [hle, native_ite]
       case bvnot =>
         change __smtx_typeof (SmtTerm.bvnot (__eo_to_smt x)) = SmtType.None
         simp [__smtx_typeof, hx, __smtx_typeof_bv_op_1]
@@ -16223,7 +16225,7 @@ private theorem uop1_apply_typeof_none_of_arg_none
         (__eo_to_smt_tuple_select (__smtx_typeof (__eo_to_smt x))
           (__eo_to_smt idx) (__eo_to_smt x)) = SmtType.None
     rw [hx]
-    simp [__eo_to_smt_tuple_select, __smtx_typeof]
+    simp [__eo_to_smt_tuple_select]
   case int_to_bv =>
     change __smtx_typeof (SmtTerm.int_to_bv (__eo_to_smt idx) (__eo_to_smt x)) =
       SmtType.None
@@ -22136,21 +22138,17 @@ private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
                                 hBool (mkEq lhs tail) (by simp [mkEq])
                             have hRestBool : AllHaveBoolType ps := by
                               intro q hq
-                              exact hBool q (by simp [premiseAndFormulaList, hq])
+                              exact hBool q (by simp [hq])
                             have hCond :
                                 __eo_eq s₁ lhs = Term.Boolean true := by
                               cases hEq : __eo_eq s₁ lhs <;>
-                                simp [premiseAndFormulaList, mkEq,
-                                  __mk_nary_cong_rhs,
+                                simp [premiseAndFormulaList, __mk_nary_cong_rhs,
                                   __eo_l_1___mk_nary_cong_rhs, __eo_ite, hEq,
                                   native_teq, native_ite] at hProg
                               case Boolean b =>
                                 cases b with
                                 | false =>
-                                    simp [premiseAndFormulaList, mkEq,
-                                      __mk_nary_cong_rhs,
-                                      __eo_l_1___mk_nary_cong_rhs, __eo_ite,
-                                      hEq, native_teq, native_ite] at hProg
+                                    simp  at hProg
                                 | true =>
                                     rfl
                             have hStepEq :=
@@ -22209,13 +22207,11 @@ private theorem mk_nary_cong_rhs_congTypeSpine_of_list :
                               hRecBool
                         | _ =>
                             exact False.elim (hProg (by
-                              simp [premiseAndFormulaList, mkEq,
-                                __mk_nary_cong_rhs,
+                              simp [premiseAndFormulaList, __mk_nary_cong_rhs,
                                 __eo_l_1___mk_nary_cong_rhs]))
                     | _ =>
                         exact False.elim (hProg (by
-                          simp [premiseAndFormulaList, mkEq,
-                            __mk_nary_cong_rhs,
+                          simp [premiseAndFormulaList, __mk_nary_cong_rhs,
                             __eo_l_1___mk_nary_cong_rhs]))
                   all_goals
                     exact False.elim (hProg (by
@@ -22273,7 +22269,7 @@ private theorem mk_nary_cong_rhs_congTrueSpine_of_list
                                 hTrue (mkEq lhs tail) (by simp [mkEq])
                             have hRestTrue : AllInterpretedTrue M ps := by
                               intro q hq
-                              exact hTrue q (by simp [premiseAndFormulaList, hq])
+                              exact hTrue q (by simp [hq])
                             have hRestBool : AllHaveBoolType ps := by
                               intro q hq
                               exact RuleProofs.eo_has_bool_type_of_interprets_true
@@ -22281,17 +22277,13 @@ private theorem mk_nary_cong_rhs_congTrueSpine_of_list
                             have hCond :
                                 __eo_eq s₁ lhs = Term.Boolean true := by
                               cases hEq : __eo_eq s₁ lhs <;>
-                                simp [premiseAndFormulaList, mkEq,
-                                  __mk_nary_cong_rhs,
+                                simp [premiseAndFormulaList, __mk_nary_cong_rhs,
                                   __eo_l_1___mk_nary_cong_rhs, __eo_ite, hEq,
                                   native_teq, native_ite] at hProg
                               case Boolean b =>
                                 cases b with
                                 | false =>
-                                    simp [premiseAndFormulaList, mkEq,
-                                      __mk_nary_cong_rhs,
-                                      __eo_l_1___mk_nary_cong_rhs, __eo_ite,
-                                      hEq, native_teq, native_ite] at hProg
+                                    simp  at hProg
                                 | true =>
                                     rfl
                             have hStepEq :=
@@ -22362,13 +22354,11 @@ private theorem mk_nary_cong_rhs_congTrueSpine_of_list
                               hRecTrue
                         | _ =>
                             exact False.elim (hProg (by
-                              simp [premiseAndFormulaList, mkEq,
-                                __mk_nary_cong_rhs,
+                              simp [premiseAndFormulaList, __mk_nary_cong_rhs,
                                 __eo_l_1___mk_nary_cong_rhs]))
                     | _ =>
                         exact False.elim (hProg (by
-                          simp [premiseAndFormulaList, mkEq,
-                            __mk_nary_cong_rhs,
+                          simp [premiseAndFormulaList, __mk_nary_cong_rhs,
                             __eo_l_1___mk_nary_cong_rhs]))
                   all_goals
                     exact False.elim (hProg (by
@@ -22514,21 +22504,17 @@ private theorem mk_nary_cong_rhs_pairwiseListTypeSpine_of_list :
                             hBool (mkEq lhs rhsHead) (by simp [mkEq])
                         have hRestBool : AllHaveBoolType ps := by
                           intro q hq
-                          exact hBool q (by simp [premiseAndFormulaList, hq])
+                          exact hBool q (by simp [hq])
                         have hCond :
                             __eo_eq s₁ lhs = Term.Boolean true := by
                           cases hEq : __eo_eq s₁ lhs <;>
-                            simp [premiseAndFormulaList, mkEq,
-                              __mk_nary_cong_rhs,
+                            simp [premiseAndFormulaList, __mk_nary_cong_rhs,
                               __eo_l_1___mk_nary_cong_rhs, __eo_ite, hEq,
                               native_teq, native_ite] at hProg
                           case Boolean b =>
                             cases b with
                             | false =>
-                                simp [premiseAndFormulaList, mkEq,
-                                  __mk_nary_cong_rhs,
-                                  __eo_l_1___mk_nary_cong_rhs, __eo_ite,
-                                  hEq, native_teq, native_ite] at hProg
+                                simp  at hProg
                             | true =>
                                 rfl
                         have hStepEq :=
@@ -22639,21 +22625,17 @@ private theorem mk_nary_cong_rhs_pairwiseListTrueSpine_of_list
                             hTrue (mkEq lhs rhsHead) (by simp [mkEq])
                         have hRestTrue : AllInterpretedTrue M ps := by
                           intro q hq
-                          exact hTrue q (by simp [premiseAndFormulaList, hq])
+                          exact hTrue q (by simp [hq])
                         have hCond :
                             __eo_eq s₁ lhs = Term.Boolean true := by
                           cases hEq : __eo_eq s₁ lhs <;>
-                            simp [premiseAndFormulaList, mkEq,
-                              __mk_nary_cong_rhs,
+                            simp [premiseAndFormulaList, __mk_nary_cong_rhs,
                               __eo_l_1___mk_nary_cong_rhs, __eo_ite, hEq,
                               native_teq, native_ite] at hProg
                           case Boolean b =>
                             cases b with
                             | false =>
-                                simp [premiseAndFormulaList, mkEq,
-                                  __mk_nary_cong_rhs,
-                                  __eo_l_1___mk_nary_cong_rhs, __eo_ite,
-                                  hEq, native_teq, native_ite] at hProg
+                                simp  at hProg
                             | true =>
                                 rfl
                         have hStepEq :=
@@ -23022,7 +23004,7 @@ private theorem smt_value_rel_model_eval_not_of_rel
   cases a <;> cases b <;>
     simp [__smtx_model_eval_eq, __smtx_model_eval_not, native_veq] at hRel ⊢
   case Boolean b₁ b₂ =>
-    cases b₁ <;> cases b₂ <;> simp [__smtx_model_eval_not] at hRel ⊢
+    cases b₁ <;> cases b₂ <;> simp  at hRel ⊢
 
 private theorem smt_value_rel_model_eval_and_of_rel
     (a b c d : SmtValue) :
@@ -23036,7 +23018,7 @@ private theorem smt_value_rel_model_eval_and_of_rel
     simp [__smtx_model_eval_eq, __smtx_model_eval_and, native_veq] at hAC hBD ⊢
   case Boolean.Boolean.Boolean.Boolean a₁ b₁ c₁ d₁ =>
     cases a₁ <;> cases b₁ <;> cases c₁ <;> cases d₁ <;>
-      simp [__smtx_model_eval_and, SmtEval.native_and] at hAC hBD ⊢
+      simp  at hAC hBD ⊢
 
 private theorem distinct_pairs_rel_same_tail
     (M : SmtModel) (x y : Term) :

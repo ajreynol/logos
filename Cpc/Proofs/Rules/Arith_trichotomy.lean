@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem eo_to_smt_not_eq (t : Term) :
@@ -163,8 +162,7 @@ private theorem eo_and_eq_refl_true
     __eo_and (__eo_eq a a) (__eo_eq b b) = Term.Boolean true := by
   intro ha hb
   cases a <;> cases b <;>
-    simp [__eo_and, __eo_eq, __eo_requires, native_teq, native_ite,
-      native_not, SmtEval.native_not, SmtEval.native_and] at ha hb ⊢
+    simp [__eo_and, __eo_eq, native_teq, SmtEval.native_and] at ha hb ⊢
 
 private theorem left_ne_stuck_of_arith_types
     (a b : Term)
@@ -787,7 +785,7 @@ private theorem arith_normalize_lit_not_eq_has_bool_type
           | not =>
               cases x <;> simp [__arith_normalize_lit] at hNorm
               case Apply g y =>
-                cases g <;> simp [__arith_normalize_lit] at hNorm
+                cases g <;> simp at hNorm
                 case Apply r x =>
                   have hXBool :
                       RuleProofs.eo_has_bool_type
@@ -795,7 +793,7 @@ private theorem arith_normalize_lit_not_eq_has_bool_type
                     RuleProofs.eo_has_bool_type_not_arg _ hF
                   simpa [hNorm] using hXBool
           | _ =>
-              cases x <;> simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
+              cases x <;> simp [__arith_normalize_lit] at hNorm
       | Apply g y =>
           simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
           split at hNorm <;> simp at hNorm
@@ -820,7 +818,7 @@ private theorem arith_normalize_lit_not_lt_has_bool_type
           | not =>
               cases x <;> simp [__arith_normalize_lit] at hNorm
               case Apply g y =>
-                cases g <;> simp [__arith_normalize_lit] at hNorm
+                cases g <;> simp at hNorm
                 case Apply r x =>
                   have hXBool :
                       RuleProofs.eo_has_bool_type
@@ -868,7 +866,7 @@ private theorem arith_normalize_lit_not_lt_has_bool_type
                   simpa [hNorm] using hLtBool
               | _ =>
                   simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
-                  split at hNorm <;> simp [__arith_rel_neg] at hNorm
+                  split at hNorm <;> simp at hNorm
                   all_goals simp at *
           | _ =>
               simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
@@ -899,7 +897,7 @@ private theorem arith_normalize_lit_not_gt_has_bool_type
           | not =>
               cases x <;> simp [__arith_normalize_lit] at hNorm
               case Apply g y =>
-                cases g <;> simp [__arith_normalize_lit] at hNorm
+                cases g <;> simp at hNorm
                 case Apply r x =>
                   have hXBool :
                       RuleProofs.eo_has_bool_type
@@ -947,7 +945,7 @@ private theorem arith_normalize_lit_not_gt_has_bool_type
                   cases hNorm
               | _ =>
                   simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
-                  split at hNorm <;> simp [__arith_rel_neg] at hNorm
+                  split at hNorm <;> simp at hNorm
                   all_goals simp at *
           | _ =>
               simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
@@ -979,7 +977,7 @@ private theorem arith_normalize_lit_not_eq_false
           | not =>
               cases x <;> simp [__arith_normalize_lit] at hNorm
               case Apply g y =>
-                cases g <;> simp [__arith_normalize_lit] at hNorm
+                cases g <;> simp at hNorm
                 case Apply r x =>
                   have hXFalse :
                       eo_interprets M (Term.Apply (Term.Apply r x) y) false :=
@@ -987,7 +985,7 @@ private theorem arith_normalize_lit_not_eq_false
                       (Term.Apply (Term.Apply r x) y) hFTrue
                   simpa [hNorm] using hXFalse
           | _ =>
-              cases x <;> simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
+              cases x <;> simp [__arith_normalize_lit] at hNorm
       | Apply g y =>
           simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
           split at hNorm <;> simp at hNorm
@@ -1013,7 +1011,7 @@ private theorem arith_normalize_lit_not_lt_false
           | not =>
               cases x <;> simp [__arith_normalize_lit] at hNorm
               case Apply g y =>
-                cases g <;> simp [__arith_normalize_lit] at hNorm
+                cases g <;> simp at hNorm
                 case Apply r x =>
                   have hXFalse :
                       eo_interprets M (Term.Apply (Term.Apply r x) y) false :=
@@ -1067,7 +1065,7 @@ private theorem arith_normalize_lit_not_lt_false
                   exact hLtFalse
               | _ =>
                   simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
-                  split at hNorm <;> simp [__arith_rel_neg] at hNorm
+                  split at hNorm <;> simp at hNorm
                   all_goals simp at *
           | _ =>
               simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
@@ -1099,7 +1097,7 @@ private theorem arith_normalize_lit_not_gt_false
           | not =>
               cases x <;> simp [__arith_normalize_lit] at hNorm
               case Apply g y =>
-                cases g <;> simp [__arith_normalize_lit] at hNorm
+                cases g <;> simp at hNorm
                 case Apply r x =>
                   have hXFalse :
                       eo_interprets M (Term.Apply (Term.Apply r x) y) false :=
@@ -1153,7 +1151,7 @@ private theorem arith_normalize_lit_not_gt_false
                   cases hNorm
               | _ =>
                   simp [__arith_normalize_lit, __arith_rel_neg] at hNorm
-                  split at hNorm <;> simp [__arith_rel_neg] at hNorm
+                  split at hNorm <;> simp at hNorm
                   all_goals simp at *
           | _ =>
               simp [__arith_normalize_lit, __arith_rel_neg] at hNorm

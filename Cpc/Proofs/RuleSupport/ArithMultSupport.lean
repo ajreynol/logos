@@ -7,7 +7,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -113,9 +112,9 @@ private theorem mk_arith_mult_pos_unfold_of_rel
           (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) b) (arithOne m))) := by
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     all_goals
-      simp [__mk_arith_mult_pos, arithOne, hM]
+      simp [__mk_arith_mult_pos, arithOne]
 
 private theorem mk_arith_mult_pos_eq_of_ne_stuck
     (m r a b : Term)
@@ -165,7 +164,7 @@ private theorem mk_arith_mult_neg_eq_of_ne_stuck
     intro hm
     subst m
     simp [__mk_arith_mult_neg] at h
-  simp [__mk_arith_mult_neg, hM, negConclusion] at h ⊢
+  simp [__mk_arith_mult_neg, negConclusion] at h ⊢
   let one := arithOne m
   let lhsMk :=
     __eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) m)
@@ -224,7 +223,7 @@ private theorem prog_arith_mult_pos_eq_of_ne_stuck
     intro hm
     subst m
     simp [__eo_prog_arith_mult_pos] at h
-  simp [__eo_prog_arith_mult_pos, hM] at h ⊢
+  simp [__eo_prog_arith_mult_pos] at h ⊢
   have hConcl :
       __mk_arith_mult_pos m (Term.Apply (Term.Apply r a) b) ≠ Term.Stuck :=
     eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ h
@@ -274,7 +273,7 @@ private theorem prog_arith_mult_neg_eq_of_ne_stuck
     intro hm
     subst m
     simp [__eo_prog_arith_mult_neg] at h
-  simp [__eo_prog_arith_mult_neg, hM] at h ⊢
+  simp [__eo_prog_arith_mult_neg] at h ⊢
   have hConcl :
       __mk_arith_mult_neg m (Term.Apply (Term.Apply r a) b) ≠ Term.Stuck :=
     eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ h
@@ -436,7 +435,7 @@ theorem arith_rel_op_has_bool_type_of_translation
   intro hRel hTrans
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     · rcases eq_operands_same_smt_type_of_eq_has_smt_translation a b
           (by simpa [relTerm] using hTrans) with ⟨hTy, hNN⟩
       simpa [relTerm] using
@@ -508,7 +507,7 @@ theorem arith_rel_args_have_translation
   have hBool := arith_rel_op_has_bool_type_of_translation r a b hRel hTrans
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     · simpa [relTerm] using
         CnfSupport.eq_args_have_translation_of_translation a b (by simpa [relTerm] using hTrans)
     · rcases rel_operands_arith_type_of_lt_has_bool_type a b
@@ -654,8 +653,7 @@ private theorem typeof_plus_arg_int_of_nonstuck (T : Term) :
   cases T <;> simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
     native_teq, native_ite, native_not, SmtEval.native_not] at h ⊢
   case UOp op =>
-    cases op <;> simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-      native_teq, native_ite, native_not, SmtEval.native_not] at h ⊢
+    cases op <;> simp at h ⊢
 
 private theorem typeof_plus_arg_real_of_nonstuck (T : Term) :
     __eo_typeof_plus T (Term.UOp UserOp.Real) ≠ Term.Stuck ->
@@ -664,8 +662,7 @@ private theorem typeof_plus_arg_real_of_nonstuck (T : Term) :
   cases T <;> simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
     native_teq, native_ite, native_not, SmtEval.native_not] at h ⊢
   case UOp op =>
-    cases op <;> simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-      native_teq, native_ite, native_not, SmtEval.native_not] at h ⊢
+    cases op <;> simp at h ⊢
 
 private theorem typeof_plus_left_arith_of_nonstuck (T U : Term) :
     __eo_typeof_plus T U ≠ Term.Stuck ->
@@ -676,8 +673,7 @@ private theorem typeof_plus_left_arith_of_nonstuck (T U : Term) :
       native_teq, native_ite, native_not, SmtEval.native_not] at h ⊢
   case UOp.UOp opT opU =>
     cases opT <;> cases opU <;>
-      simp [__eo_typeof_plus, __eo_requires, __eo_eq, __is_arith_type,
-        native_teq, native_ite, native_not, SmtEval.native_not] at h ⊢
+      simp at h ⊢
 
 private theorem scale_m_eo_arith_of_scale_not_stuck
     (m x : Term) :
@@ -1241,7 +1237,7 @@ private theorem rel_bool_of_pair_type
   intro hRel hTy
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     · rcases hTy with hTy | hTy
       · exact RuleProofs.eo_has_bool_type_eq_of_same_smt_type a b
           (by rw [hTy.1, hTy.2])
@@ -1308,7 +1304,7 @@ private theorem neg_conclusion_bool_of_pair_type
   intro hRel hTy
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     · simpa [negConclusion, __arith_rel_inv, relTerm, scale] using
         rel_bool_of_pair_type (Term.UOp UserOp.eq) (scale m a) (scale m b)
           (by simp [arithRelOp]) hTy
@@ -1371,7 +1367,7 @@ private theorem pos_conclusion_true
     bool_of_true_eval hSignTrue hSignEval
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     · have hFEval := eval_eq_of_denotes M hM a b qa qb hPair haDen hbDen
       have hOrig : native_qeq qa qb = true := bool_of_true_eval hFTrue hFEval
       have hEval := eval_eq_of_denotes M hM (scale m a) (scale m b)
@@ -1461,7 +1457,7 @@ private theorem neg_conclusion_true
     bool_of_true_eval hSignTrue hSignEval
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     · have hFEval := eval_eq_of_denotes M hM a b qa qb hPair haDen hbDen
       have hOrig : native_qeq qa qb = true := bool_of_true_eval hFTrue hFEval
       have hEval := eval_eq_of_denotes M hM (scale m a) (scale m b)
@@ -1692,7 +1688,7 @@ private theorem prog_arith_mult_pos_mk_ne_stuck
     intro hF
     subst F
     cases m <;> simp [__eo_prog_arith_mult_pos] at hProg
-  simp [__eo_prog_arith_mult_pos, hM, hF] at hProg
+  simp [__eo_prog_arith_mult_pos] at hProg
   exact eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hProg
 
 private theorem prog_arith_mult_neg_mk_ne_stuck
@@ -1708,7 +1704,7 @@ private theorem prog_arith_mult_neg_mk_ne_stuck
     intro hF
     subst F
     cases m <;> simp [__eo_prog_arith_mult_neg] at hProg
-  simp [__eo_prog_arith_mult_neg, hM, hF] at hProg
+  simp [__eo_prog_arith_mult_neg] at hProg
   exact eo_mk_apply_arg_ne_stuck_of_ne_stuck _ _ hProg
 
 private theorem mk_arith_mult_pos_stuck_of_not_rel
@@ -1724,7 +1720,7 @@ private theorem mk_arith_mult_pos_stuck_of_not_rel
     apply hRel
     cases r <;> simp [relTerm, arithRelOp] at hEq ⊢
     case UOp op =>
-      cases op <;> simp [relTerm, arithRelOp] at hEq ⊢
+      cases op <;> simp at hEq ⊢
 
 private theorem mk_arith_mult_pos_rel_of_ne_stuck
     (m r a b : Term) :
@@ -1734,7 +1730,7 @@ private theorem mk_arith_mult_pos_rel_of_ne_stuck
   have hM : m ≠ Term.Stuck := by
     intro hm
     subst m
-    simp [relTerm, __mk_arith_mult_pos] at hMk
+    simp [__mk_arith_mult_pos] at hMk
   by_cases hRel : arithRelOp r
   · exact hRel
   · exact False.elim (hMk (mk_arith_mult_pos_stuck_of_not_rel m r a b hM hRel))
@@ -1746,7 +1742,7 @@ private theorem arith_rel_inv_stuck_of_not_rel
   intro hRel
   cases r <;> simp [arithRelOp] at hRel ⊢
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel ⊢
+    cases op <;> simp at hRel ⊢
     all_goals
       cases x <;> cases y <;> simp [__arith_rel_inv] at hRel ⊢
   all_goals
@@ -1769,7 +1765,7 @@ private theorem mk_arith_mult_neg_rel_of_ne_stuck
   have hM : m ≠ Term.Stuck := by
     intro hm
     subst m
-    simp [relTerm, __mk_arith_mult_neg] at hMk
+    simp [__mk_arith_mult_neg] at hMk
   exact arith_rel_inv_rel_of_ne_stuck r
     (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) m)
       (__eo_mk_apply (Term.Apply (Term.UOp UserOp.mult) a) (arithOne m)))
@@ -1787,10 +1783,10 @@ private theorem pos_mk_ne_stuck_args
     intro hm
     subst m
     simp [__mk_arith_mult_pos] at hMk
-  cases F <;> simp [__mk_arith_mult_pos, hM] at hMk
+  cases F <;> simp [__mk_arith_mult_pos] at hMk
   case Apply f b =>
     cases f <;> try
-      (exfalso; apply hMk; simp [__mk_arith_mult_pos, hM])
+      (exfalso; apply hMk; simp)
     case Apply r a =>
       refine ⟨r, a, b, ?_, ?_⟩
       · rfl
@@ -1807,9 +1803,9 @@ private theorem neg_mk_ne_stuck_args
     intro hm
     subst m
     simp [__mk_arith_mult_neg] at hMk
-  cases F <;> simp [__mk_arith_mult_neg, hM] at hMk
+  cases F <;> simp [__mk_arith_mult_neg] at hMk
   case Apply f b =>
-    cases f <;> simp [__mk_arith_mult_neg, hM] at hMk
+    cases f <;> simp at hMk
     case Apply r a =>
       refine ⟨r, a, b, ?_, ?_⟩
       · rfl
@@ -1832,7 +1828,7 @@ private theorem pos_conclusion_scale_not_stuck
   intro hRel hTy
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     · change __eo_typeof_eq (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
         Term.Bool at hTy
       exact RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hTy
@@ -1858,7 +1854,7 @@ private theorem neg_conclusion_scale_not_stuck
   intro hRel hTy
   cases r <;> simp [arithRelOp] at hRel
   case UOp op =>
-    cases op <;> simp [arithRelOp] at hRel
+    cases op <;> simp at hRel
     · change __eo_typeof_eq (__eo_typeof (scale m a)) (__eo_typeof (scale m b)) =
         Term.Bool at hTy
       exact RuleProofs.eo_typeof_eq_bool_operands_not_stuck _ _ hTy
@@ -2490,8 +2486,7 @@ private theorem AbsCmpAcc.final_true
             (relTerm (Term.UOp UserOp.eq) (absTerm a) (absTerm b)) =
             SmtTerm.eq (__eo_to_smt (absTerm a)) (__eo_to_smt (absTerm b)) by rfl]
         rw [__smtx_model_eval.eq_134, hAbsA, hAbsB]
-        simp [__smtx_model_eval_eq, native_veq, hIntAbsEq,
-          (native_zeq_intAbs_true_iff na nb).mpr hEq])
+        simp [__smtx_model_eval_eq, native_veq, hIntAbsEq])
 
 private theorem mk_rel_eq_relTerm_gt
     {M : SmtModel} {a b : Term} {na nb : native_Int}
@@ -2682,7 +2677,7 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
                 | _, Term.Stuck => Term.Stuck
                 | t, s => Term.Boolean (decide (s = t))) =
                 Term.Boolean true := by
-            cases t <;> simp [native_teq] at htNe ⊢
+            cases t <;> simp at htNe ⊢
           rcases abs_eq_factor_type M hM t u hEqAbsType with
             ⟨nt, nu, htList, huList⟩
           cases hAcc with
@@ -2709,8 +2704,7 @@ private theorem arith_mult_abs_comparison_rec_has_bool_type
                 simpa [hEqSelfRaw] using hTy)
               simpa [hEqSelfRaw] using hRec
         · simp [__eo_eq, __eo_ite, __eo_requires, hZero, native_teq,
-            native_ite, native_not, SmtEval.native_not,
-            __eo_l_2___mk_arith_mult_abs_comparison_rec] at hTy
+            native_ite, __eo_l_2___mk_arith_mult_abs_comparison_rec] at hTy
           exact False.elim (false_of_typeof_stuck_bool (by simpa using hTy))
       · cases hCond : __eo_eq t tv with
         | Boolean c =>
@@ -2993,7 +2987,7 @@ private theorem facts_arith_mult_abs_comparison_rec
                 | _, Term.Stuck => Term.Stuck
                 | t, s => Term.Boolean (decide (s = t))) =
                 Term.Boolean true := by
-            cases t <;> simp [native_teq] at htNe ⊢
+            cases t <;> simp at htNe ⊢
           cases hAcc with
           | gt _ _ na nb ha hb hLt =>
               have hPos := abs_factor_nonzero M t z nt htTy htEval hZero hNotEqTrue
@@ -3023,8 +3017,7 @@ private theorem facts_arith_mult_abs_comparison_rec
                 simpa [hEqSelfRaw] using hTy)
               simpa [hEqSelfRaw] using hRec
         · simp [__eo_eq, __eo_ite, __eo_requires, hZero, native_teq,
-            native_ite, native_not, SmtEval.native_not,
-            __eo_l_2___mk_arith_mult_abs_comparison_rec] at hTy
+            native_ite, __eo_l_2___mk_arith_mult_abs_comparison_rec] at hTy
           exact False.elim (false_of_typeof_stuck_bool (by simpa using hTy))
       · cases hCond : __eo_eq t tv with
         | Boolean c =>

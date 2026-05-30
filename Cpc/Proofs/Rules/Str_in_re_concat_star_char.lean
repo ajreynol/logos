@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -329,7 +328,7 @@ private theorem nativeListInRe_mk_concat :
       rw [nativeListInRe_mk_union]
       rw [nativeListInRe_mk_concat cs (native_re_deriv c r) s]
       cases hNullable : native_re_nullable r <;>
-        simp [hNullable, nativeListInRe_empty, Bool.or_comm]
+        simp [nativeListInRe_empty, Bool.or_comm]
 
 private theorem nativeListInReConcat_true_iff_exists_append :
     (xs : List native_Char) -> (r s : native_RegLan) ->
@@ -380,8 +379,8 @@ private theorem nativeListInReConcat_true_iff_exists_append :
                 cases hAppend
                 have hNullable : native_re_nullable r = true := by
                   simpa [nativeListInRe] using hLeft
-                simp [nativeListInReConcat, Bool.or_eq_true,
-                  Bool.and_eq_true, hNullable, hRight]
+                simp [nativeListInReConcat,
+                  hNullable, hRight]
         | cons _ ds =>
             cases hAppend
             have hLeftDeriv :
@@ -393,7 +392,7 @@ private theorem nativeListInReConcat_true_iff_exists_append :
               (nativeListInReConcat_true_iff_exists_append (ds ++ xs₂)
                 (native_re_deriv c r) s).2
                 ⟨ds, xs₂, by rfl, hLeftDeriv, hRight⟩
-            simp [nativeListInReConcat, Bool.or_eq_true, hTail]
+            simp [nativeListInReConcat, hTail]
 
 private theorem nativeListInRe_mk_concat_true_iff_exists_append
     (xs : List native_Char) (r s : native_RegLan) :
@@ -420,12 +419,12 @@ private theorem nativeListInRe_char_true_length
           intro h
           by_cases hMatch :
               (native_char_valid d = true ∧ native_char_valid c = true) ∧ d = c
-          · simp [nativeListInRe, native_re_deriv, hMatch, nativeListInRe_empty] at h
+          · simp [nativeListInRe, native_re_deriv, hMatch] at h
             have hEmpty := nativeListInRe_empty es
             unfold nativeListInRe at hEmpty
             rw [hEmpty] at h
             simp at h
-          · simp [nativeListInRe, native_re_deriv, hMatch, nativeListInRe_empty] at h
+          · simp [nativeListInRe, native_re_deriv, hMatch] at h
             have hEmpty := nativeListInRe_empty es
             unfold nativeListInRe at hEmpty
             rw [hEmpty] at h
@@ -445,14 +444,14 @@ private theorem nativeListInRe_allchar_true_length
       | cons d ds =>
           intro h
           cases hValid : native_char_valid c
-          · simp [nativeListInRe, native_re_allchar, native_re_deriv, hValid,
-              nativeListInRe_empty] at h
+          · simp [nativeListInRe, native_re_allchar, native_re_deriv, hValid
+              ] at h
             have hEmpty := nativeListInRe_empty ds
             unfold nativeListInRe at hEmpty
             rw [hEmpty] at h
             simp at h
-          · simp [nativeListInRe, native_re_allchar, native_re_deriv, hValid,
-              nativeListInRe_empty] at h
+          · simp [nativeListInRe, native_re_allchar, native_re_deriv, hValid
+              ] at h
             have hEmpty := nativeListInRe_empty ds
             unfold nativeListInRe at hEmpty
             rw [hEmpty] at h
@@ -515,7 +514,7 @@ private theorem nativeListInRe_re_of_list_true_length :
       | nil =>
           rfl
       | cons c cs =>
-          simp [native_re_of_list, nativeListInRe, native_re_nullable,
+          simp [native_re_of_list, nativeListInRe,
             native_re_deriv] at h
           have hEmpty := nativeListInRe_empty cs
           unfold nativeListInRe at hEmpty
@@ -740,13 +739,13 @@ private theorem fixed_len_re_union_right_not_none
       Term.Numeral n := by
   intro h
   cases r₂ <;>
-    simp [__str_fixed_len_re, __eo_eq, native_ite, native_teq, native_not,
-      SmtEval.native_not] at h hNone ⊢
+    simp [__str_fixed_len_re, __eo_eq, native_ite, native_teq
+      ] at h hNone ⊢
   all_goals try exact h
   case UOp op =>
     cases op <;>
-      simp [__str_fixed_len_re, __eo_eq, native_ite, native_teq, native_not,
-        SmtEval.native_not] at h hNone ⊢
+      simp [__str_fixed_len_re
+        ] at h hNone ⊢
     all_goals try exact h
 
 private theorem fixed_len_re_inter_right_not_all
@@ -760,13 +759,13 @@ private theorem fixed_len_re_inter_right_not_all
       Term.Numeral n := by
   intro h
   cases r₂ <;>
-    simp [__str_fixed_len_re, __eo_eq, native_ite, native_teq, native_not,
-      SmtEval.native_not] at h hAll ⊢
+    simp [__str_fixed_len_re, __eo_eq, native_ite, native_teq
+      ] at h hAll ⊢
   all_goals try exact h
   case UOp op =>
     cases op <;>
-      simp [__str_fixed_len_re, __eo_eq, native_ite, native_teq, native_not,
-        SmtEval.native_not] at h hAll ⊢
+      simp [__str_fixed_len_re
+        ] at h hAll ⊢
     all_goals try exact h
 
 private theorem fixed_len_re_sound
@@ -792,7 +791,7 @@ private theorem fixed_len_re_sound
         SmtValue.RegLan rv at hEval
       rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_4] at hEval
       simp [__smtx_model_eval_str_to_re, native_pack_string, native_unpack_string,
-        native_unpack_seq_pack, native_ssm_char_of_value, Function.comp] at hEval
+        native_unpack_seq_pack] at hEval
       subst rv
       have hIn' : nativeListInRe xs (native_str_to_re pat) = true := by
         have hMap :
@@ -1006,15 +1005,14 @@ private theorem fixed_len_re_sound
           | UOp op =>
               cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
               case str_to_re =>
-                cases x <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+                cases x <;> simp at hFixed
                 case String pat =>
                   subst n
                   change __smtx_model_eval M (SmtTerm.str_to_re (SmtTerm.String pat)) =
                     SmtValue.RegLan rv at hEval
                   rw [__smtx_model_eval.eq_106, __smtx_model_eval.eq_4] at hEval
                   simp [__smtx_model_eval_str_to_re, native_pack_string,
-                    native_unpack_string, native_unpack_seq_pack,
-                    native_ssm_char_of_value, Function.comp] at hEval
+                    native_unpack_string, native_unpack_seq_pack] at hEval
                   subst rv
                   have hIn' : nativeListInRe xs (native_str_to_re pat) = true := by
                     have hMap :
@@ -1037,7 +1035,7 @@ private theorem fixed_len_re_sound
           | Apply g y =>
               cases g with
               | UOp op =>
-                  cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+                  cases op <;> simp [__str_fixed_len_re] at hFixed
                   case re_range =>
                     subst n
                     change __smtx_model_eval M
@@ -1221,23 +1219,23 @@ private theorem fixed_len_re_sound
                           cases hEval₂ : __smtx_model_eval M (__eo_to_smt x) <;>
                             simp [__smtx_model_eval_re_inter, hEval₁, hEval₂] at hEval
               | Apply h z =>
-                  cases h <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+                  cases h <;> simp [__str_fixed_len_re] at hFixed
               | UOp1 op a =>
-                  cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+                  cases op <;> simp [__str_fixed_len_re] at hFixed
               | UOp2 op a b =>
-                  cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+                  cases op <;> simp [__str_fixed_len_re] at hFixed
               | UOp3 op a b c =>
-                  cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+                  cases op <;> simp [__str_fixed_len_re] at hFixed
               | _ =>
-                  simp [__str_fixed_len_re, __eo_len] at hFixed
+                  simp [__str_fixed_len_re] at hFixed
           | UOp1 op a =>
-              cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+              cases op <;> simp [__str_fixed_len_re] at hFixed
           | UOp2 op a b =>
-              cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+              cases op <;> simp [__str_fixed_len_re] at hFixed
           | UOp3 op a b c =>
-              cases op <;> simp [__str_fixed_len_re, __eo_len] at hFixed
+              cases op <;> simp [__str_fixed_len_re] at hFixed
           | _ =>
-              simp [__str_fixed_len_re, __eo_len] at hFixed
+              simp [__str_fixed_len_re] at hFixed
       | _ =>
           simp [__str_fixed_len_re] at hFixed
 termination_by r => r
@@ -1270,8 +1268,8 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
             __smtx_model_eval.eq_107, __smtx_model_eval.eq_1, hREval]
           simp [__smtx_model_eval_str_in_re, __smtx_model_eval_re_mult,
             native_str_in_re, native_pack_string, native_unpack_string,
-            native_pack_seq, native_unpack_seq, native_string_valid,
-            nativeListInRe_re_mult_empty_string]
+            native_pack_seq, native_unpack_seq, native_string_valid
+            ]
           cases rv <;> simp [native_re_mult, native_re_mk_star, native_re_nullable]
       | cons _ _ =>
           subst side
@@ -1402,7 +1400,7 @@ private theorem smtx_model_eval_str_in_re_concat_star_char_side
                             have hMk :
                                 __eo_mk_apply (Term.Apply (Term.UOp UserOp.and) leftIn) tail =
                                   Term.Apply (Term.Apply (Term.UOp UserOp.and) leftIn) tail := by
-                              simp [__eo_mk_apply, hTailNe]
+                              simp [__eo_mk_apply]
                             rw [hMk]
                             change __smtx_model_eval M
                                 (SmtTerm.and (__eo_to_smt leftIn) (__eo_to_smt tail)) =

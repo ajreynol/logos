@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem eo_has_bool_type_imp_left (A B : Term) :
@@ -178,8 +177,7 @@ private theorem extract_antec_imp_ne (A D C : Term) :
   intro hDNe hCNe hNe
   have hEqFalse : __eo_eq D C = Term.Boolean false :=
     eo_eq_false_of_ne_nonstuck D C hDNe hCNe hNe
-  simp [__extract_antec, __eo_l_1___extract_antec, __eo_ite, native_ite, native_teq,
-    hDNe, hCNe, hEqFalse]
+  simp [__extract_antec, __eo_l_1___extract_antec, __eo_ite, native_ite, native_teq,hEqFalse]
 
 private theorem run_process_scope_false_eq (F : Term) :
     F ≠ Term.Stuck ->
@@ -241,21 +239,21 @@ private theorem extract_antec_rec_bool :
                           (__extract_antec_rec x C) hABool hTailBool
                     | _ =>
                         simp [__extract_antec_rec, __eo_l_1___extract_antec_rec,
-                          __eo_eq, __eo_ite, native_ite, native_teq, hCNe, hEq']
+                          __eo_eq, __eo_ite, native_ite, native_teq, hEq']
                           at hRecNe
                 | _ =>
                     simp [__extract_antec_rec, __eo_l_1___extract_antec_rec,
-                      __eo_eq, __eo_ite, native_ite, native_teq, hCNe, hEq']
+                      __eo_eq, __eo_ite, native_ite, native_teq, hEq']
                       at hRecNe
             | _ =>
                 simp [__extract_antec_rec, __eo_l_1___extract_antec_rec,
-                  __eo_eq, __eo_ite, native_ite, native_teq, hCNe, hEq']
+                  __eo_eq, __eo_ite, native_ite, native_teq, hEq']
                   at hRecNe
         | Stuck =>
             exact False.elim (hFNe rfl)
         | _ =>
             simp [__extract_antec_rec, __eo_l_1___extract_antec_rec,
-              __eo_eq, __eo_ite, native_ite, native_teq, hCNe, hEq']
+              __eo_eq, __eo_ite, native_ite, native_teq, hEq']
               at hRecNe
 termination_by F C hFBool hRecNe => F
 
@@ -362,21 +360,21 @@ private theorem extract_antec_rec_sound
                         exact extract_antec_rec_sound M x C hxTrue hRecTailNe hTailTrue
                     | _ =>
                         simp [__extract_antec_rec, __eo_l_1___extract_antec_rec,
-                          __eo_eq, __eo_ite, native_ite, native_teq, hCNe, hEq']
+                          __eo_eq, __eo_ite, native_ite, native_teq, hEq']
                           at hRecNe
                 | _ =>
                     simp [__extract_antec_rec, __eo_l_1___extract_antec_rec,
-                      __eo_eq, __eo_ite, native_ite, native_teq, hCNe, hEq']
+                      __eo_eq, __eo_ite, native_ite, native_teq, hEq']
                       at hRecNe
             | _ =>
                 simp [__extract_antec_rec, __eo_l_1___extract_antec_rec,
-                  __eo_eq, __eo_ite, native_ite, native_teq, hCNe, hEq']
+                  __eo_eq, __eo_ite, native_ite, native_teq, hEq']
                   at hRecNe
         | Stuck =>
             exact False.elim (hFNe rfl)
         | _ =>
             simp [__extract_antec_rec, __eo_l_1___extract_antec_rec,
-              __eo_eq, __eo_ite, native_ite, native_teq, hCNe, hEq']
+              __eo_eq, __eo_ite, native_ite, native_teq, hEq']
               at hRecNe
 termination_by F C hFTrue hRecNe hRecTrue => F
 

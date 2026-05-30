@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -58,13 +57,13 @@ private theorem typeof_str_to_code_arg_string (t : Term) :
   cases ht : __eo_typeof t <;> simp [__eo_typeof_str_to_code, ht] at h
   case Apply f a =>
     cases f
-    all_goals try simp [__eo_typeof_str_to_code, ht] at h
+    all_goals try simp at h
     case UOp op =>
-      cases op <;> try simp [__eo_typeof_str_to_code, ht] at h
+      cases op <;> try simp at h
       case Seq =>
-        cases a <;> try simp [__eo_typeof_str_to_code, ht] at h
+        cases a <;> try simp at h
         case UOp op =>
-          cases op <;> try simp [__eo_typeof_str_to_code, ht] at h
+          cases op <;> try simp at h
           case Char =>
             rfl
 
@@ -88,8 +87,7 @@ private theorem sciFormula_left_arg_string (t s : Term) :
         native_not, hCode] at hLeft ⊢
     case UOp op =>
       cases op <;>
-        simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-          native_not, hCode] at hLeft ⊢
+        simp at hLeft ⊢
   exact typeof_str_to_code_arg_string t hCodeTy
 
 private theorem sciFormula_right_arg_string (t s : Term) :
@@ -131,8 +129,7 @@ private theorem sciFormula_right_arg_string (t s : Term) :
         native_not, hS] at hCodeEq ⊢
     case UOp opT =>
       cases opT <;>
-        simp [__eo_typeof_eq, __eo_requires, __eo_eq, native_ite, native_teq,
-          native_not, hS] at hCodeEq ⊢
+        simp at hCodeEq ⊢
   exact typeof_str_to_code_arg_string s hCodeSTy
 
 private theorem smt_type_seq_char_of_eo_type
@@ -344,7 +341,7 @@ private theorem facts_sciFormula
       simp [__smtx_model_eval.eq_7, __smtx_model_eval.eq_6,
         __smtx_model_eval.eq_134, __smtx_model_eval.eq_92,
         __smtx_model_eval.eq_2, __smtx_model_eval.eq_1,
-        hEvalT, hEvalS, hNeg, hCodes, hSeq, __smtx_model_eval_str_to_code,
+        hEvalT, hEvalS,hSeq, __smtx_model_eval_str_to_code,
         __smtx_model_eval_eq, __smtx_model_eval_or, __smtx_model_eval_not,
         native_veq, SmtEval.native_or, SmtEval.native_not]
     · simp [__smtx_model_eval.eq_7, __smtx_model_eval.eq_6,
@@ -400,7 +397,7 @@ by
                     simpa [__eo_prog_string_code_inj, hTNe] using hProg
                   have hProgEq : __eo_prog_string_code_inj T U = sciFormula T U := by
                     simp [__eo_prog_string_code_inj, sciFormula, sciOr, sciCodeNeg,
-                      sciCodeEq, sciEq, sciCode, sciNot, hTNe, hUNe]
+                      sciCodeEq, sciEq, sciCode, sciNot]
                   have hFormulaTy : __eo_typeof (sciFormula T U) = Term.Bool := by
                     change __eo_typeof (__eo_prog_string_code_inj T U) = Term.Bool at hResultTy
                     simpa [hProgEq] using hResultTy
