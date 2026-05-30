@@ -509,15 +509,13 @@ deriving Inhabited
 def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
   { isVar := false, name := s, ty := T }
 
-def native_model_var_lookup (M : SmtModel) (s : native_String)
-    (T : SmtType) : SmtValue :=
+def native_model_var_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
   M.values { isVar := true, name := s, ty := T }
 
 def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
   M.values (native_model_key s T)
 
-def native_model_push (M : SmtModel) (s : native_String) (T : SmtType)
-    (v : SmtValue) : SmtModel :=
+def native_model_push (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
       if k = { isVar := true, name := s, ty := T } then
         v
