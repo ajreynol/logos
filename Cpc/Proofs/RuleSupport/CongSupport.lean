@@ -2895,6 +2895,17 @@ private theorem native_str_ext_to_list_ext
   intro ys hys
   simpa [native_str_in_re, native_list_in_re, hys] using hExt ys hys
 
+theorem native_re_prefix_match_len_go_congr_valid_ext_of_str_ext
+    (xs : List native_Char) (r r' : native_RegLan) (n : Nat)
+    (hExt :
+      ∀ ys : native_String,
+        native_string_valid ys = true ->
+          native_str_in_re ys r = native_str_in_re ys r') :
+    native_re_prefix_match_len?.go r xs n =
+      native_re_prefix_match_len?.go r' xs n :=
+  native_re_prefix_match_len_go_congr_valid_ext xs r r' n
+    (native_str_ext_to_list_ext r r' hExt)
+
 private theorem native_str_in_re_ext_of_valid_ext
     {r r' : native_RegLan}
     (hExt :
