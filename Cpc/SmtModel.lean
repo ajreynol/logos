@@ -495,9 +495,6 @@ abbrev SmtNativeFun := SmtValue -> SmtValue
 def native_default_ifun_id : native_String := (native_string_lit "@native_default_ifun")
 
 /- SMT-LIB model -/
-def native_model_const_namespace : native_Bool := false
-def native_model_var_namespace : native_Bool := true
-
 structure SmtModelKey where
   isVar : native_Bool
   name : native_String
@@ -509,48 +506,26 @@ structure SmtModel where
   nativeFuns : SmtModelKey -> SmtNativeFun
 deriving Inhabited
 
-def native_model_key_in_namespace
-    (isVar : native_Bool) (s : native_String) (T : SmtType) :
-    SmtModelKey :=
-  { isVar := isVar, name := s, ty := T }
-
-def native_model_const_key (s : native_String) (T : SmtType) : SmtModelKey :=
-  native_model_key_in_namespace native_model_const_namespace s T
-
-def native_model_var_key (s : native_String) (T : SmtType) : SmtModelKey :=
-  native_model_key_in_namespace native_model_var_namespace s T
-
-/- Compatibility name: unqualified model keys are constant keys. -/
 def native_model_key (s : native_String) (T : SmtType) : SmtModelKey :=
-  native_model_const_key s T
-
-def native_model_lookup_in_namespace
-    (M : SmtModel) (isVar : native_Bool) (s : native_String)
-    (T : SmtType) : SmtValue :=
-  M.values (native_model_key_in_namespace isVar s T)
-
-def native_model_const_lookup (M : SmtModel) (s : native_String)
-    (T : SmtType) : SmtValue :=
-  native_model_lookup_in_namespace M native_model_const_namespace s T
+  { isVar := false, name := s, ty := T }
 
 def native_model_var_lookup (M : SmtModel) (s : native_String)
     (T : SmtType) : SmtValue :=
-  native_model_lookup_in_namespace M native_model_var_namespace s T
+  M.values { isVar := true, name := s, ty := T }
 
-/- Compatibility name: unqualified model lookup reads constants. -/
 def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
-  native_model_const_lookup M s T
+  M.values (native_model_key s T)
 
 def native_model_push (M : SmtModel) (s : native_String) (T : SmtType)
     (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
-      if k = (native_model_var_key s T) then
+      if k = { isVar := true, name := s, ty := T } then
         v
       else
         M.values k }
 
 def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
-  M.nativeFuns (native_model_const_key fid (SmtType.FunType T U))
+  M.nativeFuns (native_model_key fid (SmtType.FunType T U))
 
 abbrev RefList := List native_String
 
@@ -915,7 +890,7 @@ def __smtx_set_union : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_seq_nth_wrong (M : SmtModel) (s : SmtSeq) (n : native_Int) : SmtType -> SmtValue
-  | (SmtType.Seq T) => (__smtx_map_select (__smtx_map_select (native_model_const_lookup M native_oob_seq_nth_id (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))) (SmtValue.Seq s)) (SmtValue.Numeral n))
+  | (SmtType.Seq T) => (__smtx_map_select (__smtx_map_select (native_model_lookup M native_oob_seq_nth_id (SmtType.Map (SmtType.Seq T) (SmtType.Map SmtType.Int T))) (SmtValue.Seq s)) (SmtValue.Numeral n))
   | T => SmtValue.NotValue
 
 
@@ -943,7 +918,7 @@ def __smtx_model_eval_apply (M : SmtModel) : SmtValue -> SmtValue -> SmtValue
 
 
 def __smtx_model_eval_dt_sel (M : SmtModel) (s : native_String) (d : SmtDatatype) (n : native_Nat) (m : native_Nat) (v : SmtValue) : SmtValue :=
-  (native_ite (native_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m (__smtx_dt_num_sels d n)) (__smtx_model_eval_apply M (native_model_const_lookup M (native_wrong_apply_sel_id n m) (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m))) v))
+  (native_ite (native_veq (__vsm_apply_head v) (SmtValue.DtCons s d n)) (__vsm_apply_arg_nth v m (__smtx_dt_num_sels d n)) (__smtx_model_eval_apply M (native_model_lookup M (native_wrong_apply_sel_id n m) (SmtType.FunType (SmtType.Datatype s d) (__smtx_ret_typeof_sel s d n m))) v))
 
 def __smtx_model_eval_dt_tester (s : native_String) (d : SmtDatatype) (n : native_Nat) (v1 : SmtValue) : SmtValue :=
   (SmtValue.Boolean (native_veq (__vsm_apply_head v1) (SmtValue.DtCons s d n)))
@@ -2167,17 +2142,17 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.div x1 x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
-    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply M (native_model_const_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_div_total _v1 _v0))
+    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply M (native_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_div_total _v1 _v0))
   | (SmtTerm.mod x1 x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (__smtx_model_eval M x1)
-    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply M (native_model_const_lookup M native_mod_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_mod_total _v1 _v0))
+    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Numeral 0)) (__smtx_model_eval_apply M (native_model_lookup M native_mod_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v1) (__smtx_model_eval_mod_total _v1 _v0))
   | (SmtTerm.multmult x1 x2) => 
     let _v0 := (__smtx_model_eval M x2)
     let _v1 := (SmtValue.Numeral 0)
     let _v2 := (__smtx_model_eval M x1)
     let _v3 := (SmtValue.Numeral 1)
-    (__smtx_model_eval_ite (__smtx_model_eval_geq _v0 _v1) (__smtx_model_eval_multmult_total _v2 _v0) (__smtx_model_eval_ite (__smtx_model_eval_eq _v2 _v1) (__smtx_model_eval_apply M (native_model_const_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v3) (__smtx_model_eval_div_total _v3 (__smtx_model_eval_multmult_total _v2 (__smtx_model_eval__ _v1 _v0)))))
+    (__smtx_model_eval_ite (__smtx_model_eval_geq _v0 _v1) (__smtx_model_eval_multmult_total _v2 _v0) (__smtx_model_eval_ite (__smtx_model_eval_eq _v2 _v1) (__smtx_model_eval_apply M (native_model_lookup M native_div_by_zero_id (SmtType.FunType SmtType.Int SmtType.Int)) _v3) (__smtx_model_eval_div_total _v3 (__smtx_model_eval_multmult_total _v2 (__smtx_model_eval__ _v1 _v0)))))
   | (SmtTerm.divisible x1 x2) => (__smtx_model_eval_divisible (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.int_pow2 x1) => (__smtx_model_eval_int_pow2 (__smtx_model_eval M x1))
   | (SmtTerm.int_log2 x1) => (__smtx_model_eval_int_log2 (__smtx_model_eval M x1))
@@ -2284,7 +2259,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.qdiv x1 x2) => 
     let _v0 := (__smtx_model_eval_to_real (__smtx_model_eval M x2))
     let _v1 := (__smtx_model_eval_to_real (__smtx_model_eval M x1))
-    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Rational (native_mk_rational 0 1))) (__smtx_model_eval_apply M (native_model_const_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real)) _v1) (__smtx_model_eval_qdiv_total _v1 _v0))
+    (__smtx_model_eval_ite (__smtx_model_eval_eq _v0 (SmtValue.Rational (native_mk_rational 0 1))) (__smtx_model_eval_apply M (native_model_lookup M native_qdiv_by_zero_id (SmtType.FunType SmtType.Real SmtType.Real)) _v1) (__smtx_model_eval_qdiv_total _v1 _v0))
   | (SmtTerm.qdiv_total x1 x2) => (__smtx_model_eval_qdiv_total (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.int_to_bv x1 x2) => (__smtx_model_eval_int_to_bv (__smtx_model_eval M x1) (__smtx_model_eval M x2))
   | (SmtTerm.ubv_to_int x1) => (__smtx_model_eval_ubv_to_int (__smtx_model_eval M x1))
@@ -2300,7 +2275,7 @@ noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
   | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) => (__smtx_model_eval_dt_tester s d i (__smtx_model_eval M x1))
   | (SmtTerm.Apply f x1) => (__smtx_model_eval_apply M (__smtx_model_eval M f) (__smtx_model_eval M x1))
   | (SmtTerm.Var s T) => (native_model_var_lookup M s T)
-  | (SmtTerm.UConst s T) => (native_model_const_lookup M s T)
+  | (SmtTerm.UConst s T) => (native_model_lookup M s T)
   | x1 => SmtValue.NotValue
 
 
@@ -2325,11 +2300,12 @@ def native_fun_typed (M : SmtModel) : Prop :=
 
 def model_total_typed (M : SmtModel) : Prop :=
   (∀ isVar s T, __smtx_type_wf T = true ->
-    __smtx_typeof_value (native_model_lookup_in_namespace M isVar s T) = T) ∧
+    __smtx_typeof_value (M.values { isVar := isVar, name := s, ty := T }) = T) ∧
   (∀ isVar s T, __smtx_type_wf T = true ->
-    __smtx_value_canonical_bool (native_model_lookup_in_namespace M isVar s T) = true) ∧
+    __smtx_value_canonical_bool
+      (M.values { isVar := isVar, name := s, ty := T }) = true) ∧
   (∀ isVar s T, __smtx_type_wf T = false ->
-    native_model_lookup_in_namespace M isVar s T = SmtValue.NotValue) ∧
+    M.values { isVar := isVar, name := s, ty := T } = SmtValue.NotValue) ∧
   native_fun_typed M
 
 /-
