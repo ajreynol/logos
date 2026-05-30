@@ -16,13 +16,18 @@ private theorem native_re_prefix_match_len?_empty_of_nullable
     (r : native_RegLan) (xs : native_String)
     (h : native_re_nullable r = true) :
   native_re_prefix_match_len? r xs = some 0 := by
-  sorry
+  rw [native_re_prefix_match_len?.eq_1]
+  cases xs with
+  | nil => simp [native_re_prefix_match_len?.go.eq_1, h]
+  | cons c cs => simp [native_re_prefix_match_len?.go.eq_2, h]
 
 private theorem native_re_find_idx_from_empty_of_nullable
     (r : native_RegLan) (xs : native_String) (start : Nat)
     (h : native_re_nullable r = true) :
     native_re_find_idx_from r xs start = some (start, 0) := by
-  sorry
+  unfold native_re_find_idx_from
+  rw [native_re_find_idx_aux.eq_def]
+  rw [native_re_prefix_match_len?_empty_of_nullable r (xs.drop start) h]
 
 private theorem native_str_indexof_re_empty_hit
     (s : native_String) (r : native_RegLan) (i : native_Int)
