@@ -81,11 +81,12 @@ by
 /-- Packages the properties required for the `refl` checker step. -/
 theorem cmd_step_refl_properties
     (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (args : CArgList) (premises : CIndexList) :
+    (s : CState) (args : CArgList) (premises : CIndexList)
+    (assumes pushes : Term) :
   cmdTranslationOk (CCmd.step CRule.refl args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.refl args premises) = Term.Bool ->
-  StepRuleProperties M (premiseTermList s premises)
+  StepRuleProperties M assumes pushes (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.refl args premises) :=
 by
   intro hCmdTrans hPremisesBool hResultTy
@@ -103,8 +104,8 @@ by
                 simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
               have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
               refine ⟨?_, ?_⟩
-              · intro _hTrue
-                exact facts___eo_prog_refl_impl M hM a1 hATrans
+              · intro N hN _hAgree _hEvidence
+                exact facts___eo_prog_refl_impl N hN a1 hATrans
                   (by simpa [__eo_cmd_step_proven] using hProg)
               · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
                   (typed___eo_prog_refl_impl a1 hATrans

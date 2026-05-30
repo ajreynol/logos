@@ -863,9 +863,7 @@ by
 def checkerLocalTruthInvariant (M : SmtModel) : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.proven P) s =>
-      (eo_interprets M (stateAssumes s) true ->
-       eo_interprets M (statePushes s) true ->
-       eo_interprets M P true) ∧
+      ContextualTruth M (stateAssumes s) (statePushes s) P ∧
       checkerLocalTruthInvariant M s
   | CState.cons _ s => checkerLocalTruthInvariant M s
   | CState.Stuck => True
@@ -1114,7 +1112,7 @@ theorem checkerLocalTruthInvariant_head_proven
   eo_interprets M P true :=
 by
   intro hs hAss hPush
-  exact hs.1 hAss hPush
+  exact hs.1.true_here hAss hPush
 
 /-- Retrieves the `checkerLocalTruthInvariant` fact at a given index. -/
 theorem checkerLocalTruthInvariant_at (M : SmtModel) :
@@ -1150,7 +1148,7 @@ by
               simpa [stateAssumes] using hAss
             have hPush' : eo_interprets M (statePushes s) true := by
               simpa [statePushes] using hPush
-            simpa [__eo_state_proven_nth] using hs.1 hAss' hPush'
+            simpa [__eo_state_proven_nth] using hs.1.true_here hAss' hPush'
       · cases so with
         | assume A =>
             have hAssTail : eo_interprets M (stateAssumes s) true :=
@@ -1167,6 +1165,64 @@ by
         | proven P =>
             simpa [__eo_state_proven_nth, hZero] using
               ih hs.2 (native_zplus n (native_zneg 1))
+                (by simpa [stateAssumes] using hAss)
+                (by simpa [statePushes] using hPush)
+
+/-- Retrieves an indexed local-truth fact in any variable-variant model. -/
+theorem checkerLocalTruthInvariant_at_var_model (M : SmtModel) :
+  forall {s : CState},
+    checkerLocalTruthInvariant M s ->
+    forall (N : SmtModel),
+      model_total_typed N ->
+      model_agrees_on_globals M N ->
+      forall n : native_Int,
+        eo_interprets N (stateAssumes s) true ->
+        eo_interprets N (statePushes s) true ->
+        eo_interprets N (__eo_state_proven_nth s n) true
+:=
+by
+  intro s hs
+  induction s with
+  | nil =>
+      intro N hN hAgree n hAss hPush
+      simpa [__eo_state_proven_nth] using eo_interprets_true N
+  | Stuck =>
+      intro N hN hAgree n hAss hPush
+      exact False.elim (eo_interprets_stuck_true_absurd N (by simpa [stateAssumes] using hAss))
+  | cons so s ih =>
+      intro N hN hAgree n hAss hPush
+      by_cases hZero : n = 0
+      · subst hZero
+        cases so with
+        | assume A =>
+            simpa [__eo_state_proven_nth] using
+              eo_interprets_and_left N A (stateAssumes s) hAss
+        | assume_push A =>
+            simpa [__eo_state_proven_nth] using
+              eo_interprets_and_left N A (statePushes s) hPush
+        | proven P =>
+            have hAss' : eo_interprets N (stateAssumes s) true := by
+              simpa [stateAssumes] using hAss
+            have hPush' : eo_interprets N (statePushes s) true := by
+              simpa [statePushes] using hPush
+            simpa [__eo_state_proven_nth] using
+              hs.1.true_in_var_model N hN hAgree hAss' hPush'
+      · cases so with
+        | assume A =>
+            have hAssTail : eo_interprets N (stateAssumes s) true :=
+              eo_interprets_and_right N A (stateAssumes s) hAss
+            simpa [__eo_state_proven_nth, hZero] using
+              ih (by simpa [checkerLocalTruthInvariant] using hs)
+                N hN hAgree (native_zplus n (native_zneg 1)) hAssTail hPush
+        | assume_push A =>
+            have hPushTail : eo_interprets N (statePushes s) true :=
+              eo_interprets_and_right N A (statePushes s) hPush
+            simpa [__eo_state_proven_nth, hZero] using
+              ih (by simpa [checkerLocalTruthInvariant] using hs)
+                N hN hAgree (native_zplus n (native_zneg 1)) hAss hPushTail
+        | proven P =>
+            simpa [__eo_state_proven_nth, hZero] using
+              ih hs.2 N hN hAgree (native_zplus n (native_zneg 1))
                 (by simpa [stateAssumes] using hAss)
                 (by simpa [statePushes] using hPush)
 
@@ -1316,9 +1372,7 @@ by
 theorem push_proven_preserves_localTruthInvariant_of_contextual_true
     (M : SmtModel) (s : CState) (P : Term) :
   checkerLocalTruthInvariant M s ->
-  (eo_interprets M (stateAssumes s) true ->
-   eo_interprets M (statePushes s) true ->
-   eo_interprets M P true) ->
+  ContextualTruth M (stateAssumes s) (statePushes s) P ->
   checkerLocalTruthInvariant M (CState.cons (CStateObj.proven P) s) :=
 by
   intro hs hP
@@ -2411,41 +2465,107 @@ by
       · exact checkerTruthInvariant_at M hs n hAss hPush
       · exact ih hs hAss hPush t ht
 
+/-- Derives premise truth in a variable-variant model from the local invariant. -/
+theorem premiseTermList_true_of_localTruthInvariant_var_model
+    (M : SmtModel) (s : CState) :
+  forall (premises : CIndexList),
+    checkerLocalTruthInvariant M s ->
+    forall (N : SmtModel),
+      model_total_typed N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N (stateAssumes s) true ->
+      eo_interprets N (statePushes s) true ->
+      AllInterpretedTrue N (premiseTermList s premises)
+:=
+by
+  intro premises
+  induction premises with
+  | nil =>
+      intro hs N hN hAgree hAss hPush t ht
+      cases ht
+  | cons n premises ih =>
+      intro hs N hN hAgree hAss hPush t ht
+      simp [premiseTermList] at ht
+      rcases ht with rfl | ht
+      · exact checkerLocalTruthInvariant_at_var_model M hs N hN hAgree n hAss hPush
+      · exact ih hs N hN hAgree hAss hPush t ht
+
+/-- Builds the contextual premise evidence used by the rule-correctness template. -/
+theorem premiseEvidence_of_localTruthInvariant
+    (M N : SmtModel) (s : CState) (premises : CIndexList) :
+  checkerLocalTruthInvariant M s ->
+  model_total_typed N ->
+  model_agrees_on_globals M N ->
+  eo_interprets N (stateAssumes s) true ->
+  eo_interprets N (statePushes s) true ->
+  RulePremiseEvidence N (stateAssumes s) (statePushes s)
+    (premiseTermList s premises) :=
+by
+  intro hs hN hAgree hAss hPush
+  refine ⟨?_, ?_⟩
+  · exact premiseTermList_true_of_localTruthInvariant_var_model
+      M s premises hs N hN hAgree hAss hPush
+  · intro K hK hAgreeNK hAssK hPushK
+    exact premiseTermList_true_of_localTruthInvariant_var_model
+      M s premises hs K hK
+      (model_agrees_on_globals_trans hAgree hAgreeNK) hAssK hPushK
+
 /-- Structure bundling the premise facts needed to justify a single checker step. -/
 structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
   true_of_context :
     eo_interprets M (stateAssumes s) true ->
     eo_interprets M (statePushes s) true ->
     eo_interprets M P true
+  true_in_var_model :
+    ∀ N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N (stateAssumes s) true ->
+      eo_interprets N (statePushes s) true ->
+      eo_interprets N P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P
 
+/-- Converts command-step facts into the local invariant payload for `push_proven`. -/
+theorem CmdStepFacts.contextualTruth
+    {M : SmtModel} {s : CState} {P : Term} :
+  CmdStepFacts M s P ->
+  ContextualTruth M (stateAssumes s) (statePushes s) P :=
+by
+  intro hFacts
+  exact ⟨hFacts.true_of_context, hFacts.true_in_var_model⟩
+
 /-- Packages rule-level step properties into the checker facts required for a single step. -/
 theorem cmd_step_facts_of_rule_properties
-    (M : SmtModel) (s : CState) (premises : CIndexList) {P : Term} :
-  checkerTruthInvariant M s ->
-  StepRuleProperties M (premiseTermList s premises) P ->
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (premises : CIndexList) {P : Term} :
+  checkerLocalTruthInvariant M s ->
+  StepRuleProperties M (stateAssumes s) (statePushes s)
+    (premiseTermList s premises) P ->
   CmdStepFacts M s P :=
 by
   intro hs hProps
-  refine ⟨?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · intro hAss hPush
-    exact hProps.facts_of_true
-      (premiseTermList_true_of_truthInvariant M s premises hs hAss hPush)
+    exact hProps.facts_of_evidence M hM (model_agrees_on_globals_refl M)
+      (premiseEvidence_of_localTruthInvariant M M s premises hs hM
+        (model_agrees_on_globals_refl M) hAss hPush)
+  · intro N hN hAgree hAss hPush
+    exact hProps.facts_of_evidence N hN hAgree
+      (premiseEvidence_of_localTruthInvariant M N s premises hs hN hAgree hAss hPush)
   · exact hProps.has_smt_translation
 
 /-- Packages rule-level step-pop properties into the checker facts required for a pop step. -/
 theorem cmd_step_pop_facts_of_rule_properties
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term) (premises : CIndexList) {P : Term} :
-  checkerTruthInvariant M root ->
+  checkerLocalTruthInvariant M root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
   StepPopRuleProperties A (premiseTermList root premises) P ->
   CmdStepFacts M tail P :=
 by
   intro hsRoot hSuffix hProps
   rcases hProps with ⟨X, hXMem, hFactsOfImp, hPopTrans⟩
-  refine ⟨?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · intro hAss hPush
     have hAssRoot : eo_interprets M (stateAssumes root) true := by
       rw [stateAssumes_eq_of_stateStepPopSuffix_assume_push hSuffix]
@@ -2456,7 +2576,23 @@ by
       have hPushRoot : eo_interprets M (statePushes root) true := by
         rw [statePushes_eq_of_stateStepPopSuffix_assume_push hSuffix]
         exact eo_interprets_and_intro M A (statePushes tail) hATrue hPush
-      exact (premiseTermList_true_of_truthInvariant M root premises hsRoot hAssRoot hPushRoot)
+      exact (premiseTermList_true_of_localTruthInvariant_var_model
+          M root premises hsRoot M hM (model_agrees_on_globals_refl M)
+          hAssRoot hPushRoot)
         X hXMem
     exact hFactsOfImp M hM hScoped
+  · intro N hN hAgree hAss hPush
+    have hAssRoot : eo_interprets N (stateAssumes root) true := by
+      rw [stateAssumes_eq_of_stateStepPopSuffix_assume_push hSuffix]
+      exact hAss
+    have hScoped :
+        eo_interprets N A true -> eo_interprets N X true := by
+      intro hATrue
+      have hPushRoot : eo_interprets N (statePushes root) true := by
+        rw [statePushes_eq_of_stateStepPopSuffix_assume_push hSuffix]
+        exact eo_interprets_and_intro N A (statePushes tail) hATrue hPush
+      exact (premiseTermList_true_of_localTruthInvariant_var_model
+          M root premises hsRoot N hN hAgree hAssRoot hPushRoot)
+        X hXMem
+    exact hFactsOfImp N hN hScoped
   · exact hPopTrans

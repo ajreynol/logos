@@ -23,7 +23,7 @@ theorem cmd_step_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (_hNotStuck : s ≠ CState.Stuck)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerTruthInvariant M s ->
+  checkerLocalTruthInvariant M s ->
   checkerTypeInvariant s ->
   checkerTranslationInvariant s ->
   cmdTranslationOk (CCmd.step r args premises) ->
@@ -40,20 +40,24 @@ by
   | scope =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | contra =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
+      exact cmd_step_facts_of_rule_properties M hM s premises hs <|
         cmd_step_contra_properties M hM s args premises
+          (stateAssumes s) (statePushes s)
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | refl =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
+      exact cmd_step_facts_of_rule_properties M hM s premises hs <|
         cmd_step_refl_properties M hM s args premises
+          (stateAssumes s) (statePushes s)
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | symm =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
+      exact cmd_step_facts_of_rule_properties M hM s premises hs <|
         cmd_step_symm_properties M hM s args premises
+          (stateAssumes s) (statePushes s)
           (by simpa using hCmdTrans) hPremisesBool hResultTy
   | trans =>
-      exact cmd_step_facts_of_rule_properties M s premises hs <|
+      exact cmd_step_facts_of_rule_properties M hM s premises hs <|
         cmd_step_trans_properties M hM s args premises
+          (stateAssumes s) (statePushes s)
           (by simpa using hCmdTrans) hPremisesBool hResultTy
 
 
@@ -67,7 +71,7 @@ theorem cmd_step_pop_proven_facts_of_invariants
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term)
     (r : CRule) (args : CArgList) (premises : CIndexList) :
-  checkerTruthInvariant M root ->
+  checkerLocalTruthInvariant M root ->
   checkerTypeInvariant root ->
   checkerTranslationInvariant root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
@@ -103,4 +107,3 @@ by
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
   | trans =>
       cases args <;> cases premises <;> exact False.elim (hProg rfl)
-

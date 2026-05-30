@@ -222,11 +222,12 @@ by
 /-- Packages the properties required for the `symm` checker step. -/
 theorem cmd_step_symm_properties
     (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (args : CArgList) (premises : CIndexList) :
+    (s : CState) (args : CArgList) (premises : CIndexList)
+    (assumes pushes : Term) :
   cmdTranslationOk (CCmd.step CRule.symm args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.symm args premises) = Term.Bool ->
-  StepRuleProperties M (premiseTermList s premises)
+  StepRuleProperties M assumes pushes (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.symm args premises) :=
 by
   intro _hCmdTrans hPremisesBool hResultTy
@@ -242,9 +243,9 @@ by
           | nil =>
               let X := __eo_state_proven_nth s n1
               refine ⟨?_, ?_⟩
-              · intro hTrue
-                exact facts___eo_prog_symm_impl M hM X
-                  (hTrue X (by simp [X, premiseTermList]))
+              · intro N hN _hAgree hEvidence
+                exact facts___eo_prog_symm_impl N hN X
+                  (hEvidence.true_here X (by simp [X, premiseTermList]))
                   (by simpa [X, premiseTermList, __eo_cmd_step_proven] using hProg)
               · exact RuleProofs.eo_has_smt_translation_of_has_bool_type _
                   (typed___eo_prog_symm_impl X
