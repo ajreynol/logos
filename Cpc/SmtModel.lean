@@ -541,27 +541,13 @@ def native_model_var_lookup (M : SmtModel) (s : native_String)
 def native_model_lookup (M : SmtModel) (s : native_String) (T : SmtType) : SmtValue :=
   native_model_const_lookup M s T
 
-def native_model_push_in_namespace
-    (M : SmtModel) (isVar : native_Bool) (s : native_String)
-    (T : SmtType) (v : SmtValue) : SmtModel :=
+def native_model_push (M : SmtModel) (s : native_String) (T : SmtType)
+    (v : SmtValue) : SmtModel :=
   { M with values := fun k =>
-      if k = (native_model_key_in_namespace isVar s T) then
+      if k = (native_model_var_key s T) then
         v
       else
         M.values k }
-
-def native_model_push_var (M : SmtModel) (s : native_String) (T : SmtType)
-    (v : SmtValue) : SmtModel :=
-  native_model_push_in_namespace M native_model_var_namespace s T v
-
-def native_model_push_const (M : SmtModel) (s : native_String) (T : SmtType)
-    (v : SmtValue) : SmtModel :=
-  native_model_push_in_namespace M native_model_const_namespace s T v
-
-/- Compatibility name: binders used this operation, so it now pushes variables. -/
-def native_model_push (M : SmtModel) (s : native_String) (T : SmtType)
-    (v : SmtValue) : SmtModel :=
-  native_model_push_var M s T v
 
 def native_model_fun_lookup (M : SmtModel) (fid : native_String) (T U : SmtType) : SmtNativeFun :=
   M.nativeFuns (native_model_const_key fid (SmtType.FunType T U))
@@ -601,7 +587,7 @@ macro_rules
               false)
   | `(native_eval_texists $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
-      let pushId := Lean.mkIdent `native_model_push_var
+      let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let canonId := Lean.mkIdent `__smtx_value_canonical_bool
       `(by
@@ -617,7 +603,7 @@ macro_rules
               SmtValue.Boolean false)
   | `(native_eval_tforall $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
-      let pushId := Lean.mkIdent `native_model_push_var
+      let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let canonId := Lean.mkIdent `__smtx_value_canonical_bool
       `(by
@@ -633,7 +619,7 @@ macro_rules
               SmtValue.Boolean false)
   | `(native_eval_tchoice $M $s $T $body) => do
       let evalId := Lean.mkIdent `__smtx_model_eval
-      let pushId := Lean.mkIdent `native_model_push_var
+      let pushId := Lean.mkIdent `native_model_push
       let typeofValueId := Lean.mkIdent `__smtx_typeof_value
       let canonId := Lean.mkIdent `__smtx_value_canonical_bool
       `(by
@@ -651,7 +637,7 @@ macro_rules
               SmtValue.NotValue)
   | `(native_eval_tchoice_nth $M $s $T $body $n) => do
       let evalChoiceId := Lean.mkIdent `native_eval_tchoice
-      let pushId := Lean.mkIdent `native_model_push_var
+      let pushId := Lean.mkIdent `native_model_push
       `(by
           classical
           let rec evalChoiceNth (M' : SmtModel)
