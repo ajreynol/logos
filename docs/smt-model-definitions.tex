@@ -1,0 +1,977 @@
+\documentclass[10pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\definecolor{LeanKeyword}{HTML}{005CC5}
+\definecolor{LeanType}{HTML}{6F42C1}
+\definecolor{LeanConst}{HTML}{032F62}
+\definecolor{LeanString}{HTML}{A31515}
+\definecolor{LeanComment}{HTML}{6A737D}
+\definecolor{LeanNamespace}{HTML}{22863A}
+
+\lstdefinelanguage{Lean}{
+  morekeywords={
+    abbrev, by, classical, def, deriving, do, else, end, exact,
+    forall, fun, if, inductive, let, macro_rules, match, namespace,
+    noncomputable, open, private, section, set_option, structure, then,
+    theorem, where, with
+  },
+  morekeywords=[2]{
+    Bool, CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
+    Char, Datatype, Int, Nat, ObjectModel, ObjectTerm, Option, Prop, Rat,
+    RefList, SmtDatatype,
+    SmtDatatypeCons, SmtMap, SmtModel, SmtModelKey, SmtNativeFun, SmtSeq,
+    SmtRegLan, SmtTerm, SmtType, SmtValue, String, Term, Type, native_RegLan
+  },
+  morekeywords=[3]{
+    false, none, some, true
+  },
+  sensitive=true,
+  morestring=[b]",
+  morecomment=[l]{--},
+  morecomment=[s]{/-}{-/}
+}
+
+\lstset{
+  language=Lean,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{LeanKeyword}\bfseries,
+  keywordstyle=[2]\color{LeanType},
+  keywordstyle=[3]\color{LeanConst},
+  commentstyle=\itshape\color{LeanComment},
+  stringstyle=\color{LeanString},
+  emph={
+    CArgList, CCmd, CCmdList, CIndexList, CRule, CState, CStateObj,
+    SmtDatatype, SmtDatatypeCons, SmtMap, SmtModel, SmtRegLan, SmtSeq, SmtTerm,
+    SmtType, SmtValue, Term
+  },
+  emphstyle=\color{LeanNamespace},
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=false,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!35},
+  xleftmargin=0.5em,
+  xrightmargin=0.5em,
+  aboveskip=0.75em,
+  belowskip=0.75em,
+  literate={∀}{{$\forall$}}1 {∧}{{$\land$}}1 {∃}{{$\exists$}}1 {∈}{{$\in$}}1 {≠}{{$\neq$}}1 {¬}{{$\neg$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1 {·}{{$\cdot$}}1
+}
+
+\pagestyle{empty}
+
+\begin{document}
+
+\section*{SmtModel.lean}
+
+\begin{figure}[p]
+\begin{lstlisting}
+abbrev Char := Nat
+abbrev String := List Char
+
+inductive SmtType : Type where
+  | None : SmtType
+  | Bool : SmtType
+  | Int : SmtType
+  | Real : SmtType
+  | RegLan : SmtType
+  | BitVec : Nat -> SmtType
+  | Map : SmtType -> SmtType -> SmtType
+  | Set : SmtType -> SmtType
+  | Seq : SmtType -> SmtType
+  | Char : SmtType
+  | Datatype : String -> SmtDatatype -> SmtType
+  | TypeRef : String -> SmtType
+  | USort : Nat -> SmtType
+  | FunType : SmtType -> SmtType -> SmtType
+  | DtcAppType : SmtType -> SmtType -> SmtType
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtDatatype : Type where
+  | null : SmtDatatype
+  | sum : SmtDatatypeCons -> SmtDatatype -> SmtDatatype
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtDatatypeCons : Type where
+  | unit : SmtDatatypeCons
+  | cons : SmtType -> SmtDatatypeCons -> SmtDatatypeCons
+deriving Repr, DecidableEq, Inhabited, Ord
+\end{lstlisting}
+\caption{The SMT type language.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive SmtTerm : Type where
+  | None : SmtTerm
+  | Boolean : Bool -> SmtTerm
+  | Numeral : Int -> SmtTerm
+  | Rational : Rat -> SmtTerm
+  | String : String -> SmtTerm
+  | Binary : Int -> Int -> SmtTerm
+  | Apply : SmtTerm -> SmtTerm -> SmtTerm
+  | not : SmtTerm -> SmtTerm
+  | and : SmtTerm -> SmtTerm -> SmtTerm
+  | eq : SmtTerm -> SmtTerm -> SmtTerm
+  | exists : String -> SmtType -> SmtTerm -> SmtTerm
+  | forall : String -> SmtType -> SmtTerm -> SmtTerm
+  | choice_nth : String -> SmtType -> SmtTerm -> Nat -> SmtTerm
+  | DtCons : String -> SmtDatatype -> Nat -> SmtTerm
+  | DtSel : String -> SmtDatatype -> Nat -> Nat -> SmtTerm
+  | DtTester : String -> SmtDatatype -> Nat -> SmtTerm
+  | Var : String -> SmtType -> SmtTerm
+  | UConst : String -> SmtType -> SmtTerm
+  ...
+deriving Repr, DecidableEq, Inhabited
+\end{lstlisting}
+\caption{A representative template of SMT term constructors.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive SmtValue : Type where
+  | NotValue : SmtValue
+  | Boolean : Bool -> SmtValue
+  | Numeral : Int -> SmtValue
+  | Rational : Rat -> SmtValue
+  | Binary : Int -> Int -> SmtValue
+  | Map : SmtMap -> SmtValue
+  | Fun : String -> SmtType -> SmtType -> SmtValue
+  | Set : SmtMap -> SmtValue
+  | Seq : SmtSeq -> SmtValue
+  | Char : Char -> SmtValue
+  | UValue : Nat -> Nat -> SmtValue
+  | RegLan : SmtRegLan -> SmtValue
+  | DtCons : String -> SmtDatatype -> Nat -> SmtValue
+  | Apply : SmtValue -> SmtValue -> SmtValue
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtMap : Type where
+  | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
+  | default : SmtType -> SmtValue -> SmtMap
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtSeq : Type where
+  | cons : SmtValue -> SmtSeq -> SmtSeq
+  | empty : SmtType -> SmtSeq
+deriving Repr, DecidableEq, Inhabited, Ord
+
+inductive SmtRegLan : Type where
+  | empty : SmtRegLan
+  | epsilon : SmtRegLan
+  | char : Char -> SmtRegLan
+  | range : Char -> Char -> SmtRegLan
+  | allchar : SmtRegLan
+  | concat : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | union : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | inter : SmtRegLan -> SmtRegLan -> SmtRegLan
+  | star : SmtRegLan -> SmtRegLan
+  | comp : SmtRegLan -> SmtRegLan
+deriving Repr, DecidableEq, Inhabited, Ord
+\end{lstlisting}
+\caption{Regular-language, value, map, sequence, and datatype values.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+abbrev SmtNativeFun := SmtValue -> SmtValue
+
+structure SmtModelKey where
+  name : String
+  ty : SmtType
+deriving Repr, DecidableEq, Inhabited
+
+structure SmtModel where
+  values : SmtModelKey -> SmtValue
+  nativeFuns : SmtModelKey -> SmtNativeFun
+deriving Inhabited
+
+def native_model_key (s : String) (T : SmtType) : SmtModelKey :=
+  { name := s, ty := T }
+
+def native_model_lookup (M : SmtModel) (s : String) (T : SmtType) : SmtValue :=
+  M.values (native_model_key s T)
+
+def native_model_push (M : SmtModel) (s : String) (T : SmtType) (v : SmtValue) : SmtModel :=
+  { M with values := fun k =>
+      if k = (native_model_key s T) then
+        v
+      else
+        M.values k }
+
+def native_model_fun_lookup (M : SmtModel) (fid : String) (T U : SmtType) : Option SmtNativeFun :=
+  M.nativeFuns (native_model_key fid (SmtType.FunType T U))
+\end{lstlisting}
+\caption{Model keys, model storage, and lookup/update helpers.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __smtx_typeof_value : SmtValue -> SmtType
+  | (SmtValue.Boolean b) => SmtType.Bool
+  | (SmtValue.Binary w n) =>
+      if 0 <= w ∧ n = n % (2 ^ Int.toNat w) then
+        SmtType.BitVec (Int.toNat w)
+      else
+        SmtType.None
+  | (SmtValue.Map m) => (__smtx_typeof_map_value m)
+  | (SmtValue.Seq ss) => (__smtx_typeof_seq_value ss)
+  | (SmtValue.Apply f v) => (__smtx_typeof_apply_value (__smtx_typeof_value f) (__smtx_typeof_value v))
+  | ... => ...
+
+def __smtx_typeof_dt_cons_rec (T : SmtType) : SmtDatatype -> Nat -> SmtType
+  | (SmtDatatype.sum SmtDatatypeCons.unit d), 0 => T
+  | (SmtDatatype.sum (SmtDatatypeCons.cons U c) d), 0 =>
+      (SmtType.DtcAppType U (__smtx_typeof_dt_cons_rec T (SmtDatatype.sum c d) 0))
+  | (SmtDatatype.sum c d), (Nat.succ n) => (__smtx_typeof_dt_cons_rec T d n)
+  | d, n => SmtType.None
+
+def __smtx_ret_typeof_sel (s : String) (d : SmtDatatype) (n : Nat) (m : Nat) : SmtType :=
+  (__smtx_ret_typeof_sel_rec (__smtx_dt_substitute s d d) n m)
+
+def __smtx_typeof : SmtTerm -> SmtType
+  | (SmtTerm.Boolean b) => SmtType.Bool
+  | (SmtTerm.Binary w n) =>
+      if 0 <= w ∧ n = n % (2 ^ Int.toNat w) then
+        SmtType.BitVec (Int.toNat w)
+      else
+        SmtType.None
+  | (SmtTerm.eq x1 x2) => (__smtx_typeof_eq (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.exists s T x1) =>
+      if __smtx_typeof x1 = SmtType.Bool then SmtType.Bool else SmtType.None
+  | (SmtTerm.plus x1 x2) => (__smtx_typeof_arith_overload_op_2 (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.select x1 x2) => (__smtx_typeof_select (__smtx_typeof x1) (__smtx_typeof x2))
+  | (SmtTerm.Apply f x1) => (__smtx_typeof_apply (__smtx_typeof f) (__smtx_typeof x1))
+  | (SmtTerm.DtCons s d i) =>
+      let _v0 := (SmtType.Datatype s d)
+      (__smtx_typeof_guard_wf _v0 (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i))
+  | (SmtTerm.Apply (SmtTerm.DtSel s d i j) x1) =>
+      let _v0 := (__smtx_ret_typeof_sel s d i j)
+      (__smtx_typeof_guard_wf _v0 (__smtx_typeof_apply (SmtType.FunType (SmtType.Datatype s d) _v0) (__smtx_typeof x1)))
+  | (SmtTerm.Apply (SmtTerm.DtTester s d i) x1) =>
+      let _v0 := (SmtType.Datatype s d)
+      (__smtx_typeof_guard (__smtx_typeof_dt_cons_rec _v0 (__smtx_dt_substitute s d d) i)
+        (__smtx_typeof_apply (SmtType.FunType _v0 SmtType.Bool) (__smtx_typeof x1)))
+  | ... => ...
+\end{lstlisting}
+\caption{Type inference for selected value and term forms, with one merged SMT-term typing definition.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def native_str_in_re : String -> native_RegLan -> Bool
+  | s, r => native_re_nullable <| s.toList.foldl (fun acc c => native_re_deriv c acc) r
+
+def native_veq : SmtValue -> SmtValue -> Bool
+  | x, y => decide (x = y)
+
+macro_rules
+  | `(native_re_ext_eq $r1 $r2) => do
+      let strInReId := Lean.mkIdent `native_str_in_re
+      `(by
+          classical
+          exact
+            if hExt :
+                ∀ s : String,
+                  $strInReId s $r1 = $strInReId s $r2 then
+              true
+            else
+              false)
+
+def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.RegLan r1), (SmtValue.RegLan r2) => (SmtValue.Boolean (native_re_ext_eq r1 r2))
+  | v1, v2 => (SmtValue.Boolean (decide (v1 = v2)))
+\end{lstlisting}
+\caption{Regular-language membership and value equality.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+macro_rules
+  | `(native_eval_texists $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          exact
+            if h :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+
+  | `(native_eval_tforall $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          exact
+            if h :
+                ∀ v : SmtValue,
+                  $typeofValueId v = $T ->
+                    $canonId v = true ->
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              SmtValue.Boolean true
+            else
+              SmtValue.Boolean false)
+
+  | `(native_eval_tchoice $M $s $T $body) => do
+      let evalId := Lean.mkIdent `__smtx_model_eval
+      let pushId := Lean.mkIdent `native_model_push
+      let typeofValueId := Lean.mkIdent `__smtx_typeof_value
+      let canonId := Lean.mkIdent `__smtx_value_canonical_bool
+      `(by
+          classical
+          exact
+            if hSat :
+                ∃ v : SmtValue,
+                  $typeofValueId v = $T ∧
+                    $canonId v = true ∧
+                    $evalId ($pushId $M $s $T v) $body = (SmtValue.Boolean true) then
+              Classical.choose hSat
+            else if hTy : ∃ v : SmtValue, $typeofValueId v = $T ∧ $canonId v then
+              Classical.choose hTy
+            else
+              SmtValue.NotValue)
+
+  | `(native_eval_tchoice_nth $M $s $T $body $n) => do
+      let evalChoiceId := Lean.mkIdent `native_eval_tchoice
+      let pushId := Lean.mkIdent `native_model_push
+      `(by
+          classical
+          let rec evalChoiceNth (M' : SmtModel)
+              (s' : String) (T' : SmtType) (body' : SmtTerm) : Nat -> SmtValue
+            | 0 =>
+                $evalChoiceId M' s' T' body'
+            | Nat.succ n' =>
+                let v := $evalChoiceId M' s' T' body'
+                match body' with
+                | SmtTerm.exists s'' T'' body'' =>
+                    evalChoiceNth ($pushId M' s' T' v) s'' T'' body'' n'
+                | _ => SmtValue.NotValue
+          exact evalChoiceNth $M $s $T $body $n)
+\end{lstlisting}
+\caption{Evaluation macros for quantifiers and choice.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+noncomputable def __smtx_model_eval (M : SmtModel) : SmtTerm -> SmtValue
+  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
+  | (SmtTerm.String s) => (SmtValue.Seq (native_pack_string s))
+  | (SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval M x1))
+  | (SmtTerm.eq x1 x2) => (__smtx_model_eval_eq (__smtx_model_eval M x1) (__smtx_model_eval M x2))
+  | (SmtTerm.exists s T x1) => (native_eval_texists M s T x1)
+  | (SmtTerm.Var s T) => (native_model_lookup M s T)
+  | ... => ...
+\end{lstlisting}
+\caption{Skeleton of SMT term evaluation in a model.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __smtx_type_default : SmtType -> SmtValue
+  | SmtType.Bool => (SmtValue.Boolean false)
+  | SmtType.Int => (SmtValue.Numeral 0)
+  | SmtType.RegLan => (SmtValue.RegLan native_re_none)
+  | (SmtType.Datatype s d) => (__smtx_datatype_default s d d 0)
+  | (SmtType.FunType T U) => (SmtValue.Fun native_default_ifun_id T U)
+  | ... => ...
+
+def native_inhabited_type (T : SmtType) : Bool := by
+  classical
+  exact
+    decide (__smtx_typeof_value (__smtx_type_default T) = T) &&
+      (__smtx_value_canonical_bool (__smtx_type_default T))
+
+def __smtx_dt_cons_wf_rec : SmtDatatypeCons -> RefList -> Bool
+  | (SmtDatatypeCons.cons (SmtType.TypeRef s) c), refs =>
+      if s ∈ refs then __smtx_dt_cons_wf_rec c refs else false
+  | (SmtDatatypeCons.cons T c), refs =>
+      if native_inhabited_type T then
+        if __smtx_type_wf_rec T refs then __smtx_dt_cons_wf_rec c refs else false
+      else
+        false
+  | SmtDatatypeCons.unit, refs => true
+
+def __smtx_dt_wf_rec : SmtDatatype -> RefList -> Bool
+  | SmtDatatype.null, refs => false
+  | (SmtDatatype.sum c SmtDatatype.null), refs => (__smtx_dt_cons_wf_rec c refs)
+  | (SmtDatatype.sum c d), refs =>
+      if __smtx_dt_cons_wf_rec c refs then __smtx_dt_wf_rec d refs else false
+
+def __smtx_type_wf_rec : SmtType -> RefList -> Bool
+  | (SmtType.Datatype s d), refs =>
+      if s ∈ refs then false else __smtx_dt_wf_rec d (s :: refs)
+  | (SmtType.TypeRef s), refs => false
+  | (SmtType.Seq x1), refs => (native_inhabited_type x1 && __smtx_type_wf_rec x1 [])
+  | (SmtType.Map x1 x2), refs =>
+      native_inhabited_type x1 &&
+        __smtx_type_wf_rec x1 [] &&
+        native_inhabited_type x2 &&
+        __smtx_type_wf_rec x2 []
+  | (SmtType.FunType x1 x2), refs => false
+  | (SmtType.Set x1), refs => (native_inhabited_type x1 && __smtx_type_wf_rec x1 [])
+  | (SmtType.DtcAppType x1 x2), refs => false
+  | SmtType.None, refs => false
+  | SmtType.RegLan, refs => false
+  | T, refs => true
+
+def __smtx_type_wf_component (T : SmtType) : Bool :=
+  (native_inhabited_type T && __smtx_type_wf_rec T [])
+
+def __smtx_type_wf : SmtType -> Bool
+  | SmtType.RegLan => true
+  | (SmtType.FunType T U) => (__smtx_type_wf_component T && __smtx_type_wf_component U)
+  | T => (__smtx_type_wf_component T)
+\end{lstlisting}
+\caption{Default values, inhabitation, and type well-formedness.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __smtx_is_unit_datatype_cons : SmtDatatypeCons -> Bool
+  | SmtDatatypeCons.unit => true
+  | (SmtDatatypeCons.cons T c) => (__smtx_is_unit_type T && __smtx_is_unit_datatype_cons c)
+
+def __smtx_is_unit_datatype : SmtDatatype -> Bool
+  | (SmtDatatype.sum c SmtDatatype.null) => (__smtx_is_unit_datatype_cons c)
+  | d => false
+
+def __smtx_is_unit_type : SmtType -> Bool
+  | (SmtType.BitVec w) => decide (w = 0)
+  | (SmtType.Datatype s d) => (__smtx_is_unit_datatype d)
+  | (SmtType.Map T U) => (__smtx_is_unit_type U)
+  | T => false
+
+def __smtx_is_finite_datatype_cons : SmtDatatypeCons -> Bool
+  | SmtDatatypeCons.unit => true
+  | (SmtDatatypeCons.cons T c) => (__smtx_is_finite_type T && __smtx_is_finite_datatype_cons c)
+
+def __smtx_is_finite_datatype : SmtDatatype -> Bool
+  | SmtDatatype.null => true
+  | (SmtDatatype.sum c d) => (__smtx_is_finite_datatype_cons c && __smtx_is_finite_datatype d)
+
+def __smtx_is_finite_type : SmtType -> Bool
+  | SmtType.Bool => true
+  | (SmtType.BitVec w) => true
+  | SmtType.Char => true
+  | (SmtType.Datatype s d) => (__smtx_is_finite_datatype d)
+  | (SmtType.Map T U) => (__smtx_is_unit_type U || (__smtx_is_finite_type T && __smtx_is_finite_type U))
+  | (SmtType.Set T) => (__smtx_is_finite_type T)
+  | (SmtType.Seq T) => (__smtx_is_finite_type T)
+  | T => false
+\end{lstlisting}
+\caption{Unit and finite SMT type predicates.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __smtx_map_entries_ordered_after (i : SmtValue) : SmtMap -> Bool
+  | (SmtMap.cons j e m) => decide (compare j i = Ordering.lt)
+  | m => true
+
+def __smtx_map_default_canonical (T : SmtType) (e : SmtValue) : Bool :=
+  if __smtx_is_finite_type T then
+    decide (e = __smtx_type_default (__smtx_typeof_value e))
+  else
+    true
+
+def __smtx_map_canonical : SmtMap -> Bool
+  | (SmtMap.default T e) => (__smtx_map_default_canonical T e && __smtx_value_canonical_bool e)
+  | (SmtMap.cons i e m) =>
+      __smtx_value_canonical_bool i &&
+        __smtx_value_canonical_bool e &&
+        __smtx_map_canonical m &&
+        __smtx_map_entries_ordered_after i m &&
+        !(decide (e = __smtx_msm_get_default m))
+
+def __smtx_seq_canonical : SmtSeq -> Bool
+  | (SmtSeq.empty T) => true
+  | (SmtSeq.cons v s) => (__smtx_value_canonical_bool v && __smtx_seq_canonical s)
+
+def __smtx_value_canonical_bool : SmtValue -> Bool
+  | (SmtValue.Binary w n) =>
+      if 0 <= w then decide (n = n % (2 ^ Int.toNat w)) else true
+  | (SmtValue.Map m) => (__smtx_map_canonical m)
+  | (SmtValue.Set m) => (__smtx_map_canonical m && decide (__smtx_msm_get_default m = SmtValue.Boolean false))
+  | (SmtValue.Seq s) => (__smtx_seq_canonical s)
+  | (SmtValue.Apply f v) => (__smtx_value_canonical_bool f && __smtx_value_canonical_bool v)
+  | v => true
+\end{lstlisting}
+\caption{Canonicality checks for maps, sequences, and values.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive smt_interprets : SmtModel -> SmtTerm -> Bool -> Prop
+  | intro_true  (M : SmtModel) (t : SmtTerm) :
+      (__smtx_typeof t) = SmtType.Bool ->
+      (__smtx_model_eval M t) = (SmtValue.Boolean true) ->
+      (smt_interprets M t true)
+  | intro_false (M : SmtModel) (t : SmtTerm) :
+      (__smtx_typeof t) = SmtType.Bool ->
+      (__smtx_model_eval M t) = (SmtValue.Boolean false)->
+      smt_interprets M t false
+
+def native_fun_typed (M : SmtModel) : Prop :=
+  ∀ fid A B i,
+    __smtx_type_wf (SmtType.FunType A B) = true ->
+    __smtx_typeof_value i = A ->
+    __smtx_typeof_value (native_eval_ifun_apply M fid A B i) = B ∧
+      __smtx_value_canonical_bool (native_eval_ifun_apply M fid A B i) = true
+
+def model_total_typed (M : SmtModel) : Prop :=
+  (∀ s T, __smtx_type_wf T = true -> __smtx_typeof_value (native_model_lookup M s T) = T) ∧
+  (∀ s T, __smtx_type_wf T = true -> __smtx_value_canonical_bool (native_model_lookup M s T)) = true ∧
+  (∀ s T, __smtx_type_wf T = false -> native_model_lookup M s T = SmtValue.NotValue) ∧
+  native_fun_typed M
+\end{lstlisting}
+\caption{SMT interpretation and total typed model conditions.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def term_has_non_none_type (t : SmtTerm) : Prop :=
+  __smtx_typeof t ≠ SmtType.None
+
+def __smtx_value_canonical (v : SmtValue) : Prop :=
+  __smtx_value_canonical_bool v = true
+
+theorem type_preservation
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (ht : term_has_non_none_type t) :
+    __smtx_typeof_value (__smtx_model_eval M t) = __smtx_typeof t
+
+theorem model_eval_canonical
+    (M : SmtModel)
+    (hM : model_total_typed M)
+    (t : SmtTerm)
+    (hTy : term_has_non_none_type t) :
+    __smtx_value_canonical (__smtx_model_eval M t)
+
+theorem exists_total_typed_model_of_canonical_type_inhabited
+    (hCan :
+      ∀ T : SmtType,
+        __smtx_type_wf T = true ->
+          ∃ v : SmtValue, __smtx_typeof_value v = T ∧ __smtx_value_canonical v) :
+    ∃ M : SmtModel, model_total_typed M
+
+theorem total_typed_model_nonvacuous :
+    ∃ M : SmtModel, model_total_typed M
+\end{lstlisting}
+\caption{Main type-preservation, canonicality, and model-existence statements.}
+\end{figure}
+
+\clearpage
+
+\section*{Logos.lean / Spec.lean}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive Term : Type where
+  | UOp : UserOp -> Term
+  | UOp1 : UserOp1 -> Term -> Term
+  | UOp2 : UserOp2 -> Term -> Term -> Term
+  | UOp3 : UserOp3 -> Term -> Term -> Term -> Term
+  | __eo_List : Term
+  | __eo_List_nil : Term
+  | __eo_List_cons : Term
+  | Bool : Term
+  | Boolean : Bool -> Term
+  | Numeral : Int -> Term
+  | Rational : Rat -> Term
+  | String : String -> Term
+  | Binary : Int -> Int -> Term
+  | Type : Term
+  | Stuck : Term
+  | Apply : Term -> Term -> Term
+  | FunType : Term
+  | Var : Term -> Term -> Term
+  | DatatypeType : String -> Datatype -> Term
+  | DatatypeTypeRef : String -> Term
+  | DtcAppType : Term -> Term -> Term
+  | DtCons : String -> Datatype -> Nat -> Term
+  | DtSel : String -> Datatype -> Nat -> Nat -> Term
+  | USort : Nat -> Term
+  | UConst : Nat -> Term -> Term
+
+deriving Repr, DecidableEq, Inhabited, Ord
+\end{lstlisting}
+\caption{Core Eunoia term syntax.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_typeof : Term -> Term
+  | (Term.Boolean b) => Term.Bool
+  | (Term.Var (Term.String s) T) => T
+  | (Term.DtCons s d i) => (__eo_typeof_dt_cons_rec (Term.DatatypeType s d) (__eo_dt_substitute s d d) i)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.eq) __eo_x1) __eo_x2) => (__eo_typeof_eq (__eo_typeof __eo_x1) (__eo_typeof __eo_x2))
+  | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
+  | ... => ...
+\end{lstlisting}
+\caption{Selected Eunoia type-synthesis clauses.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_to_smt_type : Term -> SmtType
+  | Term.Bool => SmtType.Bool
+  | (Term.DatatypeType s d) =>
+      if s.startsWith "@" then SmtType.None else SmtType.Datatype s (__eo_to_smt_datatype d)
+  | (Term.Apply (Term.Apply Term.FunType T1) T2) => let _v0 := (__eo_to_smt_type T2); let _v1 := (__eo_to_smt_type T1); (__smtx_typeof_guard _v1 (__smtx_typeof_guard _v0 (SmtType.FunType _v1 _v0)))
+  | (Term.UOp UserOp.Int) => SmtType.Int
+  | (Term.Apply (Term.UOp UserOp.Seq) x1) => let _v0 := (__eo_to_smt_type x1); (__smtx_typeof_guard _v0 (SmtType.Seq _v0))
+  | ... => ...
+
+def __eo_to_smt : Term -> SmtTerm
+  | (Term.Boolean b) => (SmtTerm.Boolean b)
+  | (Term.Var (Term.String s) T) => (SmtTerm.Var s (__eo_to_smt_type T))
+  | (Term.DtCons s d i) =>
+      if s.startsWith "@" then SmtTerm.None else SmtTerm.DtCons s (__eo_to_smt_datatype d) i
+  | (Term.Apply (Term.Apply (Term.Apply (Term.UOp UserOp.ite) x1) x2) x3) => (SmtTerm.ite (__eo_to_smt x1) (__eo_to_smt x2) (__eo_to_smt x3))
+  | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
+  | ... => ...
+\end{lstlisting}
+\caption{Translation from Eunoia terms and types into SMT.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def native_teq : Term -> Term -> native_Bool
+  | x, y => decide (x = y)
+
+inductive Proof : Type where
+  | pf : Term -> Proof
+  | Stuck : Proof
+
+def __eo_requires : Term -> Term -> Term -> Term
+  | x1, x2, x3 =>
+      (native_ite (native_teq x1 x2)
+        (native_ite (native_not (native_teq x1 Term.Stuck)) x3 Term.Stuck)
+        Term.Stuck)
+
+def __mk_trans : Term -> Term -> Term -> Term
+  | Term.Stuck, _, _ => Term.Stuck
+  | _, Term.Stuck, _ => Term.Stuck
+  | t1, t2,
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t3) t4))
+        tail) =>
+      (__eo_requires t2 t3 (__mk_trans t1 t4 tail))
+  | t1, t2, (Term.Boolean true) =>
+      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2)
+  | _, _, _ => Term.Stuck
+
+def __eo_prog_trans : Proof -> Term
+  | (Proof.pf
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.and)
+          (Term.Apply (Term.Apply (Term.UOp UserOp.eq) t1) t2))
+        tail)) =>
+      (__mk_trans t1 t2 tail)
+  | _ => Term.Stuck
+\end{lstlisting}
+\caption{The \texttt{Logos.lean} definition of the \texttt{trans} rule program and its immediate dependencies.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+namespace RuleProofs
+
+theorem eo_to_smt_well_typed_and_typeof_implies_smt_type
+    (t T : Term) (s : SmtTerm) :
+  __eo_to_smt t = s ->
+  __smtx_typeof s ≠ SmtType.None ->
+  __eo_typeof t = T ->
+  __smtx_typeof s = __eo_to_smt_type T
+
+end RuleProofs
+\end{lstlisting}
+\caption{A representative theorem connecting Eunoia and SMT types.}
+\end{figure}
+
+\clearpage
+
+\section*{CpcMini Checker}
+
+\begin{figure}[p]
+\begin{lstlisting}
+abbrev CIndex := Int
+
+inductive CIndexList : Type where
+  | nil : CIndexList
+  | cons : CIndex -> CIndexList -> CIndexList
+deriving Repr, Inhabited
+
+inductive CArgList : Type where
+  | nil : CArgList
+  | cons : Term -> CArgList -> CArgList
+deriving Repr, Inhabited
+
+inductive CStateObj : Type where
+  | assume : Term -> CStateObj
+  | assume_push : Term -> CStateObj
+  | proven : Term -> CStateObj
+deriving Repr, Inhabited
+
+inductive CState : Type where
+  | nil : CState
+  | cons : CStateObj -> CState -> CState
+  | Stuck : CState
+deriving Repr, Inhabited
+
+inductive CRule : Type where
+  | scope : CRule
+  | contra : CRule
+  | refl : CRule
+  | symm : CRule
+  | trans : CRule
+  | ...
+
+deriving Repr, Inhabited
+
+inductive CCmd : Type where
+  | assume_push : Term -> CCmd
+  | check_proven : Term -> CCmd
+  | step : CRule -> CArgList -> CIndexList -> CCmd
+  | step_pop : CRule -> CArgList -> CIndexList -> CCmd
+
+deriving Repr, Inhabited
+
+inductive CCmdList : Type where
+  | nil : CCmdList
+  | cons : CCmd -> CCmdList -> CCmdList
+deriving Repr, Inhabited
+\end{lstlisting}
+\caption{Checker indices, arguments, states, rules, and commands.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_StateObj_proven : CStateObj -> Term
+  | (CStateObj.assume F) => F
+  | (CStateObj.assume_push F) => F
+  | (CStateObj.proven F) => F
+
+def __eo_state_proven_nth : CState -> Int -> Term
+  | (CState.cons so s), 0 => (__eo_StateObj_proven so)
+  | (CState.cons so s), n => (__eo_state_proven_nth s (n - 1))
+  | s, n => (Term.Boolean true)
+
+def __eo_state_is_closed : CState -> Bool
+  | (CState.cons (CStateObj.assume_push F) s) => false
+  | (CState.cons so s) => (__eo_state_is_closed s)
+  | CState.nil => true
+  | s => false
+
+def __eo_push_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume_push F) s)
+  | b, F, s => CState.Stuck
+
+def __eo_push_input_assume_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.assume F) s)
+  | b, F, s => CState.Stuck
+
+def __eo_push_proven_check : Term -> Term -> CState -> CState
+  | (Term.Boolean true), F, s => (CState.cons (CStateObj.proven F) s)
+  | b, F, s => CState.Stuck
+
+def __eo_push_proven : Term -> CState -> CState
+  | F, s => (__eo_push_proven_check (__eo_is_bool_type F) F s)
+
+def __eo_mk_premise_list : Term -> CIndexList -> CState -> Term
+  | f, CIndexList.nil, S => (__eo_nil f Term.Bool)
+  | f, (CIndexList.cons n pl), S => (__eo_cons f (__eo_state_proven_nth S n) (__eo_mk_premise_list f pl S))
+
+def __eo_invoke_cmd_check_proven : CState -> Term -> CState
+  | (CState.cons (CStateObj.proven F) S), proven => (__eo_push_proven_check (__eo_eq F proven) F S)
+  | S, proven => CState.Stuck
+\end{lstlisting}
+\caption{Basic checker stack and state operations.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def __eo_cmd_step_proven (S : CState) : CRule -> CArgList -> CIndexList -> Term
+  | CRule.contra, CArgList.nil, (CIndexList.cons n1 (CIndexList.cons n2 CIndexList.nil)) => (__eo_prog_contra (Proof.pf (__eo_state_proven_nth S n1)) (Proof.pf (__eo_state_proven_nth S n2)))
+  | CRule.refl, (CArgList.cons a1 CArgList.nil), CIndexList.nil => (__eo_prog_refl a1)
+  | CRule.symm, CArgList.nil, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_symm (Proof.pf (__eo_state_proven_nth S n1)))
+  | CRule.trans, CArgList.nil, premises => (__eo_prog_trans (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises S)))
+  | ... => ...
+
+def __eo_cmd_step_pop_proven (S : CState) : CRule -> CArgList -> Term -> CIndexList -> Term
+  | CRule.scope, CArgList.nil, A, (CIndexList.cons n1 CIndexList.nil) => (__eo_prog_scope A (Proof.pf (__eo_state_proven_nth S n1)))
+  | ... => ...
+
+def __eo_invoke_cmd_step_pop (s : CState) : CState -> CRule -> CArgList -> CIndexList -> CState
+  | (CState.cons (CStateObj.assume_push A) s2), r, args, premises => (__eo_push_proven (__eo_cmd_step_pop_proven s r args A premises) s2)
+  | (CState.cons so s2), r, args, premises => (__eo_invoke_cmd_step_pop s s2 r args premises)
+  | s2, r, args, premises => CState.Stuck
+
+def __eo_invoke_cmd : CState -> CCmd -> CState
+  | CState.Stuck, c => CState.Stuck
+  | S, (CCmd.assume_push proven) => (__eo_push_assume_check (__eo_is_bool_type proven) proven S)
+  | S, (CCmd.check_proven proven) => (__eo_invoke_cmd_check_proven S proven)
+  | S, (CCmd.step r args premises) => (__eo_push_proven (__eo_cmd_step_proven S r args premises) S)
+  | S, (CCmd.step_pop r args premises) => (__eo_invoke_cmd_step_pop S S r args premises)
+
+def __eo_invoke_cmd_list (S : CState) : CCmdList -> CState
+  | CCmdList.nil => S
+  | (CCmdList.cons c cmds) => (__eo_invoke_cmd_list (__eo_invoke_cmd S c) cmds)
+
+def __eo_state_is_refutation (s : CState) : Bool :=
+  (__eo_state_is_closed (__eo_invoke_cmd_check_proven s (Term.Boolean false)))
+
+def __eo_invoke_assume_list (S : CState) : Term -> CState
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.and) F) as) => (__eo_push_input_assume_check (__eo_is_bool_type F) F (__eo_invoke_assume_list S as))
+  | (Term.Boolean true) => S
+  | as => CState.Stuck
+
+def __eo_checker_is_refutation : Term -> CCmdList -> Bool
+  | as, cs => (__eo_state_is_refutation (__eo_invoke_cmd_list (__eo_invoke_assume_list CState.nil as) cs))
+
+inductive eo_is_refutation : Term -> CCmdList -> Prop
+  | intro (F : Term) (c : CCmdList) :
+      (__eo_checker_is_refutation F c) = true -> (eo_is_refutation F c)
+\end{lstlisting}
+\caption{Checker command execution and refutation recognition.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+def eoHasSmtTranslation (t : Term) : Prop :=
+  __smtx_typeof (__eo_to_smt t) ≠ SmtType.None
+
+def cArgListTranslationOk : CArgList -> Prop
+  | CArgList.nil => True
+  | CArgList.cons a args => eoHasSmtTranslation a ∧ cArgListTranslationOk args
+
+def cmdTranslationOk : CCmd -> Prop
+  | CCmd.assume_push A => eoHasSmtTranslation A
+  | CCmd.step _ args _ => cArgListTranslationOk args
+  | _ => True
+
+inductive TranslatableAssumptionList : Term -> Prop
+  | base : TranslatableAssumptionList (Term.Boolean true)
+  | step (A rest : Term) :
+      eoHasSmtTranslation A ->
+      TranslatableAssumptionList rest ->
+      TranslatableAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
+
+inductive CmdListTranslationOk : CCmdList -> Prop
+  | nil : CmdListTranslationOk CCmdList.nil
+  | cons (c : CCmd) (cs : CCmdList) :
+      cmdTranslationOk c ->
+      CmdListTranslationOk cs ->
+      CmdListTranslationOk (CCmdList.cons c cs)
+\end{lstlisting}
+\caption{Translation obligations for checker assumptions and commands.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+inductive smt_satisfiability : SmtTerm -> Bool -> Prop
+  | intro_true  (t : SmtTerm) :
+      (exists M : SmtModel, model_total_typed M /\ (smt_interprets M t true)) ->
+      smt_satisfiability t true
+  | intro_false (t : SmtTerm) :
+      (forall M : SmtModel, model_total_typed M -> ¬ (smt_interprets M t true))->
+      smt_satisfiability t false
+
+abbrev ObjectTerm := SmtTerm
+abbrev ObjectModel := SmtModel
+abbrev obj_interprets := smt_interprets
+
+inductive eo_is_obj : Term -> ObjectTerm -> Prop
+  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)
+
+def eo_interprets (M : ObjectModel) (t : Term) (b : Bool) : Prop :=
+  exists (s : ObjectTerm), (eo_is_obj t s) /\ (obj_interprets M s b)
+
+def eo_satisfiability (t : Term) (b : Bool) : Prop :=
+  exists (s : ObjectTerm), (eo_is_obj t s) /\ (smt_satisfiability s b)
+\end{lstlisting}
+\caption{Object-language interpretation and satisfiability via SMT.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
+  TranslatableAssumptionList F ->
+  CmdListTranslationOk pf ->
+  (eo_is_refutation F pf) ->
+  eo_satisfiability F false
+\end{lstlisting}
+\caption{Top-level checker soundness theorem.}
+\end{figure}
+
+\clearpage
+
+\section*{RuleLemmas.lean}
+
+\begin{figure}[p]
+\begin{lstlisting}
+structure StepRuleProperties
+    (M : SmtModel) (premises : List Term) (P : Term) : Prop where
+  facts_of_true :
+    AllInterpretedTrue M premises ->
+    eo_interprets M P true
+  has_smt_translation :
+    RuleProofs.eo_has_smt_translation P
+
+structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
+  true_of_context :
+    eo_interprets M (stateAssumes s) true ->
+    eo_interprets M (statePushes s) true ->
+    eo_interprets M P true
+  has_smt_translation :
+    RuleProofs.eo_has_smt_translation P
+
+theorem cmd_step_proven_facts_of_invariants
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (_hNotStuck : s ≠ CState.Stuck)
+    (r : CRule) (args : CArgList) (premises : CIndexList) :
+  checkerTruthInvariant M s ->
+  checkerTypeInvariant s ->
+  checkerTranslationInvariant s ->
+  cmdTranslationOk (CCmd.step r args premises) ->
+  __eo_typeof (__eo_cmd_step_proven s r args premises) = Term.Bool ->
+  CmdStepFacts M s (__eo_cmd_step_proven s r args premises)
+\end{lstlisting}
+\caption{The step-only rule-correctness theorem in \texttt{RuleLemmas.lean}; the theorem ranges over the plain \texttt{CCmd.step} rules and excludes \texttt{step\_pop}.}
+\end{figure}
+
+\begin{figure}[p]
+\begin{lstlisting}
+theorem cmd_step_trans_properties
+    (M : SmtModel) (hM : model_total_typed M)
+    (s : CState) (args : CArgList) (premises : CIndexList) :
+  cmdTranslationOk (CCmd.step CRule.trans args premises) ->
+  AllHaveBoolType (premiseTermList s premises) ->
+  __eo_typeof (__eo_cmd_step_proven s CRule.trans args premises) = Term.Bool ->
+  StepRuleProperties M (premiseTermList s premises)
+    (__eo_cmd_step_proven s CRule.trans args premises)
+\end{lstlisting}
+\caption{An example rule proof: the \texttt{trans} step packages semantic truth preservation and SMT translatability into \texttt{StepRuleProperties}.}
+\end{figure}
+
+\end{document}

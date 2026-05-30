@@ -907,25 +907,33 @@ private theorem str_replace_re_all_eval_valid_properties
   let raw :=
     __str_eval_replace_re_all_rec (__str_flatten (__str_nary_intro s)) (Term.String [])
       rNonempty t (Term.Numeral 0)
-  let checkedRaw := __eo_requires (__eo_is_str s) (Term.Boolean true) raw
-  let side := __eo_list_singleton_elim (Term.UOp UserOp.str_concat) checkedRaw
-  change __eo_requires side u body ≠ Term.Stuck at hProgNe
-  have hSideEqU : side = u :=
-    eo_requires_eq_of_ne_stuck side u body hProgNe
-  have hResult :
-      __eo_requires side u body = body :=
-    eo_requires_result_eq_of_ne_stuck side u body hProgNe
-  have hSideNe : side ≠ Term.Stuck :=
-    eo_requires_left_ne_stuck_of_ne_stuck side u body hProgNe
-  have hCheckedRawNe : checkedRaw ≠ Term.Stuck :=
-    list_singleton_elim_arg_ne_stuck_of_ne_stuck
-      (Term.UOp UserOp.str_concat) checkedRaw hSideNe
+  let side := __eo_list_singleton_elim (Term.UOp UserOp.str_concat) raw
+  let inner := __eo_requires side u body
+  change __eo_requires (__eo_is_str s) (Term.Boolean true) inner ≠ Term.Stuck at hProgNe
   have hStrReq : __eo_is_str s = Term.Boolean true :=
-    eo_requires_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true) raw
-      hCheckedRawNe
-  have hRawNe : raw ≠ Term.Stuck :=
+    eo_requires_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true) inner
+      hProgNe
+  have hInnerNe : inner ≠ Term.Stuck :=
     eo_requires_result_ne_stuck_of_ne_stuck (__eo_is_str s)
-      (Term.Boolean true) raw hCheckedRawNe
+      (Term.Boolean true) inner hProgNe
+  change __eo_requires side u body ≠ Term.Stuck at hInnerNe
+  have hSideEqU : side = u :=
+    eo_requires_eq_of_ne_stuck side u body hInnerNe
+  have hInnerResult : inner = body := by
+    change __eo_requires side u body = body
+    exact eo_requires_result_eq_of_ne_stuck side u body hInnerNe
+  have hOuterResult :
+      __eo_requires (__eo_is_str s) (Term.Boolean true) inner = inner :=
+    eo_requires_result_eq_of_ne_stuck (__eo_is_str s) (Term.Boolean true)
+      inner hProgNe
+  have hResult :
+      __eo_requires (__eo_is_str s) (Term.Boolean true) inner = body := by
+    rw [hOuterResult, hInnerResult]
+  have hSideNe : side ≠ Term.Stuck :=
+    eo_requires_left_ne_stuck_of_ne_stuck side u body hInnerNe
+  have hRawNe : raw ≠ Term.Stuck :=
+    list_singleton_elim_arg_ne_stuck_of_ne_stuck
+      (Term.UOp UserOp.str_concat) raw hSideNe
   subst u
   have hArgTrans' :
       RuleProofs.eo_has_smt_translation
@@ -962,9 +970,6 @@ private theorem str_replace_re_all_eval_valid_properties
     rw [__smtx_model_eval.eq_101, hSEval, hREval, hTEval]
     simp [__smtx_model_eval_str_replace_re_all]
   rcases eo_is_str_eq_true_cases s hStrReq with ⟨str, rfl⟩
-  have hCheckedRawEq : checkedRaw = raw := by
-    exact eo_requires_result_eq_of_ne_stuck
-      (__eo_is_str (Term.String str)) (Term.Boolean true) raw hCheckedRawNe
   change __smtx_model_eval M (SmtTerm.String str) = SmtValue.Seq src at hSEval
   have hSrcEq : src = native_pack_string str := by
     simpa [__smtx_model_eval] using hSEval.symm
@@ -1005,15 +1010,8 @@ private theorem str_replace_re_all_eval_valid_properties
               (native_unpack_string repl))) := by
     simpa [raw, rNonempty, hFlatten, native_str_replace_re_all,
       native_re_replace_all_nonempty_list] using hRec.2.2
-  have hCheckedRawList :
-      __eo_is_list (Term.UOp UserOp.str_concat) checkedRaw = Term.Boolean true := by
-    simpa [checkedRaw, hCheckedRawEq] using hRawList
-  have hCheckedRawTy :
-      __smtx_typeof (__eo_to_smt checkedRaw) = SmtType.Seq SmtType.Char := by
-    simpa [checkedRaw, hCheckedRawEq] using hRawTy
   have hSideRel :=
-    strConcat_singleton_elim_rel M hM checkedRaw SmtType.Char
-      hCheckedRawList hCheckedRawTy
+    strConcat_singleton_elim_rel M hM raw SmtType.Char hRawList hRawTy
   have hSideEval :
       __smtx_model_eval M (__eo_to_smt side) =
         SmtValue.Seq
@@ -1063,7 +1061,7 @@ private theorem str_replace_re_all_eval_valid_properties
           (SmtValue.Seq
             (native_pack_string
               (native_str_replace_re_all str rv (native_unpack_string repl)))) := by
-      simpa [side, checkedRaw, hCheckedRawEq, hRawEval,
+      simpa [side, hRawEval,
         native_str_replace_re_all_filtered_eq str rv (native_unpack_string repl)]
         using hSideRel
     exact RuleProofs.smt_value_rel_eq_of_type_ne_reglan
@@ -1082,7 +1080,7 @@ private theorem str_replace_re_all_eval_valid_properties
               (Term.Apply (Term.Apply (Term.UOp UserOp.str_replace_re_all) (Term.String str)) r)
               t))
           side := by
-    simpa [lhs, body, lhs', side, checkedRaw, hCheckedRawEq, raw, rNonempty,
+    simpa [lhs, body, lhs', side, inner, raw, rNonempty,
       replace_re_all_nonempty_re]
       using hResult
   refine ⟨?_, ?_⟩
