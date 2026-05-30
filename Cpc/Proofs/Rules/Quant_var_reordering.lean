@@ -116,26 +116,67 @@ private theorem native_model_push_same
       native_model_push M s T w := by
   cases M with
   | mk values nativeFuns =>
-      simp [native_model_push]
+      change
+        SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s, ty := T } : SmtModelKey) then w
+              else
+                (if k = ({ isVar := true, name := s, ty := T } : SmtModelKey) then v
+                else values k))
+            nativeFuns =
+          SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s, ty := T } : SmtModelKey) then w
+              else values k)
+            nativeFuns
+      congr
       funext k
-      by_cases hk : k = native_model_key s T <;> simp [hk]
+      by_cases hk : k = ({ isVar := true, name := s, ty := T } : SmtModelKey)
+      · simp [hk]
+      · simp [hk]
 
 private theorem native_model_push_comm
     (M : SmtModel) (s1 s2 : native_String) (T1 T2 : SmtType)
     (v1 v2 : SmtValue)
-    (hNe : native_model_key s1 T1 ≠ native_model_key s2 T2) :
+    (hNe :
+      ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) ≠
+        { isVar := true, name := s2, ty := T2 }) :
     native_model_push (native_model_push M s1 T1 v1) s2 T2 v2 =
       native_model_push (native_model_push M s2 T2 v2) s1 T1 v1 := by
   cases M with
   | mk values nativeFuns =>
-      simp [native_model_push]
+      change
+        SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) then v2
+              else
+                (if k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) then v1
+                else values k))
+            nativeFuns =
+          SmtModel.mk
+            (fun k =>
+              if k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) then v1
+              else
+                (if k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) then v2
+                else values k))
+            nativeFuns
+      congr
       funext k
-      by_cases h1 : k = native_model_key s1 T1
-      · by_cases h2 : k = native_model_key s2 T2
-        · exact False.elim (hNe (h1.symm.trans h2))
-        · simp [h1, hNe]
-      · by_cases h2 : k = native_model_key s2 T2
-        · simp [h2, hNe.symm]
+      by_cases h1 : k = ({ isVar := true, name := s1, ty := T1 } : SmtModelKey)
+      · subst k
+        by_cases h2 :
+            ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) =
+              { isVar := true, name := s2, ty := T2 }
+        · exact False.elim (hNe h2)
+        · simp [h2]
+      · by_cases h2 : k = ({ isVar := true, name := s2, ty := T2 } : SmtModelKey)
+        · subst k
+          have h21 :
+              ¬ ({ isVar := true, name := s2, ty := T2 } : SmtModelKey) =
+                { isVar := true, name := s1, ty := T1 } := by
+            intro h
+            exact hNe h.symm
+          simp [h21]
         · simp [h1, h2]
 
 private theorem smtExistsOfBinders_cons_congr
@@ -203,7 +244,9 @@ private theorem smtExistsOfBinders_swap
                 rest =
               SmtValue.Boolean true
   have hPQ : P ↔ Q := by
-    by_cases hKey : native_model_key s1 T1 = native_model_key s2 T2
+    by_cases hKey :
+        ({ isVar := true, name := s1, ty := T1 } : SmtModelKey) =
+          { isVar := true, name := s2, ty := T2 }
     · cases hKey
       constructor
       · intro hSat
