@@ -14779,6 +14779,80 @@ private theorem congTypeSpine_forall_eq_has_bool_type
       exact False.elim
         (forall_arg_not_eq_bool_of_translation xs ys body hTrans hBool)
 
+/--
+Placeholder for the checker invariant needed by congruence under binders.
+
+The missing checker fact is that a body equality used under `forall`/`exists`
+is stable under the variable assignments introduced by that binder.
+-/
+private abbrev mkBinderApp (op : UserOp) (xs body : Term) : Term :=
+  Term.Apply (Term.Apply (Term.UOp op) xs) body
+
+axiom checkerInvariant_lifts_congruence_over_binders
+    (M : SmtModel) (hM : model_total_typed M)
+    (op : UserOp) (xs body body' : Term)
+    (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
+    RuleProofs.eo_has_bool_type (mkEq (mkBinderApp op xs body)
+      (mkBinderApp op xs body')) ->
+    eo_interprets M (mkEq body body') true ->
+    eo_interprets M (mkEq (mkBinderApp op xs body)
+      (mkBinderApp op xs body')) true
+
+private theorem congTrueSpine_quantifier_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    (op : UserOp) (xs body rhs : Term)
+    (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs) ->
+    CongTrueSpine M
+      (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs ->
+    eo_interprets M
+      (mkEq (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs) true := by
+  intro hEqBool hSpine
+  rcases congTrueSpine_binary_uop_inv M op xs body rhs hSpine with
+    ⟨ys, body', hRhs, hList, hBody⟩
+  subst hRhs
+  cases hList with
+  | inl hListEq =>
+      subst hListEq
+      cases hBody with
+      | inl hBodyEq =>
+          subst hBodyEq
+          exact RuleProofs.eo_interprets_eq_of_rel M
+            (Term.Apply (Term.Apply (Term.UOp op) xs) body)
+            (Term.Apply (Term.Apply (Term.UOp op) xs) body)
+            hEqBool
+            (RuleProofs.smt_value_rel_refl _)
+      | inr hBodyTrue =>
+          exact
+            checkerInvariant_lifts_congruence_over_binders
+              M hM op xs body body' hOp
+              (by simpa [mkEq, mkBinderApp] using hEqBool)
+              (by simpa [mkEq] using hBodyTrue)
+  | inr hListTrue =>
+      have hTrans :
+          RuleProofs.eo_has_smt_translation
+            (Term.Apply (Term.Apply (Term.UOp op) xs) body) := by
+        have hLeftNN :=
+          (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+            (Term.Apply (Term.Apply (Term.UOp op) xs) body)
+            (Term.Apply (Term.Apply (Term.UOp op) ys) body') hEqBool).2
+        simpa [RuleProofs.eo_has_smt_translation] using hLeftNN
+      have hListBool : RuleProofs.eo_has_bool_type (mkEq xs ys) :=
+        RuleProofs.eo_has_bool_type_of_interprets_true M (mkEq xs ys)
+          hListTrue
+      cases hOp with
+      | inl hForall =>
+          subst hForall
+          exact False.elim
+            (forall_arg_not_eq_bool_of_translation xs ys body hTrans
+              (by simpa [mkEq] using hListBool))
+      | inr hExists =>
+          subst hExists
+          exact False.elim
+            (exists_arg_not_eq_bool_of_translation xs ys body hTrans
+              (by simpa [mkEq] using hListBool))
+
 private theorem no_translation_of_eo_apply_type_none {f x : Term} :
     __eo_to_smt (Term.Apply f x) =
       SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt x) ->
@@ -21735,9 +21809,13 @@ private theorem congTrueSpine_eq_true
                               exact congTrueSpine_set_insert_eq_true M hM
                                 z x (Term.Apply g y) hEqBool hApp
                             case «forall» =>
-                              sorry
+                              exact congTrueSpine_quantifier_eq_true M hM
+                                UserOp.forall z x (Term.Apply g y)
+                                (Or.inl rfl) hEqBool hApp
                             case «exists» =>
-                              sorry
+                              exact congTrueSpine_quantifier_eq_true M hM
+                                UserOp.exists z x (Term.Apply g y)
+                                (Or.inr rfl) hEqBool hApp
                         | Term.Apply (Term.UOp UserOp.ite) c =>
                             exact congTrueSpine_ite_eq_true M hM
                               c z x (Term.Apply g y) hEqBool hApp
