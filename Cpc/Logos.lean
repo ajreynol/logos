@@ -1162,18 +1162,23 @@ def __set_is_not_subset : Term -> Term -> Term -> Term
 termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2
 
 
+def __seq_is_non_empty : Term -> Term
+  | Term.Stuck  => Term.Stuck
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e1)) ts) => (Term.Boolean true)
+  | (Term.Apply (Term.UOp UserOp.seq_unit) e1) => (Term.Boolean true)
+  | t => (Term.Boolean false)
+
+
 def __seq_distinct_terms : Term -> Term -> Term -> Term
   | Term.Stuck , _ , _  => Term.Stuck
   | _ , Term.Stuck , _  => Term.Stuck
   | _ , _ , Term.Stuck  => Term.Stuck
   | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e1)) ts), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e2)) ss), T => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T)) (Term.Boolean true) (__seq_distinct_terms ts ss T))
   | (Term.Apply (Term.UOp UserOp.seq_unit) e1), (Term.Apply (Term.UOp UserOp.seq_unit) e2), T => (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T))
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e1)) ts), (Term.Apply (Term.UOp UserOp.seq_unit) e2), T => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T)) (Term.Boolean true) (__seq_distinct_terms ts (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T))))
-  | (Term.Apply (Term.UOp UserOp.seq_unit) e1), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e2)) ss), T => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T)) (Term.Boolean true) (__seq_distinct_terms (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) T)) ss))
-  | (Term.Apply (Term.UOp UserOp.seq_unit) e1), (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)), T => (Term.Boolean true)
-  | (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)), (Term.Apply (Term.UOp UserOp.seq_unit) e2), T => (Term.Boolean true)
-  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e1)) ts), (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)), T => (Term.Boolean true)
-  | (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e2)) ss), T => (Term.Boolean true)
+  | (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e1)) ts), (Term.Apply (Term.UOp UserOp.seq_unit) e2), T => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T)) (Term.Boolean true) (__seq_is_non_empty ts))
+  | (Term.Apply (Term.UOp UserOp.seq_unit) e1), (Term.Apply (Term.Apply (Term.UOp UserOp.str_concat) (Term.Apply (Term.UOp UserOp.seq_unit) e2)) ss), T => (__eo_ite (__eo_ite (__eo_eq e1 e2) (Term.Boolean false) (__are_distinct_terms_type e1 e2 T)) (Term.Boolean true) (__seq_is_non_empty ss))
+  | t, (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)), T => (__seq_is_non_empty t)
+  | (Term.UOp1 UserOp1.seq_empty (Term.Apply (Term.UOp UserOp.Seq) U)), s, T => (__seq_is_non_empty s)
   | t, s, T => (Term.Boolean false)
 termination_by x1 x2 x3 => sizeOf x1 + sizeOf x2
 
