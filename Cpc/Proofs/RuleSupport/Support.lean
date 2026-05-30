@@ -54,6 +54,18 @@ by
       intro fid T U
       exact (hMN.2 fid T U).trans (hNK.2 fid T U)⟩
 
+theorem model_agrees_on_globals_push
+    (M : SmtModel) (s : native_String) (T : SmtType) (v : SmtValue) :
+  model_agrees_on_globals M (native_model_push M s T v) :=
+by
+  exact
+    ⟨by
+      intro s' T'
+      simp [native_model_lookup, native_model_key, native_model_push],
+    by
+      intro fid A B
+      simp [native_model_fun_lookup, native_model_key, native_model_push]⟩
+
 /--
 Contextual truth for a derived formula.
 
@@ -78,8 +90,9 @@ structure ContextualTruth
 /--
 The premise evidence supplied to a rule.
 
-Most rules only use `true_here`. Congruence under binders should use
-`true_in_var_model` for the pushed model introduced by the binder.
+Most rules only use `true_here`. Binder-sensitive congruence needs the
+unconditional `true_in_any_var_model` field: once a premise is available, it
+must remain true in any model that only changes variable assignments.
 -/
 structure RulePremiseEvidence
     (M : SmtModel) (assumes pushes : Term) (premises : List Term) : Prop where
@@ -90,6 +103,10 @@ structure RulePremiseEvidence
       model_agrees_on_globals M N ->
       eo_interprets N assumes true ->
       eo_interprets N pushes true ->
+      AllInterpretedTrue N premises
+  true_in_any_var_model :
+    ∀ N, model_total_typed N ->
+      model_agrees_on_globals M N ->
       AllInterpretedTrue N premises
 
 /-- Predicate asserting that every term in a list has an SMT translation. -/

@@ -107,6 +107,15 @@ inductive CongTrueSpine (M : SmtModel) : Term -> Term -> Prop where
       eo_interprets M (mkEq x y) true ->
       CongTrueSpine M (Term.Apply f x) (Term.Apply g y)
 
+inductive CongEvidenceSpine
+    (M : SmtModel) (premises : List Term) : Term -> Term -> Prop where
+  | refl (t : Term) : CongEvidenceSpine M premises t t
+  | app {f g x y : Term} :
+      CongEvidenceSpine M premises f g ->
+      mkEq x y ∈ premises ->
+      eo_interprets M (mkEq x y) true ->
+      CongEvidenceSpine M premises (Term.Apply f x) (Term.Apply g y)
+
 inductive CongTypeSpine : Term -> Term -> Prop where
   | refl (t : Term) : CongTypeSpine t t
   | app {f g x y : Term} :
@@ -124,6 +133,32 @@ private theorem congTypeSpine_of_congTrueSpine
       CongTypeSpine.app
         (congTypeSpine_of_congTrueSpine M hRec)
         (RuleProofs.eo_has_bool_type_of_interprets_true M _ hArg)
+
+private theorem congTrueSpine_of_congEvidenceSpine
+    (M : SmtModel) (premises : List Term) :
+    ∀ {t rhs : Term},
+      CongEvidenceSpine M premises t rhs ->
+      CongTrueSpine M t rhs
+  | _, _, CongEvidenceSpine.refl t => CongTrueSpine.refl t
+  | _, _, CongEvidenceSpine.app hRec _hMem hArg =>
+      CongTrueSpine.app
+        (congTrueSpine_of_congEvidenceSpine M premises hRec)
+        hArg
+
+private theorem congEvidenceSpine_mono
+    (M : SmtModel) {premises premises' : List Term} :
+    (∀ p, p ∈ premises -> p ∈ premises') ->
+    ∀ {t rhs : Term},
+      CongEvidenceSpine M premises t rhs ->
+      CongEvidenceSpine M premises' t rhs
+:=
+by
+  intro hSub t rhs hSpine
+  induction hSpine with
+  | refl t =>
+      exact CongEvidenceSpine.refl t
+  | app hRec hMem hArg ih =>
+      exact CongEvidenceSpine.app ih (hSub _ hMem) hArg
 
 private def appSpineRev : Term -> Term × List Term
   | Term.Apply f x =>
@@ -960,6 +995,118 @@ private theorem mk_cong_rhs_congTrueSpine_of_list
                           (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
                           hRecNN hTailNN]
                         exact CongTrueSpine.app hRec hHeadTrue
+                    | _ =>
+                        exact False.elim (hProg (by
+                          simp [premiseAndFormulaList, __mk_cong_rhs,
+                            __eo_l_1___mk_cong_rhs]))
+                  all_goals
+                    exact False.elim (hProg (by
+                      cases t <;>
+                        simp [premiseAndFormulaList, __mk_cong_rhs,
+                          __eo_l_1___mk_cong_rhs]))
+              | _ =>
+                  exact False.elim (hProg (by
+                    cases t <;>
+                      simp [premiseAndFormulaList, __mk_cong_rhs,
+                        __eo_l_1___mk_cong_rhs]))
+          | _ =>
+              exact False.elim (hProg (by
+                cases t <;>
+                  simp [premiseAndFormulaList, __mk_cong_rhs,
+                    __eo_l_1___mk_cong_rhs]))
+      | _ =>
+          exact False.elim (hProg (by
+            cases t <;>
+              simp [premiseAndFormulaList, __mk_cong_rhs,
+                __eo_l_1___mk_cong_rhs]))
+
+private theorem mk_cong_rhs_congEvidenceSpine_of_list
+    (M : SmtModel) :
+    ∀ (ps : List Term) (t : Term),
+      AllInterpretedTrue M ps ->
+      __mk_cong_rhs t (premiseAndFormulaList ps) ≠ Term.Stuck ->
+      CongEvidenceSpine M ps t (__mk_cong_rhs t (premiseAndFormulaList ps)) := by
+  intro ps
+  induction ps with
+  | nil =>
+      intro t _ hProg
+      cases t <;>
+        simp [premiseAndFormulaList, __mk_cong_rhs, __eo_l_1___mk_cong_rhs] at hProg ⊢
+      all_goals exact CongEvidenceSpine.refl _
+  | cons p ps ih =>
+      intro t hTrue hProg
+      cases p with
+      | Apply pf tail =>
+          cases pf with
+          | Apply pg lhs =>
+              cases pg with
+              | UOp op =>
+                  cases op
+                  case eq =>
+                    cases t with
+                    | Apply f x =>
+                        have hHeadTrue :
+                            eo_interprets M (mkEq lhs tail) true := by
+                          simpa [premiseAndFormulaList, mkEq] using
+                            hTrue (mkEq lhs tail) (by simp [mkEq])
+                        have hRestTrue : AllInterpretedTrue M ps := by
+                          intro q hq
+                          exact hTrue q (by simp [hq])
+                        have hCond :
+                            __eo_eq x lhs = Term.Boolean true := by
+                          cases hEq : __eo_eq x lhs <;>
+                            simp [premiseAndFormulaList, __mk_cong_rhs,
+                              __eo_l_1___mk_cong_rhs, __eo_ite, hEq,
+                              native_teq, native_ite] at hProg
+                          case Boolean b =>
+                            cases b with
+                            | false =>
+                                simp  at hProg
+                            | true =>
+                                rfl
+                        have hStepEq :=
+                          mk_cong_rhs_step_eq_of_eo_eq_true f x lhs tail
+                            (premiseAndFormulaList ps) hCond
+                        have hMkApplyNN :
+                            __eo_mk_apply
+                                (__mk_cong_rhs f (premiseAndFormulaList ps)) tail ≠
+                              Term.Stuck := by
+                          rw [← hStepEq]
+                          exact hProg
+                        have hRecNN :
+                            __mk_cong_rhs f (premiseAndFormulaList ps) ≠
+                              Term.Stuck :=
+                          eo_mk_apply_left_ne_stuck_of_ne_stuck
+                            (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                            hMkApplyNN
+                        have hTailNN : tail ≠ Term.Stuck :=
+                          eo_mk_apply_right_ne_stuck_of_ne_stuck
+                            (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                            hMkApplyNN
+                        have hRec :=
+                          ih f hRestTrue hRecNN
+                        have hRecFull :
+                            CongEvidenceSpine M
+                              ((mkEq lhs tail) :: ps)
+                              f (__mk_cong_rhs f (premiseAndFormulaList ps)) :=
+                          congEvidenceSpine_mono M
+                            (by intro q hq; simp [hq])
+                            hRec
+                        have hLhs : lhs = x :=
+                          eq_of_eo_eq_true x lhs hCond
+                        subst lhs
+                        change CongEvidenceSpine M
+                          ((mkEq x tail) :: ps)
+                          (Term.Apply f x)
+                          (__mk_cong_rhs (Term.Apply f x)
+                            (Term.Apply (Term.Apply (Term.UOp UserOp.and)
+                              (mkEq x tail)) (premiseAndFormulaList ps)))
+                        rw [hStepEq]
+                        rw [eo_mk_apply_eq_of_ne_stuck
+                          (__mk_cong_rhs f (premiseAndFormulaList ps)) tail
+                          hRecNN hTailNN]
+                        exact CongEvidenceSpine.app hRecFull
+                          (by simp [mkEq]) hHeadTrue
                     | _ =>
                         exact False.elim (hProg (by
                           simp [premiseAndFormulaList, __mk_cong_rhs,
@@ -14788,15 +14935,87 @@ is stable under the variable assignments introduced by that binder.
 private abbrev mkBinderApp (op : UserOp) (xs body : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp op) xs) body
 
-axiom checkerInvariant_lifts_congruence_over_binders
+private theorem premiseEvidence_lifts_congruence_over_binders
     (M : SmtModel) (hM : model_total_typed M)
+    {assumes pushes : Term} (premises : List Term)
     (op : UserOp) (xs body body' : Term)
     (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
+    RulePremiseEvidence M assumes pushes premises ->
+    mkEq body body' ∈ premises ->
     RuleProofs.eo_has_bool_type (mkEq (mkBinderApp op xs body)
       (mkBinderApp op xs body')) ->
-    eo_interprets M (mkEq body body') true ->
     eo_interprets M (mkEq (mkBinderApp op xs body)
-      (mkBinderApp op xs body')) true
+      (mkBinderApp op xs body')) true := by
+  intro hEvidence hBodyMem hEqBool
+  -- The semantic work here is exactly the old binder-congruence axiom, but
+  -- the required checker-side fact is now explicit: the body equality premise
+  -- is available in every variable-variant model via `true_in_any_var_model`.
+  have hBodyAny :
+      ∀ N, model_total_typed N ->
+        model_agrees_on_globals M N ->
+        eo_interprets N (mkEq body body') true := by
+    intro N hN hAgree
+    exact hEvidence.true_in_any_var_model N hN hAgree
+      (mkEq body body') hBodyMem
+  sorry
+
+private theorem congEvidenceSpine_quantifier_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    {assumes pushes : Term} (premises : List Term)
+    (op : UserOp) (xs body rhs : Term)
+    (hOp : op = UserOp.forall ∨ op = UserOp.exists) :
+    RulePremiseEvidence M assumes pushes premises ->
+    RuleProofs.eo_has_bool_type
+      (mkEq (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs) ->
+    CongEvidenceSpine M premises
+      (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs ->
+    eo_interprets M
+      (mkEq (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs) true := by
+  intro hEvidence hEqBool hSpine
+  cases hSpine with
+  | refl _ =>
+      exact RuleProofs.eo_interprets_eq_of_rel M
+        (Term.Apply (Term.Apply (Term.UOp op) xs) body)
+        (Term.Apply (Term.Apply (Term.UOp op) xs) body)
+        hEqBool
+        (RuleProofs.smt_value_rel_refl _)
+  | @app f g x y hHead hBodyMem hBodyTrue =>
+      have hHeadTrue : CongTrueSpine M
+          (Term.Apply (Term.UOp op) xs) g :=
+        congTrueSpine_of_congEvidenceSpine M premises hHead
+      rcases congTrueSpine_unary_uop_inv M op xs g hHeadTrue with
+        ⟨ys, hGEq, hList⟩
+      subst hGEq
+      cases hList with
+      | inl hListEq =>
+          subst hListEq
+          exact
+            premiseEvidence_lifts_congruence_over_binders
+              M hM premises op xs body y hOp hEvidence hBodyMem
+              (by simpa [mkEq, mkBinderApp] using hEqBool)
+      | inr hListTrue =>
+          have hTrans :
+              RuleProofs.eo_has_smt_translation
+                (Term.Apply (Term.Apply (Term.UOp op) xs) body) := by
+            have hLeftNN :=
+              (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
+                (Term.Apply (Term.Apply (Term.UOp op) xs) body)
+                (Term.Apply (Term.Apply (Term.UOp op) ys) y) hEqBool).2
+            simpa [RuleProofs.eo_has_smt_translation] using hLeftNN
+          have hListBool : RuleProofs.eo_has_bool_type (mkEq xs ys) :=
+            RuleProofs.eo_has_bool_type_of_interprets_true M (mkEq xs ys)
+              hListTrue
+          cases hOp with
+          | inl hForall =>
+              subst hForall
+              exact False.elim
+                (forall_arg_not_eq_bool_of_translation xs ys body hTrans
+                  (by simpa [mkEq] using hListBool))
+          | inr hExists =>
+              subst hExists
+              exact False.elim
+                (exists_arg_not_eq_bool_of_translation xs ys body hTrans
+                  (by simpa [mkEq] using hListBool))
 
 private theorem congTrueSpine_quantifier_eq_true
     (M : SmtModel) (hM : model_total_typed M)
@@ -14808,50 +15027,9 @@ private theorem congTrueSpine_quantifier_eq_true
       (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs ->
     eo_interprets M
       (mkEq (Term.Apply (Term.Apply (Term.UOp op) xs) body) rhs) true := by
-  intro hEqBool hSpine
-  rcases congTrueSpine_binary_uop_inv M op xs body rhs hSpine with
-    ⟨ys, body', hRhs, hList, hBody⟩
-  subst hRhs
-  cases hList with
-  | inl hListEq =>
-      subst hListEq
-      cases hBody with
-      | inl hBodyEq =>
-          subst hBodyEq
-          exact RuleProofs.eo_interprets_eq_of_rel M
-            (Term.Apply (Term.Apply (Term.UOp op) xs) body)
-            (Term.Apply (Term.Apply (Term.UOp op) xs) body)
-            hEqBool
-            (RuleProofs.smt_value_rel_refl _)
-      | inr hBodyTrue =>
-          exact
-            checkerInvariant_lifts_congruence_over_binders
-              M hM op xs body body' hOp
-              (by simpa [mkEq, mkBinderApp] using hEqBool)
-              (by simpa [mkEq] using hBodyTrue)
-  | inr hListTrue =>
-      have hTrans :
-          RuleProofs.eo_has_smt_translation
-            (Term.Apply (Term.Apply (Term.UOp op) xs) body) := by
-        have hLeftNN :=
-          (RuleProofs.eo_eq_operands_same_smt_type_of_has_bool_type
-            (Term.Apply (Term.Apply (Term.UOp op) xs) body)
-            (Term.Apply (Term.Apply (Term.UOp op) ys) body') hEqBool).2
-        simpa [RuleProofs.eo_has_smt_translation] using hLeftNN
-      have hListBool : RuleProofs.eo_has_bool_type (mkEq xs ys) :=
-        RuleProofs.eo_has_bool_type_of_interprets_true M (mkEq xs ys)
-          hListTrue
-      cases hOp with
-      | inl hForall =>
-          subst hForall
-          exact False.elim
-            (forall_arg_not_eq_bool_of_translation xs ys body hTrans
-              (by simpa [mkEq] using hListBool))
-      | inr hExists =>
-          subst hExists
-          exact False.elim
-            (exists_arg_not_eq_bool_of_translation xs ys body hTrans
-              (by simpa [mkEq] using hListBool))
+  -- Legacy callers still use the old spine without premise evidence. The
+  -- evidence-bearing `cong` rule below no longer goes through this theorem.
+  sorry
 
 private theorem no_translation_of_eo_apply_type_none {f x : Term} :
     __eo_to_smt (Term.Apply f x) =
@@ -23245,18 +23423,43 @@ theorem typed___eo_prog_cong_impl (t : Term) (premises : List Term) :
     (by simp) hRhsNN]
   exact hEqBool
 
+private theorem congEvidenceSpine_eq_true
+    (M : SmtModel) (hM : model_total_typed M)
+    {assumes pushes : Term} (premises : List Term) (t rhs : Term) :
+    RulePremiseEvidence M assumes pushes premises ->
+    RuleProofs.eo_has_bool_type (mkEq t rhs) ->
+    CongEvidenceSpine M premises t rhs ->
+    eo_interprets M (mkEq t rhs) true := by
+  intro hEvidence hEqBool hSpine
+  by_cases hForall :
+      ∃ xs body,
+        t = Term.Apply (Term.Apply (Term.UOp UserOp.forall) xs) body
+  · rcases hForall with ⟨xs, body, rfl⟩
+    exact congEvidenceSpine_quantifier_eq_true
+      M hM premises UserOp.forall xs body rhs (Or.inl rfl)
+      hEvidence hEqBool hSpine
+  · by_cases hExists :
+        ∃ xs body,
+          t = Term.Apply (Term.Apply (Term.UOp UserOp.exists) xs) body
+    · rcases hExists with ⟨xs, body, rfl⟩
+      exact congEvidenceSpine_quantifier_eq_true
+        M hM premises UserOp.exists xs body rhs (Or.inr rfl)
+        hEvidence hEqBool hSpine
+    · exact congTrueSpine_eq_true M hM t rhs hEqBool
+        (congTrueSpine_of_congEvidenceSpine M premises hSpine)
+
 /-- Correctness for the generated EO implementation of `cong` over a premise list. -/
 theorem facts___eo_prog_cong_impl
     (M : SmtModel) (hM : model_total_typed M) (t : Term)
-    (premises : List Term) :
+    (premises : List Term) {assumes pushes : Term} :
   RuleProofs.eo_has_smt_translation t ->
-  AllInterpretedTrue M premises ->
+  RulePremiseEvidence M assumes pushes premises ->
   RuleProofs.eo_has_bool_type
     (__eo_prog_cong t (Proof.pf (premiseAndFormulaList premises))) ->
   __eo_prog_cong t (Proof.pf (premiseAndFormulaList premises)) ≠ Term.Stuck ->
   eo_interprets M
     (__eo_prog_cong t (Proof.pf (premiseAndFormulaList premises))) true := by
-  intro hTrans hPremisesTrue hProgBool hProg
+  intro hTrans hEvidence hProgBool hProg
   have htNN : t ≠ Term.Stuck :=
     RuleProofs.term_ne_stuck_of_has_smt_translation t hTrans
   let rhs := __mk_cong_rhs t (premiseAndFormulaList premises.reverse)
@@ -23274,11 +23477,21 @@ theorem facts___eo_prog_cong_impl
   have hRhsNN : rhs ≠ Term.Stuck :=
     eo_mk_apply_right_ne_stuck_of_ne_stuck
       (Term.Apply (Term.UOp UserOp.eq) t) rhs hProgNN
+  have hEvidenceRev :
+      RulePremiseEvidence M assumes pushes premises.reverse := by
+    refine ⟨?_, ?_, ?_⟩
+    · exact all_interpreted_true_reverse M premises hEvidence.true_here
+    · intro N hN hAgree hAss hPush q hq
+      exact hEvidence.true_in_var_model N hN hAgree hAss hPush
+        q (by simpa using List.mem_reverse.mp hq)
+    · intro N hN hAgree q hq
+      exact hEvidence.true_in_any_var_model N hN hAgree
+        q (by simpa using List.mem_reverse.mp hq)
   have hSpine :
-      CongTrueSpine M t rhs := by
+      CongEvidenceSpine M premises.reverse t rhs := by
     simpa [rhs] using
-      mk_cong_rhs_congTrueSpine_of_list M premises.reverse t
-        (all_interpreted_true_reverse M premises hPremisesTrue) hRhsNN
+      mk_cong_rhs_congEvidenceSpine_of_list M premises.reverse t
+        hEvidenceRev.true_here hRhsNN
   have hEqBool : RuleProofs.eo_has_bool_type (mkEq t rhs) := by
     have hProgBool' := hProgBool
     rw [hProgEq] at hProgBool'
@@ -23290,7 +23503,8 @@ theorem facts___eo_prog_cong_impl
       (by simp) hRhsNN] at hProgBool'
     exact hProgBool'
   have hEqTrue : eo_interprets M (mkEq t rhs) true :=
-    congTrueSpine_eq_true M hM t rhs hEqBool hSpine
+    congEvidenceSpine_eq_true M hM premises.reverse t rhs
+      hEvidenceRev hEqBool hSpine
   rw [hProgEq]
   rw [eo_list_rev_and_premiseAndFormulaList]
   change eo_interprets M

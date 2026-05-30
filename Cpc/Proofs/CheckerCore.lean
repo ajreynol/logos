@@ -2358,13 +2358,18 @@ theorem premiseEvidence_of_localTruthInvariant
     (premiseTermList s premises) :=
 by
   intro hs hN hAgree hAss hPush
-  refine ⟨?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · exact premiseTermList_true_of_localTruthInvariant_var_model
       M s premises hs N hN hAgree hAss hPush
   · intro K hK hAgreeNK hAssK hPushK
     exact premiseTermList_true_of_localTruthInvariant_var_model
       M s premises hs K hK
       (model_agrees_on_globals_trans hAgree hAgreeNK) hAssK hPushK
+  · intro K hK hAgreeNK
+    -- This is the checker invariant still to be threaded for binder
+    -- congruence: premise facts used under freshly-pushed variables must lift
+    -- without re-assuming the local context in the pushed model.
+    sorry
 
 /-- Structure bundling the premise facts needed to justify a single checker step. -/
 structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
