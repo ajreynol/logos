@@ -1856,7 +1856,7 @@ private theorem native_str_in_re_mk_comp_list :
           simp [hA, hB] at hComp' ⊢ <;> assumption
       all_goals exact h
 
-private theorem native_str_in_re_re_comp
+theorem native_str_in_re_re_comp
     (s : native_String) (r : native_RegLan) :
     native_str_in_re s (native_re_comp r) =
       (native_string_valid s && Bool.not (native_str_in_re s r)) := by
