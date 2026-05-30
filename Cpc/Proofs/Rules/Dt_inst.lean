@@ -10,7 +10,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem eo_eq_true_eq {x y : Term} :
@@ -186,7 +185,7 @@ private theorem smt_typeof_dt_cons_rec_non_none_implies_lt
       __smtx_typeof_dt_cons_rec T d i ≠ SmtType.None ->
       i < smtDatatypeNumCtorsLocal d
   | SmtDatatype.null, i, h => by
-      cases i <;> simp [smtDatatypeNumCtorsLocal, __smtx_typeof_dt_cons_rec] at h
+      cases i <;> simp [__smtx_typeof_dt_cons_rec] at h
   | SmtDatatype.sum c d, 0, h => by
       simp [smtDatatypeNumCtorsLocal]
   | SmtDatatype.sum c d, Nat.succ i, h => by
@@ -224,7 +223,7 @@ private theorem datatype_constructors_rec_is_list
         Term.Boolean true
   | Datatype.null, start => by
       simp [__eo_datatype_constructors_rec, __eo_is_list, __eo_get_nil_rec,
-        __eo_is_list_nil, __eo_is_ok, __eo_requires, __eo_eq, native_ite,
+        __eo_is_list_nil, __eo_is_ok, __eo_requires,native_ite,
         native_teq, native_not, SmtEval.native_not]
   | Datatype.sum c d, start => by
       let tail := __eo_datatype_constructors_rec s root d (Nat.succ start)
@@ -243,9 +242,9 @@ private theorem datatype_constructors_rec_is_list
             tail) =
           Term.Boolean true
       rw [eo_mk_apply_of_ne_stuck (by simp) hTailNe]
-      simp [__eo_is_list, __eo_get_nil_rec, __eo_is_list_nil, __eo_is_ok,
-        __eo_requires, __eo_eq, native_ite, native_teq, native_not,
-        SmtEval.native_not, hTailList, hTailGet]
+      simp [__eo_is_list, __eo_get_nil_rec,__eo_is_ok,
+        __eo_requires,native_ite, native_teq, native_not,
+        SmtEval.native_not,hTailGet]
 
 private theorem datatype_constructors_find_rec_self
     (s : native_String) (root : Datatype) :
@@ -270,8 +269,7 @@ private theorem datatype_constructors_find_rec_self
               (Term.DtCons s root (start + 0)) (Term.Numeral k) =
               Term.Numeral (k + 0)
           rw [eo_mk_apply_of_ne_stuck (by simp) hTailNe]
-          simp [__eo_list_find_rec, __eo_eq, native_ite, native_teq,
-            native_not, SmtEval.native_not]
+          simp [__eo_list_find_rec, __eo_eq, native_ite, native_teq]
       | succ rel =>
           have hltTail : rel < smtDatatypeNumCtorsLocal (__eo_to_smt_datatype d) := by
             simpa [smtDatatypeNumCtorsLocal, __eo_to_smt_datatype] using
@@ -281,7 +279,7 @@ private theorem datatype_constructors_find_rec_self
               s root d (Nat.succ start) rel (k + 1) hltTail
           have hIdx :
               start + Nat.succ rel = Nat.succ start + rel := by
-            simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+            simp [Nat.add_comm, Nat.add_left_comm]
           have hIdxNe : ¬ Nat.succ start + rel = start := by
             intro h
             have hltStart : start < Nat.succ start + rel :=
@@ -297,7 +295,7 @@ private theorem datatype_constructors_find_rec_self
           rw [hIdx]
           rw [eo_mk_apply_of_ne_stuck (by simp) hTailNe]
           simp [__eo_list_find_rec, __eo_add, __eo_eq, native_ite,
-            native_teq, native_not, SmtEval.native_not, hIdxNe]
+            native_teq,hIdxNe]
           simpa [native_zplus, Int.add_assoc, Int.add_comm, Int.add_left_comm]
             using ih
 
@@ -369,8 +367,7 @@ private theorem assoc_nil_nth_datatype_constructors_nth
               (Term.Numeral 0) =
               Term.DtCons s root (start + 0)
           rw [eo_mk_apply_of_ne_stuck (by simp) hTailNe]
-          simp [__assoc_nil_nth, __eo_eq, native_ite, native_teq,
-            native_not, SmtEval.native_not]
+          simp [__assoc_nil_nth, __eo_eq, native_ite, native_teq]
       | succ rel =>
           have hltTail : rel < smtDatatypeNumCtorsLocal (__eo_to_smt_datatype d) := by
             simpa [smtDatatypeNumCtorsLocal, __eo_to_smt_datatype] using
@@ -380,7 +377,7 @@ private theorem assoc_nil_nth_datatype_constructors_nth
               s root d (Nat.succ start) rel hltTail
           have hIdx :
               start + Nat.succ rel = Nat.succ start + rel := by
-            simp [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+            simp [Nat.add_comm, Nat.add_left_comm]
           change
             __assoc_nil_nth Term.__eo_List_cons
               (__eo_mk_apply
@@ -956,7 +953,7 @@ private theorem eo_to_smt_mk_dt_inst_rec_selectors
   | Datatype.sum DatatypeCons.unit d, 0, ai, _hNN => by
       have hAccNe := dtConsSpineRoot_ne_stuck hAcc
       simp [__eo_datatype_cons_selectors_rec, __mk_dt_inst_rec,
-        dtSelectorApps, mkDtSmtAppSpineRev, hx, hAccNe]
+        dtSelectorApps, mkDtSmtAppSpineRev]
   | Datatype.sum (DatatypeCons.cons U c) d, 0, ai, hNN => by
       let rest :=
         __eo_datatype_cons_selectors_rec s root n
@@ -973,7 +970,7 @@ private theorem eo_to_smt_mk_dt_inst_rec_selectors
                 (Datatype.sum (DatatypeCons.cons U c) d) 0 ai =
               Term.Apply
                 (Term.Apply Term.__eo_List_cons (Term.DtSel s root n ai)) rest := by
-          simp [__eo_datatype_cons_selectors_rec, __eo_mk_apply, rest, hRest]
+          simp [__eo_datatype_cons_selectors_rec, __eo_mk_apply, rest]
         have hAccNe := dtConsSpineRoot_ne_stuck hAcc
         have hRecNN :
             __smtx_typeof
@@ -989,7 +986,7 @@ private theorem eo_to_smt_mk_dt_inst_rec_selectors
               (Term.Apply (Term.DtSel s root n ai) x) hAcc)
             (Datatype.sum c d) 0 (ai + 1) hRecNN
         rw [hList]
-        simp [__mk_dt_inst_rec, hx, hAccNe, rest] at hRec ⊢
+        simp [__mk_dt_inst_rec,rest] at hRec ⊢
         rw [hRec]
         rw [dtConsSpineRoot_apply_generic hAcc]
         rw [eo_to_smt_apply_dt_sel_unreserved s root n ai x hReserved]
@@ -1105,7 +1102,7 @@ private theorem dt_inst_bare_dtcons_interprets
               __vsm_apply_head (__smtx_model_eval M X) :=
             smt_value_eq_head_of_no_apply_args _ hCount
           _ = SmtValue.DtCons s D i := hHead
-      simp [hHead, hVal, native_veq, __smtx_model_eval_eq]
+      simp [hVal, native_veq, __smtx_model_eval_eq]
       simp [__vsm_apply_head]
     · have hNe :
           __smtx_model_eval M X ≠ SmtValue.DtCons s D i := by
@@ -1198,7 +1195,7 @@ private theorem dt_inst_dtcons_interprets
       intro hx
       subst x
       change __smtx_typeof SmtTerm.None = SmtType.Datatype s D at hXTy
-      simp [__smtx_typeof, __smtx_type_wf_component, D] at hXTy
+      simp [D] at hXTy
     have hCtorNth :
         __assoc_nil_nth Term.__eo_List_cons
           (__eo_dt_constructors (Term.DatatypeType s d))
@@ -1488,7 +1485,7 @@ private theorem dt_inst_tuple_unit_interprets
             smt_value_eq_head_of_no_apply_args _ hCount
           _ = SmtValue.DtCons (native_string_lit "@Tuple") D native_nat_zero :=
             hHead
-      simp [hHead, hVal, native_veq, __smtx_model_eval_eq]
+      simp [hVal, native_veq, __smtx_model_eval_eq]
       simp [__vsm_apply_head]
     · have hNe :
           __smtx_model_eval M X ≠
@@ -1620,7 +1617,7 @@ private theorem facts___eo_prog_dt_inst_impl
             subst x
             change __smtx_typeof SmtTerm.None =
               SmtType.Datatype cs (__eo_to_smt_datatype d0) at hXTy
-            simp [__smtx_typeof, __smtx_type_wf_component] at hXTy
+            simp at hXTy
           cases x
           case Stuck =>
             exact False.elim (hxNe rfl)
@@ -1697,7 +1694,7 @@ private theorem facts___eo_prog_dt_inst_impl
         change __smtx_typeof SmtTerm.None =
           SmtType.Datatype (native_string_lit "@Tuple")
             (SmtDatatype.sum SmtDatatypeCons.unit SmtDatatype.null) at hXTy
-        simp [__smtx_typeof, __smtx_type_wf_component] at hXTy
+        simp at hXTy
       cases x <;> simp [__mk_dt_inst] at hMk ⊢
       case Stuck =>
         exact False.elim (hxNe rfl)

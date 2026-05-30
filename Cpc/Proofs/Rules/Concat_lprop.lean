@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private abbrev concatLPropFormula (rev tHead sHead : Term) : Term :=
@@ -83,8 +82,7 @@ private theorem eo_prog_concat_lprop_eq_of_ne_stuck
       exact False.elim (hProg rfl)
     all_goals
       simp [__eo_prog_concat_lprop, concatLPropFormula, concatSplitHead,
-        concatSplitNormalize, concatSplitTerm, concatSplitRaw, mkEq, mkGt,
-        mkStrLen]
+        concatSplitNormalize, concatSplitTerm, concatSplitRaw]
   have hBodyNe :
       __eo_requires (concatSplitHead rev t) tc
           (__eo_requires (concatSplitHead rev s) sc
@@ -651,7 +649,7 @@ private theorem concatLPropFormula_false_eq_plain
     seq_empty_typeof_ne_stuck_of_smt_type_seq split T hSplitTy
   have hSplitNe' :
       concatSplitTerm tHead sHead (Term.Boolean false) ≠ Term.Stuck := by
-    simp [split]
+    simp
   have hEmptySplitNe' :
       __seq_empty
           (__eo_typeof (concatSplitTerm tHead sHead (Term.Boolean false))) ≠
@@ -663,7 +661,7 @@ private theorem concatLPropFormula_false_eq_plain
           (mkConcat (concatSplitTerm tHead sHead (Term.Boolean false))
             (__eo_nil (Term.UOp UserOp.str_concat) (__eo_typeof sHead)))) ≠
         Term.Stuck := by
-    simp [mkEq, mkConcat, htNe, hsNe, hSplitNe', hNilSNe]
+    simp [mkEq, mkConcat]
   have hRightNe :
       mkAnd
         (mkNot
@@ -676,12 +674,10 @@ private theorem concatLPropFormula_false_eq_plain
             (mkStrLen (concatSplitTerm tHead sHead (Term.Boolean false)))
             (Term.Numeral 0))
           (Term.Boolean true)) ≠ Term.Stuck := by
-    simp [mkAnd, mkNot, mkEq, mkGt, mkStrLen, hSplitNe',
-      hEmptySplitNe']
+    simp [mkAnd, mkNot, mkEq, mkGt, mkStrLen]
   simp [concatLPropFormula, concatLPropFalseFormula,
     mkEq, mkAnd, mkNot, mkGt, mkStrLen, mkConcat, __eo_mk_apply,
-    eo_ite_false, htNe, hsNe, hSplitNe, hSplitNe', hNilSNe,
-    hEmptySplitNe, hEmptySplitNe', hLeftNe, hRightNe]
+    eo_ite_false]
 
 private theorem concatLPropFormula_true_eq_plain
     (tHead sHead : Term) (T : SmtType)
@@ -709,7 +705,7 @@ private theorem concatLPropFormula_true_eq_plain
     seq_empty_typeof_ne_stuck_of_smt_type_seq split T hSplitTy
   have hSplitNe' :
       concatSplitTerm tHead sHead (Term.Boolean true) ≠ Term.Stuck := by
-    simp [split]
+    simp
   have hEmptySplitNe' :
       __seq_empty
           (__eo_typeof (concatSplitTerm tHead sHead (Term.Boolean true))) ≠
@@ -728,8 +724,7 @@ private theorem concatLPropFormula_true_eq_plain
               (__eo_typeof
                 (concatSplitTerm tHead sHead (Term.Boolean true)))))) ≠
         Term.Stuck := by
-    simp [mkEq, mkConcat, htNe, hsNe, hSplitNe', hNilSplitNe',
-      hNilSplitNe]
+    simp [mkEq, mkConcat]
   have hRightNe :
       mkAnd
         (mkNot
@@ -742,12 +737,10 @@ private theorem concatLPropFormula_true_eq_plain
             (mkStrLen (concatSplitTerm tHead sHead (Term.Boolean true)))
             (Term.Numeral 0))
           (Term.Boolean true)) ≠ Term.Stuck := by
-    simp [mkAnd, mkNot, mkEq, mkGt, mkStrLen, hSplitNe',
-      hEmptySplitNe']
+    simp [mkAnd, mkNot, mkEq, mkGt, mkStrLen]
   simp [concatLPropFormula, concatLPropTrueFormula,
     mkEq, mkAnd, mkNot, mkGt, mkStrLen, mkConcat, __eo_mk_apply,
-    eo_ite_true, htNe, hsNe, hSplitNe, hSplitNe', hNilSplitNe,
-    hNilSplitNe', hEmptySplitNe, hEmptySplitNe', hLeftNe, hRightNe]
+    eo_ite_true]
 
 private theorem facts_concat_lprop_false_formula
     (M : SmtModel) (hM : model_total_typed M)

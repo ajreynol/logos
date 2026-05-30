@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem smt_eval_to_real_idem (v : SmtValue) :
@@ -1068,7 +1067,7 @@ private theorem typed_arith_reduction_div_total_literal
   by_cases hNeg : native_zlt n 0 = true
   · simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
       __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
-      native_teq, native_ite, native_not, native_and, hNZ, hNZ0, hNeg]
+      native_teq, native_ite, native_not, native_and, hNZ0, hNeg]
     change
       __smtx_typeof
         (SmtTerm.and
@@ -1114,7 +1113,7 @@ private theorem typed_arith_reduction_div_total_literal
       native_ite, native_Teq, hArgs.1]
   · simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
       __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
-      native_teq, native_ite, native_not, native_and, hNZ, hNZ0, hNeg]
+      native_teq, native_ite, native_not, native_and, hNZ0, hNeg]
     change
       __smtx_typeof
         (SmtTerm.and
@@ -1171,8 +1170,7 @@ private theorem typed_arith_reduction_div_total_generic
   have hIsZFalse : __eo_is_z b = Term.Boolean false :=
     eo_is_z_eq_false_of_not_true b hIsZ
   unfold RuleProofs.eo_has_bool_type
-  simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
-    __eo_requires, hIsZ, hIsZFalse, native_teq, native_ite, native_not]
+  simp [__arith_reduction_pred, __eo_mk_apply, __eo_ite,hIsZFalse, native_teq, native_ite]
   change
     __smtx_typeof
       (SmtTerm.and
@@ -1294,7 +1292,7 @@ private theorem typed_arith_reduction_mod_total_literal
   by_cases hNeg : native_zlt n 0 = true
   · simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
       __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
-      native_teq, native_ite, native_not, native_and, hNZ, hNZ0, hNeg]
+      native_teq, native_ite, native_not, native_and, hNZ0, hNeg]
     change
       __smtx_typeof
         (SmtTerm.and
@@ -1346,7 +1344,7 @@ private theorem typed_arith_reduction_mod_total_literal
       native_ite, native_Teq, hArgs.1]
   · simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
       __eo_requires, __eo_is_z, __eo_is_z_internal, __eo_is_neg,
-      native_teq, native_ite, native_not, native_and, hNZ, hNZ0, hNeg]
+      native_teq, native_ite, native_not, native_and, hNZ0, hNeg]
     change
       __smtx_typeof
         (SmtTerm.and
@@ -1409,8 +1407,7 @@ private theorem typed_arith_reduction_mod_total_generic
   have hIsZFalse : __eo_is_z b = Term.Boolean false :=
     eo_is_z_eq_false_of_not_true b hIsZ
   unfold RuleProofs.eo_has_bool_type
-  simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
-    __eo_requires, hIsZ, hIsZFalse, native_teq, native_ite, native_not]
+  simp [__arith_reduction_pred, __eo_mk_apply, __eo_ite,hIsZFalse, native_teq, native_ite]
   change
     __smtx_typeof
       (SmtTerm.and
@@ -1758,7 +1755,7 @@ private theorem typed_arith_reduction_abs_of_trans
                   (__arith_mk_zero (__eo_typeof u))))
               (Term.Apply (Term.UOp UserOp.__eoo_neg_2) u))
             u)) := by
-    simp [__arith_reduction_pred, __eo_mk_apply, hUEoTy, hUNe,
+    simp [__arith_reduction_pred, __eo_mk_apply, hUEoTy,
       __arith_mk_zero]
   rw [hPred]
   exact typed_arith_reduction_abs u hTrans
@@ -2484,7 +2481,7 @@ private theorem facts_arith_reduction_abs_from_trans
                   (__arith_mk_zero (__eo_typeof u))))
               (Term.Apply (Term.UOp UserOp.__eoo_neg_2) u))
             u)) := by
-    simp [__arith_reduction_pred, __eo_mk_apply, hUEoTy, hUNe,
+    simp [__arith_reduction_pred, __eo_mk_apply, hUEoTy,
       __arith_mk_zero]
   rw [hPred]
   exact facts_arith_reduction_abs M u
@@ -2723,8 +2720,8 @@ private theorem facts_arith_reduction_div_total
               (__arith_reduction_pred
                 (Term.Apply (Term.Apply (Term.UOp UserOp.div_total) a) b))) =
           SmtValue.Boolean true
-      simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
-        __eo_requires, hIsZFalse, native_teq, native_ite]
+      simp [__arith_reduction_pred, __eo_mk_apply, __eo_ite,
+        hIsZFalse, native_teq, native_ite]
       change
         __smtx_model_eval M
           (SmtTerm.and
@@ -2865,8 +2862,8 @@ private theorem facts_arith_reduction_mod_total
               (__arith_reduction_pred
                 (Term.Apply (Term.Apply (Term.UOp UserOp.mod_total) a) b))) =
           SmtValue.Boolean true
-      simp [__arith_reduction_pred, __eo_mk_apply, __eo_eq, __eo_ite,
-        __eo_requires, hIsZFalse, native_teq, native_ite]
+      simp [__arith_reduction_pred, __eo_mk_apply, __eo_ite,
+        hIsZFalse, native_teq, native_ite]
       change
         __smtx_model_eval M
           (SmtTerm.and

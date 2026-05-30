@@ -85,7 +85,7 @@ by
   intro h
   cases h with
   | intro_false hty _ =>
-      simp [__smtx_typeof] at hty
+      simp at hty
 
 /-- Lemma about `eo_interprets_stuck_true_absurd`. -/
 theorem eo_interprets_stuck_true_absurd (M : SmtModel) :
@@ -95,7 +95,7 @@ by
   intro h
   cases h with
   | intro_true hty _ =>
-      simp [__smtx_typeof] at hty
+      simp at hty
 
 /-- Lemma about `eo_interprets_true_not_false`. -/
 theorem eo_interprets_true_not_false (M : SmtModel) (t : Term) :

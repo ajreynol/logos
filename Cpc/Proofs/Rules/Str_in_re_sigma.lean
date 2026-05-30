@@ -6,7 +6,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -142,7 +141,7 @@ private theorem str_in_re_sigma_rec_str_to_re_nonempty_eq_stuck
   have hStrNil : str ≠ ([] : native_String) := by
     simpa [native_string_lit_empty] using hStr
   cases s <;> unfold __str_mk_str_in_re_sigma_rec <;>
-    simp [hStrNil, native_string_lit_empty]
+    simp [hStrNil]
 
 private theorem str_in_re_sigma_rec_allchar_eq
     (s r : Term) (n : Nat) (exact : Bool) (hSNe : s ≠ Term.Stuck) :

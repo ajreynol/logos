@@ -99,8 +99,8 @@ private theorem list_concat_nonstuck_left {a b : Term} :
   intro hConcat
   intro hA
   subst a
-  simp [__eo_list_concat, __eo_is_list, __eo_is_ok, __eo_get_nil_rec, __eo_requires,
-    native_ite, native_teq, native_not, SmtEval.native_not] at hConcat
+  simp [__eo_list_concat, __eo_is_list, __eo_requires,
+    native_ite, native_teq] at hConcat
 
 private theorem model_eval_eq_is_boolean (v1 v2 : SmtValue) :
     ∃ b : Bool, __smtx_model_eval_eq v1 v2 = SmtValue.Boolean b :=
@@ -237,7 +237,7 @@ private theorem smtx_model_eval_apply_of_dt_chain
     __smtx_model_eval_apply M v x = SmtValue.Apply v x := by
   cases x <;> simp [__smtx_model_eval_apply] at hx ⊢
   all_goals
-    cases v <;> simp [__smtx_model_eval_apply, __vsm_apply_head] at hHead ⊢
+    cases v <;> simp [__vsm_apply_head] at hHead ⊢
 
 private theorem vsm_apply_arg_nth_ne_notvalue_of_non_none_aux :
     ∀ (n : Nat) (v : SmtValue),
@@ -272,7 +272,7 @@ private theorem vsm_apply_arg_nth_ne_notvalue_of_non_none_aux :
         · have hjF : j < vsm_num_apply_args f := by omega
           have hFNN : __smtx_typeof_value f ≠ SmtType.None := by
             rw [hF]
-            simp [__smtx_typeof_value]
+            simp 
           have hRec := ih f hCountF hFNN j (by simpa [hCountF] using hjF)
           have hNe : j ≠ n := by omega
           simpa [__vsm_apply_arg_nth, hCountF, SmtEval.native_nateq, hLast,
@@ -485,7 +485,7 @@ private theorem tuple_prepend_eval_eq_value_rec
       apply hPrependNN
       unfold __eo_to_smt_tuple_prepend
       rw [hTailTy]
-      simp [__eo_to_smt_tuple_prepend_of_type, tailD, fullD, native_streq,
+      simp [__eo_to_smt_tuple_prepend_of_type, fullD, native_streq,
         native_and, native_ite, hWf]
     · rfl
   have hTerm :
@@ -502,7 +502,7 @@ private theorem tuple_prepend_eval_eq_value_rec
     have hTailNN : term_has_non_none_type tail := by
       unfold term_has_non_none_type
       rw [hTailTy]
-      simp [tailD]
+      simp 
     have hPres :=
       Smtm.smt_model_eval_preserves_type_of_non_none M hM tail hTailNN
     rw [hTailTy] at hPres
@@ -662,8 +662,8 @@ private theorem eo_eq_has_bool_type_of_eq_has_bool_type
           simpa [eo_to_smt_eq_eq, typeof_eq_eq] using hEqNN
         cases ht : __smtx_typeof (__eo_to_smt t) <;>
           cases hs : __smtx_typeof (__eo_to_smt s) <;>
-            simpa [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
-              native_Teq, ht, hs] using hEqNN')
+            simp [__smtx_typeof_eq, __smtx_typeof_guard, native_ite,
+              native_Teq, ht, hs] at hEqNN' ⊢ <;> exact hEqNN')
 
 private def tuplePrependHeadTypeOfType : SmtType -> SmtType
   | SmtType.Datatype _ (SmtDatatype.sum (SmtDatatypeCons.cons T _) SmtDatatype.null) => T
@@ -955,7 +955,7 @@ private theorem tuple_prepend_eval_eq_and
     have hAsNN : term_has_non_none_type (__eo_to_smt as) := by
       unfold term_has_non_none_type
       rw [hAsTy]
-      simp [tailD]
+      simp 
     have hPres :=
       Smtm.smt_model_eval_preserves_type_of_non_none M hM
         (__eo_to_smt as) hAsNN
@@ -967,7 +967,7 @@ private theorem tuple_prepend_eval_eq_and
     have hBsNN : term_has_non_none_type (__eo_to_smt bs) := by
       unfold term_has_non_none_type
       rw [hBsTyC]
-      simp [tailD]
+      simp 
     have hPres :=
       Smtm.smt_model_eval_preserves_type_of_non_none M hM
         (__eo_to_smt bs) hBsNN
@@ -1069,7 +1069,7 @@ private theorem tuple_prepend_eval_eq_and
     by_cases hTailEq :
       __smtx_model_eval M (__eo_to_smt as) =
         __smtx_model_eval M (__eo_to_smt bs) <;>
-      simp [hFullIff, hHeadEq, hTailEq, __smtx_model_eval_and,
+      simp [hHeadEq, hTailEq, __smtx_model_eval_and,
         SmtEval.native_and]
 
 private theorem mk_dt_cons_eq_stuck_left (s : Term) :
@@ -1448,7 +1448,7 @@ private theorem dtConsSpineRoot_eval_head_of_type
       by_cases hRes : native_reserved_datatype_name s
       · exfalso
         apply hNN
-        simp [native_ite, hRes, __smtx_typeof]
+        simp [native_ite, hRes]
       · refine ⟨s, __eo_to_smt_datatype d, i, ?_⟩
         rw [eo_to_smt_dtCons_eq]
         simp [native_ite, hRes]
@@ -2073,13 +2073,11 @@ private theorem ctorSpineRoot_of_dt_cons_condition
     ∃ root, CtorSpineRoot c root := by
   intro h
   cases c <;>
-    simp [__eo_is_eq, __eo_eq, __eo_ite, __eo_is_ok, __eo_dt_selectors,
+    simp [__eo_is_eq, __eo_ite, __eo_is_ok, __eo_dt_selectors,
       __eo_dt_selectors_main, native_ite, native_teq, native_and, native_not,
       SmtEval.native_and, SmtEval.native_not] at h
   case UOp op =>
-    cases op <;> simp [__eo_is_eq, __eo_eq, __eo_ite, __eo_is_ok,
-      __eo_dt_selectors, __eo_dt_selectors_main, native_ite, native_teq,
-      native_and, native_not, SmtEval.native_and, SmtEval.native_not] at h
+    cases op <;> simp  at h
     · exact ⟨Term.UOp UserOp.tuple_unit, CtorSpineRoot.tupleUnit⟩
     · exact ⟨Term.UOp UserOp.tuple, CtorSpineRoot.tuple⟩
   case DtCons s d i =>
@@ -2203,9 +2201,9 @@ private theorem eval_and_bool_components
   case Boolean.Boolean bx byy =>
     constructor
     · refine ⟨bx, ?_⟩
-      simpa using hx
+      rfl
     · refine ⟨byy, ?_⟩
-      simpa using hy
+      rfl
 
 private theorem concat_rec_eval_eq_and
     (M : SmtModel) {c1 c2 : Term} :
@@ -2223,7 +2221,7 @@ private theorem concat_rec_eval_eq_and
       rw [and_concat_rec_true c2]
       rw [hEval2]
       cases b2 <;>
-        simp [eo_to_smt_true_eq, __smtx_model_eval.eq_1,
+        simp [__smtx_model_eval.eq_1,
           __smtx_model_eval_and, SmtEval.native_and]
   | cons x xs hXs ih =>
       have hComps := eval_and_bool_components M x xs hEval1
@@ -2294,7 +2292,7 @@ private theorem singleton_elim_eval_eq
                     (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) (Term.Boolean true))) =
                 __smtx_model_eval M (__eo_to_smt x) := by
             rw [eo_to_smt_and_eq, __smtx_model_eval.eq_8, hEvalX]
-            simp [eo_to_smt_true_eq, __smtx_model_eval.eq_1,
+            simp [__smtx_model_eval.eq_1,
               __smtx_model_eval_and, SmtEval.native_and]
           rw [hSingleton]
           exact hEvalAndTrue.symm
@@ -2576,8 +2574,7 @@ private theorem dt_cons_eq_condition_rel
   have hMk : __mk_dt_cons_eq t s ≠ Term.Stuck := by
     intro hStuck
     rw [hStuck] at hCond
-    simp [__eo_list_singleton_elim, __eo_is_list, __eo_is_ok, __eo_get_nil_rec,
-      __eo_requires, native_ite, native_teq, native_not, SmtEval.native_not] at hCond
+    simp [__eo_list_singleton_elim, __eo_is_list, __eo_requires, native_ite, native_teq] at hCond
   have hList : CnfSupport.AndList (__mk_dt_cons_eq t s) :=
     mk_dt_cons_eq_andList_of_not_stuck t s hMk
   have hMkEval := mk_dt_cons_eq_eval_eq M hM t s hBool hMk

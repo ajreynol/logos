@@ -38,7 +38,7 @@ by
                 simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
               have hFsTypeof : __eo_typeof Fs = Term.Bool := by
                 have hTyData := hResultTy
-                simp [__eo_prog_cnf_or_pos, hFsNe] at hTyData
+                simp [__eo_prog_cnf_or_pos] at hTyData
                 change __eo_typeof_or (__eo_typeof_not (__eo_typeof Fs)) (__eo_typeof Fs) =
                     Term.Bool at hTyData
                 exact CnfSupport.typeof_not_eq_bool

@@ -7,7 +7,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 attribute [local simp] native_streq native_and native_ite
@@ -45,12 +44,12 @@ private theorem assoc_nil_nth_nil_stuck (f n : Term) :
 private theorem assoc_nil_nth_index_stuck (f xs : Term) :
     __assoc_nil_nth f xs Term.Stuck = Term.Stuck := by
   cases f <;> cases xs <;>
-    simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth]
+    simp [__assoc_nil_nth]
 
 private theorem assoc_nil_nth_list_stuck (f n : Term) :
     __assoc_nil_nth f Term.Stuck n = Term.Stuck := by
   cases f <;> cases n <;>
-    simp [__assoc_nil_nth, __eo_l_1___assoc_nil_nth]
+    simp [__assoc_nil_nth]
 
 private theorem assoc_nil_nth_singleton_eq (x n ti : Term) :
     __assoc_nil_nth Term.__eo_List_cons
@@ -117,7 +116,7 @@ private theorem tuple_arg_list_eq_eoTermList_of_ne_stuck :
                 have hTailNe : __tuple_arg_list a ≠ Term.Stuck := by
                   intro hTail
                   apply hArgs
-                  simp [__tuple_arg_list, __eo_mk_apply, hTail]
+                  simp [__eo_mk_apply, hTail]
                 rcases tuple_arg_list_eq_eoTermList_of_ne_stuck a hTailNe with
                   ⟨xs, hTailTuple, hTailList⟩
                 refine ⟨x :: xs, ?_, ?_⟩
@@ -125,7 +124,7 @@ private theorem tuple_arg_list_eq_eoTermList_of_ne_stuck :
                 · have hListNe : eoTermList xs ≠ Term.Stuck :=
                     eoTermList_ne_stuck xs
                   simp [__tuple_arg_list, hTailList, __eo_mk_apply,
-                    hListNe, eoTermList]
+                    eoTermList]
           | _ =>
               simp [__tuple_arg_list] at hArgs
       | _ =>
@@ -182,8 +181,7 @@ private theorem tuple_arg_list_tupleArgs_of_tuple_value :
                   tuple_arg_list_tupleArgs_of_tuple_value tail hTailTuple hTailNe
                 have hListNe : eoTermList (tupleArgs tail) ≠ Term.Stuck :=
                   eoTermList_ne_stuck (tupleArgs tail)
-                simp [__tuple_arg_list, hTail, __eo_mk_apply, hListNe,
-                  tupleArgs, eoTermList]
+                simp [__tuple_arg_list, hTail, __eo_mk_apply, tupleArgs, eoTermList]
           | _ =>
               simp [isTupleValue] at hTuple
       | _ =>
@@ -307,7 +305,7 @@ private theorem listGetOptionValue_append_right :
       listGetOptionValue (xs ++ ys) (xs.length + j) =
         listGetOptionValue ys j
   | [], ys, j => by
-      simp [listGetOptionValue]
+      simp 
   | _x :: xs, ys, j => by
       simpa [listGetOptionValue, Nat.succ_add] using
         listGetOptionValue_append_right xs ys j
@@ -673,30 +671,30 @@ private theorem get_arg_list_rec_eoTermList_appArgs :
       | cons y ys =>
           have hRec := get_arg_list_rec_eoTermList_appArgs f (x :: y :: ys) hHead
           simpa [appArgs, eoTermList, __get_arg_list_rec, List.append_assoc] using hRec
-  | Term.UOp _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.UOp1 _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.UOp2 _ _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.UOp3 _ _ _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.__eo_List, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.__eo_List_nil, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.__eo_List_cons, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.Bool, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.Boolean _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.Numeral _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.Rational _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.String _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.Binary _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.Type, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UOp _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UOp1 _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UOp2 _ _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UOp3 _ _ _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.__eo_List, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.__eo_List_nil, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.__eo_List_cons, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Bool, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Boolean _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Numeral _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Rational _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.String _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Binary _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Type, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
   | Term.Stuck, xs, hHead => by simp [appHead] at hHead
-  | Term.FunType, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.Var _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.DatatypeType _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.DatatypeTypeRef _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.DtcAppType _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.DtCons _ _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.DtSel _ _ _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.USort _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
-  | Term.UConst _ _, xs, _ => by cases xs <;> simp [appHead, appArgs, __get_arg_list_rec, eoTermList]
+  | Term.FunType, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.Var _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DatatypeType _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DatatypeTypeRef _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DtcAppType _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DtCons _ _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.DtSel _ _ _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.USort _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
+  | Term.UConst _ _, xs, _ => by cases xs <;> simp [appArgs, __get_arg_list_rec, eoTermList]
 termination_by t xs hHead => t
 
 private theorem get_arg_list_rec_stuck_of_appHead_stuck :
@@ -780,96 +778,73 @@ private theorem dt_arg_list_eq_eoTermList_of_ne_stuck :
               simp [__dt_arg_list, __get_arg_list_rec]))
         | UOp op =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | UOp1 op i =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | UOp2 op i j =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | UOp3 op i j k =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | __eo_List =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | __eo_List_nil =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | __eo_List_cons =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | Bool =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | Boolean b =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | Numeral n =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | Rational q =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | String s =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | Binary w v =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | «Type» =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | FunType =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | Var n T =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | DatatypeType s d =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | DatatypeTypeRef s =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | DtcAppType T U =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | DtCons s d i =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | DtSel s d i j =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | USort n =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
         | UConst n T =>
             exact ⟨[a], by
-              simp [__dt_arg_list, __get_arg_list_rec, appArgs,
-                eoTermList]⟩
+              simp [__dt_arg_list, __get_arg_list_rec, eoTermList]⟩
   | Term.Stuck, hArgs => by
       exact False.elim (hArgs rfl)
   | Term.UOp op, _ => by
@@ -939,7 +914,7 @@ private theorem assoc_nil_nth_eoTermList_mem :
       case Numeral z =>
         by_cases hz : z = 0
         · subst z
-          simp [eoTermList, __assoc_nil_nth, __eo_eq, native_ite,
+          simp [__assoc_nil_nth, __eo_eq, native_ite,
             native_teq] at h
           simp [h.symm]
         · have hRec :
@@ -1232,7 +1207,7 @@ private theorem dt_get_selectors_of_app_eq_appHead :
       cases T <;> simp [__dt_get_selectors_of_app, appHead]
       all_goals first
         | exact dt_get_selectors_of_app_eq_appHead _ f
-        | cases h : appHead f <;> simp [__dt_get_selectors, h]
+        | cases h : appHead f <;> simp [__dt_get_selectors]
   | T, Term.UOp _ => by cases T <;> simp [__dt_get_selectors_of_app, __dt_get_selectors, appHead]
   | T, Term.UOp1 _ _ => by cases T <;> simp [__dt_get_selectors_of_app, __dt_get_selectors, appHead]
   | T, Term.UOp2 _ _ _ => by cases T <;> simp [__dt_get_selectors_of_app, __dt_get_selectors, appHead]
@@ -1476,7 +1451,7 @@ private theorem datatype_cons_selectors_rec_ctor_ne_stuck
             Term.Stuck :=
         datatype_cons_selectors_rec_ctor_ne_stuck s d i c rest
           (native_nat_succ ai)
-      simp [__eo_datatype_cons_selectors_rec, __eo_mk_apply, hTail]
+      simp [__eo_datatype_cons_selectors_rec, __eo_mk_apply]
 
 private theorem datatype_cons_selectors_rec_ctor_is_list_true
     (s : native_String) (d : Datatype) (i : native_Nat) :
@@ -1566,8 +1541,7 @@ private theorem datatype_cons_selectors_rec_find_rec_eq_index_of_smt_bound
           __eo_datatype_cons_selectors_rec s d i
               (Datatype.sum (DatatypeCons.cons U c) restTail) Nat.zero ai =
             Term.Apply (Term.Apply Term.__eo_List_cons current) tail := by
-        simp [current, tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply,
-          hTail]
+        simp [current, tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply]
       by_cases hEq : j = ai
       · subst j
         have hCurrentNe : current ≠ Term.Stuck := by
@@ -1588,8 +1562,7 @@ private theorem datatype_cons_selectors_rec_find_rec_eq_index_of_smt_bound
                 target (Term.Numeral ai) =
               __eo_list_find_rec tail target (Term.Numeral (Nat.succ ai)) := by
           simp [current, target, __eo_list_find_rec, __eo_eq, __eo_add,
-            eo_add_nat_one, native_ite, native_teq, native_nateq,
-            native_zplus, hEq, hCurrentTarget]
+            native_ite, native_teq, native_zplus, hEq]
         have hLeTail : Nat.succ ai ≤ j := by
           exact Nat.succ_le_of_lt
             (Nat.lt_of_le_of_ne hLe (by
@@ -1643,8 +1616,7 @@ private theorem datatype_cons_selectors_rec_find_eq_index_of_smt_bound
   have hRec0 :
       __eo_list_find_rec selectors target (Term.Numeral 0) = Term.Numeral j := by
     simpa using hRec
-  simp [selectors, target, __eo_list_find, hList, hRec,
-    hRec0, __eo_requires, native_ite, native_teq, native_not,
+  simp [selectors, target, __eo_list_find, hList, hRec0, __eo_requires, native_ite, native_teq, native_not,
     SmtEval.native_not]
 
 private theorem assoc_nil_nth_eoTermList_find_rec_nil_stuck
@@ -1737,7 +1709,7 @@ private theorem datatype_cons_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck
                 (__eo_datatype_cons_selectors_rec s d i
                   (Datatype.sum (DatatypeCons.cons U c) restTail) Nat.zero ai)
                 target (Term.Numeral ai) = Term.Stuck := by
-          simp [target, current, tail, __eo_datatype_cons_selectors_rec,
+          simp [target, tail, __eo_datatype_cons_selectors_rec,
             __eo_mk_apply, hTail, __eo_list_find_rec]
         rw [hFind, assoc_nil_nth_index_stuck] at hAssoc
         exact False.elim (hTi hAssoc.symm)
@@ -1746,7 +1718,7 @@ private theorem datatype_cons_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck
                 (Datatype.sum (DatatypeCons.cons U c) restTail) Nat.zero ai =
               Term.Apply (Term.Apply Term.__eo_List_cons current) tail := by
           simp [current, tail, __eo_datatype_cons_selectors_rec,
-            __eo_mk_apply, hTail]
+            __eo_mk_apply]
         by_cases hEq : j = ai
         · subst j
           have hCurrentNe : current ≠ Term.Stuck := by
@@ -1767,8 +1739,7 @@ private theorem datatype_cons_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck
               simp [current, target] at h
               exact hEq h.symm
             simp [current, target, __eo_list_find_rec, __eo_eq, __eo_add,
-              eo_add_nat_one, native_ite, native_teq, native_nateq,
-              native_zplus, hEq, hCurrentTarget]
+              native_ite, native_teq, native_zplus, hEq]
           have hAssocTail :
               __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
                 (__eo_list_find_rec tail target
@@ -1883,7 +1854,7 @@ private theorem datatype_cons_selectors_rec_find_rec_assoc_ne_stuck_implies_dt_s
                     (Datatype.sum (DatatypeCons.cons U c) restTail)
                     Nat.zero ai)
                   target start) = Term.Stuck := by
-            simp [current, tail, __eo_datatype_cons_selectors_rec,
+            simp [tail, __eo_datatype_cons_selectors_rec,
               __eo_mk_apply, hTail, __eo_list_find_rec,
               assoc_nil_nth_index_stuck]
           exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
@@ -1893,7 +1864,7 @@ private theorem datatype_cons_selectors_rec_find_rec_assoc_ne_stuck_implies_dt_s
                   Nat.zero ai =
                 Term.Apply (Term.Apply Term.__eo_List_cons current) tail := by
             simp [current, tail, __eo_datatype_cons_selectors_rec,
-              __eo_mk_apply, hTail]
+              __eo_mk_apply]
           have hCurrentTarget : current ≠ target := by
             intro h
             exact hTarget h.symm
@@ -1981,10 +1952,8 @@ private theorem eo_dt_selectors_find_assoc_ne_stuck_implies_dt_sel_matching_head
   | _ =>
       exfalso
       simp [__eo_dt_selectors, __eo_dt_selectors_main, __eo_list_find,
-        __eo_list_find_rec, __eo_is_list, __eo_get_nil_rec,
-        __eo_is_list_nil, __eo_is_ok, __eo_requires, native_ite,
-        native_teq, native_not, SmtEval.native_not,
-        assoc_nil_nth_index_stuck] at hAssoc
+        __eo_is_list, __eo_requires, native_ite,
+        native_teq, assoc_nil_nth_index_stuck] at hAssoc
       exact hTi hAssoc.symm
 
 private theorem dt_collapse_selector_guard_get_arg_of_appHead_dtcons
@@ -2001,7 +1970,7 @@ private theorem dt_collapse_selector_guard_get_arg_of_appHead_dtcons
         mkDtCollapseSelectorGuard (Term.DtSel s d i j) t = Term.Stuck := by
       simp [mkDtCollapseSelectorGuard, __dt_get_selectors_of_app, hType,
         __eo_list_find, __eo_is_list, __eo_requires, assoc_nil_nth_index_stuck,
-        native_ite, native_teq, SmtEval.native_not]
+        native_ite, native_teq]
     rw [hGuardStuck] at hGuard
     exact hTi hGuard.symm
   have hArgList :
@@ -2207,7 +2176,7 @@ theorem dt_eq_cons_false_of_find_neg_dt_sel_of_updater_non_none
         rw [hFind] at hFindNeg
         simp [__eo_is_neg, native_zlt, SmtEval.native_zlt] at hFindNeg
         exact False.elim
-          ((Int.not_lt_of_ge (Int.ofNat_nonneg j)) hFindNeg)
+          ((Int.not_lt_of_ge (Int.natCast_nonneg j)) hFindNeg)
       · have hTargetSelNe :
             __eo_dt_selectors (Term.DtCons s d i) ≠ Term.Stuck := by
           intro hSel
@@ -2220,15 +2189,13 @@ theorem dt_eq_cons_false_of_find_neg_dt_sel_of_updater_non_none
             simpa [__eo_dt_selectors] using hSel
           rw [hRecStuck] at hFind
           simp [__eo_list_find, __eo_requires, __eo_is_list,
-            __eo_list_find_rec, native_ite, native_teq, native_not,
-            SmtEval.native_not] at hFind
+            native_ite, native_teq] at hFind
         have hHeadSelNe :
             __eo_dt_selectors (Term.DtCons ss dd ii) ≠ Term.Stuck := by
           intro hSel
           rw [hHeadSelectors, hSel] at hFindNeg
           simp [__eo_list_find, __eo_is_neg, __eo_requires, __eo_is_list,
-            __eo_list_find_rec, native_ite, native_teq, native_not,
-            SmtEval.native_not] at hFindNeg
+            native_ite, native_teq] at hFindNeg
         exact
           dt_eq_cons_dtcons_false_of_appHead_dtcons_ne
             s d i ss dd ii t hHead hSame hTargetSelNe hHeadSelNe
@@ -2240,8 +2207,7 @@ theorem dt_eq_cons_false_of_find_neg_dt_sel_of_updater_non_none
         simp [__dt_get_selectors, __eo_dt_selectors, __eo_dt_selectors_main]
       rw [hSelectors] at hFindNeg
       simp [__eo_list_find, __eo_is_neg, __eo_requires, __eo_is_list,
-        __eo_list_find_rec, native_ite, native_teq, native_not,
-        SmtEval.native_not] at hFindNeg
+        native_ite, native_teq] at hFindNeg
 
 private theorem tuple_get_selectors_rec_stuck_of_not_tuple_or_unit
     (T n : Term) :
@@ -2309,7 +2275,7 @@ private theorem tuple_get_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck :
                   (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
                   (Term.Numeral start))
                 target (Term.Numeral start) = Term.Stuck := by
-          simp [target, current, tail, __tuple_get_selectors_rec,
+          simp [target, tail, __tuple_get_selectors_rec,
             __eo_mk_apply, hTail, __eo_list_find_rec]
         rw [hFind, assoc_nil_nth_index_stuck] at hAssoc
         exact False.elim (hTi hAssoc.symm)
@@ -2318,8 +2284,7 @@ private theorem tuple_get_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck :
                 (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
                 (Term.Numeral start) =
               Term.Apply (Term.Apply Term.__eo_List_cons current) tail := by
-          simp [current, tail, __tuple_get_selectors_rec, __eo_mk_apply,
-            hTail]
+          simp [current, tail, __tuple_get_selectors_rec, __eo_mk_apply]
         by_cases hEq : j = start
         · subst j
           have hCurrentNe : current ≠ Term.Stuck := by
@@ -2344,8 +2309,7 @@ private theorem tuple_get_selectors_rec_find_rec_eq_index_of_assoc_ne_stuck :
               intro h
               exact hEq (Int.ofNat.inj h)
             simp [current, target, __eo_list_find_rec, __eo_eq, __eo_add,
-              eo_add_nat_one, native_ite, native_teq, native_nateq,
-              native_zplus, hEq, hCurrentTarget, hIntNe]
+              native_ite, native_teq, native_zplus, hIntNe]
           have hAssocTail :
               __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
                 (__eo_list_find_rec tail target
@@ -2471,8 +2435,8 @@ private theorem tuple_get_selectors_rec_find_rec_assoc_ne_stuck_implies_tuple_se
                           (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
                           n)
                         target start) = Term.Stuck := by
-                  simp [current, tail, __tuple_get_selectors_rec,
-                    __eo_mk_apply, hN, hTail, __eo_list_find_rec,
+                  simp [tail, __tuple_get_selectors_rec,
+                    __eo_mk_apply, hTail, __eo_list_find_rec,
                     assoc_nil_nth_index_stuck]
                 exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
               · have hList :
@@ -2480,8 +2444,7 @@ private theorem tuple_get_selectors_rec_find_rec_assoc_ne_stuck_implies_tuple_se
                         (Term.Apply (Term.Apply (Term.UOp UserOp.Tuple) T1) T2)
                         n =
                       Term.Apply (Term.Apply Term.__eo_List_cons current) tail := by
-                  simp [current, tail, __tuple_get_selectors_rec, __eo_mk_apply,
-                    hN, hTail]
+                  simp [current, tail, __tuple_get_selectors_rec, __eo_mk_apply]
                 have hCurrentTarget : current ≠ target := by
                   intro h
                   exact hTarget h.symm
@@ -2568,8 +2531,7 @@ private theorem dt_get_selectors_find_assoc_ne_stuck_implies_handled
         __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
           (__eo_list_find Term.__eo_List_cons
             (__dt_get_selectors Term.Stuck c) target) = Term.Stuck := by
-      simp [__dt_get_selectors, __eo_list_find, __eo_list_find_rec,
-        __eo_is_list, __eo_requires, native_ite, native_teq,
+      simp [__dt_get_selectors, __eo_list_find, __eo_is_list, __eo_requires, native_ite, native_teq,
         assoc_nil_nth_index_stuck]
     exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
   by_cases hC : c = Term.Stuck
@@ -2578,8 +2540,7 @@ private theorem dt_get_selectors_find_assoc_ne_stuck_implies_handled
         __assoc_nil_nth Term.__eo_List_cons (eoTermList xs)
           (__eo_list_find Term.__eo_List_cons
             (__dt_get_selectors T Term.Stuck) target) = Term.Stuck := by
-      simp [__dt_get_selectors, __eo_list_find, __eo_list_find_rec,
-        __eo_is_list, __eo_requires, native_ite, native_teq,
+      simp [__dt_get_selectors, __eo_list_find, __eo_is_list, __eo_requires, native_ite, native_teq,
         assoc_nil_nth_index_stuck]
     exact False.elim (hTi (hAssoc.symm.trans hAssocStuck))
   by_cases hTuple :
@@ -2720,15 +2681,14 @@ private theorem tuple_guard_zero_eq_head
     have hGuardStuck :
         mkDtCollapseSelectorGuard target t = Term.Stuck := by
       simp [mkDtCollapseSelectorGuard, hSelectorsStuck,
-        __eo_list_find, __eo_list_find_rec, __eo_is_list, __eo_requires,
-        assoc_nil_nth_index_stuck, native_ite, native_teq, native_not,
-        SmtEval.native_not]
+        __eo_list_find, __eo_is_list, __eo_requires,
+        assoc_nil_nth_index_stuck, native_ite, native_teq]
     exact hTi (hGuard.symm.trans (by simpa [t, target] using hGuardStuck))
   have hSelectors :
       __dt_get_selectors_of_app (__eo_typeof t) t =
         Term.Apply (Term.Apply Term.__eo_List_cons target) tailSelectors := by
     rw [hSelectorsRaw]
-    simp [__eo_mk_apply, hTailSelectorsNe]
+    simp [__eo_mk_apply]
   have hFind :
       __eo_list_find Term.__eo_List_cons
           (__dt_get_selectors_of_app (__eo_typeof t) t) target =
@@ -2760,8 +2720,7 @@ private theorem tuple_guard_zero_eq_head
       __dt_arg_list t =
         Term.Apply (Term.Apply Term.__eo_List_cons x)
           (__tuple_arg_list tail) := by
-    simp [t, __dt_arg_list, __tuple_arg_list, __eo_mk_apply,
-      hTailTupleArgsNe]
+    simp [t, __dt_arg_list, __tuple_arg_list, __eo_mk_apply]
   have hAssoc :
       __assoc_nil_nth Term.__eo_List_cons
           (Term.Apply (Term.Apply Term.__eo_List_cons x)
@@ -2814,7 +2773,7 @@ private theorem tuple_guard_succ_assoc_tail
       __dt_arg_list t = eoTermList (x :: xs) := by
     have hListNe : eoTermList xs ≠ Term.Stuck := eoTermList_ne_stuck xs
     simp [t, __dt_arg_list, __tuple_arg_list, hTailTupleArgs,
-      __eo_mk_apply, hListNe, eoTermList]
+      __eo_mk_apply, eoTermList]
   have hHead : appHead t = Term.UOp UserOp.tuple := by
     simp [t, appHead]
   have hSelectors :
@@ -2871,8 +2830,7 @@ private theorem datatype_cons_selectors_rec_find_sel0_pair_eq_zero_of_assoc_ne_s
               (Term.DtSel s d i native_nat_zero) = Term.Stuck := by
         cases ci <;>
           simp [__eo_datatype_cons_selectors_rec, __eo_list_find,
-            __eo_is_list, __eo_requires, native_ite, native_teq,
-            SmtEval.native_not]
+            __eo_is_list, __eo_requires, native_ite, native_teq]
       rw [hFind, assoc_nil_nth_index_stuck] at hAssoc
       exact False.elim (hTi hAssoc.symm)
   | Datatype.sum DatatypeCons.unit restTail, Nat.zero, x, y, ti, hAssoc, hTi => by
@@ -2916,7 +2874,7 @@ private theorem datatype_cons_selectors_rec_find_sel0_pair_eq_zero_of_assoc_ne_s
                 (Term.DtSel s d i native_nat_zero) = Term.Stuck := by
           simp [tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply,
             hTail, __eo_list_find, __eo_is_list, __eo_requires,
-            native_ite, native_teq, SmtEval.native_not]
+            native_ite, native_teq]
         exact False.elim (hFindNe hFind)
       · have hRec :
             __eo_datatype_cons_selectors_rec s d i
@@ -2925,8 +2883,7 @@ private theorem datatype_cons_selectors_rec_find_sel0_pair_eq_zero_of_assoc_ne_s
               Term.Apply
                 (Term.Apply Term.__eo_List_cons
                   (Term.DtSel s d i native_nat_zero)) tail := by
-          simp [tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply,
-            hTail]
+          simp [tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply]
         have hFindNe' :
             __eo_list_find Term.__eo_List_cons
                 (Term.Apply
@@ -3007,8 +2964,7 @@ private theorem datatype_cons_selectors_rec_find_rec_self_pair_eq_index_of_assoc
                 (Datatype.sum (DatatypeCons.cons U c) restTail) Nat.zero ai =
               Term.Apply (Term.Apply Term.__eo_List_cons
                 (Term.DtSel s d i ai)) tail := by
-          simp [tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply,
-            hTail]
+          simp [tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply]
         have hSelNe : Term.DtSel s d i ai ≠ Term.Stuck := by
           intro h
           cases h
@@ -3051,8 +3007,7 @@ private theorem datatype_cons_selectors_rec_find_sel1_pair_eq_one_of_assoc_ne_st
             Term.Stuck := by
         cases ci <;>
           simp [__eo_datatype_cons_selectors_rec, __eo_list_find,
-            __eo_is_list, __eo_requires, native_ite, native_teq,
-            SmtEval.native_not]
+            __eo_is_list, __eo_requires, native_ite, native_teq]
       rw [hFind, assoc_nil_nth_index_stuck] at hAssoc
       exact False.elim (hTi hAssoc.symm)
   | Datatype.sum DatatypeCons.unit restTail, Nat.zero, x, y, ti, hAssoc,
@@ -3097,16 +3052,15 @@ private theorem datatype_cons_selectors_rec_find_sel1_pair_eq_one_of_assoc_ne_st
                   (Datatype.sum (DatatypeCons.cons U c) restTail) Nat.zero
                   native_nat_zero)
                 target = Term.Stuck := by
-          simp [target, tail, __eo_datatype_cons_selectors_rec,
+          simp [tail, __eo_datatype_cons_selectors_rec,
             __eo_mk_apply, hTail, __eo_list_find, __eo_is_list,
-            __eo_requires, native_ite, native_teq, SmtEval.native_not]
+            __eo_requires, native_ite, native_teq]
         exact False.elim (hFindNe hFind)
       · have hRec :
             __eo_datatype_cons_selectors_rec s d i
                 (Datatype.sum (DatatypeCons.cons U c) restTail) Nat.zero
                 native_nat_zero = list := by
-          simp [list, tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply,
-            hTail]
+          simp [list, tail, __eo_datatype_cons_selectors_rec, __eo_mk_apply]
         have hRecFind :
             __eo_list_find_rec list target (Term.Numeral 0) =
               __eo_list_find_rec tail target (Term.Numeral 1) := by
@@ -3417,7 +3371,7 @@ theorem tuple_prepend_zero_projection
       unfold __eo_to_smt_tuple_prepend
       rw [hTailTy]
       simp [__eo_to_smt_tuple_prepend_of_type, native_ite, hWf,
-        tailD, fullD]
+        fullD]
     · rfl
   have hTerm :
       __eo_to_smt_tuple_prepend head headTy tail =
@@ -3476,7 +3430,7 @@ private theorem tuple_prepend_succ_projection_of_get
       unfold __eo_to_smt_tuple_prepend
       rw [hTailTy]
       simp [__eo_to_smt_tuple_prepend_of_type, native_ite, hWf,
-        tailD, fullD]
+        fullD]
     · rfl
   have hTerm :
       __eo_to_smt_tuple_prepend head headTy tail =
@@ -3862,7 +3816,7 @@ private theorem tuple_prepend_datatype_eq_of_type
       unfold __eo_to_smt_tuple_prepend
       rw [hTailTy]
       simp [__eo_to_smt_tuple_prepend_of_type, native_ite, hWf,
-        tailD, fullD]
+        fullD]
     · rfl
   have hTerm :
       __eo_to_smt_tuple_prepend head headTy tail =
@@ -3995,7 +3949,7 @@ private theorem tuple_projection_eq_of_tuple_value_assoc
                         (__dt_arg_list rest) := by
                   rw [hTailEq]
                   simp [full, __dt_arg_list, __tuple_arg_list,
-                    __eo_mk_apply, hTailTupleArgsNe]
+                    __eo_mk_apply]
                 cases j with
                 | zero =>
                     have hTiEq : ti = x := by
@@ -4354,8 +4308,7 @@ private theorem tuple_guard_projection_tuple_succ_eq_true
         simp [native_zleq, SmtEval.native_zleq, hIntNonneg]
       have hToNat :
           native_int_to_nat ((j : native_Int) + 1) = Nat.succ j := by
-        simp [native_int_to_nat, SmtEval.native_int_to_nat,
-          Int.toNat_of_nonneg hIntNonneg]
+        simp [native_int_to_nat, SmtEval.native_int_to_nat]
       rw [hTy, hIdx]
       simp [fullD, __eo_to_smt_tuple_select, native_ite, hNonneg, hToNat]
     have hApplyNN :
@@ -4879,7 +4832,7 @@ private theorem datatype_cons_selectors_rec_find_rec_tuple_select_stuck_or_neg
           Nat.zero (native_nat_succ ai)
       by_cases hTail : tail = Term.Stuck
       · left
-        simp [current, tail, __eo_datatype_cons_selectors_rec,
+        simp [tail, __eo_datatype_cons_selectors_rec,
           __eo_mk_apply, hTail, __eo_list_find_rec]
       · have hRec :=
           datatype_cons_selectors_rec_find_rec_tuple_select_stuck_or_neg
@@ -4907,7 +4860,7 @@ private theorem datatype_cons_selectors_rec_find_rec_tuple_select_stuck_or_neg
                 (Term.Apply (Term.Apply Term.__eo_List_cons current) tail)
                 (Term.UOp1 UserOp1.tuple_select idx) start by
               simp [current, tail, __eo_datatype_cons_selectors_rec,
-                __eo_mk_apply, hTail]]
+                __eo_mk_apply]]
           rw [hStep]
           exact hRec
         · right
@@ -4921,7 +4874,7 @@ private theorem datatype_cons_selectors_rec_find_rec_tuple_select_stuck_or_neg
                 (Term.Apply (Term.Apply Term.__eo_List_cons current) tail)
                 (Term.UOp1 UserOp1.tuple_select idx) start by
               simp [current, tail, __eo_datatype_cons_selectors_rec,
-                __eo_mk_apply, hTail]]
+                __eo_mk_apply]]
           rw [hStep]
           exact hRec
   | Datatype.sum c restTail, Nat.succ ci, ai, start => by
@@ -4945,7 +4898,7 @@ private theorem eo_list_find_dt_selectors_tuple_select_stuck_or_neg
           s d i idx d i native_nat_zero (Term.Numeral 0)
       rcases hRec with hRec | hRec
       · left
-        simp [__eo_dt_selectors, __eo_list_find, selectors, hRec,
+        simp [__eo_dt_selectors, __eo_list_find, hRec,
           __eo_requires, native_ite, native_teq]
       · by_cases hList :
             __eo_is_list Term.__eo_List_cons selectors = Term.Boolean true
@@ -4954,8 +4907,7 @@ private theorem eo_list_find_dt_selectors_tuple_select_stuck_or_neg
             hList, __eo_requires, native_ite, native_teq, native_not,
             SmtEval.native_not]
         · left
-          simp [__eo_dt_selectors, __eo_list_find, selectors, hRec,
-            hList, __eo_requires, native_ite, native_teq]
+          simp [__eo_dt_selectors, __eo_list_find, selectors, hList, __eo_requires, native_ite, native_teq]
   | _ =>
       simp [__eo_dt_selectors, __eo_dt_selectors_main, __eo_list_find,
         __eo_is_list, __eo_requires, native_ite, native_teq]
@@ -5230,11 +5182,7 @@ private theorem tuple_select_guard_stuck_of_uop_head_unit_tuple_type
       __eo_list_find_rec, __eo_is_list, __eo_get_nil_rec,
       __eo_is_list_nil, __eo_is_ok, __eo_requires, native_ite,
       native_teq, native_not, SmtEval.native_not,
-      assoc_nil_nth_nil_stuck,
-      assoc_nil_nth_index_stuck, assoc_nil_nth_list_stuck,
-      assoc_nil_nth_pair_neg_one_stuck,
-      assoc_nil_nth_raw_pair_neg_one_stuck,
-      assoc_nil_nth_eoTermList_negSucc_stuck, eoTermList]
+      assoc_nil_nth_index_stuck, assoc_nil_nth_raw_pair_neg_one_stuck]
 
 private theorem tuple_select_guard_stuck_of_uop_head_tuple_type
     (op : UserOp) (T1 T2 idx x tail : Term) :
@@ -5248,14 +5196,8 @@ private theorem tuple_select_guard_stuck_of_uop_head_tuple_type
     simp [mkDtCollapseSelectorGuard, hType, hOp, __dt_arg_list,
       __get_arg_list_rec, __dt_get_selectors_of_app, __dt_get_selectors,
       __eo_dt_selectors, __eo_dt_selectors_main, __eo_list_find,
-      __eo_list_find_rec, __eo_is_list, __eo_get_nil_rec,
-      __eo_is_list_nil, __eo_is_ok, __eo_requires, native_ite,
-      native_teq, native_not, SmtEval.native_not,
-      assoc_nil_nth_nil_stuck,
-      assoc_nil_nth_index_stuck, assoc_nil_nth_list_stuck,
-      assoc_nil_nth_pair_neg_one_stuck,
-      assoc_nil_nth_raw_pair_neg_one_stuck,
-      assoc_nil_nth_eoTermList_negSucc_stuck, eoTermList] at hOp ⊢
+      __eo_is_list, __eo_requires, native_ite,
+      native_teq, assoc_nil_nth_index_stuck] at hOp ⊢
 
 private theorem tuple_select_guard_stuck_of_uop_head_non_tuple_from_smt_tuple_type
     (op : UserOp) (idx x tail : Term) (d : SmtDatatype) :

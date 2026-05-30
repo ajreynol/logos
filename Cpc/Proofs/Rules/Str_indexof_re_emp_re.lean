@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private theorem native_string_lit_empty :
@@ -113,20 +112,20 @@ private theorem eo_typeof_str_indexof_re_args_of_ne_stuck
     T = Term.Apply Term.Seq Term.Char ∧ R = Term.RegLan ∧ N = Term.Int := by
   cases T <;> simp [__eo_typeof_str_indexof_re] at h ⊢
   case Apply f x =>
-    cases f <;> simp [__eo_typeof_str_indexof_re] at h ⊢
+    cases f <;> simp at h ⊢
     case UOp op =>
-      cases op <;> simp [__eo_typeof_str_indexof_re] at h ⊢
+      cases op <;> simp at h ⊢
       case Seq =>
-        cases x <;> simp [__eo_typeof_str_indexof_re] at h ⊢
+        cases x <;> simp at h ⊢
         case UOp opx =>
-          cases opx <;> simp [__eo_typeof_str_indexof_re] at h ⊢
-          cases R <;> simp [__eo_typeof_str_indexof_re] at h ⊢
+          cases opx <;> simp at h ⊢
+          cases R <;> simp at h ⊢
           case UOp opr =>
-            cases opr <;> simp [__eo_typeof_str_indexof_re] at h ⊢
+            cases opr <;> simp at h ⊢
             case RegLan =>
-              cases N <;> simp [__eo_typeof_str_indexof_re] at h ⊢
+              cases N <;> simp at h ⊢
               case UOp opn =>
-                cases opn <;> simp [__eo_typeof_str_indexof_re] at h ⊢
+                cases opn <;> simp at h ⊢
 
 private theorem eo_typeof_str_in_re_args_of_ne_stuck
     (T R : Term)
@@ -134,16 +133,16 @@ private theorem eo_typeof_str_in_re_args_of_ne_stuck
     T = Term.Apply Term.Seq Term.Char ∧ R = Term.RegLan := by
   cases T <;> simp [__eo_typeof_str_in_re] at h ⊢
   case Apply f x =>
-    cases f <;> simp [__eo_typeof_str_in_re] at h ⊢
+    cases f <;> simp at h ⊢
     case UOp op =>
-      cases op <;> simp [__eo_typeof_str_in_re] at h ⊢
+      cases op <;> simp at h ⊢
       case Seq =>
-        cases x <;> simp [__eo_typeof_str_in_re] at h ⊢
+        cases x <;> simp at h ⊢
         case UOp opx =>
-          cases opx <;> simp [__eo_typeof_str_in_re] at h ⊢
-          cases R <;> simp [__eo_typeof_str_in_re] at h ⊢
+          cases opx <;> simp at h ⊢
+          cases R <;> simp at h ⊢
           case UOp opr =>
-            cases opr <;> simp [__eo_typeof_str_in_re] at h ⊢
+            cases opr <;> simp at h ⊢
 
 private theorem smtx_typeof_of_eo_seq_char
     (a : Term)
@@ -285,7 +284,7 @@ private theorem eval_len_geq_n_eq_true_of_premise
       SmtValue.Boolean true at hEval
   simp [__smtx_model_eval, htEval, hnEval, __smtx_model_eval_str_len,
     __smtx_model_eval_geq, __smtx_model_eval_leq, __smtx_model_eval_eq,
-    native_seq_len, native_zleq, native_veq, native_unpack_string] at hEval
+    native_seq_len, native_zleq, native_veq] at hEval
   simpa [native_unpack_string] using hEval
 
 private theorem eval_geq_neg_one_eq_true_of_premise

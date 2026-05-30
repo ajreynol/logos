@@ -7,7 +7,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option linter.unnecessarySimpa false
 set_option maxHeartbeats 10000000
 
@@ -64,18 +63,16 @@ private theorem eo_and_eq_true_cases (x y : Term) :
   cases x <;> cases y <;> simp [__eo_and, __eo_requires, native_ite,
     native_teq, native_and, native_not, SmtEval.native_not] at h
   case Boolean.Boolean b1 b2 =>
-    cases b1 <;> cases b2 <;> simp [native_and] at h ⊢
+    cases b1 <;> cases b2 <;> simp at h ⊢
   case Binary.Binary w1 n1 w2 n2 =>
     by_cases hW : w1 = w2
     · subst w2
-      simp [__eo_and, __eo_requires, native_ite, native_teq, native_and,
-        native_not, SmtEval.native_not] at h
+      simp at h
     · have hNumNe : Term.Numeral w1 ≠ Term.Numeral w2 := by
         intro hEq
         cases hEq
         exact hW rfl
-      simp [__eo_and, __eo_requires, native_ite, native_teq, native_and,
-        native_not, SmtEval.native_not, hW] at h
+      simp [hW] at h
 
 private theorem eo_eq_eq_true_of_eq_local {x y : Term} :
     x = y ->
@@ -84,7 +81,7 @@ private theorem eo_eq_eq_true_of_eq_local {x y : Term} :
     __eo_eq x y = Term.Boolean true := by
   intro hEq hX _hY
   subst y
-  simp [__eo_eq, hX, native_teq]
+  simp [__eo_eq, native_teq]
 
 private theorem eo_eq_eq_false_of_ne_local {x y : Term} :
     x ≠ y ->
@@ -95,7 +92,7 @@ private theorem eo_eq_eq_false_of_ne_local {x y : Term} :
   have hNeYX : y ≠ x := by
     intro h
     exact hNe h.symm
-  simp [__eo_eq, hX, hY, native_teq, hNeYX]
+  simp [__eo_eq, native_teq, hNeYX]
 
 private def quant_var_lhs (x F : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.forall) x) F
@@ -136,9 +133,9 @@ private theorem native_model_push_comm
       by_cases h1 : k = native_model_key s1 T1
       · by_cases h2 : k = native_model_key s2 T2
         · exact False.elim (hNe (h1.symm.trans h2))
-        · simp [h1, h2, hNe]
+        · simp [h1, hNe]
       · by_cases h2 : k = native_model_key s2 T2
-        · simp [h1, h2, hNe, hNe.symm]
+        · simp [h2, hNe.symm]
         · simp [h1, h2]
 
 private theorem smtExistsOfBinders_cons_congr
@@ -519,10 +516,10 @@ private theorem eo_to_smt_exists_eoListOfTerms_binders
         exact hxs t (by simp [ht])
       cases x <;> simp [IsQuantVarTerm] at hx
       case Var name T =>
-        cases name <;> simp [IsQuantVarTerm] at hx
+        cases name <;> simp at hx
         case String s =>
           simp [eoListOfTerms, smtExistsOfBinders, quantTermBinder,
-            __eo_to_smt_exists, ih htail]
+            ih htail]
 
 private theorem term_lists_perm_of_list_meq
     {xs ys : List Term}
@@ -616,7 +613,7 @@ private theorem smtx_model_eval_forall_eoList_perm
       (SmtTerm.not (__eo_to_smt F)) hxs]
   rw [eo_to_smt_exists_eoListOfTerms_binders ys
       (SmtTerm.not (__eo_to_smt F)) hys]
-  simp [quant_var_lhs, quant_var_rhs, __smtx_model_eval, hExistsEval]
+  simp [__smtx_model_eval, hExistsEval]
 
 private theorem smtx_model_eval_quant_var_formula
     (M : SmtModel) (x y F : Term) :

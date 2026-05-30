@@ -5,7 +5,6 @@ open SmtEval
 open Smtm
 
 set_option linter.unusedVariables false
-set_option linter.unusedSimpArgs false
 set_option maxHeartbeats 10000000
 
 private def typedListElems : Term -> List Term
@@ -468,7 +467,7 @@ private theorem typed_list_erase_all_rec_eq_self_of_not_mem
       | UOp op =>
           cases op with
           | _at__at_TypedList_nil =>
-              simp [typedListElems, __eo_list_erase_all_rec]
+              simp [__eo_list_erase_all_rec]
           | _ =>
               simp [__eo_to_smt_typed_list_elem_type] at hNN
       | Apply g y =>
@@ -498,9 +497,9 @@ private theorem typed_list_erase_all_rec_eq_self_of_not_mem
                   have hTail :=
                     typed_list_erase_all_rec_eq_self_of_not_mem x hXNe
                       a hTailNN hTailNotMem
-                  simp [typedListElems, __eo_list_erase_all_rec, __eo_eq,
-                    __eo_not, __eo_prepend_if, __eo_mk_apply, hXNe, hYNe,
-                    hxy, hyx, hTail, hTailNe, native_teq, native_ite,
+                  simp [__eo_list_erase_all_rec, __eo_eq,
+                    __eo_not, __eo_prepend_if,
+                    hyx, hTail, native_teq,
                     native_not, SmtEval.native_not]
               | _ =>
                   simp [__eo_to_smt_typed_list_elem_type] at hNN
@@ -543,7 +542,7 @@ private theorem typed_list_setof_rec_eq_self_of_nodup :
       | UOp op =>
           cases op with
           | _at__at_TypedList_nil =>
-              simp [typedListElems, __eo_list_setof_rec]
+              simp [__eo_list_setof_rec]
           | _ =>
               simp [__eo_to_smt_typed_list_elem_type] at hNN
       | Apply g x =>
@@ -570,8 +569,8 @@ private theorem typed_list_setof_rec_eq_self_of_nodup :
                     rw [hSetTail]
                     exact typed_list_erase_all_rec_eq_self_of_not_mem x hXNe
                       a hTailNN hNotMem
-                  simp [typedListElems, __eo_list_setof_rec, __eo_mk_apply,
-                    hErase, hTailNe]
+                  simp [__eo_list_setof_rec, __eo_mk_apply,
+                    hErase]
               | _ =>
                   simp [__eo_to_smt_typed_list_elem_type] at hNN
           | _ =>
@@ -798,7 +797,7 @@ private theorem distinct_false_sound
           __eo_eq (__eo_list_setof (Term.UOp UserOp._at__at_TypedList_cons) xs) xs =
             Term.Boolean true := by
         rw [hSetEq]
-        simp [__eo_eq, hXsNe, native_teq]
+        simp [__eo_eq, native_teq]
       rw [hGuard] at hGuardTrue
       cases hGuardTrue
 

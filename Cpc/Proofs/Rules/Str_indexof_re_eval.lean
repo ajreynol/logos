@@ -1,6 +1,6 @@
 import Cpc.Proofs.RuleSupport.Support
 import Cpc.Proofs.RuleSupport.RegexSupport
-import Cpc.Proofs.Rules.Str_in_re_eval
+import Cpc.Proofs.RuleSupport.StrInReEvalSupport
 
 open Eo
 open SmtEval
@@ -13,69 +13,11 @@ set_option maxHeartbeats 10000000
 
 namespace RuleProofs
 
-private theorem eo_requires_eq_of_ne_stuck (x y z : Term) :
-    __eo_requires x y z ≠ Term.Stuck ->
-    x = y := by
-  intro h
-  simp [__eo_requires, native_ite, native_teq] at h
-  exact h.1
-
-private theorem eo_requires_result_eq_of_ne_stuck (x y z : Term) :
-    __eo_requires x y z ≠ Term.Stuck ->
-    __eo_requires x y z = z := by
-  intro h
-  have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
-  rcases h' with ⟨hxy, hxOk, _hz⟩
-  subst y
-  simp [__eo_requires, native_ite, native_teq, hxOk]
-
-private theorem eo_requires_left_ne_stuck_of_ne_stuck (x y z : Term) :
-    __eo_requires x y z ≠ Term.Stuck ->
-    x ≠ Term.Stuck := by
-  intro h
-  have h' := h
-  simp [__eo_requires, native_ite, native_teq] at h'
-  rcases h' with ⟨_hxy, hxOk, _hz⟩
-  intro hx
-  subst x
-  simp [hx, native_not] at hxOk
-
 private theorem eo_ite_cond_eq_true_or_false_of_ne_stuck (c t e : Term) :
     __eo_ite c t e ≠ Term.Stuck ->
     c = Term.Boolean true ∨ c = Term.Boolean false := by
   intro h
   cases c <;> simp [__eo_ite, native_ite, native_teq] at h ⊢
-
-private theorem native_unpack_seq_pack_seq (T : SmtType) :
-    ∀ xs : List SmtValue, native_unpack_seq (native_pack_seq T xs) = xs
-  | [] => rfl
-  | x :: xs => by
-      simp [native_pack_seq, native_unpack_seq, native_unpack_seq_pack_seq T xs]
-
-private theorem map_native_ssm_char_of_value_char :
-    ∀ s : native_String,
-      List.map (native_ssm_char_of_value ∘ SmtValue.Char) s = s
-  | [] => rfl
-  | c :: cs => by
-      simpa [Function.comp_def, native_ssm_char_of_value] using
-        map_native_ssm_char_of_value_char cs
-
-private theorem native_unpack_string_pack_string (s : native_String) :
-    native_unpack_string (native_pack_string s) = s := by
-  simp [native_unpack_string, native_pack_string, native_unpack_seq_pack_seq,
-    map_native_ssm_char_of_value_char]
-
-private theorem native_string_valid_of_smtx_typeof_eo_string
-    (s : native_String)
-    (hTy : __smtx_typeof (__eo_to_smt (Term.String s)) =
-      SmtType.Seq SmtType.Char) :
-    native_string_valid s = true := by
-  change __smtx_typeof (SmtTerm.String s) = SmtType.Seq SmtType.Char at hTy
-  unfold __smtx_typeof at hTy
-  cases hValid : native_string_valid s
-  · simp [native_ite, hValid] at hTy
-  · rfl
 
 private def str_indexof_re_eval_match_regex (r : Term) : Term :=
   Term.Apply (Term.Apply (Term.UOp UserOp.re_concat) r)
@@ -116,40 +58,6 @@ private def str_indexof_re_eval_side (str : native_String) (r : Term)
       (__eo_is_neg (Term.Numeral ni)))
     (Term.Numeral (-1 : native_Int))
     (str_indexof_re_eval_search_side str r ni)
-
-private theorem eq_operands_same_smt_type_of_eq_has_smt_translation
-    (x y : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) ->
-    __smtx_typeof (__eo_to_smt x) = __smtx_typeof (__eo_to_smt y) ∧
-      __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
-  intro hTrans
-  have hEqNN : term_has_non_none_type (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) := by
-    unfold term_has_non_none_type
-    change __smtx_typeof
-        (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y)) ≠
-      SmtType.None
-    exact hTrans
-  have hEqTy :
-      __smtx_typeof (SmtTerm.eq (__eo_to_smt x) (__eo_to_smt y)) = SmtType.Bool :=
-    Smtm.eq_term_typeof_of_non_none hEqNN
-  rw [Smtm.typeof_eq_eq] at hEqTy
-  exact RuleProofs.smtx_typeof_eq_bool_iff
-    (__smtx_typeof (__eo_to_smt x))
-    (__smtx_typeof (__eo_to_smt y)) |>.mp hEqTy
-
-private theorem eq_operands_have_smt_translation_of_eq_has_smt_translation
-    (x y : Term) :
-    RuleProofs.eo_has_smt_translation
-      (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y) ->
-    RuleProofs.eo_has_smt_translation x ∧
-      RuleProofs.eo_has_smt_translation y := by
-  intro hTrans
-  rcases eq_operands_same_smt_type_of_eq_has_smt_translation x y hTrans with
-    ⟨hTy, hNonNone⟩
-  constructor
-  · simpa [RuleProofs.eo_has_smt_translation] using hNonNone
-  · simpa [RuleProofs.eo_has_smt_translation, hTy] using hNonNone
 
 private theorem str_indexof_re_args_smt_types_of_has_translation
     (s r n : Term) :
@@ -463,16 +371,37 @@ private theorem str_indexof_re_eval_idx_term_eq
           (Term.Apply (Term.UOp UserOp._at__at_pair)
             (Term.Numeral (-1 : native_Int)))
           (Term.Numeral (-1 : native_Int))
+      have hRNe : r ≠ Term.Stuck := by
+        intro hR
+        subst r
+        change __smtx_model_eval M SmtTerm.None = SmtValue.RegLan rv at hREval
+        simp [__smtx_model_eval] at hREval
+      have hRsNe : str_indexof_re_eval_match_regex r ≠ Term.Stuck := by
+        intro hRs
+        have hMatchTy :=
+          str_indexof_re_eval_match_regex_typeof r hRTy
+        rw [hRs] at hMatchTy
+        change __smtx_typeof SmtTerm.None = SmtType.RegLan at hMatchTy
+        simp [__smtx_typeof] at hMatchTy
+      have hStep :
+          __str_first_match_rec (Term.String []) r
+              (str_indexof_re_eval_match_regex r) (Term.Numeral 0) =
+            __eo_ite test thenTerm elseTerm := by
+        simpa [test, thenTerm, elseTerm, str_indexof_re_eval_match_test] using
+          Eo.__str_first_match_rec.eq_5 r
+            (str_indexof_re_eval_match_regex r) (Term.Numeral 0)
+            hRNe hRsNe (by simp)
       have hFirstNe :
           __eo_ite test thenTerm elseTerm ≠ Term.Stuck := by
         intro hFirst
         have hIdxStuck :
             str_indexof_re_eval_idx_term (Term.String []) r = Term.Stuck := by
-          simp [str_indexof_re_eval_idx_term, str_indexof_re_eval_first_match_term,
-            str_indexof_re_eval_match_test, test, thenTerm, elseTerm,
-            __str_first_match_rec, __str_flatten, __str_nary_intro,
-            __eo_requires, __eo_is_str, __eo_is_str_internal, native_ite,
-            native_teq, native_not, SmtEval.native_and, hFirst]
+          change __pair_first
+              (__str_first_match_rec (Term.String []) r
+                (str_indexof_re_eval_match_regex r) (Term.Numeral 0)) =
+            Term.Stuck
+          rw [hStep, hFirst]
+          rfl
         exact hIdxNe hIdxStuck
       have hBool := eo_ite_cond_eq_true_or_false_of_ne_stuck test thenTerm
         elseTerm hFirstNe
@@ -485,11 +414,16 @@ private theorem str_indexof_re_eval_idx_term_eq
               native_re_find_idx_aux rv [] 0 = none := by
             rw [native_re_find_idx_aux.eq_def]
             simp [hPref]
-          simp [str_indexof_re_eval_idx_term, str_indexof_re_eval_first_match_term,
-            str_indexof_re_eval_match_test, hTestEq, hPref, hFind,
-            __str_first_match_rec, __str_flatten, __str_nary_intro,
-            __eo_requires, __eo_is_str, __eo_is_str_internal, __eo_ite,
-            native_ite, native_teq, native_not, SmtEval.native_and]
+          have hTestFalse : test = Term.Boolean false := by
+            simpa [test, hPref] using hTestEq
+          rw [hFind]
+          change __pair_first
+              (__str_first_match_rec (Term.String []) r
+                (str_indexof_re_eval_match_regex r) (Term.Numeral 0)) =
+            Term.Numeral (-1)
+          rw [hStep]
+          simp [hTestFalse, elseTerm, __eo_ite, native_ite, native_teq,
+            __pair_first]
       | some len =>
           have hFind :
               native_re_find_idx_aux rv [] 0 = some (0, len) := by
@@ -499,20 +433,26 @@ private theorem str_indexof_re_eval_idx_term_eq
             intro hSecond
             have hIdxStuck :
                 str_indexof_re_eval_idx_term (Term.String []) r = Term.Stuck := by
-              simp [str_indexof_re_eval_idx_term,
-                str_indexof_re_eval_first_match_term,
-                str_indexof_re_eval_match_test, hTestEq, hPref, second,
-                thenTerm, elseTerm, hSecond, __str_first_match_rec,
-                __str_flatten, __str_nary_intro, __eo_requires, __eo_is_str,
-                __eo_is_str_internal, __eo_ite, __eo_mk_apply, native_ite,
-                native_teq, native_not, SmtEval.native_and]
+              have hTestTrue : test = Term.Boolean true := by
+                simpa [test, hPref] using hTestEq
+              change __pair_first
+                  (__str_first_match_rec (Term.String []) r
+                    (str_indexof_re_eval_match_regex r) (Term.Numeral 0)) =
+                Term.Stuck
+              rw [hStep]
+              simp [hTestTrue, second, thenTerm, hSecond, __eo_ite,
+                native_ite, native_teq, __eo_mk_apply, __pair_first]
             exact hIdxNe hIdxStuck
-          simp [str_indexof_re_eval_idx_term, str_indexof_re_eval_first_match_term,
-            str_indexof_re_eval_match_test, hTestEq, hPref, hFind, second,
-            thenTerm, elseTerm, hSecondNe, __str_first_match_rec,
-            __str_flatten, __str_nary_intro, __eo_requires, __eo_is_str,
-            __eo_is_str_internal, __eo_ite, __eo_mk_apply, native_ite,
-            native_teq, native_not, SmtEval.native_and]
+          have hTestTrue : test = Term.Boolean true := by
+            simpa [test, hPref] using hTestEq
+          rw [hFind]
+          change __pair_first
+              (__str_first_match_rec (Term.String []) r
+                (str_indexof_re_eval_match_regex r) (Term.Numeral 0)) =
+            Term.Numeral 0
+          rw [hStep]
+          simp [hTestTrue, second, thenTerm, hSecondNe, __eo_ite,
+            native_ite, native_teq, __eo_mk_apply, __pair_first]
   | cons c cs =>
       sorry
 
