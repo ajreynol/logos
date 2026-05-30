@@ -790,7 +790,7 @@ private theorem native_str_substr_tail_cons
                 (((↑(List.length ds) : Int) + 1 + 1) - 1) =
               (↑(ds.length + 1) : Int) := by
           omega
-        simp 
+        simp
       simp [native_str_substr, native_str_len]
       omega
 
