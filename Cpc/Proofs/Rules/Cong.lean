@@ -27,9 +27,15 @@ by
   | cons a1 args =>
       cases args with
       | nil =>
+          have hCmdTransPair :
+              cArgListTranslationOk (CArgList.cons a1 CArgList.nil) ∧
+                congArgQuantifierBindersWf (CArgList.cons a1 CArgList.nil) := by
+            simpa [cmdTranslationOk] using hCmdTrans
           have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
-            simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+            simpa [cArgListTranslationOk] using hCmdTransPair.1
           have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
+          have hAQuantBindersWf : TermQuantifierBindersWf a1 := by
+            simpa [congArgQuantifierBindersWf] using hCmdTransPair.2
           have hProgCong :
               __eo_prog_cong a1
                   (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) ≠
@@ -82,6 +88,7 @@ by
             exact CongSupport.facts___eo_prog_cong_impl N hN a1
               (premiseTermList s premises)
               hATrans
+              hAQuantBindersWf
               hEvidence
               hProgCongListBool
               hProgCongListNN

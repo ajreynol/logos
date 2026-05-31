@@ -16,6 +16,27 @@ inductive ValidAssumptionList : Term -> Prop
   | step (A rest : Term) : ValidAssumptionList rest ->
       ValidAssumptionList (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
+/-- Assumptions in an input formula remain true under variable-model changes. -/
+inductive StableAssumptionList (M : SmtModel) : Term -> Prop
+  | base : StableAssumptionList M (Term.Boolean true)
+  | step (A rest : Term) :
+      StableInAnyVarModel M A ->
+      StableAssumptionList M rest ->
+      StableAssumptionList M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
+
+/-- The model-dependent stability side condition for commands that introduce assumptions. -/
+def cmdAssumptionStabilityOk (M : SmtModel) : CCmd -> Prop
+  | CCmd.assume_push A => StableInAnyVarModel M A
+  | _ => True
+
+/-- Every command in a checker command list satisfies `cmdAssumptionStabilityOk`. -/
+inductive CmdListAssumptionStabilityOk (M : SmtModel) : CCmdList -> Prop
+  | nil : CmdListAssumptionStabilityOk M CCmdList.nil
+  | cons (c : CCmd) (cs : CCmdList) :
+      cmdAssumptionStabilityOk M c ->
+      CmdListAssumptionStabilityOk M cs ->
+      CmdListAssumptionStabilityOk M (CCmdList.cons c cs)
+
 /-- Predicate asserting that a checker state is structurally well-formed and not `Stuck`. -/
 def stateOk : CState -> Prop
   | CState.nil => True
@@ -725,6 +746,30 @@ theorem checkerLocalTruthInvariant_stuck (M : SmtModel) :
 by
   trivial
 
+/- Variable-model stability for assumptions.
+
+   The local truth invariant already records stability for derived facts.
+   Assumptions and local pushes are base facts, so the checker needs one
+   extra invariant for precisely those entries if they may be used as
+   binder-congruence premises.
+-/
+/-- Assumptions and pushed assumptions remain true under variable-model changes. -/
+def checkerAssumptionStabilityInvariant (M : SmtModel) : CState -> Prop
+  | CState.nil => True
+  | CState.cons (CStateObj.assume A) s =>
+      StableInAnyVarModel M A ∧ checkerAssumptionStabilityInvariant M s
+  | CState.cons (CStateObj.assume_push A) s =>
+      StableInAnyVarModel M A ∧ checkerAssumptionStabilityInvariant M s
+  | CState.cons (CStateObj.proven _) s =>
+      checkerAssumptionStabilityInvariant M s
+  | CState.Stuck => True
+
+/-- Describes `checkerAssumptionStabilityInvariant` on the stuck state. -/
+theorem checkerAssumptionStabilityInvariant_stuck (M : SmtModel) :
+  checkerAssumptionStabilityInvariant M CState.Stuck :=
+by
+  trivial
+
 /-- Shows how `checkerTypeInvariant` behaves on suffix tails. -/
 theorem checkerTypeInvariant_tail :
   forall {so : CStateObj} {s : CState},
@@ -938,6 +983,23 @@ by
       intro hsRoot
       exact ih (checkerTranslationInvariant_tail hsRoot)
 
+/-- Derives `checkerAssumptionStabilityInvariant` from `stateStepPopSuffix`. -/
+theorem checkerAssumptionStabilityInvariant_of_stateStepPopSuffix (M : SmtModel) :
+  forall {cur root : CState},
+    stateStepPopSuffix cur root ->
+    checkerAssumptionStabilityInvariant M root ->
+    checkerAssumptionStabilityInvariant M cur
+:=
+by
+  intro cur root hSuffix
+  induction hSuffix with
+  | refl _ =>
+      intro hsRoot
+      exact hsRoot
+  | proven P hSuffix ih =>
+      intro hsRoot
+      exact ih (by simpa [checkerAssumptionStabilityInvariant] using hsRoot)
+
 /-- Shows how `checkerLocalTruthInvariant` behaves on suffix tails. -/
 theorem checkerLocalTruthInvariant_tail (M : SmtModel) :
   forall {so : CStateObj} {s : CState},
@@ -953,6 +1015,22 @@ by
       simpa [checkerLocalTruthInvariant] using hs
   | proven P =>
       exact hs.2
+
+/-- Shows how `checkerAssumptionStabilityInvariant` behaves on suffix tails. -/
+theorem checkerAssumptionStabilityInvariant_tail (M : SmtModel) :
+  forall {so : CStateObj} {s : CState},
+    checkerAssumptionStabilityInvariant M (CState.cons so s) ->
+    checkerAssumptionStabilityInvariant M s
+:=
+by
+  intro so s hs
+  cases so with
+  | assume A =>
+      exact hs.2
+  | assume_push A =>
+      exact hs.2
+  | proven P =>
+      simpa [checkerAssumptionStabilityInvariant] using hs
 
 /-- Lemma about `checkerLocalTruthInvariant_head_proven`. -/
 theorem checkerLocalTruthInvariant_head_proven
@@ -1081,48 +1159,50 @@ by
 theorem checkerLocalTruthInvariant_at_any_var_model (M : SmtModel) :
   forall {s : CState},
     checkerLocalTruthInvariant M s ->
+    checkerAssumptionStabilityInvariant M s ->
     forall (N : SmtModel),
+      model_total_typed N ->
       model_agrees_on_globals M N ->
       forall n : native_Int,
         eo_interprets N (__eo_state_proven_nth s n) true
 :=
 by
-  intro s hs
+  intro s hs hStable
   induction s with
   | nil =>
-      intro N hAgree n
+      intro N hN hAgree n
       simpa [__eo_state_proven_nth] using eo_interprets_true N
   | Stuck =>
-      intro N hAgree n
+      intro N hN hAgree n
       simpa [__eo_state_proven_nth] using eo_interprets_true N
   | cons so s ih =>
-      intro N hAgree n
+      intro N hN hAgree n
       by_cases hZero : n = 0
       · subst hZero
         cases so with
         | assume A =>
-            -- TODO: this is the genuine checker-side freshness obligation.
-            -- Assumptions are contextual, so they cannot be lifted
-            -- unconditionally without an additional stable-premise invariant.
-            sorry
+            exact hStable.1 N hN hAgree
         | assume_push A =>
-            -- TODO: same obstruction as for ordinary assumptions.
-            sorry
+            exact hStable.1 N hN hAgree
         | proven P =>
             simpa [__eo_state_proven_nth] using
-              hs.1.true_in_any_var_model N hAgree
+              hs.1.true_in_any_var_model N hN hAgree
       · cases so with
         | assume A =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih (by simpa [checkerLocalTruthInvariant] using hs) N hAgree
+              ih (by simpa [checkerLocalTruthInvariant] using hs)
+                hStable.2 N hN hAgree
                 (native_zplus n (native_zneg 1))
         | assume_push A =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih (by simpa [checkerLocalTruthInvariant] using hs) N hAgree
+              ih (by simpa [checkerLocalTruthInvariant] using hs)
+                hStable.2 N hN hAgree
                 (native_zplus n (native_zneg 1))
         | proven P =>
             simpa [__eo_state_proven_nth, hZero] using
-              ih hs.2 N hAgree (native_zplus n (native_zneg 1))
+              ih hs.2
+                (by simpa [checkerAssumptionStabilityInvariant] using hStable)
+                N hN hAgree (native_zplus n (native_zneg 1))
 
 /-- Shows that `checkerLocalTruthInvariant` implies `truthInvariant`. -/
 theorem checkerLocalTruthInvariant_implies_truthInvariant (M : SmtModel) :
@@ -1205,6 +1285,28 @@ by
             ⟨hA, ih⟩)
       · simpa [__eo_invoke_assume_list, push_input_assume_eq_stuck_of_typeof_ne_bool,
           hTy] using checkerTranslationInvariant_stuck
+
+/-- Describes `checkerAssumptionStabilityInvariant` after `assume_list`. -/
+theorem checkerAssumptionStabilityInvariant_after_assume_list
+    (M : SmtModel) (F : Term) :
+  StableAssumptionList M F ->
+  checkerAssumptionStabilityInvariant M (__eo_invoke_assume_list CState.nil F)
+:=
+by
+  intro hStable
+  induction hStable with
+  | base =>
+      simp [__eo_invoke_assume_list, checkerAssumptionStabilityInvariant]
+  | step A rest hA hRest ih =>
+      by_cases hTy : __eo_typeof A = Term.Bool
+      · simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool,
+          push_input_assume_check_true, hTy, checkerAssumptionStabilityInvariant] using
+          (show StableInAnyVarModel M A ∧
+              checkerAssumptionStabilityInvariant M
+                (__eo_invoke_assume_list CState.nil rest) from
+            ⟨hA, ih⟩)
+      · simpa [__eo_invoke_assume_list, push_input_assume_eq_stuck_of_typeof_ne_bool,
+          hTy] using checkerAssumptionStabilityInvariant_stuck M
 
 /-- Shows that `push_assume` preserves `localTruthInvariant`. -/
 theorem push_assume_preserves_localTruthInvariant
@@ -1304,10 +1406,11 @@ by
   | cons so s =>
       simpa [checkerShapeInvariant] using hShape
 
-/-- Combined checker invariant bundling the shape, truth, typing, and translation conditions. -/
+/-- Combined checker invariant bundling shape, truth, stability, typing, and translation. -/
 def checkerStateInvariant (M : SmtModel) (s : CState) : Prop :=
   checkerShapeInvariant s ∧
   checkerLocalTruthInvariant M s ∧
+  checkerAssumptionStabilityInvariant M s ∧
   checkerTypeInvariant s ∧
   checkerTranslationInvariant s
 
@@ -1646,13 +1749,15 @@ theorem checkerStateInvariant_after_assume_list (M : SmtModel) (F : Term) :
   ValidAssumptionList F ->
   stateOk (__eo_invoke_assume_list CState.nil F) ->
   TranslatableAssumptionList F ->
+  StableAssumptionList M F ->
   checkerStateInvariant M (__eo_invoke_assume_list CState.nil F)
 :=
 by
-  intro hValid hOk hTrans
+  intro hValid hOk hTrans hStable
   exact ⟨
     checkerShapeInvariant_of_suffix (stateAssumptionSuffix_invoke_assume_list hValid hOk),
     checkerLocalTruthInvariant_after_assume_list M F hValid,
+    checkerAssumptionStabilityInvariant_after_assume_list M F hStable,
     checkerTypeInvariant_after_assume_list F hValid hOk,
     checkerTranslationInvariant_after_assume_list F hTrans
   ⟩
@@ -2398,7 +2503,9 @@ theorem premiseTermList_true_of_localTruthInvariant_any_var_model
     (M : SmtModel) (s : CState) :
   forall (premises : CIndexList),
     checkerLocalTruthInvariant M s ->
+    checkerAssumptionStabilityInvariant M s ->
     forall (N : SmtModel),
+      model_total_typed N ->
       model_agrees_on_globals M N ->
       AllInterpretedTrue N (premiseTermList s premises)
 :=
@@ -2406,19 +2513,20 @@ by
   intro premises
   induction premises with
   | nil =>
-      intro hs N hAgree t ht
+      intro hs hStable N hN hAgree t ht
       cases ht
   | cons n premises ih =>
-      intro hs N hAgree t ht
+      intro hs hStable N hN hAgree t ht
       simp [premiseTermList] at ht
       rcases ht with rfl | ht
-      · exact checkerLocalTruthInvariant_at_any_var_model M hs N hAgree n
-      · exact ih hs N hAgree t ht
+      · exact checkerLocalTruthInvariant_at_any_var_model M hs hStable N hN hAgree n
+      · exact ih hs hStable N hN hAgree t ht
 
 /-- Builds the contextual premise evidence used by the richer rule-correctness template. -/
 theorem premiseEvidence_of_localTruthInvariant
     (M N : SmtModel) (s : CState) (premises : CIndexList) :
   checkerLocalTruthInvariant M s ->
+  checkerAssumptionStabilityInvariant M s ->
   model_total_typed N ->
   model_agrees_on_globals M N ->
   eo_interprets N (stateAssumes s) true ->
@@ -2426,7 +2534,7 @@ theorem premiseEvidence_of_localTruthInvariant
   RulePremiseEvidence N (stateAssumes s) (statePushes s)
     (premiseTermList s premises) :=
 by
-  intro hs hN hAgree hAss hPush
+  intro hs hStable hN hAgree hAss hPush
   refine ⟨?_, ?_, ?_⟩
   · exact premiseTermList_true_of_localTruthInvariant_var_model
       M s premises hs N hN hAgree hAss hPush
@@ -2434,9 +2542,9 @@ by
     exact premiseTermList_true_of_localTruthInvariant_var_model
       M s premises hs K hK
       (model_agrees_on_globals_trans hAgree hAgreeNK) hAssK hPushK
-  · intro K hAgreeNK
+  · intro K hK hAgreeNK
     exact premiseTermList_true_of_localTruthInvariant_any_var_model
-      M s premises hs K
+      M s premises hs hStable K hK
       (model_agrees_on_globals_trans hAgree hAgreeNK)
 
 /-- Structure bundling the premise facts needed to justify a single checker step. -/
@@ -2452,7 +2560,7 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
       eo_interprets N (statePushes s) true ->
       eo_interprets N P true
   true_in_any_var_model :
-    ∀ N,
+    ∀ N, model_total_typed N ->
       model_agrees_on_globals M N ->
       eo_interprets N P true
   has_smt_translation :
@@ -2473,25 +2581,27 @@ theorem cmd_step_facts_of_evidence_rule_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (premises : CIndexList) {P : Term} :
   checkerLocalTruthInvariant M s ->
+  checkerAssumptionStabilityInvariant M s ->
   (hProps : EvidenceStepRuleProperties M (stateAssumes s) (statePushes s)
     (premiseTermList s premises) P) ->
   (hStable : RuleStableConclusion M (premiseTermList s premises) P :=
     evidenceStepRuleProperties_stable_conclusion hProps) ->
   CmdStepFacts M s P :=
 by
-  intro hs hProps hStable
+  intro hs hAssumptionsStable hProps hStable
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro hAss hPush
     exact hProps.facts_of_evidence M hM (model_agrees_on_globals_refl M)
-      (premiseEvidence_of_localTruthInvariant M M s premises hs hM
+      (premiseEvidence_of_localTruthInvariant M M s premises hs hAssumptionsStable hM
         (model_agrees_on_globals_refl M) hAss hPush)
   · intro N hN hAgree hAss hPush
     exact hProps.facts_of_evidence N hN hAgree
-      (premiseEvidence_of_localTruthInvariant M N s premises hs hN hAgree hAss hPush)
-  · intro N hAgree
+      (premiseEvidence_of_localTruthInvariant M N s premises hs hAssumptionsStable
+        hN hAgree hAss hPush)
+  · intro N hN hAgree
     exact hStable
       (premiseTermList_true_of_localTruthInvariant_any_var_model
-        M s premises hs) N hAgree
+        M s premises hs hAssumptionsStable) N hN hAgree
   · exact hProps.has_smt_translation
 
 /--
@@ -2502,6 +2612,7 @@ theorem cmd_step_facts_of_rule_properties
     (M : SmtModel) (hM : model_total_typed M)
     (s : CState) (premises : CIndexList) {P : Term} :
   checkerLocalTruthInvariant M s ->
+  checkerAssumptionStabilityInvariant M s ->
   (hProps : ∀ N, model_total_typed N ->
     model_agrees_on_globals M N ->
     StepRuleProperties N (premiseTermList s premises) P) ->
@@ -2509,7 +2620,7 @@ theorem cmd_step_facts_of_rule_properties
     stepRuleProperties_stable_conclusion hProps) ->
   CmdStepFacts M s P :=
 by
-  intro hs hProps hStable
+  intro hs hAssumptionsStable hProps hStable
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro hAss hPush
     have hPM := hProps M hM (model_agrees_on_globals_refl M)
@@ -2521,10 +2632,10 @@ by
     exact hPN.facts_of_true
       (premiseTermList_true_of_localTruthInvariant_var_model
         M s premises hs N hN hAgree hAss hPush)
-  · intro N hAgree
+  · intro N hN hAgree
     exact hStable
       (premiseTermList_true_of_localTruthInvariant_any_var_model
-        M s premises hs) N hAgree
+        M s premises hs hAssumptionsStable) N hN hAgree
   · exact (hProps M hM (model_agrees_on_globals_refl M)).has_smt_translation
 
 /-- Packages rule-level step-pop properties into the checker facts required for a pop step. -/
@@ -2532,13 +2643,14 @@ theorem cmd_step_pop_facts_of_rule_properties
     (M : SmtModel) (hM : model_total_typed M)
     (root tail : CState) (A : Term) (premises : CIndexList) {P : Term} :
   checkerLocalTruthInvariant M root ->
+  checkerAssumptionStabilityInvariant M root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
   (hProps : StepPopRuleProperties A (premiseTermList root premises) P) ->
   (hStable : RuleStableConclusion M (premiseTermList root premises) P :=
     stepPopRuleProperties_stable_conclusion hProps) ->
   CmdStepFacts M tail P :=
 by
-  intro hsRoot hSuffix hProps hStable
+  intro hsRoot hAssumptionsStableRoot hSuffix hProps hStable
   rcases hProps with ⟨X, hXMem, hFactsOfImp, hPopTrans⟩
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro hAss hPush
@@ -2570,8 +2682,8 @@ by
           M root premises hsRoot N hN hAgree hAssRoot hPushRoot)
         X hXMem
     exact hFactsOfImp N hN hScoped
-  · intro N hAgree
+  · intro N hN hAgree
     exact hStable
       (premiseTermList_true_of_localTruthInvariant_any_var_model
-        M root premises hsRoot) N hAgree
+        M root premises hsRoot hAssumptionsStableRoot) N hN hAgree
   · exact hPopTrans

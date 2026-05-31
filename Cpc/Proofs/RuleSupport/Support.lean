@@ -66,6 +66,11 @@ by
       intro fid A B
       simp [native_model_fun_lookup, native_model_key, native_model_push]⟩
 
+/-- A formula remains true when only SMT variable assignments are changed. -/
+def StableInAnyVarModel (M : SmtModel) (P : Term) : Prop :=
+  ∀ N, model_total_typed N -> model_agrees_on_globals M N ->
+    eo_interprets N P true
+
 /--
 Contextual truth for a derived formula.
 
@@ -87,7 +92,7 @@ structure ContextualTruth
       eo_interprets N pushes true ->
       eo_interprets N P true
   true_in_any_var_model :
-    ∀ N,
+    ∀ N, model_total_typed N ->
       model_agrees_on_globals M N ->
       eo_interprets N P true
 
@@ -109,7 +114,7 @@ structure RulePremiseEvidence
       eo_interprets N pushes true ->
       AllInterpretedTrue N premises
   true_in_any_var_model :
-    ∀ N,
+    ∀ N, model_total_typed N ->
       model_agrees_on_globals M N ->
       AllInterpretedTrue N premises
 
@@ -121,8 +126,10 @@ must also remain true after changing only variables.
 -/
 def RuleStableConclusion
     (M : SmtModel) (premises : List Term) (P : Term) : Prop :=
-  (∀ N, model_agrees_on_globals M N -> AllInterpretedTrue N premises) ->
-  ∀ N, model_agrees_on_globals M N -> eo_interprets N P true
+  (∀ N, model_total_typed N -> model_agrees_on_globals M N ->
+    AllInterpretedTrue N premises) ->
+  ∀ N, model_total_typed N -> model_agrees_on_globals M N ->
+    eo_interprets N P true
 
 /-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
@@ -286,8 +293,9 @@ theorem stepRuleProperties_stable_conclusion
       model_agrees_on_globals M N ->
       StepRuleProperties N premises P) :
     RuleStableConclusion M premises P := by
-  intro _hPremisesStable _N _hAgree
-  sorry
+  intro hPremisesStable N hN hAgree
+  exact (hProps N hN hAgree).facts_of_true
+    (hPremisesStable N hN hAgree)
 
 /--
 TODO: prove this rule by rule.
@@ -299,8 +307,17 @@ theorem evidenceStepRuleProperties_stable_conclusion
     {M : SmtModel} {assumes pushes : Term} {premises : List Term} {P : Term}
     (hProps : EvidenceStepRuleProperties M assumes pushes premises P) :
     RuleStableConclusion M premises P := by
-  intro _hPremisesStable _N _hAgree
-  sorry
+  intro hPremisesStable N hN hAgree
+  exact hProps.facts_of_evidence N hN hAgree
+    ⟨hPremisesStable N hN hAgree,
+      by
+        intro K hK hAgreeNK _hAss _hPush
+        exact hPremisesStable K hK
+          (model_agrees_on_globals_trans hAgree hAgreeNK),
+      by
+        intro K hK hAgreeNK
+        exact hPremisesStable K hK
+          (model_agrees_on_globals_trans hAgree hAgreeNK)⟩
 
 /--
 TODO: prove this for step-pop rules.
@@ -311,5 +328,9 @@ theorem stepPopRuleProperties_stable_conclusion
     {M : SmtModel} {A : Term} {premises : List Term} {P : Term}
     (hProps : StepPopRuleProperties A premises P) :
     RuleStableConclusion M premises P := by
-  intro _hPremisesStable _N _hAgree
-  sorry
+  intro hPremisesStable N hN hAgree
+  rcases hProps with ⟨X, hXMem, hFactsOfImp, _hTrans⟩
+  exact hFactsOfImp N hN
+    (by
+      intro _hA
+      exact hPremisesStable N hN hAgree X hXMem)
