@@ -86,6 +86,10 @@ structure ContextualTruth
       eo_interprets N assumes true ->
       eo_interprets N pushes true ->
       eo_interprets N P true
+  true_in_any_var_model :
+    ∀ N,
+      model_agrees_on_globals M N ->
+      eo_interprets N P true
 
 /--
 The premise evidence supplied to a rule.
@@ -108,6 +112,17 @@ structure RulePremiseEvidence
     ∀ N,
       model_agrees_on_globals M N ->
       AllInterpretedTrue N premises
+
+/--
+The common variable-parametric part of a rule contract.
+
+If every premise remains true after changing only variables, the conclusion
+must also remain true after changing only variables.
+-/
+def RuleStableConclusion
+    (M : SmtModel) (premises : List Term) (P : Term) : Prop :=
+  (∀ N, model_agrees_on_globals M N -> AllInterpretedTrue N premises) ->
+  ∀ N, model_agrees_on_globals M N -> eo_interprets N P true
 
 /-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
@@ -259,3 +274,42 @@ def StepPopRuleProperties
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
       eo_interprets M P true) ∧
     RuleProofs.eo_has_smt_translation P
+
+/--
+TODO: prove this rule by rule.
+
+This is the uniform variable-parametric contract for ordinary step rules.
+-/
+theorem stepRuleProperties_stable_conclusion
+    {M : SmtModel} {premises : List Term} {P : Term}
+    (hProps : ∀ N, model_total_typed N ->
+      model_agrees_on_globals M N ->
+      StepRuleProperties N premises P) :
+    RuleStableConclusion M premises P := by
+  intro _hPremisesStable _N _hAgree
+  sorry
+
+/--
+TODO: prove this rule by rule.
+
+This is the same variable-parametric contract for evidence-sensitive rules
+such as congruence.
+-/
+theorem evidenceStepRuleProperties_stable_conclusion
+    {M : SmtModel} {assumes pushes : Term} {premises : List Term} {P : Term}
+    (hProps : EvidenceStepRuleProperties M assumes pushes premises P) :
+    RuleStableConclusion M premises P := by
+  intro _hPremisesStable _N _hAgree
+  sorry
+
+/--
+TODO: prove this for step-pop rules.
+
+This keeps pop rules on the same variable-parametric conclusion contract.
+-/
+theorem stepPopRuleProperties_stable_conclusion
+    {M : SmtModel} {A : Term} {premises : List Term} {P : Term}
+    (hProps : StepPopRuleProperties A premises P) :
+    RuleStableConclusion M premises P := by
+  intro _hPremisesStable _N _hAgree
+  sorry
