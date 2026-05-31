@@ -9,11 +9,12 @@ set_option maxHeartbeats 10000000
 
 theorem cmd_step_pairwise_cong_properties
     (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (args : CArgList) (premises : CIndexList) :
+    (s : CState) (args : CArgList) (premises : CIndexList)
+    (assumes pushes : Term) :
   cmdTranslationOk (CCmd.step CRule.pairwise_cong args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.pairwise_cong args premises) = Term.Bool ->
-  StepRuleProperties M (premiseTermList s premises)
+  EvidenceStepRuleProperties M assumes pushes (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.pairwise_cong args premises) :=
 by
   intro hCmdTrans hPremisesBool hResultTy
@@ -26,9 +27,15 @@ by
   | cons a1 args =>
       cases args with
       | nil =>
+          have hCmdTransPair :
+              cArgListTranslationOk (CArgList.cons a1 CArgList.nil) ∧
+                congArgQuantifierBindersWf (CArgList.cons a1 CArgList.nil) := by
+            simpa [cmdTranslationOk] using hCmdTrans
           have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
-            simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+            simpa [cArgListTranslationOk] using hCmdTransPair.1
           have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
+          have hAQuantBindersWf : TermQuantifierBindersWf a1 := by
+            simpa [congArgQuantifierBindersWf] using hCmdTransPair.2
           have hProgPairwiseCong :
               __eo_prog_pairwise_cong a1
                   (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) ≠
@@ -82,8 +89,8 @@ by
                       hProgPairwiseCongListNN
                       hProgPairwiseCongListType
                   refine ⟨?_, ?_⟩
-                  · intro hTrue
-                    change eo_interprets M
+                  · intro N hN _hAgree hEvidence
+                    change eo_interprets N
                       (__eo_prog_pairwise_cong
                         (Term.Apply (Term.UOp UserOp.distinct) xs)
                         (Proof.pf
@@ -91,8 +98,8 @@ by
                     rw [mk_premise_list_and_eq_premiseAndFormulaList]
                     exact
                       CongSupport.facts___eo_prog_pairwise_cong_distinct_impl
-                        M hM xs (premiseTermList s premises)
-                        hATrans hTrue hProgPairwiseCongListBool
+                        N hN xs (premiseTermList s premises)
+                        hATrans hEvidence.true_here hProgPairwiseCongListBool
                         hProgPairwiseCongListNN
                   · change RuleProofs.eo_has_smt_translation
                       (__eo_prog_pairwise_cong
@@ -116,17 +123,18 @@ by
                       hProgPairwiseCongListNN
                       hProgPairwiseCongListType
                   refine ⟨?_, ?_⟩
-                  · intro hTrue
-                    change eo_interprets M
+                  · intro N hN _hAgree hEvidence
+                    change eo_interprets N
                       (__eo_prog_pairwise_cong (Term.Apply f xs)
                         (Proof.pf
                           (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
                     rw [mk_premise_list_and_eq_premiseAndFormulaList]
                     exact CongSupport.facts___eo_prog_pairwise_cong_apply_impl
-                      M hM f xs (premiseTermList s premises)
+                      N hN f xs (premiseTermList s premises)
                       hATrans
                       hXsTrans
-                      hTrue
+                      hAQuantBindersWf
+                      hEvidence
                       hProgPairwiseCongListBool
                       hProgPairwiseCongListNN
                   · change RuleProofs.eo_has_smt_translation

@@ -9,11 +9,12 @@ set_option maxHeartbeats 10000000
 
 theorem cmd_step_nary_cong_properties
     (M : SmtModel) (hM : model_total_typed M)
-    (s : CState) (args : CArgList) (premises : CIndexList) :
+    (s : CState) (args : CArgList) (premises : CIndexList)
+    (assumes pushes : Term) :
   cmdTranslationOk (CCmd.step CRule.nary_cong args premises) ->
   AllHaveBoolType (premiseTermList s premises) ->
   __eo_typeof (__eo_cmd_step_proven s CRule.nary_cong args premises) = Term.Bool ->
-  StepRuleProperties M (premiseTermList s premises)
+  EvidenceStepRuleProperties M assumes pushes (premiseTermList s premises)
     (__eo_cmd_step_proven s CRule.nary_cong args premises) :=
 by
   intro hCmdTrans hPremisesBool hResultTy
@@ -26,9 +27,15 @@ by
   | cons a1 args =>
       cases args with
       | nil =>
+          have hCmdTransPair :
+              cArgListTranslationOk (CArgList.cons a1 CArgList.nil) ∧
+                congArgQuantifierBindersWf (CArgList.cons a1 CArgList.nil) := by
+            simpa [cmdTranslationOk] using hCmdTrans
           have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
-            simpa [cmdTranslationOk, cArgListTranslationOk] using hCmdTrans
+            simpa [cArgListTranslationOk] using hCmdTransPair.1
           have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
+          have hAQuantBindersWf : TermQuantifierBindersWf a1 := by
+            simpa [congArgQuantifierBindersWf] using hCmdTransPair.2
           have hProgNaryCong :
               __eo_prog_nary_cong a1
                   (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) ≠
@@ -73,15 +80,16 @@ by
               hProgNaryCongListNN
               hProgNaryCongListType
           refine ⟨?_, ?_⟩
-          · intro hTrue
-            change eo_interprets M
+          · intro N hN _hAgree hEvidence
+            change eo_interprets N
               (__eo_prog_nary_cong a1
                 (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s))) true
             rw [mk_premise_list_and_eq_premiseAndFormulaList]
-            exact CongSupport.facts___eo_prog_nary_cong_impl M hM a1
+            exact CongSupport.facts___eo_prog_nary_cong_impl N hN a1
               (premiseTermList s premises)
               hATrans
-              hTrue
+              hAQuantBindersWf
+              hEvidence
               hProgNaryCongListBool
               hProgNaryCongListNN
           · change RuleProofs.eo_has_smt_translation

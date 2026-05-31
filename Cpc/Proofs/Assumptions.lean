@@ -75,6 +75,10 @@ def cmdTranslationOk : CCmd -> Prop
   | CCmd.assume_push A => eoHasSmtTranslation A
   | CCmd.step CRule.cong args _ =>
       cArgListTranslationOk args ∧ congArgQuantifierBindersWf args
+  | CCmd.step CRule.nary_cong args _ =>
+      cArgListTranslationOk args ∧ congArgQuantifierBindersWf args
+  | CCmd.step CRule.pairwise_cong args _ =>
+      cArgListTranslationOk args ∧ congArgQuantifierBindersWf args
   | CCmd.step CRule.chain_resolution args _ =>
       cArgListTranslationOkMask [ArgTranslationKind.list, ArgTranslationKind.list] args
   | CCmd.step CRule.chain_m_resolution args _ =>
