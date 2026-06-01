@@ -1532,6 +1532,7 @@ private theorem set_is_not_subset_lookup_witness
     RuleProofs.eo_has_smt_translation a ->
     RuleProofs.eo_has_smt_translation b ->
     (∀ e₁ e₂,
+      sizeOf e₁ + sizeOf e₂ < sizeOf a + sizeOf b ->
       RuleProofs.eo_has_smt_translation e₁ ->
       RuleProofs.eo_has_smt_translation e₂ ->
       __eo_eq e₁ e₂ = Term.Boolean false ->
@@ -1578,7 +1579,8 @@ private theorem set_is_not_subset_lookup_witness
           RuleProofs.eo_has_smt_translation e₂ :=
         set_singleton_arg_translation_of_translation e₂ hbTrans
       exact set_singleton_set_singleton_lookup_witness_of_head M e₁ e₂
-        (hHeadSound e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct)
+        (hHeadSound e₁ e₂ (by simp; omega) he₁Trans he₂Trans
+          hHeadEqFalse hHeadDistinct)
     · by_cases hSingletonUnion :
         ∃ e₁ e₂ ss,
           a = Term.Apply (Term.UOp UserOp.set_singleton) e₁ ∧
@@ -1625,10 +1627,24 @@ private theorem set_is_not_subset_lookup_witness
               RuleProofs.eo_has_smt_translation e₂ :=
             set_singleton_arg_translation_of_translation e₂ hUnionArgs.1
           have hHeadEqFalseEval :=
-            hHeadSound e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct
+            hHeadSound e₁ e₂ (by simp [head₂]; omega) he₁Trans he₂Trans
+              hHeadEqFalse hHeadDistinct
+          have hRecMeasure :
+              sizeOf (Term.Apply (Term.UOp UserOp.set_singleton) e₁) +
+                  sizeOf ss <
+                sizeOf (Term.Apply (Term.UOp UserOp.set_singleton) e₁) +
+                  sizeOf
+                    (Term.Apply
+                      (Term.Apply (Term.UOp UserOp.set_union) head₂) ss) := by
+            simp [head₂]
+            omega
           rcases set_is_not_subset_lookup_witness
               M hM (Term.Apply (Term.UOp UserOp.set_singleton) e₁) ss U
-              haTrans hssTrans hHeadSound hRecNotSubset with
+              haTrans hssTrans
+              (fun x y hSmall hxTrans hyTrans hEqFalse hDistinct =>
+                hHeadSound x y (Nat.lt_trans hSmall hRecMeasure)
+                  hxTrans hyTrans hEqFalse hDistinct)
+              hRecNotSubset with
             ⟨mSing, mSs, w, hEvalSing, hEvalSs, hLookupSing, hLookupSs⟩
           rcases set_union_eval_maps M hM head₂ ss hbTrans with
             ⟨A, mHead₂, mSs', hEvalHead₂, hEvalSs', hHead₂Ty, hSsTy,
@@ -1751,8 +1767,19 @@ private theorem set_is_not_subset_lookup_witness
           rcases eo_ite_eq_true_cases (__set_is_not_subset head₁ b U)
               (Term.Boolean true) (__set_is_not_subset ts b U) hBranch with
             ⟨hHeadNotSubset, _⟩ | ⟨_, hTailNotSubset⟩
-          · rcases set_is_not_subset_lookup_witness
-                M hM head₁ b U hUnionArgs.1 hbTrans hHeadSound hHeadNotSubset with
+          · have hHeadMeasure :
+                sizeOf head₁ + sizeOf b <
+                  sizeOf (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.set_union) head₁) ts) +
+                    sizeOf b := by
+              simp [head₁]
+              omega
+            rcases set_is_not_subset_lookup_witness
+                M hM head₁ b U hUnionArgs.1 hbTrans
+                (fun x y hSmall hxTrans hyTrans hEqFalse hDistinct =>
+                  hHeadSound x y (Nat.lt_trans hSmall hHeadMeasure)
+                    hxTrans hyTrans hEqFalse hDistinct)
+                hHeadNotSubset with
               ⟨mHeadRec, mS, w, hEvalHeadRec, hEvalS, hLookupHead, hLookupS⟩
             have hmHead : mHead₁ = mHeadRec := by
               rw [hEvalHeadRec] at hEvalHead₁
@@ -1775,8 +1802,19 @@ private theorem set_is_not_subset_lookup_witness
                   (SmtValue.Boolean false))
                 mTs,
               mS, w, hEvalUnion, hEvalS, hUnionLookupTrue, hLookupS⟩
-          · rcases set_is_not_subset_lookup_witness
-                M hM ts b U htsTrans hbTrans hHeadSound hTailNotSubset with
+          · have hTailMeasure :
+                sizeOf ts + sizeOf b <
+                  sizeOf (Term.Apply
+                    (Term.Apply (Term.UOp UserOp.set_union) head₁) ts) +
+                    sizeOf b := by
+              simp [head₁]
+              omega
+            rcases set_is_not_subset_lookup_witness
+                M hM ts b U htsTrans hbTrans
+                (fun x y hSmall hxTrans hyTrans hEqFalse hDistinct =>
+                  hHeadSound x y (Nat.lt_trans hSmall hTailMeasure)
+                    hxTrans hyTrans hEqFalse hDistinct)
+                hTailNotSubset with
               ⟨mTsRec, mS, w, hEvalTsRec, hEvalS, hLookupTs, hLookupS⟩
             have hmTs : mTs = mTsRec := by
               rw [hEvalTsRec] at hEvalTs
@@ -1814,6 +1852,7 @@ private theorem set_is_not_subset_model_eval_eq_false_of_head_sound
     RuleProofs.eo_has_smt_translation a ->
     RuleProofs.eo_has_smt_translation b ->
     (∀ e₁ e₂,
+      sizeOf e₁ + sizeOf e₂ < sizeOf a + sizeOf b ->
       RuleProofs.eo_has_smt_translation e₁ ->
       RuleProofs.eo_has_smt_translation e₂ ->
       __eo_eq e₁ e₂ = Term.Boolean false ->
@@ -1834,6 +1873,7 @@ private theorem set_is_not_subset_model_eval_eq_false_of_head_sound_symm
     RuleProofs.eo_has_smt_translation a ->
     RuleProofs.eo_has_smt_translation b ->
     (∀ e₁ e₂,
+      sizeOf e₁ + sizeOf e₂ < sizeOf a + sizeOf b ->
       RuleProofs.eo_has_smt_translation e₁ ->
       RuleProofs.eo_has_smt_translation e₂ ->
       __eo_eq e₁ e₂ = Term.Boolean false ->
@@ -1847,7 +1887,10 @@ private theorem set_is_not_subset_model_eval_eq_false_of_head_sound_symm
   intro haTrans hbTrans hHeadSound hNotSubset
   exact smtx_model_eval_eq_false_symm
     (set_is_not_subset_model_eval_eq_false_of_head_sound
-      M hM b a U hbTrans haTrans hHeadSound hNotSubset)
+      M hM b a U hbTrans haTrans
+      (fun x y hSmall hxTrans hyTrans hEqFalse hDistinct =>
+        hHeadSound x y (by omega) hxTrans hyTrans hEqFalse hDistinct)
+      hNotSubset)
 
 private theorem str_concat_arg_translations_of_translation (x y : Term) :
     RuleProofs.eo_has_smt_translation (mkConcat x y) ->
@@ -2252,6 +2295,7 @@ private theorem seq_distinct_terms_model_eval_eq_false_of_head_sound
     RuleProofs.eo_has_smt_translation a ->
     RuleProofs.eo_has_smt_translation b ->
     (∀ e₁ e₂,
+      sizeOf e₁ + sizeOf e₂ < sizeOf a + sizeOf b ->
       RuleProofs.eo_has_smt_translation e₁ ->
       RuleProofs.eo_has_smt_translation e₂ ->
       __eo_eq e₁ e₂ = Term.Boolean false ->
@@ -2301,11 +2345,15 @@ private theorem seq_distinct_terms_model_eval_eq_false_of_head_sound
         exact seq_distinct_concat_unit_concat_unit_model_eval_eq_false
           M hM e₁ tail₁ e₂ tail₂ U haTrans hbTrans
           (fun hEq hHeadDistinct =>
-            hHeadSound e₁ e₂ he₁Trans he₂Trans hEq hHeadDistinct)
+            hHeadSound e₁ e₂ (by simp [mkConcat]; omega)
+              he₁Trans he₂Trans hEq hHeadDistinct)
           (fun hTailDistinct =>
             seq_distinct_terms_model_eval_eq_false_of_head_sound
               M hM tail₁ tail₂ U hLeftArgs.2 hRightArgs.2
-              hHeadSound hTailDistinct)
+              (fun x y hSmall hxTrans hyTrans hEq hDistinct =>
+                hHeadSound x y (Nat.lt_trans hSmall hTailMeasure)
+                  hxTrans hyTrans hEq hDistinct)
+              hTailDistinct)
           hDistinct
       · by_cases hConcatUnit :
           ∃ e₁ tail e₂,
@@ -2326,7 +2374,8 @@ private theorem seq_distinct_terms_model_eval_eq_false_of_head_sound
           exact seq_distinct_concat_unit_seq_unit_model_eval_eq_false
             M hM e₁ tail e₂ U haTrans
             (fun hEq hHeadDistinct =>
-              hHeadSound e₁ e₂ he₁Trans he₂Trans hEq hHeadDistinct)
+              hHeadSound e₁ e₂ (by simp [mkConcat]; omega)
+                he₁Trans he₂Trans hEq hHeadDistinct)
             hDistinct
         · by_cases hUnitConcat :
             ∃ e₁ e₂ tail,
@@ -2347,7 +2396,8 @@ private theorem seq_distinct_terms_model_eval_eq_false_of_head_sound
             exact seq_distinct_seq_unit_concat_unit_model_eval_eq_false
               M hM e₁ e₂ tail U hbTrans
               (fun hEq hHeadDistinct =>
-                hHeadSound e₁ e₂ he₁Trans he₂Trans hEq hHeadDistinct)
+                hHeadSound e₁ e₂ (by simp [mkConcat]; omega)
+                  he₁Trans he₂Trans hEq hHeadDistinct)
               hDistinct
           · by_cases hUnitUnit :
               ∃ e₁ e₂,
@@ -2365,7 +2415,8 @@ private theorem seq_distinct_terms_model_eval_eq_false_of_head_sound
               exact seq_distinct_seq_unit_seq_unit_model_eval_eq_false
                 M e₁ e₂ U
                 (fun hEq hHeadDistinct =>
-                  hHeadSound e₁ e₂ he₁Trans he₂Trans hEq hHeadDistinct)
+                  hHeadSound e₁ e₂ (by simp; omega)
+                    he₁Trans he₂Trans hEq hHeadDistinct)
                 hDistinct
             · -- All remaining shapes make `__seq_distinct_terms` false or stuck.
               exact False.elim
@@ -2772,6 +2823,7 @@ private theorem dt_distinct_terms_model_eval_eq_false_of_head_sound
     RuleProofs.eo_has_smt_translation a ->
     RuleProofs.eo_has_smt_translation b ->
     (∀ e₁ e₂,
+      sizeOf e₁ + sizeOf e₂ < sizeOf a + sizeOf b ->
       RuleProofs.eo_has_smt_translation e₁ ->
       RuleProofs.eo_has_smt_translation e₂ ->
       __eo_eq e₁ e₂ = Term.Boolean false ->
@@ -2814,16 +2866,16 @@ private theorem dt_distinct_terms_model_eval_eq_false_of_head_sound
                     (__smtx_model_eval M (__eo_to_smt a₀))
                     (__smtx_model_eval M (__eo_to_smt b₀)) =
                   SmtValue.Boolean false :=
-              hHeadSound a₀ b₀ ha₀Trans hb₀Trans
+              hHeadSound a₀ b₀ (by simp; omega) ha₀Trans hb₀Trans
                 hHeadArgDistinct.2.1 hHeadArgDistinct.2.2
             exact tuple_apply_model_eval_eq_false_of_component
               M hM a₀ as b₀ bs haTrans hbTrans (Or.inl hHeadEvalFalse)
         · have hTailEvalFalse :
               __smtx_model_eval_eq
                   (__smtx_model_eval M (__eo_to_smt as))
-                  (__smtx_model_eval M (__eo_to_smt bs)) =
+                (__smtx_model_eval M (__eo_to_smt bs)) =
                 SmtValue.Boolean false :=
-            hHeadSound as bs hasTrans hbsTrans
+            hHeadSound as bs (by simp; omega) hasTrans hbsTrans
               hTailDistinct.2.1 hTailDistinct.2.2
           exact tuple_apply_model_eval_eq_false_of_component
             M hM a₀ as b₀ bs haTrans hbTrans (Or.inr hTailEvalFalse)
@@ -2842,13 +2894,22 @@ private theorem dt_distinct_terms_model_eval_eq_false_of_head_sound
               hHeadDistinct | hTailDistinct
             · by_cases hfTrans : RuleProofs.eo_has_smt_translation f
               · by_cases hgTrans : RuleProofs.eo_has_smt_translation g
-                · have hHeadEvalFalse :
+                · have hHeadMeasure :
+                      sizeOf f + sizeOf g <
+                        sizeOf (Term.Apply f x) + sizeOf (Term.Apply g y) := by
+                    simp
+                    omega
+                  have hHeadEvalFalse :
                       __smtx_model_eval_eq
                           (__smtx_model_eval M (__eo_to_smt f))
                           (__smtx_model_eval M (__eo_to_smt g)) =
                         SmtValue.Boolean false :=
                     dt_distinct_terms_model_eval_eq_false_of_head_sound
-                      M hM f g hfTrans hgTrans hHeadSound hHeadDistinct
+                      M hM f g hfTrans hgTrans
+                      (fun p q hSmall hpTrans hqTrans hEq hDistinct =>
+                        hHeadSound p q (Nat.lt_trans hSmall hHeadMeasure)
+                          hpTrans hqTrans hEq hDistinct)
+                      hHeadDistinct
                   exact
                     dt_distinct_terms_apply_apply_model_eval_eq_false_of_head_component
                       M hM f g x y hfTrans hgTrans haTrans hbTrans
@@ -2902,7 +2963,7 @@ private theorem dt_distinct_terms_model_eval_eq_false_of_head_sound
                       (__smtx_model_eval M (__eo_to_smt x))
                       (__smtx_model_eval M (__eo_to_smt y)) =
                     SmtValue.Boolean false :=
-                hHeadSound x y hxTrans hyTrans
+                hHeadSound x y (by simp; omega) hxTrans hyTrans
                   hTailDistinct.2.1 hTailDistinct.2.2
               exact
                 dt_distinct_terms_apply_apply_model_eval_eq_false_of_arg_component
@@ -2963,7 +3024,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
           simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
         exact dt_distinct_terms_model_eval_eq_false_of_head_sound
           M hM a b haTrans hbTrans
-          (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
+          (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
             are_distinct_terms_type_model_eval_eq_false_of_type
               M hM (__eo_typeof e₁) e₁ e₂ he₁Trans he₂Trans
               hHeadEqFalse hHeadDistinct)
@@ -2988,7 +3049,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
                   are_distinct_terms_type_seq_true_seq_distinct hxChar hDistinct
                 exact seq_distinct_terms_model_eval_eq_false_of_head_sound
                   M hM a b x haTrans hbTrans
-                  (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
+                  (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
                     are_distinct_terms_type_model_eval_eq_false_of_type
                       M hM x e₁ e₂ he₁Trans he₂Trans
                       hHeadEqFalse hHeadDistinct)
@@ -3001,14 +3062,14 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
               rcases hSetWitness with hAB | hBA
               · exact set_is_not_subset_model_eval_eq_false_of_head_sound
                   M hM a b x haTrans hbTrans
-                  (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
+                  (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
                     are_distinct_terms_type_model_eval_eq_false_of_type
                       M hM x e₁ e₂ he₁Trans he₂Trans
                       hHeadEqFalse hHeadDistinct)
                   hAB
               · exact set_is_not_subset_model_eval_eq_false_of_head_sound_symm
                   M hM a b x haTrans hbTrans
-                  (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
+                  (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
                     are_distinct_terms_type_model_eval_eq_false_of_type
                       M hM x e₁ e₂ he₁Trans he₂Trans
                       hHeadEqFalse hHeadDistinct)
@@ -3026,7 +3087,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
                 simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
               exact dt_distinct_terms_model_eval_eq_false_of_head_sound
                 M hM a b haTrans hbTrans
-                (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
+                (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
                   are_distinct_terms_type_model_eval_eq_false_of_type
                     M hM (__eo_typeof e₁) e₁ e₂ he₁Trans he₂Trans
                     hHeadEqFalse hHeadDistinct)
@@ -3044,7 +3105,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
             simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
           exact dt_distinct_terms_model_eval_eq_false_of_head_sound
             M hM a b haTrans hbTrans
-            (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
+            (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
               are_distinct_terms_type_model_eval_eq_false_of_type
                 M hM (__eo_typeof e₁) e₁ e₂ he₁Trans he₂Trans
                 hHeadEqFalse hHeadDistinct)
@@ -3065,7 +3126,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
         simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
       exact dt_distinct_terms_model_eval_eq_false_of_head_sound
         M hM a b haTrans hbTrans
-        (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
+        (fun e₁ e₂ hSmall he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
           are_distinct_terms_type_model_eval_eq_false_of_type
             M hM (__eo_typeof e₁) e₁ e₂ he₁Trans he₂Trans
             hHeadEqFalse hHeadDistinct)
@@ -3073,7 +3134,9 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
 termination_by sizeOf a + sizeOf b
 decreasing_by
   all_goals simp_wf
+  all_goals try assumption
   all_goals simp_all
+  all_goals try assumption
   all_goals omega
 
 private theorem eo_typeof_eq_bool_operands_eq {A B : Term} :
