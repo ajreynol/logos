@@ -1,7 +1,7 @@
 import Cpc.Proofs.RuleSupport.CoreSupport
 import Cpc.Proofs.RuleSupport.SequenceSupport
 import Cpc.Proofs.RuleSupport.SetsMemberSupport
-import Cpc.Proofs.Rules.Dt_cons_eq
+import Cpc.Proofs.RuleSupport.DtConsEqSupport
 
 open Eo
 open SmtEval
