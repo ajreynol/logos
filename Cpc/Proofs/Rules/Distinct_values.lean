@@ -1133,19 +1133,19 @@ private theorem are_distinct_terms_type_seq_true_seq_distinct
       Term.Boolean true ->
     __seq_distinct_terms a b U = Term.Boolean true := by
   intro hU hDistinct
-  cases U
-  case UOp op =>
-    cases op
-    case Char =>
-      exact False.elim (hU rfl)
-    all_goals
-      cases a <;> cases b <;>
-        simp [__are_distinct_terms_type.eq_def] at hDistinct ⊢
-      all_goals exact hDistinct
-  all_goals
-    cases a <;> cases b <;>
-      simp [__are_distinct_terms_type.eq_def] at hDistinct ⊢
-    all_goals exact hDistinct
+  by_cases ha : a = Term.Stuck
+  · subst a
+    simp [__are_distinct_terms_type.eq_def] at hDistinct
+  by_cases hb : b = Term.Stuck
+  · subst b
+    simp [__are_distinct_terms_type.eq_def] at hDistinct
+  have hSeq :
+      __are_distinct_terms_type a b
+          (Term.Apply (Term.UOp UserOp.Seq) U) =
+        __seq_distinct_terms a b U := by
+    rw [__are_distinct_terms_type.eq_def]
+    split <;> simp_all
+  rwa [hSeq] at hDistinct
 
 private theorem eo_eq_false_left_ne_stuck {a b : Term} :
     __eo_eq a b = Term.Boolean false -> a ≠ Term.Stuck := by
@@ -1171,9 +1171,20 @@ private theorem are_distinct_terms_type_set_true_not_subset
       __eo_or (__set_is_not_subset a b U)
           (__set_is_not_subset b a U) =
         Term.Boolean true := by
-    cases a <;> cases b <;>
-      simp [__are_distinct_terms_type.eq_def] at hDistinct ⊢
-    all_goals exact hDistinct
+    by_cases ha : a = Term.Stuck
+    · subst a
+      simp [__are_distinct_terms_type.eq_def] at hDistinct
+    by_cases hb : b = Term.Stuck
+    · subst b
+      simp [__are_distinct_terms_type.eq_def] at hDistinct
+    have hSet :
+        __are_distinct_terms_type a b
+            (Term.Apply (Term.UOp UserOp.Set) U) =
+          __eo_or (__set_is_not_subset a b U)
+            (__set_is_not_subset b a U) := by
+      rw [__are_distinct_terms_type.eq_def]
+      split <;> simp_all
+    rwa [hSet] at hDistinct
   exact eo_or_true hOr
 
 private theorem set_is_not_subset_singleton_singleton_model_eval_eq_false
@@ -2932,16 +2943,24 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
   intro haTrans hbTrans hEqFalse hDistinct
   cases T with
   | UOp op =>
-      cases op <;> try
-        (exact are_distinct_terms_type_primitive_model_eval_eq_false
-          M a b (Term.UOp op) hEqFalse hDistinct (by simp))
-      all_goals
+      cases op with
+      | Int =>
+          exact are_distinct_terms_type_primitive_model_eval_eq_false
+            M a b (Term.UOp UserOp.Int) hEqFalse hDistinct (by simp)
+      | Real =>
+          exact are_distinct_terms_type_primitive_model_eval_eq_false
+            M a b (Term.UOp UserOp.Real) hEqFalse hDistinct (by simp)
+      | _ =>
         -- Non-primitive type heads fall through to the datatype recognizer.
         have hDtDistinct :
             __dt_distinct_terms a b = Term.Boolean true := by
-          cases a <;> cases b <;>
-            simp [__are_distinct_terms_type.eq_def] at hDistinct ⊢
-          all_goals exact hDistinct
+          by_cases ha : a = Term.Stuck
+          · subst a
+            simp [__are_distinct_terms_type.eq_def] at hDistinct
+          by_cases hb : b = Term.Stuck
+          · subst b
+            simp [__are_distinct_terms_type.eq_def] at hDistinct
+          simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
         exact dt_distinct_terms_model_eval_eq_false_of_head_sound
           M hM a b haTrans hbTrans
           (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
@@ -2998,9 +3017,13 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
               -- Other applied type heads use datatype spine distinctness.
               have hDtDistinct :
                   __dt_distinct_terms a b = Term.Boolean true := by
-                cases a <;> cases b <;>
-                  simp [__are_distinct_terms_type.eq_def] at hDistinct ⊢
-                all_goals exact hDistinct
+                by_cases ha : a = Term.Stuck
+                · subst a
+                  simp [__are_distinct_terms_type.eq_def] at hDistinct
+                by_cases hb : b = Term.Stuck
+                · subst b
+                  simp [__are_distinct_terms_type.eq_def] at hDistinct
+                simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
               exact dt_distinct_terms_model_eval_eq_false_of_head_sound
                 M hM a b haTrans hbTrans
                 (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
@@ -3012,9 +3035,13 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
           -- Non-`UOp` type applications are datatype-style fallthroughs.
           have hDtDistinct :
               __dt_distinct_terms a b = Term.Boolean true := by
-            cases a <;> cases b <;>
-              simp [__are_distinct_terms_type.eq_def] at hDistinct ⊢
-            all_goals exact hDistinct
+            by_cases ha : a = Term.Stuck
+            · subst a
+              simp [__are_distinct_terms_type.eq_def] at hDistinct
+            by_cases hb : b = Term.Stuck
+            · subst b
+              simp [__are_distinct_terms_type.eq_def] at hDistinct
+            simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
           exact dt_distinct_terms_model_eval_eq_false_of_head_sound
             M hM a b haTrans hbTrans
             (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
@@ -3029,9 +3056,13 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
       -- All other EO types use datatype spine distinctness.
       have hDtDistinct :
           __dt_distinct_terms a b = Term.Boolean true := by
-        cases a <;> cases b <;>
-          simp [__are_distinct_terms_type.eq_def] at hDistinct ⊢
-        all_goals exact hDistinct
+        by_cases ha : a = Term.Stuck
+        · subst a
+          simp [__are_distinct_terms_type.eq_def] at hDistinct
+        by_cases hb : b = Term.Stuck
+        · subst b
+          simp [__are_distinct_terms_type.eq_def] at hDistinct
+        simpa [__are_distinct_terms_type.eq_def, ha, hb] using hDistinct
       exact dt_distinct_terms_model_eval_eq_false_of_head_sound
         M hM a b haTrans hbTrans
         (fun e₁ e₂ he₁Trans he₂Trans hHeadEqFalse hHeadDistinct =>
@@ -3039,7 +3070,7 @@ private theorem are_distinct_terms_type_model_eval_eq_false_of_type
             M hM (__eo_typeof e₁) e₁ e₂ he₁Trans he₂Trans
             hHeadEqFalse hHeadDistinct)
         hDtDistinct
-termination_by sizeOf T
+termination_by sizeOf a + sizeOf b
 decreasing_by
   all_goals simp_wf
   all_goals simp_all
