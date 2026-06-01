@@ -19,6 +19,33 @@ private theorem eo_requires_self_of_non_stuck
   intro hT
   simp [__eo_requires, native_ite, native_not, native_teq, hT]
 
+private theorem eo_requires_arg_eq_of_ne_stuck {x y z : Term} :
+    __eo_requires x y z ≠ Term.Stuck -> x = y := by
+  intro h
+  unfold __eo_requires at h
+  by_cases hxy : native_teq x y = true
+  · simpa [native_teq] using hxy
+  · simp [hxy, native_ite] at h
+
+private theorem eo_requires_result_eq_of_ne_stuck {x y z : Term} :
+    __eo_requires x y z ≠ Term.Stuck -> __eo_requires x y z = z := by
+  intro h
+  unfold __eo_requires at h ⊢
+  by_cases hxy : native_teq x y = true
+  · by_cases hx : native_teq x Term.Stuck = true
+    · simp [hxy, hx, native_ite, SmtEval.native_not] at h
+    · simp [hxy, hx, native_ite, SmtEval.native_not]
+  · simp [hxy, native_ite] at h
+
+private theorem eo_and_true {a b : Term} :
+    __eo_and a b = Term.Boolean true ->
+    a = Term.Boolean true ∧ b = Term.Boolean true := by
+  intro h
+  cases a <;> cases b <;> simp [__eo_and, __eo_requires, native_teq,
+    native_ite, SmtEval.native_and, SmtEval.native_not] at h ⊢
+  · exact h
+  · split at h <;> simp at h
+
 private theorem prog_dt_cons_eq_condition_of_not_stuck
     (t s B : Term) :
     __eo_prog_dt_cons_eq
@@ -111,6 +138,14 @@ private theorem smtx_model_eval_eq_not_reglan_pair
     (h : ¬ ∃ r1 r2, v = SmtValue.RegLan r1 ∧ w = SmtValue.RegLan r2) :
     __smtx_model_eval_eq v w = SmtValue.Boolean (decide (v = w)) := by
   cases v <;> cases w <;> simp [__smtx_model_eval_eq, native_veq] at h ⊢
+
+private theorem smtx_model_eval_eq_false_of_ne_not_reglan
+    {v w : SmtValue}
+    (hNe : v ≠ w)
+    (hReg : ¬ ∃ r1 r2, v = SmtValue.RegLan r1 ∧ w = SmtValue.RegLan r2) :
+    __smtx_model_eval_eq v w = SmtValue.Boolean false := by
+  rw [smtx_model_eval_eq_not_reglan_pair v w hReg]
+  simp [hNe]
 
 private theorem smtx_model_eval_eq_apply_eq_and
     (f g x y : SmtValue)
@@ -1072,6 +1107,112 @@ private theorem tuple_prepend_eval_eq_and
       simp [hHeadEq, hTailEq, __smtx_model_eval_and,
         SmtEval.native_and]
 
+theorem tuple_apply_model_eval_eq_false_of_component
+    (M : SmtModel) (hM : model_total_typed M) (a as b bs : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) as) ->
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) b) bs) ->
+    (__smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt a))
+        (__smtx_model_eval M (__eo_to_smt b)) = SmtValue.Boolean false ∨
+      __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt as))
+        (__smtx_model_eval M (__eo_to_smt bs)) = SmtValue.Boolean false) ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) as)))
+        (__smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) b) bs))) =
+      SmtValue.Boolean false := by
+  intro hLeftTrans hRightTrans hComponent
+  let left := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) as
+  let right := Term.Apply (Term.Apply (Term.UOp UserOp.tuple) b) bs
+  by_cases hTyEq :
+      __smtx_typeof (__eo_to_smt left) =
+        __smtx_typeof (__eo_to_smt right)
+  · have hBool :
+        RuleProofs.eo_has_bool_type (Term.Apply (Term.Apply Term.eq left) right) :=
+      RuleProofs.eo_has_bool_type_eq_of_same_smt_type
+        left right hTyEq hLeftTrans
+    have hEval := tuple_prepend_eval_eq_and M hM a as b bs hBool
+    change
+        __smtx_model_eval_eq
+            (__smtx_model_eval M (__eo_to_smt left))
+            (__smtx_model_eval M (__eo_to_smt right)) =
+          __smtx_model_eval_and
+            (__smtx_model_eval_eq
+              (__smtx_model_eval M (__eo_to_smt a))
+              (__smtx_model_eval M (__eo_to_smt b)))
+            (__smtx_model_eval_eq
+              (__smtx_model_eval M (__eo_to_smt as))
+              (__smtx_model_eval M (__eo_to_smt bs))) at hEval
+    rw [hEval]
+    rcases hComponent with hHead | hTail
+    · rcases model_eval_eq_is_boolean
+          (__smtx_model_eval M (__eo_to_smt as))
+          (__smtx_model_eval M (__eo_to_smt bs)) with
+        ⟨bt, hTailBool⟩
+      rw [hHead, hTailBool]
+      simp [__smtx_model_eval_and, SmtEval.native_and]
+    · rcases model_eval_eq_is_boolean
+          (__smtx_model_eval M (__eo_to_smt a))
+          (__smtx_model_eval M (__eo_to_smt b)) with
+        ⟨bh, hHeadBool⟩
+      rw [hTail, hHeadBool]
+      cases bh <;> simp [__smtx_model_eval_and, SmtEval.native_and]
+  · have hLeftTyNeReg :
+        __smtx_typeof (__eo_to_smt left) ≠ SmtType.RegLan := by
+      change
+        __smtx_typeof
+            (__eo_to_smt_tuple_prepend (__eo_to_smt a)
+              (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt as)) ≠
+          SmtType.RegLan
+      rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+          as a hLeftTrans with
+        ⟨c, hTailTy⟩
+      rw [TranslationProofs.smtx_tuple_prepend_typeof_of_tail_tuple_type
+        (__eo_to_smt as) (__eo_to_smt a)
+        (__smtx_typeof (__eo_to_smt a)) c hTailTy hLeftTrans]
+      simp
+    have hLeftValTy :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt left)) =
+          __smtx_typeof (__eo_to_smt left) :=
+      Smtm.smt_model_eval_preserves_type_of_non_none M hM
+        (__eo_to_smt left)
+        (by
+          unfold term_has_non_none_type
+          exact hLeftTrans)
+    have hRightValTy :
+        __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt right)) =
+          __smtx_typeof (__eo_to_smt right) :=
+      Smtm.smt_model_eval_preserves_type_of_non_none M hM
+        (__eo_to_smt right)
+        (by
+          unfold term_has_non_none_type
+          exact hRightTrans)
+    have hNe :
+        __smtx_model_eval M (__eo_to_smt left) ≠
+          __smtx_model_eval M (__eo_to_smt right) := by
+      intro hEq
+      apply hTyEq
+      have hValTyEq :
+          __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt left)) =
+            __smtx_typeof_value (__smtx_model_eval M (__eo_to_smt right)) := by
+        rw [hEq]
+      rw [hLeftValTy, hRightValTy] at hValTyEq
+      exact hValTyEq
+    have hNoReg :
+        ¬ ∃ r₁ r₂,
+          __smtx_model_eval M (__eo_to_smt left) = SmtValue.RegLan r₁ ∧
+            __smtx_model_eval M (__eo_to_smt right) = SmtValue.RegLan r₂ := by
+      intro hReg
+      rcases hReg with ⟨r₁, _r₂, hLeftReg, _hRightReg⟩
+      rw [hLeftReg] at hLeftValTy
+      exact hLeftTyNeReg hLeftValTy.symm
+    rw [smtx_model_eval_eq_not_reglan_pair _ _ hNoReg]
+    simp [hNe]
+
 private theorem mk_dt_cons_eq_stuck_left (s : Term) :
     __mk_dt_cons_eq Term.Stuck s = Term.Stuck := by
   cases s <;> rfl
@@ -1830,6 +1971,138 @@ private theorem dtCons_ctor_spine_eq_apply_eval_eq_and
     (__smtx_model_eval M (__eo_to_smt b))
     hFPair hArgPair
 
+private theorem dtCons_ctor_spine_eq_apply_eval_eq_false_of_component
+    (M : SmtModel) (hM : model_total_typed M)
+    {f g : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    (a b : Term)
+    (hSp : CtorSpineEq f g (Term.DtCons s d i))
+    (hLeftTrans : RuleProofs.eo_has_smt_translation (Term.Apply f a))
+    (hRightTrans : RuleProofs.eo_has_smt_translation (Term.Apply g b)) :
+    (__smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt f))
+        (__smtx_model_eval M (__eo_to_smt g)) = SmtValue.Boolean false ∨
+      __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt a))
+        (__smtx_model_eval M (__eo_to_smt b)) = SmtValue.Boolean false) ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply f a)))
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply g b))) =
+      SmtValue.Boolean false := by
+  intro hComponent
+  have hLeftNN :
+      __smtx_typeof (__eo_to_smt (Term.Apply f a)) ≠ SmtType.None :=
+    hLeftTrans
+  have hRightNN :
+      __smtx_typeof (__eo_to_smt (Term.Apply g b)) ≠ SmtType.None :=
+    hRightTrans
+  have hFSp := dtConsSpineRoot_left_of_ctorSpineEq hSp
+  have hGSp := dtConsSpineRoot_right_of_ctorSpineEq hSp
+  have hToF := dtConsSpineRoot_apply_generic hFSp a
+  have hToG := dtConsSpineRoot_apply_generic hGSp b
+  have hGenF : generic_apply_type (__eo_to_smt f) (__eo_to_smt a) :=
+    generic_apply_type_of_non_datatype_head
+      (dtConsSpineRoot_to_smt_ne_dt_sel hFSp)
+      (dtConsSpineRoot_to_smt_ne_dt_tester hFSp)
+  have hGenG : generic_apply_type (__eo_to_smt g) (__eo_to_smt b) :=
+    generic_apply_type_of_non_datatype_head
+      (dtConsSpineRoot_to_smt_ne_dt_sel hGSp)
+      (dtConsSpineRoot_to_smt_ne_dt_tester hGSp)
+  have hApplyFNN :
+      __smtx_typeof_apply (__smtx_typeof (__eo_to_smt f))
+          (__smtx_typeof (__eo_to_smt a)) ≠ SmtType.None := by
+    have hNN' :
+        __smtx_typeof (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt a)) ≠
+          SmtType.None := by
+      simpa [hToF] using hLeftNN
+    unfold generic_apply_type at hGenF
+    rw [hGenF] at hNN'
+    exact hNN'
+  have hApplyGNN :
+      __smtx_typeof_apply (__smtx_typeof (__eo_to_smt g))
+          (__smtx_typeof (__eo_to_smt b)) ≠ SmtType.None := by
+    have hNN' :
+        __smtx_typeof (SmtTerm.Apply (__eo_to_smt g) (__eo_to_smt b)) ≠
+          SmtType.None := by
+      simpa [hToG] using hRightNN
+    unfold generic_apply_type at hGenG
+    rw [hGenG] at hNN'
+    exact hNN'
+  rcases typeof_apply_non_none_cases hApplyFNN with
+    ⟨A, _B, hHeadF, hATy, hANN, _hBNN⟩
+  have hFNN : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None := by
+    rcases hHeadF with hHeadF | hHeadF <;> rw [hHeadF] <;> simp
+  have hGNN : __smtx_typeof (__eo_to_smt g) ≠ SmtType.None := by
+    rcases typeof_apply_non_none_cases hApplyGNN with
+      ⟨AG, BG, hHeadG, _hBTy, _hAGNN, _hBGNN⟩
+    rcases hHeadG with hHeadG | hHeadG <;> rw [hHeadG] <;> simp
+  have hFnTyEq :
+      __smtx_typeof (__eo_to_smt f) =
+        __smtx_typeof (__eo_to_smt g) :=
+    ctorSpineEq_dtCons_type_eq_of_non_none hSp hFNN hGNN
+  have hApplyGAsF :
+      __smtx_typeof_apply (__smtx_typeof (__eo_to_smt f))
+          (__smtx_typeof (__eo_to_smt b)) ≠ SmtType.None := by
+    simpa [hFnTyEq] using hApplyGNN
+  have hSameHeadApplyEq :
+      __smtx_typeof_apply (__smtx_typeof (__eo_to_smt f))
+          (__smtx_typeof (__eo_to_smt a)) =
+        __smtx_typeof_apply (__smtx_typeof (__eo_to_smt f))
+          (__smtx_typeof (__eo_to_smt b)) :=
+    typeof_apply_eq_of_same_head_non_none hApplyFNN hApplyGAsF
+  have hArgTyEq :
+      __smtx_typeof (__eo_to_smt a) =
+        __smtx_typeof (__eo_to_smt b) :=
+    typeof_apply_same_head_arg_type_eq hSameHeadApplyEq hApplyFNN
+  have hFTypeNeReg :
+      __smtx_typeof (__eo_to_smt f) ≠ SmtType.RegLan :=
+    smt_type_ne_reglan_of_apply_head_cases hHeadF
+  have hFTermNN : term_has_non_none_type (__eo_to_smt f) := by
+    unfold term_has_non_none_type
+    exact hFNN
+  have hAReg : A ≠ SmtType.RegLan :=
+    TranslationProofs.smtx_term_fun_like_arg_ne_reglan_of_non_none
+      (__eo_to_smt f) hFTermNN hHeadF
+  have hArgBTy : __smtx_typeof (__eo_to_smt b) = A :=
+    hArgTyEq.symm.trans hATy
+  have hFPair :
+      ¬ ∃ r1 r2,
+        __smtx_model_eval M (__eo_to_smt f) = SmtValue.RegLan r1 ∧
+          __smtx_model_eval M (__eo_to_smt g) = SmtValue.RegLan r2 :=
+    smt_model_eval_pair_not_reglan_of_non_reg_type M hM
+      (__eo_to_smt f) (__eo_to_smt g)
+      (__smtx_typeof (__eo_to_smt f)) rfl hFnTyEq.symm
+      hFNN hFTypeNeReg
+  have hArgPair :
+      ¬ ∃ r1 r2,
+        __smtx_model_eval M (__eo_to_smt a) = SmtValue.RegLan r1 ∧
+          __smtx_model_eval M (__eo_to_smt b) = SmtValue.RegLan r2 :=
+    smt_model_eval_pair_not_reglan_of_non_reg_type M hM
+      (__eo_to_smt a) (__eo_to_smt b) A hATy hArgBTy hANN hAReg
+  have hLeftEval :=
+    dtConsSpineRoot_apply_eval_eq_apply M hM hFSp a hLeftNN
+  have hRightEval :=
+    dtConsSpineRoot_apply_eval_eq_apply M hM hGSp b hRightNN
+  rw [hLeftEval, hRightEval]
+  rw [smtx_model_eval_eq_apply_eq_and
+    (__smtx_model_eval M (__eo_to_smt f))
+    (__smtx_model_eval M (__eo_to_smt g))
+    (__smtx_model_eval M (__eo_to_smt a))
+    (__smtx_model_eval M (__eo_to_smt b))
+    hFPair hArgPair]
+  rcases hComponent with hHeadFalse | hArgFalse
+  · rcases model_eval_eq_is_boolean
+        (__smtx_model_eval M (__eo_to_smt a))
+        (__smtx_model_eval M (__eo_to_smt b)) with
+      ⟨ba, hArgBool⟩
+    rw [hHeadFalse, hArgBool]
+    simp [__smtx_model_eval_and, SmtEval.native_and]
+  · rcases model_eval_eq_is_boolean
+        (__smtx_model_eval M (__eo_to_smt f))
+        (__smtx_model_eval M (__eo_to_smt g)) with
+      ⟨bf, hHeadBool⟩
+    rw [hArgFalse, hHeadBool]
+    cases bf <;> simp [__smtx_model_eval_and, SmtEval.native_and]
+
 private theorem smtx_typeof_apply_tuple_prepend_eq_none
     (head tail arg : SmtTerm) (headTy : SmtType) :
     __smtx_typeof
@@ -2010,6 +2283,1026 @@ private theorem ctorSpineRoot_tupleUnit_apply_type_none
     __smtx_typeof (__eo_to_smt (Term.Apply f a)) = SmtType.None :=
   ctorSpineRoot_tupleUnit_apply_type_none_aux hSp rfl
 
+private theorem ctorSpineRoot_root_cases
+    {f root : Term}
+    (hSp : CtorSpineRoot f root) :
+    root = Term.UOp UserOp.tuple ∨
+      root = Term.UOp UserOp.tuple_unit ∨
+        ∃ s d i, root = Term.DtCons s d i := by
+  induction hSp with
+  | tuple =>
+      exact Or.inl rfl
+  | tupleUnit =>
+      exact Or.inr (Or.inl rfl)
+  | dtCons s d i =>
+      exact Or.inr (Or.inr ⟨s, d, i, rfl⟩)
+  | app x hSp ih =>
+      exact ih
+
+private def dtConsDistinctBaseGuard (c : Term) : Term :=
+  __eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple)) (Term.Boolean true)
+    (__eo_ite (__eo_is_eq c (Term.UOp UserOp.tuple_unit)) (Term.Boolean true)
+      (__eo_is_ok (__eo_dt_selectors c)))
+
+private theorem dtConsDistinct_base_guard_root
+    (c : Term) :
+    dtConsDistinctBaseGuard c = Term.Boolean true ->
+    CtorSpineRoot c c := by
+  intro h
+  cases c <;>
+    simp [dtConsDistinctBaseGuard, __eo_is_eq, __eo_ite, __eo_is_ok,
+      __eo_dt_selectors, __eo_dt_selectors_main, native_ite, native_teq,
+      native_and, native_not, SmtEval.native_and, SmtEval.native_not] at h
+  case UOp op =>
+    cases op <;> simp at h
+    · exact CtorSpineRoot.tupleUnit
+    · exact CtorSpineRoot.tuple
+  case DtCons s d i =>
+    exact CtorSpineRoot.dtCons s d i
+
+private theorem dtConsDistinct_base_info {c d : Term} :
+    __eo_requires
+        (__eo_and (dtConsDistinctBaseGuard c) (dtConsDistinctBaseGuard d))
+        (Term.Boolean true) (__eo_not (__eo_eq c d)) =
+      Term.Boolean true ->
+    dtConsDistinctBaseGuard c = Term.Boolean true ∧
+      dtConsDistinctBaseGuard d = Term.Boolean true := by
+  intro h
+  have hReqNe :
+      __eo_requires
+          (__eo_and (dtConsDistinctBaseGuard c) (dtConsDistinctBaseGuard d))
+          (Term.Boolean true) (__eo_not (__eo_eq c d)) ≠
+        Term.Stuck := by
+    rw [h]
+    intro hBad
+    cases hBad
+  have hGuardAnd :
+      __eo_and (dtConsDistinctBaseGuard c) (dtConsDistinctBaseGuard d) =
+        Term.Boolean true :=
+    eo_requires_arg_eq_of_ne_stuck hReqNe
+  exact eo_and_true hGuardAnd
+
+private theorem eo_not_eq_false_eq_true {x : Term} :
+    __eo_not x = Term.Boolean false -> x = Term.Boolean true := by
+  intro h
+  cases x <;> simp [__eo_not] at h
+  case Boolean b =>
+    cases b <;> simp [SmtEval.native_not] at h ⊢
+
+private theorem dtConsDistinct_base_info_false {c d : Term} :
+    __eo_requires
+        (__eo_and (dtConsDistinctBaseGuard c) (dtConsDistinctBaseGuard d))
+        (Term.Boolean true) (__eo_not (__eo_eq c d)) =
+      Term.Boolean false ->
+    dtConsDistinctBaseGuard c = Term.Boolean true ∧
+      dtConsDistinctBaseGuard d = Term.Boolean true ∧ c = d := by
+  intro h
+  have hReqNe :
+      __eo_requires
+          (__eo_and (dtConsDistinctBaseGuard c) (dtConsDistinctBaseGuard d))
+          (Term.Boolean true) (__eo_not (__eo_eq c d)) ≠
+        Term.Stuck := by
+    rw [h]
+    intro hBad
+    cases hBad
+  have hGuardAnd :
+      __eo_and (dtConsDistinctBaseGuard c) (dtConsDistinctBaseGuard d) =
+        Term.Boolean true :=
+    eo_requires_arg_eq_of_ne_stuck hReqNe
+  have hResult :
+      __eo_not (__eo_eq c d) = Term.Boolean false := by
+    have hReqResult := eo_requires_result_eq_of_ne_stuck hReqNe
+    simpa [h] using hReqResult.symm
+  rcases eo_and_true hGuardAnd with ⟨hc, hd⟩
+  have hEqTrue : __eo_eq c d = Term.Boolean true :=
+    eo_not_eq_false_eq_true hResult
+  exact ⟨hc, hd, (eo_eq_eq_of_true hEqTrue).symm⟩
+
+private theorem eo_ite_true_eq_false
+    {c e : Term} :
+    __eo_ite c (Term.Boolean true) e = Term.Boolean false ->
+    c = Term.Boolean false ∧ e = Term.Boolean false := by
+  intro h
+  cases c <;> simp [__eo_ite, native_ite, native_teq] at h
+  case Boolean b =>
+    cases b <;> simp [__eo_ite, native_ite, native_teq] at h
+    exact ⟨rfl, h⟩
+
+private theorem eo_ite_eq_true_cases (c t e : Term) :
+    __eo_ite c t e = Term.Boolean true ->
+    (c = Term.Boolean true ∧ t = Term.Boolean true) ∨
+      (c = Term.Boolean false ∧ e = Term.Boolean true) := by
+  intro h
+  cases c <;> simp [__eo_ite, native_teq, native_ite] at h
+  case Boolean b =>
+    cases b <;> simp at h
+    · exact Or.inr ⟨rfl, h⟩
+    · exact Or.inl ⟨rfl, h⟩
+
+private theorem dt_distinct_terms_false_same_root
+    (t s : Term) :
+    __dt_distinct_terms t s = Term.Boolean false ->
+    ∃ root, CtorSpineRoot t root ∧ CtorSpineRoot s root := by
+  intro hDistinct
+  by_cases htApply : ∃ f x, t = Term.Apply f x
+  · rcases htApply with ⟨f, x, rfl⟩
+    by_cases hsApply : ∃ g y, s = Term.Apply g y
+    · rcases hsApply with ⟨g, y, rfl⟩
+      rw [__dt_distinct_terms.eq_def] at hDistinct
+      change
+        __eo_ite (__dt_distinct_terms f g) (Term.Boolean true)
+          (__eo_ite (__eo_eq x y) (Term.Boolean false)
+            (__are_distinct_terms_type x y (__eo_typeof x))) =
+          Term.Boolean false at hDistinct
+      rcases eo_ite_true_eq_false hDistinct with ⟨hHead, _hTail⟩
+      rcases dt_distinct_terms_false_same_root f g hHead with
+        ⟨root, hf, hg⟩
+      exact ⟨root, CtorSpineRoot.app x hf, CtorSpineRoot.app y hg⟩
+    · have hsNotApply : ∀ g y, s ≠ Term.Apply g y := by
+        intro g y h
+        exact hsApply ⟨g, y, h⟩
+      have hHead : __dt_distinct_terms f s = Term.Boolean false := by
+        cases s <;> try simpa [__dt_distinct_terms] using hDistinct
+        case Apply g y =>
+          exact False.elim (hsNotApply g y rfl)
+      rcases dt_distinct_terms_false_same_root f s hHead with
+        ⟨root, hf, hs⟩
+      exact ⟨root, CtorSpineRoot.app x hf, hs⟩
+  · have htNotApply : ∀ f x, t ≠ Term.Apply f x := by
+      intro f x h
+      exact htApply ⟨f, x, h⟩
+    by_cases hsApply : ∃ g y, s = Term.Apply g y
+    · rcases hsApply with ⟨g, y, rfl⟩
+      have hHead : __dt_distinct_terms t g = Term.Boolean false := by
+        cases t <;> try simpa [__dt_distinct_terms] using hDistinct
+        case Apply f x =>
+          exact False.elim (htNotApply f x rfl)
+      rcases dt_distinct_terms_false_same_root t g hHead with
+        ⟨root, ht, hg⟩
+      exact ⟨root, ht, CtorSpineRoot.app y hg⟩
+    · have hsNotApply : ∀ g y, s ≠ Term.Apply g y := by
+        intro g y h
+        exact hsApply ⟨g, y, h⟩
+      have hBase :
+          __eo_requires
+              (__eo_and (dtConsDistinctBaseGuard t)
+                (dtConsDistinctBaseGuard s))
+              (Term.Boolean true) (__eo_not (__eo_eq t s)) =
+            Term.Boolean false := by
+        cases t <;> cases s <;>
+          try
+            (first
+              | exact False.elim (htNotApply _ _ rfl)
+              | exact False.elim (hsNotApply _ _ rfl))
+        all_goals
+          simpa [dtConsDistinctBaseGuard, __dt_distinct_terms] using hDistinct
+      rcases dtConsDistinct_base_info_false hBase with
+        ⟨htGuard, _hsGuard, hEq⟩
+      subst s
+      exact ⟨t, dtConsDistinct_base_guard_root t htGuard,
+        dtConsDistinct_base_guard_root t htGuard⟩
+termination_by sizeOf t + sizeOf s
+decreasing_by
+  all_goals subst_vars; simp_wf; omega
+
+theorem dt_distinct_terms_distinct_left_ne_false
+    (g : Term) :
+    __dt_distinct_terms (Term.UOp UserOp.distinct) g ≠
+      Term.Boolean false := by
+  intro hDistinct
+  rcases dt_distinct_terms_false_same_root
+      (Term.UOp UserOp.distinct) g hDistinct with
+    ⟨root, hRoot, _⟩
+  cases hRoot
+
+theorem dt_distinct_terms_distinct_right_ne_false
+    (f : Term) :
+    __dt_distinct_terms f (Term.UOp UserOp.distinct) ≠
+      Term.Boolean false := by
+  intro hDistinct
+  rcases dt_distinct_terms_false_same_root
+      f (Term.UOp UserOp.distinct) hDistinct with
+    ⟨root, _, hRoot⟩
+  cases hRoot
+
+private theorem dt_distinct_terms_roots_of_nonapply_pair
+    {t c : Term} :
+    (∀ f x, t ≠ Term.Apply f x) ->
+    (∀ f x, c ≠ Term.Apply f x) ->
+    __dt_distinct_terms t c = Term.Boolean true ->
+    ∃ rt rc, CtorSpineRoot t rt ∧ CtorSpineRoot c rc := by
+  intro htNotApply hcNotApply hDistinct
+  have hBase :
+      __eo_requires
+          (__eo_and (dtConsDistinctBaseGuard t) (dtConsDistinctBaseGuard c))
+          (Term.Boolean true) (__eo_not (__eo_eq t c)) =
+        Term.Boolean true := by
+    cases t <;> cases c <;>
+      try
+        (first
+          | exact False.elim (htNotApply _ _ rfl)
+          | exact False.elim (hcNotApply _ _ rfl))
+    all_goals
+      simpa [dtConsDistinctBaseGuard, __dt_distinct_terms] using hDistinct
+  rcases dtConsDistinct_base_info hBase with ⟨htGuard, hcGuard⟩
+  exact ⟨t, c, dtConsDistinct_base_guard_root t htGuard,
+    dtConsDistinct_base_guard_root c hcGuard⟩
+
+private theorem dt_distinct_terms_roots_of_right_nonapply
+    {t c : Term} :
+    (∀ f x, c ≠ Term.Apply f x) ->
+    __dt_distinct_terms t c = Term.Boolean true ->
+    ∃ rt rc, CtorSpineRoot t rt ∧ CtorSpineRoot c rc := by
+  intro hcNotApply hDistinct
+  by_cases htApply : ∃ f x, t = Term.Apply f x
+  · rcases htApply with ⟨f, a, rfl⟩
+    have hHead : __dt_distinct_terms f c = Term.Boolean true := by
+      cases c <;> try simpa [__dt_distinct_terms] using hDistinct
+      case Apply g y =>
+        exact False.elim (hcNotApply g y rfl)
+    rcases dt_distinct_terms_roots_of_right_nonapply
+        hcNotApply hHead with ⟨rt, rc, ht, hc⟩
+    exact ⟨rt, rc, CtorSpineRoot.app a ht, hc⟩
+  · have htNotApply : ∀ f x, t ≠ Term.Apply f x := by
+      intro f x h
+      exact htApply ⟨f, x, h⟩
+    exact dt_distinct_terms_roots_of_nonapply_pair
+      htNotApply hcNotApply hDistinct
+termination_by sizeOf t
+decreasing_by
+  all_goals subst_vars; simp_wf; omega
+
+private theorem tuplePrependValueRec_seed_is_apply
+    (tailD : SmtDatatype) (tailVal : SmtValue) (k : Nat)
+    (seedF seedA : SmtValue) :
+    ∃ v x,
+      tuplePrependValueRec tailD tailVal k (SmtValue.Apply seedF seedA) =
+        SmtValue.Apply v x := by
+  cases k with
+  | zero =>
+      exact ⟨seedF, seedA, rfl⟩
+  | succ k =>
+      exact ⟨tuplePrependValueRec tailD tailVal k
+          (SmtValue.Apply seedF seedA),
+        __vsm_apply_arg_nth tailVal k
+          (__smtx_dt_num_sels tailD native_nat_zero),
+        by simp [tuplePrependValueRec]⟩
+
+private theorem tuple_apply_model_eval_is_apply
+    (M : SmtModel) (hM : model_total_typed M) (a as : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) as) ->
+    ∃ v x,
+      __smtx_model_eval M
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) a) as)) =
+        SmtValue.Apply v x := by
+  intro hTrans
+  change
+    __smtx_typeof
+        (__eo_to_smt_tuple_prepend (__eo_to_smt a)
+          (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt as)) ≠
+      SmtType.None at hTrans
+  rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+      as a hTrans with
+    ⟨c, hTailTy⟩
+  have hEval := tuple_prepend_eval_eq_value_rec M hM
+    (__eo_to_smt a) (__eo_to_smt as)
+    (__smtx_typeof (__eo_to_smt a)) c rfl hTailTy hTrans
+  dsimp at hEval
+  change
+    ∃ v x,
+      __smtx_model_eval M
+          (__eo_to_smt_tuple_prepend (__eo_to_smt a)
+            (__smtx_typeof (__eo_to_smt a)) (__eo_to_smt as)) =
+        SmtValue.Apply v x
+  rw [hEval]
+  exact tuplePrependValueRec_seed_is_apply
+    (SmtDatatype.sum c SmtDatatype.null)
+    (__smtx_model_eval M (__eo_to_smt as))
+    (__smtx_dt_num_sels (SmtDatatype.sum c SmtDatatype.null) native_nat_zero)
+    (SmtValue.DtCons (native_string_lit "@Tuple")
+      (SmtDatatype.sum
+        (SmtDatatypeCons.cons (__smtx_typeof (__eo_to_smt a)) c)
+        SmtDatatype.null) native_nat_zero)
+    (__smtx_model_eval M (__eo_to_smt a))
+
+private theorem ctorSpineRoot_nonapply_eval_ne_apply
+    (M : SmtModel) {c root : Term}
+    (hSp : CtorSpineRoot c root)
+    (hcNotApply : ∀ f x, c ≠ Term.Apply f x)
+    (hTrans : RuleProofs.eo_has_smt_translation c) :
+    ∀ v x,
+      __smtx_model_eval M (__eo_to_smt c) ≠ SmtValue.Apply v x := by
+  intro v x
+  cases hSp with
+  | tuple =>
+      exact False.elim (hTrans TranslationProofs.smtx_typeof_none)
+  | tupleUnit =>
+      rw [TranslationProofs.eo_to_smt_term_tuple_unit]
+      simp [__smtx_model_eval]
+  | dtCons s d i =>
+      rw [eo_to_smt_dtCons_eq]
+      by_cases hRes : native_reserved_datatype_name s
+      · exact False.elim (hTrans (by simp [native_ite, hRes]))
+      · simp [native_ite, hRes, __smtx_model_eval]
+  | app y hPrev =>
+      exact False.elim (hcNotApply _ _ rfl)
+
+private theorem ctorSpineRoot_apply_eval_is_apply
+    (M : SmtModel) (hM : model_total_typed M)
+    {f a root : Term}
+    (hSp : CtorSpineRoot (Term.Apply f a) root)
+    (hTrans : RuleProofs.eo_has_smt_translation (Term.Apply f a)) :
+    ∃ v x,
+      __smtx_model_eval M (__eo_to_smt (Term.Apply f a)) =
+        SmtValue.Apply v x := by
+  cases hSp with
+  | app y hPrev =>
+      rcases ctorSpineRoot_root_cases hPrev with
+        hTuple | hRest
+      · have hPrevTuple : CtorSpineRoot f (Term.UOp UserOp.tuple) := by
+          simpa [hTuple] using hPrev
+        rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hPrevTuple with
+          hNone | hOne
+        · exact False.elim (hTrans hNone)
+        · rcases hOne with ⟨head, hF⟩
+          subst f
+          exact tuple_apply_model_eval_is_apply M hM head a hTrans
+      · rcases hRest with hUnit | hDt
+        · have hPrevUnit : CtorSpineRoot f (Term.UOp UserOp.tuple_unit) := by
+            simpa [hUnit] using hPrev
+          exact False.elim
+            (hTrans (ctorSpineRoot_tupleUnit_apply_type_none hPrevUnit))
+        · rcases hDt with ⟨s, d, i, hRoot⟩
+          have hPrevDt : CtorSpineRoot f (Term.DtCons s d i) := by
+            simpa [hRoot] using hPrev
+          have hDtSp : DtConsSpineRoot f s d i :=
+            dtConsSpineRoot_of_ctor_dtCons hPrevDt
+          have hEval :=
+            dtConsSpineRoot_apply_eval_eq_apply M hM hDtSp a hTrans
+          rw [hEval]
+          exact ⟨__smtx_model_eval M (__eo_to_smt f),
+            __smtx_model_eval M (__eo_to_smt a), rfl⟩
+
+theorem dt_distinct_terms_apply_left_nonapply_model_eval_eq_false
+    (M : SmtModel) (hM : model_total_typed M)
+    (f a c : Term) :
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    RuleProofs.eo_has_smt_translation c ->
+    (∀ g y, c ≠ Term.Apply g y) ->
+    __dt_distinct_terms (Term.Apply f a) c = Term.Boolean true ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply f a)))
+        (__smtx_model_eval M (__eo_to_smt c)) =
+      SmtValue.Boolean false := by
+  intro hAppTrans hcTrans hcNotApply hDistinct
+  rcases dt_distinct_terms_roots_of_right_nonapply
+      hcNotApply hDistinct with
+    ⟨rApp, rC, hAppRoot, hCRoot⟩
+  rcases ctorSpineRoot_apply_eval_is_apply M hM hAppRoot hAppTrans with
+    ⟨vf, vx, hEvalApp⟩
+  exact smtx_model_eval_eq_false_of_ne_not_reglan
+    (by
+      intro hEq
+      rw [hEvalApp] at hEq
+      exact ctorSpineRoot_nonapply_eval_ne_apply
+        M hCRoot hcNotApply hcTrans vf vx hEq.symm)
+    (by
+      intro hReg
+      rcases hReg with ⟨r₁, r₂, h₁, _h₂⟩
+      rw [hEvalApp] at h₁
+      cases h₁)
+
+private theorem dt_distinct_terms_roots_of_left_nonapply
+    {c t : Term} :
+    (∀ f x, c ≠ Term.Apply f x) ->
+    __dt_distinct_terms c t = Term.Boolean true ->
+    ∃ rc rt, CtorSpineRoot c rc ∧ CtorSpineRoot t rt := by
+  intro hcNotApply hDistinct
+  by_cases htApply : ∃ f x, t = Term.Apply f x
+  · rcases htApply with ⟨f, a, rfl⟩
+    have hHead : __dt_distinct_terms c f = Term.Boolean true := by
+      cases c <;> try simpa [__dt_distinct_terms] using hDistinct
+      case Apply g y =>
+        exact False.elim (hcNotApply g y rfl)
+    rcases dt_distinct_terms_roots_of_left_nonapply
+        hcNotApply hHead with ⟨rc, rt, hc, ht⟩
+    exact ⟨rc, rt, hc, CtorSpineRoot.app a ht⟩
+  · have htNotApply : ∀ f x, t ≠ Term.Apply f x := by
+      intro f x h
+      exact htApply ⟨f, x, h⟩
+    exact dt_distinct_terms_roots_of_nonapply_pair
+      hcNotApply htNotApply hDistinct
+termination_by sizeOf t
+decreasing_by
+  all_goals subst_vars; simp_wf; omega
+
+theorem dt_distinct_terms_apply_right_nonapply_model_eval_eq_false
+    (M : SmtModel) (hM : model_total_typed M)
+    (c g b : Term) :
+    RuleProofs.eo_has_smt_translation c ->
+    RuleProofs.eo_has_smt_translation (Term.Apply g b) ->
+    (∀ f x, c ≠ Term.Apply f x) ->
+    __dt_distinct_terms c (Term.Apply g b) = Term.Boolean true ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt c))
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply g b))) =
+      SmtValue.Boolean false := by
+  intro hcTrans hAppTrans hcNotApply hDistinct
+  rcases dt_distinct_terms_roots_of_left_nonapply
+      hcNotApply hDistinct with
+    ⟨rC, rApp, hCRoot, hAppRoot⟩
+  rcases ctorSpineRoot_apply_eval_is_apply M hM hAppRoot hAppTrans with
+    ⟨vg, vb, hEvalApp⟩
+  exact smtx_model_eval_eq_false_of_ne_not_reglan
+    (by
+      intro hEq
+      rw [hEvalApp] at hEq
+      exact ctorSpineRoot_nonapply_eval_ne_apply
+        M hCRoot hcNotApply hcTrans vg vb hEq)
+    (by
+      intro hReg
+      rcases hReg with ⟨r₁, r₂, h₁, h₂⟩
+      rw [hEvalApp] at h₂
+      cases h₂)
+
+private theorem dt_distinct_terms_true_roots
+    (t s : Term) :
+    __dt_distinct_terms t s = Term.Boolean true ->
+    ∃ rt rs, CtorSpineRoot t rt ∧ CtorSpineRoot s rs := by
+  intro hDistinct
+  by_cases htApply : ∃ f x, t = Term.Apply f x
+  · rcases htApply with ⟨f, x, rfl⟩
+    by_cases hsApply : ∃ g y, s = Term.Apply g y
+    · rcases hsApply with ⟨g, y, rfl⟩
+      rw [__dt_distinct_terms.eq_def] at hDistinct
+      change
+        __eo_ite (__dt_distinct_terms f g) (Term.Boolean true)
+          (__eo_ite (__eo_eq x y) (Term.Boolean false)
+            (__are_distinct_terms_type x y (__eo_typeof x))) =
+          Term.Boolean true at hDistinct
+      rcases eo_ite_eq_true_cases
+          (__dt_distinct_terms f g) (Term.Boolean true)
+          (__eo_ite (__eo_eq x y) (Term.Boolean false)
+            (__are_distinct_terms_type x y (__eo_typeof x)))
+          hDistinct with hHead | hTail
+      · rcases dt_distinct_terms_true_roots f g hHead.1 with
+          ⟨rt, rs, hf, hg⟩
+        exact ⟨rt, rs, CtorSpineRoot.app x hf,
+          CtorSpineRoot.app y hg⟩
+      · rcases dt_distinct_terms_false_same_root f g hTail.1 with
+          ⟨root, hf, hg⟩
+        exact ⟨root, root, CtorSpineRoot.app x hf,
+          CtorSpineRoot.app y hg⟩
+    · have hsNotApply : ∀ g y, s ≠ Term.Apply g y := by
+        intro g y h
+        exact hsApply ⟨g, y, h⟩
+      exact dt_distinct_terms_roots_of_right_nonapply
+        hsNotApply hDistinct
+  · have htNotApply : ∀ f x, t ≠ Term.Apply f x := by
+      intro f x h
+      exact htApply ⟨f, x, h⟩
+    by_cases hsApply : ∃ g y, s = Term.Apply g y
+    · rcases hsApply with ⟨g, y, rfl⟩
+      exact dt_distinct_terms_roots_of_left_nonapply
+        htNotApply hDistinct
+    · have hsNotApply : ∀ g y, s ≠ Term.Apply g y := by
+        intro g y h
+        exact hsApply ⟨g, y, h⟩
+      exact dt_distinct_terms_roots_of_nonapply_pair
+        htNotApply hsNotApply hDistinct
+termination_by sizeOf t + sizeOf s
+decreasing_by
+  all_goals subst_vars; simp_wf; omega
+
+private theorem smt_eval_eq_false_implies_ne
+    {v w : SmtValue} :
+    __smtx_model_eval_eq v w = SmtValue.Boolean false ->
+    v ≠ w := by
+  intro hEq hSame
+  subst w
+  have hRefl : __smtx_model_eval_eq v v = SmtValue.Boolean true :=
+    RuleProofs.smtx_model_eval_eq_refl v
+  rw [hRefl] at hEq
+  cases hEq
+
+private theorem dtConsSpineRoot_head_translation_of_apply_translation
+    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    (hSp : DtConsSpineRoot t s d i) (x : Term) :
+    RuleProofs.eo_has_smt_translation (Term.Apply t x) ->
+    RuleProofs.eo_has_smt_translation t := by
+  intro hTrans
+  have hTo := dtConsSpineRoot_apply_generic hSp x
+  have hGen : generic_apply_type (__eo_to_smt t) (__eo_to_smt x) :=
+    generic_apply_type_of_non_datatype_head
+      (dtConsSpineRoot_to_smt_ne_dt_sel hSp)
+      (dtConsSpineRoot_to_smt_ne_dt_tester hSp)
+  have hApplyNN :
+      __smtx_typeof_apply (__smtx_typeof (__eo_to_smt t))
+          (__smtx_typeof (__eo_to_smt x)) ≠ SmtType.None := by
+    have hTransNN :
+        __smtx_typeof (__eo_to_smt (Term.Apply t x)) ≠ SmtType.None :=
+      hTrans
+    have hNN' :
+        __smtx_typeof (SmtTerm.Apply (__eo_to_smt t) (__eo_to_smt x)) ≠
+          SmtType.None := by
+      simpa [hTo] using hTransNN
+    unfold generic_apply_type at hGen
+    rw [hGen] at hNN'
+    exact hNN'
+  rcases typeof_apply_non_none_cases hApplyNN with
+    ⟨A, B, hHead, _hX, _hANN, _hBNN⟩
+  unfold RuleProofs.eo_has_smt_translation
+  rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+
+private theorem dtConsSpineRoot_reserved_false_of_translation
+    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    (hSp : DtConsSpineRoot t s d i) :
+    RuleProofs.eo_has_smt_translation t ->
+    native_reserved_datatype_name s = false := by
+  induction hSp with
+  | root s d i =>
+      intro hTrans
+      unfold RuleProofs.eo_has_smt_translation at hTrans
+      rw [eo_to_smt_dtCons_eq] at hTrans
+      by_cases hRes : native_reserved_datatype_name s
+      · exfalso
+        apply hTrans
+        simp [native_ite, hRes]
+      · simpa using hRes
+  | app x hSp ih =>
+      intro hTrans
+      exact ih
+        (dtConsSpineRoot_head_translation_of_apply_translation
+          hSp x hTrans)
+
+private theorem dtConsSpineRoot_eval_head_name_of_type
+    (M : SmtModel) (hM : model_total_typed M)
+    {t : Term} {s : native_String} {d : Datatype} {i : native_Nat}
+    (hSp : DtConsSpineRoot t s d i)
+    (hNN : __smtx_typeof (__eo_to_smt t) ≠ SmtType.None) :
+    ∃ d' i',
+      __vsm_apply_head (__smtx_model_eval M (__eo_to_smt t)) =
+        SmtValue.DtCons s d' i' := by
+  induction hSp with
+  | root s d i =>
+      rw [eo_to_smt_dtCons_eq] at hNN
+      by_cases hRes : native_reserved_datatype_name s
+      · exfalso
+        apply hNN
+        simp [native_ite, hRes]
+      · refine ⟨__eo_to_smt_datatype d, i, ?_⟩
+        rw [eo_to_smt_dtCons_eq]
+        simp [native_ite, hRes]
+        simp [__smtx_model_eval, __vsm_apply_head]
+  | app x hSp ih =>
+      rename_i t0 s0 d0 i0
+      have hTo := dtConsSpineRoot_apply_generic hSp x
+      have hGen : generic_apply_type (__eo_to_smt t0) (__eo_to_smt x) :=
+        generic_apply_type_of_non_datatype_head
+          (dtConsSpineRoot_to_smt_ne_dt_sel hSp)
+          (dtConsSpineRoot_to_smt_ne_dt_tester hSp)
+      have hApplyNN :
+          __smtx_typeof_apply (__smtx_typeof (__eo_to_smt t0))
+              (__smtx_typeof (__eo_to_smt x)) ≠ SmtType.None := by
+        have hNN' := hNN
+        rw [hTo] at hNN'
+        unfold generic_apply_type at hGen
+        rw [hGen] at hNN'
+        exact hNN'
+      rcases typeof_apply_non_none_cases hApplyNN with
+        ⟨A, B, hHead, hX, hANN, _hBNN⟩
+      have hHeadNN : __smtx_typeof (__eo_to_smt t0) ≠ SmtType.None := by
+        rcases hHead with hHead | hHead <;> rw [hHead] <;> simp
+      rcases ih hHeadNN with ⟨d', i', hEvalHead⟩
+      have hXNN : __smtx_typeof (__eo_to_smt x) ≠ SmtType.None := by
+        rw [hX]
+        exact hANN
+      have hxNot :=
+        smt_model_eval_not_notvalue_of_non_none M hM (__eo_to_smt x) hXNN
+      refine ⟨d', i', ?_⟩
+      rw [hTo]
+      rw [smtx_model_eval_apply_eq_apply_of_not_dt_ops M
+        _ _
+        (dtConsSpineRoot_to_smt_ne_dt_sel hSp)
+        (dtConsSpineRoot_to_smt_ne_dt_tester hSp)]
+      rw [smtx_model_eval_apply_of_dt_chain M
+        _ _
+        ⟨s0, d', i', hEvalHead⟩ hxNot]
+      simp [__vsm_apply_head, hEvalHead]
+
+theorem dt_distinct_terms_true_nontranslated_left_apply_head_is_tuple
+    (f g a : Term) :
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    __dt_distinct_terms f g = Term.Boolean true ->
+    ¬ RuleProofs.eo_has_smt_translation f ->
+    ∃ x, f = Term.Apply (Term.UOp UserOp.tuple) x := by
+  intro hApplyTrans hDistinct hNoTrans
+  rcases dt_distinct_terms_true_roots f g hDistinct with
+    ⟨rF, _rG, hFRoot, _hGRoot⟩
+  rcases ctorSpineRoot_root_cases hFRoot with hFRootTuple | hFRest
+  · have hFRootTuple' : CtorSpineRoot f (Term.UOp UserOp.tuple) := by
+      simpa [hFRootTuple] using hFRoot
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hFRootTuple' with
+      hNone | hOne
+    · exact False.elim (hApplyTrans hNone)
+    · exact hOne
+  rcases hFRest with hFRootUnit | hFRootDt
+  · have hFRootUnit' : CtorSpineRoot f (Term.UOp UserOp.tuple_unit) := by
+      simpa [hFRootUnit] using hFRoot
+    exact False.elim
+      (hApplyTrans (ctorSpineRoot_tupleUnit_apply_type_none hFRootUnit'))
+  rcases hFRootDt with ⟨s, d, i, hFRootDt⟩
+  have hFRootDt' : CtorSpineRoot f (Term.DtCons s d i) := by
+    simpa [hFRootDt] using hFRoot
+  have hFSp : DtConsSpineRoot f s d i :=
+    dtConsSpineRoot_of_ctor_dtCons hFRootDt'
+  exact False.elim
+    (hNoTrans
+      (dtConsSpineRoot_head_translation_of_apply_translation hFSp a
+        hApplyTrans))
+
+theorem dt_distinct_terms_true_nontranslated_right_apply_head_is_tuple
+    (f g b : Term) :
+    RuleProofs.eo_has_smt_translation (Term.Apply g b) ->
+    __dt_distinct_terms f g = Term.Boolean true ->
+    ¬ RuleProofs.eo_has_smt_translation g ->
+    ∃ y, g = Term.Apply (Term.UOp UserOp.tuple) y := by
+  intro hApplyTrans hDistinct hNoTrans
+  rcases dt_distinct_terms_true_roots f g hDistinct with
+    ⟨_rF, rG, _hFRoot, hGRoot⟩
+  rcases ctorSpineRoot_root_cases hGRoot with hGRootTuple | hGRest
+  · have hGRootTuple' : CtorSpineRoot g (Term.UOp UserOp.tuple) := by
+      simpa [hGRootTuple] using hGRoot
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hGRootTuple' with
+      hNone | hOne
+    · exact False.elim (hApplyTrans hNone)
+    · exact hOne
+  rcases hGRest with hGRootUnit | hGRootDt
+  · have hGRootUnit' : CtorSpineRoot g (Term.UOp UserOp.tuple_unit) := by
+      simpa [hGRootUnit] using hGRoot
+    exact False.elim
+      (hApplyTrans (ctorSpineRoot_tupleUnit_apply_type_none hGRootUnit'))
+  rcases hGRootDt with ⟨s, d, i, hGRootDt⟩
+  have hGRootDt' : CtorSpineRoot g (Term.DtCons s d i) := by
+    simpa [hGRootDt] using hGRoot
+  have hGSp : DtConsSpineRoot g s d i :=
+    dtConsSpineRoot_of_ctor_dtCons hGRootDt'
+  exact False.elim
+    (hNoTrans
+      (dtConsSpineRoot_head_translation_of_apply_translation hGSp b
+        hApplyTrans))
+
+theorem dt_distinct_terms_apply_apply_model_eval_eq_false_of_head_component
+    (M : SmtModel) (hM : model_total_typed M)
+    (f g a b : Term) :
+    RuleProofs.eo_has_smt_translation f ->
+    RuleProofs.eo_has_smt_translation g ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply g b) ->
+    __dt_distinct_terms f g = Term.Boolean true ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt f))
+        (__smtx_model_eval M (__eo_to_smt g)) = SmtValue.Boolean false ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply f a)))
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply g b))) =
+      SmtValue.Boolean false := by
+  intro hFTrans hGTrans hLeftTrans hRightTrans hDistinct hHeadFalse
+  rcases dt_distinct_terms_true_roots f g hDistinct with
+    ⟨rF, rG, hFRoot, hGRoot⟩
+  rcases ctorSpineRoot_root_cases hFRoot with hFRootTuple | hFRest
+  · have hFRootTuple' : CtorSpineRoot f (Term.UOp UserOp.tuple) := by
+      simpa [hFRootTuple] using hFRoot
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hFRootTuple' with
+      hNone | hOne
+    · exact False.elim (hLeftTrans hNone)
+    · rcases hOne with ⟨x, hFx⟩
+      subst f
+      exact False.elim
+        (hFTrans
+          (by
+            change
+              __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                SmtType.None
+            exact TranslationProofs.typeof_apply_none_eq (__eo_to_smt x)))
+  rcases hFRest with hFRootUnit | hFRootDt
+  · have hFRootUnit' : CtorSpineRoot f (Term.UOp UserOp.tuple_unit) := by
+      simpa [hFRootUnit] using hFRoot
+    exact False.elim
+      (hLeftTrans (ctorSpineRoot_tupleUnit_apply_type_none hFRootUnit'))
+  rcases hFRootDt with ⟨sF, dF, iF, hFRootDt⟩
+  have hFRootDt' : CtorSpineRoot f (Term.DtCons sF dF iF) := by
+    simpa [hFRootDt] using hFRoot
+  rcases ctorSpineRoot_root_cases hGRoot with hGRootTuple | hGRest
+  · have hGRootTuple' : CtorSpineRoot g (Term.UOp UserOp.tuple) := by
+      simpa [hGRootTuple] using hGRoot
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hGRootTuple' with
+      hNone | hOne
+    · exact False.elim (hRightTrans hNone)
+    · rcases hOne with ⟨y, hGy⟩
+      subst g
+      exact False.elim
+        (hGTrans
+          (by
+            change
+              __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt y)) =
+                SmtType.None
+            exact TranslationProofs.typeof_apply_none_eq (__eo_to_smt y)))
+  rcases hGRest with hGRootUnit | hGRootDt
+  · have hGRootUnit' : CtorSpineRoot g (Term.UOp UserOp.tuple_unit) := by
+      simpa [hGRootUnit] using hGRoot
+    exact False.elim
+      (hRightTrans (ctorSpineRoot_tupleUnit_apply_type_none hGRootUnit'))
+  rcases hGRootDt with ⟨sG, dG, iG, hGRootDt⟩
+  have hGRootDt' : CtorSpineRoot g (Term.DtCons sG dG iG) := by
+    simpa [hGRootDt] using hGRoot
+  have hFSp : DtConsSpineRoot f sF dF iF :=
+    dtConsSpineRoot_of_ctor_dtCons hFRootDt'
+  have hGSp : DtConsSpineRoot g sG dG iG :=
+    dtConsSpineRoot_of_ctor_dtCons hGRootDt'
+  have hLeftEval :=
+    dtConsSpineRoot_apply_eval_eq_apply M hM hFSp a hLeftTrans
+  have hRightEval :=
+    dtConsSpineRoot_apply_eval_eq_apply M hM hGSp b hRightTrans
+  have hHeadNe :
+      __smtx_model_eval M (__eo_to_smt f) ≠
+        __smtx_model_eval M (__eo_to_smt g) :=
+    smt_eval_eq_false_implies_ne hHeadFalse
+  rw [hLeftEval, hRightEval]
+  exact smtx_model_eval_eq_false_of_ne_not_reglan
+    (by
+      intro hEq
+      injection hEq with hHeadEq _hArgEq
+      exact hHeadNe hHeadEq)
+    (by
+      intro hReg
+      rcases hReg with ⟨r₁, r₂, h₁, _h₂⟩
+      cases h₁)
+
+theorem dt_distinct_terms_apply_apply_model_eval_eq_false_of_right_tuple_head
+    (M : SmtModel) (hM : model_total_typed M)
+    (f a y b : Term) :
+    RuleProofs.eo_has_smt_translation f ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) b) ->
+    __dt_distinct_terms f (Term.Apply (Term.UOp UserOp.tuple) y) =
+      Term.Boolean true ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply f a)))
+        (__smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) b))) =
+      SmtValue.Boolean false := by
+  intro hFTrans hLeftTrans hRightTrans hDistinct
+  rcases dt_distinct_terms_true_roots f
+      (Term.Apply (Term.UOp UserOp.tuple) y) hDistinct with
+    ⟨rF, _rG, hFRoot, _hGRoot⟩
+  rcases ctorSpineRoot_root_cases hFRoot with hFRootTuple | hFRest
+  · have hFRootTuple' : CtorSpineRoot f (Term.UOp UserOp.tuple) := by
+      simpa [hFRootTuple] using hFRoot
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hFRootTuple' with
+      hNone | hOne
+    · exact False.elim (hLeftTrans hNone)
+    · rcases hOne with ⟨x, hFx⟩
+      subst f
+      exact False.elim
+        (hFTrans
+          (by
+            change
+              __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt x)) =
+                SmtType.None
+            exact TranslationProofs.typeof_apply_none_eq (__eo_to_smt x)))
+  rcases hFRest with hFRootUnit | hFRootDt
+  · have hFRootUnit' : CtorSpineRoot f (Term.UOp UserOp.tuple_unit) := by
+      simpa [hFRootUnit] using hFRoot
+    exact False.elim
+      (hLeftTrans (ctorSpineRoot_tupleUnit_apply_type_none hFRootUnit'))
+  rcases hFRootDt with ⟨sF, dF, iF, hFRootDt⟩
+  have hFRootDt' : CtorSpineRoot f (Term.DtCons sF dF iF) := by
+    simpa [hFRootDt] using hFRoot
+  have hFSp : DtConsSpineRoot f sF dF iF :=
+    dtConsSpineRoot_of_ctor_dtCons hFRootDt'
+  have hLeftEval :=
+    dtConsSpineRoot_apply_eval_eq_apply M hM hFSp a hLeftTrans
+  have hRightNN :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) y) b)) ≠
+        SmtType.None :=
+    hRightTrans
+  change
+    __smtx_typeof
+        (__eo_to_smt_tuple_prepend (__eo_to_smt y)
+          (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt b)) ≠
+      SmtType.None at hRightNN
+  rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+      b y hRightNN with
+    ⟨c, hTailTy⟩
+  have hRightEval := tuple_prepend_eval_eq_value_rec M hM
+    (__eo_to_smt y) (__eo_to_smt b)
+    (__smtx_typeof (__eo_to_smt y)) c rfl hTailTy hRightNN
+  dsimp at hRightEval
+  have hFNN : __smtx_typeof (__eo_to_smt f) ≠ SmtType.None :=
+    hFTrans
+  rcases dtConsSpineRoot_eval_head_name_of_type M hM hFSp hFNN with
+    ⟨dHead, iHead, hFHead⟩
+  have hReservedFalse :
+      native_reserved_datatype_name sF = false :=
+    dtConsSpineRoot_reserved_false_of_translation hFSp hFTrans
+  have hTupleReserved :
+      native_reserved_datatype_name (native_string_lit "@Tuple") = true := by
+    native_decide
+  rw [hLeftEval]
+  change
+    __smtx_model_eval_eq
+        (SmtValue.Apply (__smtx_model_eval M (__eo_to_smt f))
+          (__smtx_model_eval M (__eo_to_smt a)))
+        (__smtx_model_eval M
+          (__eo_to_smt_tuple_prepend (__eo_to_smt y)
+            (__smtx_typeof (__eo_to_smt y)) (__eo_to_smt b))) =
+      SmtValue.Boolean false
+  rw [hRightEval]
+  exact smtx_model_eval_eq_false_of_ne_not_reglan
+    (by
+      intro hEq
+      have hHeads := congrArg __vsm_apply_head hEq
+      rw [tuplePrependValueRec_head] at hHeads
+      simp [__vsm_apply_head, hFHead] at hHeads
+      rcases hHeads with ⟨hName, _hD, _hI⟩
+      rw [hName, hTupleReserved] at hReservedFalse
+      cases hReservedFalse)
+    (by
+      intro hReg
+      rcases hReg with ⟨r₁, r₂, h₁, _h₂⟩
+      cases h₁)
+
+theorem dt_distinct_terms_apply_apply_model_eval_eq_false_of_left_tuple_head
+    (M : SmtModel) (hM : model_total_typed M)
+    (x a g b : Term) :
+    RuleProofs.eo_has_smt_translation
+      (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) a) ->
+    RuleProofs.eo_has_smt_translation g ->
+    RuleProofs.eo_has_smt_translation (Term.Apply g b) ->
+    __dt_distinct_terms (Term.Apply (Term.UOp UserOp.tuple) x) g =
+      Term.Boolean true ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M
+          (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) a)))
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply g b))) =
+      SmtValue.Boolean false := by
+  intro hLeftTrans hGTrans hRightTrans hDistinct
+  rcases dt_distinct_terms_true_roots
+      (Term.Apply (Term.UOp UserOp.tuple) x) g hDistinct with
+    ⟨_rF, rG, _hFRoot, hGRoot⟩
+  rcases ctorSpineRoot_root_cases hGRoot with hGRootTuple | hGRest
+  · have hGRootTuple' : CtorSpineRoot g (Term.UOp UserOp.tuple) := by
+      simpa [hGRootTuple] using hGRoot
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hGRootTuple' with
+      hNone | hOne
+    · exact False.elim (hRightTrans hNone)
+    · rcases hOne with ⟨y, hGy⟩
+      subst g
+      exact False.elim
+        (hGTrans
+          (by
+            change
+              __smtx_typeof (SmtTerm.Apply SmtTerm.None (__eo_to_smt y)) =
+                SmtType.None
+            exact TranslationProofs.typeof_apply_none_eq (__eo_to_smt y)))
+  rcases hGRest with hGRootUnit | hGRootDt
+  · have hGRootUnit' : CtorSpineRoot g (Term.UOp UserOp.tuple_unit) := by
+      simpa [hGRootUnit] using hGRoot
+    exact False.elim
+      (hRightTrans (ctorSpineRoot_tupleUnit_apply_type_none hGRootUnit'))
+  rcases hGRootDt with ⟨sG, dG, iG, hGRootDt⟩
+  have hGRootDt' : CtorSpineRoot g (Term.DtCons sG dG iG) := by
+    simpa [hGRootDt] using hGRoot
+  have hGSp : DtConsSpineRoot g sG dG iG :=
+    dtConsSpineRoot_of_ctor_dtCons hGRootDt'
+  have hRightEval :=
+    dtConsSpineRoot_apply_eval_eq_apply M hM hGSp b hRightTrans
+  have hLeftNN :
+      __smtx_typeof
+          (__eo_to_smt
+            (Term.Apply (Term.Apply (Term.UOp UserOp.tuple) x) a)) ≠
+        SmtType.None :=
+    hLeftTrans
+  change
+    __smtx_typeof
+        (__eo_to_smt_tuple_prepend (__eo_to_smt x)
+          (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt a)) ≠
+      SmtType.None at hLeftNN
+  rcases TranslationProofs.eo_to_smt_tuple_tail_type_of_non_none_from_checked
+      a x hLeftNN with
+    ⟨c, hTailTy⟩
+  have hLeftEval := tuple_prepend_eval_eq_value_rec M hM
+    (__eo_to_smt x) (__eo_to_smt a)
+    (__smtx_typeof (__eo_to_smt x)) c rfl hTailTy hLeftNN
+  dsimp at hLeftEval
+  have hGNN : __smtx_typeof (__eo_to_smt g) ≠ SmtType.None :=
+    hGTrans
+  rcases dtConsSpineRoot_eval_head_name_of_type M hM hGSp hGNN with
+    ⟨dHead, iHead, hGHead⟩
+  have hReservedFalse :
+      native_reserved_datatype_name sG = false :=
+    dtConsSpineRoot_reserved_false_of_translation hGSp hGTrans
+  have hTupleReserved :
+      native_reserved_datatype_name (native_string_lit "@Tuple") = true := by
+    native_decide
+  rw [hRightEval]
+  change
+    __smtx_model_eval_eq
+        (__smtx_model_eval M
+          (__eo_to_smt_tuple_prepend (__eo_to_smt x)
+            (__smtx_typeof (__eo_to_smt x)) (__eo_to_smt a)))
+        (SmtValue.Apply (__smtx_model_eval M (__eo_to_smt g))
+          (__smtx_model_eval M (__eo_to_smt b))) =
+      SmtValue.Boolean false
+  rw [hLeftEval]
+  exact smtx_model_eval_eq_false_of_ne_not_reglan
+    (by
+      intro hEq
+      have hHeads := congrArg __vsm_apply_head hEq
+      rw [tuplePrependValueRec_head] at hHeads
+      simp [__vsm_apply_head, hGHead] at hHeads
+      rcases hHeads with ⟨hName, _hD, _hI⟩
+      rw [← hName, hTupleReserved] at hReservedFalse
+      cases hReservedFalse)
+    (by
+      intro hReg
+      rcases hReg with ⟨r₁, r₂, h₁, _h₂⟩
+      have hHead := congrArg __vsm_apply_head h₁
+      rw [tuplePrependValueRec_head] at hHead
+      simp [__vsm_apply_head] at hHead)
+
+theorem dt_distinct_terms_apply_apply_model_eval_eq_false_of_arg_component
+    (M : SmtModel) (hM : model_total_typed M)
+    (f g a b : Term) :
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply g b) ->
+    (∀ x y,
+      f = Term.Apply (Term.UOp UserOp.tuple) x ->
+      g = Term.Apply (Term.UOp UserOp.tuple) y -> False) ->
+    __dt_distinct_terms f g = Term.Boolean false ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt a))
+        (__smtx_model_eval M (__eo_to_smt b)) = SmtValue.Boolean false ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply f a)))
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply g b))) =
+      SmtValue.Boolean false := by
+  intro hLeftTrans hRightTrans hNotTuple hHeadFalse hArgFalse
+  rcases dt_distinct_terms_false_same_root f g hHeadFalse with
+    ⟨root, hFRoot, hGRoot⟩
+  rcases ctorSpineRoot_root_cases hFRoot with hRootTuple | hRest
+  · have hFRootTuple : CtorSpineRoot f (Term.UOp UserOp.tuple) := by
+      simpa [hRootTuple] using hFRoot
+    have hGRootTuple : CtorSpineRoot g (Term.UOp UserOp.tuple) := by
+      simpa [hRootTuple] using hGRoot
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hFRootTuple with
+      hFNone | hFOne
+    · exact False.elim (hLeftTrans hFNone)
+    rcases hFOne with ⟨x, hFx⟩
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hGRootTuple with
+      hGNone | hGOne
+    · exact False.elim (hRightTrans hGNone)
+    rcases hGOne with ⟨y, hGy⟩
+    exact False.elim (hNotTuple x y hFx hGy)
+  · rcases hRest with hRootUnit | hRootDt
+    · have hFRootUnit : CtorSpineRoot f (Term.UOp UserOp.tuple_unit) := by
+        simpa [hRootUnit] using hFRoot
+      exact False.elim
+        (hLeftTrans (ctorSpineRoot_tupleUnit_apply_type_none hFRootUnit))
+    · rcases hRootDt with ⟨s, d, i, hRootDt⟩
+      have hFRootDt : CtorSpineRoot f (Term.DtCons s d i) := by
+        simpa [hRootDt] using hFRoot
+      have hGRootDt : CtorSpineRoot g (Term.DtCons s d i) := by
+        simpa [hRootDt] using hGRoot
+      have hFSp : DtConsSpineRoot f s d i :=
+        dtConsSpineRoot_of_ctor_dtCons hFRootDt
+      have hGSp : DtConsSpineRoot g s d i :=
+        dtConsSpineRoot_of_ctor_dtCons hGRootDt
+      have hLeftEval :=
+        dtConsSpineRoot_apply_eval_eq_apply M hM hFSp a hLeftTrans
+      have hRightEval :=
+        dtConsSpineRoot_apply_eval_eq_apply M hM hGSp b hRightTrans
+      have hArgNe :
+          __smtx_model_eval M (__eo_to_smt a) ≠
+            __smtx_model_eval M (__eo_to_smt b) :=
+        smt_eval_eq_false_implies_ne hArgFalse
+      rw [hLeftEval, hRightEval]
+      exact smtx_model_eval_eq_false_of_ne_not_reglan
+        (by
+          intro hEq
+          injection hEq with _ hArgEq
+          exact hArgNe hArgEq)
+        (by
+          intro hReg
+          rcases hReg with ⟨r₁, r₂, h₁, _h₂⟩
+          cases h₁)
+
 private theorem ctorSpineEq_tuple_apply_bool_false
     {f g a b : Term}
     (hSp : CtorSpineEq f g (Term.UOp UserOp.tuple))
@@ -2047,6 +3340,41 @@ private theorem ctorSpineEq_tupleUnit_apply_bool_false
       (Term.Apply f a) (Term.Apply g b) hBool with
     ⟨_hTyEq, hLeftNN⟩
   exact hLeftNN
+    (ctorSpineRoot_tupleUnit_apply_type_none (ctorSpineEq_left_root hSp))
+
+private theorem ctorSpineEq_tuple_apply_translation_false
+    {f g a b : Term}
+    (hSp : CtorSpineEq f g (Term.UOp UserOp.tuple))
+    (hNotTuple : ∀ (a b : Term),
+      f = Term.Apply (Term.UOp UserOp.tuple) a ->
+      g = Term.Apply (Term.UOp UserOp.tuple) b -> False)
+    (hLeftTrans : RuleProofs.eo_has_smt_translation (Term.Apply f a))
+    (hRightTrans : RuleProofs.eo_has_smt_translation (Term.Apply g b)) :
+    False := by
+  have hLeftNN :
+      __smtx_typeof (__eo_to_smt (Term.Apply f a)) ≠ SmtType.None :=
+    hLeftTrans
+  have hRightNN :
+      __smtx_typeof (__eo_to_smt (Term.Apply g b)) ≠ SmtType.None :=
+    hRightTrans
+  have hFRoot := ctorSpineEq_left_root hSp
+  have hGRoot := ctorSpineEq_right_root hSp
+  rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hFRoot with
+    hFNone | hFOne
+  · exact hLeftNN hFNone
+  · rcases hFOne with ⟨x, hFx⟩
+    rcases ctorSpineRoot_tuple_apply_type_none_or_one_arg hGRoot with
+      hGNone | hGOne
+    · exact hRightNN hGNone
+    · rcases hGOne with ⟨y, hGy⟩
+      exact hNotTuple x y hFx hGy
+
+private theorem ctorSpineEq_tupleUnit_apply_translation_false
+    {f g a b : Term}
+    (hSp : CtorSpineEq f g (Term.UOp UserOp.tuple_unit))
+    (hLeftTrans : RuleProofs.eo_has_smt_translation (Term.Apply f a)) :
+    False := by
+  exact hLeftTrans
     (ctorSpineRoot_tupleUnit_apply_type_none (ctorSpineEq_left_root hSp))
 
 private theorem ctorSpineEq_root_cases
@@ -2174,6 +3502,45 @@ private theorem mk_dt_cons_eq_ctor_spine_eq
 termination_by sizeOf t + sizeOf s
 decreasing_by
   all_goals subst_vars; simp_wf; omega
+
+theorem dt_cons_apply_model_eval_eq_false_of_component
+    (M : SmtModel) (hM : model_total_typed M)
+    (f g a b : Term) :
+    __mk_dt_cons_eq f g ≠ Term.Stuck ->
+    (∀ x y,
+      f = Term.Apply (Term.UOp UserOp.tuple) x ->
+      g = Term.Apply (Term.UOp UserOp.tuple) y -> False) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply f a) ->
+    RuleProofs.eo_has_smt_translation (Term.Apply g b) ->
+    (__smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt f))
+        (__smtx_model_eval M (__eo_to_smt g)) = SmtValue.Boolean false ∨
+      __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt a))
+        (__smtx_model_eval M (__eo_to_smt b)) = SmtValue.Boolean false) ->
+    __smtx_model_eval_eq
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply f a)))
+        (__smtx_model_eval M (__eo_to_smt (Term.Apply g b))) =
+      SmtValue.Boolean false := by
+  intro hMk hNotTuple hLeftTrans hRightTrans hComponent
+  rcases mk_dt_cons_eq_ctor_spine_eq f g hMk with ⟨root, hSp⟩
+  rcases ctorSpineEq_root_cases hSp with hRootTuple | hRest
+  · have hSpTuple : CtorSpineEq f g (Term.UOp UserOp.tuple) := by
+      simpa [hRootTuple] using hSp
+    exact False.elim
+      (ctorSpineEq_tuple_apply_translation_false
+        hSpTuple hNotTuple hLeftTrans hRightTrans)
+  rcases hRest with hRootUnit | hRootDt
+  · have hSpUnit : CtorSpineEq f g (Term.UOp UserOp.tuple_unit) := by
+      simpa [hRootUnit] using hSp
+    exact False.elim
+      (ctorSpineEq_tupleUnit_apply_translation_false
+        (b := b) hSpUnit hLeftTrans)
+  · rcases hRootDt with ⟨s, d, i, hRootDt⟩
+    have hSpDt : CtorSpineEq f g (Term.DtCons s d i) := by
+      simpa [hRootDt] using hSp
+    exact dtCons_ctor_spine_eq_apply_eval_eq_false_of_component
+      M hM a b hSpDt hLeftTrans hRightTrans hComponent
 
 private theorem eval_eo_eq_is_boolean (M : SmtModel) (x y : Term) :
     ∃ b : Bool,
