@@ -71,6 +71,11 @@ def StableInAnyVarModel (M : SmtModel) (P : Term) : Prop :=
   ∀ N, model_total_typed N -> model_agrees_on_globals M N ->
     eo_interprets N P true
 
+/-- A formula remains true under variable-model changes whenever it is true. -/
+def StableWhenTrueInAnyVarModel (P : Term) : Prop :=
+  ∀ M, model_total_typed M -> eo_interprets M P true ->
+    StableInAnyVarModel M P
+
 /--
 Contextual truth for a derived formula.
 
@@ -91,17 +96,13 @@ structure ContextualTruth
       eo_interprets N assumes true ->
       eo_interprets N pushes true ->
       eo_interprets N P true
-  true_in_any_var_model :
-    ∀ N, model_total_typed N ->
-      model_agrees_on_globals M N ->
-      eo_interprets N P true
 
 /--
 The premise evidence supplied to a rule.
 
-Most rules only use `true_here`. Binder-sensitive congruence needs the
-unconditional `true_in_any_var_model` field: once a premise is available, it
-must remain true in any model that only changes variable assignments.
+Most rules only use `true_here`. Binder-sensitive congruence uses
+`true_in_var_model`: the checker constructs that field only when the ambient
+assumptions and pushes are known to remain true across variable-model changes.
 -/
 structure RulePremiseEvidence
     (M : SmtModel) (assumes pushes : Term) (premises : List Term) : Prop where
@@ -110,26 +111,7 @@ structure RulePremiseEvidence
   true_in_var_model :
     ∀ N, model_total_typed N ->
       model_agrees_on_globals M N ->
-      eo_interprets N assumes true ->
-      eo_interprets N pushes true ->
       AllInterpretedTrue N premises
-  true_in_any_var_model :
-    ∀ N, model_total_typed N ->
-      model_agrees_on_globals M N ->
-      AllInterpretedTrue N premises
-
-/--
-The common variable-parametric part of a rule contract.
-
-If every premise remains true after changing only variables, the conclusion
-must also remain true after changing only variables.
--/
-def RuleStableConclusion
-    (M : SmtModel) (premises : List Term) (P : Term) : Prop :=
-  (∀ N, model_total_typed N -> model_agrees_on_globals M N ->
-    AllInterpretedTrue N premises) ->
-  ∀ N, model_total_typed N -> model_agrees_on_globals M N ->
-    eo_interprets N P true
 
 /-- Predicate asserting that every term in a list has an SMT translation. -/
 def AllHaveSmtTranslation (ts : List Term) : Prop :=
@@ -281,56 +263,3 @@ def StepPopRuleProperties
       ((eo_interprets M x1 true) -> eo_interprets M x2 true) ->
       eo_interprets M P true) ∧
     RuleProofs.eo_has_smt_translation P
-
-/--
-TODO: prove this rule by rule.
-
-This is the uniform variable-parametric contract for ordinary step rules.
--/
-theorem stepRuleProperties_stable_conclusion
-    {M : SmtModel} {premises : List Term} {P : Term}
-    (hProps : ∀ N, model_total_typed N ->
-      model_agrees_on_globals M N ->
-      StepRuleProperties N premises P) :
-    RuleStableConclusion M premises P := by
-  intro hPremisesStable N hN hAgree
-  exact (hProps N hN hAgree).facts_of_true
-    (hPremisesStable N hN hAgree)
-
-/--
-TODO: prove this rule by rule.
-
-This is the same variable-parametric contract for evidence-sensitive rules
-such as congruence.
--/
-theorem evidenceStepRuleProperties_stable_conclusion
-    {M : SmtModel} {assumes pushes : Term} {premises : List Term} {P : Term}
-    (hProps : EvidenceStepRuleProperties M assumes pushes premises P) :
-    RuleStableConclusion M premises P := by
-  intro hPremisesStable N hN hAgree
-  exact hProps.facts_of_evidence N hN hAgree
-    ⟨hPremisesStable N hN hAgree,
-      by
-        intro K hK hAgreeNK _hAss _hPush
-        exact hPremisesStable K hK
-          (model_agrees_on_globals_trans hAgree hAgreeNK),
-      by
-        intro K hK hAgreeNK
-        exact hPremisesStable K hK
-          (model_agrees_on_globals_trans hAgree hAgreeNK)⟩
-
-/--
-TODO: prove this for step-pop rules.
-
-This keeps pop rules on the same variable-parametric conclusion contract.
--/
-theorem stepPopRuleProperties_stable_conclusion
-    {M : SmtModel} {A : Term} {premises : List Term} {P : Term}
-    (hProps : StepPopRuleProperties A premises P) :
-    RuleStableConclusion M premises P := by
-  intro hPremisesStable N hN hAgree
-  rcases hProps with ⟨X, hXMem, hFactsOfImp, _hTrans⟩
-  exact hFactsOfImp N hN
-    (by
-      intro _hA
-      exact hPremisesStable N hN hAgree X hXMem)

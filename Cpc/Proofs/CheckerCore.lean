@@ -20,13 +20,13 @@ inductive ValidAssumptionList : Term -> Prop
 inductive StableAssumptionList (M : SmtModel) : Term -> Prop
   | base : StableAssumptionList M (Term.Boolean true)
   | step (A rest : Term) :
-      StableInAnyVarModel M A ->
+      StableWhenTrueInAnyVarModel A ->
       StableAssumptionList M rest ->
       StableAssumptionList M (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest)
 
 /-- The model-dependent stability side condition for commands that introduce assumptions. -/
 def cmdAssumptionStabilityOk (M : SmtModel) : CCmd -> Prop
-  | CCmd.assume_push A => StableInAnyVarModel M A
+  | CCmd.assume_push A => StableWhenTrueInAnyVarModel A
   | _ => True
 
 /-- Every command in a checker command list satisfies `cmdAssumptionStabilityOk`. -/
@@ -437,6 +437,24 @@ by
   intro hTy
   exact (eo_is_bool_type_eq_true_iff t).2 hTy
 
+/-- The combined guard used for assumptions and pushed assumptions. -/
+def assumptionCheckGuard (A : Term) : Term :=
+  __eo_and (__eo_is_bool_type A) (__eo_is_closed A)
+
+/-- Splits a successful assumption guard. -/
+theorem assumptionCheckGuard_eq_true_cases (A : Term) :
+  assumptionCheckGuard A = Term.Boolean true ->
+  __eo_is_bool_type A = Term.Boolean true ∧ __eo_is_closed A = Term.Boolean true :=
+by
+  intro h
+  unfold assumptionCheckGuard at h
+  cases hb : __eo_is_bool_type A <;> cases hc : __eo_is_closed A <;>
+    simp [__eo_and, hb, hc, native_and, __eo_requires, native_ite, native_teq] at h
+  case Binary.Binary =>
+    split at h <;> contradiction
+  case Boolean.Boolean b₁ b₂ =>
+    cases b₁ <;> cases b₂ <;> simp at h ⊢
+
 /-- Simplifies the successful checked assume push. -/
 theorem push_assume_check_true (A : Term) (s : CState) :
   __eo_push_assume_check (Term.Boolean true) A s =
@@ -444,37 +462,50 @@ theorem push_assume_check_true (A : Term) (s : CState) :
 by
   simp [__eo_push_assume_check]
 
-/-- Derives `push_assume_eq_cons` from `typeof_bool`. -/
-theorem push_assume_eq_cons_of_typeof_bool (A : Term) (s : CState) :
-  __eo_typeof A = Term.Bool ->
-  __eo_push_assume_check (__eo_is_bool_type A) A s = CState.cons (CStateObj.assume_push A) s :=
+/-- Derives `push_assume_eq_cons` from a successful combined guard. -/
+theorem push_assume_eq_cons_of_guard_true (A : Term) (s : CState) :
+  assumptionCheckGuard A = Term.Boolean true ->
+  __eo_push_assume_check (assumptionCheckGuard A) A s =
+    CState.cons (CStateObj.assume_push A) s :=
 by
-  intro hTy
-  simp [__eo_push_assume_check,
-    eo_is_bool_type_eq_true_of_typeof_bool, hTy]
+  intro hGuard
+  change __eo_push_assume_check (assumptionCheckGuard A) A s =
+    CState.cons (CStateObj.assume_push A) s
+  rw [hGuard]
+  simp [__eo_push_assume_check]
 
 /-- Derives `push_assume_eq_stuck` from `eq_stuck`. -/
 theorem push_assume_eq_stuck_of_eq_stuck (s : CState) :
-  __eo_push_assume_check (__eo_is_bool_type Term.Stuck) Term.Stuck s = CState.Stuck :=
+  __eo_push_assume_check (assumptionCheckGuard Term.Stuck) Term.Stuck s =
+    CState.Stuck :=
 by
-  simp [__eo_push_assume_check, __eo_is_bool_type]
+  simp [assumptionCheckGuard, __eo_push_assume_check, __eo_is_bool_type, __eo_and]
+
+/-- Derives `push_assume_eq_stuck` from an unsuccessful combined guard. -/
+theorem push_assume_eq_stuck_of_guard_ne_true (A : Term) (s : CState) :
+  assumptionCheckGuard A ≠ Term.Boolean true ->
+  __eo_push_assume_check (assumptionCheckGuard A) A s = CState.Stuck :=
+by
+  intro hGuard
+  cases hCheck : assumptionCheckGuard A <;>
+    simp [__eo_push_assume_check, hCheck]
+  case Boolean b =>
+    cases b <;> simp [hCheck] at hGuard ⊢
 
 /-- Derives `push_assume_eq_stuck` from `typeof_ne_bool`. -/
 theorem push_assume_eq_stuck_of_typeof_ne_bool (A : Term) (s : CState) :
   __eo_typeof A ≠ Term.Bool ->
-  __eo_push_assume_check (__eo_is_bool_type A) A s = CState.Stuck :=
+  __eo_push_assume_check (assumptionCheckGuard A) A s = CState.Stuck :=
 by
   intro hTy
-  have hBool : __eo_is_bool_type A ≠ Term.Boolean true := by
-    intro h
-    exact hTy ((eo_is_bool_type_eq_true_iff A).1 h)
-  cases hCheck : __eo_is_bool_type A <;> simp [__eo_push_assume_check]
-  case Boolean b =>
-    cases b <;> simp [hCheck] at hBool ⊢
+  apply push_assume_eq_stuck_of_guard_ne_true
+  intro hGuard
+  exact hTy ((eo_is_bool_type_eq_true_iff A).1
+    (assumptionCheckGuard_eq_true_cases A hGuard).1)
 
 /-- Derives `assume_push_arg_ne_stuck` from `stateOk`. -/
 theorem assume_push_arg_ne_stuck_of_stateOk (A : Term) (s : CState) :
-  stateOk (__eo_push_assume_check (__eo_is_bool_type A) A s) -> A ≠ Term.Stuck :=
+  stateOk (__eo_push_assume_check (assumptionCheckGuard A) A s) -> A ≠ Term.Stuck :=
 by
   intro hOk hA
   subst hA
@@ -482,38 +513,54 @@ by
 
 /-- Shows that `push_assume` reflects `stateOk`. -/
 theorem push_assume_reflects_stateOk (A : Term) (s : CState) :
-  stateOk (__eo_push_assume_check (__eo_is_bool_type A) A s) -> stateOk s :=
+  stateOk (__eo_push_assume_check (assumptionCheckGuard A) A s) -> stateOk s :=
 by
   intro hOk
-  have hTy : __eo_typeof A = Term.Bool := by
-    have hBool : __eo_is_bool_type A = Term.Boolean true := by
-      cases hCheck : __eo_is_bool_type A <;> simp [__eo_push_assume_check, hCheck, stateOk] at hOk
-      case Boolean b =>
-        cases b <;> simp [stateOk] at hOk
-        simp
-    exact (eo_is_bool_type_eq_true_iff A).1 hBool
-  simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, stateOk] using hOk
+  cases hCheck : assumptionCheckGuard A <;>
+    simp [__eo_push_assume_check, hCheck, stateOk] at hOk
+  case Boolean b =>
+    cases b
+    · simp [__eo_push_assume_check, hCheck, stateOk] at hOk
+    · simpa [__eo_push_assume_check, hCheck, stateOk] using hOk
+
+/-- Derives the successful combined guard from `stateOk`. -/
+theorem push_assume_guard_true_of_stateOk (A : Term) (s : CState) :
+  stateOk (__eo_push_assume_check (assumptionCheckGuard A) A s) ->
+  assumptionCheckGuard A = Term.Boolean true :=
+by
+  intro hOk
+  cases hCheck : assumptionCheckGuard A <;>
+    simp [__eo_push_assume_check, hCheck, stateOk] at hOk
+  case Boolean b =>
+    cases b <;> simp [hCheck, stateOk] at hOk ⊢
 
 /-- Derives `push_assume_typeof_bool` from `stateOk`. -/
 theorem push_assume_typeof_bool_of_stateOk (A : Term) (s : CState) :
-  stateOk (__eo_push_assume_check (__eo_is_bool_type A) A s) -> __eo_typeof A = Term.Bool :=
+  stateOk (__eo_push_assume_check (assumptionCheckGuard A) A s) -> __eo_typeof A = Term.Bool :=
 by
   intro hOk
-  have hBool : __eo_is_bool_type A = Term.Boolean true := by
-    cases hCheck : __eo_is_bool_type A <;>
-      simp [__eo_push_assume_check, hCheck, stateOk] at hOk
-    case Boolean b =>
-      cases b <;> simp [stateOk] at hOk
-      simp
+  have hGuard := push_assume_guard_true_of_stateOk A s hOk
+  have hBool := (assumptionCheckGuard_eq_true_cases A hGuard).1
   exact (eo_is_bool_type_eq_true_iff A).1 hBool
+
+/-- Derives `__eo_is_closed` from a successful checked assume push. -/
+theorem push_assume_closed_of_stateOk (A : Term) (s : CState) :
+  stateOk (__eo_push_assume_check (assumptionCheckGuard A) A s) ->
+  __eo_is_closed A = Term.Boolean true :=
+by
+  intro hOk
+  have hGuard := push_assume_guard_true_of_stateOk A s hOk
+  exact (assumptionCheckGuard_eq_true_cases A hGuard).2
 
 /-- Derives `push_assume_eq_cons` from `stateOk`. -/
 theorem push_assume_eq_cons_of_stateOk (A : Term) (s : CState) :
-  stateOk (__eo_push_assume_check (__eo_is_bool_type A) A s) ->
-  __eo_push_assume_check (__eo_is_bool_type A) A s = CState.cons (CStateObj.assume_push A) s :=
+  stateOk (__eo_push_assume_check (assumptionCheckGuard A) A s) ->
+  __eo_push_assume_check (assumptionCheckGuard A) A s =
+    CState.cons (CStateObj.assume_push A) s :=
 by
   intro hOk
-  exact push_assume_eq_cons_of_typeof_bool A s (push_assume_typeof_bool_of_stateOk A s hOk)
+  exact push_assume_eq_cons_of_guard_true A s
+    (push_assume_guard_true_of_stateOk A s hOk)
 
 /-- Simplifies the successful checked input-assumption push. -/
 theorem push_input_assume_check_true (A : Term) (s : CState) :
@@ -522,75 +569,98 @@ theorem push_input_assume_check_true (A : Term) (s : CState) :
 by
   simp [__eo_push_input_assume_check]
 
-/-- Derives `push_input_assume_eq_cons` from `typeof_bool`. -/
-theorem push_input_assume_eq_cons_of_typeof_bool (A : Term) (s : CState) :
-  __eo_typeof A = Term.Bool ->
-  __eo_push_input_assume_check (__eo_is_bool_type A) A s =
+/-- Derives `push_input_assume_eq_cons` from a successful combined guard. -/
+theorem push_input_assume_eq_cons_of_guard_true (A : Term) (s : CState) :
+  assumptionCheckGuard A = Term.Boolean true ->
+  __eo_push_input_assume_check (assumptionCheckGuard A) A s =
     CState.cons (CStateObj.assume A) s :=
 by
-  intro hTy
-  simp [__eo_push_input_assume_check,
-    eo_is_bool_type_eq_true_of_typeof_bool, hTy]
+  intro hGuard
+  change __eo_push_input_assume_check (assumptionCheckGuard A) A s =
+    CState.cons (CStateObj.assume A) s
+  rw [hGuard]
+  simp [__eo_push_input_assume_check]
 
 /-- Derives `push_input_assume_eq_stuck` from `eq_stuck`. -/
 theorem push_input_assume_eq_stuck_of_eq_stuck (s : CState) :
-  __eo_push_input_assume_check (__eo_is_bool_type Term.Stuck) Term.Stuck s = CState.Stuck :=
+  __eo_push_input_assume_check (assumptionCheckGuard Term.Stuck) Term.Stuck s =
+    CState.Stuck :=
 by
-  simp [__eo_push_input_assume_check, __eo_is_bool_type]
+  simp [assumptionCheckGuard, __eo_push_input_assume_check, __eo_is_bool_type, __eo_and]
+
+/-- Derives `push_input_assume_eq_stuck` from an unsuccessful combined guard. -/
+theorem push_input_assume_eq_stuck_of_guard_ne_true (A : Term) (s : CState) :
+  assumptionCheckGuard A ≠ Term.Boolean true ->
+  __eo_push_input_assume_check (assumptionCheckGuard A) A s = CState.Stuck :=
+by
+  intro hGuard
+  cases hCheck : assumptionCheckGuard A <;>
+    simp [__eo_push_input_assume_check, hCheck]
+  case Boolean b =>
+    cases b <;> simp [hCheck] at hGuard ⊢
 
 /-- Derives `push_input_assume_eq_stuck` from `typeof_ne_bool`. -/
 theorem push_input_assume_eq_stuck_of_typeof_ne_bool (A : Term) (s : CState) :
   __eo_typeof A ≠ Term.Bool ->
-  __eo_push_input_assume_check (__eo_is_bool_type A) A s = CState.Stuck :=
+  __eo_push_input_assume_check (assumptionCheckGuard A) A s = CState.Stuck :=
 by
   intro hTy
-  have hBool : __eo_is_bool_type A ≠ Term.Boolean true := by
-    intro h
-    exact hTy ((eo_is_bool_type_eq_true_iff A).1 h)
-  cases hCheck : __eo_is_bool_type A <;>
-    simp [__eo_push_input_assume_check]
-  case Boolean b =>
-    cases b <;> simp [hCheck] at hBool ⊢
+  apply push_input_assume_eq_stuck_of_guard_ne_true
+  intro hGuard
+  exact hTy ((eo_is_bool_type_eq_true_iff A).1
+    (assumptionCheckGuard_eq_true_cases A hGuard).1)
 
 /-- Shows that `push_input_assume` reflects `stateOk`. -/
 theorem push_input_assume_reflects_stateOk (A : Term) (s : CState) :
-  stateOk (__eo_push_input_assume_check (__eo_is_bool_type A) A s) -> stateOk s :=
+  stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A s) -> stateOk s :=
 by
   intro hOk
-  have hTy : __eo_typeof A = Term.Bool := by
-    have hBool : __eo_is_bool_type A = Term.Boolean true := by
-      cases hCheck : __eo_is_bool_type A <;>
-        simp [__eo_push_input_assume_check, hCheck, stateOk] at hOk
-      case Boolean b =>
-        cases b <;> simp [stateOk] at hOk
-        simp
-    exact (eo_is_bool_type_eq_true_iff A).1 hBool
-  simpa [push_input_assume_eq_cons_of_typeof_bool, push_input_assume_check_true,
-    hTy, stateOk] using hOk
+  cases hCheck : assumptionCheckGuard A <;>
+    simp [__eo_push_input_assume_check, hCheck, stateOk] at hOk
+  case Boolean b =>
+    cases b
+    · simp [__eo_push_input_assume_check, hCheck, stateOk] at hOk
+    · simpa [__eo_push_input_assume_check, hCheck, stateOk] using hOk
+
+/-- Derives the successful combined guard from `stateOk`. -/
+theorem push_input_assume_guard_true_of_stateOk (A : Term) (s : CState) :
+  stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A s) ->
+  assumptionCheckGuard A = Term.Boolean true :=
+by
+  intro hOk
+  cases hCheck : assumptionCheckGuard A <;>
+    simp [__eo_push_input_assume_check, hCheck, stateOk] at hOk
+  case Boolean b =>
+    cases b <;> simp [hCheck, stateOk] at hOk ⊢
 
 /-- Derives `push_input_assume_typeof_bool` from `stateOk`. -/
 theorem push_input_assume_typeof_bool_of_stateOk (A : Term) (s : CState) :
-  stateOk (__eo_push_input_assume_check (__eo_is_bool_type A) A s) ->
+  stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A s) ->
   __eo_typeof A = Term.Bool :=
 by
   intro hOk
-  have hBool : __eo_is_bool_type A = Term.Boolean true := by
-    cases hCheck : __eo_is_bool_type A <;>
-      simp [__eo_push_input_assume_check, hCheck, stateOk] at hOk
-    case Boolean b =>
-      cases b <;> simp [stateOk] at hOk
-      simp
+  have hGuard := push_input_assume_guard_true_of_stateOk A s hOk
+  have hBool := (assumptionCheckGuard_eq_true_cases A hGuard).1
   exact (eo_is_bool_type_eq_true_iff A).1 hBool
+
+/-- Derives `__eo_is_closed` from a successful checked input assumption. -/
+theorem push_input_assume_closed_of_stateOk (A : Term) (s : CState) :
+  stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A s) ->
+  __eo_is_closed A = Term.Boolean true :=
+by
+  intro hOk
+  have hGuard := push_input_assume_guard_true_of_stateOk A s hOk
+  exact (assumptionCheckGuard_eq_true_cases A hGuard).2
 
 /-- Derives `push_input_assume_eq_cons` from `stateOk`. -/
 theorem push_input_assume_eq_cons_of_stateOk (A : Term) (s : CState) :
-  stateOk (__eo_push_input_assume_check (__eo_is_bool_type A) A s) ->
-  __eo_push_input_assume_check (__eo_is_bool_type A) A s =
+  stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A s) ->
+  __eo_push_input_assume_check (assumptionCheckGuard A) A s =
     CState.cons (CStateObj.assume A) s :=
 by
   intro hOk
-  exact push_input_assume_eq_cons_of_typeof_bool A s
-    (push_input_assume_typeof_bool_of_stateOk A s hOk)
+  exact push_input_assume_eq_cons_of_guard_true A s
+    (push_input_assume_guard_true_of_stateOk A s hOk)
 
 /-- Derives `push_proven_eq_cons` from `typeof_bool`. -/
 @[simp] theorem push_proven_eq_cons_of_typeof_bool (P : Term) (s : CState) :
@@ -753,13 +823,13 @@ by
    extra invariant for precisely those entries if they may be used as
    binder-congruence premises.
 -/
-/-- Assumptions and pushed assumptions remain true under variable-model changes. -/
+/-- Assumptions and pushed assumptions remain true under variable-model changes whenever true. -/
 def checkerAssumptionStabilityInvariant (M : SmtModel) : CState -> Prop
   | CState.nil => True
   | CState.cons (CStateObj.assume A) s =>
-      StableInAnyVarModel M A ∧ checkerAssumptionStabilityInvariant M s
+      StableWhenTrueInAnyVarModel A ∧ checkerAssumptionStabilityInvariant M s
   | CState.cons (CStateObj.assume_push A) s =>
-      StableInAnyVarModel M A ∧ checkerAssumptionStabilityInvariant M s
+      StableWhenTrueInAnyVarModel A ∧ checkerAssumptionStabilityInvariant M s
   | CState.cons (CStateObj.proven _) s =>
       checkerAssumptionStabilityInvariant M s
   | CState.Stuck => True
@@ -1032,6 +1102,108 @@ by
   | proven P =>
       simpa [checkerAssumptionStabilityInvariant] using hs
 
+/-- The assumption-stability invariant is independent of the current model. -/
+theorem checkerAssumptionStabilityInvariant_rebase (M N : SmtModel) :
+  forall {s : CState},
+    checkerAssumptionStabilityInvariant M s ->
+    checkerAssumptionStabilityInvariant N s
+:=
+by
+  intro s hs
+  induction s with
+  | nil =>
+      trivial
+  | Stuck =>
+      trivial
+  | cons so s ih =>
+      cases so with
+      | assume A =>
+          exact ⟨hs.1, ih hs.2⟩
+      | assume_push A =>
+          exact ⟨hs.1, ih hs.2⟩
+      | proven P =>
+          exact ih (by simpa [checkerAssumptionStabilityInvariant] using hs)
+
+/-- Transfers the active input assumptions across a variable-model change. -/
+theorem stateAssumes_true_in_var_model_of_assumptionStability
+    (M : SmtModel) (hM : model_total_typed M) :
+  forall {s : CState},
+    checkerAssumptionStabilityInvariant M s ->
+    eo_interprets M (stateAssumes s) true ->
+    forall (N : SmtModel),
+      model_total_typed N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N (stateAssumes s) true
+:=
+by
+  intro s hStable hAss
+  induction s with
+  | nil =>
+      intro N hN hAgree
+      simpa [stateAssumes] using eo_interprets_true N
+  | Stuck =>
+      intro N hN hAgree
+      exact False.elim (eo_interprets_stuck_true_absurd M (by simpa [stateAssumes] using hAss))
+  | cons so s ih =>
+      intro N hN hAgree
+      cases so with
+      | assume A =>
+          have hA : eo_interprets M A true :=
+            eo_interprets_and_left M A (stateAssumes s) hAss
+          have hTailAss : eo_interprets M (stateAssumes s) true :=
+            eo_interprets_and_right M A (stateAssumes s) hAss
+          have hA' : eo_interprets N A true :=
+            hStable.1 M hM hA N hN hAgree
+          have hTail' : eo_interprets N (stateAssumes s) true :=
+            ih hStable.2 hTailAss N hN hAgree
+          simpa [stateAssumes] using
+            eo_interprets_and_intro N A (stateAssumes s) hA' hTail'
+      | assume_push A =>
+          exact ih hStable.2 (by simpa [stateAssumes] using hAss) N hN hAgree
+      | proven P =>
+          exact ih (by simpa [checkerAssumptionStabilityInvariant] using hStable)
+            (by simpa [stateAssumes] using hAss) N hN hAgree
+
+/-- Transfers the active pushed assumptions across a variable-model change. -/
+theorem statePushes_true_in_var_model_of_assumptionStability
+    (M : SmtModel) (hM : model_total_typed M) :
+  forall {s : CState},
+    checkerAssumptionStabilityInvariant M s ->
+    eo_interprets M (statePushes s) true ->
+    forall (N : SmtModel),
+      model_total_typed N ->
+      model_agrees_on_globals M N ->
+      eo_interprets N (statePushes s) true
+:=
+by
+  intro s hStable hPush
+  induction s with
+  | nil =>
+      intro N hN hAgree
+      simpa [statePushes] using eo_interprets_true N
+  | Stuck =>
+      intro N hN hAgree
+      exact False.elim (eo_interprets_stuck_true_absurd M (by simpa [statePushes] using hPush))
+  | cons so s ih =>
+      intro N hN hAgree
+      cases so with
+      | assume A =>
+          exact ih hStable.2 (by simpa [statePushes] using hPush) N hN hAgree
+      | assume_push A =>
+          have hA : eo_interprets M A true :=
+            eo_interprets_and_left M A (statePushes s) hPush
+          have hTailPush : eo_interprets M (statePushes s) true :=
+            eo_interprets_and_right M A (statePushes s) hPush
+          have hA' : eo_interprets N A true :=
+            hStable.1 M hM hA N hN hAgree
+          have hTail' : eo_interprets N (statePushes s) true :=
+            ih hStable.2 hTailPush N hN hAgree
+          simpa [statePushes] using
+            eo_interprets_and_intro N A (statePushes s) hA' hTail'
+      | proven P =>
+          exact ih (by simpa [checkerAssumptionStabilityInvariant] using hStable)
+            (by simpa [statePushes] using hPush) N hN hAgree
+
 /-- Lemma about `checkerLocalTruthInvariant_head_proven`. -/
 theorem checkerLocalTruthInvariant_head_proven
     (M : SmtModel) (s : CState) (P : Term) :
@@ -1155,11 +1327,14 @@ by
                 (by simpa [stateAssumes] using hAss)
                 (by simpa [statePushes] using hPush)
 
-/-- Retrieves an indexed fact in any variable-variant model, without assuming the local context. -/
-theorem checkerLocalTruthInvariant_at_any_var_model (M : SmtModel) :
+/-- Retrieves an indexed fact in a variable-variant model using a stable true context. -/
+theorem checkerLocalTruthInvariant_at_stable_var_model (M : SmtModel) :
   forall {s : CState},
+    model_total_typed M ->
     checkerLocalTruthInvariant M s ->
     checkerAssumptionStabilityInvariant M s ->
+    eo_interprets M (stateAssumes s) true ->
+    eo_interprets M (statePushes s) true ->
     forall (N : SmtModel),
       model_total_typed N ->
       model_agrees_on_globals M N ->
@@ -1167,42 +1342,66 @@ theorem checkerLocalTruthInvariant_at_any_var_model (M : SmtModel) :
         eo_interprets N (__eo_state_proven_nth s n) true
 :=
 by
-  intro s hs hStable
+  intro s hM hs hStable hAss hPush
   induction s with
   | nil =>
       intro N hN hAgree n
       simpa [__eo_state_proven_nth] using eo_interprets_true N
   | Stuck =>
       intro N hN hAgree n
-      simpa [__eo_state_proven_nth] using eo_interprets_true N
+      exact False.elim (eo_interprets_stuck_true_absurd M (by simpa [stateAssumes] using hAss))
   | cons so s ih =>
       intro N hN hAgree n
       by_cases hZero : n = 0
       · subst hZero
         cases so with
         | assume A =>
-            exact hStable.1 N hN hAgree
+            have hA : eo_interprets M A true :=
+              eo_interprets_and_left M A (stateAssumes s) hAss
+            exact hStable.1 M hM hA N hN hAgree
         | assume_push A =>
-            exact hStable.1 N hN hAgree
+            have hA : eo_interprets M A true :=
+              eo_interprets_and_left M A (statePushes s) hPush
+            exact hStable.1 M hM hA N hN hAgree
         | proven P =>
+            have hAssTail : eo_interprets M (stateAssumes s) true := by
+              simpa [stateAssumes] using hAss
+            have hPushTail : eo_interprets M (statePushes s) true := by
+              simpa [statePushes] using hPush
+            have hAssN : eo_interprets N (stateAssumes s) true :=
+              stateAssumes_true_in_var_model_of_assumptionStability M hM
+                (by simpa [checkerAssumptionStabilityInvariant] using hStable)
+                hAssTail N hN hAgree
+            have hPushN : eo_interprets N (statePushes s) true :=
+              statePushes_true_in_var_model_of_assumptionStability M hM
+                (by simpa [checkerAssumptionStabilityInvariant] using hStable)
+                hPushTail N hN hAgree
             simpa [__eo_state_proven_nth] using
-              hs.1.true_in_any_var_model N hN hAgree
+              hs.1.true_in_var_model N hN hAgree hAssN hPushN
       · cases so with
         | assume A =>
+            have hAssTail : eo_interprets M (stateAssumes s) true :=
+              eo_interprets_and_right M A (stateAssumes s) hAss
             simpa [__eo_state_proven_nth, hZero] using
               ih (by simpa [checkerLocalTruthInvariant] using hs)
-                hStable.2 N hN hAgree
+                hStable.2 hAssTail hPush N hN hAgree
                 (native_zplus n (native_zneg 1))
         | assume_push A =>
+            have hPushTail : eo_interprets M (statePushes s) true :=
+              eo_interprets_and_right M A (statePushes s) hPush
             simpa [__eo_state_proven_nth, hZero] using
               ih (by simpa [checkerLocalTruthInvariant] using hs)
-                hStable.2 N hN hAgree
+                hStable.2 hAss hPushTail N hN hAgree
                 (native_zplus n (native_zneg 1))
         | proven P =>
+            have hAssTail : eo_interprets M (stateAssumes s) true := by
+              simpa [stateAssumes] using hAss
+            have hPushTail : eo_interprets M (statePushes s) true := by
+              simpa [statePushes] using hPush
             simpa [__eo_state_proven_nth, hZero] using
               ih hs.2
                 (by simpa [checkerAssumptionStabilityInvariant] using hStable)
-                N hN hAgree (native_zplus n (native_zneg 1))
+                hAssTail hPushTail N hN hAgree (native_zplus n (native_zneg 1))
 
 /-- Shows that `checkerLocalTruthInvariant` implies `truthInvariant`. -/
 theorem checkerLocalTruthInvariant_implies_truthInvariant (M : SmtModel) :
@@ -1233,11 +1432,19 @@ by
   | base =>
       simp [__eo_invoke_assume_list, checkerLocalTruthInvariant]
   | step A rest hRest ih =>
-      by_cases hTy : __eo_typeof A = Term.Bool
-      · simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool, push_input_assume_check_true,
-          hTy, checkerLocalTruthInvariant] using ih
-      · simpa [__eo_invoke_assume_list, push_input_assume_eq_stuck_of_typeof_ne_bool,
-          hTy] using checkerLocalTruthInvariant_stuck M
+      by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+      · change checkerLocalTruthInvariant M
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest))
+        rw [push_input_assume_eq_cons_of_guard_true A
+          (__eo_invoke_assume_list CState.nil rest) hGuard]
+        simpa [checkerLocalTruthInvariant] using ih
+      · change checkerLocalTruthInvariant M
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest))
+        rw [push_input_assume_eq_stuck_of_guard_ne_true A
+          (__eo_invoke_assume_list CState.nil rest) hGuard]
+        exact checkerLocalTruthInvariant_stuck M
 
 /-- Describes `checkerTypeInvariant` after `assume_list`. -/
 theorem checkerTypeInvariant_after_assume_list (F : Term) :
@@ -1252,7 +1459,7 @@ by
       simp [__eo_invoke_assume_list, checkerTypeInvariant]
   | step A rest hRest ih =>
       have hPushOk :
-          stateOk (__eo_push_input_assume_check (__eo_is_bool_type A) A
+          stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
         simpa [__eo_invoke_assume_list] using hOk
       have hTy : __eo_typeof A = Term.Bool :=
@@ -1263,8 +1470,16 @@ by
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
           (__eo_invoke_assume_list CState.nil rest) hPushOk
-      simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool, push_input_assume_check_true,
-        hTy, checkerTypeInvariant, hA] using ih hRestOk
+      have hPushEq := push_input_assume_eq_cons_of_stateOk A
+        (__eo_invoke_assume_list CState.nil rest) hPushOk
+      change checkerTypeInvariant
+        (__eo_push_input_assume_check (assumptionCheckGuard A) A
+          (__eo_invoke_assume_list CState.nil rest))
+      rw [hPushEq]
+      simpa [checkerTypeInvariant, hA] using
+        (show __eo_typeof A = Term.Bool ∧
+            checkerTypeInvariant (__eo_invoke_assume_list CState.nil rest) from
+          ⟨hTy, ih hRestOk⟩)
 
 /-- Describes `checkerTranslationInvariant` after `assume_list`. -/
 theorem checkerTranslationInvariant_after_assume_list (F : Term) :
@@ -1277,14 +1492,22 @@ by
   | base =>
       simp [__eo_invoke_assume_list, checkerTranslationInvariant]
   | step A rest hA hRest ih =>
-      by_cases hTy : __eo_typeof A = Term.Bool
-      · simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool, push_input_assume_check_true,
-          hTy, checkerTranslationInvariant] using
+      by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+      · change checkerTranslationInvariant
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest))
+        rw [push_input_assume_eq_cons_of_guard_true A
+          (__eo_invoke_assume_list CState.nil rest) hGuard]
+        simpa [checkerTranslationInvariant] using
           (show RuleProofs.eo_has_smt_translation A ∧
               checkerTranslationInvariant (__eo_invoke_assume_list CState.nil rest) from
             ⟨hA, ih⟩)
-      · simpa [__eo_invoke_assume_list, push_input_assume_eq_stuck_of_typeof_ne_bool,
-          hTy] using checkerTranslationInvariant_stuck
+      · change checkerTranslationInvariant
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest))
+        rw [push_input_assume_eq_stuck_of_guard_ne_true A
+          (__eo_invoke_assume_list CState.nil rest) hGuard]
+        exact checkerTranslationInvariant_stuck
 
 /-- Describes `checkerAssumptionStabilityInvariant` after `assume_list`. -/
 theorem checkerAssumptionStabilityInvariant_after_assume_list
@@ -1298,51 +1521,69 @@ by
   | base =>
       simp [__eo_invoke_assume_list, checkerAssumptionStabilityInvariant]
   | step A rest hA hRest ih =>
-      by_cases hTy : __eo_typeof A = Term.Bool
-      · simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool,
-          push_input_assume_check_true, hTy, checkerAssumptionStabilityInvariant] using
-          (show StableInAnyVarModel M A ∧
+      by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+      · change checkerAssumptionStabilityInvariant M
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest))
+        rw [push_input_assume_eq_cons_of_guard_true A
+          (__eo_invoke_assume_list CState.nil rest) hGuard]
+        simpa [checkerAssumptionStabilityInvariant] using
+          (show StableWhenTrueInAnyVarModel A ∧
               checkerAssumptionStabilityInvariant M
                 (__eo_invoke_assume_list CState.nil rest) from
             ⟨hA, ih⟩)
-      · simpa [__eo_invoke_assume_list, push_input_assume_eq_stuck_of_typeof_ne_bool,
-          hTy] using checkerAssumptionStabilityInvariant_stuck M
+      · change checkerAssumptionStabilityInvariant M
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest))
+        rw [push_input_assume_eq_stuck_of_guard_ne_true A
+          (__eo_invoke_assume_list CState.nil rest) hGuard]
+        exact checkerAssumptionStabilityInvariant_stuck M
 
 /-- Shows that `push_assume` preserves `localTruthInvariant`. -/
 theorem push_assume_preserves_localTruthInvariant
     (M : SmtModel) (s : CState) (A : Term) :
   checkerLocalTruthInvariant M s ->
-  checkerLocalTruthInvariant M (__eo_push_assume_check (__eo_is_bool_type A) A s) :=
+  checkerLocalTruthInvariant M (__eo_push_assume_check (assumptionCheckGuard A) A s) :=
 by
   intro hs
-  by_cases hTy : __eo_typeof A = Term.Bool
-  · simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, checkerLocalTruthInvariant] using hs
-  · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerLocalTruthInvariant_stuck M
+  by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+  · simpa [push_assume_eq_cons_of_guard_true, hGuard,
+      checkerLocalTruthInvariant] using hs
+  · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using
+      checkerLocalTruthInvariant_stuck M
 
 /-- Shows that `push_assume` preserves `typeInvariant`. -/
 theorem push_assume_preserves_typeInvariant
     (s : CState) (A : Term) :
   checkerTypeInvariant s ->
-  checkerTypeInvariant (__eo_push_assume_check (__eo_is_bool_type A) A s) :=
+  checkerTypeInvariant (__eo_push_assume_check (assumptionCheckGuard A) A s) :=
 by
   intro hs
-  by_cases hTy : __eo_typeof A = Term.Bool
-  · have hA : A ≠ Term.Stuck := term_ne_stuck_of_typeof_bool hTy
-    simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, checkerTypeInvariant, hA] using hs
-  · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerTypeInvariant_stuck
+  by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+  · have hTy : __eo_typeof A = Term.Bool :=
+      (eo_is_bool_type_eq_true_iff A).1
+        (assumptionCheckGuard_eq_true_cases A hGuard).1
+    have hA : A ≠ Term.Stuck := term_ne_stuck_of_typeof_bool hTy
+    rw [push_assume_eq_cons_of_guard_true A s hGuard]
+    simpa [checkerTypeInvariant, hA] using
+      (show __eo_typeof A = Term.Bool ∧ checkerTypeInvariant s from ⟨hTy, hs⟩)
+  · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using
+      checkerTypeInvariant_stuck
 
 /-- Shows that `push_assume` preserves `translationInvariant`. -/
 theorem push_assume_preserves_translationInvariant
     (s : CState) (A : Term) :
   checkerTranslationInvariant s ->
   RuleProofs.eo_has_smt_translation A ->
-  checkerTranslationInvariant (__eo_push_assume_check (__eo_is_bool_type A) A s) :=
+  checkerTranslationInvariant (__eo_push_assume_check (assumptionCheckGuard A) A s) :=
 by
   intro hs hA
-  by_cases hTy : __eo_typeof A = Term.Bool
-  · simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, checkerTranslationInvariant] using
+  by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+  · simpa [push_assume_eq_cons_of_guard_true, hGuard,
+      checkerTranslationInvariant] using
       (show RuleProofs.eo_has_smt_translation A ∧ checkerTranslationInvariant s from ⟨hA, hs⟩)
-  · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerTranslationInvariant_stuck
+  · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using
+      checkerTranslationInvariant_stuck
 
 /-- Shows that `push_proven` preserves `typeInvariant`. -/
 theorem push_proven_preserves_typeInvariant
@@ -1542,32 +1783,32 @@ by
 theorem push_assume_preserves_truthInvariant
     (M : SmtModel) (s : CState) (A : Term) :
   checkerTruthInvariant M s ->
-  checkerTruthInvariant M (__eo_push_assume_check (__eo_is_bool_type A) A s) :=
+  checkerTruthInvariant M (__eo_push_assume_check (assumptionCheckGuard A) A s) :=
 by
   intro hs
-  by_cases hTy : __eo_typeof A = Term.Bool
-  · rw [push_assume_eq_cons_of_typeof_bool A s hTy]
+  by_cases hGuard : assumptionCheckGuard A = Term.Boolean true
+  · rw [push_assume_eq_cons_of_guard_true A s hGuard]
     intro n hAss hPush
     by_cases hZero : n = 0
     · subst hZero
       have hPush' :
           eo_interprets M
             (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) (statePushes s)) true := by
-        simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, statePushes] using hPush
-      simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, __eo_state_proven_nth] using
+        simpa [push_assume_eq_cons_of_guard_true, hGuard, statePushes] using hPush
+      simpa [push_assume_eq_cons_of_guard_true, hGuard, __eo_state_proven_nth] using
         eo_interprets_and_left M A (statePushes s) hPush'
     · have hAss' : eo_interprets M (stateAssumes s) true := by
-        simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, stateAssumes] using hAss
+        simpa [push_assume_eq_cons_of_guard_true, hGuard, stateAssumes] using hAss
       have hPush' :
           eo_interprets M
             (Term.Apply (Term.Apply (Term.UOp UserOp.and) A) (statePushes s)) true := by
-        simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, statePushes] using hPush
+        simpa [push_assume_eq_cons_of_guard_true, hGuard, statePushes] using hPush
       have hPushTail : eo_interprets M (statePushes s) true :=
         eo_interprets_and_right M A (statePushes s) hPush'
-      simpa [push_assume_eq_cons_of_typeof_bool, push_assume_check_true, hTy, __eo_state_proven_nth, hZero] using
+      simpa [push_assume_eq_cons_of_guard_true, hGuard, __eo_state_proven_nth, hZero] using
         checkerTruthInvariant_at M hs
           (native_zplus n (native_zneg 1)) hAss' hPushTail
-  · simpa [push_assume_eq_stuck_of_typeof_ne_bool, hTy] using checkerTruthInvariant_stuck M
+  · simpa [push_assume_eq_stuck_of_guard_ne_true, hGuard] using checkerTruthInvariant_stuck M
 
 /-- Shows that `push_proven` preserves `truthInvariant_of_contextual_true`. -/
 theorem push_proven_preserves_truthInvariant_of_contextual_true
@@ -1607,18 +1848,20 @@ by
       simp [__eo_invoke_assume_list, stateAssumptionTail]
   | step A rest hRest ih =>
       have hPushOk :
-          stateOk (__eo_push_input_assume_check (__eo_is_bool_type A) A
+          stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
         simpa [__eo_invoke_assume_list] using hOk
-      have hTy : __eo_typeof A = Term.Bool :=
-        push_input_assume_typeof_bool_of_stateOk A
-          (__eo_invoke_assume_list CState.nil rest) hPushOk
       have hRestOk :
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
           (__eo_invoke_assume_list CState.nil rest) hPushOk
-      simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool, push_input_assume_check_true,
-        hTy, stateAssumptionTail] using ih hRestOk
+      have hPushEq := push_input_assume_eq_cons_of_stateOk A
+        (__eo_invoke_assume_list CState.nil rest) hPushOk
+      change stateAssumptionTail
+        (__eo_push_input_assume_check (assumptionCheckGuard A) A
+          (__eo_invoke_assume_list CState.nil rest))
+      rw [hPushEq]
+      simpa [stateAssumptionTail] using ih hRestOk
 
 /-- Describes `stateAssumptionSuffix` after `invoke_assume_list`. -/
 theorem stateAssumptionSuffix_invoke_assume_list :
@@ -1643,18 +1886,21 @@ by
       simp [__eo_invoke_assume_list, stateAssumes]
   | step A rest hRest ih =>
       have hPushOk :
-          stateOk (__eo_push_input_assume_check (__eo_is_bool_type A) A
+          stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
         simpa [__eo_invoke_assume_list] using hOk
-      have hTy : __eo_typeof A = Term.Bool :=
-        push_input_assume_typeof_bool_of_stateOk A
-          (__eo_invoke_assume_list CState.nil rest) hPushOk
       have hRestOk :
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
           (__eo_invoke_assume_list CState.nil rest) hPushOk
-      simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool, push_input_assume_check_true,
-        hTy, stateAssumes] using ih hRestOk
+      have hPushEq := push_input_assume_eq_cons_of_stateOk A
+        (__eo_invoke_assume_list CState.nil rest) hPushOk
+      change stateAssumes
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest)) =
+        Term.Apply (Term.Apply (Term.UOp UserOp.and) A) rest
+      rw [hPushEq]
+      simpa [stateAssumes] using ih hRestOk
 
 /-- Describes `statePushes` after `invoke_assume_list`. -/
 theorem statePushes_invoke_assume_list :
@@ -1669,18 +1915,21 @@ by
       simp [__eo_invoke_assume_list, statePushes]
   | step A rest hRest ih =>
       have hPushOk :
-          stateOk (__eo_push_input_assume_check (__eo_is_bool_type A) A
+          stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
         simpa [__eo_invoke_assume_list] using hOk
-      have hTy : __eo_typeof A = Term.Bool :=
-        push_input_assume_typeof_bool_of_stateOk A
-          (__eo_invoke_assume_list CState.nil rest) hPushOk
       have hRestOk :
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
           (__eo_invoke_assume_list CState.nil rest) hPushOk
-      simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool, push_input_assume_check_true,
-        hTy, statePushes] using ih hRestOk
+      have hPushEq := push_input_assume_eq_cons_of_stateOk A
+        (__eo_invoke_assume_list CState.nil rest) hPushOk
+      change statePushes
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest)) =
+        Term.Boolean true
+      rw [hPushEq]
+      simpa [statePushes] using ih hRestOk
 
 /-- Describes `stateProvens` after `invoke_assume_list`. -/
 theorem stateProvens_invoke_assume_list :
@@ -1695,18 +1944,21 @@ by
       simp [__eo_invoke_assume_list, stateProvens]
   | step A rest hRest ih =>
       have hPushOk :
-          stateOk (__eo_push_input_assume_check (__eo_is_bool_type A) A
+          stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
             (__eo_invoke_assume_list CState.nil rest)) := by
         simpa [__eo_invoke_assume_list] using hOk
-      have hTy : __eo_typeof A = Term.Bool :=
-        push_input_assume_typeof_bool_of_stateOk A
-          (__eo_invoke_assume_list CState.nil rest) hPushOk
       have hRestOk :
           stateOk (__eo_invoke_assume_list CState.nil rest) :=
         push_input_assume_reflects_stateOk A
           (__eo_invoke_assume_list CState.nil rest) hPushOk
-      simpa [__eo_invoke_assume_list, push_input_assume_eq_cons_of_typeof_bool, push_input_assume_check_true,
-        hTy, stateProvens] using ih hRestOk
+      have hPushEq := push_input_assume_eq_cons_of_stateOk A
+        (__eo_invoke_assume_list CState.nil rest) hPushOk
+      change stateProvens
+          (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest)) =
+        Term.Boolean true
+      rw [hPushEq]
+      simpa [stateProvens] using ih hRestOk
 
 /-- Describes `checkerTruthInvariant` after `assume_list`. -/
 theorem checkerTruthInvariant_after_assume_list (M : SmtModel) (F : Term) :
@@ -1823,7 +2075,7 @@ by
               cases op with
               | and =>
                   have hPushOk :
-                      stateOk (__eo_push_input_assume_check (__eo_is_bool_type lhs) lhs
+                      stateOk (__eo_push_input_assume_check (assumptionCheckGuard lhs) lhs
                         (__eo_invoke_assume_list CState.nil a)) := by
                     simpa [__eo_invoke_assume_list] using hOk
                   have hRestOk :
@@ -2041,15 +2293,21 @@ by
       intro hSuffix hOk
       cases s with
       | nil =>
-          have hPushOk : stateOk (__eo_push_assume_check (__eo_is_bool_type A) A CState.nil) := by
+          have hPushOk : stateOk (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil) := by
             simpa [__eo_invoke_cmd] using hOk
           have hPushEq := push_assume_eq_cons_of_stateOk A CState.nil hPushOk
-          simp [__eo_invoke_cmd, hPushEq, stateAssumptionSuffix]
+          change stateAssumptionSuffix
+            (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil)
+          rw [hPushEq]
+          simp [stateAssumptionSuffix]
       | cons so s =>
-          have hPushOk : stateOk (__eo_push_assume_check (__eo_is_bool_type A) A (CState.cons so s)) := by
+          have hPushOk : stateOk (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s)) := by
             simpa [__eo_invoke_cmd] using hOk
           have hPushEq := push_assume_eq_cons_of_stateOk A (CState.cons so s) hPushOk
-          simpa [__eo_invoke_cmd, hPushEq, stateAssumptionSuffix] using hSuffix
+          change stateAssumptionSuffix
+            (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s))
+          rw [hPushEq]
+          simpa [stateAssumptionSuffix] using hSuffix
       | Stuck =>
           cases hSuffix
   | check_proven proven =>
@@ -2124,15 +2382,23 @@ by
       intro hSuffix hOk
       cases s with
       | nil =>
-          have hPushOk : stateOk (__eo_push_assume_check (__eo_is_bool_type A) A CState.nil) := by
+          have hPushOk : stateOk (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil) := by
             simpa [__eo_invoke_cmd] using hOk
           have hPushEq := push_assume_eq_cons_of_stateOk A CState.nil hPushOk
-          simp [__eo_invoke_cmd, hPushEq, stateAssumes]
+          change stateAssumes
+              (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil) =
+            stateAssumes CState.nil
+          rw [hPushEq]
+          simp [stateAssumes]
       | cons so s =>
-          have hPushOk : stateOk (__eo_push_assume_check (__eo_is_bool_type A) A (CState.cons so s)) := by
+          have hPushOk : stateOk (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s)) := by
             simpa [__eo_invoke_cmd] using hOk
           have hPushEq := push_assume_eq_cons_of_stateOk A (CState.cons so s) hPushOk
-          simp [__eo_invoke_cmd, hPushEq, stateAssumes]
+          change stateAssumes
+              (__eo_push_assume_check (assumptionCheckGuard A) A (CState.cons so s)) =
+            stateAssumes (CState.cons so s)
+          rw [hPushEq]
+          simp [stateAssumes]
       | Stuck =>
           cases hSuffix
   | check_proven proven =>
@@ -2498,12 +2764,15 @@ by
       · exact checkerLocalTruthInvariant_at_var_model M hs N hN hAgree n hAss hPush
       · exact ih hs N hN hAgree hAss hPush t ht
 
-/-- Derives premise truth in any variable-variant model from the stable local invariant. -/
-theorem premiseTermList_true_of_localTruthInvariant_any_var_model
+/-- Derives premise truth in a variable-variant model from a stable true context. -/
+theorem premiseTermList_true_of_localTruthInvariant_stable_var_model
     (M : SmtModel) (s : CState) :
   forall (premises : CIndexList),
+    model_total_typed M ->
     checkerLocalTruthInvariant M s ->
     checkerAssumptionStabilityInvariant M s ->
+    eo_interprets M (stateAssumes s) true ->
+    eo_interprets M (statePushes s) true ->
     forall (N : SmtModel),
       model_total_typed N ->
       model_agrees_on_globals M N ->
@@ -2513,14 +2782,15 @@ by
   intro premises
   induction premises with
   | nil =>
-      intro hs hStable N hN hAgree t ht
+      intro hM hs hStable hAss hPush N hN hAgree t ht
       cases ht
   | cons n premises ih =>
-      intro hs hStable N hN hAgree t ht
+      intro hM hs hStable hAss hPush N hN hAgree t ht
       simp [premiseTermList] at ht
       rcases ht with rfl | ht
-      · exact checkerLocalTruthInvariant_at_any_var_model M hs hStable N hN hAgree n
-      · exact ih hs hStable N hN hAgree t ht
+      · exact checkerLocalTruthInvariant_at_stable_var_model M hM hs hStable
+          hAss hPush N hN hAgree n
+      · exact ih hM hs hStable hAss hPush N hN hAgree t ht
 
 /-- Builds the contextual premise evidence used by the richer rule-correctness template. -/
 theorem premiseEvidence_of_localTruthInvariant
@@ -2535,17 +2805,21 @@ theorem premiseEvidence_of_localTruthInvariant
     (premiseTermList s premises) :=
 by
   intro hs hStable hN hAgree hAss hPush
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_⟩
   · exact premiseTermList_true_of_localTruthInvariant_var_model
       M s premises hs N hN hAgree hAss hPush
-  · intro K hK hAgreeNK hAssK hPushK
+  · intro K hK hAgreeNK
+    have hStableN : checkerAssumptionStabilityInvariant N s :=
+      checkerAssumptionStabilityInvariant_rebase M N hStable
+    have hAssK : eo_interprets K (stateAssumes s) true :=
+      stateAssumes_true_in_var_model_of_assumptionStability N hN
+        hStableN hAss K hK hAgreeNK
+    have hPushK : eo_interprets K (statePushes s) true :=
+      statePushes_true_in_var_model_of_assumptionStability N hN
+        hStableN hPush K hK hAgreeNK
     exact premiseTermList_true_of_localTruthInvariant_var_model
       M s premises hs K hK
       (model_agrees_on_globals_trans hAgree hAgreeNK) hAssK hPushK
-  · intro K hK hAgreeNK
-    exact premiseTermList_true_of_localTruthInvariant_any_var_model
-      M s premises hs hStable K hK
-      (model_agrees_on_globals_trans hAgree hAgreeNK)
 
 /-- Structure bundling the premise facts needed to justify a single checker step. -/
 structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
@@ -2559,10 +2833,6 @@ structure CmdStepFacts (M : SmtModel) (s : CState) (P : Term) : Prop where
       eo_interprets N (stateAssumes s) true ->
       eo_interprets N (statePushes s) true ->
       eo_interprets N P true
-  true_in_any_var_model :
-    ∀ N, model_total_typed N ->
-      model_agrees_on_globals M N ->
-      eo_interprets N P true
   has_smt_translation :
     RuleProofs.eo_has_smt_translation P
 
@@ -2573,8 +2843,7 @@ theorem CmdStepFacts.contextualTruth
   ContextualTruth M (stateAssumes s) (statePushes s) P :=
 by
   intro hFacts
-  exact ⟨hFacts.true_of_context, hFacts.true_in_var_model,
-    hFacts.true_in_any_var_model⟩
+  exact ⟨hFacts.true_of_context, hFacts.true_in_var_model⟩
 
 /-- Packages richer rule-level step properties into the checker facts required for a single step. -/
 theorem cmd_step_facts_of_evidence_rule_properties
@@ -2584,12 +2853,10 @@ theorem cmd_step_facts_of_evidence_rule_properties
   checkerAssumptionStabilityInvariant M s ->
   (hProps : EvidenceStepRuleProperties M (stateAssumes s) (statePushes s)
     (premiseTermList s premises) P) ->
-  (hStable : RuleStableConclusion M (premiseTermList s premises) P :=
-    evidenceStepRuleProperties_stable_conclusion hProps) ->
   CmdStepFacts M s P :=
 by
-  intro hs hAssumptionsStable hProps hStable
-  refine ⟨?_, ?_, ?_, ?_⟩
+  intro hs hAssumptionsStable hProps
+  refine ⟨?_, ?_, ?_⟩
   · intro hAss hPush
     exact hProps.facts_of_evidence M hM (model_agrees_on_globals_refl M)
       (premiseEvidence_of_localTruthInvariant M M s premises hs hAssumptionsStable hM
@@ -2598,10 +2865,6 @@ by
     exact hProps.facts_of_evidence N hN hAgree
       (premiseEvidence_of_localTruthInvariant M N s premises hs hAssumptionsStable
         hN hAgree hAss hPush)
-  · intro N hN hAgree
-    exact hStable
-      (premiseTermList_true_of_localTruthInvariant_any_var_model
-        M s premises hs hAssumptionsStable) N hN hAgree
   · exact hProps.has_smt_translation
 
 /--
@@ -2616,12 +2879,10 @@ theorem cmd_step_facts_of_rule_properties
   (hProps : ∀ N, model_total_typed N ->
     model_agrees_on_globals M N ->
     StepRuleProperties N (premiseTermList s premises) P) ->
-  (hStable : RuleStableConclusion M (premiseTermList s premises) P :=
-    stepRuleProperties_stable_conclusion hProps) ->
   CmdStepFacts M s P :=
 by
-  intro hs hAssumptionsStable hProps hStable
-  refine ⟨?_, ?_, ?_, ?_⟩
+  intro hs hAssumptionsStable hProps
+  refine ⟨?_, ?_, ?_⟩
   · intro hAss hPush
     have hPM := hProps M hM (model_agrees_on_globals_refl M)
     exact hPM.facts_of_true
@@ -2632,10 +2893,6 @@ by
     exact hPN.facts_of_true
       (premiseTermList_true_of_localTruthInvariant_var_model
         M s premises hs N hN hAgree hAss hPush)
-  · intro N hN hAgree
-    exact hStable
-      (premiseTermList_true_of_localTruthInvariant_any_var_model
-        M s premises hs hAssumptionsStable) N hN hAgree
   · exact (hProps M hM (model_agrees_on_globals_refl M)).has_smt_translation
 
 /-- Packages rule-level step-pop properties into the checker facts required for a pop step. -/
@@ -2646,13 +2903,11 @@ theorem cmd_step_pop_facts_of_rule_properties
   checkerAssumptionStabilityInvariant M root ->
   stateStepPopSuffix (CState.cons (CStateObj.assume_push A) tail) root ->
   (hProps : StepPopRuleProperties A (premiseTermList root premises) P) ->
-  (hStable : RuleStableConclusion M (premiseTermList root premises) P :=
-    stepPopRuleProperties_stable_conclusion hProps) ->
   CmdStepFacts M tail P :=
 by
-  intro hsRoot hAssumptionsStableRoot hSuffix hProps hStable
+  intro hsRoot hAssumptionsStableRoot hSuffix hProps
   rcases hProps with ⟨X, hXMem, hFactsOfImp, hPopTrans⟩
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · intro hAss hPush
     have hAssRoot : eo_interprets M (stateAssumes root) true := by
       rw [stateAssumes_eq_of_stateStepPopSuffix_assume_push hSuffix]
@@ -2682,8 +2937,4 @@ by
           M root premises hsRoot N hN hAgree hAssRoot hPushRoot)
         X hXMem
     exact hFactsOfImp N hN hScoped
-  · intro N hN hAgree
-    exact hStable
-      (premiseTermList_true_of_localTruthInvariant_any_var_model
-        M root premises hsRoot hAssumptionsStableRoot) N hN hAgree
   · exact hPopTrans

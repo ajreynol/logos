@@ -199,7 +199,7 @@ by
   | app hRec hMem _hArg ih =>
       exact CongStableSpine.app ih (by
         intro N hN hAgree
-        exact hEvidence.true_in_any_var_model N hN hAgree _ hMem)
+        exact hEvidence.true_in_var_model N hN hAgree _ hMem)
 
 private theorem termQuantifierBindersWf_apply_arg
     (f x : Term) :
@@ -15307,13 +15307,13 @@ private theorem premiseEvidence_lifts_congruence_over_binders
   intro hEvidence hBodyMem hBinderTypesWf hEqBool
   -- The semantic work here is exactly the old binder-congruence axiom, but
   -- the required checker-side fact is now explicit: the body equality premise
-  -- is available in every variable-variant model via `true_in_any_var_model`.
+  -- is available in every variable-variant model via `true_in_var_model`.
   have hBodyAny :
       ∀ N, model_total_typed N ->
         model_agrees_on_globals M N ->
         eo_interprets N (mkEq body body') true := by
     intro N hN hAgree
-    exact hEvidence.true_in_any_var_model N hN hAgree
+    exact hEvidence.true_in_var_model N hN hAgree
       (mkEq body body') hBodyMem
   have hLeftTrans :
       RuleProofs.eo_has_smt_translation (mkBinderApp op xs body) := by
@@ -15434,15 +15434,11 @@ private theorem stable_lifts_congruence_over_binders
   have hEvidence :
       RulePremiseEvidence M (Term.Boolean true) (Term.Boolean true)
         [mkEq body body'] := by
-    refine ⟨?_, ?_, ?_⟩
+    refine ⟨?_, ?_⟩
     · intro q hq
       simp only [List.mem_singleton] at hq
       subst q
       exact hBodyStable M hM (model_agrees_on_globals_refl M)
-    · intro N hN hAgree _hAss _hPush q hq
-      simp only [List.mem_singleton] at hq
-      subst q
-      exact hBodyStable N hN hAgree
     · intro N hN hAgree q hq
       simp only [List.mem_singleton] at hq
       subst q
@@ -23251,18 +23247,15 @@ private theorem mk_nary_cong_rhs_congStableSpine_of_list
                             have hHeadStable :
                                 StableInAnyVarModel M (mkEq lhs tail) := by
                               intro N hN hAgree
-                              exact hEvidence.true_in_any_var_model N hN hAgree
+                              exact hEvidence.true_in_var_model N hN hAgree
                                 (mkEq lhs tail) (by simp [mkEq])
                             have hRestEvidence :
                                 RulePremiseEvidence M assumes pushes ps := by
-                              refine ⟨?_, ?_, ?_⟩
+                              refine ⟨?_, ?_⟩
                               · intro q hq
                                 exact hEvidence.true_here q (by simp [hq])
-                              · intro N hN hAgree hAss hPush q hq
-                                exact hEvidence.true_in_var_model N hN hAgree
-                                  hAss hPush q (by simp [hq])
                               · intro N hN hAgree q hq
-                                exact hEvidence.true_in_any_var_model N hN hAgree
+                                exact hEvidence.true_in_var_model N hN hAgree
                                   q (by simp [hq])
                             have hRestBool : AllHaveBoolType ps := by
                               intro q hq
@@ -24228,13 +24221,10 @@ theorem facts___eo_prog_cong_impl
       (Term.Apply (Term.UOp UserOp.eq) t) rhs hProgNN
   have hEvidenceRev :
       RulePremiseEvidence M assumes pushes premises.reverse := by
-    refine ⟨?_, ?_, ?_⟩
+    refine ⟨?_, ?_⟩
     · exact all_interpreted_true_reverse M premises hEvidence.true_here
-    · intro N hN hAgree hAss hPush q hq
-      exact hEvidence.true_in_var_model N hN hAgree hAss hPush
-        q (by simpa using List.mem_reverse.mp hq)
     · intro N hN hAgree q hq
-      exact hEvidence.true_in_any_var_model N hN hAgree
+      exact hEvidence.true_in_var_model N hN hAgree
         q (by simpa using List.mem_reverse.mp hq)
   have hSpine :
       CongEvidenceSpine M premises.reverse t rhs := by
