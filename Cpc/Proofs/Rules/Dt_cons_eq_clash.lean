@@ -1,5 +1,4 @@
-import Cpc.Proofs.Rules.Distinct_values
-import Cpc.Proofs.RuleSupport.DtConsEqSupport
+import Cpc.Proofs.RuleSupport.DistinctTermsSupport
 
 open Eo
 open SmtEval
@@ -7,38 +6,6 @@ open Smtm
 
 set_option linter.unusedVariables false
 set_option maxHeartbeats 10000000
-
-private theorem eo_requires_arg_eq_of_ne_stuck {x y z : Term} :
-    __eo_requires x y z ≠ Term.Stuck -> x = y := by
-  intro h
-  unfold __eo_requires at h
-  by_cases hxy : native_teq x y = true
-  · simpa [native_teq] using hxy
-  · simp [hxy, native_ite] at h
-
-private theorem eo_requires_result_eq_of_ne_stuck {x y z : Term} :
-    __eo_requires x y z ≠ Term.Stuck -> __eo_requires x y z = z := by
-  intro h
-  unfold __eo_requires at h ⊢
-  by_cases hxy : native_teq x y = true
-  · by_cases hx : native_teq x Term.Stuck = true
-    · simp [hxy, hx, native_ite, SmtEval.native_not] at h
-    · simp [hxy, hx, native_ite, SmtEval.native_not]
-  · simp [hxy, native_ite] at h
-
-private theorem eo_ite_eq_false_guard_true {a b d : Term} :
-    __eo_ite (__eo_eq a b) (Term.Boolean false) d = Term.Boolean true ->
-    __eo_eq a b = Term.Boolean false ∧ d = Term.Boolean true := by
-  intro h
-  unfold __eo_ite at h
-  by_cases ht : native_teq (__eo_eq a b) (Term.Boolean true) = true
-  · simp [ht, native_ite] at h
-  · by_cases hf : native_teq (__eo_eq a b) (Term.Boolean false) = true
-    · have hEq : __eo_eq a b = Term.Boolean false := by
-        simpa [native_teq] using hf
-      simp [ht, hf, native_ite] at h
-      exact ⟨hEq, h⟩
-    · simp [ht, hf, native_ite] at h
 
 private theorem prog_dt_cons_eq_clash_shape_of_not_stuck
     (t s : Term) :
