@@ -3286,7 +3286,7 @@ private theorem facts___eo_prog_distinct_values_of_eval_eq_false
   exact RuleProofs.eo_interprets_not_of_false M
     (Term.Apply (Term.Apply (Term.UOp UserOp.eq) a) b) hEqFalse
 
-private theorem are_distinct_terms_type_model_eval_eq_false
+theorem are_distinct_terms_type_model_eval_eq_false
     (M : SmtModel) (hM : model_total_typed M) (a b : Term) :
     RuleProofs.eo_has_smt_translation a ->
     RuleProofs.eo_has_smt_translation b ->
