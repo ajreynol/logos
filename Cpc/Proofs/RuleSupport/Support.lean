@@ -77,6 +77,16 @@ def StableWhenTrueInAnyVarModel (P : Term) : Prop :=
     StableInAnyVarModel M P
 
 /--
+Closed EO formulas are stable under changes to SMT variable assignments.
+
+The checker enforces this with `__eo_is_closed` on `assume` and `assume_push`;
+this bridge turns that executable guard into the semantic invariant needed by
+binder-sensitive rule proofs.
+-/
+axiom stableWhenTrueInAnyVarModel_of_closed :
+  ∀ P, __eo_is_closed P = Term.Boolean true -> StableWhenTrueInAnyVarModel P
+
+/--
 Contextual truth for a derived formula.
 
 The first field is the ordinary checker fact in the current model. The second

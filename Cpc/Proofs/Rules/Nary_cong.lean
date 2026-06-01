@@ -27,15 +27,15 @@ by
   | cons a1 args =>
       cases args with
       | nil =>
-          have hCmdTransPair :
-              cArgListTranslationOk (CArgList.cons a1 CArgList.nil) ∧
-                congArgQuantifierBindersWf (CArgList.cons a1 CArgList.nil) := by
+          have hCmdTransArgs :
+              cArgListTranslationOk (CArgList.cons a1 CArgList.nil) := by
             simpa [cmdTranslationOk] using hCmdTrans
-          have hATransPair : RuleProofs.eo_has_smt_translation a1 ∧ True := by
-            simpa [cArgListTranslationOk] using hCmdTransPair.1
-          have hATrans : RuleProofs.eo_has_smt_translation a1 := hATransPair.1
-          have hAQuantBindersWf : TermQuantifierBindersWf a1 := by
-            simpa [congArgQuantifierBindersWf] using hCmdTransPair.2
+          have hATransPair : eoHasSmtTranslation a1 ∧ True := by
+            simpa [cArgListTranslationOk] using hCmdTransArgs
+          have hATrans : RuleProofs.eo_has_smt_translation a1 := by
+            simpa [eoHasSmtTranslation, RuleProofs.eo_has_smt_translation] using hATransPair.1
+          have hAQuantBindersWf : TermQuantifierBindersWf a1 :=
+            termQuantifierBindersWf_of_eoHasSmtTranslation a1 hATransPair.1
           have hProgNaryCong :
               __eo_prog_nary_cong a1
                   (Proof.pf (__eo_mk_premise_list (Term.UOp UserOp.and) premises s)) ≠

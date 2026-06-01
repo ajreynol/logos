@@ -1539,6 +1539,35 @@ by
           (__eo_invoke_assume_list CState.nil rest) hGuard]
         exact checkerAssumptionStabilityInvariant_stuck M
 
+/-- A successful checked input-assumption pass yields stable assumptions. -/
+theorem stableAssumptionList_of_stateOk_assume_list (M : SmtModel) :
+  forall {F : Term},
+    ValidAssumptionList F ->
+    stateOk (__eo_invoke_assume_list CState.nil F) ->
+    StableAssumptionList M F
+:=
+by
+  intro F hValid
+  induction hValid with
+  | base =>
+      intro hOk
+      exact StableAssumptionList.base
+  | step A rest hRest ih =>
+      intro hOk
+      have hPushOk :
+          stateOk (__eo_push_input_assume_check (assumptionCheckGuard A) A
+            (__eo_invoke_assume_list CState.nil rest)) := by
+        simpa [__eo_invoke_assume_list] using hOk
+      have hClosed : __eo_is_closed A = Term.Boolean true :=
+        push_input_assume_closed_of_stateOk A
+          (__eo_invoke_assume_list CState.nil rest) hPushOk
+      have hRestOk : stateOk (__eo_invoke_assume_list CState.nil rest) :=
+        push_input_assume_reflects_stateOk A
+          (__eo_invoke_assume_list CState.nil rest) hPushOk
+      exact StableAssumptionList.step A rest
+        (stableWhenTrueInAnyVarModel_of_closed A hClosed)
+        (ih hRestOk)
+
 /-- Shows that `push_assume` preserves `localTruthInvariant`. -/
 theorem push_assume_preserves_localTruthInvariant
     (M : SmtModel) (s : CState) (A : Term) :
@@ -2279,6 +2308,45 @@ by
           exact invoke_cmd_step_pop_reflects_stateOk (CState.cons so s) (CState.cons so s)
             r args premises (by simpa [__eo_invoke_cmd] using hOk)
 
+/-- A successful checked command invocation yields any stability invariant that the command introduces. -/
+theorem cmdAssumptionStabilityOk_of_stateOk_invoke_cmd (M : SmtModel) :
+  forall (s : CState) (c : CCmd),
+    stateOk (__eo_invoke_cmd s c) ->
+    cmdAssumptionStabilityOk M c
+:=
+by
+  intro s c
+  cases c with
+  | assume_push A =>
+      cases s with
+      | nil =>
+          intro hOk
+          have hPushOk :
+              stateOk (__eo_push_assume_check (assumptionCheckGuard A) A CState.nil) := by
+            simpa [__eo_invoke_cmd] using hOk
+          exact stableWhenTrueInAnyVarModel_of_closed A
+            (push_assume_closed_of_stateOk A CState.nil hPushOk)
+      | Stuck =>
+          intro hOk
+          simp [__eo_invoke_cmd, stateOk] at hOk
+      | cons so s =>
+          intro hOk
+          have hPushOk :
+              stateOk (__eo_push_assume_check (assumptionCheckGuard A) A
+                (CState.cons so s)) := by
+            simpa [__eo_invoke_cmd] using hOk
+          exact stableWhenTrueInAnyVarModel_of_closed A
+            (push_assume_closed_of_stateOk A (CState.cons so s) hPushOk)
+  | check_proven proven =>
+      intro hOk
+      simp [cmdAssumptionStabilityOk]
+  | step r args premises =>
+      intro hOk
+      simp [cmdAssumptionStabilityOk]
+  | step_pop r args premises =>
+      intro hOk
+      simp [cmdAssumptionStabilityOk]
+
 /-- Describes `stateAssumptionSuffix` after `invoke_cmd`. -/
 theorem stateAssumptionSuffix_invoke_cmd :
   forall (s : CState) (c : CCmd),
@@ -2471,6 +2539,29 @@ by
       have hTail : stateOk (__eo_invoke_cmd s c) := by
         exact ih (__eo_invoke_cmd s c) (by simpa [__eo_invoke_cmd_list] using hOk)
       exact invoke_cmd_reflects_stateOk s c hTail
+
+/-- A successful checked command list yields stability for every command-introduced assumption. -/
+theorem cmdListAssumptionStabilityOk_of_stateOk_invoke_cmd_list (M : SmtModel) :
+  forall (s : CState) (cs : CCmdList),
+    stateOk (__eo_invoke_cmd_list s cs) ->
+    CmdListAssumptionStabilityOk M cs
+:=
+by
+  intro s cs
+  induction cs generalizing s with
+  | nil =>
+      intro hOk
+      exact CmdListAssumptionStabilityOk.nil
+  | cons c cs ih =>
+      intro hOk
+      have hTailOk :
+          stateOk (__eo_invoke_cmd_list (__eo_invoke_cmd s c) cs) := by
+        simpa [__eo_invoke_cmd_list] using hOk
+      have hStepOk : stateOk (__eo_invoke_cmd s c) :=
+        invoke_cmd_list_reflects_stateOk (__eo_invoke_cmd s c) cs hTailOk
+      exact CmdListAssumptionStabilityOk.cons c cs
+        (cmdAssumptionStabilityOk_of_stateOk_invoke_cmd M s c hStepOk)
+        (ih (__eo_invoke_cmd s c) hTailOk)
 
 /-- Describes `stateAssumptionSuffix` after `invoke_cmd_list`. -/
 theorem stateAssumptionSuffix_invoke_cmd_list :

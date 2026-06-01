@@ -992,15 +992,11 @@ by
 /-- Main soundness theorem showing that a successful checker run yields an EO refutation. -/
 theorem correct___eo_is_refutation (F : Term) (pf : CCmdList) :
   TranslatableAssumptionList F ->
-  (∀ M : SmtModel, model_total_typed M -> eo_interprets M F true ->
-    StableAssumptionList M F) ->
   CmdListTranslationOk pf ->
-  (∀ M : SmtModel, model_total_typed M -> eo_interprets M F true ->
-    CmdListAssumptionStabilityOk M pf) ->
   (eo_is_refutation F pf) ->
   eo_satisfiability F false :=
 by
-  intro hFTrans hFStable hPfTrans hPfStable hRef
+  intro hFTrans hPfTrans hRef
   have hNoInterp : forall M : SmtModel, model_total_typed M -> ¬ (eo_interprets M F true) := by
     intro M hM hF
     cases hRef with
@@ -1013,12 +1009,16 @@ by
           simpa [S0, S1] using final_stateOk_of_checker_true F pf hChecker
         have hS0Ok : stateOk S0 := by
           simpa [S1] using invoke_cmd_list_reflects_stateOk S0 pf hS1Ok
+        have hFStable : StableAssumptionList M F :=
+          stableAssumptionList_of_stateOk_assume_list M hValid hS0Ok
         have hInit : checkerStateInvariant M S0 := by
           simpa [S0] using checkerStateInvariant_after_assume_list M F hValid hS0Ok
-            hFTrans (hFStable M hM hF)
+            hFTrans hFStable
+        have hPfStable : CmdListAssumptionStabilityOk M pf :=
+          cmdListAssumptionStabilityOk_of_stateOk_invoke_cmd_list M S0 pf hS1Ok
         have hSteps : checkerStateInvariant M S1 := by
           simpa [S0, S1] using invoke_cmd_list_preserves_stateInvariant M hM S0 pf
-            hInit hPfTrans (hPfStable M hM hF)
+            hInit hPfTrans hPfStable
         exact refutation_contradiction_of_truthInvariant M F pf hF
           (checkerLocalTruthInvariant_implies_truthInvariant M hSteps.2.1) hChecker
   apply smt_satisfiability.intro_false
