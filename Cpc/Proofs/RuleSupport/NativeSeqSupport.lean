@@ -1,0 +1,382 @@
+import Cpc.Proofs.RuleSupport.SequenceSupport
+
+open Eo
+open SmtEval
+open Smtm
+
+set_option linter.unusedVariables false
+set_option maxHeartbeats 10000000
+
+/-!
+Shared native-sequence `indexof`/`extract`/`contains` reasoning toolkit.
+
+These lemmas relate `native_seq_indexof` / `native_seq_contains` /
+`native_seq_extract` to concrete list decompositions.  They were previously
+proved privately (and redundantly) inside individual support and rule files
+(e.g. `ConcatSplitSupport`, `String_eager_reduction`); they are collected here
+as a low-level leaf so that downstream files can depend on a single common
+support file rather than importing one another.
+-/
+
+theorem int_nonneg_of_not_neg {i : native_Int} (hi : ¬ i < 0) :
+    0 ≤ i := by
+  cases i with
+  | ofNat n =>
+      simp
+  | negSucc n =>
+      exfalso
+      exact hi (by simp)
+
+theorem native_seq_indexof_rec_eq_neg_one_or_ge
+    (xs pat : List SmtValue) :
+    (i fuel : Nat) ->
+    native_seq_indexof_rec xs pat i fuel = -1 ∨
+      Int.ofNat i ≤ native_seq_indexof_rec xs pat i fuel
+  | i, 0 => by
+      simp [native_seq_indexof_rec]
+  | i, fuel + 1 => by
+      unfold native_seq_indexof_rec
+      split
+      · right
+        simp
+      · cases xs with
+        | nil =>
+            simp
+        | cons _ xs =>
+            cases native_seq_indexof_rec_eq_neg_one_or_ge xs pat (i + 1) fuel with
+            | inl h =>
+                left
+                exact h
+            | inr h =>
+                right
+                exact Int.le_trans (Int.ofNat_le.mpr (Nat.le_succ i)) h
+
+theorem native_seq_indexof_eq_neg_one_or_ge
+    (xs pat : List SmtValue) (i : native_Int) :
+    native_seq_indexof xs pat i = -1 ∨ i ≤ native_seq_indexof xs pat i := by
+  unfold native_seq_indexof
+  by_cases hi : i < 0
+  · simp [hi]
+  · have hi0 : 0 ≤ i := int_nonneg_of_not_neg hi
+    simp [hi]
+    by_cases hBounds : Int.toNat i + pat.length ≤ xs.length
+    · simp [hBounds]
+      cases native_seq_indexof_rec_eq_neg_one_or_ge (xs.drop (Int.toNat i)) pat
+          (Int.toNat i) (xs.length - (Int.toNat i + pat.length) + 1) with
+      | inl h =>
+          exact Or.inl h
+      | inr h =>
+          right
+          calc
+            i = (Int.toNat i : Int) := (Int.toNat_of_nonneg hi0).symm
+            _ ≤ native_seq_indexof_rec (xs.drop (Int.toNat i)) pat (Int.toNat i)
+                (xs.length - (Int.toNat i + pat.length) + 1) := h
+    · simp [hBounds]
+
+theorem native_seq_indexof_rec_bound
+    (xs pat : List SmtValue) :
+    (i fuel : Nat) ->
+    native_seq_indexof_rec xs pat i fuel = -1 ∨
+      ∃ j : Nat, native_seq_indexof_rec xs pat i fuel = Int.ofNat (i + j) ∧
+        j < fuel
+  | i, 0 => by
+      simp [native_seq_indexof_rec]
+  | i, fuel + 1 => by
+      unfold native_seq_indexof_rec
+      split
+      · right
+        exact ⟨0, by simp, by omega⟩
+      · cases xs with
+        | nil =>
+            simp
+        | cons _ xs =>
+            cases native_seq_indexof_rec_bound xs pat (i + 1) fuel with
+            | inl h =>
+                left
+                exact h
+            | inr h =>
+                rcases h with ⟨j, hj, hjlt⟩
+                right
+                refine ⟨j + 1, ?_, by omega⟩
+                simp [hj, Nat.add_comm, Nat.add_left_comm]
+
+theorem native_seq_indexof_le_len
+    (xs pat : List SmtValue) (i : native_Int) :
+    native_seq_indexof xs pat i ≤ Int.ofNat xs.length := by
+  unfold native_seq_indexof
+  split
+  · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
+  · dsimp
+    split
+    · rename_i hStart h
+      cases native_seq_indexof_rec_bound (xs.drop (Int.toNat i)) pat (Int.toNat i)
+          (xs.length - (Int.toNat i + pat.length) + 1) with
+      | inl hRec =>
+          rw [hRec]
+          exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
+      | inr hRec =>
+          rcases hRec with ⟨j, hRec, hjlt⟩
+          rw [hRec]
+          apply Int.ofNat_le.mpr
+          have hjle : j ≤ xs.length - (Int.toNat i + pat.length) := by
+            omega
+          omega
+    · exact Int.le_trans (by decide : (-1 : Int) ≤ 0) (Int.natCast_nonneg _)
+
+theorem native_seq_extract_zero_nat
+    (xs : List SmtValue) (n : Nat) (hle : n <= xs.length) :
+    native_seq_extract xs 0 (Int.ofNat n) = xs.take n := by
+  unfold native_seq_extract
+  by_cases hn : n = 0
+  · subst n
+    simp
+  · have hnPosNat : 0 < n := Nat.pos_of_ne_zero hn
+    have hnPos : (0 : Int) < Int.ofNat n := Int.ofNat_lt.mpr hnPosNat
+    have hxsPosNat : 0 < xs.length := Nat.lt_of_lt_of_le hnPosNat hle
+    have hxsNe : xs ≠ [] := by
+      intro h
+      subst xs
+      simp at hxsPosNat
+    have hmin : min (Int.ofNat n) (Int.ofNat xs.length) = Int.ofNat n :=
+      Int.min_eq_left (Int.ofNat_le.mpr hle)
+    have hminToNat :
+        (min (Int.ofNat n) (Int.ofNat xs.length)).toNat = n := by
+      rw [hmin]
+      simp
+    have hminNat : min n xs.length = n := Nat.min_eq_left hle
+    simp [hn, hxsNe]
+    change
+      min ((min (Int.ofNat n) (Int.ofNat xs.length)).toNat) xs.length =
+        min n xs.length
+    rw [hminToNat, hminNat]
+
+theorem native_seq_extract_to_end_nat
+    (xs : List SmtValue) (i : Nat) (hle : i <= xs.length) :
+    native_seq_extract xs (Int.ofNat i) (Int.ofNat (xs.length - i)) =
+      xs.drop i := by
+  unfold native_seq_extract
+  by_cases hend : xs.length - i = 0
+  · have hLenLe : xs.length <= i := by omega
+    have hcast : (Int.ofNat i >= Int.ofNat xs.length) = true := by
+      simp [hLenLe]
+    simp [hend, List.drop_eq_nil_of_le hLenLe]
+  · have htailPosNat : 0 < xs.length - i := Nat.pos_of_ne_zero hend
+    have hiltNat : i < xs.length := by omega
+    have htailPos : (0 : Int) < Int.ofNat (xs.length - i) :=
+      Int.ofNat_lt.mpr htailPosNat
+    have hilt : Int.ofNat i < Int.ofNat xs.length :=
+      Int.ofNat_lt.mpr hiltNat
+    have hcastSub : Int.ofNat (xs.length - i) = Int.ofNat xs.length - Int.ofNat i :=
+      Int.ofNat_sub hle
+    have hmin :
+        min (Int.ofNat (xs.length - i))
+            (Int.ofNat xs.length - Int.ofNat i) =
+          Int.ofNat (xs.length - i) := by
+      rw [← hcastSub]
+      exact Int.min_eq_left (Int.le_refl _)
+    have htake :
+        (xs.drop i).take (xs.length - i) = xs.drop i := by
+      apply List.take_of_length_le
+      rw [List.length_drop]
+      exact Nat.le_refl _
+    have hLenNotLe : ¬ xs.length <= i := Nat.not_le_of_gt hiltNat
+    have hiNonneg : ¬ ((i : native_Int) < (0 : native_Int)) := by
+      exact Int.not_lt_of_ge (Int.natCast_nonneg i)
+    have hminToNat :
+        (min (Int.ofNat (xs.length - i))
+            (Int.ofNat xs.length - Int.ofNat i)).toNat =
+          xs.length - i := by
+      rw [hmin]
+      simp
+    simp [hend, hLenNotLe]
+    rw [if_neg hiNonneg]
+    change
+      List.take
+          ((min (Int.ofNat (xs.length - i))
+              (Int.ofNat xs.length - Int.ofNat i)).toNat)
+          (List.drop i xs) =
+        List.drop i xs
+    rw [hminToNat]
+    exact htake
+
+theorem native_seq_prefix_eq_append_drop
+    (pat xs : List SmtValue) :
+    native_seq_prefix_eq pat xs = true ->
+      pat ++ xs.drop pat.length = xs := by
+  induction pat generalizing xs with
+  | nil =>
+      intro _h
+      simp
+  | cons p ps ih =>
+      cases xs with
+      | nil =>
+          intro h
+          simp [native_seq_prefix_eq] at h
+      | cons x xs =>
+          intro h
+          have hParts : p = x ∧ native_seq_prefix_eq ps xs = true := by
+            simpa [native_seq_prefix_eq, native_veq] using h
+          rcases hParts with ⟨rfl, hTail⟩
+          simpa using ih xs hTail
+
+theorem native_seq_prefix_eq_self
+    (xs : List SmtValue) :
+    native_seq_prefix_eq xs xs = true := by
+  induction xs with
+  | nil =>
+      rfl
+  | cons x xs ih =>
+      simp [native_seq_prefix_eq, native_veq, ih]
+
+theorem native_seq_indexof_self_zero
+    (xs : List SmtValue) :
+    native_seq_indexof xs xs 0 = 0 := by
+  unfold native_seq_indexof
+  have hBounds : xs.length ≤ xs.length := Nat.le_refl _
+  simp
+  unfold native_seq_indexof_rec
+  simp [native_seq_prefix_eq_self]
+
+theorem native_seq_contains_self
+    (xs : List SmtValue) :
+    native_seq_contains xs xs = true := by
+  simp [native_seq_contains, native_seq_indexof_self_zero]
+
+theorem native_seq_indexof_rec_decomp
+    (xs pat : List SmtValue) :
+    (i fuel j : Nat) ->
+      native_seq_indexof_rec xs pat i fuel = Int.ofNat j ->
+      i ≤ j ∧
+        ∃ before after : List SmtValue,
+          xs = before ++ pat ++ after ∧ before.length = j - i
+  | i, 0, j, h => by
+      simp [native_seq_indexof_rec] at h
+  | i, fuel + 1, j, h => by
+      unfold native_seq_indexof_rec at h
+      by_cases hPrefix : native_seq_prefix_eq pat xs = true
+      · rw [if_pos hPrefix] at h
+        have hji : j = i := Int.ofNat.inj h.symm
+        subst j
+        constructor
+        · exact Nat.le_refl _
+        · refine ⟨[], xs.drop pat.length, ?_, by simp⟩
+          exact (native_seq_prefix_eq_append_drop pat xs hPrefix).symm
+      · rw [if_neg hPrefix] at h
+        cases xs with
+        | nil =>
+            simp at h
+        | cons x xs =>
+            rcases native_seq_indexof_rec_decomp xs pat (i + 1) fuel j h with
+              ⟨hLe, before, after, hXs, hBeforeLen⟩
+            constructor
+            · omega
+            · refine ⟨x :: before, after, ?_, ?_⟩
+              · simp [hXs, List.append_assoc]
+              · simp [hBeforeLen]
+                omega
+
+theorem native_seq_indexof_zero_decomp_of_nat
+    (xs pat : List SmtValue) (j : Nat)
+    (hIdx : native_seq_indexof xs pat 0 = Int.ofNat j) :
+    native_seq_extract xs 0 (Int.ofNat j) ++ pat ++
+        native_seq_extract xs (Int.ofNat j + Int.ofNat pat.length)
+          (Int.ofNat xs.length - (Int.ofNat j + Int.ofNat pat.length)) =
+      xs := by
+  unfold native_seq_indexof at hIdx
+  by_cases hBounds : pat.length ≤ xs.length
+  · simp [hBounds] at hIdx
+    rcases native_seq_indexof_rec_decomp xs pat 0
+        (xs.length - pat.length + 1) j hIdx with
+      ⟨_hLe, before, after, hXs, hBeforeLen⟩
+    have hBeforeLen' : before.length = j := by
+      simpa using hBeforeLen
+    have hJLe : j ≤ xs.length := by
+      have hLen := congrArg List.length hXs
+      simp [hBeforeLen'] at hLen
+      omega
+    have hStartLe : j + pat.length ≤ xs.length := by
+      have hLen := congrArg List.length hXs
+      simp [hBeforeLen'] at hLen
+      omega
+    have hPre :
+        native_seq_extract xs 0 (Int.ofNat j) = before := by
+      rw [native_seq_extract_zero_nat xs j hJLe]
+      rw [hXs]
+      simp [hBeforeLen']
+    have hSub :
+        Int.ofNat xs.length - (Int.ofNat j + Int.ofNat pat.length) =
+          Int.ofNat (xs.length - (j + pat.length)) := by
+      have hAdd :
+          Int.ofNat j + Int.ofNat pat.length =
+            Int.ofNat (j + pat.length) := by
+        simp
+      rw [hAdd]
+      exact (Int.ofNat_sub hStartLe).symm
+    have hSuf :
+        native_seq_extract xs (Int.ofNat j + Int.ofNat pat.length)
+            (Int.ofNat xs.length - (Int.ofNat j + Int.ofNat pat.length)) =
+          after := by
+      have hAdd :
+          Int.ofNat j + Int.ofNat pat.length =
+            Int.ofNat (j + pat.length) := by
+        simp
+      have hSub' :
+          Int.ofNat xs.length - Int.ofNat (j + pat.length) =
+            Int.ofNat (xs.length - (j + pat.length)) :=
+        (Int.ofNat_sub hStartLe).symm
+      rw [hAdd, hSub']
+      rw [native_seq_extract_to_end_nat xs (j + pat.length) hStartLe]
+      rw [hXs]
+      rw [← hBeforeLen']
+      simp
+    rw [hPre, hSuf, hXs]
+  · simp [hBounds] at hIdx
+
+theorem native_seq_indexof_zero_decomp
+    (xs pat : List SmtValue)
+    (hIdxNonneg : 0 ≤ native_seq_indexof xs pat 0) :
+    let idx := native_seq_indexof xs pat 0
+    native_seq_extract xs 0 idx ++ pat ++
+        native_seq_extract xs (idx + Int.ofNat pat.length)
+          (Int.ofNat xs.length - (idx + Int.ofNat pat.length)) =
+      xs := by
+  let idx := native_seq_indexof xs pat 0
+  let j := Int.toNat idx
+  have hCast : Int.ofNat j = idx := Int.toNat_of_nonneg hIdxNonneg
+  have hIdx : native_seq_indexof xs pat 0 = Int.ofNat j := by
+    rw [hCast]
+  change
+    native_seq_extract xs 0 idx ++ pat ++
+        native_seq_extract xs (idx + Int.ofNat pat.length)
+          (Int.ofNat xs.length - (idx + Int.ofNat pat.length)) =
+      xs
+  rw [← hCast]
+  exact native_seq_indexof_zero_decomp_of_nat xs pat j hIdx
+
+theorem native_seq_extract_prefix_length_of_indexof_nonneg
+    (xs pat : List SmtValue)
+    (hIdxNonneg : 0 ≤ native_seq_indexof xs pat 0) :
+    Int.ofNat (native_seq_extract xs 0 (native_seq_indexof xs pat 0)).length =
+      native_seq_indexof xs pat 0 := by
+  let idx := native_seq_indexof xs pat 0
+  let j := Int.toNat idx
+  have hCast : Int.ofNat j = idx := Int.toNat_of_nonneg hIdxNonneg
+  have hIdx : native_seq_indexof xs pat 0 = Int.ofNat j := by
+    rw [hCast]
+  unfold native_seq_indexof at hIdx
+  by_cases hBounds : pat.length ≤ xs.length
+  · simp [hBounds] at hIdx
+    rcases native_seq_indexof_rec_decomp xs pat 0
+        (xs.length - pat.length + 1) j hIdx with
+      ⟨_hLe, before, after, hXs, hBeforeLen⟩
+    have hBeforeLen' : before.length = j := by
+      simpa using hBeforeLen
+    have hJLe : j ≤ xs.length := by
+      have hLen := congrArg List.length hXs
+      simp [hBeforeLen'] at hLen
+      omega
+    change Int.ofNat (native_seq_extract xs 0 idx).length = idx
+    rw [← hCast]
+    rw [native_seq_extract_zero_nat xs j hJLe]
+    simp [List.length_take, Nat.min_eq_left hJLe]
+  · simp [hBounds] at hIdx
