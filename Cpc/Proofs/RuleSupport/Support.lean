@@ -461,6 +461,43 @@ def StableWhenTrueInAnyVarModel (P : Term) : Prop :=
   ∀ M, model_total_typed M -> eo_interprets M P true ->
     StableInAnyVarModel M P
 
+theorem smt_interprets_of_model_eval_eq
+    {M N : SmtModel} {t : SmtTerm} {b : Bool}
+    (hEval : __smtx_model_eval M t = __smtx_model_eval N t) :
+  smt_interprets M t b ->
+    smt_interprets N t b :=
+by
+  intro h
+  cases h with
+  | intro_true hTy hTrue =>
+      exact smt_interprets.intro_true N t hTy (by
+        simpa [← hEval] using hTrue)
+  | intro_false hTy hFalse =>
+      exact smt_interprets.intro_false N t hTy (by
+        simpa [← hEval] using hFalse)
+
+theorem eo_interprets_of_smt_model_eval_eq
+    {M N : SmtModel} {P : Term} {b : Bool}
+    (hEval :
+      __smtx_model_eval M (__eo_to_smt P) =
+        __smtx_model_eval N (__eo_to_smt P)) :
+  eo_interprets M P b ->
+    eo_interprets N P b :=
+by
+  rw [RuleProofs.eo_interprets_iff_smt_interprets]
+  exact smt_interprets_of_model_eval_eq hEval
+
+theorem stableWhenTrueInAnyVarModel_of_smt_model_eval_eq
+    (P : Term)
+    (hEval : ∀ M N : SmtModel,
+      model_agrees_on_globals M N ->
+        __smtx_model_eval M (__eo_to_smt P) =
+          __smtx_model_eval N (__eo_to_smt P)) :
+  StableWhenTrueInAnyVarModel P :=
+by
+  intro M _ hTrue N _ hAgree
+  exact eo_interprets_of_smt_model_eval_eq (hEval M N hAgree) hTrue
+
 /--
 Closed EO formulas are stable under changes to SMT variable assignments.
 
