@@ -114,6 +114,34 @@ by
       · simpa [native_model_var_lookup, native_model_push, hKey]
           using hAgree.vars_eq s' T' hTail
 
+theorem native_model_lookup_eq_of_env
+    {vars : List SmtVarKey} {M N : SmtModel}
+    (hAgree : model_agrees_on_env vars M N)
+    (s : native_String) (T : SmtType) :
+  native_model_lookup M s T =
+    native_model_lookup N s T :=
+by
+  exact hAgree.globals.1 s T
+
+theorem native_model_fun_lookup_eq_of_env
+    {vars : List SmtVarKey} {M N : SmtModel}
+    (hAgree : model_agrees_on_env vars M N)
+    (fid : native_String) (T U : SmtType) :
+  native_model_fun_lookup M fid T U =
+    native_model_fun_lookup N fid T U :=
+by
+  exact hAgree.globals.2 fid T U
+
+theorem native_model_var_lookup_eq_of_env
+    {vars : List SmtVarKey} {M N : SmtModel}
+    (hAgree : model_agrees_on_env vars M N)
+    {s : native_String} {T : SmtType}
+    (hMem : (s, T) ∈ vars) :
+  native_model_var_lookup M s T =
+    native_model_var_lookup N s T :=
+by
+  exact hAgree.vars_eq s T hMem
+
 theorem native_eval_ifun_apply_eq_of_globals
     {M N : SmtModel} (hAgree : model_agrees_on_globals M N)
     (fid : native_String) (T U : SmtType) (i : SmtValue) :
@@ -444,6 +472,494 @@ def SmtTermClosedIn (vars : List SmtVarKey) : SmtTerm -> Prop
   | SmtTerm.ubv_to_int x => SmtTermClosedIn vars x
   | SmtTerm.sbv_to_int x => SmtTermClosedIn vars x
 
+theorem eo_and_eq_true_cases {a b : Term} :
+  __eo_and a b = Term.Boolean true ->
+    a = Term.Boolean true ∧ b = Term.Boolean true :=
+by
+  intro h
+  cases a <;> cases b <;>
+    simp [__eo_and, __eo_requires, native_ite, native_teq,
+      native_and] at h
+  case Boolean.Boolean b₁ b₂ =>
+    cases b₁ <;> cases b₂ <;> simp at h ⊢
+  case Binary.Binary =>
+    split at h <;> contradiction
+
+/-- Relation between an EO list of variables and the corresponding SMT binder stack. -/
+inductive EoSmtVarEnv : Term -> List SmtVarKey -> Prop where
+  | nil :
+      EoSmtVarEnv Term.__eo_List_nil []
+  | cons {s : native_String} {T env : Term} {vars : List SmtVarKey} :
+      EoSmtVarEnv env vars ->
+        EoSmtVarEnv
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) env)
+          ((s, __eo_to_smt_type T) :: vars)
+
+theorem EoSmtVarEnv.get_nil_ok :
+    ∀ {env : Term} {vars : List SmtVarKey},
+      EoSmtVarEnv env vars ->
+        __eo_is_ok (__eo_get_nil_rec Term.__eo_List_cons env) =
+          Term.Boolean true
+  | _, _, EoSmtVarEnv.nil =>
+      by
+        simp [__eo_get_nil_rec, __eo_requires, __eo_is_list_nil,
+          __eo_is_ok, native_ite, native_teq, native_not]
+  | _, _, EoSmtVarEnv.cons hTail =>
+      by
+        simpa [__eo_get_nil_rec, __eo_requires, __eo_is_ok,
+          native_ite, native_teq, native_not] using hTail.get_nil_ok
+
+theorem EoSmtVarEnv.is_list :
+    ∀ {env : Term} {vars : List SmtVarKey},
+      EoSmtVarEnv env vars ->
+        __eo_is_list Term.__eo_List_cons env = Term.Boolean true
+  | _, _, hEnv =>
+      by
+        cases hEnv with
+        | nil =>
+            simpa [__eo_is_list] using EoSmtVarEnv.get_nil_ok EoSmtVarEnv.nil
+        | cons hTail =>
+            simpa [__eo_is_list] using
+              EoSmtVarEnv.get_nil_ok (EoSmtVarEnv.cons hTail)
+
+theorem EoSmtVarEnv.cons_mk_apply
+    {s : native_String} {T env : Term} {vars : List SmtVarKey}
+    (hEnv : EoSmtVarEnv env vars) :
+  EoSmtVarEnv
+    (__eo_mk_apply
+      (Term.Apply Term.__eo_List_cons (Term.Var (Term.String s) T))
+      env)
+    ((s, __eo_to_smt_type T) :: vars) :=
+by
+  cases hEnv with
+  | nil =>
+      simpa [__eo_mk_apply] using
+        EoSmtVarEnv.cons (s := s) (T := T) EoSmtVarEnv.nil
+  | cons hTail =>
+      simpa [__eo_mk_apply] using
+        EoSmtVarEnv.cons (s := s) (T := T)
+          (EoSmtVarEnv.cons hTail)
+
+theorem EoSmtVarEnv.concat_rec :
+    ∀ {vs env : Term} {binderVars vars : List SmtVarKey},
+      EoSmtVarEnv vs binderVars ->
+        EoSmtVarEnv env vars ->
+          EoSmtVarEnv (__eo_list_concat_rec vs env) (binderVars ++ vars)
+  | _, _, _, _, EoSmtVarEnv.nil, hEnv =>
+      by
+        cases hEnv with
+        | nil =>
+            simpa [__eo_list_concat_rec] using EoSmtVarEnv.nil
+        | cons hTail =>
+            simpa [__eo_list_concat_rec] using EoSmtVarEnv.cons hTail
+  | _, _, _, _, EoSmtVarEnv.cons (s := s) (T := T) hTail, hEnv =>
+      by
+        cases hEnv with
+        | nil =>
+            simpa [__eo_list_concat_rec, List.cons_append]
+              using EoSmtVarEnv.cons_mk_apply
+                (s := s) (T := T)
+                (EoSmtVarEnv.concat_rec hTail EoSmtVarEnv.nil)
+        | cons hEnvTail =>
+            simpa [__eo_list_concat_rec, List.cons_append]
+              using EoSmtVarEnv.cons_mk_apply
+                (s := s) (T := T)
+                (EoSmtVarEnv.concat_rec hTail (EoSmtVarEnv.cons hEnvTail))
+
+theorem EoSmtVarEnv.concat :
+    ∀ {vs env : Term} {binderVars vars : List SmtVarKey},
+      EoSmtVarEnv vs binderVars ->
+        EoSmtVarEnv env vars ->
+          EoSmtVarEnv
+            (__eo_list_concat Term.__eo_List_cons vs env)
+            (binderVars ++ vars)
+  | _, _, _, _, hVs, hEnv =>
+      by
+        have hVsList := hVs.is_list
+        have hEnvList := hEnv.is_list
+        simpa [__eo_list_concat, __eo_requires, hVsList, hEnvList,
+          native_ite, native_teq]
+          using EoSmtVarEnv.concat_rec hVs hEnv
+
+theorem EoSmtVarEnv.mem_of_closed_var :
+    ∀ {env : Term} {vars : List SmtVarKey} {s : native_String} {T : Term},
+      EoSmtVarEnv env vars ->
+        __eo_is_closed_rec (Term.Var (Term.String s) T) env =
+          Term.Boolean true ->
+          (s, __eo_to_smt_type T) ∈ vars
+  | _, _, _, _, EoSmtVarEnv.nil, hClosed =>
+      by
+        simp [__eo_is_closed_rec] at hClosed
+  | _, _, s, T, EoSmtVarEnv.cons (s := s') (T := T') hTail, hClosed =>
+      by
+        by_cases hVarEq :
+            Term.Var (Term.String s') T' =
+              Term.Var (Term.String s) T
+        · injection hVarEq with hName hTy
+          injection hName with hs
+          cases hs
+          cases hTy
+          simp
+        · right
+          exact EoSmtVarEnv.mem_of_closed_var hTail (by
+            simpa [__eo_is_closed_rec, __eo_ite, __eo_eq, hVarEq,
+              native_ite, native_teq] using hClosed)
+
+theorem smtTermClosedIn_eo_to_smt_boolean
+    (vars : List SmtVarKey) (b : native_Bool) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Boolean b)) :=
+by
+  trivial
+
+theorem smtTermClosedIn_eo_to_smt_numeral
+    (vars : List SmtVarKey) (n : native_Int) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Numeral n)) :=
+by
+  trivial
+
+theorem smtTermClosedIn_eo_to_smt_rational
+    (vars : List SmtVarKey) (r : native_Rat) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Rational r)) :=
+by
+  trivial
+
+theorem smtTermClosedIn_eo_to_smt_string
+    (vars : List SmtVarKey) (s : native_String) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.String s)) :=
+by
+  trivial
+
+theorem smtTermClosedIn_eo_to_smt_binary
+    (vars : List SmtVarKey) (w n : native_Int) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Binary w n)) :=
+by
+  trivial
+
+theorem smtTermClosedIn_eo_to_smt_var_string
+    {vars : List SmtVarKey} {s : native_String} {T : Term}
+    (hMem : (s, __eo_to_smt_type T) ∈ vars) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Var (Term.String s) T)) :=
+by
+  exact hMem
+
+theorem smtTermClosedIn_eo_to_smt_var_string_of_closed_rec
+    {env : Term} {vars : List SmtVarKey} {s : native_String} {T : Term}
+    (hEnv : EoSmtVarEnv env vars)
+    (hClosed :
+      __eo_is_closed_rec (Term.Var (Term.String s) T) env =
+        Term.Boolean true) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Var (Term.String s) T)) :=
+by
+  exact smtTermClosedIn_eo_to_smt_var_string
+    (EoSmtVarEnv.mem_of_closed_var hEnv hClosed)
+
+theorem smtTermClosedIn_eo_to_smt_not
+    {vars : List SmtVarKey} {x : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x)) :
+  SmtTermClosedIn vars (__eo_to_smt (Term.Apply (Term.UOp UserOp.not) x)) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_eo_to_smt_and
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.and) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_or
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.or) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_imp
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.imp) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_xor
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.xor) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_eq
+    {vars : List SmtVarKey} {x y : Term}
+    (hx : SmtTermClosedIn vars (__eo_to_smt x))
+    (hy : SmtTermClosedIn vars (__eo_to_smt y)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt (Term.Apply (Term.Apply (Term.UOp UserOp.eq) x) y)) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_eo_to_smt_exists_nil
+    {vars : List SmtVarKey} {F : SmtTerm}
+    (hF : SmtTermClosedIn vars F) :
+  SmtTermClosedIn vars (__eo_to_smt_exists Term.__eo_List_nil F) :=
+by
+  exact hF
+
+theorem smtTermClosedIn_eo_to_smt_exists_cons
+    {vars : List SmtVarKey} {s : native_String} {T : Term}
+    {vs : Term} {F : SmtTerm}
+    (hBody :
+      SmtTermClosedIn ((s, __eo_to_smt_type T) :: vars)
+        (__eo_to_smt_exists vs F)) :
+  SmtTermClosedIn vars
+    (__eo_to_smt_exists
+      (Term.Apply (Term.Apply Term.__eo_List_cons
+        (Term.Var (Term.String s) T)) vs)
+      F) :=
+by
+  exact hBody
+
+theorem smtTermClosedIn_eo_to_smt_exists_cons_term
+    {vars : List SmtVarKey} {s : native_String} {T vs body : Term}
+    (hBody :
+      SmtTermClosedIn ((s, __eo_to_smt_type T) :: vars)
+        (__eo_to_smt_exists vs (__eo_to_smt body))) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.exists)
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) vs))
+        body)) :=
+by
+  exact hBody
+
+theorem smtTermClosedIn_eo_to_smt_exists_nil_term
+    {vars : List SmtVarKey} {body : Term} :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.exists) Term.__eo_List_nil)
+        body)) :=
+by
+  trivial
+
+theorem smtTermClosedIn_eo_to_smt_forall_nil
+    {vars : List SmtVarKey} {body : Term} :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.forall) Term.__eo_List_nil)
+        body)) :=
+by
+  trivial
+
+theorem smtTermClosedIn_eo_to_smt_forall_cons_term
+    {vars : List SmtVarKey} {s : native_String} {T vs body : Term}
+    (hBody :
+      SmtTermClosedIn ((s, __eo_to_smt_type T) :: vars)
+        (__eo_to_smt_exists vs (SmtTerm.not (__eo_to_smt body)))) :
+  SmtTermClosedIn vars
+    (__eo_to_smt
+      (Term.Apply
+        (Term.Apply (Term.UOp UserOp.forall)
+          (Term.Apply (Term.Apply Term.__eo_List_cons
+            (Term.Var (Term.String s) T)) vs))
+        body)) :=
+by
+  exact hBody
+
+theorem smtTermClosedIn_smt_apply
+    {vars : List SmtVarKey} {f x : SmtTerm}
+    (hf : SmtTermClosedIn vars f)
+    (hx : SmtTermClosedIn vars x) :
+  SmtTermClosedIn vars (SmtTerm.Apply f x) :=
+by
+  exact ⟨hf, hx⟩
+
+theorem smtTermClosedIn_smt_not
+    {vars : List SmtVarKey} {x : SmtTerm}
+    (hx : SmtTermClosedIn vars x) :
+  SmtTermClosedIn vars (SmtTerm.not x) :=
+by
+  exact hx
+
+theorem smtTermClosedIn_smt_and
+    {vars : List SmtVarKey} {x y : SmtTerm}
+    (hx : SmtTermClosedIn vars x)
+    (hy : SmtTermClosedIn vars y) :
+  SmtTermClosedIn vars (SmtTerm.and x y) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_smt_or
+    {vars : List SmtVarKey} {x y : SmtTerm}
+    (hx : SmtTermClosedIn vars x)
+    (hy : SmtTermClosedIn vars y) :
+  SmtTermClosedIn vars (SmtTerm.or x y) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_smt_eq
+    {vars : List SmtVarKey} {x y : SmtTerm}
+    (hx : SmtTermClosedIn vars x)
+    (hy : SmtTermClosedIn vars y) :
+  SmtTermClosedIn vars (SmtTerm.eq x y) :=
+by
+  exact ⟨hx, hy⟩
+
+theorem smtTermClosedIn_smt_exists
+    {vars : List SmtVarKey} {s : native_String} {T : SmtType}
+    {body : SmtTerm}
+    (hBody : SmtTermClosedIn ((s, T) :: vars) body) :
+  SmtTermClosedIn vars (SmtTerm.exists s T body) :=
+by
+  exact hBody
+
+theorem smtTermClosedIn_smt_forall
+    {vars : List SmtVarKey} {s : native_String} {T : SmtType}
+    {body : SmtTerm}
+    (hBody : SmtTermClosedIn ((s, T) :: vars) body) :
+  SmtTermClosedIn vars (SmtTerm.forall s T body) :=
+by
+  exact hBody
+
+theorem smtTermClosedIn_smt_choice_nth
+    {vars : List SmtVarKey} {s : native_String} {T : SmtType}
+    {body : SmtTerm} {n : native_Nat}
+    (hBody : SmtTermClosedIn ((s, T) :: vars) body) :
+  SmtTermClosedIn vars (SmtTerm.choice_nth s T body n) :=
+by
+  exact hBody
+
+theorem smtx_model_eval_var_eq_of_env
+    {vars : List SmtVarKey} {M N : SmtModel}
+    {s : native_String} {T : SmtType}
+    (hAgree : model_agrees_on_env vars M N)
+    (hClosed : SmtTermClosedIn vars (SmtTerm.Var s T)) :
+  __smtx_model_eval M (SmtTerm.Var s T) =
+    __smtx_model_eval N (SmtTerm.Var s T) :=
+by
+  simp [__smtx_model_eval, native_model_var_lookup_eq_of_env hAgree hClosed]
+
+theorem smtx_model_eval_uconst_eq_of_env
+    {vars : List SmtVarKey} {M N : SmtModel}
+    {s : native_String} {T : SmtType}
+    (hAgree : model_agrees_on_env vars M N) :
+  __smtx_model_eval M (SmtTerm.UConst s T) =
+    __smtx_model_eval N (SmtTerm.UConst s T) :=
+by
+  simp [__smtx_model_eval, native_model_lookup_eq_of_env hAgree]
+
+theorem smtx_model_eval_apply_eq_of_env
+    {vars : List SmtVarKey} {M N : SmtModel} {f x : SmtTerm}
+    (hAgree : model_agrees_on_env vars M N)
+    (hf :
+      __smtx_model_eval M f = __smtx_model_eval N f)
+    (hx :
+      __smtx_model_eval M x = __smtx_model_eval N x) :
+  __smtx_model_eval M (SmtTerm.Apply f x) =
+    __smtx_model_eval N (SmtTerm.Apply f x) :=
+by
+  cases f <;>
+    simp [__smtx_model_eval, hf, hx,
+      smtx_model_eval_apply_eq_of_globals hAgree.globals,
+      smtx_model_eval_dt_sel_eq_of_globals hAgree.globals]
+
+theorem smtx_model_eval_not_eq_of_eval_eq
+    {M N : SmtModel} {x : SmtTerm}
+    (hx :
+      __smtx_model_eval M x = __smtx_model_eval N x) :
+  __smtx_model_eval M (SmtTerm.not x) =
+    __smtx_model_eval N (SmtTerm.not x) :=
+by
+  simp [__smtx_model_eval, hx]
+
+theorem smtx_model_eval_and_eq_of_eval_eq
+    {M N : SmtModel} {x y : SmtTerm}
+    (hx :
+      __smtx_model_eval M x = __smtx_model_eval N x)
+    (hy :
+      __smtx_model_eval M y = __smtx_model_eval N y) :
+  __smtx_model_eval M (SmtTerm.and x y) =
+    __smtx_model_eval N (SmtTerm.and x y) :=
+by
+  simp [__smtx_model_eval, hx, hy]
+
+theorem smtx_model_eval_or_eq_of_eval_eq
+    {M N : SmtModel} {x y : SmtTerm}
+    (hx :
+      __smtx_model_eval M x = __smtx_model_eval N x)
+    (hy :
+      __smtx_model_eval M y = __smtx_model_eval N y) :
+  __smtx_model_eval M (SmtTerm.or x y) =
+    __smtx_model_eval N (SmtTerm.or x y) :=
+by
+  simp [__smtx_model_eval, hx, hy]
+
+theorem smtx_model_eval_imp_eq_of_eval_eq
+    {M N : SmtModel} {x y : SmtTerm}
+    (hx :
+      __smtx_model_eval M x = __smtx_model_eval N x)
+    (hy :
+      __smtx_model_eval M y = __smtx_model_eval N y) :
+  __smtx_model_eval M (SmtTerm.imp x y) =
+    __smtx_model_eval N (SmtTerm.imp x y) :=
+by
+  simp [__smtx_model_eval, hx, hy]
+
+theorem smtx_model_eval_xor_eq_of_eval_eq
+    {M N : SmtModel} {x y : SmtTerm}
+    (hx :
+      __smtx_model_eval M x = __smtx_model_eval N x)
+    (hy :
+      __smtx_model_eval M y = __smtx_model_eval N y) :
+  __smtx_model_eval M (SmtTerm.xor x y) =
+    __smtx_model_eval N (SmtTerm.xor x y) :=
+by
+  simp [__smtx_model_eval, hx, hy]
+
+theorem smtx_model_eval_eq_eq_of_eval_eq
+    {M N : SmtModel} {x y : SmtTerm}
+    (hx :
+      __smtx_model_eval M x = __smtx_model_eval N x)
+    (hy :
+      __smtx_model_eval M y = __smtx_model_eval N y) :
+  __smtx_model_eval M (SmtTerm.eq x y) =
+    __smtx_model_eval N (SmtTerm.eq x y) :=
+by
+  simp [__smtx_model_eval, hx, hy]
+
+theorem smtx_model_eval_exists_eq_of_body_eval_eq
+    {M N : SmtModel} {s : native_String} {T : SmtType}
+    {body : SmtTerm}
+    (hBody : ∀ v : SmtValue,
+      __smtx_model_eval (native_model_push M s T v) body =
+        __smtx_model_eval (native_model_push N s T v) body) :
+  __smtx_model_eval M (SmtTerm.exists s T body) =
+    __smtx_model_eval N (SmtTerm.exists s T body) :=
+by
+  simp [__smtx_model_eval, native_eval_texists_eq_of_body_eval_eq hBody]
+
+theorem smtx_model_eval_forall_eq_of_body_eval_eq
+    {M N : SmtModel} {s : native_String} {T : SmtType}
+    {body : SmtTerm}
+    (hBody : ∀ v : SmtValue,
+      __smtx_model_eval (native_model_push M s T v) body =
+        __smtx_model_eval (native_model_push N s T v) body) :
+  __smtx_model_eval M (SmtTerm.forall s T body) =
+    __smtx_model_eval N (SmtTerm.forall s T body) :=
+by
+  simp [__smtx_model_eval, native_eval_tforall_eq_of_body_eval_eq hBody]
+
 /-- A formula remains true when only SMT variable assignments are changed. -/
 def StableInAnyVarModel (M : SmtModel) (P : Term) : Prop :=
   ∀ N, model_total_typed N -> model_agrees_on_globals M N ->
@@ -492,18 +1008,45 @@ by
   exact eo_interprets_of_smt_model_eval_eq (hEval M N hAgree) hTrue
 
 /--
-Remaining evaluator invariant for closed EO formulas.
+Remaining translation invariant for closed EO formulas.
 
-The checker enforces `__eo_is_closed` on `assume` and `assume_push`; this
-lower-level bridge says the SMT translation of such a closed formula is
-insensitive to changes in SMT variable assignments. It is stated at the
-empty SMT-variable environment because binder cases extend that environment.
+Executable EO closedness should imply closedness of the translated SMT term in
+the empty SMT-variable environment.
 -/
-axiom smt_model_eval_eq_of_eo_closed_in_empty_env :
+axiom smtTermClosedIn_of_eo_is_closed :
   ∀ P, __eo_is_closed P = Term.Boolean true ->
-    ∀ M N : SmtModel, model_agrees_on_env [] M N ->
-      __smtx_model_eval M (__eo_to_smt P) =
-        __smtx_model_eval N (__eo_to_smt P)
+    SmtTermClosedIn [] (__eo_to_smt P)
+
+/--
+Remaining structural SMT evaluator invariant.
+
+If two models agree on all globals and on the currently bound SMT variables,
+then every SMT term closed in that environment evaluates identically in them.
+-/
+axiom smt_model_eval_eq_of_closedIn :
+  ∀ (t : SmtTerm) (vars : List SmtVarKey) (M N : SmtModel),
+    SmtTermClosedIn vars t ->
+      model_agrees_on_env vars M N ->
+        __smtx_model_eval M t = __smtx_model_eval N t
+
+theorem smt_model_eval_eq_of_eo_closed_in_empty_env
+    (P : Term) (hClosed : __eo_is_closed P = Term.Boolean true)
+    (M N : SmtModel) (hAgree : model_agrees_on_env [] M N) :
+  __smtx_model_eval M (__eo_to_smt P) =
+    __smtx_model_eval N (__eo_to_smt P) :=
+by
+  exact smt_model_eval_eq_of_closedIn (__eo_to_smt P) [] M N
+    (smtTermClosedIn_of_eo_is_closed P hClosed) hAgree
+
+theorem smt_model_eval_eq_of_eo_smt_closed
+    {P : Term} {M N : SmtModel}
+    (hClosed : SmtTermClosedIn [] (__eo_to_smt P))
+    (hAgree : model_agrees_on_globals M N) :
+  __smtx_model_eval M (__eo_to_smt P) =
+    __smtx_model_eval N (__eo_to_smt P) :=
+by
+  exact smt_model_eval_eq_of_closedIn (__eo_to_smt P) [] M N hClosed
+    (model_agrees_on_env_nil_of_globals hAgree)
 
 /-- Closed EO formula evaluation is insensitive to variable-model changes. -/
 theorem smt_model_eval_eq_of_eo_closed
