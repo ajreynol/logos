@@ -551,6 +551,153 @@ private theorem cprop_true_head_string_of_tailword_ne
           __eo_extract, __str_nary_intro, __str_flatten, ← hScEq]
       exact False.elim (hTailWordNe hBad)
 
+private theorem strConcatDrop_substrWord
+    (s : native_String) :
+    ∀ (n d : Nat) (start : native_Int),
+      d <= n ->
+      strConcatDrop (RuleProofs.substrWord s start n) d =
+        RuleProofs.substrWord s (start + Int.ofNat d) (n - d)
+  | _n, 0, _start, _h => by
+      simp [strConcatDrop]
+  | 0, d + 1, _start, h => by
+      omega
+  | n + 1, d + 1, start, h => by
+      simp [RuleProofs.substrWord, strConcatDrop]
+      have hdn : d <= n := Nat.succ_le_succ_iff.mp h
+      have hDrop :=
+        strConcatDrop_substrWord s n d (start + 1) hdn
+      rw [hDrop]
+      have hStart :
+          start + 1 + Int.ofNat d = start + (Int.ofNat d + 1) := by
+        ac_rfl
+      rw [hStart]
+      simp
+
+private theorem native_unpack_seq_pack_string (s : native_String) :
+    native_unpack_seq (native_pack_string s) =
+      s.map SmtValue.Char := by
+  simp [native_pack_string, RuleProofs.native_unpack_seq_pack_seq]
+
+private theorem string_eval_unpack_eq
+    (M : SmtModel) (s : native_String) (ss : SmtSeq)
+    (hEval :
+      __smtx_model_eval M (__eo_to_smt (Term.String s)) =
+        SmtValue.Seq ss) :
+    native_unpack_seq ss = s.map SmtValue.Char := by
+  change __smtx_model_eval M (SmtTerm.String s) = SmtValue.Seq ss at hEval
+  rw [__smtx_model_eval.eq_4] at hEval
+  injection hEval with hSeq
+  rw [← hSeq]
+  simp [native_pack_string, native_unpack_pack_seq]
+
+private theorem mkConcat_eval_unpack_eq
+    (M : SmtModel) (x y : Term) (sxy sx sy : SmtSeq)
+    (hxyEval :
+      __smtx_model_eval M (__eo_to_smt (mkConcat x y)) =
+        SmtValue.Seq sxy)
+    (hxEval : __smtx_model_eval M (__eo_to_smt x) = SmtValue.Seq sx)
+    (hyEval : __smtx_model_eval M (__eo_to_smt y) = SmtValue.Seq sy) :
+    native_unpack_seq sxy =
+      native_unpack_seq sx ++ native_unpack_seq sy := by
+  rw [smtx_model_eval_str_concat_term_eq, hxEval, hyEval] at hxyEval
+  simp [__smtx_model_eval_str_concat, native_seq_concat] at hxyEval
+  rw [← hxyEval]
+  simp [native_unpack_pack_seq]
+
+private theorem str_flatten_arg_ne_stuck_of_ne_stuck (x : Term)
+    (h : __str_flatten x ≠ Term.Stuck) :
+    x ≠ Term.Stuck := by
+  intro hx
+  subst x
+  simp [__str_flatten] at h
+
+private theorem cprop_flat_second_false_tail_head_of_ne_stuck
+    (t tc tTail : Term)
+    (hIntroT : __str_nary_intro t = mkConcat tc tTail)
+    (hTTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tTail = Term.Boolean true)
+    (hFlatNe : concatCPropFlatSecond (Term.Boolean false) t ≠ Term.Stuck) :
+    ∃ x xTail,
+      tTail = mkConcat x xTail ∧
+        __eo_is_list (Term.UOp UserOp.str_concat) xTail = Term.Boolean true ∧
+        concatCPropFlatSecond (Term.Boolean false) t =
+          __str_flatten (__str_nary_intro x) := by
+  have hSecondEq :
+      concatCPropSecond (Term.Boolean false) t =
+        __eo_list_nth (Term.UOp UserOp.str_concat) tTail
+          (Term.Numeral 0) := by
+    simpa [concatCPropSecond, concatCPropNormalize, concatSplitNormalize,
+      eo_ite_false, hIntroT] using
+      eo_list_nth_one_str_concat_cons_eq_tail_zero tc tTail hTTailList
+  have hIntroSecondNe :
+      __str_nary_intro (concatCPropSecond (Term.Boolean false) t) ≠
+        Term.Stuck :=
+    str_flatten_arg_ne_stuck_of_ne_stuck
+      (__str_nary_intro (concatCPropSecond (Term.Boolean false) t))
+      hFlatNe
+  have hSecondNe :
+      concatCPropSecond (Term.Boolean false) t ≠ Term.Stuck :=
+    str_nary_intro_arg_ne_stuck_of_ne_stuck
+      (concatCPropSecond (Term.Boolean false) t) hIntroSecondNe
+  have hNthNe :
+      __eo_list_nth (Term.UOp UserOp.str_concat) tTail
+          (Term.Numeral 0) ≠ Term.Stuck := by
+    rwa [hSecondEq] at hSecondNe
+  let x :=
+    __eo_list_nth (Term.UOp UserOp.str_concat) tTail (Term.Numeral 0)
+  rcases list_nth_zero_eq_cons_of_ne_stuck
+      (Term.UOp UserOp.str_concat) tTail x rfl (by simpa [x] using hNthNe)
+    with ⟨xTail, hTailEq, hXTailList⟩
+  refine ⟨x, xTail, hTailEq, hXTailList, ?_⟩
+  simp [concatCPropFlatSecond, hSecondEq, x]
+
+private theorem cprop_flat_second_true_tail_head_of_rev_ne_stuck
+    (t tc tTail : Term)
+    (hRevIntroT :
+      __eo_list_rev (Term.UOp UserOp.str_concat) (__str_nary_intro t) =
+        mkConcat tc tTail)
+    (hTTailList :
+      __eo_is_list (Term.UOp UserOp.str_concat) tTail = Term.Boolean true)
+    (hRevFlatNe :
+      __eo_list_rev (Term.UOp UserOp.str_concat)
+          (concatCPropFlatSecond (Term.Boolean true) t) ≠ Term.Stuck) :
+    ∃ x xTail,
+      tTail = mkConcat x xTail ∧
+        __eo_is_list (Term.UOp UserOp.str_concat) xTail = Term.Boolean true ∧
+        concatCPropFlatSecond (Term.Boolean true) t =
+          __str_flatten (__str_nary_intro x) := by
+  have hFlatNe : concatCPropFlatSecond (Term.Boolean true) t ≠ Term.Stuck :=
+    eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+      (concatCPropFlatSecond (Term.Boolean true) t) hRevFlatNe
+  have hSecondEq :
+      concatCPropSecond (Term.Boolean true) t =
+        __eo_list_nth (Term.UOp UserOp.str_concat) tTail
+          (Term.Numeral 0) := by
+    simpa [concatCPropSecond, concatCPropNormalize, concatSplitNormalize,
+      eo_ite_true, hRevIntroT] using
+      eo_list_nth_one_str_concat_cons_eq_tail_zero tc tTail hTTailList
+  have hIntroSecondNe :
+      __str_nary_intro (concatCPropSecond (Term.Boolean true) t) ≠
+        Term.Stuck :=
+    str_flatten_arg_ne_stuck_of_ne_stuck
+      (__str_nary_intro (concatCPropSecond (Term.Boolean true) t))
+      hFlatNe
+  have hSecondNe :
+      concatCPropSecond (Term.Boolean true) t ≠ Term.Stuck :=
+    str_nary_intro_arg_ne_stuck_of_ne_stuck
+      (concatCPropSecond (Term.Boolean true) t) hIntroSecondNe
+  have hNthNe :
+      __eo_list_nth (Term.UOp UserOp.str_concat) tTail
+          (Term.Numeral 0) ≠ Term.Stuck := by
+    rwa [hSecondEq] at hSecondNe
+  let x :=
+    __eo_list_nth (Term.UOp UserOp.str_concat) tTail (Term.Numeral 0)
+  rcases list_nth_zero_eq_cons_of_ne_stuck
+      (Term.UOp UserOp.str_concat) tTail x rfl (by simpa [x] using hNthNe)
+    with ⟨xTail, hTailEq, hXTailList⟩
+  refine ⟨x, xTail, hTailEq, hXTailList, ?_⟩
+  simp [concatCPropFlatSecond, hSecondEq, x]
+
 private theorem eo_prog_concat_cprop_eq_of_ne_stuck
     (rev t s tc : Term)
     (hProg :
@@ -2863,6 +3010,32 @@ private theorem facts_concat_cprop_false_formula
   have hRecNe : __str_overlap_rec recS recT ≠ Term.Stuck := by
     apply cprop_eo_add_one_arg_ne_stuck
     simpa [k, recS, recT, concatCPropOverlapLen, eo_ite_false] using hKNe
+  have hRecSNe : recS ≠ Term.Stuck :=
+    str_overlap_rec_left_ne_stuck_of_ne_stuck recS recT hRecNe
+  have hRecTNe : recT ≠ Term.Stuck :=
+    str_overlap_rec_right_ne_stuck_of_ne_stuck recS recT hRecNe
+  rcases cprop_false_head_string_of_tailword_ne s sc T hScEq hscTy
+      (by simpa [recS] using hRecSNe) with
+    ⟨scWord, hScString⟩
+  have hSsWord :
+      native_unpack_seq ss = scWord.map SmtValue.Char := by
+    exact string_eval_unpack_eq M scWord ss (by simpa [hScString] using hscEval)
+  rcases cprop_flat_second_false_tail_head_of_ne_stuck t tc tTail
+      hIntroT hTTailList (by simpa [recT] using hRecTNe) with
+    ⟨tSecond, tSecondTail, hTTailHead, hTSecondTailList, hRecTEq⟩
+  have htTailConsEval :
+      __smtx_model_eval M (__eo_to_smt (mkConcat tSecond tSecondTail)) =
+        SmtValue.Seq stail := by
+    simpa [hTTailHead] using htTailEval
+  rcases strConcat_args_seq_eval_of_concat_seq_eval M tSecond tSecondTail
+      ⟨stail, htTailConsEval⟩ with
+    ⟨⟨stSecond, htSecondEval⟩,
+      ⟨stSecondTail, htSecondTailEval⟩⟩
+  have hStailSplit :
+      native_unpack_seq stail =
+        native_unpack_seq stSecond ++ native_unpack_seq stSecondTail :=
+    mkConcat_eval_unpack_eq M tSecond tSecondTail stail stSecond
+      stSecondTail htTailConsEval htSecondEval htSecondTailEval
   rcases str_overlap_rec_numeral_of_ne_stuck recS recT hRecNe with
     ⟨m, hRec⟩
   have hOverlap :
@@ -2960,6 +3133,24 @@ private theorem facts_concat_cprop_true_formula
   have hRecNe : __str_overlap_rec recS recT ≠ Term.Stuck := by
     apply cprop_eo_add_one_arg_ne_stuck
     simpa [k, recS, recT, concatCPropOverlapLen, eo_ite_true] using hKNe
+  have hRecSNe : recS ≠ Term.Stuck :=
+    str_overlap_rec_left_ne_stuck_of_ne_stuck recS recT hRecNe
+  have hRecTNe : recT ≠ Term.Stuck :=
+    str_overlap_rec_right_ne_stuck_of_ne_stuck recS recT hRecNe
+  have hTailWordNe :
+      concatCPropSHeadTailWord (Term.Boolean true) s ≠ Term.Stuck :=
+    eo_list_rev_arg_ne_stuck_of_ne_stuck (Term.UOp UserOp.str_concat)
+      (concatCPropSHeadTailWord (Term.Boolean true) s)
+      (by simpa [recS] using hRecSNe)
+  rcases cprop_true_head_string_of_tailword_ne s sc T hScEq hscTy
+      hTailWordNe with
+    ⟨scWord, hScString⟩
+  have hSsWord :
+      native_unpack_seq ss = scWord.map SmtValue.Char := by
+    exact string_eval_unpack_eq M scWord ss (by simpa [hScString] using hscEval)
+  rcases cprop_flat_second_true_tail_head_of_rev_ne_stuck t tc tTail
+      hRevIntroT hTTailList (by simpa [recT] using hRecTNe) with
+    ⟨tSecond, tSecondTail, hTTailHead, hTSecondTailList, hFlatSecondEq⟩
   rcases str_overlap_rec_numeral_of_ne_stuck recS recT hRecNe with
     ⟨m, hRec⟩
   have hOverlap :
