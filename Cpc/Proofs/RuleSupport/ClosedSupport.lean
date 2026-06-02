@@ -42,6 +42,14 @@ theorem model_agrees_on_env_refl (vars : List SmtVarKey) (M : SmtModel) :
 by
   exact ⟨model_agrees_on_globals_refl M, by intro s T hMem; rfl⟩
 
+theorem model_agrees_on_env_nil_of_globals
+    {M N : SmtModel} :
+  model_agrees_on_globals M N ->
+    model_agrees_on_env [] M N :=
+by
+  intro hAgree
+  exact ⟨hAgree, by intro s T hMem; cases hMem⟩
+
 theorem model_agrees_on_globals_trans {M N K : SmtModel} :
   model_agrees_on_globals M N ->
   model_agrees_on_globals N K ->
@@ -488,13 +496,24 @@ Remaining evaluator invariant for closed EO formulas.
 
 The checker enforces `__eo_is_closed` on `assume` and `assume_push`; this
 lower-level bridge says the SMT translation of such a closed formula is
-insensitive to changes in SMT variable assignments.
+insensitive to changes in SMT variable assignments. It is stated at the
+empty SMT-variable environment because binder cases extend that environment.
 -/
-axiom smt_model_eval_eq_of_eo_closed :
+axiom smt_model_eval_eq_of_eo_closed_in_empty_env :
   ∀ P, __eo_is_closed P = Term.Boolean true ->
-    ∀ M N : SmtModel, model_agrees_on_globals M N ->
+    ∀ M N : SmtModel, model_agrees_on_env [] M N ->
       __smtx_model_eval M (__eo_to_smt P) =
         __smtx_model_eval N (__eo_to_smt P)
+
+/-- Closed EO formula evaluation is insensitive to variable-model changes. -/
+theorem smt_model_eval_eq_of_eo_closed
+    (P : Term) (hClosed : __eo_is_closed P = Term.Boolean true)
+    (M N : SmtModel) (hAgree : model_agrees_on_globals M N) :
+  __smtx_model_eval M (__eo_to_smt P) =
+    __smtx_model_eval N (__eo_to_smt P) :=
+by
+  exact smt_model_eval_eq_of_eo_closed_in_empty_env P hClosed M N
+    (model_agrees_on_env_nil_of_globals hAgree)
 
 /--
 Closed EO formulas are stable under changes to SMT variable assignments.
